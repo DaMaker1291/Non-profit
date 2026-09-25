@@ -30294,7 +30294,7 @@ function subjectFromParam(raw) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 35, builtAt: "2026-09-25T17:58:20.852Z" },
+      meta: { modules: 35, builtAt: "2026-09-25T18:12:06.239Z" },
     };
   });
   return __req("__entry__.js");

@@ -277,20 +277,45 @@
     toast._t = setTimeout(function () { n.hidden = true; }, 6000);
   }
 
+  // ── Theme ────────────────────────────────────────────────────────────────
+  // Stored on <html data-theme>; absent means "follow the system". Applied
+  // before first paint of every view so a dark learner never sees a white
+  // flash between pages.
+  function applyTheme() {
+    var theme = db.ui.theme || "";
+    if (theme) document.documentElement.setAttribute("data-theme", theme);
+    else document.documentElement.removeAttribute("data-theme");
+  }
+  function toggleTheme() {
+    var current = db.ui.theme || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    db.ui.theme = current === "dark" ? "light" : "dark";
+    save();
+    applyTheme();
+  }
+
   // ── Routes ────────────────────────────────────────────────────────────────
 
+  // The chrome's five destinations, with the small stroke icons the bottom tab
+  // bar draws. The header hides these on a phone and the tab bar shows them;
+  // both come from this one list so the two can never disagree.
   var NAV = [
-    ["#/home", "nav.home"],
-    ["#/learn", "nav.learn"],
-    ["#/curriculum", "nav.currTitle"],
-    ["#/evidence", "prog.nav"],
-    ["#/access", "nav.accessTitle"],
+    ["#/home", "nav.home", "M4 11.5 12 4l8 7.5M6.5 10v9h11v-9"],
+    ["#/learn", "nav.learn", "M5 5h11l3 3v11H5zM8 12h8M8 15.5h5"],
+    ["#/curriculum", "nav.currTitle", "M4 6h16M4 12h16M4 18h10"],
+    ["#/evidence", "prog.nav", "M5 19.5V13M12 19.5V5M19 19.5v-4"],
+    ["#/access", "nav.accessTitle", "M12 13.5 8.5 20M12 13.5l3.5 6.5M7 6.5a5 5 0 0 1 10 0M5 10h14"],
   ];
 
   function setNav(route) {
     var nav = document.getElementById("nav");
-    nav.innerHTML = NAV.map(function (pair) {
+    var tab = document.getElementById("tabbar");
+    var html = NAV.map(function (pair) {
       return '<a href="' + pair[0] + '"' + (route.indexOf(pair[0]) === 0 ? ' aria-current="page"' : "") + ">" + esc(t(pair[1])) + "</a>";
+    }).join("");
+    nav.innerHTML = html;
+    tab.innerHTML = NAV.map(function (pair) {
+      return '<a href="' + pair[0] + '"' + (route.indexOf(pair[0]) === 0 ? ' aria-current="page"' : "") + ">" +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + pair[2] + '"/></svg><span>' + esc(t(pair[1])) + "</span></a>";
     }).join("");
     var sel = document.getElementById("lang");
     sel.innerHTML = E.i18n.LANGS.map(function (l) {
@@ -343,9 +368,9 @@
     var ready = E.genome.CONCEPTS.filter(function (c) { return hasQuestions(c.id); }).length;
     root.className = "landing";
     root.innerHTML =
-      '<h1 style="font-size:2.1rem">' + esc(t("home.heroTitle")) + "</h1>" +
-      '<p class="muted" style="max-width:34rem">' + esc(t("home.heroSub")) + "</p>" +
-      '<p style="margin:1.25rem 0"><a class="btn primary" href="#/setup">' + esc(t("home.cta")) + "</a></p>" +
+      '<h1 class="hero-title">' + esc(t("home.heroTitle")) + "</h1>" +
+      '<p class="hero-sub">' + esc(t("home.heroSub")) + "</p>" +
+      '<div class="hero-cta"><a class="btn primary" href="#/setup">' + esc(t("home.cta")) + "</a></div>" +
       '<div class="note">' + esc(t("sb.note")) + "</div>" +
       '<hr class="rule">' +
       '<div class="section"><p class="eyebrow">' + esc(t("home.subjects")) + "</p>" +
@@ -493,8 +518,13 @@
     // a question counter over a concept list reads like, and it is nonsense.
     root.innerHTML =
       '<p class="eyebrow">' + esc(t("diag.title")) + "</p>" +
-      '<div class="spread"><h1 style="font-size:1.15rem">' + esc(cur ? ctitle(cur.conceptId) : "") + "</h1>" +
+      '<div class="spread"><h2>' + esc(cur ? ctitle(cur.conceptId) : "") + "</h2>" +
       '<span class="progress-line">' + done + " / " + total + " " + esc(t("home.concepts")) + "</span></div>" +
+      '<div class="dots">' +
+      diag.session.concepts.map(function (c) {
+        return "<i" + (c.done ? ' class="done"' : c === cur ? ' class="now"' : "") + "></i>";
+      }).join("") +
+      "</div>" +
       '<p class="q">' + esc(prompt) + "</p>" +
       '<div class="choices" id="choices">' +
       view.choices.map(function (c, i) {
@@ -624,7 +654,7 @@
           "<h2>" + esc(head.title) + "</h2>" +
           '<p class="why">' + esc(head.reason) + "</p>" +
           '<p class="why"><b>' + esc(t("next.whyNow")) + "</b> " + esc(head.why) + "</p>" +
-          '<div class="meta"><span>' + head.minutes + " " + esc(t("next.ev.min")) + "</span>" +
+          '<div class="meta"><span class="minutes">' + head.minutes + " " + esc(t("next.ev.min")) + "</span>" +
           (head.urgency !== "none" ? '<span class="tag due">' + esc(head.urgency) + "</span>" : "") +
           (head.expectedOutcome ? "<span>" + esc(head.expectedOutcome) + "</span>" : "") +
           "</div>" +
@@ -1057,6 +1087,7 @@
     if (!node) return;
     var act = node.getAttribute("data-act");
     if (act === "create") return createProfile();
+    if (act === "theme") return toggleTheme();
     if (act === "diag-answer") return answerDiagnostic(parseInt(node.getAttribute("data-i"), 10));
     if (act === "diag-skip") {
       var cur = E.diagnostic.currentConcept(diag.session);
@@ -1137,6 +1168,7 @@
 
   // ── Boot ──────────────────────────────────────────────────────────────────
 
+  applyTheme();
   applyDirection();
   paint();
 
