@@ -52,7 +52,10 @@ function add(conceptId, kind, example) {
   if (!m.has(kind)) m.set(kind, example);
 }
 
-const FLOAT_NOISE = /\d\.\d{5,}|\d\.\d*9{4,}|e[+-]\d+|NaN|undefined|Infinity/;
+// "undefined" as a QUOTED literal ('undefined') is legitimate CS vocabulary being
+// taught; a BARE `undefined` in prose is the leaked-interpolation artifact this
+// rule exists to catch. The quote guard keeps the detector aimed at the artifact.
+const FLOAT_NOISE = /\d\.\d{5,}|\d\.\d*9{4,}|e[+-]\d+|NaN|(?<!['"])\bundefined\b(?!['"])|Infinity/;
 
 // generateQuestion() pads colliding distractors with these. Seeing one means the
 // generator's own three distractors collided — a weak question, not a bug.

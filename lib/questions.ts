@@ -1840,12 +1840,34 @@ const SCI_GENS: Record<string, RawGen> = {
     };
   },
   "complexity": (r) => {
+    // The base used to be one fixed item; with a deep family composed at a 50%
+    // share, a student met this exact prompt half the time forever. Three angles
+    // of the same ranking skill keep the base honest alongside the family.
+    const angle = r.int(0, 2);
+    if (angle === 0) {
+      return {
+        prompt: `Which growth is FASTEST as n gets large?`,
+        correct: "2ⁿ",
+        wrongs: ["n²", "n log n", "n³"] as [string, string, string],
+        tags: [], explanation: `Order for large n: 2ⁿ ≫ n³ > n² > n log n > n > log n. Exponential algorithms hit a wall no computer can climb.`,
+        difficulty: 0.45,
+      };
+    }
+    if (angle === 1) {
+      return {
+        prompt: `Which growth is SLOWEST as n gets large?`,
+        correct: "log n",
+        wrongs: ["n²", "n log n", "2ⁿ"] as [string, string, string],
+        tags: [], explanation: `Order for large n: log n < n < n log n < n² < 2ⁿ. Binary search survives on how slowly log n climbs — doubling n adds one step.`,
+        difficulty: 0.45,
+      };
+    }
     return {
-      prompt: `Which growth is FASTEST as n gets large?`,
-      correct: "2ⁿ",
-      wrongs: ["n²", "n log n", "n³"] as [string, string, string],
-      tags: [], explanation: `Order for large n: 2ⁿ ≫ n³ > n² > n log n > n > log n. Exponential algorithms hit a wall no computer can climb.`,
-      difficulty: 0.45,
+      prompt: `Put these in order from slowest- to fastest-growing: n log n, n², n`,
+      correct: "n, then n log n, then n²",
+      wrongs: ["n log n, then n, then n²", "n², then n log n, then n", "n, then n², then n log n"] as [string, string, string],
+      tags: [], explanation: `Multiply n by log n and it outgrows plain n; multiply n by n and you get n². Each factor that grows with n pushes the curve up an order: n < n log n < n².`,
+      difficulty: 0.5,
     };
   },
   "binary-data": (r) => {
@@ -2194,17 +2216,23 @@ const CONSTANT_GENS = new Set([
   // from a family of variants as well as its authored item, and a concept
   // declared "designed/stable" that returns different prompts each draw would
   // make the declaration a lie — which is exactly what the sweep checks.
+  //
+  // The biology set (cells, enzymes, photosynthesis, respiration, digestion,
+  // circulation) has since joined them: each now composes a variant family from
+  // lib/questions-deep.ts and is swept by the same contract.
+  //
+  // The computing set (what-is-code, dictionaries, algorithms, recursion,
+  // complexity, networks, databases-sql, cybersecurity, web-stack, ai-basics)
+  // joined most recently — training-vs-inference, data-quality and
+  // query-reading variants — and left this set for the same reason.
   "iteration",
   "loci-constructions",
   "light-optics", "sound-acoustics", "magnetism", "thermal-physics",
-  "gravity-fields", "astrophysics", "atoms-elements", "compounds-mixtures", "periodic-table",
-  "electron-shells", "ionic-bonding", "covalent-bonding", "equations-stoich", "rates-reaction",
+  "gravity-fields", "astrophysics", "compounds-mixtures", "periodic-table",
+  "electron-shells", "covalent-bonding", "equations-stoich",
   "energy-changes", "acids-bases", "electrolysis", "organic-intro", "equilibria", "analysis-tests",
-  "cells", "enzymes", "digestion", "circulation", "breathing-gas", "photosynthesis",
-  "respiration", "nervous-system", "hormones", "evolution", "ecosystems", "biodiversity",
-  "immune-health", "what-is-code", "dictionaries", "algorithms-search", "algorithms-sort",
-  "recursion", "complexity", "networks", "cybersecurity", "databases-sql",
-  "web-stack", "ai-basics",
+  "breathing-gas", "nervous-system", "hormones", "evolution", "ecosystems", "biodiversity",
+  "immune-health",
 ]);
 
 export function isVariableGen(conceptId: string): boolean {

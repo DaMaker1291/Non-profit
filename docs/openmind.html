@@ -1596,12 +1596,21 @@ exports.BAND_RULES = { advance: 2, retest: 1, stop: 0 };
 // "before → after" number compares like with like. The same anchor concepts
 // every run; retest questions are parallel forms (same skill, fresh numbers
 // from the generator). Probe sessions stay random and never enter gains. ───
+// Every id here must be a real concept id with a variable generator — the
+// filter in `benchmarkAnchors` silently drops anything else, and a subject
+// whose anchors all drop runs its baseline on a random spread (or nothing)
+// while the table claims a fixed benchmark. Chemistry's and biology's lists
+// named ids that never existed in the genome (`atomic-structure`, `moles`,
+// `rates-of-reaction`, `genetics-punnett`), so those subjects lost the
+// before/after guarantee this table exists to provide. Now they name the real
+// generators — which also means every anchor subject must KEEP a variable
+// generator for each anchor, and the genome-integrity sweep enforces that.
 exports.BENCHMARK_ANCHORS = {
     maths: ["fractions", "linear-equations", "quadratics", "pythagoras"],
-    physics: ["forces-newton", "circuits-ohms-law", "waves-basics", "energy-conservation"],
-    chemistry: ["atomic-structure", "ionic-bonding", "moles", "rates-of-reaction"],
-    biology: ["cells", "photosynthesis", "enzymes", "genetics-punnett"],
-    computing: ["variables", "loops", "conditionals", "functions"],
+    physics: ["forces-basics", "electricity-circuits", "waves-basics", "energy-conservation"],
+    chemistry: ["atoms-elements", "ionic-bonding", "moles-calcs", "rates-reaction"],
+    biology: ["cells", "photosynthesis", "enzymes", "genetics"],
+    computing: ["variables", "loops", "conditionals", "functions-code"],
 };
 /** Concepts from the anchor list that actually exist and can generate
  *  variable questions — the honest anchor set for this deployment. */
@@ -25400,6 +25409,12 @@ function deepMoney(x) {
     return `£${x.toFixed(2)}`;
 }
 const SUP_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+/** A number as Unicode superscript digits: 3 → ³, 12 → ¹². Used for ionic
+ *  charges and formula subscripts, where the shape of the number is the
+ *  chemistry. */
+function sup(n) {
+    return String(Math.abs(n)).split("").map((c) => SUP_DIGITS[Number(c)]).join("");
+}
 /** `10⁴`, `10⁻⁶` — a real power of ten, never `1e-6`. */
 function deepPow(n) {
     const sup = String(Math.abs(n)).split("").map((c) => SUP_DIGITS[Number(c)]).join("");
@@ -26798,6 +26813,990 @@ exports.DEEP_GENS = {
             explanation: `The table is a straight line through the origin — ${k} kPa per metre — so 2.5 m is 2.5 × ${k} = ${deepNum(2.5 * k, 2)} kPa. Between the rows you interpolate rather than read the nearest one: the pressure at 2.5 m is half-way between 2 m and 3 m, not equal to the 2 m reading.
         `,
             difficulty: 0.8,
+        };
+    },
+    // ── THE SINGLE-ITEM CONCEPTS, GIVEN FAMILIES ──────────────────────────────
+    //
+    // Forty-six generators were single designed items: honest assessment
+    // material, but a student practising "cells" met the same sentence forever,
+    // and the diagnostic — which by rule only samples variable generators — had
+    // almost nothing to sample in biology or chemistry (two variable chemistry
+    // generators, three in biology; a chemistry baseline probed two concepts and
+    // a biology one three). These families keep the authored item untouched
+    // (withDepth composes) and add the range practice needs: reasoning variants
+    // at application, arithmetic chains at multi-step, and readings out of tables
+    // and diagrams at the interpreting band. Every tags[] entry is a belief the
+    // concept ALREADY declares — the sweep enforces it in both directions.
+    // ── BIOLOGY ───────────────────────────────────────────────────────────────
+    /** Cells: which organelle answers which job, a specialisation trade-off, and
+     *  a structure/size reading out of a table. */
+    "cells": (r) => {
+        const variant = r.next();
+        if (variant < 0.3) {
+            const jobs = [
+                ["releases energy through respiration", "Mitochondria", ["Chloroplasts", "The nucleus", "The cell membrane"], "Respiration happens in the mitochondria — the cell's power stations. Chloroplasts are the photosynthesis organelle; the nucleus stores DNA; the membrane controls what enters and leaves."],
+                ["controls what enters and leaves the cell", "The cell membrane", ["The nucleus", "The cell wall", "Mitochondria"], "The membrane is selectively permeable: it holds the cell together AND decides what crosses. The wall (in plants) is structural — it lets almost anything diffuse past."],
+                ["carries the genetic instructions", "The nucleus", ["The cytoplasm", "The ribosome", "The vacuole"], "DNA lives in the nucleus; the cytoplasm is where the chemistry runs. Ribosomes build the proteins the nucleus's instructions describe."],
+                ["captures light for photosynthesis", "Chloroplasts", ["Mitochondria", "The vacuole", "Ribosomes"], "Chloroplasts contain chlorophyll, which absorbs light energy. They are the reason plants are green — and the reason they, unlike animals, can build sugar from air and water."],
+            ];
+            const [job, answer, wrong] = jobs[r.int(0, jobs.length - 1)];
+            return {
+                prompt: `Which structure's job is to ${job}?`,
+                correct: answer,
+                wrongs: pickDistinct(answer, wrong),
+                tags: [],
+                explanation: `${answer[0].toUpperCase() + answer.slice(1)} — ${answer.startsWith("The") ? "it" : "they"} ${job}. Every organelle is a structure serving one function; name the function and you have found the structure.`,
+                difficulty: 0.45,
+            };
+        }
+        if (variant < 0.6) {
+            const spec = [
+                ["A red blood cell has no nucleus.", "More room for haemoglobin, so more oxygen per cell", ["It can divide faster without DNA", "It lives longer than nucleated cells", "It can change into any other cell type"], "The nucleus is the plan; the cargo is haemoglobin. Dropping the nucleus frees space for more of it — a trade of flexibility (no division) for carrying capacity. Specialisation always trades one ability for another."],
+                ["A sperm cell is packed with mitochondria in its tail.", "To release the energy the tail needs for swimming", ["To make DNA for the egg", "To keep the sperm warm", "To store nutrients for the journey"], "Swimming the distance to the egg is an energy problem, and mitochondria are where respiration happens. Structure serving function again — the tail's job dictates its power supply."],
+                ["A root hair cell is long and thin with a huge surface area.", "To absorb water and minerals faster from the soil", ["To anchor the plant more firmly", "To store sugar made by the leaves", "To shield the root from pests"], "Absorption is a surface-area game: the more membrane touching soil, the faster water and minerals cross. Nothing about shape helps storage or defence — it is all uptake."],
+            ];
+            const [fact, answer, wrong] = spec[r.int(0, spec.length - 1)];
+            return {
+                prompt: `${fact} What is the advantage?`,
+                correct: answer,
+                wrongs: pickDistinct(answer, wrong),
+                tags: [],
+                explanation: `${answer}. Ask of every specialisation: what job does this shape MAKE POSSIBLE, and what did the cell give up to get it?`,
+                difficulty: 0.55,
+            };
+        }
+        const rows = [
+            ["Cheek lining (animal)", 60, false, true],
+            ["Leaf palisade (plant)", 80, true, true],
+            ["Yeast (fungus)", 8, false, false],
+        ];
+        const [name, width, chloro, nucleus] = rows[r.int(0, rows.length - 1)];
+        const correct = `${nucleus ? "Nucleus" : "No nucleus"}, ${chloro ? "chloroplasts present" : "no chloroplasts"}`;
+        return {
+            prompt: `A microscope shows a cell about ${width} μm wide:\n· green disks are visible inside it: ${chloro ? "yes" : "no"}\n· a dark rounded shape is visible: ${nucleus ? "yes" : "no"}\nThe cell is most likely which, and why?`,
+            correct: `${name} — ${nucleus ? "a nucleus is present" : "no nucleus is present"}${chloro ? " and chloroplasts show" : " and no chloroplasts show"}`,
+            wrongs: pickDistinct(`${name} — ${nucleus ? "a nucleus is present" : "no nucleus is present"}${chloro ? " and chloroplasts show" : " and no chloroplasts show"}`, [
+                `${nucleus ? "A fungus cell — no nucleus is present" : "An animal cell — a nucleus is present"}`,
+                `${chloro ? "An animal cell — chloroplasts show" : "A plant cell — chloroplasts show"}`,
+                `A bacterium — the width fits`,
+            ]),
+            tags: [],
+            explanation: `Read each observation against the organelle checklist: a ${width} μm cell ${nucleus ? "with" : "without"} a nucleus and ${chloro ? "with" : "without"} chloroplasts matches ${name.toLowerCase()}. Bacteria sit around 1–5 μm, so the width alone already excludes them.`,
+            difficulty: 0.78,
+        };
+    },
+    /** Enzymes: a temperature/субstrate reading, a lock-and-key reasoning item,
+     *  and an optimal-pH comparison across a table. */
+    "enzymes": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const opt = r.pick([30, 37, 40]);
+            const table = [10, 20, 30, 40, 50].map((t2) => {
+                const rate = t2 < opt ? t2 : opt === 37 ? (t2 === 40 ? 90 : t2 === 50 ? 20 : 0) : t2 <= opt ? 95 : 25;
+                return `${t2} °C → ${t2 === opt ? 100 : rate}%`;
+            });
+            return {
+                prompt: `An enzyme's reaction rate was measured at five temperatures:\n${table.join("\n")}\nWhat happens ABOVE the peak temperature, and why?`,
+                correct: "The rate falls sharply — the enzyme's active site denatures",
+                wrongs: pickDistinct("The rate falls sharply — the enzyme's active site denatures", [
+                    "The rate stays at the peak — more heat cannot help or harm",
+                    "The rate keeps rising — heat always speeds reactions",
+                    "The rate falls gently — the substrate runs out",
+                ]),
+                tags: [],
+                explanation: `Below the peak, heat gives molecules more kinetic energy — more successful collisions. Above it the protein vibrates so hard its three-dimensional shape warps: the active site no longer fits the substrate, so the rate COLLAPSES (in this table, from 100% to ${opt === 37 ? "90%" : "25%"} and below). Heat speeds chemistry but destroys protein shape — two effects fighting, and shape loses.`,
+                difficulty: 0.72,
+            };
+        }
+        if (variant < 0.67) {
+            const sub = [
+                ["starch", "amylase", "maltose"],
+                ["protein", "protease", "amino acids"],
+                ["fats", "lipase", "fatty acids and glycerol"],
+            ];
+            const [s2, e2, products] = sub[r.int(0, sub.length - 1)];
+            return {
+                prompt: `A student adds enzyme E to a solution of ${s2}. After 10 minutes the ${s2} has been digested into ${products}. Which statement identifies E and explains the specificity?`,
+                correct: `E is ${e2} — its active site fits only the ${s2} molecule's shape`,
+                wrongs: pickDistinct(`E is ${e2} — its active site fits only the ${s2} molecule's shape`, [
+                    `E is ${e2} — enzymes work on any large molecule they meet`,
+                    `E could be any digestive enzyme — all digest everything slowly`,
+                    `E is ${e2} — the ${s2} changed its own shape to fit the enzyme`,
+                ]),
+                tags: [],
+                explanation: `Lock and key: ${e2}'s active site is shaped for ${s2} alone — that is what specificity MEANS. The substrate fits INTO the enzyme's site; the enzyme does not mould itself to the substrate, and no other digestive enzyme has a site shaped for ${s2}.`,
+                difficulty: 0.6,
+            };
+        }
+        const pepsin = r.int(1, 3);
+        const amylase = 7;
+        return {
+            prompt: `Two enzymes' optimum pH:\n· Pepsin (stomach): pH ${pepsin === 1 ? 2 : pepsin === 3 ? 1 : 3}\n· Amylase (mouth): pH ${amylase}\nThe same amylase sample is placed at pH 2. What happens, and what does the comparison show?`,
+            correct: "Activity falls to near zero — the sample denatures far from its optimum; optimum pH differs by location",
+            wrongs: pickDistinct("Activity falls to near zero — the sample denatures far from its optimum; optimum pH differs by location", [
+                "Activity doubles — acids activate enzymes",
+                "Activity is unchanged — pH only matters for pepsin",
+                "The amylase works better because pH 2 is lower, and lower is faster",
+            ]),
+            tags: [],
+            explanation: `An enzyme works only near its optimum pH. Amylase's is ${amylase}; at pH 2 the ionic bonds holding its shape break, the active site warps, and activity collapses — the same denaturation heat causes, by a different route. Pepsin's optimum near pH 2 is why protein digestion works in the stomach but not the mouth: the enzymes are matched to their location's chemistry.`,
+            difficulty: 0.76,
+        };
+    },
+    /** Photosynthesis: a limiting-factor graph read, a glucose-fate reasoning
+     *  item, and a pondweed experiment table. */
+    "photosynthesis": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const sat = r.pick([8, 10, 12]);
+            const table = `\nLight (a.u.) → bubbles/min\n5 → 14\n10 → 26\n20 → ${sat * 2 + 2}\n40 → ${sat * 2 + 2}\n80 → ${sat * 2 + 2}`;
+            return {
+                prompt: `Pondweed bubbles per minute against light intensity:${table}\nWhy does the count stop rising beyond 20 a.u.?`,
+                correct: "A different factor (CO₂ or temperature) is now limiting",
+                wrongs: pickDistinct("A different factor (CO₂ or temperature) is now limiting", [
+                    "The plant has used up all its light",
+                    "Chlorophyll stops working at high light",
+                    "The plant is photosynthesising less as light rises",
+                ]),
+                tags: [],
+                explanation: `The plateau means light is no longer the bottleneck: some other input — CO₂ concentration or temperature — caps the rate. Law of the minimum: the scarcest requirement limits the whole process, no matter how much of the others you add.`,
+                difficulty: 0.75,
+            };
+        }
+        if (variant < 0.67) {
+            const fates = [
+                ["stored as starch in the leaves", "Insoluble, so it can be packed in without disturbing cell chemistry", ["Because starch tastes bad to pests", "Because starch carries more energy per gram than glucose", "To keep the glucose out of the light"], "Glucose is soluble and reactive; starch is insoluble and compact. Storage needs exactly that: something that sits quietly in large amounts without shifting water balance or reacting away."],
+                ["used in respiration", "To release energy for the plant's own chemistry", ["To build the cell wall directly", "To absorb more light", "To make the leaf green"], "Photosynthesis banks energy; respiration spends it. The glucose made in the chloroplast is the fuel the mitochondria burn — the two processes are the plant's earn-and-spend pair."],
+            ];
+            const [fate, why, wrong] = fates[r.int(0, fates.length - 1)];
+            return {
+                prompt: `Glucose made by photosynthesis is ${fate}. Why is it converted for that purpose?`,
+                correct: why,
+                wrongs: pickDistinct(why, wrong),
+                tags: [],
+                explanation: `${why}. Every use of glucose follows from its chemistry: soluble and reactive makes it a good fuel and a good building block, and insoluble-and-compact makes it a good store.`,
+                difficulty: 0.6,
+            };
+        }
+        const co2 = r.pick([0.04, 0.1]);
+        const lo = 12, hi = 40;
+        return {
+            prompt: `Two sealed bell jars over identical pondweed:\n· Jar A: air (0.04% CO₂), bright light → ${lo} bubbles/min\n· Jar B: enriched CO₂ (${co2}%), same bright light → ${hi} bubbles/min\nWhat conclusion do the two jars support?`,
+            correct: "CO₂ concentration limits the rate in jar A — with light held constant, more CO₂ raised it",
+            wrongs: pickDistinct("CO₂ concentration limits the rate in jar A — with light held constant, more CO₂ raised it", [
+                "Jar B is warmer, which alone explains the difference",
+                "Light must be limiting in both jars",
+                "The weed in jar B is a different species",
+            ]),
+            tags: [],
+            explanation: `Light was held constant, so the only changed input is CO₂ — and the rate rose from ${lo} to ${hi}. That is a controlled experiment doing its job: change one factor, hold the rest, attribute the difference. If light were limiting, extra CO₂ would have changed nothing.`,
+            difficulty: 0.78,
+        };
+    },
+    /** Respiration: the two routes side by side, an oxygen-debt reasoning item,
+     *  and a gas-comparison table. */
+    "respiration": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const m = r.pick([20, 30, 45]);
+            return {
+                prompt: `A sprinter's muscles run out of oxygen during a ${m}-second dash. Compare the energy released per glucose molecule with aerobic respiration.`,
+                correct: "Far less — anaerobic breaks down glucose only partially, to lactic acid",
+                wrongs: pickDistinct("Far less — anaerobic breaks down glucose only partially, to lactic acid", [
+                    "The same — glucose is glucose either way",
+                    "More — working without oxygen is more efficient",
+                    "Zero — no oxygen means no respiration at all",
+                ]),
+                tags: [],
+                explanation: `Aerobic respiration fully oxidises glucose to CO₂ and water, releasing its full energy. Anaerobic stops at lactic acid — a fuel still rich in energy, which is why so little is released. The sprinter is not choosing the worse route; they are borrowing speed now and repaying the debt (oxidising that lactic acid) after the finish line.`,
+                difficulty: 0.62,
+            };
+        }
+        if (variant < 0.67) {
+            const ex = r.pick([70, 80, 90]);
+            return {
+                prompt: `During hard exercise a student's breathing rate stays high for minutes after stopping. What is the extra oxygen used for?`,
+                correct: "Oxidising the lactic acid that built up in the muscles",
+                wrongs: pickDistinct("Oxidising the lactic acid that built up in the muscles", [
+                    "Refilling the lungs, which emptied during the sprint",
+                    "Cooling the body down — oxygen is a coolant",
+                    "Making new red blood cells immediately",
+                ]),
+                tags: [],
+                explanation: `The oxygen debt: anaerobic work leaves lactic acid banked in the muscles, and repaying it needs oxygen — the liver oxidises it back toward glucose. Breathing and pulse stay up until the debt is cleared, which takes minutes, not seconds.`,
+                difficulty: 0.58,
+            };
+        }
+        const yeast = r.int(18, 32);
+        return {
+            prompt: `A fermentation flask of yeast in sugar solution is kept at ${yeast} °C:\n· limewater in the outlet turns cloudy\n· the solution smells of alcohol\nWhich process, and what do the two observations show?`,
+            correct: "Anaerobic respiration — CO₂ (limewater) and ethanol (the smell) are its products",
+            wrongs: pickDistinct("Anaerobic respiration — CO₂ (limewater) and ethanol (the smell) are its products", [
+                "Aerobic respiration — CO₂ and alcohol are its products",
+                "Photosynthesis — yeast makes sugar from CO₂",
+                "Denaturation — the yeast is breaking down at ${yeast} °C",
+            ]),
+            tags: [],
+            explanation: `Yeast without oxygen: glucose → ethanol + CO₂. Cloudy limewater is the standard test for CO₂; the alcohol smell is the ethanol. The temperature matters too: warm speeds fermentation, but far above ~40 °C the yeast enzymes denature and it stops.`,
+            difficulty: 0.72,
+        };
+    },
+    /** Digestion: which enzyme, where, and a molecule-tracing table. */
+    "digestion": (r) => {
+        const variant = r.next();
+        if (variant < 0.5) {
+            const enz = [
+                ["protein", "amino acids", "protease", "the stomach"],
+                ["fats", "fatty acids and glycerol", "lipase", "the small intestine"],
+                ["starch", "maltose", "amylase", "the mouth and small intestine"],
+            ];
+            const [food, product, enzyme, where] = enz[r.int(0, enz.length - 1)];
+            return {
+                prompt: `A food test on a sample taken from ${where} finds ${food} partially broken into ${product}. Which enzyme did the work?`,
+                correct: enzyme,
+                // Two real confusions (the wrong enzyme class; bile, which students
+                // miscall an enzyme) alongside the two remaining names — four options
+                // without leaning on the assembler's filler.
+                wrongs: pickDistinct(enzyme, [...enz.map((e) => e[2]).filter((e) => e !== enzyme), "Bile"]),
+                tags: [],
+                explanation: `${enzyme} digests ${food} into ${product}, and it is produced ${where === "the stomach" ? "in the stomach lining" : where === "the small intestine" ? "in the pancreas and small intestine" : "in the salivary glands and pancreas"}. Match molecule → enzyme → location, and the digestive system reads as one production line.`,
+                difficulty: 0.5,
+            };
+        }
+        const acid = r.pick(["HCl (stomach acid)", "bile (alkaline)"]);
+        return {
+            prompt: `Pancreatic lipase works in the small intestine at around pH 7–8. ${acid === "HCl (stomach acid)" ? "Stomach contents entering the intestine are pH 2." : "Fat entering the intestine is in large oily drops."}\nHow does bile make fat digestion faster?`,
+            correct: "It emulsifies fat into tiny droplets — more surface for lipase — and neutralises stomach acid",
+            wrongs: pickDistinct("It emulsifies fat into tiny droplets — more surface for lipase — and neutralises stomach acid", [
+                "It digests fat itself, so lipase only finishes the job",
+                "It adds water to the fat, diluting it into submission",
+                "It raises the fat's temperature so lipase works faster",
+            ]),
+            tags: [],
+            explanation: `Bile is not an enzyme — it changes the CONDITIONS. Emulsification chops big drops into tiny ones, multiplying the surface lipase can attack (rate ∝ surface area). It is also alkaline, neutralising the pH 2 stomach acid so the intestinal enzymes can work. Two effects, one secretion.`,
+            difficulty: 0.68,
+        };
+    },
+    /** Atoms & elements: subatomic bookkeeping, isotope vs ion, and a particle
+     *  table read. Anchor for the chemistry baseline. */
+    "atoms-elements": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const p = r.pick([3, 6, 8, 11, 13, 17, 19, 20]);
+            const n = p + r.pick([0, 1, 2, 3]);
+            const e = p - r.pick([0, 0, 1, 2, 3]);
+            const charge = p - e;
+            const name = { 3: "Lithium", 6: "Carbon", 8: "Oxygen", 11: "Sodium", 13: "Aluminium", 17: "Chlorine", 19: "Potassium", 20: "Calcium" }[p] ?? "";
+            return {
+                prompt: `A particle of ${name} has ${p} protons, ${n} neutrons and ${e} electrons. What is it?`,
+                correct: charge === 0 ? `A neutral ${name.toLowerCase()} atom` : `A ${name.toLowerCase()} ion with charge ${charge > 0 ? "+" + charge : charge}`,
+                wrongs: pickDistinct(charge === 0 ? `A neutral ${name.toLowerCase()} atom` : `A ${name.toLowerCase()} ion with charge ${charge > 0 ? "+" + charge : charge}`, [
+                    charge === 0 ? `An ion with charge ${n % 2 === 0 ? "+" + n / 2 : "−1"}` : charge > 0 ? `A neutral ${name.toLowerCase()} atom` : `An ion with charge +${-charge}`,
+                    `A different element — the neutrons decide the identity`,
+                    `An isotope of a different element`,
+                ]),
+                tags: [],
+                explanation: `Protons decide the element (${p} → ${name}); electrons decide the charge: ${p} − ${e} = ${charge === 0 ? "0, so it is neutral" : charge > 0 ? "+" + charge + ", a cation — it LOST electrons" : charge + ", an anion — it GAINED electrons"}. Neutrons (${n}) only make it one isotope of ${name} or another; they never change what it is.`,
+                difficulty: 0.55,
+            };
+        }
+        if (variant < 0.67) {
+            const a = r.pick([12, 14, 16, 35, 37]);
+            const same = a === 12 ? 6 : a === 14 ? 6 : a === 16 ? 8 : 17;
+            const other = a === 12 ? 14 : a === 14 ? 12 : a === 16 ? 18 : 35;
+            return {
+                prompt: `Two atoms of the same element have mass numbers ${a} and ${other} (this element's proton number is ${same}). What are they, and what differs?`,
+                correct: "Isotopes — same protons, different neutron counts",
+                wrongs: pickDistinct("Isotopes — same protons, different neutron counts", [
+                    "Ions — one has lost electrons to the other",
+                    "Different elements — the mass differs so the element differs",
+                    "Allotropes — the atoms are bonded in different structures",
+                ]),
+                tags: [],
+                explanation: `Same element means the same proton count (${same}). Mass numbers ${a} and ${other} with ${same} protons leave ${a - same} and ${other - same} neutrons — isotopes. Ions differ in ELECTRONS, not neutrons; allotropes differ in how atoms are bonded (graphite vs diamond), not in the atoms themselves.`,
+                difficulty: 0.6,
+            };
+        }
+        const rows = [
+            ["P", 15, 16, 15],
+            ["K", 19, 20, 18],
+            ["Mg", 12, 12, 10],
+        ];
+        const [sym, p, n, e] = rows[r.int(0, rows.length - 1)];
+        return {
+            prompt: `A particle is recorded as:\nprotons: ${p}\nneutrons: ${n}\nelectrons: ${e}\nWhich row of the table identifies it?\n· atomic number ${p}, mass number ${p + n}, charge ${p - e > 0 ? "+" + (p - e) : p - e}\n· atomic number ${p}, mass number ${p + n}, charge 0\n· atomic number ${n}, mass number ${p + n}, charge ${p - e > 0 ? "+" + (p - e) : p - e}`,
+            correct: `Atomic number ${p}, mass number ${p + n}, charge ${p - e > 0 ? "+" + (p - e) : p - e}`,
+            wrongs: pickDistinct(`Atomic number ${p}, mass number ${p + n}, charge ${p - e > 0 ? "+" + (p - e) : p - e}`, [
+                `Atomic number ${p}, mass number ${p + n}, charge 0`,
+                `Atomic number ${n}, mass number ${p + n}, charge ${p - e > 0 ? "+" + (p - e) : p - e}`,
+                `Atomic number ${p}, mass number ${n}, charge 0`,
+            ]),
+            tags: [],
+            explanation: `Atomic number = protons = ${p}; mass number = protons + neutrons = ${p} + ${n} = ${p + n}; charge = protons − electrons = ${p} − ${e} = ${p - e === 0 ? "0" : p - e > 0 ? "+" + (p - e) : p - e}. Each row of the particle's record fills exactly one column of its identification — no guessing.`,
+            difficulty: 0.75,
+        };
+    },
+    /** Ionic bonding: formula-deduction across charge pairs, a lattice property
+     *  explanation, and a charge-balance puzzle. Anchor for the chemistry
+     *  baseline. */
+    "ionic-bonding": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const metals = [["Na", 1, "sodium"], ["Mg", 2, "magnesium"], ["Al", 3, "aluminium"]];
+            const nonmetals = [["Cl", 1, "chloride"], ["O", 2, "oxide"], ["S", 2, "sulfide"]];
+            const [m, mc, mn] = metals[r.int(0, 2)];
+            const [x, xc, xn] = nonmetals[r.int(0, 2)];
+            const lcmv = (mc * xc) / deepGcd(mc, xc);
+            const nM = lcmv / mc, nX = lcmv / xc;
+            const sub = (n) => (n === 1 ? "" : sup(n));
+            const correct = `${m}${sub(nM)}${x}${sub(nX)}`;
+            // The three confusions: ignoring charges entirely, crossing the ratio
+            // the wrong way round, and over-supplying one ion. In the 1:1 case the
+            // uncrossed pair IS the answer, so that branch swaps in two real slips
+            // that cannot collide: a doubled metal count and an equal-but-reversed
+            // subscript pair written as charges instead of counts.
+            const wrongs = nM === nX
+                ? [`${m}${sub(nM + 1)}${x}`, `${m}${x}${sub(nX + 1)}`, `${m}${sub(nM + 1)}${x}${sub(nX + 1)}`]
+                : [`${m}${x}`, `${m}${sub(nX)}${x}${sub(nM)}`, `${m}${sub(nM + 1)}${x}${sub(nX)}`];
+            return {
+                prompt: `Metal M forms ${mn} ions with charge ${mc > 0 ? "+" + mc : mc}; non-metal X forms ${xn} ions with charge ${xc > 0 ? "+" + xc : xc}. What is the formula of the compound?`,
+                correct,
+                wrongs: pickDistinct(correct, wrongs),
+                tags: [],
+                explanation: `Total positive must equal total negative: ${nM} × (${mc > 0 ? "+" + mc : mc}) = ${nM * mc} and ${nX} × (${xc > 0 ? "+" + xc : xc}) = ${-(nX * xc) === 0 ? 0 : "−" + nX * xc}. So ${correct}. Crossing the charges over as subscripts is the shortcut; balancing to zero is the REASON.`,
+                difficulty: 0.55,
+            };
+        }
+        if (variant < 0.67) {
+            const props = [
+                ["solid ionic compounds do NOT conduct electricity", "The ions are fixed in the lattice — there are no mobile charges", ["The ions have no charge inside a lattice", "Covalent bonds block the current", "The electrons are shared and cannot move"], "Conduction needs mobile charged particles. In the solid lattice every ion is locked in place — melt or dissolve it and the ions free to move, which is exactly when conduction starts."],
+                ["ionic compounds have HIGH melting points", "Strong electrostatic attraction between opposite ions throughout the lattice", ["The ions are very large and hard to separate", "Covalent bonds inside each ion are strong", "The lattice contains water holding it together"], "Melting means tearing the lattice apart, and every ion attracts several of the opposite charge around it. That network of electrostatic bonds takes enormous energy to break — hence NaCl melts at 801 °C."],
+            ];
+            const [fact, why, wrong] = props[r.int(0, props.length - 1)];
+            return {
+                prompt: `${fact}. Why?`,
+                correct: why,
+                wrongs: pickDistinct(why, wrong),
+                tags: [],
+                explanation: `${why}. Both properties come from the same cause — a giant lattice of charged particles: immobile charges explain the solid's non-conduction, and the lattice's bond strength explains the high melting point.`,
+                difficulty: 0.6,
+            };
+        }
+        const q = r.pick([[2, -1], [3, -2], [2, -3]]);
+        return {
+            prompt: `A student writes the formula of a metal ${q[0] > 0 ? "+" + q[0] : q[0]} ion with a ${q[1]} ion as MX₂, giving total charge ${q[0] + 2 * q[1]}. What is wrong, and what is the correct formula?`,
+            correct: `The charges do not balance to zero — the correct ratio is ${-q[1]} : ${q[0]}, so M${sup(-q[1])}X${sup(q[0])}`,
+            wrongs: pickDistinct(`The charges do not balance to zero — the correct ratio is ${-q[1]} : ${q[0]}, so M${sup(-q[1])}X${sup(q[0])}`, [
+                `Nothing — MX₂ is correct because 2 is the subscript of the larger charge`,
+                `The charges must be equal, so one ion's charge is wrong`,
+                `The correct formula is M${sup(q[0])}X${sup(-q[1])} — the subscripts are never crossed`,
+            ]),
+            tags: [],
+            explanation: `${q[0]} + 2 × (${q[1]}) = ${q[0] + 2 * q[1]} ≠ 0 — the compound as written carries a net charge, which a compound cannot. Balance instead: ${-q[1]} metal ions give ${-q[1] * q[0] > 0 ? "+" : ""}${-q[1] * q[0]}, and ${q[0]} X ions give ${q[0] * q[1]}, summing to zero. That ratio IS the crossed-subscripts rule, derived rather than memorised.`,
+            difficulty: 0.72,
+        };
+    },
+    // ── COMPUTING ────────────────────────────────────────────────────────────
+    // Eleven single-item generators meant a computing student met the same
+    // sentence per concept forever, and the diagnostic had exactly four variable
+    // concepts to sample. These families give each its range; none needs a
+    // misconception tag (the computing catalogue entries attach elsewhere).
+    /** Debugging method: what to check first, a trace-and-locate item, and an
+     *  error-message read. */
+    "what-is-code": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const syms = [
+                ["a program prints 'undefined' where a number was expected", "the value was never set before it was used — trace where it should have been assigned"],
+                ["a program crashes on 'division by zero'", "a variable that should never be 0 reached 0 — find which input or branch let that happen"],
+                ["a loop never ends", "the variable the loop condition checks is never updated inside the loop"],
+            ];
+            const [sym, cause] = syms[r.int(0, syms.length - 1)];
+            return {
+                prompt: `${sym.charAt(0).toUpperCase() + sym.slice(1)}. What is the most useful next step?`,
+                correct: cause,
+                wrongs: pickDistinct(cause, [
+                    "Rewrite the whole program from scratch with fewer features",
+                    "Add try/catch blocks everywhere so errors are ignored",
+                    "Restart the computer and run it again identically",
+                ]),
+                tags: [],
+                explanation: `${cause.charAt(0).toUpperCase() + cause.slice(1)}. Debugging is reasoning about state: the error names a VALUE that is wrong, and the fix is finding the line where that value went wrong — not suppressing the message.`,
+                difficulty: 0.5,
+            };
+        }
+        if (variant < 0.67) {
+            const a = r.int(2, 5), b = r.int(6, 9);
+            return {
+                prompt: `def total(items):\n    s = 0\n    for i in range(len(items)):\n        s = s + items[i]\n    return s\n\ntotal([${a}, ${b}]) returns what, and what does range(len(items)) produce here?`,
+                correct: `${a + b} — range(2) yields 0 and 1, the valid indexes`,
+                wrongs: pickDistinct(`${a + b} — range(2) yields 0 and 1, the valid indexes`, [
+                    `${a + b} — range(2) yields 1 and 2`,
+                    "An error — range cannot take a list's length",
+                    `${a * b} — the loop multiplies as it goes`,
+                ]),
+                tags: [],
+                explanation: `len([${a}, ${b}]) is 2, and range(2) yields 0, 1 — exactly the indexes of the two elements. So the loop adds items[0] + items[1] = ${a} + ${b} = ${a + b}. Most loop bugs are off-by-one bugs; knowing range's exclusive end prevents all of them.`,
+                difficulty: 0.5,
+            };
+        }
+        return {
+            prompt: `A student's program prints the wrong total, but only when the input list contains a 0. What does that pattern tell you?`,
+            correct: "The bug lives in the path that handles 0 — test with the smallest input containing one",
+            wrongs: pickDistinct("The bug lives in the path that handles 0 — test with the smallest input containing one", [
+                "The list function is broken whenever lists contain zeros",
+                "The program is fine — zeros are not real numbers in code",
+                "The bug must be in the display code, since only printing is wrong",
+            ]),
+            tags: [],
+            explanation: `A bug that appears only with specific input narrows the search: the failing path is the one that input takes. Minimise to the smallest failing case, then trace it line by line — that is the debugging loop every developer actually uses.`,
+            difficulty: 0.55,
+        };
+    },
+    /** Rates of reaction: collision-energy reasoning, a rate–time curve read,
+     *  and a two-experiment comparison. Anchor for the chemistry baseline. */
+    "dictionaries": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const a = r.pick(["Ada", "Grace", "Alan"]), b = r.pick(["Edsger", "Margaret", "Tim"]);
+            const n1 = r.int(20, 60), n2 = r.int(61, 99), n3 = r.int(10, 19);
+            return {
+                prompt: `ages = {"${a}": ${n1}, "${b}": ${n2}}\nages["${a}"] = ${n3}\nprint(len(ages)) — what prints?`,
+                correct: "2",
+                wrongs: ["3", String(n3), "1"],
+                tags: [],
+                explanation: `Assigning to an EXISTING key overwrites its value ("${a}" now maps to ${n3}) — it does not add a key. Two keys were defined, so the length stays 2.`,
+                difficulty: 0.45,
+            };
+        }
+        if (variant < 0.67) {
+            const k = r.pick(["score", "level", "lives"]), other = r.pick(["name", "time", "moves"]);
+            const v = r.int(3, 90);
+            return {
+                prompt: `state = {"${k}": ${v}}\nprint(state.get("${other}", 0)) — what prints, and why?`,
+                correct: "0 — the key is missing, and get() returns the default instead of failing",
+                wrongs: pickDistinct("0 — the key is missing, and get() returns the default instead of failing", [
+                    String(v) + " — get() returns the only value in the dictionary",
+                    "An error — missing keys always crash the program",
+                    `"${other}" — get() returns the key it was given`,
+                ]),
+                tags: [],
+                explanation: `state["${other}"] would raise KeyError — but get() takes a second argument: the value to return when the key is absent. Reading a dictionary safely is exactly this choice between a crash and a default.`,
+                difficulty: 0.5,
+            };
+        }
+        const n = r.int(2, 5);
+        return {
+            prompt: `stock = {"pen": 4, "ink": ${n}}\nstock["pen"] = stock["pen"] + stock["ink"]\nstock["ink"] = 0\nWhat is stock["pen"]?`,
+            correct: String(4 + n),
+            wrongs: pickDistinct(String(4 + n), [String(n), "4", String(4 + n + 1)]),
+            tags: [],
+            explanation: `Line 2 reads the CURRENT values (4 and ${n}) and stores their sum: pen = ${4 + n}. Line 3 changes ink only. Each statement executes completely, in order, against the dictionary as it stands at that moment.`,
+            difficulty: 0.58,
+        };
+    },
+    /** Binary search: a count across sizes, a sorted-vs-unsorted trap, and a
+     *  target trace. Anchor-adjacent reasoning for the computing ladder. */
+    "algorithms-search": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const n = r.pick([100, 1000, 10000, 1000000]);
+            const checks = Math.ceil(Math.log2(n));
+            return {
+                prompt: `Binary search on ${n.toLocaleString("en-GB")} sorted items needs at most how many checks?`,
+                correct: String(checks),
+                wrongs: pickDistinct(String(checks), [String(Math.ceil(checks * 2)), String(n.toLocaleString("en-GB")), String(Math.ceil(n / 2))].map(s => s)),
+                tags: [],
+                explanation: `Each check halves the search space: 2^${checks} ${checks * 2 >= n ? "≥" : "<"} ${n.toLocaleString("en-GB")}, so ${checks} halvings are enough. Logarithmic growth is the whole point — a billion items need ~30 checks.`,
+                difficulty: 0.5,
+            };
+        }
+        if (variant < 0.67) {
+            return {
+                prompt: `A list of exam scores is UNSORTED. A student runs binary search for 72 and it fails to find a 72 that IS present. Why?`,
+                correct: "Binary search only works on sorted data — the halving assumes the target must lie on one known side",
+                wrongs: pickDistinct("Binary search only works on sorted data — the halving assumes the target must lie on one known side", [
+                    "The search needs a bigger computer for unsorted data",
+                    "72 was compared against too few items",
+                    "Binary search finds only the first occurrence",
+                ]),
+                tags: [],
+                explanation: `The algorithm discards half the list each step BECAUSE sorted order guarantees which half the target must be in. Unsorted, that guarantee is void: the discarded half may have held the 72. Sort first (or use linear search).`,
+                difficulty: 0.55,
+            };
+        }
+        const lo = 1, hi = r.pick([15, 16, 31]);
+        const mid = Math.floor((lo + hi) / 2);
+        return {
+            prompt: `Binary search over positions ${lo}–${hi}. The first check compares the target against the item at which position?`,
+            correct: String(mid),
+            wrongs: pickDistinct(String(mid), [String(lo), String(hi), String(mid + 1)]),
+            tags: [],
+            explanation: `The middle: (${lo} + ${hi}) ÷ 2, rounded down = ${mid}. Comparing there splits the range as evenly as possible — that is what makes the halving logarithmic.`,
+            difficulty: 0.45,
+        };
+    },
+    /** Sorting: a comparison-count estimate, a stability/structure reasoning
+     *  item, and a merge-sort split trace. */
+    "algorithms-sort": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const n = r.pick([8, 100, 1000]);
+            const bubble = n === 8 ? 64 : n === 100 ? 10000 : 1000000;
+            return {
+                prompt: `Roughly how many comparisons does bubble sort make on ${n.toLocaleString("en-GB")} items (n² behaviour)?`,
+                correct: bubble.toLocaleString("en-GB"),
+                wrongs: pickDistinct(bubble.toLocaleString("en-GB"), [
+                    Math.ceil(n * Math.log2(n)).toLocaleString("en-GB"),
+                    (n * 2).toLocaleString("en-GB"),
+                    Math.ceil(bubble / 2).toLocaleString("en-GB"),
+                ]),
+                tags: [],
+                explanation: `Bubble sort compares every pair: n² = ${n.toLocaleString("en-GB")}² = ${bubble.toLocaleString("en-GB")}. The curve, not the constant, is what kills it at scale — which is why O(n log n) sorts exist.`,
+                difficulty: 0.5,
+            };
+        }
+        if (variant < 0.67) {
+            return {
+                prompt: `Merge sort splits a list until pieces have one item, then merges sorted pieces. Why is merging the KEY step?`,
+                correct: "Two already-sorted lists can be combined in one linear pass — the sortedness does the work",
+                wrongs: pickDistinct("Two already-sorted lists can be combined in one linear pass — the sortedness does the work", [
+                    "Merging is where the list is actually compared to the target order",
+                    "Merging removes duplicate items cheaply",
+                    "Merging sorts each half a second time for safety",
+                ]),
+                tags: [],
+                explanation: `Merging two sorted lists takes n single comparisons: look at both fronts, take the smaller, advance. The divide step costs nothing; ALL the structure that makes the algorithm fast is built by merging in sorted order.`,
+                difficulty: 0.58,
+            };
+        }
+        const q = r.int(6, 9);
+        return {
+            prompt: `A merge sort is running on ${q} items. After the first split, how large is each half?`,
+            correct: `${Math.ceil(q / 2)} and ${Math.floor(q / 2)}`,
+            wrongs: pickDistinct(`${Math.ceil(q / 2)} and ${Math.floor(q / 2)}`, [
+                `${q} and 0`,
+                `${Math.floor(q / 2)} and ${Math.floor(q / 2)}`,
+                `1 and ${q - 1}`,
+            ]),
+            tags: [],
+            explanation: `${q} splits into ${Math.ceil(q / 2)} and ${Math.floor(q / 2)} — halves as even as an odd count allows, each then sorted recursively. ${Math.floor(q / 2)} and ${Math.floor(q / 2)} would drop one item; merge sort never loses an element at a split.`,
+            difficulty: 0.45,
+        };
+    },
+    /** Recursion: a factorial-adjacent trace, a base-case reasoning item, and a
+     *  call-stack depth count. */
+    "recursion": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const n = r.int(5, 8);
+            let f = 1;
+            for (let i = 2; i <= n; i++)
+                f *= i;
+            return {
+                prompt: `def mystery(n):\n    if n == 1: return 1\n    return n * mystery(n − 1)\n\nHow many TOTAL calls to mystery does mystery(${n}) make (including the first)?`,
+                correct: String(n),
+                wrongs: pickDistinct(String(n), [String(n - 1), String(n + 1), "1"]),
+                tags: [],
+                explanation: `mystery(${n}) calls mystery(${n - 1}) calls … down to mystery(1), which stops: ${n} calls in a chain. The base case is a call too — it returns without calling further, which is what makes the chain terminate.`,
+                difficulty: 0.55,
+            };
+        }
+        if (variant < 0.67) {
+            return {
+                prompt: `A recursive function has no base case. What happens, and why?`,
+                correct: "It calls itself forever until the call stack overflows — no condition ever stops the descent",
+                wrongs: pickDistinct("It calls itself forever until the call stack overflows — no condition ever stops the descent", [
+                    "It returns None immediately — no base case means no work",
+                    "It loops endlessly but harmlessly inside one call",
+                    "The compiler inserts a base case automatically",
+                ]),
+                tags: [],
+                explanation: `Each call waits for the next to return. With nothing to stop the descent, calls pile up until the stack's memory runs out — a stack overflow. The base case is not decoration; it is the only thing that lets any call in the chain finish.`,
+                difficulty: 0.5,
+            };
+        }
+        const a = r.int(2, 4), k = r.int(3, 5);
+        return {
+            prompt: `def grow(x):\n    if x >= ${k * a}: return x\n    return grow(x + ${a})\n\nHow many times is grow called for grow(0)?`,
+            correct: String(k + 1),
+            wrongs: pickDistinct(String(k + 1), [String(k), String(k + a), String(k * a)]),
+            tags: [],
+            explanation: `grow(0), grow(${a}), grow(${2 * a}) … the first call where x ≥ ${k * a} returns directly. That is ${k + 1} calls: ${k} that recurse plus the one that stops. Counting the stopping call is the whole question.`,
+            difficulty: 0.62,
+        };
+    },
+    /** Complexity: order these growths, an n-comparison, and a table read of
+     *  which algorithm finishes. */
+    "complexity": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const pairs = [
+                ["O(n²)", "O(n log n)", ["O(n log n)", "O(n)", "O(2ⁿ)"]],
+                ["O(log n)", "O(n)", ["O(n)", "O(n²)", "O(n log n)"]],
+                ["O(n)", "O(n log n)", ["O(n log n)", "O(log n)", "O(n²)"]],
+                ["O(n²)", "O(2ⁿ)", ["O(2ⁿ)", "O(n)", "O(n log n)"]],
+                ["O(1)", "O(log n)", ["O(log n)", "O(n)", "O(n²)"]],
+                ["O(n log n)", "O(n²)", ["O(n²)", "O(n)", "O(2ⁿ)"]],
+            ];
+            const [faster, slower, wrong] = pairs[r.int(0, pairs.length - 1)];
+            return {
+                prompt: `Which grows more slowly as n gets large: ${faster} or ${slower}?`,
+                correct: faster,
+                wrongs: pickDistinct(faster, wrong),
+                tags: [],
+                explanation: `${faster} grows more slowly than ${slower}. Ranking: O(log n) < O(n) < O(n log n) < O(n²) < O(2ⁿ). The order — not the machine — decides what scales.`,
+                difficulty: 0.5,
+            };
+        }
+        if (variant < 0.67) {
+            const n = r.pick([100, 1000, 10000, 100000]);
+            return {
+                prompt: `At n = ${n.toLocaleString("en-GB")}, roughly how many MORE operations does O(n²) do than O(n)?`,
+                correct: `About ${n.toLocaleString("en-GB")}× more — n² = ${(BigInt(n) * BigInt(n)).toLocaleString("en-GB")} versus n = ${n.toLocaleString("en-GB")}`,
+                wrongs: pickDistinct(`About ${n.toLocaleString("en-GB")}× more — n² = ${(BigInt(n) * BigInt(n)).toLocaleString("en-GB")} versus n = ${n.toLocaleString("en-GB")}`, [
+                    "Twice as many — the square doubles the work",
+                    "The same — big-O ignores constants, so they are equal at any n",
+                    `About ${Math.log2(n).toFixed(0)}× more — the difference is logarithmic`,
+                ]),
+                tags: [],
+                explanation: `n² ÷ n = n: at ${n.toLocaleString("en-GB")} items the quadratic algorithm does about ${n.toLocaleString("en-GB")} times the work. Big-O ignores constant factors, but the SHAPE of the curve is exactly what it compares — and n² versus n is a chasm, not a constant.`,
+                difficulty: 0.6,
+            };
+        }
+        const n = r.pick([8, 16, 64, 1024, 4096]);
+        return {
+            prompt: `Two algorithms on n = ${n.toLocaleString("en-GB")}:\n· A runs in n² steps → ${(BigInt(n) * BigInt(n)).toLocaleString("en-GB")}\n· B runs in n log₂n steps → ${n * Math.log2(n) | 0}\nIf each step takes 1 μs, which finishes in under a second?`,
+            correct: `Only B — A needs ${(BigInt(n) * BigInt(n)).toLocaleString("en-GB")} μs, far more than a second`,
+            wrongs: pickDistinct(`Only B — A needs ${(BigInt(n) * BigInt(n)).toLocaleString("en-GB")} μs, far more than a second`, [
+                `Both — any algorithm finishes within a second at this size`,
+                `Only A — fewer, faster steps`,
+                `Neither — logarithmic algorithms cannot run in real time`,
+            ]),
+            tags: [],
+            explanation: `A needs ${(BigInt(n) * BigInt(n)).toLocaleString("en-GB")} μs = ${(BigInt(n) * BigInt(n) / 1000000n).toLocaleString("en-GB")} s at best; B needs about ${Math.round(n * Math.log2(n)).toLocaleString("en-GB")} μs — well under a second. Same machine, same input: the growth CURVE is the difference.`,
+            difficulty: 0.72,
+        };
+    },
+    /** Networks and the web: protocol-matching, a request-lifecycle trace, and
+     *  a client/server responsibility table. */
+    "web-stack": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const roles = [
+                ["styles a page's layout and colours", "CSS", ["HTML", "JavaScript", "SQL"]],
+                ["makes the page fetch new data without reloading", "JavaScript", ["CSS", "HTML", "DNS"]],
+                ["defines the page's structure and content", "HTML", ["CSS", "JavaScript", "SQL"]],
+            ];
+            const [job, tech, wrong] = roles[r.int(0, roles.length - 1)];
+            return {
+                prompt: `Which part of the web stack ${job}?`,
+                correct: tech,
+                wrongs: pickDistinct(tech, wrong),
+                tags: [],
+                explanation: `${tech} — ${job.startsWith("styles") ? "presentation is CSS's job: structure (HTML), behaviour (JavaScript) and storage (SQL) each stay in their own layer" : job.startsWith("makes") ? "JavaScript is the browser's programming language: it can fetch, react and change the page after load" : "HTML is the document: headings, paragraphs, links — everything else decorates or animates it"}.`,
+                difficulty: 0.4,
+            };
+        }
+        if (variant < 0.67) {
+            const site = r.pick(["example.com", "school.org", "news.co.uk"]);
+            return {
+                prompt: `You type https://${site} into a browser. Put the first two steps in order:\n1. the browser asks a DNS server for the site's IP address\n2. the browser opens a connection to that server and requests the page\n3. the page's HTML arrives and is displayed`,
+                correct: "1 then 2 — resolve the name before connecting to the server",
+                wrongs: pickDistinct("1 then 2 — resolve the name before connecting to the server", [
+                    "2 then 1 — the connection can be made by name directly",
+                    "3 then 1 — the page is fetched by broadcast first",
+                    "They happen simultaneously — DNS travels with the request",
+                ]),
+                tags: [],
+                explanation: `A connection needs an ADDRESS, and a name is not an address. DNS turns ${site} into an IP first; only then can the browser open a connection and ask for the page. Every web request starts with that translation.`,
+                difficulty: 0.5,
+            };
+        }
+        return {
+            prompt: `A shop site stores products and takes payments. Which responsibilities belong to the SERVER rather than the browser?`,
+            correct: "Storing the product database and processing payments — data and secrets must not live in the client",
+            wrongs: pickDistinct("Storing the product database and processing payments — data and secrets must not live in the client", [
+                "Rendering the product images and buttons",
+                "Validating the basket's total is a number before submitting",
+                "Remembering the page the user is scrolled to",
+            ]),
+            tags: [],
+            explanation: `Anything the browser holds, the user can read and change — so databases, prices that matter and card processing live on the server. The browser does presentation and instant feedback (rendering, quick validation) but never trusts itself with authority.`,
+            difficulty: 0.6,
+        };
+    },
+    /** Cybersecurity: a phishing/hash reasoning pair and a salted-hash trace. */
+    "cybersecurity": (r) => {
+        const variant = r.next();
+        if (variant < 0.5) {
+            const msgs = [
+                ["An email from 'your bank' asks you to 'confirm your password' on a linked site.", "Phishing — no real bank ever needs your password back"],
+                ["A login page's address starts with https and shows a padlock.", "The connection is encrypted — but it says nothing about who runs the page"],
+                ["A site stores passwords hashed with a unique random salt per user.", "A stolen table reveals no plaintext and no shared patterns between users"],
+            ];
+            const [situation, verdict] = msgs[r.int(0, msgs.length - 1)];
+            return {
+                prompt: `${situation}\nWhat is the correct security assessment?`,
+                correct: verdict,
+                wrongs: pickDistinct(verdict, [
+                    "It is safe — official-looking messages and padlocks prove legitimacy",
+                    "It is definitely an attack — any password handling is unsafe",
+                    "It only matters if the user has antivirus installed",
+                ]),
+                tags: [],
+                explanation: `${verdict}. Security judgements come from the mechanism, not the appearance: encryption protects the CONNECTION, hashing protects the STORED COPY, and no mechanism makes a password request legitimate.`,
+                difficulty: 0.55,
+            };
+        }
+        const u1 = r.pick(["Amara", "Ben", "Chen"]), u2 = r.pick(["Dara", "Efe", "Fatima"]);
+        return {
+            prompt: `Two users choose the SAME password. The server stores:\n· ${u1}: hash(pw + salt1)\n· ${u2}: hash(pw + salt2), salt1 ≠ salt2\nWhy the different salts?`,
+            correct: "Equal passwords produce different hashes, so a stolen table cannot reveal who shares a password",
+            wrongs: pickDistinct("Equal passwords produce different hashes, so a stolen table cannot reveal who shares a password", [
+                "Salts make the login faster for the server",
+                "Salts are needed because hashing is reversible without them",
+                "Each salt replaces the user's password before hashing",
+            ]),
+            tags: [],
+            explanation: `Without salts, identical passwords give identical hashes — one glance at the stolen table exposes every account sharing it (and makes cracking worthwhile: break one, win many). A per-user salt means the attacker must attack each hash separately. The password is still hashed, still one-way; the salt just makes 'same password' stop LOOKING the same.`,
+            difficulty: 0.65,
+        };
+    },
+    /** Networks: which-layer-does-what, a packet-path trace, and a local vs
+     *  global address read. */
+    "networks": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const layers = [
+                ["translates a website name into an IP address", "DNS", ["HTTPS", "The router", "The browser"]],
+                ["encrypts the data travelling between browser and server", "HTTPS (TLS)", ["DNS", "The IP protocol", "HTML"]],
+                ["forwards packets between your home network and the internet", "The router", ["DNS", "The browser", "The server"]],
+            ];
+            const [job, who, wrong] = layers[r.int(0, layers.length - 1)];
+            return {
+                prompt: `On the internet, what ${job}?`,
+                correct: who,
+                wrongs: pickDistinct(who, wrong),
+                tags: [],
+                explanation: `${who} — ${job.startsWith("translates") ? "names are for people, addresses are for machines; DNS is the translator between the two" : job.startsWith("encrypts") ? "TLS is the encryption layer that turns an open HTTP connection into an HTTPS one" : "the router is your network's doorway: it sends each packet one hop closer to its destination"}.`,
+                difficulty: 0.45,
+            };
+        }
+        if (variant < 0.67) {
+            return {
+                prompt: `A web page is split into many packets that travel different routes to the same server. How does the receiver reassemble them correctly?`,
+                correct: "Each packet carries sequence numbers — the receiver reorders them and requests any that are missing",
+                wrongs: pickDistinct("Each packet carries sequence numbers — the receiver reorders them and requests any that are missing", [
+                    "The packets always arrive in order on the same route",
+                    "The last packet lists all the others by content",
+                    "The server resends the whole page if any packet is late",
+                ]),
+                tags: [],
+                explanation: `Packet switching routes each packet independently — fast, and resilient to failed links, but out of order by design. Sequence numbers plus acknowledgements (TCP) put the stream back together; that reliability layer is what lets a fragile network carry an exact document.`,
+                difficulty: 0.6,
+            };
+        }
+        const ip = `192.168.${r.int(0, 9)}.${r.int(2, 250)}`;
+        return {
+            prompt: `A device on a home Wi-Fi has address ${ip}. A website's server answers from 93.184.216.34. What distinguishes the two addresses?`,
+            correct: `${ip} is a private (local) address — it identifies the device only inside the home network; 93.184.216.34 is public and routable worldwide`,
+            wrongs: pickDistinct(`${ip} is a private (local) address — it identifies the device only inside the home network; 93.184.216.34 is public and routable worldwide`, [
+                `Both are equally public — the device could be reached directly from anywhere`,
+                `${ip} is the server's real address, seen through a proxy`,
+                `The server's address is private because websites protect themselves`,
+            ]),
+            tags: [],
+            explanation: `Addresses beginning 192.168.x.x (and 10.x.x.x, 172.16–31.x.x) are reserved for private networks — millions of homes reuse them. Reaching the outside world, the router translates (NAT) to its ONE public address. The server needs a globally unique public address because anyone, anywhere must find it.`,
+            difficulty: 0.7,
+        };
+    },
+    /** Databases / SQL: a query to fetch exactly one thing, a filtering trace,
+     *  and a primary-key reasoning item. */
+    "databases-sql": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const col = r.pick(["name", "title", "email"]), tbl = r.pick(["students", "books", "members"]);
+            const cmp = r.pick([[">", 80], [">=", 50], ["<", 20]]);
+            return {
+                prompt: `A table \`${tbl}\` has a \`${col}\` column and a \`grade\` column. Which query lists only \`${col}\` where grade is ${cmp[0]} ${cmp[1]}?`,
+                correct: `SELECT ${col} FROM ${tbl} WHERE grade ${cmp[0]} ${cmp[1]}`,
+                wrongs: pickDistinct(`SELECT ${col} FROM ${tbl} WHERE grade ${cmp[0]} ${cmp[1]}`, [
+                    `GET ${col} FROM ${tbl} IF grade ${cmp[0]} ${cmp[1]}`,
+                    `SELECT * WHERE grade ${cmp[0]} ${cmp[1]} FROM ${tbl}`,
+                    `SELECT ${col} WHERE ${tbl}.grade = ${cmp[1]}`,
+                ]),
+                tags: [],
+                explanation: `SQL reads SELECT columns FROM table WHERE condition. GET/IF are not SQL; the FROM always precedes the WHERE; and = would keep only grades exactly ${cmp[1]} rather than the ${cmp[0]} ${cmp[1]} range.`,
+                difficulty: 0.45,
+            };
+        }
+        if (variant < 0.67) {
+            const n = r.int(3, 6);
+            return {
+                prompt: `A table holds ${n} rows. You run:\nSELECT COUNT(*) FROM orders WHERE total > 10\nTwo of the rows have total = ${r.int(1, 9)}. What does the query return, and why?`,
+                correct: `${n - 2} — COUNT(*) counts only the rows that pass the WHERE filter`,
+                wrongs: pickDistinct(`${n - 2} — COUNT(*) counts only the rows that pass the WHERE filter`, [
+                    `${n} — WHERE cannot reduce a count`,
+                    "1 — COUNT always returns a single value of yes or no",
+                    `2 — the query counts the rows the filter removed`,
+                ]),
+                tags: [],
+                explanation: `WHERE acts first, keeping only rows with total > 10; COUNT(*) then counts what survives: ${n} − 2 = ${n - 2}. Reading a query is reading its pipeline, left to right, clause by clause.`,
+                difficulty: 0.55,
+            };
+        }
+        const tbl = r.pick(["pupils", "orders", "films"]);
+        return {
+            prompt: `Why give every row of \`${tbl}\` a unique primary key?`,
+            correct: "So any row can be addressed exactly once and other tables can reference it unambiguously",
+            wrongs: pickDistinct("So any row can be addressed exactly once and other tables can reference it unambiguously", [
+                "To make the table display in a nicer order",
+                "To stop two users editing the database at once",
+                "Because SQL refuses to store a table without one",
+            ]),
+            tags: [],
+            explanation: `Names repeat (two pupils called Sam); a primary key cannot. It is the guarantee that 'the row with id 7' means exactly one thing — which is what lets another table point at it (a foreign key) without ambiguity. Uniqueness is identity, not cosmetics.`,
+            difficulty: 0.58,
+        };
+    },
+    /** AI basics: training-vs-running reasoning, a data-quality consequence,
+     *  and a classification trace. */
+    "ai-basics": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            return {
+                prompt: `A spam filter was TRAINED on a million labelled emails. During use, it receives a new email. What does the model actually do with it?`,
+                correct: "Applies the patterns it learned in training to decide spam or not — it does not keep learning from this email",
+                wrongs: pickDistinct("Applies the patterns it learned in training to decide spam or not — it does not keep learning from this email", [
+                    "It retrains itself on the new email instantly",
+                    "It looks the email up in the million training emails",
+                    "It asks a human to decide, then remembers the answer",
+                ]),
+                tags: [],
+                explanation: `Training and running are separate phases. After training, the model is FROZEN: its parameters encode the patterns of the million examples, and each new email is only classified against them. Learning from new emails is a deliberate retraining step, never a side effect of use.`,
+                difficulty: 0.55,
+            };
+        }
+        if (variant < 0.67) {
+            return {
+                prompt: `A face-recognition model was trained only on photos taken in daylight. At night it fails badly. What is the lesson?`,
+                correct: "A model only learns the distribution of its training data — conditions outside it are unpredictable",
+                wrongs: pickDistinct("A model only learns the distribution of its training data — conditions outside it are unpredictable", [
+                    "The model needs a brighter camera, not better data",
+                    "The training data was too large, which causes overfitting to light",
+                    "Face recognition is impossible in principle at night",
+                ]),
+                tags: [],
+                explanation: `The model never saw night photos, so it learned only daylight statistics — no amount of cleverness at run time recovers what the data never showed. Bias and brittleness in AI are usually data problems first.`,
+                difficulty: 0.6,
+            };
+        }
+        const spam = r.int(2, 8), ham = r.int(8, 20);
+        return {
+            prompt: `A classifier was tested on ${spam + ham} emails: it flagged ${spam} correctly as spam but also flagged ${Math.min(2, ham)} genuine emails. Which measure does the ${Math.min(2, ham)} false alarms damage most?`,
+            correct: "Precision — how many of its spam flags were actually spam",
+            wrongs: pickDistinct("Precision — how many of its spam flags were actually spam", [
+                "Recall — how much spam it found",
+                "Speed — it ran too slowly on the genuine ones",
+                "Training size — the test set was too small to matter",
+            ]),
+            tags: [],
+            explanation: `Precision is flagged-and-correct ÷ all flagged: ${spam} of ${spam + Math.min(2, ham)}, hurt directly by every false alarm. Recall (${spam} of ${spam + ham} spam emails) is about the spam it MISSED, which these false alarms do not change. Two different questions, two different measures — a false alarm is a precision problem.`,
+            difficulty: 0.72,
+        };
+    },
+    "rates-reaction": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const factor = [
+                ["raising the temperature", "Particles move faster AND more carry the minimum energy to react — both collision frequency and success rate rise", ["Particles only move faster — energy has no effect on success", "The activation energy of the reaction is lowered", "The particles become smaller, so they collide more"], "Temperature does two jobs: it raises collision frequency a little and the energy per collision a lot. The second is what matters — the fraction of collisions clearing the activation-energy bar climbs steeply, which is why ~10 °C roughly doubles many rates."],
+                ["increasing the concentration", "More particles per unit volume — more collisions per second", ["Each particle carries more energy", "The activation energy drops", "The particles get closer to the required orientation"], "Concentration packs more reactant particles into the same volume. Collision FREQUENCY rises; the energy of each collision does not change. (A common confusion with temperature, which changes the energy instead.)"],
+            ];
+            const [change, why, wrong] = factor[r.int(0, factor.length - 1)];
+            return {
+                prompt: `A reaction speeds up after ${change}. Explain the effect using collision theory.`,
+                correct: why,
+                wrongs: pickDistinct(why, wrong),
+                tags: [],
+                explanation: `${why}. Collision theory reduces every rate change to two dials: how OFTEN particles collide, and what FRACTION of those collisions carry enough energy in the right orientation. Every rate factor works through one or both.`,
+                difficulty: 0.6,
+            };
+        }
+        if (variant < 0.67) {
+            const steep = r.pick(["powdered marble", "warm acid", "concentrated acid"]);
+            return {
+                prompt: `Gas volume against time for marble + acid:\n· Curve P: rises steeply, then flattens at 60 cm³ after 40 s\n· Curve Q: rises gently, flattens at 60 cm³ after 120 s\nWhich curve used ${steep}, and how do you know?`,
+                correct: "P — the steeper start means a faster rate; both flatten at the same volume, so the same amount of product formed",
+                wrongs: pickDistinct("P — the steeper start means a faster rate; both flatten at the same volume, so the same amount of product formed", [
+                    "Q — the flatter curve shows more control, so more gas was made",
+                    "P — it reached a higher final volume",
+                    "Q — slower always means less product in the end",
+                ]),
+                tags: [],
+                explanation: `The GRADIENT at the start is the rate; the PLATEAU is the total product. ${steep.charAt(0).toUpperCase() + steep.slice(1)} changes only how fast the same reaction runs, so both curves end at 60 cm³ — same reactant amounts. Reading a rate curve is exactly this two-step: gradient for speed, plateau for yield.`,
+                difficulty: 0.7,
+            };
+        }
+        const t1 = r.pick([20, 25]), t2 = t1 + 10;
+        return {
+            prompt: `The same mass of magnesium ribbon reacts with the same acid:\n· at ${t1} °C, 100 cm³ of gas collects in 80 s\n· at ${t2} °C, 100 cm³ collects in 40 s\nWhat does the comparison show about rate and temperature?`,
+            correct: `The rate at ${t2} °C is double — a 10 °C rise roughly doubles the rate of many reactions`,
+            wrongs: pickDistinct(`The rate at ${t2} °C is double — a 10 °C rise roughly doubles the rate of many reactions`, [
+                `The rate quadrupled — rate scales with the square of temperature`,
+                `The final volume doubles at the higher temperature`,
+                `Temperature has no real effect until the acid boils`,
+            ]),
+            tags: [],
+            explanation: `Same gas volume means the same reaction has run to completion; only the TIME halved, so the mean rate doubled (100/80 → 100/40 cm³/s). The often-quoted rule of thumb — about twice the rate per 10 °C — comes from the steep rise in the fraction of collisions clearing the activation energy.`,
+            difficulty: 0.74,
+        };
+    },
+    /** Circulation: the double loop traced end to end, a vessel-structure
+     *  reasoning item, and a composition comparison. */
+    "circulation": (r) => {
+        const variant = r.next();
+        if (variant < 0.34) {
+            const stops = [
+                ["the body's organs", "vena cava → right atrium", ["aorta → left atrium", "pulmonary vein → right atrium", "pulmonary artery → left ventricle"]],
+                ["the lungs", "pulmonary artery → pulmonary vein", ["vena cava → aorta", "aorta → vena cava", "pulmonary vein → pulmonary artery"]],
+            ];
+            const [to, path, wrong] = stops[r.int(0, stops.length - 1)];
+            return {
+                prompt: `Trace one full pass of a red blood cell from the heart to ${to} and back to the heart. Which vessels, in order?`,
+                correct: path,
+                wrongs: pickDistinct(path, wrong),
+                tags: [],
+                explanation: `${path} — the double circulation means blood passes through the heart TWICE per full circuit: once to be sent to the lungs, once to be sent to the body. Arteries always leave the heart; veins always return. The pulmonary vessels are the naming exception (they carry blood to/from the lungs, oxygenated or not).`,
+                difficulty: 0.62,
+            };
+        }
+        if (variant < 0.67) {
+            return {
+                prompt: `Capillaries are one cell thick; arteries have thick, elastic, muscular walls. Match each structure to its function.`,
+                correct: "Thin capillaries exchange fast; thick arteries withstand high pressure",
+                wrongs: pickDistinct("Thin capillaries exchange fast; thick arteries withstand high pressure", [
+                    "Both walls exist to stop blood leaking",
+                    "Thin capillaries carry more blood; thick arteries carry less",
+                    "Arteries are thick to store blood; capillaries are thin to save material",
+                ]),
+                tags: [],
+                explanation: `Structure follows function in both cases. Exchange (oxygen, CO₂, glucose) needs a SHORT diffusion distance — hence one cell thick, and huge total surface from being so numerous. Arteries take the heart's pulse full-force: elastic walls stretch and recoil to smooth it. Each wall is exactly what its job requires.`,
+                difficulty: 0.6,
+            };
+        }
+        const rate = r.int(65, 75), ex = rate * 2;
+        return {
+            prompt: `A student's resting heart rate is ${rate} bpm; during exercise it rises to ${ex} bpm. What does the increase deliver?`,
+            correct: "More oxygen and glucose to the muscles per second, and faster CO₂ removal",
+            wrongs: pickDistinct("More oxygen and glucose to the muscles per second, and faster CO₂ removal", [
+                "More red blood cells in the blood overall",
+                "A higher blood pressure only — flow rate stays the same",
+                "Extra blood volume produced by the heart",
+            ]),
+            tags: [],
+            explanation: `Cardiac output = rate × volume per beat. Doubling the rate roughly doubles the delivery of oxygen and glucose to working muscle and the clearance of CO₂ — the supply chain matching demand. The blood's composition does not change; its FLOW does.`,
+            difficulty: 0.7,
         };
     },
 };
@@ -28668,12 +29667,34 @@ const SCI_GENS = {
         };
     },
     "complexity": (r) => {
+        // The base used to be one fixed item; with a deep family composed at a 50%
+        // share, a student met this exact prompt half the time forever. Three angles
+        // of the same ranking skill keep the base honest alongside the family.
+        const angle = r.int(0, 2);
+        if (angle === 0) {
+            return {
+                prompt: `Which growth is FASTEST as n gets large?`,
+                correct: "2ⁿ",
+                wrongs: ["n²", "n log n", "n³"],
+                tags: [], explanation: `Order for large n: 2ⁿ ≫ n³ > n² > n log n > n > log n. Exponential algorithms hit a wall no computer can climb.`,
+                difficulty: 0.45,
+            };
+        }
+        if (angle === 1) {
+            return {
+                prompt: `Which growth is SLOWEST as n gets large?`,
+                correct: "log n",
+                wrongs: ["n²", "n log n", "2ⁿ"],
+                tags: [], explanation: `Order for large n: log n < n < n log n < n² < 2ⁿ. Binary search survives on how slowly log n climbs — doubling n adds one step.`,
+                difficulty: 0.45,
+            };
+        }
         return {
-            prompt: `Which growth is FASTEST as n gets large?`,
-            correct: "2ⁿ",
-            wrongs: ["n²", "n log n", "n³"],
-            tags: [], explanation: `Order for large n: 2ⁿ ≫ n³ > n² > n log n > n > log n. Exponential algorithms hit a wall no computer can climb.`,
-            difficulty: 0.45,
+            prompt: `Put these in order from slowest- to fastest-growing: n log n, n², n`,
+            correct: "n, then n log n, then n²",
+            wrongs: ["n log n, then n, then n²", "n², then n log n, then n", "n, then n², then n log n"],
+            tags: [], explanation: `Multiply n by log n and it outgrows plain n; multiply n by n and you get n². Each factor that grows with n pushes the curve up an order: n < n log n < n².`,
+            difficulty: 0.5,
         };
     },
     "binary-data": (r) => {
@@ -29018,17 +30039,23 @@ const CONSTANT_GENS = new Set([
     // from a family of variants as well as its authored item, and a concept
     // declared "designed/stable" that returns different prompts each draw would
     // make the declaration a lie — which is exactly what the sweep checks.
+    //
+    // The biology set (cells, enzymes, photosynthesis, respiration, digestion,
+    // circulation) has since joined them: each now composes a variant family from
+    // lib/questions-deep.ts and is swept by the same contract.
+    //
+    // The computing set (what-is-code, dictionaries, algorithms, recursion,
+    // complexity, networks, databases-sql, cybersecurity, web-stack, ai-basics)
+    // joined most recently — training-vs-inference, data-quality and
+    // query-reading variants — and left this set for the same reason.
     "iteration",
     "loci-constructions",
     "light-optics", "sound-acoustics", "magnetism", "thermal-physics",
-    "gravity-fields", "astrophysics", "atoms-elements", "compounds-mixtures", "periodic-table",
-    "electron-shells", "ionic-bonding", "covalent-bonding", "equations-stoich", "rates-reaction",
+    "gravity-fields", "astrophysics", "compounds-mixtures", "periodic-table",
+    "electron-shells", "covalent-bonding", "equations-stoich",
     "energy-changes", "acids-bases", "electrolysis", "organic-intro", "equilibria", "analysis-tests",
-    "cells", "enzymes", "digestion", "circulation", "breathing-gas", "photosynthesis",
-    "respiration", "nervous-system", "hormones", "evolution", "ecosystems", "biodiversity",
-    "immune-health", "what-is-code", "dictionaries", "algorithms-search", "algorithms-sort",
-    "recursion", "complexity", "networks", "cybersecurity", "databases-sql",
-    "web-stack", "ai-basics",
+    "breathing-gas", "nervous-system", "hormones", "evolution", "ecosystems", "biodiversity",
+    "immune-health",
 ]);
 function isVariableGen(conceptId) {
     return !CONSTANT_GENS.has(conceptId);
@@ -30857,7 +31884,7 @@ function subjectFromParam(raw) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 35, builtAt: "2026-09-25T18:12:06.239Z" },
+      meta: { modules: 35, builtAt: "2026-09-25T19:56:39.438Z" },
     };
   });
   return __req("__entry__.js");

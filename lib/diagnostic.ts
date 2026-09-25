@@ -36,12 +36,21 @@ export const BAND_RULES = { advance: 2, retest: 1, stop: 0 } as const;
 // "before → after" number compares like with like. The same anchor concepts
 // every run; retest questions are parallel forms (same skill, fresh numbers
 // from the generator). Probe sessions stay random and never enter gains. ───
+// Every id here must be a real concept id with a variable generator — the
+// filter in `benchmarkAnchors` silently drops anything else, and a subject
+// whose anchors all drop runs its baseline on a random spread (or nothing)
+// while the table claims a fixed benchmark. Chemistry's and biology's lists
+// named ids that never existed in the genome (`atomic-structure`, `moles`,
+// `rates-of-reaction`, `genetics-punnett`), so those subjects lost the
+// before/after guarantee this table exists to provide. Now they name the real
+// generators — which also means every anchor subject must KEEP a variable
+// generator for each anchor, and the genome-integrity sweep enforces that.
 export const BENCHMARK_ANCHORS: Record<SubjectId, string[]> = {
   maths: ["fractions", "linear-equations", "quadratics", "pythagoras"],
-  physics: ["forces-newton", "circuits-ohms-law", "waves-basics", "energy-conservation"],
-  chemistry: ["atomic-structure", "ionic-bonding", "moles", "rates-of-reaction"],
-  biology: ["cells", "photosynthesis", "enzymes", "genetics-punnett"],
-  computing: ["variables", "loops", "conditionals", "functions"],
+  physics: ["forces-basics", "electricity-circuits", "waves-basics", "energy-conservation"],
+  chemistry: ["atoms-elements", "ionic-bonding", "moles-calcs", "rates-reaction"],
+  biology: ["cells", "photosynthesis", "enzymes", "genetics"],
+  computing: ["variables", "loops", "conditionals", "functions-code"],
 };
 
 /** Concepts from the anchor list that actually exist and can generate
