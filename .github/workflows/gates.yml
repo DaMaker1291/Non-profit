@@ -45,10 +45,17 @@ jobs:
       - name: Production build
         run: npm run build
 
+      # The suite drives the `reveal` test hook, which a production build strips
+      # on purpose — a hook that works in production is a production hole. So it
+      # runs against the DEVELOPMENT server, which is also how it is run locally;
+      # the build above is what proves the release artefact compiles. Starting
+      # the wrong server here does not weaken the gate, it reports the product
+      # broken when the harness is at fault. (scripts/e2e-api.mjs says the same
+      # thing itself, with a preflight, if anyone mixes the two up.)
       - name: HTTP end-to-end suite
         run: |
-          npx next start -p 4173 > /tmp/openmind-ci.log 2>&1 &
-          for i in $(seq 1 60); do
+          npm run dev > /tmp/openmind-ci.log 2>&1 &
+          for i in $(seq 1 90); do
             if curl -sf -o /dev/null http://localhost:4173/; then break; fi
             sleep 2
           done

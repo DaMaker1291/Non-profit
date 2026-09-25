@@ -78,6 +78,22 @@ ok(qBad.status === 404, "unknown concept → 404");
 // answer fields in production.)
 const s1 = await post("/api/progress", { action: "serve", id: pid, conceptId: "linear-equations", reveal: true });
 ok(s1.status === 200 && s1.body.question?.choices?.length === 4, "practice question served");
+// PREFLIGHT, because the failure this suite would otherwise produce is a
+// lie about the product: a PRODUCTION build compiles the `reveal` hook OUT on
+// purpose (a test hook that works in production is a production hole), so every
+// later assertion here would fail as "wrong answer graded server-side" and then
+// die on `undefined.toFixed` — which reads like a broken grading route. The
+// suite only means anything against the DEVELOPMENT server; say so, loudly,
+// instead of reporting the product broken.
+if (s1.status === 200 && s1.body.question && !("answer" in s1.body.question)) {
+  console.error(
+    "\n  This suite drives the `reveal` test hook, which a production build strips.\n" +
+    "  Run it against the development server:\n\n" +
+    "      npm run dev &   # → http://localhost:4173\n      npm run e2e\n\n" +
+    "  A production build can still be checked with `npm run build`.\n",
+  );
+  process.exit(2);
+}
 // without the hook the answer fields must be stripped
 const sPlain = await post("/api/progress", { action: "serve", id: pid, conceptId: "fractions" });
 ok(!("answer" in sPlain.body.question) && !("explanation" in sPlain.body.question), "served question carries no answer fields");
