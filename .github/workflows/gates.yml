@@ -1,0 +1,56 @@
+# The five gates, on every push. This is the same set the repository documents
+# and the same set that must be green before a change lands — run here so a
+# claim of "all gates pass" is checkable by anyone, not just by the person who
+# typed it.
+#
+# The e2e suite drives HTTP against a running server, so the workflow starts the
+# production server on the port the suite expects (4173) and waits for it to
+# answer before running. The suite creates its own profiles in an ephemeral
+# workspace store, so nothing here touches a real deployment's data.
+name: gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+
+      - name: Compiler
+        run: npm run typecheck
+
+      - name: Engine suite
+        run: npm run verify
+
+      - name: Content graph
+        run: npm run content-check
+
+      - name: Question audit
+        run: npm run verify:q
+
+      - name: Production build
+        run: npm run build
+
+      - name: HTTP end-to-end suite
+        run: |
+          npx next start -p 4173 > /tmp/openmind-ci.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf -o /dev/null http://localhost:4173/; then break; fi
+            sleep 2
+          done
+          npm run e2e
+          if [ -f /tmp/openmind-ci.log ]; then tail -20 /tmp/openmind-ci.log; fi

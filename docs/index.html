@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OpenMind — evidence-driven STEM learning</title>
+<meta name="description" content="OpenMind is an open-source, evidence-driven STEM learning platform: one curriculum, chosen per subject, taught to one learner at a time and run on one laptop." />
+<style>
+  :root {
+    --paper: #f7f5f0;
+    --ink: #16150f;
+    --muted: #6b675d;
+    --line: #ddd8cc;
+    --accent: #8a1f1f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.6 ui-serif, Georgia, "Times New Roman", serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 44rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+  .eyebrow {
+    font: 600 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+    margin: 0 0 2.5rem;
+  }
+  h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 .6rem; }
+  h2 {
+    font: 600 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+    margin: 3rem 0 .8rem; padding-top: 1rem; border-top: 2px solid var(--ink);
+  }
+  p { margin: 0 0 1rem; }
+  ul { margin: 0 0 1rem; padding-left: 1.15rem; }
+  li { margin: .35rem 0; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+  pre {
+    background: #fff; border: 1px solid var(--line); border-radius: 4px;
+    padding: .85rem 1rem; overflow-x: auto; margin: 0 0 1rem;
+  }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  .note {
+    background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: 4px; padding: 1rem 1.15rem; margin: 0 0 1.5rem;
+  }
+  .note p:last-child { margin-bottom: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 0 0 1rem; font-size: .95em; }
+  th, td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font: 600 11px/1.4 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  footer { margin-top: 3.5rem; color: var(--muted); font-size: .9em; }
+  .lede { font-size: 1.12rem; }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">OpenMind · project page</p>
+
+  <h1>One learner, one journey, one decision.</h1>
+  <p class="lede">
+    OpenMind is an open-source STEM learning platform. Every answer a learner gives becomes
+    authoritative evidence; the learner model is a projection of that record; and every surface
+    that recommends work reads the same decision, so one learner and one record always yield one
+    next step. Maths, physics, chemistry, biology and computer science, across 26 qualifications
+    in 20 countries, in 15 languages — and it runs offline.
+  </p>
+
+  <div class="note">
+    <p>
+      <strong>This page is static; the application is not.</strong> GitHub Pages serves files, and
+      OpenMind is a stateful server application: its API routes grade answers, its session cookies
+      identify a learner, and its store is a directory of JSON files on a real disk. A static export
+      would ship pages whose data never loads.
+    </p>
+    <p>
+      So the app is not hosted here. It is deployed in one command, on hardware you control —
+      the design goal is a school server, a laptop, or a phone hotspot with no internet.
+    </p>
+  </div>
+
+  <h2>Run it</h2>
+<pre>git clone https://github.com/DaMaker1291/Non-profit.git
+cd Non-profit
+npm install
+./start-openmind.sh        # → http://localhost:3000</pre>
+  <p>Or with Docker, which is the supported deployment path:</p>
+<pre>docker compose up -d       # → http://localhost:4173
+# learning data persists in ./openmind-data on the host</pre>
+  <p>
+    Copying that one directory backs up, moves or duplicates an entire deployment — profiles,
+    evidence ledgers, classes, rooms and packs. There is no external database to migrate, and no
+    learner data in this repository.
+  </p>
+
+  <h2>Hosting it for real</h2>
+  <p>
+    Any host that runs a container <em>with a persistent disk</em> works. Because the store is a
+    directory of files, a host whose filesystem is wiped between requests would lose learner
+    records — that is the one requirement worth checking before you pick one.
+  </p>
+  <table>
+    <tr><th>Host</th><th>Fit</th></tr>
+    <tr><td>A school server, VPS or Raspberry Pi</td><td>The design target: data never leaves the building.</td></tr>
+    <tr><td>Render / Railway / Fly.io with a mounted volume</td><td>One container plus a disk. Point <code>OPENMIND_DATA_DIR</code> at the mount.</td></tr>
+    <tr><td>Static hosts (GitHub Pages, Netlify, S3)</td><td>Cannot run the API routes or hold the store. This page is what they can serve.</td></tr>
+  </table>
+
+  <h2>What is real in it</h2>
+  <ul>
+    <li><strong>Evidence, not estimates.</strong> Every claim about a learner is folded from recorded answers. A dimension nobody measured reads “not yet measured”, never 0%.</li>
+    <li><strong>One curriculum, chosen per subject.</strong> GCSE Maths (Foundation) beside A-Level Physics is an ordinary year; each subject resolves to its own qualification, tier and practice depth.</li>
+    <li><strong>One decision door.</strong> Home, the offline pack, the API and the tutor all read the same decision over the same ledger — a surface that skips the ledger makes a different decision, not a smaller one.</li>
+    <li><strong>Documents nothing it cannot</strong> <span aria-hidden="true">—</span> this page is the honest version of “hosted”: run it where it actually works.</li>
+  </ul>
+
+  <h2>Verification</h2>
+  <p>The repository guards itself with five gates, run in CI on every push:</p>
+<pre>npm run typecheck       # the compiler
+npm run verify          # the engine suite, one runner, one compile mirror
+npm run content-check   # the content graph: concepts, misconceptions, item identity
+npm run verify:q        # the question audit, 300 draws per generator
+npm run e2e             # the HTTP suite against a running server</pre>
+
+  <h2>Contribute</h2>
+  <p>
+    The curriculum is plain data and the store is a directory of JSON files. Fork it, translate
+    <code>lib/i18n.ts</code>, extend <code>lib/genome.ts</code>, deploy it on a school server, and
+    send improvements back by pull request. The non-English dictionaries are machine-drafted and
+    the highest-value contribution available is native-speaker review.
+  </p>
+  <p><a href="https://github.com/DaMaker1291/Non-profit">github.com/DaMaker1291/Non-profit</a> · MIT licensed.</p>
+
+  <footer>OpenMind — free forever, open-source (MIT). Account optional · server-graded practice · 15 languages.</footer>
+</main>
+</body>
+</html>

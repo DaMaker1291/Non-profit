@@ -1,0 +1,59 @@
+# Publish the application as a container image.
+#
+# GitHub cannot RUN this app for you — Pages serves static files, and the app is
+# a Node server with a disk-backed store. What GitHub can produce is the runnable
+# artefact: this workflow builds the repository's own Dockerfile and pushes it to
+# the GitHub Container Registry, so the app is one command away on any host that
+# runs containers with a persistent disk:
+#
+#   docker run -p 4173:4173 -v openmind-data:/data \
+#     ghcr.io/damaker1291/non-profit:latest
+#
+# The image runs as a non-root user and reads its data directory from
+# OPENMIND_DATA_DIR (set to /data by the Dockerfile), so a learner's record
+# survives a container replacement as long as the volume does.
+name: image
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
