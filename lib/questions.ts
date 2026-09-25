@@ -1,5 +1,11 @@
 import type { BoardId, Question, SubjectId } from "./types";
 import { localizeStem } from "./qterms";
+// The demand ladder lives on its own (lib/skills.ts) because the SERVE aims an
+// item at a demand level and the DIAGNOSTIC REPORT buckets it back into one.
+// The bank re-exports it for other consumers; this module imports it directly,
+// since the bank already imports this one and a re-export cannot be a
+// back-import.
+import { skillForDifficulty } from "./skills";
 import { applyTerminology } from "./specifications";
 import { DEEP_GENS, fourDistinct, type DeepGen } from "./questions-deep";
 
@@ -2328,17 +2334,82 @@ export function generateQuestionNear(conceptId: string, seed: string, target: nu
  *  if the generator cannot reach the band, the best draw wins and the caller
  *  sees the true difficulty (no fake claims).
  *
- *  `attempt` varies the seed so the search space differs per call. */
-export function generateQuestionAt(conceptId: string, seed: string, minDifficulty: number, attempt = 0): Question | null {
+ *  `attempt` varies the seed so the search space differs per call.
+ *
+ *  ── Why the search does not stop at one seed family ──────────────────────
+ *  The first version searched twelve draws from the caller's own seed and
+ *  returned the best of those when none reached the target. That made the
+ *  served difficulty a LOTTERY: a concept whose items are {0.20, 0.25, 0.30}
+ *  missed its own 0.30 draw in ~1% of searches, so a ladder stage that had
+ *  promised a harder question silently served an easier one, and two things
+ *  downstream were wrong in ways nobody could reproduce:
+ *
+ *    · the diagnostic's per-band report could end a full sitting with a band
+ *      the course CAN express unmeasured — a gap that is an artefact of the
+ *      draw, not a fact about the learner;
+ *    · a band-first serve could return an item from the band BELOW the one it
+ *      was aiming at while believing it had not.
+ *
+ *  The generator is deterministic in its seed, so the honest search is the one
+ *  that knows what the concept can reach. `conceptDepth` has already measured
+ *  the ceiling from the `depth:i` seed family (memoised, a property of the
+ *  code), so this function targets `min(target, ceiling)` — never asking for
+ *  more than the generator can give, which is what made the old fallback a
+ *  lottery — and widens into that same measured `depth:i` family when the
+ *  caller's family cannot reach it. The result is deterministic per
+ *  (session, concept, slot) and can no longer disagree with the ceiling that
+ *  caps the learner's claim.
+ */
+export function generateQuestionAt(
+  conceptId: string,
+  seed: string,
+  minDifficulty: number,
+  attempt = 0,
+  exclude?: ReadonlySet<string>,
+): Question | null {
+  const ceiling = conceptDepth(conceptId);
+  const want = Math.min(minDifficulty, ceiling);
+  // Aim by DEMAND, not only by number. `skillForDifficulty` is the classifier
+  // the diagnostic's per-band report buckets answers with, so a ladder stage
+  // that means "application" must serve an item THAT report will call
+  // application — a 0.31 draw is inside band 2 but below the application floor,
+  // and serving it would leave the band unmeasured while the ladder believed it
+  // had tested it.
+  const wantSkill = skillForDifficulty(want);
   let best: Question | null = null;
-  for (let i = 0; i < 12; i++) {
-    const q = generateQuestion(conceptId, `${seed}:${attempt}:${i}`);
-    if (!q) return null;
-    if (q.difficulty >= minDifficulty) return q;
-    if (!best || q.difficulty > best.difficulty) best = q;
+  let bestKey = Infinity;
+  for (const family of [`${seed}:${attempt}`, "depth"]) {
+    for (let i = 0; i < 24; i++) {
+      const q = generateQuestion(conceptId, family === "depth" ? `depth:${i}` : `${family}:${i}`);
+      if (!q) return null;
+      // An item this sitting has ALREADY served is not a candidate. The
+      // diagnostic pools are single-use by design, and the ranking below is a
+      // pure function of (target, candidates) — so without this, a band whose
+      // demanded skill the concept cannot express (no rank-0 item at all)
+      // makes the "nearest above" the winner on EVERY attempt, the caller's
+      // retry loop sees the same question six times, closes the concept as
+      // "generator run dry" and truncates the ladder at whatever band it
+      // happened to be on. Excluding the spent item lets those six attempts do
+      // what they were written for: find the next-best item instead of the
+      // same one.
+      if (exclude?.has(`${q.prompt}|${q.choices[q.answer]}`)) continue;
+      const skill = skillForDifficulty(q.difficulty);
+      const rank = skill === wantSkill ? 0 : SKILL_RANK[skill] > SKILL_RANK[wantSkill] ? 1 : 2;
+      // In-demand wins; then the nearest draw above it; then the nearest below
+      // (the generator cannot express this demand on this concept). Distance
+      // only breaks ties inside a rank, so the aim can never be lost to a
+      // hairline difference.
+      const key = rank + Math.abs(q.difficulty - want) / 100;
+      if (key < bestKey) { bestKey = key; best = q; }
+      if (rank === 0 && Math.abs(q.difficulty - want) < 0.02) return q;
+    }
   }
   return best;
 }
+
+/** Ladder position of each demand level, so "above" and "below" mean the same
+ *  thing to the serve as they do to the report. */
+const SKILL_RANK: Record<string, number> = { recall: 0, application: 1, multi_step: 2, data_interpretation: 3, extended_response: 4 };
 
 /** A question as the client may see it *before* grading: the answer index,
  *  explanation, and misconception tags are stripped. Server-side grading is

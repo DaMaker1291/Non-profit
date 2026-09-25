@@ -50,68 +50,22 @@ export type QuestionSource = "openmind_authored" | "official_past_paper";
 export const OFFICIAL_ITEMS = 0;
 
 // ── Skills ──────────────────────────────────────────────────────────────────
-// The five demand levels a serious diagnostic discriminates between. Only the
-// first four are producible by this bank: every item is multiple-choice, and a
-// multiple-choice item CANNOT measure an extended written response. That is a
-// real limit of the engine, not a gap to paper over — `SKILLS_NOT_IN_BANK` is
-// surfaced in the diagnostic's own result so the learner is never told their
-// "extended explanation" was measured when it was not.
+// The demand ladder now lives in its own module (lib/skills.ts) because the
+// question SERVE aims items at a demand level and the diagnostic REPORT buckets
+// answers into one — and those two disagreeing is how a sitting ends with a
+// band the course can express reported as unmeasured. Re-exported here so every
+// existing consumer keeps importing it from the bank.
+import {
+  SKILL_LADDER, SKILL_MIN_DIFFICULTY, SKILLS_IN_BANK, SKILLS_NOT_IN_BANK,
+  SKILL_MIX, bandReachable, skillForDifficulty, skillRank,
+} from "./skills";
+import type { SkillId } from "./skills";
 
-export type SkillId =
-  | "recall" | "application" | "multi_step" | "data_interpretation" | "extended_response";
-
-export const SKILL_LADDER: SkillId[] = [
-  "recall", "application", "multi_step", "data_interpretation", "extended_response",
-];
-
-/** The difficulty at which each demand level begins. The ONE definition of the
- *  mapping; `skillForDifficulty` reads it rather than repeating the numbers. */
-export const SKILL_MIN_DIFFICULTY: Record<SkillId, number> = {
-  recall: 0,
-  application: 0.35,
-  multi_step: 0.55,
-  data_interpretation: 0.75,
-  // Never reached by difficulty: an extended written answer is not a harder
-  // multiple-choice item, it is a different instrument.
-  extended_response: 1.01,
+export type { SkillId };
+export {
+  SKILL_LADDER, SKILL_MIN_DIFFICULTY, SKILLS_IN_BANK, SKILLS_NOT_IN_BANK,
+  SKILL_MIX, bandReachable, skillForDifficulty, skillRank,
 };
-
-/** Demand levels this bank can actually produce.
- *
- *  Not a wish list, and not a wish list that has stopped moving. It used to be
- *  three bands: no question in the bank declared a difficulty at or above
- *  `data_interpretation`'s floor, and only three concepts reached multi-step at
- *  all. The depth layer (lib/questions-deep.ts) changed what the bank can
- *  actually serve — 29 concepts now express multi-step and 8 express
- *  data-and-graphs — so the declaration moves WITH reality rather than ahead of
- *  it. `npm run verify` sweeps every generator and fails if the two disagree in
- *  either direction: a band claimed but unreachable, or a band reached while the
- *  declaration denies it. The day someone authors a deeper generator, the test
- *  tells them to move the band in, instead of the claim quietly rotting. */
-export const SKILLS_IN_BANK: SkillId[] = ["recall", "application", "multi_step", "data_interpretation"];
-
-export const SKILLS_NOT_IN_BANK: SkillId[] = SKILL_LADDER.filter((s) => !SKILLS_IN_BANK.includes(s));
-
-/** Can a concept whose generator reaches `depth` express this demand level? */
-export function bandReachable(skill: SkillId, depth: number): boolean {
-  return depth >= SKILL_MIN_DIFFICULTY[skill];
-}
-
-/** The target skill mix of a diagnostic (§2). 20/30/20/20 of producible
- *  items; the missing 10% is the extended response the bank cannot write, and
- *  it is spread across the rest rather than renormalised away silently. */
-export const SKILL_MIX: Record<SkillId, number> = {
-  recall: 0.2, application: 0.3, multi_step: 0.2, data_interpretation: 0.2, extended_response: 0.1,
-};
-
-/** Difficulty → demanded skill level. Documented, monotone, and the only place
- *  the mapping lives. */
-export function skillForDifficulty(d: number): SkillId {
-  if (d < SKILL_MIN_DIFFICULTY.application) return "recall";
-  if (d < SKILL_MIN_DIFFICULTY.multi_step) return "application";
-  if (d < SKILL_MIN_DIFFICULTY.data_interpretation) return "multi_step";
-  return "data_interpretation";
-}
 
 /** 1–5, the ladder position. Kept separate from the skill name because the
  *  UI shows the band and never the raw difficulty (internal scores are never

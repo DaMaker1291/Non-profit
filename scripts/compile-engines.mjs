@@ -15,6 +15,9 @@ import { execSync } from "node:child_process";
 export const ENGINE_SOURCES = [
   "lib/genome.ts",
   "lib/misconceptions.ts",
+  // The demand ladder, on its own so the question SERVE and the diagnostic
+  // REPORT read one definition rather than two that agree by luck.
+  "lib/skills.ts",
   "lib/questions.ts",
   "lib/questions-deep.ts",
   "lib/diagnostic.ts",
@@ -33,7 +36,14 @@ export const ENGINE_SOURCES = [
   "lib/curriculum.ts",
   "lib/deadline.ts",
   "lib/specifications.ts",
+  // The profile's own shape (a new learner state, and the wire-stripping rule)
+  // is pure, so it lives outside the fs-bound store and both builds share it.
+  "lib/learner-profile.ts",
   "lib/learner-model.ts",
+  // The append-and-project path, with its storage injected: the server uses the
+  // JSONL store, the static build uses localStorage, and one module decides
+  // the order of operations for both.
+  "lib/ledger.ts",
   "lib/next-engine.ts",
   "lib/session.ts",
   "lib/papers.ts",

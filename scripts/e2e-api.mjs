@@ -426,8 +426,21 @@ ok(dFin.body.result.misconceptions !== undefined, "result carries misconception 
   const ledger = spent.seenQuestions ?? {};
   const spentIds = Object.keys(ledger);
   ok(spentIds.length > 0, `every probe served is recorded as spent (${spentIds.length})`);
-  ok(spentIds.every((id) => /^[a-z0-9-]+:d\d+:.+$/.test(id)),
-    `the ledger holds probe ids in the item-id form (${spentIds[0]})"`);
+  // The exposure ledger records WHICH ITEM was spent, and the serve draws from
+  // two families: the session-seeded one (`<concept>:d<startedAt>:<concept>:...`)
+  // and the concept's designed depth pool (`<concept>:depth:<i>`, the items the
+  // depth layer added). The assertion used to accept only the seeded form, which
+  // silently assumed a probe can never come from the depth pool — and the serve
+  // aims each band at a DEMAND now, so an item from that pool is exactly the
+  // right draw when the concept cannot express the demanded level any other way.
+  // A shape the engine intends is not a defect; the check is the thing that was
+  // narrower than the engine.
+  const conceptIds = new Set((cList.body?.concepts ?? []).map((c) => c.id));
+  ok(spentIds.every((id) => /^[a-z0-9-]+:(d\d+|depth):.+$/.test(id)),
+    `every spent probe id is an item id from a family the serve can draw (${spentIds.find((id) => !/^[a-z0-9-]+:(d\d+|depth):.+$/.test(id)) ?? "none"})`);
+  ok(conceptIds.size > 0, `the concept list this is checked against is real (${conceptIds.size})`);
+  ok(spentIds.every((id) => conceptIds.has(id.split(":")[0])),
+    `and it names the concept it was drawn for (${spentIds.find((id) => !conceptIds.has(id.split(":")[0])) ?? "all known"})`);
   // Starting a second baseline samples the SAME concepts — the blueprint is
   // deterministic in (spec, subject), which is what makes a later retest
   // comparable with this one.

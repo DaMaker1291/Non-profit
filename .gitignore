@@ -10,6 +10,10 @@ out
 tsconfig.tsbuildinfo
 .verify
 .contentcheck
+# The static build's compile mirror. docs/ IS committed (it is what Pages
+# serves), but this intermediate output is not: `npm run build:static` rewrites
+# both from the same sources.
+.static-build
 .next/
 .freebuff
 

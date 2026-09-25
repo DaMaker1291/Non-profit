@@ -5364,5 +5364,79 @@ console.log("▸ Home: one day, one decision");
   }
 }
 
+// ── The engine's own sentences, in every language ───────────────────────────
+// The next-step engine composes its reason, its "why now" and its expected
+// outcome from i18n keys and ships them AS learner-visible text. Two failures
+// follow from a missing key, and both were real: an English learner was shown
+// `“mc.sf-sig” keeps recurring` inside a sentence (English had none of the 53
+// `mc.*` names while every other dictionary had all of them), and a learner
+// reading Arabic had an Arabic interface wrapped around an English
+// recommendation (no translator was passed, so the engine used its English
+// table).
+//
+// So this block states the contract directly: EVERY key the engine can emit has
+// to exist in EVERY dictionary. `EN_NEXT` and `OUTCOMES` are read from the
+// engine's own compiled source rather than retyped, so adding a key to the
+// engine without translating it fails here.
+{
+  const src = fs.readFileSync(".verify/next-engine.js", "utf8");
+  const tableKeys = [...src.matchAll(/"([a-z]+\.[A-Za-z0-9.]+)":\s*"/g)].map((m) => m[1]);
+  const outcomeKeys = [...src.matchAll(/(?:EXPLAIN|PRACTISE|RETRIEVE|REMEDIATE|CHALLENGE|TRANSFER|PROJECT|REST):\s*"([a-z.]+)"/g)].map((m) => m[1]);
+  const beliefKeys = Object.keys(misconceptions.MISCONCEPTIONS_BY_ID).map((id) => `mc.${id}`);
+  const needed = [...new Set([...tableKeys, ...outcomeKeys, ...beliefKeys])];
+  ok(outcomeKeys.length === 8, `the engine declares eight outcomes (${outcomeKeys.length})`);
+  ok(beliefKeys.length >= 40, `and ${beliefKeys.length} belief names to translate`);
+  const gaps = [];
+  for (const code of i18n.LANG_CODES) {
+    const dict = i18n.DICTS[code] || {};
+    for (const key of needed) if (!(key in dict)) gaps.push(`${code}: ${key}`);
+  }
+  ok(gaps.length === 0,
+    `every sentence the engine composes exists in all ${i18n.LANG_CODES.length} dictionaries (missing: ${gaps.slice(0, 6).join(", ") || "none"})`);
+
+  // And the sentence itself, in the two languages that failed, driven through a
+  // model with a genuinely recurring misconception.
+  const state = store.newProfileState("verify-next-i18n", {
+    country: "GB", subjects: ["maths"],
+    subjectCourses: { maths: { spec: "uk-gcse", specLevel: "higher" } },
+    spec: "uk-gcse", specLevel: "higher",
+  });
+  const at = Date.now() - 86_400_000;
+  const answers = [0, 1, 2, 3].map((i) => evidence.answerEvidence({
+    learnerId: "verify-next-i18n", at: at + i * 60_000, source: "practice", subject: "maths",
+    conceptId: "standard-form", specificationId: "uk-gcse", questionId: `standard-form:v${i}`,
+    correct: false, chosen: 1, mode: "independent", hints: 0, tags: ["sf-sig"],
+  }));
+  const ledger = {
+    read: () => answers,
+    append: (id, evs) => ({ accepted: evs.map((e) => e.id), duplicates: [] }),
+  };
+  const led = require("../.verify/ledger.js");
+  led.commitAndProject("verify-next-i18n", state, answers, ledger);
+  const events = ledger.read();
+  for (const code of ["en", "ar", "fr", "ja", "sw"]) {
+    const ctx = require("../.verify/decision.js").decisionContext(state, events);
+    const action = require("../.verify/decision.js").decideOne(ctx, {
+      title: (id) => require("../.verify/content-i18n.js").ctitle(code, id),
+      tt: i18n.translator(code),
+    });
+    ok(!!action, `${code}: the recurring belief produces an action`);
+    if (!action) continue;
+    const text = `${action.title} ${action.reason} ${action.why} ${action.expectedOutcome}`;
+    ok(!/mc\.[a-z-]+/.test(text), `${code}: no raw belief key in the sentence (${action.reason})`);
+    ok(!/^next\.| next\.[a-z]/.test(text), `${code}: no raw next.* key in the sentence`);
+    if (code !== "en") {
+      // The reason is ENGLISH-SHAPED in the source language, so a translated one
+      // must differ — this is the check that catches a decision produced with no
+      // translator at all.
+      const en = require("../.verify/decision.js").decideOne(
+        require("../.verify/decision.js").decisionContext(state, events),
+        { title: (id) => require("../.verify/content-i18n.js").ctitle("en", id), tt: i18n.translator("en") },
+      );
+      ok(!!en && action.reason !== en.reason, `${code}: the reason is actually translated (${action.reason})`);
+    }
+  }
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

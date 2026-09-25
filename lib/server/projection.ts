@@ -40,7 +40,7 @@
 // right, and costs one file read of arithmetic.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { PROJECTION_VERSION, type EvidenceEvent } from "../evidence";
+import { PROJECTION_VERSION, orderEvents, type EvidenceEvent } from "../evidence";
 import type { ProfileState } from "../types";
 import { adoptProjection, reconcileDeep, replayModel } from "../replay";
 import { appendEvidence, readEvidence, type AppendResult } from "./evidence";
@@ -147,7 +147,9 @@ export async function commitAndProject(
   if (!events.length) return { accepted: [], duplicates: [] };
   // 0. Read the ledger BEFORE the append: this is the reference the base
   //    decision is measured against, and it is the prefix of the replay below.
-  const before = readEvidence(learnerId);
+  //    Ordering it here keeps that prefix meaningful — the replay folds in
+  //    clock order, so the mark it skips must count in clock order too.
+  const before = orderEvents(readEvidence(learnerId));
   // 1. Decide whether anything here predates the ledger. Nothing does for a
   //    learner whose history the ledger already carries, and they get no base —
   //    which is the claim worth keeping strong.

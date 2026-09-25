@@ -15,6 +15,27 @@ export type NextT = (key: string) => string;
 const EN: NextT = (k) => EN_NEXT[k] ?? k;
 export function nextT(t: NextT | undefined): NextT { return t ?? EN; }
 
+/**
+ * A belief's name, in the learner's language, that can never be a raw key.
+ *
+ * The engine composes the remediation sentence from a fragment and a name, so
+ * a missing `mc.<id>` key does not degrade gracefully — it ships
+ * `You can do the steps, but “mc.sf-sig” keeps recurring` to the learner. That
+ * is not hypothetical: English was missing all 53 `mc.*` names while every
+ * other dictionary had them (see scripts/i18n-misconception-names.mjs), so the
+ * SOURCE language was the one showing keys.
+ *
+ * A translator renders an undefined key as its own name, which is detectable,
+ * and the catalogue's authored English is the right fallback for it: the belief
+ * being named is a fact about arithmetic, not prose to be localized.
+ */
+function beliefName(t: NextT, id: string): string {
+  const key = `mc.${id}`;
+  const v = t(key);
+  if (v !== key) return v;
+  return MISCONCEPTIONS_BY_ID[id]?.name ?? id;
+}
+
 export type NextKind =
   | "EXPLAIN" | "PRACTISE" | "RETRIEVE" | "REMEDIATE"
   | "CHALLENGE" | "TRANSFER" | "PROJECT" | "REST";
@@ -251,7 +272,7 @@ export function decideNext(
   for (const e of snap.evidence) {
     if (e.misconceptionHits >= 2 && e.topMisconception && out.length < max) {
       const m = MISCONCEPTIONS_BY_ID[e.topMisconception];
-      const mName = m ? t(`mc.${m.id}`) : "";
+      const mName = m ? beliefName(t, m.id) : "";
       const recent = recentFor(ledger, e.conceptId, 4);
       push({
         kind: "REMEDIATE", conceptId: e.conceptId,

@@ -204,6 +204,13 @@ export function nextQuestion(s: DiagnosticSession): Question | null {
     // The ladder must be a difficulty ladder, not a stage counter (audit P0-A):
     // serve a question whose drawn difficulty actually tracks the band target.
     const target = LADDER_DIFFICULTIES[Math.min(cur.stage, LADDER_DIFFICULTIES.length - 1)];
+    // What this sitting has already spent on this concept. Handing it to the
+    // serve is what makes the retry loop below meaningful: without it the queue
+    // of candidates is identical every attempt, so a stage whose demand the
+    // concept cannot express would serve one item six times and the concept
+    // would be closed as "run dry" mid-ladder — a flawless run truncated at
+    // stage 1, reported as a mediocre score. See `generateQuestionAt`.
+    const spent = new Set(cur.usedSeeds);
     for (let attempt = 0; attempt < 6; attempt++) {
       // Deterministic in (session start, concept, position): the same session
       // always probes the same items, so a dropped connection resumes the SAME
@@ -212,7 +219,7 @@ export function nextQuestion(s: DiagnosticSession): Question | null {
       // made every retry a different test — which quietly made "before vs
       // after" incomparable.
       const seed = `d${s.startedAt}:${cur.conceptId}:${cur.asked}:${attempt}`;
-      const q = generateQuestionAt(cur.conceptId, seed, target, attempt);
+      const q = generateQuestionAt(cur.conceptId, seed, target, attempt, spent);
       const sig = q ? `${q.prompt}|${q.choices[q.answer]}` : "";
       if (q && !cur.usedSeeds.includes(sig)) {
         cur.usedSeeds.push(sig);

@@ -1,5 +1,10 @@
 import { promises as fs } from "fs";
 import path from "path";
+// The profile's own shape and its wire-stripping rule are PURE, and the static
+// build (no server at all) needs both — so they live in lib/learner-profile.ts
+// and are re-exported here. A second copy would be a default that drifts.
+import { newProfileState, publicProfileState } from "../learner-profile";
+export { newProfileState, publicProfileState };
 import type { ClassRoster, ProfileState, StudentProfile, StudyPack, StudyRoom } from "../types";
 import type { BuiltPaperAnswerKey } from "../papers";
 import type { PersonalPaper } from "../personal-paper";
@@ -48,55 +53,12 @@ async function writeJson(file: string, data: unknown): Promise<void> {
 
 // ── Profiles ────────────────────────────────────────────────────────────────
 
-/** A brand-new learner state. Used by both the anonymous path (POST
- *  /api/profile) and account sign-up, so an account is born with a real,
- *  empty learner profile rather than a dangling id. */
-export function newProfileState(id: string, init: Partial<StudentProfile> = {}): ProfileState {
-  return {
-    profile: {
-      id,
-      handle: "student",
-      country: "XX",
-      birthYear: null,
-      language: "en",
-      teachingLang: "en",
-      answerLang: "en",
-      schoolLang: "en",
-      goal: "",
-      intent: "",
-      subjects: ["maths"],
-      createdAt: Date.now(),
-      ...init,
-    },
-    progress: {},
-    diagnostics: {},
-    masteries: {},
-    secret: "",
-  };
-}
+// `newProfileState` and `publicProfileState` are re-exported above from
+// lib/learner-profile.ts, where they live so the static build can share them.
 
 export async function getProfile(id: string): Promise<ProfileState | null> {
   const all = await readJson<Record<string, ProfileState>>("profiles.json", {});
   return all[id] ?? null;
-}
-
-/* * Strip transient server-only state before a profile crosses the wire: live
- *  diagnostic sessions (keys containing ":session"), pending practice
- *  questions, whose answer keys must never reach the client, and the open
- *  learning session's ledger — which holds the baseline the result is compared
- *  against, so a client that could read or edit it could fake adaptation.
- *
- * `projectionBase` (lib/server/projection.ts) is stripped for a different
- *  reason: it is not secret, but it is server-side bookkeeping — a duplicate of
- *  `progress` as it stood at cutover, plus the note of what the ledger could
- *  not rebuild. It is the server's account of its own architecture, not the
- *  learner's state, and nothing in the UI has a use for it. */
-export function publicProfileState(state: ProfileState): ProfileState {
-  const out: Record<string, unknown> = { ...state };
-  for (const k of Object.keys(out)) {
-    if (k.includes(":session") || k === "practice" || k === "learnSession" || k === "projectionBase") delete out[k];
-  }
-  return out as unknown as ProfileState;
 }
 
 export async function saveProfile(state: ProfileState): Promise<void> {

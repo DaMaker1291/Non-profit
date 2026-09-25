@@ -1,17 +1,27 @@
-# Publish the project page to GitHub Pages.
+# Publish OpenMind to GitHub Pages — built from source, not from a hand-written
+# page.
 #
 # What this deploys, and what it deliberately does not: OpenMind is a stateful
-# server application (API routes that grade answers, session cookies, a store of
-# JSON files on a real disk). GitHub Pages serves static files, so it can host
-# the PROJECT PAGE and cannot host the app. Rather than publish a static export
-# whose pages would load empty, this workflow publishes the page that explains
-# what the app is and how to run it — one container, one persistent disk.
+# server application (route handlers that grade answers, capability tokens, a
+# ledger of JSONL files on a real disk). GitHub Pages serves static files and
+# cannot run any of that. So this workflow builds the STATIC BUILD — the same
+# engines (question bank, diagnostic ladder, learner model, replay, decision
+# door, content graph, 15 dictionaries) compiled by scripts/build-static-app.mjs
+# into docs/openmind.engine.js, driven by a page whose ledger is this device's
+# localStorage — and publishes it.
+#
+# The static build runs the same code and is proved equivalent:
+# `npm run verify:static` drives one learner history through BOTH the bundled
+# ledger and the server's own JSONL path and requires the same model, the same
+# next action and the same citations. What it cannot be is server-graded:
+# on a static host the learner's own browser grades and keeps the record, and
+# the page says so to the learner rather than implying otherwise.
 name: pages
 
 on:
   push:
     branches: [main]
-    paths: ["docs/**", ".github/workflows/pages.yml"]
+    paths: ["docs/**", "lib/**", "scripts/**", ".github/workflows/pages.yml", "package.json"]
   workflow_dispatch:
 
 permissions:
@@ -24,16 +34,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The engines, compiled and bundled. A module on a browser path that
+      # reaches a Node builtin fails HERE, naming the module and the specifier,
+      # rather than shipping a page that dies in the learner's browser.
+      - name: Build the static app
+        run: npm run build:static
+      # The same engines, for the server-side half of the parity check.
+      - name: Compile the verification mirror
+        run: node scripts/compile-mirror.mjs
+      # Parity, idempotence, late arrivals, and the artifact itself.
+      - name: Prove the static build
+        run: npm run verify:static
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
   deploy:
+    needs: build
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
       - id: deploy
         uses: actions/deploy-pages@v4

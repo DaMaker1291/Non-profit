@@ -35,7 +35,7 @@
 // sat question by question, and the mark scheme's tags travel with each one).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { EvidenceEvent } from "./evidence";
+import { orderEvents, type EvidenceEvent } from "./evidence";
 import { recordAnswer } from "./progress";
 import { mergeDiagnosticSeed, diagnosticToProgress } from "./diagnostic";
 import type { ProfileState, ConceptProgress, ProjectionBase } from "./types";
@@ -182,8 +182,26 @@ export function replayModel(
   } as unknown as ProfileState;
   // The snapshot already accounts for the ledger's first `ledgerMark` events,
   // whatever their clocks say: fold from there on, and never fold them again.
-  const from = base ? Math.max(0, Math.min(base.ledgerMark, events.length)) : 0;
-  for (let i = from; i < events.length; i++) foldEvent(state, events[i]);
+  // ── THE FOLD IS CLOCK-ORDERED, NOT ARRIVAL-ORDERED ──────────────────────
+  // Two reasons, and the second is the one that bites.
+  //
+  // 1. The read half of this engine already says so: `projectLearner` orders by
+  //    (at, id) and documents that the same events in any order give the same
+  //    result. If the fold did not, the model a decision is made from and the
+  //    projection a reconcile checks it against would be two different answers
+  //    to the same question.
+  // 2. An append-only ledger cannot reorder its file, and it must not have to:
+  //    an event that arrives AFTER newer ones — a device syncing a morning's
+  //    offline work at lunchtime — would otherwise move `lastSeen`, the streak
+  //    and the retention clock to that late moment's position in the arrival
+  //    sequence. Ordering here is what makes "late arrival" a fact about
+  //    delivery rather than a fact about the learner.
+  //
+  // For a ledger that arrived in order (every live write) `orderEvents` is the
+  // identity, so this changes nothing about the normal path.
+  const ordered = orderEvents(events);
+  const from = base ? Math.max(0, Math.min(base.ledgerMark, ordered.length)) : 0;
+  for (let i = from; i < ordered.length; i++) foldEvent(state, ordered[i]);
   return state;
 }
 
