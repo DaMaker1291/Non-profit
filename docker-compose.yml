@@ -1,0 +1,22 @@
+# One laptop. One command.
+#
+#   docker compose up -d      → http://localhost:4173
+#
+# Learning data persists in ./openmind-data on the host, so rebuilding or
+# upgrading the container never loses a classroom's progress. Copy that one
+# directory to back up or migrate the whole deployment.
+#
+# Optional AI upgrade (the app is fully functional without any key):
+#   create a .env file with e.g.  GEMINI_API_KEY=...  and uncomment below.
+
+services:
+  openmind:
+    build: .
+    container_name: openmind
+    ports:
+      - "4173:4173"
+    volumes:
+      - ./openmind-data:/data
+    restart: unless-stopped
+    # environment:
+    #   - GEMINI_API_KEY=${GEMINI_API_KEY}

@@ -1,0 +1,12 @@
+node_modules
+.next
+.openmind-data
+openmind-data
+.git
+.gitignore
+*.log
+.DS_Store
+.env
+.env*.local
+README.md
+docker-compose.yml

@@ -1,0 +1,18 @@
+node_modules
+.next
+out
+*.log
+.DS_Store
+.env*.local
+.env
+
+# Build and verification artefacts — reproducible, never committed.
+tsconfig.tsbuildinfo
+.verify
+.contentcheck
+.next/
+.freebuff
+
+# Learning data — never commit a classroom.
+.openmind-data
+openmind-data

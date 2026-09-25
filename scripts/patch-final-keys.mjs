@@ -1,0 +1,67 @@
+// One-shot: the last keys held in ARRAYS rather than t("literal") calls, so
+// every previous audit missed them. Board buttons (acc.b.*), project templates
+// (proj.*) and transfer surface names (tr.*) all rendered as raw identifiers.
+import fs from "node:fs";
+
+const LANGS = ["en", "es", "fr", "pt", "ar", "sw", "hi", "id", "tl", "de", "ja", "zh", "fa", "ur", "bn"];
+
+const K = {
+  // ── exam boards (proper names; only the country/generic part localises) ──
+  "acc.b.cbse": ["CBSE (India)", "CBSE (India)", "CBSE (Inde)", "CBSE (Índia)", "CBSE (الهند)", "CBSE (India)", "CBSE (भारत)", "CBSE (India)", "CBSE (India)", "CBSE (Indien)", "CBSE(インド)", "CBSE（印度）", "CBSE (هند)", "CBSE (انڈیا)", "CBSE (ভারত)"],
+  "acc.b.icse": ["ICSE (India)", "ICSE (India)", "ICSE (Inde)", "ICSE (Índia)", "ICSE (الهند)", "ICSE (India)", "ICSE (भारत)", "ICSE (India)", "ICSE (India)", "ICSE (Indien)", "ICSE(インド)", "ICSE（印度）", "ICSE (هند)", "ICSE (انڈیا)", "ICSE (ভারত)"],
+  "acc.b.igcse": ["IGCSE (Cambridge)", "IGCSE (Cambridge)", "IGCSE (Cambridge)", "IGCSE (Cambridge)", "IGCSE (كامبريدج)", "IGCSE (Cambridge)", "IGCSE (कैम्ब्रिज)", "IGCSE (Cambridge)", "IGCSE (Cambridge)", "IGCSE (Cambridge)", "IGCSE(ケンブリッジ)", "IGCSE（剑桥）", "IGCSE (کمبریج)", "IGCSE (کیمبرج)", "IGCSE (কেমব্রিজ)"],
+  "acc.b.state": ["State board", "Junta estatal", "Conseil régional", "Rede estadual", "المجلس المحلي", "Bodi ya kitaifa", "राज्य बोर्ड", "Kurikulum nasional", "State board", "Landesbehörde", "州の教育委員会", "州立考试局", "شورای ایالتی", "صوبائی بورڈ", "রাজ্য বোর্ড"],
+  "acc.b.matric": ["Matric", "Matric", "Matric", "Matric", "الثانوية العامة", "Kidato cha nne", "मैट्रिक", "Matrik", "Matric", "Matric", "マトリック", "高中会考", "دیپلم", "میٹرک", "ম্যাট্রিক"],
+  "acc.b.nigerian": ["WAEC / NECO (Nigeria)", "WAEC / NECO (Nigeria)", "WAEC / NECO (Nigeria)", "WAEC / NECO (Nigéria)", "WAEC / NECO (نيجيريا)", "WAEC / NECO (Nigeria)", "WAEC / NECO (नाइजीरिया)", "WAEC / NECO (Nigeria)", "WAEC / NECO (Nigeria)", "WAEC / NECO (Nigeria)", "WAEC / NECO(ナイジェリア)", "WAEC / NECO（尼日利亚）", "WAEC / NECO (نیجریه)", "WAEC / NECO (نائجیریا)", "WAEC / NECO (নাইজেরিয়া)"],
+  "acc.b.kenyan": ["KCSE (Kenya)", "KCSE (Kenia)", "KCSE (Kenya)", "KCSE (Quênia)", "KCSE (كينيا)", "KCSE (Kenya)", "KCSE (केन्या)", "KCSE (Kenya)", "KCSE (Kenya)", "KCSE (Kenia)", "KCSE(ケニア)", "KCSE（肯尼亚）", "KCSE (کنیا)", "KCSE (کینیا)", "KCSE (কেনিয়া)"],
+  "acc.b.philippine": ["DepEd (Philippines)", "DepEd (Filipinas)", "DepEd (Philippines)", "DepEd (Filipinas)", "DepEd (الفلبين)", "DepEd (Ufilipino)", "DepEd (फ़िलीपींस)", "DepEd (Filipina)", "DepEd (Pilipinas)", "DepEd (Philippinen)", "DepEd(フィリピン)", "DepEd（菲律宾）", "DepEd (فیلیپین)", "DepEd (فلپائن)", "DepEd (ফিলিপাইন)"],
+  "acc.b.bangladeshi": ["NCTB (Bangladesh)", "NCTB (Bangladesh)", "NCTB (Bangladesh)", "NCTB (Bangladesh)", "NCTB (بنغلاديش)", "NCTB (Bangladesh)", "NCTB (बांग्लादेश)", "NCTB (Bangladesh)", "NCTB (Bangladesh)", "NCTB (Bangladesch)", "NCTB(バングラデシュ)", "NCTB（孟加拉国）", "NCTB (بنگلادش)", "NCTB (بنگلادیش)", "NCTB (বাংলাদেশ)"],
+  "acc.b.indonesian": ["Kurikulum Merdeka (Indonesia)", "Kurikulum Merdeka (Indonesia)", "Kurikulum Merdeka (Indonésie)", "Kurikulum Merdeka (Indonésia)", "Kurikulum Merdeka (إندونيسيا)", "Kurikulum Merdeka (Indonesia)", "Kurikulum Merdeka (इंडोनेशिया)", "Kurikulum Merdeka (Indonesia)", "Kurikulum Merdeka (Indonesia)", "Kurikulum Merdeka (Indonesien)", "Kurikulum Merdeka(インドネシア)", "Kurikulum Merdeka（印度尼西亚）", "Kurikulum Merdeka (اندونزی)", "Kurikulum Merdeka (انڈونیشیا)", "Kurikulum Merdeka (ইন্দোনেশিয়া)"],
+  "acc.b.brazilian": ["BNCC (Brazil)", "BNCC (Brasil)", "BNCC (Brésil)", "BNCC (Brasil)", "BNCC (البرازيل)", "BNCC (Brazil)", "BNCC (ब्राज़ील)", "BNCC (Brasil)", "BNCC (Brazil)", "BNCC (Brasilien)", "BNCC(ブラジル)", "BNCC（巴西）", "BNCC (برزیل)", "BNCC (برازیل)", "BNCC (ব্রাজিল)"],
+  "acc.b.mexican": ["SEP (Mexico)", "SEP (México)", "SEP (Mexique)", "SEP (México)", "SEP (المكسيك)", "SEP (Mexico)", "SEP (मेक्सिको)", "SEP (Meksiko)", "SEP (Mexico)", "SEP (Mexiko)", "SEP(メキシコ)", "SEP（墨西哥）", "SEP (مکزیک)", "SEP (میکسیکو)", "SEP (মেক্সিকো)"],
+
+  // ── project templates ──
+  "proj.marketStall": ["Run a market stall", "Atiende un puesto de mercado", "Tiens un étal au marché", "Toque uma barraca na feira", "أدر بسطة في السوق", "Endesha kibanda cha soko", "बाज़ार में दुकान चलाएँ", "Jalankan kios pasar", "Magpatakbo ng tindahan sa palengke", "Einen Marktstand führen", "市場の屋台を運営する", "经营一个市场摊位", "یک دکه بازار را بگردان", "بازار میں دکان چلائیں", "বাজারে একটি দোকান চালান"],
+  "proj.ms1": ["Price your goods: cost, markup and a 20% discount", "Pon precio a tus productos: costo, margen y un 20 % de descuento", "Fixe tes prix : coût, marge et 20 % de remise", "Precifique seus preços: custo, margem e 20% de desconto", "سعّر بضاعتك: التكلفة والهامش وخصم 20%", "Weka bei: gharama, faida na punguzo la 20%", "कीमत तय करें: लागत, मुनाफ़ा और 20% छूट", "Tentukan harga: modal, margin, dan diskon 20%", "Ipresyo: puhunan, patong at 20% diskwento", "Preise festlegen: Kosten, Aufschlag und 20 % Rabatt", "値段をつける: 原価・利益・20%引き", "给商品定价：成本、加价和 20% 折扣", "قیمتگذاری کن: هزینه، سود و ۲۰٪ تخفیف", "قیمت لگائیں: لاگت، منافع اور 20% رعایت", "দাম ঠিক করুন: খরচ, মুনাফা ও ২০% ছাড়"],
+  "proj.ms2": ["Work out a day's profit", "Calcula la ganancia de un día", "Calcule le bénéfice d'une journée", "Calcule o lucro de um dia", "احسب ربح يوم", "Hesabu faida ya siku moja", "एक दिन का मुनाफ़ा निकालें", "Hitung untung sehari", "Kalkulahin ang kita sa isang araw", "Den Tagesgewinn berechnen", "1日の利益を計算する", "算出一天赚了多少", "سود یک روز را حساب کن", "ایک دن کا منافع نکالیں", "একদিনের লাভ বের করুন"],
+  "proj.ms3": ["Split the takings fairly between three sellers", "Reparte la recaudación entre tres vendedores", "Partage la recette entre trois vendeurs", "Divida a arrecadação entre três vendedores", "اقسم الإيراد بعدل بين ثلاثة بائعين", "Gawanya mapato kwa haki kati ya wauzaji watatu", "तीन विक्रेताओं में कमाई बराबर बाँटें", "Bagi hasil adil untuk tiga penjual", "Hatiin nang patas ang kita sa tatlong tindera", "Die Einnahmen fair auf drei Verkäufer aufteilen", "売上を3人で公平に分ける", "把收入公平分给三个卖家", "درآمد را بین سه فروشنده عادلانه تقسیم کن", "تین دکانداروں میں آمدنی انصاف سے بانٹیں", "তিন বিক্রেতার মধ্যে আয় ন্যায্যভাবে ভাগ করুন"],
+  "proj.firstApp": ["Build your first app", "Crea tu primera app", "Crée ta première appli", "Crie seu primeiro app", "ابنِ تطبيقك الأول", "Tengeneza programu yako ya kwanza", "अपना पहला ऐप बनाएँ", "Buat aplikasi pertamamu", "Gumawa ng una mong app", "Baue deine erste App", "はじめてのアプリを作る", "做出你的第一个应用", "اولین برنامهات را بساز", "اپنی پہلی ایپ بنائیں", "আপনার প্রথম অ্যাপ তৈরি করুন"],
+  "proj.fa1": ["Store the numbers a user types", "Guarda los números que escribe el usuario", "Stocke les nombres saisis par l'utilisateur", "Guarde os números que a pessoa digita", "خزّن الأرقام التي يُدخلها المستخدم", "Hifadhi namba anazoandika mtumiaji", "उपयोगकर्ता के डाले अंक सहेजें", "Simpan angka yang diketik pengguna", "Itago ang mga numerong itina-type", "Die eingegebenen Zahlen speichern", "入力された数字を保存する", "保存用户输入的数字", "اعداد ورودی کاربر را ذخیره کن", "صارف کے لکھے اعداد محفوظ کریں", "ব্যবহারকারীর লেখা সংখ্যা সংরক্ষণ করুন"],
+  "proj.fa2": ["Write a rule that turns inputs into an answer", "Escribe una regla que convierta las entradas en una respuesta", "Écris une règle qui transforme les entrées en résultat", "Escreva uma regra que transforme entradas em resposta", "اكتب قاعدة تحوّل المدخلات إلى نتيجة", "Andika kanuni inayobadilisha pembejeo kuwa jibu", "ऐसा नियम लिखें जो इनपुट को उत्तर बनाए", "Tulis aturan yang mengubah input jadi jawaban", "Sumulat ng panuntunang gagawa ng sagot mula sa input", "Eine Regel schreiben, die Eingaben in ein Ergebnis verwandelt", "入力を答えに変えるルールを書く", "写一条把输入变成答案的规则", "قاعدهای بنویس که ورودی را به پاسخ تبدیل کند", "ایک اصول لکھیں جو ان پٹ کو جواب بنائے", "এমন নিয়ম লিখুন যা ইনপুটকে উত্তর বানায়"],
+  "proj.fa3": ["Test it with three inputs you choose", "Pruébalo con tres entradas que elijas", "Teste-le avec trois entrées que tu choisis", "Teste com três entradas que você escolher", "اختبره بثلاثة مدخلات تختارها", "Ijaribu kwa pembejeo tatu unazochagua", "अपने चुने तीन इनपुट से परखें", "Uji dengan tiga input pilihanmu", "Subukan sa tatlong input na pipiliin mo", "Mit drei selbst gewählten Eingaben testen", "自分で選んだ3つの入力で試す", "用你选的三个输入测试", "با سه ورودی که خودت انتخاب میکنی امتحان کن", "اپنے چنے تین ان پٹ سے آزمائیں", "আপনার বেছে নেওয়া তিনটি ইনপুট দিয়ে পরীক্ষা করুন"],
+  "proj.quadPlot": ["Plot a quadratic", "Grafica una cuadrática", "Trace une parabole", "Trace uma parábola", "ارسم دالة تربيعية", "Chora parabola", "द्विघात का ग्राफ़ बनाएँ", "Gambar grafik kuadrat", "I-graph ang quadratic", "Eine Parabel zeichnen", "放物線を描く", "画一条抛物线", "یک سهمی رسم کن", "ایک منحنی بنائیں", "একটি পরাবৃত্ত আঁকুন"],
+  "proj.qp1": ["Make a table of x and y values", "Haz una tabla de valores de x e y", "Fais un tableau de valeurs de x et y", "Monte uma tabela de valores de x e y", "اعمل جدولًا لقيم x و y", "Tengeneza jedwali la thamani za x na y", "x और y मानों की तालिका बनाएँ", "Buat tabel nilai x dan y", "Gumawa ng table ng x at y values", "Eine Wertetabelle für x und y anlegen", "x と y の値の表を作る", "列出 x 和 y 的数值表", "جدولی از مقادیر x و y بساز", "x اور y کی اقدار کا جدول بنائیں", "x ও y মানের একটি সারণি তৈরি করুন"],
+  "proj.qp2": ["Plot the points and join them", "Marca los puntos y únelos", "Place les points et relie-les", "Marque os pontos e ligue-os", "ارسِم النقاط وصلها", "Chora pointi na uziunganishe", "बिंदु अंकित कर जोड़ें", "Plot titik-titiknya lalu hubungkan", "Iplot ang mga puntos at pagdugtungin", "Punkte einzeichnen und verbinden", "点を打って結ぶ", "描点并连线", "نقاط را بگذار و وصل کن", "نقاط لگائیں اور ملائیں", "বিন্দুগুলো বসিয়ে জোড়া দিন"],
+  "proj.qp3": ["Read off where the curve crosses the x-axis", "Lee dónde la curva corta el eje x", "Lis où la courbe coupe l'axe des x", "Leia onde a curva corta o eixo x", "اقرأ حيث يقطع المنحنى محور x", "Soma pale mkunjo unapokata mhimili wa x", "देखें वक्र x-अक्ष को कहाँ काटता है", "Baca di mana kurvanya memotong sumbu x", "Basahin kung saan tumatawid ang kurba sa x-axis", "Ablesen, wo die Kurve die x-Achse schneidet", "曲線が x 軸と交わる点を読む", "读出曲线与 x 轴的交点", "بخوان کجا منحنی محور x را قطع میکند", "دیکھیں منحنی x محور کو کہاں کاٹتا ہے", "দেখুন বক্ররেখা x-অক্ষকে কোথায় কাটে"],
+  // ── transfer surface names ──
+  "tr.reverse": ["Work backwards", "Hazlo al revés", "À l'envers", "Ao contrário", "اعمل بالعكس", "Fanya kinyume", "उल्टा सोचें", "Kerjakan terbalik", "Baliktarin", "Rückwärts denken", "逆から考える", "反过来想", "از آخر به اول", "الٹا سوچیں", "উল্টো করে ভাবুন"],
+  "tr.realWorld": ["Real-world setting", "Situación real", "Situation réelle", "Situação real", "سياق من الواقع", "Mazingira halisi", "वास्तविक परिस्थिति", "Situasi nyata", "Totoong sitwasyon", "Reale Situation", "実生活の場面", "现实情境", "موقعیت واقعی", "حقیقی صورتحال", "বাস্তব পরিস্থিতি"],
+  "tr.realWorldQ": ["In this situation, which choice is right?", "En esta situación, ¿qué opción es correcta?", "Dans cette situation, quelle option est juste ?", "Nesta situação, qual opção está certa?", "في هذه الحالة، أي خيار صحيح؟", "Katika hali hii, chaguo lipi ni sahihi?", "इस स्थिति में कौन-सा विकल्प सही है?", "Dalam situasi ini, pilihan mana yang benar?", "Sa sitwasyong ito, aling pagpipilian ang tama?", "Welche Option ist in dieser Situation richtig?", "この場面で正しい選択はどれか", "在这种情况下哪个选项正确？", "در این موقعیت کدام گزینه درست است؟", "اس صورتحال میں کون سا انتخاب درست ہے؟", "এই পরিস্থিতিতে কোন বিকল্পটি ঠিক?"],
+  "tr.compare": ["Compare two choices", "Compara dos opciones", "Compare deux options", "Compare duas opções", "قارن بين خيارين", "Linganisha chaguo mbili", "दो विकल्पों की तुलना करें", "Bandingkan dua pilihan", "Ihambing ang dalawang pagpipilian", "Zwei Optionen vergleichen", "2つの選択肢を比べる", "比较两个选项", "دو گزینه را مقایسه کن", "دو انتخاب کا موازنہ کریں", "দুটি বিকল্প তুলনা করুন"],
+  "tr.justify": ["Justify the result", "Justifica el resultado", "Justifie le résultat", "Justifique o resultado", "برّر النتيجة", "Thibitisha matokeo", "परिणाम का कारण बताएँ", "Buktikan hasilnya", "Ipaliwanag ang resulta", "Das Ergebnis begründen", "結果の理由を示す", "说明结果的理由", "نتیجه را توجیه کن", "نتیجے کی وجہ بتائیں", "ফলাফলের যুক্তি দিন"],
+};
+
+const declRe = /^(?:export )?const (\w+): Dict = \{$/gm;
+let out = fs.readFileSync("lib/i18n.ts", "utf8");
+let added = 0;
+for (const lang of LANGS) {
+  declRe.lastIndex = 0;
+  const decls = []; let d;
+  while ((d = declRe.exec(out))) decls.push({ name: d[1], start: d.index });
+  const idx = decls.findIndex((x) => x.name === lang);
+  if (idx < 0) { console.error(`no dictionary for ${lang}`); process.exit(1); }
+  const start = decls[idx].start;
+  const rel = out.slice(start).match(/\n[ \t]*\};/);
+  if (!rel) { console.error(`${lang}: closing brace not found`); process.exit(1); }
+  const end = start + rel.index;
+  const have = new Set([...out.slice(start, end).matchAll(/"([a-zA-Z0-9._-]+)":/g)].map((m) => m[1]));
+  const col = LANGS.indexOf(lang);
+  const lines = Object.entries(K)
+    .filter(([k]) => !have.has(k))
+    .map(([k, v]) => `  ${JSON.stringify(k)}: ${JSON.stringify(v[col])},`);
+  if (!lines.length) continue;
+  out = out.slice(0, end) + "\n  // ── boards, projects, transfer surfaces ──\n" + lines.join("\n") + out.slice(end);
+  added += lines.length;
+}
+fs.writeFileSync("lib/i18n.ts", out);
+console.log(`added ${added} keys across ${LANGS.length} dictionaries (${Object.keys(K).length} key names)`);

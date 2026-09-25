@@ -1,0 +1,629 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   OpenMind — "Exercise Book" design system
+   Paper, blue-black ink, the red margin, the teacher's tick.
+   Light by design: readable on cheap phones outdoors. RTL: margin flips.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --paper: #f8f9f4;
+  --paper-deep: #eff2ea;
+  /* The squared paper, whispered: the grid is a texture, not a competing
+     signal. It sits ~2% above the paper so text and cards own the page. */
+  --grid: #e9ede7;
+  --ink: #17293b;
+  --ink-soft: #2a4056;
+  --pencil: #5c6b78;
+  --margin-red: #e03e2d;
+  --tick-green: #1e7a46;
+  --amber: #b0670b;
+  --line: #c7d1d6;
+  --radius: 6px;
+  --rail: 56px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans",
+    "Noto Sans Arabic", "Noto Sans Devanagari", "Noto Sans Hebrew", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background-color: var(--paper);
+  /* the squared paper */
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-text-size-adjust: 100%;
+}
+
+::selection { background: rgba(224, 62, 45, 0.18); }
+
+/* ── The red margin rail: the signature. Runs every page. ── */
+.margin-rail {
+  position: fixed;
+  top: 0; bottom: 0;
+  inset-inline-start: 0;
+  width: var(--rail);
+  border-inline-end: 2px solid var(--margin-red);
+  background: linear-gradient(90deg, var(--paper-deep), transparent);
+  pointer-events: none;
+  z-index: 40;
+}
+[dir="rtl"] .margin-rail {
+  background: linear-gradient(270deg, var(--paper-deep), transparent);
+}
+.rail-label {
+  position: absolute;
+  top: 96px;
+  inset-inline-start: 0;
+  width: 100%;
+  writing-mode: vertical-rl;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--pencil);
+  text-align: center;
+}
+.rail-label::after {
+  content: "";
+  display: block;
+  width: 1px; height: 34px;
+  background: var(--pencil);
+  margin: 10px auto 0;
+  opacity: 0.5;
+}
+
+.container { max-width: 1020px; margin: 0 auto; padding: 0 20px 0 calc(var(--rail) + 24px); }
+[dir="rtl"] .container { padding: 0 calc(var(--rail) + 24px) 20px 20px; }
+.container.narrow { max-width: 780px; }
+
+a { color: var(--ink); text-decoration-color: rgba(224, 62, 45, 0.55); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+/* Hover stays neutral: red is the accent, not the default response to a
+   pointer. Colour appears where meaning lives (active nav, marking, focus). */
+a:hover { color: var(--ink-soft); }
+
+:focus-visible { outline: 2.5px solid var(--margin-red); outline-offset: 2px; border-radius: 2px; }
+
+/* ── Masthead: the book label ── */
+.masthead {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(248, 249, 244, 0.94);
+  backdrop-filter: blur(6px);
+  border-bottom: 2px solid var(--ink);
+}
+.masthead-inner {
+  display: flex; align-items: center; gap: 16px;
+  max-width: 1020px; margin: 0 auto;
+  padding: 12px 20px 12px calc(var(--rail) + 24px);
+  flex-wrap: wrap;
+}
+[dir="rtl"] .masthead-inner { padding: 12px calc(var(--rail) + 24px) 12px 20px; }
+.masthead-logo {
+  display: flex; align-items: baseline; gap: 8px;
+  font-family: var(--font-display, var(--font));
+  font-weight: 800; font-size: 21px; letter-spacing: -0.02em;
+  color: var(--ink); text-decoration: none;
+}
+.masthead-logo:hover { color: var(--ink); }
+.masthead-logo .stamp {
+  font-family: var(--mono);
+  font-size: 9.5px; font-weight: 400; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--pencil);
+  border: 1.5px solid var(--pencil);
+  border-radius: 3px; padding: 1.5px 6px;
+  transform: translateY(-2px);
+}
+.masthead-links { display: flex; gap: 2px; flex-wrap: wrap; }
+.masthead-links a {
+  font-size: 14px; font-weight: 600; color: var(--pencil);
+  text-decoration: none; padding: 6px 10px; border-radius: 4px;
+}
+.masthead-links a:hover { color: var(--ink); background: var(--paper-deep); }
+.masthead-links a.active { color: var(--ink); background: var(--paper-deep); box-shadow: inset 0 -2px 0 var(--margin-red); }
+/* Utility pages fold into a ⋯ overflow: the bar stays a learning bar. A
+   native <details> — no JS state, keyboard and screen-reader support free. */
+.nav-overflow { position: relative; }
+.nav-overflow summary {
+  list-style: none; cursor: pointer;
+  font-size: 15px; font-weight: 700; color: var(--pencil);
+  padding: 6px 12px; border-radius: 4px; user-select: none;
+}
+.nav-overflow summary::-webkit-details-marker { display: none; }
+.nav-overflow summary:hover { color: var(--ink); background: var(--paper-deep); }
+.nav-overflow[open] summary { color: var(--ink); background: var(--paper-deep); }
+.nav-overflow-menu {
+  position: absolute; top: calc(100% + 6px); inset-inline-end: 0;
+  min-width: 190px; z-index: 70;
+  background: var(--paper); border: 2px solid var(--ink); border-radius: var(--radius);
+  box-shadow: 4px 4px 0 rgba(23, 41, 59, 0.14);
+  padding: 6px; display: grid;
+}
+.nav-overflow-menu a {
+  font-size: 14px; font-weight: 600; color: var(--ink);
+  text-decoration: none; padding: 9px 11px; border-radius: 4px; white-space: nowrap;
+}
+.nav-overflow-menu a:hover { background: var(--paper-deep); }
+.nav-overflow-menu a.active { background: var(--paper-deep); box-shadow: inset 2px 0 0 var(--margin-red); }
+[dir="rtl"] .nav-overflow-menu a.active { box-shadow: inset -2px 0 0 var(--margin-red); }
+.masthead-spacer { flex: 1; }
+.masthead select {
+  font-family: var(--mono); font-size: 12px;
+  background: transparent; color: var(--ink);
+  border: 1.5px solid var(--line); border-radius: 4px; padding: 6px 8px;
+}
+
+/* ── Type ── */
+.display, h1, h2.section {
+  font-family: var(--font-display, var(--font));
+  font-weight: 800;
+  letter-spacing: -0.022em;
+  line-height: 1.04;
+  color: var(--ink);
+}
+h1 { font-size: clamp(34px, 6vw, 58px); margin: 0 0 18px; }
+h2.section { font-size: clamp(23px, 3.4vw, 31px); margin: 0 0 8px; }
+/* Secondary page heading: present, not a billboard. */
+h1.visually-small { font-size: clamp(24px, 3.6vw, 32px); margin: 0 0 12px; }
+h2.h2 { font-size: clamp(19px, 2.6vw, 24px); margin: 0 0 8px; }
+h3 { font-family: var(--font-display, var(--font)); font-weight: 700; letter-spacing: -0.01em; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--pencil);
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 14px;
+}
+.eyebrow .no { color: var(--pencil); font-weight: 700; }
+.eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+.lead { font-size: clamp(16px, 2vw, 19px); color: var(--ink-soft); max-width: 620px; }
+.muted { color: var(--pencil); }
+.small { font-size: 13.5px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* The pen underline on the hero */
+.hand-underline {
+  position: relative;
+  white-space: nowrap;
+}
+.hand-underline svg {
+  position: absolute; left: 0; right: 0; bottom: -0.12em;
+  width: 100%; height: 0.22em;
+}
+.hand-underline svg path {
+  fill: none; stroke: var(--margin-red); stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 1000; stroke-dashoffset: 1000;
+}
+.loaded .hand-underline svg path { animation: draw 0.9s 0.35s ease forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .hand-underline svg path { stroke-dashoffset: 0; animation: none; }
+  * { transition: none !important; animation: none !important; }
+}
+
+/* ── Buttons: ink, no gradients ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+  background: var(--ink); color: var(--paper);
+  font-family: var(--font); font-weight: 700; font-size: 15px;
+  border: 2px solid var(--ink); border-radius: var(--radius);
+  padding: 11px 20px; cursor: pointer;
+  min-height: 48px;
+  text-decoration: none;
+  transition: background 0.12s ease, transform 0.08s ease;
+}
+.btn:hover { background: var(--ink-soft); border-color: var(--ink-soft); color: var(--paper); text-decoration: none; transform: translateY(-1px); }
+.btn:disabled { opacity: 0.45; cursor: wait; transform: none; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--ink); }
+.btn.ghost:hover { background: var(--paper-deep); color: var(--ink); }
+.btn.small { padding: 9px 15px; font-size: 14px; border-width: 1.5px; min-height: 40px; }
+
+/* ── Workings: the boxed area where a question lives ── */
+.card {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: 4px 4px 0 rgba(23, 41, 59, 0.14);
+}
+.card.soft { background: var(--paper-deep); box-shadow: none; border-width: 1.5px; }
+
+.grid { display: grid; gap: 16px; }
+.grid.cols2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.grid.cols3 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+
+/* ── Answer options: designed to be MARKED ── */
+.choices { display: grid; gap: 10px; }
+.choice {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; text-align: start;
+  background: var(--paper); color: var(--ink);
+  border: 1.5px dashed var(--pencil); border-radius: var(--radius);
+  padding: 12px 15px; font-size: 15.5px; font-weight: 600;
+  font-family: var(--font); cursor: pointer;
+  transition: border-color 0.1s ease, background 0.1s ease;
+}
+.choice:hover:not(:disabled) { border-style: solid; border-color: var(--ink); background: var(--paper-deep); }
+.choice .mark {
+  flex: none; width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-weight: 700; font-size: 14px;
+  border: 1.5px solid var(--line); border-radius: 4px; color: var(--paper);
+}
+.choice .mark::before { content: attr(data-idx); color: var(--pencil); font-size: 12px; }
+.choice.sel { border-style: solid; border-color: var(--ink); }
+.choice.ok { border-style: solid; border-color: var(--tick-green); background: rgba(30, 122, 70, 0.07); }
+.choice.ok .mark { background: var(--tick-green); border-color: var(--tick-green); }
+.choice.ok .mark::before { content: "✓"; color: var(--paper); }
+.choice.bad { border-style: solid; border-color: var(--margin-red); background: rgba(224, 62, 45, 0.05); }
+.choice.bad .mark { background: var(--margin-red); border-color: var(--margin-red); }
+.choice.bad .mark::before { content: "✗"; color: var(--paper); }
+.choice.bad .choice-text { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: rgba(224, 62, 45, 0.6); }
+.choice.reveal.ok { background: rgba(30, 122, 70, 0.07); }
+.choice:disabled { cursor: default; }
+.choice-text { flex: 1; }
+
+.qprompt {
+  font-size: 18.5px; font-weight: 650; line-height: 1.5;
+  white-space: pre-wrap; margin: 6px 0 20px;
+}
+
+/* Marking feedback: like it was written under the answer */
+.feedback {
+  margin-top: 16px; border-radius: var(--radius);
+  border-inline-start: 3px solid var(--pencil);
+  padding: 12px 15px; font-size: 14.5px;
+  background: var(--paper-deep);
+}
+.feedback.ok { border-inline-start-color: var(--tick-green); }
+.feedback.no { border-inline-start-color: var(--margin-red); }
+.feedback .verdict { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; display: block; margin-bottom: 3px; }
+.feedback.ok .verdict { color: var(--tick-green); }
+.feedback.no .verdict { color: var(--margin-red); }
+.feedback b.tag { color: var(--amber); font-weight: 650; }
+
+/* ── Mastery: pencil hatching ── */
+.bar {
+  height: 12px; border: 1.5px solid var(--ink); border-radius: 3px;
+  background: var(--paper); overflow: hidden;
+}
+.bar > i {
+  display: block; height: 100%;
+  background: repeating-linear-gradient(45deg, var(--ink) 0 2px, transparent 2px 5px);
+  transition: width 0.5s ease;
+}
+.bar.thin { height: 9px; }
+
+/* ── Chips / register labels ── */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 11.5px; font-weight: 500;
+  letter-spacing: 0.04em; padding: 3px 9px;
+  border-radius: 3px; border: 1px solid var(--line);
+  background: var(--paper); color: var(--ink-soft);
+  text-decoration: none;
+}
+a.chip:hover { border-color: var(--ink); color: var(--ink); }
+.chip.good { color: var(--tick-green); border-color: var(--tick-green); }
+.chip.warn { color: var(--amber); border-color: var(--amber); }
+.chip.bad { color: var(--margin-red); border-color: var(--margin-red); }
+.chip.red { color: var(--margin-red); border-color: var(--margin-red); font-weight: 700; }
+
+/* ── Genome chart: the route ── */
+.route { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding: 6px 0 10px; }
+.route .stop {
+  flex: none; position: relative;
+  border: 2px solid var(--ink); border-radius: 5px;
+  background: var(--paper); padding: 9px 13px;
+  font-weight: 700; font-size: 13.5px; white-space: nowrap;
+  box-shadow: 3px 3px 0 rgba(23, 41, 59, 0.12);
+}
+.route .stop small { display: block; font-family: var(--mono); font-weight: 400; font-size: 10px; color: var(--pencil); letter-spacing: 0.06em; }
+.route .leg {
+  flex: none; align-self: center;
+  width: 34px; height: 2px; position: relative;
+  background: var(--pencil);
+  min-width: 22px;
+}
+.route .leg::after {
+  content: ""; position: absolute; inset-inline-end: 0; top: -3px;
+  border-inline-start: 7px solid var(--pencil);
+  border-block: 4px solid transparent;
+}
+
+.genome-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.node {
+  border: 1.5px solid var(--ink); background: var(--paper);
+  border-radius: 5px; padding: 14px 16px;
+  font-size: 15px; font-weight: 600; color: var(--ink);
+  font-family: var(--font); cursor: pointer;
+  min-height: 60px;
+  max-width: 300px; text-align: start;
+  text-decoration: none;
+  box-shadow: 2.5px 2.5px 0 rgba(23, 41, 59, 0.1);
+  display: flex; flex-direction: column; justify-content: center;
+}
+.node:hover { border-color: var(--ink-soft); text-decoration: none; }
+.node .sub { display: block; color: var(--pencil); font-weight: 500; font-size: 12px; margin-top: 4px; }
+.node.strong { background: rgba(30, 122, 70, 0.08); }
+.node.weak { background: rgba(224, 62, 45, 0.06); }
+
+/* ── How a session works: a numbered sequence, not a grid of feature cards.
+   The order IS the information — each step feeds the next — so it is set as
+   an ordered list with the numbers in the margin, the way a method is written
+   on a board. ── */
+.steps { list-style: none; margin: 0; padding: 0; }
+.steps li {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 12px 0; border-top: 1px solid var(--line);
+}
+.steps li:first-child { border-top: 0; padding-top: 0; }
+.step-no {
+  flex: 0 0 auto; font-size: 12px; letter-spacing: 0.12em;
+  color: var(--margin-red); font-weight: 700; padding-top: 2px;
+}
+
+/* ── "Why this question": one quiet line above the prompt. It states the
+   reason and the item's own band, and never the internal difficulty score. ── */
+.whyq {
+  display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline;
+  border-inline-start: 2px solid var(--line);
+  padding: 2px 0 2px 10px; margin: 0 0 14px;
+  font-size: 13px; color: var(--ink-soft);
+}
+.whyq .why-label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--pencil);
+}
+.whyq .band {
+  font-family: var(--mono); font-size: 11px; color: var(--pencil);
+  border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px;
+}
+.whyq .scaffold { color: var(--amber); font-weight: 600; }
+.stage-label {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--pencil);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 5px; margin: 22px 0 10px;
+}
+.stage-label .roman { color: var(--ink); font-weight: 700; }
+
+/* ── Learning path chips (concept page) ── */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 12px; font-weight: 500;
+  letter-spacing: 0.04em; padding: 6px 12px; border-radius: 20px;
+  border: 1.5px solid var(--line); background: var(--paper); color: var(--pencil);
+  min-height: 36px;
+}
+.chip.on { border-color: var(--ink); color: var(--ink); background: var(--paper-deep); font-weight: 700; }
+.chip.ok { border-color: var(--tick-green); color: var(--tick-green); background: rgba(30, 122, 70, 0.07); }
+
+/* ── Chat ── */
+.chat { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding: 4px 2px; }
+.msg { max-width: 85%; border-radius: 8px; padding: 9px 13px; font-size: 14.5px; border: 1.5px solid var(--line); }
+.msg.me { align-self: flex-end; background: var(--paper-deep); border-color: var(--ink); }
+.msg.them { align-self: flex-start; background: var(--paper); }
+.msg.tutor {
+  align-self: flex-start; background: var(--paper);
+  border-color: var(--pencil);
+  border-style: dashed;
+  font-style: italic;
+}
+.msg .who { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pencil); margin-bottom: 3px; }
+
+/* ── Tables / stats / misc ── */
+table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th, .tbl td { text-align: start; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+.tbl th { font-family: var(--mono); font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: var(--pencil); }
+.tbl td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.stat { font-family: var(--font-display, var(--font)); font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+.stat-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pencil); }
+
+.alert { border: 1.5px solid var(--amber); border-inline-start: 4px solid var(--amber); background: rgba(176, 103, 11, 0.06); color: var(--ink); border-radius: var(--radius); padding: 11px 14px; font-size: 14px; }
+
+.list-plain { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+
+/* ── Forms ── */
+label.field { display: block; margin-bottom: 15px; }
+label.field > span {
+  display: flex; justify-content: space-between; margin-bottom: 5px;
+  font-family: var(--mono); font-size: 10.5px; font-weight: 500;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--pencil);
+}
+input[type="text"], input[type="number"], select, textarea {
+  width: 100%; background: var(--paper); color: var(--ink);
+  border: 1.5px solid var(--line); border-radius: var(--radius);
+  padding: 10px 12px; font-size: 15px; font-family: var(--font);
+}
+input:focus, select:focus, textarea:focus { outline: 2.5px solid var(--margin-red); outline-offset: 1px; }
+.checks { display: flex; gap: 9px; flex-wrap: wrap; }
+.checks label {
+  display: inline-flex; gap: 7px; align-items: center; cursor: pointer;
+  background: var(--paper); border: 1.5px solid var(--line);
+  padding: 8px 13px; border-radius: var(--radius); font-size: 14px; font-weight: 600;
+}
+.checks label.on { border-color: var(--ink); background: var(--paper-deep); box-shadow: 2px 2px 0 rgba(23, 41, 59, 0.12); }
+.checks input { accent-color: var(--ink); }
+
+.footer {
+  border-top: 2px solid var(--ink);
+  margin-top: 70px; padding: 24px 0 44px;
+  color: var(--pencil); font-size: 13.5px;
+  background: var(--paper-deep);
+}
+.footer .container { display: flex; gap: 18px; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+
+.hero { padding: 62px 0 30px; }
+.section-block { padding: 34px 0; }
+
+/* Sample question in the hero */
+.sample-wrap { display: grid; gap: 20px; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
+
+/* ── Exercise sheet: the diagnostic's workings box ── */
+.exercise {
+  position: relative;
+  border: 2px solid var(--ink); border-radius: var(--radius);
+  background: var(--paper); box-shadow: 4px 4px 0 rgba(23, 41, 59, 0.14);
+  padding: 22px 22px 22px 66px;
+  margin-top: 14px;
+}
+[dir="rtl"] .exercise { padding: 22px 66px 22px 22px; }
+.exercise .qnum {
+  position: absolute; inset-inline-start: 20px; top: 22px;
+  font-size: 15px; font-weight: 700; color: var(--pencil);
+}
+.qtext { font-size: 18.5px; font-weight: 650; line-height: 1.5; margin: 0 0 18px; white-space: pre-wrap; }
+.choice .letter {
+  flex: none; width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-weight: 700; font-size: 12px;
+  border: 1.5px solid var(--line); border-radius: 4px; color: var(--pencil);
+}
+.choice[data-state="right"] { border-style: solid; border-color: var(--tick-green); background: rgba(30, 122, 70, 0.07); }
+.choice[data-state="right"] .letter { background: var(--tick-green); border-color: var(--tick-green); color: var(--paper); }
+.choice[data-state="wrong"] { border-style: solid; border-color: var(--margin-red); background: rgba(224, 62, 45, 0.05); }
+.choice[data-state="wrong"] .letter { background: var(--margin-red); border-color: var(--margin-red); color: var(--paper); }
+.choice[data-state="dim"] { opacity: 0.55; }
+
+/* The teacher's marking under an answer */
+.marking {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin-top: 14px; border-radius: var(--radius);
+  border-inline-start: 3px solid var(--pencil);
+  padding: 12px 15px; font-size: 14.5px;
+  background: var(--paper-deep);
+}
+.marking.good { border-inline-start-color: var(--tick-green); }
+.marking.bad { border-inline-start-color: var(--margin-red); }
+.marking .mark { font-family: var(--mono); font-weight: 700; font-size: 16px; }
+.marking.good .mark { color: var(--tick-green); }
+.marking.bad .mark { color: var(--margin-red); }
+
+/* ── Report rows and notes ── */
+.ruled { border-top: 1px solid var(--line); margin: 24px 0; }
+.rowline {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 2px; border-bottom: 1px dashed var(--line);
+  text-decoration: none;
+}
+.rowline:hover { background: var(--paper-deep); text-decoration: none; }
+.rowline .mark { font-family: var(--mono); font-weight: 700; }
+.rowline .mark.good { color: var(--tick-green); }
+.rowline .mark.bad { color: var(--margin-red); }
+.rowline .grow { flex: 1; }
+.note {
+  border: 1.5px solid var(--line); border-inline-start: 3px solid var(--amber);
+  background: var(--paper); border-radius: var(--radius);
+  padding: 10px 14px; margin: 8px 0; display: grid; gap: 2px;
+}
+.actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+
+/* ── Adaptation engine: preferences applied as <html> classes ──────────────
+   Mirrors prefClasses() in lib/access.ts. Large text raises the base size;
+   every rem/em-based size in the app inherits it. High contrast darkens ink
+   and strengthens lines for outdoor / low-quality screens. Calm stills every
+   animation. The class hooks are the contract — keep them in sync. ── */
+html.access-large { font-size: 19px; }
+html.access-contrast {
+  --ink: #000000;
+  --ink-soft: #101820;
+  --pencil: #2c3a45;
+  --grid: #b9c6cc;
+  --line: #7e8f99;
+  --margin-red: #b32213;
+  --tick-green: #0f5c33;
+  --amber: #7d4a00;
+}
+html.access-contrast .choice,
+html.access-contrast .card,
+html.access-contrast .note { border-width: 2px; }
+html.access-calm *,
+html.access-calm *::before,
+html.access-calm *::after {
+  animation: none !important;
+  transition: none !important;
+}
+html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
+
+/* ── The speak button + ♿ access panel ── */
+.speak-btn {
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 999px;
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; cursor: pointer; vertical-align: middle;
+  margin-inline-start: 6px; flex: none;
+}
+.speak-btn:hover { background: var(--paper-deep); }
+.access-btn {
+  position: fixed;
+  bottom: 18px; inset-inline-end: 14px;
+  width: 44px; height: 44px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 60;
+  box-shadow: 2px 2px 0 rgba(23, 41, 59, 0.18);
+}
+.access-panel {
+  position: fixed;
+  bottom: 72px; inset-inline-end: 14px;
+  width: min(320px, calc(100vw - 28px));
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 4px 4px 0 rgba(23, 41, 59, 0.18);
+  padding: 14px 16px;
+  z-index: 60;
+  display: grid;
+  gap: 8px;
+  max-height: min(70vh, 480px);
+  overflow-y: auto;
+}
+.access-panel .btn { display: flex; width: 100%; }
+
+@media (max-width: 800px) {
+  .sample-wrap { grid-template-columns: 1fr; }
+  .margin-rail { display: none; }
+  .container { padding-left: 20px; padding-right: 20px; }
+  .masthead-inner { padding-left: 20px; padding-right: 20px; }
+}
+
+@media (max-width: 640px) {
+  .masthead-links { display: none; }
+  .hero { padding: 38px 0 22px; }
+  .msg { max-width: 94%; }
+  .card { padding: 17px; box-shadow: 3px 3px 0 rgba(23, 41, 59, 0.12); }
+  .exercise { padding: 16px 16px 16px 54px; }
+  [dir="rtl"] .exercise { padding: 16px 54px 16px 16px; }
+}
+
+/* Low-power / electricity-aware mode (§6): kill motion + heavy decoration. */
+html.low-power *, html.low-power *::before, html.low-power *::after {
+  animation: none !important;
+  transition: none !important;
+}
+html.low-power body {
+  background-image: none;
+}
+html.low-power .card { box-shadow: none; }
+
+

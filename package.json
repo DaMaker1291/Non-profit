@@ -1,0 +1,29 @@
+{
+  "name": "openmind",
+  "version": "1.0.0",
+  "description": "A free, open-source, multilingual AI-powered learning network — a world-class tutor for every student. `npm run verify` proves the engines, `npm run verify:q` proves every generated question is answerable, `npm run e2e` proves the API end to end.",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 4173",
+    "build": "next build",
+    "start": "next start -p 4173",
+    "typecheck": "tsc --noEmit",
+    "verify": "node scripts/verify-engines.mjs",
+    "content-check": "node scripts/content-check.mjs",
+    "verify:q": "node scripts/verify-questions.mjs",
+    "e2e": "node scripts/e2e-api.mjs",
+    "ai-stub": "node scripts/ai-stub.mjs"
+  },
+  "dependencies": {
+    "next": "^15.5.25",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.9.2"
+  }
+}
