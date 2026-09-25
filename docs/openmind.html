@@ -26751,16 +26751,42 @@ function withDepth(base, deep, share = 0.5) {
 }
 // ── MATHS generators ────────────────────────────────────────────────────────
 const MATHS_GENS = {
+    // WHAT THIS ITEM ASKS, AND WHAT IT USED TO GRADE. Three real defects lived in
+    // these eight lines, all found by answering the question rather than reading
+    // it:
+    //
+    //   · the prompt asks for the VALUE of a digit — in 295 the tens digit is 9
+    //     and its value is 90 — while the answer was the DIGIT itself, so the
+    //     question and its marking disagreed and the explanation printed the digit
+    //     as the contribution;
+    //   · the tens digit could be 0, so "the value of the tens digit in 607" had
+    //     0 as its answer — a trick whose other options were the remaining two
+    //     digits, measuring nothing about place value;
+    //   · the distractor list could thin to fewer than three distinct values, and
+    //     `+ 1` on a correct answer of 0 produced the correct answer again.
+    //
+    // Now every digit is non-zero (the zero case is a real teaching point, but it
+    // belongs in a question written for it, not as a degenerate draw here), the
+    // answer is what the prompt asks for, and the distractors are the mistakes
+    // this question actually produces: the digit read literally, and a slide of
+    // one place either way.
     "place-value": (r) => {
-        const digits = [r.int(1, 9), r.int(0, 9), r.int(1, 9)];
-        const n = digits[0] * 100 + digits[1] * 10 + digits[2];
+        const h = r.int(1, 9), t = r.int(1, 9), o = r.int(1, 9);
+        const n = h * 100 + t * 10 + o;
         const pos = r.pick(["hundreds", "tens", "ones"]);
-        const correct = String(pos === "hundreds" ? digits[0] : pos === "tens" ? digits[1] : digits[2]);
+        const digit = pos === "hundreds" ? h : pos === "tens" ? t : o;
+        const value = pos === "hundreds" ? h * 100 : pos === "tens" ? t * 10 : o;
+        const correct = String(value);
         return {
             prompt: `What is the value of the ${pos} digit in ${n}?`,
             correct,
-            wrongs: [String(digits[0]), String(digits[1]), String(digits[2])].filter((d) => d !== correct).slice(0, 2).concat(String(Number(correct) + 1)).slice(0, 3),
-            tags: [], explanation: `${n} = ${digits[0] * 100} + ${digits[1] * 10} + ${digits[2]}, so the ${pos} digit contributes ${correct === String(digits[1]) && pos === "tens" ? digits[1] * 10 : correct === String(digits[0]) && pos === "hundreds" ? digits[0] * 100 : digits[2]}.`,
+            wrongs: [
+                String(digit), // 9 read as 9, not as 90
+                String(value * 10), // one place too far
+                String(value + 1), // arithmetic slip
+                String(value > 10 ? value / 10 : value * 10 + 1), // one place short
+            ],
+            tags: [], explanation: `${n} = ${h * 100} + ${t * 10} + ${o}, so the ${pos} digit contributes ${value}.`,
             difficulty: 0.1,
         };
     },
@@ -30623,7 +30649,7 @@ function subjectFromParam(raw) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 35, builtAt: "2026-09-25T16:54:19.781Z" },
+      meta: { modules: 35, builtAt: "2026-09-25T17:14:19.176Z" },
     };
   });
   return __req("__entry__.js");
