@@ -602,6 +602,10 @@ console.log("▸ Internationalisation");
     "soc.refuse", "soc.sure", "soc.whyQ", "soc.stuckLead", "soc.given", "soc.givenQ",
     "soc.restate", "soc.start", "soc.step1", "soc.step2", "soc.step3", "soc.step4",
     "soc.check", "soc.checkQ",
+    // The grounded fallback's three sentences: without them a locale's tutor
+    // falls back to the inline English mid-reply, exactly the leak this sweep
+    // exists to catch.
+    "soc.onScreen", "soc.serveWhy", "soc.ownSlips",
   ];
   for (const l of en.LANGS) {
     const tr = en.translator(l.code);
@@ -4841,8 +4845,11 @@ console.log("▸ AI explains, never records");
     ok(turn.aiUnavailable === reason,
       `${reason}: elicited from a real endpoint (${turn.aiUnavailable})`);
     ok(turn.answerSource === "offline" && turn.mode === "socratic"
-      && turn.reply === socratic.socraticReply(CONCEPT, message, "en"),
-      `${reason}: the learner gets the offline Socratic reply — not an apology, not an error page`);
+      && turn.reply === socratic.socraticReply(CONCEPT, message, "en", {
+        serveReason: g.serveReason,
+        hitIds: g.misconceptions.map((m) => m.id),
+      }),
+      `${reason}: the learner gets the offline Socratic reply, grounded in the serve reason and this learner's own hits — not an apology, not an error page`);
     ok(turn.labelKey === ctxMod.TUTOR_LABEL.fallback,
       `${reason}: and the turn is disclosed as the offline tutor's, never as the model's (${turn.labelKey})`);
     ok(turn.grounding.decision.reason === top.reason,
@@ -4856,13 +4863,46 @@ console.log("▸ AI explains, never records");
     "with no key configured the same call degrades to the offline tutor and names the reason (no_key)");
   ok(offTurn.labelKey === ctxMod.TUTOR_LABEL.offline,
     `and says the deployment has no model rather than that one failed (${offTurn.labelKey})`);
-  ok(offTurn.reply === socratic.socraticReply(CONCEPT, "I am stuck", "es") && offTurn.reply.length > 20,
+  ok(offTurn.reply === socratic.socraticReply(CONCEPT, "I am stuck", "es", {
+    serveReason: g.serveReason,
+    hitIds: g.misconceptions.map((m) => m.id),
+  }) && offTurn.reply.length > 20,
     "the reply is the offline engine's own, in the learner's language, and it is not empty");
   const noLearner = await tutorMod.tutorTurn({ learnerId: null, conceptId: CONCEPT, message: "help", language: "en" });
   ok(noLearner.grounding.learnerId === null && noLearner.grounding.decision === null && noLearner.grounding.measured.length === 0,
     "and with no learner attached the grounding claims nothing about any person");
   const unknownConcept = await tutorMod.tutorTurn({ learnerId: AI_LEARNER, conceptId: "not-a-concept", message: "hi", language: "en" });
   ok(unknownConcept === null, "an unknown concept is refused rather than tutored from nothing");
+
+  // ── 3c. The OFFLINE reply is grounded in the same moment the AI is ─────
+  // The fallback is the mode most learners on most deployments actually get,
+  // so it may not be the least grounded voice in the product. Handed what the
+  // surfaces show — the served question, the practice engine's own reason,
+  // this learner's own triggered patterns — the Socratic reply names the
+  // moment: which question is on screen, why it was served, what their own
+  // answers triggered. And it stays deterministic: same inputs, same reply.
+  {
+    const served = questions.generateQuestion(CONCEPT, "ai-screen-1");
+    const turnIn = { learnerId: AI_LEARNER, conceptId: CONCEPT, message: "I am stuck", language: "en", now: ANOW, questionText: served.prompt };
+    const groundedTurn = await tutorMod.tutorTurn(turnIn);
+    ok(groundedTurn.answerSource === "offline",
+      "3c runs with no model configured — the fallback IS the feature under test");
+    ok(groundedTurn.reply.includes(served.prompt),
+      `the offline reply is grounded in the question ON THE SCREEN (${JSON.stringify(served.prompt.slice(0, 40))}…)`);
+    ok(g.serveReason !== null && groundedTurn.reply.includes(g.serveReason),
+      `and in the practice engine's own serve reason ("${g.serveReason}" — the same target the strip derives)`);
+    if (g.misconceptions.length) {
+      const hit = g.misconceptions[0];
+      ok(groundedTurn.reply.includes(hit.name),
+        `and names the pattern this learner's OWN answers triggered (${hit.name}, ${hit.hits}×)`);
+    } else {
+      ok(!/triggered|Triggered/.test(groundedTurn.reply),
+        "a learner with no triggered patterns is NOT attributed one — the grounding is read, never invented");
+    }
+    const again = await tutorMod.tutorTurn(turnIn);
+    ok(again.reply === groundedTurn.reply && again.reply.length > 40,
+      "the same question, record and message are answered the same way twice — the fallback stays re-readable");
+  }
 
   // ── 3d. A ROOM's tutor: the same door, and an honest FOCUS ──────────────
   // Reproduced live before this: a room with no focus concept was taught
@@ -4928,6 +4968,28 @@ console.log("▸ AI explains, never records");
   ok(i18n.LANG_CODES.every((code) => i18n.translator(code)("tutor.whyThis").includes("{concept}")
     && i18n.translator(code)("tutor.whyThis").includes("{reason}")),
     "and the why-line keeps its two placeholders in every language, so a translation cannot silently drop the reason");
+
+  // ── 4b. The static (Pages) tutor surface is held to the same rules ─────
+  // The deployed app answers from the SAME offline engine in the browser, so
+  // its source must show the three honest labels and give the fallback the
+  // same grounding the server path is held to. Source checks, because the
+  // static build ships docs/app.js verbatim.
+  {
+    const app = fs.readFileSync("docs/app.js", "utf8");
+    ok(app.includes("tutor.aiNote") && app.includes("tutor.fallbackNote") && app.includes("sb.tutorLocal"),
+      "the static tutor carries all three disclosures: the model's, the fallback's, and offline mode's own");
+    ok(/text: text, label: t\("tutor\.aiNote"\)/.test(app),
+      "and the AI label is attached only at the one place a model's text was accepted");
+    ok(app.includes("socraticReply(practice.conceptId, text, lang(), {")
+      && app.includes("question: onScreenQuestion()")
+      && app.includes("serveReason: serveReasonOf()")
+      && app.includes("hitIds: ownHits(practice.conceptId)"),
+      "the static fallback reply is grounded in the on-screen question, the serve reason and the learner's own hits");
+    ok(app.includes("function practiceWhy()") && app.includes("reason: practiceWhy()"),
+      "the tutor's why-line renders the SAME practice reason the practice strip does — one function, one source");
+    ok(!app.includes('practice.info.target.reason === "stretch"'),
+      "no second derivation of the practice reason remains for the two surfaces to disagree through");
+  }
   ok(!i18n.LANG_CODES.filter((code) => code !== "en").some((code) => {
     const tr = i18n.translator(code);
     return tr("tutor.fallbackNote") === i18n.translator("en")("tutor.fallbackNote");

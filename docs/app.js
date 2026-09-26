@@ -750,6 +750,25 @@
     practice = { conceptId: conceptId, q: served.q, info: served.info, hints: 0, startedAt: Date.now(), done: false };
   }
 
+  /** WHY this question is on screen — one function, one source of truth.
+   *
+   *  The practice strip and the tutor's grounding both render the same reason
+   *  from the same practice target, so a repair strip can never sit above a
+   *  tutor that calls the question a stretch. `serveReasonOf` computes the raw
+   *  reason (from the same `practiceTarget` the engine's difficulty ladder
+   *  uses); this maps it through the dictionary. */
+  function practiceWhy() {
+    if (practice.info.due) return t("retention.review");
+    var r = serveReasonOf();
+    return t(r === "stretch" ? "next.title.stretch" : r === "repair" ? "next.title.fix" : "next.title.practise");
+  }
+  /** The practice engine's own reason for this serve — the same word the server
+   *  computes from the same model, so the fallback tutor speaks of the serve
+   *  from the facts, not from a paraphrase. */
+  function serveReasonOf() {
+    return practice.info.target.reason || "steady";
+  }
+
   function drawPractice() {
     var q = practice.q;
     if (!q) {
@@ -758,13 +777,7 @@
     }
     var view = E.questions.serveView(q, lang(), board());
     var prompt = lang() !== "en" ? view.prompt : questionText(q);
-    var why = practice.info.due
-      ? t("retention.review")
-      : practice.info.target.reason === "stretch"
-        ? t("next.title.stretch")
-        : practice.info.target.reason === "repair"
-          ? t("next.title.fix")
-          : t("next.title.practise");
+    var why = practiceWhy();
 
     root.innerHTML =
       '<div class="spread"><p class="eyebrow">' + esc(t("learn.practice")) + " · " + esc(ctitle(practice.conceptId)) + "</p>" +
@@ -1015,10 +1028,33 @@
 
   var chat = [];
 
+  /** The misconception patterns THIS learner's own recorded answers on this
+   *  concept have triggered — the same per-concept hits the server's grounding
+   *  reads, not the concept's whole catalogue. Most-hit first, as there. */
+  function ownHits(conceptId) {
+    var st = me();
+    var rec = st && st.progress[conceptId];
+    var hits = (rec && rec.misconceptions) || {};
+    return Object.keys(hits)
+      .filter(function (id) { return hits[id] > 0 && E.misconceptions.MISCONCEPTIONS_BY_ID[id]; })
+      .sort(function (a, b) { return hits[b] - hits[a]; })
+      .slice(0, 2);
+  }
+
+  /** The practice question the learner is looking at — display-only context
+   *  for the tutor's grounding, exactly as drawn on screen (curriculum
+   *  vocabulary applied). Not a fact about the serve; the serve reason comes
+   *  from the practice target itself. */
+  function onScreenQuestion() {
+    if (!practice || !practice.q) return null;
+    var view = E.questions.serveView(practice.q, lang(), board());
+    return lang() !== "en" ? view.prompt : questionText(practice.q);
+  }
+
   function openTutor() {
     var slot = document.getElementById("tutor-slot");
     slot.innerHTML =
-      '<div class="note"><p class="small">' + esc(t("tutor.whyThis") ? fill(t("tutor.whyThis"), { concept: ctitle(practice.conceptId), reason: tutorReason() }) : "") + "</p>" +
+      '<div class="note"><p class="small">' + esc(fill(t("tutor.whyThis"), { concept: ctitle(practice.conceptId), reason: practiceWhy() })) + "</p>" +
       '<p class="small muted">' + esc(db.ui.apiKey ? t("sb.tutorKey") : t("sb.tutorLocal")) + "</p></div>" +
       '<div id="chat"></div>' +
       '<div class="row"><input id="ask" placeholder="' + esc(t("tutor.ph")) + '"><button data-act="ask">' + esc(t("learn.ask")) + "</button></div>" +
@@ -1026,39 +1062,66 @@
     drawChat();
   }
 
-  function tutorReason() {
-    var a = decide(1)[0];
-    return (a && a.reason) || t("ev.none");
-  }
-
   function drawChat() {
     var host = document.getElementById("chat");
     if (!host) return;
     host.innerHTML = chat.map(function (m) {
-      return '<p><b>' + esc(m.who === "you" ? t("tutor.you") : t("tutor.title")) + ":</b> " + esc(m.text) + "</p>";
+      return '<p><b>' + esc(m.who === "you" ? t("tutor.you") : t("tutor.title")) + ":</b> " + esc(m.text) +
+        (m.label ? ' <span class="tag">' + esc(m.label) + "</span>" : "") + "</p>";
     }).join("");
+  }
+
+  /** One offline reply, grounded exactly like the AI turn it stands in for:
+   *  the question on screen, why the engine served it, the patterns this
+   *  learner's own answers triggered. `label` is the disclosure the UI renders
+   *  — offline mode names its engine, a failed model names the fallback — and
+   *  the two are never the same string, so a learner can always tell who
+   *  answered. */
+  function offlineReply(text, label) {
+    return {
+      who: "tutor",
+      text: E.socratic.socraticReply(practice.conceptId, text, lang(), {
+        question: onScreenQuestion(),
+        serveReason: serveReasonOf(),
+        hitIds: ownHits(practice.conceptId),
+      }),
+      label: label,
+    };
   }
 
   function askTutor(text) {
     if (!text) return;
     chat.push({ who: "you", text: text });
     drawChat();
+    // The grounded packet: the same four facts the server reads for the AI
+    // path, read here from the same places the screen reads them — the served
+    // question as drawn, the practice target's own reason, this learner's own
+    // misconception hits, and the ONE door's decision reason.
+    var decision = decide(1)[0];
     var grounding = {
       concept: ctitle(practice.conceptId),
-      question: questionText(practice.q),
-      reason: tutorReason(),
-      misconceptions: (practice.q.misconceptionTags || []).map(function (id) { return E.contentI18n.mcName(lang(), id, id); }),
+      question: onScreenQuestion(),
+      reason: practiceWhy(),
+      nextReason: decision && decision.reason ? decision.reason : null,
+      misconceptions: ownHits(practice.conceptId).map(function (id) {
+        var def = E.misconceptions.MISCONCEPTIONS_BY_ID[id];
+        return E.contentI18n.mcName(lang(), id, def ? def.name : id);
+      }),
     };
     if (!db.ui.apiKey) {
-      chat.push({ who: "tutor", text: E.socratic.socraticReply(practice.conceptId, text, lang()) + " [" + t("sb.tutorLocal") + "]" });
+      chat.push(offlineReply(text, t("sb.tutorLocal")));
       drawChat();
       return;
     }
     chat.push({ who: "tutor", text: t("common.loading") });
     drawChat();
-    var messages = [
-      { role: "system", content: "You are OpenMind's tutor. The learner is working on: " + grounding.concept + ". The question is: " + grounding.question + ". OpenMind chose it because: " + grounding.reason + ". Known misconceptions here: " + (grounding.misconceptions.join(", ") || "none recorded") + ". Never state a grade, a mastery number or an answer to the current question outright: guide, explain and question." },
-    ];
+    var system = "You are OpenMind's tutor. The learner is working on: " + grounding.concept +
+      ". The question on their screen is: " + (grounding.question || "(not shown)") +
+      ". This practice question was served because: " + grounding.reason +
+      ". OpenMind's current next step for them is: " + (grounding.nextReason || "(none yet)") +
+      ". Their recorded answers here triggered these misconception patterns: " + (grounding.misconceptions.join(", ") || "none recorded") +
+      ". Never state a grade, a mastery number or an answer to the current question outright: guide, explain and question.";
+    var messages = [{ role: "system", content: system }];
     chat.slice(0, -1).forEach(function (m) { messages.push({ role: m.who === "you" ? "user" : "assistant", content: m.text }); });
     fetch(db.ui.endpoint || "https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -1069,13 +1132,15 @@
       .then(function (j) {
         var text = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
         if (!text) throw new Error("malformed");
-        chat[chat.length - 1] = { who: "tutor", text: text };
+        // A model answered — the reply says so. This is the only place the AI
+        // label is ever attached, and it is attached only to a model's words.
+        chat[chat.length - 1] = { who: "tutor", text: text, label: t("tutor.aiNote") };
         drawChat();
       })
       .catch(function () {
         // A genuine outcome, not an error page: the offline engine answers and
         // says which engine answered.
-        chat[chat.length - 1] = { who: "tutor", text: E.socratic.socraticReply(practice.conceptId, text, lang()) + " [" + t("tutor.fallbackNote") + "]" };
+        chat[chat.length - 1] = offlineReply(text, t("tutor.fallbackNote"));
         drawChat();
       });
   }

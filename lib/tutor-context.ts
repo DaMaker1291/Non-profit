@@ -71,6 +71,11 @@ export interface TutorGrounding {
    *  catalogue's coaching line, most-hit first. Not the concept's catalogue
    *  list: what this learner did. */
   misconceptions: Array<{ id: string; name: string; coaching: string; hits: number }>;
+  /** Why the practice screen serves this concept — the practice target's own
+   *  reason ("fresh" / "steady" / "repair" / "stretch"), derived from the same
+   *  model the screen derives its strip from. Null without a learner record:
+   *  a concept-only turn makes no claim about a serve it never saw. */
+  serveReason: string | null;
   projectionVersion: number | null;
   evidenceEvents: number;
   /** What the ledger cannot account for (a history older than the record). */
@@ -159,6 +164,9 @@ export function tutorGroundingPacket(g: TutorGrounding, message: string, languag
         .map((m) => `- ${m.name} (hit ${m.hits}×): ${m.coaching}`)
         .join("\n")
     : "";
+  const serveLine = g.serveReason
+    ? `WHY THIS PRACTICE QUESTION WAS SERVED: the practice engine's own reason is "${g.serveReason}".`
+    : "";
   const conceptBeliefs = (c?.misconceptions ?? [])
     .map((id) => id)
     .filter((id) => !g.misconceptions.some((m) => m.id === id));
@@ -172,6 +180,7 @@ export function tutorGroundingPacket(g: TutorGrounding, message: string, languag
       : "CITED RECORDED ANSWERS: none — this step does not hinge on one answer",
     g.decision ? `DECISION BASIS: ${g.decision.basis} · projection v${g.decision.projectionVersion}` : "",
     `WHAT THE RECORD SAYS ABOUT THIS CONCEPT:\n${rows}`,
+    serveLine,
     g.unmeasured.length ? `NOT YET MEASURED: ${g.unmeasured.join(", ")}` : "",
     beliefs ? `PATTERNS THIS LEARNER'S OWN WORK TRIGGERED:\n${beliefs}` : "",
     conceptBeliefs.length
@@ -209,6 +218,7 @@ export function conceptGrounding(conceptId: string, language: string): TutorGrou
     measured: [],
     unmeasured: [],
     misconceptions: [],
+    serveReason: null,
     projectionVersion: null,
     evidenceEvents: 0,
     unprojectable: null,

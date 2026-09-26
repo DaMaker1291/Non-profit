@@ -16,7 +16,7 @@ import { getConcept } from "./genome";
 import { MISCONCEPTIONS_BY_ID } from "./misconceptions";
 import { generateQuestion, hashSeed } from "./questions";
 import { translator } from "./i18n";
-import { ctitle, mcCoaching } from "./content-i18n";
+import { ctitle, mcCoaching, mcName } from "./content-i18n";
 import { classifyIntent } from "./local-model";
 
 /** Resolves a key through the dictionary; null when the key is missing. */
@@ -131,12 +131,76 @@ function stuckShape(lang: string, conceptLine: string): string {
   ]);
 }
 
+/** ── WHAT THE OFFLINE TUTOR IS TOLD ────────────────────────────────────────
+ *
+ *  `socraticReply(conceptId, message)` knew the concept but nothing else about
+ *  the moment: not the question on the screen, not why OpenMind had served it,
+ *  not which belief patterns THIS learner's own answers had triggered. So the
+ *  fallback — the mode most learners on most deployments actually get — was the
+ *  least grounded voice in the product, while the AI path (which may not even
+ *  be configured) got the full packet.
+ *
+ *  `GroundedContext` is that packet, in the form the offline engine can use.
+ *  Everything in it is optional so existing callers keep working, and
+ *  everything in it is READ, never invented: the caller passes what the
+ *  surfaces are actually showing, the same facts the AI path is handed.
+ *
+ *    question   — the served prompt's text (the concept's generic coaching is
+ *                 the fallback when absent)
+ *    serveReason— the practice target's own reason (fresh / steady / repair /
+ *                 stretch) — WHY this question is on screen; a repair turn that
+ *                 does not mention repairing is indistinguishable from a random
+ *                 one
+ *    hitIds     — the misconception ids this learner's OWN recorded answers on
+ *                 this concept triggered (a tutor that recites the concept's
+ *                 whole catalogue is guessing about this learner)
+ */
+export interface GroundedContext {
+  question?: string;
+  serveReason?: string | null;
+  hitIds?: string[];
+}
+
+/** One or two grounded sentences, deterministic in content and order. Both are
+ *  optional so every existing call site keeps its shape; a caller with no
+ *  context gets exactly the concept-grounded replies it always did. */
+function groundedLines(lang: string, g: GroundedContext): string[] {
+  const parts: string[] = [];
+  const q = (g.question ?? "").trim();
+  if (q) parts.push(`${line(lang, "soc.onScreen", "Look at the question on your screen")}: ${q}`);
+  const reason = (g.serveReason ?? "").trim();
+  if (reason) parts.push(line(lang, "soc.serveWhy", "OpenMind served this one to") + " " + reason + ".");
+  const hitIds = (g.hitIds ?? []).filter((id) => !!MISCONCEPTIONS_BY_ID[id]).slice(0, 2);
+  if (hitIds.length) {
+    const names = hitIds.map((id) => mcName(lang, id, MISCONCEPTIONS_BY_ID[id].name));
+    const coaching = mcCoaching(lang, hitIds[0], MISCONCEPTIONS_BY_ID[hitIds[0]].coaching ?? "");
+    parts.push(
+      joinSentences([
+        `${line(lang, "soc.ownSlips", "Your recorded answers here triggered")}: ${names.join(", ")}.`,
+        coaching,
+      ]),
+    );
+  }
+  return parts;
+}
+
 /**
  * Offline Socratic reply in the learner's language.
  * `lang` is optional so existing callers keep working; new callers pass the
  * interface/teaching language.
+ *
+ * `ctx` carries what the surfaces are showing — the served question, the
+ * practice target's reason, the misconception patterns this learner's own
+ * answers triggered. With it, the fallback speaks about THIS question and THIS
+ * learner; without it, the reply is the concept-grounded scaffold it always
+ * was (rooms and concept-only turns still call it that way).
  */
-export function socraticReply(conceptId: string, message: string, lang = "en"): string {
+export function socraticReply(
+  conceptId: string,
+  message: string,
+  lang = "en",
+  ctx: GroundedContext = {},
+): string {
   const c = getConcept(conceptId);
 
   const conceptTitle = ctitle(lang, conceptId);
@@ -158,15 +222,20 @@ export function socraticReply(conceptId: string, message: string, lang = "en"): 
   const opener = pickOpener(ops, conceptId, message);
 
   const intent = intentOf(message, lower);
+  const grounded = groundedLines(lang, ctx);
   // Nothing to question: say what is needed instead of teaching a concept the
   // learner never mentioned. Checked AFTER intent, so a keyword that decided
   // still decides ("help" stays the stuck scaffold even on its own).
   if (!intent && !hasWords(message)) {
-    return line(lang, "soc.askQuestion", "Tell me the question, or the step you are on, and I will ask you the right thing.");
+    return joinSentences([
+      line(lang, "soc.askQuestion", "Tell me the question, or the step you are on, and I will ask you the right thing."),
+      ...grounded,
+    ]);
   }
   if (intent === "answer") {
     return joinSentences([
       line(lang, "soc.refuse", "I won't hand over the answer — but I'll walk you to it."),
+      ...grounded,
       conceptLine,
       line(lang, "soc.sure", "Which part of that do you already feel sure about?"),
     ]);
@@ -174,6 +243,7 @@ export function socraticReply(conceptId: string, message: string, lang = "en"): 
   if (intent === "why") {
     return joinSentences([
       opener,
+      ...grounded,
       coaching || conceptLine,
       line(lang, "soc.whyQ", "Here's a question: if you changed ONE number in your working, which change would make everything click?"),
     ]);
@@ -184,15 +254,17 @@ export function socraticReply(conceptId: string, message: string, lang = "en"): 
     // them removes the practice.
     return joinSentences([
       line(lang, "soc.check", "Then check it yourself, one line at a time — and say the rule you used at each step."),
+      ...grounded,
       conceptLine,
       line(lang, "soc.checkQ", "Which line of your working are you least sure about?"),
     ]);
   }
   if (intent === "stuck") {
-    return stuckShape(lang, conceptLine);
+    return joinSentences([stuckShape(lang, conceptLine), ...grounded]);
   }
   return joinSentences([
     opener,
+    ...grounded,
     coaching || conceptLine,
     line(lang, "soc.restate", "Now — can you restate the question in your own words?"),
   ]);

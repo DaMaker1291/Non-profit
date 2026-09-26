@@ -2918,6 +2918,9 @@ const en = {
     "soc.refuse": "I won't hand over the answer — but I'll walk you to it.",
     "soc.sure": "Which part of that do you already feel sure about?",
     "soc.whyQ": "Here's a question: if you changed ONE number in your working, which change would make everything click?",
+    "soc.onScreen": "Look at the question on your screen",
+    "soc.serveWhy": "OpenMind served this one to",
+    "soc.ownSlips": "Your recorded answers here triggered",
     "soc.stuckLead": "Break it into three moves.",
     "soc.given": "Try this: write down exactly what is GIVEN and what is ASKED.",
     "soc.givenQ": "What is the given here?",
@@ -3724,6 +3727,9 @@ const es = {
     "soc.refuse": "No te doy la respuesta directa — pero te llevo hasta ella.",
     "soc.sure": "¿De qué parte estás seguro ahora mismo?",
     "soc.whyQ": "La pregunta: si pudieras cambiar UN número de tu trabajo, ¿cuál cambio lo explicaría todo?",
+    "soc.onScreen": "Mira la pregunta en tu pantalla",
+    "soc.serveWhy": "OpenMind te dio esta porque",
+    "soc.ownSlips": "Tus respuestas registradas activaron",
     "soc.stuckLead": "Lo partimos en tres pasos.",
     "soc.given": "Prueba esto: escribe exactamente qué te DAN y qué te PIDEN.",
     "soc.givenQ": "¿Qué te dan aquí?",
@@ -5006,6 +5012,9 @@ const fr = {
     "soc.refuse": "Je ne donne pas la réponse directement — mais je t'y amène.",
     "soc.sure": "Quelle partie es-tu sûr de maîtriser, là ?",
     "soc.whyQ": "La question : si tu pouvais changer UN seul nombre de ton calcul, lequel rendrait tout cohérent ?",
+    "soc.onScreen": "Regarde la question à l'écran",
+    "soc.serveWhy": "OpenMind t'a proposé celle-ci pour",
+    "soc.ownSlips": "Tes réponses enregistrées ont déclenché",
     "soc.stuckLead": "Découpons en trois étapes.",
     "soc.given": "Essaie ceci : écris exactement ce qu'on te DONNE et ce qu'on te DEMANDE.",
     "soc.givenQ": "Qu'est-ce qu'on te donne ici ?",
@@ -6288,6 +6297,9 @@ const pt = {
     "soc.refuse": "Não dou a resposta direta — mas te levo até ela.",
     "soc.sure": "De qual parte você tem certeza agora?",
     "soc.whyQ": "A pergunta: se você pudesse mudar UM número do seu cálculo, qual mudança deixaria tudo certo?",
+    "soc.onScreen": "Olhe a pergunta na sua tela",
+    "soc.serveWhy": "A OpenMind serviu esta porque",
+    "soc.ownSlips": "Suas respostas registradas acionaram",
     "soc.stuckLead": "Vamos dividir em três passos.",
     "soc.given": "Tente isto: escreva exatamente o que é DADO e o que é PEDIDO.",
     "soc.givenQ": "O que é dado aqui?",
@@ -7570,6 +7582,9 @@ const ar = {
     "soc.refuse": "لن أعطيك الجواب مباشرة — لكنني سأوصلك إليه.",
     "soc.sure": "في أي جزء أنت متأكد الآن؟",
     "soc.whyQ": "السؤال: لو غيّرت رقمًا واحدًا فقط في حلك، فأي تغيير يجعل كل شيء متماسكًا؟",
+    "soc.onScreen": "انظر إلى السؤال على شاشتك",
+    "soc.serveWhy": "قدّم أوبن مايند هذا السؤال لأن",
+    "soc.ownSlips": "أجابتك المسجّلة أظهرت",
     "soc.stuckLead": "نقسمها إلى ثلاث خطوات.",
     "soc.given": "جرّب هذا: اكتب بدقة ما هو معلوم وما هو مطلوب.",
     "soc.givenQ": "ما المعلوم هنا؟",
@@ -8852,6 +8867,9 @@ const sw = {
     "soc.refuse": "Sitakupa jibu moja kwa moja — lakini nitakufikisha hapo.",
     "soc.sure": "Sehemu gani una uhakika sasa?",
     "soc.whyQ": "Swali: ungebadilisha NAMBA moja tu kwenye kazi yako, mabadiliko gani yangefanya yote yakubaliane?",
+    "soc.onScreen": "Angalia swali kwenye skrini yako",
+    "soc.serveWhy": "OpenMind ilikupa hili kwa sababu",
+    "soc.ownSlips": "Majibu yako yaliyorekodiwa yameonyesha",
     "soc.stuckLead": "Tigawanye katika hatua tatu.",
     "soc.given": "Jaribu hii: andika kwa umakini kilichotolewa na kinachotafutwa.",
     "soc.givenQ": "Kilichotolewa hapa ni nini?",
@@ -10134,6 +10152,9 @@ const hi = {
     "soc.refuse": "सीधा जवाब नहीं दूँगा — पर आपको वहाँ तक पहुँचा दूँगा।",
     "soc.sure": "अभी किस हिस्से में आप निश्चित हैं?",
     "soc.whyQ": "सवाल यह: अपने हल में सिर्फ़ एक संख्या बदल सकते, तो कौन-सा बदलाव सब कुछ समझा देगा?",
+    "soc.onScreen": "अपनी स्क्रीन पर दिए प्रश्न को देखें",
+    "soc.serveWhy": "OpenMind ने यह प्रश्न दिया क्योंकि",
+    "soc.ownSlips": "आपके दर्ज उत्तरों ने दिखाया",
     "soc.stuckLead": "तीन चरणों में तोड़ते हैं।",
     "soc.given": "यह कीजिए: ठीक-ठीक लिखिए क्या दिया गया है और क्या पूछा गया है।",
     "soc.givenQ": "यहाँ क्या दिया गया है?",
@@ -11738,6 +11759,9 @@ const id = {
     "soc.refuse": "Aku tidak akan menyerahkan jawabannya — tapi aku akan mengantarmu ke sana.",
     "soc.sure": "Bagian mana dari itu yang sudah kamu rasakan yakin?",
     "soc.whyQ": "Ini pertanyaannya: jika kamu mengubah SATU angka dalam pengerjaanmu, perubahan mana yang membuat semuanya masuk akal?",
+    "soc.onScreen": "Lihat soal di layarmu",
+    "soc.serveWhy": "OpenMind memberikan ini karena",
+    "soc.ownSlips": "Jawaban tercatatmu memunculkan",
     "soc.stuckLead": "Pecah menjadi tiga langkah.",
     "soc.given": "Coba ini: tuliskan tepat apa yang DIKETAHUI dan apa yang DITANYAKAN.",
     "soc.givenQ": "Apa yang diketahui di sini?",
@@ -13020,6 +13044,9 @@ const tl = {
     "soc.refuse": "Hindi ko ibibigay ang sagot — pero dadalhin kita roon.",
     "soc.sure": "Aling bahagi nito ang pakiramdam mo sigurado ka na?",
     "soc.whyQ": "Narito ang tanong: kung papalitan mo ang IISANG numero sa solusyon mo, alin ang magpapatino sa lahat?",
+    "soc.onScreen": "Tingnan ang tanong sa iyong screen",
+    "soc.serveWhy": "Ibinigay ng OpenMind ito dahil",
+    "soc.ownSlips": "Ipinakita ng mga naitala mong sagot",
     "soc.stuckLead": "Hatian natin ng tatlong hakbang.",
     "soc.given": "Subukan mo: isulat ang eksaktong ALAM at ang hinahanap.",
     "soc.givenQ": "Ano ang binigay dito?",
@@ -14303,6 +14330,9 @@ const de = {
     "soc.refuse": "Die Antwort gebe ich nicht her — aber ich bringe dich hin.",
     "soc.sure": "Bei welchem Teil davon fühlst du dich schon sicher?",
     "soc.whyQ": "Hier die Frage: Wenn du EINE Zahl in deiner Rechnung änderst, welche Änderung lässt alles plausibel erscheinen?",
+    "soc.onScreen": "Blick auf die Aufgabe auf deinem Bildschirm",
+    "soc.serveWhy": "OpenMind hat dir diese gestellt, weil",
+    "soc.ownSlips": "Deine aufgezeichneten Antworten haben ausgelöst",
     "soc.stuckLead": "Teilen wir es in drei Schritte.",
     "soc.given": "Versuch das: Schreibe genau auf, was GEGEBEN ist und was gesucht wird.",
     "soc.givenQ": "Was ist hier gegeben?",
@@ -15644,6 +15674,9 @@ const ja = {
     "soc.refuse": "答えはそのまま渡しません — でも、そこまで必ず連れて行きます。",
     "soc.sure": "この中で、すでに確信できる部分はどこですか？",
     "soc.whyQ": "こういう問いです：計算の数字をひとつだけ変えられるなら、どれを変えるとすべてに筋が通りますか？",
+    "soc.onScreen": "画面の問題を見てみましょう",
+    "soc.serveWhy": "OpenMind がこの問題を出した理由は",
+    "soc.ownSlips": "あなたの記録された解答から浮かび上がったのは",
     "soc.stuckLead": "三つのステップに分けましょう。",
     "soc.given": "これを試して：分かっていることと、求めることを正確に書き出す。",
     "soc.givenQ": "ここで分かっていることは何ですか？",
@@ -16985,6 +17018,9 @@ const zh = {
     "soc.refuse": "答案我不能直接给——但我能把你带到那里。",
     "soc.sure": "这里面哪一部分你已经很有把握？",
     "soc.whyQ": "问题在这里：如果能改动解法中的某一个数字，改哪个能让一切都说得通？",
+    "soc.onScreen": "看看屏幕上的这道题",
+    "soc.serveWhy": "OpenMind 出这道题是因为",
+    "soc.ownSlips": "你的答题记录触发了",
     "soc.stuckLead": "拆成三步来做。",
     "soc.given": "试试这个：把已知条件和要求的结果准确地写下来。",
     "soc.givenQ": "这里已知的是什么？",
@@ -18236,6 +18272,9 @@ const fa = {
     "soc.refuse": "جواب را مستقیم نمی‌دهم — اما تو را تا آنجا می‌برم.",
     "soc.sure": "کدام بخش را همین حالا مطمئنی؟",
     "soc.whyQ": "سؤال این است: اگر بتوانی فقط یک عدد از راه‌حلت را تغییر دهی، کدام تغییر همه‌چیز را منطقی می‌کند؟",
+    "soc.onScreen": "به سؤال روی صفحه‌ات نگاه کن",
+    "soc.serveWhy": "اوپن‌مایند این سؤال را داد زیرا",
+    "soc.ownSlips": "پاسخ‌های ثبت‌شده‌ات نشان داد",
     "soc.stuckLead": "به سه گام بشکنیم.",
     "soc.given": "این را امتحان کن: دقیق بنویس چه چیزی داده شده و چه چیزی خواسته شده.",
     "soc.givenQ": "اینجا چه چیزی داده شده؟",
@@ -19487,6 +19526,9 @@ const ur = {
     "soc.refuse": "جواب براہِ راست نہیں دوں گا — لیکن آپ کو وہاں تک پہنچا دوں گا۔",
     "soc.sure": "اس میں کس حصے پر آپ کو ابھی یقین ہے؟",
     "soc.whyQ": "سوال یہ ہے: اگر حل میں صرف ایک عدد بدل سکتے، تو کون سا تبدیل کرنے سے سب کچھ بجھ جاتا؟",
+    "soc.onScreen": "اسکرین پر دیے گئے سوال کو دیکھیں",
+    "soc.serveWhy": "OpenMind نے یہ سوال دیا کیونکہ",
+    "soc.ownSlips": "آپ کے ریکارڈ شدہ جوابات نے ظاہر کیا",
     "soc.stuckLead": "تین مرحلوں میں توڑتے ہیں۔",
     "soc.given": "یہ آزمائیں: لکھیں کہ کیا معلوم ہے اور کیا معلوم کرنا ہے۔",
     "soc.givenQ": "یہاں کیا معلوم ہے؟",
@@ -20755,6 +20797,9 @@ exports.bn = {
     "soc.refuse": "সরাসরি উত্তর দেব না — তবে সেখানে পৌঁছে দেব।",
     "soc.sure": "এখন কোন অংশটায় তুমি নিশ্চিত?",
     "soc.whyQ": "প্রশ্ন এই: সমাধানে মাত্র একটা সংখ্যা বদলাতে পারলে কোনটা বদলালে সব যুক্তিসঙ্গত হয়ে যায়?",
+    "soc.onScreen": "আপনার স্ক্রিনের প্রশ্নটি দেখুন",
+    "soc.serveWhy": "OpenMind এই প্রশ্নটি দিয়েছে কারণ",
+    "soc.ownSlips": "আপনার রেকর্ড করা উত্তরগুলো দেখিয়েছে",
     "soc.stuckLead": "তিন ধাপে ভাঙি।",
     "soc.given": "এটা করো: কী জানা আছে আর কী বের করতে হবে, লিখে ফেলো।",
     "soc.givenQ": "এখানে কী জানা আছে?",
@@ -30506,12 +30551,40 @@ function stuckShape(lang, conceptLine) {
         line(lang, "soc.givenQ", "What is the given here?"),
     ]);
 }
+/** One or two grounded sentences, deterministic in content and order. Both are
+ *  optional so every existing call site keeps its shape; a caller with no
+ *  context gets exactly the concept-grounded replies it always did. */
+function groundedLines(lang, g) {
+    const parts = [];
+    const q = (g.question ?? "").trim();
+    if (q)
+        parts.push(`${line(lang, "soc.onScreen", "Look at the question on your screen")}: ${q}`);
+    const reason = (g.serveReason ?? "").trim();
+    if (reason)
+        parts.push(line(lang, "soc.serveWhy", "OpenMind served this one to") + " " + reason + ".");
+    const hitIds = (g.hitIds ?? []).filter((id) => !!misconceptions_1.MISCONCEPTIONS_BY_ID[id]).slice(0, 2);
+    if (hitIds.length) {
+        const names = hitIds.map((id) => (0, content_i18n_1.mcName)(lang, id, misconceptions_1.MISCONCEPTIONS_BY_ID[id].name));
+        const coaching = (0, content_i18n_1.mcCoaching)(lang, hitIds[0], misconceptions_1.MISCONCEPTIONS_BY_ID[hitIds[0]].coaching ?? "");
+        parts.push(joinSentences([
+            `${line(lang, "soc.ownSlips", "Your recorded answers here triggered")}: ${names.join(", ")}.`,
+            coaching,
+        ]));
+    }
+    return parts;
+}
 /**
  * Offline Socratic reply in the learner's language.
  * `lang` is optional so existing callers keep working; new callers pass the
  * interface/teaching language.
+ *
+ * `ctx` carries what the surfaces are showing — the served question, the
+ * practice target's reason, the misconception patterns this learner's own
+ * answers triggered. With it, the fallback speaks about THIS question and THIS
+ * learner; without it, the reply is the concept-grounded scaffold it always
+ * was (rooms and concept-only turns still call it that way).
  */
-function socraticReply(conceptId, message, lang = "en") {
+function socraticReply(conceptId, message, lang = "en", ctx = {}) {
     const c = (0, genome_1.getConcept)(conceptId);
     const conceptTitle = (0, content_i18n_1.ctitle)(lang, conceptId);
     const lessonSentence = c ? c.lesson.split(". ").slice(0, 2).join(". ") : "";
@@ -30529,15 +30602,20 @@ function socraticReply(conceptId, message, lang = "en") {
         .filter((s) => !!s);
     const opener = pickOpener(ops, conceptId, message);
     const intent = intentOf(message, lower);
+    const grounded = groundedLines(lang, ctx);
     // Nothing to question: say what is needed instead of teaching a concept the
     // learner never mentioned. Checked AFTER intent, so a keyword that decided
     // still decides ("help" stays the stuck scaffold even on its own).
     if (!intent && !hasWords(message)) {
-        return line(lang, "soc.askQuestion", "Tell me the question, or the step you are on, and I will ask you the right thing.");
+        return joinSentences([
+            line(lang, "soc.askQuestion", "Tell me the question, or the step you are on, and I will ask you the right thing."),
+            ...grounded,
+        ]);
     }
     if (intent === "answer") {
         return joinSentences([
             line(lang, "soc.refuse", "I won't hand over the answer — but I'll walk you to it."),
+            ...grounded,
             conceptLine,
             line(lang, "soc.sure", "Which part of that do you already feel sure about?"),
         ]);
@@ -30545,6 +30623,7 @@ function socraticReply(conceptId, message, lang = "en") {
     if (intent === "why") {
         return joinSentences([
             opener,
+            ...grounded,
             coaching || conceptLine,
             line(lang, "soc.whyQ", "Here's a question: if you changed ONE number in your working, which change would make everything click?"),
         ]);
@@ -30555,15 +30634,17 @@ function socraticReply(conceptId, message, lang = "en") {
         // them removes the practice.
         return joinSentences([
             line(lang, "soc.check", "Then check it yourself, one line at a time — and say the rule you used at each step."),
+            ...grounded,
             conceptLine,
             line(lang, "soc.checkQ", "Which line of your working are you least sure about?"),
         ]);
     }
     if (intent === "stuck") {
-        return stuckShape(lang, conceptLine);
+        return joinSentences([stuckShape(lang, conceptLine), ...grounded]);
     }
     return joinSentences([
         opener,
+        ...grounded,
         coaching || conceptLine,
         line(lang, "soc.restate", "Now — can you restate the question in your own words?"),
     ]);
@@ -31321,7 +31402,7 @@ function subjectFromParam(raw) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 35, builtAt: "2026-09-25T19:56:39.438Z" },
+      meta: { modules: 35, builtAt: "2026-09-26T10:52:47.657Z" },
     };
   });
   return __req("__entry__.js");

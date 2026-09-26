@@ -25,12 +25,14 @@
 
 import { conceptKnowledge } from "../evidence-view";
 import { projectLearner } from "../evidence";
-import { decide, type DecisionAction } from "../decision";
+import { decide, type DecisionAction, type DecisionContext } from "../decision";
 import { decisionContextFor } from "./decision";
 import { MISCONCEPTIONS_BY_ID } from "../misconceptions";
 import { translator } from "../i18n";
 import { ctitle, mcName } from "../content-i18n";
 import { getConcept } from "../genome";
+import { specForProfile, difficultyFor } from "../specifications";
+import { practiceTarget } from "../question-bank";
 import { aiStatus, llmTutorReply, type AiUnavailableReason, type AiStatus } from "../llm";
 import { socraticReply } from "../socratic";
 import {
@@ -52,6 +54,13 @@ export interface TutorTurnInput {
   language: string;
   /** Fixed clock, so a turn is reproducible in tests. */
   now?: number;
+  /** The question text as the SCREEN shows it, display-only. It may influence
+   *  wording of the offline reply; it can never become a fact about the serve
+   *  (the serve reason is computed from the record above), and the AI path
+   *  does not receive it — the model works from the learner's projection, not
+   *  from a string the client sent.
+   *  Optional: a caller with no question on screen omits it. */
+  questionText?: string | null;
 }
 
 export interface TutorTurnResult {
@@ -128,6 +137,13 @@ export async function tutorGroundingFor(
     .slice(0, 3)
     .map((m) => ({ id: m.id, hits: m.hits, name: mcName(language, m.id, m.def.name), coaching: m.def.coaching }));
 
+  // Why the practice screen serves this concept — the practice target's own
+  // reason, derived here from the same model and the same `practiceTarget`
+  // call the screen makes, so the tutor's sentence and the on-screen strip can
+  // never disagree about why this question is being served. (A learner with
+  // no attempts reads "fresh", exactly as the screen shows.)
+  const serveReason = serveReasonOf(ctx, focus);
+
   return {
     learnerId,
     focus: { conceptId: focus, title: title(focus), subject: getConcept(focus)?.subject ?? null },
@@ -135,6 +151,7 @@ export async function tutorGroundingFor(
     measured,
     unmeasured: unmeasuredLabels,
     misconceptions,
+    serveReason,
     projectionVersion: ctx.projectionVersion,
     evidenceEvents: ctx.events.length,
     unprojectable: ctx.unprojectable,
@@ -162,6 +179,32 @@ function decisionOf(top: DecisionAction, all: readonly DecisionAction[], languag
       title: a.conceptId ? ctitle(language, a.conceptId) : a.title,
     })),
   };
+}
+
+/**
+ * Why the practice screen serves this concept at the difficulty it serves it —
+ * COMPUTED, not accepted. The static screen derives its "Practise / Stretch /
+ * Repair" strip from `practiceTarget` over the learner's own record; the
+ * fallback turn derives the same target from the same model the same way, so
+ * the tutor's sentence and the strip can never disagree about why this
+ * question is on screen. (What the server does NOT know is which exact
+ * question the screen drew — a client-supplied one is accepted as a display
+ * string below, never as a fact about the serve.)
+ */
+function serveReasonOf(ctx: DecisionContext, conceptId: string): string | null {
+  const concept = getConcept(conceptId);
+  if (!concept) return null;
+  const rec = ctx.model.progress[conceptId];
+  const target = practiceTarget({
+    tier: difficultyFor(specForProfile(ctx.model.profile, concept.subject)),
+    attempts: (rec && rec.attempts) || 0,
+    correct: (rec && rec.correct) || 0,
+    streak: (rec && rec.streak) || 0,
+    misconceptionHits: rec && rec.misconceptions
+      ? Object.keys(rec.misconceptions).reduce((s, k) => s + rec.misconceptions[k], 0)
+      : 0,
+  });
+  return target.reason;
 }
 
 /**
@@ -203,13 +246,24 @@ export async function tutorTurn(input: TutorTurnInput): Promise<TutorTurnResult 
   // not an error page. `tutor.offlineNote` when this deployment has no model at
   // all; `tutor.fallbackNote` when it has one that did not answer. The learner
   // is never told a model spoke when it did not.
+  //
+  // The offline reply gets the SAME grounding the model would have had — the
+  // served question, the serve reason and this learner's own triggered
+  // patterns, all read from what the surfaces show — so the fallback speaks
+  // about this question and this learner, not just about the concept. The
+  // serve reason travels from the practice target, the hits from the grounding
+  // the turn was built with; nothing is re-derived or invented here.
   return {
     mode: "socratic",
     answerSource: "offline",
     labelKey: outcome.reason === "no_key" ? TUTOR_LABEL.offline : TUTOR_LABEL.fallback,
     aiUnavailable: outcome.reason,
     ai: status,
-    reply: socraticReply(focus, input.message, language),
+    reply: socraticReply(focus, input.message, language, {
+      question: input.questionText ?? undefined,
+      serveReason: grounding.serveReason,
+      hitIds: grounding.misconceptions.map((m) => m.id),
+    }),
     grounding,
   };
 }
