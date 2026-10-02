@@ -372,6 +372,67 @@ async function main() {
     `every module in the bundle is defined once (${defs} definitions for ${modules} modules + the entry)`);
   ok(fs.existsSync(path.join(ROOT, "docs", "openmind.html")), "the single-file build exists too");
 
+  // ── 9. The landing page's claims, which are the first thing a visitor reads.
+  //
+  // THE FAILING SCENARIO, KEPT: the static build's dictionary is a SEPARATE key
+  // family from the Next app's, and it was written before §landing forbade
+  // unbacked marketing. When the app's headline was replaced, this one was not,
+  // so the published page still opened with
+  //
+  //   "Every student deserves a world-class tutor."   (home.heroTitle)
+  //   "...on any phone, even offline."                 (home.heroSub)
+  //   "A world-class tutor for every student."        (brand.tagline)
+  //   "Server-graded practice"                         (home.offline)
+  //
+  // The last one is the reason this is a gate and not a style note: `home.offline`
+  // sits in the dictionary of the build that has NO SERVER, and told the learner
+  // their answers were graded on a machine they do not control. On this build
+  // their own browser grades them and keeps them. The learner was being told
+  // something false about where their own schoolwork lives.
+  //
+  // Read through the PUBLISHED bundle's translator, not through lib/i18n.ts: the
+  // claim a visitor meets is the one in the bytes that shipped, and a fix that
+  // never got rebuilt must fail here rather than pass against the source.
+  section("The landing page tells the learner the truth");
+  const landT = client.i18n.translator("en");
+  const CLAIMS = {
+    "home.heroTitle": "a headline the software can back up",
+    "home.heroSub": "a pitch without unbacked absolutes",
+    "brand.tagline": "a brand line without a quality claim",
+    "home.offline": "where grading actually happens",
+  };
+  const FORBIDDEN = [
+    ["world-class", "a quality claim the product has not earned"],
+    ["Server-graded", "false about a build with no server"],
+    ["on any phone", "untested at the widths that matter"],
+    ["free, forever", "a promise no code can keep"],
+  ];
+  for (const [key, why] of Object.entries(CLAIMS)) {
+    const v = landT(key);
+    ok(v !== key, `landing: ${key} resolves in the published dictionary (${why})`);
+    const bad = FORBIDDEN.filter(([needle]) => v.includes(needle)).map(([, why2]) => why2);
+    ok(bad.length === 0,
+      `landing: ${key} makes no unbacked claim${bad.length ? " — " + bad.join("; ") : ""}`);
+  }
+  // The key named `offline` must not assert a server: on this build the browser
+  // grades. Asserted separately because it is the one that misled a learner.
+  ok(!/server/i.test(landT("home.offline")),
+    "landing: the offline badge does not claim server grading on a build with no server");
+  // Every language carries the same four, so a learner reading the page in
+  // Tamil is not the one who is told the truth.
+  let translatedClaims = 0;
+  for (const code of client.i18n.LANG_CODES) {
+    if (code === "en") continue;
+    const t = client.i18n.translator(code);
+    for (const key of Object.keys(CLAIMS)) {
+      const v = t(key);
+      if (v === key) continue; // falls back rather than lying — counted below
+      if (!/world-class|Server-graded|on any phone|free, forever/.test(v)) translatedClaims++;
+    }
+  }
+  ok(translatedClaims === (client.i18n.LANG_CODES.length - 1) * Object.keys(CLAIMS).length,
+    `landing: all ${Object.keys(CLAIMS).length} claims are free of the old copy in all ${client.i18n.LANG_CODES.length} languages (${translatedClaims} clean)`);
+
   // ── BYTE-STABLE, which is what makes the cache key mean something ─────────
   // The engine used to carry `meta.builtAt`. Because `shellVersion` hashes these
   // exact bytes, a build clock here made the worker's cache name change on EVERY
