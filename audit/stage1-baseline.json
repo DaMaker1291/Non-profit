@@ -1,0 +1,2886 @@
+{
+  "generatedAt": "2026-10-02T18:16:33.668Z",
+  "productionAttempts": 40,
+  "drawsPerConcept": 5,
+  "note": "Current-code measurements, not a transcription of the audit. Where current code differs from the audit, F1 and F3 carry the explanation.",
+  "summary": {
+    "reproduced": [
+      "F1",
+      "F2",
+      "F3",
+      "F4",
+      "F5b",
+      "F6",
+      "F7",
+      "F8"
+    ],
+    "fixedThisSession": [
+      "F5b"
+    ],
+    "clean": [
+      "F5 (Next app)"
+    ],
+    "highestSeverityOutstanding": "F6 — nine core student routes render nothing without JavaScript"
+  },
+  "findings": {
+    "F1": {
+      "question": "Real served difficulty by course/tier, through the production serving path.",
+      "method": "generateQuestionNear(id, seed, level.difficulty, 40) — the call app/api/progress/route.ts makes, not the library default.",
+      "tiersMeasured": 55,
+      "advancedTiers": 16,
+      "advancedMedianReachingTarget": 8,
+      "advancedMeanServed": 0.676,
+      "servedRange": [
+        0.302,
+        0.794
+      ],
+      "declaredRange": [
+        0.35,
+        0.9
+      ],
+      "verdict": "REPRODUCED, PARTLY FIXED",
+      "note": "Advanced tiers still serve below their declared target ON AVERAGE because the mean is taken over every subject AND every concept a tier covers. See F3 — the shortfall is not spread evenly, it is the non-maths subjects plus junior maths concepts inside advanced specifications.",
+      "rows": [
+        {
+          "spec": "uk-alevel",
+          "level": "a2",
+          "name": "A2",
+          "target": 0.9,
+          "concepts": 87,
+          "items": 435,
+          "meanServed": 0.794,
+          "medianServed": 0.8,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 43,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.903,
+              "maxCeiling": 0.94
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 14,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.8
+            },
+            "chemistry": {
+              "concepts": 12,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 8,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.45,
+              "maxCeiling": 0.75
+            },
+            "computing": {
+              "concepts": 10,
+              "ceilingBelowTarget": 10,
+              "minCeiling": 0.45,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "int-ib",
+          "level": "hl",
+          "name": "Diploma HL",
+          "target": 0.9,
+          "concepts": 131,
+          "items": 655,
+          "meanServed": 0.696,
+          "medianServed": 0.75,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 24,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 18,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 16,
+              "ceilingBelowTarget": 16,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 16,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 18,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "us-ap",
+          "level": "ap",
+          "name": "AP",
+          "target": 0.85,
+          "concepts": 87,
+          "items": 435,
+          "meanServed": 0.775,
+          "medianServed": 0.8,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 43,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.903,
+              "maxCeiling": 0.94
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 14,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.8
+            },
+            "chemistry": {
+              "concepts": 12,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 8,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.45,
+              "maxCeiling": 0.75
+            },
+            "computing": {
+              "concepts": 10,
+              "ceilingBelowTarget": 10,
+              "minCeiling": 0.45,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "in-cbse",
+          "level": "class11-12",
+          "name": "Class 11–12",
+          "target": 0.85,
+          "concepts": 131,
+          "items": 655,
+          "meanServed": 0.685,
+          "medianServed": 0.75,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 24,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 18,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 16,
+              "ceilingBelowTarget": 16,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 16,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 18,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "in-icse",
+          "level": "isc",
+          "name": "ISC 11–12",
+          "target": 0.85,
+          "concepts": 131,
+          "items": 655,
+          "meanServed": 0.685,
+          "medianServed": 0.75,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 24,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 18,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 16,
+              "ceilingBelowTarget": 16,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 16,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 18,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "any-independent",
+          "level": "advanced",
+          "name": "Advanced",
+          "target": 0.8,
+          "concepts": 135,
+          "items": 675,
+          "meanServed": 0.689,
+          "medianServed": 0.75,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 67,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.94
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 14,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 16,
+              "ceilingBelowTarget": 16,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 16,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 18,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "bd-ssc",
+          "level": "hsc",
+          "name": "Class 11–12 (HSC)",
+          "target": 0.78,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.651,
+          "medianServed": 0.72,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 13,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 14,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 18,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "uk-alevel",
+          "level": "as",
+          "name": "AS",
+          "target": 0.75,
+          "concepts": 83,
+          "items": 415,
+          "meanServed": 0.721,
+          "medianServed": 0.75,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 39,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.903,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 4,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.8
+            },
+            "chemistry": {
+              "concepts": 12,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 8,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.45,
+              "maxCeiling": 0.75
+            },
+            "computing": {
+              "concepts": 10,
+              "ceilingBelowTarget": 10,
+              "minCeiling": 0.45,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "pk-matric",
+          "level": "inter",
+          "name": "Class 11–12 (Inter)",
+          "target": 0.75,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.649,
+          "medianServed": 0.72,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 4,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 18,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "int-ib",
+          "level": "sl",
+          "name": "Diploma SL",
+          "target": 0.7,
+          "concepts": 131,
+          "items": 655,
+          "meanServed": 0.641,
+          "medianServed": 0.7,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 16,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 4,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 15,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "au-acara",
+          "level": "senior",
+          "name": "Senior secondary",
+          "target": 0.7,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.639,
+          "medianServed": 0.7,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 4,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 15,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "ie-junior",
+          "level": "senior",
+          "name": "Senior Cycle",
+          "target": 0.7,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.639,
+          "medianServed": 0.7,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 4,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 15,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "ke-kcse",
+          "level": "form4",
+          "name": "Form 4 (KCSE)",
+          "target": 0.7,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.639,
+          "medianServed": 0.7,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 4,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 15,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "ng-waec",
+          "level": "sss",
+          "name": "SSS 1–3 (WAEC)",
+          "target": 0.7,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.639,
+          "medianServed": 0.7,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 4,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 15,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "br-enem",
+          "level": "medio",
+          "name": "Médio (ENEM)",
+          "target": 0.7,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.639,
+          "medianServed": 0.7,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 4,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 15,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "mx-sep",
+          "level": "prepa",
+          "name": "Preparatoria",
+          "target": 0.7,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.639,
+          "medianServed": 0.7,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 4,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 15,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "gh-wassce",
+          "level": "shs",
+          "name": "SHS 1–3 (WASSCE)",
+          "target": 0.68,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.624,
+          "medianServed": 0.66,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 15,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "ph-deped",
+          "level": "shs",
+          "name": "Senior High",
+          "target": 0.68,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.624,
+          "medianServed": 0.66,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 15,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "id-merdeka",
+          "level": "sma",
+          "name": "SMA 10–12",
+          "target": 0.68,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.624,
+          "medianServed": 0.66,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 21,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 15,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "uk-gcse",
+          "level": "higher",
+          "name": "Higher tier",
+          "target": 0.65,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.59,
+          "medianServed": 0.62,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 20,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 14,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "int-igcse",
+          "level": "extended",
+          "name": "Extended",
+          "target": 0.65,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.59,
+          "medianServed": 0.62,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 20,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 14,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "us-core",
+          "level": "high",
+          "name": "Grades 9–12",
+          "target": 0.65,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.59,
+          "medianServed": 0.62,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 20,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 14,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "ca-provincial",
+          "level": "senior",
+          "name": "Grades 9–12",
+          "target": 0.65,
+          "concepts": 130,
+          "items": 650,
+          "meanServed": 0.59,
+          "medianServed": 0.62,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 20,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 14,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "za-nsc",
+          "level": "fet",
+          "name": "Grades 10–12",
+          "target": 0.65,
+          "concepts": 126,
+          "items": 630,
+          "meanServed": 0.59,
+          "medianServed": 0.62,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 20,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "tz-csee",
+          "level": "form4",
+          "name": "Form 4 (CSEE)",
+          "target": 0.65,
+          "concepts": 126,
+          "items": 630,
+          "meanServed": 0.589,
+          "medianServed": 0.62,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 20,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "ug-uce",
+          "level": "s4",
+          "name": "S4 (UCE)",
+          "target": 0.65,
+          "concepts": 126,
+          "items": 630,
+          "meanServed": 0.59,
+          "medianServed": 0.62,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 20,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "us-sat",
+          "level": "sat",
+          "name": "Digital SAT",
+          "target": 0.6,
+          "concepts": 53,
+          "items": 265,
+          "meanServed": 0.531,
+          "medianServed": 0.601,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 53,
+              "ceilingBelowTarget": 13,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            }
+          }
+        },
+        {
+          "spec": "in-icse",
+          "level": "class10",
+          "name": "Class 10",
+          "target": 0.6,
+          "concepts": 131,
+          "items": 655,
+          "meanServed": 0.564,
+          "medianServed": 0.6,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 63,
+              "ceilingBelowTarget": 13,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 16,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "in-cbse",
+          "level": "class10",
+          "name": "Class 10",
+          "target": 0.55,
+          "concepts": 122,
+          "items": 610,
+          "meanServed": 0.484,
+          "medianServed": 0.5,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 55,
+              "ceilingBelowTarget": 13,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 7,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "pk-matric",
+          "level": "matric",
+          "name": "Class 9–10 (Matric)",
+          "target": 0.55,
+          "concepts": 123,
+          "items": 615,
+          "meanServed": 0.484,
+          "medianServed": 0.5,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 56,
+              "ceilingBelowTarget": 13,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 7,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "bd-ssc",
+          "level": "ssc",
+          "name": "Class 9–10 (SSC)",
+          "target": 0.55,
+          "concepts": 123,
+          "items": 615,
+          "meanServed": 0.484,
+          "medianServed": 0.5,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 56,
+              "ceilingBelowTarget": 13,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 7,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "ke-kcse",
+          "level": "form3",
+          "name": "Form 3",
+          "target": 0.55,
+          "concepts": 123,
+          "items": 615,
+          "meanServed": 0.484,
+          "medianServed": 0.5,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 56,
+              "ceilingBelowTarget": 13,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 7,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "any-independent",
+          "level": "core",
+          "name": "Core",
+          "target": 0.55,
+          "concepts": 123,
+          "items": 615,
+          "meanServed": 0.484,
+          "medianServed": 0.5,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 56,
+              "ceilingBelowTarget": 13,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 7,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "au-acara",
+          "level": "years7-10",
+          "name": "Years 7–10",
+          "target": 0.5,
+          "concepts": 123,
+          "items": 615,
+          "meanServed": 0.448,
+          "medianServed": 0.45,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 56,
+              "ceilingBelowTarget": 13,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 7,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "uk-gcse",
+          "level": "foundation",
+          "name": "Foundation tier",
+          "target": 0.45,
+          "concepts": 122,
+          "items": 610,
+          "meanServed": 0.423,
+          "medianServed": 0.45,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 55,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 18,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 15,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 16,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 18,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.72
+            }
+          }
+        },
+        {
+          "spec": "int-ib",
+          "level": "myp",
+          "name": "MYP",
+          "target": 0.45,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.41,
+          "medianServed": 0.45,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "ie-junior",
+          "level": "junior",
+          "name": "Junior Cycle",
+          "target": 0.45,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.41,
+          "medianServed": 0.45,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "in-icse",
+          "level": "class8-9",
+          "name": "Class 8–9",
+          "target": 0.42,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.363,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "ng-waec",
+          "level": "jss",
+          "name": "JSS 1–3 (BECE)",
+          "target": 0.42,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.364,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "gh-wassce",
+          "level": "jhs",
+          "name": "JHS 1–3 (BECE)",
+          "target": 0.42,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.364,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "ph-deped",
+          "level": "jhs",
+          "name": "Junior High",
+          "target": 0.42,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.363,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "id-merdeka",
+          "level": "smp",
+          "name": "SMP 7–9",
+          "target": 0.42,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.362,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "br-enem",
+          "level": "fundamental",
+          "name": "Fundamental II",
+          "target": 0.42,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.364,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "mx-sep",
+          "level": "secundaria",
+          "name": "Secundaria",
+          "target": 0.42,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.364,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 12,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "int-igcse",
+          "level": "core",
+          "name": "Core",
+          "target": 0.4,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.361,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 11,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "us-core",
+          "level": "middle",
+          "name": "Grades 6–8",
+          "target": 0.4,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.36,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 11,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "ca-provincial",
+          "level": "intermediate",
+          "name": "Grades 7–8",
+          "target": 0.4,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.361,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 11,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "za-nsc",
+          "level": "senior",
+          "name": "Grades 8–9",
+          "target": 0.4,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.361,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 11,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "in-cbse",
+          "level": "class8-9",
+          "name": "Class 8–9",
+          "target": 0.4,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.361,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 11,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "bd-ssc",
+          "level": "jsc",
+          "name": "Class 6–8 (JSC)",
+          "target": 0.4,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.36,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 11,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "ke-kcse",
+          "level": "junior",
+          "name": "Grade 7–9",
+          "target": 0.4,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.361,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 11,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "tz-csee",
+          "level": "form1-2",
+          "name": "Form 1–2",
+          "target": 0.4,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.361,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 11,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "ug-uce",
+          "level": "s1-2",
+          "name": "S1–S2",
+          "target": 0.4,
+          "concepts": 94,
+          "items": 470,
+          "meanServed": 0.361,
+          "medianServed": 0.4,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 42,
+              "ceilingBelowTarget": 11,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.938
+            },
+            "physics": {
+              "concepts": 14,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.25,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 11,
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 13,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 14,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.7
+            }
+          }
+        },
+        {
+          "spec": "pk-matric",
+          "level": "class6-8",
+          "name": "Class 6–8",
+          "target": 0.35,
+          "concepts": 48,
+          "items": 240,
+          "meanServed": 0.303,
+          "medianServed": 0.35,
+          "reachesTargetByMedian": true,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 24,
+              "ceilingBelowTarget": 11,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.827
+            },
+            "physics": {
+              "concepts": 4,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.78,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 4,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.75,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 8,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 8,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.58
+            }
+          }
+        },
+        {
+          "spec": "any-independent",
+          "level": "foundations",
+          "name": "Foundations",
+          "target": 0.35,
+          "concepts": 48,
+          "items": 240,
+          "meanServed": 0.302,
+          "medianServed": 0.3,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": false,
+          "bySubject": {
+            "maths": {
+              "concepts": 24,
+              "ceilingBelowTarget": 11,
+              "minCeiling": 0.08,
+              "maxCeiling": 0.827
+            },
+            "physics": {
+              "concepts": 4,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.78,
+              "maxCeiling": 0.811
+            },
+            "chemistry": {
+              "concepts": 4,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.75,
+              "maxCeiling": 0.78
+            },
+            "biology": {
+              "concepts": 8,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.4,
+              "maxCeiling": 0.78
+            },
+            "computing": {
+              "concepts": 8,
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.35,
+              "maxCeiling": 0.58
+            }
+          }
+        }
+      ]
+    },
+    "F2": {
+      "question": "The four-attempt versus twelve-attempt difficulty distribution.",
+      "method": "Same seed set at 4, 12 and the production 40 attempts.",
+      "rows": [
+        {
+          "spec": "uk-alevel",
+          "level": "a2",
+          "target": 0.9,
+          "byAttempts": {
+            "4": {
+              "meanServed": 0.72,
+              "p25": 0.6,
+              "median": 0.75,
+              "p75": 0.897,
+              "pctAtOrAbove075": 54,
+              "pctMoreThanOneBandOut": 23
+            },
+            "12": {
+              "meanServed": 0.781,
+              "p25": 0.72,
+              "median": 0.8,
+              "p75": 0.9,
+              "pctAtOrAbove075": 70,
+              "pctMoreThanOneBandOut": 12
+            },
+            "40": {
+              "meanServed": 0.794,
+              "p25": 0.75,
+              "median": 0.8,
+              "p75": 0.9,
+              "pctAtOrAbove075": 76,
+              "pctMoreThanOneBandOut": 8
+            }
+          }
+        },
+        {
+          "spec": "int-ib",
+          "level": "hl",
+          "target": 0.9,
+          "byAttempts": {
+            "4": {
+              "meanServed": 0.621,
+              "p25": 0.45,
+              "median": 0.649,
+              "p75": 0.865,
+              "pctAtOrAbove075": 40,
+              "pctMoreThanOneBandOut": 39
+            },
+            "12": {
+              "meanServed": 0.684,
+              "p25": 0.6,
+              "median": 0.75,
+              "p75": 0.896,
+              "pctAtOrAbove075": 54,
+              "pctMoreThanOneBandOut": 24
+            },
+            "40": {
+              "meanServed": 0.696,
+              "p25": 0.62,
+              "median": 0.75,
+              "p75": 0.899,
+              "pctAtOrAbove075": 59,
+              "pctMoreThanOneBandOut": 22
+            }
+          }
+        },
+        {
+          "spec": "us-ap",
+          "level": "ap",
+          "target": 0.85,
+          "byAttempts": {
+            "4": {
+              "meanServed": 0.715,
+              "p25": 0.58,
+              "median": 0.75,
+              "p75": 0.879,
+              "pctAtOrAbove075": 56,
+              "pctMoreThanOneBandOut": 25
+            },
+            "12": {
+              "meanServed": 0.768,
+              "p25": 0.72,
+              "median": 0.8,
+              "p75": 0.87,
+              "pctAtOrAbove075": 71,
+              "pctMoreThanOneBandOut": 10
+            },
+            "40": {
+              "meanServed": 0.775,
+              "p25": 0.74,
+              "median": 0.8,
+              "p75": 0.861,
+              "pctAtOrAbove075": 75,
+              "pctMoreThanOneBandOut": 8
+            }
+          }
+        },
+        {
+          "spec": "uk-gcse",
+          "level": "higher",
+          "target": 0.65,
+          "byAttempts": {
+            "4": {
+              "meanServed": 0.569,
+              "p25": 0.45,
+              "median": 0.6,
+              "p75": 0.72,
+              "pctAtOrAbove075": 24,
+              "pctMoreThanOneBandOut": 23
+            },
+            "12": {
+              "meanServed": 0.593,
+              "p25": 0.5,
+              "median": 0.62,
+              "p75": 0.7,
+              "pctAtOrAbove075": 22,
+              "pctMoreThanOneBandOut": 16
+            },
+            "40": {
+              "meanServed": 0.59,
+              "p25": 0.58,
+              "median": 0.62,
+              "p75": 0.66,
+              "pctAtOrAbove075": 19,
+              "pctMoreThanOneBandOut": 15
+            }
+          }
+        }
+      ],
+      "verdict": "REPRODUCED",
+      "note": "More attempts monotonically moves the served distribution UP toward the target and never down — so 4 -> 12 is safe against under-serving. It is also clearly not sufficient: 12 still leaves a large share of items below 0.75 on IB HL, and the remaining gap is CONTENT CEILING, not search effort. That is why production already uses 40 and why raising the number alone did not close F3."
+    },
+    "F3": {
+      "question": "Concepts whose question generators cannot reach their declared tier target.",
+      "method": "conceptDepth(id) — the concept's own maximum self-declared difficulty, from 24 fixed depth seeds — compared against each level's declared difficulty.",
+      "verdict": "REPRODUCED — TWO SEPARATE CAUSES, NEITHER CLOSED",
+      "conclusion": "Two distinct faults, and conflating them is how the earlier 'all maths fixed' reading went wrong. (1) SUBJECT: every advanced concept in physics, chemistry, biology and computing still cannot reach its tier target — computing is 92% short. (2) SPECIFICATION COVERAGE: the advanced tiers that declare coverage over 63 maths concepts include ~20 JUNIOR ones with ceilings as low as 0.08, so IB HL, CBSE/ISC 11-12, HSC, Matric Inter, IB SL and every generic senior-secondary tier contain concepts whose maximum possible difficulty is elementary. The UK A-Level and AP tiers declare 43 concepts and are clean; the tiers that declare 63 are not.",
+      "correctionToAnEarlierReading": "audit/ceiling-gate.mjs reports all 16 maths advanced rows as reaching target, and on its own measure (served median) that is true. It is NOT the same claim as 'every concept in the tier can serve advanced work', and the two disagree: for int-ib/hl the served median clears 0.90 while 24 of its 63 maths concepts have a ceiling below it. A learner routed to one of those 24 is given elementary work inside an advanced tier — which is precisely the failure the brief names.",
+      "juniorConceptsInsideAdvancedTiers": [
+        {
+          "spec": "int-ib",
+          "level": "sl",
+          "target": 0.7,
+          "juniorInMaths": 21,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "int-ib",
+          "level": "hl",
+          "target": 0.9,
+          "juniorInMaths": 24,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "au-acara",
+          "level": "senior",
+          "target": 0.7,
+          "juniorInMaths": 21,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "ie-junior",
+          "level": "senior",
+          "target": 0.7,
+          "juniorInMaths": 21,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "in-cbse",
+          "level": "class11-12",
+          "target": 0.85,
+          "juniorInMaths": 24,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "in-icse",
+          "level": "isc",
+          "target": 0.85,
+          "juniorInMaths": 24,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "pk-matric",
+          "level": "inter",
+          "target": 0.75,
+          "juniorInMaths": 21,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "bd-ssc",
+          "level": "hsc",
+          "target": 0.78,
+          "juniorInMaths": 21,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "ke-kcse",
+          "level": "form4",
+          "target": 0.7,
+          "juniorInMaths": 21,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "ng-waec",
+          "level": "sss",
+          "target": 0.7,
+          "juniorInMaths": 21,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "br-enem",
+          "level": "medio",
+          "target": 0.7,
+          "juniorInMaths": 21,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "mx-sep",
+          "level": "prepa",
+          "target": 0.7,
+          "juniorInMaths": 21,
+          "mathsConcepts": 63,
+          "lowestCeiling": 0.08
+        },
+        {
+          "spec": "any-independent",
+          "level": "advanced",
+          "target": 0.8,
+          "juniorInMaths": 21,
+          "mathsConcepts": 67,
+          "lowestCeiling": 0.08
+        }
+      ],
+      "perSubjectAcrossAdvancedTiers": {
+        "maths": {
+          "concepts": 948,
+          "ceilingBelowTarget": 282,
+          "tiersBelow": 13,
+          "tiers": 16
+        },
+        "physics": {
+          "concepts": 276,
+          "ceilingBelowTarget": 131,
+          "tiersBelow": 16,
+          "tiers": 16
+        },
+        "chemistry": {
+          "concepts": 236,
+          "ceilingBelowTarget": 134,
+          "tiersBelow": 16,
+          "tiers": 16
+        },
+        "biology": {
+          "concepts": 232,
+          "ceilingBelowTarget": 131,
+          "tiersBelow": 16,
+          "tiers": 16
+        },
+        "computing": {
+          "concepts": 264,
+          "ceilingBelowTarget": 243,
+          "tiersBelow": 16,
+          "tiers": 16
+        }
+      },
+      "worstTiers": [
+        {
+          "spec": "uk-alevel",
+          "level": "a2",
+          "target": 0.9,
+          "meanServed": 0.794
+        },
+        {
+          "spec": "int-ib",
+          "level": "hl",
+          "target": 0.9,
+          "meanServed": 0.696
+        },
+        {
+          "spec": "us-ap",
+          "level": "ap",
+          "target": 0.85,
+          "meanServed": 0.775
+        },
+        {
+          "spec": "in-cbse",
+          "level": "class11-12",
+          "target": 0.85,
+          "meanServed": 0.685
+        },
+        {
+          "spec": "in-icse",
+          "level": "isc",
+          "target": 0.85,
+          "meanServed": 0.685
+        },
+        {
+          "spec": "any-independent",
+          "level": "advanced",
+          "target": 0.8,
+          "meanServed": 0.689
+        }
+      ]
+    },
+    "F4": {
+      "question": "Diagnostic skill mix versus the actual distribution of producible items.",
+      "method": "Raw un-aimed draws from every generated concept, bucketed by skillForDifficulty, against SKILL_MIX.",
+      "verdict": "REPRODUCED",
+      "declared": {
+        "recall": 22,
+        "application": 33,
+        "multi_step": 22,
+        "data_interpretation": 22,
+        "extended_response": 0
+      },
+      "producible": {
+        "recall": 19,
+        "application": 41,
+        "multi_step": 17,
+        "data_interpretation": 22,
+        "extended_response": 0
+      },
+      "extendedResponseExists": false,
+      "driftAtLeast5Points": [
+        {
+          "skill": "application",
+          "declaredPct": 33,
+          "produciblePct": 41,
+          "driftPctPoints": 8
+        },
+        {
+          "skill": "multi_step",
+          "declaredPct": 22,
+          "produciblePct": 17,
+          "driftPctPoints": -5
+        }
+      ],
+      "note": "extended_response is 0 in BOTH the declared mix and the bank, so the diagnostic does not claim to assess extended response. The other three skills drift by 5+ points, which means the blueprint over- or under-asks relative to what the bank can actually produce."
+    },
+    "F5": {
+      "question": "Student landing-page content: fictional learner telemetry and internal IDs.",
+      "method": "Fetch the served HTML of the landing page and scan the rendered text.",
+      "verdict": "CLEAN on the Next app; the STATIC build was found separately and is recorded in F5b.",
+      "measured": {
+        "bytes": 19026,
+        "sectionMarkerCount": 0,
+        "sectionHeadings": [],
+        "telemetryPhrases": [],
+        "internalIds": [],
+        "selfReferentialProof": false
+      }
+    },
+    "F5b": {
+      "question": "The same scan against the deployed static build (docs/), which is what GitHub Pages serves.",
+      "verdict": "REPRODUCED, FIXED",
+      "found": [
+        "home.heroTitle was 'Every student deserves a world-class tutor.' — the exact sentence scripts/i18n-ui.mjs records as deliberately not reused because the claims are unbacked. It survived in the static dictionary, which the repair never touched.",
+        "home.heroSub promised 'on any phone, even offline' — an untested responsive claim and an absolute.",
+        "brand.tagline said 'A world-class tutor for every student — free, forever.'",
+        "home.offline said 'Server-graded practice' in the dictionary of the build that has NO SERVER. On this build the learner's own browser grades and keeps their work, so the page told a student their schoolwork was held on a machine they do not control."
+      ],
+      "fixed": "scripts/i18n-landing-truth.mjs replaced all 60 values (4 claims x 15 dictionaries). verify:static now reads them back through the PUBLISHED bundle's translator; it fails 5 assertions on the previous text.",
+      "whyItMatters": "The Next app landing page was already clean, so every existing gate was green while the page a real visitor loads was making four claims the project had ruled out. A green suite was not evidence about this surface."
+    },
+    "F6": {
+      "question": "Loading states and server-rendered output for every core student route.",
+      "method": "Fetch each route's server-rendered HTML and measure how much meaningful text it contains before any client JavaScript runs.",
+      "verdict": "REPRODUCED",
+      "routesProbed": 18,
+      "bootScreenOnly": [
+        "/dashboard",
+        "/progress",
+        "/learn",
+        "/learn/maths",
+        "/papers",
+        "/mind",
+        "/projects",
+        "/account",
+        "/diagnostic/maths"
+      ],
+      "countBootScreenOnly": 9,
+      "withRealContent": [
+        "/",
+        "/solve",
+        "/teacher",
+        "/help",
+        "/about"
+      ],
+      "sectionMarkersRemaining": [],
+      "note": "Every one of these routes renders no meaningful content without JavaScript. On a slow connection or a mid-range phone that is a blank screen, so 'works offline' and 'works on any phone' are not yet claims this build can make about itself."
+    },
+    "F7": {
+      "question": "Navigation landmarks, mobile responsiveness, and keyboard accessibility.",
+      "method": "Parse the served HTML and the shipped stylesheet.",
+      "verdict": "PARTLY REPRODUCED",
+      "navElements": [
+        "Main menu",
+        "Help",
+        "Main menu"
+      ],
+      "duplicateAriaLabels": [
+        "Main menu"
+      ],
+      "skipLink": true,
+      "interactiveWithoutLabel": 0,
+      "positiveTabindex": 0,
+      "mediaQueries": 6,
+      "focusVisibleRules": 7,
+      "note": "The duplicate is not two competing menus: two navs share the SAME aria-label 'Main menu', and one is hidden by CSS at each viewport. Two landmarks with an identical accessible name is a real screen-reader fault — a user navigating by landmark hears 'Main menu' twice and cannot tell them apart. Keyboard semantics are otherwise clean: skip link present, no positive tabindex, every interactive element labelled."
+    },
+    "F8": {
+      "question": "English/non-English content-key asymmetry and actual student-visible fallback behaviour.",
+      "method": "Compare every dictionary's key set against English in BOTH directions, then probe the real lookup path.",
+      "verdict": "REPRODUCED — LATENT, NOT LIVE",
+      "languages": 15,
+      "englishKeys": 1157,
+      "keysPerNonEnglishDictionary": 1427,
+      "keysInAllNonEnglishButNotEnglish": 270,
+      "sample": [
+        "cb.place-value",
+        "cb.addition",
+        "cb.subtraction",
+        "cb.multiplication",
+        "cb.division",
+        "cb.negatives",
+        "cb.fractions",
+        "cb.fraction-ops"
+      ],
+      "directionOfDrift": "non-English LEADS English — the asymmetry is not 'missing translations'",
+      "isItVisibleToALearner": "NOT on the real path. lib/content-i18n.ts reads `const v = t('cb.'+id); return v === 'cb.'+id ? (genome blurb) : v` — it detects the unresolved key and falls back to the genome's authored English. Confirmed at runtime: audit/rawkey-audit.mjs found 0 raw-key leaks across 22 routes on both the Next app and the deployed static site, and cblurb returns real translated text (verified in Urdu, Bengali, Japanese).",
+      "severityJustification": "P1 not P0: the guard is in place and verified, so no learner sees a raw key today. It is still a real fault — the guard is a line of code, not a type, and the 270 untranslated-in-English cb.* keys mean the other languages hold text English cannot even use if the guard were ever removed."
+    }
+  }
+}
