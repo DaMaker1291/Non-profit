@@ -382,6 +382,14 @@ self.addEventListener("fetch", (event) => {
 `;
   fs.writeFileSync(path.join("docs", "sw.js"), src);
   console.log(`service worker: cache openmind-static-${version} → docs/sw.js`);
+
+  // GitHub Pages runs Jekyll over the published directory unless it is told
+  // not to, and Jekyll will silently drop or refuse to copy files it treats
+  // as special. `.nojekyll` is the only supported way to say "serve these
+  // bytes verbatim", so it is generated here rather than left as an
+  // untracked file that the next clean checkout would lose.
+  fs.writeFileSync(path.join("docs", ".nojekyll"), "");
+  console.log("static-host marker: docs/.nojekyll (serve docs/ verbatim)");
 }
 
 function main() {
