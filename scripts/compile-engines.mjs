@@ -20,7 +20,17 @@ export const ENGINE_SOURCES = [
   "lib/skills.ts",
   "lib/questions.ts",
   "lib/questions-deep.ts",
+  // The re-framer, and its own question — can this concept's questions be put
+  // on a second surface at all? The decision engine asks it (a TRANSFER
+  // recommendation the serve cannot honour is a promise the product cannot
+  // keep), so the mirror has to carry it for the engine to be judged whole.
+  "lib/transfer.ts",
   "lib/diagnostic.ts",
+  // The proof vocabulary and the retention rule: what one answer ESTABLISHED,
+  // in one place, asked by the live model, the assignment monitor, the grade a
+  // learner is shown and the surfaces that name a verdict. Pure, so the server
+  // modules in this list can share it without dragging a graph behind it.
+  "lib/proof.ts",
   "lib/progress.ts",
   "lib/progress-types.ts",
   "lib/socratic.ts",
@@ -36,6 +46,12 @@ export const ENGINE_SOURCES = [
   "lib/curriculum.ts",
   "lib/deadline.ts",
   "lib/specifications.ts",
+  // What a course can ACTUALLY serve, measured from its generators. Imported
+  // by no engine module — it exists so a surface can state the gap honestly,
+  // and it imports both questions.ts and specifications.ts, so it must stay
+  // a leaf or the module graph closes a cycle.
+  "lib/content-ceiling.ts",
+  "lib/questions-senior.ts",
   // The profile's own shape (a new learner state, and the wire-stripping rule)
   // is pure, so it lives outside the fs-bound store and both builds share it.
   "lib/learner-profile.ts",
@@ -88,6 +104,13 @@ export const ENGINE_SOURCES = [
   // claimed clock cannot move them), so this module is compiled with the rest
   // rather than described in prose.
   "lib/server/assignment-view.ts",
+  // Who is in a class, and who is one of its STUDENTS. The two modules that
+  // answer those questions for the roster, the monitor and the printed plan are
+  // compiled too, so the suite can assert the rules BEHAVIOURALLY (the class's
+  // teacher is a member but not a student) instead of reading their source for
+  // a string — which is what it had to do while they lived outside the mirror.
+  "lib/server/class-membership.ts",
+  "lib/server/class-view.ts",
   // The offline answer queue. It is a client module too, and it belongs here for
   // the same reason as the two above: the suite drives its dedupe, ordering and
   // retry behaviour directly, on the REAL module the browser loads, rather than
@@ -98,7 +121,16 @@ export const ENGINE_SOURCES = [
 export const MIRROR_DIR = ".verify";
 
 /** Compile the engine sources into the one mirror, or throw on a type error. */
+// ONCE PER PROCESS, however many modules ask. Two entry points now share these
+// compiled engines (the benchmark and the north-star report), and each one
+// importing the mirror meant `tsc` ran twice for one run. The mirror is a
+// function of the sources, so a second compile in the same process cannot
+// produce anything the first did not.
+let compiled = false;
+
 export function compileEngines() {
+  if (compiled) return;
+  compiled = true;
   execSync(
     `npx tsc ${ENGINE_SOURCES.join(" ")} --outDir ${MIRROR_DIR} --module commonjs --target es2020 ` +
     "--skipLibCheck --esModuleInterop --strict",

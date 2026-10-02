@@ -8,6 +8,7 @@ import { localizeStem } from "./qterms";
 import { skillForDifficulty } from "./skills";
 import { applyTerminology } from "./specifications";
 import { DEEP_GENS, fourDistinct, type DeepGen } from "./questions-deep";
+import { SENIOR_GENS } from "./questions-senior";
 
 /** The demand band a difficulty falls in (1–5).
  *
@@ -2188,12 +2189,35 @@ const LATE_GENS: Record<string, RawGen> = {
 
 const BASE_GENS: Record<string, RawGen> = { ...MATHS_GENS, ...SCI_GENS, ...LATE_GENS };
 
-/** Every concept's generator, with the depth layer composed on wherever one
- *  exists. Concepts with no deep family keep their original generator exactly:
- *  this file added depth, it did not rewrite the bank. */
+/** Every concept's generator, with the depth layers composed on wherever they
+ *  exist. Concepts with no deep family keep their original generator exactly:
+ *  this file added depth, it did not rewrite the bank.
+ *
+ *  TWO LAYERS, COMPOSED OUTWARD. `deep` is the mid layer that took a concept
+ *  from recall to multi-step; `senior` (lib/questions-senior.ts) is the one that
+ *  takes it to the demand an advanced qualification actually examines. Each is
+ *  applied only where it exists, so a concept with neither is byte-identical to
+ *  what it was before. A concept with both draws from the senior family half the
+ *  time and from the deep-and-base composition the rest, which is what makes
+ *  `conceptDepth` — the max over a fixed seed sweep — rise for exactly the
+ *  concepts that gained a family and nothing else.
+ *
+ *  THIS IS THE ONLY PLACE THE LAYERS MEET. Adding a family to either map raises
+ *  the ceiling that the practice serve, the diagnostic, the papers and
+ *  `lib/content-ceiling.ts` all read, with no change to any of them. */
 const ALL_GENS: Record<string, RawGen> = Object.fromEntries(
-  Object.entries(BASE_GENS).map(([id, base]) => [id, DEEP_GENS[id] ? withDepth(base, DEEP_GENS[id]) : base]),
+  Object.entries(BASE_GENS).map(([id, base]) => {
+    let gen = base;
+    if (DEEP_GENS[id]) gen = withDepth(gen, DEEP_GENS[id]);
+    if (SENIOR_GENS[id]) gen = withDepth(gen, SENIOR_GENS[id]);
+    return [id, gen];
+  }),
 );
+
+/** Concepts carrying the senior layer — the ones whose practice now reaches the
+ *  demand an advanced tier declares. Exported so the gate can assert the
+ *  ceiling moved for a NAMED concept rather than only in aggregate. */
+export const SENIOR_CONCEPT_IDS: string[] = Object.keys(SENIOR_GENS).filter((id) => id in BASE_GENS);
 
 /** Concepts whose practice range now reaches the deep bands — exported so a
  *  test can assert the depth is where it claims to be, per concept. */
@@ -2210,29 +2234,15 @@ export const DEPTH_CONCEPT_IDS: string[] = Object.keys(DEEP_GENS).filter((id) =>
 // have been parameterised (the audit showed they asked the identical question
 // forever), so what remains is genuinely single-item concept material plus the
 // science and computing items still awaiting variant families.
-const CONSTANT_GENS = new Set([
-  // The physics concepts that gained depth families (forces-basics,
-  // motion-graphs, radioactivity) are NOT in this set any more: each now draws
-  // from a family of variants as well as its authored item, and a concept
-  // declared "designed/stable" that returns different prompts each draw would
-  // make the declaration a lie — which is exactly what the sweep checks.
-  //
-  // The biology set (cells, enzymes, photosynthesis, respiration, digestion,
-  // circulation) has since joined them: each now composes a variant family from
-  // lib/questions-deep.ts and is swept by the same contract.
-  //
-  // The computing set (what-is-code, dictionaries, algorithms, recursion,
-  // complexity, networks, databases-sql, cybersecurity, web-stack, ai-basics)
-  // joined most recently — training-vs-inference, data-quality and
-  // query-reading variants — and left this set for the same reason.
-  "iteration",
-  "loci-constructions",
-  "light-optics", "sound-acoustics", "magnetism", "thermal-physics",
-  "gravity-fields", "astrophysics", "compounds-mixtures", "periodic-table",
-  "electron-shells", "covalent-bonding", "equations-stoich",
-  "energy-changes", "acids-bases", "electrolysis", "organic-intro", "equilibria", "analysis-tests",
-  "breathing-gas", "nervous-system", "hormones", "evolution", "ecosystems", "biodiversity",
-  "immune-health",
+const CONSTANT_GENS = new Set<string>([
+  // EMPTY, and that is the whole point: every concept with a generator now
+  // varies with the seed, so no learner can be served the same item twice in a
+  // session. The science and computing items went first (lib/questions-deep.ts),
+  // then the maths families; loci-constructions — one authored construction
+  // scenario for years — gained a senior family in lib/questions-senior.ts and
+  // left this set at the same time. The constant/variable sweep still checks
+  // the declaration against reality in BOTH directions, so a concept that
+  // loses its family must come back here or the build fails, by design.
 ]);
 
 export function isVariableGen(conceptId: string): boolean {

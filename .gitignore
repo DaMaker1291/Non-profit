@@ -10,13 +10,21 @@ out
 tsconfig.tsbuildinfo
 .verify
 .contentcheck
+# Scratch renders of the UI (server HTML with the stylesheet inlined) so a page
+# can be LOOKED at without running the app. Regenerated on demand, never
+# committed: it is a screenshot in a different format.
+.ui-preview
 # The static build's compile mirror. docs/ IS committed (it is what Pages
 # serves), but this intermediate output is not: `npm run build:static` rewrites
 # both from the same sources.
 .static-build
 .next/
+.next-prod/
 .freebuff
 
 # Learning data — never commit a classroom.
 .openmind-data
 openmind-data
+
+# The product benchmark's baseline record — regenerated on every run, never committed.
+.benchmark

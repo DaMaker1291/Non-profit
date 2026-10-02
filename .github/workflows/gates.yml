@@ -42,8 +42,51 @@ jobs:
       - name: Question audit
         run: npm run verify:q
 
+      # The content ceiling: the level each advanced tier PROMISES versus the
+      # level its practice can actually serve (measured through the production
+      # serve path, reported as a distribution). This is the gate for the fault
+      # the audit found — A2 declared 0.90 and served a median of 0.65 — and it
+      # fails if a concept's ceiling, a tier's median, or the share of concepts
+      # below target regresses. audit/ceiling-baseline.json is its floor.
+      - name: Content ceiling
+        run: npm run gate:ceiling
+
       - name: Production build
         run: npm run build
+      # ── Serve the artefact we just built, and check it is SERVED styled ──────
+      # Building is not shipping. A Next standalone server returns HTML that
+      # points at a separate, content-hashed static tree, so a build can compile
+      # perfectly and still render as bare HTML if the two halves disagree — the
+      # document answers 200 and only the stylesheet 404 says otherwise. That is
+      # not hypothetical: it is how this product once shipped a completely
+      # unstyled page (Times New Roman, default links, two navs, footer jammed
+      # under the content). These two gates boot the real production artefact and
+      # assert the document's own assets resolve, that typography comes from the
+      # stylesheet, that exactly one nav is visible per breakpoint, that the
+      # footer is pushed to the bottom, and that /curriculum shows content or a
+      # real empty state.
+      - name: Assemble the standalone server
+        run: |
+          rm -rf .next/standalone/public .next/standalone/.next/static
+          cp -r public .next/standalone/ 2>/dev/null || true
+          cp -r .next/static .next/standalone/.next/static
+
+      - name: Start the production build
+        run: |
+          export OPENMIND_DATA_DIR="$PWD/.ci-data"
+          (cd .next/standalone && PORT=3000 nohup node server.js > /tmp/om-prod.log 2>&1 &)
+          for i in $(seq 1 40); do
+            if curl -sf -o /dev/null http://localhost:3000/; then break; fi
+            sleep 2
+          done
+          curl -sf -o /dev/null http://localhost:3000/
+
+      - name: Build asset integrity (the unstyled-page gate)
+        run: npm run verify:build -- --dist .next --port 3000
+
+      - name: Production render gate
+        run: npm run verify:render -- --port 3000
+
 
       # The suite drives the `reveal` test hook, which a production build strips
       # on purpose — a hook that works in production is a production hole. So it

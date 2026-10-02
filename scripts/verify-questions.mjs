@@ -29,7 +29,7 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "om-questions-"));
 //   questions -> {types, qterms, specifications}
 //   qterms -> i18n
 //   specifications -> {genome, curriculum, types}, genome -> types
-for (const file of ["types.ts", "i18n.ts", "genome.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions.ts"]) {
+for (const file of ["types.ts", "i18n.ts", "genome.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-senior.ts", "questions.ts"]) {
   const src = fs.readFileSync(path.join(LIB, file), "utf8");
   const js = ts.transpileModule(src, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -73,10 +73,57 @@ const SEMANTIC = {
   // "Simplify √N" — the answer must square back to N, be fully simplified, and
   // never be a decimal approximation of an irrational.
   surds: (q) => {
+    const c = q.choices[q.answer];
+    // COMPOUND FORMS FIRST. The depth layer combines and expands surds, and a
+    // compound prompt cannot be checked against "the first √N in it": its
+    // answer is a whole number that no single radicand explains. Reading it
+    // that way reported two correct families as mathematically wrong, which is
+    // the instrument's limitation and not the content's — so each recognised
+    // shape is re-derived from the prompt's own numbers and the answer is
+    // checked against THAT. A wrong answer in either family still fails.
+    const combined = q.prompt.match(/\(√(\d+) \+ √(\d+)\) \÷ √(\d+)/);
+    if (combined) {
+      const A = Number(combined[1]), B = Number(combined[2]), C = Number(combined[3]);
+      const value = (Math.sqrt(A) + Math.sqrt(B)) / Math.sqrt(C);
+      const n = Number(c);
+      if (!Number.isFinite(n) || Math.abs(n - value) > 1e-9) {
+        return `(√${A} + √${B}) ÷ √${C} = ${value.toFixed(6)}, not ${c}`;
+      }
+      return null;
+    }
+    const expanded = q.prompt.match(/\((\d+)√(\d+) \+ (\d+)\)\((\d+)√(\d+) − (\d+)\)/);
+    if (expanded) {
+      const p = Number(expanded[1]), s1 = Number(expanded[2]), q1 = Number(expanded[3]);
+      const p2 = Number(expanded[4]), s2 = Number(expanded[5]), q2 = Number(expanded[6]);
+      const value = (p * Math.sqrt(s1) + q1) * (p2 * Math.sqrt(s2) - q2);
+      const n = Number(c);
+      if (!Number.isFinite(n) || Math.abs(n - value) > 1e-6) {
+        return `(${p}√${s1} + ${q1})(${p2}√${s2} − ${q2}) = ${value.toFixed(6)}, not ${c}`;
+      }
+      return null;
+    }
+    // RATIONALISING A BINOMIAL DENOMINATOR — "k ÷ (m + √s)". The answer is a
+    // compound a − b√s, so k/(m + √s) is re-derived from the prompt's numbers
+    // and compared numerically; the value is irrational, and that comparison
+    // is what proves the simplification, not the shape of the string.
+    const rational = q.prompt.match(/(\d+) ÷ \((\d+) \+ √(\d+)\)/);
+    if (rational) {
+      const k = Number(rational[1]), m2 = Number(rational[2]), s2 = Number(rational[3]);
+      const want = k / (m2 + Math.sqrt(s2));
+      const got = c.match(/^(-?\d+) − (\d*)√(\d+)$/);
+      if (!got) return `compound surd expected, got: ${c}`;
+      const a2 = Number(got[1]);
+      const b2 = got[2] === "" ? 1 : Number(got[2]);
+      const r2 = Number(got[3]);
+      if (r2 !== s2) return `denominator was √${s2} but the answer carries √${r2}: ${c}`;
+      if (Math.abs(a2 - b2 * Math.sqrt(r2) - want) > 1e-6) {
+        return `${k} ÷ (${m2} + √${s2}) = ${want.toFixed(6)}, not ${c}`;
+      }
+      return null;
+    }
     const m = q.prompt.match(/√(\d+)/);
     if (!m) return `unparseable prompt: ${q.prompt}`;
     const inside = Number(m[1]);
-    const c = q.choices[q.answer];
     const surd = c.match(/^(\d*)√(\d+)$/);
     let value;
     if (surd) {
@@ -98,9 +145,63 @@ const SEMANTIC = {
     return null;
   },
   // "x² + bx + c = (x + h)² + ?" — the constant must be c − h².
+  // …and, from the depth layer, "Solve x² + bx + c = 0 … in surd form", whose
+  // answer is checked by SUBSTITUTION: both printed roots must actually solve
+  // the printed quadratic. That is a stronger test than the constant one, and
+  // it is the reason the surd family is verified rather than waved through.
   "completing-square": (q) => {
     const m = q.prompt.match(/x² \+ (-?\d+)x \+ (-?\d+) = \(x \+ (-?\d+)\)² \+ \?/);
-    if (!m) return `unparseable prompt: ${q.prompt}`;
+    if (!m) {
+      // "Express x² + bx ± c in the form (x + p)² + q, and hence state the
+      // minimum" — the turning point must be (q, −h) with h = b/2 and
+      // q = c − h². Re-derived here, not read off the answer.
+      // "Express ax² − bx ± c in the form a(x − h)² + k" — the leading
+      // coefficient is not 1, so h = b/(2a) and k = c − a h²; the stated
+      // minimum and its location are re-derived from the prompt's numbers.
+      const lead = q.prompt.match(/Express (\d+)x² − (\d+)x ([+\u2212]) (\d+) in the form a\(x − h\)² \+ k/);
+      if (lead) {
+        const a = Number(lead[1]);
+        const b = Number(lead[2]);
+        const constant = (lead[3] === "+" ? 1 : -1) * Number(lead[4]);
+        const h = b / (2 * a);
+        const k = constant - a * h * h;
+        const said = q.choices[q.answer].match(/^(\d+)\(x − (\d+)\)² ([+\u2212]) (\d+) — minimum (-?\d+) when x = (\d+)$/);
+        if (!said) return `unparseable choice: ${q.choices[q.answer]}`;
+        if (Number(said[1]) !== a) return `leading coefficient should stay ${a}, said ${said[1]}`;
+        if (Number(said[2]) !== h) return `square should be (x − ${h}), said (x − ${said[2]})`;
+        const saidK = (said[3] === "+" ? 1 : -1) * Number(said[4]);
+        if (saidK !== k) return `constant should be ${k}, said ${saidK}`;
+        if (Number(said[5]) !== k) return `minimum should be ${k}, said ${said[5]}`;
+        if (Number(said[6]) !== h) return `minimum sits at x = ${h}, said ${said[6]}`;
+        return null;
+      }
+      const turn = q.prompt.match(/Express x² \+ (-?\d+)x ([+\u2212]) (\d+) in the form/);
+      if (turn) {
+        const b = Number(turn[1]);
+        const constant = (turn[2] === "+" ? 1 : -1) * Number(turn[3]);
+        const h = b / 2;
+        const qq = constant - h * h;
+        const said = q.choices[q.answer].match(/^Minimum (-?\d+) when x = (-?\d+)$/);
+        if (!said) return `unparseable choice: ${q.choices[q.answer]}`;
+        if (Number(said[1]) !== qq) return `minimum should be ${qq}, said ${said[1]}`;
+        if (Number(said[2]) !== -h) return `minimum sits at x = ${-h}, said ${said[2]}`;
+        return null;
+      }
+      const solve = q.prompt.match(/x² \+ (\d+)x ([+\u2212]) (\d+) = 0/);
+      const c = q.choices[q.answer];
+      const roots = solve ? c.match(/^x = (-?\d+) ± √(\d+)$/) : null;
+      if (!solve || !roots) return `unparseable prompt: ${q.prompt}`;
+      const b = Number(solve[1]);
+      const constant = (solve[2] === "+" ? 1 : -1) * Number(solve[3]);
+      const h = Number(roots[1]);
+      const rad = Number(roots[2]);
+      if (isPerfectSquare(rad)) return `radicand ${rad} is a perfect square — the answer is not in surd form: ${c}`;
+      const f = (x) => x * x + b * x + constant;
+      for (const x of [h + Math.sqrt(rad), h - Math.sqrt(rad)]) {
+        if (Math.abs(f(x)) > 1e-9) return `${c} does not solve ${q.prompt.trim()} (x=${x.toFixed(4)} gives ${f(x).toFixed(4)})`;
+      }
+      return null;
+    }
     const b = Number(m[1]), c = Number(m[2]), h = Number(m[3]);
     if (h !== b / 2) return `h=${h} but b/2=${b / 2}`;
     const want = c - h * h;

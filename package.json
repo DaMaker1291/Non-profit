@@ -1,21 +1,29 @@
 {
   "name": "openmind",
   "version": "1.0.0",
-  "description": "A free, open-source, multilingual AI-powered learning network — a world-class tutor for every student. `npm run verify` proves the engines, `npm run verify:q` proves every generated question is answerable, `npm run e2e` proves the API end to end.",
+  "description": "A free, open-source, multilingual AI-powered learning network \u2014 a world-class tutor for every student. `npm run verify` proves the engines, `npm run verify:q` proves every generated question is answerable, `npm run e2e` proves the API end to end. `npm run benchmark` measures what the decision engine actually decides for adversarial learner states \u2014 and, deliberately, does not measure learning.",
   "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "next dev -p 4173",
     "build": "next build",
+    "verify:build": "node scripts/verify-build-assets.mjs",
+    "verify:render": "node scripts/verify-render.mjs",
     "start": "next start -p 4173",
     "typecheck": "tsc --noEmit",
     "verify": "node scripts/verify-engines.mjs",
+    "benchmark": "node scripts/educational-benchmark.mjs",
+    "reliability": "node scripts/north-star.mjs",
     "content-check": "node scripts/content-check.mjs",
     "verify:q": "node scripts/verify-questions.mjs",
+    "gate:ceiling": "node scripts/ceiling-gate.mjs",
     "e2e": "node scripts/e2e-api.mjs",
+    "verify:ui": "node scripts/ui-walk.mjs",
     "build:static": "node scripts/build-static-app.mjs",
     "verify:static": "node scripts/static-smoke.mjs",
-    "ai-stub": "node scripts/ai-stub.mjs"
+    "ai-stub": "node scripts/ai-stub.mjs",
+    "superiority-test": "node scripts/superiority-test.mjs",
+    "product-benchmark": "node scripts/product-superiority-benchmark.mjs"
   },
   "dependencies": {
     "next": "^15.5.25",
