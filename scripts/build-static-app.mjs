@@ -277,8 +277,10 @@ function singleFile(engineCode) {
   };
   let html = shell;
   html = swap('<link rel="stylesheet" href="app.css">', css, "style")(html);
-  html = swap('<script src="openmind.engine.js"></script>', engineCode, "script")(html);
-  html = swap('<script src="app.js"></script>', app, "script")(html);
+  // index.html was rewritten to the content-hashed names by emitHashedAssets
+  // before singleFile reads it, so the needles are the hashed ones.
+  html = swap(`<script src="${HASHED.engine}"></script>`, engineCode, "script")(html);
+  html = swap(`<script src="${HASHED.app}"></script>`, app, "script")(html);
   return html;
 }
 
@@ -299,7 +301,83 @@ function singleFile(engineCode) {
 //
 // scripts/static-smoke.mjs recomputes the same hash from the same files and
 // fails if the shipped sw.js disagrees, so a stale worker cannot be committed.
-const SHELL_FILES = ["index.html", "app.css", "app.js", "openmind.engine.js"];
+const SHELL_FILES = ["index.html", "app.css"];
+
+/**
+ * THE ASSETS THAT CARRY CONTENT ARE NAMED BY THEIR OWN HASH.
+ *
+ * THE FAILURE THIS FIXES, OBSERVED ON THE LIVE SITE: GitHub Pages serves every
+ * file under docs/ with `cache-control: max-age=600` and the asset URLs never
+ * changed between builds — `<script src="openmind.engine.js">` was the same URL
+ * before and after a deploy. So a returning learner kept the PREVIOUS 2.4 MB
+ * engine in the browser's HTTP cache, and the service worker's content-hashed
+ * CACHE NAME could not help: it versions the worker's own cache, while the HTTP
+ * cache sits IN FRONT of it and was never versioned at all. A deploy that
+ * replaced every learner-visible string still rendered the old strings for as
+ * long as that entry lived.
+ *
+ * Worse, it fed itself. The incoming worker's `install` runs `addAll`, and those
+ * requests are handled by the OUTGOING worker — which is cache-first — so the
+ * new worker could pre-cache the OLD bytes under the NEW cache name, evict the
+ * genuinely-old cache, and leave the learner stuck on a build the cache claimed
+ * was current.
+ *
+ * Putting the hash in the FILENAME removes the ambiguity rather than managing it:
+ * a new build's engine is a new URL, which no cache can already hold. The
+ * outgoing worker's cache-first lookup misses and goes to the network, so the
+ * new worker caches the NEW bytes. There is no window in which the right cache
+ * name holds the wrong bytes.
+ *
+ * `index.html` stays UNHASHED on purpose: it is the one file that has to be
+ * re-read to discover the new names, so the worker serves it network-first and
+ * falls back to the cache only when there is no network.
+ */
+const HASHED = { engine: null, app: null };
+
+function sha12(s) {
+  return crypto.createHash("sha256").update(s).digest("hex").slice(0, 12);
+}
+
+/** Content-hash the engine and app, write them under hashed names, and point
+ *  index.html at them. Returns the names the worker must cache. */
+function emitHashedAssets(engineCode) {
+  const appSrc = fs.readFileSync(path.join("docs", "app.js"), "utf8");
+  const engineName = `openmind.engine.${sha12(engineCode)}.js`;
+  const appName = `app.${sha12(appSrc)}.js`;
+  HASHED.engine = engineName;
+  HASHED.app = appName;
+
+  // Sweep the PREVIOUS build's assets FIRST. Done before the write, because a
+  // sweep afterwards deletes the file this build just emitted — and done at all
+  // because an old engine left on disk under its hashed name can still be
+  // fetched by an index.html sitting in someone's HTTP cache.
+  for (const f of fs.readdirSync("docs")) {
+    if (/^openmind\.engine\.[a-f0-9]{12}\.js$/.test(f) || /^app\.[a-f0-9]{12}\.js$/.test(f) || f === "openmind.engine.js") {
+      fs.rmSync(path.join("docs", f), { force: true });
+    }
+  }
+  fs.writeFileSync(path.join("docs", engineName), engineCode);
+  fs.writeFileSync(path.join("docs", appName), appSrc);
+
+  // The replacements are PATTERNS, not literals, because this build rewrites a
+  // file that the PREVIOUS build already rewrote: docs/ is both the source and
+  // the published artifact, so index.html already names hashed assets by the
+  // time the next build runs. Matching the literal fixed name would find
+  // nothing, silently change nothing, and ship yesterday's engine under today's
+  // cache key — which is the exact failure the hashed names exist to prevent.
+  const html = fs.readFileSync(path.join("docs", "index.html"), "utf8");
+  const swapped = html
+    .replace(/<script src="openmind\.engine(?:\.[a-f0-9]{12})?\.js"><\/script>/, `<script src="${engineName}"></script>`)
+    .replace(/<script src="app(?:\.[a-f0-9]{12})?\.js"><\/script>/, `<script src="${appName}"></script>`);
+  if (!swapped.includes(`src="${engineName}"`) || !swapped.includes(`src="${appName}"`)) {
+    throw new Error("index.html does not name the engine/app scripts — cannot version them");
+  }
+  if (/src="(?:app|openmind\.engine)\.js"/.test(swapped)) {
+    throw new Error("index.html still references a fixed (unversioned) asset URL");
+  }
+  fs.writeFileSync(path.join("docs", "index.html"), swapped);
+  return [engineName, appName];
+}
 
 // ── NO TIMESTAMP IN THE ARTIFACT ─────────────────────────────────────────────
 // The engine used to carry `meta.builtAt` (nothing ever read it). Its bytes are
@@ -319,11 +397,18 @@ const SHELL_FILES = ["index.html", "app.css", "app.js", "openmind.engine.js"];
  *  the ONE request that matters — opening the app — and, with no network, the
  *  worker has nothing to answer with. The rest are listed by name because the
  *  page requests them by name. */
-const SHELL_URLS = ["./", ...SHELL_FILES.map((f) => `./${f}`)];
+const SHELL_URLS_LAZY = () => ["./", ...shellFileList().map((f) => `./${f}`)];
+
+/** The files the worker caches, in a stable order: the two fixed ones, then the
+ *  content-hashed assets as this build emitted them. Read lazily, because the
+ *  hashed names do not exist until emitHashedAssets has run. */
+function shellFileList() {
+  return [...SHELL_FILES, ...(HASHED.engine ? [HASHED.engine, HASHED.app] : ["app.js", "openmind.engine.js"])];
+}
 
 function shellVersion() {
   const h = crypto.createHash("sha256");
-  for (const f of SHELL_FILES) {
+  for (const f of shellFileList()) {
     h.update(f);
     h.update(fs.readFileSync(path.join("docs", f)));
   }
@@ -343,7 +428,7 @@ function writeServiceWorker() {
  * bundle.
  */
 const CACHE = "openmind-static-${version}";
-const SHELL = [${SHELL_URLS.map((u) => JSON.stringify(u)).join(", ")}];
+const SHELL = [${SHELL_URLS_LAZY().map((u) => JSON.stringify(u)).join(", ")}];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -362,11 +447,30 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // never touch another origin's traffic
-  // Cache-first, deliberately: offline the app must open INSTANTLY, not after
-  // a network call has timed out, and freshness is the cache key's job, not
-  // this handler's — a new deploy installs a worker whose name is a hash of
-  // the new files, so it pre-caches them and evicts this cache before the
-  // learner's next navigation.
+
+  // index.html is NETWORK-FIRST, and it is the one exception to the rule below.
+  // It is the file that names the content-hashed engine, so serving a cached
+  // copy would hand the learner a page pointing at the PREVIOUS build's assets
+  // while the previous assets are the only ones in this cache. Re-reading it
+  // online is what lets a returning learner discover a new build at all; with
+  // no network it falls back to the cached copy, which is the whole point.
+  if (url.pathname.endsWith("/") || url.pathname.endsWith("/index.html")) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.ok) caches.open(CACHE).then((c) => c.put(req, res.clone()));
+          return res;
+        })
+        .catch(() => caches.match(req).then((hit) => hit || caches.match("./"))),
+    );
+    return;
+  }
+
+  // Cache-first for everything else, deliberately: offline the app must open
+  // INSTANTLY, not after a network call has timed out. It is safe now that the
+  // assets are content-hashed — a cached hit for "app.<hash>.js" is by
+  // definition this build's file, so cache-first cannot serve stale content the
+  // way it could when every build shared one URL.
   event.respondWith(
     caches.match(req).then((hit) => {
       const network = fetch(req)
@@ -396,10 +500,12 @@ function main() {
   compile();
   const reachable = closure();
   const code = bundle(reachable);
-  fs.mkdirSync(path.dirname(BUNDLE), { recursive: true });
-  fs.writeFileSync(BUNDLE, code);
   const kb = (Buffer.byteLength(code) / 1024).toFixed(1);
-  console.log(`static bundle: ${reachable.size} modules, ${kb} KiB → ${BUNDLE}`);
+
+  // Written under content-hashed names FIRST, because index.html has to name
+  // them and the worker's key is a hash of the files that exist afterwards.
+  const [engineName, appName] = emitHashedAssets(code);
+  console.log(`static bundle: ${reachable.size} modules, ${kb} KiB → docs/${engineName}`);
 
   const single = singleFile(code);
   fs.writeFileSync(SINGLE_FILE, single);
@@ -407,6 +513,8 @@ function main() {
   // Last, so the hash covers the bundle this build just wrote.
   writeServiceWorker();
   console.log(`compile mirror kept at ${MIRROR_DIR}/ for the verification pipeline`);
+  void BUNDLE;
+  void appName;
 }
 
 main();

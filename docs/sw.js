@@ -8,8 +8,8 @@
  * and that is what this caches — the shell, the stylesheet and the engine
  * bundle.
  */
-const CACHE = "openmind-static-1f28a0542a50";
-const SHELL = ["./", "./index.html", "./app.css", "./app.js", "./openmind.engine.js"];
+const CACHE = "openmind-static-a157be3ff88a";
+const SHELL = ["./", "./index.html", "./app.css", "./openmind.engine.5e29aaf68a70.js", "./app.b1b8a531bd00.js"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -28,11 +28,30 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // never touch another origin's traffic
-  // Cache-first, deliberately: offline the app must open INSTANTLY, not after
-  // a network call has timed out, and freshness is the cache key's job, not
-  // this handler's — a new deploy installs a worker whose name is a hash of
-  // the new files, so it pre-caches them and evicts this cache before the
-  // learner's next navigation.
+
+  // index.html is NETWORK-FIRST, and it is the one exception to the rule below.
+  // It is the file that names the content-hashed engine, so serving a cached
+  // copy would hand the learner a page pointing at the PREVIOUS build's assets
+  // while the previous assets are the only ones in this cache. Re-reading it
+  // online is what lets a returning learner discover a new build at all; with
+  // no network it falls back to the cached copy, which is the whole point.
+  if (url.pathname.endsWith("/") || url.pathname.endsWith("/index.html")) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.ok) caches.open(CACHE).then((c) => c.put(req, res.clone()));
+          return res;
+        })
+        .catch(() => caches.match(req).then((hit) => hit || caches.match("./"))),
+    );
+    return;
+  }
+
+  // Cache-first for everything else, deliberately: offline the app must open
+  // INSTANTLY, not after a network call has timed out. It is safe now that the
+  // assets are content-hashed — a cached hit for "app.<hash>.js" is by
+  // definition this build's file, so cache-first cannot serve stale content the
+  // way it could when every build shared one URL.
   event.respondWith(
     caches.match(req).then((hit) => {
       const network = fetch(req)

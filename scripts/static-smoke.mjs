@@ -44,7 +44,18 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const ROOT = process.cwd();
 const MIRROR = path.join(ROOT, ".verify");
-const BUNDLE = path.join(ROOT, "docs", "openmind.engine.js");
+// The engine is published under a CONTENT-HASHED name (see
+// scripts/build-static-app.mjs: a fixed URL let the browser's HTTP cache serve
+// yesterday's engine after a deploy, which no service-worker cache key could
+// fix). So the file to load is discovered, not hardcoded — and the discovery
+// itself is asserted below, because "the hashed file is what index.html names"
+// is the whole mechanism.
+const DOCS = path.join(ROOT, "docs");
+const engineFile = fs
+  .readdirSync(DOCS)
+  .find((f) => /^openmind\.engine\.[a-f0-9]{12}\.js$/.test(f));
+const appFile = fs.readdirSync(DOCS).find((f) => /^app\.[a-f0-9]{12}\.js$/.test(f));
+const BUNDLE = path.join(ROOT, "docs", engineFile || "openmind.engine.js");
 
 let pass = 0;
 let fail = 0;
@@ -359,6 +370,49 @@ async function main() {
   section("The published artifact");
   const code = fs.readFileSync(BUNDLE, "utf8");
   ok(/GENERATED FILE/.test(code), "the bundle says it is generated");
+
+  // ── THE ASSET URLS THEMSELVES ────────────────────────────────────────────
+  //
+  // THE FAILING SCENARIO, KEPT: every build published its engine at
+  // `openmind.engine.js`. GitHub Pages serves it with `cache-control: max-age=600`,
+  // so after a deploy a returning learner's HTTP cache still held the PREVIOUS
+  // 2.4 MB engine and the page ran it — old dictionaries, old questions, old
+  // claims — while the service worker's content-hashed CACHE NAME said the build
+  // was current. The cache key versions the worker's cache; it never touched the
+  // HTTP cache sitting in front of it. Observed live, not theorised.
+  //
+  // It could also feed itself: the incoming worker's `install` `addAll` is
+  // handled by the OUTGOING worker, which is cache-first, so the new worker
+  // could pre-cache the OLD bytes under the NEW cache name and evict the
+  // genuinely-old cache — leaving a learner stuck on a build the cache claimed
+  // was current, with no way out but a manual cache clear.
+  //
+  // A hash in the FILENAME removes the window instead of managing it: a new
+  // build's engine is a URL no cache has ever held.
+  section("The published asset URLs are content-hashed");
+  const shippedHtml = fs.readFileSync(path.join(ROOT, "docs", "index.html"), "utf8");
+  const shippedSw = fs.readFileSync(path.join(ROOT, "docs", "sw.js"), "utf8");
+  ok(!!engineFile, `the engine is published under a hashed name (docs/${engineFile || "MISSING"})`);
+  ok(!!appFile, `the app script is published under a hashed name (docs/${appFile || "MISSING"})`);
+  ok(shippedHtml.includes(`src="${engineFile}"`), "index.html names the hashed engine, so a new build is a new URL");
+  ok(shippedHtml.includes(`src="${appFile}"`), "index.html names the hashed app script");
+  ok(!/src="(?:app|openmind\.engine)\.js"/.test(shippedHtml),
+    "index.html references no fixed (unversioned) asset URL");
+  ok(!fs.existsSync(path.join(ROOT, "docs", "openmind.engine.js")),
+    "the legacy fixed-name engine is gone, so nothing can fetch yesterday's bytes by that URL");
+  ok(shippedSw.includes(`./${engineFile}`) && shippedSw.includes(`./${appFile}`),
+    "the worker caches the hashed assets by their real names");
+  ok(!shippedSw.includes('"./app.js"') && !shippedSw.includes('"./openmind.engine.js"'),
+    "the worker caches no fixed-name asset");
+  // index.html is the only file whose URL never changes, so it is the only one
+  // that must not be cache-first, or a returning learner never discovers the
+  // new build at all.
+  ok(/endsWith\("\/"\)|endsWith\("\/index\.html"\)/.test(shippedSw),
+    "the worker treats index.html as the discovery file");
+  const netFirst = shippedSw.indexOf("index.html") > -1 && /fetch\(req\)[\s\S]{0,400}caches\.match\(req\)/.test(shippedSw);
+  ok(netFirst, "index.html is served network-first and falls back to the cache when offline");
+  ok(shippedSw.includes('caches.match("./")'),
+    "the directory request still resolves offline from the cached shell");
   const bare = [...code.matchAll(/require\(\s*"([^"']+)"\s*\)/g)]
     .map((m) => m[1])
     .filter((s) => !s.startsWith(".") && s !== "module" && s !== "exports");
@@ -451,7 +505,7 @@ async function main() {
   // shipped: a sw.js that was not regenerated after a change to the engine (or
   // the page, or the styles) fails the gate instead of silently serving
   // yesterday's grader from every returning learner's disk.
-  const SHELL = ["index.html", "app.css", "app.js", "openmind.engine.js"];
+  const SHELL = ["index.html", "app.css", engineFile || "openmind.engine.js", appFile || "app.js"];
   const hash = crypto.createHash("sha256");
   for (const f of SHELL) {
     hash.update(f);
