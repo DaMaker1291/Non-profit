@@ -285,7 +285,77 @@ async function main() {
   }
   ok(unsafe, "an id that is not a safe key is refused");
 
-  // ── 7. The artifact itself ──────────────────────────────────────────────
+  // ── 7. The published TUTOR is the source's tutor ────────────────────────
+  // The bundle is GENERATED from lib/, so the offline app has ONE tutor
+  // implementation, not two. What it can have is a STALE one: it is only as
+  // current as the last build, and a bundle built before a tutor fix shipped
+  // the pre-fix replies to every learner with no connection — the canned,
+  // identical paragraph on every message that the tutor directive forbids.
+  // Nothing caught it, because nothing compared the artifact with its source.
+  //
+  // This compares them as BEHAVIOUR, not as markers in a file: the same
+  // messages, the same screen context and the same language, answered by the
+  // published bundle and by the freshly compiled mirror, and required to be the
+  // same sentence. A marker check can be satisfied by a comment; a reply cannot.
+  section("The published tutor is the source's tutor, not a stale copy");
+  const sourceSocratic = require(path.join(MIRROR, "socratic.js"));
+  const TUTOR_CONCEPT = "place-value";
+  // The screen the learner is looking at, handed to both builds exactly as the
+  // exercise panel hands it to the server.
+  const TUTOR_CTX = { question: "What is the value of the tens digit in 915?", serveReason: "stretch", hitIds: [] };
+  const TUTOR_INPUTS = [
+    ["What is this?", "a genuine question"],
+    ["I don't understand it.", "not understanding"],
+    ["Give me a hint.", "a request for a hint"],
+    ["Why is my answer wrong?", "a why-question"],
+    ["I think you just add the two numbers together and that's the answer.", "a stated method"],
+    ["What is the capital of France?", "nothing to do with this question"],
+    ["Can you explain quadratics to me instead?", "another concept"],
+  ];
+  for (const lang of ["en", "ar"]) {
+    for (const [message, label] of TUTOR_INPUTS) {
+      const offline = client.socratic.socraticReply(TUTOR_CONCEPT, message, lang, TUTOR_CTX);
+      const source = sourceSocratic.socraticReply(TUTOR_CONCEPT, message, lang, TUTOR_CTX);
+      ok(offline === source, `${lang}: ${label} is answered identically offline and from source`);
+    }
+  }
+  // And the distinctions themselves, asserted ON THE BUNDLE — the surface a
+  // learner actually has when the connection is gone. These are the four fixes
+  // this pin exists to keep: a why-question is not a request for the answer, a
+  // stated method is read back and tested, an unrelated message is not met with
+  // the Socratic prompt for this question, and no reply repeats a context line
+  // the surface already renders under it.
+  const offlineReply = (m) => client.socratic.socraticReply(TUTOR_CONCEPT, m, "en", TUTOR_CTX);
+  const whyReply = offlineReply("Why is my answer wrong?");
+  const claimReply = offlineReply("I think you just add the two numbers together and that's the answer.");
+  const unrelatedReply = offlineReply("What is the capital of France?");
+  const claimLead = require(path.join(MIRROR, "i18n.js")).translator("en")("soc.claimLead");
+  ok(whyReply !== claimReply,
+    "offline: asking WHY and stating a method are not the same reply");
+  ok(claimReply.includes(claimLead) && claimReply.includes("add the two numbers"),
+    "offline: a stated method is read back to the learner and handed to them to test");
+  ok(!/hand over the answer/i.test(whyReply),
+    "offline: a why-question is answered as a request for REASONING, not refused as a request for the answer");
+  ok(!/restate the question in your own words/i.test(unrelatedReply),
+    "offline: an unrelated message is told plainly that the tutor can only follow this question");
+  ok(TUTOR_INPUTS.every(([m]) => !/OpenMind served this one to/.test(offlineReply(m))),
+    "offline: no reply restates the serve reason the surface already shows under it");
+  const distinctOffline = new Set(TUTOR_INPUTS.map(([m]) => offlineReply(m))).size;
+  ok(distinctOffline >= 5,
+    `offline: the tutor does not repeat one canned paragraph (${distinctOffline}/${TUTOR_INPUTS.length} distinct replies)`);
+  // The sentences the tutor composes must also RESOLVE in the bundle's own
+  // dictionaries: a stale bundle can carry the new code with the old dictionary,
+  // and a missing key renders as the raw key on a learner's screen.
+  const bundleT = client.i18n.translator("en");
+  const sourceT = require(path.join(MIRROR, "i18n.js")).translator("en");
+  const tutorKeys = ["soc.claimLead", "soc.claimQ", "soc.serveWhy", "soc.refuse", "soc.hintLead", "soc.unclear", "soc.restate"];
+  const unresolved = tutorKeys.filter((k) => bundleT(k) === k);
+  ok(unresolved.length === 0,
+    `offline: every sentence the tutor composes resolves in the bundle's dictionaries (unresolved: ${unresolved.join(", ") || "none"})`);
+  ok(tutorKeys.every((k) => bundleT(k) === sourceT(k)),
+    "offline: and each is the same text the source ships — no dictionary drift either");
+
+  // ── 8. The artifact itself ──────────────────────────────────────────────
   section("The published artifact");
   const code = fs.readFileSync(BUNDLE, "utf8");
   ok(/GENERATED FILE/.test(code), "the bundle says it is generated");
@@ -301,6 +371,17 @@ async function main() {
   ok(modules > 0 && defs === modules + 1,
     `every module in the bundle is defined once (${defs} definitions for ${modules} modules + the entry)`);
   ok(fs.existsSync(path.join(ROOT, "docs", "openmind.html")), "the single-file build exists too");
+
+  // ── BYTE-STABLE, which is what makes the cache key mean something ─────────
+  // The engine used to carry `meta.builtAt`. Because `shellVersion` hashes these
+  // exact bytes, a build clock here made the worker's cache name change on EVERY
+  // rebuild — including one that changed nothing — and `activate` then evicted
+  // the cached shell, re-downloading the whole engine on every returning
+  // learner's next visit. A build clock is the entire class of that defect, so
+  // its return fails here instead of on someone's data bundle.
+  const clocks = code.match(/\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/g) ?? [];
+  ok(clocks.length === 0,
+    `the engine carries no build clock (${clocks.length ? clocks.slice(0, 2).join(", ") : "none"})`);
 
   // ── The offline shell's version, which is the one thing a human used to have
   // to remember. The worker is cache-first, so its cache KEY is what decides

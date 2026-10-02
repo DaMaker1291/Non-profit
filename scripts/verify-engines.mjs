@@ -16,8 +16,17 @@ const require = createRequire(import.meta.url);
 const genome = require("../.verify/genome.js");
 const misconceptions = require("../.verify/misconceptions.js");
 const questions = require("../.verify/questions.js");
+// The re-framer, and the one question the decision engine asks it before it
+// offers transfer: can this concept's questions be put on a SECOND surface at
+// all? A transfer offer the serve cannot honour is a promise with no evidence
+// behind it, so the gate the engine uses is asserted here, not assumed.
+const transferMod = require("../.verify/transfer.js");
 const diag = require("../.verify/diagnostic.js");
 const progress = require("../.verify/progress.js");
+// The one verdict rule and its vocabulary: what an answer PROVED (§10, §14),
+// shared by the live model, the ledger projection, the grade a learner is shown
+// and the surfaces that name a verdict.
+const proofMod = require("../.verify/proof.js");
 const socratic = require("../.verify/socratic.js");
 const i18n = require("../.verify/i18n.js");
 const matcher = require("../.verify/matcher.js");
@@ -195,7 +204,133 @@ const mkLadder = (id) => ({ conceptId: id, stage: 0, askedThisStage: 0, correctT
     "a band is only skipped on a concept that still got probed");
   const strongMastery = Math.max(...res.scores.filter((x) => x.asked > 0).map((x) => x.mastery));
   ok(strongMastery >= 0.82, `strong student reaches the band-2 ceiling for its generator (got ${strongMastery.toFixed(2)})`);
-  ok(res.gaps.length > 0, "baseline gaps exist for unprobed concepts");
+  // UNMEASURED IS NOT WEAK. `gaps` is a claim about the learner, so it may only
+  // hold concepts this sitting ASKED about; the coverage rows for concepts
+  // nothing asked about carry the model's neutral prior and stay out of it.
+  // This used to assert the opposite — `gaps.length > 0` on a run where the only
+  // gaps were never-asked rows — which is how the results screen came to list
+  // "Gaps to close: Addition · Subtraction · Multiplication…" to a learner who
+  // had just answered every question correctly.
+  const unprobed = res.scores.filter((x) => x.asked === 0);
+  ok(unprobed.length > 0 && unprobed.every((x) => !res.gaps.some((g) => g.conceptId === x.conceptId)),
+    `never-asked coverage rows (${unprobed.length}) are reported as coverage, not as gaps`);
+  ok(res.gaps.length === 0 && res.strengths.length > 0,
+    `a learner who swept every concept has no gaps and real strengths (${res.gaps.length} gaps, ${res.strengths.length} strengths)`);
+}
+// ── 3a. The order a sitting serves its sample ───────────────────────────────
+// The product claim: a diagnostic opens at the LEARNER'S level and descends
+// only as far as the evidence requires, so the foundations are reached when the
+// harder work has actually failed. Ascending order made a Year 11 GCSE Higher
+// learner's first question the shallowest concept in their whole course —
+// primary place value — and spent eight near-identical questions on it before
+// anything at their level had been asked.
+console.log("▸ The order the diagnostic asks in");
+{
+  const specsMod = require("../.verify/specifications.js");
+  const stageOfConcept = (id) => genome.CONCEPTS_BY_ID[id]?.stage ?? 0;
+  const shallowOpeners = [];
+  let checked = 0;
+  for (const spec of specsMod.SPECIFICATIONS) {
+    for (const level of spec.levels) {
+      const s = diag.newDiagnosticSession("maths", "baseline", { spec, level });
+      if (s.concepts.length < 2) continue;
+      checked++;
+      const stages = s.concepts.map((c) => stageOfConcept(c.conceptId));
+      if (stages[0] !== Math.max(...stages)) shallowOpeners.push(`${spec.id}/${level.id} (${stages[0]} of ${Math.max(...stages)})`);
+    }
+  }
+  ok(checked > 0 && shallowOpeners.length === 0,
+    `every course opens on the deepest concept it sampled (${shallowOpeners.slice(0, 3).join(", ") || `${checked} courses agree`})`);
+}
+// ── 3a-ii. The DEMAND half of the same claim ───────────────────────────────
+// The order fix above solved half of what its own comment promised. Concepts
+// were asked deepest-first, but every concept still opened at difficulty 0.15,
+// so a real Year 11 GCSE Higher sitting contained "Which fraction is larger:
+// 1/2 or 1/8?" and "What is the value of the tens digit in 276?" — and an
+// A-level learner's first item on a concept was the easiest draw its generator
+// owns. The demand half is that a sitting opens at the LEARNER'S OWN COURSE,
+// and both ways of getting it wrong are checked here, because they sit in
+// opposite directions: under-claiming prescribes practice to a flawless
+// learner, over-claiming calls a band "mastered" that no answer touched.
+console.log("▸ The level a sitting opens at");
+{
+  const opens = [[0.15, 0], [0.4, 1], [0.45, 1], [0.55, 1], [0.65, 2], [0.7, 2], [0.85, 3], [0.9, 3], [null, 0]];
+  const badOpens = opens.filter(([d, want]) => diag.openingStageFor(d) !== want);
+  ok(badOpens.length === 0,
+    `the ladder opens at the deepest rung at or below the learner's own course (${badOpens.length ? badOpens.map(([d]) => d).join(", ") : `${opens.length} declarations agree`})`);
+
+  const specsMod = require("../.verify/specifications.js");
+  const qBank = require("../.verify/questions.js");
+  const cannotPlace = [];
+  const wrongRung = [];
+  let courses = 0;
+  for (const spec of specsMod.SPECIFICATIONS) {
+    for (const level of spec.levels) {
+      const declaredBand = qBank.difficultyBandFor(level.difficulty);
+      const s = diag.newDiagnosticSession("maths", "baseline", { spec, level });
+      if (s.concepts.length === 0) continue;
+      courses++;
+      if (s.openStage !== diag.openingStageFor(level.difficulty)) {
+        wrongRung.push(`${spec.id}/${level.id}: openStage ${s.openStage}`);
+      }
+      for (const c of s.concepts) {
+        if (qBank.difficultyBandFor(qBank.conceptDepth(c.conceptId)) < declaredBand - 1) {
+          cannotPlace.push(`${spec.id}/${level.id}:${c.conceptId}`);
+        }
+      }
+      // …and the rung the first concept actually opens at, which is the
+      // learner's own — capped by what that concept's bank can express.
+      const first = s.concepts[0];
+      const want = Math.min(diag.openingStageFor(level.difficulty), diag.bandsFor(first.conceptId) - 1);
+      const q1 = diag.nextQuestion(s);
+      if (!q1 || first.stage !== want) wrongRung.push(`${spec.id}/${level.id} ${first.conceptId}: stage ${first.stage} ≠ ${want}`);
+    }
+  }
+  ok(courses > 0 && cannotPlace.length === 0,
+    `no course samples a concept that cannot place its learner (${cannotPlace.slice(0, 3).join(", ") || `${courses} courses clear`})`);
+  ok(wrongRung.length === 0,
+    `every course opens its concepts at its own rung (${wrongRung.slice(0, 3).join(", ") || `${courses} courses agree`})`);
+}
+// ── 3a-iii. The defect, on the real sitting, at both ends ───────────────────
+console.log("▸ No primary questions for a Year 11, and no credit for wrong answers");
+{
+  const specsMod = require("../.verify/specifications.js");
+  const qBank = require("../.verify/questions.js");
+  const gcse = specsMod.SPECIFICATIONS.find((s) => s.id === "uk-gcse");
+  const higher = gcse.levels.find((l) => l.id === "higher");
+  const walk = (answerCorrectly) => {
+    const s = diag.newDiagnosticSession("maths", "baseline", { spec: gcse, level: higher });
+    let q = diag.nextQuestion(s), guard = 0;
+    while (q && guard++ < 200) {
+      diag.gradeAnswer(s, q.conceptId, q, answerCorrectly ? q.answer : (q.answer + 1) % q.choices.length);
+      q = diag.nextQuestion(s);
+    }
+    return { s, res: diag.buildResult(s) };
+  };
+  const good = walk(true);
+  const bad = walk(false);
+  const goodFloors = good.s.log.map((x) => x.difficulty);
+  const bands = [...new Set(goodFloors.map((d) => qBank.difficultyBandFor(d)))].sort();
+  ok(goodFloors.length > 0 && goodFloors.every((d) => qBank.difficultyBandFor(d) >= 2),
+    `a Year 11 GCSE Higher sitting asks nothing of primary difficulty (served bands ${bands.join("/")}, lowest ${Math.min(...goodFloors).toFixed(2)})`);
+  const badFloors = bad.s.log.map((x) => x.difficulty);
+  // A learner who cannot do their course's band is measured THERE and stopped:
+  // the band rules still close a band on two misses, so the sitting never falls
+  // back to the anonymous floor to fill its questions, and the repair that
+  // follows is the teaching loop's (with its own descent ramp and prerequisite
+  // branches) rather than a second placement pass inside a three-minute
+  // diagnostic. The claim that comes out of it is pinned below, at 0.10.
+  ok(badFloors.every((d) => d > diag.LADDER_DIFFICULTIES[0]),
+    `a failed course band is measured at the course's rung, never at the anonymous floor (lowest served ${Math.min(...badFloors).toFixed(2)} > ${diag.LADDER_DIFFICULTIES[0]})`);
+  ok(bad.s.concepts.every((c) => c.asked <= 2),
+    `and the sitting spends its normal two items on it rather than dragging the learner down the ladder (${bad.s.concepts.map((c) => c.asked).join("/")} items per concept)`);
+  const earned = (r) => r.res.scores.filter((x) => x.asked > 0).map((x) => x.mastery);
+  const strong = earned(good);
+  const weak = earned(bad);
+  ok(strong.length > 0 && strong.every((m) => m >= 0.82),
+    `a flawless sitting still clears the engine's established bar (lowest ${Math.min(...strong).toFixed(2)})`);
+  ok(weak.every((m) => m <= 0.35) && bad.res.gaps.length > 0,
+    `an all-wrong sitting earns none of the bands its answers never touched (highest ${Math.max(...weak).toFixed(2)}, ${bad.res.gaps.length} gaps)`);
 }
 // struggling student: always picks a wrong choice
 {
@@ -339,6 +474,231 @@ console.log("▸ Progress tracking");
   ok(hits["frac-slice"] === 1, "misconceptionHits aggregates by subject");
   const mm = progress.masteryMap(state, "maths");
   ok(typeof mm.fractions === "number", "masteryMap returns mastery");
+
+  // ── The retention rule, probed at its edges ───────────────────────────────
+  // Retention is the one dimension a learner cannot buy with more work in the
+  // same sitting, and the same rule now decides (i) what the live model folds,
+  // (ii) what the ledger projection replays and (iii) what the learner is TOLD
+  // the moment their answer is marked. Three call sites and one rule: if the
+  // predicate drifts, a learner gets congratulated for a memory they never
+  // demonstrated — so every near-miss is asserted here rather than trusted.
+  const retention = progress.isRetentionEvidence;
+  const DAY = 24 * 60 * 60 * 1000;
+  ok(retention({ source: "retrieval", hints: 0, sinceLast: DAY }) === true,
+    "delayed hint-free retrieval IS retention evidence");
+  ok(retention({ source: "retrieval", hints: 0, sinceLast: DAY - 1 }) === false,
+    "and 24h − 1ms is not: the day is a threshold, not a rounding");
+  ok(retention({ source: "retrieval", hints: 1, sinceLast: 9 * DAY }) === false,
+    "a hinted retrieval is not (the recall was not unaided)");
+  ok(retention({ source: "practice", hints: 0, sinceLast: 9 * DAY }) === false,
+    "and neither is same-day practice, however long ago the last one was");
+  ok(retention({ source: "retrieval", hints: 0, sinceLast: null }) === false,
+    "nor recall of something with no prior evidence at all — unknown is not zero");
+}
+
+// ── 5c. What an answer PROVED: one rule, one vocabulary (§10, §14, §15, §18) ─
+// The sentence under the mark, My Evidence's concept row, the session headline,
+// a learner's assigned work and the teacher's monitor column all NAME the same
+// four verdicts. They agree because they ask the same function — so the rule is
+// probed at its edges here, and the two ways of asking it (one answer, and a
+// record's own counts) are asserted to give the same verdict for the same
+// evidence. A rule with two answers is the failure mode: nothing crashes, the
+// sentence merely describes work the learner did not do.
+console.log("▸ What an answer proved");
+{
+  const { proofVerdict, strongestProof, proofSentenceKey, proofLabelKey, PROOF_VERDICTS } = proofMod;
+  const v = proofVerdict;
+  ok(v({ correct: true, mode: "transfer", source: "transfer", hints: 0 }) === "transfer",
+    "an unaided re-framing is transfer evidence");
+  ok(v({ correct: true, mode: "transfer", source: "transfer", hints: 2 }) === "supported",
+    "a HINTED re-framing is support, not transfer — the hint count is checked first, which is the bug this rule replaced");
+  ok(v({ correct: true, mode: "independent", source: "practice", hints: 0 }) === "independent",
+    "right with no hints at all is independence");
+  ok(v({ correct: true, mode: "guided", source: "practice", hints: 3 }) === "supported",
+    "and right with help is support — never described as autonomy");
+  ok(v({ correct: true, retained: true, source: "retrieval", hints: 0 }) === "retained",
+    "delayed unaided recall is the strongest claim there is, and it outranks the rest");
+  ok(v({ correct: false, mode: "independent", source: "practice", hints: 0 }) === null,
+    "a WRONG answer proves nothing: a miss is evidence, and this vocabulary describes achievement");
+
+  // The aggregate form — what a table, a concept row or a session headline has
+  // instead of one answer — must agree with the per-answer form.
+  ok(strongestProof({ correct: 4, independentCorrect: 2, transferCorrect: 0, retentionCorrect: 0 }) === "independent",
+    "a record with hint-free right answers has proved independence");
+  ok(strongestProof({ correct: 4, independentCorrect: 2, transferCorrect: 1, retentionCorrect: 0 }) === "transfer",
+    "and one with a re-framing outranks it rather than averaging with it");
+  ok(strongestProof({ correct: 4, independentCorrect: 2, transferCorrect: 1, retentionCorrect: 1 }) === "retained",
+    "and delayed recall outranks everything, exactly as it does for a single answer");
+  ok(strongestProof({ correct: 3, independentCorrect: 0, transferCorrect: 0, retentionCorrect: 0 }) === "supported",
+    "answers that were all taken with help are support");
+  ok(strongestProof({ correct: 0, independentCorrect: 0, transferCorrect: 0, retentionCorrect: 0 }) === null,
+    "while a page of wrong answers proves NOTHING — being marked is not being helped");
+
+  // The names, and the fact that the code asks for them through the helper.
+  ok(PROOF_VERDICTS.join() === "retained,transfer,independent,supported",
+    "the four verdicts are declared strongest-first, so the priority order is data rather than a comment");
+  for (const verdict of PROOF_VERDICTS) {
+    ok(proofSentenceKey(verdict) === `fb.${verdict}` && proofLabelKey(verdict) === `prf.${verdict}`,
+      `"${verdict}" has both a sentence and a short name, derived from the same word`);
+  }
+  ok(proofLabelKey("independent") !== proofSentenceKey("independent"),
+    "the label is not the sentence — a table cell and a paragraph are different registers");
+
+  // THE RULE IS SHARED, NOT COPIED. The live model folds through this exact
+  // function object; if a caller ever grows its own copy this identity is what
+  // fails.
+  ok(progress.isRetentionEvidence === proofMod.isRetentionEvidence,
+    "the live model and every other asker share ONE retention rule, not two that agree today");
+
+  // ONE VOCABULARY, ENFORCED AT THE SOURCE. A surface that spells
+  // `"fb.transfer"` by hand — or grows its own priority table — drifts from the
+  // rule while still compiling, and the drift is invisible: the sentence still
+  // reads like English. So the literals live only where they are defined
+  // (lib/proof.ts) and where they are translated (lib/i18n.ts).
+  const walkAll = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) =>
+    d.isDirectory() ? walkAll(`${dir}/${d.name}`) : [`${dir}/${d.name}`]);
+  const codeFiles = [...walkAll("app"), ...walkAll("components"), ...walkAll("lib")]
+    .filter((f) => /\.(ts|tsx)$/.test(f))
+    .filter((f) => f !== "lib/proof.ts" && f !== "lib/i18n.ts");
+  const spelling = codeFiles.filter((f) => /"(fb|prf)\.(independent|supported|transfer|retained)"/.test(fs.readFileSync(f, "utf8")));
+  ok(spelling.length === 0,
+    `no surface spells a verdict key by hand — the vocabulary comes from lib/proof.ts (${spelling.join(", ") || `${codeFiles.length} files clean`})`);
+  // The priority order as a copied LIST, which is the shape a second rule takes.
+  const ruleCopies = codeFiles.filter((f) =>
+    /\[[^\]]*"retained"[^\]]*"supported"[^\]]*\]/.test(fs.readFileSync(f, "utf8")));
+  ok(ruleCopies.length === 0,
+    `and none of them carries its own copy of the priority order (${ruleCopies.join(", ") || "none"})`);
+  // Each surface that NAMES a verdict reaches the vocabulary rather than
+  // guessing: the feedback sentence uses `proofSentenceKeyFor`, the tables use
+  // `proofLabelKey` and `strongestProof`.
+  for (const f of [
+    "app/learn/[subject]/[concept]/page.tsx",
+    "components/session-result.tsx",
+    "app/progress/page.tsx",
+    "app/teacher/page.tsx",
+    "components/assignments.tsx",
+  ]) {
+    const src = fs.readFileSync(f, "utf8");
+    ok(src.includes("proofLabelKey(") || src.includes("proofSentenceKeyFor("),
+      `${f} names what the work proved through the shared vocabulary`);
+  }
+  // ONE OWNER FOR THE BAND WORD, by the same rule as the verdict vocabulary.
+  // A rate becomes "Strong"/"Developing" in lib/evidence-view#dim (0.7) and
+  // becomes a KEY only in components/dims#bandKey, so a surface that spells
+  // `"mm.strong"` itself carries a second rule with its own threshold. There
+  // was exactly one such surface: components/mind-map.tsx derived the same
+  // three words from the model's MASTERY at 0.9/0.5, so one concept could read
+  // "Strong" in the map and "Developing" in the record beside it. Nothing
+  // imported it — only this file's own reachability table kept it in the tree
+  // — so it is deleted, and the spelling is pinned here instead.
+  const bandSpelling = codeFiles.filter((f) => /"mm\.(strong|developing|learning|new)"/.test(fs.readFileSync(f, "utf8")));
+  ok(bandSpelling.length === 0,
+    `no surface spells the band word by hand — it comes from components/dims#bandKey (${bandSpelling.join(", ") || `${codeFiles.length} files clean`})`);
+  ok(!fs.existsSync("components/mind-map.tsx"),
+    "and the orphaned mind map is gone rather than kept alive by a pin (it was the second derivation)");
+}
+
+// ── 5a-ter. The DECLARED TARGET ENVIRONMENT (lib/deployment.ts) ────────────
+//
+// OpenMind is built for schools where one teacher has fifty learners, five
+// devices and a connection that disappears for a week, so those constraints
+// are an input the system reads rather than an assumption it makes. What is
+// pinned here is that the input is HONEST: the shipped profiles are valid, an
+// unusable one is refused by name instead of being rounded to a default that
+// would silently shape what children are taught, and every derived rule has a
+// caller rather than sitting in the tree as scaffolding.
+console.log("▸ Deployment profiles");
+{
+  const dep = require("../.verify/deployment.js");
+  const llmMod = require("../.verify/llm.js");
+
+  const bad = dep.DEPLOYMENT_PROFILES.filter((p) => dep.deploymentRefusal(p) !== null);
+  ok(bad.length === 0,
+    `every built-in deployment profile passes its own validation (${bad.map((p) => p.id).join(", ") || `${dep.DEPLOYMENT_PROFILES.length} profiles`})`);
+  const ids = dep.DEPLOYMENT_PROFILES.map((p) => p.id);
+  ok(new Set(ids).size === ids.length, `and their ids are unique (${ids.join(", ")})`);
+
+  // A profile that is not one is refused BY NAME — the code, not a sentence,
+  // because a log, a settings screen and this test all read the same answer.
+  const shaped = (over) => ({
+    id: "x", connectivity: "online", deviceMode: "personal", syncFrequency: "manual",
+    maxDeviceStorageBytes: 1, languages: ["en"], teacherDevices: 0, learnerDevices: 0, ...over,
+  });
+  for (const [raw, want] of [
+    [null, "not_an_object"],
+    [{}, "missing_id"],
+    [shaped({ connectivity: "sometimes" }), "bad_connectivity"],
+    [shaped({ deviceMode: "classroom" }), "bad_device_mode"],
+    [shaped({ syncFrequency: "often" }), "bad_sync_frequency"],
+    [shaped({ maxDeviceStorageBytes: 0 }), "bad_storage_budget"],
+    [shaped({ languages: [] }), "no_languages"],
+    [shaped({ learnerDevices: -1 }), "bad_learnerDevices"],
+  ]) {
+    ok(dep.deploymentRefusal(raw) === want, `an unusable profile is refused by name (${want})`);
+  }
+
+  const unknown = dep.resolveDeployment({ OPENMIND_DEPLOYMENT: "not_a_site" });
+  ok(unknown.profile.id === "default" && unknown.problem === "unknown_profile" && unknown.requested === "not_a_site",
+    `an unknown profile still leaves a usable site, and says so rather than silently swapping (${unknown.problem})`);
+  const inline = dep.resolveDeployment({ OPENMIND_DEPLOYMENT_PROFILE: JSON.stringify(shaped({ id: "own" })) });
+  ok(inline.profile.id === "own" && inline.problem === "", "and a site's own profile in JSON is honoured");
+  const junk = dep.resolveDeployment({ OPENMIND_DEPLOYMENT_PROFILE: "{not json" });
+  ok(junk.profile.id === "default" && junk.problem === "profile_not_json", `while unreadable JSON is a named problem (${junk.problem})`);
+
+  // ── The derived answers, which are the only way a caller asks ──────────
+  const rural = dep.profileById("rural_school");
+  const hubSite = dep.profileById("community_learning_hub");
+  const fallback = dep.profileById("default");
+  ok(dep.drainsOnArrival(rural) === false && dep.drainsOnArrival(hubSite) === true,
+    "a metered site does not drain its own queue, a connected hub does");
+  ok(dep.drainIntervalMs(rural) === null && dep.drainIntervalMs(hubSite) === 60000,
+    `and only a site with a real connection gets a clock (${dep.drainIntervalMs(hubSite)}ms)`);
+  ok(dep.mayReachCloud(rural) === false && dep.mayReachCloud(fallback) === true,
+    "a declared-offline site may not reach the cloud; an undeclared one may");
+
+  // ── Behaviour, through the real provider selector ──────────────────────
+  // A key in the environment is not permission to spend a child's data.
+  const savedKey = process.env.GEMINI_API_KEY;
+  const savedDep = process.env.OPENMIND_DEPLOYMENT;
+  process.env.GEMINI_API_KEY = "test-key-not-used";
+  delete process.env.OPENMIND_DEPLOYMENT;
+  const onDefault = llmMod.activeProvider();
+  process.env.OPENMIND_DEPLOYMENT = "rural_school";
+  const onOfflineSite = llmMod.activeProvider();
+  if (savedDep === undefined) delete process.env.OPENMIND_DEPLOYMENT; else process.env.OPENMIND_DEPLOYMENT = savedDep;
+  if (savedKey === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = savedKey;
+  ok(onDefault === "gemini" && onOfflineSite === null,
+    `a declared-offline site picks no cloud model even with a key present (${String(onDefault)} → ${String(onOfflineSite)})`);
+
+  // ── The surfaces read the owner, and never claim what they did not do ──
+  const bar = fs.readFileSync("components/offline-bar.tsx", "utf8");
+  ok(bar.includes("drainsOnArrival(") && bar.includes("drainIntervalMs("),
+    "the offline bar takes its sync policy from the one owner rather than from navigator.onLine alone");
+  ok(/auto \? syncingLabel : waitingLabel/.test(bar),
+    "and a site that may not drain by itself never tells the learner work is being sent");
+  const hubRoute = fs.readFileSync("app/api/hub-status/route.ts", "utf8");
+  ok(hubRoute.includes("resolveDeployment(process.env)") && hubRoute.includes("maxDeviceStorageBytes") && hubRoute.includes("problem"),
+    "and the hub reports the environment it is actually running as, with any refusal, because that is the pilot's first question");
+
+  // ── No scaffolding: every derived rule is read by something ────────────
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(`${d}/${e.name}`) : [`${d}/${e.name}`]);
+  const readers = [...walk("app"), ...walk("components"), ...walk("lib")]
+    .filter((f) => /\.(ts|tsx)$/.test(f) && f !== "lib/deployment.ts");
+  const orphans = ["mayReachCloud", "drainsOnArrival", "drainIntervalMs"].filter((rule) =>
+    !readers.some((f) => new RegExp(`\\b${rule}\\(`).test(fs.readFileSync(f, "utf8"))));
+  ok(orphans.length === 0,
+    `every derived deployment rule has a consumer (${orphans.join(", ") || "3 rules, 3 callers"})`);
+
+  const syncKeys = ["offline.waiting", "offline.syncNow"];
+  const syncGaps = [];
+  const i18nMod = require("../.verify/i18n.js");
+  for (const l of i18nMod.LANGS) {
+    const tr = i18nMod.translator(l.code);
+    for (const k of syncKeys) if (tr(k) === k) syncGaps.push(`${l.code}:${k}`);
+  }
+  ok(syncGaps.length === 0,
+    `the manual-sync strings exist in all 15 languages (${syncGaps.slice(0, 4).join(", ") || "none missing"})`);
 }
 
 // ── 5b. Integrated mastery (audit P0-D): the claim matches the evidence ────
@@ -422,21 +782,46 @@ console.log("▸ Difficulty-tracked diagnostic");
     }
     return s.concepts[0];
   };
+  const shallowRungs = diag.bandsFor("negatives");
   const shallowRun = driveConcept("negatives");
   const shallowM = diag.ladderMastery(shallowRun);
-  ok(shallowRun.stage === diag.LADDER_STAGES - 1, `perfect run still climbs the whole ladder (stage ${shallowRun.stage} of ${diag.LADDER_STAGES - 1})`);
-  ok(shallowM < 0.9,
-    `mastery capped by the hardest question served (${shallowM.toFixed(2)} < 0.9 for a concept whose items stop at ${questions.conceptDepth("negatives").toFixed(2)})`);
+  // THE CLIMB STOPS AT THIS CONCEPT'S CEILING. It used to run the full ladder
+  // for every concept, which served a generator topping out at 0.30 roughly
+  // eight near-identical items, and then reported a mastery computed against
+  // bands the concept had never expressed.
+  ok(shallowRungs < diag.LADDER_STAGES && shallowRun.stage === shallowRungs - 1,
+    `the climb stops at this concept's own ceiling (stage ${shallowRun.stage} of ${shallowRungs - 1}; its bank can express ${shallowRungs} of ${diag.LADDER_STAGES} bands)`);
+  ok(shallowRun.asked === shallowRungs * 2,
+    `and pays two questions per expressible band instead of eight (${shallowRun.asked} asked)`);
+  // A FLAWLESS SWEEP OF THAT RANGE IS NOT CAPPED, and this is precisely where
+  // the cap must not apply. It exists so a claim cannot outrun the evidence, but
+  // measured against an absolute scale it made the strongest possible
+  // demonstration of a shallow concept indistinguishable from a weak one — for
+  // EVERY learner, permanently, because the ceiling belongs to the question bank
+  // and not to them. The decision engine reads below the established bar as
+  // "practise" and prescribed it again; that is the one-hop trap this pins shut.
+  ok(shallowM >= 0.9,
+    `a flawless sweep of a shallow concept's whole range reads as established, not as weak (${shallowM.toFixed(2)} ≥ 0.9; its items stop at ${questions.conceptDepth("negatives").toFixed(2)})`);
   const deepRun = driveConcept("averages");
   const deepM = diag.ladderMastery(deepRun);
   ok(deepM > 0.9 && deepM <= 0.98,
     `and a concept the depth layer reaches may claim more, because its items really are harder (${deepM.toFixed(2)} for a concept reaching ${questions.conceptDepth("averages").toFixed(2)})`);
-  // The shallow concept's claim is EXACTLY its depth cap — not "about", not a
-  // rounded band number — because the cap is the only thing standing between a
-  // clean ladder and a claim the questions never earned.
-  const shallowCap = Math.max(0.05, Math.min(0.98, 0.35 + 0.95 * questions.conceptDepth("negatives")));
-  ok(Math.abs(shallowM - shallowCap) < 1e-9,
-    `claim equals exactly what the depth genuinely served earns (${shallowM.toFixed(3)} = cap ${shallowCap.toFixed(3)})`);
+  // The cap STILL BINDS where it should: a range that was not swept clean — one
+  // wrong answer in this run — cannot claim more than the hardest item genuinely
+  // served earned, however well the rest of it went.
+  const oneSlip = diag.newDiagnosticSession("maths");
+  oneSlip.concepts = [mkLadder("negatives")];
+  let sq = diag.nextQuestion(oneSlip), firstWrong = true, guardS = 0;
+  while (sq && guardS++ < 100) {
+    const idx = firstWrong ? (sq.answer + 1) % sq.choices.length : sq.answer;
+    firstWrong = false;
+    diag.gradeAnswer(oneSlip, sq.conceptId, sq, idx);
+    sq = diag.nextQuestion(oneSlip);
+  }
+  const slippedM = diag.ladderMastery(oneSlip.concepts[0]);
+  const slipCap = Math.max(0.05, Math.min(0.98, 0.35 + 0.95 * questions.conceptDepth("negatives")));
+  ok(slippedM <= slipCap + 1e-9,
+    `but a run that was NOT swept clean is still capped by what its items served (${slippedM.toFixed(3)} ≤ cap ${slipCap.toFixed(3)})`);
   // A generator that CAN reach the band gets its full claim.
   const full = diag.newDiagnosticSession("maths");
   full.concepts = [{ conceptId: "quadratics", stage: 0, askedThisStage: 0, correctThisStage: 0, done: false, asked: 0, correct: 0, usedSeeds: [], servedDifficulty: [] }];
@@ -520,6 +905,56 @@ console.log("▸ The depth layer (lib/questions-deep)");
     }
   }
   ok(padded.length === 0, `no deep item falls back to filler options (${padded.slice(0, 3).join(", ") || "none"})`);
+
+  // ── WHAT A STUDENT WOULD WRITE, IN THE TEXT THEY ARE SHOWN ────────────────
+  // The option contract above checks that options are DISTINCT; these three
+  // check that they are FIT TO READ. Each one exists because authoring the
+  // senior families produced exactly this mistake, and the format sweep could
+  // not see any of them:
+  //
+  //   · a coefficient that should have been whole came out of a division, so a
+  //     prompt read "passes through the point (2, 23.333333333333332)";
+  //   · choosing the constant freely made a "give your answers in surd form"
+  //     item whose answer was "x = −4 ± √1" — two integers and no surd;
+  //   · filtering a fixed index list against an already-drawn base emptied it,
+  //     so a log question's index was NaN and "log₂₇ 9" became an integer.
+  const hygiene = [];
+  for (const id of ids) {
+    for (let s = 0; s < SEEDS; s++) {
+      const r = new questions.Rng(questions.hashSeed(`${id}:deep:${s}`));
+      const item = deep.DEEP_GENS[id](r);
+      const text = [item.prompt, item.correct, ...item.wrongs].join(" | ");
+      if (/\d+\.\d{9,}/.test(text)) hygiene.push(`${id}: float tail in "${text.slice(0, 60)}"`);
+      // Scoped to MATHS OPTIONS: `undefined` is a legitimate word in a
+      // computing item (a program printing 'undefined' is the concept) and in
+      // maths prose (a function that is undefined at a point), but it can
+      // never be the value of a maths answer.
+      const maths = genome.CONCEPTS_BY_ID[id]?.subject === "maths";
+      if (maths && [item.correct, ...item.wrongs].some((o) => /NaN|undefined|Infinity/.test(String(o)))) {
+        hygiene.push(`${id}: unprintable value in "${text.slice(0, 60)}"`);
+      }
+      if (id === "completing-square" && /surd form/.test(item.prompt)) {
+        const m = String(item.correct).match(/√(\d+)/);
+        if (!m || Number.isInteger(Math.sqrt(Number(m[1])))) hygiene.push(`${id}: "${item.correct}" is not a surd`);
+      }
+      // "1x³" and "+ -3x²" — the two ways an algebra item can read as a
+      // print-out rather than as maths. General on purpose: the same blemish
+      // exists in the BASE families (polynomials writes "x³ + -1x² + 1x"), and
+      // a rule that only watched the family being fixed would report a clean
+      // bank while a student read the rest of it.
+      if (maths) {
+        const algebra = [item.prompt, item.correct, ...item.wrongs].join(" | ");
+        if (/(^|[^\d.])1x[²³⁴]?/.test(algebra)) hygiene.push(`${id}: writes a coefficient of 1 ("${String(item.prompt).split("\n")[0].slice(0, 44)}")`);
+        if (/\+ -|− -|- -/.test(algebra)) hygiene.push(`${id}: plus a negative ("${String(item.prompt).split("\n")[0].slice(0, 44)}")`);
+      }
+      if (id === "logs" && /Without a calculator/.test(item.prompt)) {
+        const m = String(item.correct).match(/^(\d+)\/(\d+)$/);
+        if (m && Number(m[1]) % Number(m[2]) === 0) hygiene.push(`${id}: "${item.correct}" is an integer index`);
+      }
+    }
+  }
+  ok(hygiene.length === 0,
+    `every deep item is written the way a student would write it (${hygiene.slice(0, 3).join(" · ") || "all clean"})`);
 }
 console.log("▸ Practice difficulty follows the learner's own record");
 {
@@ -606,6 +1041,18 @@ console.log("▸ Internationalisation");
     // falls back to the inline English mid-reply, exactly the leak this sweep
     // exists to catch.
     "soc.onScreen", "soc.serveWhy", "soc.ownSlips",
+    // The three moves the acceptance battery forced into existence: a hint
+    // request, a question about a DIFFERENT concept, and a message that
+    // touches nothing on the screen. Each is a sentence a learner reads, so
+    // each is an entry in all fifteen dictionaries.
+    "soc.hintLead", "soc.hintQ", "soc.otherConcept", "soc.hereInstead", "soc.unclear",
+    // The two teach-me moves, added because the product benchmark measured
+    // "explain it to me" and "show me a worked example" getting the SAME reply
+    // as "The capital of France is Paris." (8/10 distinct replies).
+    "soc.explainLead", "soc.explainQ", "soc.exampleLead", "soc.exampleQ", "soc.exampleNone",
+    // And the why-branch's read-back, which ended the byte-identical collision
+    // between two different why-questions.
+    "soc.whyLead",
   ];
   for (const l of en.LANGS) {
     const tr = en.translator(l.code);
@@ -631,9 +1078,164 @@ console.log("▸ Internationalisation");
       `words with nothing to work with get an honest request, not a lesson (${gibberish.slice(0, 60)}…)`);
     ok(soc.socraticReply("linear-equations", "help", "en").includes("?"),
       "while a keyword that DOES decide still decides — \"help\" is the stuck scaffold");
+
+    // ── The three moves a real learner's messages demanded ────────────────
+    // An acceptance pass over eight messages on one concept showed every single
+    // one answered with the concept definition plus a Socratic question: a hint
+    // request got a question about intuition, and "what is the capital of
+    // France?" got the place-value lesson. §tutor is explicit — be short, do
+    // not repeat the definition, and say so when the question is unrelated —
+    // and these four assertions are that paragraph, executable.
+    const screen = { question: "What is the value of the tens digit in 873?", serveReason: "steady" };
+    const grounded = soc.socraticReply("place-value", "What is this?", "en", screen);
+    ok(!grounded.includes("Place value:"),
+      "a grounded turn does NOT repeat the concept definition — the lesson is on the page behind the panel");
+    ok(grounded.includes("873"),
+      "it speaks about the question actually on screen instead");
+    const hinted = soc.socraticReply("place-value", "Give me a hint", "en", screen);
+    ok(/hint/i.test(hinted) && !hinted.includes("Place value:"),
+      `asking for a hint points at the hint ladder, not at the definition (${hinted.slice(0, 70)}…)`);
+    const other = soc.socraticReply("place-value", "Can you explain quadratics to me instead?", "en", screen);
+    ok(/quadratic/i.test(other) && !other.includes("Place value:"),
+      `asking about a DIFFERENT concept names that concept and says where it lives (${other.slice(0, 80)}…)`);
+    const unrelated = soc.socraticReply("place-value", "What is the capital of France?", "en", screen);
+    ok(!unrelated.includes("Place value:") && unrelated.length < 400,
+      `a message that touches nothing on screen gets a short offer, not a lesson (${unrelated.slice(0, 80)}…)`);
+    // ── ASKING TO BE TAUGHT IS NOT AN UNRELATED MESSAGE ────────────────────
+    // "explain it to me" and "show me a worked example" were not recognised as
+    // requests at all, so all three messages above got ONE reply — the product
+    // benchmark measured 8/10 distinct. These four keep them apart: the
+    // explanation names the idea, the example walks the engine's own generated
+    // question (a DIFFERENT one — the on-screen answer stays withheld), and
+    // only the message that touches nothing gets the offer.
+    const explained = soc.socraticReply("place-value", "explain it to me", "en", screen);
+    const exemplified = soc.socraticReply("place-value", "show me a worked example", "en", screen);
+    ok(explained !== unrelated && exemplified !== unrelated && explained !== exemplified,
+      "asking to be taught is answered as a request, not as an unrelated message");
+    ok(explained.includes("Place value:"),
+      `an explanation request gets the idea itself (${explained.slice(0, 60)}…)`);
+    // The example is the engine's OWN generated question, and the reply says so:
+    // it still names the learner's on-screen question (that is grounding, not
+    // leakage) but walks a different one, whose answer is not the one withheld.
+    ok(/Step 1/.test(exemplified) && /different question/.test(exemplified),
+      `a worked-example request gets a worked example of its own, labelled as a different question (${exemplified.slice(0, 60)}…)`);
+    // …and naming another idea still wins: "explain quadratics to me" is about
+    // quadratics, whichever move recognises it.
+    const elsewhere = soc.socraticReply("place-value", "Can you explain quadratics to me instead?", "en", screen);
+    ok(/quadratic/i.test(elsewhere) && !/Place value:/.test(elsewhere),
+      `an explain request about ANOTHER concept still names that concept (${elsewhere.slice(0, 70)}…)`);
+    // A worked example is generated, so it must be SEEDED by the ask: the same
+    // request twice has to walk the same example, or a tutor cannot be re-read
+    // and the offline engine cannot agree with the server on the same inputs.
+    ok(soc.socraticReply("place-value", "show me a worked example", "en", screen)
+      === soc.socraticReply("place-value", "show me a worked example", "en", screen),
+      "and the same worked-example request walks the same example twice");
+    // The concept-only caller keeps its shape: rooms and the offline card still
+    // get the concept-grounded scaffold, because there they have no screen.
+    ok(soc.socraticReply("place-value", "I am stuck on this one", "en").includes("Place value:"),
+      "a concept-only turn (no screen context) still carries the concept line");
     const we = soc.workedExample("fractions", "es");
     ok(we !== null && we.steps[3].includes("\""),
       `a translated worked example still states the correct choice (${we?.steps[3]?.slice(0, 60)})`);
+  }
+
+  // ── What the answer PROVED, in every language (§10, §14) ──────────────────
+  // The method verdict is the sentence that follows the mark, so a hole in a
+  // dictionary is not a cosmetic gap: it is the most-read line in the product
+  // rendered as a raw key. And "defined" is not enough — the four sentences are
+  // the same CLAIM about the same answer in fifteen languages, so one that is
+  // merely English copied fifteen times would satisfy `tr(k) !== k` while
+  // shipping an untranslated interface. Both halves are asserted.
+  const FB_KEYS = ["fb.independent", "fb.supported", "fb.transfer", "fb.retained"];
+  const enFb = en.translator("en");
+  for (const l of en.LANGS) {
+    const tr = en.translator(l.code);
+    const unresolved = FB_KEYS.filter((k) => tr(k) === k);
+    ok(unresolved.length === 0,
+      `${l.code} defines every method verdict (unresolved: ${unresolved.join(", ") || "none"})`);
+    if (l.code === "en") continue;
+    const copied = FB_KEYS.filter((k) => tr(k) === enFb(k));
+    ok(copied.length === 0,
+      `${l.code} translates the method verdict rather than repeating the English (copied: ${copied.join(", ") || "none"})`);
+  }
+  // ── …and in the RIGHT dictionary ─────────────────────────────────────────
+  // The dictionaries in lib/i18n.ts are not in `LANGS` order — the draft block
+  // (de, ja, zh, fa, ur) sits between `tl` and `bn` — so a one-shot script that
+  // pairs text with dictionary by INDEX writes Urdu into German, and nothing
+  // crashes: the TypeScript is valid, every key resolves, and the app quietly
+  // congratulates a German learner in Urdu. Cross-language equality cannot see
+  // it (German text ≠ Urdu text), but the SCRIPT can: the assertion below pins
+  // each language to its own writing system, which is the property a wrong
+  // pairing violates and a correct one always satisfies.
+  const SCRIPT = {
+    // code: [regex of a character the sentence must contain, "what it must be"]
+    ar: [/[\u0600-\u06FF]/, "Arabic script"],
+    ur: [/[\u0600-\u06FF]/, "Arabic script"],
+    fa: [/[\u0600-\u06FF]/, "Arabic script"],
+    hi: [/[\u0900-\u097F]/, "Devanagari"],
+    bn: [/[\u0980-\u09FF]/, "Bengali script"],
+    ja: [/[\u3040-\u30FF\u4E00-\u9FFF]/, "kana or kanji"],
+    zh: [/[\u4E00-\u9FFF]/, "CJK"],
+  };
+  // Latin-script languages must contain NO character from the ranges above: a
+  // Devanagari or Arabic glyph in `de` is the same bug seen from the other side.
+  const NON_LATIN = /[\u0600-\u06FF\u0900-\u097F\u0980-\u09FF\u3040-\u30FF\u4E00-\u9FFF]/;
+  for (const l of en.LANGS) {
+    const tr = en.translator(l.code);
+    const sentences = FB_KEYS.map((k) => tr(k));
+    const spec = SCRIPT[l.code];
+    if (spec) {
+      const wrong = sentences.filter((s) => !spec[0].test(s));
+      ok(wrong.length === 0,
+        `${l.code} writes its method verdict in ${spec[1]} (off-script: ${wrong.length}/${sentences.length})`);
+    } else {
+      const wrong = sentences.filter((s) => NON_LATIN.test(s));
+      ok(wrong.length === 0,
+        `${l.code} writes its method verdict in Latin script, not another language's (off-script: ${wrong.length}/${sentences.length})`);
+    }
+  }
+
+  // ── …and the SHORT NAME for each verdict, in every language ──────────────
+  // The same four verdicts also appear as one-word labels: My Evidence's
+  // concept row, the session headline, a learner's assigned work and the
+  // teacher's monitor column. A reader compares those across a table, so a hole
+  // is not a cosmetic gap — it is a bare `prf.transfer` in a cell. And the keys
+  // are taken from the HELPERS the surfaces actually call, so a rename that
+  // forgot the dictionaries is caught here rather than on screen.
+  const PRF_KEYS = proofMod.PROOF_VERDICTS.map((v) => proofMod.proofLabelKey(v));
+  ok(PRF_KEYS.every((k) => FB_KEYS.includes(`fb.${k.slice(4)}`)),
+    "every labelled verdict has a sentence too — a label with no sentence is a verdict nobody explained");
+  for (const l of en.LANGS) {
+    const tr = en.translator(l.code);
+    const unresolved = PRF_KEYS.filter((k) => tr(k) === k);
+    ok(unresolved.length === 0,
+      `${l.code} names every proof verdict (unresolved: ${unresolved.join(", ") || "none"})`);
+    if (l.code === "en") continue;
+    const copied = PRF_KEYS.filter((k) => tr(k) === enFb(k));
+    ok(copied.length === 0,
+      `${l.code} names the verdicts in its own language (copied: ${copied.join(", ") || "none"})`);
+    // …and in the RIGHT dictionary, which is the failure this check exists for:
+    // a positional one-shot writes Urdu into German, every key resolves, and the
+    // app labels a German learner's work in Urdu. Cross-language equality cannot
+    // see it; the writing system can.
+    const labels = PRF_KEYS.map((k) => tr(k));
+    const labelSpec = SCRIPT[l.code];
+    if (labelSpec) {
+      const wrong = labels.filter((s) => !labelSpec[0].test(s));
+      ok(wrong.length === 0,
+        `${l.code} names its proof verdicts in ${labelSpec[1]} (off-script: ${wrong.length}/${labels.length})`);
+    } else {
+      const wrong = labels.filter((s) => NON_LATIN.test(s));
+      ok(wrong.length === 0,
+        `${l.code} names its proof verdicts in Latin script, not another language's (off-script: ${wrong.length}/${labels.length})`);
+    }
+  }
+  // The session headline and the teacher's column are read by people who are
+  // not the learner, so they are keys in their own right, not reused prose.
+  for (const k of ["sess.proved", "teach.proved"]) {
+    for (const l of en.LANGS) {
+      ok(en.translator(l.code)(k) !== k, `${l.code} defines ${k}`);
+    }
   }
 
   // The content tier: every non-English dictionary must carry every concept
@@ -798,6 +1400,95 @@ console.log("▸ Teacher weekly plan");
   ok(plan.scaffolds.every((s) => s.who !== "ada" && s.who !== "cy"), "students with strong prereqs are practised, not scaffolded");
 
   ok(teacherPlan.classSubject(data) === "maths", "subject inferred from the roster's concepts");
+
+  // ── WHICH SUBJECT THIS CLASS IS TAUGHT: ONE OWNER, AND IT IS NOT A LITERAL ──
+  // The plan used to infer the subject from `cls.conceptIds` and end in
+  // `return "maths"` — and since nothing in the product ever writes
+  // `conceptIds`, that literal was the answer for every class it could make: a
+  // class that declared physics was served a MATHS week, on screen and in the
+  // printed pack, while the same class's assignment picker correctly offered
+  // physics. The declaration now wins, inference survives for rosters that
+  // predate the field, and a class that declares neither gets null — no week at
+  // all, rather than a subject nobody chose. Asserted for EVERY subject the
+  // platform teaches, so a future fallback cannot pass by being maths-shaped.
+  const SUBJECTS = require("../.verify/subjects.js").SUBJECT_IDS;
+  const declaring = (subject, conceptIds = []) => ({ ...cls({}, conceptIds), subject });
+  for (const s of SUBJECTS) {
+    ok(teacherPlan.classSubject(declaring(s)) === s, `a class that declares ${s} is taught ${s}`);
+    const p = teacherPlan.buildWeeklyPlan(declaring(s));
+    // Null-safe on purpose: a plan that does not exist must FAIL these, not
+    // take the suite down with a TypeError — a crashed run reports nothing.
+    ok(p?.subject === s && p.days.length === 5, `and its week is a ${s} week, not a maths one (${p?.subject})`);
+    ok(!!p && p.days.every((d) => genome.getConcept(d.conceptId)?.subject === s) &&
+       p.focus.every((cid) => genome.getConcept(cid)?.subject === s),
+      `every concept the ${s} plan names belongs to ${s} (${p?.focus?.join(", ")})`);
+  }
+  ok(teacherPlan.classSubject(declaring("physics", ["fractions"])) === "physics",
+    "the DECLARATION beats a concept that says otherwise — one owner, no second opinion");
+  ok(teacherPlan.classSubject(cls({}, [])) === null,
+    "a class that declared nothing has NO subject — an absence, not maths");
+  ok(teacherPlan.buildWeeklyPlan(cls({}, [])) === null && teacherPlan.buildWeeklyPlan(declaring("math", [])) === null,
+    "so there is no week to plan (and no maths week to print) for a subject nobody declared or the genome cannot serve");
+  const planSrc = fs.readFileSync("lib/teacher-plan.ts", "utf8");
+  ok(!/return\s+"maths"/.test(planSrc),
+    "and the fallback literal that made every class in the product a maths class cannot come back");
+
+  // ── THE CLASS'S OWN QUALIFICATION IS A CURRICULUM, NOT A LABEL ────────────
+  // A class declares the subject it is taught and, optionally, the qualification
+  // it sits. The picker has always narrowed by the course; the week did not, so
+  // two classes of one subject at different qualifications planned the SAME week
+  // and the declaration was decoration. Both now read one rule —
+  // lib/specifications#courseConceptIds — and a class that declares no course is
+  // still its whole subject.
+  const specs = require("../.verify/specifications.js");
+  ok(specs.courseRefusal("maths", "uk-gcse") === null,
+    "a qualification the subject is part of is accepted for a class");
+  ok(specs.courseRefusal("maths", "no-such-course") === "unknown_spec",
+    "an id that means nothing is refused by name, never defaulted to a course");
+  ok(specs.courseRefusal("physics", "us-sat") === "spec_does_not_teach_physics",
+    `and a real qualification the subject is not part of is refused, naming the subject (${specs.courseRefusal("physics", "us-sat")})`);
+  const withCourse = (specificationId) => ({ ...declaring("maths"), specificationId });
+  const pGcse = teacherPlan.buildWeeklyPlan(withCourse("uk-gcse"));
+  const pAlevel = teacherPlan.buildWeeklyPlan(withCourse("uk-alevel"));
+  const pNone = teacherPlan.buildWeeklyPlan(withCourse(null));
+  ok(JSON.stringify(pGcse.focus) !== JSON.stringify(pAlevel.focus),
+    `two classes of one subject at different qualifications plan different weeks (${pGcse.focus.join(",")} vs ${pAlevel.focus.join(",")})`);
+  const gcseCourse = specs.courseConceptIds(specs.specById("uk-gcse"));
+  ok(pGcse.focus.every((cid) => gcseCourse.has(cid)),
+    `and every concept the GCSE week names is in the GCSE course (${pGcse.focus.join(",")})`);
+  ok(JSON.stringify(pNone.focus) === JSON.stringify(teacherPlan.buildWeeklyPlan(declaring("maths")).focus),
+    "while a class that declares no qualification is planned against its whole subject, unchanged");
+  const assignView = require("../.verify/server/assignment-view.js");
+  const setOf = (course) => new Set(assignView.assignableConcepts("maths", course));
+  ok(pGcse.focus.every((cid) => setOf("uk-gcse").has(cid)) || pGcse.fromCurriculum,
+    "what the week teaches is a subset of what the class may be set — one curriculum, two readers");
+
+  // ── ABSENCE IS NOT A LOW SCORE ────────────────────────────────────────────
+  // A student with real work on one concept and NOTHING on another must read as
+  // unmeasured on the second: no remediation aimed at it, no group built on it,
+  // nothing in the plan that treats missing evidence as a failure. The scaffold
+  // rule read `(m[pid] ?? 0) < 0.6`, so an unmeasured prerequisite was
+  // indistinguishable from a failed one and the plan announced it was repairing
+  // a gap it had never seen.
+  const physicsClass = (students) => ({ ...cls(students, []), subject: "physics" });
+  const partial = teacherPlan.buildWeeklyPlan(physicsClass({ kim: { momentum: 0.1 } }));
+  ok(partial.focus[0] === "momentum", `the concept with evidence is what the week teaches (${partial.focus[0]})`);
+  ok(partial.scaffolds.length === 0,
+    `and an unmeasured prerequisite is NOT a gap to repair (${JSON.stringify(partial.scaffolds)})`);
+  // The readable difference: a prerequisite the ledger DID measure low is still
+  // named, so this is a rule about evidence, not the removal of the feature.
+  // (momentum's first ancestor is newton-laws; measured at 0.5 it is below the
+  // scaffold line but above the "stuck" line, so the plan must name it.)
+  const prereq = genome.ancestorsOf("momentum")[0];
+  const withMeasuredPrereq = teacherPlan.buildWeeklyPlan(physicsClass({ kim: { momentum: 0.1, [prereq]: 0.5 } }));
+  ok(withMeasuredPrereq.scaffolds.some((s) => s.who === "kim" && s.conceptId === prereq),
+    `while a prerequisite the ledger measured low is still scaffolded (${JSON.stringify(withMeasuredPrereq.scaffolds)})`);
+  // No record at all: no focus, no group, no scaffold, and an honest curriculum plan.
+  const blank = teacherPlan.buildWeeklyPlan(physicsClass({ kim: {} }));
+  ok(blank.scaffolds.length === 0 && blank.groups.length === 0 && blank.fromCurriculum === true,
+    "and a student with no record at all attracts no remediation and no ability group");
+  ok(!/\?\?\s*0\)\s*<\s*0\.6/.test(planSrc) && planSrc.includes('typeof m[pid] === "number"'),
+    "the absent-as-zero read cannot come back — the prerequisite must be MEASURED");
 }
 
 // ── 12. micro-diagnostic engine (§4–5) ──────────────────────────────────
@@ -1182,6 +1873,11 @@ console.log("▸ Paper analysis");
   // Tags come from the answer key and are attributed only to answers given:
   // a skipped question proves nothing about what the learner believes.
   const tagged = a.byConcept.filter((c) => c.tags.length > 0);
+  // The two assertions below run PER tagged idea, so this block's coverage is
+  // set by what the paper happened to draw: changing the bank moved the count
+  // from 56 to 54 without a word. Asserted first so an untagged paper — the
+  // case where the loop silently proves nothing — fails loudly instead.
+  ok(tagged.length > 0, `the analysed paper carries tagged ideas for the loop below (${tagged.length})`);
   for (const c of tagged) {
     ok(c.wrong > 0, `${c.conceptId}: a misconception is only tagged when an answer was actually wrong`);
     ok(c.tags.every((t) => t.hits >= 1), `${c.conceptId}: tag hits are counted, not invented`);
@@ -1431,6 +2127,25 @@ console.log("▸ The evidence contract");
     const orphans = Object.keys(nextEngine.EN_NEXT).filter((k) => enT(k) === k);
     ok(orphans.length === 0,
       `every engine fallback key is also in the en dictionary (orphans: ${orphans.join(", ") || "none"})`);
+    // ── THE VALUES TOO, NOT JUST THE KEYS ──────────────────────────────────
+    // Key parity is not text parity: the table carried `at ` while the
+    // dictionary said `at`, and `but ` while the dictionary said `but “` — so
+    // the fallback and the real text drifted one character and one quotation
+    // apart while every audit stayed green. The two are the SAME ENGLISH, read
+    // through different doors, and the only honest assertion is that they are
+    // the same string. (This is also the assertion that caught the doubled
+    // quotes: the composition added “ ” on top of marks every dictionary
+    // already had.)
+    const drifted = Object.entries(nextEngine.EN_NEXT)
+      .filter(([k, v]) => enT(k) !== v)
+      .map(([k, v]) => `${k}: table ${JSON.stringify(v)} vs en ${JSON.stringify(enT(k))}`);
+    ok(drifted.length === 0,
+      `every engine fallback value is byte-identical to its en dictionary entry (drifted: ${drifted.join(" | ") || "none"})`);
+    // And the composed reason must not double the marks the dictionary owns:
+    // rendered evidence of the bug, not just a comparison of its parts.
+    const composed = `${enT("next.reason.remediatePre")}Sign slip${enT("next.reason.remediatePost")}`;
+    ok(!/[“«„「]\s*[“«„「]/.test(composed) && /“Sign slip”/.test(composed),
+      `a remediate reason wraps the named belief exactly once ("${composed}")`);
     // And every other language must carry the sentences the engine composes —
     // the reason/why half of a recommendation is the most-read text there is.
     const whyKeys = Object.keys(nextEngine.EN_NEXT).filter((k) => k.startsWith("next.why.") || k.startsWith("next.reason."));
@@ -1663,12 +2378,21 @@ console.log("▸ Evidence drives the experience");
   const NOW_L = new Date(2027, 0, 10, 12, 0, 0).getTime();
   const answer = (s, n, correct, opts = {}, tags = []) => {
     const chosen = correct ? 0 : 1;
-    recordAnswer(s, CONCEPT, `q-${n}`, chosen, correct, "", tags, opts);
+    // The mode stays as written here (`guided` unless the caller says
+    // otherwise) and the HINT COUNT is what the scaffolding rule reads — see
+    // the STATE F block below. Deriving the mode from the hint count here was
+    // tried and reverted: it makes each answer's independence credit depend on
+    // a re-derivation of the route's rule, so the ladder stopped being a set of
+    // stages and became a second copy of the serve path, and three assertions
+    // in this block (the stretch boundary, the rehearsal-is-not-independence
+    // claim) silently changed their meaning with it.
+    const derived = { ...opts, hints: opts.hints ?? 0 };
+    recordAnswer(s, CONCEPT, `q-${n}`, chosen, correct, "", tags, derived);
     s.progress[CONCEPT].lastSeen = NOW_L; // pin the clock: real Date.now() must not leak into a fixed-time test
     stream.push(evidence.answerEvidence({
       learnerId: "ladder", at: NOW_L - (1000 - stream.length) * 60000, source: opts.mode === "independent" ? "practice" : "diagnostic",
       subject: "maths", conceptId: CONCEPT, specificationId: null,
-      questionId: `q-${n}`, correct, chosen, mode: opts.mode ?? "guided", hints: opts.hints ?? 0, tags,
+      questionId: `q-${n}`, correct, chosen, mode: opts.mode ?? "guided", hints: derived.hints, tags,
     }));
   };
   const top = (s, evs) => decideNext(s, 1, undefined, undefined, NOW_L, evs)[0];
@@ -1701,19 +2425,546 @@ console.log("▸ Evidence drives the experience");
   ok(aC.evidenceIds.length > 0 && aC.evidenceIds.length <= 4,
     "and cites the recent answers behind it");
 
-  // ── STATE D: three more corrects → the idea is proven: transfer. ──
+  // ── STATE D: three more corrects → the idea is proven, and the next work is
+  // the SAME idea on a surface the learner has not met. Whether a concept can
+  // offer a second surface is a fact about the re-framer
+  // (lib/transfer.ts#canTransfer) rather than the engine's opinion — and it is
+  // now a fact about most of the bank, not the linear-equation family the gate
+  // started on: the inverse surface re-frames any concept whose ANSWERS are
+  // values and whose stems are ONE readable line. Fractions is one of them.
   answer(sB, "d1", true); answer(sB, "d2", true); answer(sB, "d3", true);
   const aD = top(sB, stream);
+  ok(transferMod.canTransfer(CONCEPT),
+    `${CONCEPT}: this concept really can be put on a second surface (the gate is a probe of the re-framer, not a guess)`);
   ok(aD.kind === "TRANSFER" && aD.conceptId === CONCEPT,
-    `strong + confident → transfer (${aD.kind}, mastery ${Math.round(sB.progress[CONCEPT].mastery * 100)}%)`);
+    `strong + confident → the same idea on a surface the learner has not met (${aD.kind}:${aD.conceptId}, mastery ${Math.round(sB.progress[CONCEPT].mastery * 100)}%)`);
+  ok(aD.reason === enT("next.reason.transfer"),
+    `and the reason promises unfamiliar wording, in the learner's own language ("${aD.reason}")`);
   ok(aD.evidenceIds.length === 4 && stream.filter((e) => aD.evidenceIds.includes(e.id)).every((e) => e.correct),
-    "the transfer decision cites the most recent answers, all of them correct");
+    "the stretch decision cites the most recent answers, all of them correct");
+
+  // ── The OTHER branch of the same rule, on real concepts. Where no second
+  // surface genuinely exists the offer must stay DEEPER WORK on that concept.
+  // Two concepts, one per exclusion FAMILY, so the gate cannot widen by
+  // loosening a rule: `proof` answers in prose (two defensible answers can be
+  // the same fact said differently, which would mark a right answer wrong) and
+  // `volume` states its items over several lines (a paragraph is not an option).
+  // The coverage itself is counted here too — "the gate says no" is only honest
+  // if it says yes often enough to matter.
+  const REFRAMABLE = Object.keys(genome.CONCEPTS_BY_ID).filter((cid) => transferMod.canTransfer(cid));
+  ok(REFRAMABLE.length > 50,
+    `${REFRAMABLE.length} of ${Object.keys(genome.CONCEPTS_BY_ID).length} concepts serve a REAL second surface (it was 2 when the gate was first made honest)`);
+  {
+    const WHY_NO_SURFACE = {
+      proof: "its answers are prose, and two prose answers can be the same fact said differently",
+      volume: "its items run over several lines, and a paragraph is not an option",
+    };
+    for (const NO_SURFACE of Object.keys(WHY_NO_SURFACE)) {
+      ok(!transferMod.canTransfer(NO_SURFACE),
+        `${NO_SURFACE}: genuinely no second surface — ${WHY_NO_SURFACE[NO_SURFACE]}`);
+      const sN = fresh();
+      const evs = [];
+      for (let i = 0; i < 5; i++) {
+        recordAnswer(sN, NO_SURFACE, `n-${i}`, 0, true, "", [], { mode: "independent" });
+        sN.progress[NO_SURFACE].lastSeen = NOW_L;
+        evs.push(evidence.answerEvidence({
+          learnerId: "ladder", at: NOW_L - (1000 - i) * 60000, source: "practice",
+          subject: genome.CONCEPTS_BY_ID[NO_SURFACE].subject, conceptId: NO_SURFACE, specificationId: null,
+          questionId: `n-${i}`, correct: true, chosen: 0, mode: "independent", hints: 0, tags: [],
+        }));
+      }
+      const aN = decideNext(sN, 1, undefined, undefined, NOW_L, evs)[0];
+      // `sN` has proved this concept unaided five times, so go far enough to ask
+      // the real question: is the learner ever asked for a transfer this concept
+      // cannot offer, and does the engine ever come BACK to a finished concept?
+      // Both would be the old failure — a claim the serve cannot honour, and a
+      // loop that prescribes the same impossible step forever.
+      ok(!(aN.kind === "TRANSFER" && aN.conceptId === NO_SURFACE),
+        `${NO_SURFACE} is never offered unfamiliar wording it has no surface for (${aN.kind}:${aN.conceptId})`);
+      ok(aN.reason !== enT("next.reason.transfer"),
+        `and its reason never promises a second surface ("${aN.reason}")`);
+      const back = decideNext(sN, 4, undefined, undefined, NOW_L, evs);
+      ok(!back.some((a) => a.conceptId === NO_SURFACE),
+        `a proved ${NO_SURFACE} is not prescribed again — the engine moves on (${back.map((a) => `${a.kind}:${a.conceptId}`).join(" → ") || "nothing left to serve"})`);
+    }
+  }
+
+  // ── The served item is a REAL question, not just a re-framed prompt. The
+  // inverse asks which of four real questions produces a stated result, and its
+  // honesty rests on a claim a test can check instead of trust: the three
+  // distractors' OWN answers differ from that result. So every option is
+  // re-graded here, from the draws `serveTransfer` returns for exactly this
+  // purpose, on every concept that offers the stage.
+  {
+    let items = 0;
+    let regraded = 0;
+    let concepts = 0;
+    const defects = [];
+    for (const cid of Object.keys(genome.CONCEPTS_BY_ID)) {
+      if (!transferMod.canTransfer(cid)) continue;
+      concepts++;
+      for (const band of [0.5, 0.8]) {
+        const served = transferMod.serveTransfer(cid, `pin:${band}`, band, "en");
+        if (!served || served.surface !== "inverse") continue;
+        items++;
+        const options = served.question.choices.map(String);
+        if (new Set(options).size !== options.length) defects.push(`${cid}: duplicate options`);
+        if (served.distractors.length !== 3) defects.push(`${cid}: ${served.distractors.length} distractors`);
+        if (options[served.question.answer] !== served.source.prompt) {
+          defects.push(`${cid}: the correct option is not the question that produces the answer`);
+        }
+        const stated = transferMod.answerValueKey(String(served.source.choices[served.source.answer]));
+        for (const d of served.distractors) {
+          regraded++;
+          const own = transferMod.answerValueKey(String(d.choices[d.answer]));
+          if (!own) defects.push(`${cid}: distractor answer is prose ("${d.choices[d.answer]}")`);
+          else if (own === stated) defects.push(`${cid}: distractor ALSO yields ${stated} — two right answers ("${d.prompt}")`);
+          else if (!options.includes(d.prompt)) defects.push(`${cid}: a distractor is missing from the options`);
+        }
+      }
+    }
+    ok(items > 100 && concepts === REFRAMABLE.length,
+      `${items} inverse items across all ${concepts} re-framable concepts are served and re-derived by the test`);
+    ok(defects.length === 0,
+      `and exactly one option is correct in every one — ${regraded} distractor answers re-graded by the test, not trusted${defects.length ? `: ${defects.slice(0, 3).join("; ")}` : ""}`);
+  }
 
   // ── STATE E: time passes → retention is due. ──
   sB.progress[CONCEPT].lastSeen = NOW_L - 8 * DAY;
   const aE = top(sB, stream);
   ok(aE.kind === "RETRIEVE" && aE.conceptId === CONCEPT,
     `eight days later → retrieval is due (${aE.kind}:${aE.conceptId})`);
+
+  // ── STATE E2: the SAME due review, on a learner who has never once answered
+  // this concept without help.
+  //
+  // The RETRIEVE branch fired for every concept whose interval had elapsed and
+  // told all of them "You proved this before". Whether a review is due is a fact
+  // about the SCHEDULE; whether there is a proof is a fact about the LEARNER, and
+  // the second one is the only one the sentence may assert. Both histories below
+  // have identical shape — nine right, one wrong, reviewed eight days ago — and
+  // differ ONLY in how the work was done.
+  {
+    const pair = {};
+    for (const helped of [true, false]) {
+      const s = fresh();
+      const evs = [];
+      for (let i = 0; i < 10; i++) {
+        const right = i < 9;
+        const hints = helped ? 1 : 0;
+        recordAnswer(s, CONCEPT, `e2-${i}`, 0, right, "", [], { mode: helped ? "guided" : "independent", hints });
+        s.progress[CONCEPT].lastSeen = i === 9 ? NOW_L - 8 * DAY : NOW_L;
+        evs.push(evidence.answerEvidence({
+          learnerId: "ladder", at: NOW_L - (60 - i) * 60000, source: "practice",
+          subject: "maths", conceptId: CONCEPT, specificationId: null,
+          questionId: `e2-${i}`, correct: right, chosen: right ? 0 : 1,
+          mode: helped ? "guided" : "independent", hints, tags: [],
+        }));
+      }
+      pair[helped ? "helped" : "unaided"] = { s, evs, m: s.progress[CONCEPT].mastery };
+    }
+    const lm = require("../.verify/learner-model.js");
+    const unprovedEv = lm.buildSnapshot(pair.helped.s).evidence.find((e) => e.conceptId === CONCEPT);
+    const provedEv = lm.buildSnapshot(pair.unaided.s).evidence.find((e) => e.conceptId === CONCEPT);
+    ok(!lm.provedUnaided(unprovedEv) && lm.provedUnaided(provedEv),
+      `the pair differs in exactly one fact: unaided answers ${unprovedEv.independentCorrect} vs ${provedEv.independentCorrect}`);
+    ok(lm.stageOf(unprovedEv) === "prove" && lm.stageOf(provedEv) !== "prove",
+      `and the ladder already agrees (${lm.stageOf(unprovedEv)} vs ${lm.stageOf(provedEv)})`);
+    // THE ONE RECORD WHERE THE TWO PREDICATES DIVERGE, and the reason the claim
+    // is drawn from `provedUnaided` rather than from the ladder's gate: answers
+    // taken with help, plus a hint-free answer that was WRONG. The gate says
+    // "not every answer was helped"; nothing has been demonstrated. A sentence
+    // taken from the gate would tell this learner they had proved it.
+    {
+      const s = fresh();
+      for (let i = 0; i < 9; i++) recordAnswer(s, CONCEPT, `x-${i}`, 0, true, "", [], { mode: "guided", hints: 1 });
+      recordAnswer(s, CONCEPT, "x-9", 1, false, "", [], { mode: "independent", hints: 0 });
+      s.progress[CONCEPT].lastSeen = NOW_L - 8 * DAY;
+      const e = lm.buildSnapshot(s).evidence.find((x) => x.conceptId === CONCEPT);
+      ok(!lm.provedUnaided(e) && e.hintedAnswers < e.attempts,
+        `helped plus one unaided WRONG answer: gate=false claim=false (${e.hintedAnswers}/${e.attempts} helped, ${e.independentCorrect} proved)`);
+    }
+
+    const at = (k) => top(pair[k].s, pair[k].evs);
+    const helpedTop = at("helped");
+    const unaidedTop = at("unaided");
+    ok(helpedTop.kind === "RETRIEVE" && unaidedTop.kind === "RETRIEVE",
+      `both are due a review (${helpedTop.kind} at mastery ${Math.round(pair.helped.m * 100)}%, ${unaidedTop.kind} at ${Math.round(pair.unaided.m * 100)}%)`);
+    ok(helpedTop.reason === enT("next.reason.retrieveUnproved"),
+      `a review of work never done unaided says what a review is for ("${helpedTop.reason}")`);
+    ok(helpedTop.reason !== enT("next.reason.retrieve"),
+      "and it does not claim a proof the learner does not have");
+    ok(unaidedTop.reason === enT("next.reason.retrieve"),
+      `while the learner who did prove it keeps the proof sentence ("${unaidedTop.reason}")`);
+  }
+
+  // ── STATE E2b: ONE CONCEPT, ONE ROW. ──
+  //
+  // A concept can be BOTH an unmet prerequisite of the open one AND due for
+  // review, and the plan then carried two rows for it with contradictory
+  // sentences — measured on the superiority test's cohort_0:
+  //
+  //   PRACTISE angles-lines  "Circle theorems is built on this, and it is not
+  //                           established yet — this comes first."
+  //   RETRIEVE angles-lines  "You proved this before — a quick retrieval now
+  //                           makes it stick."
+  //
+  // Both facts are true (mastery just below the established bar; an unaided
+  // proof on record), but no learner may be told both in one session, and the
+  // same concept must not be two items of work. The open-concept branch has
+  // always refused to duplicate; the retrieval branch was the one place the
+  // guard was missing. The record below is the exact shape that produced it:
+  // angles-lines 2/2 unaided (mastery below the bar, 37 days stale) as the
+  // declared, unmet foundation of a weak circle-theorems.
+  {
+    const lm2 = require("../.verify/learner-model.js");
+    const s = fresh();
+    const evs = [];
+    const at = (conceptId, n, correct, opts = {}, tag = "") => {
+      const mode = opts.mode ?? "independent";
+      const hints = opts.hints ?? 0;
+      recordAnswer(s, conceptId, `e2b-${conceptId}-${n}`, correct ? 0 : 1, correct, "", tag ? [tag] : [], { mode, hints });
+      evs.push(evidence.answerEvidence({
+        learnerId: "ladder", at: NOW_L - (100 - evs.length) * 60000, source: "practice",
+        subject: "maths", conceptId, specificationId: null,
+        questionId: `e2b-${conceptId}-${n}`, correct, chosen: correct ? 0 : 1, mode, hints, tags: tag ? [tag] : [],
+      }));
+    };
+    at("angles-lines", 0, true);
+    at("angles-lines", 1, true);
+    s.progress["angles-lines"].lastSeen = NOW_L - 37 * DAY;
+    for (let i = 0; i < 5; i++) at("circle-theorems", i, i < 2);
+    s.progress["circle-theorems"].lastSeen = NOW_L;
+
+    // The two facts that make the guard load-bearing must both hold, or this
+    // pin is asserting a shape the engine cannot reach.
+    const retention = require("../.verify/retention.js");
+    const dueIds = retention.dueReviews(s, NOW_L).map((d) => d.conceptId);
+    const unmet = lm2.unmetPrerequisites("circle-theorems", s);
+    ok(dueIds.includes("angles-lines"),
+      `the foundation is genuinely due for review (${dueIds.filter((id) => id === "angles-lines").length}× angles-lines among ${dueIds.length} due)`);
+    ok(unmet.includes("angles-lines"),
+      `and genuinely unmet as circle-theorems' declared prerequisite (${unmet.join(", ") || "none"})`);
+
+    const plan = decideNext(s, 4, undefined, undefined, NOW_L, evs);
+    const rows = plan.map((a) => `${a.kind}:${a.conceptId}`);
+    const counts = new Map();
+    for (const a of plan) counts.set(a.conceptId, (counts.get(a.conceptId) ?? 0) + 1);
+    const doubled = [...counts.entries()].filter(([, n]) => n > 1).map(([id]) => id);
+    ok(doubled.length === 0,
+      `no concept is scheduled twice in one plan (${rows.join(" | ")})`);    ok(plan.some((a) => a.conceptId === "angles-lines" && a.kind === "PRACTISE"),
+      "and the repair row that made it both stays — the duplicate is what was removed, not the work");
+  }
+
+  // ── STATE E2c: a FORGOTTEN review is not a MISSING FOUNDATION. ──
+  //
+  // The foundations branch sends work BACKWARDS on purpose: when the learner is
+  // stuck on a concept whose declared prerequisite they have not established,
+  // the prerequisite is repaired first. That is right for a learner who cannot
+  // do the work. It is wrong for one who has just FORGOTTEN it, and the two
+  // records are different facts the model already separates: the acceptance
+  // battery reached this with a learner who had proved fraction arithmetic
+  // unaided a week earlier and then failed the due review of it, and the plan's
+  // first row was "Learn: Fractions — Fraction arithmetic is built on this, and
+  // you have not covered it yet" instead of the concept that had just lapsed.
+  //
+  // The branch read "measured + below the bar + one wrong answer" as stuck, and
+  // a failed delayed recall satisfies all three — so a lapsed memory, which is
+  // a fact about TIME, was diagnosed as a missing prerequisite, which is a fact
+  // about CONTENT the learner has never been asked about. Absence of evidence
+  // was being used as the cause of a measured failure.
+  //
+  // The two records below differ in exactly ONE fact — whether the newest
+  // answer was a delayed recall that failed, decided by the one rule that owns
+  // that question (lib/proof.ts#isRetentionEvidence) — and they must produce
+  // different work: the lapsed concept re-secured, versus the unmeasured
+  // foundation taught first.
+  {
+    const lm2 = require("../.verify/learner-model.js");
+    const DAY2 = 86400000;
+    const build = (label, last) => {
+      const s = fresh();
+      const evs = [];
+      const answerAt = (n, correct, meta, at) => {
+        recordAnswer(s, "circle-theorems", `${label}-${n}`, correct ? 0 : 1, correct, "", [], meta, at);
+        evs.push(evidence.answerEvidence({
+          learnerId: "ladder", at, source: meta.source ?? "practice",
+          subject: "maths", conceptId: "circle-theorems", specificationId: null,
+          questionId: `${label}-${n}`, correct, chosen: correct ? 0 : 1,
+          mode: meta.mode ?? "guided", hints: meta.hints ?? 0, tags: [],
+        }));
+      };
+      // Proved unaided eight days ago, three answers...
+      const learned = NOW_L - 8 * DAY2;
+      for (let i = 0; i < 3; i++) answerAt(`learn${i}`, true, { mode: "independent", hints: 0 }, learned + i * 60000);
+      // ...then today's answer: a failed delayed recall, or an ordinary miss.
+      answerAt("last", false, last, NOW_L);
+      return { s, evs };
+    };
+    const forgotten = build("e2c-forgot", { mode: "independent", hints: 0, source: "retrieval" });
+    const failing = build("e2c-fail", { mode: "independent", hints: 0 });
+
+    // The fixture must actually hold the facts the pin reasons about, or it
+    // asserts a shape the engine cannot reach.
+    const newestTwo = (evs) => [...evs].sort((a, b) => a.at - b.at).slice(-2);
+    const recallFact = (evs) => {
+      const [prev, last] = newestTwo(evs);
+      return proofMod.isRetentionEvidence({ source: last.source, hints: last.hints, sinceLast: last.at - prev.at });
+    };
+    ok(recallFact(forgotten.evs),
+      "the fixture's newest answer meets the delayed-recall rule (a due review, unanswered, a week after the work)");
+    ok(!recallFact(failing.evs),
+      "and the other record's does not — so the two differ in exactly that one fact");
+    const conceptEv = (s) => lm2.buildSnapshot(s).evidence.find((x) => x.conceptId === "circle-theorems");
+    ok(lm2.stuckOn(conceptEv(forgotten.s)) && lm2.stuckOn(conceptEv(failing.s)),
+      "both learners are below the bar with a wrong answer, so the detour's own gate is open for both");
+    ok(lm2.unmetPrerequisites("circle-theorems", forgotten.s).includes("angles-lines"),
+      "and both have the same declared, unestablished foundation for the detour to aim at");
+    ok(proofMod.retentionState(forgotten.s.progress["circle-theorems"].retention) === "forgotten",
+      "the record names the state (\"forgotten\") rather than only counting it");
+
+    const forgotTop = decideNext(forgotten.s, 1, undefined, undefined, NOW_L, forgotten.evs)[0];
+    const failTop = decideNext(failing.s, 1, undefined, undefined, NOW_L, failing.evs)[0];
+    ok(forgotTop.conceptId === "circle-theorems" && forgotTop.kind === "PRACTISE",
+      `a lapsed memory is re-secured on its own concept (${forgotTop.kind}:${forgotTop.conceptId})`);
+    ok(forgotTop.reason !== enT("next.reason.prereqNew") && forgotTop.reason !== enT("next.reason.prereqFirst"),
+      `and it is not told to cover an unmeasured foundation instead ("${forgotTop.reason}")`);
+    ok(failTop.conceptId === "angles-lines" && failTop.kind === "EXPLAIN",
+      `while an ordinary miss on the same record keeps the foundation repair (${failTop.kind}:${failTop.conceptId})`);
+    ok(failTop.reason !== forgotTop.reason,
+      "the two learners are given different work, and therefore different reasons");
+  }
+
+  // ── STATE E3: "why NOW", which is a different question per kind. ──
+  //
+  // Every action's `why` comes from one function, and its final fallback was a
+  // single sentence — "This is the weakest evidence in the model right now" —
+  // which is what EVERY kind falls through to once an exam date is more than a
+  // month out (urgency "none", date set). So a due review was called the weakest
+  // evidence when it is the most OVERDUE, and a transfer target — the concept
+  // just proved unaided — was called the weakest evidence in the model.
+  //
+  // The invariant asserted here is structural rather than textual: a line SHARED
+  // by kinds cannot be a claim about the learner, so the strongest and the
+  // weakest action in the same configuration must say the same thing. A sentence
+  // true of both is, by construction, not a claim about either.
+  {
+    const out = {};
+    for (const shape of ["weak", "strong"]) {
+      const s = fresh();
+      s.profile.exam = "GCSE Maths";
+      s.profile.examDate = new Date(NOW_L + 60 * DAY).toISOString().slice(0, 10);
+      const evs = [];
+      for (let i = 0; i < 5; i++) {
+        const correct = shape === "strong";
+        recordAnswer(s, CONCEPT, `e3-${shape}-${i}`, 0, correct, "", [],
+          { mode: shape === "strong" ? "independent" : "guided", hints: 0 });
+        s.progress[CONCEPT].lastSeen = NOW_L;
+        evs.push(evidence.answerEvidence({
+          learnerId: "ladder", at: NOW_L - (90 - i) * 60000, source: "practice",
+          subject: "maths", conceptId: CONCEPT, specificationId: null,
+          questionId: `e3-${shape}-${i}`, correct, chosen: correct ? 0 : 1,
+          mode: shape === "strong" ? "independent" : "guided", hints: 0, tags: [],
+        }));
+      }
+      out[shape] = top(s, evs);
+    }
+    ok(out.weak.urgency === "none" && out.strong.urgency === "none",
+      `both sit in the state that selects the shared fallback (urgency ${out.weak.urgency}/${out.strong.urgency})`);
+    ok(out.weak.kind !== out.strong.kind,
+      `and they are genuinely different kinds of work (${out.weak.kind} vs ${out.strong.kind})`);
+    ok(out.weak.why === out.strong.why,
+      `a SHARED why-line says the same thing to the weakest and the strongest action ("${out.weak.why}")`);
+    ok(out.weak.why === enT("next.why.evidence"),
+      "and it is the deadline-free fallback, not a claim about either learner");
+    // The claim that was there — "This is the weakest evidence in the model right
+    // now" — cannot come back, in any kind, because the line that carries it is
+    // shared. Asserted on the sentence rather than on a variable, because the
+    // sentence IS the defect.
+    ok(!/weakest/i.test(out.weak.why),
+      "the shared why-line makes no claim about which of the learner's evidence is weakest");
+
+    // An overdue review is the one kind whose timing fact IS its reason for being
+    // today, so it states it instead of taking the shared line.
+    const sDue = fresh();
+    sDue.profile.exam = "GCSE Maths";
+    sDue.profile.examDate = new Date(NOW_L + 60 * DAY).toISOString().slice(0, 10);
+    const evsDue = [];
+    for (let i = 0; i < 5; i++) {
+      recordAnswer(sDue, CONCEPT, `e3-due-${i}`, 0, true, "", [], { mode: "independent", hints: 0 });
+      sDue.progress[CONCEPT].lastSeen = i === 4 ? NOW_L - 8 * DAY : NOW_L;
+      evsDue.push(evidence.answerEvidence({
+        learnerId: "ladder", at: NOW_L - (150 - i) * 60000, source: "practice",
+        subject: "maths", conceptId: CONCEPT, specificationId: null,
+        questionId: `e3-due-${i}`, correct: true, chosen: 0, mode: "independent", hints: 0, tags: [],
+      }));
+    }
+    const dueTop = top(sDue, evsDue);
+    ok(dueTop.kind === "RETRIEVE" && dueTop.why === enT("next.why.due"),
+      `an overdue review states its own timing fact ("${dueTop.why}")`);
+    ok(dueTop.why !== out.weak.why,
+      "and does not borrow the shared line, which would describe the most OVERDUE evidence as the weakest");
+
+    // AND IT MUST STATE IT WHEN NO EXAM DATE IS SET, which is the configuration
+    // the first version of this fix missed: the generic "no deadline is set" line
+    // was tested first, so the branch's own timing fact was discarded for exactly
+    // the self-directed learner — and the offline one — who never sets a date.
+    // The exam-pressing case must still out-rank it, or the fix would bury a real
+    // deadline under a scheduling note.
+    const noExam = structuredClone(sDue);
+    noExam.profile.exam = "";
+    noExam.profile.examDate = undefined;
+    const noExamTop = top(noExam, evsDue);
+    ok(noExamTop.kind === "RETRIEVE" && noExamTop.why === enT("next.why.due"),
+      `and states it with no exam date set too ("${noExamTop.why}")`);
+    const soon = structuredClone(sDue);
+    soon.profile.exam = "GCSE Maths";
+    soon.profile.examDate = new Date(NOW_L + 3 * DAY).toISOString().slice(0, 10);
+    ok(top(soon, evsDue).why !== enT("next.why.due"),
+      "while a deadline inside the week still out-ranks the scheduling note");
+    // Kinds that supply no fact of their own are untouched: the no-exam line is
+    // still what a learner with no date and no overdue review reads.
+    const plain = fresh();
+    const plainEvs = [];
+    for (let i = 0; i < 5; i++) {
+      recordAnswer(plain, CONCEPT, `e3-plain-${i}`, 0, false, "", [], { mode: "guided", hints: 0 });
+      plain.progress[CONCEPT].lastSeen = NOW_L;
+      plainEvs.push(evidence.answerEvidence({
+        learnerId: "ladder", at: NOW_L - (200 - i) * 60000, source: "practice",
+        subject: "maths", conceptId: CONCEPT, specificationId: null,
+        questionId: `e3-plain-${i}`, correct: false, chosen: 1, mode: "guided", hints: 0, tags: [],
+      }));
+    }
+    const plainTop = top(plain, plainEvs);
+    ok(plainTop.why === enT("next.why.noExam"),
+      `a kind with no timing fact of its own still reports the missing date ("${plainTop.why}")`);
+  }
+
+  // ── STATE F: every answer right, every answer HELPED. ──
+  //
+  // The rung the ladder was missing, and the one the accuracy curve cannot
+  // show. The mastery model's premise is that accuracy without independence is
+  // "discounted, not displayed" — but that discount only applies once a prove
+  // attempt exists, so taking a hint on every answer and getting them all right
+  // reaches a high mastery with a perfect confidence score. The stretch rule
+  // read that as "straightforward questions are solid", which is precisely what
+  // the record does not say.
+  {
+    const sF = fresh();
+    // Built directly rather than through the ladder helper, so the events are
+    // PRACTICE-sourced as the serve path's are: the helper labels a
+    // non-independent answer `diagnostic`, and the fold skips those (a
+    // diagnostic sitting folds as a whole through its own event). A rebuild
+    // check against diagnostic-sourced answers would "prove" that the ledger
+    // carries nothing, which is a fact about the harness.
+    const evsF = [];
+    for (let i = 0; i < 4; i++) {
+      recordAnswer(sF, CONCEPT, `f-${i}`, 0, true, "", [], { mode: "guided", hints: 2 });
+      sF.progress[CONCEPT].lastSeen = NOW_L;
+      evsF.push(evidence.answerEvidence({
+        learnerId: "ladder", at: NOW_L - (1000 - i) * 60000, source: "practice",
+        subject: "maths", conceptId: CONCEPT, specificationId: null,
+        questionId: `f-${i}`, correct: true, chosen: 0, mode: "guided", hints: 2, tags: [],
+      }));
+    }
+    const mF = sF.progress[CONCEPT].mastery;
+    const aF = top(sF, evsF);
+    // The FACT the branch reads, asserted at its source: four answers, four of
+    // them helped. (Not `hintsUsed`, which the fold does not carry — see
+    // lib/types.ts#hinted. The two agree live; only this one survives a rebuild.)
+    ok(sF.progress[CONCEPT].hinted === 4 && sF.progress[CONCEPT].attempts === 4,
+      `four helped answers are recorded as four helped answers (${sF.progress[CONCEPT].hinted}/${sF.progress[CONCEPT].attempts})`);
+    ok(require("../.verify/learner-model.js").buildSnapshot(sF).evidence[0].hintedAnswers === 4,
+      "and the snapshot the engine reads exposes that count, not the uncarried level tally");
+    ok(aF.kind === "PRACTISE" && aF.conceptId === CONCEPT,
+      `every answer helped ⇒ the work that proves it, not unfamiliar wording (mastery ${Math.round(mF * 100)}% → ${aF.kind}:${aF.conceptId})`);
+    ok(aF.reason === enT("next.reason.proveNoHelp"),
+      `and the reason names what is actually missing, in the learner's language ("${aF.reason}")`);
+    ok(!/solid|unfamiliar wording/.test(aF.reason),
+      "the engine never calls helped work solid");
+
+    // THE RULE MUST CLEAR ITSELF, or it is a trap rather than a gate: one
+    // hint-free answer IS independence evidence, after which this branch stops
+    // firing and the stretch becomes reachable again.
+    const sG = structuredClone(sF);
+    recordAnswer(sG, CONCEPT, "g-0", 0, true, "", [], { mode: "guided", hints: 0 });
+    sG.progress[CONCEPT].lastSeen = NOW_L;
+    const evsG = [...evsF, evidence.answerEvidence({
+      learnerId: "ladder", at: NOW_L, source: "practice", subject: "maths",
+      conceptId: CONCEPT, specificationId: null, questionId: "g-0",
+      correct: true, chosen: 0, mode: "guided", hints: 0, tags: [],
+    })];
+    const aG = top(sG, evsG);
+    ok(sG.progress[CONCEPT].hinted === 4 && sG.progress[CONCEPT].attempts === 5,
+      `one unaided answer is not counted as a helped one (${sG.progress[CONCEPT].hinted}/${sG.progress[CONCEPT].attempts})`);
+    ok(aG.reason !== enT("next.reason.proveNoHelp"),
+      `one unaided answer clears the gate — it cannot become a trap (${aG.kind}:${aG.conceptId})`);
+
+    // And the ledger must carry it, or the rule is inert for every learner
+    // whose work arrives from a device: a replayed model must see the same
+    // scaffolding demand as the live one.
+    {
+      const rebuilt = require("../.verify/replay.js").replayModel(evsF, "ladder", undefined, sF.profile);
+      ok(rebuilt.progress[CONCEPT].hinted === 4,
+        `a model REBUILT from the ledger sees the same scaffolding demand (${rebuilt.progress[CONCEPT].hinted}/4)`);
+      const hOnly = evsF.map((e) => ({ ...e, hints: 0 }));
+      const rebuiltFree = require("../.verify/replay.js").replayModel(hOnly, "ladder", undefined, sF.profile);
+      // `undefined` and `0` are the same fact here and the engine reads them the
+      // same way — the field is ABSENT until an answer takes help, so a
+      // hint-free record must not need a stored zero to be read as hint-free.
+      ok((rebuiltFree.progress[CONCEPT].hinted ?? 0) === 0,
+        `and a hint-free history rebuilds as hint-free (${rebuiltFree.progress[CONCEPT].hinted ?? "absent"}) — the count is evidence, not a default`);
+
+      // ── AND THE CARD MUST READ THE SAME COUNT. ──
+      //
+      // The branch above reads the fold-owned `hinted`. The evidence line beside
+      // it read `hintsUsed` — the per-level tally the fold does NOT carry — so
+      // the card that answers "why am I seeing this?" told a learner who had
+      // taken help on every answer that they had used none, three lines under a
+      // branch that had just counted four. Two representations of one fact, and
+      // the surface read the droppable one. One owner now, and these assert the
+      // SENTENCE a learner reads, not the field behind it.
+      const expect = `${4} ${enT("next.ev.attempts")} · ${4} ${enT("next.ev.helped")}`;
+      ok(aF.evidence.includes(expect),
+        `the evidence line names the help actually taken ("${aF.evidence}")`);
+      // A FRESH DEVICE, not a rebuilt one over a live profile: passing the live
+      // `profile` in preserves the per-level tally as an annotation, so it would
+      // never exercise the state this rule exists for. The bare shell is what a
+      // learner actually has when their work arrives from a device that was
+      // offline — the ledger, and nothing the ledger cannot reproduce.
+      const offline = require("../.verify/replay.js").replayModel(evsF, "ladder", undefined, fresh().profile);
+      ok(!offline.progress[CONCEPT].hints,
+        "the fresh-device model carries no per-level hint tally, so nothing can read one");
+      const offlineTop = top(offline, evsF);
+      ok(offlineTop.evidence === aF.evidence,
+        `and it shows the same line ("${offlineTop.evidence}") — the offline learner is not told they worked unaided`);
+
+      // Confidence separates "answered correctly" from "answered fluently", and
+      // it read the same droppable tally — so a rebuilt model came back with the
+      // help silently forgiven. Built with an imperfect record, because a
+      // perfect one clamps at 1 and would hide the difference either way.
+      const sC = fresh();
+      const evsC = [];
+      for (let i = 0; i < 6; i++) {
+        const right = i < 4;
+        recordAnswer(sC, CONCEPT, `c-${i}`, 0, right, "", [], { mode: "guided", hints: 2 });
+        sC.progress[CONCEPT].lastSeen = NOW_L;
+        evsC.push(evidence.answerEvidence({
+          learnerId: "ladder", at: NOW_L - (1000 - i) * 60000, source: "practice",
+          subject: "maths", conceptId: CONCEPT, specificationId: null,
+          questionId: `c-${i}`, correct: right, chosen: right ? 0 : 1, mode: "guided", hints: 2, tags: [],
+        }));
+      }
+      const rebuiltC = require("../.verify/replay.js").replayModel(evsC, "ladder", undefined, fresh().profile);
+      const confLive = retention.confidenceOf(sC.progress[CONCEPT]);
+      const confRebuilt = retention.confidenceOf(rebuiltC.progress[CONCEPT]);
+      const accuracyC = sC.progress[CONCEPT].correct / sC.progress[CONCEPT].attempts;
+      ok(confRebuilt === confLive,
+        `confidence survives a rebuild (${confRebuilt?.toFixed(3)} vs ${confLive?.toFixed(3)}) — it is computed from evidence the ledger carries`);
+      ok(confRebuilt !== null && confRebuilt < accuracyC,
+        `and it does not forgive help (${confRebuilt?.toFixed(3)} < accuracy ${accuracyC.toFixed(3)} when every answer took help)`);
+    }
+  }
 
   // The ladder as a whole: five stages, no repeats that matter, all targeting
   // the right concept once evidence exists.
@@ -1740,24 +2991,107 @@ console.log("▸ Evidence drives the experience");
     ok(JSON.stringify(shuffled) !== JSON.stringify(stream), "the shuffle genuinely shuffled");
   }
 
-  // ── ONE event can cross a decision boundary. The transfer gate sits at
-  // mastery 0.75 — a cap the guided curve approaches but does not cross until
-  // the fourth correct answer AFTER early failures. The same learner, one more
-  // recorded answer: "new challenge" becomes "transfer".
+  // ── ONE event can cross a decision boundary — and the boundary that matters
+  // is the one between "done with help" and "done alone", not a mastery number.
+  //
+  // This block used to sit on the stretch gate's 0.75 cap, which measured the
+  // accuracy curve; the ladder's rungs are the states a learner is actually in,
+  // and this is the one the brief names outright: a learner who has got every
+  // answer right WITH HELP has proved nothing about doing it alone, and a single
+  // unaided correct answer is the whole difference. The evidence is otherwise
+  // identical — same concept, same mastery, same streak — so the change in the
+  // recommendation is caused by that one event and nothing else.
   {
     const sB2 = fresh();
     const mark = stream.length;
-    answer(sB2, "h1", false, {}, [TAG]);
-    answer(sB2, "h2", false);
-    answer(sB2, "h3", true); answer(sB2, "h4", true); answer(sB2, "h5", true);
-    const ev4 = stream.slice(mark);
-    const with4 = decideNext(sB2, 1, undefined, undefined, NOW_L, ev4)[0];
-    answer(sB2, "h6", true);
-    const with5 = decideNext(sB2, 1, undefined, undefined, NOW_L, stream.slice(mark))[0];
-    ok(with4.kind !== with5.kind,
-      `one more answer crosses the boundary (${with4.kind} → ${with5.kind})`);
-    ok(with5.evidenceIds.includes(stream[stream.length - 1].id),
-      "and the new decision cites the event that tipped it");
+    for (let i = 0; i < 3; i++) answer(sB2, `p${i}`, true, { hints: 1 });
+    const helpedOnly = decideNext(sB2, 1, undefined, undefined, NOW_L, stream.slice(mark))[0];
+    answer(sB2, "alone", true); // hint-free: the first unaided answer on this concept
+    const oneAlone = decideNext(sB2, 1, undefined, undefined, NOW_L, stream.slice(mark))[0];
+    ok(sB2.progress[CONCEPT].hinted === 3 && sB2.progress[CONCEPT].attempts === 4,
+      `three of four answers took help (${sB2.progress[CONCEPT].hinted}/${sB2.progress[CONCEPT].attempts})`);
+    ok(helpedOnly.kind === "PRACTISE" && helpedOnly.reason === enT("next.reason.proveNoHelp"),
+      `done only with help ⇒ prove it unaided (${helpedOnly.kind}: ${helpedOnly.reason})`);
+    ok(oneAlone.kind === "TRANSFER",
+      `one unaided answer crosses to unfamiliar wording (${helpedOnly.kind} → ${oneAlone.kind})`);
+    ok(oneAlone.evidenceIds.includes(stream[stream.length - 1].id),
+      "and the new decision cites the event that tipped it — not the helped ones it left behind");
+  }
+
+  // ── The detour gate: a learner who is DOING the work is not sent backwards. ──
+  //
+  // FOUNDATIONS is the one branch that can send work BACKWARDS on purpose, and
+  // it was first and unconditional — so a learner who was accurate-with-help on
+  // the concept they were working on got an unmeasured prerequisite INSTEAD of
+  // being asked to prove the thing they had just done. The benchmark caught it
+  // as dozens of invariant violations across its cohort, all the same shape
+  // ("EXPLAIN on unmeasured <concept>"), because the branch read an ABSENCE of
+  // measurement as a hole to repair. Trailing a learner is not repair; the gate
+  // is `stuckOn` — measured, below the established bar, and one answer wrong.
+  {
+    const lmDetour = require("../.verify/learner-model.js");
+    // Asked of the CONTENT, never written down here: a pin naming a concept
+    // whose prerequisite declaration later disappears would pass vacuously, and
+    // a vacuous pin is worse than none.
+    const WORK = genome.CONCEPTS.find((c) => (c.prereqs ?? []).length > 0);
+    const FOUNDATION = WORK.prereqs[0];
+    const titleOf = (id) => genome.CONCEPTS_BY_ID[id].title;
+    // The section's translator does not fill `{slots}`; the sentences under test
+    // are templates, so compare the rendered sentence, not the raw key.
+    const text = (k, vars) => i18nMod.fill(enT(k), vars);
+    const decide = (s) => decideNext(s, 1, undefined, undefined, NOW_L)[0];
+    // Pin the clock, or every state reads as ancient and RETRIEVE outranks the
+    // branch under test — which would make these pins pass for the wrong reason.
+    const seenNow = (s, id) => { s.progress[id].lastSeen = NOW_L; };
+
+    // (a) Accurate with help: the rung that proves it, NOT a detour.
+    const sHit = store.newProfileState("verify-detour-hit", { country: "GB", subjects: ["maths"] });
+    for (let i = 0; i < 4; i++) progress.recordAnswer(sHit, WORK.id, `hit${i}`, 0, true, "", [], { mode: "guided", hints: 2 });
+    seenNow(sHit, WORK.id);
+    const aHit = decide(sHit);
+    ok((sHit.progress[FOUNDATION]?.attempts ?? 0) === 0,
+      `SETUP: ${FOUNDATION} — the declared prerequisite of ${WORK.id} — has never been asked about`);
+    ok(!lmDetour.stuckOn(lmDetour.evidenceFor(sHit, WORK.id)),
+      `SETUP: this learner is NOT stuck — ${sHit.progress[WORK.id].correct}/${sHit.progress[WORK.id].attempts} right with help`);
+    ok(aHit.conceptId === WORK.id && aHit.kind === "PRACTISE" && aHit.reason === text("next.reason.proveNoHelp"),
+      `accurate with help stays on ${WORK.id} instead of being sent to an unmeasured prerequisite (${aHit.kind}:${aHit.conceptId} — ${aHit.reason})`);
+
+    // (b) Stuck, and the prerequisite has never been asked about: introduce it,
+    // in the COVERAGE sentence, with nothing to cite.
+    const sStuck = store.newProfileState("verify-detour-stuck", { country: "GB", subjects: ["maths"] });
+    for (let i = 0; i < 4; i++) progress.recordAnswer(sStuck, WORK.id, `stk${i}`, 1, false, "", [], { mode: "guided" });
+    seenNow(sStuck, WORK.id);
+    const aStuck = decide(sStuck);
+    ok(lmDetour.stuckOn(lmDetour.evidenceFor(sStuck, WORK.id)),
+      `SETUP: four wrong answers on ${WORK.id} is stuck`);
+    ok(aStuck.conceptId === FOUNDATION && aStuck.kind === "EXPLAIN",
+      `stuck, with ${FOUNDATION} unmeasured → introduce the declared prerequisite (${aStuck.kind}:${aStuck.conceptId})`);
+    ok(aStuck.reason === text("next.reason.prereqNew", { next: titleOf(WORK.id) }),
+      `phrased as coverage, never as a failure (${aStuck.reason})`);
+    ok(aStuck.evidenceIds.length === 0,
+      "and with no citations, because there is no record on that concept to cite");
+
+    // (c) The SAME learner with the prerequisite measured and weak: the other
+    // sentence. Two different absences must not read the same — that is the
+    // whole reason there are two strings.
+    const sWeak = structuredClone(sStuck);
+    progress.recordAnswer(sWeak, FOUNDATION, "weak0", 1, false, "", [], { mode: "guided" });
+    progress.recordAnswer(sWeak, FOUNDATION, "weak1", 0, true, "", [], { mode: "guided" });
+    progress.recordAnswer(sWeak, FOUNDATION, "weak2", 0, true, "", [], { mode: "guided" });
+    seenNow(sWeak, FOUNDATION);
+    const aWeak = decide(sWeak);
+    ok(aWeak.conceptId === FOUNDATION && aWeak.reason === text("next.reason.prereqFirst", { next: titleOf(WORK.id) }),
+      `the same target, measured-and-weak, gets the other sentence (${aWeak.kind}:${aWeak.conceptId} — ${aWeak.reason})`);
+
+    // (d) And a live slip on the concept outranks the detour: the specific,
+    // checkable cause beats an absence of measurement every time.
+    const sSlip = store.newProfileState("verify-detour-slip", { country: "GB", subjects: ["maths"] });
+    const slipTag = (genome.CONCEPTS_BY_ID[WORK.id].misconceptions ?? [])[0];
+    for (let i = 0; i < 3; i++) progress.recordAnswer(sSlip, WORK.id, `slip${i}`, 1, false, "", slipTag ? [slipTag] : [], { mode: "guided" });
+    seenNow(sSlip, WORK.id);
+    const aSlip = decide(sSlip);
+    ok(aSlip.kind === "REMEDIATE" && aSlip.conceptId === WORK.id,
+      `a named slip recurring outranks a prerequisite detour (${aSlip.kind}:${aSlip.conceptId} — ${aSlip.reason})`);
   }
 
   // ── Citations become human lines — in the UI's one translator, not re-derived.
@@ -1946,7 +3280,6 @@ console.log("▸ Evidence drives the experience");
 
   // The drill-down has to be REACHABLE, or it is a page nobody sees.
   for (const [f, needle] of [
-    ["components/mind-map.tsx", "/mind/"],
     ["app/progress/page.tsx", "/mind/"],
     ["app/genome/page.tsx", "/mind/"],
   ]) {
@@ -2289,12 +3622,24 @@ console.log("▸ Probing what is still uncertain");
   const strongDemand = diag.demandEstimates(strong);
   const recall = strongDemand.find((d) => d.skill === "recall");
   const concepts = new Set(strong.concepts.map((c) => c.conceptId)).size;
-  // Every band the BANK can produce is measured by a full run. This is the
-  // assertion that caught the sampling defect: the baseline used to be sampled
-  // from concepts that all top out at application level, so multi-step read
-  // "not measured" for every learner in the world, forever.
-  ok(strongDemand.filter((d) => d.inBank).every((d) => d.estimate.measured),
-    `a strong run measures every producible band (${strongDemand.filter((d) => d.inBank && !d.estimate.measured).map((d) => d.skill).join(", ") || "none missing"})`);
+  // THE SAMPLING GUARANTEE, at the end where it still binds. What this
+  // assertion exists to catch is a SAMPLE that cannot express the top of the
+  // bank: the baseline used to be drawn from concepts that all top out at
+  // application level, so multi-step read "not measured" for every learner in
+  // the world, forever. That half is unchanged and is checked below.
+  //
+  // What DID change is the other end, and the old wording — "every producible
+  // band" — quietly asserted it: the ladder now opens at the learner's OWN
+  // course (see `openingStageFor`), so the bands beneath it (recall, and
+  // application for a GCSE Higher sitting) are not asked at all. Reporting them
+  // as unmeasured is the honest reading, and it is a different statement from
+  // "we asked and got nothing".
+  const strongTop = ["multi_step", "data_interpretation"].map((s) => strongDemand.find((d) => d.skill === s));
+  ok(strongTop.every((d) => d.inBank && d.estimate.measured),
+    `a strong run measures the bands at the top of the bank (${strongTop.map((d) => `${d.skill} ${Math.round((d.estimate.value ?? 0) * 100)}%`).join(", ")})`);
+  const strongUnasked = strongDemand.filter((d) => d.inBank && !d.estimate.measured);
+  ok(strongUnasked.every((d) => d.estimate.attempts === 0),
+    `and every band it did not open at reports no attempts rather than a zero (${strongUnasked.map((d) => d.skill).join(", ") || "none"})`);
   // The band the depth layer added is measured by a full run, and the band no
   // multiple-choice bank can measure is still declared out. The report has to
   // say BOTH, or a learner reads their own unmeasured row as a personal gap.
@@ -2333,9 +3678,25 @@ console.log("▸ Probing what is still uncertain");
   // shallow any more and a rule must not be tested only where it happens to be
   // true. The deepest concept left can express application, so multi-step is
   // beyond its questions: unreachable, unmeasured, and never a zero.
+  //
+  // The sample is CONSTRUCTED rather than filtered out of the shipped one, and
+  // that is the sampler's own rule showing through: a concept that cannot place
+  // the learner — one topping out a band below their course — is excluded from
+  // a course's sample now (see `canPlaceThem`), which is how primary place
+  // value reached a Year 11 GCSE Higher sitting. The rule under test is
+  // unchanged, so the fixture supplies the case a real sample can still
+  // produce: concepts that DO pass the placement rule and still stop below
+  // multi-step.
   {
     const shallow = diag.newDiagnosticSession("maths", "baseline", R);
-    shallow.concepts = shallow.concepts.filter((c) => !bank.bandReachable("multi_step", questions.conceptDepth(c.conceptId)));
+    shallow.concepts = genome.bySubject("maths")
+      .map((c) => c.id)
+      .filter((id) => questions.hasGenerator(id)
+        && !bank.bandReachable("multi_step", questions.conceptDepth(id))
+        && questions.difficultyBandFor(questions.conceptDepth(id))
+          >= questions.difficultyBandFor(R.level.difficulty) - 1)
+      .slice(0, 4)
+      .map(mkLadder);
     let sq = diag.nextQuestion(shallow);
     let guard2 = 0;
     while (sq && guard2++ < 60) {
@@ -2370,27 +3731,52 @@ console.log("▸ Probing what is still uncertain");
     ok(deep.concepts.some((c) => bank.bandReachable("multi_step", questions.conceptDepth(c.conceptId))),
       "and a retest samples the same deep concept, so the band is measurable before AND after");
   }
-  // The early stop, measured on CONCEPTS. The claim is that not every concept
-  // re-proves recall; a probe COUNT is a proxy that a concept's own ceiling
-  // distorts, because a generator that cannot express a deeper band spends
-  // recall-band questions climbing anyway (place-value, depth 0.1, spends six).
-  // The old bound of `2 × concepts` therefore read this run's 8 probes over 4
-  // concepts as a failure when two of those concepts had skipped recall
-  // entirely — the sample order shifts whenever content gains depth (that is
-  // the depth-cover guarantee working), and the claim itself is about which
-  // concepts paid, so it is counted there.
-  const recallFree = strong.concepts.filter((c) =>
-    !strong.log.some((a) => a.conceptId === c.conceptId && bank.skillForDifficulty(a.difficulty) === "recall")).length;
+  // ── The early stop, DRIVEN rather than sampled ────────────────────────────
+  // What this section claims is a RULE: a band the session has already
+  // demonstrated (`bandDemonstrated`, six clean answers session-wide) is not
+  // re-proved on a later concept, and the report says so. Reading it off one
+  // random baseline sample tested the SAMPLE: with four sampled concepts only
+  // the last can clear the six-answer bar, and if that concept's bank expresses
+  // a single band it starts there and nothing is recorded. Before the ladder was
+  // capped at each concept's own ceiling the bar was cleared by the duplicate
+  // recall-band questions a shallow generator used to be asked for — the skip
+  // was real, but it was bought with the repetition this pass removed.
+  // So the rule is driven directly: the session is given a history that already
+  // demonstrates the recall band — six clean answers, `bandDemonstrated`'s own
+  // bar — and a fresh concept is asked what it does about it. NOTE the honest
+  // consequence of the cap, recorded here rather than hidden: because each
+  // concept now pays exactly two questions per band, a FOUR-concept sample
+  // rarely clears a six-answer bar in time to skip anything, so this stop earns
+  // its keep in longer sittings. It is a real rule either way, and a rule that
+  // only fires by accident of sampling is a rule worth driving.
+  const early = diag.newDiagnosticSession("maths");
+  early.concepts = [mkLadder("fractions"), mkLadder("negatives")];
+  // The history is attributed to a concept this sitting is not going to serve,
+  // because that is what a session's past looks like from the middle of it.
+  early.log = Array.from({ length: 6 }, () => ({ conceptId: "linear-equations", difficulty: 0.15, correct: true, source: "openmind_authored" }));
+  let eq = diag.nextQuestion(early), eguard = 0;
+  while (eq && eguard++ < 300) {
+    diag.gradeAnswer(early, eq.conceptId, eq, eq.answer);
+    eq = diag.nextQuestion(early);
+  }
+  const skipped = early.concepts.flatMap((c) => c.skippedBands ?? []);
+  const recallFree = early.concepts.filter((c) =>
+    !early.log.some((a) => a.conceptId === c.conceptId && bank.skillForDifficulty(a.difficulty) === "recall")).length;
   ok(recallFree > 0,
-    `and stops re-proving recall on every concept (${recallFree}/${concepts} concepts served no recall question at all; ${recall.estimate.attempts} recall-band probes)`);
-  const skipped = strong.concepts.flatMap((c) => c.skippedBands ?? []);
+    `and stops re-proving recall on every concept (${recallFree}/${early.concepts.length} concepts served no recall question at all)`);
   ok(skipped.length > 0, `a band the session had demonstrated is skipped on a later concept (${[...new Set(skipped)].join(", ")})`);
-  ok(strong.concepts.some((c) => (c.skippedBands ?? []).includes("recall")),
+  ok(early.concepts.some((c) => (c.skippedBands ?? []).includes("recall")),
     "recall is the band that gets skipped, and only after it was demonstrated");
-  ok(strong.concepts.filter((c) => c.skippedBands?.length).every((c) => c.stage > 0),
+  ok(early.concepts.filter((c) => c.skippedBands?.length).every((c) => c.stage > 0),
     "and a skipped concept really does start above the band it did not re-prove");
-  ok((diag.buildResult(strong).skippedBands ?? []).length > 0,
+  ok((diag.buildResult(early).skippedBands ?? []).length > 0,
     "the result REPORTS the skip, so a shorter report is visibly a decision");
+  // The other half, and the one this pass added: a concept whose bank expresses
+  // ONE band starts at that band whatever the session has demonstrated, so a
+  // "skip" that would change nothing is never recorded as one. A report must not
+  // claim a shortened measurement it did not make.
+  ok(early.concepts.filter((c) => diag.bandsFor(c.conceptId) === 1).every((c) => !(c.skippedBands ?? []).length),
+    "a concept that can express only one band records no skip, because it starts there anyway");
 
   // The direction that must never skip: a learner who has not shown it.
   const weakDemand = diag.demandEstimates(weak);
@@ -2489,14 +3875,49 @@ console.log("▸ THE PROOF: a diagnostic that changes the plan, and a retest tha
   const measuredWeak = state.progress[WEAK].mastery;
   ok(measuredWeak < 0.35, `the measurement puts it where it belongs (${measuredWeak.toFixed(2)})`);
   const planA = first(state);
-  ok(planA.conceptId === WEAK,
-    `the plan targets what the diagnostic found weak (${key(planA)} vs ${WEAK})`);
+  // WHAT THIS CLAIMS is the chain the whole architecture exists for: a
+  // measurement moved the plan. It used to assert that the first action IS the
+  // weak concept, which held only while the sampled concept happened to declare
+  // no prerequisites — the FOUNDATIONS branch (first, and deliberately so: a
+  // slip on a concept whose prerequisite was never met is the symptom and the
+  // prerequisite is the cause) addresses the weak concept THROUGH its declared
+  // foundation instead. Asserting the narrower thing pinned an accident of which
+  // concept the blueprint sampled, so the claim is the response itself.
+  const weakPrereqs = genome.CONCEPTS_BY_ID[WEAK]?.prereqs ?? [];
+  ok(planA.conceptId === WEAK || weakPrereqs.includes(planA.conceptId),
+    `the plan targets what the diagnostic found weak, directly or through a declared foundation (${key(planA)}; ${WEAK} declares ${weakPrereqs.join(", ") || "no prerequisites"})`);
   ok(planA.kind === "EXPLAIN" || planA.kind === "PRACTISE" || planA.kind === "REMEDIATE",
     `with real work, not a stretch or a rest (${planA.kind})`);
   ok(planA.evidence.length > 0 && planA.why.length > 0,
     "and it can say what it is based on and why now — the learner is never asked to take it on faith");
   ok(key(first(state)) === key(planA),
     "CONTROL: with no new evidence the plan does not move — the change below is caused, not drift");
+
+  // ── 1b. Nothing weak anywhere: continue at the learner's OWN level ────────
+  // Mastery is capped by each concept's own question bank, so it is not
+  // comparable across concepts and must not be the only key the plan ranks by.
+  // A one-band concept tops out at 0.90 while a four-band one reaches 0.98, so
+  // ranking by mastery put the SHALLOWEST concept in the course first — and
+  // offered "Stretch: Place value" to a learner who had just swept everything at
+  // their own level. That is the shape of defect this pins: absence of weakness
+  // is not a reason to go back to the beginning.
+  {
+    const mixed = diag.newDiagnosticSession("maths");
+    mixed.concepts = [mkLadder("place-value"), mkLadder("quadratics")];
+    let mq = diag.nextQuestion(mixed), mg = 0;
+    while (mq && mg++ < 120) {
+      diag.gradeAnswer(mixed, mq.conceptId, mq, mq.answer);
+      mq = diag.nextQuestion(mixed);
+    }
+    const swept = fresh();
+    diag.applyDiagnosticResult(swept, mixed);
+    ok(swept.progress["place-value"] && swept.progress["quadratics"]
+      && swept.progress["place-value"].mastery < swept.progress["quadratics"].mastery,
+      `SETUP: the one-band concept is scored lower than the deep one (${(swept.progress["place-value"]?.mastery ?? 0).toFixed(2)} < ${(swept.progress["quadratics"]?.mastery ?? 0).toFixed(2)}), so mastery alone would pick it`);
+    const sweptPlan = first(swept);
+    ok(sweptPlan.conceptId === "quadratics",
+      `a learner with nothing weak continues at their own level, not on the shallowest thing measured (${key(sweptPlan)})`);
+  }
 
   // ── 2. Work on it: hint-free practice, then a transfer proof.
   const practiceIds = [];
@@ -2510,8 +3931,22 @@ console.log("▸ THE PROOF: a diagnostic that changes the plan, and a retest tha
     `the work moves the learner model (${measuredWeak.toFixed(2)} → ${state.progress[WEAK].mastery.toFixed(2)})`);
   const planB = first(state);
   ok(key(planB) !== key(planA), `and the PLAN changes because of it (${key(planA)} → ${key(planB)})`);
-  ok(planB.kind !== "EXPLAIN" && planB.kind !== "REMEDIATE",
-    `the remediation is no longer the recommendation — the learner moved forward (${planB.kind})`);
+  // The point of this pair is that the plan is no longer about the concept the
+  // baseline flagged. Asserting the KIND was the weaker claim: after proving it,
+  // the learner is finished with that concept and the engine moves on to the
+  // next thing — which may itself be a repair, of a different concept, for a
+  // declared reason. What must never survive is the SAME recommendation.
+  ok(planB.conceptId !== WEAK,
+    `the concept the plan targeted is finished, and the plan moves on (${key(planA)} → ${key(planB)})`);
+  ok(planB.kind !== "REST" && planB.reason.length > 0,
+    `with real work and a stated reason (${key(planB)}: ${planB.reason})`);
+  // Why the plan can leave the concept at all: the ladder says it is finished.
+  // This is the invariant the old engine broke — successful evidence has to move
+  // the learner's STATE, not merely their mastery number — so assert the state.
+  const lm = require("../.verify/learner-model.js");
+  ok(lm.stageOf(state.progress[WEAK]) === "advance",
+    `and the ladder itself says this concept is finished (${lm.stageOf(state.progress[WEAK])})`);
+  ok(planB.conceptId !== null, `with real work to do next (${key(planB)})`);
 
   // ── 3. The wrong direction. Same amount of work, wrong answers.
   {
@@ -2550,8 +3985,8 @@ console.log("▸ THE PROOF: a diagnostic that changes the plan, and a retest tha
   ok(state.progress[WEAK].mastery >= measuredWeak,
     "the retest cannot walk the model backwards on evidence that has not changed");
   const planD = first(state);
-  ok(planD.kind !== "EXPLAIN",
-    `after an independent confirmation the plan is not remediation (${key(planD)})`);
+  ok(planD.conceptId !== WEAK,
+    `after an independent confirmation the plan is not working the baseline's concept again (${key(planD)} | WEAK=${WEAK})`);
   ok(retest.s.kind === "retest" && diag.buildResult(retest.s).probedConcepts.includes(WEAK),
     "and the sitting is recorded as its own measurement, so the gain is auditable later");
 }
@@ -2777,9 +4212,21 @@ console.log("\n▸ Where the learner is allowed to be");
     "and so does a gated learner route");
 
   // Intent is preserved, and the return target survives encoding.
+  //
+  // This assertion used to require `mode=signin`, and that requirement was the
+  // defect: a learner with no account and no profile was being sent to the
+  // SIGN-IN form — asked for credentials they had never had — and because the
+  // enrolment page reads `mode=signin` as "start on the sign-in form", the
+  // bounce also replaced the choice they had already made (including "continue
+  // without an account") and dropped them at step 1. A stranger and an
+  // un-enrolled learner are both simply learners who must finish setup, so they
+  // go to the same place; only the landing page's own Sign in link opens the
+  // sign-in form, deliberately.
   const strangerPapers = appState.resolveRoute(L.stranger, "/papers");
-  ok(strangerPapers.action === "redirect" && strangerPapers.to === "/onboarding?mode=signin&return=%2Fpapers",
-    `a stranger asking for /papers is sent to sign in AND back to /papers (got ${strangerPapers.to})`);
+  ok(strangerPapers.action === "redirect" && strangerPapers.to === "/onboarding?return=%2Fpapers",
+    `a stranger asking for /papers begins setup AND is returned to /papers (got ${strangerPapers.to})`);
+  ok(!strangerPapers.to?.includes("mode=signin"),
+    "and is NOT told to sign in, which would ask a brand-new learner for credentials they do not have");
   const unenrolledPapers = appState.resolveRoute(L.unenrolled, "/papers");
   ok(unenrolledPapers.to === "/onboarding?return=%2Fpapers",
     `an un-enrolled learner is sent to enrolment AND back to /papers (got ${unenrolledPapers.to})`);
@@ -2813,6 +4260,29 @@ console.log("\n▸ Where the learner is allowed to be");
     "a return target is only ever honoured as a same-origin absolute path");
   ok(appState.withReturn("/onboarding", "/") === "/onboarding",
     "asking for the landing page leaves no return parameter to honour");
+
+  // ── WHICH SUBJECTS A DIAGNOSTIC COVERS IS NOT HOW MANY TIMES IT WAS SAT ──
+  // The record is keyed by RUN (`subject:startedAt`). Home read those keys and
+  // printed each one's subject part, so the learner the live store actually
+  // holds — four maths runs from four walks — read "Diagnostic · Mathematics ·
+  // Mathematics · Mathematics · Mathematics" in the day's checklist: four
+  // identical words, no information, and no way for a reader to tell a bug from
+  // a subject list. The claim the record supports is which subjects have been
+  // measured, so re-sits must not change the sentence.
+  const runAt = (subject, at) => [`${subject}:${at}`, {}];
+  const withRuns = (pairs) => ({
+    profile: { id: "p1", onboardedAt: 1, subjects: ["maths"] }, progress: {},
+    diagnostics: Object.fromEntries(pairs.map(([s, at]) => runAt(s, at))),
+  });
+  const once = appState.diagnosedSubjects(withRuns([["maths", 1]]));
+  const fourTimes = appState.diagnosedSubjects(withRuns([["maths", 1], ["maths", 2], ["maths", 3], ["maths", 4]]));
+  ok(once.join() === "maths" && fourTimes.join() === "maths",
+    `re-sitting the diagnostic does not repeat the subject (${once.join(", ")} vs ${fourTimes.join(", ")})`);
+  const twoSubjects = appState.diagnosedSubjects(withRuns([["maths", 1], ["physics", 2], ["maths", 3]]));
+  ok(twoSubjects.join() === "maths,physics",
+    `and a second subject is named exactly once, however the runs interleave (${twoSubjects.join(", ")})`);
+  ok(appState.diagnosedSubjects(withRuns([])).length === 0 && appState.diagnosedSubjects(null).length === 0,
+    "a learner with no diagnostic at all names no subject, rather than an empty word");
 
   // Every word the guard can put on screen exists in all 15 languages, and the
   // reason keys it can emit are drawn from that same closed set.
@@ -3417,8 +4887,54 @@ console.log("\n▸ On-device AI, on the phone the learner has");
     px({ questionId: "jp4" }),
   ]);
   checkStage("practice", jt + 1000);
-  ok((jstate.progress[WEAK]?.independent?.asked ?? 0) === 3,
-    "hinted work is recorded but never counted as independence proof");
+  // The count includes the SITTING's own answers. Every diagnostic question is
+  // hint-free by construction, so the sitting IS independence evidence — the
+  // ledger records `mode: "independent"` for each of those answers and My
+  // Evidence already projected them that way, so a model that dropped the
+  // dimension was calling one answer two things (Home said "Supported — you
+  // got there with support" about work given with no help available).
+  // What this pin is named for is what must stay true: the guided answer above
+  // is work done and nothing more.
+  const weakSitting = jsess.concepts.find((c) => c.conceptId === WEAK);
+  const weakInd = jstate.progress[WEAK]?.independent;
+  // Three of the four practice answers above were hint-free (jp1, jp3, jp4),
+  // and jp3 was deliberately WRONG — so it is asked and not correct. The
+  // guided answer (jp2) is in neither count: asked would be 6 if it were.
+  ok((weakInd?.asked ?? 0) === (weakSitting?.asked ?? 0) + 3 &&
+     (weakInd?.correct ?? 0) === (weakSitting?.correct ?? 0) + 2,
+    `the independence count is exactly the hint-free work: the sitting's ${weakSitting?.asked}/${weakSitting?.correct} answers plus the 3 hint-free practice answers (one of them wrong), read as ${weakInd?.asked}/${weakInd?.correct} — the guided answer is in neither, which is why it shows up only in \`attempts\``);
+  ok((jstate.progress[WEAK]?.attempts ?? 0) === (weakSitting?.asked ?? 0) + 4,
+    "and the guided answer is in the tally as work done, beside the sitting's own");
+
+  // ── WHAT A SITTING'S OWN ANSWER PROVED, IN EVERY SURFACE THAT READS IT ───
+  // One answer, one verdict. The ledger mints `mode: "independent"` for every
+  // diagnostic answer (the sitting has no hint action at all), and My Evidence
+  // projects the ledger — so the model must carry the same fact, or Home's
+  // chip reads "Supported — you got there with support" about work given with
+  // no help available, and lib/mastery.ts caps the concept at 0.75 for want of
+  // a proof the learner's own record holds.
+  const diagOnly = store.newProfileState("diag-only");
+  // A learner who swept the concept's whole ladder in the sitting: the rung
+  // where the missing dimension actually bit. The claim the SITTING made was
+  // 0.98; the model held it at 0.75 for "no proof" and now holds it at 0.85 for
+  // the independence the ledger recorded. It is still short of mastery — that
+  // needs transfer — which is the cap doing its job, not an over-claim.
+  const cleanLadder = {
+    conceptId: "fraction-ops", stage: 3, askedThisStage: 2, correctThisStage: 2,
+    done: true, asked: 8, correct: 8, usedSeeds: [], servedDifficulty: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8],
+  };
+  diag.applyDiagnosticEvidence(diagOnly, "fraction-ops", cleanLadder, {}, 1000);
+  const diagRow = diagOnly.progress["fraction-ops"];
+  ok(proofMod.strongestProof({
+      correct: diagRow.correct,
+      independentCorrect: diagRow.independent?.correct ?? 0,
+      transferCorrect: 0, retentionCorrect: 0,
+    }) === "independent",
+    "a hint-free diagnostic answer is independence evidence in the model, so Home's chip says what My Evidence's projection of the same ledger says");
+  const withSitting = mastery.integratedMastery(diagRow).integrated;
+  const withoutSitting = mastery.integratedMastery({ ...diagRow, independent: undefined }).integrated;
+  ok(withSitting > 0.8 && withoutSitting <= 0.75,
+    `and the claim is not held at 0.75 for want of a dimension the sitting itself supplies (${withSitting.toFixed(2)} with the independence the ledger recorded, ${withoutSitting.toFixed(2)} with it dropped, ${diagRow.mastery.toFixed(2)} measured)`);
   ok((jstate.progress[WEAK]?.misconceptions?.["common-denominator"] ?? 0) === 1,
     "and the wrong answer's slip is in the model as well as in the ledger");
 
@@ -3951,8 +5467,13 @@ console.log("▸ Two learners, one bank, different evidence");
   ok(topStrong && topWeak, "both learners are given a next action");
   ok(topStrong.kind !== topWeak.kind,
     `the same items answered differently produce DIFFERENT next work (${topStrong.kind}:${topStrong.conceptId} vs ${topWeak.kind}:${topWeak.conceptId})`);
-  ok(topStrong.kind === "TRANSFER" && topStrong.conceptId === CONCEPT,
-    `the learner who got them all is asked to take the idea into unfamiliar wording (${topStrong.kind}:${topStrong.conceptId})`);
+  // The strong learner's next work must be STRETCH work on the concept they
+  // proved — and the engine may only call it TRANSFER if the concept's
+  // questions can be re-framed at all (lib/transfer.ts#canTransfer). The pair
+  // below is the assertion that the product never promises a measurement it
+  // cannot make.
+  ok(topStrong.kind === (transferMod.canTransfer(CONCEPT) ? "TRANSFER" : "CHALLENGE") && topStrong.conceptId === CONCEPT,
+    `the learner who got them all is given stretch work on that idea${transferMod.canTransfer(CONCEPT) ? ", on an unfamiliar surface — this concept CAN be re-framed" : " — deeper, because this concept has no second surface to move to"} (${topStrong.kind}:${topStrong.conceptId})`);
   ok(topWeak.kind === "EXPLAIN" && topWeak.conceptId === CONCEPT,
     `and the learner who missed them is asked to rebuild the idea first (${topWeak.kind}:${topWeak.conceptId}) — same content, not the same advice`);
 
@@ -4124,6 +5645,32 @@ console.log("▸ Retention is measured, never assumed");
   await answer({ i: 3, at: at + 2 * interval * DAY, correct: false, source: "retrieval" });
   ok(rowOf(CONCEPT, "retention")?.rate?.asked === 2 && rowOf(CONCEPT, "retention")?.rate?.correct === 1,
     `forgetting is recorded rather than hidden: the failed delayed recall counts as asked, not correct (${rowOf(CONCEPT, "retention")?.rate?.correct}/${rowOf(CONCEPT, "retention")?.rate?.asked})`);
+
+  // ── THE STATE, WHICH A RATIO CANNOT EXPRESS ──────────────────────────────
+  // 1 of 2 describes a learner who held this and has since lost it AND one who
+  // never held it until today. The rule reads the LATEST outcome for exactly
+  // that reason, and the row a learner reads carries its word.
+  const proofMod2 = require("../.verify/proof.js");
+  ok(proofMod2.retentionState({ asked: 2, correct: 1, lastHeld: false }) === "forgotten",
+    "held-then-lost is FORGOTTEN, not \"retained 1 of 2\" — the latest outcome decides, not the ratio");
+  ok(proofMod2.retentionState({ asked: 2, correct: 1, lastHeld: true }) === "retained",
+    "and lost-then-held is RETAINED off the same ratio — the two histories are different states");
+  ok(proofMod2.retentionState({ asked: 0, correct: 0, lastHeld: null }) === "unmeasured",
+    "a concept with no delayed recall is UNMEASURED — an absence is never read as a failure");
+  ok(proofMod2.retentionState(undefined) === "unmeasured" && proofMod2.retentionState({ asked: 1, correct: 0, lastHeld: null }) === "forgotten",
+    "and a record built before the outcome was kept falls back to what its counts can still honestly support");
+  ok(rowOf(CONCEPT, "retention")?.state === "forgotten",
+    `the row the surface renders carries that state (${rowOf(CONCEPT, "retention")?.state}) — and ${proofMod2.retentionLabelKey("forgotten")} is the key it renders, from the rule rather than the page`);
+
+  // The boundary of the owned rule, seen from the LEDGER'S side. The projection
+  // used to spell the three conditions out again beside a comment claiming to be
+  // identical to the live fold — which is how a rule with two owners drifts.
+  // Now both call `isRetentionEvidence`, and this says so behaviourally: an
+  // answer stamped as a retrieval an hour after the last evidence is not a
+  // delayed recall, because the GAP is the measurement.
+  await answer({ i: 0, at: at + 2 * interval * DAY + 3600e3, correct: true, source: "retrieval" });
+  ok(rowOf(CONCEPT, "retention")?.rate?.asked === 2 && rowOf(CONCEPT, "retention")?.state === "forgotten",
+    `and an hour later even a stamped retrieval buys nothing — short gap, no credit, and the state stays ${rowOf(CONCEPT, "retention")?.state} rather than being reset by same-sitting work`);
 
   // ── The review is refreshed, so the loop closes ──────────────────────────
   const now = at + 2 * interval * DAY;
@@ -4510,6 +6057,39 @@ console.log("▸ The teacher sees the ledger, not a claim");
     "and that module is the single place the rule is written");
   ok(fs2.readFileSync("lib/server/class-view.ts", "utf8").includes("projectionVersion: p.projectionVersion"),
     "every live row names the projection version that produced it");
+
+  // ── THE TEACHER IS A MEMBER, NOT A STUDENT ───────────────────────────────
+  // Measured on the surface first: a class one child had joined read "2
+  // students", listed the teacher as an unmeasured row, and put them in "needs
+  // attention" as `not_started` on every assignment they set. The rule now has
+  // one owner, and this is it behaving — membership kept (so the creator can
+  // read their own class) while studenthood is refused.
+  const membership = require("../.verify/server/class-membership.js");
+  const classView = require("../.verify/server/class-view.js");
+  const storeMod = require("../.verify/server/store.js");
+  // Two profiles that really exist: the live view resolves members through the
+  // store, so a synthetic roster alone would prove nothing about it.
+  const TID = "pin_teacher_cls", CID = "pin_child_cls";
+  await storeMod.saveProfile(storeMod.newProfileState(TID, { handle: "Ravi_pin" }));
+  await storeMod.saveProfile(storeMod.newProfileState(CID, { handle: "Mira_pin" }));
+  const roster = {
+    id: "cls_pin", name: "Year 10", teacher: "teacher", joinCode: "ABC123", language: "en",
+    conceptIds: [], students: { Ravi_pin: {}, Mira_pin: { quadratics: 0.99 } }, createdAt: 0,
+    members: [TID, CID], membersById: { Ravi_pin: TID, Mira_pin: CID }, ownerId: TID,
+  };
+  const ownerState = await storeMod.getProfile(TID);
+  const childState = await storeMod.getProfile(CID);
+  ok(membership.isMemberOf(roster, ownerState) && membership.isTeacherOf(roster, ownerState),
+    "the class's creator is still a MEMBER of it — creating a class must not lock the teacher out of reading it");
+  ok(membership.isStudentOf(roster, childState) && !membership.isStudentOf(roster, ownerState),
+    "but only the child is one of its STUDENTS — membership and studenthood are different questions");
+  const view = await classView.liveRoster(roster);
+  ok(!("Ravi_pin" in view.students) && "Mira_pin" in view.students,
+    `the roster a teacher reads holds their students, not themselves (${JSON.stringify(Object.keys(view.students))})`);
+  ok(!("Ravi_pin" in view.live) && "Mira_pin" in view.live,
+    `so their class of one child counts ONE student, and the teacher appears in no row (${JSON.stringify(Object.keys(view.live))})`);
+  ok(roster.students.Ravi_pin !== undefined && view.students.Mira_pin?.quadratics === 0.99,
+    "while the STORED report is untouched — the fix is in the view the teacher reads, not in the record");
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -4622,6 +6202,189 @@ console.log("▸ Assigned work is derived, not counted");
   const fields = iface.split("\n").filter((l) => !/^\s*(\/\/|\/\*|\*)/.test(l)).join("\n");
   ok(!/\b(progress|complete|accuracy|rate|correct|score)\s*[?:]/.test(fields),
     "the STORED assignment is concepts and a deadline: there is no progress field for the monitor to drift from");
+
+  // 6. WHAT THE WORK PROVED (§10, §18), by the rule the learner reads under
+  // their own mark. A teacher's question is not only "did they finish, and how
+  // many were right": 80% taken with hints and 80% taken unaided are different
+  // outcomes, and until the monitor carried the verdict it could only show the
+  // number. Every case below is a near-miss of the same rule.
+  ok(row.concepts.fractions?.proof === "independent",
+    `an unaided right answer reads as independence, not merely a tick (${row.concepts.fractions?.proof})`);
+  ok(row.concepts.ratio?.proof === null,
+    "a concept whose only window answer was WRONG proves nothing — a miss is not support");
+  const hintedRow = av.deriveAssignmentProgress({ ...asg, id: "asg_hinted" }, "bk_2009", "student-1", [
+    mk({ at: T0 + 1000, questionId: "h1", correct: true, mode: "guided", hints: 2 }),
+  ]);
+  ok(hintedRow.concepts.fractions?.proof === "supported",
+    `right WITH hints is support, never independence (${hintedRow.concepts.fractions?.proof})`);
+  const transferredRow = av.deriveAssignmentProgress({ ...asg, id: "asg_tr" }, "bk_2009", "student-1", [
+    mk({ at: T0 + 1000, questionId: "t1", correct: true, mode: "transfer", source: "transfer" }),
+  ]);
+  ok(transferredRow.concepts.fractions?.proof === "transfer",
+    "and a re-framed answer is transfer evidence on the assigned concept too");
+  // Retention is measured across the member's WHOLE record, not the window: a
+  // due review set for revision is delayed recall of evidence that usually
+  // PREDATES the assignment, and a window-relative gap would make every one of
+  // them look like first contact.
+  const retainedRow = av.deriveAssignmentProgress({ ...asg, id: "asg_ret" }, "bk_2009", "student-1", [
+    mk({ at: T0 - 3 * DAY, questionId: "old", correct: true }),
+    mk({ at: T0 + 1000, questionId: "due", correct: true, source: "retrieval" }),
+  ]);
+  ok(retainedRow.concepts.fractions?.proof === "retained",
+    `delayed hint-free recall inside the window is retention, even though the evidence it is delayed FROM predates the assignment (${retainedRow.concepts.fractions?.proof})`);
+  const sameSittingRow = av.deriveAssignmentProgress({ ...asg, id: "asg_same" }, "bk_2009", "student-1", [
+    mk({ at: T0 + 1000, questionId: "a", correct: true }),
+    mk({ at: T0 + 2000, questionId: "b", correct: true, source: "retrieval" }),
+  ]);
+  ok(sameSittingRow.concepts.fractions?.proof === "independent",
+    "while a 'retrieval' a second after the last answer is not delayed recall — the day is the threshold, and the monitor reads the same one");
+  const allWrongRow = av.deriveAssignmentProgress({ ...asg, id: "asg_allwrong" }, "bk_2009", "student-1", [
+    mk({ at: T0 + 1000, questionId: "x1", correct: false, tags: ["common-denominator"] }),
+  ]);
+  ok(allWrongRow.concepts.fractions?.asked === 1 && allWrongRow.concepts.fractions?.proof === null,
+    "and the row still reports what was ASKED, so a null verdict reads as unproved rather than unmarked");
+  // The derivation imports the shared rule instead of growing its own, and the
+  // teacher's table names the verdict in the teacher's own language.
+  const avSrc = fs.readFileSync("lib/server/assignment-view.ts", "utf8");
+  ok(avSrc.includes('from "../proof"'),
+    "the monitor imports the ONE verdict rule rather than re-deriving it");
+  const teacherSrc = fs.readFileSync("app/teacher/page.tsx", "utf8");
+  ok(teacherSrc.includes("proofLabelKey(") && teacherSrc.includes('t("teach.proved")'),
+    "and the monitor's table names it, in a column the teacher can read");
+
+  // 6. WHAT THE HEADER SAYS ABOUT A CLASS OF ONE.
+  // The class header and the class card both read `{n} {students}`. The
+  // commonest class in the product is one child, and it read "1 students" on
+  // the screen whose whole job is to show a teacher their class at a glance.
+  // No plural machinery exists in this product; the established answer is a
+  // sibling key for the singular (see components/own-paper.tsx), so this pins
+  // both halves: the call site chooses it, and all fifteen dictionaries have it.
+  ok(teacherSrc.includes('students.length === 1 ? "teach.studentsOne"'),
+    "a class of one names its single student in the singular, not \"1 students\"");
+  for (const code of ["en", "de", "ja", "zh", "bn", "ar", "ur"]) {
+    ok(i18n.translator(code)("teach.studentsOne") !== "teach.studentsOne",
+      `and the singular is authored in ${code}, not fallen back to the key name`);
+  }
+  // Every concept link this page renders names the concept's OWN subject. It
+  // used to hard-code /learn/maths/, so a physics class's weakest concept
+  // pointed into the maths tree.
+  ok(!teacherSrc.includes("/learn/maths/") && teacherSrc.includes("getConcept(weakest[0])?.subject"),
+    "and a class's weakest concept links under the concept's own subject, not an assumed one");
+
+  // 7. WHICH HOME A RETURNING TEACHER LANDS IN.
+  // The destination was read from the wizard's own role radio, whose default is
+  // "student" — and a signed-in learner never sees that step, so the radio could
+  // not be corrected by the one person it was wrong for: every teacher who
+  // signed back in was sent to a student's Home. The account's role is the only
+  // truth for an account that exists; the form's answer still decides for the
+  // account being created in that same submit. A client-side redirect cannot be
+  // exercised over HTTP, so this is a source pin — it states the rule and the
+  // fallback, and fails if either half is dropped.
+  const onbSrc = fs.readFileSync("app/onboarding/page.tsx", "utf8");
+  ok(onbSrc.includes("const accountRole = session.account?.role") &&
+     onbSrc.includes('const isTeacherAccount = accountRole ? accountRole !== "student" : role === "teacher"'),
+    "a returning teacher's destination comes from the ACCOUNT's role, with the form's value only for the account being created");
+  ok(onbSrc.includes("if (!wanted && isTeacherAccount && mode !== \"guest\")"),
+    "and the redirect reads that one answer rather than the wizard's radio");
+  // An org account sets work too, so it must not be filed with the students —
+  // §2's school path is the gap, not a reason to send a school to /dashboard.
+  ok(/accountRole !== "student"/.test(onbSrc),
+    "while an organisation account (a school) is not filed as a learner");
+
+  // 7b. MEMBERSHIP IS IDENTITY, NOT A NAME.
+  // The rule used to fall back to the display handle — "does this class have a
+  // row with my name on it?" — so a fresh account sharing a name with a real
+  // member was a member of a class it had never joined: it could read the class,
+  // sit in the teacher's roster, be handed work and have its evidence read
+  // beside real students. Two learners with one name also took turns owning one
+  // row. The rule is the id the join recorded; legacy rosters are reconciled
+  // ONCE by bindLegacyHandles, and only when the name is unambiguous.
+  const cm = require("../.verify/server/class-membership.js");
+  const mkState = (id, handle) => ({ profile: { id, handle }, progress: {}, masteries: {} });
+  const [alexA, alexB] = [mkState("stu_a", "Alex"), mkState("stu_b", "Alex")];
+  const roster = {
+    id: "cls_names", name: "Names", teacher: "teacher", joinCode: "ABC123", language: "en",
+    conceptIds: [], students: { Alex: {} }, members: ["stu_a"], membersById: { Alex: "stu_a" },
+    ownerId: "stu_a", createdAt: 0,
+  };
+  ok(cm.isMemberOf(roster, alexA) === true, "the learner the join recorded is a member");
+  ok(cm.isMemberOf(roster, alexB) === false,
+    "and a DIFFERENT learner with the same display name is not — a name is not an identity");
+  ok(cm.isMemberOf({ ...roster, members: undefined, membersById: undefined }, alexA) === false,
+    "a roster with no identity recorded at all grants nobody membership (no name matching)");
+  ok(cm.handleOf(roster, "stu_a") === "Alex" && cm.handleOf(roster, "stu_b") === null,
+    "and a member's own row is named by identity, not by the profile's display name");
+  // The one-shot reconciliation: unambiguous binds once, ambiguous refuses.
+  const legacy = { ...roster, students: { Alex: {} }, members: undefined, membersById: undefined, ownerId: undefined };
+  ok(cm.bindLegacyHandles({ ...legacy }, [alexA, alexB]) === false,
+    "a legacy handle TWO profiles carry is left unbound — no guess about who it is");
+  const ambiguous = { ...legacy };
+  cm.bindLegacyHandles(ambiguous, [alexA, alexB]);
+  ok(cm.isMemberOf(ambiguous, alexA) === false && cm.isMemberOf(ambiguous, alexB) === false,
+    "so neither of them is a member of it");
+  const oneOwner = { ...legacy };
+  ok(cm.bindLegacyHandles(oneOwner, [alexA]) === true && oneOwner.membersById.Alex === "stu_a" && oneOwner.ownerId === "stu_a",
+    "while an unambiguous one is bound ONCE — identity written down, creator named");
+  ok(cm.bindLegacyHandles(oneOwner, [alexA]) === false && cm.isMemberOf(oneOwner, alexA) === true,
+    "and reconciling again is a no-op that still leaves the member a member");
+  // Neither membership decision may consult a name, and the join may not rebind.
+  const cmSrc = fs.readFileSync("lib/server/class-membership.ts", "utf8");
+  const cvSrc = fs.readFileSync("lib/server/class-view.ts", "utf8");
+  const joinSrc = fs.readFileSync("app/api/classes/route.ts", "utf8");
+  ok(!/Object\.keys\(cls\.students\)\.includes/.test(cmSrc),
+    "no membership decision matches a handle against the roster");
+  ok(!/byHandle/.test(cvSrc), "and the roster resolves members by id only");
+  ok(joinSrc.includes("freeHandle(cls,") && !/const free = /.test(joinSrc),
+    "with the join asking the ONE rule for its handle instead of rebinding");
+  ok(cmSrc.includes("export function freeHandle") && cmSrc.includes("export function hasRow"),
+    "and that rule — plus 'does this learner have a row' — owned by one module");
+  // ONE RULE FOR "WHAT ROW DOES THIS LEARNER GET?", used by the join AND by the
+  // migration: a handle already bound to somebody else is never taken over.
+  const taken = { ...roster, students: { Alex: {}, "Alex 2": {} }, membersById: { Alex: "stu_a", "Alex 2": "stu_b" }, members: ["stu_a", "stu_b"] };
+  ok(cm.freeHandle({ ...taken }, "Alex", "stu_c") === "Alex 3",
+    `a joiner named Alex gets the first free row, never one bound to another learner (${cm.freeHandle({ ...taken }, "Alex", "stu_c")})`);
+  ok(cm.freeHandle({ ...taken }, "Alex", "stu_b") === "Alex 2",
+    "while a learner who already has a row keeps it — the numbered one the roster gave them, not the other learner's");
+  ok(cm.freeHandle({ students: { Alex: {} }, membersById: {}, members: [] }, "Alex", "stu_c") === "Alex 2",
+    "and a row with no identity is not handed to a new joiner either");
+  // THE RESIDUE: a member whose row the old join rebound onto somebody else.
+  // Their id is in `members` (identity recorded) but no row points at them, so
+  // the teacher's table could not show them. Reconciliation writes the row.
+  const lostRow = { ...roster, students: { Alex: {} }, members: ["stu_a", "stu_b"], membersById: { Alex: "stu_a" }, ownerId: "stu_a" };
+  ok(cm.hasRow(lostRow, "stu_b") === false,
+    "a member whose row was taken by a same-named joiner has no row");
+  ok(cm.bindLegacyHandles(lostRow, [alexA, alexB]) === true && lostRow.membersById["Alex 2"] === "stu_b",
+    "reconciliation gives them a row of their own, under a free handle");
+  ok(lostRow.membersById.Alex === "stu_a" && lostRow.ownerId === "stu_a",
+    "without taking the row that now belongs to the other learner, or the class's ownership");
+  ok(cm.bindLegacyHandles(lostRow, [alexA, alexB]) === false && lostRow.membersById["Alex 2"] === "stu_b",
+    "and reconciling again is a no-op, so the repair cannot churn");
+
+  // 8. A FAILED READ IS NOT AN EMPTY CLASS (§24).
+  // Both reads used to `return` on a bad response: an expired session or a 500
+  // became an empty roster and "No work set yet." — the failure rendered as
+  // good news. The state is now reported and retryable through the product's
+  // own error state, so the assertion is that neither door swallows a status.
+  ok(!/if \(!res\.ok\) return;/.test(teacherSrc),
+    "the teacher's reads never turn a failed request into an empty class list");
+  // …AND THE OTHER HALF OF §24: a read IN FLIGHT is not an empty class either.
+  // The page destructured only `state` from the hook, so every load began by
+  // rendering the create form, an empty class list and "No work set yet." to a
+  // teacher who has classes and work — a failure-shaped screen for a state that
+  // is not a failure. The hook already exposes `loading`; the page asks now, and
+  // the class list is gated on it instead of being rendered empty.
+  ok(teacherSrc.includes("loading } = useProfile()"),
+    "the teacher's page reads the profile's LOADING state from the hook");
+  ok(teacherSrc.includes("<Loading") && /\{\s*loading\s*\?/.test(teacherSrc),
+    "and shows a loading state while the profile is in flight");
+  ok(!teacherSrc.includes("{classes.map((cls) => {") && teacherSrc.includes("{!loading && classes.map((cls) => {"),
+    "with the class list (and everything derived from it) rendered only once it has landed");
+  ok(teacherSrc.includes("setReadErr(") && teacherSrc.includes("<ErrorState") && teacherSrc.includes("\"teach.readFailed\""),
+    "and the failure reaches the shared error state with a retry, in the teacher's own language");
+  for (const code of ["en", "es", "fr", "de", "ar", "hi", "ja", "zh", "bn", "sw", "id", "tl", "pt", "ur", "fa"]) {
+    ok(i18n.translator(code)("teach.readFailed") !== "teach.readFailed",
+      `the read-failure sentence is authored in ${code}`);
+  }
 
 }
 
@@ -4889,8 +6652,19 @@ console.log("▸ AI explains, never records");
       "3c runs with no model configured — the fallback IS the feature under test");
     ok(groundedTurn.reply.includes(served.prompt),
       `the offline reply is grounded in the question ON THE SCREEN (${JSON.stringify(served.prompt.slice(0, 40))}…)`);
-    ok(g.serveReason !== null && groundedTurn.reply.includes(g.serveReason),
-      `and in the practice engine's own serve reason ("${g.serveReason}" — the same target the strip derives)`);
+    // The reason is spoken ONLY where it is the only grounding there is. When
+    // the caller is a surface that already renders the decision's reason under
+    // the reply (the exercise panel fills `grounding` into tutor.whyThis),
+    // repeating it as a sentence put the same closing clause on every message
+    // — the canned paragraph §11 forbids. Both halves are asserted, because
+    // either one alone is a way to get this wrong: drop it everywhere and the
+    // room/offline callers lose their only context, keep it everywhere and the
+    // panel reads as a script.
+    const solo = await tutorMod.tutorTurn({ ...turnIn, questionText: null });
+    ok(g.serveReason !== null && solo.reply.includes(g.serveReason),
+      `with no question on screen the reply names the practice engine's own serve reason ("${g.serveReason}" — the same target the strip derives)`);
+    ok(!groundedTurn.reply.includes(`OpenMind served this one to ${g.serveReason}`),
+      "and with the question on screen it does NOT restate a reason the surface is already showing under the reply — the tutor stops reading as canned text");
     if (g.misconceptions.length) {
       const hit = g.misconceptions[0];
       ok(groundedTurn.reply.includes(hit.name),
@@ -5190,6 +6964,455 @@ console.log("▸ AI explains, never records");
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// THE FIRST RUN (the enrolment wizard and the door into it)
+// ════════════════════════════════════════════════════════════════════════════
+// Setup is the one flow every learner must complete, and it is the only place
+// where a wrong answer costs the whole session rather than one question. These
+// are the failures that were found by walking it as a stranger.
+{
+  const onb = fs.readFileSync("app/onboarding/page.tsx", "utf8");
+
+  // ── The culture vocabulary has one owner ───────────────────────────────
+  // lib/culture.ts owns the ids the concept page reads back through
+  // `exampleFor` when it chooses the case a worked example is set in. The form
+  // used to carry its own list, with ids the owner does not know (`farm`,
+  // `market`, `city`) and two of them labelled with the same string — so the
+  // learner saw the same option twice, the choice silently fell back to neutral,
+  // and the two authored cultures the form never offered were unreachable.
+  ok(onb.includes("CULTURES") && onb.includes("cultureLabel"),
+    "the enrolment form renders the culture list from its owner (lib/culture.ts)");
+  ok(!/cult\.(neutral|agriculture|urban)/.test(onb),
+    "and does not keep a second copy of the labels in the old key family");
+  ok(!/id: "(farm|market|city)"/.test(onb),
+    "nor a second set of ids the engine cannot resolve");
+
+  // ── A radio GROUP is not a label ───────────────────────────────────────
+  // Wrapping the legend and the options in one <label> made each option's
+  // accessible name the whole group ("MINUTES A DAY 10 min 20 min 30 min 45 min
+  // 60 min"), which is unusable with a screen reader. Nested labels are the
+  // shape of that bug, so the shape is what is forbidden.
+  {
+    // Scan the CODE, not the prose: a comment explaining this rule necessarily
+    // contains the string "<label>", and a pin that counts its own explanation
+    // fails on the sentence describing the fix.
+    const code = onb
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+      .split("\n")
+      .filter((l) => !/^\s*\/\//.test(l))
+      .join("\n");
+    const tokens = code.match(/<label\b|\/label>/g) ?? [];
+    let depth = 0;
+    let deepest = 0;
+    for (const tk of tokens) {
+      if (tk === "<label") depth++;
+      else depth = Math.max(0, depth - 1);
+      deepest = Math.max(deepest, depth);
+    }
+    ok(deepest <= 1, `no label sits inside another label in the wizard (deepest ${deepest})`);
+    const groups = onb.match(/role="radiogroup"/g)?.length ?? 0;
+    ok(groups >= 4, `every radio group is named as a group (${groups} found)`);
+  }
+
+  // ── No step refuses to continue without saying why ────────────────────
+  // `Next` is disabled on two steps whose requirement is not obvious: the
+  // subjects step (at least one subject) and the course step (a course per
+  // subject). On both, the reason is printed where the learner is looking — and
+  // on the subjects step it replaced a lead sentence that claimed "Subjects:
+  // Mathematics" while Mathematics was unchecked, which is worse than silence.
+  ok(onb.includes('subjects.length === 0 ? t("onb.needSubject")'),
+    "the subjects step states its requirement instead of promising a default it no longer has");
+  // The course step used to say "needs a course" for every gap — the same mistake
+  // the Home card made before it named the field, and the one that turned this
+  // step into a loop. A course has four parts, the gate reports WHICH are
+  // missing, and the step now prints them.
+  ok(onb.includes('fill(t("next.courseMissing")') && onb.includes("FIELD_LABEL["),
+    "the course step names the PART of the course it is waiting for, from the labels the Home card uses");
+  // ...AND CAN SATISFY WHAT IT DEMANDS. Measured live: a learner who left the
+  // year group alone on step 2 (the select's default IS the placeholder, so that
+  // is every learner who did not go looking) chose a qualification and a tier,
+  // and `Next` stayed dead with nothing left on the screen to change. The field
+  // blocking it is asked for here, and its placeholder cannot be picked — on a
+  // route with grades, "I'm learning independently" is not one.
+  ok(onb.includes('courseMissing.some((m) => m.missing.includes("grade"))'),
+    "the course step can set the year group it is missing, instead of sending the learner back a step");
+  ok(onb.includes('<option value="" disabled>{t("onb.grade")}</option>'),
+    "and the year group it asks for cannot be answered with the placeholder");
+
+  // ── A step change is a page change ─────────────────────────────────────
+  // Measured on a phone: advancing left the new step wherever the last one was
+  // scrolled to — the step counter 102px ABOVE the viewport and the heading 57px
+  // above it — and focus fell back to <body> because the `Next` that was clicked
+  // no longer exists, so a screen-reader user heard nothing. The new step opens
+  // at its top, with focus on the single element that names it.
+  ok(/useEffect\(\(\) => \{[\s\S]{0,400}?window\.scrollTo\(0, 0\)[\s\S]{0,240}?heading\.focus\(\{ preventScroll: true \}\)/.test(onb),
+    "a step change scrolls to the top and puts focus on the heading that names the screen");
+  ok(onb.includes("}, [step]);"),
+    "and it runs on the step change rather than on every render");
+  ok(fs.readFileSync("app/globals.css", "utf8").includes('h1[tabindex="-1"]:focus'),
+    "the heading focus target carries no focus ring — in the marking red it read as an error box around the title");
+
+  // ── The account gate says what it wants ──────────────────────────────
+  // Filling in all three boxes and getting a dead button with no reason is how a
+  // first run loses someone: measured with email "abc", an 8-character password
+  // and a name, `Next` was disabled and silent — above a password hint the
+  // learner had already satisfied. One value decides the gate, `canAdvance` reads
+  // it, and each field prints its own reason. These are the strings the SERVER
+  // used to send, reachable only through a button that was off.
+  ok(onb.includes('if (current === "account") return mode === "guest" ? true : acctIssue === null;'),
+    "the account step's button and its explanation are decided by one value");
+  ok(["email", "password", "name"].every((f) => onb.includes(`{issueFor("${f}")}`)),
+    "and every field of it prints its own reason where the learner is looking");
+  ok(onb.includes('className="field-error" role="status"'),
+    "in the field-error style the sheet already carried, announced rather than only drawn");
+
+  // ── No control that cannot be answered ─────────────────────────────────
+  // The course step is the one step a learner cannot pass without answering, and
+  // it offered a Level field whose only option was the placeholder — a control
+  // that looks required, cannot be satisfied, and borrowed the word from the
+  // field beside it ("I'm learning independently" as a LEVEL).
+  ok(onb.includes("levels.length > 0 &&"),
+    "the Level field is offered only when the chosen course has levels to choose");
+
+  // ── Said once, where it is true ────────────────────────────────────────
+  const noteUses = (onb.match(/t\("onb\.subjectsNote"\)/g) ?? []).length;
+  // The guard has to be attached to THIS render: `current === "account"` appears
+  // three times in the file, so asserting the string exists proves nothing about
+  // whether the note is the thing guarded.
+  const noteAt = onb.indexOf('🎓 {t("onb.subjectsNote")}');
+  const noteGuard = noteAt < 0 ? "" : onb.slice(Math.max(0, noteAt - 160), noteAt);
+  ok(noteUses === 2 && noteGuard.includes('current === "account" && ('),
+    `"Subjects: Mathematics" is the account step's reassurance only — as the subjects step's lead and nowhere else (${noteUses} uses, guard ${noteGuard.includes('current === "account" && (') ? "present" : "MISSING"})`);
+
+  // ── The screen says what the learner is doing, and why it moved ────────
+  ok(onb.includes('mode === "signin" ? "onb.signIn" : mode === "guest" ? "onb.guest" : "onb.acctTitle"'),
+    "the account step's heading states what the learner is actually doing");
+  ok(onb.includes('{pending && (') && onb.includes('t("state.newLearner")'),
+    "a learner sent here by the shell is told why, in the sentence the route contract already carries");
+  // The KEY VALUE is asserted, not the identifier: renaming a constant proves
+  // nothing, and `const MODE_KEY = ""` would leave every identifier in place.
+  ok(onb.includes('"openmind:acctMode"') &&
+     /localStorage\.setItem\(MODE_KEY, m\)/.test(onb) &&
+     /localStorage\.getItem\(MODE_KEY\)/.test(onb),
+    "and their account choice is written to and read back from this device, so a bounce cannot re-ask it");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// THE EXERCISE BOOK COUNTS THE QUESTION THE LEARNER IS LOOKING AT
+// ════════════════════════════════════════════════════════════════════════════
+// `count` is how many answers the SERVER has graded, and it is incremented when
+// an answer is graded — not when the next question loads. Reading `count + 1`
+// unconditionally therefore relabelled the page "Question 2 of 5" the instant Q1
+// was answered, while Q1's own "not yet" and its Explanation/Retry controls were
+// still what the learner was reading: the counter disagreed with the panel
+// beside it on the one screen that is a countdown. Three places printed the
+// counter, so they could disagree with each other too. Found by answering a
+// question as a learner and reading the two numbers.
+console.log("▸ The exercise header counts what is on screen");
+{
+  const conceptPage = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(!/Math\.min\(\s*count \+ 1\s*,\s*target\s*\)/.test(conceptPage),
+    "submitting an answer no longer advances the question number on the spot");
+  ok(/const qOrdinal = Math\.min\(graded \? count : count \+ 1, target\)/.test(conceptPage),
+    "the number shown is the question on screen: the answered one while its feedback is up, the next one otherwise");
+  // The predicate has to be the SAME value that chooses between the feedback and
+  // the choices on screen. `phase` looks equivalent and is not: the Next/Retry
+  // control clears `graded` and serves a fresh question without moving `phase`
+  // off "feedback", so a phase-based counter under-reports by one after a retry.
+  ok(conceptPage.includes("{graded && (") && !/qOrdinal = Math\.min\(phase/.test(conceptPage),
+    "and it reads the same fact the feedback UI is gated on, not a phase that can lag it");
+  const qFills = conceptPage.match(/fill\(t\("sess\.qOf"\), \{[^}]*\}\)/g) ?? [];
+  ok(qFills.length >= 3 && qFills.every((f) => f.includes("n: qOrdinal")),
+    `and every place that prints it reads that one value (${qFills.length} sites)`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// A PROMPT THAT NAMES WHAT IS MISSING, AND A SCREEN THAT CAN SUPPLY IT
+// ════════════════════════════════════════════════════════════════════════════
+// Home refuses to plan work on a course nobody finished choosing, which is
+// right. It then named every gap "needs a course" and sent the learner to the
+// course screen — but a course has four parts and the course screen could only
+// set two of them, so a learner missing only their YEAR GROUP was sent there,
+// could change nothing, came back, and read the same sentence. A loop with no
+// exit. The gap report always knew which field was missing; only the caller
+// dropped it.
+console.log("▸ A missing course is named by field, and can be finished where we send them");
+{
+  const card = fs.readFileSync("components/course-first.tsx", "utf8");
+  const feed = fs.readFileSync("components/next-step.tsx", "utf8");
+  const curr = fs.readFileSync("app/curriculum/page.tsx", "utf8");
+
+  ok(feed.includes("missing={gap.missing}"),
+    "the next-step card is handed which parts of the course are unset, not just the subject");
+  ok(card.includes("fill(t(\"next.courseMissing\")") && card.includes("FIELD_LABEL"),
+    "and it names them rather than calling every gap a missing course");
+  for (const field of ["country", "grade", "spec", "specLevel"]) {
+    ok(new RegExp(`^  ${field}: `, "m").test(card),
+      `every field the gap report can name has a label (${field})`);
+  }
+
+  // The destination has to be able to satisfy what the card names. `grade` and
+  // `country` were read by this screen and never written by it.
+  ok(/route\?\.grades \?\? \[\]\)\.map/.test(curr),
+    "the course screen offers the country's year groups");
+  ok(/\.\.\.\(grade \? \{ grade \} : \{\}\)/.test(curr),
+    "and saves the one the learner picks, so the card's prompt can be answered here");
+  ok(/\.\.\.\(countryId \? \{ country: countryId \} : \{\}\)/.test(curr),
+    "nor does an untouched country select write anything back");
+
+  // The phrase told the learner the field was missing in their OWN language, so
+  // every dictionary is checked.
+  //
+  // Read from the SOURCE, not from the compiled mirror: `translator()` falls back
+  // to English when a dictionary lacks the key, so a mirror-based check cannot
+  // see a missing entry at all (it reads the English one and passes) — and the
+  // mirror is not rebuilt by every run. This is the first pin that would notice a
+  // language quietly losing the sentence.
+  // `LANGS` is language METADATA (objects), not codes — passing one to
+  // `translator()` misses `DICTS[obj]` and silently answers in English, which is
+  // how a check can "pass" for fifteen languages while reading one.
+  const { LANG_CODES } = require("../.verify/i18n.js");
+  const i18nSrc = fs.readFileSync("lib/i18n.ts", "utf8");
+  const dictBody = (code) => {
+    const head = new RegExp(`^(export )?const ${code}: Dict = \\{`, "m").exec(i18nSrc);
+    if (!head) return null;
+    const end = i18nSrc.indexOf("\n};", head.index);
+    return end < 0 ? null : i18nSrc.slice(head.index, end);
+  };
+  const missing = LANG_CODES.filter((code) => {
+    const body = dictBody(code);
+    if (body === null) return true;
+    const entry = /"next\.courseMissing":\s*"([^"]*)"/.exec(body);
+    return !entry || !entry[1].includes("{fields}") || !entry[1].trim();
+  });
+  ok(missing.length === 0,
+    `the gap phrase is authored in all ${LANG_CODES.length} languages and keeps its placeholder${missing.length ? ` (missing or placeholder-free: ${missing.join(", ")})` : ""}`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ONE LIST OF WHAT ENROLMENT COLLECTED
+// ════════════════════════════════════════════════════════════════════════════
+// The wizard saves a profile through two doors — with an account, and without
+// one. Each carried its OWN hand-written list of the same fifteen fields, and
+// they had drifted: `termsMode`, collected one screen earlier, was in one list
+// and not the other. So a learner who enrolled WITHOUT an account chose "Local
+// terms only" and the server never heard it, while a signed-in learner's
+// identical choice was saved — the same choice, two outcomes, decided by which
+// door they came through. Found by the UI walk (scripts/ui-walk.mjs) asserting
+// the SERVER's copy against what the screen had just promised.
+console.log("▸ Enrolment is collected once");
+{
+  const onb = fs.readFileSync("app/onboarding/page.tsx", "utf8");
+  ok(/createProfile\(\{\s*\.\.\.enrolment\(\)/.test(onb),
+    "the no-account door sends the same package as the account door, rather than a second list");
+  const named = (onb.match(/^\s*termsMode,$/gm) ?? []).length;
+  ok(named === 1,
+    `and a choice the wizard collects is named in exactly one payload (termsMode appears in ${named})`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// FINISHING A SITTING CHANGES WHERE THE LEARNER BELONGS
+// ════════════════════════════════════════════════════════════════════════════
+// The report's primary CTA is "Home →". The route guard derives "is this learner
+// measured" from the shell's learner state, and nothing refreshed that state when
+// a sitting finished — so the CTA was bounced straight back into
+// `/diagnostic/maths?return=/dashboard` at question 01 of a NEW sitting. Walking
+// the first run found it; a reload hid it, because a fresh mount re-probes. The
+// sitting now refreshes the state the same way the exercise page does after
+// grading, and the report names itself instead of borrowing the button that
+// ended the sitting.
+console.log("▸ A reload mid-diagnostic resumes the sitting instead of replacing it");
+{
+  // FOUND BY PLAYTESTING, NOT BY READING. Two answers deep on the production
+  // build, one reload — and the page served a DIFFERENT question 01. Nothing had
+  // been lost from the ledger, but the learner's time was and, worse, the
+  // adaptive path the sitting had already chosen for them was discarded and
+  // re-decided. A reload is the most ordinary thing a learner does on a phone.
+  const route = fs.readFileSync("app/api/diagnostic/route.ts", "utf8");
+  const startBlock = /if \(body\.action === "start"\) \{[\s\S]*?\n    \}\n/.exec(route)?.[0] ?? "";
+  ok(startBlock.length > 0, "the start action is still there");
+  ok(startBlock.includes("live.lastQ"),
+    "a start with a live sitting re-serves the question that sitting was on");
+  ok(/const live = \(state as unknown as Record<string, unknown>\)\[sessionKey\]/.test(startBlock),
+    "and that sitting is read from the live session key, not assumed absent");
+  ok(/live\.kind === wantedKind/.test(startBlock),
+    "and it is resumed ONLY for the same kind, so a deliberate retest still measures independently");
+  ok(/const wantedKind = \(startKind[\s\S]*?\?\? live\?\.kind \?\? "probe"/.test(startBlock),
+    "an unspecified kind adopts the running sitting rather than silently starting a third kind");
+  ok(startBlock.includes("asked: live.log?.length ?? 0"),
+    "and reports how many probes the sitting has already answered");
+  // Re-serving a question must not spend it twice: the exposure was recorded
+  // when it was first served, and one question counted twice is two probes.
+  ok(!/resumed[\s\S]{0,400}?spend\(state, q\)/.test(startBlock),
+    "a resumed question is not spent against the exposure ledger a second time");
+
+  // The client must not relabel the resumed sitting as question 01 — that was
+  // the part the learner could actually see.
+  const diagPage = fs.readFileSync("app/diagnostic/[subject]/page.tsx", "utf8");
+  ok(/body\.resumed && body\.asked > 0/.test(diagPage),
+    "the page recognises a resumed sitting");
+  ok(/setN\(body\.asked \+ 1\)/.test(diagPage),
+    "and numbers it from where the sitting actually is, not from 1");
+  ok(diagPage.includes('t("state.resume")'),
+    "and says so on screen — a key already authored in every dictionary");
+  ok(/setResumed\(false\);\n/.test(diagPage),
+    "the notice is dropped once the learner answers, rather than haunting the whole sitting");
+
+  // FOUND WHILE PLAYTESTING THE SAME RUN. The concept page's eyebrow rendered
+  // the concept's raw internal `stage` — so a learner was greeted with a bare
+  // "0" beside the subject name, a number with no label and nothing to do. Every
+  // other `.no` marker in the shell is a glyph (`!`, `◍`, `✓`, `✎`), so this one
+  // read as a badge the app had failed to fill in.
+  const concept = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(!/<span className="no">\{String\(c\.stage\)\}<\/span>/.test(concept),
+    "the concept page does not surface the internal stage number as a badge");
+  ok(!/className="eyebrow"><span className="no">\{String\(/.test(concept),
+    "and the only numeral left in that eyebrow is the one it owns");
+}
+
+console.log("▸ Onboarding moves one step per press");
+{
+  // A triple-click on "Next" moved the step 1 → 4, skipping "About you" and
+  // "What are you studying?" entirely. Nothing was lost — it is the same state —
+  // which is exactly why it survived: it looked like progress. Found by clicking
+  // the way a phone double-tap does.
+  const onb = fs.readFileSync("app/onboarding/page.tsx", "utf8");
+  ok(onb.includes("const [advancing, setAdvancing] = useState(false);"),
+    "step navigation is latched, so one press is one step");
+  ok(onb.includes("const advanceLock = useRef(false);"),
+    "and the latch is a ref, not state — a state latch is read from the render closure, so three clicks in one tick all read the same stale false and all three advance");
+  ok(/const advance = \(\) => \{\s*if \(advanceLock\.current\) return;/.test(onb),
+    "and a second press in the same tick is refused before React re-renders");
+  ok(/useEffect\(\(\) => \{\s*advanceLock\.current = false;\s*setAdvancing\(false\);\s*\}, \[step\]\);/.test(onb),
+    "the latch releases on the NEW step, not on a timer that a slow double-click could outlast");
+  ok(/onClick=\{advance\} disabled=\{!canAdvance\(\) \|\| busy \|\| advancing\}/.test(onb),
+    "and the button itself is disabled for the step on screen");
+  ok(!/onClick=\{\(\) => setStep\(\(s\) => s \+ 1\)\}/.test(onb),
+    "the bare increment — the thing that skipped three steps — is gone");
+}
+
+console.log("▸ A finished diagnostic is a change to where the learner belongs");
+{
+  const diag = fs.readFileSync("app/diagnostic/[subject]/page.tsx", "utf8");
+  ok(diag.includes("const { set: setLearner } = useProfile();"),
+    "the diagnostic holds the shell's learner state");
+  ok(/if \(id\) \{\s*const fresh = await fetchProfile\(id\);\s*if \(fresh\) setLearner\(fresh\);/.test(diag),
+    "and refreshes it when the sitting finishes, so Home is not bounced back into the diagnostic");
+  ok(diag.includes('${t("diag.done")} →'),
+    "the button that ends the sitting keeps the label that says so");
+  // ...AND CANNOT BE PRESSED TWICE. `answer` has always refused a second
+  // submission while one was in flight; ending the sitting did not, so a
+  // double-click asked the server to finish twice — and the second ask is
+  // `400 no active session`, which the error branch puts on screen as raw server
+  // text mid-first-run. Measured against the live route: 200 then 400.
+  // Scoped to `next` ON PURPOSE: both pins below read a function whose guard
+  // exists to be escaped. `answer` carries its own try/finally with the same
+  // line, so a file-wide match would pass on the sibling whenever this one lost
+  // its release — a pin that measures the wrong function is a pin that lies.
+  const nextFn = /async function next\(\)[\s\S]*?\n  }\n/.exec(diag)?.[0] ?? "";
+  ok(nextFn.length > 0, "the diagnostic still has its next-step control");
+  ok(/if \(busy\.current\) return;\s*\n\s*busy\.current = true;\s*\n\s*try \{/.test(nextFn),
+    "and a second press is refused while the first is in flight");
+  // The guard must not latch: clearing it only on the success path would leave
+  // every later submission refused for the life of the page.
+  ok(/} finally \{\s*\n\s*busy\.current = false;/.test(nextFn),
+    "and the guard is released on every path, so the button cannot latch shut");
+  ok(diag.includes('<h1>{t("diag.report")}</h1>'),
+    "and the report titles itself with a heading of its own");
+  ok(!/<h1>\{t\("diag\.done"\)\}<\/h1>/.test(diag),
+    "rather than the instruction the learner just followed");
+
+  // THE SAME LEAK, AT THE ONE PLACE IT IS FATAL: ENROLMENT.
+//
+// The block above pins the diagnostic's half of one defect. Its other half was
+// never pinned, so it came back — and this time it is an infinite loop, not one
+// bounce. Walking a brand-new learner through all six onboarding steps on the
+// production build recorded, 39ms apart:
+//
+//   push("/dashboard")  →  replace("/diagnostic/maths?return=%2Fdashboard")
+//
+// `AppProvider` fetches the profile once per `generation` and re-probes only on a
+// session event or a FULL page load; a client-side `push` refreshes nothing. So
+// the guard still held the PRE-enrolment learner, refused the page enrolment had
+// just finished sending them to, and bounced them back to step 1 with the
+// `return` ticket still attached — which re-arms the identical bounce. Asking for
+// `/dashboard` is the most ordinary thing a new learner does (the nav's Home, the
+// landing page's "Go to your dashboard"), so this was the default first run.
+//
+// Two properties are pinned, and the second is the one that makes the first
+// sufficient: even with a perfectly fresh shell, a return ticket naming a
+// `diagnosed`-gated page is not a destination enrolment can honour, because
+// enrolment makes a learner `onboarded` and never `diagnosed`.
+console.log("▸ Enrolment hands over a learner the guard will actually admit");
+{
+  const onb = fs.readFileSync("app/onboarding/page.tsx", "utf8");
+  ok(onb.includes("const { set: setLearner } = useProfile();"),
+    "onboarding holds the shell's learner state, the state the guard reads");
+  // BEFORE the navigation, not after: the whole defect is the ordering.
+  ok(/if \(saved\) setLearner\(saved\);[\s\S]*?router\.push\(/.test(onb),
+    "and hands the profile it just wrote to that state BEFORE it navigates");
+  ok(!/router\.push\(wanted \|\| \(already \? "\/dashboard"/.test(onb),
+    "a return ticket is no longer pushed blindly, whatever it names");
+
+  // The destination is asked of the route contract rather than restated, so a
+  // new `diagnosed`-gated page cannot reintroduce the bounce by being added.
+  ok(onb.includes('import { accessFor, withReturn } from "@/lib/app-state";'),
+    "the destination is decided by the one owner of the access contract");
+  const reach = /const unreachable = wanted \? accessFor\(wanted\) === "diagnosed" : false;/.exec(onb)?.[0] ?? "";
+  ok(reach.length > 0, "and it treats a diagnosed-gated ticket as not yet reachable");
+  ok(/if \(wanted && \(already \|\| !unreachable\)\) \{\s*router\.push\(wanted\);/.test(onb),
+    "so an unmeasured learner is sent to the diagnostic instead, carrying the ticket forward");
+  ok(onb.includes("withReturn(`/diagnostic/${subject}`, wanted)"),
+    "and the ticket survives, so the learner still arrives where they originally asked to go");
+  ok(onb.includes('withReturn("/dashboard", wanted)'),
+    "an already-measured learner keeps their ticket through Home too");
+
+  // The loop is a property of the CONTRACT, so it is asserted as one: for every
+  // path the contract calls `diagnosed`, a learner who has just enrolled and not
+  // yet been measured must not be routed there. This is the check that would have
+  // caught it without a browser, and it cannot go stale as pages are added.
+  const { ACCESS_RULES, accessFor: accessForRule, resolveRoute, deriveLifecycle } =
+    require("../.verify/app-state.js");
+  const enrolledNotMeasured = deriveLifecycle({
+    auth: "signed_out",
+    profileStatus: "complete",
+    profile: { profile: { id: "p", subjects: ["maths"], onboardedAt: 1 }, progress: {}, diagnostics: {} },
+  });
+  const bounced = ACCESS_RULES
+    .filter((r) => r.requirement === "diagnosed")
+    .map((r) => [r.path, resolveRoute(enrolledNotMeasured, r.path)]);
+  ok(bounced.length > 0, "the contract really does gate at least one page on measurement");
+  ok(bounced.every(([, d]) => d.action === "redirect" && d.to.startsWith("/diagnostic/")),
+    "an enrolled-but-unmeasured learner is refused every diagnosed-gated page, and every refusal names the diagnostic");
+  // The property that closes the loop: none of those refusals points back at the
+  // page that would re-arm them. Onboarding is public, so a redirect to it can
+  // never come from here.
+  ok(bounced.every(([path, d]) => d.to !== path),
+    "and no refusal points back at the page that made the request");
+  ok(accessForRule("/onboarding") === "public",
+    "onboarding itself stays public, so a redirect to it can never re-arm the loop");
+  }
+
+  // Authored everywhere, like every other string a learner reads — checked at
+  // the source, so a missing key cannot pass by falling back to English.
+  const { LANG_CODES } = require("../.verify/i18n.js");
+  const i18nSrc = fs.readFileSync("lib/i18n.ts", "utf8");
+  const dictBody = (code) => {
+    const at = i18nSrc.indexOf(`const ${code}: Dict = {`);
+    if (at < 0) return null;
+    const end = i18nSrc.indexOf("\n};", at);
+    return end < 0 ? null : i18nSrc.slice(at, end);
+  };
+  const unauthored = LANG_CODES.filter((code) => {
+    const body = dictBody(code);
+    if (body === null) return true;
+    const entry = /"diag\.report":\s*"([^"]+)"/.exec(body);
+    return !entry || !entry[1].trim();
+  });
+  ok(unauthored.length === 0,
+    `the report heading is authored in all ${LANG_CODES.length} languages${unauthored.length ? ` (missing: ${unauthored.join(", ")})` : ""}`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // ONE COURSE PER SUBJECT (§1, §2, §9)
 // ════════════════════════════════════════════════════════════════════════════
 // "Universal curriculum" is only true if a learner can sit GCSE Maths and
@@ -5323,6 +7546,71 @@ console.log("▸ One course per subject");
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// THE YEARS A LEARNER CAN DECLARE
+// ════════════════════════════════════════════════════════════════════════════
+// A route's `grades` list is the years its system HAS, and the enrolment screen
+// renders it as exactly that. It was written with gaps — GB jumped Year 7 →
+// Year 9, AU skipped 8 and 9, NG skipped JSS 2 and SSS 2, 15 of 20 routes
+// affected — and the consequence is not cosmetic: `grade` is a REQUIRED course
+// field, `courseGaps` reports any value outside this list as missing, and the
+// step offers nothing else. So a whole cohort's real year could not be declared
+// at all: measured live, the GB select read "Year 7, Year 9, Year 10…", and a
+// Year 8 pupil had to claim to be Year 7 or Year 9.
+//
+// The rule is the system's own sequence, so it is checked AS a sequence: inside
+// each phase of a route (the digits stripped from the label — "JSS 2" and "JSS 3"
+// share a phase, "SMP 8" and "SMA 10" do not), the numbers run without a hole.
+console.log("▸ The years a learner can declare");
+{
+  const C = require("../.verify/curriculum.js");
+  const S = require("../.verify/specifications.js");
+  const { COUNTRIES } = require("../.verify/i18n.js");
+  const codes = [...COUNTRIES.map((c) => c.code), "INT", "XX"];
+  let routes = 0;
+  let holed = 0;
+  let dupes = 0;
+  for (const code of codes) {
+    const route = C.curriculumFor(code) ?? (code === "XX" ? C.INDEPENDENT_ROUTE : null);
+    if (!route) continue;
+    routes++;
+    const seen = new Set();
+    for (const g of route.grades) { if (seen.has(g)) dupes++; seen.add(g); }
+    const phases = new Map();
+    for (const g of route.grades) {
+      const n = Number((g.match(/\d+/) ?? [])[0]);
+      if (!Number.isFinite(n)) continue;
+      const phase = g.replace(/\d+/g, "").replace(/[º°]|st|nd|rd|th/gi, " ").replace(/\s+/g, " ").trim().toLowerCase();
+      if (!phases.has(phase)) phases.set(phase, []);
+      phases.get(phase).push(n);
+    }
+    for (const [phase, nums] of phases) {
+      const sorted = [...nums].sort((a, b) => a - b);
+      if (sorted[sorted.length - 1] - sorted[0] + 1 !== sorted.length) {
+        holed++;
+        ok(false, `${route.system}: the “${phase}” years skip one (${nums.join(", ")})`);
+      }
+    }
+  }
+  ok(routes >= 20, `every offered country's route was checked (${routes} routes)`);
+  ok(holed === 0, "and none of them skips a year of a phase it names");
+  ok(dupes === 0, "nor lists one twice");
+  // The case that was measured live: a UK Year 8 pupil, and the gate downstream.
+  const gb = C.curriculumFor("GB");
+  ok(gb.grades.includes("Year 8"), `a UK learner can declare Year 8 (${gb.grades.join(", ")})`);
+  const year8 = S.courseGaps(
+    { country: "GB", grade: "Year 8", subjects: ["maths"], subjectCourses: { maths: { spec: "uk-gcse", specLevel: "higher" } } },
+    "maths",
+  );
+  ok(!year8.includes("grade"), "and that declaration is not reported as a course field still missing");
+  // The other direction, so the list stays a check rather than decoration: a
+  // year the system does not have is still refused as a course field.
+  ok(S.courseGaps(
+    { country: "GB", grade: "Year 8 and a half", subjects: ["maths"], subjectCourses: { maths: { spec: "uk-gcse", specLevel: "higher" } } },
+    "maths",
+  ).includes("grade"), "while a year the system does not have is still refused");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // HOME = ONE DAY (what to do, why, and the deadline)
 // ════════════════════════════════════════════════════════════════════════════
 // Home has to answer four questions and nothing else: who am I / what am I
@@ -5407,12 +7695,17 @@ console.log("▸ Home: one day, one decision");
   ok(offline.includes('addEventListener("openmind:pack-ready"') &&
      fs.readFileSync("components/download-pack.tsx", "utf8").includes('dispatchEvent(new Event("openmind:pack-ready"))'),
     "and downloading it fills in the plan on the spot rather than looking dead");
-  // One primary CTA on Home, and it is the decision's: the only other `btn` in
-  // the file belongs to the earlier "no profile yet" branch, which returns
-  // before the decision is rendered.
-  ok((home.match(/className="btn"/g) ?? []).length === 1 &&
-     home.indexOf('className="btn"') < home.indexOf("<NextStep"),
+  // One primary CTA on Home, and it is the DECISION's — so Home itself
+  // declares no primary button at all. (It used to hold one, in a "no profile
+  // yet" branch that returned before the decision; that branch is now a
+  // skeleton, because "we have not read your profile" and "you have no
+  // profile" are different sentences and only the second could offer a
+  // button. The claim here is therefore stricter than it was: no button in
+  // this file can compete with the card, at all.)
+  ok((home.match(/className="btn"/g) ?? []).length === 0,
     "Home renders no competing primary button beside the engine's own CTA");
+  ok(home.includes("<Loading"),
+    "and where the profile used to be claimed missing, it now waits — a skeleton, not a page of zeros");
 
   // One presentation of the record, not two that drift.
   ok(progress.includes('<RecentAnswers ledger={ready}') && home.includes("<RecentAnswers ledger={ledger}"),
@@ -5424,6 +7717,238 @@ console.log("▸ Home: one day, one decision");
   for (const route of ["app/learn/[subject]/page.tsx", "app/mind/page.tsx", "app/progress/page.tsx", "app/curriculum/page.tsx", "app/offline/page.tsx"]) {
     ok(fs.existsSync(route), `${route} still exists — nothing was removed by moving it off Home`);
   }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// THE SHELL, THE LANDING PAGE AND THE EXERCISE SCREEN (UI spec)
+// ════════════════════════════════════════════════════════════════════════
+// The visual work is checked at the SOURCE, for the same reason the Home
+// refactor is: a screenshot proves what one render did on one screen, and
+// these are claims about every render path.
+{
+  const nav = fs.readFileSync("components/nav.tsx", "utf8");
+  const land = fs.readFileSync("app/page.tsx", "utf8");
+  const concept = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  const panel = fs.readFileSync("components/tutor-panel.tsx", "utf8");
+  const dimsSrc = fs.readFileSync("components/dims.tsx", "utf8");
+  const help = fs.readFileSync("app/help/page.tsx", "utf8");
+
+  // ── §shell: navigation never moves ──────────────────────────────────────
+  // Six learning destinations, in one list, rendered as both the sidebar and
+  // the phone bar. A destination reachable on a laptop and missing on the
+  // phone the product is built for is the bug this list exists to prevent.
+  for (const href of ["/dashboard", "/learn", "/papers", "/progress", "/mind", "/projects"]) {
+    ok(nav.includes(`href: "${href}"`), `the sidebar carries ${href} as a primary destination`);
+  }
+  ok(/const PHONE = PRIMARY\.slice\(0, 4\)/.test(nav),
+    "the phone bar renders the same list, not a second one that can drift");
+
+  // ── Every destination the shell offers must GO somewhere ────────────────
+  // The loop above proves each href is DECLARED. It cannot prove the page
+  // behind it exists — and that is how `/learn`, the sidebar's own "Learn", the
+  // phone bar's second tab, step 01 of Help and the landing page's student card
+  // all shipped as Next's "This page could not be found" to every learner who
+  // tapped it, while this suite stayed green: the label was checked, the
+  // destination never was. A navigation item that dead-ends is the one UI
+  // defect a learner cannot work around, so it is pinned at the source.
+  {
+    const hrefs = [...nav.matchAll(/href:\s*"(\/[^"]*)"/g)].map((m) => m[1]);
+    ok(hrefs.length >= 14, `the shell's destinations are literals this check can read (${hrefs.length})`);
+    const dead = hrefs.filter((h) => !fs.existsSync(h === "/" ? "app/page.tsx" : `app${h}/page.tsx`));
+    ok(dead.length === 0,
+      `every destination in the sidebar and phone bar has a page of its own (${dead.length ? `dead: ${dead.join(", ")}` : `${hrefs.length} destinations`})`);
+  }
+
+  // ── A tier is named ONCE, and named the same way everywhere ─────────────
+  // Three surfaces used to name a tier three ways: the wizard showed the
+  // system's own name (`name || t(lvl.tier)`), while the curriculum screen and
+  // the Learn index printed BOTH — so for the two most-sat tiers, whose own name
+  // is the translated word, a GCSE learner read "Higher tier · Higher tier" on
+  // the screen that names their course. One owner now, and this pins the two
+  // things it must never do: repeat itself, or leak a raw `lvl.` key to a
+  // dictionary that lacks one.
+  {
+    const ci = require("../.verify/content-i18n.js");
+    const S = require("../.verify/specifications.js");
+    const dupes = [];
+    for (const spec of S.SPECIFICATIONS) {
+      for (const lvl of spec.levels) {
+        const label = ci.levelLabel("en", lvl.tier, lvl.name);
+        const parts = label.split(" · ");
+        if (new Set(parts).size !== parts.length) dupes.push(`${spec.id}/${lvl.id}: ${label}`);
+        if (label.startsWith("lvl.")) dupes.push(`${spec.id}/${lvl.id}: raw key ${label}`);
+      }
+    }
+    ok(dupes.length === 0, `no tier is named twice in one label (${dupes.length ? dupes.slice(0, 3).join(", ") : "all distinct"})`);
+    // And the collapsed case really collapses: the tier whose own name IS the
+    // translated word must come back as that one name, not the pair.
+    const g = S.specById("uk-gcse");
+    const higher = g.levels.find((l) => l.id === "higher");
+    ok(ci.levelLabel("en", higher.tier, higher.name) === "Higher tier",
+      `a tier whose own name is the translated one is said once (got "${ci.levelLabel("en", higher.tier, higher.name)}")`);
+    // A dictionary that lacks the key falls back to the system's own name rather
+    // than printing `lvl.degree` at a learner.
+    ok(ci.levelLabel("en", "nonexistent-tier", "Form 4") === "Form 4",
+      "an unknown tier uses the system's own name instead of the raw key");
+  }
+  // Help and Account are at the foot of the sidebar as REAL links (§shell).
+  ok(/const FOOT = \[[\s\S]*?\/help[\s\S]*?\/account[\s\S]*?\];/.test(nav),
+    "Help and Account sit at the foot of the sidebar rather than inside a menu");
+  // …and the primary navigation announces itself as what it is.
+  ok(nav.includes('aria-label={t("nav.mainAria")}') && !nav.includes('aria-label={t("nav.moreAria")}>\n          {PRIMARY'),
+    "the main navigation is labelled as the main navigation, not as the overflow");
+  ok(fs.readFileSync("lib/app-state.ts", "utf8").includes('"/help": "public"'),
+    "and the new Help destination is classified in the route access contract");
+
+  // ── §landing: the name, one sentence, and exactly two doors ─────────────
+  // The old headline promised a "world-class tutor"; §landing forbids claims
+  // the software cannot back up, so the key is gone from this page.
+  ok(!land.includes("home.heroTitle"),
+    "the landing page no longer leads with a claim it cannot demonstrate");
+  ok(land.includes('t("home.tagline")') && land.includes('t("home.sub")'),
+    "it leads with what the product is and what it does, in the learner's language");
+  // ONE primary action, in both of the page's two states: the resume link (a
+  // learner part-way through setup) OR the start link (a first-time visitor).
+  // The two are branches of the same ternary, so exactly one is ever rendered —
+  // which is why the count is 2 and the claim still holds. The teacher's door
+  // is deliberately secondary (`btn ghost`), and the small "Already have a
+  // profile?" line are links, not buttons.
+  ok((land.match(/className="btn"/g) ?? []).length === 2 && land.includes(") : ("),
+    "the landing page offers one primary action per state, in mutually exclusive branches");
+  ok(land.includes('className="btn ghost"') && land.includes('t("home.teacherCta")'),
+    "and the teacher's door is secondary, not a competing primary button");
+  // The five sections §landing asks for, each ending at a real surface.
+  for (const key of ["home.secStudents", "nav.teach", "nav.currTitle", "nav.offlineTitle", "nav.accessTitle"]) {
+    ok(land.includes(key), `the landing page explains ${key}`);
+  }
+  // ── §landing: the hero is the ENGINE'S OUTPUT, and every claim has a source
+  // The page's centrepiece is not copy about the product — it is the product: a
+  // decision composed by the real engine for one recorded learner, with the
+  // record it was read from beside it and the answer that decided it named. The
+  // four lines a visitor reads are therefore engine fields, not sentences, and
+  // these pins are what keep them that way: the moment someone hard-codes the
+  // card, the front page starts describing a product that may no longer exist.
+  const demo = fs.readFileSync("lib/example-decision.ts", "utf8");
+  // WHERE THE CARD LIVES. It was the landing page's centrepiece until the repair
+  // audit: there it read as telemetry about a real student ("6 answers, 3 right,
+  // 3 needed help") beside an internal item id, which is not the welcome a visitor
+  // to a free learning app is looking for. It moved to /about — the page a
+  // teacher, reviewer or funder opens when they want evidence rather than a map.
+  //
+  // These pins are RELOCATED, not relaxed. They still demand that every visible
+  // line of the card is an engine field rather than a written sentence, that the
+  // raw `kind` enum never appears, and that an uncomposable decision renders
+  // nothing at all. What changed is which file is asked. Four assertions are
+  // ADDED below to pin the new placement in both directions, because a relocation
+  // nobody guards is a relocation that quietly reverts.
+  const card = fs.readFileSync("components/worked-example.tsx", "utf8");
+  const about = fs.readFileSync("app/about/page.tsx", "utf8");
+  ok(card.includes('@/lib/example-decision') && card.includes("exampleDecision(lang, t)"),
+    "the worked example comes from the engine's own composer");
+  for (const field of ["example.title", "example.reason", "example.evidence", "example.why", "example.minutes"]) {
+    ok(card.includes(`{${field}}`), `and the card it shows renders the engine's ${field}`);
+  }
+  // The raw kind is an English enum (EXPLAIN, REMEDIATE) that no dictionary can
+  // translate — the rule Home already follows, and the landing card is the same
+  // card, so a reader in Arabic must not meet an English token at the top of it.
+  ok(!card.includes("{example.kind}") && !demo.includes("kind: action.kind") &&
+     card.includes('t("next.eyebrow")') && card.includes('t("next.ev.min")'),
+    "the card wears the product's own translated labels, never the raw kind enum");
+  ok(demo.includes("replayModel(") && demo.includes("decide("),
+    "the composer folds a real ledger with the real projection and asks the real engine");
+  // …and takes every field of the card FROM that decision. A composer that asks
+  // the engine and then hands over its own sentences is the same lie as a
+  // hand-written card, one layer down.
+  for (const field of ["minutes", "title", "reason", "evidence", "why"]) {
+    ok(demo.includes(`${field}: action.${field}`),
+      `the composer takes the card's ${field} from the engine's decision`);
+  }
+  ok(!/keeps recurring|Adds denominators/.test(card) && !/keeps recurring|Adds denominators/.test(land),
+    "and none of the card's sentences is written into the page");
+  ok(demo.includes("return null") && card.includes("if (!example) return null"),
+    "and a decision the engine cannot compose leaves the section ABSENT rather than showing a stand-in card");
+  // ── WHERE IT IS, pinned in both directions. The repair moved it off the front
+  // door; these keep it there, and keep it OFF there.
+  ok(about.includes("<WorkedExample") && about.includes('t("home.worked")'),
+    "the worked example is shown on /about, the page a reviewer opens for evidence");
+  ok(!land.includes("worked-grid") && !land.includes("@/lib/example-decision") &&
+     !land.includes("exampleDecision("),
+    "the landing page shows no other learner's record and no internal evidence id");
+  // The raw item id must not reach a surface at all. It is an internal handle with
+  // no meaning to a reader, and the one time it did — as `fraction-ops-6` beside
+  // "the answer that decided it" — it read as a database key on a marketing page.
+  // The synthetic ledger legitimately carries question ids — they are real events. The
+  // contract that matters is what ExampleDecision HANDS A SURFACE: the slip, not the id.
+  ok(demo.includes("decider: slip ? { slip } : null") &&
+     demo.includes("decider: { slip: string } | null") && !card.includes("decider.question"),
+    "the deciding answer reaches a surface as the slip a reader can act on, never as a raw item id");
+  // the four counts come out of the projected progress and the snapshot, keyed by
+  // fact rather than by a sentence the engine would have said differently.
+  ok(/progress\?\.attempts/.test(demo) && /progress\?\.correct/.test(demo) && /progress\?\.hinted/.test(demo),
+    "every figure in the margin is read from the projected model");
+  ok(demo.includes('"attempts"') && demo.includes('"slip"') && !demo.includes("next.ev."),
+    "and the margin's labels are the page's own count-nouns, not the engine's in-sentence vocabulary");
+  // The subject rows are measured at load from the genome and the bank. The maths
+  // tile once claimed 72 concepts when there were 67 — a literal that can go
+  // stale is exactly what this forbids.
+  ok(land.includes("SUBJECT_LEVEL") && land.includes("bankDepth(") && land.includes("bySubject("),
+    "the subject rows measure their counts and depth from the content itself");
+  ok(!/\d+\s*\{\s*t\("home\.concepts"\)/.test(land),
+    "and no concept count is written into the page as a literal");
+  // Unknown is not zero, ON THE FRONT PAGE. What the product has not seen is
+  // drawn as an empty ruled square — so the last thing a visitor reads before
+  // signing up is the rule the whole engine is built on.
+  ok(land.includes('className="unmeasured"') && land.includes('t("home.notMeasured")') && land.includes('t("home.notMeasuredNote")'),
+    "the landing page ends by showing what it does NOT know, as an empty square");
+  const unmeasuredBlock = land.slice(land.indexOf('t("home.notMeasured")') - 200, land.indexOf('t("home.notMeasured")') + 400);
+  ok(!/fact-n|ledger-v/.test(unmeasuredBlock),
+    "and that square carries no figure at all — an unmeasured row never reads as a zero");
+
+  // Help exists, and it is written in the learner's language: every sentence on
+  // it is a key, so there are no English literals hiding in the one page a
+  // confused learner opens.
+  ok(help.includes('t("next.howTitle")') && help.includes('t("about.privacyBody")'),
+    "Help explains how the product works using the product's own sentences");
+  ok(!/>\s*[A-Z][a-z]+ [a-z]+ [a-z]+\s*</.test(help),
+    "and carries no hard-coded English prose");
+
+  // ── §tutor: a PANEL beside the question, never instead of it ────────────
+  ok(concept.includes('className="work"') && concept.includes("<TutorPanel"),
+    "the exercise screen puts the tutor beside the question");
+  ok(concept.includes("questionText={q?.prompt}"),
+    "and grounds it in the question actually on screen");
+  ok(panel.includes("disclosureKey("),
+    "every tutor reply carries its own disclosure — a fallback answer is never labelled AI");
+  ok(panel.includes('className="tutor-fab"'),
+    "on a phone the panel is a sheet with one button in the thumb's reach");
+
+  // ── The meter: a dash is never an empty bar ─────────────────────────────
+  // "Not measured" and "zero" must not render the same way: an empty five-step
+  // meter reads as a score of nothing to a learner who has simply not been
+  // asked yet.
+  ok(/if \(rate === null\)/.test(dimsSrc) && dimsSrc.includes('className="meter empty"') && dimsSrc.includes('—'),
+    "an unmeasured dimension renders as a dash and 'not yet measured', never an empty meter");
+  const dimSurfaces = [
+    "app/learn/[subject]/[concept]/page.tsx",
+    "app/mind/page.tsx",
+    "app/progress/page.tsx",
+  ];
+  for (const f of dimSurfaces) {
+    ok(fs.readFileSync(f, "utf8").includes("conceptKnowledge("),
+      `${f} reads the dimensions from the shared ledger projection, not its own rule`);
+  }
+  ok(!fs.readFileSync("app/progress/page.tsx", "utf8").includes("dimsFor("),
+    "and the evidence page no longer keeps a second copy of the dimension rows");
+
+  // ── The five new strings are real translations, not English fallbacks ────
+  const uiKeys = ["nav.help", "nav.mainAria", "home.tagline", "home.sub", "home.start", "home.secStudents"];
+  const gaps = [];
+  for (const l of i18n.LANGS) {
+    const tr = i18n.translator(l.code);
+    for (const k of uiKeys) if (tr(k) === k) gaps.push(`${l.code}:${k}`);
+  }
+  ok(gaps.length === 0,
+    `the landing page and shell vocabulary is translated in all 15 languages (${gaps.slice(0, 4).join(", ") || "none missing"})`);
 }
 
 // ── The engine's own sentences, in every language ───────────────────────────

@@ -230,7 +230,7 @@ ${parts.join("\n")}
   __def("__entry__.js", function (module, exports, require) {
     module.exports = {
 ${entry}
-      meta: { modules: ${ordered.length}, builtAt: ${JSON.stringify(new Date().toISOString())} },
+      meta: { modules: ${ordered.length} },
     };
   });
   return __req("__entry__.js");
@@ -300,6 +300,18 @@ function singleFile(engineCode) {
 // scripts/static-smoke.mjs recomputes the same hash from the same files and
 // fails if the shipped sw.js disagrees, so a stale worker cannot be committed.
 const SHELL_FILES = ["index.html", "app.css", "app.js", "openmind.engine.js"];
+
+// ── NO TIMESTAMP IN THE ARTIFACT ─────────────────────────────────────────────
+// The engine used to carry `meta.builtAt` (nothing ever read it). Its bytes are
+// the service worker's cache key — `shellVersion` hashes every file in
+// SHELL_FILES — so a build clock in there made the key change on EVERY rebuild,
+// including one that changed nothing, and the worker's `activate` then evicted
+// the cached shell for every returning learner: the whole 2.4 MB engine
+// re-downloaded on their next visit, on exactly the connections this offline
+// build exists for. The worker's own comment states the intent — a changed key
+// must mean "the app changed" — and a timestamp makes it mean "someone rebuilt".
+// Removing it makes the artifact byte-stable, which is what lets the key do its
+// job in both directions: it moves when the content moves, and only then.
 
 /** The worker's cache list. `"./"` is here for a reason that is easy to lose:
  *  a browser asking for the directory (`https://host/Non-profit/`) sends that

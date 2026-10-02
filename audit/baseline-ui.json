@@ -1,0 +1,380 @@
+{
+  "generatedAt": "2026-10-01T18:08:52.066Z",
+  "base": "http://localhost:4173",
+  "findings": {
+    "landing": {
+      "bytes": 24092,
+      "sectionMarkerCount": 0,
+      "sectionHeadings": [],
+      "telemetryPhrases": [],
+      "internalIds": [],
+      "selfReferentialProof": false
+    },
+    "coreRoutes": [
+      {
+        "route": "/",
+        "status": 200,
+        "bytes": 24092,
+        "mainWords": 313,
+        "mainIsBootScreen": false,
+        "sectionMarker": false,
+        "sample": "◉ OpenMind Free adaptive learning for every student. OpenMind learns what you know, finds "
+      },
+      {
+        "route": "/solve",
+        "status": 200,
+        "bytes": 20999,
+        "mainWords": 53,
+        "mainIsBootScreen": false,
+        "sectionMarker": false,
+        "sample": "? STUCK ON A QUESTION? Got a question you can't solve? Type or paste it here. We'll work o"
+      },
+      {
+        "route": "/try/fractions",
+        "status": 200,
+        "bytes": 21830,
+        "mainWords": 24,
+        "mainIsBootScreen": false,
+        "sectionMarker": false,
+        "sample": "→ LEARNING LINK Can you solve this? Fractions — Equal parts of a whole, written as a ratio"
+      },
+      {
+        "route": "/dashboard",
+        "status": 200,
+        "bytes": 20493,
+        "mainWords": 17,
+        "mainIsBootScreen": true,
+        "sectionMarker": false,
+        "sample": "Taking you to the right step Loading your learning… Checking your session — this takes a m"
+      },
+      {
+        "route": "/progress",
+        "status": 200,
+        "bytes": 20503,
+        "mainWords": 17,
+        "mainIsBootScreen": true,
+        "sectionMarker": false,
+        "sample": "Taking you to the right step Loading your learning… Checking your session — this takes a m"
+      },
+      {
+        "route": "/learn",
+        "status": 200,
+        "bytes": 20472,
+        "mainWords": 17,
+        "mainIsBootScreen": true,
+        "sectionMarker": false,
+        "sample": "Taking you to the right step Loading your learning… Checking your session — this takes a m"
+      },
+      {
+        "route": "/learn/maths",
+        "status": 200,
+        "bytes": 21716,
+        "mainWords": 17,
+        "mainIsBootScreen": true,
+        "sectionMarker": false,
+        "sample": "Taking you to the right step Loading your learning… Checking your session — this takes a m"
+      },
+      {
+        "route": "/papers",
+        "status": 200,
+        "bytes": 20483,
+        "mainWords": 17,
+        "mainIsBootScreen": true,
+        "sectionMarker": false,
+        "sample": "Taking you to the right step Loading your learning… Checking your session — this takes a m"
+      },
+      {
+        "route": "/curriculum",
+        "status": 200,
+        "bytes": 20384,
+        "mainWords": 1,
+        "mainIsBootScreen": false,
+        "sectionMarker": false,
+        "sample": "Loading…"
+      },
+      {
+        "route": "/mind",
+        "status": 200,
+        "bytes": 20469,
+        "mainWords": 17,
+        "mainIsBootScreen": true,
+        "sectionMarker": false,
+        "sample": "Taking you to the right step Loading your learning… Checking your session — this takes a m"
+      },
+      {
+        "route": "/projects",
+        "status": 200,
+        "bytes": 20484,
+        "mainWords": 17,
+        "mainIsBootScreen": true,
+        "sectionMarker": false,
+        "sample": "Taking you to the right step Loading your learning… Checking your session — this takes a m"
+      },
+      {
+        "route": "/account",
+        "status": 200,
+        "bytes": 20475,
+        "mainWords": 17,
+        "mainIsBootScreen": true,
+        "sectionMarker": false,
+        "sample": "Taking you to the right step Loading your learning… Checking your session — this takes a m"
+      },
+      {
+        "route": "/onboarding",
+        "status": 200,
+        "bytes": 20553,
+        "mainWords": 1,
+        "mainIsBootScreen": false,
+        "sectionMarker": false,
+        "sample": "Loading…"
+      },
+      {
+        "route": "/diagnostic/maths",
+        "status": 200,
+        "bytes": 21748,
+        "mainWords": 17,
+        "mainIsBootScreen": true,
+        "sectionMarker": false,
+        "sample": "Taking you to the right step Loading your learning… Checking your session — this takes a m"
+      },
+      {
+        "route": "/teacher",
+        "status": 200,
+        "bytes": 22109,
+        "mainWords": 80,
+        "mainIsBootScreen": false,
+        "sectionMarker": false,
+        "sample": "Teacher tools Teacher tools Create a class, share the join code, and see per-concept maste"
+      },
+      {
+        "route": "/offline",
+        "status": 200,
+        "bytes": 20769,
+        "mainWords": 31,
+        "mainIsBootScreen": false,
+        "sectionMarker": false,
+        "sample": "📴 Offline plan Your day, without internet 📴 Download my learning pack No offline plan ye"
+      },
+      {
+        "route": "/help",
+        "status": 200,
+        "bytes": 23651,
+        "mainWords": 241,
+        "mainIsBootScreen": false,
+        "sectionMarker": false,
+        "sample": "Help Help One thing at a time — finish this before starting another. → How this session wo"
+      },
+      {
+        "route": "/about",
+        "status": 200,
+        "bytes": 24332,
+        "mainWords": 337,
+        "mainIsBootScreen": false,
+        "sectionMarker": false,
+        "sample": "About OpenMind About OpenMind Every student, regardless of country or income, should have "
+      }
+    ],
+    "ssrSummary": {
+      "routesProbed": 18,
+      "bootScreenOnly": [
+        "/dashboard",
+        "/progress",
+        "/learn",
+        "/learn/maths",
+        "/papers",
+        "/mind",
+        "/projects",
+        "/account",
+        "/diagnostic/maths"
+      ],
+      "withRealContent": [
+        "/",
+        "/solve",
+        "/teacher",
+        "/help",
+        "/about"
+      ],
+      "sectionMarkerRoutes": []
+    },
+    "nav": {
+      "navElements": [
+        "Main menu",
+        "Help",
+        "Main menu"
+      ],
+      "labelledLandmarks": [
+        "Main menu",
+        "Help",
+        "Main menu"
+      ],
+      "duplicateLabels": [
+        "Main menu"
+      ],
+      "internalLinkTargets": 21,
+      "skipLink": true,
+      "mediaQueries": 6,
+      "cssLines": 1150,
+      "focusVisibleRules": 7,
+      "keyboard": {
+        "interactiveWithoutLabel": 0,
+        "positiveTabindex": 0
+      }
+    },
+    "i18n": {
+      "languages": 15,
+      "englishKeyCount": 1157,
+      "perLanguage": [
+        {
+          "lang": "en",
+          "present": true,
+          "keys": 1157,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 1157
+        },
+        {
+          "lang": "es",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 16
+        },
+        {
+          "lang": "fr",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 27
+        },
+        {
+          "lang": "pt",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 17
+        },
+        {
+          "lang": "ar",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 2
+        },
+        {
+          "lang": "sw",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 12
+        },
+        {
+          "lang": "hi",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 2
+        },
+        {
+          "lang": "id",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 19
+        },
+        {
+          "lang": "tl",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 45
+        },
+        {
+          "lang": "ur",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 0
+        },
+        {
+          "lang": "fa",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 2
+        },
+        {
+          "lang": "de",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 14
+        },
+        {
+          "lang": "ja",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 0
+        },
+        {
+          "lang": "zh",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 0
+        },
+        {
+          "lang": "bn",
+          "present": true,
+          "keys": 1427,
+          "missingVsEnglish": 0,
+          "untranslatedVsEnglish": 0
+        }
+      ],
+      "keyCountAsymmetry": true,
+      "keysMissingFromEnglish": 270,
+      "sampleKeysMissingFromEnglish": [
+        "cb.place-value",
+        "cb.addition",
+        "cb.subtraction",
+        "cb.multiplication",
+        "cb.division",
+        "cb.negatives",
+        "cb.fractions",
+        "cb.fraction-ops"
+      ],
+      "studentVisibleFallback": [
+        {
+          "concept": "place-value",
+          "english": "Digits mean different amounts depending on their position.",
+          "urdu": "ہر ہندسے کی قدر اس کی جگہ پر منحصر ہے۔",
+          "rawKeyLeaks": true
+        },
+        {
+          "concept": "quadratics",
+          "english": "Solving equations of the form ax² + bx + c = 0.",
+          "urdu": "ax² + bx + c = 0 کی شکل کی مساوات حل کرنا۔",
+          "rawKeyLeaks": true
+        },
+        {
+          "concept": "pythagoras",
+          "english": "a² + b² = c² in every right triangle.",
+          "urdu": "ہر قائمہ مثلث میں a² + b² = c²۔",
+          "rawKeyLeaks": true
+        },
+        {
+          "concept": "photosynthesis",
+          "english": "Light, CO₂ and water into glucose.",
+          "urdu": "روشنی، CO₂ اور پانی سے گلوکوز۔",
+          "rawKeyLeaks": true
+        },
+        {
+          "concept": "recursion",
+          "english": "Functions that call themselves, with a base case.",
+          "urdu": "اپنے آپ کو بلانے والے فنکشن، بنیادی صورت کے ساتھ۔",
+          "rawKeyLeaks": true
+        }
+      ],
+      "note": "cblurb() falls back to the genome's authored English, so the asymmetry is a maintenance/drift fault and a documentation error, not a raw-key leak — asserted explicitly below."
+    }
+  }
+}

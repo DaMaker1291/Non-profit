@@ -6,6 +6,13 @@
 // strongest available claim about "your own paper" is that the store contains
 // marks and ideas and no question text, and only the file can prove it.
 import fs from "node:fs";
+import { createRequire } from "node:module";
+
+// One compiled fact the pack assertions need: which subject a concept belongs
+// to. Read from the genome rather than listed here, so "this week is physics"
+// is checked against the curriculum the platform actually teaches.
+const require = createRequire(import.meta.url);
+const genome = require("../.verify/genome.js");
 
 const BASE = "http://localhost:4173";
 let pass = 0, fail = 0;
@@ -231,6 +238,44 @@ ok(tf.body.result?.proof?.transfer === true,
   "and it is recorded as transfer proof, not as more of the same");
 ok(tf.body.result?.activity?.hints === 0, "with no hints, so independence is intact");
 
+// ── 4a-bis. What the marked answer PROVED (§10, §14) ────────────────────────
+// The verdict line is derived from facts the SERVER attributed, and the whole
+// point of the sentence is that it cannot be bought: a learner who took a hint
+// must not be told they worked independently, and an ordinary practice answer
+// must not be dressed up as transfer or as delayed recall. Both halves are
+// asserted, because a claim that is only ever positive is not a measurement.
+{
+  // (i) Unaided practice: independent, no hints, sourced as practice.
+  const sg = await post("/api/progress", { action: "serve", id: lid, conceptId: "fractions", reveal: true });
+  ok(sg.status === 200 && sg.body.question, "a plain practice question is served");
+  const ag = await post("/api/progress", { action: "answer", id: lid, conceptId: "fractions", questionId: sg.body.question.id, choiceIndex: sg.body.question.answer });
+  const ev = ag.body.demonstrated;
+  ok(ag.status === 200 && ev && typeof ev === "object", "the grade carries what the answer demonstrated");
+  // …and it is NOT the ledger event. A client handed the shape a graded answer
+  // takes could author one; these four scalars say what the answer proved and
+  // nothing about how evidence is stored.
+  ok(!("id" in ev) && !("at" in ev) && !("provenance" in ev) && !("learnerId" in ev) && !("tags" in ev),
+    "and it is four scalars about the answer, not the shape of the event behind it");
+  ok(ev.mode === "independent" && ev.hints === 0,
+    `an unaided answer is attributed as independent (mode=${ev.mode}, hints=${ev.hints})`);
+  ok(ev.source === "practice", `and sourced as ordinary practice, not transfer (source=${ev.source})`);
+  ok(ev.retained === false,
+    "a same-sitting answer is NOT retention evidence, however correct it was");
+
+  // (ii) The same question, but with a hint taken first: the credit is gone.
+  const sh = await post("/api/progress", { action: "serve", id: lid, conceptId: "fractions", reveal: true });
+  const hintedQ = sh.body.question.id;
+  const hint = await post("/api/progress", { action: "hint", id: lid, conceptId: "fractions", questionId: hintedQ, level: 2 });
+  ok(hint.status === 200, "a hint can be taken on the served question");
+  const ah = await post("/api/progress", { action: "answer", id: lid, conceptId: "fractions", questionId: hintedQ, choiceIndex: sh.body.question.answer });
+  const evh = ah.body.demonstrated;
+  ok(ah.status === 200 && ah.body.correct === true, "and the answer is still graded correct");
+  ok(evh.hints >= 1, `but the server counts the hint it watched (hints=${evh.hints})`);
+  ok(evh.mode === "guided" && evh.hints !== 0,
+    `so a supported answer is never described as independent work (mode=${evh.mode})`);
+  ok(evh.retained === false, "and it is not retention evidence either");
+}
+
 // ── 4b. Practice difficulty follows the learner's own record ────────────────
 // The claim a student can feel: the question they get is chosen from what they
 // have DONE, not from a fixed setting. Driven end to end — serve, answer, serve
@@ -302,6 +347,22 @@ ok(bandOf(untouchedServe.body.question.difficulty) > bandOf(repairServe.body.que
 const transferTarget = await post("/api/progress", { action: "serve", id: lid, conceptId: "linear-equations", intent: "transfer", reveal: true });
 ok(transferTarget.body.target === null,
   "a transfer serve carries no practice target, so a stretch is never shown as an adaptive rung");
+
+// THE HINTED TRANSFER: the order of the attribution rule, asserted from the
+// outside. The acceptance battery found the bug this pins — the disposition was
+// derived as `isTransfer ? "independent" : hintCount > 0 ? "guided" : …`, so an
+// answer that had taken a hint on a transfer request came back saying the
+// learner had worked unaided. Hints are checked FIRST now, and this is the case
+// that fails if that order is ever reversed again.
+{
+  const hs = await post("/api/progress", { action: "serve", id: lid, conceptId: "fractions", intent: "transfer", reveal: true });
+  ok(hs.status === 200 && hs.body.question, "a transfer request serves a question");
+  await post("/api/progress", { action: "hint", id: lid, conceptId: "fractions", questionId: hs.body.question.id, level: 1 });
+  const ha = await post("/api/progress", { action: "answer", id: lid, conceptId: "fractions", questionId: hs.body.question.id, choiceIndex: hs.body.question.answer });
+  ok(ha.status === 200 && ha.body.demonstrated?.mode === "guided" && ha.body.demonstrated?.hints >= 1,
+    `a hinted TRANSFER answer is attributed as guided, never as independent work (${JSON.stringify(ha.body.demonstrated)})`);
+  ok(ha.body.demonstrated?.retained === false, "and it is not dressed up as delayed recall either");
+}
 
 // 5. Diagnostic lifecycle — server grades; the client never declares correctness
 const d0 = await post("/api/diagnostic", { id: pid, subject: "maths", action: "start" });
@@ -495,8 +556,17 @@ ok(dFin.body.result.misconceptions !== undefined, "result carries misconception 
 
   const actionsA = await nextNow();
   const a1 = actionsA[0];
-  ok(a1.conceptId === WEAK && ["EXPLAIN", "PRACTISE", "REMEDIATE"].includes(a1.kind),
-    `the plan targets what the diagnostic found weak (${k(a1)})`);
+  // The plan targets what the sitting found weak — ON that concept, or on a
+  // declared FOUNDATION of it, which is the designed answer when the learner is
+  // stuck and the prerequisite is not established (lib/next-engine's FOUNDATIONS
+  // branch: the slip is the symptom and the prerequisite is the cause). This
+  // asserted the concept itself, which held only while the first-served concept
+  // happened to declare no prerequisites — true for the shallowest concept in
+  // the sample, which is exactly what it used to be. What is claimed here is the
+  // response to the measurement, in either of the two forms it takes.
+  const weakPrereqs = genome.CONCEPTS_BY_ID[WEAK]?.prereqs ?? [];
+  ok((a1.conceptId === WEAK || weakPrereqs.includes(a1.conceptId)) && ["EXPLAIN", "PRACTISE", "REMEDIATE"].includes(a1.kind),
+    `the plan targets what the diagnostic found weak, directly or through a declared foundation (${k(a1)}; ${WEAK} declares ${weakPrereqs.join(", ") || "no prerequisites"})`);
   ok(typeof a1.why === "string" && a1.why.length > 0 && Array.isArray(a1.plan) && a1.plan.length > 0,
     "and says why now and how the session is shaped — not just what");
   const actionsA2 = await nextNow();
@@ -611,7 +681,12 @@ ok(roomsList.status === 200 && roomsList.body.rooms.length >= 2, "rooms listed")
 // teacher reads is DERIVED SERVER-SIDE from each member's evidence ledger: the
 // same projection the learner's own pages read, not a number the client sent.
 let stranger; // (filled in §8, reused by §9.5's non-member assertion)
-const cls = await post("/api/classes", { id: pid, action: "create", name: "Class 9A — Mathematics" });
+// The class DECLARES its subject, as every class made through the teacher
+// surface does (its Create button will not submit without one). It used to omit
+// the field and still get a maths week, because the plan engine defaulted to
+// maths for anything that declared nothing — so this line was asserting the
+// defect. The maths path is what this section means to test, so it now says so.
+const cls = await post("/api/classes", { id: pid, action: "create", name: "Class 9A — Mathematics", subject: "maths" });
 ok(cls.status === 200 && /^[A-Z2-9]{6}$/.test(cls.body.cls.joinCode), `class created with join code (${cls.body.cls.joinCode})`);
 const code = cls.body.cls.joinCode;
 const cj = await post("/api/classes", { id: pid, action: "join", joinCode: code, handle: "amina_k" });
@@ -698,13 +773,172 @@ ok(/class="key"/.test(planText), "answer key is its own section (print-split)");
 ok(planText.includes('dir="rtl"') === /lang="(ar|ur|fa)"/.test(planText), "RTL flag matches class language");
 const planJson = (await getAuthed(`${packBase}&me=${pid}&format=json`, pid)).body;
 ok(Array.isArray(planJson.bank) && planJson.bank.length === 5, "pack JSON: five days");
-ok(planJson.bank.every((d) => d.questions.length >= 3), "pack JSON: every day has a question bank");
-ok(planJson.plan.focus.includes("linear-equations"), "pack JSON: plan focuses the weak concept");
-ok(planJson.plan.days.every((d) => d.seeds.length >= 3), "pack JSON: days carry deterministic seeds");
+ok((planJson.bank ?? []).every((d) => d.questions.length >= 3), "pack JSON: every day has a question bank");
+// Null-safe: a pack that answers 400 has no plan, and this must FAIL rather than
+// throw — the suite's own rule for a route that changes shape.
+ok(planJson.plan?.focus?.includes("linear-equations"), "pack JSON: plan focuses the weak concept");
+ok((planJson.plan?.days ?? []).every((d) => d.seeds.length >= 3), "pack JSON: days carry deterministic seeds");
 // No answer leak in the JSON question bank — answers live in the answer field, questions standalone.
-ok(planJson.bank.every((d) => d.questions.every((q) => typeof q.prompt === "string" && Array.isArray(q.choices))), "pack JSON: questions are self-contained (prompt + choices)");
+ok((planJson.bank ?? []).every((d) => d.questions.every((q) => typeof q.prompt === "string" && Array.isArray(q.choices))), "pack JSON: questions are self-contained (prompt + choices)");
 
-// 9.6 Micro-diagnostic: repeated hits flare, the probe classifies honestly.
+// 9.5b WHAT SUBJECT THE CLASS IS TAUGHT — ONE OWNER, ON THE DOOR THAT PRINTS IT.
+// The plan engine used to ignore the class's declared subject and infer it from
+// `cls.conceptIds`, ending in a hard-coded maths default. Nothing in the product
+// ever writes `conceptIds`, so that default was the answer for EVERY class: a
+// teacher who created a physics class was handed a maths week, on screen and in
+// the printed pack, while the same class's assignment picker correctly offered
+// physics. Driven here through the real doors on a subject the platform serves
+// end to end, with a student who has done real physics work.
+{
+  const physTeacher = await newProfile({ handle: "phys_teacher_e2e", country: "GB", language: "en", subjects: ["physics"] });
+  const tid = physTeacher.body?.profile?.id;
+  const physCls = await post("/api/classes", { id: tid, action: "create", name: "Year 11 Physics", subject: "physics" });
+  const physId = physCls.body?.cls?.id;
+  ok(physCls.status === 200 && physCls.body.cls.subject === "physics",
+    `a class is created declaring physics (${physCls.body?.cls?.subject})`);
+  const kid = await newProfile({ handle: "phys_kid_e2e", country: "GB", language: "en", subjects: ["physics"] });
+  const kidId = kid.body?.profile?.id;
+  const joined = await post("/api/classes", { id: kidId, action: "join", joinCode: physCls.body.cls.joinCode, handle: "phys_kid_e2e" });
+  ok(joined.status === 200, "and a physics student joins it by code");
+  // Real work through the learner's own door: forces held, momentum failed.
+  for (let i = 0; i < 3; i++) await gradeOne(kidId, "forces-basics", true);
+  for (let i = 0; i < 3; i++) await gradeOne(kidId, "momentum", false);
+  const physRoster = (await getAuthed(`/api/classes?me=${tid}&id=${physId}`, tid)).body.cls;
+  ok(physRoster.live?.phys_kid_e2e?.concepts?.momentum?.rate === 0,
+    "the class has real physics evidence in its live view (momentum 0%)");
+  const physPackRes = await getAuthed(`/api/pack-export?id=${physId}&me=${tid}&format=json`, tid);
+  const physPack = physPackRes.body ?? {};
+  // Read defensively: a pack that answers 400 has no plan, and the assertions
+  // below must report that — not take this suite down with a TypeError.
+  ok(physPackRes.status === 200 && physPack.plan?.subject === "physics",
+    `the pack plans the subject the class DECLARED, not a default (HTTP ${physPackRes.status}, subject ${physPack.plan?.subject})`);
+  const days = (physPack.bank ?? []).map((d) => d.conceptId);
+  ok(days.length === 5 && days.every((c) => genome.getConcept(c)?.subject === "physics"),
+    `every day of it is physics (${days.join(", ") || "none"})`);
+  ok(days.includes("momentum"),
+    "and the week teaches the class's own weakest measured concept");
+  // The artefact itself: what a teacher prints and hands out.
+  const physHtml = await (await fetch(`${BASE}/api/pack-export?id=${physId}&me=${tid}&format=html&secret=${encodeURIComponent(SECRETS.get(tid) ?? "")}`)).text();
+  ok(/Forces|Momentum|Newton/.test(physHtml) && !/Fractions|Place value/.test(physHtml),
+    "the printable pack names physics concepts and no maths ones");
+
+  // ── ABSENCE IS NOT A LOW SCORE (§1), ON THE DOOR A TEACHER READS.
+  // This student has real work on two concepts and NOTHING on the prerequisite
+  // of the one they are weak at. The plan used to scaffold them onto that
+  // prerequisite anyway (`(m[pid] ?? 0) < 0.6` read absence as failure), so the
+  // week announced remedial work for a gap no evidence had shown. Asserted
+  // against the member's OWN measured concept list, so a future default cannot
+  // quietly pass.
+  const kidLive = (await getAuthed(`/api/classes?me=${tid}&id=${physId}`, tid)).body.cls.live?.phys_kid_e2e;
+  const measuredCids = Object.keys(kidLive?.concepts ?? {});
+  ok(measuredCids.length === 2,
+    `the member has evidence on exactly the concepts they answered (${measuredCids.join(", ")})`);
+  const scaff = physPack.plan.scaffolds ?? [];
+  ok(scaff.every((s) => measuredCids.includes(s.conceptId)),
+    `no scaffold names a concept this member has no evidence on (scaffolded ${scaff.map((s) => s.conceptId).join(", ") || "none"}, measured ${measuredCids.join(", ")})`);
+  // A student with NO work at all: unmeasured, not failing — in no group, on no
+  // scaffold, and counted as unmeasured by the class rather than as a zero.
+  const quiet = await newProfile({ handle: "phys_quiet_e2e", country: "GB", language: "en", subjects: ["physics"] });
+  const quietId = quiet.body?.profile?.id;
+  await post("/api/classes", { id: quietId, action: "join", joinCode: physCls.body.cls.joinCode, handle: "phys_quiet_e2e" });
+  const quietPack = (await getAuthed(`/api/pack-export?id=${physId}&me=${tid}&format=json`, tid)).body;
+  const quietLive = (await getAuthed(`/api/classes?me=${tid}&id=${physId}`, tid)).body.cls.live?.phys_quiet_e2e;
+  ok(Object.keys(quietLive?.concepts ?? {}).length === 0,
+    "a student with no work at all has NO concepts measured — absent, never 0");
+  ok(!(quietPack.plan.scaffolds ?? []).some((s) => s.who === "phys_quiet_e2e") &&
+     !(quietPack.plan.groups ?? []).flatMap((g) => g.members).includes("phys_quiet_e2e"),
+    `and attracts neither remediation nor an ability group (scaffolds ${(quietPack.plan.scaffolds ?? []).length}, groups ${JSON.stringify((quietPack.plan.groups ?? []).map((g) => g.members))})`);
+  // The declaration, not a concept: a class is what it says it is.
+  const flip = await post("/api/classes", { id: tid, action: "create", name: "Declared physics", subject: "physics", conceptIds: ["fractions"] });
+  ok((await getAuthed(`/api/pack-export?id=${flip.body.cls.id}&me=${tid}&format=json`, tid)).body.plan?.subject === "physics",
+    "a maths concept on a physics class's roster cannot flip the class's subject");
+  // And a class that declared nothing has NO week — the honest refusal, never a maths one.
+  const bare = await post("/api/classes", { id: tid, action: "create", name: "No subject declared" });
+  const barePack = await getAuthed(`/api/pack-export?id=${bare.body.cls.id}&me=${tid}&format=json`, tid);
+  ok(barePack.status === 400 && /declare this class's subject first/.test(barePack.body?.error ?? ""),
+    `a class with no declared subject is refused rather than served a maths week (HTTP ${barePack.status}: ${barePack.body?.error})`);
+}
+
+// 9.5c MEMBERSHIP IS IDENTITY: TWO ACCOUNTS, ONE DISPLAY NAME, ONE CLASS.
+// Membership used to fall back to the display handle, so any profile whose name
+// matched a roster row was a member of that class — it could read the class and
+// its answer-key pack — and two learners sharing a name took turns owning one
+// row, so the teacher's table showed one student's evidence under the other's
+// name. Driven here with three profiles all called "Alex": one joins, one joins
+// second, one never joins at all.
+{
+  const namesTeacher = await newProfile({ handle: "names_teacher_e2e", country: "GB", language: "en", subjects: ["maths"] });
+  const nid = namesTeacher.body?.profile?.id;
+  const namesCls = await post("/api/classes", { id: nid, action: "create", name: "Year 10 Maths", subject: "maths" });
+  const namesCid = namesCls.body?.cls?.id;
+  const namesCode = namesCls.body?.cls?.joinCode;
+  const joiner = await newProfile({ handle: "Alex", country: "GB", language: "en", subjects: ["maths"] });
+  const joinerId = joiner.body?.profile?.id;
+  const outsider = await newProfile({ handle: "Alex", country: "GB", language: "en", subjects: ["maths"] });
+  const outsiderId = outsider.body?.profile?.id;
+  const second = await newProfile({ handle: "Alex", country: "GB", language: "en", subjects: ["maths"] });
+  const secondId = second.body?.profile?.id;
+  const firstJoin = await post("/api/classes", { id: joinerId, action: "join", joinCode: namesCode, handle: "Alex" });
+  ok(firstJoin.status === 200 && firstJoin.body.cls?.membersById?.Alex === joinerId,
+    `the first Alex joins under their own name, bound to them (${firstJoin.body.cls?.membersById?.Alex === joinerId})`);
+  for (let i = 0; i < 3; i++) await gradeOne(joinerId, "fractions", true);
+  for (let i = 0; i < 5; i++) await gradeOne(outsiderId, "fractions", true); // never joins; real work of their own
+  const secondJoin = await post("/api/classes", { id: secondId, action: "join", joinCode: namesCode, handle: "Alex" });
+  ok(secondJoin.status === 200 && secondJoin.body.cls?.membersById?.["Alex 2"] === secondId &&
+     secondJoin.body.cls?.membersById?.Alex === joinerId,
+    `and a SECOND Alex gets their own row rather than taking over the first's (rows ${Object.keys(secondJoin.body.cls?.students ?? {}).join(", ")})`);
+  for (let i = 0; i < 2; i++) await gradeOne(secondId, "fractions", true);
+
+  const namesRoster = (await getAuthed(`/api/classes?me=${nid}&id=${namesCid}`, nid)).body.cls;
+  ok(Object.keys(namesRoster.students).sort().join(",") === "Alex,Alex 2",
+    `the roster holds exactly the two members who joined it (${Object.keys(namesRoster.students).join(", ")})`);
+  ok(namesRoster.membersById?.Alex === joinerId && namesRoster.membersById?.["Alex 2"] === secondId,
+    "each row is bound to the learner who joined under it");
+  ok(namesRoster.live?.Alex?.answers === 3 && namesRoster.live?.["Alex 2"]?.answers === 2,
+    `and each row carries ITS OWN learner's evidence (${namesRoster.live?.Alex?.answers} and ${namesRoster.live?.["Alex 2"]?.answers} answers)`);
+
+  const outsiderList = await getAuthed(`/api/classes?me=${outsiderId}`, outsiderId);
+  ok((outsiderList.body.classes ?? []).length === 0,
+    `the Alex who never joined is in no class at all (${(outsiderList.body.classes ?? []).length})`);
+  const outsiderRead = await getAuthed(`/api/classes?me=${outsiderId}&id=${namesCid}`, outsiderId);
+  ok(outsiderRead.status === 403, `and cannot read the class they were never in (HTTP ${outsiderRead.status})`);
+  const outsiderPack = await getAuthed(`/api/pack-export?id=${namesCid}&me=${outsiderId}&format=json`, outsiderId);
+  ok(outsiderPack.status === 403,
+    `nor its answer-key pack (HTTP ${outsiderPack.status}) — a name is not a credential`);
+  const joinerSees = await getAuthed(`/api/classes?me=${joinerId}`, joinerId);
+  ok((joinerSees.body.classes ?? []).some((c) => c.id === namesCid),
+    "while the learner who did join still reads their own class");
+}
+
+// 9.6 The DECISION DOOR speaks the learner's language.
+// `decideNext` falls back to its English table, silently, when a caller passes
+// no translator and no title resolver — and /api/next passed neither, so an
+// Arabic learner reading a reason from this door got English while /api/my-pack
+// (which does pass them) got it right. Asserted on the SERVED TEXT, and against
+// the sibling door, so the two cannot disagree about the same learner.
+{
+  const arProf = await newProfile({ handle: "next_lang_ar_e2e", country: "EG", language: "ar", subjects: ["maths"] });
+  const arid = arProf.body?.profile?.id;
+  ok(!!arid, "an Arabic learner enrols to read their own plan");
+  for (let i = 0; i < 4; i++) await gradeOne(arid, "fractions", true);
+  const nxAr = await getAuthed(`/api/next?id=${arid}`, arid);
+  const topAr = nxAr.body?.actions?.[0];
+  ok(!!topAr, "the decision door answers for an Arabic learner");
+  const arabic = /[\u0600-\u06FF]/;
+  ok(arabic.test(topAr?.title ?? ""), `the task title is Arabic, not English ("${topAr?.title ?? ""}")`);
+  ok(arabic.test(topAr?.reason ?? ""), `and the reason is Arabic too ("${(topAr?.reason ?? "").slice(0, 60)}")`);
+  ok(!/^(Practise|Learn|Stretch|Fix|Retrieve|New challenge|Find your starting point)/.test(topAr?.title ?? "x"),
+    "no English plan label leaks through the fallback table");
+  const packAr = await getAuthed(`/api/my-pack?id=${arid}`, arid);
+  const packTopAr = packAr.body?.today?.[0];
+  ok(!!packTopAr, "the offline pack also names a task for them");
+  ok(arabic.test(packTopAr?.title ?? ""),
+    `the offline pack names the same work in the same language — the two doors cannot disagree ("${packTopAr?.title ?? ""}")`);
+  ok(packAr.body?.profile?.teachingLang === "ar",
+    `and the learner's profile carries Arabic as the language they are TAUGHT in, not just the one they read (${packAr.body?.profile?.teachingLang})`);
+}
+
+// 9.7 Micro-diagnostic: repeated hits flare, the probe classifies honestly.
 // Two students are driven into the neg-slip window on neg-sub questions
 // (answers known via the dev-only reveal hook), then the probe is graded
 // right (procedural) and wrong (conceptual + walk-through).
@@ -798,13 +1032,23 @@ ok(typeof mWrong.body.hint?.text === "string" && mWrong.body.hint.text.length > 
   });
   const snap4s = (await getAuthed(`/api/progress?id=${pid4}&subject=maths`, pid4)).body;
   ok(!(snap4s.progress?.fractions?.transfer?.asked), "client-declared transfer mode bought no credit");
-  // A transfer serve on a concept whose prompt is NOT a re-frameable equation
-  // falls back to a direct re-draw — and a direct re-draw must never buy
-  // transfer credit (audit P0-D honesty).
-  const svD = await post("/api/progress", { action: "serve", id: pid4, conceptId: "fractions", intent: "transfer", reveal: true });
-  await post("/api/progress", { action: "answer", id: pid4, conceptId: "fractions", questionId: svD.body.question.id, choiceIndex: svD.body.question.answer });
+  // A transfer serve on a concept the re-framer REFUSES falls back to a direct
+  // re-draw — and a direct re-draw must never buy transfer credit (audit P0-D
+  // honesty). Which concept that is comes from the door itself: with most of
+  // the bank re-framable now, naming one here would assert a fallback that may
+  // no longer happen.
+  let noSurface = null;
+  let svD = null;
+  for (const candidate of ["volume", "straight-lines", "trig-ratios", "proof", "iteration", "averages"]) {
+    const probe = await post("/api/progress", { action: "serve", id: pid4, conceptId: candidate, intent: "transfer", reveal: true });
+    if (probe.body?.transferable === false) { noSurface = candidate; svD = probe; break; }
+  }
+  ok(!!noSurface,
+    `the door still finds a concept it cannot re-frame, so the fallback rule is tested on real behaviour (${noSurface ?? "none found"})`);
+  await post("/api/progress", { action: "answer", id: pid4, conceptId: noSurface, questionId: svD.body.question.id, choiceIndex: svD.body.question.answer });
   const snap4d = (await getAuthed(`/api/progress?id=${pid4}&subject=maths`, pid4)).body;
-  ok(!(snap4d.progress?.fractions?.transfer?.asked), "direct (same-surface) re-draw granted no transfer credit");
+  ok(!(snap4d.progress?.[noSurface]?.transfer?.asked),
+    `direct (same-surface) re-draw granted no transfer credit (${noSurface})`);
   // A transfer serve on a linear-equation question IS re-framed (story or
   // inverse surface) and correct recognition there earns the credit.
   const svC = await post("/api/progress", { action: "serve", id: pid4, conceptId: "linear-equations", intent: "transfer", reveal: true });
@@ -1186,6 +1430,56 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
     "and the enrolment state rides on the profile it returned, ready for the guard to read");
 }
 
+// 12b. TWO ACCOUNTS, ONE LEARNER — the adoption path asks who owns the profile.
+//
+// Walked as a real first run: signed in on this device (its learner is in
+// localStorage, secret and all), a visitor creates a SECOND account and the
+// "bring this device's progress with me" box is ticked. The old rule proved the
+// claim with the profile's secret — and a device holding a session ALWAYS holds
+// that secret — so the second account was bound to the first account's learner
+// and the enrolment that follows rewrote that learner's year, course and name.
+// Measured before the fix: two accounts, one profile id.
+{
+  const first = await call("/api/auth/signup", json({
+    email: `e2e-owner-${Date.now()}@example.test`, password: "owner-test-password",
+    name: "Owner Learner", country: "GB", language: "en", subjects: ["maths"],
+  }));
+  const ownerId = first.body.profile?.profile?.id;
+  const ownerSecret = first.body.secret;
+  const ownerJar = { Cookie: first.headers.get("set-cookie") ?? "" };
+  ok(Boolean(ownerId) && Boolean(ownerSecret), "an account with a learner and a capability secret exists");
+
+  const second = await call("/api/auth/signup", json({
+    email: `e2e-second-${Date.now()}@example.test`, password: "second-test-password",
+    name: "Second Learner", country: "GB", language: "en", subjects: ["maths"],
+    claim: { profileId: ownerId, secret: ownerSecret },
+  }));
+  const secondId = second.body.profile?.profile?.id;
+  ok(second.status === 200 && Boolean(secondId),
+    "a second account can be created on a device that already holds a signed-in learner's profile");
+  ok(secondId !== ownerId,
+    `and it gets its OWN learner instead of adopting the one on the device (${secondId} vs ${ownerId})`);
+
+  // Read with the secret the sign-up returned: `getAuthed` resolves secrets from
+  // the profiles THIS script created, and this learner was created by sign-up —
+  // an empty secret there is an unauthorised read of nothing.
+  const ownerNow = await call(`/api/profile?id=${ownerId}&secret=${encodeURIComponent(ownerSecret)}`);
+  ok(ownerNow.body.profile?.handle === "Owner Learner" && ownerNow.body.profile?.id === ownerId,
+    `the existing learner is left exactly as it was (handle ${ownerNow.body.profile?.handle}, same id)`);
+
+  const secondJar = { Cookie: second.headers.get("set-cookie") ?? "" };
+  const steal = await call("/api/auth/claim", {
+    method: "POST",
+    headers: { ...secondJar, "Content-Type": "application/json" },
+    body: JSON.stringify({ profileId: ownerId, secret: ownerSecret }),
+  });
+  ok(steal.status === 409 && steal.body.error === "profile_owned",
+    `and the claim door refuses to hand it over later, for the right reason (${steal.status} ${steal.body.error})`);
+  const stillOwners = await call(`/api/profile?id=${ownerId}`, { headers: ownerJar });
+  ok(stillOwners.status === 200 && stillOwners.body.profile?.id === ownerId,
+    "while the profile's real owner can still read it — the session still owns that learner");
+}
+
 // 13. The evidence ledger: every graded answer leaves a trace, and the trace
 // agrees with the learner model the app is actually teaching from.
 {
@@ -1514,13 +1808,25 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   const top1 = await readDecision("after the diagnostic");
   ok(top1.conceptId !== null && jkey(top1) !== jkey(top0),
     `the diagnostic CHANGED what OpenMind asks for (${jkey(top0)} → ${jkey(top1)})`);
-  ok(missed.has(top1.conceptId),
-    `and it asks for a concept the sitting actually tried (${top1.conceptId}) — a projection of the measurement, not of the sitting`);
-  ok(top1.basis === "cited", `the action cites the answers that caused it (${top1.basis})`);
+  // The asked-for concept is one the sitting TRIED, or a declared prerequisite of
+  // one it tried and found weak — the FOUNDATIONS branch again, and there is one
+  // claim per form because they are different claims. On the concept itself the
+  // action must CITE the answers that caused it (Home's drawer walks answer →
+  // event); on a foundation nothing has been answered, so the honest action cites
+  // nothing rather than borrowing an answer from another concept.
+  const triedWeak = (id) => [...missed].some((m) => (genome.CONCEPTS_BY_ID[m]?.prereqs ?? []).includes(id));
+  ok(missed.has(top1.conceptId) || triedWeak(top1.conceptId),
+    `and it asks for a concept the sitting tried, or a declared foundation of one it found weak (${top1.conceptId}) — a projection of the measurement, not of the sitting`);
   const st1 = stages[stages.length - 1];
   const byId = new Map(st1.events.map((e) => [e.id, e]));
-  ok(top1.evidenceIds.some((id) => byId.get(id)?.conceptId === top1.conceptId),
-    "and the events it names are answers on THAT concept — the chain Home's drawer walks");
+  if (missed.has(top1.conceptId)) {
+    ok(top1.basis === "cited", `the action cites the answers that caused it (${top1.basis})`);
+    ok(top1.evidenceIds.some((id) => byId.get(id)?.conceptId === top1.conceptId),
+      "and the events it names are answers on THAT concept — the chain Home's drawer walks");
+  } else {
+    ok(top1.basis === "unattributed" && top1.evidenceIds.length === 0,
+      `and where the work is a foundation the sitting never asked about, it says so instead of borrowing a citation (${top1.basis}, ${top1.evidenceIds.length} ids)`);
+  }
 
   // ── Stage 2: PRACTISE then PROVE. The learner does what the decision said,
   // in a session that captures its own baseline first.
@@ -1631,10 +1937,10 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   const bid = await pair("pair_weak_e2e");
   ok(!!aid && !!bid, "two learners enrol on the same specification");
 
-  const answerSix = async (id, correctCount) => {
+  const answerSix = async (id, correctCount, conceptId = "fractions") => {
     let correct = 0;
     for (let i = 0; i < 6; i++) {
-      const g = await gradeOne(id, "fractions", i < correctCount);
+      const g = await gradeOne(id, conceptId, i < correctCount);
       if (g?.correct === true) correct++;
     }
     return correct;
@@ -1663,8 +1969,47 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   ok(topA && topB, "both learners get a next action");
   ok(`${topA.kind}:${topA.conceptId}` !== `${topB.kind}:${topB.conceptId}`,
     `the same concept, answered differently, gives different next work (${topA.kind}:${topA.conceptId} vs ${topB.kind}:${topB.conceptId})`);
-  ok(topA.kind === "TRANSFER" && topB.kind === "EXPLAIN",
-    `the learner who proved the concept is stretched, the one who missed it is taught again (${topA.kind} vs ${topB.kind})`);
+  // WHAT the stretch is called is the re-framer's answer, not a wish: transfer
+  // may only be offered for a concept whose questions can actually be put on a
+  // second surface. Fractions can — its answers are values and its stems are one
+  // readable line, so four real questions of the concept can be put in front of
+  // the learner — and the serve that graduates the answer onto that surface is
+  // what makes the credit real rather than nominal.
+  ok(topA.kind === "TRANSFER" && topA.conceptId === "fractions" && topB.kind === "EXPLAIN",
+    `the learner who proved the concept is moved to a second surface of it, the one who missed it is taught again (${topA.kind}:${topA.conceptId} vs ${topB.kind}:${topB.conceptId})`);
+
+  // …and the other half of the rule still holds: where the serve CANNOT
+  // re-frame, the offer must stay DEEPER work on the same concept. Which
+  // concepts those are is the PRODUCT's answer, asked here rather than listed:
+  // a hard-coded set would drift the moment the re-framer learned a new shape,
+  // and this half would quietly stop testing anything.
+  const cid = await pair("pair_noreframe_e2e");
+  ok(!!cid, "a third learner enrols to test the branch where no second surface exists");
+  let noSurface = null;
+  for (const candidate of ["straight-lines", "volume", "trig-ratios", "proof", "iteration", "averages"]) {
+    const probe = await post("/api/progress", { action: "serve", id: cid, conceptId: candidate, intent: "transfer", reveal: true });
+    if (probe.body?.transferable === false) { noSurface = candidate; break; }
+  }
+  ok(!!noSurface,
+    `the bank still contains concepts the re-framer refuses, so this half proves something (${noSurface ?? "none found"})`);
+  ok(await answerSix(cid, 6, noSurface) === 6,
+    `and a learner proves one of them by answering six served questions (${noSurface})`);
+  const nxC = await getAuthed(`/api/next?id=${cid}`, cid);
+  const actsC = nxC.body.actions ?? [];
+  const topC = actsC[0];
+  // The ladder replaced "deeper work, forever" with a finished concept. A
+  // concept that is proved, independent, and has no second surface is DONE —
+  // there is nothing left to serve on it, and prescribing it again is the loop
+  // the rung exists to remove. What survives from the old rule is the honest
+  // half, and it is asserted across EVERY action, not just the top one: a
+  // transfer claim on a concept the serve cannot re-frame is a promise the
+  // product cannot keep.
+  ok(!actsC.some((a) => a.kind === "TRANSFER" && a.conceptId === noSurface),
+    `where no second surface exists the engine never claims a transfer the serve cannot honour (${actsC.map((a) => `${a.kind}:${a.conceptId}`).join(" · ")})`);
+  ok(topC?.conceptId !== noSurface,
+    `and a proved, un-reframable concept is FINISHED — the plan moves on instead of repeating it (${topC?.kind}:${topC?.conceptId})`);
+  ok(!/unfamiliar wording/i.test(topC?.reason ?? ""),
+    `and the reason never promises a second surface it does not have ("${topC?.reason}")`);
 
   for (const [label, nx, ev] of [["the strong learner", nxA, evA], ["the weak learner", nxB, evB]]) {
     const mine = new Set((ev.body.events ?? []).map((e) => e.id));
@@ -1728,6 +2073,11 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
     questionId: served.body.question.id, choiceIndex: served.body.question.answer, ms: 2500,
   });
   ok(recalled.body?.correct === true, "and recalled correctly, hint-free");
+  // WHAT THE ANSWER PROVED, in the server's own words: delayed recall, and it
+  // HELD. The two are separate facts — see the fail branch below, where the
+  // first is true and the second is not.
+  ok(recalled.body?.demonstrated?.source === "retrieval" && recalled.body?.demonstrated?.retained === true,
+    `and the grade says so: a delayed recall that held (${JSON.stringify(recalled.body?.demonstrated)})`);
 
   const after = await getAuthed(`/api/evidence?id=${rid}`, rid);
   const mine = after.body.events.filter((e) => e.provenance === "server");
@@ -1757,6 +2107,52 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   const moved = await getAuthed(`/api/next?id=${rid}`, rid);
   ok(moved.body.actions.every((a) => !(a.kind === "RETRIEVE" && a.conceptId === "fractions")),
     `having retrieved it, the learner is no longer asked to (${moved.body.actions?.map((a) => `${a.kind}:${a.conceptId}`).join(", ")})`);
+
+  // ── THE OTHER OUTCOME, WHICH IS EQUALLY REAL: A RECALL THAT FAILED ───────
+  // Forgetting is the measurement this dimension exists for, and the grade must
+  // report it as what it was. Until this was measured, the route handed the
+  // client `retained: true` for an answer the learner had just got WRONG — the
+  // first half of the rule ("this was delayed recall") reported as the second
+  // ("the recall held"). Same aged evidence, same concept, one wrong answer.
+  const fp = await newProfile({ handle: "retention_failed_e2e", country: "GB", language: "en", subjects: ["maths"], spec: "uk-gcse" });
+  const fid = fp.body.profile.id;
+  ok(!!fid, "a second learner enrols with the same aged work");
+  await post("/api/evidence", {
+    id: fid,
+    events: [60, 55, 50, 45].map((days, i) => ({
+      id: `ev_e2e_offline_${fid.slice(-6)}_${i}`,
+      schemaVersion: 1, learnerId: fid, at: Date.now() - days * DAY,
+      source: "practice", subject: "maths", conceptId: "fractions",
+      specificationId: "uk-gcse", type: "answer_submitted",
+      questionId: `offline-${i}`, correct: true, chosen: 0,
+      mode: "independent", hints: 0, tags: [],
+    })),
+  });
+  const fDue = await getAuthed(`/api/next?id=${fid}`, fid);
+  ok(fDue.body.actions?.[0]?.kind === "RETRIEVE",
+    `the same concept comes due for them too (${fDue.body.actions?.[0]?.kind}:${fDue.body.actions?.[0]?.conceptId})`);
+  const fServe = await post("/api/progress", { action: "serve", id: fid, conceptId: "fractions", reveal: true });
+  const fWrong = (fServe.body.question.answer + 1) % fServe.body.question.choices.length;
+  const fAns = await post("/api/progress", {
+    action: "answer", id: fid, conceptId: "fractions",
+    questionId: fServe.body.question.id, choiceIndex: fWrong, ms: 9000,
+  });
+  ok(fAns.body?.correct === false, "and they fail the review");
+  ok(fAns.body?.demonstrated?.source === "retrieval",
+    `the failure is still a DELAYED recall — the source is the server's staged review, not the mark (${JSON.stringify(fAns.body?.demonstrated)})`);
+  ok(fAns.body?.demonstrated?.retained === false,
+    `and it is NEVER reported as retained: a recall that failed is not retention evidence (${JSON.stringify(fAns.body?.demonstrated)})`);
+  const fLedger = await getAuthed(`/api/evidence?id=${fid}`, fid);
+  const fRet = fLedger.body.projection.byConcept.fractions.retention;
+  ok(fRet.asked === 1 && fRet.correct === 0,
+    `forgetting is MEASURED rather than dropped: the failed recall is retention asked-but-not-correct (${fRet.correct}/${fRet.asked})`);
+  ok(fRet.lastHeld === false,
+    `and the record keeps the latest outcome (lastHeld=${fRet.lastHeld}), which is what lets a surface say "forgotten" instead of "0 of 1"`);
+  ok(fLedger.body.deepReconcile.differences.length === 0,
+    `and a model rebuilt from that ledger keeps it (${fLedger.body.deepReconcile.differences.length} differences)`);
+  const fNext = await getAuthed(`/api/next?id=${fid}`, fid);
+  ok(fNext.body.actions?.[0]?.conceptId === "fractions" && fNext.body.actions?.[0]?.kind !== "TRANSFER",
+    `and the plan sends them back to work on it rather than moving them on (${fNext.body.actions?.[0]?.kind}:${fNext.body.actions?.[0]?.conceptId})`);
 }
 
 // 17. THE TUTOR IS GROUNDED, AND THE OFFLINE TUTOR IS AN OUTCOME.
@@ -2156,10 +2552,22 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
     `each learner is offered the practised concept their own record touched FIRST (A: ${wA?.conceptId}, B: ${wB?.conceptId})`);
   ok(wA?.kind === wB?.kind && (wA?.evidenceIds.length ?? 0) > 0 && (wB?.evidenceIds.length ?? 0) > 0,
     `with the same advice for the same state, resting on cited events in their own ledger (${wA?.kind}, ${wA?.evidenceIds.length} vs ${wB?.evidenceIds.length} citations)`);
-  const ground = (nx) => (nx.body.actions ?? []).filter((a) => a.evidenceIds.length === 0)
-    .map((a) => `${a.kind}:${a.conceptId}`).join(" · ");
-  ok(ground(nxA) === ground(nxB) && ground(nxA).length > 0,
-    `and the parts an arrival order cannot touch are identical (new ground: ${ground(nxA)})`);
+  // What the arrival order CAN move is WHICH of the three equally-weak concepts
+  // is served. What it cannot move is the shape of the plan: the same number of
+  // actions, of the same kind, confined to the learner's own record.
+  //
+  // (This used to be asserted as "the uncited actions are identical", which the
+  // engine turned vacuous: every action a learner with evidence receives now
+  // carries citations, so the comparison had nothing left in it. A claim that
+  // cannot fail is not a claim.)
+  const shape = (nx) => {
+    const acts = nx.body.actions ?? [];
+    return { n: acts.length, kinds: acts.map((a) => a.kind).join(","), inRecord: acts.length > 0 && acts.every((a) => CONCEPTS.includes(a.conceptId)) };
+  };
+  const sA = shape(nxA);
+  const sB = shape(nxB);
+  ok(sA.n === sB.n && sA.kinds === sB.kinds && sA.inRecord,
+    `what an arrival order cannot touch is identical: one plan of the same shape, drawn from each learner's own record (A: ${sA.n}·${sA.kinds} | B: ${sB.n}·${sB.kinds})`);
   for (const [who, nx, led] of [["the synced learner", nxA, ledA], ["the twin", nxB, ledB]]) {
     const ids = new Set((led.body.events ?? []).map((e) => e.id));
     ok((nx.body.actions ?? []).every((a) => a.evidenceIds.every((x) => ids.has(x))),
@@ -2274,6 +2682,30 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
     `the monitor's misconceptions are the ledger's own tags (${Object.keys(row.misconceptions).join(",") || "none"} vs ${tagged || "none"})`);
   ok(row.projectionVersion === 2,
     `and the row names the projection algorithm that produced it (v${row.projectionVersion})`);
+
+  // ── WHAT THE WORK PROVED, on the teacher's own screen (§10, §18) ─────────
+  // Three unaided right answers are independence, not merely a tick; the second
+  // idea, answered wrong, has proved NOTHING rather than being counted as
+  // support. Same rule as the sentence under the learner's own mark.
+  ok(row.concepts.fractions.proof === "independent",
+    `the monitor names the work independent proof, not just 3/3 (${row.concepts.fractions.proof})`);
+  ok(row.concepts.decimals.proof === null,
+    "and a concept whose only answer was wrong proves nothing here either — a miss is not support");
+  // The distinction a head of department actually needs: the SAME right answer,
+  // taken with a hint, is support. It goes through the ordinary hint door, and
+  // the learner is told exactly what the teacher's monitor will then show.
+  const sv = await post("/api/progress", { action: "serve", id: student, conceptId: "decimals", reveal: true });
+  const hq = sv.body.question.id;
+  await post("/api/progress", { action: "hint", id: student, conceptId: "decimals", questionId: hq, level: 2 });
+  const anh = await post("/api/progress", { action: "answer", id: student, conceptId: "decimals", questionId: hq, choiceIndex: sv.body.question.answer });
+  ok(anh.status === 200 && anh.body.demonstrated?.mode === "guided" && anh.body.demonstrated?.hints >= 1,
+    `the learner is told the answer was supported (mode=${anh.body.demonstrated?.mode}, hints=${anh.body.demonstrated?.hints})`);
+  const hintedMon = (await getAuthed(`/api/assignments?me=${teacher}`, teacher)).body.monitor.find((m) => m.assignment.id === aid);
+  const hintedRow = hintedMon.members.find((r) => r.learnerId === student);
+  ok(hintedMon.members.length > 0 && hintedRow.concepts.decimals.proof === "supported",
+    `and the teacher reads "supported" for it, while the unaided idea still reads "independent" (${hintedRow.concepts.decimals.proof} / ${hintedRow.concepts.fractions.proof})`);
+  ok(hintedRow.concepts.fractions.proof === "independent",
+    "a hint on one assigned idea does not downgrade the other — the verdict is per concept, as the work was");
 
   // ── NEGATIVE: another teacher can neither read nor alter this class's data ──
   const ot = await newProfile({ handle: "teach_x", country: "GB", language: "en", subjects: ["maths"] });
@@ -2398,6 +2830,40 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
   const peek = await call(`/api/profile?id=${vid}`);
   ok(peek.status === 401, `the course record is behind the same capability rule (${peek.status})`);
 }
+
+// ── Privacy doors (§23): the learner can take their data, and can end it ──
+console.log("▸ Privacy: export and erasure");
+{
+  const v = await newProfile({ handle: "privacy_e2e", country: "GB", language: "en", subjects: ["maths"], onboarded: true });
+  const vid = v.body.profile.id;
+
+  // EXPORT: everything the deployment holds about the learner, behind the
+  // same capability rule as every other learner-scoped read.
+  const exp = await getAuthed(`/api/my-data?id=${vid}`, vid);
+  ok(exp.status === 200 && exp.body.profile?.profile?.id === vid,
+    `the learner's data exports with their own capability (${exp.status})`);
+  ok(Array.isArray(exp.body.events), "the export carries the evidence ledger, event by event");
+  ok(exp.body.diagnostics !== null && typeof exp.body.diagnostics === "object", "and the diagnostic sittings");
+  ok(typeof exp.body.exportedAt === "string", "the export names when it was taken");
+  const expNoSecret = await call(`/api/my-data?id=${vid}`);
+  ok(expNoSecret.status === 401, "no capability, no export — the id alone is a 401");
+
+  // ERASE: consent-gated, then total. The profile goes, the ledger goes, and
+  // a second erase finds nothing — the record cannot be half-erased.
+  const noConfirm = await call(`/api/profile?id=${vid}&secret=${encodeURIComponent(SECRETS.get(vid))}`, { method: "DELETE" });
+  ok(noConfirm.status === 400 && noConfirm.body.error === "confirm_required",
+    "erasure without the typed confirmation is refused, not performed");
+  const badAuth = await call(`/api/profile?id=${vid}&confirm=ERASE`, { method: "DELETE" });
+  ok(badAuth.status === 401, "erasure without the capability is refused outright");
+  const erased = await call(`/api/profile?id=${vid}&secret=${encodeURIComponent(SECRETS.get(vid))}&confirm=ERASE`, { method: "DELETE" });
+  ok(erased.status === 200 && erased.body.removed === true,
+    "with consent and capability, the record is erased");
+  const gone = await getAuthed(`/api/profile?id=${vid}`, vid);
+  ok(gone.status === 404, "the profile no longer resolves after erasure");
+  const dataGone = await getAuthed(`/api/my-data?id=${vid}`, vid);
+  ok(dataGone.status === 404, "nor does the export door answer for a learner who no longer exists");
+}
+
 
 console.log(`\nE2E: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
