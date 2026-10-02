@@ -8025,5 +8025,146 @@ console.log("▸ Home: one day, one decision");
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SPECIFICATION ISOLATION: an advanced learner is not routed to elementary work
+//
+// THE FAILING SCENARIO THIS LOCKS DOWN. `coverageOf` is a STAGE WINDOW, and the
+// advanced specifications do not share one: uk-alevel/a2 covers maths stages
+// 2-5 (43 concepts) while int-ib/hl covers stages 0-4 (63). The extra 20 in
+// IB HL are junior concepts - `addition` has a ceiling of 0.08 - so an advanced
+// tier DECLARES content whose maximum difficulty is elementary. That is a real
+// truthfulness fault and it is reported in audit/stage1-baseline.json (F3).
+//
+// It is NOT, however, a routing fault, and the distinction is the whole point of
+// these tests: driving the real engine (newProfileState -> replayModel ->
+// decisionContext -> decide, the path app/api/next/route.ts uses) shows an
+// advanced learner with strong stage-3/4 evidence is recommended stage-3 work,
+// and `addition` is recommended ONLY once the learner has actually got it wrong.
+// So the engine honours "foundational remediation is permitted only when learner
+// evidence justifies it" today.
+//
+// Nothing tests that. A future change to the stage windows - widening a window,
+// or starting recommendations from the whole covered set instead of from the
+// evidence - would silently put elementary work in front of an IB Higher Level
+// learner, and no existing assertion would notice. These are the assertions that
+// would notice.
+console.log("▸ Specification isolation: an advanced learner is not routed to elementary work");
+{
+  const { SPECIFICATIONS, coverageOf } = require("../.verify/specifications.js");
+  const { newProfileState } = require("../.verify/learner-profile.js");
+  const { replayModel } = require("../.verify/replay.js");
+  const { answerEvidence } = require("../.verify/evidence.js");
+  const { conceptDepth } = require("../.verify/questions.js");
+  const { getConcept } = require("../.verify/genome.js");
+  const { decisionContext, decide } = require("../.verify/decision.js");
+
+  const NOW = Date.UTC(2026, 0, 12, 9, 0, 0);
+  const MIN = 60 * 1000;
+  const learnerId = "isolation-probe";
+  /** `n` hint-free right answers on one concept - what "strong" looks like. */
+  const strongOn = (conceptId, n, correct = true) =>
+    Array.from({ length: n }, (_, i) =>
+      answerEvidence({
+        id: `${learnerId}-${conceptId}-${i + 1}`,
+        learnerId,
+        at: NOW - (30 + i) * MIN,
+        source: "practice",
+        subject: "maths",
+        conceptId,
+        specificationId: null,
+        questionId: `${conceptId}-${i + 1}`,
+        correct,
+        chosen: correct ? 0 : 1,
+        mode: correct ? "independent" : "guided",
+        hints: correct ? 0 : 1,
+        tags: [],
+      }),
+    );
+
+  const run = (specId, levelId, events) => {
+    const spec = SPECIFICATIONS.find((s) => s.id === specId);
+    const level = spec.levels.find((l) => l.id === levelId);
+    const profile = newProfileState(learnerId, {
+      country: "GB",
+      birthYear: 2009,
+      subjects: ["maths"],
+      timePerDay: 20,
+      createdAt: NOW,
+      specificationId: spec.id,
+      levelId: level.id,
+    }).profile;
+    const model = replayModel(events, profile.id, undefined, profile);
+    const actions = decide(decisionContext(model, events), { max: 8 });
+    return {
+      level,
+      concepts: actions.map((a) => a.conceptId ?? a.concept).filter(Boolean),
+      actions,
+    };
+  };
+
+  // The tiers that actually declare junior maths inside an advanced window.
+  for (const [specId, levelId] of [["int-ib", "hl"], ["in-cbse", "class11-12"], ["uk-alevel", "a2"], ["us-ap", "ap"]]) {
+    const strong = run(specId, levelId, ["quadratics", "sim-equations-quad", "functions"].flatMap((c) => strongOn(c, 3)));
+    const elementary = strong.concepts.filter((c) => conceptDepth(c) < 0.5);
+    ok(
+      elementary.length === 0,
+      `${specId}/${levelId}: a learner strong on stage-3 work is not offered elementary concepts` +
+        (elementary.length ? ` (offered ${elementary.join(", ")})` : ` (offered ${strong.concepts.join(", ") || "nothing"})`),
+    );
+    ok(
+      strong.concepts.every((c) => conceptDepth(c) >= strong.level.difficulty - 0.25),
+      `${specId}/${levelId}: every concept offered clears its declared target, allowing a band's width`,
+    );
+    // With no evidence at all the engine must not invent a recommendation. A
+    // fresh advanced learner gets an explanation, not a concept to practise.
+    const fresh = run(specId, levelId, []);
+    ok(
+      fresh.concepts.length === 0,
+      `${specId}/${levelId}: a learner with no evidence is offered no concept to practise`,
+    );
+    ok(
+      fresh.actions.every((a) => a.basis === "no_evidence"),
+      `${specId}/${levelId}: and the action says so (${fresh.actions.map((a) => a.basis).join(", ") || "none"})`,
+    );
+  }
+
+  // Remediation DOWN is allowed, but only on evidence. The same learner who is
+  // strong everywhere must never be walked back to stage 0, and the learner who
+  // actually got it wrong must be.
+  const walkedBack = run("int-ib", "hl", ["quadratics", "sim-equations-quad", "functions"].flatMap((c) => strongOn(c, 4)));
+  ok(
+    !walkedBack.concepts.some((c) => (getConcept(c)?.stage ?? 9) === 0),
+    "int-ib/hl: a learner with strong stage-3/4 evidence is never walked back to a stage-0 concept",
+  );
+  const justified = run("int-ib", "hl", strongOn("addition", 2, false));
+  ok(
+    justified.concepts.includes("addition"),
+    "int-ib/hl: a learner who got a stage-0 concept WRONG is offered it again — remediation on evidence, not by default",
+  );
+  ok(
+    justified.actions.every((a) => a.basis === "cited"),
+    `int-ib/hl: and that recommendation cites the evidence for it (${justified.actions.map((a) => a.basis).join(", ")})`,
+  );
+
+  // A junior tier must NOT be offered the advanced work either: the declared
+  // difficulty is the ceiling for the learner, not just the floor.
+  const junior = run("uk-gcse", "foundation", ["addition", "subtraction", "place-value"].flatMap((c) => strongOn(c, 3)));
+  ok(
+    !junior.concepts.some((c) => conceptDepth(c) > 0.9),
+    "uk-gcse/foundation: a learner strong on stage-0 work is not offered stage-5 concepts",
+  );
+
+  // The declaration gap itself, pinned so it cannot quietly grow.
+  const hlMaths = coverageOf({
+    spec: SPECIFICATIONS.find((s) => s.id === "int-ib"),
+    level: SPECIFICATIONS.find((s) => s.id === "int-ib").levels.find((l) => l.id === "hl"),
+  }).filter((c) => c.subject === "maths");
+  const juniorInHl = hlMaths.filter((c) => conceptDepth(c.id) < 0.5);
+  ok(
+    juniorInHl.length > 0,
+    `int-ib/hl still declares junior maths inside an advanced tier (${juniorInHl.length} of ${hlMaths.length}) — this assertion pins the KNOWN declaration gap so it is reported, not silently grown`,
+  );
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
