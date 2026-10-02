@@ -6820,7 +6820,11 @@ console.log("▸ AI explains, never records");
 // shell. The claims below are about the SOURCE — which is stronger than a
 // screenshot: they survive every future render path.
 {
-  const dash = fs.readFileSync("app/dashboard/page.tsx", "utf8");
+  // The learner home was moved out of app/dashboard/page.tsx into
+  // components/learner-home.tsx so that the nav item called "Home" and the route
+  // /dashboard are one screen rather than two that can drift. The surface is
+  // named by what it IS, so the file it lives in is a detail of this file.
+  const dash = fs.readFileSync("components/learner-home.tsx", "utf8");
   const nextStep = fs.readFileSync("components/next-step.tsx", "utf8");
   const nav = fs.readFileSync("components/nav.tsx", "utf8");
 
@@ -6864,7 +6868,7 @@ console.log("▸ AI explains, never records");
     `no surface fakes an empty ledger out of a fetch it has not received (${faked.join(", ") || `${surfaceFiles.length} surfaces clean`})`);
   // The five places the product asks the question, and they ALL use the door.
   const surfaces = [
-    "components/next-step.tsx", "app/dashboard/page.tsx", "components/have-plan.tsx",
+    "components/next-step.tsx", "components/learner-home.tsx", "components/have-plan.tsx",
     "app/api/my-pack/route.ts", "app/api/next/route.ts",
     "app/api/session/route.ts", "app/learn/[subject]/[concept]/page.tsx",
   ];
@@ -7659,7 +7663,7 @@ console.log("▸ Home: one day, one decision");
     "today / within a week / further out / already past are four different states");
 
   // ── The page's shape ─────────────────────────────────────────────────
-  const home = fs.readFileSync("app/dashboard/page.tsx", "utf8");
+  const home = fs.readFileSync("components/learner-home.tsx", "utf8");
   const countdown = fs.readFileSync("components/exam-countdown.tsx", "utf8");
   const recent = fs.readFileSync("components/recent-answers.tsx", "utf8");
   const offline = fs.readFileSync("app/offline/page.tsx", "utf8");

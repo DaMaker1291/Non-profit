@@ -24,17 +24,39 @@
   --paper: #faf9f6;
   --paper-deep: #f2f1ec;
   --surface: #ffffff;
-  /* The squared paper, whispered: the grid is a texture, not a competing
-     signal. It sits ~2% above the paper so text and cards own the page. */
+  /* The squared paper used to be a 24px grid drawn over the whole page at ~2%
+     contrast. It was there to say "exercise book", and it said something else:
+     a visible lattice behind every screen, which is texture competing with
+     text for the same attention. The paper is now plain and the calm comes from
+     spacing, type and rules instead — which is what the brief actually asks for.
+     `--grid` is kept as a token so the accent-tinted wash below still resolves. */
   --grid: #f0efea;
-  --ink: #101820;
-  --ink-soft: #24313c;
-  --pencil: #5b6771;
-  --margin-red: #d0361f;
+
+  /* ONE restrained accent. Every other colour in this file is either paper, ink
+     or a semantic mark (wrong / right / caution) — a mark means something, so it
+     must not also be decoration. The accent is for the learner's own agency:
+     the primary action, the item you are on, the thing you can do next. It is a
+     deep academic indigo — calm enough to sit behind text for an hour, distinct
+     from both the tick green and the margin red so neither meaning is diluted. */
+  --accent: #2f4a8a;
+  --accent-ink: #24396d;
+  --accent-soft: #eaeff9;
+  --accent-line: #c6d2ea;
+
+  --ink: #141b26;
+  --ink-soft: #2a3542;
+  --pencil: #5f6b76;
+  --margin-red: #c0362a;
   --tick-green: #1c7a45;
   --amber: #a9610a;
-  --line: #d6d8d2;
-  --line-soft: #e6e8e3;
+  --line: #dcdcd6;
+  --line-soft: #e9e9e4;
+
+  /* Soft, restrained elevation. Two levels only: a surface resting on paper, and
+     a surface lifted off another surface. Anything more and a dashboard starts
+     to look like stacked cards. */
+  --shadow-1: 0 1px 2px rgba(20, 27, 38, 0.05);
+  --shadow-2: 0 2px 4px rgba(20, 27, 38, 0.05), 0 8px 20px rgba(20, 27, 38, 0.06);
 
   /* ── One spacing scale, 8px base ─────────────────────────────────────────
      Every gap in the app is one of these. A spacing system that is followed
@@ -71,29 +93,32 @@ html, body { margin: 0; padding: 0; }
 
 body {
   background-color: var(--paper);
-  /* the squared paper */
+  /* One very soft wash of the accent in the top-left, so the page has a
+     temperature and the white surfaces read as sitting ON something. It is
+     under 3% opacity — this is felt, not seen, and it disappears entirely in
+     a screenshot comparison at a glance. */
   background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 24px 24px;
-  background-position: -1px -1px;
+    radial-gradient(1100px 520px at 12% -8%, rgba(47, 74, 138, 0.045), transparent 62%);
   background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font);
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: 16.5px;
+  line-height: 1.62;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 }
 
 ::selection { background: rgba(224, 62, 45, 0.18); }
 
-a { color: var(--ink); text-decoration-color: rgba(224, 62, 45, 0.55); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
-/* Hover stays neutral: red is the accent, not the default response to a
-   pointer. Colour appears where meaning lives (active nav, marking, focus). */
-a:hover { color: var(--ink-soft); }
+a { color: var(--ink); text-decoration-color: var(--accent-line); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+/* Hover stays neutral: colour appears where meaning lives (the active item, the
+   primary action, marking, focus) rather than as the default response to a
+   pointer. A link that changes colour on hover is decoration, not meaning. */
+a:hover { color: var(--accent-ink); }
 
-:focus-visible { outline: 2.5px solid var(--margin-red); outline-offset: 2px; border-radius: 3px; }
+:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
 
 /* A step heading is a focus TARGET, not a control: the wizard moves focus to it
    so a screen reader hears which screen it just arrived on. It cannot be tabbed
@@ -140,7 +165,7 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    navigation, which is the only place the product spends a colour on chrome. */
 .sidebar::after {
   content: ""; position: absolute; inset-block: 0;
-  inset-inline-end: 0; width: 2px; background: var(--margin-red);
+  inset-inline-end: 0; width: 2px; background: var(--accent);
 }
 
 .sidebar-logo {
@@ -170,11 +195,14 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 }
 .sidebar-link:hover { color: var(--ink); background: var(--paper-deep); text-decoration: none; }
 .sidebar-link .glyph { flex: none; width: 20px; text-align: center; font-size: 15px; opacity: 0.85; }
+/* Where the learner IS is the one place the accent is allowed to appear in the
+   chrome. It used to be the marking red, which meant "you are here" was drawn
+   in the same colour as "this is wrong". */
 .sidebar-link.active {
-  color: var(--ink); background: var(--surface);
-  box-shadow: inset 3px 0 0 var(--margin-red);
+  color: var(--accent-ink); background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
-[dir="rtl"] .sidebar-link.active { box-shadow: inset -3px 0 0 var(--margin-red); }
+[dir="rtl"] .sidebar-link.active { box-shadow: inset -3px 0 0 var(--accent); }
 
 /* The sidebar's own group heading (Current course / Help). Small, quiet, and
    above the thing it labels — never a competing navigation row. */
@@ -255,7 +283,7 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 .bottomnav a:hover, .bottomnav summary:hover { color: var(--ink); text-decoration: none; }
 .bottomnav .glyph { font-size: 17px; line-height: 1; }
 .bottomnav a.active { color: var(--ink); }
-.bottomnav a.active .glyph { color: var(--margin-red); }
+.bottomnav a.active .glyph { color: var(--accent); }
 .bottomnav .nav-overflow { flex: 1; position: static; }
 
 /* Utility pages fold into a ⋯ overflow: the bar stays a learning bar. A
@@ -281,8 +309,8 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
   text-decoration: none; padding: 10px 11px; border-radius: var(--radius-btn); white-space: nowrap;
 }
 .nav-overflow-menu a:hover { background: var(--paper-deep); }
-.nav-overflow-menu a.active { background: var(--paper-deep); box-shadow: inset 2px 0 0 var(--margin-red); }
-[dir="rtl"] .nav-overflow-menu a.active { box-shadow: inset -2px 0 0 var(--margin-red); }
+.nav-overflow-menu a.active { background: var(--accent-soft); color: var(--accent-ink); box-shadow: inset 2px 0 0 var(--accent); }
+[dir="rtl"] .nav-overflow-menu a.active { box-shadow: inset -2px 0 0 var(--accent); }
 
 /* The sidebar's own overflow menu opens downward. */
 .sidebar .nav-overflow summary { font-size: 15px; padding: 10px 12px; width: 100%; }
@@ -305,21 +333,27 @@ main { display: block; }
 .stack { display: grid; gap: var(--s2); }
 .stack.tight { gap: var(--s1); }
 
-/* ── Type ── */
+/* ── Type ──────────────────────────────────────────────────────────────────
+   Confident, not loud. The previous pass set every heading to weight 800 with
+   negative tracking, which at a glance reads as a marketing page rather than a
+   serious study tool — a 13-year-old opening this for an hour is served better
+   by 700 with a hair of positive tracking. Hierarchy now comes from SIZE and
+   SPACE, not from heaviness, which is also what keeps a page with twenty
+   sections on it from turning into a wall. */
 .display, h1, h2.section {
-  font-weight: 800;
-  letter-spacing: -0.022em;
-  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.014em;
+  line-height: 1.2;
   color: var(--ink);
 }
 /* A page title, not a billboard. The landing page asks for something louder and
    gets it by name (.hero h1), so an interior page never shouts. */
-h1 { font-size: clamp(25px, 3.2vw, 31px); margin: 0 0 var(--s2); }
-h2.section { font-size: clamp(20px, 2.6vw, 25px); margin: 0 0 var(--s1); }
-h1.visually-small { font-size: clamp(23px, 3vw, 28px); margin: 0 0 12px; }
-h2.h2 { font-size: clamp(18px, 2.2vw, 21px); margin: 0 0 var(--s1); }
-h3 { font-weight: 700; letter-spacing: -0.01em; font-size: 17px; margin: 0 0 6px; }
-.hero h1 { font-size: clamp(34px, 6vw, 50px); margin: 0 0 var(--s2); letter-spacing: -0.03em; }
+h1 { font-size: clamp(26px, 3vw, 32px); margin: 0 0 var(--s2); }
+h2.section { font-size: clamp(20px, 2.4vw, 25px); margin: 0 0 var(--s1); }
+h1.visually-small { font-size: clamp(24px, 2.8vw, 29px); margin: 0 0 12px; }
+h2.h2 { font-size: clamp(18px, 2.1vw, 21px); margin: 0 0 var(--s1); }
+h3 { font-weight: 650; letter-spacing: 0; font-size: 17px; margin: 0 0 6px; }
+.hero h1 { font-size: clamp(32px, 5vw, 46px); margin: 0 0 var(--s2); letter-spacing: -0.025em; font-weight: 700; }
 
 .eyebrow {
   font-family: var(--mono);
@@ -362,39 +396,50 @@ h3 { font-weight: 700; letter-spacing: -0.01em; font-size: 17px; margin: 0 0 6px
 
 /* ── Buttons: ink, no gradients. Every one of them visibly answers a pointer,
    a keyboard and a press. ── */
+/* The primary action carries the accent, not the ink. Ink-black buttons were
+   heavy and made every screen look like a stack of warnings; a deep indigo at
+   the same weight reads as "this is the thing to do" and leaves black for text.
+   Ghost stays neutral so the hierarchy is one accent, one quiet, one mark. */
 .btn {
   display: inline-flex; align-items: center; gap: var(--s1); justify-content: center;
-  background: var(--ink); color: var(--paper);
-  font-family: var(--font); font-weight: 700; font-size: 15px;
-  border: 2px solid var(--ink); border-radius: var(--radius-btn);
+  background: var(--accent); color: #fff;
+  font-family: var(--font); font-weight: 650; font-size: 15px;
+  border: 1.5px solid var(--accent); border-radius: var(--radius-btn);
   padding: 12px 20px; cursor: pointer;
   min-height: 48px;
   text-decoration: none;
-  transition: background 0.12s ease, transform 0.08s ease, box-shadow 0.12s ease;
+  box-shadow: var(--shadow-1);
+  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
 }
-.btn:hover { background: var(--ink-soft); border-color: var(--ink-soft); color: var(--paper); text-decoration: none; transform: translateY(-1px); }
-.btn:active { transform: translateY(0); box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.18); }
-.btn:disabled { opacity: 0.45; cursor: wait; transform: none; }
-.btn.ghost { background: transparent; color: var(--ink); border-color: var(--ink); }
-.btn.ghost:hover { background: var(--paper-deep); color: var(--ink); }
-.btn.small { padding: 9px 15px; font-size: 14px; border-width: 1.5px; min-height: 40px; }
+/* No lift on hover. The old translateY(-1px) made every control twitch; a
+   colour-and-shadow change reads as responsive without moving the target. */
+.btn:hover { background: var(--accent-ink); border-color: var(--accent-ink); color: #fff; text-decoration: none; box-shadow: var(--shadow-2); }
+.btn:active { box-shadow: var(--shadow-1); }
+.btn:disabled { opacity: 0.45; cursor: wait; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); box-shadow: none; }
+.btn.ghost:hover { background: var(--paper-deep); color: var(--ink); border-color: var(--pencil); box-shadow: none; }
+.btn.small { padding: 9px 15px; font-size: 14px; min-height: 40px; }
 .btn.wide { width: 100%; }
 
 /* ── Workings: the boxed area where a question lives ── */
 .card {
   background: var(--surface);
-  border: 1.5px solid var(--line);
+  border: 1px solid var(--line);
   border-radius: var(--radius-card);
   padding: var(--s3);
-  box-shadow: 0 1px 2px rgba(23, 41, 59, 0.05);
+  box-shadow: var(--shadow-1);
 }
 .card.soft { background: var(--paper-deep); box-shadow: none; }
 .card.flat { box-shadow: none; }
-/* The one card on a page that dominates it. Home has exactly one. */
+/* The one card on a page that dominates it. Home has exactly one.
+   It earns that by size and by the accent edge, not by a heavy border — the
+   learner should feel a clear focal point, not a warning box. */
 .card.primary {
-  border: 2px solid var(--ink);
+  border: 1px solid var(--accent-line);
+  border-inline-start: 4px solid var(--accent);
   padding: var(--s4);
-  box-shadow: 0 3px 0 rgba(23, 41, 59, 0.12);
+  box-shadow: var(--shadow-2);
+  background: linear-gradient(180deg, var(--accent-soft) 0%, var(--surface) 120px);
 }
 
 .grid { display: grid; gap: var(--s2); }
@@ -610,7 +655,7 @@ button.chip { cursor: pointer; font-family: var(--mono); }
   padding: 12px 0; border-top: 1px solid var(--line-soft);
 }
 .steps li:first-child { border-top: 0; padding-top: 0; }
-.step-no { flex: 0 0 auto; font-size: 12px; letter-spacing: 0.12em; color: var(--margin-red); font-weight: 700; padding-top: 2px; }
+.step-no { flex: 0 0 auto; font-size: 12px; letter-spacing: 0.12em; color: var(--accent); font-weight: 700; padding-top: 2px; }
 
 /* ── "Why this question": one quiet line above the prompt. It states the
    reason and the item's own band, and never the internal difficulty score. ── */
@@ -707,7 +752,7 @@ input[type="text"], input[type="email"], input[type="password"], input[type="num
   padding: 12px 13px; font-size: 15.5px; font-family: var(--font);
   min-height: 48px;
 }
-input:focus, select:focus, textarea:focus { outline: 2.5px solid var(--margin-red); outline-offset: 1px; border-color: var(--ink); }
+input:focus, select:focus, textarea:focus { outline: 2.5px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--margin-red); }
 .field-error { display: block; margin-top: 6px; font-size: 13px; color: var(--margin-red); }
 .checks { display: flex; gap: 9px; flex-wrap: wrap; }
