@@ -8,11 +8,14 @@ import { ctitle, cblurb, mcName, mcCoaching } from "@/lib/content-i18n";
 import { dueLabel, fill } from "@/lib/i18n";
 import { isNextKind, type NextAction, type NextKind } from "@/lib/next-engine";
 import { decideOne, decisionContextFrom } from "@/lib/decision";
-import { loadLedger, type LedgerFetch } from "@/lib/evidence-view";
+import { loadLedger, conceptKnowledge, type LedgerFetch } from "@/lib/evidence-view";
 import { newSubmissionId, postAnswer } from "@/lib/sync-queue";
 import { SESSION_TARGET, type SessionResult } from "@/lib/session";
+import { proofLabelKey, proofSentenceKey, proofVerdict } from "@/lib/proof";
 import { evidenceFor } from "@/lib/learner-model";
 import SessionResultPanel from "@/components/session-result";
+import { Dims } from "@/components/dims";
+import TutorPanel from "@/components/tutor-panel";
 import { getConcept, ancestorsOf } from "@/lib/genome";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { HINT_LEVELS } from "@/lib/hints";
@@ -25,7 +28,30 @@ import type { FlarePayload } from "@/lib/microdiag";
 import { subjectFromParam } from "@/lib/subjects";
 import type { Question, StudyPack } from "@/lib/types";
 
-type Graded = { correct: boolean; explanation: string; misconceptionId?: string | null; answerIndex: number | null; flare?: FlarePayload | null };
+type Graded = { correct: boolean; explanation: string; misconceptionId?: string | null; answerIndex: number | null; flare?: FlarePayload | null; evidence?: AnswerEvidence | null };
+
+/** WHAT THE SERVER SAW the answer being, returned with the grade.
+ *
+ *  The verdict says whether the answer was right. This says what it PROVED:
+ *  whether the learner worked unaided, whether the idea was applied somewhere
+ *  new, and whether this was delayed recall. All three are attributed
+ *  server-side — the client renders them and never computes them, because a
+ *  browser that could award itself autonomy could award itself mastery (§10,
+ *  §14). Absent on an older response: the note is then simply not drawn, and
+ *  no verdict is invented. */
+type AnswerEvidence = { mode: "guided" | "independent" | "transfer"; hints: number; source: string; retained: boolean };
+
+/** The one verdict that follows the mark.
+ *
+ *  The PRIORITY RULE is not here: it lives in lib/proof.ts, beside the two
+ *  other layers that ask it (the server's assignment monitor and the session
+ *  headline), because a rule with three copies is a rule with three answers.
+ *  This page decides nothing about what the answer proved — it renders the
+ *  word the shared rule gives the facts the SERVER attributed. */
+function verdictFor(e: AnswerEvidence | null | undefined, correct: boolean) {
+  if (!e) return null;
+  return proofVerdict({ correct, mode: e.mode, source: e.source, hints: e.hints, retained: e.retained });
+}
 
 /** What the SERVE decided about difficulty, in the server's own words: which
  *  rule fired, the band the item actually falls in, and whether the learner
@@ -50,6 +76,25 @@ export default function ConceptPage() {
   const [err, setErr] = useState("");
   const [why, setWhy] = useState<ServeTarget | null>(null);
   const [stage_, setStage_] = useState<"lesson" | "practise" | "transfer">("lesson");
+  /**
+   * Did the transfer serve achieve a genuinely different surface?
+   *
+   * `null` until a transfer question is served (nothing to say yet). `false`
+   * means the server could not re-frame this concept's question and served a
+   * harder version of the SAME form — real stretch, but not transfer, and the
+   * header must not claim otherwise. The server decides it; the client only
+   * reports what the serve handed it (`reframed`).
+   */
+  const [reframed, setReframed] = useState<boolean | null>(null);
+  /**
+   * Can this concept's questions be put on a second surface at all? A fact the
+   * SERVER owns (it asks the re-framer: lib/transfer.ts#canTransfer) and every
+   * serve carries. It decides whether the last step of the path is Transfer or
+   * deeper work on the same question — 133 of the 135 concepts in the bank
+   * cannot yet be re-framed, and the path used to promise all of them transfer.
+   * Undefined means "not told yet" (the first serve is still in flight).
+   */
+  const [transferable, setTransferable] = useState<boolean | undefined>(undefined);
   const [transferOk, setTransferOk] = useState(false);
   const busy = useState(false);
   // Audit P0-E moved every write behind the profile's capability secret. This
@@ -77,6 +122,28 @@ export default function ConceptPage() {
   // "none set" AND "the read failed" — this page never claims either on the
   // strength of the other, and the panel on Home reports a failed read.
   const [assignedDue, setAssignedDue] = useState<number | null>(null);
+  // The tutor is a PANEL beside the question (§tutor), not a page: on a phone
+  // it is a sheet the learner opens with one button.
+  const [tutorOpen, setTutorOpen] = useState(false);
+  // Whether the full explanation has been asked for. On a wrong answer the
+  // coaching line teaches and the explanation is OFFERED — dumping three
+  // paragraphs on a learner the moment they get something wrong is how
+  // feedback stops being read at all.
+  const [showWhy, setShowWhy] = useState(false);
+
+  // The exercise clock: how long this sitting has been open. A stopwatch, not
+  // a deadline — it starts when a session starts and stops when it closes, so
+  // a learner can see that the eight minutes the card promised is eight
+  // minutes and not a guess. It is the learner's own clock, never a score.
+  const [clock, setClock] = useState(0);
+  const clockFrom = useRef<number | null>(null);
+  useEffect(() => {
+    const running = phase === "active" || phase === "feedback" || phase === "proving";
+    if (!running) { clockFrom.current = null; return; }
+    if (clockFrom.current === null) clockFrom.current = Date.now();
+    const id = setInterval(() => setClock(Date.now() - (clockFrom.current ?? Date.now())), 1000);
+    return () => clearInterval(id);
+  }, [phase]);
 
   const prereqs = c ? c.prereqs : [];
   const id = loadLocalProfileId();
@@ -137,6 +204,7 @@ export default function ConceptPage() {
     if (!res.ok) { setErr(`HTTP ${res.status}`); return; }
     const body = await res.json();
     setQ(body.question ?? null);
+    if (typeof body.transferable === "boolean") setTransferable(body.transferable);
     setWhy((body.target as ServeTarget | null) ?? null);
     // When the serve says this learner needs support, the ladder is OPEN rather
     // than merely available: a student who is struggling should not have to
@@ -287,7 +355,7 @@ export default function ConceptPage() {
       const body = await res.json();
       if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
       const correct = !!body.correct;
-      const g: Graded = { correct, explanation: body.explanation ?? "", misconceptionId: body.misconceptionId, answerIndex: typeof body.answerIndex === "number" ? body.answerIndex : null, flare: body.flare ?? null };
+      const g: Graded = { correct, explanation: body.explanation ?? "", misconceptionId: body.misconceptionId, answerIndex: typeof body.answerIndex === "number" ? body.answerIndex : null, flare: body.flare ?? null, evidence: (body.demonstrated as AnswerEvidence | undefined) ?? null };
       setGraded(g);
       // The session's own count of what it has asked; the server holds the same
       // count authoritatively (it increments on grading) and wins at finish.
@@ -356,6 +424,8 @@ export default function ConceptPage() {
         const body = await res.json();
         const q = body.question;
         if (!q) return;
+        setReframed(typeof body.reframed === "boolean" ? body.reframed : null);
+        if (typeof body.transferable === "boolean") setTransferable(body.transferable);
         setQ(q);
         setServedAt(Date.now());
       } finally {
@@ -393,6 +463,15 @@ export default function ConceptPage() {
   // bare instruction. "Not yet proven independently" is a real answer; the
   // panel never fills a gap with a number.
   const evidence = state ? evidenceFor(state, conceptId) : null;
+  // WHAT WE KNOW about this concept, from the LEDGER's projection — the same
+  // rows Mind and the evidence record read, so "Application: Developing" means
+  // the identical thing on all three surfaces. Null while the ledger is in
+  // flight: a loading ledger is not an empty one, and the dims below are not
+  // drawn until the record has actually been read.
+  const knowledge = ledger ? conceptKnowledge(ledger.projection, conceptId, t).rows : null;
+
+  // Each new marking starts closed.
+  useEffect(() => { setShowWhy(false); }, [graded]);
 
   // Learning path stages: lesson → practise → prove → transfer, now driven by
   // the session's own lifecycle instead of by "is there a question on screen".
@@ -409,9 +488,26 @@ export default function ConceptPage() {
     transfer: stage_ === "transfer",
   };
 
+  // WHICH QUESTION THE LEARNER IS LOOKING AT, in one place.
+  //
+  // `count` is how many answers the server has graded, and it advances on
+  // GRADING — not when the next question loads. Reading count + 1 unconditionally
+  // relabelled the page "Question 2 of 5" the instant Q1 was answered, while Q1's
+  // "not yet" and its Explanation/Retry controls were still the thing being read:
+  // the header contradicted the panel beside it on the one screen that is a
+  // countdown. Three call sites printed it, so they could disagree with each
+  // other too; they read this now.
+  //
+  // The predicate is `graded`, because that is the value the screen itself uses
+  // to choose between the feedback and the choices — `phase` looks equivalent but
+  // is not: `load()` (the Next/Retry control) clears `graded` and serves a fresh
+  // question without ever moving `phase` off "feedback", so a phase-based counter
+  // under-reports by one for every question after a retry.
+  const qOrdinal = Math.min(graded ? count : count + 1, target);
+
   return (
     <main className="container" style={{ paddingTop: 40 }}>
-      <p className="eyebrow"><span className="no">{String(c.stage)}</span> {t(`subj.${c.subject}`)} · {ctitle(lang, c.id)}</p>
+      <p className="eyebrow">{t(`subj.${c.subject}`)} · {ctitle(lang, c.id)}</p>
       <h1>{ctitle(lang, c.id)}</h1>
       <p className="lead">{cblurb(lang, c.id)}</p>
       {assignedDue !== null && (
@@ -428,6 +524,23 @@ export default function ConceptPage() {
         </p>
       )}
 
+      {/* STATUS FIRST (§concept page): what OpenMind actually knows here,
+          before the lesson text. Four dimensions and an honest dash, from the
+          ledger — so a learner who has never been measured on transfer is told
+          that, rather than shown an empty meter that reads as a failure. */}
+      <section className="card" style={{ marginBottom: 18 }} aria-label={t("ev.eyebrow")}>
+        <p className="eyebrow" style={{ margin: 0 }}>
+          <span className="no">◍</span> {t("ev.eyebrow")} · {ctitle(lang, conceptId)}
+        </p>
+        {knowledge === null ? (
+          <p className="small muted" style={{ margin: "6px 0 0" }}>{t("common.loading")}</p>
+        ) : (
+          <div style={{ marginTop: 6 }}>
+            <Dims rows={knowledge} />
+          </div>
+        )}
+      </section>
+
       {/* Learning path: what you do next on this concept */}
       <nav aria-label={t("path.aria")} style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "14px 0 20px" }}>
         {["lesson", "practise", "prove", "transfer"].map((s, i) => {
@@ -435,7 +548,7 @@ export default function ConceptPage() {
           const done = stageDone[s];
           return (
             <span key={s} className={`chip ${active ? "on" : ""} ${done ? "ok" : ""}`}>
-              {i + 1}. {s === "lesson" ? t("path.read") : s === "practise" ? t("path.practise") : s === "prove" ? t("path.prove") : t("path.transfer")}
+              {i + 1}. {s === "lesson" ? t("path.read") : s === "practise" ? t("path.practise") : s === "prove" ? t("path.prove") : transferable === false ? t("next.title.stretch") : t("path.transfer")}
               {done && " ✓"}
             </span>
           );
@@ -455,7 +568,7 @@ export default function ConceptPage() {
       )}
 
       <div className="card" style={{ marginBottom: 18 }}>
-        <p className="eyebrow"><span className="no">§</span> {t("learn.lesson")}</p>
+        <p className="eyebrow">{t("learn.lesson")}</p>
         <p style={{ margin: 0, fontSize: 16.5, lineHeight: 1.7 }}>
           {c.lesson}
           <SpeakButton text={c.lesson} />
@@ -510,8 +623,12 @@ export default function ConceptPage() {
                 {evidence.independentAsked === 0 && <span className="muted"> ({t("ev.notProven")})</span>}
               </p>
               <p style={{ margin: "2px 0" }}>
-                {t("ev.answers")}: <span className="mono">{evidence.attempts}</span> · {t("ev.hints")}:{" "}
-                <span className="mono">{evidence.hintsUsed}</span>
+                {/* How the work was done, from the fold-owned count: `hintsUsed`
+                    read the per-level tally the ledger does not carry, so this
+                    line showed a learner who took help on every answer that
+                    they had used none. */}
+                {t("ev.answers")}: <span className="mono">{evidence.attempts}</span> · {t("ev.helped")}:{" "}
+                <span className="mono">{evidence.hintedAnswers}</span>
                 {evidence.lastSeen > 0 && (
                   <>
                     {" · "}{t("ev.lastSeen")}: {new Date(evidence.lastSeen).toLocaleDateString(lang)}
@@ -538,12 +655,33 @@ export default function ConceptPage() {
         </section>
       )}
 
+      {/* THE EXERCISE HEADER. Sticky, so the learner never loses which idea
+          they are working on, which question of the set it is, or how long
+          they have been at it — the three facts a paper sheet gives you for
+          free and a web page usually does not. */}
+      {!result && (
+        <div className="qbar">
+          <b>{ctitle(lang, c.id)}</b>
+          <span className="where">{t(`subj.${c.subject}`)}</span>
+          <span className="where">{fill(t("sess.qOf"), { n: qOrdinal, m: target })}</span>
+          {stage_ === "transfer" && (
+            <span className="where">{t(reframed === false ? "learn.deepenStage" : "learn.transferStage")}</span>
+          )}
+          <span className="clock" aria-label={t("sess.eyebrow")}>
+            ⏱ {Math.floor(clock / 60000)}:{String(Math.floor(clock / 1000) % 60).padStart(2, "0")}
+          </span>
+        </div>
+      )}
+
+      {/* THE WORK AREA: the question, with the tutor beside it. */}
+      <div className="work">
+        <div className="work-main">
       <div className="card" style={{ marginBottom: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
           <p className="eyebrow" style={{ margin: 0 }}>
             <span className="no">Q</span> {t("sess.eyebrow")}
             {!result && (
-              <>{" · "}<span className="mono">{fill(t("sess.qOf"), { n: Math.min(count + 1, target), m: target })}</span></>
+              <>{" · "}<span className="mono">{fill(t("sess.qOf"), { n: qOrdinal, m: target })}</span></>
             )}
           </p>
           {progress && (
@@ -643,13 +781,50 @@ export default function ConceptPage() {
               </div>
             )}
             {graded && (
-              <div className={`feedback ${graded.correct ? "ok" : "no"}`}>
+              // The verdict is the thing a learner waits for and a screen reader
+              // has nothing to read: without a live region the marking happens
+              // in silence and the page "does nothing". Announced politely, so
+              // the explanation is not cut off mid-sentence by the next one.
+              <div className={`feedback ${graded.correct ? "ok" : "no"}`} role="status" aria-live="polite">
                 <span className="verdict">{graded.correct ? `✓ ${t("learn.correct")}` : `✗ ${t("learn.wrong")}`}</span>
-                {graded.explanation}
+                {/* On a wrong answer the likely mistake comes FIRST and in one
+                    line — that is the sentence that teaches. The worked
+                    explanation is offered underneath it rather than dumped on
+                    top of it, because three paragraphs of algebra arriving the
+                    instant an answer is marked is how feedback stops being
+                    read at all. */}
                 {graded.misconceptionId && MISCONCEPTIONS_BY_ID[graded.misconceptionId] && (
-                  <> <b className="tag">{mcName(lang, graded.misconceptionId, MISCONCEPTIONS_BY_ID[graded.misconceptionId]?.name ?? graded.misconceptionId)}:</b>{" "}
-                    {MISCONCEPTIONS_BY_ID[graded.misconceptionId].coaching.split(".")[0]}.</>
+                  <p style={{ margin: "0 0 8px" }}>
+                    <b className="tag">{mcName(lang, graded.misconceptionId, MISCONCEPTIONS_BY_ID[graded.misconceptionId]?.name ?? graded.misconceptionId)}</b>
+                    {" — "}{MISCONCEPTIONS_BY_ID[graded.misconceptionId].coaching.split(".")[0]}.
+                  </p>
                 )}
+                {graded.correct || showWhy ? (
+                  <>
+                    <span className="why-title">{t("learn.explain")}</span>
+                    {graded.explanation}
+                  </>
+                ) : (
+                  <button type="button" className="linkish" onClick={() => setShowWhy(true)}>
+                    {t("learn.explain")} →
+                  </button>
+                )}
+                {/* WHAT THE ANSWER PROVED, not just that it was right: the
+                    verdict in its short name (the same word the evidence
+                    tables and the teacher's monitor use) plus the sentence
+                    that explains it. The difference between "correct" and
+                    "independently correct" is the whole basis of the learner
+                    model, and until recently only the model knew it. */}
+                {(() => {
+                  const v = verdictFor(graded.evidence, graded.correct);
+                  return v ? (
+                    <p className="proof-line">
+                      <span className="proof-k">{t("ev.eyebrow")}</span>
+                      <span className={`chip ${v === "independent" || v === "transfer" || v === "retained" ? "good" : ""}`}>{t(proofLabelKey(v))}</span>
+                      <span className="small">{t(proofSentenceKey(v))}</span>
+                    </p>
+                  ) : null;
+                })()}
               </div>
             )}
             {graded?.flare && <MicroDiagnostic flare={graded.flare} lang={lang} />}
@@ -664,15 +839,19 @@ export default function ConceptPage() {
                 ) : count >= target ? (
                   <>
                     <button className="btn" onClick={() => void loadTransfer()} disabled={busy[0]}>
-                      {t("sess.prove")} →
+                      {t(transferable === false ? "sess.deepProve" : "sess.prove")} →
                     </button>
                     <button className="btn ghost" onClick={() => void finish()} disabled={busy[0]}>
                       {t("sess.finish")}
                     </button>
                   </>
                 ) : (
+                  // On a wrong answer the SAME action is offered under its
+                  // honest name: a fresh question on this idea. "Next" after a
+                  // mistake reads as "move on", which is the opposite of what
+                  // the engine does next.
                   <button className="btn" onClick={load} disabled={busy[0]}>
-                    {t("learn.next")} →
+                    {graded.correct ? t("learn.next") : t("common.retry")} →
                   </button>
                 )}
               </div>
@@ -680,6 +859,16 @@ export default function ConceptPage() {
           </>
         )}
         {!result && !q && !err && <p className="muted small">{t("common.loading")}</p>}
+      </div>
+        </div>
+
+        {/* The tutor, beside the question and never instead of it. */}
+        <TutorPanel
+          conceptId={conceptId}
+          questionText={q?.prompt}                  questionNumber={fill(t("sess.qOf"), { n: qOrdinal, m: target })}
+          open={tutorOpen}
+          onToggle={() => setTutorOpen((v) => !v)}
+        />
       </div>
 
       <section className="ruled" style={{ borderTop: "2px solid var(--ink)", paddingTop: 18, marginTop: 8, marginBottom: 30 }}>

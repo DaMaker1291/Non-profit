@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { updateProfile } from "@/lib/server/store";
-import { emptyProgress } from "@/lib/progress";
-import { transferVariant, TRANSFER_SURFACE_ATTEMPTS, type Surface } from "@/lib/transfer";
-import { generateQuestion, generateQuestionAt, generateQuestionNear, hasGenerator, serveView } from "@/lib/questions";
+import { emptyProgress, isRetentionEvidence } from "@/lib/progress";
+import { canTransfer, serveTransfer, type Surface } from "@/lib/transfer";
+import { generateQuestion, generateQuestionNear, hasGenerator, serveView } from "@/lib/questions";
 import { practiceTarget, difficultyBandFor } from "@/lib/question-bank";
 import { applyTerminology, difficultyFor, specForProfile } from "@/lib/specifications";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
@@ -154,41 +154,26 @@ export async function POST(req: Request): Promise<NextResponse> {
             ? Object.values(record.misconceptions).reduce((s, n) => s + n, 0)
             : 0,
         });
+        // ── A TRANSFER SERVE HAS ONE OWNER ──────────────────────────────────
+        // Genuine transfer (audit P0-D) is a re-framing the serve can really
+        // deliver, and what counts as one — plus which draw delivers it — is
+        // decided in lib/transfer.ts#serveTransfer, not here. This route used to
+        // run its own sweep with its own attempt cap, which is one more place
+        // for the gate and the serve to disagree about the same concept.
         const aim = isTransfer ? Math.max(0.5, band) : due ? band : target.difficulty;
-        let base = isTransfer
-          ? generateQuestionAt(conceptId, seed, aim, 0)
-          : generateQuestionNear(conceptId, seed, aim, PRACTICE_DRAW_ATTEMPTS);
-        if (!base) return { error: "no question" as const };
-        // Genuine transfer (audit P0-D): a transfer serve re-frames the
-        // question through a different surface — story or inverse — instead of
-        // merely drawing a harder number from the same generator. What
-        // surface was achieved is decided here, server-side, and recorded with
-        // the credit at grading time.
-        //
-        // Not every item HAS a second surface: the re-framers understand the
-        // shapes they were written for, and a concept whose range now includes
-        // multi-step work (see lib/questions-deep.ts) can draw one they do not.
-        // So the serve searches draws, at the same difficulty floor, for one it
-        // can genuinely re-frame — capped, deterministic per attempt — and only
-        // falls back to `direct` (which never buys the strong mastery ceiling)
-        // when none of them can be. A harder draw that is still the same
-        // surface is not transfer, and must not be recorded as it.
-        let question: Question = base;
+        let base: Question;
         let surface: Surface = "direct";
         if (isTransfer) {
-          for (let attempt = 0; attempt < TRANSFER_SURFACE_ATTEMPTS; attempt++) {
-            const drawn: Question | null = attempt === 0 ? base : generateQuestionAt(conceptId, seed, Math.max(0.5, band), attempt);
-            if (!drawn) break;
-            const variant = transferVariant(drawn, `${seed}:a${attempt}`, body.lang ?? "en");
-            base = drawn;
-            question = variant.question;
-            if (variant.surface !== "direct") {
-              surface = variant.surface;
-              break;
-            }
-          }
+          const served = serveTransfer(conceptId, seed, aim, body.lang ?? "en");
+          if (!served) return { error: "no question" as const };
+          base = served.question;
+          surface = served.surface;
+        } else {
+          const drawn = generateQuestionNear(conceptId, seed, aim, PRACTICE_DRAW_ATTEMPTS);
+          if (!drawn) return { error: "no question" as const };
+          base = drawn;
         }
-        const q = question;
+        const q = base;
         sess.practice ??= {};
         sess.practice[conceptId] = { q };
         if (isTransfer) {
@@ -222,6 +207,19 @@ export async function POST(req: Request): Promise<NextResponse> {
         // surface can show an adaptive reason for a check or a stretch.
         return {
           question: reveal ? q : serveView(q, body.lang, state.profile.board),
+          // Did the transfer serve actually achieve a SECOND SURFACE? The
+          // learner is about to be told what this stage is, and the honest
+          // answer is decided here, not by the client's intent: a concept whose
+          // questions cannot be re-framed gets a harder direct draw, which is
+          // deeper work on the same form — not transfer. Without this the page
+          // promises "the same idea in unfamiliar wording" for a question that
+          // never leaves its own wording.
+          reframed: isTransfer ? surface !== "direct" : undefined,
+          // Is a SECOND SURFACE possible for this concept at all? A fact about
+          // the concept, not a claim about this draw — so the page can label the
+          // stage from the first question instead of promising "Transfer" until
+          // the serve contradicts it. Asked of the re-framer itself.
+          transferable: canTransfer(conceptId),
           target: isTransfer || due ? null : {
             reason: target.reason,
             band: difficultyBandFor(base.difficulty),
@@ -293,8 +291,16 @@ export async function POST(req: Request): Promise<NextResponse> {
         const transferSurface = sess.transferSurface?.[questionId];
         // Honest derivation: a hinted answer is guided — it never becomes
         // independence evidence merely because the client asked.
+        //
+        // HINTS ARE CHECKED FIRST, and that order is the whole rule. Written the
+        // other way round (`isTransfer ? "independent" : hintCount > 0 ? …`), a
+        // transfer request whose concept has no re-framed surface returned
+        // `mode: "independent"` for an answer that had taken a hint: the
+        // ledger declined to credit independence (recordAnswer checks hints
+        // itself) while the disposition the learner is SHOWN said "independent".
+        // The acceptance battery found it on the hinted-transfer case.
         const mode: "guided" | "independent" | "transfer" =
-          isTransfer && transferSurface ? "transfer" : isTransfer ? "independent" : hintCount > 0 ? "guided" : "independent";
+          hintCount > 0 ? "guided" : isTransfer && transferSurface ? "transfer" : "independent";
         // One clock for this answer: the event and the model the ledger
         // projects from it carry the SAME stamp, so a replay reproduces
         // lastSeen exactly.
@@ -303,6 +309,33 @@ export async function POST(req: Request): Promise<NextResponse> {
         // rule the ingestion door uses (lib/evidence.ts#deviceClaimAt) and kept
         // on the event as a claim: the projection reads `at`, above.
         const deviceAt = deviceClaimAt((body as AnswerBody).deviceAt, at);
+        // The evidence source this answer is recorded under, named once so the
+        // event and the grade's own explanation cannot disagree about what the
+        // answer WAS.
+        const source: "retrieval" | "transfer" | "practice" =
+          isRetrieval ? "retrieval" : mode === "transfer" ? "transfer" : "practice";
+        // Was this answer delayed recall? Read from the model BEFORE the answer
+        // moves it, through the ONE retention rule (lib/progress.ts) shared with
+        // the live model and the ledger projection — so the sentence the learner
+        // is shown is the same claim the ledger will go on to record.
+        const priorRecord = state.progress[conceptId];
+        const hadPriorEvidence = (priorRecord?.attempts ?? 0) > 0;
+        // ── DELAYED RECALL IS NOT THE SAME QUESTION AS RECALL THAT HELD ─────
+        // `isRetentionEvidence` answers the first: this answer was a delayed,
+        // unaided recall ATTEMPT, because the scheduler had the concept due.
+        // The ledger counts it either way — a failed delayed recall is retention
+        // ASKED but not correct (lib/progress.ts), because forgetting is the
+        // measurement that dimension exists for. The disposition the learner is
+        // shown must answer the SECOND question, and reporting the first as the
+        // second told a learner who had just failed a due review that their
+        // delayed recall was retained. The acceptance battery's fail branch
+        // measured `retained: true` on a wrong answer; this is that fix.
+        const wasDelayedRecall = isRetentionEvidence({
+          source,
+          hints: hintCount,
+          sinceLast: hadPriorEvidence ? at - (priorRecord?.lastSeen ?? at) : null,
+        });
+        const retained = wasDelayedRecall && correct;
         const event = answerEvidence({
           learnerId: body.id,
           at,
@@ -310,7 +343,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           // makes a replay idempotent rather than merely unlikely.
           id: replayId ?? undefined,
           deviceAt,
-          source: isRetrieval ? "retrieval" : mode === "transfer" ? "transfer" : "practice",
+          source,
           subject: getConcept(conceptId)?.subject ?? null,
           conceptId,
           specificationId: state.profile.spec ?? null,
@@ -366,6 +399,18 @@ export async function POST(req: Request): Promise<NextResponse> {
         delete sess.practice![conceptId]; // one grading per served question
         // The hint ledger for this question has done its job.
         if (sess.hintsByQ) delete sess.hintsByQ[questionId];
+        // WHAT THE ANSWER DEMONSTRATED, in the server's own words (§10).
+        // The verdict above says whether the answer was right; these three facts
+        // say what it PROVED — and every one of them is attributed server-side
+        // (the staged serve, the server's hint ledger, the model before this
+        // answer moved it), never asserted by the client. A learner therefore
+        // reads "that was independent" only when the server watched it happen,
+        // and a hinted answer can never be told it demonstrates autonomy.
+        //
+        // Deliberately NOT named `evidence`: the ledger EVENT's shape must never
+        // cross the wire, because a client that can read the shape a graded
+        // answer takes can author one (asserted in the e2e suite). This block is
+        // four scalars about one answer — no id, no clock, no provenance.
         return {
           correct,
           answerIndex: q.answer, // post-grade only, for marking the right choice
@@ -380,6 +425,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           mastery: rec.mastery,
           misconceptionId: misc?.id ?? null,
           flare,
+          demonstrated: { mode, hints: hintCount, source, retained },
         };
       });
       if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });

@@ -13,6 +13,11 @@ import { decideOne, decisionContextFrom } from "@/lib/decision";
 import {
   citationsFor, conceptAnswers, conceptKnowledge, loadLedgerState, type LedgerLoad,
 } from "@/lib/evidence-view";
+// The BAND WORD, from its one owner. This row used to pick between two
+// hand-written band keys itself, so "Strong" on a concept page was a second
+// rule that could disagree with components/dims.tsx the day either threshold
+// moved.
+import { bandKey } from "@/components/dims";
 
 /** ONE CONCEPT, AS THE MODEL SEES IT — the page a learner opens when they ask
  *  "what do you actually know about me here, and why is this next?".
@@ -115,7 +120,7 @@ export default function ConceptMindPage() {
 
   return (
     <main className="container narrow" style={{ paddingTop: 40 }}>
-      <p className="eyebrow"><span className="no">§</span> {t("evv.basedOn")} · {t(`subj.${c.subject}`)}</p>
+      <p className="eyebrow">{t("evv.basedOn")} · {t(`subj.${c.subject}`)}</p>
       <h1 className="visually-small" style={{ marginBottom: 4 }}>{ctitle(lang, conceptId)}</h1>
       <p className="muted" style={{ marginTop: 0 }}>{cblurb(lang, conceptId)}</p>
       {chain.length > 1 && (
@@ -153,7 +158,7 @@ export default function ConceptMindPage() {
                 {d.rate ? (
                   <>
                     <span className={`chip ${d.band === "strong" ? "good" : ""}`}>
-                      {t(d.band === "strong" ? "mm.strong" : "mm.developing")}
+                      {t(bandKey(d.band))}
                     </span>
                     <span className="mono small muted" style={{ minWidth: 60, textAlign: "end" }}>
                       {d.rate.correct}/{d.rate.asked}

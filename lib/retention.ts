@@ -58,12 +58,20 @@ export function isRetentionDue(state: ProfileState, conceptId: string, now = Dat
  * few hints raise it; frequent hint requests and high attempt counts per
  * correct answer lower it. Returns 0–1, or null when there is not enough
  * evidence to say anything (fewer than 3 attempts) — honesty over vibes.
+ *
+ * THE HINT SIGNAL IS FOLD-OWNED. This read `ConceptProgress.hints`, the
+ * per-level tally the hint endpoint writes and the fold drops, so the penalty
+ * below never applied to a learner whose work arrived from a device — their
+ * confidence came back with the help silently forgiven, and that number is
+ * displayed on the Mind map, on Progress and in the next-step card's own
+ * evidence line. `hinted` (answers that took help) is what the ledger can
+ * reproduce, so it is what this reads; the ratio is "share of answers that
+ * needed help", which is the same quantity in the form the record can prove.
  */
 export function confidenceOf(p: ConceptProgress): number | null {
   if (p.attempts < 3) return null;
   const accuracy = p.correct / p.attempts;
-  const hintTotal = Object.values(p.hints ?? {}).reduce((s, n) => s + n, 0);
-  const hintsPerAttempt = hintTotal / p.attempts;
+  const hintsPerAttempt = (p.hinted ?? 0) / p.attempts;
   const streakBonus = Math.min(0.15, p.streak * 0.03);
   // Each hint per attempt costs 6 points of confidence; thin accuracy costs more.
   const raw = accuracy + streakBonus - hintsPerAttempt * 0.06;

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { useI18n, loadLocalProfileId, loadLocalProfileSecret } from "@/lib/client";
+import { fetchProfile, useI18n, loadLocalProfileId, loadLocalProfileSecret, useProfile } from "@/lib/client";
 import { getConcept } from "@/lib/genome";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { SUBJECT_IDS, SUBJECT_LABELS, subjectFromParam } from "@/lib/subjects";
@@ -18,6 +18,9 @@ export default function DiagnosticPage() {
   const params = useParams<{ subject: string }>();
   const subject: SubjectId = subjectFromParam(params?.subject);
   const { t, lang } = useI18n();
+  /** The shell's own learner state. A finished sitting changes where this
+   *  learner belongs, and the route guard derives that from here — see `next`. */
+  const { set: setLearner } = useProfile();
 
   const [q, setQ] = useState<Question | null>(null);
   const [nextQ, setNextQ] = useState<Question | null>(null);
@@ -26,6 +29,8 @@ export default function DiagnosticPage() {
   const [n, setN] = useState(0);
   const [nCorrect, setNCorrect] = useState(0);
   const [done, setDone] = useState<DiagnosticResult | null>(null);
+  /** True when this mount picked up a sitting that was already in progress. */
+  const [resumed, setResumed] = useState(false);
   const [err, setErr] = useState("");
   const busy = useRef(false);
 
@@ -43,7 +48,19 @@ export default function DiagnosticPage() {
     if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
     if (!body.question) { setErr(t("common.error")); return; }
     setQ(body.question);
-    setN(1);
+    // A RESUMED SITTING SAYS SO, AND KEEPS ITS PLACE. The route used to replace
+    // the live sitting on every mount, so a reload served a different question
+    // 01 and `setN(1)` labelled it "01" — a learner reloading mid-diagnostic was
+    // shown the start of something they had already done, with nothing on
+    // screen to explain it. The server now hands back the unfinished sitting and
+    // how far along it is, so the counter is honest and the banner names the
+    // truth rather than letting the learner conclude the app lost their work.
+    if (body.resumed && body.asked > 0) {
+      setN(body.asked + 1);
+      setResumed(true);
+    } else {
+      setN(1);
+    }
   }, [id, subject]);
 
   useEffect(() => { void start(); }, [start]);
@@ -52,6 +69,10 @@ export default function DiagnosticPage() {
     if (graded || !q || busy.current || !id) return;
     busy.current = true;
     setPicked(i);
+    // The resume notice described the moment they arrived; once they are
+    // answering it is stale, and leaving it up would imply something was still
+    // being recovered while they work.
+    setResumed(false);
     try {
       const res = await fetch("/api/diagnostic", {
         method: "POST",
@@ -77,18 +98,43 @@ export default function DiagnosticPage() {
       setN((v) => v + 1);
       return;
     }
-    // ladder exhausted — close the session and show the report. The session's
-    // per-concept ladders ride along (audit P0-A): the grading route folds
-    // this run's evidence into the learner model, so the diagnostic actually
-    // initializes the state the next-step engine reads.
-    const res = await fetch("/api/diagnostic", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "finish", id, subject, secret }),
-    });
-    const body = await res.json();
-    if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
-    setDone(body.result ?? null);
+    // ONE GUARD, BOTH PATHS. `answer` has always refused a second submission
+    // while one was in flight; this one did not — so a double-click on the
+    // button that ENDS the sitting asked the server to finish twice, and the
+    // second ask is `400 no active session`, which the error branch below put on
+    // screen as raw server text in the middle of a first run. Measured against
+    // the live route: first finish 200 with the report, second 400 with that
+    // error string.
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      // ladder exhausted — close the session and show the report. The session's
+      // per-concept ladders ride along (audit P0-A): the grading route folds
+      // this run's evidence into the learner model, so the diagnostic actually
+      // initializes the state the next-step engine reads.
+      const res = await fetch("/api/diagnostic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "finish", id, subject, secret }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
+      // A FINISHED SITTING IS A CHANGE TO WHERE THIS LEARNER BELONGS, and the
+      // guard reads that from the shell's learner state. Nothing refreshed it
+      // here, so the report's own primary CTA — "Home →" — was bounced straight
+      // back into the diagnostic: `resolveRoute` still saw a learner with no
+      // measurement and returned them to `/diagnostic/maths?return=/dashboard`,
+      // at question 01 of a fresh sitting. Walking the first run is what found
+      // it; a reload hid it, because a fresh mount re-probes. Refreshed the same
+      // way the exercise page refreshes after grading.
+      if (id) {
+        const fresh = await fetchProfile(id);
+        if (fresh) setLearner(fresh);
+      }
+      setDone(body.result ?? null);
+    } finally {
+      busy.current = false;
+    }
   }
 
   // ── the report ─────────────────────────────────────────────────────────────
@@ -115,7 +161,12 @@ export default function DiagnosticPage() {
     return (
       <main className="container narrow" style={{ paddingTop: 44 }}>
         <p className="eyebrow"><span className="no">✓</span> {t(`subj.${subject}`)} · {t("diag.title")}</p>
-        <h1>{t("diag.done")}</h1>
+        {/* The report's OWN heading. It used to be `diag.done` — "Finish
+            diagnostic" — which is the last question's button: the screen that
+            says what was measured titled itself with the instruction the learner
+            had just followed. The button keeps that string; the report names
+            itself. */}
+        <h1>{t("diag.report")}</h1>
         <p className="lead">{n} {t("diag.q1").toLowerCase()} · {nCorrect} ✓ · {done.misconceptions.length} {t("learn.misconceptions").toLowerCase()}</p>
 
         {done.misconceptions.length > 0 && (
@@ -208,7 +259,7 @@ export default function DiagnosticPage() {
         )}
 
         <section className="ruled">
-          <p className="eyebrow"><span className="no">§</span> {t("map.strengths")} / {t("map.gaps")}</p>
+          <p className="eyebrow">{t("map.strengths")} / {t("map.gaps")}</p>
           {probed.map((s) => (
             <Link key={s.conceptId} href={`/learn/${subject}/${s.conceptId}`} className="rowline">
               <span className={`mark ${s.mastery >= 0.65 ? "good" : "bad"}`} aria-hidden="true">
@@ -218,11 +269,12 @@ export default function DiagnosticPage() {
               <span className="mono">{Math.round(s.mastery * 100)}%</span>
             </Link>
           ))}
-          {done.gaps.length > probed.length && (
-            <p className="small muted" style={{ marginTop: 10 }}>
-              {t("map.gaps")}: {done.gaps.filter((g) => !probed.some((p) => p.conceptId === g.conceptId)).slice(0, 5).map((g) => ctitle(lang, g.conceptId)).join(" · ")}…
-            </p>
-          )}
+          {/* There used to be a paragraph here listing `done.gaps` concepts
+              this sitting had NOT probed, headed "Gaps to close" — an
+              accusation built from eight never-asked coverage rows. `gaps` is
+              now drawn only from probed concepts, so the branch was not just
+              wrong but unreachable; the unmeasured state is reported where it
+              belongs, as `asked: 0` coverage. */}
         </section>
 
         {/* Diagnose another subject without going back through the map — the
@@ -256,6 +308,16 @@ export default function DiagnosticPage() {
     <main className="container narrow" style={{ paddingTop: 44 }}>
       <p className="eyebrow"><span className="no">{String(n).padStart(2, "0")}</span> {t("diag.title")} · {t(`subj.${subject}`)}</p>
       <h1 className="visually-small">{t("diag.sub")}</h1>
+
+      {/* A resumed sitting SAYS SO. Reloading mid-diagnostic used to serve a
+          different question 01 labelled "01", and the only honest reading of
+          that was "the app threw my work away". One line, using a key that is
+          already authored in every dictionary, says what actually happened. */}
+      {resumed && (
+        <p className="note" role="status">
+          <span>{t("state.resume")}</span>
+        </p>
+      )}
 
       {err && (
         <div className="note">

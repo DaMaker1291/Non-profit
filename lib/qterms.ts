@@ -37,69 +37,12 @@ export function localizeStem(prompt: string, lang: string): string {
 }
 
 // ── Genuine transfer (audit P0-D) ───────────────────────────────────────────
-// Difficulty escalation is not transfer. A learner who solves 3x+2=11 has not
-// proven anything about recognising the same idea in a taxi fare. The transfer
-// stage therefore re-serves the concept's idea through a DIFFERENT surface:
-// one of a small set of deterministic wrapper templates that invert, narrate
-// or re-represent the same generator's question.
-
-/** The surface families a transfer claim may be made on. A transfer question
- *  must carry a different family from the practice surface ("direct"). */
-export type TransferSurface = "direct" | "reverse" | "real_world" | "compare" | "justify";
-
-/** Per-surface stem keys (t.* / q.* namespaces, English fallback is fine). */
-const TRANSFER_STEMS: Record<Exclude<TransferSurface, "direct">, { lead: string; tail?: string }> = {
-  // Inverse reasoning: given the outcome, find the input.
-  reverse: { lead: "tr.reverse" },
-  // Narrative wrapper: the same operation inside a real-world situation.
-  real_world: { lead: "tr.realWorld", tail: "tr.realWorldQ" },
-  // Comparison: which of two situations matches / differs, and why.
-  compare: { lead: "tr.compare" },
-  // Justification: the learner picks the reasoning that justifies the result.
-  justify: { lead: "tr.justify" },
-};
-
-/** Deterministic surface choice per seed — different learners (and retests)
- *  meet different surfaces, and a surface never repeats twice in a row. */
-export function transferSurfaceFor(seed: string, usedSurfaces: string[] = []): TransferSurface {
-  const families: TransferSurface[] = ["reverse", "real_world", "compare", "justify"];
-  // Hash the seed to pick a family, skipping any family used most recently.
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  const last = usedSurfaces[usedSurfaces.length - 1];
-  const ordered = [families[h % 4], families[(h >> 2) % 4], families[(h >> 4) % 4], families[(h >> 6) % 4]];
-  return ordered.find((f) => f !== last) ?? "reverse";
-}
-
-/** Wrap a direct question into a transfer surface. The underlying skill, the
- *  choices and the answer index are untouched — only the framing changes, so
- *  grading stays identical and the evidence measures recognition, not luck.
- *  Returns the prompt unchanged when the language lacks the stem (the
- *  translator falls back to English via the i18n layer). */
-export function applyTransferSurface(
-  prompt: string,
-  surface: TransferSurface,
-  lang: string,
-  detail: { topic: string; solution: string; distractor: string; final: string },
-): string {
-  const t = translator(lang);
-  const body = prompt.replace(/^(Work out|Solve|Simplify|Expand|Evaluate|Convert|Complete|Find|Round|Add|Write|Calculate|Share|Balance)\s+/, "");
-  switch (surface) {
-    case "reverse":
-      // "After working it out the answer was X. Which input gives that?" —
-      // expressed over the same choices, so the learner reasons backwards.
-      return `${t("tr.reverseLead")} ${solutionOf(detail.solution)} ${t("tr.reverseTail")} ${body}?`;
-    case "real_world":
-      return `${t("tr.rwLead")} ${detail.topic}. ${body} ${t("tr.rwTail")}`;
-    case "compare":
-      return `${t("tr.cmpLead")} ${detail.topic}: ${detail.distractor} — ${detail.solution}. ${t("tr.cmpTail")} ${body}?`;
-    case "justify":
-      return `${t("tr.justLead")} ${detail.final}. ${t("tr.justTail")} ${body}?`;
-    default:
-      return prompt;
-  }
-}
-
-function solutionOf(solution: string): string {
-  return solution;
-}
+// Re-framing a question onto a SECOND SURFACE is a transfer decision, and it
+// has exactly one owner: lib/transfer.ts. A set of wrapper templates lived here
+// — deterministic families that prefixed or narrated a stem — and it was never
+// called by anything: it changed the framing while keeping the original choices,
+// so "work backwards — which choice gives …?" still asked for the same answer
+// from the same options. That is a preamble, not a second surface, and two
+// implementations of one idea is how the gate and the serve drift apart. It was
+// deleted; the surface families this file used to name live in lib/transfer.ts,
+// built from real generated questions with a provably single correct option.

@@ -7,6 +7,7 @@ import { ctitle } from "@/lib/content-i18n";
 import { dueLabel, fill } from "@/lib/i18n";
 import { getConcept } from "@/lib/genome";
 import { SUBJECT_LABELS } from "@/lib/subjects";
+import { proofLabelKey } from "@/lib/proof";
 import type { Assignment, AssignmentMemberProgress, SubjectId } from "@/lib/types";
 
 /** What one learner sees about work set for them: the assignment, the class it
@@ -99,11 +100,19 @@ export default function AssignmentsPanel({ conceptId }: { conceptId?: string }) 
                 : <span className="muted" style={{ marginLeft: 8 }}>{fill(t("asg.todo"), { n: w.mine.outstanding.length, m: total })}</span>}
             </p>
             <p className="small muted" style={{ margin: "4px 0 8px" }}>
-              {w.assignment.conceptIds.map((id) => (
-                <span key={id} style={{ marginRight: 10 }}>
-                  {w.mine.concepts[id] ? "✓" : "○"} {ctitle(lang, id)}
-                </span>
-              ))}
+              {w.assignment.conceptIds.map((id) => {
+                const c = w.mine.concepts[id];
+                return (
+                  <span key={id} style={{ marginRight: 10 }}>
+                    {c ? "✓" : "○"} {ctitle(lang, id)}
+                    {/* WHAT THE WORK PROVED, in the same words the sentence
+                        under the mark uses: "done" and "done unaided" are
+                        different, and the learner should not have to open the
+                        teacher's screen to learn which one they did. */}
+                    {c?.proof && <span className="muted"> · {t(proofLabelKey(c.proof))}</span>}
+                  </span>
+                );
+              })}
             </p>
             {!w.mine.complete && nextConcept && getConcept(nextConcept) && (
               <Link href={`/learn/${w.subject}/${nextConcept}`} className="btn ghost small">

@@ -18,6 +18,7 @@
 
 import { ancestorsOf, bySubject, getConcept } from "./genome";
 import { MISCONCEPTIONS_BY_ID } from "./misconceptions";
+import { courseConceptIds, specById } from "./specifications";
 import type { ClassRoster, SubjectId } from "./types";
 
 export type DayKind = "explain" | "diagnose" | "practice" | "activity" | "mastery";
@@ -69,9 +70,26 @@ const DAY_PLAN: Array<{ kind: DayKind; minutes: number; count: number }> = [
   { kind: "mastery", minutes: 30, count: 8 },
 ];
 
-/** Concepts of `subject` in canonical (stage) order. */
-function curriculum(subject: SubjectId): string[] {
-  return bySubject(subject).map((c) => c.id);
+/**
+ * THE CONCEPTS THIS CLASS MAY BE TAUGHT, in canonical (stage) order — the
+ * class's OWN curriculum, not its subject's.
+ *
+ * A class that declares a qualification is taught THAT course, and a course is
+ * a subset of its subject: two classes of one subject at different
+ * qualifications are different objects, and their weeks must differ. A class
+ * that has declared only a subject (or whose course holds none of the subject's
+ * concepts) is planned against the whole subject, which is what "no course
+ * declared" has always meant here. The narrowing is the assignment picker's,
+ * from one shared rule (lib/specifications#courseConceptIds), so what may be SET
+ * for a class and what is TAUGHT to it cannot disagree.
+ */
+function curriculum(cls: ClassRoster, subject: SubjectId): string[] {
+  const order = bySubject(subject).map((c) => c.id);
+  const spec = specById(cls.specificationId ?? undefined);
+  if (!spec) return order;
+  const inCourse = courseConceptIds(spec);
+  const narrowed = order.filter((id) => inCourse.has(id));
+  return narrowed.length > 0 ? narrowed : order;
 }
 
 /** The per-member mastery map the plan reads: the LIVE projection view when
@@ -89,13 +107,34 @@ function memberMaps(cls: ClassRoster): Record<string, Record<string, number>> {
   return cls.students;
 }
 
-/** The subject a roster actually covers, inferred from its concepts. */
-export function classSubject(cls: ClassRoster): SubjectId {
+/**
+ * WHICH SUBJECT THIS CLASS IS TAUGHT — the one owner of that question.
+ *
+ * THE CLASS DECLARES IT, and the declaration is the answer: `POST /api/classes`
+ * validates it against the real subject list at creation, and
+ * `POST /api/assignments` will not set work outside it, so everything the
+ * teacher surface does already hangs off one answer. This function used to
+ * ignore that declaration and INFER the subject from `cls.conceptIds`, ending in
+ * a hard-coded maths default — and since nothing ever writes `conceptIds`
+ * (create takes it from a request body no screen sends), that literal was the
+ * answer for EVERY class the product could make. A class that declared physics
+ * was served a maths week, on screen and in the printed pack, while the same
+ * class's assignment picker correctly offered physics: one question, two owners,
+ * and the one that reached the classroom was wrong.
+ *
+ * Order: the declaration, then inference for rosters that predate the field
+ * (which is what keeps old maths classes maths), then NULL. An undeclared class
+ * has no subject — that is an absence, and absence is not maths. A declared
+ * subject the genome does not know is not a curriculum either, so it falls
+ * through to the same two steps rather than planning a week out of nothing.
+ */
+export function classSubject(cls: ClassRoster): SubjectId | null {
+  if (cls.subject && bySubject(cls.subject).length > 0) return cls.subject;
   for (const id of cls.conceptIds) {
     const c = getConcept(id);
     if (c) return c.subject;
   }
-  return "maths";
+  return null;
 }
 
 /**
@@ -104,7 +143,7 @@ export function classSubject(cls: ClassRoster): SubjectId {
  */
 function weakestConcepts(cls: ClassRoster, subject: SubjectId): Array<{ id: string; weak: number; mean: number }> {
   const students = Object.values(memberMaps(cls)).filter((m) => Object.keys(m).length > 0);
-  const candidates = (cls.conceptIds.length ? cls.conceptIds : curriculum(subject)).filter((id) => getConcept(id));
+  const candidates = (cls.conceptIds.length ? cls.conceptIds : curriculum(cls, subject)).filter((id) => getConcept(id));
   return candidates
     .map((id) => {
       const vals = students.map((m) => m[id]).filter((v): v is number => typeof v === "number");
@@ -121,15 +160,24 @@ function weakestConcepts(cls: ClassRoster, subject: SubjectId): Array<{ id: stri
 /**
  * Build the week. With student data the focus is the class's weakest concepts
  * (teach-order); with no data yet it is an honest "start of curriculum" plan.
+ *
+ * NULL WHEN THERE IS NO CURRICULUM TO PLAN, which is a different thing from an
+ * empty plan: a class that has declared no subject (or one the genome does not
+ * know) has no week, and the honest answer is "there is nothing to print" — not
+ * a maths week, which is what the removed fallback silently produced here. Both
+ * callers (the pack door and the teacher's own panel) answer with the product's
+ * existing words for it: "declare this class's subject first".
  */
-export function buildWeeklyPlan(cls: ClassRoster, subject?: SubjectId): WeeklyPlan {
+export function buildWeeklyPlan(cls: ClassRoster, subject?: SubjectId): WeeklyPlan | null {
   const subj = subject ?? classSubject(cls);
+  if (!subj) return null;
+  const order = curriculum(cls, subj);
+  if (order.length === 0) return null;
   const now = Date.now();
 
   // ── Focus: weakest concepts, re-ordered foundations-first so the plan
   // never asks a class to learn quadratics before fractions.
   const ranked = weakestConcepts(cls, subj);
-  const order = curriculum(subj);
   let focus = ranked
     .slice(0, 4)
     .map((c) => c.id)
@@ -209,7 +257,15 @@ export function buildWeeklyPlan(cls: ClassRoster, subject?: SubjectId): WeeklyPl
   for (const [h, m] of roster) {
     const stuck = focus.find((cid) => typeof m[cid] === "number" && m[cid] < 0.45);
     if (!stuck) continue;
-    const pre = ancestorsOf(stuck).find((pid) => (m[pid] ?? 0) < 0.6 && getConcept(pid));
+    // MEASURED, or nothing. This used to fold an absent value to zero, so a
+    // prerequisite nobody had ever measured was indistinguishable from one the
+    // student had failed: a class whose only recorded work was weak `momentum` was
+    // scaffolded onto `newton-laws` — a concept with no evidence either way —
+    // and the plan then said it was repairing a gap it had never seen. That is
+    // the product's own "unknown ≠ zero" rule (§1) broken on the teacher
+    // surface: absence is not a low score, and remedial work must be aimed at
+    // something the ledger actually shows.
+    const pre = ancestorsOf(stuck).find((pid) => typeof m[pid] === "number" && m[pid] < 0.6 && getConcept(pid));
     if (pre) scaffolds.push({ who: h, conceptId: pre, because: stuck });
   }
 

@@ -1,10 +1,11 @@
 // ── THE ASSIGNMENT, DERIVED FROM THE LEDGER ─────────────────────────────────
 //
 // An assignment stores CONCEPTS AND A DEADLINE, and nothing else. Whether a
-// member has done it, how accurately, which assigned concept is their weakness
-// and which misconceptions their wrong answers carried are all PROJECTIONS of
-// that member's own evidence ledger, over the window that opens when the
-// assignment is set. There is deliberately no stored completion flag and no
+// member has done it, how accurately, HOW THE WORK WAS DONE (unaided, or with
+// hints — `proof`, via the shared rule in lib/proof.ts), which assigned concept
+// is their weakness and which misconceptions their wrong answers carried are
+// all PROJECTIONS of that member's own evidence ledger, over the window that
+// opens when the assignment is set. There is deliberately no stored completion flag and no
 // stored accuracy counter anywhere in this file's callers: a counter is a
 // second copy of the record, and a second copy is the one that drifts.
 //
@@ -35,8 +36,13 @@
 // ...` and no tsconfig, so `@/...` does not resolve there.
 import { bySubject } from "../genome";
 import { hasGenerator } from "../questions";
-import { coverageOf, specById } from "../specifications";
+import { courseConceptIds, specById } from "../specifications";
 import { PROJECTION_VERSION, type EvidenceEvent } from "../evidence";
+// The proof vocabulary the learner's own feedback uses (§10). A teacher reading
+// "Independent" in the monitor and a learner reading it under their mark must be
+// reading the same claim about the same evidence, so the rule is imported, not
+// re-implemented. Relative import: this module is inside the compile mirror.
+import { isRetentionEvidence, strongestProof } from "../proof";
 import type {
   Assignment,
   AssignmentIntervention,
@@ -64,9 +70,7 @@ export function assignableConcepts(subject: SubjectId, specificationId?: string 
   if (!specificationId) return servable.map((c) => c.id);
   const spec = specById(specificationId);
   if (!spec) return servable.map((c) => c.id);
-  const inCourse = new Set(
-    spec.levels.flatMap((level) => coverageOf({ spec, level })).map((c) => c.id),
-  );
+  const inCourse = courseConceptIds(spec);
   return servable.filter((c) => inCourse.has(c.id)).map((c) => c.id);
 }
 
@@ -89,16 +93,31 @@ export function deriveAssignmentProgress(
   const misconceptions: AssignmentMemberProgress["misconceptions"] = {};
   const prior: Record<string, number> = {};
   let answers = 0;
+  // When each ASSIGNED concept was last recorded, across the member's WHOLE
+  // ledger — deliberately not only the window. The retention rule asks how long
+  // it had been since the previous evidence on the concept, and for a retrieval
+  // set as revision that previous evidence is usually BEFORE the assignment was
+  // set. Measuring the gap from the window's start would make every due review
+  // in an assignment look like first contact.
+  const lastAt: Record<string, number> = {};
+  // What the window's answers on each concept PROVED, counted by the shared
+  // rule: correct-and-hint-free is independence, correct-with-help is support.
+  // It is a separate tally from `correct` because the distinction is the whole
+  // point — a class that "finished" an assignment at 80% with hints has done
+  // different work from one that did it alone, and only the ledger knows which.
+  const proved: Record<string, { correct: number; independent: number; transfer: number; retention: number }> = {};
 
   for (const e of events) {
     if (e.type !== "answer_submitted" || !e.conceptId || !assigned.has(e.conceptId)) continue;
+    const sinceLast = lastAt[e.conceptId] === undefined ? null : e.at - lastAt[e.conceptId];
+    lastAt[e.conceptId] = e.at;
     // The window's one rule, and the reason `at` and not `deviceAt` is read.
     if (e.at < a.createdAt) {
       prior[e.conceptId] = (prior[e.conceptId] ?? 0) + 1;
       continue;
     }
     answers += 1;
-    const c = (concepts[e.conceptId] ??= { asked: 0, correct: 0, rate: 0 });
+    const c = (concepts[e.conceptId] ??= { asked: 0, correct: 0, rate: 0, proof: null });
     c.asked += 1;
     if (e.correct) c.correct += 1;
     if (!e.correct) {
@@ -107,8 +126,28 @@ export function deriveAssignmentProgress(
         m.hits += 1;
       }
     }
+    const d = (proved[e.conceptId] ??= { correct: 0, independent: 0, transfer: 0, retention: 0 });
+    if (e.correct) {
+      d.correct += 1;
+      // The same three conditions the learner's own sentence is built from.
+      // `e.hints` is the SERVER's own count for the served question.
+      if (isRetentionEvidence({ source: e.source, hints: e.hints, sinceLast })) d.retention += 1;
+      else if (e.hints === 0 && (e.mode === "transfer" || e.source === "transfer")) d.transfer += 1;
+      else if (e.hints === 0) d.independent += 1;
+    }
   }
-  for (const c of Object.values(concepts)) c.rate = Math.round((c.correct / c.asked) * 100) / 100;
+  for (const [cid, c] of Object.entries(concepts)) {
+    c.rate = Math.round((c.correct / c.asked) * 100) / 100;
+    const d = proved[cid];
+    c.proof = d
+      ? strongestProof({
+        correct: d.correct,
+        independentCorrect: d.independent,
+        transferCorrect: d.transfer,
+        retentionCorrect: d.retention,
+      })
+      : null;
+  }
 
   const outstanding = a.conceptIds.filter((id) => !concepts[id]);
   const weakestEntry = Object.entries(concepts).sort(

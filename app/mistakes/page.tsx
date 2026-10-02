@@ -103,7 +103,7 @@ export default function MistakesPage() {
         bySubject.map(([subject, list]) => (
           <section key={subject} style={{ borderTop: "2px solid var(--ink)", paddingTop: 18, marginBottom: 28 }}>
             <p className="eyebrow" style={{ margin: 0 }}>
-              <span className="no">§</span> {t(SUBJECT_LABELS[subject as keyof typeof SUBJECT_LABELS])}
+              {t(SUBJECT_LABELS[subject as keyof typeof SUBJECT_LABELS])}
             </p>
             {list.map((r) => {
               const m = MISCONCEPTIONS_BY_ID[r.misconceptionId];

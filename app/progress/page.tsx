@@ -8,8 +8,13 @@ import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { confidenceOf } from "@/lib/retention";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
 import { ctitle, mcName, mcCoaching } from "@/lib/content-i18n";
-import { loadLedgerState, type LedgerLoad } from "@/lib/evidence-view";
+import { loadLedgerState, conceptKnowledge, type LedgerLoad } from "@/lib/evidence-view";
+// The one verdict rule and its four short names, shared with the sentence under
+// the mark, the session headline and the teacher's monitor.
+import { proofLabelKey, strongestProof, type ProofVerdict } from "@/lib/proof";
 import RecentAnswers from "@/components/recent-answers";
+import { Dims } from "@/components/dims";
+import { Loading } from "@/components/states";
 import type { ConceptProgress } from "@/lib/types";
 import type { ProgressEvent } from "@/lib/progress-types";
 
@@ -99,9 +104,11 @@ export default function ProgressPage() {
   }, [state]);
 
   if (loading) {
+    // The record this page is ABOUT has not arrived. A skeleton says that;
+    // an empty state would claim the learner has nothing recorded.
     return (
-      <main className="container narrow" style={{ paddingTop: 44 }}>
-        <p className="muted">{t("common.loading")}</p>
+      <main className="container narrow page">
+        <Loading lines={5} />
       </main>
     );
   }
@@ -121,7 +128,7 @@ export default function ProgressPage() {
             )}
           </p>
         )}
-        <p className="eyebrow"><span className="no">§</span> {t("prog.title")}</p>
+        <p className="eyebrow">{t("prog.title")}</p>
         <h1 className="visually-small">{t("prog.title")}</h1>
         <p className="lead">{t("prog.empty")}</p>
         {/* Every subject gets a diagnostic from here. Offering only maths made
@@ -138,7 +145,7 @@ export default function ProgressPage() {
 
   return (
     <main className="container" style={{ paddingTop: 40 }}>
-      <p className="eyebrow"><span className="no">§</span> {t("prog.title")}</p>
+      <p className="eyebrow">{t("prog.title")}</p>
       <h1 className="visually-small">{t("prog.title")}</h1>
       <p className="lead">{t("prog.sub")}</p>
 
@@ -160,9 +167,15 @@ export default function ProgressPage() {
           const indOk = ps.reduce((s, p) => s + (p.independent?.correct ?? 0), 0);
           const trAsked = ps.reduce((s, p) => s + (p.transfer?.asked ?? 0), 0);
           const trOk = ps.reduce((s, p) => s + (p.transfer?.correct ?? 0), 0);
+          // Retention belongs on this line for the same reason the other two do:
+          // it is the dimension the ladder schedules work to produce, and the
+          // one a learner cannot reach by trying harder in one sitting. Null
+          // until it has been MEASURED (asked at all) — "—" is not 0%.
+          const retAsked = ps.reduce((s, p) => s + (p.retention?.asked ?? 0), 0);
+          const retOk = ps.reduce((s, p) => s + (p.retention?.correct ?? 0), 0);
           const before = runs.length ? runs[0].avg : 0;
           const head = trAsked > 0 ? trOk / trAsked : indAsked > 0 ? indOk / indAsked : learning;
-          return { subj, before, learning, indAsked, indRate: indAsked ? indOk / indAsked : null, trRate: trAsked ? trOk / trAsked : null, head, n: runs.length };
+          return { subj, before, learning, indAsked, indRate: indAsked ? indOk / indAsked : null, trRate: trAsked ? trOk / trAsked : null, retRate: retAsked ? retOk / retAsked : null, head, n: runs.length };
         });
         if (rows.length === 0) return null;
         return (
@@ -176,7 +189,8 @@ export default function ProgressPage() {
                   <span className="mono" style={{ display: "block", marginTop: 2 }}>
                     {t("prog.diagnostic")} {Math.round(r.before * 100)}% → {t("prog.learning")} {Math.round(r.learning * 100)}% →{" "}
                     {t("prog.independent")} {r.indRate === null ? "—" : `${Math.round(r.indRate * 100)}%`} →{" "}
-                    {t("prog.transfer")} {r.trRate === null ? "—" : `${Math.round(r.trRate * 100)}%`}
+                    {t("prog.transfer")} {r.trRate === null ? "—" : `${Math.round(r.trRate * 100)}%`} →{" "}
+                    {t("evv.dim.retention")} {r.retRate === null ? "—" : `${Math.round(r.retRate * 100)}%`}
                   </span>
                   <span className={d > 0 ? "" : "muted"}>{t("prog.gain")} {d >= 0 ? "+" : ""}{d} {t("prog.points")}{r.n > 1 ? ` · ${r.n} ${t("prog.diagnostics")}` : ""}</span>
                 </div>
@@ -186,16 +200,36 @@ export default function ProgressPage() {
         );
       })()}
 
+      {/* THE TIMELINE (§evidence): dated, newest first, one line per recorded
+          answer. A date column rather than a bare clock time — "when did I do
+          this" is a question about days, and a list of times cannot answer it.
+          The link goes to the concept on the subject it actually belongs to,
+          which the genome knows and this page was guessing at. */}
       {data.events.length > 0 && (
         <section className="ruled" style={{ borderTop: "2px solid var(--ink)", paddingTop: 18, marginBottom: 30 }}>
           <p className="eyebrow"><span className="no">·</span> {t("prog.recent")}</p>
-          {data.events.map((ev, i) => (
-            <div key={`${ev.at}-${i}`} className="rowline">
-              <span className={`mark ${ev.correct ? "good" : "bad"}`} aria-hidden="true">{ev.correct ? "✓" : "✗"}</span>
-              <Link href={`/learn/maths/${ev.conceptId}`} className="grow">{ctitle(lang, ev.conceptId)}</Link>
-              <span className="small muted">{new Date(ev.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-            </div>
-          ))}
+          <ol className="timeline">
+            {data.events.map((ev, i) => (
+              <li key={`${ev.at}-${i}`}>
+                <span className="tl-date">
+                  {new Date(ev.at).toLocaleDateString(lang, { day: "numeric", month: "short" })}
+                </span>
+                <div className="tl-body">
+                  <Link href={`/learn/${getConcept(ev.conceptId)?.subject ?? "maths"}/${ev.conceptId}`} style={{ fontWeight: 650 }}>
+                    {ctitle(lang, ev.conceptId)}
+                  </Link>
+                  <div className="tl-marks">
+                    <span className={`chip ${ev.correct ? "good" : "bad"}`}>
+                      {ev.correct ? "✓" : "✗"} {ev.correct ? t("learn.correct") : t("learn.wrong")}
+                    </span>
+                    <span className="small muted mono">
+                      {new Date(ev.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
         </section>
       )}
 
@@ -221,19 +255,22 @@ export default function ProgressPage() {
         const withInd = concepts.filter((c) => c.independent.asked > 0);
         const withTr = concepts.filter((c) => c.transfer.asked > 0);
         const withRet = concepts.filter((c) => c.retention.asked > 0);
-        const dimsFor = (cid: string) => {
+        // WHAT THIS CONCEPT'S RECORD PROVED, by the one shared rule: the
+        // strongest claim any of its answers earned. The dimension rows below
+        // already read the same way everywhere; this is the single word that
+        // says which of them the learner actually reached — and it is null for
+        // a concept whose answers were all wrong, because "the answers
+        // happened" is not "something was proved".
+        const provedFor = (cid: string): ProofVerdict | null => {
           const c = ready.projection.byConcept[cid];
-          return [
-            { label: t("evv.dim.recalled"), r: c.measured.asked > 0 ? c.measured : null },
-            { label: t("evv.dim.applied"), r: c.independent.asked > 0 ? c.independent : null },
-            { label: t("evv.dim.transferred"), r: c.transfer.asked > 0 ? c.transfer : null },
-            // A DELAYED re-measurement: the concept came back after its interval
-            // and the learner still had it. Shown like every other dimension —
-            // measured where it exists, "not yet measured" where it does not.
-            { label: t("evv.dim.retention"), r: c.retention.asked > 0 ? c.retention : null },
-          ];
+          if (!c) return null;
+          return strongestProof({
+            correct: c.correct,
+            independentCorrect: c.independent.correct,
+            transferCorrect: c.transfer.correct,
+            retentionCorrect: c.retention.correct,
+          });
         };
-        const band = (r: { asked: number; correct: number }) => (r.correct / r.asked >= 0.7 ? "strong" : "developing");
         return (
           <>
             <section className="ruled" style={{ borderTop: "2px solid var(--ink)", paddingTop: 18, marginBottom: 30 }}>
@@ -254,20 +291,19 @@ export default function ProgressPage() {
                       what it says. */}
                   <Link href={`/mind/${c.conceptId}`} className="small" style={{ fontWeight: 700 }}>
                     {ctitle(lang, c.conceptId)}
-                  </Link>
-                  {dimsFor(c.conceptId).map((d) => (
-                    <div key={d.label} className="small" style={{ display: "flex", gap: 8, alignItems: "baseline", margin: "2px 0" }}>
-                      <span style={{ flex: "none", width: 110, color: "var(--pencil)" }}>{d.label}</span>
-                      {d.r ? (
-                        <>
-                          <span className={`chip ${band(d.r) === "strong" ? "good" : ""}`}>{t(`mm.${band(d.r)}`)}</span>
-                          <span className="mono small muted">{d.r.correct}/{d.r.asked}</span>
-                        </>
-                      ) : (
-                        <span className="small muted">{t("evv.unmeasured")}</span>
-                      )}
-                    </div>
-                  ))}
+                  </Link>{" "}
+                  {(() => {
+                    const v = provedFor(c.conceptId);
+                    return v ? <span className="chip good">{t(proofLabelKey(v))}</span> : null;
+                  })()}
+                  {/* The same rows, from the same function, as the concept page
+                      and the Mind map — a second implementation of "what does
+                      Recall mean" is how two surfaces end up disagreeing about
+                      one learner. `showRate` adds the exact fraction here,
+                      because this is the page where the record is inspected. */}
+                  <div style={{ marginTop: 6 }}>
+                    <Dims rows={conceptKnowledge(ready.projection, c.conceptId, t).rows} showRate />
+                  </div>
                 </div>
               ))}
               {/* The unknowns, named: not-yet-measured dimensions of concepts

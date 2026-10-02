@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import {
-  createAccount, emailProblem, ensureProfileSecretFor, findAccountByEmail, newProfileId,
-  passwordProblem, publicAccount, type AccountRole,
+  accountOwningProfile, createAccount, emailProblem, ensureProfileSecretFor, findAccountByEmail,
+  newProfileId, passwordProblem, publicAccount, type AccountRole,
 } from "@/lib/server/auth";
 import { getProfile, newProfileState, publicProfileState, saveProfile } from "@/lib/server/store";
 import type { ProfileState, SubjectId } from "@/lib/types";
@@ -34,7 +34,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "email_taken" }, { status: 409 });
   }
 
-  // 1. Claim the anonymous profile, if one was offered and proves itself.
+  // 1. Claim the ANONYMOUS profile, if one was offered and proves itself.
   let state: ProfileState | null = null;
   const claim = body.claim && typeof body.claim === "object" ? (body.claim as Record<string, unknown>) : null;
   if (claim && typeof claim.profileId === "string") {
@@ -42,7 +42,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     // A profile with no secret yet binds the first one presented; otherwise the
     // presented secret must match — a profile id alone is never enough.
     const proven = candidate && (!candidate.secret || candidate.secret === claim.secret);
-    if (proven) state = candidate;
+    // PROVEN IS NOT THE SAME AS UNCLAIMED. A device that holds a session always
+    // holds the profile's secret, so the test above passes for a profile another
+    // account already owns: the second account was bound to the first's learner
+    // and this route's own enrolment step then rewrote that learner's year,
+    // course and name. Measured: two accounts, one profile id (see
+    // lib/server/auth.ts#accountOwningProfile). Adoption requires both facts.
+    if (proven && !(await accountOwningProfile(claim.profileId))) state = candidate;
   }
 
   // 2. Otherwise a brand-new learner profile is created alongside the account,

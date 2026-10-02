@@ -14,6 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { isDeviceReported, type AnswerSubmitted, type EvidenceEvent, type LearnerProjection } from "./evidence";
+import { retentionState, type RetentionState } from "./proof";
 
 export interface LedgerFetch {
   events: EvidenceEvent[];
@@ -161,6 +162,11 @@ export interface KnowledgeRow extends Dimension {
   from: "all-answers" | "measured-answers" | "independent" | "transfer" | "retention";
   /** True when the learner's record holds nothing of this kind. */
   unmeasured: boolean;
+  /** Set on the RETENTION row only: retained / forgotten / unmeasured, from the
+   *  one rule that names those states (lib/proof.ts#retentionState). A rate
+   *  alone cannot say which — see that rule for why the latest outcome, not the
+   *  ratio, is the state. */
+  state?: RetentionState;
 }
 
 /**
@@ -218,6 +224,12 @@ export function conceptKnowledge(
     make("retained", "retention", t("evv.dim.retention"),
       c && c.retention.asked > 0 ? c.retention : null),
   ];
+  // Beside the rate, the retention row carries the STATE, because a rate cannot
+  // say it: "1 of 2" describes both a learner who retained this and has since
+  // lost it and one who never held it until today, and the two need different
+  // work. The word comes from lib/proof.ts#retentionState — no surface derives
+  // its own, and no absence is ever read as a failure.
+  for (const r of rows) if (r.from === "retention") r.state = retentionState(c?.retention);
   return { rows, unmeasuredLabels: rows.filter((r) => r.unmeasured).map((r) => r.label) };
 }
 

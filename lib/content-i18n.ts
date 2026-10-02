@@ -29,6 +29,29 @@ export function cblurb(lang: string, conceptId: string): string {
 
 /** Misconception name / coaching: `mc.<id>` / `mcp.<id>` keys, falling back
  *  to the catalogue's authored English when a dictionary lacks them. */
+/** The name of ONE tier, in the reader's language, without repeating itself.
+ *
+ *  A tier carries two names: the system's own (GCSE says "Higher tier", A-Level
+ *  says AS "AS") and the translation of its generic band (`lvl.higher`). They
+ *  are usually different facts and both are worth the space — but not when they
+ *  are the SAME string, which is exactly the case for the two most-sat tiers,
+ *  Foundation and Higher. Three surfaces each answered this their own way: the
+ *  wizard showed the system's name alone (`name || t(lvl.tier)`), while the
+ *  curriculum screen and the Learn index printed both, so a GCSE learner read
+ *  "Higher tier · Higher tier" on the screen that names their course.
+ *
+ *  This is the one owner of that choice, so the same course is named the same
+ *  way wherever a learner meets it. */
+export function levelLabel(lang: string, tier: string, name?: string): string {
+  const generic = translator(lang)(`lvl.${tier}`);
+  const own = (name ?? "").trim();
+  if (!own) return generic;
+  // A dictionary without `lvl.<tier>` renders the key itself; the system's own
+  // name is then the honest answer rather than "lvl.degree" on screen.
+  if (generic === `lvl.${tier}`) return own;
+  return own === generic ? generic : `${generic} · ${own}`;
+}
+
 export function mcName(lang: string, id: string, fallback: string): string {
   const v = translator(lang)(`mc.${id}`);
   return v === `mc.${id}` ? fallback : v;

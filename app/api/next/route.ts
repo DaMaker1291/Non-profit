@@ -4,6 +4,8 @@ import { decisionContextFor } from "@/lib/server/decision";
 import { buildSnapshot } from "@/lib/learner-model";
 import { authorizeLearner } from "@/lib/server/capability";
 import { incompleteSubjects } from "@/lib/specifications";
+import { ctitle } from "@/lib/content-i18n";
+import { translator } from "@/lib/i18n";
 
 /** GET /api/next?id=... — the central decision API.
  *
@@ -31,7 +33,16 @@ export async function GET(req: Request): Promise<NextResponse> {
   const ctx = await decisionContextFor(id!);
   if (!ctx) return NextResponse.json({ error: "not found" }, { status: 404 });
   const snap = buildSnapshot(ctx.model);
-  const actions = decide(ctx, { max: 6 });
+  // ── THE DECISION IS SERVED IN THE LEARNER'S LANGUAGE ────────────────────
+  // `decideNext` falls back to its English table when it is given no translator
+  // and no title resolver, silently. This route passed neither, so an Arabic or
+  // Japanese learner reading a reason from THIS door got English — while
+  // /api/my-pack, which does pass them, got it right (its own comment records
+  // the hazard). The client surfaces pass a translator too, so the server was
+  // the only place a reason could come out in the wrong language. The teaching
+  // language wins when a learner has named one, exactly as the pack resolves it.
+  const lang = ctx.model.profile.teachingLang ?? ctx.model.profile.language ?? "en";
+  const actions = decide(ctx, { max: 6, tt: translator(lang), title: (cid) => ctitle(lang, cid) });
   return NextResponse.json({
     actions,
     // The decision's provenance travels with it: which projection produced the

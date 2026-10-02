@@ -2,26 +2,38 @@
 // GENUINE TRANSFER (audit P0-D).
 //
 // Difficulty escalation is not transfer. A learner who solves 3x + 2 = 11 has
-// proven nothing about recognising the same idea in a gym's monthly bill. The
-// transfer stage therefore re-frames the concept's question through a
-// DIFFERENT surface before any transfer credit is recorded:
+// proven nothing about recognising the same idea in a gym's monthly bill.
 //
-//   story   — the same equation as a real-world situation: "a joining fee of
-//             b plus the same amount every month; after a months the total is
-//             rhs — what is the monthly amount?" The unknown keeps its value,
-//             the framing changes completely.
-//   inverse — the solution is given; the learner must pick which equation
-//             produces it. Answer→question instead of question→answer.
-//   direct  — fallback when the prompt isn't a recognisable equation: a fresh
-//             draw at the top of the difficulty range, recorded honestly as
-//             "direct" (unfamiliar numbers, same surface). Direct surfaces
-//             never unlock the strong mastery ceiling (mastery.ts).
+// ONE OWNER. This file decides what a second surface IS, whether a concept can
+// offer one, and which draw to serve — all three through `serveTransfer` below.
+// Nothing else sweeps draws or names a surface: the route calls `serveTransfer`,
+// the decision engine and the exercise page ask `canTransfer`, and the page
+// renders only what the serve told it. (A second, unused set of surface
+// wrappers lived in lib/qterms.ts; it was deleted rather than left to drift.)
 //
-// Grading is untouched — only the inverse surface rebuilds the choice list,
-// and the server (never the client) holds the answer index.
+// TWO SURFACES, both built from content the bank really generates:
+//
+//   story   — the same one-unknown equation retold as a real-world situation:
+//             a joining fee plus the same amount every month, with the total
+//             paid given after n months. The unknown keeps its value; the
+//             framing changes completely.
+//   inverse — THE RULE, generalised. Four REAL questions of this concept, drawn
+//             at the concept's own band, with the learner asked which of them
+//             produces a stated result. The target question is one of the four,
+//             so exactly one option is correct by construction, every option is
+//             content the bank already serves, and the answer index stays
+//             server-side. Nothing is authored and nothing is truncated.
+//
+// A concept can be re-framed when the bank can serve that inverse: a question
+// whose ANSWER is a value rather than prose, readable as one line, plus three
+// other real questions at the same band whose OWN answers are different values.
+// Both exclusions are documented on `answerValueKey` and `readableOption`. Where
+// they bite, `canTransfer` says so and the stage stays DEEPER WORK: coverage is
+// never bought by loosening the rule.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { translator } from "./i18n";
+import { generateQuestion, generateQuestionAt } from "./questions";
 import type { Question } from "./types";
 
 export type Surface = "direct" | "story" | "inverse";
@@ -30,23 +42,25 @@ export type Surface = "direct" | "story" | "inverse";
  * How many draws a transfer serve may look at before it settles for `direct`.
  *
  * A transfer request asks for the SAME idea on a DIFFERENT surface, and the
- * re-framers only understand the prompt shapes they were written for (a linear
- * equation, for instance). A concept whose range now includes multi-step work
- * can draw a shape they do not, so the serve looks at a few draws at the same
- * difficulty floor and takes the first one that genuinely re-frames. Bounded so
- * a concept with no re-frameable shape costs a handful of draws, not a loop,
- * and exported so the behaviour can be asserted rather than assumed. */
+ * inverse needs three other questions at this band whose answers differ from
+ * the target's — so a concept with a narrow range can take a few draws to find
+ * them. Bounded so a concept with no second surface costs a handful of draws,
+ * not a loop, and exported so the behaviour can be asserted.
+ */
 export const TRANSFER_SURFACE_ATTEMPTS = 6;
+
+/** Draws the inverse may look at while collecting its three distractors. */
+export const INVERSE_DISTRACTOR_ATTEMPTS = 24;
 
 /** Linear-equation pattern: [coef]x ± k = n, optionally inside $...$. */
 const LINEAR = /\$?\s*(-?\d*\.?\d*)\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)\s*=\s*(-?\d+\.?\d*)\s*\$?/;
 
+/** Two-step form: A(x ± B) = C x ± D — the shape the multi-step work uses. */
+const LINEAR_BRACKET = /\$?\s*(-?\d*\.?\d*)\s*\(\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)\s*\)\s*=\s*(-?\d*\.?\d*)\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)/;
+
 function num(s: string): number {
   return s === "-" ? -1 : s === "" ? 1 : parseFloat(s);
 }
-
-/** Two-step form: A(x ± B) = C x ± D — the shape the multi-step work uses. */
-const LINEAR_BRACKET = /\$?\s*(-?\d*\.?\d*)\s*\(\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)\s*\)\s*=\s*(-?\d*\.?\d*)\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)/;
 
 /**
  * Parse a one-unknown linear equation into `a·x + b = rhs`, whichever of the
@@ -92,6 +106,51 @@ function parseLinear(prompt: string): { a: number; b: number; rhs: number } | nu
   return { a, b: a, rhs: product + a };
 }
 
+/**
+ * THE ANSWER AS A VALUE, or null when the answer is prose.
+ *
+ * This is the first half of what makes the inverse honest. The item asks which
+ * of four questions produces a stated result, and two PROSE answers can be the
+ * same fact said differently — "Increases — the outer electron is lost more
+ * easily" against "it increases — the outer electron is further from the
+ * nucleus and lost more easily". A learner picking the second would be marked
+ * wrong for a defensible answer, which is a lie, not a measurement.
+ *
+ * So an answer counts as a value only when it is short and specific: at most
+ * two tokens once spacing around operators is collapsed ("800", "x=5",
+ * "43 litres", "-1/60", "5.6×10⁹"), and it must carry a digit unless it is a
+ * single word. Anything longer is prose, and the concept keeps its deeper-work
+ * stage. Operator spacing is collapsed for COMPARISON only — the text the
+ * learner reads is the bank's own, untouched.
+ */
+export function answerValueKey(raw: string): string | null {
+  const s = String(raw ?? "").trim().replace(/\s+/g, " ");
+  if (!s) return null;
+  const collapsed = s.replace(/\s*([+\-\u2212×÷=/<>^])\s*/g, "$1");
+  const tokens = collapsed.split(" ");
+  if (tokens.length > 2) return null;
+  if (!/[0-9]/.test(collapsed) && tokens.length > 1) return null;
+  return collapsed.toLowerCase();
+}
+
+/**
+ * The second half: a question may serve as one of four OPTIONS only when it is
+ * one readable line.
+ *
+ * A multi-part stem or a paragraph is a wall of text inside a choice list, so
+ * a concept whose items are like that is not re-framed this way — the gate says
+ * no and the stage stays deeper work. Truncated variants (the generators emit
+ * "…" summary forms) are excluded too: a summary's own answer is a summary, and
+ * pairing the two is what produced two defensibly-correct options when this
+ * rule was first measured.
+ */
+function readableOption(prompt: string): boolean {
+  return typeof prompt === "string"
+    && prompt.length > 0
+    && prompt.length <= 120
+    && !/[\n…]/.test(prompt);
+}
+
 const fmt = (n: number): string => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
 
 /** Story surface: the equation ax + b = rhs retold as fixed fee + repeated
@@ -121,61 +180,139 @@ function shuffleWithAnswer(items: string[], correctIdx: number, seed: string): {
   return { items: idx.map((i) => items[i]), answer: idx.indexOf(correctIdx) };
 }
 
-/** Inverse surface: given the solution, pick the equation that produces it.
- *  Every distractor's solution provably differs from the stated one. */
-function inverseQuestion(q: Question, seed: string, lang: string): Question | null {
-  const p = parseLinear(q.prompt);
-  if (!p) return null;
-  const xVal = parseFloat(String(q.choices[q.answer]).replace(/[^0-9.\-]/g, ""));
-  if (!Number.isFinite(xVal)) return null;
-  const total = p.a * xVal + p.b;
-  const sign = p.b >= 0 ? "+" : "\u2212";
-  const absB = Math.abs(p.b);
-  // Distractor 1: constant nudged — solution shifts by k/a.
-  let k = 2;
-  let sol1 = (total - (absB + k)) / p.a;
-  while (Math.abs(sol1 - xVal) < 1e-9 && k < 60) {
-    k += 2;
-    sol1 = (total - (absB + k)) / p.a;
+/**
+ * THE INVERSE SURFACE — the rule that widens transfer coverage.
+ *
+ * Given the target question, collect three more questions of the SAME concept,
+ * drawn at the SAME band, whose own answers are different values, and ask which
+ * of the four produces the target's result. Every option is real generated
+ * content; the correct one is the target, whose answer index the server already
+ * holds. So "exactly one option is correct" is true by construction: the three
+ * distractors' own answers were required to differ from the stated value.
+ *
+ * Returns null — never a weaker item — when the target's answer is prose, when
+ * a prompt cannot be read as one line, or when the band cannot produce three
+ * distinct valued answers. That null is what keeps `canTransfer` honest.
+ */
+function inverseFromDraws(
+  conceptId: string,
+  seed: string,
+  aim: number,
+  lang: string,
+  target: Question,
+): { question: Question; distractors: Question[] } | null {
+  const value = target.choices[target.answer] ?? "";
+  const targetKey = answerValueKey(value);
+  if (!targetKey || !readableOption(target.prompt)) return null;
+  const used: Question[] = [];
+  for (let i = 0; i < INVERSE_DISTRACTOR_ATTEMPTS && used.length < 3; i++) {
+    const q = generateQuestionAt(conceptId, `${seed}:i${i}`, aim, 0);
+    if (!q || q.prompt === target.prompt || !readableOption(q.prompt)) continue;
+    const key = answerValueKey(q.choices[q.answer] ?? "");
+    if (!key || key === targetKey) continue;
+    if (used.some((d) => d.prompt === q.prompt)) continue;
+    used.push(q);
   }
-  // Distractor 2: sign flipped — solution differs whenever b ≠ 0; when b = 0
-  // the coefficient is doubled instead (solution halves).
-  const sol2 = absB > 0 ? (total + absB) / p.a : xVal / 2;
-  const cand2 = absB > 0
-    ? `${fmt(p.a)}x ${p.b >= 0 ? "\u2212" : "+"} ${fmt(absB)} = ${fmt(total)}`
-    : `${fmt(p.a * 2)}x = ${fmt(total)}`;
-  const candidates = [
-    `${fmt(p.a)}x ${sign} ${fmt(absB)} = ${fmt(total)}`, // the original — correct
-    `${fmt(p.a)}x ${sign} ${fmt(absB + k)} = ${fmt(total)}`,
-    cand2,
-  ];
-  const lead = translator(lang)("tr.inverseLead");
-  const prompt = `${lead} x = ${fmt(xVal)}`;
-  const { items, answer } = shuffleWithAnswer(candidates, 0, seed);
+  if (used.length < 3) return null;
+  const lead = translator(lang)("tr.whichAnswer");
+  const { items, answer } = shuffleWithAnswer([target.prompt, ...used.map((d) => d.prompt)], 0, seed);
   return {
-    ...q,
-    id: `${q.id}:inv`,
-    prompt,
-    choices: items,
-    answer,
-    difficulty: Math.min(0.95, q.difficulty + 0.05),
+    question: {
+      ...target,
+      id: `${target.id}:rev`,
+      // The value reads FIRST, so the frame is a lowercase fragment in every
+      // language — `tr.whichAnswer` is authored that way (see
+      // scripts/i18n-transfer.mjs) and appended here exactly as documented.
+      prompt: `${value} — ${lead}?`,
+      choices: items,
+      answer,
+      difficulty: Math.min(0.95, target.difficulty + 0.05),
+    },
+    distractors: used,
   };
 }
 
-/** Build the transfer variant of a practice question. Returns the question
- *  and the surface actually achieved — the server records the surface with
- *  the transfer evidence so the mastery claim never outruns it. */
-export function transferVariant(q: Question, seed: string, lang: string): { question: Question; surface: Surface } {
-  const p = parseLinear(q.prompt);
-  if (p) {
-    // Alternate deterministically between the two genuine surfaces.
-    let h = 0;
-    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-    if (h % 2 === 0) {
-      return { question: storyQuestion(q, lang, p.a, p.b, p.rhs), surface: "story" };
+/**
+ * THE ONE SWEEP. Serve this concept's idea on a second surface if the bank can
+ * really do it, and otherwise serve the draw itself as `direct`.
+ *
+ * `source` is the direct draw the surface was built from, and `distractors`
+ * the real questions whose stems became the other options — both returned so a
+ * test can RE-DERIVE what the item claims (which question produces the stated
+ * result, and whether any other option's own answer also does) by grading the
+ * draws itself rather than trusting this function. The route ignores both.
+ *
+ * Surface choice is deterministic per attempt, alternating so a concept that
+ * supports both does not show the learner the same framing every time.
+ */
+export function serveTransfer(
+  conceptId: string,
+  seed: string,
+  aim: number,
+  lang: string,
+): { question: Question; surface: Surface; source: Question; distractors: Question[] } | null {
+  let first: Question | null = null;
+  for (let attempt = 0; attempt < TRANSFER_SURFACE_ATTEMPTS; attempt++) {
+    const drawn = generateQuestionAt(conceptId, seed, aim, attempt);
+    if (!drawn) break;
+    first ??= drawn;
+    const linear = parseLinear(drawn.prompt);
+    const preferStory = attempt % 2 === 0;
+    const tryStory = () => (linear ? storyQuestion(drawn, lang, linear.a, linear.b, linear.rhs) : null);
+    const tryInverse = () => inverseFromDraws(conceptId, `${seed}:a${attempt}`, aim, lang, drawn);
+    const variants = preferStory ? [tryStory, tryInverse] : [tryInverse, tryStory];
+    for (const build of variants) {
+      const built = build();
+      if (!built) continue;
+      if ("question" in built) {
+        return { question: built.question, surface: "inverse", source: drawn, distractors: built.distractors };
+      }
+      return { question: built, surface: "story", source: drawn, distractors: [] };
     }
-    const inv = inverseQuestion(q, seed, lang);
-    if (inv) return { question: inv, surface: "inverse" };
   }
-  return { question: q, surface: "direct" };
+  return first ? { question: first, surface: "direct", source: first, distractors: [] } : null;
+}
+
+/** Seeds the probe sweeps. Fixed, so `canTransfer` is a fact about the
+ *  concept rather than about when it was asked. */
+const TRANSFER_PROBE_SEEDS = ["tf1", "tf2", "tf3", "tf4"] as const;
+/** The bands worth probing: a concept whose EASY draws re-frame but whose hard
+ *  draws do not is not transferable in the sense that matters — the transfer
+ *  stage serves the top of the range. */
+const TRANSFER_PROBE_BANDS = [0.5, 0.7, 0.85] as const;
+
+/**
+ * CAN THIS CONCEPT BE PUT ON A SECOND SURFACE AT ALL?
+ *
+ * Asked of the serve rather than of a rule of thumb: the answer depends on the
+ * questions a concept's generator actually draws — whether any of them has a
+ * valued answer with three differently-valued neighbours at the same band — so
+ * this probes `serveTransfer` on fixed seeds and bands and reports what it
+ * finds. Two facts use it: the decision engine may only offer TRANSFER when the
+ * serve can honour it, and the exercise page labels the stage Transfer or
+ * Deeper from the serve's own answer.
+ *
+ * MEMOISED, and that is not an optimisation merely: the probe asks a pure
+ * question ("can this concept be re-framed?"), the same question is asked on
+ * every serve and on every decision, and the sweep behind it draws up to a
+ * hundred questions. One answer per concept per process is what keeps the
+ * honest gate affordable enough to ask everywhere.
+ */
+const transferCache = new Map<string, boolean>();
+export function canTransfer(conceptId: string): boolean {
+  const cached = transferCache.get(conceptId);
+  if (cached !== undefined) return cached;
+  let answer = false;
+  for (const seed of TRANSFER_PROBE_SEEDS) {
+    for (const band of TRANSFER_PROBE_BANDS) {
+      const served = serveTransfer(conceptId, `probe:${seed}`, band, "en");
+      if (served && served.surface !== "direct") {
+        answer = true;
+        break;
+      }
+    }
+    if (answer) break;
+  }
+  transferCache.set(conceptId, answer);
+  return answer;
 }

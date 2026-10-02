@@ -20,19 +20,47 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import Link from "next/link";
 import { useI18n } from "@/lib/client";
+import { fill } from "@/lib/i18n";
 import { SUBJECT_LABELS } from "@/lib/subjects";
+import type { CourseField } from "@/lib/specifications";
 import type { SubjectId } from "@/lib/types";
 
-export default function CourseFirst({ subject }: { subject: SubjectId }) {
+/** The label for each field a course can be missing — the SAME labels the form
+ *  that sets them uses, so the card's promise and the screen behind it agree.
+ *  Exported because the wizard's course step names its gaps too; one owner for
+ *  "how a missing course field is called". */
+export const FIELD_LABEL: Record<CourseField, string> = {
+  country: "onb.country",
+  grade: "onb.grade",
+  spec: "onb.spec",
+  specLevel: "onb.level",
+};
+
+/**
+ * WHY THIS CARD NAMES THE FIELD.
+ *
+ * It used to say "needs a course" for every gap and send the learner to the
+ * course screen. But a course has four parts (`CourseField`), and the gate that
+ * produces this card reports WHICH are missing — `incompleteSubjects` returns
+ * `missing`, and the only caller dropped it one line before the card. So a
+ * learner who had chosen GCSE Maths (Foundation) and simply never picked a year
+ * group was told they needed "a course", sent to the course screen, changed
+ * nothing there (it could not set a year group), came back, and was told the same
+ * thing. Naming the missing field is the difference between a prompt and a loop.
+ */
+export default function CourseFirst({ subject, missing }: { subject: SubjectId; missing: CourseField[] }) {
   const { t } = useI18n();
+  const fields = (missing.length ? missing : (["spec"] as CourseField[]))
+    .map((f) => t(FIELD_LABEL[f] as Parameters<typeof t>[0]))
+    .join(" · ");
   return (
     <section className="card" style={{ borderLeft: "4px solid var(--margin-red)" }} aria-label={t("next.aria")}>
       <p className="eyebrow" style={{ margin: 0 }}>
-        <span className="no">§</span> {t("next.courseFirst")}
+        {t("next.courseFirst")}
       </p>
       <p className="small" style={{ margin: "8px 0 6px" }}>{t("next.courseFirstNote")}</p>
       <p className="small muted" style={{ margin: "0 0 14px" }}>
-        <strong>{t(SUBJECT_LABELS[subject] as Parameters<typeof t>[0])}</strong> — {t("onb.courseNeed")}
+        <strong>{t(SUBJECT_LABELS[subject] as Parameters<typeof t>[0])}</strong> — {fill(t("next.courseMissing"), { fields })}
       </p>
       <Link href="/curriculum" className="btn">{t("curr.course")} →</Link>
     </section>

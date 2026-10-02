@@ -51,7 +51,7 @@ export default function PaperAnalysisPanel({ analysis }: { analysis: PaperAnalys
   return (
     <section className="exercise" style={{ marginTop: 20 }} aria-label={t("an.eyebrow")}>
       <p className="eyebrow" style={{ margin: 0 }}>
-        <span className="no">§</span> {t("an.eyebrow")}
+        {t("an.eyebrow")}
       </p>
 
       {lost.length === 0 ? (

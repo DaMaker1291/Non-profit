@@ -220,6 +220,10 @@ export function replayModel(
 export const LEDGER_OWNED_FIELDS = [
   "attempts", "correct", "streak", "mastery", "accuracy", "lastSeen",
   "misconceptions", "independent", "transfer", "retention", "totalMs", "answers",
+  // Scaffolding demand as the ANSWER recorded it (see types.ts#hinted). Owned
+  // by the projection rather than preserved, because a stale count would let a
+  // rebuilt model keep claiming help that the ledger no longer shows.
+  "hinted",
 ] as const;
 
 /** Annotations the ledger does not carry, named so the boundary is readable
@@ -228,6 +232,11 @@ export const LEDGER_OWNED_FIELDS = [
 export const LEDGER_ABSENT_FIELDS = [
   "hints", "recentHits", "microDiag", "starter", "peer", "diag",
 ] as const;
+// `hints` and `hinted` sit on opposite sides of that boundary on purpose: the
+// level tally is an annotation the fold must not invent, and the count is
+// evidence the fold must reproduce. Anything asking "how much help did this
+// learner need?" has to choose, and choosing the tally makes the answer wrong
+// for every offline learner.
 
 /**
  * Install a projected model onto a live profile, KEEPING every annotation the
@@ -275,8 +284,10 @@ export function adoptProjection(live: ProfileState, projected: ProfileState): vo
 export interface DeepDifference {
   conceptId: string;
   field: string;
-  ledger: number | null;
-  model: number | null;
+  /** The two values as they are: numbers for counts, booleans for the flags
+   *  whose truth IS the fact rather than a quantity of it. */
+  ledger: number | boolean | null;
+  model: number | boolean | null;
 }
 
 /** The fields the replay reproduces and reconcileDeep compares. Kept as a
@@ -299,6 +310,18 @@ function eq(a: Num, b: Num): boolean {
 
 function diff(conceptId: string, field: string, l: Num, m: Num, out: DeepDifference[]): void {
   if (!eq(l, m)) out.push({ conceptId, field, ledger: l ?? null, model: m ?? null });
+}
+
+/** A flag difference, for the fields whose value is a truth rather than a
+ *  quantity: `retention.lastHeld` decides whether a learner reads "forgotten"
+ *  or "retained", and "within 1e-9" means nothing for it. */
+function diffFlag(
+  conceptId: string, field: string,
+  l: boolean | null | undefined, m: boolean | null | undefined,
+  out: DeepDifference[],
+): void {
+  const lv = l ?? null, mv = m ?? null;
+  if (lv !== mv) out.push({ conceptId, field, ledger: lv, model: mv });
 }
 
 /**
@@ -350,6 +373,10 @@ export function reconcileDeep(
     diff(id, "transfer.correct", l.transfer?.correct, m.transfer?.correct, out);
     diff(id, "retention.asked", l.retention?.asked, m.retention?.asked, out);
     diff(id, "retention.correct", l.retention?.correct, m.retention?.correct, out);
+    // The latest delayed recall's outcome: the state the record is in
+    // (lib/proof.ts#retentionState) is derived from it, so a rebuild that lost
+    // it would leave a learner who had forgotten reading "retained".
+    diffFlag(id, "retention.lastHeld", l.retention?.lastHeld, m.retention?.lastHeld, out);
     diff(id, "ms", l.totalMs, m.totalMs, out);
     diff(id, "answers", l.answers, m.answers, out);
   }

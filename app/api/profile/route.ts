@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getProfile, newProfileState, publicProfileState, saveProfile } from "@/lib/server/store";
+import { deleteProfile, getProfile, newProfileState, publicProfileState, saveProfile, removeMemberEverywhere } from "@/lib/server/store";
+import { deleteEvidence } from "@/lib/server/evidence";
 import { accountFromRequest, newProfileId } from "@/lib/server/auth";
 import { isBoardId, type ProfileState, type StudentProfile, type SubjectCourse, type SubjectId } from "@/lib/types";
 import { coversSubject, incompleteSubjects, specById } from "@/lib/specifications";
@@ -134,8 +135,40 @@ export async function POST(req: Request): Promise<NextResponse> {
     const p = state.profile;
     if (typeof body.handle === "string" && body.handle.trim()) p.handle = body.handle.trim().slice(0, 24);
     if (typeof body.country === "string" && /^[A-Z]{2}$/.test(body.country)) p.country = body.country;
+    // The school a teacher teaches at. Free text and optional — a tutor working
+    // alone has none and is never asked for one — but bounded, and CLEARABLE:
+    // sending an empty string removes it rather than storing "" , so "no school"
+    // and "a school called nothing" are the same state.
+    if (typeof body.school === "string") {
+      const school = body.school.trim().slice(0, 80);
+      if (school) p.school = school;
+      else delete p.school;
+    }
     if (typeof body.birthYear === "number" && body.birthYear > 1900 && body.birthYear <= new Date().getFullYear()) p.birthYear = body.birthYear;
-    if (typeof body.language === "string" && body.language.length <= 8) p.language = body.language;
+    if (typeof body.language === "string" && body.language.length <= 8) {
+      p.language = body.language;
+      // ── A CHOSEN LANGUAGE CARRIES THE OTHER ROLES, UNTIL IT IS SPLIT ──────
+      // `newProfileState` ships every role as "en", so the `if (!p.teachingLang)`
+      // defaults below could never fire: a learner who picked Arabic on this
+      // route got `teachingLang: "en"`, and every surface that prefers the
+      // TEACHING language — the offline pack, the tutor's directive, and the
+      // decision door — then spoke English to them while the interface was
+      // Arabic. (Sign-up does not have this bug: it seeds all four roles from
+      // the chosen language. This route is where onboarding and the anonymous
+      // path arrive, which is where it mattered.)
+      //
+      // Scope: only while onboarding is incomplete, and only for roles the
+      // request did not name. After onboarding the interface language is the
+      // interface's own, and the taught/answered/school languages keep the
+      // choices the learner made about them — the four roles exist precisely
+      // because a learner may want one language on screen and another in the
+      // maths.
+      if (!p.onboardedAt) {
+        for (const key of ["teachingLang", "answerLang", "schoolLang"] as const) {
+          if (typeof body[key] !== "string") p[key] = body.language;
+        }
+      }
+    }
     // The four language roles (interface / taught in / answered in / school).
     for (const key of ["teachingLang", "answerLang", "schoolLang"] as const) {
       const v = body[key];
@@ -265,4 +298,38 @@ export async function POST(req: Request): Promise<NextResponse> {
   } catch {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
+}
+
+/**
+ * DELETE /api/profile?id=…&secret=…&confirm=ERASE — the right to erasure (§23).
+ *
+ * Deletion is the one act that cannot be undone, so it is consent-gated in the
+ * request itself: `confirm=ERASE` typed by the caller, not a checkbox the UI
+ * could fire on a misclick. The same three-credential rule authorises it, and
+ * it takes the whole record with it: the profile, the evidence ledger, and the
+ * learner's membership in every class roster. Personal papers keyed by owner
+ * and assignment monitors keyed by learner id resolve to nothing once the id
+ * is gone — no orphan row survives with the learner's data in it.
+ *
+ * The signing-in account is NOT deleted here: a learner erasing their record
+ * keeps their email/password, they just have no learning history. Erasing both
+ * is a deliberate two-step, and the account screen explains it.
+ */
+export async function DELETE(req: Request): Promise<NextResponse> {
+  const { searchParams } = new URL(req.url);
+  const account = await accountFromRequest(req);
+  const id = searchParams.get("id") ?? account?.profileId ?? null;
+  if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
+  const state = await getProfile(id);
+  if (!state) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!(await authorize(req, state, searchParams.get("secret")))) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  if (searchParams.get("confirm") !== "ERASE") {
+    return NextResponse.json({ error: "confirm_required" }, { status: 400 });
+  }
+  const removed = await deleteProfile(id);
+  deleteEvidence(id);
+  await removeMemberEverywhere(id);
+  return NextResponse.json({ ok: true, removed });
 }

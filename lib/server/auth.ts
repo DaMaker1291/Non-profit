@@ -158,6 +158,29 @@ export async function countAccounts(): Promise<number> {
 }
 
 /**
+ * The account that already owns a learner profile, if any.
+ *
+ * "An account owns exactly one learner profile" is the invariant this module is
+ * built on, and it only holds if a profile is handed to an account ONCE. Two
+ * accounts pointing at one profile is not a merge of two learners — it is a
+ * stranger inside someone else's record, and the newcomer's own enrolment then
+ * rewrites the owner's course, year and name.
+ *
+ * This is the question every adoption path must ask before it binds anything.
+ * It cannot be answered from the profile's secret: a device that holds a
+ * session always holds that profile's secret, so "the secret matched" says
+ * nothing about whether the profile is anonymous. Ownership is the fact.
+ */
+export async function accountOwningProfile(
+  profileId: string,
+  exceptAccountId?: string,
+): Promise<Account | null> {
+  if (!profileId) return null;
+  const all = await readAccounts();
+  return Object.values(all).find((a) => a.profileId === profileId && a.id !== exceptAccountId) ?? null;
+}
+
+/**
  * Create an account bound to a learner profile. The caller creates (or claims)
  * the profile first, so a sign-up never leaves an account pointing at nothing.
  */

@@ -36,7 +36,7 @@ export function RouteGuard({ children }: { children: ReactNode }) {
   return (
     <main className="container narrow" style={{ paddingTop: 44 }}>
       <p className="eyebrow">
-        <span className="no">§</span> {t("state.moving")}
+        {t("state.moving")}
       </p>
       <p className="lead">{t(decision.reasonKey)}</p>
       {to ? (

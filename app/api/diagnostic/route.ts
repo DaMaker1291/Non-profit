@@ -89,9 +89,52 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (body.action === "start") {
       const upd = await updateProfile(body.id, (state: ProfileState) => {
         checkSecret(state, body.secret);
+        // Test-hook reveal for the E2E suite (non-production only).
+        const reveal = body.reveal === true && process.env.NODE_ENV !== "production";
+
+        // RESUME, DO NOT REPLACE. The live sitting is already persisted at
+        // `${subject}:session`, and this action used to overwrite it
+        // unconditionally — so every mount of the page started a NEW sitting.
+        // The page mounts on every reload, and a reload is the most ordinary
+        // thing a learner does on a phone. Measured: two answers deep, a reload
+        // served a DIFFERENT question 01 and the adaptive path chosen for the
+        // learner was thrown away and re-decided, with no word to either of
+        // them. The answers were not lost (they were already on the ledger) but
+        // the learner's time and the very thing an adaptive diagnostic exists to
+        // decide were.
+        //
+        // KIND-AWARE, because a start is not always a resume. `scripts/e2e-api`
+        // deliberately sits `baseline` then `retest` against one profile and
+        // measures each independently; a blanket "always resume" would hand the
+        // second sitting the first one's answers. So the live session is resumed
+        // only when it is the SAME KIND of sitting. An unspecified kind adopts
+        // whatever is already running rather than defaulting to `probe` and
+        // silently starting a third kind of thing.
+        const live = (state as unknown as Record<string, unknown>)[sessionKey] as
+          | DiagnosticSession
+          | undefined;
+        const wantedKind = (startKind as DiagnosticSession["kind"] | undefined) ?? live?.kind ?? "probe";
+        if (live && live.kind === wantedKind) {
+          // Re-serve the question the learner was last looking at. NOT `spend`
+          // again: the exposure was already recorded when it was first served,
+          // and spending it twice would make one question look like two probes.
+          const q = live.lastQ ?? nextQuestion(live);
+          return {
+            resumed: true,
+            // `log` is the session's own record of every probe answered, in
+            // order — the only honest answer to "how far along is this". Summing
+            // the per-concept `asked` counters would not work: those reset each
+            // stage, so a resumed sitting could be labelled "01" at question
+            // nine.
+            asked: live.log?.length ?? 0,
+            question: q ? (reveal ? q : serveView(q, body.lang, state.profile.board)) : null,
+            conceptId: currentConcept(live)?.conceptId ?? null,
+          };
+        }
+
         const session = newDiagnosticSession(
           body.subject,
-          startKind as DiagnosticSession["kind"] | undefined ?? "probe",
+          wantedKind,
           // The learner's qualification drives the sampling blueprint: coverage
           // across the spec's own stage bands instead of four fixed anchors.
           specForProfile(state.profile),
@@ -102,9 +145,11 @@ export async function POST(req: Request): Promise<NextResponse> {
         // Never touch state.diagnostics here: an abandoned start must not
         // clobber the student's previous completed diagnostic.
         (state as unknown as Record<string, unknown>)[sessionKey] = session;
-        // Test-hook reveal for the E2E suite (non-production only).
-        const reveal = body.reveal === true && process.env.NODE_ENV !== "production";
-        return { question: q ? (reveal ? q : serveView(q, body.lang, state.profile.board)) : null, conceptId: currentConcept(session)?.conceptId ?? null };
+        return {
+          resumed: false,
+          question: q ? (reveal ? q : serveView(q, body.lang, state.profile.board)) : null,
+          conceptId: currentConcept(session)?.conceptId ?? null,
+        };
       });
       if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
       return NextResponse.json({ sessionKey, ...upd.result });

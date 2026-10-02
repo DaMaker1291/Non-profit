@@ -19,7 +19,7 @@ import { tutorTurn } from "@/lib/server/tutor";
  * refuse it, rather than quietly downgrading to a concept-only turn.
  */
 export async function POST(req: Request): Promise<NextResponse> {
-  let body: { conceptId?: string; message?: string; language?: string; id?: string; secret?: string };
+  let body: { conceptId?: string; message?: string; language?: string; id?: string; secret?: string; question?: string };
   try {
     body = await req.json();
   } catch {
@@ -28,6 +28,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   const conceptId = body.conceptId ?? "";
   const message = (body.message ?? "").slice(0, 500);
   const language = body.language ?? "en";
+  // The question as the SCREEN shows it. Display-only context for the offline
+  // reply (§tutor: the tutor must know the question in front of the learner) —
+  // it is never treated as a fact about the serve, which is computed from the
+  // learner's own projection.
+  const questionText = typeof body.question === "string" ? body.question.slice(0, 300) : null;
   if (!conceptId) return NextResponse.json({ error: "missing conceptId" }, { status: 400 });
 
   let learnerId: string | null = null;
@@ -37,7 +42,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     learnerId = auth.state.profile.id;
   }
 
-  const turn = await tutorTurn({ learnerId, conceptId, message, language });
+  const turn = await tutorTurn({ learnerId, conceptId, message, language, questionText });
   if (!turn) return NextResponse.json({ error: "unknown concept" }, { status: 404 });
 
   return NextResponse.json({

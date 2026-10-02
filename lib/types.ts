@@ -178,6 +178,11 @@ export interface StudentProfile {
    *  names required; undefined falls back to a neutral greeting. Teacher
    *  flows that need an identifier use the profile id, not a fabrication. */
   handle?: string; // display handle, no real names required
+  /** The school or organisation a teacher teaches at. A CLASS does not carry
+   *  it: a teacher with two classes at one school would otherwise store the
+   *  same name twice, and the two copies would drift. Free text, teacher-set,
+   *  never required — a tutor working alone has no school and is not asked. */
+  school?: string;
   country: string; // ISO-3166 alpha-2, "XX" = unspecified
   birthYear: number | null;
   language: string; // interface language (menus, buttons) — BCP-47-ish tag
@@ -295,8 +300,22 @@ export interface ConceptProgress {
   lastSeen: number;
   /** Misconception id -> hit count, only incremented on wrong answers. */
   misconceptions: Record<string, number>;
-  /** Help level (1-4) -> times requested. Scaffolding demand is learner-model data. */
+  /** Help level (1-4) -> times requested. Scaffolding demand is learner-model data.
+   *
+   *  Written by the hint endpoint itself, and — deliberately — NOT by the
+   *  ledger fold: the per-answer hint count rides on the answer event, so
+   *  folding it in here as well would count every hint twice. Anything that
+   *  needs scaffolding demand and must survive a rebuild reads `hinted`. */
   hints?: Record<string, number>;
+  /** How many of this concept's graded answers took at least one hint.
+   *
+   *  The fold-carried half of scaffolding demand, and the reason it exists:
+   *  the level tally above is an annotation the ledger does not carry, so a
+   *  rule keyed on it works for a learner answering live and goes inert for one
+   *  whose work arrived from a device after working offline. This one is
+   *  incremented from `answer_submitted.hints`, which the event carries and the
+   *  fold replays, so the two agree wherever both are present. */
+  hinted?: number;
   /** Misconception id -> recent hit/miss window (1s and 0s, recency order).
    *  Bounded by the micro-diagnostic engine's window size. */
   recentHits?: Record<string, number[]>;
@@ -314,8 +333,14 @@ export interface ConceptProgress {
   /** Retention evidence: born only when a concept the SCHEDULER (lib/retention)
    *  said was due is retrieved hint-free, at least a day after the last evidence
    *  on it. Same-session work never counts — the answer that proves memory is
-   *  the one given when the concept had genuinely aged. */
-  retention?: { asked: number; correct: number };
+   *  the one given when the concept had genuinely aged.
+   *
+   *  `lastHeld` is the LATEST such recall's outcome, and it is what lets the
+   *  record say "forgotten" rather than only "1 of 2": held-then-lost and
+   *  lost-then-held have identical counts and opposite states. See
+   *  lib/proof.ts#retentionState — the one rule that names them, and the reason
+   *  the fact is kept rather than re-derived by each surface. */
+  retention?: { asked: number; correct: number; lastHeld?: boolean | null };
   /** Peer teaching: explanations checked and strong ones. */
   peer?: { checks: number; strong: number };
   /** Total answer time in ms (for pace evidence; count in `answers`). */
@@ -499,7 +524,15 @@ export interface ClassRoster {
    *  Assigned work is drawn ONLY from the declared curriculum. */
   subject?: SubjectId;
   /** The course (specification) the class is taught, when the teacher names
-   *  one. Null/absent means the class's whole subject curriculum is assignable. */
+   *  one. Null/absent means the class's whole subject curriculum is assignable.
+   *
+   *  Declared where the class is created, or set later on the class itself
+   *  (`POST /api/classes {action:"update"}`), and validated the way a learner's
+   *  course is: a qualification the subject is not part of is REFUSED BY NAME
+   *  rather than dropped. It is what makes two classes of one subject at
+   *  different qualifications different objects — the work that may be set
+   *  (lib/server/assignment-view#assignableConcepts) and the week's plan
+   *  (lib/teacher-plan) are both drawn from it. */
   specificationId?: string | null;
   /** Work the teacher has set for the class. It lives on the roster because it
    *  IS class state, not a parallel store — and every number the teacher later
@@ -551,9 +584,20 @@ export interface AssignmentMemberProgress {
   learnerId: string;
   /** Graded answers recorded on the assigned concepts since it was set. */
   answers: number;
-  /** conceptId -> asked/correct/rate over the window. A concept the window
-   *  holds no evidence on is ABSENT — unmeasured, never a zero. */
-  concepts: Record<string, { asked: number; correct: number; rate: number }>;
+  /** conceptId -> asked/correct/rate over the window, plus what that work
+   *  PROVED. A concept the window holds no evidence on is ABSENT — unmeasured,
+   *  never a zero. */
+  concepts: Record<string, {
+    asked: number;
+    correct: number;
+    rate: number;
+    /** The strongest claim the window's answers on this concept earned
+     *  (lib/proof.ts): retained > transfer > independent > supported, or null
+     *  when every answer was wrong. Correct-with-hints is `supported` and never
+     *  independence — which is the distinction a teacher needs when a class
+     *  "finished" at 80%. */
+    proof: import("./proof").ProofVerdict | null;
+  }>;
   /** Assigned concepts with no evidence in the window: the work still owed. */
   outstanding: string[];
   /** Every assigned concept has at least one graded answer in the window. */

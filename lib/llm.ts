@@ -25,6 +25,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { getConcept } from "./genome";
+// The declared target environment decides whether a cloud model is reachable
+// at all — see activeProvider().
+import { mayReachCloud, resolveDeployment } from "./deployment";
 import { decisionLine, tutorGroundingPacket, type TutorGrounding } from "./tutor-context";
 import type { Question } from "./types";
 
@@ -44,6 +47,15 @@ export type LiveProvider = Exclude<LlmProvider, null>;
  */
 export function activeProvider(): LlmProvider {
   if (process.env.OPENMIND_AI_BASE_URL && process.env.OPENMIND_AI_KEY) return "custom";
+  // A DEPLOYMENT THAT MAY NOT REACH THE CLOUD DOES NOT PICK A CLOUD PROVIDER.
+  // A site declared `offline` or `intermittent` (lib/deployment.ts) answers
+  // with the deterministic engine whether or not a signal happens to be
+  // present and whether or not a key sits in its environment — the offline
+  // engines already handle `no_key` as a normal outcome, so this changes which
+  // model answers and never whether the product works. A self-hosted endpoint
+  // behind `OPENMIND_AI_BASE_URL` is on the school's OWN network and stays
+  // available; naming it is how a school says "my model, my building".
+  if (!mayReachCloud(resolveDeployment(process.env).profile)) return null;
   if (process.env.GEMINI_API_KEY) return "gemini";
   if (process.env.OPENAI_API_KEY) return "openai";
   if (process.env.GROQ_API_KEY) return "groq";

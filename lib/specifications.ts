@@ -391,6 +391,36 @@ export function applyTerminology(text: string, board: BoardId | undefined): stri
 
 // ── Lookups ─────────────────────────────────────────────────────────────────
 
+/**
+ * THE CONCEPTS A COURSE ACTUALLY CONTAINS — the one owner of that question.
+ *
+ * A qualification is not a label on a subject: it is a SUBSET of it, spread
+ * over its tiers, and two courses in one subject hold different concepts. Both
+ * the assignment picker (what a class may be set) and the week's plan (what a
+ * class will be taught) ask this, so it is written once here rather than
+ * re-derived as a set-union in each caller — the shape that drifts.
+ */
+export function courseConceptIds(spec: Specification): Set<string> {
+  return new Set(spec.levels.flatMap((level) => coverageOf({ spec, level })).map((c) => c.id));
+}
+
+/**
+ * MAY A CLASS DECLARE THIS COURSE FOR THIS SUBJECT? Null when it may; the
+ * refusal name when it may not.
+ *
+ * The same rule a learner's course follows (app/api/profile#courseEntry): an id
+ * that means nothing, or a real qualification the subject is not part of
+ * (Biology under a maths-only paper), is REFUSED BY NAME. It is never silently
+ * dropped or replaced by a first tier, because a class whose declared course
+ * is not the one the teacher chose is wrong about the curriculum it teaches —
+ * and every question it is then set is drawn from a course nobody declared.
+ */
+export function courseRefusal(subject: SubjectId, specId: string): string | null {
+  const spec = specById(specId);
+  if (!spec) return "unknown_spec";
+  return coversSubject(spec, subject) ? null : `spec_does_not_teach_${subject}`;
+}
+
 export function specById(id: string | undefined): Specification | null {
   if (!id) return null;
   return SPECIFICATIONS.find((s) => s.id === id) ?? null;

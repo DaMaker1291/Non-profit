@@ -55,7 +55,10 @@ export default function NextStep({
   const gap = top.conceptId
     ? incompleteSubjects(state.profile).find((g) => g.subject === getConcept(top.conceptId as string)?.subject)
     : undefined;
-  if (gap) return <CourseFirst subject={gap.subject} />;
+  // `gap.missing` is the whole point of the gap report — it names WHICH part of
+  // the course is unset (country, year group, qualification, tier). Passing only
+  // the subject told every affected learner the same vague sentence.
+  if (gap) return <CourseFirst subject={gap.subject} missing={gap.missing} />;
 
   if (top.kind === "REST") {
     return (
@@ -66,7 +69,7 @@ export default function NextStep({
     );
   }
   return (
-    <section className="card" style={{ borderLeft: "4px solid var(--margin-red)" }} aria-label={t("next.aria")}>
+    <section className="card primary" style={{ borderLeft: "4px solid var(--margin-red)" }} aria-label={t("next.aria")}>
       {/* No raw `kind` badge: it is an English enum (EXPLAIN, REMEDIATE) that no
           dictionary can translate, and the title already opens with the
           translated verb — "Learn:", "Practise:", "Fix:". */}

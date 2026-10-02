@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { fetchProfile, loadLocalProfileId, loadLocalProfileSecret, signOut, updateAccount, useAccount, useI18n } from "@/lib/client";
+import { fetchProfile, loadLocalProfileId, loadLocalProfileSecret, saveProfilePatch, signOut, updateAccount, useAccount, useI18n } from "@/lib/client";
 import type { ProfileState } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -18,6 +18,12 @@ export default function AccountPage() {
   const { session, ready } = useAccount();
   const [profile, setProfile] = useState<ProfileState | null>(null);
   const [name, setName] = useState("");
+  // ── The school a teacher teaches at ──
+  // It lives on the PROFILE, not on each class: a teacher with five classes in
+  // one school has one school, and five copies would drift. Optional in both
+  // directions — a tutor working alone leaves it empty, and emptying it clears
+  // it rather than storing an empty string.
+  const [school, setSchool] = useState("");
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [busy, setBusy] = useState(false);
@@ -28,6 +34,13 @@ export default function AccountPage() {
   const [joining, setJoining] = useState(false);
   const [joinedMsg, setJoinedMsg] = useState("");
   const [joinErr, setJoinErr] = useState("");
+  // ── Privacy: export, and the right to erasure (§23) ──
+  // Erasure is consent-gated twice: the learner must first reveal the control
+  // (a stray click must never delete a history), then type ERASE to confirm.
+  const [showErase, setShowErase] = useState(false);
+  const [eraseWord, setEraseWord] = useState("");
+  const [erasing, setErasing] = useState(false);
+  const [eraseErr, setEraseErr] = useState("");
 
   useEffect(() => {
     const id = loadLocalProfileId();
@@ -37,6 +50,10 @@ export default function AccountPage() {
   useEffect(() => {
     if (session.account) setName(session.account.name);
   }, [session.account]);
+
+  useEffect(() => {
+    setSchool(profile?.profile.school ?? "");
+  }, [profile]);
 
   async function joinClass() {
     const code = classCode.trim().toUpperCase();
@@ -80,6 +97,21 @@ export default function AccountPage() {
     setMsg("");
     try {
       await updateAccount({ name });
+      setMsg(t("acc.saved"));
+    } catch {
+      setErr(t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveSchool() {
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const state = await saveProfilePatch({ school });
+      setProfile(state);
       setMsg(t("acc.saved"));
     } catch {
       setErr(t("common.error"));
@@ -150,6 +182,28 @@ export default function AccountPage() {
             </label>
             <button className="btn small" onClick={saveName} disabled={busy}>{t("common.save")}</button>
 
+            {/* A learner has no school to record; a teacher (or a school
+                account) does, and it is what the class panels show beside the
+                qualification. Hidden entirely for students, so the field is
+                never a question the wrong person is asked. */}
+            {session.account.role !== "student" && (
+              <>
+                <h3 style={{ marginTop: 24 }}>{t("teach.school")}</h3>
+                <p className="small muted" style={{ marginTop: 4 }}>{t("teach.schoolHint")}</p>
+                <label className="field">
+                  <span>{t("teach.school")}</span>
+                  <input
+                    type="text"
+                    value={school}
+                    onChange={(e) => setSchool(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && saveSchool()}
+                    maxLength={80}
+                  />
+                </label>
+                <button className="btn small" onClick={saveSchool} disabled={busy}>{t("common.save")}</button>
+              </>
+            )}
+
             <h3 style={{ marginTop: 24 }}>{t("acct.class")}</h3>
             <p className="small muted" style={{ marginTop: 4 }}>{t("acct.classNote")}</p>
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
@@ -169,6 +223,77 @@ export default function AccountPage() {
             </div>
             {joinedMsg && <p className="small marking good" style={{ padding: "8px 12px", marginTop: 10 }}><span className="mark" aria-hidden="true">✓</span> {joinedMsg}</p>}
             {joinErr && <p className="small marking bad" style={{ padding: "8px 12px", marginTop: 10 }}><span className="mark" aria-hidden="true">✗</span> {joinErr}</p>}
+
+            <h3 style={{ marginTop: 24 }}>{t("acct.privacyTitle")}</h3>
+            <p className="small muted" style={{ marginTop: 4 }}>{t("acct.privacyNote")}</p>
+            <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+              {/* The machine-readable export: profile, model state and the
+                  evidence ledger itself — the learner's data, in their hands. */}
+              <a
+                className="btn ghost small"
+                href={`/api/my-data?id=${encodeURIComponent(profile?.profile.id ?? "")}&secret=${encodeURIComponent(loadLocalProfileSecret() ?? "")}`}
+                download="openmind-my-data.json"
+              >
+                {t("acct.exportBtn")}
+              </a>
+            </div>
+            {!showErase ? (
+              <button className="btn ghost small" style={{ marginTop: 10 }} onClick={() => { setShowErase(true); setEraseErr(""); }}>
+                {t("acct.eraseReveal")}
+              </button>
+            ) : (
+              <div style={{ marginTop: 10 }}>
+                <p className="small marking bad" style={{ padding: "8px 12px", maxWidth: 520 }}>
+                  <span className="mark" aria-hidden="true">✗</span> {t("acct.eraseWarn")}
+                </p>
+                <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+                  <input
+                    type="text"
+                    value={eraseWord}
+                    onChange={(e) => setEraseWord(e.target.value.toUpperCase())}
+                    placeholder="ERASE"
+                    maxLength={8}
+                    className="mono"
+                    style={{ maxWidth: 140 }}
+                    aria-label={t("acct.eraseWordLabel")}
+                  />
+                  <button
+                    className="btn small"
+                    disabled={erasing || eraseWord !== "ERASE"}
+                    onClick={async () => {
+                      const pid = profile?.profile.id;
+                      const secret = loadLocalProfileSecret() ?? "";
+                      if (!pid) return;
+                      setErasing(true);
+                      setEraseErr("");
+                      try {
+                        const res = await fetch(`/api/profile?id=${encodeURIComponent(pid)}&secret=${encodeURIComponent(secret)}&confirm=ERASE`, { method: "DELETE" });
+                        if (!res.ok) {
+                          const j = await res.json().catch(() => ({}));
+                          setEraseErr(j.error ?? `HTTP ${res.status}`);
+                          return;
+                        }
+                        // The record is gone; the session is too. A sign-out
+                        // lands the learner on a fresh Home — nothing of the
+                        // old profile is left on this device to read.
+                        await signOut();
+                        window.location.href = "/";
+                      } catch {
+                        setEraseErr(t("common.error"));
+                      } finally {
+                        setErasing(false);
+                      }
+                    }}
+                  >
+                    {erasing ? t("common.loading") : t("acct.eraseBtn")}
+                  </button>
+                  <button className="btn ghost small" onClick={() => { setShowErase(false); setEraseWord(""); }}>
+                    {t("acct.eraseCancel")}
+                  </button>
+                </div>
+                {eraseErr && <p className="small" style={{ color: "var(--margin-red)", marginTop: 8 }}>{eraseErr}</p>}
+              </div>
+            )}
 
             <h3 style={{ marginTop: 24 }}>{t("acct.change")}</h3>
             <div className="grid cols2">

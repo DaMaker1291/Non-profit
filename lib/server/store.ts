@@ -4,6 +4,9 @@ import path from "path";
 // build (no server at all) needs both — so they live in lib/learner-profile.ts
 // and are re-exported here. A second copy would be a default that drifts.
 import { newProfileState, publicProfileState } from "../learner-profile";
+// The membership rule, in one place: the store is only the caller that makes a
+// legacy roster's identities durable.
+import { bindLegacyHandles, handleOf, hasRow } from "./class-membership";
 export { newProfileState, publicProfileState };
 import type { ClassRoster, ProfileState, StudentProfile, StudyPack, StudyRoom } from "../types";
 import type { BuiltPaperAnswerKey } from "../papers";
@@ -66,6 +69,54 @@ export async function saveProfile(state: ProfileState): Promise<void> {
     const all = await readJson<Record<string, ProfileState>>("profiles.json", {});
     all[state.profile.id] = state;
     await writeJson("profiles.json", all);
+  });
+}
+
+/**
+ * Delete a profile's record entirely. The one path privacy's right to erasure
+ * can take (§23): the profile, its ledger and its personal papers all go.
+ * Evidence is append-only on the normal paths — deletion is a deliberate,
+ * learner-initiated act, not an edit, which is why it lives here beside the
+ * store's other whole-record operations rather than on any route.
+ */
+export async function deleteProfile(id: string): Promise<boolean> {
+  return withLock("profiles.json", async () => {
+    const all = await readJson<Record<string, ProfileState>>("profiles.json", {});
+    if (!all[id]) return false;
+    delete all[id];
+    await writeJson("profiles.json", all);
+    return true;
+  });
+}
+
+/** Remove one learner's membership from every class roster, in place. Used by
+ *  the account's own erase path (§23: leaving is part of erasure) and returns
+ *  how many rosters changed. Handles recorded under the learner's id are
+ *  dropped from the self-report maps too, so the teacher's table stops listing
+ *  a member who has left. */
+export async function removeMemberEverywhere(profileId: string): Promise<number> {
+  return withLock("classes.json", async () => {
+    const rosters = await readJson<ClassRoster[]>("classes.json", []);
+    let changed = 0;
+    for (const cls of rosters) {
+      // The row is named by IDENTITY, the way every other membership decision
+      // names it: `membersById` maps handle -> learner, so looking the learner
+      // up in it by their own id found nothing and left the erased learner's row
+      // (and its binding) in the roster for good — a member the teacher's table
+      // still listed, and one `isMemberOf` still answered true for.
+      const handle = handleOf(cls, profileId);
+      const members = cls.members ?? [];
+      if (!members.includes(profileId) && !handle) continue;
+      cls.members = members.filter((m) => m !== profileId);
+      if (handle) {
+        if (cls.membersById) delete cls.membersById[handle];
+        delete cls.students[handle];
+        if (cls.misconceptions) delete cls.misconceptions[handle];
+      }
+      changed++;
+    }
+    if (changed > 0) await writeJson("classes.json", rosters);
+    return changed;
   });
 }
 
@@ -231,8 +282,41 @@ export async function cacheSet(key: string, value: unknown): Promise<void> {
 }
 
 // ── Classes ─────────────────────────────────────────────────────────────────
+
+/**
+ * EVERY class read passes through here, so a roster written before member ids
+ * existed is reconciled ONCE (lib/server/class-membership#bindLegacyHandles)
+ * and the result is written back — after which every membership decision is
+ * identity-only. The alternative was matching a display name on every read,
+ * which let any profile with the same name into the class.
+ *
+ * The write happens only when something actually changed, so a normal read
+ * costs one extra JSON read and no write. A class whose handles are ambiguous
+ * is left alone: an unowned row grants nothing, and it is tried again on a
+ * later read in case the ambiguity resolves (two profiles, one name is the
+ * only case this refuses to guess about).
+ *
+ * Two shapes need reconciling, and both are the same missing fact: a row with
+ * no identity (written before member ids existed), and a member with no row
+ * (a learner whose row the old join rebound onto somebody else).
+ */
+function needsIdentity(cls: ClassRoster): boolean {
+  if (Object.keys(cls.students ?? {}).some((h) => !cls.membersById?.[h])) return true;
+  return (cls.members ?? []).some((id) => !hasRow(cls, id));
+}
+
+async function classesWithIdentity(): Promise<ClassRoster[]> {
+  const all = await readJson<ClassRoster[]>("classes.json", []);
+  if (!all.some(needsIdentity)) return all;
+  const states = await listProfileStates();
+  let changed = false;
+  for (const cls of all) if (bindLegacyHandles(cls, states)) changed = true;
+  if (changed) await withLock("classes.json", () => writeJson("classes.json", all));
+  return all;
+}
+
 export async function listClasses(): Promise<ClassRoster[]> {
-  return readJson<ClassRoster[]>("classes.json", []);
+  return classesWithIdentity();
 }
 
 export async function saveClass(cls: ClassRoster): Promise<void> {
@@ -245,7 +329,7 @@ export async function saveClass(cls: ClassRoster): Promise<void> {
 }
 
 export async function getClass(id: string): Promise<ClassRoster | null> {
-  const all = await readJson<ClassRoster[]>("classes.json", []);
+  const all = await classesWithIdentity();
   return all.find((c) => c.id === id) ?? null;
 }
 

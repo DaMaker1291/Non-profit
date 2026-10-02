@@ -7,10 +7,15 @@ import { getConcept } from "@/lib/genome";
 import { ctitle } from "@/lib/content-i18n";
 import { dueLabel, fill } from "@/lib/i18n";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
-import { buildWeeklyPlan } from "@/lib/teacher-plan";
+import { buildWeeklyPlan, classSubject } from "@/lib/teacher-plan";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
+import { specOptionsFor } from "@/lib/specifications";
 import HubStatus from "@/components/hub-status";
+import { ErrorState, Loading } from "@/components/states";
 import type { AssignmentMonitor, ClassRoster, SubjectId } from "@/lib/types";
+// The same four words the learner reads under their own mark: a teacher's
+// "Independent" and a learner's "Independent" are one claim about one rule.
+import { proofLabelKey } from "@/lib/proof";
 
 /** What the assignment door says a class the caller owns may be set work on.
  *  Computed SERVER-SIDE from the class's declared curriculum, so the picker
@@ -25,11 +30,21 @@ interface OwnedClass {
 
 export default function TeacherPage() {
   const { t, lang } = useI18n();
-  const { state } = useProfile();
+  // `loading` is the profile still being read, which is not the same thing as a
+  // teacher with no classes — and the difference is the whole of §24. Without
+  // it, every load began by rendering an empty class list and "No work set
+  // yet." to a teacher who has both: the mirror image of the failed read that
+  // used to render as success. The hook already exposes the state; this page
+  // just never asked for it.
+  const { state, loading } = useProfile();
 
   const [classes, setClasses] = useState<ClassRoster[]>([]);
   const [name, setName] = useState("");
   const [subject, setSubject] = useState<SubjectId | "">("");
+  // The qualification/board the new class sits, beside the subject it declares.
+  // Optional: "whole subject" is the ordinary case for a class that is not
+  // teaching towards one paper.
+  const [course, setCourse] = useState<string>("");
   const [joinCode, setJoinCode] = useState("");
   const [notice, setNotice] = useState("");
   const [err, setErr] = useState("");
@@ -38,6 +53,16 @@ export default function TeacherPage() {
   // monitor rows — every number in them a projection of a member's own ledger.
   const [owned, setOwned] = useState<OwnedClass[]>([]);
   const [monitor, setMonitor] = useState<AssignmentMonitor[]>([]);
+  // §24. A READ THAT FAILED IS NOT AN EMPTY CLASS.
+  //
+  // Both reads below used to `return` on a bad response, so a teacher whose
+  // session had expired, or whose server answered 500, saw an empty roster and
+  // "No work set yet." — a failed request dressed as good news, on the screen
+  // whose whole job is to say who needs help. The failure has a state now, and
+  // the retry is the product's own error state (components/states.tsx) rather
+  // than a second one built here. The two doors report separately so a class
+  // list that loaded is not thrown away because the monitor did not.
+  const [readErr, setReadErr] = useState({ classes: "", work: "" });
 
   // Every class read and write presents the CALLER's capability: a class
   // carries its learners' handles, their mastery and its join code, so the
@@ -49,10 +74,15 @@ export default function TeacherPage() {
 
   const refresh = useCallback(async () => {
     const { id, secret } = capability();
+    // No capability yet is LOADING, not failure: the profile has not landed.
     if (!id || !secret) return;
     const res = await fetch(withCapability(`/api/classes?me=${encodeURIComponent(id)}`));
-    if (!res.ok) return;
+    if (!res.ok) {
+      setReadErr((e) => ({ ...e, classes: `HTTP ${res.status}` }));
+      return;
+    }
     const j = (await res.json()) as { classes: ClassRoster[] };
+    setReadErr((e) => ({ ...e, classes: "" }));
     setClasses(j.classes ?? []);
   }, [capability]);
 
@@ -60,8 +90,12 @@ export default function TeacherPage() {
     const { id, secret } = capability();
     if (!id || !secret) return;
     const res = await fetch(withCapability(`/api/assignments?me=${encodeURIComponent(id)}`));
-    if (!res.ok) return;
+    if (!res.ok) {
+      setReadErr((e) => ({ ...e, work: `HTTP ${res.status}` }));
+      return;
+    }
     const j = (await res.json()) as { monitor?: AssignmentMonitor[]; classes?: OwnedClass[] };
+    setReadErr((e) => ({ ...e, work: "" }));
     setMonitor(j.monitor ?? []);
     setOwned(j.classes ?? []);
   }, [capability]);
@@ -78,15 +112,43 @@ export default function TeacherPage() {
       method: "POST", headers: { "Content-Type": "application/json" },
       // The class declares the curriculum it is taught. Assigned work is drawn
       // from that declaration, never from a default subject.
-      body: JSON.stringify({ ...capability(), action: "create", name: name.trim(), subject, handle: state?.profile.handle ?? "teacher" }),
+      body: JSON.stringify({ ...capability(), action: "create", name: name.trim(), subject, specificationId: course || null, handle: state?.profile.handle ?? "teacher" }),
     });
     const j = await res.json();
-    if (!res.ok) { setErr(j.error ?? `HTTP ${res.status}`); return; }
+    if (!res.ok) { setErr(courseErrText(j.error, res.status)); return; }
     setName("");
     setSubject("");
+    setCourse("");
     setNotice(`${t("teach.invite")}: ${j.cls.joinCode}`);
     void refresh();
     void refreshWork();
+  }
+
+  /** Which refusal the server gave, in the reader's language, with the code.
+   *  `course_without_subject` and an unknown id are different mistakes and are
+   *  told apart; the subject one is the ordinary typo. */
+  function courseErrText(code: unknown, status: number): string {
+    const known = typeof code === "string" && code !== "" && !code.startsWith("HTTP");
+    return `${t("teach.errCourse")}${known ? ` (${code})` : ` (HTTP ${status})`}`;
+  }
+
+  /** THE CLASS'S COURSE, SET WHERE THE CLASS IS. The assignment door has always
+   *  accepted a class-level qualification and no screen sent one, so two classes
+   *  of the same subject at different qualifications were the same class twice.
+   *  This is the one write: only the class's own teacher may make it, and the
+   *  server refuses by name a qualification the subject is not part of. */
+  async function declareCourse(clsId: string, specificationId: string | null) {
+    setErr("");
+    const res = await fetch("/api/classes", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...capability(), action: "update", clsId, specificationId }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) { setErr(courseErrText(j.error, res.status)); return; }
+    await refresh();
+    // What the class may be set changed with its curriculum, so the picker is
+    // re-read from the server rather than patched in place.
+    await refreshWork();
   }
 
   /** SET WORK: a real state transition on the class, drawn only from the
@@ -138,7 +200,7 @@ export default function TeacherPage() {
 
   return (
     <main className="container" style={{ paddingTop: 36 }}>
-      <p className="eyebrow"><span className="no">§</span> {t("teach.title")}</p>
+      <p className="eyebrow">{t("teach.title")}</p>
       <h1 className="visually-small">{t("teach.title")}</h1>
       <p className="lead">{t("teach.sub")}</p>
 
@@ -149,6 +211,14 @@ export default function TeacherPage() {
 
       {notice && <div className="alert" style={{ marginTop: 16 }}>{t("teach.invite")}: <b className="mono">{notice.split(": ").pop()}</b></div>}
       {err && <div className="feedback no" style={{ marginTop: 16 }}><span className="verdict">✗</span>{err}</div>}
+      {(readErr.classes || readErr.work) && (
+        <div style={{ marginTop: 16 }}>
+          <ErrorState
+            body={`${t("teach.readFailed")} (${readErr.classes || readErr.work})`}
+            onRetry={() => { void refresh(); void refreshWork(); }}
+          />
+        </div>
+      )}
 
       <div className="grid cols2" style={{ marginTop: 22, marginBottom: 22 }}>
         <div className="card">
@@ -158,10 +228,19 @@ export default function TeacherPage() {
             {/* The subject is a real choice, not a default: work is assigned
                 from the curriculum the class declares, so the declaration is
                 made where the class is made. */}
-            <select value={subject} onChange={(e) => setSubject(e.target.value as SubjectId | "")} aria-label={t("teach.pickSubject")}>
+            <select value={subject} onChange={(e) => { setSubject(e.target.value as SubjectId | ""); setCourse(""); }} aria-label={t("teach.pickSubject")}>
               <option value="">{t("teach.pickSubject")}</option>
               {SUBJECT_IDS.map((s) => <option key={s} value={s}>{t(SUBJECT_LABELS[s])}</option>)}
             </select>
+            {/* The qualification sits BESIDE the subject, not instead of it: a
+                class is one subject taught towards one paper, or towards none. */}
+            <CoursePicker
+              country={state?.profile.country ?? ""}
+              subject={subject || null}
+              value={course}
+              onChange={setCourse}
+              label={t("teach.pickCourse")}
+            />
             <button className="btn" onClick={create} disabled={!name.trim() || !subject}>{t("teach.createClass")}</button>
           </div>
           <p className="muted small" style={{ marginBottom: 0 }}>
@@ -169,7 +248,11 @@ export default function TeacherPage() {
           </p>
         </div>
         <div className="card">
-          <p className="eyebrow"><span className="no">→</span> {t("teach.roster")}</p>
+          {/* The heading names the ACTION, not the result. It used to read
+              "Class roster" over a code-entry box, which is what a teacher
+              would take as "my class list" — and the list is the table below,
+              where the label now sits. */}
+          <p className="eyebrow"><span className="no">→</span> {t("acct.class")}</p>
           <div style={{ display: "flex", gap: 10 }}>
             <input type="text" placeholder="ABC123" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} maxLength={6} className="mono" />
             <button className="btn ghost" onClick={join}>{t("rooms.join")}</button>
@@ -180,7 +263,32 @@ export default function TeacherPage() {
         </div>
       </div>
 
-      {classes.map((cls) => {
+      {/* MY CLASSES: the index first (§teacher home). A teacher with five
+          classes needs to see all five and their size before reading any one of
+          them in detail, so the list is a row of cards that jump to the class
+          below — not a second copy of the dashboard. Rendered only when there
+          is more than one class to choose between. */}
+      {loading ? (
+        <div style={{ marginBottom: "var(--s3)" }}>
+          <Loading lines={3} />
+        </div>
+      ) : null}
+
+      {!loading && classes.length > 1 && (
+        <section style={{ marginBottom: "var(--s3)" }} aria-label={t("teach.title")}>
+          <p className="eyebrow"><span className="no">≡</span> {t("teach.title")}</p>
+          <div className="grid cols3">
+            {classes.map((cls) => (
+              <a key={cls.id} href={`#class-${cls.id}`} className="class-card">
+                <b>{cls.name}</b>
+                <span className="class-sub">{Object.keys(cls.students).length} {t(Object.keys(cls.students).length === 1 ? "teach.studentsOne" : "teach.students")}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!loading && classes.map((cls) => {
         // The LIVE view is the ledger talking: each member's independent-work
         // rates, derived server-side from their own evidence. The stored
         // `students` map is only a last self-report and is deliberately not
@@ -207,7 +315,7 @@ export default function TeacherPage() {
         }
         const top = [...agg.entries()].sort((x, y) => y[1].carriers - x[1].carriers || y[1].hits - x[1].hits).slice(0, 5);
         return (
-          <div key={cls.id} className="card" style={{ marginBottom: 16 }}>
+          <div key={cls.id} id={`class-${cls.id}`} className="card" style={{ marginBottom: 16, scrollMarginTop: "var(--topbar-h)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, alignItems: "baseline" }}>
               <h2 className="section" style={{ margin: 0 }}>{cls.name}</h2>
               <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
@@ -221,11 +329,30 @@ export default function TeacherPage() {
               </span>
             </div>
             <p className="muted small">
-              {students.length} {t("teach.students")}
+              {/* One student is not "1 students": the singular has its own key
+                  (15 languages — see scripts/i18n-teacher-one.mjs). */}
+              {students.length} {t(students.length === 1 ? "teach.studentsOne" : "teach.students")}
               {avg !== null && <> · {t("teach.avg")}: <span className="mono">{Math.round(avg * 100)}%</span></>}
               {measured.length > 0 && measured.length < students.length && <> · {measured.length}/{students.length} {t("teach.measured")}</>}
             </p>
-            <p className="small muted" style={{ margin: "2px 0 10px" }}>· {t("teach.prov")}</p>
+            {/* THE CLASS'S OWN CURRICULUM, AND THE SCHOOL IT BELONGS TO.
+                Two classes of one subject at different qualifications differ
+                here first — and what may be set for the class (the picker in
+                the work panel) and what the week teaches are both drawn from
+                this one declaration. The school comes from the teacher's own
+                profile: it is one school, however many classes are held in it. */}
+            <p className="small muted" style={{ margin: "2px 0 10px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              {state?.profile.school ? <span>{state.profile.school} ·</span> : null}
+              <span>{t("teach.course")}:</span>
+              <CoursePicker
+                country={state?.profile.country ?? ""}
+                subject={classSubject(cls)}
+                value={cls.specificationId ?? ""}
+                onChange={(v) => void declareCourse(cls.id, v)}
+                label={t("teach.pickCourse")}
+              />
+              <span>· {t("teach.prov")}</span>
+            </p>
             {measured.length === 0 && students.length > 0 && (
               <p className="note" style={{ marginBottom: 10 }}>{t("teach.noEvidence")}</p>
             )}
@@ -252,15 +379,23 @@ export default function TeacherPage() {
                   })}
                 </div>
               )}
+              {/* The class list is what "Class roster" means, and the heading
+                  now labels it rather than the code box above. */}
+              <p className="eyebrow">{t("teach.roster")}</p>
+              <div className="tbl-wrap">
               <table className="tbl">
                 <thead>
-                  <tr><th>{t("onb.handle")}</th><th>{t("dash.mastery")}</th><th>{t("teach.concepts")}</th><th>{t("teach.evidenceCol")}</th></tr>
+                  <tr><th>{t("onb.handle")}</th><th>{t("dash.mastery")}</th><th>{t("teach.focus")}</th><th>{t("teach.evidenceCol")}</th></tr>
                 </thead>
                 <tbody>
                   {students.map((h) => {
                     const m = live[h];
                     const vals = Object.entries(m?.concepts ?? {}).sort((a, b) => a[1].rate - b[1].rate);
                     const weakest = vals[0];
+                    // The subject to link under: the concept's OWN, then the
+                    // class's declared one, then no link at all. Never a
+                    // default — that is the fallback literal this pass removed.
+                    const focusSubject = weakest ? getConcept(weakest[0])?.subject ?? classSubject(cls) : null;
                     const mean = vals.length ? vals.reduce((s, [, c]) => s + c.rate, 0) / vals.length : null;
                     return (
                       <tr key={h}>
@@ -270,15 +405,23 @@ export default function TeacherPage() {
                         </td>
                         <td className="small">
                           {weakest
-                            ? <>{t("teach.focus")}: <Link href={`/learn/maths/${weakest[0]}`}>{ctitle(lang, weakest[0])}</Link> (<span className="mono">{Math.round(weakest[1].rate * 100)}%</span> · {weakest[1].correct}/{weakest[1].asked})</>
+                            // The concept's OWN subject, not a subject this page
+                            // assumes: a physics class's weakest concept used to
+                            // link into the maths tree.
+                            ? <>{focusSubject
+                              ? <Link href={`/learn/${focusSubject}/${weakest[0]}`}>{ctitle(lang, weakest[0])}</Link>
+                              : ctitle(lang, weakest[0])}{" "}(<span className="mono">{Math.round(weakest[1].rate * 100)}%</span> · {weakest[1].correct}/{weakest[1].asked})</>
                             : "—"}
                         </td>
-                        <td className="small mono">{m ? m.answers : 0}</td>
+                        {/* A handle with no ledger behind it has answered
+                            nothing — and "nothing recorded" is not "0". */}
+                        <td className="small mono">{m ? m.answers : "—"}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
+              </div>
               </>
             )}
             <WeeklyPlanPanel cls={cls} />
@@ -294,6 +437,43 @@ export default function TeacherPage() {
       })}
       <div style={{ height: 36 }} />
     </main>
+  );
+}
+
+/**
+ * THE CLASS'S COURSE — one control, in the two places a class's curriculum is
+ * decided: where the class is created, and on the class itself afterwards.
+ *
+ * The options are the qualifications the teacher's own country offers FOR THIS
+ * SUBJECT (lib/specifications#specOptionsFor — the same source the learner's
+ * course picker reads), plus the empty choice, which means "the whole subject":
+ * a class teaching no single paper is a real class, not an incomplete one. A
+ * class with no subject has no course to sit, so the control renders nothing
+ * until the subject is declared. */
+function CoursePicker({
+  country,
+  subject,
+  value,
+  onChange,
+  label,
+}: {
+  country: string;
+  subject: SubjectId | null;
+  value: string;
+  onChange: (specificationId: string) => void;
+  label: string;
+}) {
+  const { t } = useI18n();
+  if (!subject) return null;
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
+      <option value="">{t("teach.wholeSubject")}</option>
+      {specOptionsFor(country, subject).map((s) => (
+        // The board travels with the name: "GCSE · aqa" is the qualification a
+        // teacher recognises, and two boards in one country share a name.
+        <option key={s.id} value={s.id}>{s.name}{s.board ? ` · ${s.board}` : ""}</option>
+      ))}
+    </select>
   );
 }
 
@@ -424,12 +604,15 @@ function WorkPanel({
                 <button className="btn ghost small" onClick={() => void onRemove(m.assignment.id)}>{t("teach.remove")}</button>
               </span>
             </div>
+            {/* "Concepts assigned" belongs on the assigned work, which is
+                here — it used to head the class table's focus column above. */}
             <p className="small muted" style={{ margin: "2px 0 6px" }}>
-              {m.assignment.conceptIds.map((id) => ctitle(lang, id)).join(" · ")}
+              {t("teach.concepts")}: {m.assignment.conceptIds.map((id) => ctitle(lang, id)).join(" · ")}
             </p>
+            <div className="tbl-wrap">
             <table className="tbl">
               <thead>
-                <tr><th>{t("onb.handle")}</th><th>{t("teach.progress")}</th><th>{t("teach.accuracy")}</th><th>{t("teach.needsAttention")}</th></tr>
+                <tr><th>{t("onb.handle")}</th><th>{t("teach.progress")}</th><th>{t("teach.accuracy")}</th><th>{t("teach.proved")}</th><th>{t("teach.needsAttention")}</th></tr>
               </thead>
               <tbody>
                 {m.members.map((r) => {
@@ -438,6 +621,13 @@ function WorkPanel({
                   const rates = Object.values(r.concepts);
                   const mean = rates.length ? rates.reduce((s, c) => s + c.rate, 0) / rates.length : null;
                   const reasons = m.interventions.filter((i) => i.handle === r.handle);
+                  // HOW the work was done, concept by concept: the strongest
+                  // claim each measured concept's window earned. 80% with hints
+                  // and 80% unaided are different outcomes, and until now the
+                  // monitor could only show the number.
+                  const provedRows = Object.entries(r.concepts)
+                    .filter(([, c]) => c.proof !== null)
+                    .map(([cid, c]) => `${ctitle(lang, cid)}: ${t(proofLabelKey(c.proof!))}`);
                   return (
                     <tr key={r.handle}>
                       <td style={{ fontWeight: 700 }}>{r.handle}</td>
@@ -446,6 +636,11 @@ function WorkPanel({
                       </td>
                       <td className="small mono">
                         {mean === null ? t("teach.unmeasured") : `${Math.round(mean * 100)}%`}
+                      </td>
+                      <td className="small">
+                        {provedRows.length === 0
+                          ? "—"
+                          : `${provedRows.slice(0, 2).join(" · ")}${provedRows.length > 2 ? ` +${provedRows.length - 2}` : ""}`}
                       </td>
                       <td className="small">
                         {reasons.length === 0 ? "—" : reasons.slice(0, 3).map((i, k) => (
@@ -463,6 +658,7 @@ function WorkPanel({
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         ))
       )}
@@ -476,10 +672,14 @@ function WeeklyPlanPanel({ cls }: { cls: ClassRoster }) {
   const { t, lang } = useI18n();
   const plan = buildWeeklyPlan(cls);
   const dayName = (d: number) => t(`pack.day${d}`);
+  // A class that has declared no subject has no week to show. The words are the
+  // ones the set-work picker below already uses for the same absence — and the
+  // subject can be declared right there, so this is a step, not a dead end.
+  if (!plan) return <p className="muted small" style={{ marginTop: 16 }}>{t("teach.needSubject")}</p>;
 
   return (
     <div style={{ marginTop: 16 }}>
-      <p className="eyebrow"><span className="no">§</span> {t("plan.title")}</p>
+      <p className="eyebrow">{t("plan.title")}</p>
       {plan.days.map((d) => (
         <div key={d.day} className="note">
           <strong>{dayName(d.day)}</strong> — {t(`pack.${d.kind}`)}: {ctitle(lang, d.conceptId)} <span className="chip" style={{ marginLeft: 6 }}>{d.minutes}′</span>
@@ -508,11 +708,17 @@ function WeeklyPlanPanel({ cls }: { cls: ClassRoster }) {
         </>
       )}
 
+      {/* BOTH LINKS PRESENT THE CALLER'S CAPABILITY. The pack carries the
+          week's question bank WITH its answer key, so the door answers a member
+          of the class and nobody else — and these links used to open it bare,
+          which put `{"error":"missing id"}` in a new tab in front of a teacher
+          who pressed Print. `me` names the member; the capability rides beside
+          it, exactly as the roster fetch above does it. */}
       <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-        <a className="btn ghost small" href={`/api/pack-export?id=${cls.id}&format=html`} target="_blank" rel="noreferrer">
+        <a className="btn ghost small" href={withCapability(`/api/pack-export?id=${encodeURIComponent(cls.id)}&me=${encodeURIComponent(loadLocalProfileId() ?? "")}&format=html`)} target="_blank" rel="noreferrer">
           🖨 {t("plan.print")}
         </a>
-        <a className="btn ghost small" href={`/api/pack-export?id=${cls.id}&format=json`} target="_blank" rel="noreferrer">
+        <a className="btn ghost small" href={withCapability(`/api/pack-export?id=${encodeURIComponent(cls.id)}&me=${encodeURIComponent(loadLocalProfileId() ?? "")}&format=json`)} target="_blank" rel="noreferrer">
           ⤓ {t("plan.export")}
         </a>
       </div>

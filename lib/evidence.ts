@@ -27,6 +27,7 @@
 // so every claim about it is testable without a server.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { isRetentionEvidence } from "./proof";
 import type { SubjectId } from "./types";
 
 /** Bump when a field's MEANING changes, not when one is added. */
@@ -479,8 +480,13 @@ export interface ConceptLedger {
   /** Retention evidence: a concept the scheduler had due, retrieved hint-free at
    *  least a day after the previous evidence on it. Separate from `independent`
    *  because recalling something after a week is a different claim from
-   *  answering it in the sitting where it was taught. */
-  retention: { asked: number; correct: number };
+   *  answering it in the sitting where it was taught.
+   *
+   *  `lastHeld` is the LATEST such recall's outcome (null before there is one),
+   *  and it is what lets the record say "forgotten" rather than only "0 of 2":
+   *  held-then-lost and lost-then-held have identical counts and opposite
+   *  states. See lib/proof.ts#retentionState — the one rule that names them. */
+  retention: { asked: number; correct: number; lastHeld: boolean | null };
   /** Diagnostic/assessment evidence, the kind that measures rather than teaches. */
   measured: { asked: number; correct: number };
   /** Slips still being made, by pattern. */
@@ -524,7 +530,7 @@ function emptyLedger(conceptId: string, at: number): ConceptLedger {
     conceptId, attempts: 0, correct: 0, hints: 0,
     independent: { asked: 0, correct: 0 },
     transfer: { asked: 0, correct: 0 },
-    retention: { asked: 0, correct: 0 },
+    retention: { asked: 0, correct: 0, lastHeld: null },
     measured: { asked: 0, correct: 0 },
     misconceptions: {},
     firstAt: at, lastAt: at,
@@ -557,8 +563,13 @@ export function projectLearner(events: readonly EvidenceEvent[]): LearnerProject
         // evidence on it is at least a day old, and the answer needed no hints.
         // Read BEFORE this answer moves the record, and computed here — once —
         // so the concept's own count and the learner's total cannot drift apart.
-        // The identical rule lives in lib/progress.ts#recordAnswer, which is what
-        // makes the live model and this projection agree by construction.
+        //
+        // The rule itself is ASKED FOR, not restated: this block used to spell
+        // the three conditions out again beside a comment claiming to be
+        // identical to lib/progress.ts#recordAnswer. Two copies of a rule that
+        // must agree is one copy plus a promise, so the promise is now the call
+        // — and a failed delayed recall stays what it is on both paths: asked,
+        // not correct.
         //
         // BOTH stamps are the SERVER's clock (`e.at`), deliberately. A device
         // that reports its offline work also reports when it says it answered
@@ -567,8 +578,11 @@ export function projectLearner(events: readonly EvidenceEvent[]): LearnerProject
         // a batch and manufacture a memory it never demonstrated.
         const prior = e.conceptId ? (byConcept[e.conceptId] ??= emptyLedger(e.conceptId, e.at)) : null;
         const priorAt = prior && prior.attempts > 0 ? prior.lastAt : null;
-        const retained = priorAt !== null && e.source === "retrieval" && e.hints === 0
-          && e.at - priorAt >= 24 * 60 * 60 * 1000;
+        const retained = isRetentionEvidence({
+          source: e.source,
+          hints: e.hints,
+          sinceLast: priorAt === null ? null : e.at - priorAt,
+        });
         if (e.conceptId) {
           const c = prior!;
           c.attempts += 1;
@@ -579,7 +593,13 @@ export function projectLearner(events: readonly EvidenceEvent[]): LearnerProject
           c.hints += e.hints;
           if (e.mode === "independent") { c.independent.asked += 1; if (e.correct && e.hints === 0) c.independent.correct += 1; }
           if (e.mode === "transfer") { c.transfer.asked += 1; if (e.correct && e.hints === 0) c.transfer.correct += 1; }
-          if (retained) { c.retention.asked += 1; if (e.correct) c.retention.correct += 1; }
+          if (retained) {
+            c.retention.asked += 1;
+            if (e.correct) c.retention.correct += 1;
+            // The latest outcome FIRST: a failed delayed recall is a state, not
+            // only a missing count (lib/proof.ts#retentionState).
+            c.retention.lastHeld = e.correct;
+          }
           // A diagnostic or paper answer MEASURES; practice teaches. Keeping them
           // apart is what stops "improvement" from being rehearsal.
           if (e.source === "diagnostic" || e.source === "past_paper") { c.measured.asked += 1; if (e.correct) c.measured.correct += 1; }

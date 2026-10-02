@@ -39,6 +39,11 @@ export async function GET(req: Request): Promise<NextResponse> {
   const lang = cls.language || searchParams.get("lang") || "en";
   const format = searchParams.get("format") === "html" ? "html" : "json";
   const plan = buildWeeklyPlan(planCls);
+  // NO DECLARED CURRICULUM, NO PACK. The pack is the one place a wrong subject
+  // would be printed and handed to a class, so a class that has declared none is
+  // refused rather than served the maths week the plan engine used to invent for
+  // it — the same refusal, in the same words, as the assignment door.
+  if (!plan) return NextResponse.json({ error: "declare this class's subject first" }, { status: 400 });
   const t = translator(lang);
 
   const bank = plan.days.map((d) => {

@@ -16,8 +16,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { loadLocalProfileId, loadLocalProfileSecret, useI18n, useProfile } from "@/lib/client";
 import { curriculumFor } from "@/lib/curriculum";
+import { COUNTRIES } from "@/lib/i18n";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
-import { ctitle } from "@/lib/content-i18n";
+import { ctitle, levelLabel } from "@/lib/content-i18n";
 import type { ProfileState, SubjectId } from "@/lib/types";
 import {
   SPECIFICATIONS,
@@ -39,13 +40,22 @@ export default function CurriculumPage() {
 
   const [specId, setSpecId] = useState<string | null>(null);
   const [levelId, setLevelId] = useState<string | null>(null);
+  // TWO MORE PARTS OF THE SAME COURSE. `courseGaps` can report a missing country
+  // or year group as well as a qualification or tier, and Home sends the learner
+  // HERE for any of them — so this screen has to be able to set the ones it was
+  // being asked about. It could not: it only read them. A learner who had chosen
+  // their qualification but no year group was sent here, changed nothing, and
+  // came back to the same card.
+  const [countryId, setCountryId] = useState<string | null>(null);
+  const [gradeId, setGradeId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   // WHICH SUBJECT'S COURSE is being edited. A learner sits GCSE Maths (Higher)
   // and A-Level Physics at the same time, so "your course" is not one thing and
   // this page must not pretend it is.
   const [picked, setPicked] = useState<SubjectId | null>(null);
 
-  const country = profile?.country ?? "XX";
+  const country = countryId ?? profile?.country ?? "XX";
+  const grade = gradeId ?? profile?.grade ?? "";
   const declared = profile?.subjects?.length ? profile.subjects : SUBJECT_IDS;
   const subject: SubjectId = picked && declared.includes(picked) ? picked : declared[0];
   // Only the qualifications that actually contain THIS subject — offering a
@@ -78,10 +88,17 @@ export default function CurriculumPage() {
         id,
         secret: loadLocalProfileSecret(),
         subjectCourses: { [subject]: { spec: active.spec.id, specLevel: active.level.id } },
+        // Sent only when the learner actually chose one: an untouched select must
+        // not write anything back, and `country` is validated as an ISO code
+        // server-side (a blank one is simply ignored, never stored).
+        ...(countryId ? { country: countryId } : {}),
+        ...(grade ? { grade } : {}),
       }),
     });
     setSpecId(null);
     setLevelId(null);
+    setCountryId(null);
+    setGradeId(null);
     const res = await fetch(`/api/progress?id=${id}&secret=${loadLocalProfileSecret()}`);
     if (res.ok) set((await res.json()) as ProfileState);
     setSaved(true);
@@ -99,7 +116,7 @@ export default function CurriculumPage() {
   if (!profile) {
     return (
       <main className="container narrow" style={{ paddingTop: 48 }}>
-        <p className="eyebrow"><span className="no">§</span> {t("curr.title")}</p>
+        <p className="eyebrow">{t("curr.title")}</p>
         <h1 className="visually-small">{t("curr.title")}</h1>
         <p className="lead">{t("curr.noProfile")}</p>
         <div className="actions">
@@ -112,7 +129,7 @@ export default function CurriculumPage() {
 
   return (
     <main className="container" style={{ paddingTop: 40 }}>
-      <p className="eyebrow"><span className="no">§</span> {t("curr.title")}</p>
+      <p className="eyebrow">{t("curr.title")}</p>
       <h1 className="visually-small">{t("curr.title")}</h1>
       <p className="lead">{t("curr.sub")}</p>
 
@@ -124,6 +141,30 @@ export default function CurriculumPage() {
               printing a bare ISO code like "DO". */}
           {route ? route.system : t("curr.unmapped")} {profile.grade ? ` · ${profile.grade}` : ""}
         </p>
+        {/* THE TWO PARTS OF A COURSE THIS SCREEN COULD ONLY READ. Same controls,
+            same labels and the same "independent" empty option as the step that
+            first asks for them, so a learner who skipped one in setup — or whose
+            country's grades changed — can finish the course from the card Home
+            sends them to. Changing the country clears the qualification, because
+            a GCSE is not a course in Kenya. */}
+        <div className="grid cols2" style={{ marginTop: 12 }}>
+          <label className="field">
+            <span>{t("onb.where")}</span>
+            <select
+              value={country}
+              onChange={(e) => { setCountryId(e.target.value); setSpecId(null); setLevelId(null); }}
+            >
+              {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+            </select>
+          </label>
+          <label className="field">
+            <span>{t("onb.grade")}</span>
+            <select value={grade} onChange={(e) => setGradeId(e.target.value)}>
+              <option value="">{t("onb.independent")}</option>
+              {(route?.grades ?? []).map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </label>
+        </div>
         {/* One course per subject. The chips say which subjects have one — a
             subject still missing its course is named, never silently defaulted. */}
         <div className="checks" style={{ flexWrap: "wrap", marginTop: 10 }}>
@@ -171,7 +212,7 @@ export default function CurriculumPage() {
           >
             {active.spec.levels.map((l) => (
               <option key={l.id} value={l.id}>
-                {t(`lvl.${l.tier}`)}{l.name ? ` · ${l.name}` : ""}
+                {levelLabel(lang, l.tier, l.name)}
               </option>
             ))}
           </select>

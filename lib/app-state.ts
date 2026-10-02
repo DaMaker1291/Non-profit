@@ -41,6 +41,31 @@ export interface AppState {
 const SUBJECTS = ["maths", "physics", "chemistry", "biology", "computing"];
 
 /**
+ * WHICH SUBJECTS THIS LEARNER HAS BEEN DIAGNOSED IN — one entry per subject,
+ * however many times they have sat it.
+ *
+ * A diagnostic's key is `subject:startedAt` (lib/types.ts#diagnostics), so the
+ * record is a set of RUNS, not a set of subjects. A surface that reads the keys
+ * and prints each one's subject part therefore prints one word per run, and a
+ * learner who re-sits the diagnostic — which the product invites — read
+ * "Diagnostic · Mathematics · Mathematics · Mathematics · Mathematics" on Home:
+ * four identical words and no information. The claim the record supports is
+ * WHICH SUBJECTS have been measured; how many runs there were is the progress
+ * page's number, shown beside the gain each run measured.
+ *
+ * Order is first appearance in the record, so a learner's own list is stable
+ * rather than dependent on the key order of a map.
+ */
+export function diagnosedSubjects(state: ProfileState | null | undefined): string[] {
+  const out: string[] = [];
+  for (const key of Object.keys(state?.diagnostics ?? {})) {
+    const subject = key.split(":")[0];
+    if (subject && !out.includes(subject)) out.push(subject);
+  }
+  return out;
+}
+
+/**
  * The single source of truth for "where is this learner in the lifecycle".
  *
  * Note the deliberate strictness: enrolment counts as done only when the
@@ -199,6 +224,7 @@ const ACCESS: Record<string, AccessRequirement> = {
   // anonymous-first BY DESIGN — gating it would destroy the whole point.
   "/": "public",
   "/about": "public",
+  "/help": "public",
   "/solve": "public",
   "/try": "public",
   "/tutor": "public",
@@ -281,10 +307,18 @@ export function withReturn(to: string, path: string): string {
   return `${to}${sep}return=${encodeURIComponent(clean)}`;
 }
 
-/** Where a learner is sent to sign in. There is no `/signin` route: the
- *  enrolment page carries the sign-in form, so signing in and enrolling share
- *  one screen and one navigation target. */
-export const SIGNIN_ROUTE = "/onboarding?mode=signin";
+/** Where a learner with no account and no profile begins.
+ *
+ * The enrolment page carries the sign-in form, so signing in and enrolling share
+ * one screen — but they are NOT the same destination, and this constant used to
+ * conflate them. A learner who has never had an account was sent to
+ * `/onboarding?mode=signin`, which asks them for credentials they do not have;
+ * and because the enrolment page reads `mode=signin` as "start on the sign-in
+ * form", the redirect also silently replaced whatever they had already chosen
+ * (including "continue without an account") and dropped them back at step 1.
+ * The sign-in form is still reachable the way it always was — the landing
+ * page's own Sign in link — which is a deliberate choice, not a bounce. */
+export const SETUP_ROUTE = "/onboarding";
 
 export interface RouteDecision {
   action: "allow" | "boot" | "redirect";
@@ -322,7 +356,8 @@ export function resolveRoute(lifecycle: Lifecycle, path: string): RouteDecision 
   if (lifecycle.booting) return { action: "boot", reasonKey: "state.booting", requirement };
   if (MET[requirement](lifecycle)) return { action: "allow", reasonKey: "state.ready", requirement };
   if (lifecycle.auth !== "signed_in" && lifecycle.profileStatus === "missing") {
-    return { action: "redirect", to: withReturn(SIGNIN_ROUTE, path), reasonKey: "state.newLearner", requirement };
+    // "New here?" — so begin setup; do not ask a stranger to sign in.
+    return { action: "redirect", to: withReturn(SETUP_ROUTE, path), reasonKey: "state.newLearner", requirement };
   }
   if (!lifecycle.onboarded) {
     return { action: "redirect", to: withReturn("/onboarding", path), reasonKey: "state.needsOnboarding", requirement };

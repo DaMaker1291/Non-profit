@@ -4,10 +4,10 @@ import {
   SKILLS_NOT_IN_BANK, SKILL_LADDER, bandDemonstrated, bandReachable, estimateEvidence, skillForDifficulty,
   type EvidenceEstimate, type QuestionSource, type SkillId,
 } from "./question-bank";
-import type { ActiveSpec } from "./specifications";
+import { coverageOf, difficultyFor, type ActiveSpec } from "./specifications";
 import { blueprintConcepts } from "./question-bank";
 import { DIAG_RELEASE_EVIDENCE } from "./mastery";
-import { conceptDepth, generateQuestion, generateQuestionAt, hasGenerator, isVariableGen } from "./questions";
+import { conceptDepth, difficultyBandFor, generateQuestion, generateQuestionAt, hasGenerator, isVariableGen } from "./questions";
 import type { ConceptScore, ConceptProgress, DiagnosticResult, PathStep, ProfileState, Question, SubjectId } from "./types";
 // FOUR rungs, one per band the bank can actually produce: recall, application,
 // multi-step, and data-and-graphs. The ladder used to stop at multi-step
@@ -21,6 +21,54 @@ import type { ConceptScore, ConceptProgress, DiagnosticResult, PathStep, Profile
 // model, which is the skill exam-style questions are built on.
 export const LADDER_STAGES = 4; // diagnostic ceiling (practice extends beyond)
 export const LADDER_DIFFICULTIES = [0.15, 0.4, 0.6, 0.85];
+
+/** The rung a learner's OWN COURSE opens the ladder at.
+ *
+ *  The ladder used to open every concept at 0.15 — the anonymous floor — no
+ *  matter who was sitting it. A Year 11 GCSE Higher learner's real first-run
+ *  sitting therefore contained "Which fraction is larger: 1/2 or 1/8?" and
+ *  "What is the value of the tens digit in 276?": primary questions asked of a
+ *  learner with eleven years of schooling, before anything at their own level,
+ *  on the way to items that could actually place them. The same happened one
+ *  rung up for every qualification — an A-level learner's first item on a
+ *  concept was the easiest draw its generator owns.
+ *
+ *  A placement starts where the learner's own course sits: the deepest rung at
+ *  or below the difficulty their qualification declares. That is a statement
+ *  about the SITTING, not about the learner — which is why it earns no mastery
+ *  credit (see `ladderMastery`): a band that was never asked was never
+ *  demonstrated, and the descent below the course's rung is what tells a
+ *  learner's real floor from their declared one.
+ */
+export function openingStageFor(declaredDifficulty: number | null | undefined): number {
+  if (declaredDifficulty === null || declaredDifficulty === undefined) return 0;
+  let stage = 0;
+  for (let i = 0; i < LADDER_DIFFICULTIES.length; i++) {
+    if (LADDER_DIFFICULTIES[i] <= declaredDifficulty + 1e-9) stage = i;
+  }
+  return stage;
+}
+
+/**
+ * How many rungs of the ladder THIS concept's bank can actually express.
+ *
+ * The ladder offers up to `LADDER_STAGES` demand levels, but a concept's
+ * generator has a MEASURED ceiling (`conceptDepth`) and cannot produce an item
+ * above it. Asking anyway is not harmless. The band rules spend two questions
+ * per band, so a concept whose items all sit inside the recall band was served
+ * roughly eight near-identical questions, and the mastery the run produced was
+ * computed against bands the concept had never expressed — which the decision
+ * engine then read as "needs practice" and prescribed again, permanently,
+ * because no amount of answering well moves a ceiling that belongs to the
+ * BANK. "We cannot ask this deeper" is not "the learner has not shown it".
+ *
+ * Measured from the generator's own seeds, never declared, so a concept that
+ * gains a deeper generator widens here automatically.
+ */
+export function bandsFor(conceptId: string): number {
+  const depth = conceptDepth(conceptId);
+  return Math.max(1, Math.min(LADDER_STAGES, SKILL_LADDER.filter((s) => bandReachable(s, depth)).length));
+}
 
 /** Evidence rules per difficulty band (audit P0-C), stated once so code and
  *  comments can never disagree again:
@@ -80,6 +128,19 @@ export interface LadderState {
    *  Recorded so a shorter ladder is auditable: a concept that starts at band 2
    *  is not a concept whose bands 0–1 were measured here. */
   skippedBands?: SkillId[];
+  /** The rung this ladder OPENED at, when that is not the bank's floor.
+   *
+   *  Two different facts live here and in `skippedBands`, and conflating them
+   *  was how a weak learner's sitting came to report skips it had not earned:
+   *   · `openedAt` is where the learner's own COURSE placed them — a statement
+   *     about the sitting, never evidence about the learner;
+   *   · `skippedBands` is a band this session had already demonstrated on an
+   *     earlier concept, which is evidence, and is the only thing a shortened
+   *     report may claim credit for.
+   *  `ladderMastery` reads both (the rung for position, the proof for credit),
+   *  and a surface can tell the difference between "we did not ask" and "you
+   *  had already shown it". */
+  openedAt?: number;
 }
 
 export interface DiagnosticSession {
@@ -91,6 +152,10 @@ export interface DiagnosticSession {
   wrongTags: string[];
   startedAt: number;
   finished: boolean;
+  /** The rung this sitting opens each concept at, from the learner's own
+   *  declared course (`openingStageFor`). Zero when no course is declared, so
+   *  an anonymous probe keeps the old floor-to-top ladder unchanged. */
+  openStage?: number;
   /** Every probe actually answered, in order, with the difficulty served and
    *  whether it was right. The per-concept ladder cannot answer "can they
    *  APPLY but not interpret data?" — that question needs the individual
@@ -109,6 +174,26 @@ export function newDiagnosticSession(
   active?: ActiveSpec | null,
 ): DiagnosticSession {
   const pool = bySubject(subject);
+  // ── WHERE THIS SITTING PLACES THE LEARNER ────────────────────────────────
+  // The rung the ladder opens at, and the shallowest ceiling worth sampling,
+  // both come from the learner's own declared course (see `openingStageFor`).
+  // `active` is resolved by the caller from the profile, so an undeclared
+  // learner is placed by the grade-derived fallback course rather than by the
+  // bank's floor — which is what makes the sitting comparable across learners.
+  const declared = active ? difficultyFor(active) : null;
+  const openStage = openingStageFor(declared);
+  const declaredBand = declared === null ? 1 : difficultyBandFor(declared);
+  // A concept that tops out a band below the learner's own course cannot PLACE
+  // them: every item it owns is easier than the work they are here for, so the
+  // questions it costs can only tell the learner that the product does not know
+  // them. Excluded from EVERY sample — the anchor and blueprint runs and the
+  // random probe alike, which is where primary place value reached a Year 11
+  // GCSE Higher sitting. The ladder's descent already covers a learner who is
+  // genuinely weak at their course's level, and it does so from their own
+  // answers instead of from a foundation concept the coverage happened to
+  // contain.
+  const canPlaceThem = (id: string) =>
+    hasGenerator(id) && isVariableGen(id) && difficultyBandFor(conceptDepth(id)) >= declaredBand - 1;
   // Benchmark runs walk the subject's FIXED anchor concepts (audit P0-B), in
   // curriculum order, so every baseline/retest pair measures the same skills.
   // Quick probes keep the old behaviour: a random spread across the spine.
@@ -116,7 +201,7 @@ export function newDiagnosticSession(
   // diagnostic must always vary.
   let chosen: string[];
   if (kind === "probe") {
-    const withGen = pool.filter((c) => hasGenerator(c.id) && isVariableGen(c.id));
+    const withGen = pool.filter((c) => canPlaceThem(c.id));
     const pickStage = (stage: number) => {
       const band = withGen.filter((c) => c.stage === stage);
       return band.length ? band[Math.floor(Math.random() * band.length)] : withGen[Math.floor(Math.random() * withGen.length)];
@@ -136,19 +221,35 @@ export function newDiagnosticSession(
         // `conceptDepth` guarantees the sample can actually climb the ladder:
         // without it a course whose sample happens to contain only low-ceiling
         // generators can never measure the multi-step band (see question-bank).
-        ? blueprintConcepts(active, subject, (id) => hasGenerator(id) && isVariableGen(id), anchors, anchors.length || 4, conceptDepth)
+        ? blueprintConcepts(active, subject, canPlaceThem, anchors, anchors.length || 4, conceptDepth)
         : anchors;
+      // The filter can empty a narrow qualification's blueprint; fall back to
+      // its own coverage rather than to concepts the course does not contain.
+      if (active && chosen.length < 3) {
+        chosen = coverageOf(active).filter((c) => c.subject === subject && canPlaceThem(c.id)).slice(0, 4).map((c) => c.id);
+      }
       if (chosen.length < 3) chosen = pool.filter((c) => hasGenerator(c.id) && isVariableGen(c.id)).slice(0, 4).map((c) => c.id);
     }
+  // DEEPEST FIRST. The order a sitting serves its sample is a product
+  // decision, not a detail: ascending order meant a Year 11 GCSE Higher
+  // learner's FIRST question was always the shallowest concept in their whole
+  // course — primary place value — and the foundations were spent before
+  // anything at their own level had been asked. Descending asks "can you do
+  // the top of your course?" first and descends through the rest of the sample
+  // only as far as the evidence requires, so the foundations are reached when
+  // the harder work has actually failed. The sample itself is unchanged (a
+  // baseline and its retest still choose the same concepts), and each concept
+  // still climbs its own ladder from the bottom.
   const sorted = chosen
     .map((id) => pool.find((c) => c.id === id))
     .filter((c): c is NonNullable<typeof c> => !!c)
-    .sort((a, b) => a.stage - b.stage)
+    .sort((a, b) => b.stage - a.stage)
     .map((c) => c.id);
 
   return {
     subject,
     kind,
+    openStage,
     concepts: sorted.map((id) => ({ conceptId: id, stage: 0, askedThisStage: 0, correctThisStage: 0, missedThisStage: false, done: false, asked: 0, correct: 0, usedSeeds: [], servedDifficulty: [] })),
     order: 0,
     wrongTags: [],
@@ -203,15 +304,41 @@ export function nextQuestion(s: DiagnosticSession): Question | null {
     // session has already demonstrated a band starts above it instead of
     // paying for the same proof again. Only for a concept with no answers yet,
     // so the tested band rules below are untouched mid-ladder.
-    if (cur.asked === 0 && cur.stage === 0 && (s.log?.length ?? 0) > 0) {
-      const floor = startingStage(s);
+    // What THIS concept's bank can express (see `bandsFor`). The ladder may
+    // never ask for a band beyond it — neither by starting above it nor by
+    // climbing past it.
+    const rungs = bandsFor(cur.conceptId);
+    if (cur.asked === 0 && cur.stage === 0) {
+      // TWO FLOORS, AND THE DEEPER ONE WINS.
+      // The learner's COURSE is where placement starts (see
+      // `openingStageFor`): a Year 11 GCSE Higher learner is placed against
+      // their course, never against the bank's primary floor. The SESSION's own
+      // evidence can raise it further — a band this sitting has already
+      // demonstrated on an earlier concept is not re-proved on every remaining
+      // one (see `startingStage`). Both are capped by what this concept's bank
+      // can express, because the top rung of a concept is the deepest its items
+      // reach, and asking beyond it spends questions on a band that does not
+      // exist.
+      const courseFloor = Math.min(s.openStage ?? 0, rungs - 1);
+      const demonstratedFloor = (s.log?.length ?? 0) > 0 ? startingStage(s) : 0;
+      const floor = Math.min(Math.max(courseFloor, demonstratedFloor), rungs - 1);
       if (floor > 0) {
-        cur.skippedBands = SKILL_LADDER.slice(0, floor);
+        // TWO FACTS, RECORDED SEPARATELY (see `LadderState.openedAt`): where
+        // the learner's own course placed this concept, and the bands this
+        // session had already PROVEN on an earlier one. Only the second is a
+        // skip, and conflating them reported a weak learner as having skipped
+        // bands that nothing had demonstrated.
+        cur.openedAt = courseFloor;
+        const provenPart = Math.min(demonstratedFloor, floor);
+        if (provenPart > 0) cur.skippedBands = SKILL_LADDER.slice(0, provenPart);
         cur.stage = floor;
       }
     }
     // The ladder must be a difficulty ladder, not a stage counter (audit P0-A):
     // serve a question whose drawn difficulty actually tracks the band target.
+    // Deliberately NOT clamped to `rungs`: a stage the concept cannot express
+    // must still ask for the HARDEST item its generator has, and clamping here
+    // would drop a stuck-but-deep band back to the easiest draw the bank owns.
     const target = LADDER_DIFFICULTIES[Math.min(cur.stage, LADDER_DIFFICULTIES.length - 1)];
     // What this sitting has already spent on this concept. Handing it to the
     // serve is what makes the retry loop below meaningful: without it the queue
@@ -274,7 +401,9 @@ export function gradeAnswer(
     } else if (cur.correctThisStage >= BAND_RULES.advance) {
       // Two correct at this band — clean 2/2, or recovery after one forgiven
       // slip (the slip is confirmed noise by the evidence, not ignored).
-      if (cur.stage < LADDER_STAGES - 1) {
+      // The climb stops at this concept's own ceiling: the top band is the
+      // deepest one its bank can express, not band `LADDER_STAGES - 1`.
+      if (cur.stage < bandsFor(cur.conceptId) - 1) {
         cur.stage++;
         cur.askedThisStage = 0;
         cur.correctThisStage = 0;
@@ -301,19 +430,70 @@ export function gradeAnswer(
  *  student ran it. Claims never outrun the evidence. */
 export function ladderMastery(c: LadderState): number {
   if (c.asked === 0) return 0.1;
+  // The ladder THIS concept's bank can express — the reference frame of every
+  // claim below. Not `LADDER_STAGES`: a concept whose items all live in the
+  // recall band was judged as a four-band run, and the difficulty cap then
+  // pinned it below 0.65 for EVERY learner who ever touched it, which is how a
+  // flawless learner kept being prescribed it as "practice".
+  const rungs = bandsFor(c.conceptId);
   // Perfect final stage (all correct, never failed) counts as passing it.
   const perfectFinal = c.done && c.correctThisStage === c.askedThisStage && c.askedThisStage > 0;
-  const stagesPassed = perfectFinal ? c.stage + 1 : c.stage;
+  // ── WHERE THE LADDER OPENED, AND WHAT THAT DOES TO THE COUNT ─────────────
+  // A course-placed ladder opens above the bank's floor (see
+  // `openingStageFor`), and the number this function returns is read by the
+  // engine's own bar — so two ways of getting it wrong matter, in opposite
+  // directions:
+  //   · counting only the rungs ASKED under-claims, and an under-claim is not
+  //     the safe error here: a learner who swept the top of their course
+  //     unaided would land under the established bar and be prescribed
+  //     practice on a concept they had just demonstrated. That is the exact
+  //     failure ("a flawless learner kept being prescribed it") this function
+  //     was rewritten to stop.
+  //   · counting the rungs NOT asked as passed would invent evidence.
+  // The resolution is the one the audit trail already supports: the rung the
+  // learner's own course opened at counts toward the POSITION the ladder
+  // reached (it is where the sitting placed them — `openedAt`, for any surface
+  // to see), and it counts only once the learner has proven a band at or above
+  // it (see the guard below).
+  const openRung = Math.min(c.openedAt ?? 0, rungs - 1);
+  // The highest rung this ladder actually PASSED: a perfect final stage is a
+  // pass, anything else leaves the current rung unproven. Everything between
+  // the opening rung and that one was proven on the way up, because an
+  // ascending ladder only advances by proving a band.
+  const highestPassed = perfectFinal ? c.stage : c.stage - 1;
+  const demonstrated = Math.max(0, Math.min(highestPassed, rungs - 1) - openRung + 1);
+  // The sitting's floor counts as POSITION only once the learner has proven
+  // something at or above it. An all-wrong sitting must not collect the credit
+  // for a band its own answers never touched: measured before this guard was
+  // added, a learner who answered everything wrongly scored 0.66–0.94 — above
+  // the engine's established bar — on every concept. That is the exact
+  // over-claim this function exists to refuse.
+  const stagesPassed = (demonstrated > 0 ? openRung : 0) + demonstrated;
   const partial = !perfectFinal && c.correctThisStage === 1 && c.askedThisStage >= 1 ? 1 : 0;
   let m = 0.1 + 0.28 * stagesPassed + 0.12 * partial;
-  // Flawless full-depth run only: every band passed clean, never missed.
-  const fullClean = c.done && stagesPassed >= LADDER_STAGES && c.correct === c.asked && c.asked >= LADDER_STAGES;
-  if (fullClean) m = Math.max(m, 0.9);
-  // Cap by the hardest question genuinely served: the easiest band (0.15)
-  // maps to ~0.62 ceiling, the full ladder (0.65) to the full range.
-  const hardest = c.servedDifficulty.length ? Math.max(...c.servedDifficulty) : 0;
-  const depthCap = 0.35 + 0.95 * hardest;
-  m = Math.min(m, depthCap);
+  // A FLAWLESS SWEEP OF THIS CONCEPT'S OWN RANGE: every band its bank can
+  // express, passed without a single error. It returns ABOVE the difficulty
+  // cap deliberately, and this is the one place where that is the honest
+  // reading rather than an over-claim. The cap exists so a claim cannot outrun
+  // the evidence, and it is measured against the items actually served — so
+  // for a concept whose items stop at 0.30 it punished the learner for the
+  // instrument's ceiling and made the strongest possible demonstration of that
+  // concept indistinguishable from a weak one. The claim below is not "they can
+  // do harder questions" (none exist); it is "everything this concept can ask,
+  // they answered, unaided, first time". `asked >= rungs * BAND_RULES.advance`
+  // keeps a SKIPPED band from earning it: a concept entered mid-ladder has not
+  // swept its range here.
+  const fullClean = c.done && stagesPassed >= rungs && c.correct === c.asked
+    && c.asked >= Math.max(1, rungs - openRung) * BAND_RULES.advance;
+  if (fullClean) {
+    m = Math.max(m, 0.9);
+  } else {
+    // Cap by the hardest question genuinely served: the easiest band (0.15)
+    // maps to ~0.62 ceiling, the full ladder (0.65) to the full range.
+    const hardest = c.servedDifficulty.length ? Math.max(...c.servedDifficulty) : 0;
+    const depthCap = 0.35 + 0.95 * hardest;
+    m = Math.min(m, depthCap);
+  }
   return Math.max(0.05, Math.min(0.98, m));
 }
 
@@ -402,8 +582,16 @@ export function buildResult(s: DiagnosticSession): DiagnosticResult {
     answered: s.concepts.reduce((n, c) => n + c.asked, 0),
     asked: s.concepts.reduce((n, c) => n + c.asked, 0),
     scores: all,
-    gaps: all.filter((x) => x.mastery < 0.65).sort((a, b) => a.mastery - b.mastery),
-    strengths: all.filter((x) => x.mastery >= 0.85),
+    // GAPS AND STRENGTHS ARE CLAIMS ABOUT THE LEARNER, so they may only be drawn
+    // from concepts this sitting actually asked about (`probedScores`). The
+    // unprobed coverage rows above carry the model's neutral prior by design —
+    // folding them in turned "we have not looked" into "you are weak at
+    // addition" on the results screen, for a learner who had just answered
+    // every question correctly, and handed the plan remediation for concepts
+    // nothing had measured. Unmeasured is a third state and it has its own
+    // representation: the coverage rows, with `asked: 0`.
+    gaps: probedScores.map((c) => scores.find((s) => s.conceptId === c.conceptId)!).filter((x) => x.mastery < 0.65).sort((a, b) => a.mastery - b.mastery),
+    strengths: scores.filter((x) => x.asked > 0 && x.mastery >= 0.85),
     misconceptions,
     path: [],
     kind: s.kind,
@@ -431,6 +619,19 @@ export function diagnosticToProgress(c: LadderState, at = Date.now()): ConceptPr
     mastery,
     lastSeen: at,
     misconceptions: {},
+    // EVERY ANSWER IN A SITTING IS INDEPENDENT, and this seed says so because
+    // it is the whole of what the sitting proved. The diagnostic has no hint
+    // action at all, which is why the grading route mints `mode:
+    // "independent"` for each of its answers and why the ledger — projected by
+    // My Evidence — already reported these as independent evidence.
+    //
+    // Leaving the dimension off this seed is what made the same answer read two
+    // ways: Home called a hint-free correct answer "Supported — you got there
+    // with support" (strongestProof over a row with no independent counts),
+    // while My Evidence called it independent; and lib/mastery.ts caps a
+    // concept with no independent record at 0.75, so a diagnostic-only concept
+    // sat under a ceiling its own evidence had already lifted.
+    independent: { asked: c.asked, correct: c.correct },
   };
 }
 
@@ -461,12 +662,26 @@ export function mergeDiagnosticSeed(
   }
   existing.mastery = Math.max(existing.mastery ?? 0, seed.mastery);
   existing.lastSeen = Math.max(existing.lastSeen ?? 0, at);
+  // The independence the sitting proved rides along, and the merge is a CHOICE
+  // BETWEEN two coherent records rather than a max per field: taking the higher
+  // `asked` beside the higher `correct` would mix a practice record with a
+  // diagnostic one and publish a rate neither of them ever showed. Re-folding
+  // the same sitting therefore selects the same pair again — idempotent, like
+  // everything else here — and a diagnostic can never lower what practice
+  // proved.
+  const mine = existing.independent;
+  if (seed.independent && (!mine || seed.independent.correct > mine.correct ||
+      (seed.independent.correct === mine.correct && seed.independent.asked > mine.asked))) {
+    existing.independent = { ...seed.independent };
+  }
 }
 
-/** Merge one concept's diagnostic evidence into the learner model. The model
- *  keeps its independent record (never touched here), and practice evidence
- *  is only released once DIAG_RELEASE_EVIDENCE graded answers exist — until
- *  then the diagnostic measurement stays the dominant accuracy signal.
+/** Merge one concept's diagnostic evidence into the learner model. The sitting
+ *  carries its own independence — every answer in it is hint-free by
+ *  construction (there is no hint action to take), which is why the ledger
+ *  records `mode: "independent"` per answer — and practice evidence is only
+ *  released once DIAG_RELEASE_EVIDENCE graded answers exist — until then the
+ *  diagnostic measurement stays the dominant accuracy signal.
  *  @param markObserved record the concept as directly probed (baseline). */
 export function applyDiagnosticEvidence(
   state: ProfileState,

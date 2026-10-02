@@ -6,6 +6,7 @@ import { MasteryBar, useI18n, useProfile, loadLocalProfileId, loadLocalProfileSe
 import { bySubject, getConcept } from "@/lib/genome";
 import { ctitle } from "@/lib/content-i18n";
 import { conceptKnowledge, loadLedgerState, type LedgerLoad } from "@/lib/evidence-view";
+import { Dims } from "@/components/dims";
 import type { SubjectId } from "@/lib/types";
 
 /** YOUR MIND — what OpenMind has actually measured, concept by concept.
@@ -60,14 +61,15 @@ export default function MindPage() {
         // A concept is on this page because evidence exists, or because the
         // model has something to say — never because it is merely in the bank.
         .filter((r) => r.byLedger || (r.byModel?.attempts ?? 0) > 0);
-      // The same three dimensions the concept page shows, from the same
-      // function — so the summary and the drill-down can never disagree about
-      // what "Recall" means. Retention is left to the concept page: it is
-      // unmeasured everywhere, and a column of dashes teaches nothing.
+      // The SAME rows the concept page and the evidence record show, from the
+      // same function — so the summary and the drill-down can never disagree
+      // about what "Recall" means. Retention is included: it stopped being a
+      // permanent dash the moment the ledger began recording delayed,
+      // hint-free retrieval, and a dimension the record can now answer is a
+      // dimension this map should answer.
       const dims = (r: (typeof concepts)[number]) => {
         if (!r.byLedger) return [];
-        return conceptKnowledge(ready.projection, r.id, t).rows
-          .filter((row) => row.from === "all-answers" || row.from === "independent" || row.from === "transfer");
+        return conceptKnowledge(ready.projection, r.id, t).rows;
       };
       const measured = concepts.filter((r) => (r.byLedger?.attempts ?? 0) > 0)
         .sort((a, b) => (b.byLedger?.attempts ?? 0) - (a.byLedger?.attempts ?? 0));
@@ -89,7 +91,7 @@ export default function MindPage() {
   if (ledger.status === "loading") {
     return (
       <main className="container narrow" style={{ paddingTop: 44 }}>
-        <p className="eyebrow"><span className="no">§</span> {t("mm.yourKnowledge")}</p>
+        <p className="eyebrow">{t("mm.yourKnowledge")}</p>
         <h1 className="visually-small">{t("mm.yourKnowledge")}</h1>
         <p className="muted">{t("common.loading")}</p>
       </main>
@@ -101,7 +103,7 @@ export default function MindPage() {
   if (ledger.status === "failed") {
     return (
       <main className="container narrow" style={{ paddingTop: 44 }}>
-        <p className="eyebrow"><span className="no">§</span> {t("mm.yourKnowledge")}</p>
+        <p className="eyebrow">{t("mm.yourKnowledge")}</p>
         <h1 className="visually-small">{t("mm.yourKnowledge")}</h1>
         <p className="small">{t("evv.ledgerFailed")}</p>
         <div className="actions">
@@ -115,7 +117,7 @@ export default function MindPage() {
   if (!data || data.events === 0) {
     return (
       <main className="container narrow" style={{ paddingTop: 48 }}>
-        <p className="eyebrow"><span className="no">§</span> {t("mm.yourKnowledge")}</p>
+        <p className="eyebrow">{t("mm.yourKnowledge")}</p>
         <h1 className="visually-small">{t("mm.yourKnowledge")}</h1>
         <p className="lead">{t("prog.empty")}</p>
         <div className="actions">
@@ -129,7 +131,7 @@ export default function MindPage() {
 
   return (
     <main className="container" style={{ paddingTop: 40 }}>
-      <p className="eyebrow"><span className="no">§</span> {t("mm.yourKnowledge")}</p>
+      <p className="eyebrow">{t("mm.yourKnowledge")}</p>
       <h1 className="visually-small">{t("mm.yourKnowledge")}</h1>
       {/* The honesty line the whole page rests on: everything here is counted
           from answers the learner actually gave. */}
@@ -154,22 +156,11 @@ export default function MindPage() {
                   </span>
                   <span style={{ flex: "none", width: 120 }}><MasteryBar value={m} /></span>
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                  {dims(r).map((d) => (
-                    <span key={`${d.from}-${d.key}`} className="small" style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
-                      <span className="muted" style={{ minWidth: 74 }}>{d.label}</span>
-                      {d.rate ? (
-                        <>
-                          <span className={`chip ${d.rate.correct / d.rate.asked >= 0.7 ? "good" : ""}`}>
-                            {t(d.rate.correct / d.rate.asked >= 0.7 ? "mm.strong" : "mm.developing")}
-                          </span>
-                          <span className="mono small muted">{d.rate.correct}/{d.rate.asked}</span>
-                        </>
-                      ) : (
-                        <span className="mono small muted">{t("evv.unmeasured")}</span>
-                      )}
-                    </span>
-                  ))}
+                {/* The four dimensions as meters: five squares, filled by the
+                    rate, or an em-dash and the words "not yet measured" — a
+                    dash must never read as a zero (§map). */}
+                <div style={{ marginTop: 6 }}>
+                  <Dims rows={dims(r)} showRate />
                 </div>
               </div>
             );

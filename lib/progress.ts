@@ -1,7 +1,17 @@
 import { getConcept } from "./genome";
 import { integratedMastery } from "./mastery";
+// The retention rule and the proof vocabulary live in lib/proof.ts, which is
+// pure so that THREE layers can share them: this live fold, the ledger
+// projection, and the server's assignment monitor. They were about to be asked
+// in five places; a rule with five copies is a rule with five answers.
+import { isRetentionEvidence } from "./proof";
 import type { ProfileState } from "./types";
 import type { ProgressEvent } from "./progress-types";
+
+// Re-exported where it has always been imported from: the grading route, the
+// verification harness and the static build keep their import path, and there
+// is still exactly one implementation.
+export { isRetentionEvidence, RETENTION_MIN_GAP_MS } from "./proof";
 
 /** Exponentially-weighted accuracy update. alpha rises with streak length.
  *  Accuracy is the raw signal; `mastery` is its evidence-integrated form. */
@@ -20,8 +30,6 @@ export interface ProgressRecord {
 export function emptyProgress() {
   return { attempts: 0, correct: 0, streak: 0, mastery: 0.2, accuracy: 0.2, lastSeen: 0, misconceptions: {} };
 }
-
-const DAY = 24 * 60 * 60 * 1000;
 
 export function recordAnswer(
   state: ProfileState,
@@ -60,6 +68,15 @@ export function recordAnswer(
   if (!correct) for (const t of tags) p.misconceptions[t] = (p.misconceptions[t] ?? 0) + 1;
   // Independence vs transfer evidence: only hint-free answers count as proof.
   const hints = meta?.hints ?? 0;
+  // Scaffolding demand, in the form the ledger can reproduce.
+  //
+  // The per-level tally (`p.hints`) is written by the hint endpoint and is NOT
+  // fold-owned (lib/replay.ts's LEDGER_ABSENT_FIELDS), so it is absent for any
+  // learner whose work arrived from a device after working offline. This count
+  // is incremented from what the ANSWER itself recorded, so it survives a
+  // rebuild — and "every answer taken with help" is a question the decision
+  // engine has to be able to ask of a rebuilt model, not just a live one.
+  if (hints > 0) p.hinted = (p.hinted ?? 0) + 1;
   const mode = meta?.mode ?? "guided";
   if (mode === "transfer") {
     p.transfer ??= { asked: 0, correct: 0 };
@@ -79,10 +96,16 @@ export function recordAnswer(
   // cannot buy a retention credit, and a FAILED retrieval counts as asked-but-
   // not-correct — forgetting is the measurement this dimension exists for.
   const sinceLast = hadPriorEvidence ? (at ?? Date.now()) - priorSeen : 0;
-  if (meta?.source === "retrieval" && hints === 0 && hadPriorEvidence && sinceLast >= DAY) {
-    p.retention ??= { asked: 0, correct: 0 };
+  if (isRetentionEvidence({ source: meta?.source, hints, sinceLast: hadPriorEvidence ? sinceLast : null })) {
+    p.retention ??= { asked: 0, correct: 0, lastHeld: null };
     p.retention.asked += 1;
     if (correct) p.retention.correct += 1;
+    // The latest outcome as well as the count: "held at day 3, lost by day 7"
+    // and "lost at day 3, held by day 7" share the ratio 1/2 and are opposite
+    // states (lib/proof.ts#retentionState). The LEDGER fold records this too
+    // (lib/evidence.ts#projectLearner), so the live model and a replayed model
+    // keep the same facts rather than agreeing only on the counts.
+    p.retention.lastHeld = correct;
   }
   if (typeof meta?.ms === "number" && meta.ms >= 0 && meta.ms <= 3600000) {
     p.totalMs = (p.totalMs ?? 0) + meta.ms;

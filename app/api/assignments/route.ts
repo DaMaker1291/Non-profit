@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { listClasses, newId, updateClassById } from "@/lib/server/store";
 import { authorizeLearner } from "@/lib/server/capability";
-import { isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
+import { handleOf, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
 import { resolveMembers } from "@/lib/server/class-view";
 import { assignableConcepts, deriveAssignmentProgress, monitorFor } from "@/lib/server/assignment-view";
 import { readEvidence } from "@/lib/server/evidence";
@@ -100,7 +100,10 @@ export async function GET(req: Request): Promise<NextResponse> {
         monitor.push(monitorFor(a, cls.name, memberRows));
       } else {
         ownLedger ??= readEvidence(me.profile.id);
-        const handle = me.profile.handle ?? Object.keys(cls.students)[0] ?? "student";
+        // The row the ROSTER bound to this learner — by identity, so a member
+        // whose handle was disambiguated on join (two learners, one name) is
+        // named here exactly as the teacher's table names them.
+        const handle = handleOf(cls, me.profile.id) ?? me.profile.handle ?? "student";
         assigned.push({
           assignment: a,
           className: cls.name,

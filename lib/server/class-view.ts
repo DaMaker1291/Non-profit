@@ -11,7 +11,7 @@
 // reported. A self-report may flatter `cls.students`; it can never move this.
 // What the ledger has never measured is absent from the row: unknown, not 0.
 import { listProfileStates } from "./store";
-import { memberHandle } from "./class-membership";
+import { isTeacherOf, teacherHandle } from "./class-membership";
 // Relative specifiers: this module is in the compile mirror, which is built
 // with `tsc <files> ...` and no tsconfig, where `@/...` does not resolve.
 import { projectLearner } from "../evidence";
@@ -19,7 +19,7 @@ import { readEvidence } from "./evidence";
 import type { ClassRoster, ClassMemberLive, ProfileState } from "../types";
 
 /**
- * The members of a class with their profile states resolved: identity first
+ * The STUDENTS of a class with their profile states resolved: identity first
  * (the learner id the join recorded), then the handle the roster actually
  * holds. One learner may appear under two handles — only the first is kept, so
  * a member is counted once.
@@ -28,19 +28,32 @@ import type { ClassRoster, ClassMemberLive, ProfileState } from "../types";
  * disagree about WHO is in the class. A handle with no profile behind it
  * (joined before signing in) is simply absent: the stored roster still names
  * them, but there is no ledger to read.
+ *
+ * THE MEMBER IS THE ONE THE ROSTER BOUND TO THAT HANDLE (`membersById`), which
+ * is identity. This used to fall back to "the profile whose display name is
+ * this handle" — so a class whose real member was called Alex would read the
+ * evidence of ANY other Alex in the store, and the teacher's table would show
+ * a stranger's numbers beside real students' names. A handle with no binding is
+ * now exactly what it says: a row nobody owns.
+ *
+ * THE TEACHER IS NOT ONE OF THEM. A class's creator is a member — that is how
+ * they read their own roster — but they are its teacher, not a student who owes
+ * it work, and counting them as one made every class one student larger than it
+ * was and listed the teacher under "needs attention" on every assignment they
+ * set. The rule is asked of lib/server/class-membership#isTeacherOf rather than
+ * re-derived here.
  */
 export async function resolveMembers(cls: ClassRoster): Promise<Array<{ handle: string; state: ProfileState }>> {
   const states = await listProfileStates();
   const byId = new Map(states.map((s) => [s.profile.id, s]));
-  const byHandle = new Map(
-    states.filter((s) => memberHandle(s, "")).map((s) => [memberHandle(s, ""), s]),
-  );
   const out: Array<{ handle: string; state: ProfileState }> = [];
   const used = new Set<string>();
   for (const handle of Object.keys(cls.students)) {
-    const state = byId.get(cls.membersById?.[handle] ?? "") ?? byHandle.get(handle);
+    // Identity, or nothing. No name matching: see class-membership.ts.
+    const state = byId.get(cls.membersById?.[handle] ?? "");
     if (!state || used.has(state.profile.id)) continue;
     used.add(state.profile.id);
+    if (isTeacherOf(cls, state)) continue;
     out.push({ handle, state });
   }
   return out;
@@ -82,12 +95,25 @@ function deriveLive(learnerId: string, handle: string, events: ReturnType<typeof
 
 /** Attach the live, ledger-derived view to the stored roster. A handle with no
  *  profile behind it (joined before signing in) simply has no live entry — the
- *  stored roster still names them, so the teacher sees who joined. */
+ *  stored roster still names them, so the teacher sees who joined.
+ *
+ *  `students` is the TEACHER'S view of the class, and it is the one every count
+ *  on the teacher's own screen is taken from (members, "n students", the
+ *  measured ratio, the table's rows). So the teacher is left out of it: a class
+ *  of one child reads "1 student", not "2". The stored roster is untouched —
+ *  membership is what lets the creator read their own class, and dropping them
+ *  from it would lock them out of it. */
 export async function liveRoster(cls: ClassRoster): Promise<ClassRoster> {
   const members = await resolveMembers(cls);
   const live: Record<string, ClassMemberLive> = {};
   for (const { handle, state } of members) {
     live[handle] = deriveLive(state.profile.id, handle, readEvidence(state.profile.id));
   }
-  return { ...cls, live };
+  const teacher = teacherHandle(cls);
+  const students: ClassRoster["students"] = {};
+  for (const [handle, report] of Object.entries(cls.students)) {
+    if (handle === teacher) continue;
+    students[handle] = report;
+  }
+  return { ...cls, students, live };
 }
