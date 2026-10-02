@@ -132,8 +132,14 @@ export function Nav() {
       </aside>
 
       {/* The phone: five destinations in the thumb's reach. It is NOT the
-          sidebar squeezed onto a phone, and it never scrolls sideways. */}
-      <nav className="bottomnav" aria-label={t("nav.mainAria")}>
+          sidebar squeezed onto a phone, and it never scrolls sideways.
+
+          Its own accessible name, deliberately NOT `nav.mainAria`: both this and
+          the sidebar are <nav> landmarks, and only one is visible at a given
+          width, but a landmark list read by a screen reader does not consult the
+          stylesheet. Two landmarks called "Main menu" are two places the user
+          cannot tell apart. `nav.bottomAria` names this one for what it is. */}
+      <nav className="bottomnav" aria-label={t("nav.bottomAria")}>
         {PHONE.map((item) => (
           <Link key={item.href} href={item.href} className={active(item.href)}>
             <span className="glyph" aria-hidden="true">{item.glyph}</span>

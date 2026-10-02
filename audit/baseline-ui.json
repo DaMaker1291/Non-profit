@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-10-02T17:58:39.757Z",
+  "generatedAt": "2026-10-02T18:24:10.591Z",
   "base": "http://localhost:4173",
   "findings": {
     "landing": {
-      "bytes": 19026,
+      "bytes": 19024,
       "sectionMarkerCount": 0,
       "sectionHeadings": [],
       "telemetryPhrases": [],
@@ -14,7 +14,7 @@
       {
         "route": "/",
         "status": 200,
-        "bytes": 19026,
+        "bytes": 19024,
         "mainWords": 313,
         "mainIsBootScreen": false,
         "sectionMarker": false,
@@ -23,7 +23,7 @@
       {
         "route": "/solve",
         "status": 200,
-        "bytes": 15204,
+        "bytes": 15202,
         "mainWords": 53,
         "mainIsBootScreen": false,
         "sectionMarker": false,
@@ -32,7 +32,7 @@
       {
         "route": "/try/fractions",
         "status": 200,
-        "bytes": 15065,
+        "bytes": 15063,
         "mainWords": 24,
         "mainIsBootScreen": false,
         "sectionMarker": false,
@@ -41,7 +41,7 @@
       {
         "route": "/dashboard",
         "status": 200,
-        "bytes": 15147,
+        "bytes": 15145,
         "mainWords": 17,
         "mainIsBootScreen": true,
         "sectionMarker": false,
@@ -50,7 +50,7 @@
       {
         "route": "/progress",
         "status": 200,
-        "bytes": 14645,
+        "bytes": 14643,
         "mainWords": 17,
         "mainIsBootScreen": true,
         "sectionMarker": false,
@@ -59,7 +59,7 @@
       {
         "route": "/learn",
         "status": 200,
-        "bytes": 14624,
+        "bytes": 14622,
         "mainWords": 17,
         "mainIsBootScreen": true,
         "sectionMarker": false,
@@ -68,7 +68,7 @@
       {
         "route": "/learn/maths",
         "status": 200,
-        "bytes": 14761,
+        "bytes": 14759,
         "mainWords": 17,
         "mainIsBootScreen": true,
         "sectionMarker": false,
@@ -77,7 +77,7 @@
       {
         "route": "/papers",
         "status": 200,
-        "bytes": 14633,
+        "bytes": 14631,
         "mainWords": 17,
         "mainIsBootScreen": true,
         "sectionMarker": false,
@@ -86,7 +86,7 @@
       {
         "route": "/curriculum",
         "status": 200,
-        "bytes": 14517,
+        "bytes": 14515,
         "mainWords": 1,
         "mainIsBootScreen": false,
         "sectionMarker": false,
@@ -95,7 +95,7 @@
       {
         "route": "/mind",
         "status": 200,
-        "bytes": 14626,
+        "bytes": 14624,
         "mainWords": 17,
         "mainIsBootScreen": true,
         "sectionMarker": false,
@@ -104,7 +104,7 @@
       {
         "route": "/projects",
         "status": 200,
-        "bytes": 14494,
+        "bytes": 14492,
         "mainWords": 17,
         "mainIsBootScreen": true,
         "sectionMarker": false,
@@ -113,7 +113,7 @@
       {
         "route": "/account",
         "status": 200,
-        "bytes": 14386,
+        "bytes": 14384,
         "mainWords": 17,
         "mainIsBootScreen": true,
         "sectionMarker": false,
@@ -122,7 +122,7 @@
       {
         "route": "/onboarding",
         "status": 200,
-        "bytes": 14588,
+        "bytes": 14586,
         "mainWords": 1,
         "mainIsBootScreen": false,
         "sectionMarker": false,
@@ -131,7 +131,7 @@
       {
         "route": "/diagnostic/maths",
         "status": 200,
-        "bytes": 14773,
+        "bytes": 14771,
         "mainWords": 17,
         "mainIsBootScreen": true,
         "sectionMarker": false,
@@ -140,7 +140,7 @@
       {
         "route": "/teacher",
         "status": 200,
-        "bytes": 16255,
+        "bytes": 16253,
         "mainWords": 80,
         "mainIsBootScreen": false,
         "sectionMarker": false,
@@ -149,7 +149,7 @@
       {
         "route": "/offline",
         "status": 200,
-        "bytes": 14680,
+        "bytes": 14678,
         "mainWords": 31,
         "mainIsBootScreen": false,
         "sectionMarker": false,
@@ -158,7 +158,7 @@
       {
         "route": "/help",
         "status": 200,
-        "bytes": 17573,
+        "bytes": 17571,
         "mainWords": 241,
         "mainIsBootScreen": false,
         "sectionMarker": false,
@@ -167,7 +167,7 @@
       {
         "route": "/about",
         "status": 200,
-        "bytes": 19055,
+        "bytes": 19053,
         "mainWords": 337,
         "mainIsBootScreen": false,
         "sectionMarker": false,
@@ -200,16 +200,14 @@
       "navElements": [
         "Main menu",
         "Help",
-        "Main menu"
+        "Sections"
       ],
       "labelledLandmarks": [
         "Main menu",
         "Help",
-        "Main menu"
+        "Sections"
       ],
-      "duplicateLabels": [
-        "Main menu"
-      ],
+      "duplicateLabels": [],
       "internalLinkTargets": 21,
       "skipLink": true,
       "mediaQueries": 6,

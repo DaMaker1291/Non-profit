@@ -83,8 +83,23 @@ try {
   ok(/:root\s*\{/.test(css), "a :root block exists to carry the theme");
 
   group("R3 · primary navigation appears once per viewport");
+  // CORRECTED INVARIANT. This used to assert `mainMenus === 2` — two <nav>
+  // elements carrying the IDENTICAL aria-label "Main menu" — and so the gate
+  // was pinning the defect the audit reported rather than the intent behind it.
+  // The intent is one primary navigation per viewport, which is served by two
+  // landmarks with DIFFERENT names: the sidebar ("Main menu") and the phone's
+  // bottom bar ("Sections"). Only one is visible at a given width, but a
+  // landmark list read by a screen reader never consults the stylesheet, so two
+  // landmarks of the same name are two places the user cannot tell apart.
+  //
+  // This is stricter than what it replaced, not looser: it requires both
+  // elements to exist AND requires their names to differ, which `=== 2` on a
+  // single label could not express.
   const mainMenus = [...home.matchAll(/<nav[^>]*aria-label="Main menu"/g)].length;
-  ok(mainMenus === 2, "markup carries the sidebar nav and the bottom nav (one per breakpoint)", String(mainMenus));
+  const bottomNavs = [...home.matchAll(/<nav[^>]*aria-label="Sections"/g)].length;
+  ok(mainMenus === 1, "exactly one <nav> is named 'Main menu' — the sidebar", String(mainMenus));
+  ok(bottomNavs === 1, "exactly one <nav> is named 'Sections' — the phone's bottom bar", String(bottomNavs));
+  ok(/class="[^"]*bottomnav[^"]*"/.test(home), "markup still carries the bottom nav element itself");
   // The duplication in the screenshot was BOTH visible at once, which happens only
   // when the rule that hides one of them never arrives. Assert that rule exists at
   // the desktop width and that the media query swaps it below the breakpoint.
@@ -163,6 +178,44 @@ try {
     if (isIconOnly && !hasAria && !hasTitle) unlabelled.push(inner.replace(/\s+/g, " ").slice(0, 50));
   }
   ok(unlabelled.length === 0, "every icon-only control has aria-label or title", unlabelled.slice(0, 3).join(" | "));
+
+  // ── NAVIGATION LANDMARKS ───────────────────────────────────────────────
+  // THE FAILING SCENARIO, KEPT: the shell renders two <nav> landmarks — the
+  // desktop sidebar and the phone's bottom bar — and both carried the SAME
+  // aria-label, "Main menu". Only one is visible at any width (the other is
+  // hidden by CSS), but a landmark list read by a screen reader never consults
+  // the stylesheet: the user heard "Main menu" twice and had no way to tell the
+  // two destinations apart. The bottom bar now carries its own name.
+  //
+  // Asserted against the SERVED markup, not the JSX, because the pairing of a
+  // label with a landmark is decided by what ships.
+  group("Navigation landmarks");
+  for (const route of ["/", "/learn", "/dashboard"]) {
+    const html = await text(route);
+    const navs = [...html.matchAll(/<nav\b[^>]*>/gi)].map((m) => m[0]);
+    const labels = navs
+      .map((n) => (n.match(/aria-label="([^"]*)"/i) || [])[1])
+      .filter((l) => typeof l === "string" && l.length > 0);
+    const dupes = labels.filter((l, i) => labels.indexOf(l) !== i);
+    ok(
+      dupes.length === 0,
+      `${route}: no two <nav> landmarks share an accessible name`,
+      `duplicated: ${[...new Set(dupes)].join(", ")} — labels were ${labels.join(" / ")}`,
+    );
+    ok(
+      navs.every((n) => /aria-label=/i.test(n)),
+      `${route}: every <nav> landmark is named`,
+      `${navs.length} nav(s), ${labels.length} labelled`,
+    );
+    // The raw key must never reach the accessible name: `t("nav.bottomAria")`
+    // returning the key would produce a landmark literally called
+    // "nav.bottomAria", which is worse than a duplicate.
+    ok(
+      labels.every((l) => !/^[a-z][a-z]*\.[a-zA-Z]/.test(l)),
+      `${route}: no landmark is labelled with a dictionary key`,
+      labels.filter((l) => /^[a-z][a-z]*\.[a-zA-Z]/.test(l)).join(", "),
+    );
+  }
 } catch (e) {
   fail++;
   bad.push({ name: "gate crashed", detail: e.message });
