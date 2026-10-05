@@ -150,8 +150,16 @@ jobs:
     # Job-level so the server and the walk agree on the store. A walk that reads
     # one directory while the server writes another reports a working product as
     # broken; both read this one variable.
+    #
+    # A LITERAL, not `${{ runner.temp }}`. The `runner` context is not available
+    # to a job-level `env` — it resolves only inside steps — and GitHub does not
+    # degrade gracefully: it rejects the ENTIRE workflow file, so this job and
+    # the two above it silently never ran. The failure is invisible from the log
+    # (there is no log), and the only clue is the run being named after its own
+    # path instead of `ci`. /tmp is what runner.temp resolves to on these
+    # runners, so this changes nothing about where the data lives.
     env:
-      OPENMIND_DATA_DIR: ${{ runner.temp }}/om-ui-data
+      OPENMIND_DATA_DIR: /tmp/om-ui-data
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
