@@ -41542,7 +41542,16 @@ function socraticReply(conceptId, message, lang = "en", ctx = {}) {
             `${line(lang, "soc.whyLead", "You asked")}: ${asked}`,
             opener,
             ...grounded,
-            contextLine || coaching,
+            // The catalogue's own coaching is the fallback ONLY when nothing grounded
+            // was said. This `||` was where the promise above was broken: a
+            // why-question WITH a question on screen got the screen named and then
+            // the concept's first authored walkthrough of a DIFFERENT question's
+            // numbers — observed live, "Look at the question on your screen: Solve
+            // 4x − 8 = 28" followed by "To remove +5, subtract 5 from BOTH sides:
+            // 3x = 15", which reads as the tutor coaching someone else's working.
+            // Own hits keep their coaching: that one is inside `grounded`, and it is
+            // about this learner rather than about the catalogue.
+            contextLine || (grounded.length > 0 ? "" : coaching),
             line(lang, "soc.whyQ", "Here's a question: if you changed ONE number in your working, which change would make everything click?"),
         ]);
     }
@@ -43082,12 +43091,20 @@ function canTransfer(conceptId) {
   function setNav(route) {
     var nav = document.getElementById("nav");
     var tab = document.getElementById("tabbar");
+    // `route` arrives WITHOUT its `#` ("/learn"); the NAV pairs carry theirs
+    // ("#/learn"). Compared as stored the two never matched, so `aria-current`
+    // — which app.css styles for exactly this purpose — was never emitted and
+    // neither the header nav nor the tab bar ever showed the learner where they
+    // were. The path is the part that is comparable.
+    function here(href) {
+      return route.indexOf(href.slice(1)) === 0 ? ' aria-current="page"' : "";
+    }
     var html = NAV.map(function (pair) {
-      return '<a href="' + pair[0] + '"' + (route.indexOf(pair[0]) === 0 ? ' aria-current="page"' : "") + ">" + esc(t(pair[1])) + "</a>";
+      return '<a href="' + pair[0] + '"' + here(pair[0]) + ">" + esc(t(pair[1])) + "</a>";
     }).join("");
     nav.innerHTML = html;
     tab.innerHTML = NAV.map(function (pair) {
-      return '<a href="' + pair[0] + '"' + (route.indexOf(pair[0]) === 0 ? ' aria-current="page"' : "") + ">" +
+      return '<a href="' + pair[0] + '"' + here(pair[0]) + ">" +
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + pair[2] + '"/></svg><span>' + esc(t(pair[1])) + "</span></a>";
     }).join("");
     var sel = document.getElementById("lang");
@@ -43102,6 +43119,12 @@ function canTransfer(conceptId) {
   }
 
   function go(path) {
+    // Navigating to the route you are ALREADY on must still re-render: the
+    // browser fires no `hashchange` when the hash is unchanged, so every action
+    // whose target is the current route was a silent no-op. "Retake the
+    // diagnostic" lives on the report, which IS `#/diag` — the button did
+    // nothing at all, and the learner had no way to know it had been pressed.
+    if ((location.hash || "#/") === path) return render();
     location.hash = path;
   }
 
@@ -43112,7 +43135,9 @@ function canTransfer(conceptId) {
 
     if (base === "/" || base === "") return viewLanding();
     if (base === "/setup") return viewSetup();
-    if (!hasProfile) return viewLanding();
+    // Every route past this point reads the learner's own record, so with no
+    // profile on this device the honest screen is the one that SAYS so.
+    if (!hasProfile) return viewNoProfile();
 
     if (base === "/diag") return viewDiagnostic();
     if (base === "/home") return viewHome();
@@ -43159,6 +43184,23 @@ function canTransfer(conceptId) {
       "</div>";
   }
 
+  /** A deep link with no learner on this device.
+   *
+   *  Every destination below the landing page reads a profile: the
+   *  recommendation, the evidence timeline, the concept list. Without one this
+   *  rendered the LANDING PAGE while the URL kept the deep link, so a shared or
+   *  bookmarked link showed marketing under an address that promised a page it
+   *  never showed, with nothing on screen to explain the difference. Name the
+   *  situation instead, and offer the one action that resolves it. */
+  function viewNoProfile() {
+    setNav("/setup");
+    root.className = "";
+    root.innerHTML =
+      "<h1>" + esc(t("onb.setup")) + "</h1>" +
+      '<p class="muted">' + esc(t("curr.noProfile")) + "</p>" +
+      '<p><a class="btn primary" href="#/setup">' + esc(t("onb.start")) + "</a></p>";
+  }
+
   // ── Setup ─────────────────────────────────────────────────────────────────
 
   function viewSetup() {
@@ -43168,6 +43210,11 @@ function canTransfer(conceptId) {
     root.innerHTML =
       "<h1>" + esc(t("onb.setup")) + "</h1>" +
       '<p class="muted">' + esc(t("onb.lead")) + "</p>" +
+      // A FORM, not a div with a button in it. "Start learning" was a submit
+      // button with no form to submit, so pressing Enter after typing a name —
+      // the first thing anyone does — did nothing at all, silently. The page's
+      // one action only worked if you reached for the mouse.
+      '<form id="setup-form">' +
       '<div class="field"><label for="f-name">' + esc(t("onb.handle")) + "</label><input id=\"f-name\" maxlength=\"24\" placeholder=\"student\"></div>" +
       '<div class="grid2">' +
       '<div class="field"><label for="f-country">' + esc(t("onb.country")) + "</label><select id=\"f-country\">" +
@@ -43183,7 +43230,8 @@ function canTransfer(conceptId) {
       '</select><p class="small muted" id="f-subnote">' + esc(t("onb.subjectsNote")) + "</p></div>" +
       '<div class="field"><label for="f-exam">' + esc(t("onb.examDate")) + "</label><input id=\"f-exam\" type=\"date\"></div>" +
       '<div class="field"><label for="f-time">' + esc(t("onb.timePerDay")) + "</label><input id=\"f-time\" type=\"number\" min=\"5\" max=\"300\" step=\"5\" value=\"30\"></div>" +
-      '<p><button class="primary" data-act="create">' + esc(t("onb.start")) + "</button></p>" +
+      '<p><button class="primary" type="submit">' + esc(t("onb.start")) + "</button></p>" +
+      "</form>" +
       '<div id="f-courses"></div>';
 
     // The course per subject, from the country the learner actually chose: a
@@ -43264,18 +43312,53 @@ function canTransfer(conceptId) {
 
   var diag = null; // { session, last: question|null, at: number, asked: number }
 
+  /** The sitting, made DURABLE.
+   *
+   *  The evidence has always survived a reload; the sitting did not, because it
+   *  lived in this variable while the ledger lived in localStorage. The engine
+   *  seeds every probe from the session's own `startedAt` (lib/diagnostic.ts),
+   *  so the same session always serves the same items — it was BUILT to be
+   *  resumed, and a reload that started a fresh sitting instead walked the
+   *  counter backwards with nothing on screen to explain why. Saving the sitting
+   *  is what lets this build keep the promise the evidence record already makes.
+   *
+   *  Keyed by LEARNER, so a sitting can never be handed to a different profile —
+   *  including a new one created after an erase. */
+  function saveSitting() {
+    if (!diag) { delete db.ui.diag; save(); return; }
+    db.ui.diag = {
+      learnerId: profileId(),
+      subject: diag.subject,
+      asked: diag.asked,
+      at: diag.at,
+      session: diag.session,
+      last: diag.last,
+    };
+    save();
+  }
+
+  function restoreSitting(subject) {
+    var saved = db.ui.diag;
+    if (saved && saved.session && saved.learnerId === profileId() && saved.subject === subject &&
+        !saved.session.finished && Array.isArray(saved.session.concepts) && saved.session.concepts.length) {
+      return { session: saved.session, last: saved.last || null, at: saved.at || Date.now(), asked: saved.asked || 0, subject: saved.subject };
+    }
+    if (saved) delete db.ui.diag;
+    return {
+      session: E.diagnostic.newDiagnosticSession(subject, "baseline", activeSpec(subject)),
+      last: null, at: Date.now(), asked: 0, subject: subject,
+    };
+  }
+
   function viewDiagnostic() {
     setNav("/diag");
     root.className = "";
-    if (!diag) {
-      var subject = subjectOf();
-      var session = E.diagnostic.newDiagnosticSession(subject, "baseline", activeSpec(subject));
-      diag = { session: session, last: null, at: Date.now(), asked: 0, subject: subject };
-    }
+    if (!diag) diag = restoreSitting(subjectOf());
     if (!diag.last) {
       var q = E.diagnostic.nextQuestion(diag.session);
       if (!q) return finishDiagnostic();
       diag.last = q;
+      saveSitting();
     }
     drawQuestion();
   }
@@ -43317,6 +43400,7 @@ function canTransfer(conceptId) {
     diag.asked++;
     var nxt = E.diagnostic.nextQuestion(diag.session);
     diag.last = nxt;
+    saveSitting();
     // The diagnostic's own advance: `diag.last` already holds the next probe,
     // or null when the sitting is over. The verdict box names the action, so the
     // one click handler can serve both surfaces without guessing which is open.
@@ -43352,6 +43436,7 @@ function canTransfer(conceptId) {
     saveProfile(st);
     var result = E.diagnostic.buildResult(session);
     diag = null;
+    saveSitting();
     drawDiagnosticResult(result);
   }
 
@@ -43466,6 +43551,13 @@ function canTransfer(conceptId) {
    *  lands the learner on a 404 in the middle of their own study session. So the
    *  action's own concept is routed to the screen that can actually serve it. */
   function routeFor(action) {
+    // The engine NAMES its destination in `href`, and the start-point action
+    // names `/diagnostic/maths` — this build's diagnostic is `#/diag`. Reading
+    // only `conceptId` dropped that action on the floor: it carries no concept,
+    // so "Find your starting point" sent a brand-new learner to the concept
+    // picker instead of the three-minute diagnostic it had just promised.
+    var href = action && action.href ? String(action.href) : "";
+    if (href.indexOf("/diagnostic") === 0) return "#/diag";
     if (action && action.conceptId) return "#/learn?concept=" + encodeURIComponent(action.conceptId);
     return "#/learn";
   }
@@ -43591,6 +43683,14 @@ function canTransfer(conceptId) {
   /** Grade a TYPED answer through the shared rule. Returns true when the entry
    *  was a number at all; an unparseable entry is refused, never marked wrong. */
   function answerPracticeNumeric(raw) {
+    // One answer per question. The CHOICE path cannot record twice because
+    // `showVerdict` disables the buttons it was clicked through, but the typed
+    // answer is submitted by its form, and that form stays on screen with the
+    // answer still in it — so a second Enter (or Enter then Check) recorded the
+    // SAME answer again as a second evidence event, and the learner's own
+    // record said "2 attempts" for one attempt. `requestHint` already refuses a
+    // question that is over; this is the same rule on the write path.
+    if (!practice || practice.done) return;
     var q = practice.q;
     var parsed = E.answer.parseNumericInput(String(raw), q.tolerance && q.tolerance.unit);
     if (parsed === null) {
@@ -43836,6 +43936,11 @@ function canTransfer(conceptId) {
     if (!confirm(t("sb.resetAsk"))) return;
     db = { ledgers: {}, profiles: {}, ui: { lang: lang(), learnerId: null } };
     LEDGER = E.ledger.memoryLedger({});
+    // The sitting goes with the learner it belonged to: a session still in
+    // memory would be written straight back into the fresh store by the next
+    // #/diag render, handing a new learner someone else's test.
+    diag = null;
+    practice = null;
     save();
     go("#/");
   }
@@ -43971,7 +44076,18 @@ function canTransfer(conceptId) {
   // Check button must both work, and a click handler alone would miss Enter.
   document.addEventListener("submit", function (e) {
     var form = e.target;
-    if (!form || form.id !== "numeric-form") return;
+    if (!form) return;
+    if (form.id === "setup-form") {
+      e.preventDefault();
+      // One form, one learner. Two submits (held Enter, or two in the same
+      // tick before the hash change re-renders) each minted a profile, leaving
+      // an orphan in the store and a learner id pointing at the second.
+      if (form.dataset.submitted) return;
+      form.dataset.submitted = "1";
+      createProfile();
+      return;
+    }
+    if (form.id !== "numeric-form") return;
     e.preventDefault();
     var input = document.getElementById("numeric-input");
     if (input) answerPracticeNumeric(input.value);
@@ -43981,7 +44097,6 @@ function canTransfer(conceptId) {
     var node = e.target.closest("[data-act]");
     if (!node) return;
     var act = node.getAttribute("data-act");
-    if (act === "create") return createProfile();
     if (act === "theme") return toggleTheme();
     if (act === "diag-answer") return answerDiagnostic(parseInt(node.getAttribute("data-i"), 10));
     if (act === "diag-skip") {
@@ -43989,10 +44104,11 @@ function canTransfer(conceptId) {
       if (cur) cur.done = true;
       diag.last = E.diagnostic.nextQuestion(diag.session);
       if (!diag.last) return finishDiagnostic();
+      saveSitting();
       return drawQuestion();
     }
     if (act === "diag-finish") return finishDiagnostic();
-    if (act === "retake") { diag = null; return go("#/diag"); }
+    if (act === "retake") { diag = null; saveSitting(); return go("#/diag"); }
     if (act === "answer") return answerPractice(parseInt(node.getAttribute("data-i"), 10));
     if (act === "numeric-submit") {
       // The form's own submit event does the grading (below); this only stops a

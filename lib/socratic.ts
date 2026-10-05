@@ -548,7 +548,16 @@ export function socraticReply(
       `${line(lang, "soc.whyLead", "You asked")}: ${asked}`,
       opener,
       ...grounded,
-      contextLine || coaching,
+      // The catalogue's own coaching is the fallback ONLY when nothing grounded
+      // was said. This `||` was where the promise above was broken: a
+      // why-question WITH a question on screen got the screen named and then
+      // the concept's first authored walkthrough of a DIFFERENT question's
+      // numbers — observed live, "Look at the question on your screen: Solve
+      // 4x − 8 = 28" followed by "To remove +5, subtract 5 from BOTH sides:
+      // 3x = 15", which reads as the tutor coaching someone else's working.
+      // Own hits keep their coaching: that one is inside `grounded`, and it is
+      // about this learner rather than about the catalogue.
+      contextLine || (grounded.length > 0 ? "" : coaching),
       line(lang, "soc.whyQ", "Here's a question: if you changed ONE number in your working, which change would make everything click?"),
     ]);
   }
