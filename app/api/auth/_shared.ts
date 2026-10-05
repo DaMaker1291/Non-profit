@@ -3,8 +3,8 @@ import { cookieHeader, createSessionToken } from "@/lib/server/auth";
 
 /** Attach the freshly-minted session cookie to a JSON response. Centralised so
  *  sign-up, sign-in and claim cannot drift in their cookie flags. */
-export function withSession<T extends object>(payload: T, token: string, status = 200): NextResponse {
-  return NextResponse.json(payload, { status, headers: { "Set-Cookie": cookieHeader(token) } });
+export function withSession<T extends object>(payload: T, token: string, status = 200, req?: Request): NextResponse {
+  return NextResponse.json(payload, { status, headers: { "Set-Cookie": cookieHeader(token, req) } });
 }
 
 /** Mint a session token in the account's CURRENT epoch. The epoch matters: it

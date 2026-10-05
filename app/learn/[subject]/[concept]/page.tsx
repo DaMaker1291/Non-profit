@@ -21,6 +21,8 @@ import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { HINT_LEVELS } from "@/lib/hints";
 import MicroDiagnostic from "@/components/micro-diagnostic";
 import SpeakButton from "@/components/speak-button";
+import PromptText from "@/components/prompt-text";
+import NumericAnswer from "@/components/numeric-answer";
 import ListenFirst from "@/components/listen-first";
 import PeerTeach from "@/components/peer-teach";
 import { exampleFor } from "@/lib/culture";
@@ -321,10 +323,34 @@ export default function ConceptPage() {
     );
   }
 
+  /** Submit an answer. ONE function for both response kinds, because the
+   *  consequence of an answer — evidence, feedback, the session's count — must
+   *  be identical whichever way it was given. Only the field the server reads
+   *  differs: `choiceIndex` for a picked option, `numericAnswer` for a typed
+   *  one. The server decides which shape the staged question actually was, so
+   *  a client cannot grade a numeric item by picking an option.
+   */
   async function answer(i: number) {
+    await submit({ choiceIndex: i });
+  }
+
+  /** A server refusal, in the learner's language.
+   *
+   *  The raw codes name internal states — "not a number", "stale or unknown
+   *  question", "bad request" — and the last of those reads as an accusation
+   *  aimed at the learner. A learner typing a letter into a number box was shown
+   *  the literal string "bad request" in the feedback panel. Known codes get
+   *  their own sentence; anything else gets the neutral one.
+   */
+  function refusalText(code: unknown): string {
+    if (code === "not a number") return t("answer.needNumber");
+    return t("common.error");
+  }
+
+  async function submit(given: { choiceIndex: number } | { numericAnswer: string }) {
     if (graded || saved || !q || busy[0] || !id) return;
     busy[1](true);
-    setPicked(i);
+    if ("choiceIndex" in given) setPicked(given.choiceIndex);
     try {
       // Every answer names its own SUBMISSION, and is delivered through the
       // queue's poster so a connection that drops mid-answer holds the work
@@ -335,7 +361,7 @@ export default function ConceptPage() {
         submissionId: newSubmissionId(),
         deviceAt: Date.now(),
         body: {
-          action: "answer", id, conceptId, questionId: q.id, choiceIndex: i,
+          action: "answer", id, conceptId, questionId: q.id, ...given,
           ms: servedAt ? Date.now() - servedAt : undefined,
           lang, secret: withSecret(),
         },
@@ -348,12 +374,12 @@ export default function ConceptPage() {
       }
       if (outcome.kind === "refused") {
         const refused = (await outcome.res.json().catch(() => ({}))) as { error?: string };
-        setErr(refused.error ?? `HTTP ${outcome.status}`);
+        setErr(refusalText(refused.error));
         return;
       }
       const res = outcome.res;
       const body = await res.json();
-      if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
+      if (!res.ok) { setErr(refusalText(body.error)); return; }
       const correct = !!body.correct;
       const g: Graded = { correct, explanation: body.explanation ?? "", misconceptionId: body.misconceptionId, answerIndex: typeof body.answerIndex === "number" ? body.answerIndex : null, flare: body.flare ?? null, evidence: (body.demonstrated as AnswerEvidence | undefined) ?? null };
       setGraded(g);
@@ -569,7 +595,7 @@ export default function ConceptPage() {
 
       <div className="card" style={{ marginBottom: 18 }}>
         <p className="eyebrow">{t("learn.lesson")}</p>
-        <p style={{ margin: 0, fontSize: 16.5, lineHeight: 1.7 }}>
+        <p className="reading" style={{ margin: 0, fontSize: 16.5, lineHeight: 1.7 }}>
           {c.lesson}
           <SpeakButton text={c.lesson} />
         </p>
@@ -721,29 +747,46 @@ export default function ConceptPage() {
                 {why.scaffold && <span className="scaffold">{t("target.scaffold")}</span>}
               </p>
             )}
-            <p className="qprompt">
-              {q.prompt}
+            <div className="qprompt">
+              <PromptText text={q.prompt} />
               <SpeakButton text={q.prompt} />
-            </p>
-            <div className="choices">
-              {q.choices.map((choice, i) => {
-                const cls =
-                  graded
-                    ? i === graded.answerIndex ? "ok" : i === picked ? "bad" : ""
-                    : picked === i ? "sel" : "";
-                return (
-                  <button
-                    key={i}
-                    className={`choice ${cls}`}
-                    disabled={!!graded || saved || busy[0]}
-                    onClick={() => answer(i)}
-                  >
-                    <span className="mark" data-idx={String.fromCharCode(65 + i)} />
-                    <span className="choice-text">{choice}</span>
-                  </button>
-                );
-              })}
             </div>
+            {/* ── HOW THIS QUESTION IS ANSWERED ────────────────────────────
+                A numeric item asks the learner to PRODUCE the answer, so it
+                gets a box; everything else keeps the four options. The switch
+                is on the question's own declared kind, so no surface has to
+                guess and a numeric item can never be answered by recognition
+                just because that is what the page used to draw. */}
+            {q.responseKind === "numeric" ? (
+              <NumericAnswer
+                unit={q.tolerance?.unit}
+                disabled={!!graded || saved || busy[0]}
+                label={t("answer.label")}
+                checkLabel={t("learn.check")}
+                emptyHint={t("answer.needNumber")}
+                onSubmit={(raw) => void submit({ numericAnswer: raw })}
+              />
+            ) : (
+              <div className="choices">
+                {q.choices.map((choice, i) => {
+                  const cls =
+                    graded
+                      ? i === graded.answerIndex ? "ok" : i === picked ? "bad" : ""
+                      : picked === i ? "sel" : "";
+                  return (
+                    <button
+                      key={i}
+                      className={`choice ${cls}`}
+                      disabled={!!graded || saved || busy[0]}
+                      onClick={() => answer(i)}
+                    >
+                      <span className="mark" data-idx={String.fromCharCode(65 + i)} />
+                      <span className="choice-text">{choice}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {saved && (
               // Honest, and in the learner's language: the answer is safe, the
               // marking has not happened, and the bar above says how many are

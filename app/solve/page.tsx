@@ -16,9 +16,11 @@ import { getConcept } from "@/lib/genome";
 import { anonServe, anonServeTransfer, anonAnswer } from "@/lib/anon-practice";
 import type { AnonPracticeQ } from "@/lib/anon-practice";
 import MicroDiagnostic from "@/components/micro-diagnostic";
+import PromptText from "@/components/prompt-text";
 import SpeakButton from "@/components/speak-button";
 import VoiceInput from "@/components/voice-input";
 import StarterMode from "@/components/starter-mode";
+import NumericAnswer from "@/components/numeric-answer";
 import type { FlarePayload } from "@/lib/microdiag";
 
 type Stage = "ask" | "matched" | "proving" | "transfer" | "mastered";
@@ -170,14 +172,16 @@ export default function SolvePage() {
     }
   }
 
-  async function answer(i: number) {
+  /** One path for both response kinds (see the /try surface): the server reads
+   *  the staged question's own kind, so the field here is the only difference. */
+  async function submit(given: { choiceIndex: number } | { numericAnswer: string }) {
     if (!q || picked !== null) return;
-    setPicked(i);
+    if ("choiceIndex" in given) setPicked(given.choiceIndex);
     setBusy(true);
     try {
       // No mode, no hint count: attribution is the server's (staged transfer
       // intent + its own hint ledger).
-      const o = await anonAnswer(q.conceptId, q.id, i, teachLang, {
+      const o = await anonAnswer(q.conceptId, q.id, given, teachLang, {
         ms: servedAt ? Date.now() - servedAt : undefined,
       });
       // Three outcomes, and offline is one of them: the answer is held on this
@@ -290,24 +294,35 @@ export default function SolvePage() {
         <p className="eyebrow"><span className="no">✎</span> {t("solve.proveEyebrow")} · {t("solve.independentTag")}</p>
         <h1 className="visually-small">{t("solve.proveTitle")}</h1>
         <div className="card" style={{ marginTop: 16 }}>
-          <p className="qprompt">
-            {q.prompt}
+          <div className="qprompt">
+            <PromptText text={q.prompt} />
             <SpeakButton text={q.prompt} />
-          </p>
-          <div className="choices">
-            {q.choices.map((ch, i) => {
-              const cls =
-                picked === null ? "" :
-                i === answerIndex ? "ok reveal" :
-                i === picked ? "bad" : "";
-              return (
-                <button key={i} className={`choice ${cls}`} disabled={picked !== null || busy} onClick={() => void answer(i)}>
-                  <span className="mark" data-idx={String.fromCharCode(65 + i)} />
-                  <span className="choice-text">{ch}</span>
-                </button>
-              );
-            })}
           </div>
+          {q.responseKind === "numeric" ? (
+            <NumericAnswer
+              unit={q.tolerance?.unit}
+              disabled={picked !== null || busy}
+              label={t("answer.label")}
+              checkLabel={t("learn.check")}
+              emptyHint={t("answer.needNumber")}
+              onSubmit={(raw) => void submit({ numericAnswer: raw })}
+            />
+          ) : (
+            <div className="choices">
+              {q.choices.map((ch, i) => {
+                const cls =
+                  picked === null ? "" :
+                  i === answerIndex ? "ok reveal" :
+                  i === picked ? "bad" : "";
+                return (
+                  <button key={i} className={`choice ${cls}`} disabled={picked !== null || busy} onClick={() => void submit({ choiceIndex: i })}>
+                    <span className="mark" data-idx={String.fromCharCode(65 + i)} />
+                    <span className="choice-text">{ch}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {picked === null && <StarterMode conceptId={q.conceptId} questionId={q.id} lang={lang} />}
           {correct !== null && (
             <div className={`feedback ${correct ? "ok" : "no"}`}>
@@ -333,24 +348,35 @@ export default function SolvePage() {
         <p className="eyebrow"><span className="no">⇄</span> {t("solve.transferEyebrow")}</p>
         <h1 className="visually-small">{t("solve.transferTitle")}</h1>
         <div className="card" style={{ marginTop: 16 }}>
-          <p className="qprompt">
-            {q.prompt}
+          <div className="qprompt">
+            <PromptText text={q.prompt} />
             <SpeakButton text={q.prompt} />
-          </p>
-          <div className="choices">
-            {q.choices.map((ch, i) => {
-              const cls =
-                picked === null ? "" :
-                i === answerIndex ? "ok reveal" :
-                i === picked ? "bad" : "";
-              return (
-                <button key={i} className={`choice ${cls}`} disabled={picked !== null || busy} onClick={() => void answer(i)}>
-                  <span className="mark" data-idx={String.fromCharCode(65 + i)} />
-                  <span className="choice-text">{ch}</span>
-                </button>
-              );
-            })}
           </div>
+          {q.responseKind === "numeric" ? (
+            <NumericAnswer
+              unit={q.tolerance?.unit}
+              disabled={picked !== null || busy}
+              label={t("answer.label")}
+              checkLabel={t("learn.check")}
+              emptyHint={t("answer.needNumber")}
+              onSubmit={(raw) => void submit({ numericAnswer: raw })}
+            />
+          ) : (
+            <div className="choices">
+              {q.choices.map((ch, i) => {
+                const cls =
+                  picked === null ? "" :
+                  i === answerIndex ? "ok reveal" :
+                  i === picked ? "bad" : "";
+                return (
+                  <button key={i} className={`choice ${cls}`} disabled={picked !== null || busy} onClick={() => void submit({ choiceIndex: i })}>
+                    <span className="mark" data-idx={String.fromCharCode(65 + i)} />
+                    <span className="choice-text">{ch}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {correct !== null && (
             <div className={`feedback ${correct ? "ok" : "no"}`}>
               <span className="verdict">{correct ? "✓ " + t("solve.transferOk") : "✗ " + t("solve.transferNo")}</span>

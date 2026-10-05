@@ -63,6 +63,45 @@ export type EvidenceSource =
 export type AnswerMode = "guided" | "independent" | "transfer";
 
 /**
+ * WHAT THE LEARNER SAID ABOUT THEIR OWN KNOWING — stated before a verdict.
+ *
+ * Deliberately NOT called "confidence". `confidenceOf` / `ConfidenceLevel`
+ * already mean the STATISTICAL confidence of an estimate (2 of 2 and 6 of 6 are
+ * the same percentage and not the same evidence, and the Agresti–Coull interval
+ * is the judge). That is a property of the evidence. This is a self-report, and
+ * the two must never be read as each other.
+ *
+ *   "sure"   — "I think I know". Committed BEFORE the choices were revealed and
+ *              before any marking, so the grade cannot contaminate it.
+ *   "unsure" — "I'm unsure". A correct-but-unsure answer is NOT the same claim
+ *              as a correct-and-sure one, and this is what lets the record tell
+ *              them apart instead of averaging both into one accuracy figure.
+ *
+ * The third option the learner is offered, "I don't know", is deliberately NOT
+ * a value here: it is a refusal to answer, which the diagnostic already owns as
+ * its `skip` action. A guess at a question someone has just said they cannot do
+ * is worse measurement than the admission, and recording it as a "sure" guess
+ * would be recording something nobody said.
+ *
+ * Null means the learner was not asked — a paper, an ordinary practice question,
+ * an event from before this existed. An absent self-report is NEVER a "sure".
+ */
+export type Certainty = "sure" | "unsure";
+
+/** The sitting's own tally of what was stated, carried on `diagnostic_completed`
+ *  so the report does not have to re-derive it from the answer stream — and so a
+ *  sitting whose per-answer detail is not folded into the model still leaves one
+ *  durable statement behind. */
+export interface CertaintyTally {
+  /** Answers that carried a statement (sure or unsure). */
+  stated: number;
+  /** How many of those were "I'm unsure". */
+  unsure: number;
+  /** The number no accuracy figure can express: correct AND declared unsure. */
+  unsureCorrect: number;
+}
+
+/**
  * How the server came to know this event, which is a different question from
  * what it says.
  *
@@ -111,6 +150,9 @@ export interface AnswerSubmitted extends Base {
   questionId: string;
   correct: boolean;
   chosen: number;
+  /** The canonical number the learner typed, for a numeric item. Null on a
+   *  choice item — an absent number is not a zero, and 0 is a real answer. */
+  givenValue?: number | null;
   mode: AnswerMode;
   hints: number;
   /** Marks, when the source is a marked paper. Null for single-answer items —
@@ -132,6 +174,9 @@ export interface AnswerSubmitted extends Base {
    * clock that is wrong cannot reorder a learner's history.
    */
   deviceAt: number | null;
+  /** The learner's own statement about their knowing, made before the verdict.
+   *  See Certainty. Null when they were not asked. */
+  certainty: Certainty | null;
 }
 
 /** Build a server-observed answer event. The ONE constructor the live routes
@@ -145,7 +190,14 @@ export function answerEvidence(input: {
   specificationId: string | null;
   questionId: string;
   correct: boolean;
+  /** The picked option's index, or −1 when the learner TYPED their answer
+   *  (a numeric item has no option to have chosen). −1 rather than 0 because a
+   *  real choice index of 0 must never be confused with "no choice". */
   chosen: number;
+  /** The learner's typed answer, for a numeric item — the canonical number, not
+   *  the text they entered, so a replay grades and records identically and the
+   *  string "1/2" and the number 0.5 are one answer. Null for a choice item. */
+  givenValue?: number | null;
   mode: AnswerMode;
   hints: number;
   score?: { awarded: number; max: number } | null;
@@ -154,6 +206,10 @@ export function answerEvidence(input: {
   /** A device's claim about when this answer was given — see AnswerSubmitted.
    *  Preserved on the event, never trusted for scheduling. */
   deviceAt?: number | null;
+  /** The learner's own statement about their knowing, made before they saw any
+   *  verdict. Omitted by every caller that does not ask — which is all of them
+   *  except the diagnostic. */
+  certainty?: Certainty | null;
   /** The event's id, when the caller has one that must be stable across
    *  retries — see submissionEventId. Normally minted here. */
   id?: string;
@@ -172,12 +228,14 @@ export function answerEvidence(input: {
     questionId: input.questionId,
     correct: input.correct,
     chosen: input.chosen,
+    givenValue: input.givenValue ?? null,
     mode: input.mode,
     hints: input.hints,
     score: input.score ?? null,
     ms: input.ms ?? null,
     tags: input.tags ?? [],
     deviceAt: input.deviceAt ?? null,
+    certainty: input.certainty ?? null,
   };
 }
 
@@ -228,6 +286,10 @@ export interface DiagnosticCompleted extends Base {
   type: "diagnostic_completed";
   /** How many concepts the sitting actually measured. */
   concepts: number;
+  /** What the learner said about their own knowing during the sitting. Optional
+   *  because a sitting from before this existed carries none, and because a
+   *  learner who skipped every question stated nothing — which is not a zero. */
+  certainty?: CertaintyTally;
   /** The per-concept ladder state the sitting ended with — the seeds the live
    *  fold applied to the learner model. Server-minted; replay derives the
    *  numbers with ladderMastery rather than trusting any carried mastery. */
@@ -381,7 +443,12 @@ export function validateEvent(input: unknown, expectedLearnerId: string): { ok: 
       const mode = str("mode");
       if (mode !== "guided" && mode !== "independent" && mode !== "transfer") return { ok: false, reason: "bad_mode" };
       const chosen = num("chosen");
-      if (chosen === null || chosen < 0 || !Number.isInteger(chosen)) return { ok: false, reason: "bad_choice" };
+      // −1 is the numeric-answer marker (there was no option to pick); every
+      // other value must be a real, non-negative option index.
+      if (chosen === null || chosen < -1 || !Number.isInteger(chosen)) return { ok: false, reason: "bad_choice" };
+      // The typed answer, when there was one. Absent/not-a-number reads as null
+      // rather than as 0 — an absent number is not the number zero.
+      const givenValue = typeof e.givenValue === "number" && Number.isFinite(e.givenValue) ? e.givenValue : null;
       const hints = num("hints") ?? 0;
       if (hints < 0 || !Number.isInteger(hints)) return { ok: false, reason: "bad_hints" };
       const tags = Array.isArray(e.tags) ? (e.tags as unknown[]).filter((t): t is string => typeof t === "string").slice(0, 8) : [];
@@ -390,7 +457,15 @@ export function validateEvent(input: unknown, expectedLearnerId: string): { ok: 
         && typeof scoreRaw.awarded === "number" && typeof scoreRaw.max === "number" && scoreRaw.max > 0
         ? { awarded: Math.max(0, scoreRaw.awarded), max: scoreRaw.max }
         : null;
-      return { ok: true, event: { ...shared, type: "answer_submitted", questionId, correct: e.correct, chosen, mode, hints, score, ms: num("ms"), tags, deviceAt: deviceClaimAt(e.deviceAt, at) } };
+      // The self-report, strictly. Absent/undefined reads as null (nobody was
+      // asked); anything present must be one of the two real statements, so a
+      // malformed claim is REFUSED rather than quietly downgraded to "unasked".
+      let certainty: Certainty | null = null;
+      if (e.certainty !== undefined && e.certainty !== null) {
+        if (e.certainty !== "sure" && e.certainty !== "unsure") return { ok: false, reason: "bad_certainty" };
+        certainty = e.certainty;
+      }
+      return { ok: true, event: { ...shared, type: "answer_submitted", questionId, correct: e.correct, chosen, givenValue, mode, hints, score, ms: num("ms"), tags, deviceAt: deviceClaimAt(e.deviceAt, at), certainty } };
     }
     case "hint_requested": {
       const questionId = str("questionId");
@@ -439,7 +514,26 @@ export function validateEvent(input: unknown, expectedLearnerId: string): { ok: 
           });
         }
       }
-      return { ok: true, event: { ...shared, type: "diagnostic_completed", concepts, seeds } };
+      // The sitting's self-report tally, when it carries one. Bounded and
+      // internally consistent: unsure can never exceed what was stated, and the
+      // unsure-and-correct subset can never exceed the unsure count — a tally
+      // that says otherwise would corrupt the report built from it.
+      let certainty: CertaintyTally | undefined;
+      const rawCert = e.certainty as { stated?: unknown; unsure?: unknown; unsureCorrect?: unknown } | null | undefined;
+      if (rawCert !== undefined && rawCert !== null) {
+        const stated = rawCert.stated;
+        const unsure = rawCert.unsure;
+        const unsureCorrect = rawCert.unsureCorrect;
+        if (
+          typeof stated !== "number" || !Number.isInteger(stated) || stated < 0 ||
+          typeof unsure !== "number" || !Number.isInteger(unsure) || unsure < 0 || unsure > stated ||
+          typeof unsureCorrect !== "number" || !Number.isInteger(unsureCorrect) || unsureCorrect < 0 || unsureCorrect > unsure
+        ) {
+          return { ok: false, reason: "bad_certainty" };
+        }
+        certainty = { stated, unsure, unsureCorrect };
+      }
+      return { ok: true, event: { ...shared, type: "diagnostic_completed", concepts, seeds, certainty } };
     }
     case "paper_completed": {
       const paperId = str("paperId");
@@ -491,6 +585,17 @@ export interface ConceptLedger {
   measured: { asked: number; correct: number };
   /** Slips still being made, by pattern. */
   misconceptions: Record<string, number>;
+  /** Self-reported certainty, as the learner stated it BEFORE any verdict — the
+   *  dimension an accuracy figure cannot express. `unsureCorrect` is the number
+   *  worth looking at: right for now, and not yet trusted by the person who got
+   *  it right. Only counts answers that STATED something, so a learner who was
+   *  never asked keeps all zeros rather than a fabricated "sure".
+   *
+   *  Deliberately NOT compared by reconcile(): the live ConceptProgress has no
+   *  counterpart field, and reporting a divergence against a field only one side
+   *  keeps would be noise — and noise here is how a reconciliation gets switched
+   *  off. Whether it should move the live model is a separate decision. */
+  certainty: CertaintyTally;
   firstAt: number;
   lastAt: number;
 }
@@ -513,6 +618,8 @@ export interface LearnerProjection {
     independent: { asked: number; correct: number };
     transfer: { asked: number; correct: number };
     retention: { asked: number; correct: number };
+    /** The same self-report dimension as ConceptLedger.certainty, summed. */
+    certainty: CertaintyTally;
     sessions: number;
     diagnostics: number;
     papers: number;
@@ -533,6 +640,7 @@ function emptyLedger(conceptId: string, at: number): ConceptLedger {
     retention: { asked: 0, correct: 0, lastHeld: null },
     measured: { asked: 0, correct: 0 },
     misconceptions: {},
+    certainty: { stated: 0, unsure: 0, unsureCorrect: 0 },
     firstAt: at, lastAt: at,
   };
 }
@@ -550,6 +658,7 @@ export function projectLearner(events: readonly EvidenceEvent[]): LearnerProject
     independent: { asked: 0, correct: 0 },
     transfer: { asked: 0, correct: 0 },
     retention: { asked: 0, correct: 0 },
+    certainty: { stated: 0, unsure: 0, unsureCorrect: 0 },
     sessions: 0, diagnostics: 0, papers: 0,
   };
 
@@ -603,6 +712,15 @@ export function projectLearner(events: readonly EvidenceEvent[]): LearnerProject
           // A diagnostic or paper answer MEASURES; practice teaches. Keeping them
           // apart is what stops "improvement" from being rehearsal.
           if (e.source === "diagnostic" || e.source === "past_paper") { c.measured.asked += 1; if (e.correct) c.measured.correct += 1; }
+          // The learner's own statement about their knowing, tallied beside the
+          // outcome rather than folded into it: "right, but unsure" is a state
+          // the accuracy figure cannot express. `?? null` because an event
+          // written before this existed has no field at all, and an absent
+          // self-report must not be counted as a "sure".
+          if (e.certainty === "sure" || e.certainty === "unsure") {
+            c.certainty.stated += 1;
+            if (e.certainty === "unsure") { c.certainty.unsure += 1; if (e.correct) c.certainty.unsureCorrect += 1; }
+          }
           if (!e.correct) for (const t of e.tags) c.misconceptions[t] = (c.misconceptions[t] ?? 0) + 1;
           c.lastAt = Math.max(c.lastAt, e.at);
           c.firstAt = Math.min(c.firstAt, e.at);
@@ -610,6 +728,10 @@ export function projectLearner(events: readonly EvidenceEvent[]): LearnerProject
         if (e.mode === "independent") { totals.independent.asked += 1; if (e.correct && e.hints === 0) totals.independent.correct += 1; }
         if (e.mode === "transfer") { totals.transfer.asked += 1; if (e.correct && e.hints === 0) totals.transfer.correct += 1; }
         if (retained) { totals.retention.asked += 1; if (e.correct) totals.retention.correct += 1; }
+        if (e.certainty === "sure" || e.certainty === "unsure") {
+          totals.certainty.stated += 1;
+          if (e.certainty === "unsure") { totals.certainty.unsure += 1; if (e.correct) totals.certainty.unsureCorrect += 1; }
+        }
         totals.hints += e.hints;
         break;
       }

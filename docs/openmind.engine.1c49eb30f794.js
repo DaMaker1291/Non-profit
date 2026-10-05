@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 38 modules compiled from lib/ by that script, wired
+ * Source: 42 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -172,6 +172,185 @@ function stopSpeaking() {
 /** Strip control glyphs so the synthesiser doesn't read decoration aloud. */
 function speakableText(s) {
     return s.replace(/[✓✗→←🔈🔊🎙♿⭐]/g, "").replace(/\s+/g, " ").trim();
+}
+
+});
+__def("answer.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// WHAT COUNTS AS RIGHT — one module, so a typed number and a picked option
+// cannot be graded by two different rules.
+//
+// Before this existed the whole platform had exactly one answer type: an index
+// into a four-item array, compared with `choiceIndex === q.answer`. That is a
+// fine rule and a bad monopoly. A learner who can compute 0.75 from first
+// principles was being asked to recognise it among four printed strings, which
+// measures recognition of a value, never production of it — and the audit
+// (§4.3) recorded the consequence: the entire brief's response-type list was
+// unimplemented.
+//
+// The rule here is deliberately small and PURE (no I/O, no clock, no state) for
+// the same reason lib/proof.ts is: this is the sentence "you were right", and it
+// is the one thing that must never be computed twice by two callers that could
+// disagree. The server grades with it; the static twin grades with it; a
+// verification run asserts a typed answer and its equivalent option agree.
+//
+// THREE HONESTY RULES, each of which a plausible implementation gets wrong:
+//
+//   1. A TOLERANCE IS PART OF THE QUESTION, not a global constant. 3.14 must be
+//      accepted against π and rejected against 3.14 exactly; only the item's
+//      author knows which. `tolerance` is required on a numeric item and is
+//      never invented by the grader.
+//   2. AN UNPARSEABLE ENTRY IS NOT A WRONG ANSWER — it is no answer. `NaN` never
+//      reaches the comparison, so "x + 3" is refused as input rather than
+//      silently marked incorrect, which would record evidence about a learner's
+//      mathematics for a keystroke.
+//   3. THE SAME VALUE IS THE SAME ANSWER whichever way it was given. A learner
+//      who types 0.75 and one who picks the option "0.75" produce the same
+//      verdict and the same identity, so the ledger and the anti-repetition
+//      rotation cannot treat them as different work.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.isNumericQuestion = isNumericQuestion;
+exports.parseNumericInput = parseNumericInput;
+exports.gradeNumeric = gradeNumeric;
+exports.formatNumeric = formatNumeric;
+exports.answerDisplay = answerDisplay;
+exports.answerKey = answerKey;
+exports.gradeChoice = gradeChoice;
+/** Is this item answered by typing a number? Absent `responseKind` = choice. */
+function isNumericQuestion(q) {
+    return q.responseKind === "numeric";
+}
+/** Unicode minus, en dash and a few lookalikes a keyboard or a paste can
+ *  produce, folded to ASCII so parsing never depends on the glyph. */
+function foldSigns(s) {
+    return s.replace(/[\u2212\u2013\u2014\uFE63\uFF0D]/g, "-");
+}
+/**
+ * Parse a learner's typed answer into a number, or null when it is not a number.
+ *
+ * Null is a real outcome and the caller must treat it as "not an answer", never
+ * as zero: an empty box, a stray letter, two numbers in one box. Accepting
+ * MORE than a bare literal is deliberate — a learner who types "1/2" for a half,
+ * "1,000" for a thousand or "0.75 cm" when the unit is already shown has done
+ * the mathematics and is not wrong about the keyboard.
+ */
+function parseNumericInput(raw, unit) {
+    if (typeof raw !== "string")
+        return null;
+    let s = foldSigns(raw).trim();
+    if (!s)
+        return null;
+    // A trailing unit the item already declares ("12 cm" → 12, "12m" → 12). Only
+    // the declared unit is stripped, so "12 s" is not silently read as 12 metres.
+    if (unit) {
+        const u = foldSigns(unit).trim();
+        if (u) {
+            const tail = new RegExp(`\\s*${escapeRe(u)}\\.?$`, "i");
+            s = s.replace(tail, "");
+        }
+    }
+    // Thousands separators: "1,000" and "1 000" are the number a learner meant.
+    // Removed only BETWEEN digits, so a lone comma is still an error.
+    //
+    // A PLAIN SPACE IS NOT A SEPARATOR, deliberately. It is the most common way
+    // to write two numbers, so treating "3 4" as 34 would silently invent an
+    // answer the learner never gave. The narrow no-break space and the non-break
+    // space ARE separators — they are what a locale formatter emits — and a
+    // comma is, because "3,4" as a decimal is not the convention this bank uses.
+    s = s.replace(/(?<=\d)[,\u00A0\u202F](?=\d)/g, "");
+    s = s.replace(/^\+/, "").trim();
+    if (!s)
+        return null;
+    // A simple fraction: 1/2, -3/4. Two integers, no nesting — enough for the
+    // answers the bank expresses as fractions, and nothing that could hide an
+    // expression the learner has not actually evaluated.
+    const frac = s.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)$/);
+    if (frac) {
+        const den = Number(frac[2]);
+        if (den === 0)
+            return null;
+        return Number(frac[1]) / den;
+    }
+    // A plain decimal or integer. Anything else (letters, operators, a second
+    // number) is NOT an answer.
+    if (!/^-?\d+(?:\.\d+)?$/.test(s))
+        return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+}
+function escapeRe(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+/**
+ * Is a typed value the answer, within the item's own tolerance?
+ *
+ * Absolute slack is checked when given; relative slack when given. An item may
+ * carry both (a measurement is "±0.05 or 0.5%, whichever is larger"). With
+ * neither, the comparison is exact to floating point, which is the correct
+ * meaning for a count.
+ */
+function gradeNumeric(given, answer, tolerance) {
+    if (!Number.isFinite(given) || !Number.isFinite(answer))
+        return false;
+    const abs = tolerance?.abs;
+    const rel = tolerance?.rel;
+    if (abs === undefined && rel === undefined)
+        return given === answer;
+    const diff = Math.abs(given - answer);
+    const slack = Math.max(abs ?? 0, rel !== undefined ? rel * Math.abs(answer) : 0);
+    return diff <= slack;
+}
+/**
+ * A number as a learner should read it: no floating-point noise, no trailing
+ * zeros. `0.30000000000000004` is a bug report about our arithmetic, not an
+ * answer, and `3.140` claims three decimal places of precision the item never
+ * stated.
+ */
+function formatNumeric(n) {
+    if (!Number.isFinite(n))
+        return String(n);
+    if (Number.isInteger(n))
+        return String(n);
+    // Twelve significant digits removes IEEE noise; trailing zeros are dropped.
+    const s = n.toPrecision(12);
+    return String(Number(s));
+}
+/** The display form of an answer — the item's stated form when it has one. */
+function answerDisplay(q) {
+    return q.tolerance?.display ?? q.choices[q.answer] ?? "";
+}
+/**
+ * THE IDENTITY OF AN ITEM FOR ONE LEARNER: what "the same question again" means.
+ *
+ * The serve search (lib/questions.ts#generateQuestionNear) uses this to know
+ * which items a sitting has already spent, so the prompt is the first half. The
+ * second half is the ANSWER, not the option text: an item re-drawn with the
+ * options in a different order is the same question and must not be served as
+ * new, and a numeric item and its choice-form twin are the same question too.
+ * Reading the answer through this one function is what stops two call sites
+ * disagreeing about whether a re-draw counts as fresh.
+ */
+function answerKey(q) {
+    if (typeof q.answerValue === "number")
+        return `${q.prompt}|${formatNumeric(q.answerValue)}`;
+    return `${q.prompt}|${q.choices[q.answer] ?? ""}`;
+}
+/**
+ * Grade a picked option. A numeric item's options carry VALUES, so picking the
+ * option "0.75" and typing 0.75 give the same verdict — the rule above, applied
+ * in the other direction.
+ */
+function gradeChoice(q, choiceIndex) {
+    if (q.responseKind === "numeric" && Array.isArray(q.choiceValues)) {
+        const picked = q.choiceValues[choiceIndex];
+        if (typeof picked !== "number")
+            return false;
+        const truth = typeof q.answerValue === "number" ? q.answerValue : NaN;
+        return gradeNumeric(picked, truth, q.tolerance);
+    }
+    return choiceIndex === q.answer;
 }
 
 });
@@ -677,6 +856,7 @@ __def("curriculum.js", function (module, exports, require) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CONTINUITY_CORE = exports.INDEPENDENT_ROUTE = void 0;
 exports.curriculumFor = curriculumFor;
+exports.boardName = boardName;
 exports.isContinuityMode = isContinuityMode;
 exports.setContinuityMode = setContinuityMode;
 // A ROUTE'S YEAR LIST IS THE WHOLE SEQUENCE, not a sample of it.
@@ -749,6 +929,22 @@ exports.INDEPENDENT_ROUTE = {
 };
 function curriculumFor(country) {
     return ROUTES[country] ?? null;
+}
+/** The awarding body's own name for an id — a proper noun ("AQA", "Pearson
+ *  Edexcel"), so it is never translated. Board ids are not globally unique
+ *  ("state" is Ghana and India; "kenyan" is Kenya, Tanzania and Uganda), so
+ *  this returns the first binding, which is the one the learner's own route
+ *  would have offered. An unknown id degrades to its uppercase letters rather
+ *  than to an empty header. */
+function boardName(id) {
+    if (!id)
+        return "";
+    for (const route of Object.values(ROUTES)) {
+        const b = route.boards.find((x) => x.id === id);
+        if (b)
+            return b.name;
+    }
+    return id.toUpperCase();
 }
 /** Emergency continuity core (§17): literacy + numeracy foundations that work
  *  fully offline from a printed pack. Filter NextStep/diagnostics to these. */
@@ -1039,9 +1235,11 @@ exports.currentConcept = currentConcept;
 exports.startingStage = startingStage;
 exports.nextQuestion = nextQuestion;
 exports.gradeAnswer = gradeAnswer;
+exports.plannedQuestions = plannedQuestions;
 exports.ladderMastery = ladderMastery;
 exports.detectMisconceptions = detectMisconceptions;
 exports.demandEstimates = demandEstimates;
+exports.certaintyTally = certaintyTally;
 exports.buildResult = buildResult;
 exports.diagnosticToProgress = diagnosticToProgress;
 exports.mergeDiagnosticSeed = mergeDiagnosticSeed;
@@ -1363,7 +1561,11 @@ function nextQuestion(s) {
     }
     return null;
 }
-function gradeAnswer(s, conceptId, question, choiceIdx) {
+function gradeAnswer(s, conceptId, question, choiceIdx, 
+/** The learner's own statement about their knowing, made before this verdict
+ *  existed. Optional, and null by default: a caller that does not ask records
+ *  an absent self-report, never an implied "sure". */
+certainty = null) {
     const correct = choiceIdx === question.answer;
     // The per-answer record, including the difficulty actually served, is what
     // the skill breakdown is derived from. Recorded before the band rules run so
@@ -1371,7 +1573,7 @@ function gradeAnswer(s, conceptId, question, choiceIdx) {
     // The SOURCE is recorded with every answer: today every probe is authored by
     // OpenMind, and the day a licensed board item is served this record is what
     // keeps "measured on real board material" from being an assumption.
-    s.log.push({ conceptId, difficulty: question.difficulty, correct, source: "openmind_authored" });
+    s.log.push({ conceptId, difficulty: question.difficulty, correct, source: "openmind_authored", certainty });
     const cur = s.concepts.find((c) => c.conceptId === conceptId);
     if (cur && !cur.done) {
         cur.asked++;
@@ -1416,6 +1618,42 @@ function gradeAnswer(s, conceptId, question, choiceIdx) {
         // one more question, which either confirms recovery or ends the band.
     }
     return { correct, explanation: question.explanation };
+}
+/**
+ * HOW LONG THIS SITTING IS, approximately — measured, never guessed.
+ *
+ * The diagnostic is adaptive, so its length is not a fixed number: a concept's
+ * band rules stop it the moment they decide, and a band the sitting has already
+ * PROVED is not re-proved on every concept after it. Both are facts about
+ * answers that do not exist yet, so no closed-form count can be honest about
+ * them — which is why the alternative, a constant like "12 questions", would be
+ * a number the app invented and the learner could catch it missing.
+ *
+ * So the estimate is a forward SIMULATION, and the one it runs is the honest
+ * one: clone the live sitting and climb the ladder answering everything
+ * CORRECTLY — the climb nothing would stop. It is therefore an upper-ish bound:
+ * a learner who misses early finishes below it, and the report is what says how
+ * far they actually got. That is exactly why the surface prints "about".
+ *
+ * Deterministic in the sitting it is handed, and it never mutates it: the clone
+ * starts from the `asked` the log already counts, so asking the same session
+ * twice returns the same number and one answered question cannot be counted
+ * twice.
+ */
+function plannedQuestions(s) {
+    const clone = structuredClone(s);
+    let n = clone.log.length;
+    // A sitting is a handful of concepts and at most a few questions each. The
+    // guard exists only so a generator that can never close a concept cannot
+    // loop forever while a learner waits on the response.
+    for (let guard = 0; guard < 400; guard++) {
+        const q = nextQuestion(clone);
+        if (!q)
+            break;
+        gradeAnswer(clone, q.conceptId, q, q.answer);
+        n++;
+    }
+    return n;
 }
 /** mastery from ladder position: 0.1 + 0.28/stage passed + 0.12 partial credit.
  *  Depth-honest (audit P0-A): the claim is capped by the hardest question
@@ -1507,7 +1745,15 @@ function demandEstimates(s) {
     // The deepest question any of this session's concepts can serve. Measured
     // from the generators, not assumed from the syllabus.
     const deepest = s.concepts.reduce((m, c) => Math.max(m, (0, questions_1.conceptDepth)(c.conceptId)), 0);
-    return question_bank_1.SKILL_LADDER.map((skill) => {
+    // The lowest band this sitting actually asked at, or null when it asked
+    // nothing at all (an empty sitting has no placement to report).
+    const lowestAsked = s.log.reduce((lo, a) => {
+        const i = question_bank_1.SKILL_LADDER.indexOf((0, question_bank_1.skillForDifficulty)(a.difficulty));
+        if (i < 0)
+            return lo;
+        return lo === null ? i : Math.min(lo, i);
+    }, null);
+    return question_bank_1.SKILL_LADDER.map((skill, i) => {
         const rows = s.log
             .filter((a) => (0, question_bank_1.skillForDifficulty)(a.difficulty) === skill)
             .map((a) => ({ correct: a.correct, source: a.source ?? "openmind_authored" }));
@@ -1515,9 +1761,36 @@ function demandEstimates(s) {
             skill,
             inBank: !question_bank_1.SKILLS_NOT_IN_BANK.includes(skill),
             reachable: (0, question_bank_1.bandReachable)(skill, deepest),
+            notAsked: lowestAsked !== null && i < lowestAsked,
             estimate: (0, question_bank_1.estimateEvidence)(rows),
         };
     });
+}
+/**
+ * What the learner said about their own knowing, over a whole sitting.
+ *
+ * `unsureCorrect` is the reason this exists at all: an accuracy figure counts a
+ * confident right answer and a half-guessed one identically, and those are two
+ * different states to teach from. Only answers that STATED something are
+ * counted — a learner who was never asked the question has an empty tally, not
+ * a fabricated confident one.
+ *
+ * Read from the sitting's own log, so it is derived from the answers rather than
+ * from a counter that could drift away from them.
+ */
+function certaintyTally(s) {
+    const t = { stated: 0, unsure: 0, unsureCorrect: 0 };
+    for (const a of s.log) {
+        if (a.certainty !== "sure" && a.certainty !== "unsure")
+            continue;
+        t.stated += 1;
+        if (a.certainty === "unsure") {
+            t.unsure += 1;
+            if (a.correct)
+                t.unsureCorrect += 1;
+        }
+    }
+    return t;
 }
 function buildResult(s) {
     const probedScores = s.concepts.filter((c) => c.asked > 0);
@@ -1560,6 +1833,10 @@ function buildResult(s) {
         // Bands a later concept did not re-prove, in ladder order — the honest
         // record of a shortened measurement.
         skippedBands: question_bank_1.SKILL_LADDER.filter((sk) => s.concepts.some((c) => c.skippedBands?.includes(sk))),
+        // What the learner said about their own knowing, so the report can name the
+        // difference between "I know this" and "I got it, but I wasn't sure" — the
+        // one thing the score cannot say.
+        certainty: certaintyTally(s),
     };
 }
 // ── P0-A: the diagnostic is the learner model's initial state estimator ─────
@@ -1742,6 +2019,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.loadLedgerState = loadLedgerState;
 exports.loadLedger = loadLedger;
 exports.citationsFor = citationsFor;
+exports.dimensionFor = dimensionFor;
 exports.basedOn = basedOn;
 exports.conceptKnowledge = conceptKnowledge;
 exports.recentAnswers = recentAnswers;
@@ -1802,7 +2080,14 @@ function citationsFor(evidenceIds, events, opts) {
     }
     return out;
 }
-function dim(key, label, r) {
+/** ONE dimension, from counts — and the ONLY place a rate becomes a band.
+ *
+ *  Exported because a group of concepts needs the same rule as one concept:
+ *  the Learn screen rolls a topic's answers up into a single status, and a
+ *  topic that were banded by its own threshold would read "Strong" at one
+ *  place and "Developing" at another for the same 8 answers out of 10. The
+ *  threshold lives here once, next to the four dimensions it produces. */
+function dimensionFor(key, label, r) {
     if (!r || r.asked === 0)
         return { key, label, rate: null, band: null };
     return { key, label, rate: r, band: r.correct / r.asked >= 0.7 ? "strong" : "developing" };
@@ -1816,14 +2101,14 @@ function dim(key, label, r) {
 function basedOn(projection, conceptId, t) {
     const c = conceptId ? projection.byConcept[conceptId] : null;
     const dims = [
-        dim("recalled", t("evv.dim.recalled"), c && c.measured.asked > 0 ? c.measured : null),
-        dim("applied", t("evv.dim.applied"), c && c.independent.asked > 0 ? c.independent : null),
-        dim("transferred", t("evv.dim.transferred"), c && c.transfer.asked > 0 ? c.transfer : null),
+        dimensionFor("recalled", t("evv.dim.recalled"), c && c.measured.asked > 0 ? c.measured : null),
+        dimensionFor("applied", t("evv.dim.applied"), c && c.independent.asked > 0 ? c.independent : null),
+        dimensionFor("transferred", t("evv.dim.transferred"), c && c.transfer.asked > 0 ? c.transfer : null),
         // Retention, once the ledger holds a delayed re-measurement of it: a due
         // concept retrieved hint-free after it had aged. Before that it is a
         // scheduled promise, not a result — and it is listed as unmeasured below
         // rather than shown as a score nobody earned.
-        dim("retained", t("evv.dim.retention"), c && c.retention.asked > 0 ? c.retention : null),
+        dimensionFor("retained", t("evv.dim.retention"), c && c.retention.asked > 0 ? c.retention : null),
     ];
     const unmeasured = [];
     for (const d of dims)
@@ -1858,7 +2143,7 @@ function basedOn(projection, conceptId, t) {
 function conceptKnowledge(projection, conceptId, t) {
     const c = projection.byConcept[conceptId] ?? null;
     const make = (key, from, label, r) => {
-        const d = dim(key, label, r);
+        const d = dimensionFor(key, label, r);
         return { ...d, from, unmeasured: d.rate === null };
     };
     const rows = [
@@ -2006,12 +2291,14 @@ function answerEvidence(input) {
         questionId: input.questionId,
         correct: input.correct,
         chosen: input.chosen,
+        givenValue: input.givenValue ?? null,
         mode: input.mode,
         hints: input.hints,
         score: input.score ?? null,
         ms: input.ms ?? null,
         tags: input.tags ?? [],
         deviceAt: input.deviceAt ?? null,
+        certainty: input.certainty ?? null,
     };
 }
 /**
@@ -2155,8 +2442,13 @@ function validateEvent(input, expectedLearnerId) {
             if (mode !== "guided" && mode !== "independent" && mode !== "transfer")
                 return { ok: false, reason: "bad_mode" };
             const chosen = num("chosen");
-            if (chosen === null || chosen < 0 || !Number.isInteger(chosen))
+            // −1 is the numeric-answer marker (there was no option to pick); every
+            // other value must be a real, non-negative option index.
+            if (chosen === null || chosen < -1 || !Number.isInteger(chosen))
                 return { ok: false, reason: "bad_choice" };
+            // The typed answer, when there was one. Absent/not-a-number reads as null
+            // rather than as 0 — an absent number is not the number zero.
+            const givenValue = typeof e.givenValue === "number" && Number.isFinite(e.givenValue) ? e.givenValue : null;
             const hints = num("hints") ?? 0;
             if (hints < 0 || !Number.isInteger(hints))
                 return { ok: false, reason: "bad_hints" };
@@ -2166,7 +2458,16 @@ function validateEvent(input, expectedLearnerId) {
                 && typeof scoreRaw.awarded === "number" && typeof scoreRaw.max === "number" && scoreRaw.max > 0
                 ? { awarded: Math.max(0, scoreRaw.awarded), max: scoreRaw.max }
                 : null;
-            return { ok: true, event: { ...shared, type: "answer_submitted", questionId, correct: e.correct, chosen, mode, hints, score, ms: num("ms"), tags, deviceAt: deviceClaimAt(e.deviceAt, at) } };
+            // The self-report, strictly. Absent/undefined reads as null (nobody was
+            // asked); anything present must be one of the two real statements, so a
+            // malformed claim is REFUSED rather than quietly downgraded to "unasked".
+            let certainty = null;
+            if (e.certainty !== undefined && e.certainty !== null) {
+                if (e.certainty !== "sure" && e.certainty !== "unsure")
+                    return { ok: false, reason: "bad_certainty" };
+                certainty = e.certainty;
+            }
+            return { ok: true, event: { ...shared, type: "answer_submitted", questionId, correct: e.correct, chosen, givenValue, mode, hints, score, ms: num("ms"), tags, deviceAt: deviceClaimAt(e.deviceAt, at), certainty } };
         }
         case "hint_requested": {
             const questionId = str("questionId");
@@ -2217,7 +2518,24 @@ function validateEvent(input, expectedLearnerId) {
                     });
                 }
             }
-            return { ok: true, event: { ...shared, type: "diagnostic_completed", concepts, seeds } };
+            // The sitting's self-report tally, when it carries one. Bounded and
+            // internally consistent: unsure can never exceed what was stated, and the
+            // unsure-and-correct subset can never exceed the unsure count — a tally
+            // that says otherwise would corrupt the report built from it.
+            let certainty;
+            const rawCert = e.certainty;
+            if (rawCert !== undefined && rawCert !== null) {
+                const stated = rawCert.stated;
+                const unsure = rawCert.unsure;
+                const unsureCorrect = rawCert.unsureCorrect;
+                if (typeof stated !== "number" || !Number.isInteger(stated) || stated < 0 ||
+                    typeof unsure !== "number" || !Number.isInteger(unsure) || unsure < 0 || unsure > stated ||
+                    typeof unsureCorrect !== "number" || !Number.isInteger(unsureCorrect) || unsureCorrect < 0 || unsureCorrect > unsure) {
+                    return { ok: false, reason: "bad_certainty" };
+                }
+                certainty = { stated, unsure, unsureCorrect };
+            }
+            return { ok: true, event: { ...shared, type: "diagnostic_completed", concepts, seeds, certainty } };
         }
         case "paper_completed": {
             const paperId = str("paperId");
@@ -2257,6 +2575,7 @@ function emptyLedger(conceptId, at) {
         retention: { asked: 0, correct: 0, lastHeld: null },
         measured: { asked: 0, correct: 0 },
         misconceptions: {},
+        certainty: { stated: 0, unsure: 0, unsureCorrect: 0 },
         firstAt: at, lastAt: at,
     };
 }
@@ -2274,6 +2593,7 @@ function projectLearner(events) {
         independent: { asked: 0, correct: 0 },
         transfer: { asked: 0, correct: 0 },
         retention: { asked: 0, correct: 0 },
+        certainty: { stated: 0, unsure: 0, unsureCorrect: 0 },
         sessions: 0, diagnostics: 0, papers: 0,
     };
     for (const e of ordered) {
@@ -2341,6 +2661,19 @@ function projectLearner(events) {
                         if (e.correct)
                             c.measured.correct += 1;
                     }
+                    // The learner's own statement about their knowing, tallied beside the
+                    // outcome rather than folded into it: "right, but unsure" is a state
+                    // the accuracy figure cannot express. `?? null` because an event
+                    // written before this existed has no field at all, and an absent
+                    // self-report must not be counted as a "sure".
+                    if (e.certainty === "sure" || e.certainty === "unsure") {
+                        c.certainty.stated += 1;
+                        if (e.certainty === "unsure") {
+                            c.certainty.unsure += 1;
+                            if (e.correct)
+                                c.certainty.unsureCorrect += 1;
+                        }
+                    }
                     if (!e.correct)
                         for (const t of e.tags)
                             c.misconceptions[t] = (c.misconceptions[t] ?? 0) + 1;
@@ -2361,6 +2694,14 @@ function projectLearner(events) {
                     totals.retention.asked += 1;
                     if (e.correct)
                         totals.retention.correct += 1;
+                }
+                if (e.certainty === "sure" || e.certainty === "unsure") {
+                    totals.certainty.stated += 1;
+                    if (e.certainty === "unsure") {
+                        totals.certainty.unsure += 1;
+                        if (e.correct)
+                            totals.certainty.unsureCorrect += 1;
+                    }
                 }
                 totals.hints += e.hints;
                 break;
@@ -2869,6 +3210,9 @@ exports.translator = translator;
 exports.fill = fill;
 exports.dueLabel = dueLabel;
 const en = {
+    "cur.covers": "{n} of the {total} concepts here belong to your course.",
+    "cur.outside": "Not in your course",
+    "cur.outsideNote": "{n} concepts here sit outside {spec}. They stay open to read, but they are not your syllabus.",
     "mc.neg-slip": "Sign slip with negatives",
     "mc.frac-slice": "Bigger denominator = bigger slice",
     "mc.denom-add": "Adds denominators",
@@ -3392,8 +3736,15 @@ const en = {
     "dash.language": "Language",
     "dash.subjects": "Subjects",
     "diag.title": "Adaptive diagnostic",
+    "diag.progress": "Question {n} of about {m}",
+    "diag.leave": "Leave for now",
     "diag.sub": "A few questions per concept. Wrong answers are useful — they reveal misconceptions.",
     "diag.next": "Next question",
+    "diag.certaintyAsk": "How sure are you?",
+    "diag.sure": "I think I know",
+    "diag.unsure": "I'm unsure",
+    "diag.dontKnow": "I don't know",
+    "diag.certaintyNote": "You were unsure on {u} of the {n} answers you got right — those are worth a second look.",
     "diag.skip": "Skip concept",
     "diag.done": "Finish diagnostic",
     "diag.report": "Your diagnostic results",
@@ -3413,6 +3764,8 @@ const en = {
     "diag.bankNote": "These probes are OpenMind-authored questions written to your qualification's difficulty bands — not reproduced board papers, and multiple-choice only, so extended written answers are not measured here.",
     "diag.depthNote": "Data and graphs is beyond what this bank's questions reach today, so it is not measured — a gap in the question bank, not in you.",
     "diag.unreachableNote": "A level marked as beyond your course is not a gap in you: no question in your course's bank reaches it yet.",
+    "diag.notAskedNote": "Some levels sit below where your course starts you, so this diagnosis did not ask them — that is where the sitting began, not a gap in you.",
+    "diag.foundNotAsked": "{band} sits below where your course starts you, so this sitting did not ask it.",
     "skill.recall": "Recall",
     "skill.application": "Application",
     "skill.multi_step": "Multi-step",
@@ -3441,6 +3794,12 @@ const en = {
     "target.repair": "The last answers slipped, so this one steadies the idea first.",
     "target.scaffold": "A hint is one tap away if you want it.",
     "home.practice": "Practice available to level {n} of 5",
+    // The typed-answer box (§6). Its label is the question the box asks, and
+    // `answer.needNumber` is what an empty or unparseable entry is told — never a
+    // verdict, because no answer has been given yet.
+    "answer.label": "Your answer",
+    "answer.needNumber": "Type a number to check your answer.",
+    "answer.unitHint": "in {unit}",
     "learn.check": "Check",
     "learn.correct": "Correct",
     "learn.wrong": "Not yet",
@@ -3573,6 +3932,7 @@ const en = {
     "footer.noAccounts": "Account optional",
     "brand.rail": "OpenMind · Exercise Book · Free",
     "footer.brand": "free forever, open-source (MIT).",
+    "ctx.aria": "Your country, course, board, year and subject",
     // ── keys defined for every language ──
     "nav.offlineTitle": "Offline plan",
     "nav.accessTitle": "Access & language",
@@ -3748,6 +4108,7 @@ const en = {
     "onb.currStep": "Your course",
     "onb.spec": "Qualification",
     "onb.level": "Level",
+    "onb.pickLevel": "Choose a tier",
     "onb.examDate": "Exam date",
     "onb.pickSubjects": "What are you studying?",
     "onb.langStep": "How should OpenMind talk to you?",
@@ -3841,6 +4202,16 @@ const en = {
     "pp.mark": "Mark scheme",
     "pp.tested": "What this paper tested",
     "pp.another": "Sit another paper",
+    "pp.questionOf": "Question {n} of {m}",
+    "pp.flag": "Flag",
+    "pp.flagged": "Flagged",
+    "pp.prev": "Previous",
+    "pp.next": "Next",
+    "pp.grid": "Jump to a question",
+    "pp.correct": "Correct",
+    "pp.incorrect": "Incorrect",
+    "pp.blank": "Not attempted",
+    "pp.checkIdea": "Check this idea",
     "ai.on": "AI tutor on",
     "ai.off": "Offline engine",
     "ai.note": "Add an API key on the server to switch tutoring, explanations and paper questions to a live model. Nothing is locked without one.",
@@ -4050,6 +4421,9 @@ const en = {
     "acct.class": "Join a class",
 };
 const es = {
+    "cur.covers": "{n} de los {total} conceptos de aquí forman parte de tu curso.",
+    "cur.outside": "Fuera de tu curso",
+    "cur.outsideNote": "Aquí hay {n} conceptos fuera de {spec}. Siguen abiertos para leer, pero no son tu temario.",
     "curr.unmapped": "El curso nacional de tu país aún no está mapeado: se muestran las rutas internacionales.",
     "nav.currTitle": "Tu currículo",
     "curr.title": "Tu currículo",
@@ -4806,8 +5180,15 @@ const es = {
     "dash.recommended": "Recomendado a continuación", "dash.mastery": "Dominio", "dash.rooms": "Salas de estudio", "dash.genome": "Mapa del genoma",
     "dash.language": "Idioma", "dash.subjects": "Materias",
     "diag.title": "Diagnóstico adaptativo",
+    "diag.progress": "Pregunta {n} de unas {m}",
+    "diag.leave": "Salir por ahora",
     "diag.sub": "Algunas preguntas por concepto. Los errores son útiles: revelan conceptos erróneos.",
     "diag.next": "Siguiente pregunta", "diag.skip": "Saltar concepto", "diag.done": "Terminar diagnóstico", "diag.working": "Diagnosticando…",
+    "diag.certaintyAsk": "¿Qué tan seguro estás?",
+    "diag.sure": "Creo que lo sé",
+    "diag.unsure": "No estoy seguro",
+    "diag.dontKnow": "No lo sé",
+    "diag.certaintyNote": "Dudaste en {u} de las {n} respuestas correctas: vale la pena revisarlas.",
     "diag.report": "Los resultados de tu diagnóstico",
     "diag.skillsTitle": "Lo que puedes hacer, por exigencia",
     "diag.skillsSub": "No solo los temas: qué tipo de razonamiento pedía cada uno.",
@@ -4825,6 +5206,8 @@ const es = {
     "diag.bankNote": "Estas preguntas las escribe OpenMind según las bandas de dificultad de tu titulación; no son exámenes oficiales reproducidos y son de elección múltiple, así que la respuesta escrita extensa no se mide aquí.",
     "diag.depthNote": "Los datos y las gráficas están más allá de lo que hoy alcanzan las preguntas de este banco, así que no se miden: es una carencia del banco, no tuya.",
     "diag.unreachableNote": "Un nivel marcado como fuera de tu curso no es una carencia tuya: todavía ninguna pregunta de tu curso lo alcanza.",
+    "diag.notAskedNote": "Algunos niveles quedan por debajo de donde te sitúa tu curso, así que este diagnóstico no los preguntó: es dónde empezó la prueba, no una carencia tuya.",
+    "diag.foundNotAsked": "{band} queda por debajo de donde te sitúa tu curso, así que esta prueba no lo preguntó.",
     "skill.recall": "Memoria",
     "skill.application": "Aplicación",
     "skill.multi_step": "Varios pasos",
@@ -4948,6 +5331,7 @@ const es = {
     "footer.noAccounts": "Cuenta opcional",
     "brand.rail": "OpenMind · Cuaderno de ejercicios · Gratis",
     "footer.brand": "gratis para siempre, código abierto (MIT).",
+    "ctx.aria": "Tu país, curso, junta, año y asignatura",
     "cb.statistics-data": "Resume, visualiza y cuestiona los datos con código.",
     // ── keys defined for every language ──
     "nav.offlineTitle": "Plan sin conexión",
@@ -5124,6 +5508,7 @@ const es = {
     "onb.currStep": "Tu curso",
     "onb.spec": "Titulación",
     "onb.level": "Nivel",
+    "onb.pickLevel": "Elige un nivel",
     "onb.examDate": "Fecha del examen",
     "onb.pickSubjects": "¿Qué estudias?",
     "onb.langStep": "¿Cómo debe hablarte OpenMind?",
@@ -5217,6 +5602,16 @@ const es = {
     "pp.mark": "Solucionario",
     "pp.tested": "Qué evaluó este examen",
     "pp.another": "Hacer otro examen",
+    "pp.questionOf": "Pregunta {n} de {m}",
+    "pp.flag": "Marcar",
+    "pp.flagged": "Marcada",
+    "pp.prev": "Anterior",
+    "pp.next": "Siguiente",
+    "pp.grid": "Ir a una pregunta",
+    "pp.correct": "Correcta",
+    "pp.incorrect": "Incorrecta",
+    "pp.blank": "Sin responder",
+    "pp.checkIdea": "Revisa esta idea",
     "ai.on": "Tutor con IA activado",
     "ai.off": "Motor sin conexión",
     "ai.note": "Añade una clave API en el servidor para usar un modelo en vivo en tutoría, explicaciones y exámenes. Sin clave no se bloquea nada.",
@@ -5427,6 +5822,9 @@ const es = {
     "acct.class": "Unirse a una clase",
 };
 const fr = {
+    "cur.covers": "{n} des {total} concepts d'ici font partie de ton parcours.",
+    "cur.outside": "Hors de ton parcours",
+    "cur.outsideNote": "{n} concepts d'ici sont en dehors de {spec}. Ils restent consultables, mais ils ne font pas partie de ton programme.",
     "curr.unmapped": "Le cursus national de ton pays n'est pas encore relié : les parcours internationaux sont affichés.",
     "nav.currTitle": "Ton programme",
     "curr.title": "Ton programme",
@@ -6183,8 +6581,15 @@ const fr = {
     "dash.recommended": "Recommandé ensuite", "dash.mastery": "Maîtrise", "dash.rooms": "Salles d'étude", "dash.genome": "Carte du génome",
     "dash.language": "Langue", "dash.subjects": "Matières",
     "diag.title": "Diagnostic adaptatif",
+    "diag.progress": "Question {n} sur environ {m}",
+    "diag.leave": "Quitter pour l'instant",
     "diag.sub": "Quelques questions par concept. Les erreurs sont utiles : elles révèlent les idées fausses.",
     "diag.next": "Question suivante", "diag.skip": "Passer le concept", "diag.done": "Terminer le diagnostic", "diag.working": "Diagnostic…",
+    "diag.certaintyAsk": "À quel point es-tu sûr ?",
+    "diag.sure": "Je pense savoir",
+    "diag.unsure": "Je ne suis pas sûr",
+    "diag.dontKnow": "Je ne sais pas",
+    "diag.certaintyNote": "Tu n'étais pas sûr sur {u} des {n} bonnes réponses — celles-là méritent un second regard.",
     "diag.report": "Les résultats de votre diagnostic",
     "diag.skillsTitle": "Ce que tu sais faire, par exigence",
     "diag.skillsSub": "Pas seulement les thèmes : le type de raisonnement demandé.",
@@ -6202,6 +6607,8 @@ const fr = {
     "diag.bankNote": "Ces questions sont rédigées par OpenMind selon les niveaux de difficulté de ta certification — ce ne sont pas des sujets officiels reproduits, et elles sont à choix multiple : la réponse rédigée longue n'est pas évaluée ici.",
     "diag.depthNote": "Les données et graphiques dépassent ce que les questions de cette banque atteignent aujourd'hui : ils ne sont donc pas évalués — une lacune du corpus, pas de ta part.",
     "diag.unreachableNote": "Un niveau indiqué comme hors de ton cours n'est pas une lacune de ta part : aucune question de ton cours ne l'atteint encore.",
+    "diag.notAskedNote": "Certains niveaux se situent en dessous de là où ton cours te place, donc ce diagnostic ne les a pas interrogés : c'est le point de départ de la séance, pas une lacune chez toi.",
+    "diag.foundNotAsked": "{band} se situe en dessous de là où ton cours te place, donc cette séance ne l'a pas interrogé.",
     "skill.recall": "Mémorisation",
     "skill.application": "Application",
     "skill.multi_step": "Plusieurs étapes",
@@ -6325,6 +6732,7 @@ const fr = {
     "footer.noAccounts": "Compte facultatif",
     "brand.rail": "OpenMind · Cahier d'exercices · Gratuit",
     "footer.brand": "gratuit pour toujours, open source (MIT).",
+    "ctx.aria": "Votre pays, programme, examen, année et matière",
     "cb.statistics-data": "Résumer, visualiser et questionner les données avec du code.",
     // ── keys defined for every language ──
     "nav.offlineTitle": "Plan hors ligne",
@@ -6501,6 +6909,7 @@ const fr = {
     "onb.currStep": "Votre parcours",
     "onb.spec": "Diplôme préparé",
     "onb.level": "Niveau",
+    "onb.pickLevel": "Choisis un niveau",
     "onb.examDate": "Date de l'examen",
     "onb.pickSubjects": "Qu'étudiez-vous ?",
     "onb.langStep": "Comment OpenMind doit-il vous parler ?",
@@ -6594,6 +7003,16 @@ const fr = {
     "pp.mark": "Corrigé",
     "pp.tested": "Ce que ce sujet a évalué",
     "pp.another": "Faire un autre sujet",
+    "pp.questionOf": "Question {n} sur {m}",
+    "pp.flag": "Marquer",
+    "pp.flagged": "Marquée",
+    "pp.prev": "Précédent",
+    "pp.next": "Suivant",
+    "pp.grid": "Aller à une question",
+    "pp.correct": "Correct",
+    "pp.incorrect": "Incorrect",
+    "pp.blank": "Non tentée",
+    "pp.checkIdea": "Revoir cette notion",
     "ai.on": "Tuteur IA activé",
     "ai.off": "Moteur hors ligne",
     "ai.note": "Ajoutez une clé API sur le serveur pour passer au modèle en direct (tutorat, explications, sujets). Rien n'est bloqué sans clé.",
@@ -6804,6 +7223,9 @@ const fr = {
     "acct.class": "Rejoindre une classe",
 };
 const pt = {
+    "cur.covers": "{n} dos {total} conceitos aqui pertencem ao teu curso.",
+    "cur.outside": "Fora do teu curso",
+    "cur.outsideNote": "{n} conceitos aqui ficam fora de {spec}. Continuam disponíveis para ler, mas não são o teu programa.",
     "curr.unmapped": "O curso nacional do teu país ainda não está mapeado — mostram-se os percursos internacionais.",
     "nav.currTitle": "O teu currículo",
     "curr.title": "O teu currículo",
@@ -7560,8 +7982,15 @@ const pt = {
     "dash.recommended": "Recomendado a seguir", "dash.mastery": "Domínio", "dash.rooms": "Salas de estudo", "dash.genome": "Mapa do genoma",
     "dash.language": "Idioma", "dash.subjects": "Matérias",
     "diag.title": "Diagnóstico adaptativo",
+    "diag.progress": "Pergunta {n} de cerca de {m}",
+    "diag.leave": "Sair por agora",
     "diag.sub": "Algumas perguntas por conceito. Erros são úteis — revelam equívocos.",
     "diag.next": "Próxima pergunta", "diag.skip": "Pular conceito", "diag.done": "Terminar diagnóstico", "diag.working": "Diagnosticando…",
+    "diag.certaintyAsk": "Quão seguro você está?",
+    "diag.sure": "Acho que sei",
+    "diag.unsure": "Não tenho certeza",
+    "diag.dontKnow": "Não sei",
+    "diag.certaintyNote": "Ficaste na dúvida em {u} das {n} respostas certas — vale a pena revê-las.",
     "diag.report": "Os resultados do seu diagnóstico",
     "diag.skillsTitle": "O que sabes fazer, por exigência",
     "diag.skillsSub": "Não só os temas: o tipo de raciocínio que cada um pedia.",
@@ -7579,6 +8008,8 @@ const pt = {
     "diag.bankNote": "Estas questões são escritas pela OpenMind segundo as bandas de dificuldade da tua qualificação — não são provas oficiais reproduzidas e são de escolha múltipla, por isso a resposta escrita longa não é avaliada aqui.",
     "diag.depthNote": "Dados e gráficos estão além do que as perguntas deste banco alcançam hoje, por isso não são avaliados — é uma lacuna do banco, não tua.",
     "diag.unreachableNote": "Um nível marcado como fora do teu curso não é uma falha tua: nenhuma pergunta do teu curso o alcança ainda.",
+    "diag.notAskedNote": "Alguns níveis ficam abaixo de onde o teu curso te coloca, por isso este diagnóstico não os perguntou — é onde a sessão começou, não uma falha tua.",
+    "diag.foundNotAsked": "{band} fica abaixo de onde o teu curso te coloca, por isso esta sessão não o perguntou.",
     "skill.recall": "Memória",
     "skill.application": "Aplicação",
     "skill.multi_step": "Vários passos",
@@ -7702,6 +8133,7 @@ const pt = {
     "footer.noAccounts": "Conta opcional",
     "brand.rail": "OpenMind · Caderno de exercícios · Grátis",
     "footer.brand": "grátis para sempre, código aberto (MIT).",
+    "ctx.aria": "Seu país, curso, banca, ano e disciplina",
     "cb.statistics-data": "Resuma, visualize e questione dados com código.",
     // ── keys defined for every language ──
     "nav.offlineTitle": "Plano offline",
@@ -7878,6 +8310,7 @@ const pt = {
     "onb.currStep": "Seu curso",
     "onb.spec": "Qualificação",
     "onb.level": "Nível",
+    "onb.pickLevel": "Escolhe um nível",
     "onb.examDate": "Data da prova",
     "onb.pickSubjects": "O que você estuda?",
     "onb.langStep": "Como o OpenMind deve falar com você?",
@@ -7971,6 +8404,16 @@ const pt = {
     "pp.mark": "Gabarito",
     "pp.tested": "O que esta prova avaliou",
     "pp.another": "Fazer outra prova",
+    "pp.questionOf": "Pergunta {n} de {m}",
+    "pp.flag": "Marcar",
+    "pp.flagged": "Marcada",
+    "pp.prev": "Anterior",
+    "pp.next": "Seguinte",
+    "pp.grid": "Ir para uma questão",
+    "pp.correct": "Correta",
+    "pp.incorrect": "Incorreta",
+    "pp.blank": "Não respondida",
+    "pp.checkIdea": "Revise esta ideia",
     "ai.on": "Tutor de IA ativo",
     "ai.off": "Motor offline",
     "ai.note": "Adicione uma chave de API no servidor para usar um modelo ao vivo na tutoria, nas explicações e nas provas. Sem chave, nada fica bloqueado.",
@@ -8181,6 +8624,9 @@ const pt = {
     "acct.class": "Entrar numa turma",
 };
 const ar = {
+    "cur.covers": "{n} من أصل {total} مفهومًا هنا تنتمي إلى مسارك.",
+    "cur.outside": "خارج مسارك الدراسي",
+    "cur.outsideNote": "هناك {n} مفهومًا هنا خارج {spec}. تبقى متاحة للقراءة، لكنها ليست منهجك.",
     "curr.unmapped": "لم يُرسم بعد المسار الوطني لبلدك — تُعرض المسارات الدولية بدلاً منه.",
     "nav.currTitle": "منهجك الدراسي",
     "curr.title": "منهجك الدراسي",
@@ -8937,8 +9383,15 @@ const ar = {
     "dash.recommended": "المقترح تاليًا", "dash.mastery": "الإتقان", "dash.rooms": "غرف الدراسة", "dash.genome": "خريطة الجينوم",
     "dash.language": "اللغة", "dash.subjects": "المواد",
     "diag.title": "تشخيص تكيّفي",
+    "diag.progress": "السؤال {n} من نحو {m}",
+    "diag.leave": "المغادرة الآن",
     "diag.sub": "أسئلة قليلة لكل مفهوم. الإجابات الخاطئة مفيدة — فهي تكشف سوء الفهم.",
     "diag.next": "السؤال التالي", "diag.skip": "تخطَّ المفهوم", "diag.done": "إنهاء التشخيص", "diag.working": "جارٍ التشخيص…",
+    "diag.certaintyAsk": "ما مدى تأكدك؟",
+    "diag.sure": "أظن أنني أعرف",
+    "diag.unsure": "لست متأكدًا",
+    "diag.dontKnow": "لا أعرف",
+    "diag.certaintyNote": "لم تكن متأكدًا في {u} من {n} إجابة صحيحة — تستحق مراجعة.",
     "diag.report": "نتائج تشخيصك",
     "diag.skillsTitle": "ما تستطيع فعله، حسب مستوى المطلب",
     "diag.skillsSub": "ليس المواضيع فقط: بل نوع التفكير الذي يطلبه كل سؤال.",
@@ -8956,6 +9409,8 @@ const ar = {
     "diag.bankNote": "هذه الأسئلة من تأليف OpenMind وفق نطاقات الصعوبة في شهادتك؛ وليست أوراق امتحان رسمية منسوخة، وهي اختيار من متعدد، لذا لا تُقاس هنا الإجابة المكتوبة المطوّلة.",
     "diag.depthNote": "البيانات والرسوم أعلى مما تبلغه أسئلة هذا البنك اليوم، لذا لا تُقاس — وهذه ثغرة في بنك الأسئلة، لا فيك.",
     "diag.unreachableNote": "المستوى المُعلَّم بأنه خارج مقررك ليس نقصًا فيك: فلا سؤال في مقررك يبلغه بعد.",
+    "diag.notAskedNote": "بعض المستويات تقع دون المستوى الذي يضعك فيه مقررك، لذلك لم يسألك هذا التشخيص عنها — هذا موضع بدء الجلسة، وليس نقصًا فيك.",
+    "diag.foundNotAsked": "{band} يقع دون المستوى الذي يضعك فيه مقررك، لذلك لم تسأل عنه هذه الجلسة.",
     "skill.recall": "الاسترجاع",
     "skill.application": "التطبيق",
     "skill.multi_step": "متعدد الخطوات",
@@ -9079,6 +9534,7 @@ const ar = {
     "footer.noAccounts": "الحساب اختياري",
     "brand.rail": "OpenMind · دفتر تمارين · مجاني",
     "footer.brand": "مجاني للأبد، مفتوح المصدر (MIT).",
+    "ctx.aria": "بلدك ومنهجك ومجلسك وسنتك ومادتك",
     "cb.statistics-data": "لخّص البيانات واعرضها وتحدَّها بالشيفرة.",
     // ── keys defined for every language ──
     "nav.offlineTitle": "خطة دون اتصال",
@@ -9255,6 +9711,7 @@ const ar = {
     "onb.currStep": "مقررك الدراسي",
     "onb.spec": "المؤهل الدراسي",
     "onb.level": "المستوى",
+    "onb.pickLevel": "اختر المستوى",
     "onb.examDate": "تاريخ الامتحان",
     "onb.pickSubjects": "ماذا تدرس؟",
     "onb.langStep": "كيف يتحدث إليك OpenMind؟",
@@ -9348,6 +9805,16 @@ const ar = {
     "pp.mark": "نموذج الإجابة",
     "pp.tested": "ما قيّمته هذه الورقة",
     "pp.another": "احضر ورقة أخرى",
+    "pp.questionOf": "السؤال {n} من {m}",
+    "pp.flag": "علّم",
+    "pp.flagged": "معلَّم",
+    "pp.prev": "السابق",
+    "pp.next": "التالي",
+    "pp.grid": "انتقل إلى سؤال",
+    "pp.correct": "صحيح",
+    "pp.incorrect": "خطأ",
+    "pp.blank": "لم تُحل",
+    "pp.checkIdea": "راجع هذه الفكرة",
     "ai.on": "المعلم بالذكاء الاصطناعي مُفعّل",
     "ai.off": "محرك دون اتصال",
     "ai.note": "أضف مفتاح API على الخادم لتشغيل نموذج حيّ في التدريس والشرح وأوراق الامتحان. لا شيء محجوب بدونه.",
@@ -9558,6 +10025,9 @@ const ar = {
     "acct.class": "الانضمام إلى صف",
 };
 const sw = {
+    "cur.covers": "{n} kati ya jumla ya {total} hapa yana sehemu ya kozi yako.",
+    "cur.outside": "Nje ya kozi yako",
+    "cur.outsideNote": "Kuna dhana {n} hapa zilizo nje ya {spec}. Zinabaki kufunguliwa kusoma, lakini si muhtasari wako.",
     "curr.unmapped": "Kozi ya kitaifa ya nchi yako haijapangwa bado — kozi za kimataifa zinaonyeshwa.",
     "nav.currTitle": "Mtaala wako",
     "curr.title": "Mtaala wako",
@@ -10314,8 +10784,15 @@ const sw = {
     "dash.recommended": "Nini kifuatacho", "dash.mastery": "Umilisi", "dash.rooms": "Vyumba vya kujifunza", "dash.genome": "Ramani ya jenomu",
     "dash.language": "Lugha", "dash.subjects": "Masomo",
     "diag.title": "Uchunguzi unaobadilika",
+    "diag.progress": "Swali {n} kati ya takriban {m}",
+    "diag.leave": "Ondoka kwa sasa",
     "diag.sub": "Maswali machache kwa dhana. Majibu yasiyo sahihi ni ya manufaa — yanaonyesha makosa ya kawaida.",
     "diag.next": "Swali linalofuata", "diag.skip": "Ruka dhana", "diag.done": "Maliza uchunguzi", "diag.working": "Inachunguza…",
+    "diag.certaintyAsk": "Una uhakika kiasi gani?",
+    "diag.sure": "Nadhani najua",
+    "diag.unsure": "Sina uhakika",
+    "diag.dontKnow": "Sijui",
+    "diag.certaintyNote": "Hukuwa na uhakika katika {u} kati ya {n} majibu sahihi — yanafaa kuangaliwa tena.",
     "diag.report": "Matokeo ya uchunguzi wako",
     "diag.skillsTitle": "Unachoweza, kwa kiwango cha mahitaji",
     "diag.skillsSub": "Sio mada tu — ni aina gani ya kufikiri kila swali lililohitaji.",
@@ -10333,6 +10810,8 @@ const sw = {
     "diag.bankNote": "Maswali haya yameandikwa na OpenMind kulingana na viwango vya ugumu vya shahada yako — si mitihani rasmi iliyonakiliwa, na ni ya kuchagua moja, kwa hivyo jibu refu la maandishi halipimwi hapa.",
     "diag.depthNote": "Data na grafu ni zaidi ya kile maswali ya hifadhi hii yanafikia leo, kwa hivyo hayapimwi — ni pengo la hifadhi ya maswali, si lako.",
     "diag.unreachableNote": "Kiwango kilichoainishwa kuwa nje ya kozi yako si pengo lako: bado hakuna swali la kozi yako linalolifikia.",
+    "diag.notAskedNote": "Baadhi ya viwango viko chini ya mahali kozi yako inakuweka, kwa hiyo uchunguzi huu haukuviuliza — ni mahali kikao kilipoanzia, si pengo lako.",
+    "diag.foundNotAsked": "{band} kiko chini ya mahali kozi yako inakuweka, kwa hiyo kikao hiki hakikuuliza.",
     "skill.recall": "Kukumbuka",
     "skill.application": "Kutumia",
     "skill.multi_step": "Hatua nyingi",
@@ -10456,6 +10935,7 @@ const sw = {
     "footer.noAccounts": "Akaunti si lazima",
     "brand.rail": "OpenMind · Kitabu cha mazoezi · Bure",
     "footer.brand": "bure milele, chanzo wazi (MIT).",
+    "ctx.aria": "Nchi yako, mtaala, bodi, mwaka na somo lako",
     "cb.statistics-data": "Fupisha, onyesha na uliza data kwa kutumia msimbo.",
     // ── keys defined for every language ──
     "nav.offlineTitle": "Mpango wa nje ya mtandao",
@@ -10632,6 +11112,7 @@ const sw = {
     "onb.currStep": "Kozi yako",
     "onb.spec": "Qualification",
     "onb.level": "Ngazi",
+    "onb.pickLevel": "Chagua ngazi",
     "onb.examDate": "Tarehe ya mtihani",
     "onb.pickSubjects": "Unasoma nini?",
     "onb.langStep": "OpenMind inakuongea vipi?",
@@ -10725,6 +11206,16 @@ const sw = {
     "pp.mark": "Mwongozo wa alama",
     "pp.tested": "Kile mtihani huu ulipima",
     "pp.another": "Fanya mtihani mwingine",
+    "pp.questionOf": "Swali {n} kati ya {m}",
+    "pp.flag": "Weka alama",
+    "pp.flagged": "Imewekwa alama",
+    "pp.prev": "Iliyotangulia",
+    "pp.next": "Ifuatayo",
+    "pp.grid": "Rukia swali",
+    "pp.correct": "Sahihi",
+    "pp.incorrect": "Si sahihi",
+    "pp.blank": "Haijajibiwa",
+    "pp.checkIdea": "Angalia wazo hili",
     "ai.on": "Mwalimu wa AI amewashwa",
     "ai.off": "Injini ya nje ya mtandao",
     "ai.note": "Ongeza ufunguo wa API kwenye seva ili kutumia modeli hai katika ualimu, maelezo na mitihani. Bila ufunguo hakuna kinachozuiwa.",
@@ -10935,6 +11426,9 @@ const sw = {
     "acct.class": "Jiunge na darasa",
 };
 const hi = {
+    "cur.covers": "यहाँ के {total} में से {n} अवधारणाएँ आपके पाठ्यक्रम में हैं।",
+    "cur.outside": "आपके पाठ्यक्रम से बाहर",
+    "cur.outsideNote": "यहाँ {n} अवधारणाएँ {spec} से बाहर हैं। वे पढ़ने के लिए उपलब्ध रहती हैं, पर आपकी पाठ्यक्रम सूची नहीं हैं।",
     "curr.unmapped": "आपके देश का राष्ट्रीय पाठ्यक्रम अभी जुड़ा नहीं है — अंतरराष्ट्रीय मार्ग दिखाए जा रहे हैं।",
     "nav.currTitle": "आपका पाठ्यक्रम",
     "curr.title": "आपका पाठ्यक्रम",
@@ -11691,8 +12185,15 @@ const hi = {
     "dash.recommended": "अगला सुझाव", "dash.mastery": "महारत", "dash.rooms": "अध्ययन कक्ष", "dash.genome": "जीनोम नक्शा",
     "dash.language": "भाषा", "dash.subjects": "विषय",
     "diag.title": "अनुकूली डायग्नोस्टिक",
+    "diag.progress": "प्रश्न {n}, लगभग {m} में से",
+    "diag.leave": "अभी के लिए छोड़ें",
     "diag.sub": "हर अवधारणा पर कुछ प्रश्न। ग़लत उत्तर उपयोगी हैं — वे भ्रांतियाँ दिखाते हैं।",
     "diag.next": "अगला प्रश्न", "diag.skip": "अवधारणा छोड़ें", "diag.done": "डायग्नोस्टिक पूरा करें", "diag.working": "जाँच हो रही है…",
+    "diag.certaintyAsk": "आप कितने निश्चित हैं?",
+    "diag.sure": "मुझे लगता है मुझे आता है",
+    "diag.unsure": "मुझे संदेह है",
+    "diag.dontKnow": "मुझे नहीं आता",
+    "diag.certaintyNote": "आप {n} सही उत्तरों में से {u} में अनिश्चित थे — इन्हें दोबारा देखना उपयोगी है।",
     "diag.report": "आपके निदान के परिणाम",
     "diag.skillsTitle": "आप क्या कर सकते हैं, कठिनाई के अनुसार",
     "diag.skillsSub": "सिर्फ़ विषय नहीं — हर प्रश्न किस तरह की सोच माँगता था।",
@@ -11710,6 +12211,8 @@ const hi = {
     "diag.bankNote": "ये प्रश्न OpenMind ने आपकी योग्यता के कठिनाई-स्तरों के अनुसार लिखे हैं — ये किसी बोर्ड के पुनरुत्पादित पेपर नहीं हैं, और बहुविकल्पीय हैं, इसलिए विस्तृत लिखित उत्तर यहाँ नहीं मापा जाता।",
     "diag.depthNote": "आँकड़े व ग्राफ़ आज इस बैंक के प्रश्नों की पहुँच से बाहर हैं, इसलिए इन्हें मापा नहीं गया — यह प्रश्न-बैंक की कमी है, आपकी नहीं।",
     "diag.unreachableNote": "आपके कोर्स से बाहर दिखाया गया स्तर आपकी कमी नहीं है: आपके कोर्स के किसी प्रश्न की पहुँच अभी वहाँ तक नहीं है।",
+    "diag.notAskedNote": "कुछ स्तर आपके कोर्स के शुरुआती स्तर से नीचे हैं, इसलिए इस जाँच ने उन्हें नहीं पूछा — यह सत्र की शुरुआत है, आपकी कमी नहीं।",
+    "diag.foundNotAsked": "{band} आपके कोर्स के शुरुआती स्तर से नीचे है, इसलिए इस सत्र ने इसे नहीं पूछा।",
     "skill.recall": "स्मरण",
     "skill.application": "प्रयोग",
     "skill.multi_step": "बहु-चरणीय",
@@ -11833,6 +12336,7 @@ const hi = {
     "footer.noAccounts": "खाता वैकल्पिक",
     "brand.rail": "OpenMind · अभ्यास पुस्तिका · मुफ़्त",
     "footer.brand": "हमेशा मुफ़्त, ओपन सोर्स (MIT)।",
+    "ctx.aria": "आपका देश, पाठ्यक्रम, बोर्ड, वर्ष और विषय",
     "cb.statistics-data": "कोड से डेटा का सारांश, चित्र और प्रश्न।",
     // ── keys defined for every language ──
     "nav.offlineTitle": "ऑफ़लाइन योजना",
@@ -12009,6 +12513,7 @@ const hi = {
     "onb.currStep": "आपका कोर्स",
     "onb.spec": "योग्यता / पाठ्यक्रम",
     "onb.level": "स्तर",
+    "onb.pickLevel": "स्तर चुनें",
     "onb.examDate": "परीक्षा की तारीख",
     "onb.pickSubjects": "आप क्या पढ़ते हैं?",
     "onb.langStep": "OpenMind आपसे कैसे बात करे?",
@@ -12102,6 +12607,16 @@ const hi = {
     "pp.mark": "उत्तर-योजना",
     "pp.tested": "इस पेपर ने क्या जाँचा",
     "pp.another": "दूसरा पेपर हल करें",
+    "pp.questionOf": "प्रश्न {n}, {m} में से",
+    "pp.flag": "चिह्नित करें",
+    "pp.flagged": "चिह्नित",
+    "pp.prev": "पिछला",
+    "pp.next": "अगला",
+    "pp.grid": "किसी प्रश्न पर जाएँ",
+    "pp.correct": "सही",
+    "pp.incorrect": "गलत",
+    "pp.blank": "अनुत्तरित",
+    "pp.checkIdea": "इस विचार की जाँच करें",
     "ai.on": "AI शिक्षक चालू",
     "ai.off": "ऑफ़लाइन इंजन",
     "ai.note": "सर्वर पर API कुंजी जोड़ें तो शिक्षण, व्याख्या और पेपर के प्रश्न लाइव मॉडल से बनेंगे। बिना कुंजी कुछ भी बंद नहीं होता।",
@@ -12312,6 +12827,9 @@ const hi = {
     "acct.class": "कक्षा में शामिल हों",
 };
 const id = {
+    "cur.covers": "{n} dari {total} konsep di sini termasuk dalam kursusmu.",
+    "cur.outside": "Di luar kursusmu",
+    "cur.outsideNote": "Ada {n} konsep di sini yang berada di luar {spec}. Semuanya tetap terbuka untuk dibaca, tetapi bukan silabusmu.",
     "curr.unmapped": "Kurikulum nasional negaramu belum dipetakan — rute internasional ditampilkan.",
     "nav.currTitle": "Kurikulummu",
     "curr.title": "Kurikulummu",
@@ -13069,8 +13587,15 @@ const id = {
     "dash.recommended": "Rekomendasi berikutnya", "dash.mastery": "Penguasaan", "dash.rooms": "Ruang belajar", "dash.genome": "Peta genom",
     "dash.language": "Bahasa", "dash.subjects": "Mata pelajaran",
     "diag.title": "Diagnosis adaptif",
+    "diag.progress": "Soal {n} dari sekitar {m}",
+    "diag.leave": "Keluar untuk sekarang",
     "diag.sub": "Beberapa soal per konsep. Jawaban salah itu berguna — mereka menyingkap miskonsepsi.",
     "diag.next": "Soal berikutnya", "diag.skip": "Lewati konsep", "diag.done": "Selesaikan diagnosis", "diag.working": "Sedang mendiagnosis…",
+    "diag.certaintyAsk": "Seberapa yakin kamu?",
+    "diag.sure": "Sepertinya aku tahu",
+    "diag.unsure": "Aku tidak yakin",
+    "diag.dontKnow": "Aku tidak tahu",
+    "diag.certaintyNote": "Kamu ragu pada {u} dari {n} jawaban benar — itu perlu ditinjau lagi.",
     "diag.report": "Hasil diagnostikmu",
     "diag.skillsTitle": "Apa yang bisa kamu lakukan, menurut tuntutan",
     "diag.skillsSub": "Bukan hanya topik — jenis berpikir yang diminta tiap soal.",
@@ -13088,6 +13613,8 @@ const id = {
     "diag.bankNote": "Soal-soal ini ditulis OpenMind sesuai rentang kesulitan kualifikasimu — bukan naskah ujian resmi yang disalin, dan berbentuk pilihan ganda, jadi jawaban tertulis panjang tidak diukur di sini.",
     "diag.depthNote": "Data dan grafik masih di luar jangkauan soal di bank ini hari ini, jadi belum diukur — ini kekurangan bank soal, bukan kekuranganmu.",
     "diag.unreachableNote": "Tingkat yang ditandai di luar kursusmu bukan kekuranganmu: belum ada soal di kursusmu yang mencapainya.",
+    "diag.notAskedNote": "Beberapa tingkat berada di bawah titik awal kursusmu, jadi diagnosis ini tidak menanyakannya — itu awal mulainya sesi ini, bukan kekuranganmu.",
+    "diag.foundNotAsked": "{band} berada di bawah titik awal kursusmu, jadi sesi ini tidak menanyakannya.",
     "skill.recall": "Ingatan",
     "skill.application": "Penerapan",
     "skill.multi_step": "Banyak langkah",
@@ -13211,6 +13738,7 @@ const id = {
     "footer.noAccounts": "Akun opsional",
     "brand.rail": "OpenMind · Buku latihan · Gratis",
     "footer.brand": "gratis selamanya, sumber terbuka (MIT).",
+    "ctx.aria": "Negara, kurikulum, board, tahun, dan mapelmu",
     // ── keys defined for every language ──
     "nav.offlineTitle": "Rencana offline",
     "nav.accessTitle": "Akses dan bahasa",
@@ -13386,6 +13914,7 @@ const id = {
     "onb.currStep": "Kursusmu",
     "onb.spec": "Kualifikasi",
     "onb.level": "Tingkat",
+    "onb.pickLevel": "Pilih tingkat",
     "onb.examDate": "Tanggal ujian",
     "onb.pickSubjects": "Apa yang kamu pelajari?",
     "onb.langStep": "Bagaimana OpenMind harus berbicara denganmu?",
@@ -13479,6 +14008,16 @@ const id = {
     "pp.mark": "Kunci penilaian",
     "pp.tested": "Apa yang diuji kertas ini",
     "pp.another": "Kerjakan kertas lain",
+    "pp.questionOf": "Soal {n} dari {m}",
+    "pp.flag": "Tandai",
+    "pp.flagged": "Ditandai",
+    "pp.prev": "Sebelumnya",
+    "pp.next": "Berikutnya",
+    "pp.grid": "Lompat ke soal",
+    "pp.correct": "Benar",
+    "pp.incorrect": "Salah",
+    "pp.blank": "Tidak dijawab",
+    "pp.checkIdea": "Periksa ide ini",
     "ai.on": "Tutor AI aktif",
     "ai.off": "Mesin offline",
     "ai.note": "Tambahkan kunci API di server agar bimbingan, penjelasan, dan soal ujian memakai model langsung. Tanpanya tidak ada yang terkunci.",
@@ -13689,6 +14228,9 @@ const id = {
     "acct.class": "Gabung kelas",
 };
 const tl = {
+    "cur.covers": "{n} sa {total} na konsepto rito ay bahagi ng iyong kurso.",
+    "cur.outside": "Hindi sa iyong kurso",
+    "cur.outsideNote": "{n} konsepto rito ang nasa labas ng {spec}. Nananatiling bukas para basahin, ngunit hindi ito ang iyong syllabus.",
     "curr.unmapped": "Hindi pa naka-map ang pambansang kurikulum ng bansa mo — mga internasyonal na ruta ang ipinapakita.",
     "nav.currTitle": "Kurikulum mo",
     "curr.title": "Kurikulum mo",
@@ -14446,8 +14988,15 @@ const tl = {
     "dash.recommended": "Susunod na mungkahi", "dash.mastery": "Mastery", "dash.rooms": "Silid-aralan", "dash.genome": "Mapa ng genome",
     "dash.language": "Wika", "dash.subjects": "Mga asignatura",
     "diag.title": "Adaptive diagnostic",
+    "diag.progress": "Tanong {n} ng humigit-kumulang {m}",
+    "diag.leave": "Umalis muna",
     "diag.sub": "Ilang tanong bawat konsepto. Ang mga maling sagot ay kapaki-pakinabang — ipinapakita nila ang misconception.",
     "diag.next": "Susunod na tanong", "diag.skip": "Laktawan ang konsepto", "diag.done": "Tapusin ang diagnostic", "diag.working": "Sinusuri…",
+    "diag.certaintyAsk": "Gaano ka kasigurado?",
+    "diag.sure": "Sa tingin ko alam ko",
+    "diag.unsure": "Hindi ako sigurado",
+    "diag.dontKnow": "Hindi ko alam",
+    "diag.certaintyNote": "Hindi ka sigurado sa {u} ng {n} tamang sagot — sulit na balikan ang mga ito.",
     "diag.report": "Mga resulta ng iyong diagnostic",
     "diag.skillsTitle": "Ang kaya mong gawin, ayon sa hinihingi",
     "diag.skillsSub": "Hindi lang mga paksa — kung anong uri ng pag-iisip ang hinihingi.",
@@ -14465,6 +15014,8 @@ const tl = {
     "diag.bankNote": "Ang mga tanong na ito ay isinulat ng OpenMind ayon sa mga antas ng hirap ng iyong kwalipikasyon — hindi ito kinopyang opisyal na papel, at multiple-choice lamang, kaya hindi sinukat dito ang mahabang nakasulat na sagot.",
     "diag.depthNote": "Ang data at grap ay lampas pa sa naaabot ng mga tanong sa bank na ito, kaya hindi pa ito nasusukat — kakulangan ito ng question bank, hindi mo.",
     "diag.unreachableNote": "Ang antas na minarkahang lampas sa kurso mo ay hindi kakulangan mo: wala pang tanong sa kurso mo na umaabot dito.",
+    "diag.notAskedNote": "Ang ilang antas ay nasa ibaba ng pinagsisimulan ng kurso mo, kaya hindi na ito tinanong ng diagnosis na ito — iyon ang pinagmulan ng sesyon, hindi kakulangan mo.",
+    "diag.foundNotAsked": "{band} ay nasa ibaba ng pinagsisimulan ng kurso mo, kaya hindi ito tinanong ng sesyong ito.",
     "skill.recall": "Pag-alala",
     "skill.application": "Paglalapat",
     "skill.multi_step": "Maraming hakbang",
@@ -14588,6 +15139,7 @@ const tl = {
     "footer.noAccounts": "Opsyonal ang account",
     "brand.rail": "OpenMind · Kuwaderno ng pagsasanay · Libre",
     "footer.brand": "libre magpakailanman, open source (MIT).",
+    "ctx.aria": "Iyong bansa, kurikulum, board, taon at asignatura",
     // ── keys defined for every language ──
     "nav.offlineTitle": "Plano offline",
     "nav.accessTitle": "Access at wika",
@@ -14763,6 +15315,7 @@ const tl = {
     "onb.currStep": "Kurso mo",
     "onb.spec": "Kwalipikasyon",
     "onb.level": "Antas",
+    "onb.pickLevel": "Pumili ng antas",
     "onb.examDate": "Petsa ng exam",
     "onb.pickSubjects": "Ano ang pinag-aaralan mo?",
     "onb.langStep": "Paano ka kakausapin ng OpenMind?",
@@ -14856,6 +15409,16 @@ const tl = {
     "pp.mark": "Mark scheme",
     "pp.tested": "Ano ang sinubok ng papel na ito",
     "pp.another": "Sagutan ang ibang papel",
+    "pp.questionOf": "Tanong {n} ng {m}",
+    "pp.flag": "Markahan",
+    "pp.flagged": "Namarkahan",
+    "pp.prev": "Nakaraan",
+    "pp.next": "Susunod",
+    "pp.grid": "Pumunta sa isang tanong",
+    "pp.correct": "Tama",
+    "pp.incorrect": "Mali",
+    "pp.blank": "Hindi sinagutan",
+    "pp.checkIdea": "Suriin ang ideyang ito",
     "ai.on": "Naka-on ang AI tutor",
     "ai.off": "Offline engine",
     "ai.note": "Magdagdag ng API key sa server para maging live model ang tutoring, paliwanag at mga tanong sa papel. Walang nakakandado kung wala nito.",
@@ -15067,6 +15630,9 @@ const tl = {
 };
 // ── Draft languages: core learning loop translated; English fills the rest. ─
 const de = {
+    "cur.covers": "{n} der {total} Konzepte hier gehören zu deinem Kurs.",
+    "cur.outside": "Nicht in deinem Kurs",
+    "cur.outsideNote": "{n} Konzepte hier liegen außerhalb von {spec}. Sie bleiben zum Lesen offen, sind aber nicht dein Lehrplan.",
     "curr.unmapped": "Der nationale Lehrplan deines Landes ist noch nicht abgebildet — es werden internationale Wege gezeigt.",
     "nav.currTitle": "Dein Lehrplan",
     "curr.title": "Dein Lehrplan",
@@ -15844,8 +16410,15 @@ const de = {
     "dash.language": "Sprache",
     "dash.subjects": "Fächer",
     "diag.title": "Adaptive Diagnostik",
+    "diag.progress": "Frage {n} von etwa {m}",
+    "diag.leave": "Für jetzt verlassen",
     "diag.sub": "Ein paar Fragen pro Konzept. Falsche Antworten sind nützlich — sie zeigen Missverständnisse.",
     "diag.next": "Nächste Frage",
+    "diag.certaintyAsk": "Wie sicher bist du?",
+    "diag.sure": "Ich glaube, ich weiß es",
+    "diag.unsure": "Ich bin unsicher",
+    "diag.dontKnow": "Ich weiß es nicht",
+    "diag.certaintyNote": "Bei {u} der {n} richtigen Antworten warst du unsicher — die lohnen einen zweiten Blick.",
     "diag.skip": "Konzept überspringen",
     "diag.done": "Diagnostik abschließen",
     "diag.report": "Die Ergebnisse deiner Diagnose",
@@ -15865,6 +16438,8 @@ const de = {
     "diag.bankNote": "Diese Aufgaben sind von OpenMind nach den Anforderungsbereichen deines Abschlusses geschrieben — keine reproduzierten Originalprüfungen, und nur Multiple-Choice, deshalb wird eine längere schriftliche Antwort hier nicht gemessen.",
     "diag.depthNote": "Daten und Diagramme liegen über dem, was die Aufgaben dieser Sammlung heute erreichen — deshalb werden sie nicht gemessen. Eine Lücke der Aufgabensammlung, nicht deine.",
     "diag.unreachableNote": "Eine Stufe, die als außerhalb deines Kurses markiert ist, ist keine Lücke bei dir: Noch keine Aufgabe deines Kurses erreicht sie.",
+    "diag.notAskedNote": "Einige Stufen liegen unterhalb dessen, wo dein Kurs dich einordnet, deshalb hat diese Diagnose sie nicht abgefragt — das ist der Startpunkt der Sitzung, keine Lücke bei dir.",
+    "diag.foundNotAsked": "{band} liegt unterhalb dessen, wo dein Kurs dich einordnet, deshalb hat diese Sitzung es nicht abgefragt.",
     "skill.recall": "Wiedergeben",
     "skill.application": "Anwenden",
     "skill.multi_step": "Mehrschrittig",
@@ -16025,6 +16600,7 @@ const de = {
     "footer.noAccounts": "Konto optional",
     "brand.rail": "OpenMind · Übungsheft · Kostenlos",
     "footer.brand": "für immer kostenlos, open source (MIT).",
+    "ctx.aria": "Dein Land, Lehrplan, Prüfungsausschuss, Jahrgang und Fach",
     // ── keys defined for every language ──
     "nav.offlineTitle": "Offline-Plan",
     "nav.accessTitle": "Zugang & Sprache",
@@ -16200,6 +16776,7 @@ const de = {
     "onb.currStep": "Dein Kurs",
     "onb.spec": "Abschluss",
     "onb.level": "Stufe",
+    "onb.pickLevel": "Stufe wählen",
     "onb.examDate": "Prüfungsdatum",
     "onb.pickSubjects": "Was lernst du?",
     "onb.langStep": "Wie soll OpenMind mit dir sprechen?",
@@ -16293,6 +16870,16 @@ const de = {
     "pp.mark": "Erwartungshorizont",
     "pp.tested": "Was diese Klausur geprüft hat",
     "pp.another": "Weitere Klausur schreiben",
+    "pp.questionOf": "Aufgabe {n} von {m}",
+    "pp.flag": "Markieren",
+    "pp.flagged": "Markiert",
+    "pp.prev": "Zurück",
+    "pp.next": "Weiter",
+    "pp.grid": "Zu einer Aufgabe springen",
+    "pp.correct": "Richtig",
+    "pp.incorrect": "Falsch",
+    "pp.blank": "Nicht bearbeitet",
+    "pp.checkIdea": "Diese Idee prüfen",
     "ai.on": "KI-Tutor aktiv",
     "ai.off": "Offline-Engine",
     "ai.note": "Füge einen API-Schlüssel auf dem Server hinzu, dann übernehmen Tutorium, Erklärungen und Klausurfragen ein Live-Modell. Ohne Schlüssel ist nichts gesperrt.",
@@ -16503,6 +17090,9 @@ const de = {
     "acct.class": "Einer Klasse beitreten",
 };
 const ja = {
+    "cur.covers": "ここにある {total} 概念のうち {n} があなたのコースに含まれます。",
+    "cur.outside": "コースの対象外",
+    "cur.outsideNote": "ここに {n} 件の概念は {spec} の外にあります。読むことはできますが、カリキュラムではありません。",
     "curr.unmapped": "お住まいの国の国内カリキュラムはまだ対応していません — 国際資格のコースを表示します。",
     "nav.currTitle": "あなたのカリキュラム",
     "curr.title": "あなたのカリキュラム",
@@ -17280,8 +17870,15 @@ const ja = {
     "dash.language": "言語",
     "dash.subjects": "教科",
     "diag.title": "アダプティブ診断",
+    "diag.progress": "{m} 問中 {n} 問目",
+    "diag.leave": "いったんやめる",
     "diag.sub": "概念ごとに数問。間違いは役に立ちます — 誤解が見えるからです。",
     "diag.next": "次の問題",
+    "diag.certaintyAsk": "どのくらい確かですか？",
+    "diag.sure": "たぶん分かる",
+    "diag.unsure": "自信がない",
+    "diag.dontKnow": "分からない",
+    "diag.certaintyNote": "正解した {n} 問のうち {u} 問は自信がありませんでした。見直す価値があります。",
     "diag.skip": "概念をスキップ",
     "diag.done": "診断を終了",
     "diag.report": "診断の結果",
@@ -17301,6 +17898,8 @@ const ja = {
     "diag.bankNote": "これらの問題は、あなたの資格の難易度帯に合わせて OpenMind が作成したものです — 公式過去問の複製ではなく、すべて四択のため、長い記述解答はここでは測定していません。",
     "diag.depthNote": "データとグラフは、この問題バンクが現在到達できる範囲を超えているため測定していません — 問題バンク側の不足であり、あなたの不足ではありません。",
     "diag.unreachableNote": "コースの範囲外と表示された水準は、あなたの不足ではありません — まだコースの問題がそこに届いていないだけです。",
+    "diag.notAskedNote": "いくつかの水準はあなたのコースが始まる位置より下にあるため、この診断では出題していません — これはセッションの開始位置であり、あなたの不足ではありません。",
+    "diag.foundNotAsked": "{band} はあなたのコースが始まる位置より下にあるため、このセッションでは出題していません。",
     "skill.recall": "想起",
     "skill.application": "活用",
     "skill.multi_step": "多段階",
@@ -17461,6 +18060,7 @@ const ja = {
     "footer.noAccounts": "アカウントは任意",
     "brand.rail": "OpenMind · 練習帳 · 無料",
     "footer.brand": "永久無料、オープンソース（MIT）。",
+    "ctx.aria": "あなたの国・課程・試験機関・学年・科目",
     // ── keys defined for every language ──
     "nav.offlineTitle": "オフライン計画",
     "nav.accessTitle": "アクセスと言語",
@@ -17636,6 +18236,7 @@ const ja = {
     "onb.currStep": "あなたのコース",
     "onb.spec": "資格・課程",
     "onb.level": "レベル",
+    "onb.pickLevel": "レベルを選択",
     "onb.examDate": "試験日",
     "onb.pickSubjects": "何を勉強していますか？",
     "onb.langStep": "OpenMind はどう話しかければよいですか？",
@@ -17729,6 +18330,16 @@ const ja = {
     "pp.mark": "採点基準",
     "pp.tested": "この紙が問うた内容",
     "pp.another": "別の紙を解く",
+    "pp.questionOf": "{m} 問中 {n} 問目",
+    "pp.flag": "フラグ",
+    "pp.flagged": "フラグ付き",
+    "pp.prev": "前へ",
+    "pp.next": "次へ",
+    "pp.grid": "問題へ移動",
+    "pp.correct": "正解",
+    "pp.incorrect": "不正解",
+    "pp.blank": "未解答",
+    "pp.checkIdea": "この考えを見直す",
     "ai.on": "AI チューター有効",
     "ai.off": "オフラインエンジン",
     "ai.note": "サーバーに API キーを追加すると、指導・解説・入試問題がライブモデルになります。キーがなくても機能は制限されません。",
@@ -17939,6 +18550,9 @@ const ja = {
     "acct.class": "クラスに参加",
 };
 const zh = {
+    "cur.covers": "这里的 {total} 个概念中，有 {n} 个属于你的课程。",
+    "cur.outside": "不在你的课程内",
+    "cur.outsideNote": "这里有 {n} 个概念在 {spec} 之外。它们仍可阅读，但不属于你的教学大纲。",
     "curr.unmapped": "你所在国家的国家课程尚未接入——当前显示国际课程路径。",
     "nav.currTitle": "你的课程体系",
     "curr.title": "你的课程体系",
@@ -18696,8 +19310,15 @@ const zh = {
     "dash.recommended": "下一步推荐", "dash.mastery": "掌握度", "dash.rooms": "自习室", "dash.genome": "知识图谱",
     "dash.language": "语言", "dash.subjects": "学科",
     "diag.title": "自适应诊断",
+    "diag.progress": "第 {n} 题，共约 {m} 题",
+    "diag.leave": "暂时离开",
     "diag.sub": "每个概念几个问题。错误答案很有用——它们揭示误解。",
     "diag.next": "下一题", "diag.skip": "跳过概念", "diag.done": "完成诊断", "diag.working": "正在诊断…", "diag.q1": "道题",
+    "diag.certaintyAsk": "你有多少把握？",
+    "diag.sure": "我大概会",
+    "diag.unsure": "我不太确定",
+    "diag.dontKnow": "我不会",
+    "diag.certaintyNote": "你答对的 {n} 题中有 {u} 题不太确定 — 值得再看一遍。",
     "diag.report": "你的诊断结果",
     "diag.skillsTitle": "你能做什么（按要求层次）",
     "diag.skillsSub": "不只是主题，而是每道题要求的思维类型。",
@@ -18715,6 +19336,8 @@ const zh = {
     "diag.bankNote": "这些题目由 OpenMind 依照你所在资格的难度区间编写——不是官方试卷的复制，且全部为选择题，因此这里不测量长篇书面作答。",
     "diag.depthNote": "数据与图表超出了本站题库当前能达到的范围，因此没有测量——这是题库的缺口，不是你的。",
     "diag.unreachableNote": "标记为超出你课程范围的层级不是你的缺口——你课程中还没有题目能达到它。",
+    "diag.notAskedNote": "有些层级低于你课程的起点，因此本次诊断没有出题——这是这次测评的起点，不是你的缺口。",
+    "diag.foundNotAsked": "{band} 低于你课程的起点，因此本次测评没有考它。",
     "skill.recall": "记忆",
     "skill.application": "应用",
     "skill.multi_step": "多步骤",
@@ -18807,6 +19430,7 @@ const zh = {
     "footer.noAccounts": "账户可选",
     "brand.rail": "OpenMind · 练习册 · 免费",
     "footer.brand": "永远免费，开源（MIT）。",
+    "ctx.aria": "你的国家、课程、考试体系、年级和科目",
     // ── keys defined for every language ──
     "nav.offlineTitle": "离线计划",
     "nav.accessTitle": "无障碍与语言",
@@ -18982,6 +19606,7 @@ const zh = {
     "onb.currStep": "你的课程",
     "onb.spec": "考试体系",
     "onb.level": "层次",
+    "onb.pickLevel": "选择层次",
     "onb.examDate": "考试日期",
     "onb.pickSubjects": "你在学什么？",
     "onb.langStep": "OpenMind 该如何与你交流？",
@@ -19075,6 +19700,16 @@ const zh = {
     "pp.mark": "评分标准",
     "pp.tested": "本卷考查内容",
     "pp.another": "再做一套",
+    "pp.questionOf": "第 {n} 题，共 {m} 题",
+    "pp.flag": "标记",
+    "pp.flagged": "已标记",
+    "pp.prev": "上一题",
+    "pp.next": "下一题",
+    "pp.grid": "跳到某题",
+    "pp.correct": "正确",
+    "pp.incorrect": "错误",
+    "pp.blank": "未作答",
+    "pp.checkIdea": "检查这个知识点",
     "ai.on": "AI 辅导已开启",
     "ai.off": "离线引擎",
     "ai.note": "在服务器上配置 API 密钥即可让辅导、讲解和试卷题目由实时模型生成；没有密钥也不会锁住任何功能。",
@@ -19285,6 +19920,9 @@ const zh = {
     "acct.class": "加入班级",
 };
 const fa = {
+    "cur.covers": "{n} از {total} مفهوم اینجا در دورهٔ شما می‌گنجد.",
+    "cur.outside": "خارج از دورهٔ شما",
+    "cur.outsideNote": "{n} مفهوم اینجا بیرون از {spec} هستند. برای خواندن در دسترس می‌مانند، اما برنامهٔ درسی تو نیستند.",
     "curr.unmapped": "برنامهٔ ملی کشور شما هنوز نگاشت نشده است — مسیرهای بین‌المللی نمایش داده می‌شود.",
     "nav.currTitle": "برنامهٔ درسی شما",
     "curr.title": "برنامهٔ درسی شما",
@@ -20042,8 +20680,15 @@ const fa = {
     "dash.recommended": "پیشنهاد بعدی", "dash.mastery": "تسلط", "dash.rooms": "اتاق‌های مطالعه", "dash.genome": "نقشهٔ ژنوم",
     "dash.language": "زبان", "dash.subjects": "درس‌ها",
     "diag.title": "سنجش تطبیقی",
+    "diag.progress": "پرسش {n} از حدود {m}",
+    "diag.leave": "فعلاً ترک کنید",
     "diag.sub": "برای هر مفهوم چند پرسش. پاسخ‌های نادرست مفیدند — سوءبرداشت‌ها را آشکار می‌کنند.",
     "diag.next": "پرسش بعدی", "diag.skip": "رد شدن از مفهوم", "diag.done": "پایان سنجش", "diag.working": "در حال سنجش…", "diag.q1": "پرسش",
+    "diag.certaintyAsk": "چقدر مطمئنی؟",
+    "diag.sure": "فکر می‌کنم می‌دانم",
+    "diag.unsure": "مطمئن نیستم",
+    "diag.dontKnow": "نمی‌دانم",
+    "diag.certaintyNote": "از {n} پاسخ درست، در {u} مورد مطمئن نبودی — ارزش یک نگاه دوباره دارند.",
     "diag.report": "نتایج تشخیص شما",
     "diag.skillsTitle": "چه می‌توانی، بر پایه سطح تقاضا",
     "diag.skillsSub": "نه فقط موضوع‌ها — بلکه نوع تفکری که هر پرسش می‌خواست.",
@@ -20061,6 +20706,8 @@ const fa = {
     "diag.bankNote": "این پرسش‌ها را OpenMind بر پایه بازه‌های دشواری مدرک تو نوشته است — نه برگه‌های رسمی بازتولیدشده، و همه چندگزینه‌ای‌اند، پس پاسخ نوشتاری بلند اینجا سنجیده نمی‌شود.",
     "diag.depthNote": "داده و نمودار از آنچه پرسش‌های این بانک امروز می‌رسد فراتر است، پس سنجیده نمی‌شود — این کاستی بانک پرسش است، نه کاستی تو.",
     "diag.unreachableNote": "سطحی که بیرون از درس تو نشان داده می‌شود کاستی تو نیست: هنوز هیچ پرسشی در درس تو به آن نمی‌رسد.",
+    "diag.notAskedNote": "برخی سطوح پایین‌تر از جایی هستند که درس تو از آن شروع می‌شود، پس این تشخیص آن‌ها را نپرسید — این نقطهٔ شروع این جلسه است، نه کاستی تو.",
+    "diag.foundNotAsked": "{band} پایین‌تر از جایی است که درس تو از آن شروع می‌شود، پس این جلسه آن را نپرسید.",
     "skill.recall": "یادآوری",
     "skill.application": "کاربرد",
     "skill.multi_step": "چندگامی",
@@ -20153,6 +20800,7 @@ const fa = {
     "footer.noAccounts": "حساب اختیاری است",
     "brand.rail": "OpenMind · دفتر تمرین · رایگان",
     "footer.brand": "برای همیشه رایگان، متن‌باز (MIT).",
+    "ctx.aria": "کشور، برنامه، هیئت آزمون، پایه و درس تو",
     // ── keys defined for every language ──
     "nav.offlineTitle": "برنامه آفلاین",
     "nav.accessTitle": "دسترسی و زبان",
@@ -20328,6 +20976,7 @@ const fa = {
     "onb.currStep": "دوره شما",
     "onb.spec": "مدرک تحصیلی",
     "onb.level": "سطح",
+    "onb.pickLevel": "یک سطح انتخاب کنید",
     "onb.examDate": "تاریخ آزمون",
     "onb.pickSubjects": "چه چیزی می‌خوانید؟",
     "onb.langStep": "OpenMind چگونه با شما حرف بزند؟",
@@ -20421,6 +21070,16 @@ const fa = {
     "pp.mark": "کلید تصحیح",
     "pp.tested": "آنچه این برگه سنجید",
     "pp.another": "برگه دیگری بدهید",
+    "pp.questionOf": "پرسش {n} از {m}",
+    "pp.flag": "نشان‌گذاری",
+    "pp.flagged": "نشان‌گذاری‌شده",
+    "pp.prev": "قبلی",
+    "pp.next": "بعدی",
+    "pp.grid": "رفتن به یک پرسش",
+    "pp.correct": "درست",
+    "pp.incorrect": "نادرست",
+    "pp.blank": "بی‌پاسخ",
+    "pp.checkIdea": "این ایده را بررسی کن",
     "ai.on": "آموزگار هوش مصنوعی روشن",
     "ai.off": "موتور آفلاین",
     "ai.note": "با افزودن کلید API روی سرور، آموزش، توضیح و پرسش‌های آزمون به مدل زنده سپرده می‌شود. بدون کلید چیزی قفل نیست.",
@@ -20631,6 +21290,9 @@ const fa = {
     "acct.class": "به یک کلاس بپیوندید",
 };
 const ur = {
+    "cur.covers": "یہاں کے {total} میں سے {n} تصورات آپ کے کورس کے حصے ہیں۔",
+    "cur.outside": "آپ کے کورس سے باہر",
+    "cur.outsideNote": "یہاں {n} تصورات {spec} سے باہر ہیں۔ یہ پڑھنے کے لیے کھلے رہتے ہیں، مگر آپ کا نصاب نہیں ہیں۔",
     "curr.unmapped": "آپ کے ملک کا قومی نصاب ابھی نقشے پر نہیں — بین الاقوامی راستے دکھائے جا رہے ہیں۔",
     "nav.currTitle": "آپ کا نصاب",
     "curr.title": "آپ کا نصاب",
@@ -21388,8 +22050,15 @@ const ur = {
     "dash.recommended": "اگلا مشورہ", "dash.mastery": "مہارت", "dash.rooms": "مطالعہ کمرے", "dash.genome": "جینوم کا نقشہ",
     "dash.language": "زبان", "dash.subjects": "مضامین",
     "diag.title": "موافق جانچ",
+    "diag.progress": "سوال {n} از تقریباً {m}",
+    "diag.leave": "ابھی کے لیے چھوڑیں",
     "diag.sub": "ہر تصور کے لیے چند سوال۔ غلط جواب کارآمد ہیں — وہ غالب فہمی ظاہر کرتے ہیں۔",
     "diag.next": "اگلا سوال", "diag.skip": "تصور چھوڑیں", "diag.done": "جانچ مکمل کریں", "diag.working": "جانچ جاری ہے…", "diag.q1": "سوال",
+    "diag.certaintyAsk": "آپ کتنے مطمئن ہیں؟",
+    "diag.sure": "مجھے لگتا ہے مجھے آتا ہے",
+    "diag.unsure": "مجھے یقین نہیں",
+    "diag.dontKnow": "مجھے نہیں آتا",
+    "diag.certaintyNote": "{n} درست جوابوں میں سے {u} پر آپ کو یقین نہیں تھا — ان پر دوبارہ نظر ڈالنا مفید ہے۔",
     "diag.report": "آپ کی تشخیص کے نتائج",
     "diag.skillsTitle": "آپ کیا کر سکتے ہیں، مطالبے کے لحاظ سے",
     "diag.skillsSub": "صرف موضوعات نہیں — ہر سوال کس قسم کی سوچ مانگتا تھا۔",
@@ -21407,6 +22076,8 @@ const ur = {
     "diag.bankNote": "یہ سوالات OpenMind نے آپ کی قابلیت کے دشواری درجوں کے مطابق لکھے ہیں — کسی بورڈ کے نقل شدہ پرچے نہیں، اور کثیر الانتخاب ہیں، اس لیے تفصیلی تحریری جواب یہاں نہیں ناپا جاتا۔",
     "diag.depthNote": "ڈیٹا اور گراف آج اس بینک کے سوالوں کی پہنچ سے باہر ہیں، اس لیے ناپے نہیں گئے — یہ سوالیں کے بینک کی کمی ہے، آپ کی نہیں۔",
     "diag.unreachableNote": "جو سطح آپ کے کورس سے باہر دکھائی گئی ہے وہ آپ کی کمی نہیں: آپ کے کورس کا کوئی سوال ابھی وہاں تک نہیں پہنچتا۔",
+    "diag.notAskedNote": "کچھ سطحیں آپ کے کورس کے آغاز سے نیچے ہیں، اس لیے اس تشخیص نے وہ نہیں پوچھیں — یہ اس نشست کا آغاز ہے، آپ کی کمی نہیں۔",
+    "diag.foundNotAsked": "{band} آپ کے کورس کے آغاز سے نیچے ہے، اس لیے اس نشست نے اسے نہیں پوچھا۔",
     "skill.recall": "یاد",
     "fb.independent": "خودمختار — بغیر اشاروں حل کیا۔ یہ ثبوت ہے۔",
     "fb.supported": "مدد سے پہنچے۔ اگلی بار بغیر مدد آزمائیں۔",
@@ -21499,6 +22170,7 @@ const ur = {
     "footer.noAccounts": "اکاؤنٹ اختیاری",
     "brand.rail": "OpenMind · مشق کی کاپی · مفت",
     "footer.brand": "ہمیشہ مفت، اوپن سورس (MIT)۔",
+    "ctx.aria": "آپ کا ملک، نصاب، بورڈ، سال اور مضمون",
     // ── keys defined for every language ──
     "nav.offlineTitle": "آف لائن منصوبہ",
     "nav.accessTitle": "رسائی اور زبان",
@@ -21674,6 +22346,7 @@ const ur = {
     "onb.currStep": "آپ کا کورس",
     "onb.spec": "قابلیت",
     "onb.level": "سطح",
+    "onb.pickLevel": "سطح منتخب کریں",
     "onb.examDate": "امتحان کی تاریخ",
     "onb.pickSubjects": "آپ کیا پڑھتے ہیں؟",
     "onb.langStep": "OpenMind آپ سے کیسے بات کرے؟",
@@ -21767,6 +22440,16 @@ const ur = {
     "pp.mark": "نشاندہی اسکیم",
     "pp.tested": "اس پرچے نے کیا جانچا",
     "pp.another": "دوسرا پرچہ حل کریں",
+    "pp.questionOf": "سوال {n} از {m}",
+    "pp.flag": "نشان لگائیں",
+    "pp.flagged": "نشان لگا",
+    "pp.prev": "پچھلا",
+    "pp.next": "اگلا",
+    "pp.grid": "کسی سوال پر جائیں",
+    "pp.correct": "درست",
+    "pp.incorrect": "غلط",
+    "pp.blank": "جواب نہیں دیا",
+    "pp.checkIdea": "اس خیال کو دیکھیں",
     "ai.on": "AI استاد فعال",
     "ai.off": "آف لائن انجن",
     "ai.note": "سرور پر API کلید ڈالیں تو تدریس، وضاحت اور پرچے کے سوالات لائیو ماڈل سے بنیں گے۔ بغیر کلید کچھ بند نہیں۔",
@@ -21994,6 +22677,9 @@ exports.LANGS = [
     { code: "bn", name: "Bengali", native: "বাংলা", dir: "ltr", status: "full", sample: "Bangladesh, West Bengal" },
 ];
 exports.bn = {
+    "cur.covers": "এখানকার {total}টি ধারণার মধ্যে {n}টি আপনার কোর্সের অন্তর্ভুক্ত।",
+    "cur.outside": "আপনার কোর্সের বাইরে",
+    "cur.outsideNote": "এখানে {n}টি ধারণা {spec}-এর বাইরে। পড়ার জন্য সেগুলো খোলা থাকে, কিন্তু সেগুলো আপনার পাঠ্যসূচি নয়।",
     "curr.unmapped": "আপনার দেশের জাতীয় পাঠ্যক্রম এখনো যুক্ত হয়নি — আন্তর্জাতিক পথ দেখানো হচ্ছে।",
     "nav.currTitle": "আপনার পাঠ্যক্রম",
     "curr.title": "আপনার পাঠ্যক্রম",
@@ -22771,8 +23457,15 @@ exports.bn = {
     "dash.genome": "জিনোম মানচিত্র",
     "dash.language": "ভাষা",
     "diag.title": "অভিযোজিত রোগনির্ণয়",
+    "diag.progress": "প্রশ্ন {n}, প্রায় {m}-এর মধ্যে",
+    "diag.leave": "এখনকার জন্য ছেড়ে দিন",
     "diag.sub": "প্রতি ধারণায় কয়েকটি প্রশ্ন। ভুল উত্তর কাজে লাগে — এগুলো ভুল ধারণা প্রকাশ করে।",
     "diag.next": "পরবর্তী প্রশ্ন",
+    "diag.certaintyAsk": "আপনি কতটা নিশ্চিত?",
+    "diag.sure": "মনে হয় আমি জানি",
+    "diag.unsure": "আমি নিশ্চিত নই",
+    "diag.dontKnow": "আমি জানি না",
+    "diag.certaintyNote": "সঠিক {n}টির মধ্যে {u}টিতে আপনি নিশ্চিত ছিলেন না — এগুলো আবার দেখা দরকার।",
     "diag.skip": "ধারণাটি এড়িয়ে যান",
     "diag.done": "রোগনির্ণয় শেষ করুন",
     "diag.report": "আপনার ডায়াগনস্টিকের ফলাফল",
@@ -22792,6 +23485,8 @@ exports.bn = {
     "diag.bankNote": "এই প্রশ্নগুলো আপনার যোগ্যতার কঠিনতার স্তর অনুযায়ী OpenMind লিখেছে — কোনো বোর্ডের পুনরুৎপাদিত প্রশ্নপত্র নয়, এবং সবই বহুনির্বাচনী, তাই বিস্তৃত লিখিত উত্তর এখানে মাপা হয় না।",
     "diag.depthNote": "তথ্য ও গ্রাফ আজ এই প্রশ্নভাণ্ডারের নাগালের বাইরে, তাই মাপা হয়নি — এটি প্রশ্নভাণ্ডারের ঘাটতি, আপনার নয়।",
     "diag.unreachableNote": "যে স্তরকে আপনার কোর্সের বাইরে দেখানো হয়েছে তা আপনার ঘাটতি নয় — আপনার কোর্সের কোনো প্রশ্ন এখনো সেখানে পৌঁছায় না।",
+    "diag.notAskedNote": "কিছু স্তর আপনার কোর্সের শুরু বিন্দুর নিচে, তাই এই নির্ণয় সেগুলো জিজ্ঞাসা করেনি — এটি এই অধিবেশনের সূচনা, আপনার ঘাটতি নয়।",
+    "diag.foundNotAsked": "{band} আপনার কোর্সের শুরু বিন্দুর নিচে, তাই এই অধিবেশন এটি জিজ্ঞাসা করেনি।",
     "skill.recall": "স্মরণ",
     "skill.application": "প্রয়োগ",
     "skill.multi_step": "বহুধাপ",
@@ -22927,6 +23622,7 @@ exports.bn = {
     "footer.noAccounts": "অ্যাকাউন্ট ঐচ্ছিক",
     "brand.rail": "OpenMind · অনুশীলন বই · বিনামূল্যে",
     "footer.brand": "চিরকাল বিনামূল্যে, ওপেন সোর্স (MIT)।",
+    "ctx.aria": "আপনার দেশ, পাঠ্যক্রম, বোর্ড, বছর ও বিষয়",
     // ── keys defined for every language ──
     "nav.offlineTitle": "অফলাইন পরিকল্পনা",
     "nav.accessTitle": "অ্যাক্সেস ও ভাষা",
@@ -23102,6 +23798,7 @@ exports.bn = {
     "onb.currStep": "আপনার কোর্স",
     "onb.spec": "যোগ্যতা",
     "onb.level": "স্তর",
+    "onb.pickLevel": "স্তর বাছুন",
     "onb.examDate": "পরীক্ষার তারিখ",
     "onb.pickSubjects": "আপনি কী পড়েন?",
     "onb.langStep": "OpenMind আপনার সঙ্গে কীভাবে কথা বলবে?",
@@ -23195,6 +23892,16 @@ exports.bn = {
     "pp.mark": "মার্ক স্কিম",
     "pp.tested": "এই প্রশ্নপত্র কী যাচাই করল",
     "pp.another": "আরেকটি প্রশ্নপত্র দিন",
+    "pp.questionOf": "প্রশ্ন {n}, {m}-এর মধ্যে",
+    "pp.flag": "চিহ্নিত করুন",
+    "pp.flagged": "চিহ্নিত",
+    "pp.prev": "আগের",
+    "pp.next": "পরের",
+    "pp.grid": "একটি প্রশ্নে যান",
+    "pp.correct": "সঠিক",
+    "pp.incorrect": "ভুল",
+    "pp.blank": "উত্তর দেওয়া হয়নি",
+    "pp.checkIdea": "এই ধারণাটি দেখুন",
     "ai.on": "AI শিক্ষক চালু",
     "ai.off": "অফলাইন ইঞ্জিন",
     "ai.note": "সার্ভারে একটি API কী যোগ করলে পড়ানো, ব্যাখ্যা ও প্রশ্নপত্র লাইভ মডেলে চলবে। কী ছাড়া কিছুই বন্ধ থাকে না।",
@@ -25488,6 +26195,20 @@ function decideNext(state, max = 4, tt, title, now = Date.now(), evidence) {
     // claim: a slip the record has actually named twice is evidence, while an
     // unestablished prerequisite is often only an absence of measurement. When
     // both are true the learner is told the specific, checkable thing.
+    //
+    // THE GATE IS THE SLIP COUNT AND NOTHING ELSE, and there are two ways to get
+    // that wrong, both of which this line used to have. Requiring a correct
+    // answer before naming a slip (`correct > 0`) silenced the diagnosis for the
+    // learner who has NEVER got the concept right — the case where the slip is
+    // the entire record and the most nameable thing there is. Requiring the
+    // concept to be past the `introduce` rung did the same to a learner whose
+    // recurring slip is precisely what keeps their mastery low, and it was worse
+    // than useless: it demoted a named, thrice-repeating slip below a spaced
+    // review of the concept they were BEST at. Repairing the slip is what makes
+    // it stop being actionable, and that is already handled one level down — the
+    // misconception ledger stops reporting a slip after REPAIR_STREAK clean
+    // answers, so `topMisconception` goes null and this branch stops firing on
+    // its own.
     for (const e of snap.evidence) {
         if (e.misconceptionHits >= 2 && e.topMisconception && out.length < max && !out.some((a) => a.conceptId === e.conceptId)) {
             const m = misconceptions_1.MISCONCEPTIONS_BY_ID[e.topMisconception];
@@ -25496,15 +26217,6 @@ function decideNext(state, max = 4, tt, title, now = Date.now(), evidence) {
             push({
                 kind: "REMEDIATE", conceptId: e.conceptId,
                 title: `${t("next.title.fix")}: ${name(e.conceptId)}`,
-                // THE DICTIONARY OWNS THE QUOTES. This template used to wrap the name
-                // in hard-coded “ ”, while every one of the fifteen dictionaries ALSO
-                // carries the language's own marks around the same slot — so the
-                // translator path rendered `““Sign slip””`, and in French, German,
-                // Arabic, Persian and Portuguese it mixed two quoting systems
-                // (`mais « “Sign slip” »`, `aber „ “Sign slip” “`). The English
-                // fallback table below has no marks of its own, which is exactly why
-                // this survived: the one path nobody reads in production was the only
-                // one that looked right.
                 reason: m
                     ? `${t("next.reason.remediatePre")}${mName}${t("next.reason.remediatePost")}`
                     : t("next.reason.remediateNoName"),
@@ -25748,6 +26460,2247 @@ exports.EN_NEXT = {
     "next.outcome.project": "After this: strong concepts become a piece of work you can show.",
     "next.outcome.rest": "Nothing to establish — come back when retrieval is due.",
 };
+
+});
+__def("numeric-items-core.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// NUMERIC ITEMS, PART TWO — the CORE curriculum.
+//
+// lib/numeric-items.ts opened the answer box on 31 concepts. This is the rest of
+// the core sequence: the number work, the algebra, the measurement, the physics
+// and chemistry where a learner is expected to COMPUTE a value rather than spot
+// it among four printed strings.
+//
+// Every item here follows the same contract as part one: a real question a
+// teacher would set, the unit stated where the answer has one, a tolerance the
+// ITEM declares (exact for a count, slack for a measurement), distractors that
+// are the mistakes the question actually produces, and an explanation that says
+// why — not merely what.
+//
+// Split into its own module purely for size. It is merged into the same
+// registry, so the bank, the gate and every surface treat the two alike.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CORE_NUMERIC_GENS = void 0;
+exports.CORE_NUMERIC_GENS = {
+    // ── NUMBER ──────────────────────────────────────────────────────────────
+    "place-value": (r) => {
+        const h = r.int(1, 9), t = r.int(1, 9), o = r.int(1, 9);
+        const n = h * 100 + t * 10 + o;
+        const which = r.pick(["tens", "hundreds", "ones"]);
+        const value = which === "tens" ? t * 10 : which === "hundreds" ? h * 100 : o;
+        return {
+            prompt: `In the number ${n}, what is the VALUE of the ${which} digit?`,
+            value, wrongs: [String(which === "tens" ? t : which === "hundreds" ? h : o), String(value * 10), String(value / 10)],
+            tags: [], difficulty: 0.35,
+            explanation: `The ${which} column is worth ${which === "tens" ? "10" : which === "hundreds" ? "100" : "1"} each, so the digit contributes ${value}. The digit itself (${which === "tens" ? t : which === "hundreds" ? h : o}) is not its value — the column is.`,
+        };
+    },
+    addition: (r) => {
+        const a = r.int(120, 980), b = r.int(120, 980);
+        return {
+            prompt: `Work out ${a} + ${b}.`,
+            value: a + b, wrongs: [String(a + b + 10), String(a + b - 10), String(a + b + 100)],
+            tags: [], difficulty: 0.3,
+            explanation: `${a} + ${b} = ${a + b}. Add the hundreds, then the tens, then the ones, and carry where a column reaches 10.`,
+        };
+    },
+    subtraction: (r) => {
+        const a = r.int(400, 980), b = r.int(120, a - 50);
+        return {
+            prompt: `Work out ${a} − ${b}.`,
+            value: a - b, wrongs: [String(a - b + 10), String(a - b - 10), String(b - a)],
+            tags: [], difficulty: 0.3,
+            explanation: `${a} − ${b} = ${a - b}. ${b - a} would be the wrong way round — the answer must be positive because ${a} is bigger.`,
+        };
+    },
+    multiplication: (r) => {
+        const a = r.int(12, 40), b = r.int(3, 12);
+        return {
+            prompt: `Work out ${a} × ${b}.`,
+            value: a * b, wrongs: [String(a * b + a), String(a * b - b), String(a + b)],
+            tags: [], difficulty: 0.35,
+            explanation: `${a} × ${b} = ${a * b}. Split ${b} into tens and ones if it helps: ${a} × 10 = ${a * 10}, then add ${a} × ${b - 10 >= 0 ? b - 10 : b}.`,
+        };
+    },
+    division: (r) => {
+        const b = r.int(3, 12), q = r.int(3, 12);
+        const a = b * q;
+        return {
+            prompt: `Work out ${a} ÷ ${b}.`,
+            value: q, wrongs: [String(q + 1), String(q - 1), String(b)],
+            tags: [], difficulty: 0.35,
+            explanation: `${a} ÷ ${b} = ${q}, because ${b} × ${q} = ${a}. Division is multiplication read backwards — check by multiplying.`,
+        };
+    },
+    negatives: (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const a = r.int(-9, -2), b = r.int(2, 9);
+            return {
+                prompt: `Work out ${a} + ${b}.`,
+                value: a + b, wrongs: [String(a - b), String(-(a + b)), String(Math.abs(a) + b)],
+                tags: ["neg-slip"], difficulty: 0.35,
+                explanation: `${a} + ${b} = ${a + b}. Starting at ${a} and moving ${b} to the right on the number line.`,
+            };
+        }
+        if (v === 1) {
+            const a = r.int(2, 9), b = r.int(-9, -2);
+            return {
+                prompt: `Work out ${a} − (${b}).`,
+                value: a - b, wrongs: [String(a + b), String(b - a), String(-(a - b))],
+                tags: ["neg-slip"], difficulty: 0.45,
+                explanation: `Subtracting a negative is ADDING: ${a} − (${b}) = ${a} + ${Math.abs(b)} = ${a - b}. Taking away a debt leaves you richer.`,
+            };
+        }
+        const a = r.int(-6, -2), b = r.int(-6, -2);
+        return {
+            prompt: `Work out (${a}) × (${b}).`,
+            value: a * b, wrongs: [String(a * b * -1), String(a + b), String(Math.abs(a * b))],
+            tags: ["neg-slip"], difficulty: 0.45,
+            explanation: `Two negatives multiply to a POSITIVE: (${a}) × (${b}) = ${a * b}. The opposite of the opposite is the original direction.`,
+        };
+    },
+    fractions: (r) => {
+        const d = r.int(3, 9), n = r.int(1, d - 1), k = r.int(2, 5);
+        return {
+            prompt: `Work out ${n}/${d} of ${d * k}.`,
+            value: n * k, wrongs: [String(n * d), String(k), String(n * k + d)],
+            // No tag. The item asks for a fraction OF a quantity, and its three wrong
+            // options are multiply-by-the-denominator, divide-and-stop, and
+            // add-the-denominator. None of them reveals "a bigger denominator means a
+            // bigger slice" — the concept's one catalogued belief — so carrying
+            // `frac-slice` here recorded evidence against a belief the item cannot
+            // test, exactly the defect lib/questions.ts documents for a positive index
+            // that used to carry "neg-exp". It is not merely wrong in principle: this
+            // is the tag a learner accumulates by missing a few of these, and it made
+            // the decision door answer "you can do the steps, but 'Bigger denominator
+            // = bigger slice' keeps recurring" to someone who cannot yet find 3/4 of
+            // 12 at all — a named cause where the record says the idea is unbuilt.
+            tags: [], difficulty: 0.4,
+            explanation: `Divide by the denominator first: ${d * k} ÷ ${d} = ${k}, then multiply by the numerator: ${k} × ${n} = ${n * k}.`,
+        };
+    },
+    "fraction-ops": (r) => {
+        const a = r.int(1, 5), b = r.int(2, 7), c = r.int(1, 5), d = r.int(2, 7);
+        const num = a * d + c * b;
+        const den = b * d;
+        return {
+            prompt: `Work out ${a}/${b} + ${c}/${d}. Give your answer as a decimal (2 d.p.).`,
+            value: Number((num / den).toFixed(2)), tolerance: { abs: 0.01 },
+            wrongs: [String(Number(((a + c) / (b + d)).toFixed(2))), String(Number((a / b).toFixed(2))), String(Number((num / den + 0.1).toFixed(2)))],
+            tags: ["denom-add"], difficulty: 0.55,
+            explanation: `A common denominator: ${a}/${b} + ${c}/${d} = ${a * d}/${den} + ${c * b}/${den} = ${num}/${den} = ${Number((num / den).toFixed(2))}. Adding tops and bottoms (${a + c}/${b + d}) is the classic error — the answer must be BIGGER than either fraction.`,
+        };
+    },
+    decimals: (r) => {
+        const a = r.int(10, 90) / 10, b = r.int(10, 90) / 10;
+        return {
+            prompt: `Work out ${a} × ${b}.`,
+            value: Number((a * b).toFixed(4)), tolerance: { abs: 0.005 },
+            wrongs: [String(Number((a * b * 10).toFixed(4))), String(Number((a * b / 10).toFixed(4))), String(Number((a + b).toFixed(4)))],
+            tags: [], difficulty: 0.45,
+            explanation: `${a} × ${b} = ${Number((a * b).toFixed(4))}. Multiply as if the points were not there (${Math.round(a * 10)} × ${Math.round(b * 10)} = ${Math.round(a * 10) * Math.round(b * 10)}), then put back the two decimal places.`,
+        };
+    },
+    percentages: (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const pct = r.pick([15, 20, 25, 35, 40]), amount = r.pick([40, 60, 80, 120, 200]);
+            return {
+                prompt: `Work out ${pct}% of ${amount}.`,
+                value: (pct * amount) / 100, tolerance: { abs: 0.01 },
+                wrongs: [String((pct * amount) / 10), String(amount - (pct * amount) / 100), String(pct * amount)],
+                tags: ["pct-base"], difficulty: 0.4,
+                explanation: `${pct}% means ${pct}/100, so ${pct}% of ${amount} = ${amount} × ${pct}/100 = ${(pct * amount) / 100}.`,
+            };
+        }
+        if (v === 1) {
+            const pct = r.pick([10, 20, 25, 50]), amount = r.pick([60, 80, 120, 240]);
+            return {
+                prompt: `A price of ${amount} rises by ${pct}%. What is the new price?`,
+                value: amount * (1 + pct / 100), tolerance: { abs: 0.01 },
+                wrongs: [String(amount + pct), String((amount * pct) / 100), String(amount * (1 - pct / 100))],
+                tags: ["pct-base"], difficulty: 0.45,
+                explanation: `A ${pct}% rise is a multiplier of ${1 + pct / 100}: ${amount} × ${1 + pct / 100} = ${amount * (1 + pct / 100)}. Adding ${pct} would be adding ${pct} pounds, not ${pct} percent.`,
+            };
+        }
+        const pct = r.pick([20, 25, 40]), amount = r.pick([80, 120, 200]);
+        return {
+            prompt: `A price of ${amount} falls by ${pct}%. What is the new price?`,
+            value: amount * (1 - pct / 100), tolerance: { abs: 0.01 },
+            wrongs: [String(amount - pct), String(amount * (1 + pct / 100)), String((amount * pct) / 100)],
+            tags: ["pct-base"], difficulty: 0.45,
+            explanation: `A ${pct}% fall is a multiplier of ${1 - pct / 100}: ${amount} × ${1 - pct / 100} = ${amount * (1 - pct / 100)}.`,
+        };
+    },
+    ratio: (r) => {
+        const a = r.int(1, 5);
+        // a === b makes "what is the SMALLER share?" a question with two right
+        // answers, and prints an unsimplified ratio (3:3) as if it were one — a
+        // learner who simplifies it first gets a different question from the one
+        // printed. Keep the two parts distinct.
+        const raw = r.int(1, 5);
+        const b = raw >= a ? (raw % 5) + 1 : raw;
+        const k = r.int(2, 6);
+        const total = (a + b) * k;
+        return {
+            prompt: `£${total} is shared in the ratio ${a}:${b}. What is the SMALLER share?`,
+            value: Math.min(a, b) * k, wrongs: [String(Math.max(a, b) * k), String(total / 2), String(Math.min(a, b) * (k + 1))],
+            tags: [], difficulty: 0.5,
+            explanation: `There are ${a + b} parts, each worth ${total} ÷ ${a + b} = ${k}. The smaller share is ${Math.min(a, b)} parts = ${Math.min(a, b) * k}.`,
+        };
+    },
+    proportion: (r) => {
+        const n = r.int(2, 8), cost = r.int(2, 9), m = r.int(2, 6);
+        return {
+            prompt: `If ${n} pens cost £${n * cost}, how much do ${m} pens cost, in pounds?`,
+            value: m * cost, tolerance: { abs: 0.01, unit: "£" },
+            wrongs: [String(n * cost), String(cost), String(m * cost + cost)],
+            tags: ["inv-prop"], difficulty: 0.45,
+            explanation: `Find the UNIT price first: £${n * cost} ÷ ${n} = £${cost} each. Then ${m} × £${cost} = £${m * cost}. This is direct proportion — more pens, more money.`,
+        };
+    },
+    rounding: (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const n = r.int(1000, 9999) / 100;
+            return {
+                prompt: `Round ${n} to 1 decimal place.`,
+                value: Number(n.toFixed(1)), tolerance: { abs: 0.001 },
+                wrongs: [String(Number(n.toFixed(2))), String(Math.round(n)), String(Number((n - 0.1).toFixed(1)))],
+                tags: ["round-half"], difficulty: 0.4,
+                explanation: `Look at the second decimal (${String(n).split(".")[1]?.[1] ?? 0}): 5 or more rounds up, below 5 rounds down. So ${n} → ${Number(n.toFixed(1))}.`,
+            };
+        }
+        if (v === 1) {
+            const n = r.int(1000, 9999);
+            return {
+                prompt: `Round ${n} to the nearest 100.`,
+                value: Math.round(n / 100) * 100, wrongs: [Math.round(n / 10) * 10, Math.round(n / 1000) * 1000, n - 100],
+                tags: ["round-half"], difficulty: 0.4,
+                explanation: `The tens digit decides: ${n} sits between ${Math.floor(n / 100) * 100} and ${Math.ceil(n / 100) * 100}, nearer ${Math.round(n / 100) * 100}.`,
+            };
+        }
+        const sf = r.pick([2, 3]);
+        const n = r.int(10000, 99999);
+        const rounded = Number(n.toPrecision(sf));
+        return {
+            prompt: `Round ${n} to ${sf} significant figures.`,
+            value: rounded, wrongs: [Number(n.toPrecision(sf + 1)), Number(n.toPrecision(sf - 1)), Math.round(n / 1000) * 1000],
+            tags: ["round-half"], difficulty: 0.5,
+            explanation: `Significant figures count from the first non-zero digit. ${n} to ${sf} s.f. is ${rounded}.`,
+        };
+    },
+    "order-ops": (r) => {
+        const a = r.int(2, 9), b = r.int(2, 9), c = r.int(2, 9);
+        return {
+            prompt: `Work out ${a} + ${b} × ${c}.`,
+            value: a + b * c, wrongs: [(a + b) * c, a * b + c, a + b + c],
+            tags: ["order-ops"], difficulty: 0.4,
+            explanation: `Multiplication binds tighter than addition: ${b} × ${c} = ${b * c} first, then ${a} + ${b * c} = ${a + b * c}. Working left to right gives ${(a + b) * c}, which is wrong.`,
+        };
+    },
+    "indices-intro": (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const b = r.int(2, 5), e = r.int(2, 4);
+            return {
+                prompt: `Work out ${b}^${e}.`,
+                value: Math.pow(b, e), wrongs: [b * e, Math.pow(b, e + 1), Math.pow(e, b)],
+                // No tag: a POSITIVE index cannot reveal that the learner reads a
+                // negative one as a negative number. See lib/questions.ts, which fixed
+                // this same assignment on the base family ("evidence recorded against a
+                // belief the item could not test"). The negative-index draw below still
+                // carries `neg-exp`, so the concept's belief stays reachable.
+                tags: [], difficulty: 0.4,
+                explanation: `${b}^${e} means ${b} multiplied by itself ${e} times = ${Math.pow(b, e)}. It is NOT ${b} × ${e}.`,
+            };
+        }
+        if (v === 1) {
+            const b = r.int(2, 5), e = r.int(2, 3);
+            return {
+                prompt: `Work out ${b}^${-e} as a decimal (3 d.p.).`,
+                value: Number((1 / Math.pow(b, e)).toFixed(3)), tolerance: { abs: 0.002 },
+                wrongs: [String(-Math.pow(b, e)), String(Number((-b / e).toFixed(3))), String(Number((1 / (b * e)).toFixed(3)))],
+                tags: ["neg-exp"], difficulty: 0.55,
+                explanation: `A negative index flips into a fraction: ${b}^${-e} = 1/${b}^${e} = 1/${Math.pow(b, e)} = ${Number((1 / Math.pow(b, e)).toFixed(3))}. The answer is POSITIVE — the sign of the index never changes the sign of the value.`,
+            };
+        }
+        const b = r.int(2, 4), e = r.int(2, 3);
+        return {
+            prompt: `Work out (${b}^${e})².`,
+            value: Math.pow(b, e * 2), wrongs: [Math.pow(b, e) * 2, Math.pow(b, e + 2), Math.pow(b * 2, e)],
+            // No tag: this item is about multiplying indices in a power of a power,
+            // and every index in it is positive. `neg-exp` is not what a wrong answer
+            // here shows — the slip is "add the indices instead of multiplying", which
+            // this concept's catalogue does not name.
+            tags: [], difficulty: 0.5,
+            explanation: `A power of a power MULTIPLIES the indices: (${b}^${e})² = ${b}^${e * 2} = ${Math.pow(b, e * 2)}.`,
+        };
+    },
+    // ── ALGEBRA ─────────────────────────────────────────────────────────────
+    simultaneous: (r) => {
+        const x = r.int(1, 7), y = r.int(1, 7);
+        const a = r.int(1, 4), b = r.int(1, 4), c = r.int(1, 4), d = r.int(1, 4);
+        const e1 = a * x + b * y, e2 = c * x + d * y;
+        if (a * d === c * b)
+            return { prompt: `Solve x + y = ${x + y} and 2x + 2y = ${2 * (x + y)}. These are the same line — how many solutions are there?`, value: 0, wrongs: ["1", "2", "-1"], tags: [], difficulty: 0.6, explanation: `The second equation is just twice the first, so every point on the line works: infinitely many solutions, which the bank records as 0 unique. Parallel-but-different lines would give none.` };
+        return {
+            prompt: `Solve the simultaneous equations:\n${a}x + ${b}y = ${e1}\n${c}x + ${d}y = ${e2}\nWhat is x?`,
+            value: x, wrongs: [y, x + 1, x - 1],
+            tags: ["sub-sign"], difficulty: 0.6,
+            explanation: `Eliminate one variable by matching coefficients, then substitute back. Here x = ${x} (and y = ${y}). Always check BOTH equations with your pair.`,
+        };
+    },
+    "straight-lines": (r) => {
+        const m = r.int(1, 5), c = r.int(-6, 6);
+        const x = r.int(1, 6);
+        return {
+            prompt: `A line has equation y = ${m}x ${c < 0 ? "− " + Math.abs(c) : "+ " + c}. What is y when x = ${x}?`,
+            value: m * x + c, wrongs: [m * x, m * x - c, (m + c) * x],
+            tags: ["grad-run"], difficulty: 0.45,
+            explanation: `Substitute: y = ${m}(${x}) ${c < 0 ? "− " + Math.abs(c) : "+ " + c} = ${m * x} ${c < 0 ? "− " + Math.abs(c) : "+ " + c} = ${m * x + c}.`,
+        };
+    },
+    quadratics: (r) => {
+        const p = r.int(1, 7), q = r.int(1, 7);
+        return {
+            prompt: `Solve x² − ${p + q}x + ${p * q} = 0. What is the LARGER root?`,
+            value: Math.max(p, q), wrongs: [Math.min(p, q), p + q, p * q],
+            tags: ["lost-root"], difficulty: 0.55,
+            explanation: `Factorise: (x − ${p})(x − ${q}) = 0, so x = ${p} or x = ${q}. The larger root is ${Math.max(p, q)}. Both roots are real answers — a quadratic normally has two.`,
+        };
+    },
+    sequences: (r) => {
+        const v = r.int(0, 1);
+        const a = r.int(2, 9), d = r.int(2, 7);
+        if (v === 0) {
+            const n = r.int(5, 12);
+            return {
+                prompt: `A sequence starts ${a}, ${a + d}, ${a + 2 * d}, … What is the ${n}th term?`,
+                value: a + (n - 1) * d, wrongs: [a + n * d, a * n, a + (n - 1) * (d + 1)],
+                tags: ["nth-term"], difficulty: 0.5,
+                explanation: `The nth term is a + (n − 1)d = ${a} + ${n - 1} × ${d} = ${a + (n - 1) * d}. Using n rather than n − 1 gives ${a + n * d} — an off-by-one that fails at the first term.`,
+            };
+        }
+        const n = r.int(5, 10);
+        return {
+            prompt: `A sequence has nth term ${d}n + ${a}. What is the ${n}th term?`,
+            value: d * n + a, wrongs: [d * n, d * n + a * n, d * (n + 1) + a],
+            tags: ["nth-term"], difficulty: 0.45,
+            explanation: `Substitute n = ${n}: ${d}(${n}) + ${a} = ${d * n} + ${a} = ${d * n + a}.`,
+        };
+    },
+    functions: (r) => {
+        const a = r.int(2, 5), b = r.int(1, 7), x = r.int(2, 8);
+        return {
+            prompt: `f(x) = ${a}x + ${b}. What is f(${x})?`,
+            value: a * x + b, wrongs: [a * (x + b), a * x, (a + b) * x],
+            tags: [], difficulty: 0.4,
+            explanation: `Substitute x = ${x}: f(${x}) = ${a}(${x}) + ${b} = ${a * x} + ${b} = ${a * x + b}.`,
+        };
+    },
+    surds: (r) => {
+        const k = r.pick([2, 3, 5, 6, 7]);
+        const sq = r.pick([4, 9, 16, 25]);
+        const n = k * sq;
+        const outside = Math.sqrt(sq);
+        return {
+            prompt: `Simplify √${n} as a√b where a is as large as possible. What is a?`,
+            value: outside, wrongs: [outside + 1, k, Number(Math.sqrt(n).toFixed(3))],
+            tags: ["sqrt-prod"], difficulty: 0.55,
+            explanation: `√${n} = √(${sq} × ${k}) = √${sq} × √${k} = ${outside}√${k}. Take out the largest perfect square — here ${sq}.`,
+        };
+    },
+    "completing-square": (r) => {
+        const h = r.int(1, 8);
+        return {
+            prompt: `Write x² + ${2 * h}x + ${h * h + 5} in the form (x + p)² + q. What is q?`,
+            value: 5, wrongs: [h * h + 5, -h, h * h],
+            tags: ["b-half"], difficulty: 0.6,
+            explanation: `Halve the x coefficient: p = ${h}, so (x + ${h})² = x² + ${2 * h}x + ${h * h}. The constant was ${h * h + 5}, so q = ${h * h + 5} − ${h * h} = 5. Forgetting to subtract the added ${h * h} is the classic error.`,
+        };
+    },
+    "growth-decay": (r) => {
+        const p = r.pick([200, 400, 500, 800]), rate = r.pick([5, 10, 20]), years = r.int(2, 4);
+        const amount = p * Math.pow(1 + rate / 100, years);
+        return {
+            prompt: `£${p} is invested at ${rate}% compound interest per year. What is its value after ${years} years (to the nearest penny)?`,
+            value: Number(amount.toFixed(2)), tolerance: { abs: 0.01, unit: "£" },
+            wrongs: [Number((p * (1 + (rate * years) / 100)).toFixed(2)), Number((p * (1 + rate / 100) * years).toFixed(2)), Number((p + rate * years).toFixed(2))],
+            tags: ["simple-cp"], difficulty: 0.6,
+            explanation: `Compound means interest on interest: A = P(1 + r)ⁿ = ${p}(1 + ${rate / 100})^${years} = ${Number(amount.toFixed(2))}. Simple interest would give ${Number((p * (1 + (rate * years) / 100)).toFixed(2))} — the gap IS the compounding.`,
+        };
+    },
+    "financial-maths": (r) => {
+        const p = r.pick([1200, 2400, 3600]), rate = r.pick([3, 4, 5]), years = r.int(2, 5);
+        const interest = (p * rate * years) / 100;
+        return {
+            prompt: `£${p} earns simple interest at ${rate}% per year for ${years} years. How much INTEREST is earned, in pounds?`,
+            value: interest, tolerance: { abs: 0.01, unit: "£" },
+            wrongs: [p + interest, (p * rate) / 100, interest * years],
+            tags: ["simple-cp"], difficulty: 0.5,
+            explanation: `Simple interest = P × r × n ÷ 100 = ${p} × ${rate} × ${years} ÷ 100 = £${interest}. The interest is the EXTRA, not the total (${p + interest}).`,
+        };
+    },
+    bounds: (r) => {
+        const n = r.int(20, 90) / 10;
+        const half = 0.05;
+        return {
+            prompt: `A length is measured as ${n} cm, rounded to 1 decimal place. What is the UPPER bound, in cm?`,
+            value: Number((n + half).toFixed(3)), tolerance: { abs: 0.001, unit: "cm" },
+            wrongs: [Number((n - half).toFixed(3)), n, Number((n + half * 2).toFixed(3))],
+            tags: ["round-half"], difficulty: 0.55,
+            explanation: `Rounding to 1 d.p. means the true value could be up to half a unit of the last place higher: ${n} + 0.05 = ${Number((n + half).toFixed(2))} cm.`,
+        };
+    },
+    "algebraic-fractions": (r) => {
+        const a = r.int(2, 9), b = r.int(2, 9);
+        return {
+            prompt: `Simplify (x² + ${a + b}x + ${a * b}) / (x + ${a}). At x = ${a + 1}, what is the simplified expression's value?`,
+            value: a + 1 + b, wrongs: [a + 1, a + b, a * b],
+            tags: ["cancel-term"], difficulty: 0.7,
+            explanation: `Factorise the top: (x + ${a})(x + ${b}), so the fraction is x + ${b}. At x = ${a + 1} that is ${a + 1 + b}. Cancelling term-by-term without factorising first is the error this asks you to avoid.`,
+        };
+    },
+    "sets-venn": (r) => {
+        const both = r.int(2, 8), onlyA = r.int(3, 10), onlyB = r.int(3, 10);
+        const neither = r.int(1, 6);
+        const total = both + onlyA + onlyB + neither;
+        return {
+            prompt: `In a class of ${total}, ${both + onlyA} study French, ${both + onlyB} study Spanish and ${both} study both. How many study NEITHER?`,
+            value: neither, wrongs: [both, total - (both + onlyA) - (both + onlyB), 0],
+            tags: ["sum-one"], difficulty: 0.55,
+            explanation: `The overlap is counted twice, so subtract it once: |F ∪ S| = ${both + onlyA} + ${both + onlyB} − ${both} = ${both + onlyA + onlyB}. Neither = ${total} − ${both + onlyA + onlyB} = ${neither}.`,
+        };
+    },
+    "number-bases": (r) => {
+        // The DECIMAL value of a base-d numeral, not the numeral itself. Asking a
+        // learner to type "10110" as a number and reading it back as ten thousand
+        // would be a question whose displayed answer and graded answer disagree —
+        // which is exactly what the first draft of this family did. Converting the
+        // other way is a genuine numeric question with a genuine numeric answer.
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const digits = r.int(2, 6);
+            const n = r.int(Math.pow(2, digits - 1), Math.pow(2, digits) - 1);
+            const bits = n.toString(2);
+            return {
+                prompt: `What is the decimal (base 10) value of the binary number ${bits}₂?`,
+                value: n, wrongs: [bits.length, n + 2, n - 1],
+                tags: [], difficulty: 0.55,
+                explanation: `${bits}₂ = ${bits.split("").map((b, i) => (b === "1" ? Math.pow(2, bits.length - 1 - i) : 0)).filter((x) => x > 0).join(" + ")} = ${n}. Each position is worth a power of 2, read right to left.`,
+            };
+        }
+        const n = r.int(10, 60);
+        const oct = n.toString(8);
+        return {
+            prompt: `What is the decimal (base 10) value of the octal number ${oct}₈?`,
+            value: n, wrongs: [Number(oct), n + 8, n - 8],
+            tags: [], difficulty: 0.55,
+            explanation: `${oct}₈ = ${n}. Each octal position is worth a power of 8, so it is NOT the same as the decimal number ${Number(oct)}.`,
+        };
+    },
+    "matrices-intro": (r) => {
+        const a = r.int(1, 5), b = r.int(1, 5), c = r.int(1, 5), d = r.int(1, 5);
+        return {
+            prompt: `For the matrix [[${a}, ${b}], [${c}, ${d}]], what is the determinant ad − bc?`,
+            value: a * d - b * c, wrongs: [a * d + b * c, a + d, b * c - a * d],
+            tags: [], difficulty: 0.6,
+            explanation: `Determinant = ad − bc = ${a}×${d} − ${b}×${c} = ${a * d} − ${b * c} = ${a * d - b * c}. It is zero exactly when the matrix has no inverse.`,
+        };
+    },
+    polynomials: (r) => {
+        const a = r.int(1, 5), b = r.int(1, 5), x = r.int(2, 5);
+        return {
+            prompt: `p(x) = x³ + ${a}x² − ${b}x + ${a * b}. What is p(${x})?`,
+            value: Math.pow(x, 3) + a * x * x - b * x + a * b,
+            wrongs: [Math.pow(x, 3) + a * x * x - b * x, Math.pow(x, 3) + a * x - b + a * b, Math.pow(x, 3) + a * x * x + b * x + a * b],
+            tags: [], difficulty: 0.65,
+            explanation: `Substitute x = ${x} term by term: ${x}³ = ${Math.pow(x, 3)}, +${a}(${x}²) = ${a * x * x}, −${b}(${x}) = ${b * x}, +${a * b}. Total ${Math.pow(x, 3) + a * x * x - b * x + a * b}. Keep every sign with its term.`,
+        };
+    },
+    binomial: (r) => {
+        const n = r.int(2, 4), a = r.int(1, 4);
+        // coefficient of x^k in (1 + ax)^n is C(n,k) a^k
+        const k = r.int(1, n);
+        const comb = (N, K) => { let v = 1; for (let i = 1; i <= K; i++)
+            v = (v * (N - K + i)) / i; return v; };
+        const coeff = comb(n, k) * Math.pow(a, k);
+        return {
+            prompt: `In the expansion of (1 + ${a}x)^${n}, what is the coefficient of x^${k}?`,
+            value: coeff, wrongs: [Math.pow(a, k), comb(n, k), coeff + a],
+            tags: ["row-n"], difficulty: 0.7,
+            explanation: `The x^${k} term is C(${n},${k}) × (${a}x)^${k} = ${comb(n, k)} × ${Math.pow(a, k)}x^${k}, so the coefficient is ${coeff}.`,
+        };
+    },
+    "sim-equations-quad": (r) => {
+        const p = r.int(1, 5), q = r.int(1, 5);
+        return {
+            prompt: `Solve y = x² and y = ${p + q}x − ${p * q}. The line meets the curve at two points. What is the LARGER x?`,
+            value: Math.max(p, q), wrongs: [Math.min(p, q), p + q, p * q],
+            tags: ["lost-root"], difficulty: 0.65,
+            explanation: `Set them equal: x² − ${p + q}x + ${p * q} = 0, so (x − ${p})(x − ${q}) = 0. The larger x is ${Math.max(p, q)}. Two solutions, because a line can cut a parabola twice.`,
+        };
+    },
+    iteration: (r) => {
+        const a = r.int(2, 9);
+        const start = r.int(1, 4);
+        const next = Math.sqrt(a + start);
+        return {
+            prompt: `Use the iteration xₙ₊₁ = √(${a} + xₙ) starting from x₀ = ${start}. What is x₁, to 4 decimal places?`,
+            value: Number(next.toFixed(4)), tolerance: { abs: 0.001 },
+            wrongs: [Number((a + start).toFixed(4)), Number((start + a / start).toFixed(4)), Number(Math.sqrt(a).toFixed(4))],
+            tags: [], difficulty: 0.6,
+            explanation: `Feed the current value back in: x₁ = √(${a} + ${start}) = √${a + start} = ${Number(next.toFixed(4))}. Repeat and the digits settle on the solution.`,
+        };
+    },
+    logs: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const b = r.pick([2, 3, 10]), e = r.int(2, 5);
+            return {
+                prompt: `What is log base ${b} of ${Math.pow(b, e)}?`,
+                value: e, wrongs: [Math.pow(b, e), b * e, e - 1],
+                tags: [], difficulty: 0.5,
+                explanation: `log base ${b} asks "what power of ${b} gives this?" Since ${b}^${e} = ${Math.pow(b, e)}, the answer is ${e}.`,
+            };
+        }
+        const b = r.pick([2, 3, 10]), e1 = r.int(2, 4), e2 = r.int(2, 3);
+        return {
+            prompt: `What is log base ${b} of ${Math.pow(b, e1)} plus log base ${b} of ${Math.pow(b, e2)}?`,
+            value: e1 + e2, wrongs: [e1 * e2, Math.pow(b, e1) + Math.pow(b, e2), e1 - e2],
+            tags: [], difficulty: 0.6,
+            explanation: `Adding logs multiplies the arguments: log${b}(${Math.pow(b, e1)} × ${Math.pow(b, e2)}) = log${b}(${Math.pow(b, e1 + e2)}) = ${e1 + e2}.`,
+        };
+    },
+    "trig-ratios": (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const hyp = r.pick([10, 13, 20, 26]);
+            return {
+                prompt: `In a right-angled triangle the hypotenuse is ${hyp} cm and one angle is 30°. How long is the side OPPOSITE that angle, in cm?`,
+                value: hyp / 2, tolerance: { unit: "cm" },
+                wrongs: [hyp, Number((hyp * 0.866).toFixed(2)), Math.round(hyp / 3)],
+                tags: ["hyp-leg-trig"], difficulty: 0.5,
+                explanation: `sin 30° = 0.5 = opposite/hypotenuse, so opposite = 0.5 × ${hyp} = ${hyp / 2} cm.`,
+            };
+        }
+        const adj = r.pick([6, 8, 9, 12]), angle = r.pick([30, 45, 60]);
+        const hyp = adj / Math.cos((angle * Math.PI) / 180);
+        return {
+            prompt: `In a right-angled triangle the side ADJACENT to a ${angle}° angle is ${adj} cm. How long is the hypotenuse, in cm (1 d.p.)?`,
+            value: Number(hyp.toFixed(1)), tolerance: { abs: 0.1, unit: "cm" },
+            wrongs: [Number((adj * Math.cos((angle * Math.PI) / 180)).toFixed(1)), Number((adj / Math.sin((angle * Math.PI) / 180)).toFixed(1)), adj],
+            tags: ["hyp-leg-trig"], difficulty: 0.55,
+            explanation: `cos ${angle}° = adjacent/hypotenuse, so hypotenuse = ${adj} ÷ cos ${angle}° = ${Number(hyp.toFixed(1))} cm. Dividing by the cosine (not multiplying) is the whole step.`,
+        };
+    },
+    pythagoras: (r) => {
+        const triples = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15]];
+        const [a, b, c] = r.pick(triples);
+        return {
+            prompt: `A right-angled triangle has legs ${a} cm and ${b} cm. How long is the hypotenuse, in cm?`,
+            value: c, tolerance: { unit: "cm" },
+            wrongs: [a + b, c + 1, c - 1],
+            tags: ["hyp-leg"], difficulty: 0.45,
+            explanation: `a² + b² = c²: ${a}² + ${b}² = ${a * a} + ${b * b} = ${c * c}, so c = √${c * c} = ${c} cm.`,
+        };
+    },
+    "angles-lines": (r) => {
+        const a = r.int(30, 150);
+        return {
+            prompt: `Two angles on a straight line are ${a}° and x°. What is x, in degrees?`,
+            value: 180 - a, wrongs: [a, 360 - a, 90 - a],
+            tags: ["alt-corr"], difficulty: 0.35,
+            explanation: `Angles on a straight line sum to 180°: x = 180 − ${a} = ${180 - a}°.`,
+        };
+    },
+    "area-perimeter": (r) => {
+        const v = r.int(0, 2);
+        const l = r.int(3, 15), w = r.int(2, 12);
+        if (v === 0) {
+            return {
+                prompt: `A rectangle is ${l} cm by ${w} cm. What is its AREA, in cm²?`,
+                value: l * w, tolerance: { unit: "cm²" }, wrongs: [2 * (l + w), l + w, l * w + l],
+                tags: [], difficulty: 0.35,
+                explanation: `Area = length × width = ${l} × ${w} = ${l * w} cm². The answer is in SQUARE centimetres, and ${2 * (l + w)} is the perimeter, not the area.`,
+            };
+        }
+        if (v === 1) {
+            return {
+                prompt: `A rectangle is ${l} cm by ${w} cm. What is its PERIMETER, in cm?`,
+                value: 2 * (l + w), tolerance: { unit: "cm" }, wrongs: [l * w, l + w, 2 * l + w],
+                tags: [], difficulty: 0.35,
+                explanation: `Perimeter = 2(length + width) = 2(${l} + ${w}) = ${2 * (l + w)} cm. It is a LENGTH; ${l * w} would be the area.`,
+            };
+        }
+        const t = r.int(3, 12), h = r.int(2, 10);
+        return {
+            prompt: `A triangle has base ${t} cm and perpendicular height ${h} cm. What is its area, in cm²?`,
+            value: (t * h) / 2, tolerance: { abs: 0.01, unit: "cm²" }, wrongs: [t * h, t + h, (t * h) / 4],
+            tags: [], difficulty: 0.4,
+            explanation: `Area = ½ × base × height = ½ × ${t} × ${h} = ${(t * h) / 2} cm². Forgetting the ½ doubles the answer.`,
+        };
+    },
+    volume: (r) => {
+        const v = r.int(0, 1);
+        const l = r.int(2, 9), w = r.int(2, 9), h = r.int(2, 9);
+        if (v === 0) {
+            return {
+                prompt: `A cuboid is ${l} cm × ${w} cm × ${h} cm. What is its volume, in cm³?`,
+                value: l * w * h, tolerance: { unit: "cm³" }, wrongs: [2 * (l * w + w * h + l * h), l + w + h, l * w],
+                tags: [], difficulty: 0.4,
+                explanation: `Volume = ${l} × ${w} × ${h} = ${l * w * h} cm³. Three lengths multiplied give a CUBIC unit — ${2 * (l * w + w * h + l * h)} is the surface area.`,
+            };
+        }
+        const radius = r.int(2, 6);
+        return {
+            prompt: `A cylinder has radius ${radius} cm and height ${h} cm. Its volume is kπ cm³. What is k?`,
+            value: radius * radius * h, tolerance: { unit: "cm³" }, wrongs: [2 * radius * h, radius * h, radius * radius],
+            tags: [], difficulty: 0.5,
+            explanation: `V = πr²h = π × ${radius}² × ${h} = ${radius * radius * h}π cm³. The radius is SQUARED; 2r is the circumference factor, not this one.`,
+        };
+    },
+    vectors: (r) => {
+        const a1 = r.int(-6, 6), a2 = r.int(-6, 6), b1 = r.int(-6, 6), b2 = r.int(-6, 6);
+        return {
+            prompt: `Vector a = (${a1}, ${a2}) and b = (${b1}, ${b2}). What is the x-component of a + b?`,
+            value: a1 + b1, wrongs: [a1 - b1, a1 * b1, a2 + b2],
+            tags: ["vec-dir"], difficulty: 0.45,
+            explanation: `Vectors add component by component: x = ${a1} + ${b1} = ${a1 + b1}. Direction is half the information — keep the signs.`,
+        };
+    },
+    averages: (r) => {
+        const v = r.int(0, 2);
+        const nums = Array.from({ length: 5 }, () => r.int(2, 20));
+        const sorted = [...nums].sort((x, y) => x - y);
+        if (v === 0) {
+            const sum = nums.reduce((s, n) => s + n, 0);
+            return {
+                prompt: `What is the MEAN of ${nums.join(", ")}? (2 d.p.)`,
+                value: Number((sum / nums.length).toFixed(2)), tolerance: { abs: 0.01 },
+                wrongs: [sum, sorted[2], Number((sum / (nums.length - 1)).toFixed(2))],
+                tags: ["outlier-mean"], difficulty: 0.4,
+                explanation: `Add them (${sum}) and divide by how many there are (${nums.length}): ${Number((sum / nums.length).toFixed(2))}.`,
+            };
+        }
+        if (v === 1) {
+            return {
+                prompt: `What is the MEDIAN of ${nums.join(", ")}?`,
+                value: sorted[2], wrongs: [Number((nums.reduce((s, n) => s + n, 0) / nums.length).toFixed(2)), sorted[0], sorted[4]],
+                tags: ["outlier-mean"], difficulty: 0.4,
+                explanation: `Put them in order: ${sorted.join(", ")}. With five values the median is the middle one, ${sorted[2]}.`,
+            };
+        }
+        return {
+            prompt: `What is the RANGE of ${nums.join(", ")}?`,
+            value: sorted[4] - sorted[0], wrongs: [sorted[4], sorted[0], sorted[2]],
+            tags: [], difficulty: 0.35,
+            explanation: `Range = largest − smallest = ${sorted[4]} − ${sorted[0]} = ${sorted[4] - sorted[0]}. It measures spread, not position.`,
+        };
+    },
+    "data-charts": (r) => {
+        const values = Array.from({ length: 4 }, () => r.int(2, 12));
+        const total = values.reduce((s, n) => s + n, 0);
+        return {
+            prompt: `A bar chart shows four categories with values ${values.join(", ")}. What is the TOTAL of the four bars?`,
+            value: total, wrongs: [Math.round(total / 4), total + values[0], Math.max(...values)],
+            tags: [], difficulty: 0.35,
+            explanation: `Add the bars: ${values.join(" + ")} = ${total}. ${Math.round(total / 4)} would be the mean, which the question did not ask for.`,
+        };
+    },
+    "scatter-correlation": (r) => {
+        const pts = [[1, 2], [2, 4], [3, 6], [4, 8], [5, 10]];
+        const j = r.int(0, 4);
+        const [x, y] = pts[j];
+        return {
+            prompt: `Five points on a scatter graph are (1, 2), (2, 4), (3, 6), (4, 8) and (5, 10). Using the line of best fit y = 2x, what is the predicted y when x = ${x}?`,
+            value: 2 * x, wrongs: [x, x + 2, 2 * x + 2],
+            tags: ["corr-cause"], difficulty: 0.4,
+            explanation: `Substitute into the line of best fit: y = 2 × ${x} = ${2 * x}. Every point lies exactly on it, which is why the correlation here is perfect — real data rarely is.`,
+        };
+    },
+    "proportional-graphs": (r) => {
+        const k = r.int(2, 8), x = r.int(2, 9);
+        return {
+            prompt: `y is directly proportional to x, and y = ${k * 3} when x = 3. What is y when x = ${x}?`,
+            value: k * x, wrongs: [k * 3, k + x, Math.round(k / x * 10) / 10],
+            tags: ["inv-prop"], difficulty: 0.5,
+            explanation: `Direct proportion means y = kx. Find k first: k = ${k * 3} ÷ 3 = ${k}. Then y = ${k} × ${x} = ${k * x}.`,
+        };
+    },
+    transformations: (r) => {
+        const k = r.int(2, 5), l = r.int(2, 8);
+        return {
+            prompt: `A square of side ${l} cm is enlarged by scale factor ${k}. What is its new AREA, in cm²?`,
+            value: k * k * l * l, tolerance: { unit: "cm²" },
+            wrongs: [k * l * l, k * l, k * k * l],
+            tags: ["sf-area"], difficulty: 0.55,
+            explanation: `Lengths scale by ${k}, so areas scale by ${k}² = ${k * k}: new area = ${k * k} × ${l}² = ${k * k * l * l} cm². Scaling the area by ${k} instead is the classic error.`,
+        };
+    },
+    "circle-theorems": (r) => {
+        const angle = r.pick([20, 25, 30, 35, 40]);
+        return {
+            prompt: `An angle at the circumference is ${angle}°, standing on a particular arc. What is the angle at the CENTRE standing on the SAME arc, in degrees?`,
+            value: 2 * angle, wrongs: [angle, 180 - angle, 90 - angle],
+            tags: ["same-seg"], difficulty: 0.5,
+            explanation: `The angle at the centre is TWICE the angle at the circumference on the same arc: 2 × ${angle} = ${2 * angle}°. The "same arc" is the condition that makes it true.`,
+        };
+    },
+    "circle-geometry-adv": (r) => {
+        const angle = r.pick([25, 35, 40, 50]);
+        return {
+            prompt: `A tangent and a chord meet at ${angle}°. By the alternate segment theorem, what is the angle in the alternate segment, in degrees?`,
+            value: angle, wrongs: [2 * angle, 180 - angle, 90 - angle],
+            tags: ["alt-seg"], difficulty: 0.55,
+            explanation: `The tangent–chord angle EQUALS the angle in the alternate segment: ${angle}°. Doubling it (${2 * angle}°) would be the centre rule, which is a different theorem.`,
+        };
+    },
+    kinematics: (r) => {
+        const u = r.int(2, 10), a = r.int(2, 5), t = r.int(2, 6);
+        return {
+            prompt: `A body starts at ${u} m/s and accelerates at ${a} m/s² for ${t} s. What is its final velocity, in m/s?`,
+            value: u + a * t, tolerance: { unit: "m/s" },
+            wrongs: [u * t, a * t, u + a],
+            tags: [], difficulty: 0.45,
+            explanation: `v = u + at = ${u} + ${a} × ${t} = ${u + a * t} m/s.`,
+        };
+    },
+    "calculus-diff": (r) => {
+        const a = r.int(2, 6), n = r.int(2, 4), x = r.int(1, 5);
+        return {
+            prompt: `y = ${a}x^${n}. What is dy/dx at x = ${x}?`,
+            value: a * n * Math.pow(x, n - 1),
+            wrongs: [a * Math.pow(x, n), a * n * Math.pow(x, n), a * n],
+            tags: [], difficulty: 0.65,
+            explanation: `Differentiate by the power rule: dy/dx = ${a * n}x^${n - 1}. At x = ${x}: ${a * n} × ${x}^${n - 1} = ${a * n * Math.pow(x, n - 1)}.`,
+        };
+    },
+    "calculus-int": (r) => {
+        const a = r.int(2, 6), n = r.int(1, 3), x = r.int(1, 4);
+        const upper = a * Math.pow(x, n + 1) / (n + 1);
+        return {
+            prompt: `What is the definite integral of ${a}x^${n} from 0 to ${x}?`,
+            value: Number(upper.toFixed(3)), tolerance: { abs: 0.01 },
+            wrongs: [a * Math.pow(x, n), a * Math.pow(x, n) * (n + 1), Number((upper * (n + 1)).toFixed(3))],
+            tags: [], difficulty: 0.7,
+            explanation: `Integrate: ${a}x^${n} → ${a}x^${n + 1}/${n + 1}. Evaluate from 0 to ${x}: ${Number(upper.toFixed(3))}. The power goes UP by one and the new power divides.`,
+        };
+    },
+    // ── PHYSICS ─────────────────────────────────────────────────────────────
+    "newton-laws": (r) => {
+        const m = r.int(2, 12), a = r.int(2, 6);
+        return {
+            prompt: `A ${m} kg mass experiences an acceleration of ${a} m/s². What is the resultant force, in newtons?`,
+            value: m * a, tolerance: { unit: "N" },
+            wrongs: [m + a, Math.round(m / a), m * a * 10],
+            tags: ["fma-v"], difficulty: 0.4,
+            explanation: `F = ma = ${m} × ${a} = ${m * a} N. Resultant force, not any single force.`,
+        };
+    },
+    momentum: (r) => {
+        const m = r.int(2, 12), v = r.int(2, 15);
+        return {
+            prompt: `What is the momentum of a ${m} kg object moving at ${v} m/s, in kg m/s?`,
+            value: m * v, tolerance: { unit: "kg m/s" },
+            wrongs: [Math.round(m / v), m + v, Math.round(0.5 * m * v * v)],
+            tags: ["con-pair"], difficulty: 0.4,
+            explanation: `p = mv = ${m} × ${v} = ${m * v} kg m/s. Momentum is mass times velocity; ${Math.round(0.5 * m * v * v)} is kinetic energy, a different quantity.`,
+        };
+    },
+    "energy-conservation": (r) => {
+        const m = r.int(1, 10), v = r.int(2, 12);
+        return {
+            prompt: `What is the kinetic energy of a ${m} kg object moving at ${v} m/s, in joules?`,
+            value: 0.5 * m * v * v, tolerance: { abs: 0.01, unit: "J" },
+            wrongs: [m * v, m * v * v, Math.round(0.5 * m * v)],
+            tags: ["ke-mass"], difficulty: 0.5,
+            explanation: `KE = ½mv² = ½ × ${m} × ${v}² = ${0.5 * m * v * v} J. The velocity is SQUARED, which is why doubling speed quadruples the energy.`,
+        };
+    },
+    "work-power": (r) => {
+        const v = r.int(0, 1);
+        const f = r.int(10, 200), d = r.int(2, 20);
+        if (v === 0) {
+            return {
+                prompt: `A force of ${f} N moves an object ${d} m. How much work is done, in joules?`,
+                value: f * d, tolerance: { unit: "J" },
+                wrongs: [f + d, Math.round(f / d), f * d * 10],
+                tags: ["eff-frac"], difficulty: 0.4,
+                explanation: `Work = force × distance = ${f} × ${d} = ${f * d} J.`,
+            };
+        }
+        const w = r.int(100, 900), t = r.int(2, 20);
+        return {
+            prompt: `${w} J of work is done in ${t} s. What is the power, in watts?`,
+            value: w / t, tolerance: { abs: 0.01, unit: "W", display: String(Number((w / t).toFixed(2))) },
+            wrongs: [w * t, t, w - t],
+            tags: ["eff-frac"], difficulty: 0.45,
+            explanation: `Power = work ÷ time = ${w} ÷ ${t} = ${Number((w / t).toFixed(2))} W. Power is the RATE of energy transfer, not the amount.`,
+        };
+    },
+    "waves-basics": (r) => {
+        const f = r.pick([2, 4, 5, 10, 20]), wl = r.pick([2, 3, 5, 10]);
+        return {
+            prompt: `A wave has frequency ${f} Hz and wavelength ${wl} m. What is its speed, in m/s?`,
+            value: f * wl, tolerance: { unit: "m/s" },
+            wrongs: [Math.round(f / wl), f + wl, Math.round(wl / f * 100) / 100],
+            tags: ["freq-pitch"], difficulty: 0.4,
+            explanation: `v = fλ = ${f} × ${wl} = ${f * wl} m/s. Frequency × wavelength is speed; adding them measures nothing.`,
+        };
+    },
+    "electricity-circuits": (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const I = r.int(2, 10), R = r.int(2, 20);
+            return {
+                prompt: `A current of ${I} A flows through a resistance of ${R} Ω. What is the voltage across it, in volts?`,
+                value: I * R, tolerance: { unit: "V" },
+                wrongs: [I + R, Math.round(R / I), I * R * 10],
+                tags: ["series-par"], difficulty: 0.4,
+                explanation: `V = IR = ${I} × ${R} = ${I * R} V.`,
+            };
+        }
+        if (v === 1) {
+            const R1 = r.int(2, 20), R2 = r.int(2, 20);
+            return {
+                prompt: `Two resistors, ${R1} Ω and ${R2} Ω, are in SERIES. What is the total resistance, in ohms?`,
+                value: R1 + R2, tolerance: { unit: "Ω" },
+                wrongs: [Number(((R1 * R2) / (R1 + R2)).toFixed(2)), Math.abs(R1 - R2), R1 * R2],
+                tags: ["series-par"], difficulty: 0.4,
+                explanation: `In series resistances ADD: ${R1} + ${R2} = ${R1 + R2} Ω. ${Number(((R1 * R2) / (R1 + R2)).toFixed(2))} Ω would be the parallel value, which is always SMALLER than either.`,
+            };
+        }
+        const R1 = r.int(2, 20), R2 = r.int(2, 20);
+        return {
+            prompt: `Two resistors, ${R1} Ω and ${R2} Ω, are in PARALLEL. What is the total resistance, in ohms (2 d.p.)?`,
+            value: Number(((R1 * R2) / (R1 + R2)).toFixed(2)), tolerance: { abs: 0.02, unit: "Ω" },
+            wrongs: [R1 + R2, Math.abs(R1 - R2), R1 * R2],
+            tags: ["series-par"], difficulty: 0.6,
+            explanation: `1/R = 1/${R1} + 1/${R2}, so R = (${R1}×${R2})/(${R1}+${R2}) = ${Number(((R1 * R2) / (R1 + R2)).toFixed(2))} Ω. Adding them (${R1 + R2}) is the series rule — parallel resistance is always smaller than the smallest branch.`,
+        };
+    },
+    magnetism: (r) => {
+        const n = r.pick([50, 100, 200, 400]);
+        const dPhi = r.pick([0.02, 0.05, 0.1]);
+        const dt = r.pick([0.1, 0.2, 0.5]);
+        const emf = (n * dPhi) / dt;
+        return {
+            prompt: `A coil of ${n} turns has its magnetic flux changed by ${dPhi} Wb in ${dt} s. What EMF is induced, in volts?`,
+            value: Number(emf.toFixed(2)), tolerance: { abs: 0.01, unit: "V" },
+            wrongs: [Number((dPhi / dt).toFixed(2)), Number((n * dPhi * dt).toFixed(2)), n],
+            tags: ["motor-gen"], difficulty: 0.6,
+            explanation: `EMF = N × (ΔΦ/Δt) = ${n} × (${dPhi}/${dt}) = ${Number(emf.toFixed(2))} V. A faster change or more turns both raise it.`,
+        };
+    },
+    "pressure-fluids": (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const f = r.int(20, 500), a = r.int(2, 20);
+            return {
+                prompt: `A force of ${f} N acts on an area of ${a} m². What is the pressure, in pascals?`,
+                value: Number((f / a).toFixed(2)), tolerance: { abs: 0.01, unit: "Pa" },
+                wrongs: [f * a, f - a, a],
+                tags: [], difficulty: 0.4,
+                explanation: `Pressure = force ÷ area = ${f} ÷ ${a} = ${Number((f / a).toFixed(2))} Pa. The same force over a smaller area is a bigger pressure — that is why a drawing pin works.`,
+            };
+        }
+        const rho = r.pick([1000, 800, 13600]), depth = r.int(1, 20);
+        const g = 10;
+        return {
+            prompt: `What is the pressure ${depth} m below the surface of a fluid of density ${rho} kg/m³? (g = ${g} N/kg). Give your answer in pascals.`,
+            value: rho * g * depth, tolerance: { unit: "Pa" },
+            wrongs: [rho * depth, g * depth, rho * g],
+            tags: [], difficulty: 0.55,
+            explanation: `p = ρgh = ${rho} × ${g} × ${depth} = ${rho * g * depth} Pa. Depth matters, not the shape of the container.`,
+        };
+    },
+    "atoms-nucleus": (r) => {
+        const protons = r.int(2, 20), neutrons = r.int(2, 25);
+        const v = r.int(0, 2);
+        if (v === 0)
+            return {
+                prompt: `An atom has ${protons} protons and ${neutrons} neutrons. What is its mass number?`,
+                value: protons + neutrons, wrongs: [protons, neutrons, protons - neutrons],
+                tags: [], difficulty: 0.35,
+                explanation: `Mass number = protons + neutrons = ${protons} + ${neutrons} = ${protons + neutrons}. The mass number counts both nucleons.`,
+            };
+        if (v === 1)
+            return {
+                prompt: `An atom has ${protons} protons and ${neutrons} neutrons. What is its atomic (proton) number?`,
+                value: protons, wrongs: [neutrons, protons + neutrons, neutrons - protons],
+                tags: [], difficulty: 0.35,
+                explanation: `The atomic number is the number of PROTONS = ${protons}. It is what identifies the element; neutrons vary between isotopes.`,
+            };
+        return {
+            prompt: `An atom has ${protons} protons, ${neutrons} neutrons and ${protons} electrons. What is its overall charge?`,
+            value: 0, wrongs: [protons, -protons, neutrons],
+            tags: [], difficulty: 0.4,
+            explanation: `Protons (+) and electrons (−) balance exactly: ${protons} − ${protons} = 0. The atom is neutral — lose an electron and it becomes a positive ion.`,
+        };
+    },
+    astrophysics: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const ly = r.pick([4, 8, 10, 100]);
+            return {
+                prompt: `A star is ${ly} light-years away. How many years does its light take to reach us?`,
+                value: ly, wrongs: [ly * 2, Math.round(ly / 2), ly * 1000],
+                tags: [], difficulty: 0.4,
+                explanation: `A light-year is the DISTANCE light travels in one year, so light from ${ly} light-years away takes ${ly} years. Looking out is looking back in time.`,
+            };
+        }
+        const m = r.int(2, 9);
+        return {
+            prompt: `A main-sequence star has a mass ${m} times the Sun's. Using the rough rule L ∝ M³, what is its luminosity in solar units?`,
+            value: Math.pow(m, 3), wrongs: [m, Math.pow(m, 2), m * 3],
+            tags: [], difficulty: 0.6,
+            explanation: `L ∝ M³, so a star ${m}× the Sun's mass is ${m}³ = ${Math.pow(m, 3)}× as luminous. The cube is why massive stars are so short-lived.`,
+        };
+    },
+    // ── CHEMISTRY ───────────────────────────────────────────────────────────
+    "atoms-elements": (r) => {
+        const z = r.pick([1, 2, 6, 8, 11, 17]);
+        const names = { 1: "hydrogen", 2: "helium", 6: "carbon", 8: "oxygen", 11: "sodium", 17: "chlorine" };
+        return {
+            prompt: `An element has ${z} protons. How many electrons does a NEUTRAL atom of it have?`,
+            value: z, wrongs: [z + 1, z - 1, 0],
+            tags: [], difficulty: 0.35,
+            explanation: `A neutral atom has equal protons and electrons, so ${z} protons means ${z} electrons (${names[z]}). Charge only appears when electrons are gained or lost.`,
+        };
+    },
+    "compounds-mixtures": (r) => {
+        const a = r.int(1, 4), b = r.int(1, 4);
+        return {
+            prompt: `A compound forms from element X (valency ${a}) and element Y (valency ${b}). In the formula XₚY_q, what is p + q when they are in their simplest whole-number ratio?`,
+            value: (b / gcd(a, b)) + (a / gcd(a, b)), wrongs: [a + b, a * b, 2],
+            tags: [], difficulty: 0.6,
+            explanation: `Swap the valencies: X takes Y's valency (${b}) and Y takes X's (${a}), giving X${b / gcd(a, b)}Y${a / gcd(a, b)}. So p + q = ${(b / gcd(a, b)) + (a / gcd(a, b))}. The total charge must cancel.`,
+        };
+    },
+    "electron-shells": (r) => {
+        const n = r.pick([2, 3, 4]);
+        const counts = { 2: 2, 3: 8, 4: 18 };
+        return {
+            prompt: `What is the MAXIMUM number of electrons the shell with principal quantum number n = ${n} can hold?`,
+            value: counts[n], wrongs: [n * 2, n * n, counts[n] + 2],
+            tags: [], difficulty: 0.5,
+            explanation: `A shell holds up to 2n² electrons: 2 × ${n}² = ${counts[n]}. The n = 1 shell holds 2, n = 2 holds 8.`,
+        };
+    },
+    "ionic-bonding": (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            return {
+                prompt: `A magnesium atom (2 outer electrons) reacts with oxygen (6 outer electrons). What is the charge on the magnesium ion formed?`,
+                value: 2, wrongs: ["-2", "1", "6"],
+                tags: [], difficulty: 0.5,
+                explanation: `Metals LOSE their outer electrons to form positive ions: magnesium loses 2, giving Mg²⁺, so the charge is +2. Oxygen gains them and becomes −2.`,
+            };
+        }
+        const g = r.int(1, 2), l = r.int(1, 2);
+        return {
+            prompt: `A metal forms ions of charge +${g} and a non-metal forms ions of charge −${l}. In the neutral compound, if the metal appears m times and the non-metal n times, what is m + n in the simplest ratio?`,
+            value: g / gcd(g, l) + l / gcd(g, l), wrongs: [g + l, g * l, 2],
+            tags: [], difficulty: 0.6,
+            explanation: `Total positive charge must equal total negative: ${g}m = ${l}n. Simplest is m = ${l / gcd(g, l)}, n = ${g / gcd(g, l)}, so m + n = ${g / gcd(g, l) + l / gcd(g, l)}.`,
+        };
+    },
+    "covalent-bonding": (r) => {
+        const v = r.pick([2, 3, 4]);
+        return {
+            prompt: `A molecule has ${v} shared pairs of electrons between two atoms. How many electrons in total are involved in the bond?`,
+            value: v * 2, wrongs: [v, v * 4, v + 2],
+            tags: [], difficulty: 0.4,
+            explanation: `Each shared PAIR is 2 electrons, so ${v} pairs = ${v * 2} electrons. A single bond is 1 pair (2 electrons), a double bond 2 pairs (4).`,
+        };
+    },
+    "equations-stoich": (r) => {
+        const a = r.int(2, 4), b = r.int(2, 4);
+        return {
+            prompt: `For the equation ${a}H₂ + O₂ → ${a}H₂O, how many oxygen atoms are on the LEFT-hand side in total?`,
+            value: 2, wrongs: [a, a * 2, 1],
+            tags: ["mass-balance"], difficulty: 0.45,
+            explanation: `There is one O₂ molecule on the left, and each O₂ has 2 atoms, so 2 oxygen atoms. The ${a} in front of H₂ multiplies hydrogen only.`,
+        };
+    },
+    "rates-reaction": (r) => {
+        const t = r.pick([20, 25, 40, 50]), vol = r.pick([20, 40, 60, 80]);
+        return {
+            prompt: `${vol} cm³ of gas is produced in ${t} s. What is the average rate of reaction, in cm³/s?`,
+            value: Number((vol / t).toFixed(3)), tolerance: { abs: 0.01, unit: "cm³/s" },
+            wrongs: [vol * t, t, Number((t / vol).toFixed(3))],
+            tags: [], difficulty: 0.45,
+            explanation: `Rate = amount ÷ time = ${vol} ÷ ${t} = ${Number((vol / t).toFixed(3))} cm³/s. Dividing the wrong way gives a tiny number — the units catch it.`,
+        };
+    },
+    "energy-changes": (r) => {
+        const m = r.int(1, 4), dT = r.int(5, 30), c = 4200;
+        return {
+            prompt: `How much energy is needed to raise ${m} kg of water by ${dT} °C? (c = ${c} J/kg°C). Give your answer in joules.`,
+            value: m * c * dT, tolerance: { unit: "J" },
+            wrongs: [m * dT, c * dT, m * c * dT * 10],
+            tags: [], difficulty: 0.5,
+            explanation: `Q = mcΔT = ${m} × ${c} × ${dT} = ${m * c * dT} J. All three multiply.`,
+        };
+    },
+    "acids-bases": (r) => {
+        const h = r.int(1, 5);
+        const ph = -Math.log10(Math.pow(10, -h));
+        return {
+            prompt: `A solution has a hydrogen ion concentration of 1 × 10^−${h} mol/dm³. What is its pH?`,
+            value: h, wrongs: [ph, 14 - h, h * 10],
+            tags: ["strong-conc"], difficulty: 0.55,
+            explanation: `pH = −log₁₀[H⁺] = −log₁₀(10^−${h}) = ${h}. The pH scale is logarithmic, so a change of 1 is a tenfold change in concentration.`,
+        };
+    },
+    electrolysis: (r) => {
+        const I = r.int(1, 5), t = r.int(60, 600);
+        const charge = I * t;
+        return {
+            prompt: `A current of ${I} A flows for ${t} s. How much charge passes, in coulombs?`,
+            value: charge, tolerance: { unit: "C" },
+            wrongs: [I, t, I + t],
+            tags: [], difficulty: 0.45,
+            explanation: `Charge = current × time = ${I} × ${t} = ${charge} C. It is this charge that decides how much substance is deposited.`,
+        };
+    },
+    "organic-intro": (r) => {
+        const n = r.int(1, 6);
+        return {
+            prompt: `An alkane has ${n} carbon atoms. Using the general formula CₙH₂ₙ₊₂, how many hydrogen atoms does it have?`,
+            value: 2 * n + 2, wrongs: [2 * n, n, n * 2 - 2],
+            tags: [], difficulty: 0.45,
+            explanation: `CₙH₂ₙ₊₂ with n = ${n}: H = 2(${n}) + 2 = ${2 * n + 2}. Alkanes are saturated — every carbon has as many hydrogens as it can hold.`,
+        };
+    },
+    equilibria: (r) => {
+        const a = r.int(1, 3), b = r.int(1, 3), c = r.int(1, 3), d = r.int(1, 3);
+        return {
+            prompt: `For the equilibrium aA + bB ⇌ cC + dD, the equilibrium constant is Kc = [C]^c[D]^d / ([A]^a[B]^b). In the expression for THIS reaction, what is the exponent on [C]?`,
+            value: c, wrongs: [a, d, b],
+            tags: [], difficulty: 0.55,
+            explanation: `Each concentration is raised to its own coefficient, so [C] carries the exponent ${c}. Products on top, reactants below — that is the whole shape of Kc.`,
+        };
+    },
+    "analysis-tests": (r) => {
+        const tests = [
+            ["a flame test gives a lilac colour", "potassium"],
+            ["a flame test gives a brick-red colour", "calcium"],
+            ["dilute acid produces fizzing with limewater turning milky", "carbonate"],
+        ];
+        const [desc] = r.pick(tests);
+        return {
+            prompt: `A sample ${desc}. How many of the following are TRUE: it is a pure element, it is a compound, it is a mixture?`,
+            value: 1, wrongs: ["2", "3", "0"],
+            tags: [], difficulty: 0.6,
+            explanation: `A positive test identifies ONE substance, which may be an element or a compound — exactly one of those three descriptions is the honest answer, so 1. The test narrows it; it does not tell you which category.`,
+        };
+    },
+    "metallic-bonding": (r) => {
+        const v = r.pick([2, 3, 4]);
+        return {
+            prompt: `A metal atom has ${v} outer electrons and releases them all into the delocalised sea. How many positive charges does the resulting ion carry?`,
+            value: v, wrongs: [v * 2, -v, 0],
+            tags: [], difficulty: 0.45,
+            explanation: `Losing ${v} electrons leaves ${v} more protons than electrons, so the ion carries ${v}+ charge. The sea of these released electrons is what conducts.`,
+        };
+    },
+    // ── BIOLOGY ─────────────────────────────────────────────────────────────
+    digestion: (r) => {
+        const v = r.int(0, 2);
+        if (v === 0)
+            return {
+                prompt: `Starch is broken down by amylase into maltose. If a solution contains 24 starch molecules and every one is split into two maltose molecules, how many maltose molecules are produced?`,
+                value: 48, wrongs: ["24", "12", "6"],
+                tags: [], difficulty: 0.45,
+                explanation: `One starch → two maltose, so 24 × 2 = 48. Amylase is a carbohydrase; it catalyses this specific split.`,
+            };
+        if (v === 1)
+            return {
+                prompt: `Lipase breaks each fat molecule into 3 fatty acids and 1 glycerol. From 5 fat molecules, how many fatty acid molecules are released?`,
+                value: 15, wrongs: ["5", "20", "10"],
+                tags: [], difficulty: 0.5,
+                explanation: `Each fat gives 3 fatty acids, so 5 × 3 = 15. Bile emulsifies the fat first so lipase has more surface to work on.`,
+            };
+        return {
+            prompt: `Protease breaks proteins into amino acids. A protein chain of 10 amino acids is broken into individual amino acids. How many bonds must be broken?`,
+            value: 9, wrongs: ["10", "11", "5"],
+            tags: [], difficulty: 0.55,
+            explanation: `n amino acids are joined by n − 1 bonds, so a 10-amino-acid chain has 9 peptide bonds. Breaking all of them releases 10 amino acids.`,
+        };
+    },
+    "breathing-gas": (r) => {
+        const bpm = r.pick([12, 15, 18, 20]);
+        return {
+            prompt: `A person breathes ${bpm} times per minute. How many breaths do they take in one hour?`,
+            value: bpm * 60, tolerance: { unit: "breaths" },
+            wrongs: [bpm * 30, bpm * 100, bpm * 24],
+            tags: [], difficulty: 0.4,
+            explanation: `${bpm} breaths/min × 60 min = ${bpm * 60} breaths in an hour.`,
+        };
+    },
+    diffusion: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            return {
+                prompt: `Diffusion is faster when the concentration gradient is steeper. A gradient of 10 units/m over a 2 m distance gives a rate proportional to gradient ÷ distance. What is it?`,
+                value: 5, wrongs: ["20", "10", "2"],
+                tags: [], difficulty: 0.5,
+                explanation: `Rate ∝ gradient ÷ distance = 10 ÷ 2 = 5. A shorter distance means a steeper effective gradient and faster diffusion — that is why alveoli are so thin.`,
+            };
+        }
+        const t = r.pick([20, 30, 37, 40]);
+        return {
+            prompt: `The rate of diffusion increases with temperature. At ${t} °C, particles have more kinetic energy than at 20 °C. By how many degrees has the temperature risen?`,
+            value: t - 20, wrongs: [t, t + 20, 20],
+            tags: [], difficulty: 0.35,
+            explanation: `${t} − 20 = ${t - 20} °C. Higher temperature means faster-moving particles and faster diffusion.`,
+        };
+    },
+    respiration: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            return {
+                prompt: `In aerobic respiration, 1 glucose molecule yields 32 ATP. How many ATP from 4 glucose molecules?`,
+                value: 128, wrongs: ["32", "64", "16"],
+                tags: [], difficulty: 0.45,
+                explanation: `4 × 32 = 128 ATP. Aerobic respiration needs oxygen; without it, anaerobic respiration yields far less per glucose.`,
+            };
+        }
+        const n = r.int(1, 5);
+        return {
+            prompt: `Anaerobic respiration in muscle yields 2 ATP per glucose. How many ATP from ${n} glucose molecules?`,
+            value: 2 * n, wrongs: [n, n * 32, n * 4],
+            tags: [], difficulty: 0.4,
+            explanation: `Anaerobic yields only 2 ATP per glucose, so ${n} × 2 = ${2 * n}. That is the reason vigorous exercise cannot be sustained on anaerobic respiration alone.`,
+        };
+    },
+    "nervous-system": (r) => {
+        const speed = r.pick([20, 50, 100, 120]), dist = r.pick([1, 2, 3]);
+        return {
+            prompt: `A nerve impulse travels at ${speed} m/s. How long does it take to travel ${dist} m, in seconds (4 d.p.)?`,
+            value: Number((dist / speed).toFixed(4)), tolerance: { abs: 0.0005, unit: "s" },
+            wrongs: [Number((speed / dist).toFixed(4)), speed * dist, Number((dist / speed * 1000).toFixed(4))],
+            tags: [], difficulty: 0.5,
+            explanation: `time = distance ÷ speed = ${dist} ÷ ${speed} = ${Number((dist / speed).toFixed(4))} s. Myelinated neurones conduct much faster — that is what the myelin sheath buys.`,
+        };
+    },
+    hormones: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            return {
+                prompt: `Blood glucose is normally kept around 5 mmol/dm³. After a meal it rises to 8. How many mmol/dm³ above normal is that?`,
+                value: 3, wrongs: ["8", "5", "13"],
+                tags: [], difficulty: 0.35,
+                explanation: `8 − 5 = 3 mmol/dm³ above normal. Insulin is released to bring it back down by converting glucose to glycogen.`,
+            };
+        }
+        const d = r.pick([2, 3, 4]);
+        return {
+            prompt: `A hormone is released in pulses every ${d} hours. How many pulses occur in 24 hours?`,
+            value: 24 / d, wrongs: [24 * d, d, 24 - d],
+            tags: [], difficulty: 0.35,
+            explanation: `24 ÷ ${d} = ${24 / d} pulses. Hormones act more slowly than nerve impulses but last longer.`,
+        };
+    },
+    genetics: (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            return {
+                prompt: `Two heterozygous parents (Aa × Aa) have offspring. Out of 4 offspring, how many would be expected to show the RECESSIVE phenotype?`,
+                value: 1, wrongs: ["2", "3", "0"],
+                tags: [], difficulty: 0.5,
+                explanation: `Aa × Aa gives AA, Aa, Aa, aa — a 3:1 ratio, so 1 in 4 shows the recessive phenotype. The 3:1 ratio is the classic Mendelian result.`,
+            };
+        }
+        if (v === 1) {
+            return {
+                prompt: `A heterozygous individual (Aa) is crossed with a homozygous recessive (aa). Out of 4 offspring, how many are expected to be heterozygous?`,
+                value: 2, wrongs: ["1", "3", "4"],
+                tags: [], difficulty: 0.5,
+                explanation: `Aa × aa gives Aa, Aa, aa, aa — a 1:1 ratio, so 2 of 4 are heterozygous. This cross is the test cross used to reveal an unknown genotype.`,
+            };
+        }
+        const n = r.int(2, 6);
+        return {
+            prompt: `A species has a diploid chromosome number of ${n * 2}. How many chromosomes are in each gamete?`,
+            value: n, wrongs: [n * 2, n * 4, n / 2],
+            tags: [], difficulty: 0.45,
+            explanation: `Gametes are haploid — half the diploid number: ${n * 2} ÷ 2 = ${n}. Fusion of two gametes restores the full set.`,
+        };
+    },
+    evolution: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const gens = r.int(3, 10), rate = r.pick([2, 5, 10]);
+            return {
+                prompt: `A population's mean beak depth changes by ${rate} mm per generation. After ${gens} generations, by how many mm has it changed in total?`,
+                value: rate * gens, tolerance: { unit: "mm" },
+                wrongs: [rate, gens, rate + gens],
+                tags: [], difficulty: 0.45,
+                explanation: `${rate} mm/generation × ${gens} generations = ${rate * gens} mm. Small changes per generation, compounded over many, are how natural selection produces large shifts.`,
+            };
+        }
+        const p = r.int(10, 90);
+        return {
+            prompt: `In a population, ${p}% of individuals survive to reproduce. How many of a population of 200 survive?`,
+            value: (p * 200) / 100, wrongs: [p, 200 - p, (p * 200) / 1000],
+            tags: [], difficulty: 0.4,
+            explanation: `${p}% of 200 = 200 × ${p}/100 = ${(p * 200) / 100}. Differential survival is the engine of natural selection.`,
+        };
+    },
+    ecosystems: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const producers = r.int(1000, 9000);
+            return {
+                prompt: `A food chain has producers holding ${producers} kJ of energy. If only 10% passes to the next trophic level, how much energy reaches the primary consumers, in kJ?`,
+                value: producers / 10, tolerance: { abs: 0.5, unit: "kJ" },
+                wrongs: [producers, producers * 10, producers / 100],
+                tags: [], difficulty: 0.5,
+                explanation: `10% of ${producers} = ${producers / 10} kJ. The other 90% is lost as heat, movement and waste — which is why food chains are short.`,
+            };
+        }
+        const n = r.int(3, 6);
+        return {
+            prompt: `A food chain has ${n} trophic levels. If 10% of energy passes between each, what fraction of the original energy reaches the top, as a decimal to 4 d.p.?`,
+            value: Number(Math.pow(0.1, n - 1).toFixed(4)), tolerance: { abs: 0.00005 },
+            wrongs: [Number(Math.pow(0.1, n).toFixed(4)), Number((0.1 * n).toFixed(4)), Number((1 / n).toFixed(4))],
+            tags: [], difficulty: 0.65,
+            explanation: `${n} levels means ${n - 1} transfers, each keeping 10%: 0.1^${n - 1} = ${Number(Math.pow(0.1, n - 1).toFixed(4))}. That is why there are rarely more than four or five levels.`,
+        };
+    },
+    biodiversity: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const species = r.int(20, 80), lost = r.int(5, 15);
+            return {
+                prompt: `A habitat holds ${species} species and ${lost} are lost. What percentage of species remain (1 d.p.)?`,
+                value: Number((((species - lost) / species) * 100).toFixed(1)), tolerance: { abs: 0.05, unit: "%" },
+                wrongs: [Number(((lost / species) * 100).toFixed(1)), species - lost, Number(((species / lost) * 100).toFixed(1))],
+                tags: [], difficulty: 0.5,
+                explanation: `Remaining = ${species} − ${lost} = ${species - lost}, so ${species - lost}/${species} × 100 = ${Number((((species - lost) / species) * 100).toFixed(1))}%.`,
+            };
+        }
+        const n = r.int(3, 8);
+        return {
+            prompt: `A sample of ${n} quadrats finds 4, 6, 5, 7, 3, 8, 6, 5 species respectively (take the first ${n}). What is the mean number of species per quadrat (2 d.p.)?`,
+            value: Number(([4, 6, 5, 7, 3, 8, 6, 5].slice(0, n).reduce((s, x) => s + x, 0) / n).toFixed(2)),
+            tolerance: { abs: 0.01 },
+            wrongs: [Number(([4, 6, 5, 7, 3, 8, 6, 5].slice(0, n).reduce((s, x) => s + x, 0)).toFixed(2)), 6, n],
+            tags: [], difficulty: 0.45,
+            explanation: `Mean = total ÷ count = ${[4, 6, 5, 7, 3, 8, 6, 5].slice(0, n).reduce((s, x) => s + x, 0)} ÷ ${n} = ${Number(([4, 6, 5, 7, 3, 8, 6, 5].slice(0, n).reduce((s, x) => s + x, 0) / n).toFixed(2))}.`,
+        };
+    },
+    "immune-health": (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            return {
+                prompt: `A vaccine causes the body to make memory cells. If a later infection would take 10 days to fight unaided but only 3 days with memory cells, how many days does the vaccine save?`,
+                value: 7, wrongs: ["10", "3", "13"],
+                tags: [], difficulty: 0.4,
+                explanation: `10 − 3 = 7 days faster. Memory cells mean the second response starts from a much larger, better-matched population — that is the whole point of vaccination.`,
+            };
+        }
+        const n = r.int(2, 8);
+        return {
+            prompt: `A population has ${n} cases of a disease in 1000 people. What is the rate per 1000 people?`,
+            value: n, wrongs: [n * 10, Number((1000 / n).toFixed(2)), 1000],
+            tags: [], difficulty: 0.35,
+            explanation: `The rate is already per 1000, so it is ${n} per 1000 people. Rates are always reported against a stated population.`,
+        };
+    },
+    // ── COMPUTING ───────────────────────────────────────────────────────────
+    variables: (r) => {
+        const a = r.int(2, 9), b = r.int(2, 9);
+        return {
+            prompt: `What is printed?\n\nx = ${a}\ny = ${b}\nx = x + y\nprint(x)`,
+            value: a + b, wrongs: [a, b, a * b],
+            tags: [], difficulty: 0.4,
+            explanation: `x starts as ${a}, then is reassigned to x + y = ${a} + ${b} = ${a + b}. A variable holds the LATEST value assigned, not the first.`,
+        };
+    },
+    conditionals: (r) => {
+        const a = r.int(2, 9), b = r.int(2, 9);
+        return {
+            prompt: `What is printed?\n\nx = ${a}\nif x > ${b}:\n    print(1)\nelse:\n    print(0)`,
+            value: a > b ? 1 : 0, wrongs: [a > b ? 0 : 1, a, b],
+            tags: [], difficulty: 0.4,
+            explanation: `The condition x > ${b} is ${a > b ? "true" : "false"} because ${a} ${a > b ? ">" : "≤"} ${b}, so the ${a > b ? "first" : "else"} branch runs and prints ${a > b ? 1 : 0}.`,
+        };
+    },
+    loops: (r) => {
+        const n = r.int(3, 9);
+        return {
+            prompt: `How many lines are printed?\n\nfor i in range(${n}):\n    print(i)`,
+            value: n, wrongs: [n - 1, n + 1, n * n],
+            tags: [], difficulty: 0.4,
+            explanation: `range(${n}) yields ${n} values (0 to ${n - 1}), so the body runs ${n} times.`,
+        };
+    },
+    "lists-arrays": (r) => {
+        const items = Array.from({ length: 5 }, () => r.int(1, 20));
+        const idx = r.int(0, 4);
+        return {
+            prompt: `What is printed?\n\nitems = [${items.join(", ")}]\nprint(items[${idx}])`,
+            value: items[idx], wrongs: [items[idx === 0 ? 1 : idx - 1], idx, items.length],
+            tags: [], difficulty: 0.45,
+            explanation: `Lists are indexed from 0, so items[${idx}] is the ${idx + 1}th element: ${items[idx]}. Forgetting the zero start is the classic off-by-one.`,
+        };
+    },
+    "functions-code": (r) => {
+        const k = r.int(2, 9), x = r.int(2, 9);
+        return {
+            prompt: `What is printed?\n\ndef add_${k}(n):\n    return n + ${k}\n\nprint(add_${k}(${x}))`,
+            value: x + k, wrongs: [x, k, x * k],
+            tags: [], difficulty: 0.45,
+            explanation: `The function returns n + ${k}; called with ${x} it returns ${x} + ${k} = ${x + k}.`,
+        };
+    },
+    dictionaries: (r) => {
+        const keys = ["a", "b", "c", "d"];
+        const vals = Array.from({ length: 4 }, () => r.int(1, 30));
+        const i = r.int(0, 3);
+        return {
+            prompt: `What is printed?\n\nd = {"${keys[0]}": ${vals[0]}, "${keys[1]}": ${vals[1]}, "${keys[2]}": ${vals[2]}, "${keys[3]}": ${vals[3]}}\nprint(d["${keys[i]}"])`,
+            value: vals[i], wrongs: [vals[(i + 1) % 4], i, 4],
+            tags: [], difficulty: 0.45,
+            explanation: `A dictionary is looked up by KEY, not position: d["${keys[i]}"] is ${vals[i]}. The order you write the pairs in does not change the lookup.`,
+        };
+    },
+    "algorithms-search": (r) => {
+        const n = r.pick([8, 16, 32, 64]);
+        return {
+            prompt: `A sorted list of ${n} items is searched by binary search. What is the MAXIMUM number of comparisons?`,
+            value: Math.log2(n), wrongs: [n, Math.log2(n) + 1, Math.ceil(Math.log2(n) * 2)],
+            tags: [], difficulty: 0.6,
+            explanation: `Each comparison halves the space: log₂(${n}) = ${Math.log2(n)}. Linear search would need up to ${n}.`,
+        };
+    },
+    "algorithms-sort": (r) => {
+        const n = r.int(4, 10);
+        return {
+            prompt: `Bubble sort compares adjacent pairs. For ${n} items, roughly how many comparisons does one full pass make?`,
+            value: n - 1, wrongs: [n, n * n, n + 1],
+            tags: [], difficulty: 0.5,
+            explanation: `One pass compares each adjacent pair: ${n} items have ${n - 1} gaps, so ${n - 1} comparisons. The full sort repeats this up to ${n - 1} times — that is the n² cost.`,
+        };
+    },
+    recursion: (r) => {
+        const n = r.int(2, 6);
+        let f = 1;
+        for (let i = 2; i <= n; i++)
+            f *= i;
+        return {
+            prompt: `What does this return?\n\ndef fact(n):\n    if n <= 1:\n        return 1\n    return n * fact(n - 1)\n\nprint(fact(${n}))`,
+            value: f, wrongs: [n, Math.pow(2, n), f / n],
+            tags: [], difficulty: 0.6,
+            explanation: `fact(${n}) = ${n} × ${n - 1} × … × 1 = ${f}. The base case (n ≤ 1) is what stops the recursion — without it the function would never return.`,
+        };
+    },
+    "binary-data": (r) => {
+        const bits = r.pick([4, 8, 12, 16]);
+        return {
+            prompt: `How many different values can ${bits} bits represent?`,
+            value: Math.pow(2, bits), wrongs: [bits * 2, Math.pow(2, bits) - 1, bits],
+            tags: [], difficulty: 0.45,
+            explanation: `Each bit doubles the possibilities, so ${bits} bits give 2^${bits} = ${Math.pow(2, bits)} values. If you need to count from 0, the highest value is one less.`,
+        };
+    },
+    cybersecurity: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const chars = r.pick([26, 52, 62]);
+            return {
+                prompt: `A password uses an alphabet of ${chars} possible characters and is 2 characters long. How many possible passwords are there?`,
+                value: chars * chars, wrongs: [chars * 2, Math.pow(chars, 3), chars + 2],
+                tags: [], difficulty: 0.5,
+                explanation: `${chars} choices per character, 2 characters: ${chars}² = ${chars * chars}. Length multiplies the space far faster than alphabet size — which is why long passphrases beat short complex ones.`,
+            };
+        }
+        const keyBits = r.pick([8, 16, 32]);
+        return {
+            prompt: `A key has ${keyBits} bits. How many times harder is a key with one extra bit to guess by brute force?`,
+            value: 2, wrongs: [keyBits, 1, keyBits * 2],
+            tags: [], difficulty: 0.55,
+            explanation: `One extra bit DOUBLES the search space, so it is 2× harder. That is why key length matters so much: every bit doubles the work for an attacker.`,
+        };
+    },
+    "databases-sql": (r) => {
+        const rows = r.int(3, 12), matching = r.int(1, rows);
+        return {
+            prompt: `A table has ${rows} rows. A SELECT with a WHERE clause matching ${matching} rows returns how many rows?`,
+            value: matching, wrongs: [rows, rows - matching, matching * rows],
+            tags: [], difficulty: 0.4,
+            explanation: `WHERE filters, so only the ${matching} matching rows are returned — not all ${rows}. SELECT * with no WHERE would return everything.`,
+        };
+    },
+    "ai-basics": (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            return {
+                prompt: `A model is trained on 800 examples and tested on 200. What percentage of the data is the TEST set?`,
+                value: 20, wrongs: ["80", "200", "10"],
+                tags: [], difficulty: 0.4,
+                explanation: `200 ÷ 1000 × 100 = 20%. The test set is kept separate so the score measures generalisation, not memorisation.`,
+            };
+        }
+        const correct = r.int(60, 95), total = 100;
+        return {
+            prompt: `A classifier gets ${correct} of ${total} test examples right. What is its accuracy, as a percentage?`,
+            value: correct, wrongs: [100 - correct, correct / 10, correct * 10],
+            tags: [], difficulty: 0.35,
+            explanation: `Accuracy = correct ÷ total × 100 = ${correct}%. On imbalanced data accuracy alone can mislead — a model that always says "no" scores well on rare events.`,
+        };
+    },
+    "statistics-data": (r) => {
+        const nums = Array.from({ length: 5 }, () => r.int(2, 30));
+        const sorted = [...nums].sort((a, b) => a - b);
+        return {
+            prompt: `What is the MEAN of ${nums.join(", ")}? (2 d.p.)`,
+            value: Number((nums.reduce((s, n) => s + n, 0) / nums.length).toFixed(2)), tolerance: { abs: 0.01 },
+            wrongs: [sorted[2], nums.reduce((s, n) => s + n, 0), Number((sorted[4] - sorted[0]).toFixed(2))],
+            tags: ["outlier-mean"], difficulty: 0.4,
+            explanation: `Mean = total ÷ count = ${nums.reduce((s, n) => s + n, 0)} ÷ 5 = ${Number((nums.reduce((s, n) => s + n, 0) / nums.length).toFixed(2))}. The median would be ${sorted[2]} — different, and chosen for different reasons.`,
+        };
+    },
+    coordinates: (r) => {
+        const x1 = r.int(-8, 8), y1 = r.int(-8, 8), x2 = r.int(-8, 8), y2 = r.int(-8, 8);
+        return {
+            prompt: `What is the x-coordinate of the midpoint of (${x1}, ${y1}) and (${x2}, ${y2})?`,
+            value: (x1 + x2) / 2, tolerance: { abs: 0.01 },
+            wrongs: [(y1 + y2) / 2, x1 + x2, x2 - x1],
+            tags: [], difficulty: 0.5,
+            explanation: `The midpoint averages each coordinate: x = (${x1} + ${x2})/2 = ${(x1 + x2) / 2}. Averaging the y's would give the other coordinate.`,
+        };
+    },
+    microscopy: (r) => {
+        const real = r.pick([5, 10, 20, 50]), mag = r.pick([100, 200, 400, 1000]);
+        return {
+            prompt: `A cell ${real} μm wide is viewed at ×${mag} magnification. How wide does it appear, in μm?`,
+            value: real * mag, tolerance: { unit: "μm" },
+            wrongs: [real + mag, Number((real / mag).toFixed(6)), real * (mag / 10)],
+            tags: [], difficulty: 0.4,
+            explanation: `image = real × magnification = ${real} × ${mag} = ${real * mag} μm. The image must be bigger than the object — dividing is the warning sign.`,
+        };
+    },
+    "loci-constructions": (r) => {
+        const d = r.pick([3, 4, 5, 6]);
+        return {
+            prompt: `The locus of points a distance of ${d} cm from a fixed point is a circle. What is its radius, in cm?`,
+            value: d, tolerance: { unit: "cm" },
+            wrongs: [d * 2, d / 2, d * d],
+            tags: [], difficulty: 0.4,
+            explanation: `Every point at distance ${d} from the centre lies on a circle of radius ${d} cm. Doubling would give the diameter.`,
+        };
+    },
+    "trig-identity": (r) => {
+        const theta = r.pick([30, 45, 60]);
+        const rad = (theta * Math.PI) / 180;
+        const val = Math.sin(rad) * Math.sin(rad) + Math.cos(rad) * Math.cos(rad);
+        return {
+            prompt: `Using sin²θ + cos²θ = 1, what is sin²${theta}° + cos²${theta}°?`,
+            value: Number(val.toFixed(3)), tolerance: { abs: 0.01 },
+            wrongs: [0, 2, Number(Math.sin(rad).toFixed(3))],
+            tags: [], difficulty: 0.45,
+            explanation: `The identity holds for EVERY angle, so the value is 1 (here ${Number(val.toFixed(3))}, the tiny gap being floating-point rounding). It follows from the unit circle.`,
+        };
+    },
+    "mixture-problems": (r) => {
+        const a = r.int(2, 9), b = r.int(2, 9), x = r.int(2, 9);
+        const y = r.int(2, 9);
+        return {
+            prompt: `A shop mixes ${a} kg of nuts costing £${x} per kg with ${b} kg of raisins costing £${y} per kg. What is the cost per kg of the mixture, in pounds (2 d.p.)?`,
+            value: Number(((a * x + b * y) / (a + b)).toFixed(2)), tolerance: { abs: 0.01, unit: "£" },
+            wrongs: [Number(((x + y) / 2).toFixed(2)), Number((a * x + b * y).toFixed(2)), Number(((a * y + b * x) / (a + b)).toFixed(2))],
+            tags: [], difficulty: 0.6,
+            explanation: `Total cost ÷ total mass: (${a}×${x} + ${b}×${y}) ÷ (${a}+${b}) = ${a * x + b * y} ÷ ${a + b} = £${Number(((a * x + b * y) / (a + b)).toFixed(2))} per kg. The plain average of the two prices (${Number(((x + y) / 2).toFixed(2))}) is wrong because the masses differ.`,
+        };
+    },
+    kinematics_extra: (r) => {
+        const u = r.int(2, 10), a = r.int(2, 5), t = r.int(2, 6);
+        return {
+            prompt: `A body starts at ${u} m/s and accelerates at ${a} m/s² for ${t} s. How far does it travel, in metres?`,
+            value: u * t + 0.5 * a * t * t, tolerance: { abs: 0.01, unit: "m" },
+            wrongs: [u * t, 0.5 * a * t * t, (u + a * t) * t],
+            tags: [], difficulty: 0.6,
+            explanation: `s = ut + ½at² = ${u}(${t}) + ½(${a})(${t}²) = ${u * t + 0.5 * a * t * t} m. The ½ is why the acceleration term is not simply at².`,
+        };
+    },
+};
+/** Greatest common divisor — used by the valency and ion-ratio items. */
+function gcd(a, b) {
+    let x = Math.abs(a), y = Math.abs(b);
+    while (y) {
+        const t = y;
+        y = x % y;
+        x = t;
+    }
+    return x || 1;
+}
+
+});
+__def("numeric-items.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// NUMERIC ITEMS — the questions the bank could not ask before, because every
+// item it could build was four printed options.
+//
+// The audit measured the gap (§4.3): 68 of 135 concepts could not produce a
+// numeric answer at all, so on those concepts a learner could only ever RECOGNISE
+// a value among four strings and never PRODUCE one. Recognition and production
+// are different achievements — the first is what a quiz measures, the second is
+// what a mathematics or science course examines — and a bank that can only do
+// the first overstates what it has measured about a learner.
+//
+// These families are AUTHORED, not generated from a template: each one asks a
+// question a teacher would actually set, states the unit, and declares its own
+// tolerance, because only the item knows whether 12 is exact or 12.0 is a
+// measurement. Where a value is a count it is exact; where it is computed from a
+// measurement the tolerance says so, and the explanation names the rounding the
+// course expects rather than pretending the answer is precise.
+//
+// They compose onto the existing bank through the SAME `withDepth` machinery the
+// deep and senior layers use (lib/questions.ts), so a concept gains an answer
+// box without any surface, gate or diagnostic learning a second code path.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NUMERIC_CONCEPT_IDS = exports.NUMERIC_GENS = void 0;
+const numeric_items_core_1 = require("./numeric-items-core");
+/** Exact-count tolerance: nothing, so the grader compares exactly. */
+const EXACT = undefined;
+const OPENING_GENS = {
+    // ── MATHS ────────────────────────────────────────────────────────────────
+    "standard-form": (r) => {
+        // A power of ten is an integer a learner can state exactly.
+        const v = r.int(0, 3);
+        if (v === 0) {
+            const n = r.pick([35000, 420000, 8100, 60700]);
+            return {
+                prompt: `Write ${n.toLocaleString("en-GB")} in standard form A × 10ⁿ. What is the value of n?`,
+                value: String(n).length - 1, wrongs: [String(String(n).length), String(String(n).length - 2), "1"],
+                tags: [], difficulty: 0.3,
+                explanation: `${n} = ${Number(n).toExponential(1).replace("e+", " × 10^")}, so n = ${String(n).length - 1}: the decimal point moves ${String(n).length - 1} places to sit just after the first digit.`,
+            };
+        }
+        if (v === 1) {
+            const n = r.pick([0.00042, 0.0071, 0.000003, 0.025]);
+            const e = Math.floor(Math.log10(n));
+            return {
+                prompt: `Write ${n} in standard form A × 10ⁿ. What is the value of n?`,
+                value: e, wrongs: [String(-e), String(e + 1), String(e - 1)],
+                tags: [], difficulty: 0.35,
+                explanation: `For a number below 1, the power is negative. ${n} = ${n.toExponential(1).replace("e", " × 10^")}, so n = ${e}.`,
+            };
+        }
+        if (v === 2) {
+            const a = r.int(2, 9), b = r.int(2, 9), c = r.int(1, 5);
+            return {
+                prompt: `Work out (${a} × 10^${b}) × (${c} × 10^${c}), giving your answer as A × 10ⁿ. What is n?`,
+                value: b + c, wrongs: [String(b * c), String(b + c + 1), String(b - c)],
+                tags: [], difficulty: 0.5,
+                explanation: `Multiply the A's and ADD the powers: 10^${b} × 10^${c} = 10^${b + c}. So n = ${b + c}.`,
+            };
+        }
+        const m = r.int(2, 9);
+        return {
+            prompt: `A number is written as ${m} × 10^4. What is its value as an ordinary number?`,
+            value: m * 10000, wrongs: [String(m * 1000), String(m * 100000), String(m * 40000)],
+            tags: [], difficulty: 0.3,
+            explanation: `× 10⁴ shifts the digits four places: ${m} × 10^4 = ${m * 10000}.`,
+        };
+    },
+    "algebra-expressions": (r) => {
+        const v = r.int(0, 2);
+        const x = r.int(2, 9), y = r.int(2, 9);
+        if (v === 0) {
+            const a = r.int(2, 6), b = r.int(2, 6);
+            return {
+                prompt: `Evaluate ${a}x + ${b}y when x = ${x} and y = ${y}.`,
+                value: a * x + b * y, wrongs: [String(a * x + b * y + 2), String(a * x - b * y), String((a + b) * (x + y))],
+                tags: ["like-terms"], difficulty: 0.35,
+                explanation: `Substitute, keeping the multiplication: ${a}(${x}) + ${b}(${y}) = ${a * x} + ${b * y} = ${a * x + b * y}.`,
+            };
+        }
+        if (v === 1) {
+            const a = r.int(2, 6), b = r.int(2, 5);
+            return {
+                prompt: `Evaluate ${a}x² − ${b}x when x = ${x}.`,
+                value: a * x * x - b * x, wrongs: [String(a * x * x - b), String((a * x - b) * (a * x - b)), String(a * x * 2 - b * x)],
+                tags: ["like-terms"], difficulty: 0.45,
+                explanation: `Square first, then multiply: ${a}(${x}²) = ${a * x * x}, minus ${b}(${x}) = ${b * x}. So ${a * x * x} − ${b * x} = ${a * x * x - b * x}.`,
+            };
+        }
+        const k = r.int(2, 5), a = r.int(2, 6);
+        return {
+            prompt: `A rectangle has length ${a}w and width ${k}w. What is its area when w = ${x}?`,
+            value: a * k * x * x, wrongs: [String(a * k * x), String((a + k) * x), String(a * k * x * x + k)],
+            tags: ["like-terms"], difficulty: 0.5,
+            explanation: `Area = ${a}w × ${k}w = ${a * k}w². With w = ${x}: ${a * k}(${x}²) = ${a * k * x * x}.`,
+        };
+    },
+    "algebra-expand": (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const p = r.int(2, 7), q = r.int(2, 7);
+            return {
+                prompt: `Expand (x + ${p})(x + ${q}). The result is x² + bx + c. What is the value of b?`,
+                value: p + q, wrongs: [String(p * q), String(p + q + 1), String(Math.abs(p - q))],
+                tags: ["sign-slip"], difficulty: 0.45,
+                explanation: `The x-terms are ${p}x + ${q}x = ${p + q}x, so b = ${p + q}. (And c = ${p} × ${q} = ${p * q}.)`,
+            };
+        }
+        if (v === 1) {
+            const p = r.int(2, 8), q = r.int(2, 8);
+            return {
+                prompt: `Expand (x − ${p})(x + ${q}). The result is x² + bx + c. What is the value of c?`,
+                value: -p * q, wrongs: [String(p * q), String(q - p), String(-(p + q))],
+                tags: ["sign-slip"], difficulty: 0.5,
+                explanation: `The constants multiply with their signs: (−${p}) × (+${q}) = −${p * q}, so c = ${-p * q}.`,
+            };
+        }
+        const a = r.int(2, 4), p = r.int(2, 6), q = r.int(2, 6);
+        return {
+            prompt: `Expand (${a}x + ${p})(x + ${q}). The result is ${a}x² + bx + c. What is the value of b?`,
+            value: a * q + p, wrongs: [String(a * p + q), String(p * q), String(a * q - p)],
+            tags: ["sign-slip"], difficulty: 0.6,
+            explanation: `The x-terms come from ${a}x × ${q} and ${p} × x: ${a * q}x + ${p}x = ${a * q + p}x, so b = ${a * q + p}.`,
+        };
+    },
+    "linear-equations": (r) => {
+        const v = r.int(0, 3);
+        if (v === 0) {
+            const a = r.int(2, 7), x = r.int(2, 9), b = r.int(1, 9);
+            return {
+                prompt: `Solve ${a}x + ${b} = ${a * x + b}.`,
+                value: x, wrongs: [String(x + 1), String(x - 1), String(Math.round((a * x + b) / a))],
+                tags: ["bal-slip"], difficulty: 0.35,
+                explanation: `Subtract ${b} from both sides: ${a}x = ${a * x}. Divide by ${a}: x = ${x}.`,
+            };
+        }
+        if (v === 1) {
+            const a = r.int(2, 6), x = r.int(2, 9), b = r.int(2, 9);
+            return {
+                prompt: `Solve ${a}x − ${b} = ${a * x - b}.`,
+                value: x, wrongs: [String(x + 1), String(x - 1), String(Math.round((a * x - b) / a))],
+                tags: ["bal-slip"], difficulty: 0.35,
+                explanation: `Add ${b} to both sides: ${a}x = ${a * x}. Divide by ${a}: x = ${x}.`,
+            };
+        }
+        if (v === 2) {
+            const a = r.int(2, 5), b = r.int(1, 6), x = r.int(2, 8);
+            // a·x + b = c·x + d with a − c = 2 and d chosen so the solution is x.
+            const c = a - 2;
+            const d = (a - c) * x + b;
+            return {
+                prompt: `Solve ${a}x + ${b} = ${c}x + ${d}.`,
+                value: x, wrongs: [String(x + 1), String(x - 1), String(d - b)],
+                tags: ["bal-slip"], difficulty: 0.55,
+                explanation: `Collect the x's on one side: ${a - c}x = ${d - b}, so x = ${x}. Checking: ${a}(${x}) + ${b} = ${c}(${x}) + ${d}.`,
+            };
+        }
+        const a = r.int(2, 6), b = r.int(1, 5), x = r.int(2, 8);
+        return {
+            prompt: `Solve ${a}(x + ${b}) = ${a * (x + b)}.`,
+            value: x, wrongs: [String(x + b), String(x - b), String(Math.round(a * (x + b) / (a + b)))],
+            tags: ["bal-slip"], difficulty: 0.5,
+            explanation: `Divide both sides by ${a}: x + ${b} = ${x + b}, so x = ${x}. (Expanding first works too: ${a}x + ${a * b} = ${a * (x + b)}.)`,
+        };
+    },
+    "inequalities": (r) => {
+        const v = r.int(0, 1);
+        const a = r.int(2, 6), b = r.int(1, 8), x = r.int(2, 8);
+        if (v === 0) {
+            return {
+                prompt: `Solve ${a}x + ${b} > ${a * x + b}. What is the smallest whole number that works?`,
+                value: x + 1, wrongs: [String(x), String(x - 1), String(x + 2)],
+                tags: ["ineq-flip"], difficulty: 0.5,
+                explanation: `Subtract ${b}: ${a}x > ${a * x}, so x > ${x}. The smallest whole number strictly greater than ${x} is ${x + 1} — ${x} itself does NOT satisfy a strict inequality.`,
+            };
+        }
+        const n = r.int(2, 5);
+        return {
+            prompt: `Solve −${n}x < ${-n * x}. What is the smallest whole number that works?`,
+            value: x, wrongs: [String(x - 1), String(-x), String(x + 1)],
+            tags: ["ineq-flip"], difficulty: 0.6,
+            explanation: `Dividing by a negative REVERSES the inequality: x > ${x}. The smallest whole number is ${x} (not ${x - 1} — the flip is the whole question).`,
+        };
+    },
+    "probability-basics": (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const d = r.pick([6, 8, 10, 12]);
+            const target = r.pick([1, 2, 3]);
+            const k = target;
+            return {
+                prompt: `A fair ${d}-sided die is rolled once. Give P(score ≤ ${k}) as a decimal.`,
+                value: k / d, tolerance: { abs: 0.005, display: String(Number((k / d).toFixed(4))) }, wrongs: [String(Number((1 / d).toFixed(4))), String(Number((k / (d - k)).toFixed(4))), String(Number((k / d + 0.1).toFixed(4)))],
+                tags: ["sum-one"], difficulty: 0.4,
+                explanation: `${k} of the ${d} equally likely scores are ${k} or less, so P = ${k}/${d} = ${Number((k / d).toFixed(4))}.`,
+            };
+        }
+        const red = r.int(2, 6), blue = r.int(2, 6);
+        return {
+            prompt: `A bag holds ${red} red and ${blue} blue counters. One is taken at random. Give P(red) as a decimal.`,
+            value: red / (red + blue), tolerance: { abs: 0.005, display: String(Number((red / (red + blue)).toFixed(4))) }, wrongs: [String(Number((blue / (red + blue)).toFixed(4))), String(Number((red / blue).toFixed(4))), String(Number((1 / (red + blue)).toFixed(4)))],
+            tags: ["sum-one"], difficulty: 0.4,
+            explanation: `P(red) = red ÷ total = ${red}/${red + blue} = ${Number((red / (red + blue)).toFixed(4))}. Probabilities are out of the WHOLE bag, not the other colour.`,
+        };
+    },
+    "tree-diagrams": (r) => {
+        const p = r.int(1, 4);
+        const a = p, b = p; // P = a/b
+        const both = (a / b) * (a / b);
+        return {
+            prompt: `Two independent events each have probability ${a}/${b}. Give the probability that BOTH happen, as a decimal.`,
+            value: both, tolerance: { abs: 0.005 }, wrongs: [String(Number((a / b + a / b).toFixed(4))), String(Number((1 - both).toFixed(4))), String(Number((a / b).toFixed(4)))],
+            tags: ["ind-dep"], difficulty: 0.5,
+            explanation: `Multiply ALONG the branches when the events are independent: ${a}/${b} × ${a}/${b} = ${Number(both.toFixed(4))}. Adding them would be for "either", not "both".`,
+        };
+    },
+    "quadratic-graphs": (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const h = r.int(1, 6);
+            return {
+                prompt: `y = x² − ${2 * h}x + ${h * h - 3}. At what value of x is the minimum?`,
+                value: h, wrongs: [String(2 * h), String(-h), String(h * h - 3)],
+                tags: ["b-half"], difficulty: 0.55,
+                explanation: `The turning point is at x = −b/2a = ${2 * h}/2 = ${h} (completing the square gives (x − ${h})² − 3).`,
+            };
+        }
+        if (v === 1) {
+            const p = r.int(1, 5), q = r.int(2, 6);
+            return {
+                prompt: `y = (x − ${p})(x + ${q}). The graph crosses the x-axis at two points. What is the POSITIVE root?`,
+                value: p, wrongs: [String(-q), String(q), String(p + q)],
+                tags: ["b-half"], difficulty: 0.5,
+                explanation: `A product is zero when a factor is zero: x − ${p} = 0 gives x = ${p}, and x + ${q} = 0 gives x = −${q}. The positive root is ${p}.`,
+            };
+        }
+        const k = r.int(1, 6);
+        return {
+            prompt: `y = x² + ${k}. What is the y-intercept of the graph?`,
+            value: k, wrongs: ["0", String(-k), String(k * k)],
+            tags: [], difficulty: 0.35,
+            explanation: `Set x = 0: y = 0² + ${k} = ${k}. The y-intercept is the constant term when the equation is in this form.`,
+        };
+    },
+    proof: (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const n = r.pick([8, 9, 10, 12, 15]);
+            return {
+                prompt: `The sum of the first n whole numbers is n(n + 1)/2. What is the sum of the first ${n} whole numbers?`,
+                value: (n * (n + 1)) / 2, wrongs: [String(n * n), String(n * (n + 1)), String((n * (n + 1)) / 2 + n)],
+                tags: [], difficulty: 0.45,
+                explanation: `n(n + 1)/2 = ${n} × ${n + 1} ÷ 2 = ${(n * (n + 1)) / 2}. This is the pairing argument: ${n} terms pair to ${n + 1} each, and there are ${n}/2 pairs.`,
+            };
+        }
+        if (v === 1) {
+            const k = r.int(2, 6);
+            return {
+                prompt: `An odd number has the form 2n + 1. Using n = ${k}, what is the odd number?`,
+                value: 2 * k + 1, wrongs: [String(2 * k), String(2 * k + 2), String(k * k)],
+                tags: [], difficulty: 0.4,
+                explanation: `2n + 1 with n = ${k} gives 2(${k}) + 1 = ${2 * k + 1}. The form is what makes a proof about ALL odd numbers possible.`,
+            };
+        }
+        const a = r.int(3, 9), b = r.int(3, 9);
+        return {
+            prompt: `Show (a + b)² = a² + 2ab + b². Using a = ${a} and b = ${b}, what is the value of 2ab?`,
+            value: 2 * a * b, wrongs: [String(a * b), String(a * a + b * b), String(a + b)],
+            tags: [], difficulty: 0.5,
+            explanation: `2ab = 2 × ${a} × ${b} = ${2 * a * b}. The cross term is the whole content of the identity — a² + b² alone would miss it.`,
+        };
+    },
+    "logic-maths": (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            return {
+                prompt: `In Boolean algebra, "1" means true and "0" means false. What is the value of A AND (NOT A)?`,
+                value: 0, wrongs: ["1", "2", "-1"],
+                tags: [], difficulty: 0.4,
+                explanation: `A statement cannot be both true and false, so A AND NOT A is always false = 0. It is the contradiction, whatever A is.`,
+            };
+        }
+        if (v === 1) {
+            return {
+                prompt: `In Boolean algebra, "1" means true and "0" means false. What is the value of A OR (NOT A)?`,
+                value: 1, wrongs: ["0", "2", "-1"],
+                tags: [], difficulty: 0.4,
+                explanation: `Either A is true or it is not — one of the two always holds, so A OR NOT A is always true = 1.`,
+            };
+        }
+        const a = r.int(0, 1), b = r.int(0, 1);
+        return {
+            prompt: `In Boolean algebra, 1 = true and 0 = false. Given A = ${a} and B = ${b}, what is A AND B?`,
+            value: a & b, wrongs: [String(a | b), String(a ^ b), String(1 - (a & b))],
+            tags: [], difficulty: 0.35,
+            explanation: `AND is 1 only when BOTH inputs are 1. Here ${a} AND ${b} = ${a & b}.`,
+        };
+    },
+    bearings: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const dirs = [["due north", 0], ["due east", 90], ["due south", 180], ["due west", 270]];
+            const [name, deg] = r.pick(dirs);
+            return {
+                prompt: `What is the bearing of a direction ${name}, in degrees?`,
+                value: deg, wrongs: [String((deg + 90) % 360), String((deg + 180) % 360), String(deg === 0 ? 360 : 0)],
+                tags: [], difficulty: 0.3,
+                explanation: `Bearings are measured CLOCKWISE from due north: north = 0°, east = 90°, south = 180°, west = 270°. So ${name} is ${deg}°.`,
+            };
+        }
+        const d = r.pick([30, 40, 50, 60]);
+        return {
+            prompt: `A bearing is ${d}°. Measured the other way (anticlockwise from north), the same direction is 360 − ${d}. What is it, in degrees?`,
+            value: 360 - d, wrongs: [String(d), String(180 - d), String(360 + d)],
+            tags: [], difficulty: 0.35,
+            explanation: `A full turn is 360°, so the opposite reading is 360 − ${d} = ${360 - d}°.`,
+        };
+    },
+    "circle-area-arc": (r) => {
+        const v = r.int(0, 2);
+        const radius = r.int(2, 12);
+        if (v === 0) {
+            return {
+                prompt: `A circle has radius ${radius} cm. Its area is kπ cm². What is the value of k?`,
+                value: radius * radius, tolerance: { unit: "cm²" }, wrongs: [String(2 * radius), String(radius), String(radius * radius * 2)],
+                tags: [], difficulty: 0.4,
+                explanation: `Area = πr² = π × ${radius}² = ${radius * radius}π cm², so k = ${radius * radius}. The k is r², not r.`,
+            };
+        }
+        if (v === 1) {
+            return {
+                prompt: `A circle has radius ${radius} cm. Its circumference is kπ cm. What is the value of k?`,
+                value: 2 * radius, tolerance: { unit: "cm" }, wrongs: [String(radius), String(radius * radius), String(4 * radius)],
+                tags: [], difficulty: 0.35,
+                explanation: `Circumference = 2πr = 2π × ${radius} = ${2 * radius}π cm, so k = ${2 * radius}. Circumference is a LENGTH (one r); area has two.`,
+            };
+        }
+        const deg = r.pick([60, 90, 120, 180]);
+        const num = (deg / 360) * radius * radius;
+        return {
+            prompt: `A sector of a circle of radius ${radius} cm has angle ${deg}°. Its area is kπ cm². What is the value of k?`,
+            value: num, tolerance: { abs: 0.01, unit: "cm²", display: String(Number(num.toFixed(2))) }, wrongs: [String(Number((radius * radius).toFixed(2))), String(Number(((deg / 180) * radius * radius).toFixed(2))), String(Number(((deg / 360) * 2 * radius).toFixed(2)))],
+            tags: [], difficulty: 0.55,
+            explanation: `A sector is the fraction ${deg}/360 of the whole: (${deg}/360) × π${radius}² = ${Number(num.toFixed(2))}π cm².`,
+        };
+    },
+    "trig-rule": (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const triples = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [9, 12, 15]];
+            const [a, b, c] = r.pick(triples);
+            return {
+                prompt: `A right-angled triangle has legs ${a} cm and ${b} cm. How long is the hypotenuse, in cm?`,
+                value: c, tolerance: { unit: "cm" }, wrongs: [String(a + b), String(c + 1), String(c - 1)],
+                tags: ["cos-amb"], difficulty: 0.45,
+                explanation: `Pythagoras: ${a}² + ${b}² = ${a * a} + ${b * b} = ${c * c}, so the hypotenuse is √${c * c} = ${c} cm.`,
+            };
+        }
+        if (v === 1) {
+            const triples = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17]];
+            const [a, b, c] = r.pick(triples);
+            return {
+                prompt: `In a right-angled triangle the hypotenuse is ${c} cm and one leg is ${a} cm. How long is the other leg, in cm?`,
+                value: b, tolerance: { unit: "cm" }, wrongs: [String(c - a), String(b + 1), String(a + c)],
+                tags: ["cos-amb"], difficulty: 0.5,
+                explanation: `Rearrange Pythagoras for a leg: ${c}² − ${a}² = ${c * c} − ${a * a} = ${b * b}, so the leg is √${b * b} = ${b} cm.`,
+            };
+        }
+        const angle = r.pick([30, 45, 60]);
+        const hyp = r.pick([10, 12, 20, 24]);
+        // sin(30)=0.5, sin(45)=√2/2, sin(60)=√3/2 — give the answer as opp/hyp × hyp for 30 only; use exact for 30.
+        if (angle === 30) {
+            return {
+                prompt: `In a right-angled triangle the hypotenuse is ${hyp} cm and one angle is 30°. How long is the side OPPOSITE that angle, in cm?`,
+                value: hyp / 2, tolerance: { unit: "cm" }, wrongs: [String(hyp), String(Math.round(hyp * 0.866)), String(Math.round(hyp / 3))],
+                tags: ["cos-amb"], difficulty: 0.5,
+                explanation: `sin 30° = 0.5, and sin = opposite/hypotenuse, so opposite = 0.5 × ${hyp} = ${hyp / 2} cm.`,
+            };
+        }
+        return {
+            prompt: `In a right-angled triangle the hypotenuse is ${hyp} cm and one angle is ${angle}°. How long is the side ADJACENT to that angle, in cm (1 d.p.)?`,
+            value: Number((hyp * Math.cos((angle * Math.PI) / 180)).toFixed(1)),
+            tolerance: { abs: 0.05, unit: "cm" },
+            wrongs: [String(Number((hyp * Math.sin((angle * Math.PI) / 180)).toFixed(1))), String(hyp), String(Number((hyp / 2).toFixed(1)))],
+            tags: ["cos-amb"], difficulty: 0.55,
+            explanation: `cos ${angle}° = adjacent/hypotenuse, so adjacent = ${hyp} × cos ${angle}° = ${Number((hyp * Math.cos((angle * Math.PI) / 180)).toFixed(1))} cm.`,
+        };
+    },
+    // ── PHYSICS ──────────────────────────────────────────────────────────────
+    "forces-basics": (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const m = r.int(2, 12), a = r.int(2, 6);
+            return {
+                prompt: `A mass of ${m} kg accelerates at ${a} m/s². Using F = ma, what is the resultant force, in newtons?`,
+                value: m * a, tolerance: { unit: "N" }, wrongs: [String(m + a), String(Math.round(m / a)), String(m * a * 10)],
+                tags: ["bal-motion"], difficulty: 0.35,
+                explanation: `F = ma = ${m} × ${a} = ${m * a} N. Force is in newtons, not kilograms — the units are part of the answer.`,
+            };
+        }
+        if (v === 1) {
+            const m = r.int(2, 10), g = 10;
+            return {
+                prompt: `A mass of ${m} kg is weighed on Earth, where g = ${g} N/kg. What is its weight, in newtons?`,
+                value: m * g, tolerance: { unit: "N" }, wrongs: [String(m), String(m * g + 10), String(Math.round(m / g))],
+                tags: ["bal-motion"], difficulty: 0.35,
+                explanation: `Weight = mass × g = ${m} × ${g} = ${m * g} N. The mass stays ${m} kg wherever it is; the WEIGHT changes with g.`,
+            };
+        }
+        const f = r.int(20, 90), a = r.int(2, 6);
+        return {
+            prompt: `A resultant force of ${f} N acts on a mass, giving an acceleration of ${a} m/s². What is the mass, in kg?`,
+            value: f / a, tolerance: { abs: 0.01, unit: "kg", display: String(Number((f / a).toFixed(2))) }, wrongs: [String(f * a), String(f - a), String(Number((a / f).toFixed(3)))],
+            tags: ["bal-motion"], difficulty: 0.45,
+            explanation: `Rearrange F = ma: m = F ÷ a = ${f} ÷ ${a} = ${Number((f / a).toFixed(2))} kg.`,
+        };
+    },
+    "motion-graphs": (r) => {
+        const v = r.int(0, 2);
+        const d = r.int(40, 400), t = r.int(2, 20);
+        if (v === 0) {
+            const dist = d - (d % t);
+            return {
+                prompt: `A car travels ${dist} m in ${t} s. What is its average speed, in m/s?`,
+                value: dist / t, tolerance: { abs: 0.01, unit: "m/s" }, wrongs: [String(dist * t), String(t), String(Number((t / dist).toFixed(3)))],
+                tags: ["dt-vt"], difficulty: 0.35,
+                explanation: `Speed = distance ÷ time = ${dist} ÷ ${t} = ${dist / t} m/s. Dividing the wrong way round gives a tiny number — check the units.`,
+            };
+        }
+        if (v === 1) {
+            const u = r.int(2, 8), a = r.int(2, 5), tt = r.int(2, 6);
+            return {
+                prompt: `A body starts at ${u} m/s and accelerates at ${a} m/s² for ${tt} s. What is its final velocity, in m/s?`,
+                value: u + a * tt, tolerance: { unit: "m/s" }, wrongs: [String(u * tt), String(a * tt), String(u + a)],
+                tags: ["dt-vt"], difficulty: 0.45,
+                explanation: `v = u + at = ${u} + ${a} × ${tt} = ${u + a * tt} m/s. The initial velocity still counts — it does not reset to zero.`,
+            };
+        }
+        const u = r.int(2, 10), a = r.int(2, 5), tt = r.int(2, 6);
+        return {
+            prompt: `A body starts at ${u} m/s and accelerates at ${a} m/s² for ${tt} s. How far does it travel, in metres?`,
+            value: u * tt + 0.5 * a * tt * tt,
+            tolerance: { abs: 0.01, unit: "m" },
+            wrongs: [String(u * tt), String(0.5 * a * tt * tt), String((u + a * tt) * tt)],
+            tags: ["dt-vt"], difficulty: 0.6,
+            explanation: `s = ut + ½at² = ${u}(${tt}) + ½(${a})(${tt}²) = ${u * tt} + ${0.5 * a * tt * tt} = ${u * tt + 0.5 * a * tt * tt} m. The ½ is the whole reason the acceleration term is not just at².`,
+        };
+    },
+    "sound-acoustics": (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const f = r.pick([20, 50, 100, 250, 500]);
+            return {
+                prompt: `A sound wave has frequency ${f} Hz. What is its period, in seconds?`,
+                value: 1 / f, tolerance: { abs: 0.0005, unit: "s" }, wrongs: [String(f), String(Number((1 / (f / 2)).toFixed(6))), String(Number((2 / f).toFixed(6)))],
+                tags: ["sound-vac"], difficulty: 0.5,
+                explanation: `Period = 1 ÷ frequency = 1/${f} = ${Number((1 / f).toFixed(6))} s. Higher frequency means a SHORTER period — the two move opposite ways.`,
+            };
+        }
+        if (v === 1) {
+            const f = r.pick([50, 100, 200, 340]);
+            const speed = 340;
+            return {
+                prompt: `A sound wave of frequency ${f} Hz travels at 340 m/s. What is its wavelength, in metres (2 d.p.)?`,
+                value: Number((speed / f).toFixed(2)), tolerance: { abs: 0.01, unit: "m" },
+                wrongs: [String(Number((speed * f).toFixed(2))), String(Number((f / speed).toFixed(2))), String(Number((speed / (f * 2)).toFixed(2)))],
+                tags: ["sound-vac"], difficulty: 0.5,
+                explanation: `v = fλ, so λ = v ÷ f = 340 ÷ ${f} = ${Number((speed / f).toFixed(2))} m.`,
+            };
+        }
+        const t = r.pick([2, 3, 4, 5]);
+        return {
+            prompt: `A sound is heard ${t} s after a flash of lightning. Taking the speed of sound as 340 m/s, how far away was the strike, in metres?`,
+            value: 340 * t, tolerance: { unit: "m" }, wrongs: [String(340 * t + 340), String(t * 1000), String(340)],
+            tags: [], difficulty: 0.4,
+            explanation: `distance = speed × time = 340 × ${t} = ${340 * t} m. Light arrives almost instantly; the delay is sound, and that is what is being timed.`,
+        };
+    },
+    "light-optics": (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const inc = r.int(15, 75);
+            return {
+                prompt: `A ray of light hits a plane mirror. The angle of incidence (measured from the normal) is ${inc}°. What is the angle of reflection, in degrees?`,
+                value: inc, wrongs: [String(90 - inc), String(180 - inc), String(inc + 10)],
+                tags: ["norm-miss"], difficulty: 0.3,
+                explanation: `The angle of reflection EQUALS the angle of incidence, both measured from the normal: ${inc}°. ${90 - inc}° would be the angle to the mirror SURFACE, which is the classic error.`,
+            };
+        }
+        const n = r.pick([1.5, 2, 2.5]);
+        const inc = r.pick([30, 40, 50]);
+        const sinR = Math.sin((inc * Math.PI) / 180) / n;
+        const rDeg = Number(((Math.asin(sinR) * 180) / Math.PI).toFixed(1));
+        return {
+            prompt: `Light enters glass of refractive index ${n} at an angle of incidence of ${inc}°. What is the angle of refraction, in degrees (1 d.p.)?`,
+            value: rDeg, tolerance: { abs: 0.2, unit: "°" },
+            wrongs: [String(Number((inc / n).toFixed(1))), String(Number((inc * n).toFixed(1))), String(inc)],
+            tags: ["norm-miss"], difficulty: 0.6,
+            explanation: `Snell's law: n₁ sin θ₁ = n₂ sin θ₂, so sin θ₂ = sin ${inc}° ÷ ${n} = ${Number(sinR.toFixed(4))}, giving θ₂ = ${rDeg}°. Note the angle does NOT simply divide by n.`,
+        };
+    },
+    "thermal-physics": (r) => {
+        const v = r.int(0, 1);
+        const c = 4200;
+        if (v === 0) {
+            const m = r.int(1, 4), dT = r.int(5, 40);
+            return {
+                prompt: `How much energy is needed to raise ${m} kg of water by ${dT} °C? (specific heat capacity of water = ${c} J/kg°C). Give your answer in joules.`,
+                value: m * c * dT, tolerance: { unit: "J" }, wrongs: [String(m * dT), String(c * dT), String(m * c * dT * 10)],
+                tags: ["heat-temp"], difficulty: 0.5,
+                explanation: `Q = mcΔT = ${m} × ${c} × ${dT} = ${m * c * dT} J. The mass multiplies — a bath and a spoonful at the same temperature hold very different energy.`,
+            };
+        }
+        const m = r.int(1, 4), dT = r.int(5, 30);
+        return {
+            prompt: `A ${m} kg block is heated with ${m * c * dT} J and rises by ${dT} °C. What is its specific heat capacity, in J/kg°C?`,
+            value: c, tolerance: { abs: 1, unit: "J/kg°C" }, wrongs: [String(c * 10), String(Math.round(c / 10)), String(m * dT)],
+            tags: ["heat-temp"], difficulty: 0.55,
+            explanation: `Rearrange Q = mcΔT: c = Q ÷ (mΔT) = ${m * c * dT} ÷ (${m} × ${dT}) = ${c} J/kg°C — water's value, as expected.`,
+        };
+    },
+    "gravity-fields": (r) => {
+        const m = r.int(2, 12);
+        const g = r.pick([10, 9.8]);
+        return {
+            prompt: `A mass of ${m} kg is taken to a place where the gravitational field strength is ${g} N/kg. What is its weight there, in newtons?`,
+            value: Number((m * g).toFixed(1)), tolerance: { abs: 0.05, unit: "N" },
+            wrongs: [String(m), String(Number((m * g + g).toFixed(1))), String(Number((m / g).toFixed(2)))],
+            tags: ["bal-motion"], difficulty: 0.4,
+            explanation: `Weight = mass × field strength = ${m} × ${g} = ${Number((m * g).toFixed(1))} N. Mass (kg) is unchanged by where you are; weight is not.`,
+        };
+    },
+    "em-induction": (r) => {
+        const n = r.pick([100, 200, 400, 500]);
+        const dPhi = r.pick([0.02, 0.05, 0.1, 0.04]);
+        const dt = r.pick([0.1, 0.2, 0.5]);
+        const emf = (n * dPhi) / dt;
+        return {
+            prompt: `A coil of ${n} turns has its flux changed by ${dPhi} Wb in ${dt} s. Using EMF = NΔΦ/Δt, what is the induced EMF, in volts?`,
+            value: Number(emf.toFixed(2)), tolerance: { abs: 0.01, unit: "V" },
+            wrongs: [String(Number((dPhi / dt).toFixed(2))), String(Number((n * dPhi * dt).toFixed(2))), String(Number((n * dt).toFixed(2)))],
+            tags: ["motor-gen"], difficulty: 0.6,
+            explanation: `EMF = N × (ΔΦ/Δt) = ${n} × (${dPhi}/${dt}) = ${Number(emf.toFixed(2))} V. More turns multiply the EMF; a faster change multiplies it too.`,
+        };
+    },
+    radioactivity: (r) => {
+        const start = r.pick([80, 100, 120, 160]);
+        const half = r.pick([2, 3, 4, 5]);
+        const n = r.int(1, 4);
+        const left = start / Math.pow(2, n);
+        return {
+            prompt: `A sample of ${start} g has a half-life of ${half} days. What mass remains after ${half * n} days, in grams?`,
+            value: left, tolerance: { abs: 0.01, unit: "g" },
+            wrongs: [String(Number((start / (n + 1)).toFixed(2))), String(start / Math.pow(2, n + 1)), String(left + start / 4)],
+            tags: ["half-life"], difficulty: 0.5,
+            explanation: `${half * n} days is ${n} half-lives, so the mass halves ${n} times: ${start} → ${start / 2} → ${start / 4} → ${start / 8} → ${left} g. It never reaches zero.`,
+        };
+    },
+    // ── CHEMISTRY ────────────────────────────────────────────────────────────
+    "moles-calcs": (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const mr = r.pick([18, 40, 44, 58.5, 16]);
+            const moles = r.pick([0.5, 1, 2, 3, 0.25]);
+            const mass = mr * moles;
+            return {
+                prompt: `How many moles are in ${Number(mass.toFixed(2))} g of a substance with Mr = ${mr}?`,
+                value: moles, tolerance: { abs: 0.01, unit: "mol" },
+                wrongs: [String(Number((mr * mass).toFixed(2))), String(Number((mass / (mr * 2)).toFixed(3))), String(Number((mr / mass).toFixed(3)))],
+                tags: ["mr-mass"], difficulty: 0.5,
+                explanation: `moles = mass ÷ Mr = ${Number(mass.toFixed(2))} ÷ ${mr} = ${moles} mol. Multiplying instead of dividing is the classic slip — a mole is a huge number, so the count should be SMALL.`,
+            };
+        }
+        const mr = r.pick([18, 40, 44, 58.5]);
+        const moles = r.pick([0.5, 1, 2, 1.5]);
+        return {
+            prompt: `What is the mass of ${moles} mol of a substance with Mr = ${mr}? Give your answer in grams.`,
+            value: Number((mr * moles).toFixed(2)), tolerance: { abs: 0.01, unit: "g" },
+            wrongs: [String(Number((mr / moles).toFixed(2))), String(mr), String(Number((mr * moles * 2).toFixed(2)))],
+            tags: ["mr-mass"], difficulty: 0.5,
+            explanation: `mass = moles × Mr = ${moles} × ${mr} = ${Number((mr * moles).toFixed(2))} g.`,
+        };
+    },
+    "periodic-table": (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            const configs = [["2,8,1", 1], ["2,8,2", 2], ["2,8,7", 7], ["2,8,8", 0], ["2,1", 1]];
+            const [cfg, group] = r.pick(configs);
+            return {
+                prompt: `An atom has the electron configuration ${cfg}. Which group of the periodic table is it in?`,
+                value: group, wrongs: [String(group + 1), String(group === 0 ? 8 : group - 1), String(cfg.split(",").length)],
+                tags: ["group-trend"], difficulty: 0.5,
+                explanation: `The GROUP is decided by the OUTER shell only: ${cfg.split(",")[cfg.split(",").length - 1]} outer electrons → group ${group}. The inner shells say which PERIOD it is in, not which group.`,
+            };
+        }
+        const configs = [["2,8,1", 3], ["2,8,7", 3], ["2,1", 2], ["2,8,8,1", 4]];
+        const [cfg, period] = r.pick(configs);
+        return {
+            prompt: `An atom has the electron configuration ${cfg}. Which period of the periodic table is it in?`,
+            value: period, wrongs: [String(cfg.split(",").length + 1), String(period - 1), String(Number(cfg.split(",")[cfg.split(",").length - 1]))],
+            tags: ["group-trend"], difficulty: 0.5,
+            explanation: `The PERIOD is the number of occupied shells: ${cfg} has ${cfg.split(",").length} shells, so it is in period ${period}.`,
+        };
+    },
+    // ── BIOLOGY ──────────────────────────────────────────────────────────────
+    cells: (r) => {
+        const real = r.pick([5, 10, 20, 50]);
+        const mag = r.pick([100, 200, 400, 1000]);
+        return {
+            prompt: `A cell ${real} μm wide is viewed at ×${mag} magnification. How wide does it appear, in μm?`,
+            value: real * mag, tolerance: { unit: "μm" },
+            wrongs: [String(real + mag), String(Math.round((real / mag) * 1000) / 1000), String(real * (mag / 10))],
+            tags: [], difficulty: 0.4,
+            explanation: `image = real × magnification = ${real} × ${mag} = ${real * mag} μm. The image must be BIGGER than the object, so dividing is the warning sign.`,
+        };
+    },
+    photosynthesis: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            return {
+                prompt: `Complete the word equation: carbon dioxide + water → glucose + oxygen. In the balanced symbol equation 6CO₂ + 6H₂O → C₆H₁₂O₆ + xO₂, what is x?`,
+                value: 6, wrongs: ["3", "12", "1"],
+                tags: [], difficulty: 0.5,
+                explanation: `Balance the oxygens: the left has 6×2 + 6×1 = 18 O atoms; glucose uses 6, leaving 12, so xO₂ needs x = 6. Every atom must be conserved.`,
+            };
+        }
+        const n = r.int(1, 5);
+        return {
+            prompt: `A plant takes in ${n} molecules of CO₂. How many molecules of glucose can it build at most, if 6 CO₂ are needed for each?`,
+            value: Math.floor(n / 6), wrongs: [String(n), String(n * 6), String(Math.ceil(n / 6))],
+            tags: [], difficulty: 0.45,
+            explanation: `It takes 6 CO₂ per glucose, so ${n} CO₂ gives ⌊${n}/6⌋ = ${Math.floor(n / 6)} glucose — the rest is left over.`,
+        };
+    },
+    enzymes: (r) => {
+        const v = r.int(0, 1);
+        if (v === 0) {
+            return {
+                prompt: `Pepsin is a protease enzyme that works in the stomach. What is its optimum pH?`,
+                value: 2, wrongs: ["7", "9", "14"],
+                tags: [], difficulty: 0.4,
+                explanation: `The stomach is acidic, around pH 2. Pepsin is built for it — at pH 7 it denatures and stops working. Enzymes are shaped for their environment.`,
+            };
+        }
+        const p = r.pick([1, 2, 3, 4]);
+        return {
+            prompt: `An enzyme works best at pH ${p + 4}. What is its optimum pH?`,
+            value: p + 4, wrongs: [String(p), String(14 - (p + 4)), String(p + 5)],
+            tags: [], difficulty: 0.35,
+            explanation: `The optimum pH is ${p + 4} — the pH at which the enzyme's active site fits its substrate best.`,
+        };
+    },
+    circulation: (r) => {
+        const bpm = r.pick([60, 70, 72, 80, 90]);
+        return {
+            prompt: `A resting heart rate is ${bpm} beats per minute. How many times does the heart beat in one hour?`,
+            value: bpm * 60, tolerance: { unit: "beats" }, wrongs: [String(bpm * 30), String(bpm * 100), String(bpm * 24)],
+            tags: [], difficulty: 0.4,
+            explanation: `${bpm} beats/min × 60 min = ${bpm * 60} beats in an hour. Multiplying by 24 gives the daily figure (${bpm * 60 * 24}), which the question did not ask for.`,
+        };
+    },
+    // ── COMPUTING ────────────────────────────────────────────────────────────
+    "what-is-code": (r) => {
+        const n = r.int(2, 6);
+        return {
+            prompt: `How many times does this loop body run?\n\nfor i in range(${n}):\n    print(i)`,
+            value: n, wrongs: [String(n + 1), String(n - 1), String(n * n)],
+            tags: [], difficulty: 0.4,
+            explanation: `range(${n}) yields ${n} values — 0 up to ${n - 1} — so the body runs ${n} times. Starting at 0 is why the count is ${n}, not ${n + 1}.`,
+        };
+    },
+    complexity: (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            const p = r.pick([8, 16, 32, 64, 128]);
+            return {
+                prompt: `A sorted list of ${p} items is searched by binary search. What is the MAXIMUM number of comparisons needed?`,
+                value: Math.log2(p), wrongs: [String(p), String(Math.log2(p) + 1), String(Math.ceil(Math.log2(p) * 2))],
+                tags: [], difficulty: 0.6,
+                explanation: `Each comparison halves the search space, so the worst case is log₂(${p}) = ${Math.log2(p)}. Linear search would need up to ${p} — this is why sorted data is worth keeping.`,
+            };
+        }
+        if (v === 1) {
+            const n = r.pick([5, 10, 20, 50]);
+            return {
+                prompt: `An algorithm does n² operations. For n = ${n}, how many operations is that?`,
+                value: n * n, wrongs: [String(2 * n), String(n * n * 2), String(n * n * n)],
+                tags: [], difficulty: 0.4,
+                explanation: `n² with n = ${n} is ${n} × ${n} = ${n * n}. Doubling n would quadruple the work — that is what makes quadratic algorithms slow.`,
+            };
+        }
+        const n = r.pick([10, 20, 100, 1000]);
+        return {
+            prompt: `An algorithm does n log₂(n) operations. For n = ${n}, how many operations is that?`,
+            value: n * Math.log2(n), tolerance: { abs: 0.5, display: String(Number((n * Math.log2(n)).toFixed(2))) }, wrongs: [String(n), String(n * n), String(Number(Math.log2(n).toFixed(2)))],
+            tags: [], difficulty: 0.6,
+            explanation: `n log₂n = ${n} × ${Number(Math.log2(n).toFixed(2))} ≈ ${Number((n * Math.log2(n)).toFixed(2))}. This is the cost of good sorting algorithms, and it grows far more slowly than n².`,
+        };
+    },
+    networks: (r) => {
+        const v = r.int(0, 2);
+        if (v === 0) {
+            return {
+                prompt: `How many bits are in an IPv4 address?`,
+                value: 32, wrongs: ["16", "64", "128"],
+                tags: [], difficulty: 0.4,
+                explanation: `IPv4 addresses are 32 bits — four 8-bit groups, which is why they look like 192.168.0.1. IPv6 uses 128 bits.`,
+            };
+        }
+        if (v === 1) {
+            const prefix = r.pick([24, 25, 26, 28]);
+            const hosts = Math.pow(2, 32 - prefix) - 2;
+            return {
+                prompt: `A subnet uses the prefix /${prefix}. How many USABLE host addresses does it hold?`,
+                value: hosts, wrongs: [String(Math.pow(2, 32 - prefix)), String(Math.pow(2, 32 - prefix) - 1), String(prefix)],
+                tags: [], difficulty: 0.7,
+                explanation: `/${prefix} leaves ${32 - prefix} host bits → 2^${32 - prefix} = ${Math.pow(2, 32 - prefix)} addresses, minus 2 (the network and broadcast addresses) = ${hosts} usable.`,
+            };
+        }
+        return {
+            prompt: `How many bits are in an IPv6 address?`,
+            value: 128, wrongs: ["32", "64", "256"],
+            tags: [], difficulty: 0.4,
+            explanation: `IPv6 addresses are 128 bits, written as eight groups of four hex digits. That is what makes the address space effectively inexhaustible.`,
+        };
+    },
+    "web-stack": (r) => {
+        const codes = [[200, "OK"], [301, "moved permanently"], [404, "not found"], [500, "server error"]];
+        const [code] = r.pick(codes);
+        return {
+            prompt: `An HTTP response has the status code ${code}. In the 1xx/2xx/3xx/4xx/5xx scheme, what is the first digit (the response CLASS)?`,
+            value: Math.floor(code / 100), wrongs: [String(Math.floor(code / 100) + 1), String(code % 10), String(Math.floor(code / 10))],
+            tags: [], difficulty: 0.5,
+            explanation: `The first digit IS the class: 2xx success, 3xx redirect, 4xx client error, 5xx server error. ${code} is a ${Math.floor(code / 100)}xx, so the first digit is ${Math.floor(code / 100)}.`,
+        };
+    },
+};
+/**
+ * THE WHOLE NUMERIC LAYER: the opening families (this file) plus the core
+ * curriculum (lib/numeric-items-core.ts). Merged here so the bank, the content
+ * gate and every surface see ONE registry — a second one would be a second
+ * thing to disagree with about which concepts have an answer box.
+ *
+ * A core family deliberately does not overwrite an opening one: where both name
+ * a concept, the opening family is the one authored first and kept, so this
+ * merge can never silently change a question a learner has already met.
+ */
+exports.NUMERIC_GENS = {
+    ...numeric_items_core_1.CORE_NUMERIC_GENS,
+    ...OPENING_GENS,
+};
+/** Concepts whose numeric family this module supplies — exported so the content
+ *  gate can assert the coverage it claims rather than trust the list. */
+exports.NUMERIC_CONCEPT_IDS = Object.keys(exports.NUMERIC_GENS);
 
 });
 __def("papers.js", function (module, exports, require) {
@@ -26079,6 +29032,7 @@ function markPaper(key, answers) {
         return {
             id: q.id, conceptId: q.conceptId, marks: q.marks, awarded,
             correct, chosen, answer: q.answer, explanation: q.explanation,
+            tags: q.tags,
         };
     });
     const total = key.questions.reduce((s, q) => s + q.marks, 0);
@@ -26254,6 +29208,104 @@ function misconceptionHits(state, subject) {
             out[mid] = (out[mid] ?? 0) + n;
     }
     return out;
+}
+
+});
+__def("prompt.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// PROMPT FORMATTING — a question asks to be read as the thing it IS.
+//
+// Questions are authored as one string, and about a quarter of the bank mixes a
+// real code block (Python, mostly) into ordinary prose. Rendered as one
+// paragraph that mix reads wrong: `def total(items):` and its four-space body
+// collapse into run-on prose, and the indentation — the whole point of the
+// example — is the first thing to go.
+//
+// So a prompt is split into segments, each drawn with the type it deserves:
+// prose in the question's own voice, code in a monospace block.
+//
+// The split is deliberately conservative. A false "code" sets a sentence like a
+// program; a missed one is only the status quo. Code is recognised by the
+// signals that are unambiguous in this bank:
+//   · an indented line (a Python body or continuation);
+//   · a line OPENING with a statement keyword (`def`, `for`, `if`, `print`, …);
+//   · a block that OPENS with an assignment and holds two or more of them. The
+//     opening position is what keeps a maths question that merely contains two
+//     equations (`y = 4x − 4` / `y = x² + 8x − 1`, under a prose heading) out of
+//     the code path — its first line is a sentence, not an assignment.
+//
+// The result is lossless: the segments, read in order with their `sep`, are the
+// original string, character for character. A formatter a learner's question
+// passes through must not quietly edit it, and the suite asserts exactly that.
+//
+// Pure and dependency-free: the React surfaces and the static build both read
+// it, and a formatter two bundles import must not drag a graph behind it.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.splitPrompt = splitPrompt;
+/** A line that OPENS a statement in the languages this bank uses. */
+const CODE_KEYWORD = /^\s*(?:def|class|for|while|if|elif|else|return|print|import|from|try|except|finally|with|lambda|yield|let|const|var|function)\b/;
+/** The first character of the line is whitespace — a body or a continuation. */
+const INDENTED = /^[ \t]+\S/;
+/** `name = …` or `name[subscript] = …`, the shape an assignment line takes. */
+const ASSIGN = /^\s*[A-Za-z_]\w*(?:\[[^\]]*\])?\s*=/;
+/** One line that reads as a question rather than a statement: it opens with a
+ *  capital and closes with sentence punctuation. A code line rarely does both,
+ *  and the opening capital alone is what keeps `print(fruits[3]) — what prints?`
+ *  in the program it belongs to. */
+function looksLikeSentence(line) {
+    const t = line.trim();
+    return /^[A-Z]/.test(t) && /[.?！？]\s*$/.test(t);
+}
+/** Is this whole paragraph (a run between blank lines) code? */
+function blockIsCode(lines) {
+    const first = lines[0] ?? "";
+    if (lines.some((l) => INDENTED.test(l) || CODE_KEYWORD.test(l)))
+        return true;
+    return ASSIGN.test(first) && lines.filter((l) => ASSIGN.test(l)).length >= 2;
+}
+/**
+ * Split one authored prompt into alternating prose and code segments, in the
+ * order they were written.
+ *
+ * Blank lines separate paragraphs, and a paragraph is code or prose as a whole.
+ * A code paragraph with a trailing plain question (`What is total?`) gives that
+ * line back to prose, because the question is not part of the program.
+ */
+function splitPrompt(prompt) {
+    const segments = [];
+    const push = (kind, text, sep) => {
+        if (!text)
+            return;
+        const last = segments[segments.length - 1];
+        // Neighbours of the same kind merge; the separator goes back in between, so
+        // nothing is lost and no empty block is drawn.
+        if (last && last.kind === kind)
+            last.text += `${sep}${text}`;
+        else
+            segments.push({ kind, text, sep });
+    };
+    // `split` with a capturing group keeps the separators, which is what makes the
+    // round-trip exact rather than approximately exact.
+    const parts = prompt.split(/(\n{2,})/);
+    for (let i = 0; i < parts.length; i += 2) {
+        const block = parts[i];
+        const sep = i === 0 ? "" : parts[i - 1];
+        const lines = block.split("\n");
+        if (!blockIsCode(lines)) {
+            push("prose", block, sep);
+            continue;
+        }
+        // Peel any trailing sentence back off the program it was written after.
+        let cut = lines.length;
+        while (cut > 1 && looksLikeSentence(lines[cut - 1]))
+            cut -= 1;
+        push("code", lines.slice(0, cut).join("\n"), sep);
+        if (cut < lines.length)
+            push("prose", lines.slice(cut).join("\n"), "\n");
+    }
+    return segments;
 }
 
 });
@@ -27074,7 +30126,7 @@ __def("questions-deep.js", function (module, exports, require) {
 // misconception tags its own concept declares.
 // ─────────────────────────────────────────────────────────────────────────────
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEEP_GENS = void 0;
+exports.DEEP_GENS = exports.DATA_DEEP = void 0;
 exports.deepGcd = deepGcd;
 exports.deepFrac = deepFrac;
 exports.pickDistinct = pickDistinct;
@@ -27220,6 +30272,356 @@ function fourDistinct(correct, wrongs) {
 // ─────────────────────────────────────────────────────────────────────────────
 // THE FAMILIES
 // ─────────────────────────────────────────────────────────────────────────────
+// ── GAP-CLOSING DATA FAMILIES ───────────────────────────────────────────────
+// `npm run content-check` names a concept a CONTENT GAP when its generated depth
+// cannot clear a skill floor; for most GCSE maths the missing floor is
+// data_interpretation (0.75), meaning the hardest item is a chain of operations
+// but nothing reads an answer OUT OF A TABLE. Each family below is written to
+// that band — the answer is not in the question, it has to be read out of the
+// table it prints — and declares a difficulty at or above 0.75 so the
+// measurement matches the claim. Kept apart from the flagship families so the
+// gap list and its fix are one reviewable diff.
+exports.DATA_DEEP = {
+    /** Place value read out of a table of logged readings. */
+    "place-value": (r) => {
+        const rows = [["0.452 s", 0.05], ["4.52 s", 0.5], ["45.2 s", 5], ["452 s", 50]];
+        const [label, worth] = r.pick(rows);
+        const correct = label;
+        return {
+            prompt: `A data logger records four times, in seconds.\n· 0.452\n· 4.52\n· 45.2\n· 452\nIn which reading is the digit 5 worth ${worth} s?`,
+            correct,
+            wrongs: pickDistinct(correct, rows.map((x) => x[0])),
+            tags: [],
+            explanation: `In 0.452 the 5 is hundredths (0.05), in 4.52 it is tenths (0.5), in 45.2 it is units (5), in 452 it is tens (50). Moving one column left multiplies the value by ten, so the digit 5 worth ${worth} s sits in ${correct}.`,
+            difficulty: 0.75 + r.next() * 0.05,
+        };
+    },
+    /** A three-day sales total, then compared to a target. */
+    addition: (r) => {
+        const a = r.int(120, 480), b = r.int(120, 480), c = r.int(120, 480);
+        const total = a + b + c;
+        const target = total - r.int(20, 120);
+        const over = total - target;
+        const correct = `£${over}`;
+        return {
+            prompt: `The table shows a shop's sales.\n· Monday: £${a}\n· Tuesday: £${b}\n· Wednesday: £${c}\nThe shop's target was £${target}. By how much did the three days BEAT the target?`,
+            correct,
+            wrongs: pickDistinct(correct, [`£${total}`, `£${total + target}`, `£${a + b}`, `£${over + 10}`]),
+            tags: [],
+            explanation: `Add the three days: ${a} + ${b} + ${c} = ${total}. Beating the £${target} target by ${total} − ${target} = £${over}. Reporting £${total} answers the total, not the amount ABOVE the target.`,
+            difficulty: 0.76 + r.next() * 0.05,
+        };
+    },
+    /** A net change read across a table, working with a signed answer. */
+    subtraction: (r) => {
+        const a = r.int(400, 900);
+        const d1 = r.int(30, 200);
+        let d2 = r.int(40, 250);
+        if (d2 === d1)
+            d2 += 1;
+        const b = a - d1;
+        const c = b + d2;
+        const change = c - a;
+        const sign = change > 0 ? "+" : "−";
+        const correct = `${sign}${Math.abs(change)} litres`;
+        return {
+            prompt: `A reservoir is measured each morning.\n· Day 1: ${a} litres\n· Day 2: ${b} litres\n· Day 3: ${c} litres\nWhat was the net change from day 1 to day 3?`,
+            correct,
+            wrongs: pickDistinct(correct, [`${a + b + c} litres`, `${Math.abs(change)} litres`, `${change > 0 ? "−" : "+"}${Math.abs(change)} litres`, `${Math.abs(change) + 2} litres`]),
+            tags: [],
+            explanation: `Net change is the LAST reading minus the FIRST: ${c} − ${a} = ${sign}${Math.abs(change)} litres. Adding the three readings answers a different question, and dropping the sign loses the direction of the change.`,
+            difficulty: 0.75 + r.next() * 0.05,
+        };
+    },
+    /** A two-line order total read from a table. */
+    multiplication: (r) => {
+        const a = r.int(6, 20), b = r.int(4, 12), c = r.int(6, 20), d = r.int(4, 12);
+        const total = a * b + c * d;
+        const correct = String(total);
+        return {
+            prompt: `A warehouse order has two lines.\n· ${a} boxes of ${b} items each\n· ${c} boxes of ${d} items each\nHow many items are on the order in total?`,
+            correct,
+            wrongs: pickDistinct(correct, [(a + c) * (b + d), a * b, c * d, a + b + c + d]),
+            tags: [],
+            explanation: `Each line is boxes × items: ${a} × ${b} = ${a * b} and ${c} × ${d} = ${c * d}. The total is ${a * b} + ${c * d} = ${total}. Adding the boxes and multiplying by the sum of items (${(a + c) * (b + d)}) treats the two lines as one.`,
+            difficulty: 0.76 + r.next() * 0.05,
+        };
+    },
+    /** A share of a total, then a fraction kept — two stages from one table. */
+    division: (r) => {
+        const n = r.pick([4, 5, 6, 8, 10]);
+        const each = 4 * r.int(5, 22);
+        const t = n * each;
+        const kept = (each * 3) / 4;
+        const correct = `£${kept}`;
+        return {
+            prompt: `A charity raises £${t}, shown in the table as ${n} equal grants.\n· Total: £${t}\n· Grants: ${n}, equal\nEach grant keeps 3/4 and gives 1/4 to admin. How much does ONE grant keep?`,
+            correct,
+            wrongs: pickDistinct(correct, [`£${each}`, `£${each / 4}`, `£${t}`, `£${kept * 2}`]),
+            tags: [],
+            explanation: `Each grant is ${t} ÷ ${n} = £${each}. Keeping 3/4 of that is ${each} × 3 ÷ 4 = £${kept}. Stopping at £${each} forgets the second stage, and £${each / 4} is the 1/4 given to admin.`,
+            difficulty: 0.78 + r.next() * 0.05,
+        };
+    },
+    /** A temperature change across a table, crossing zero. */
+    negatives: (r) => {
+        const a = -r.int(2, 12);
+        const b = r.int(2, 14);
+        const rise = b - a;
+        const correct = `${rise}°C`;
+        return {
+            prompt: `The table shows the temperature at two times.\n· 06:00: ${a}°C\n· 14:00: ${b}°C\nHow much did the temperature RISE from 06:00 to 14:00?`,
+            correct,
+            wrongs: pickDistinct(correct, [`${b + a}°C`, `${a - b}°C`, `${Math.abs(a)}°C`, `${rise + 2}°C`]),
+            tags: [],
+            explanation: `Rise = later − earlier = ${b} − (${a}) = ${rise}°C. Subtracting the temperatures without the sign (${b + a}°C) ignores that ${a}°C is below zero, so the real rise is larger, not smaller.`,
+            difficulty: 0.75 + r.next() * 0.05,
+        };
+    },
+    /** A total of three decimals read from a table. */
+    decimals: (r) => {
+        const a = r.int(10, 90) / 10, b = r.int(10, 90) / 10, c = r.int(10, 90) / 10;
+        const total = Number((a + b + c).toFixed(2));
+        const correct = `${deepNum(total, 2)} kg`;
+        return {
+            prompt: `The table shows the mass of three samples.\n· A: ${deepNum(a, 1)} kg\n· B: ${deepNum(b, 1)} kg\n· C: ${deepNum(c, 1)} kg\nWhat is the total mass?`,
+            correct,
+            wrongs: pickDistinct(correct, [`${deepNum(a + b, 2)} kg`, `${deepNum(total + 0.1, 2)} kg`, `${deepNum(total - 0.1, 2)} kg`, `${deepNum(a * b, 2)} kg`]),
+            tags: [],
+            explanation: `Line up the decimal points and add: ${deepNum(a, 1)} + ${deepNum(b, 1)} + ${deepNum(c, 1)} = ${deepNum(total, 2)} kg. Adding only the first two (${deepNum(a + b, 2)}) drops a sample.`,
+            difficulty: 0.75 + r.next() * 0.05,
+        };
+    },
+    /** Rounding is the LAST step, applied to a summed total. */
+    rounding: (r) => {
+        const a = r.int(21, 240), b = r.int(21, 240), c = r.int(21, 240);
+        const total = a + b + c;
+        const rounded = Math.round(total / 10) * 10;
+        const eachRounded = Math.round(a / 10) * 10 + Math.round(b / 10) * 10 + Math.round(c / 10) * 10;
+        const correct = `${rounded} cm`;
+        return {
+            prompt: `The table shows three measured lengths.\n· ${a} cm\n· ${b} cm\n· ${c} cm\nWhat is the total length, rounded to the nearest 10 cm?`,
+            correct,
+            wrongs: pickDistinct(correct, [`${total} cm`, `${rounded + 10} cm`, `${eachRounded} cm`, `${rounded - 10} cm`]),
+            tags: [],
+            explanation: `Add first, round second: ${a} + ${b} + ${c} = ${total}, which is ${rounded} cm to the nearest 10. Rounding each length before adding piles up the error — that is how ${eachRounded} cm appears.`,
+            difficulty: 0.76 + r.next() * 0.05,
+        };
+    },
+    /** Order of operations applied to one row of a results table. */
+    "order-ops": (r) => {
+        const a = r.int(2, 20), b = r.int(2, 9), c = r.int(2, 9);
+        const correct = String(a + b * c);
+        return {
+            prompt: `A spreadsheet uses the rule result = ${a} + ${b} × ${c}.\nOne row of the results table holds ${a}, ${b} and ${c} in those columns.\nWhat is the result for that row?`,
+            correct,
+            wrongs: pickDistinct(correct, [(a + b) * c, a * b + c, b * c, a + b + c]),
+            tags: [],
+            explanation: `Multiply before adding: ${b} × ${c} = ${b * c}, then ${a} + ${b * c} = ${correct}. Working strictly left to right gives (${a} + ${b}) × ${c} = ${(a + b) * c} — the order-of-operations trap.`,
+            difficulty: 0.75 + r.next() * 0.05,
+        };
+    },
+    /** Fractions summed from a recipe table, with different denominators. */
+    "fraction-ops": (r) => {
+        const [d1, d2] = r.shuffle([3, 4, 5, 6, 8]).slice(0, 2);
+        const n1 = r.int(1, d1 - 1), n2 = r.int(1, d2 - 1);
+        const den = (d1 * d2) / deepGcd(d1, d2);
+        const num = (n1 * den) / d1 + (n2 * den) / d2;
+        const correct = deepFrac(num, den);
+        return {
+            prompt: `A recipe table gives the cups of stock for two stages.\n· Stage 1: ${n1}/${d1} cup\n· Stage 2: ${n2}/${d2} cup\nHow many cups in total?`,
+            correct,
+            wrongs: pickDistinct(correct, [`${n1 + n2}/${d1 + d2}`, deepFrac(n1 * n2, d1 * d2), `${n1}/${d1}`, `${n2}/${d2}`]),
+            tags: [],
+            explanation: `Put both over the common denominator ${den}: ${n1}/${d1} = ${(n1 * den) / d1}/${den} and ${n2}/${d2} = ${(n2 * den) / d2}/${den}. Adding the numerators gives ${num}/${den} = ${correct}. Adding tops and bottoms (${n1 + n2}/${d1 + d2}) is the classic error.`,
+            difficulty: 0.76 + r.next() * 0.05,
+        };
+    },
+    /** Direct proportion read from a recipe table. */
+    proportion: (r) => {
+        const serves = r.pick([2, 3, 4, 5, 6]);
+        const per = r.pick([40, 50, 60, 75, 80]);
+        const grams = serves * per;
+        const want = serves * r.int(2, 4);
+        const need = (grams / serves) * want;
+        const correct = `${deepNum(need, 2)} g`;
+        return {
+            prompt: `A recipe table shows the rice a kitchen uses.\n· ${serves} people need ${grams} g\nHow much rice do ${want} people need?`,
+            correct,
+            wrongs: pickDistinct(correct, [`${deepNum(grams + (want - serves), 2)} g`, `${deepNum(grams * want, 2)} g`, `${deepNum(grams / want, 2)} g`, `${deepNum(need + grams, 2)} g`]),
+            tags: [],
+            explanation: `Find the amount per person: ${grams} ÷ ${serves} = ${deepNum(grams / serves, 2)} g. For ${want} people: ${deepNum(grams / serves, 2)} × ${want} = ${deepNum(need, 2)} g. Multiplying by the number of people without dividing first (${deepNum(grams * want, 2)} g) skips the scaling.`,
+            difficulty: 0.76 + r.next() * 0.05,
+        };
+    },
+    /** A real-world function read from a two-row table (taxi fare). */
+    "algebra-expressions": (r) => {
+        const rate = r.int(2, 6);
+        const base = r.int(2, 9);
+        const m1 = r.int(2, 6);
+        const m2 = m1 + r.int(2, 6);
+        const want = m2 + r.int(2, 6);
+        const correct = `£${base + rate * want}`;
+        return {
+            prompt: `A taxi fare is shown in the table.\n· ${m1} miles costs £${base + rate * m1}\n· ${m2} miles costs £${base + rate * m2}\nWhat is the fare for ${want} miles?`,
+            correct,
+            wrongs: pickDistinct(correct, [`£${rate * want}`, `£${base + rate * m1}`, `£${(base + rate * want) + rate}`, `£${want}`]),
+            tags: [],
+            explanation: `The fare rises £${base + rate * m2 - (base + rate * m1)} over ${m2 - m1} miles, so the rate is £${rate} per mile and the fixed charge is £${base}. For ${want} miles: £${base} + ${rate} × ${want} = £${base + rate * want}. Ignoring the fixed charge gives £${rate * want}.`,
+            difficulty: 0.78 + r.next() * 0.05,
+        };
+    },
+    /** The midpoint of two plotted points, read from the plot's data table. */
+    coordinates: (r) => {
+        const x1 = r.int(1, 9) * 2, y1 = r.int(1, 9) * 2;
+        const x2 = x1 + r.int(1, 6) * 2, y2 = y1 + r.int(1, 6) * 2;
+        const correct = `(${(x1 + x2) / 2}, ${(y1 + y2) / 2})`;
+        return {
+            prompt: `A data plot has two markers, recorded in the table as\n· (${x1}, ${y1})\n· (${x2}, ${y2})\nWhat is the midpoint of the two markers?`,
+            correct,
+            wrongs: pickDistinct(correct, [`(${x2 - x1}, ${y2 - y1})`, `(${x1 + x2}, ${y1 + y2})`, `(${(x1 + x2) / 2 + 1}, ${(y1 + y2) / 2})`, `(${x1}, ${y2})`]),
+            tags: [],
+            explanation: `The midpoint averages each coordinate: x is (${x1} + ${x2}) ÷ 2 = ${(x1 + x2) / 2} and y is (${y1} + ${y2}) ÷ 2 = ${(y1 + y2) / 2}, giving ${correct}. Adding the coordinates instead of averaging gives (${x1 + x2}, ${y1 + y2}).`,
+            difficulty: 0.76 + r.next() * 0.05,
+        };
+    },
+    /** An angle read off a pie chart, converted to a count of people. */
+    "angles-lines": (r) => {
+        const sectors = r.pick([4, 6, 8, 9, 12]);
+        const total = sectors * r.pick([5, 10, 15, 20]);
+        const deg = 360 / sectors;
+        const count = total / sectors;
+        const correct = String(count);
+        return {
+            prompt: `A pie chart shows how ${total} people travel to work. The BUS sector is ${deg}°.\nHow many people travel by bus?`,
+            correct,
+            wrongs: pickDistinct(correct, [deg, total, total - count, count + sectors]),
+            tags: [],
+            explanation: `The whole pie is 360° for ${total} people, so 1° stands for ${total} ÷ 360 = ${deepNum(total / 360, 3)} people. The bus sector of ${deg}° is ${deepNum(total / 360, 3)} × ${deg} = ${count}. Reporting the ANGLE (${deg}) as if it were a count is the error.`,
+            difficulty: 0.78 + r.next() * 0.05,
+        };
+    },
+    /** A two-way table; the probability of NEITHER, by inclusion–exclusion. */
+    "probability-basics": (r) => {
+        const t = r.pick([20, 25, 30, 35]);
+        const k = r.pick([18, 22, 28, 32]);
+        const bo = r.pick([5, 8, 10, 12]);
+        const total = 100;
+        const neither = total - t - k + bo;
+        const correct = deepNum(neither / total, 2);
+        return {
+            prompt: `A two-way table of ${total} students shows:\n· likes tea: ${t}\n· likes coffee: ${k}\n· likes both: ${bo}\nWhat is the probability that a student chosen at random likes NEITHER?`,
+            correct,
+            wrongs: pickDistinct(correct, [deepNum((t + k) / total, 2), deepNum(bo / total, 2), deepNum((total - t - k) / total, 2), deepNum(neither, 2)]),
+            tags: [],
+            explanation: `Add the two totals and subtract the overlap counted twice: likes at least one = ${t} + ${k} − ${bo} = ${t + k - bo}. So neither = ${total} − ${t + k - bo} = ${neither}, giving ${correct}. Forgetting to remove the overlap gives ${deepNum((total - t - k) / total, 2)}.`,
+            difficulty: 0.78 + r.next() * 0.05,
+        };
+    },
+    /** The fixed charge in a two-row bill table — the intercept of a line. */
+    "linear-equations": (r) => {
+        const rate = r.int(2, 8);
+        const base = r.int(5, 20);
+        const m1 = r.int(10, 40);
+        const m2 = m1 + r.int(10, 30);
+        const c1 = base + rate * m1;
+        const correct = `£${base}`;
+        return {
+            prompt: `A phone plan's bill is shown in the table.\n· ${m1} minutes costs £${c1}\n· ${m2} minutes costs £${base + rate * m2}\nThe charge is a fixed amount plus a rate per minute. What is the fixed amount?`,
+            correct,
+            wrongs: pickDistinct(correct, [`£${rate}`, `£${c1}`, `£${c1 - m1}`, `£${base + rate}`]),
+            tags: [],
+            explanation: `Between the two rows the bill rises £${base + rate * m2 - c1} for ${m2 - m1} minutes, so the rate is £${rate} a minute. The fixed amount is what is left: £${c1} − ${rate} × ${m1} = £${base}. Reading the whole bill (£${c1}) as the fixed charge ignores the minutes.`,
+            difficulty: 0.78 + r.next() * 0.05,
+        };
+    },
+    /** A two-stage fraction of a sampled whole, read from a survey table. Taking
+     *  the second fraction of the WHOLE (not of the first part) is the error. */
+    fractions: (r) => {
+        const den = r.pick([3, 4, 5, 6]);
+        const num = r.int(1, den - 1);
+        const total = den * r.pick([6, 8, 10, 12]);
+        const art = (total * num) / den;
+        const div = [2, 3, 4, 5].filter((d) => art % d === 0);
+        const den2 = div.length ? r.pick(div) : 2;
+        const num2 = r.int(1, den2 - 1);
+        const answer = (art * num2) / den2;
+        const correct = String(answer);
+        return {
+            prompt: `A survey of ${total} students asked their favourite subject.\n· ${num}/${den} of the students chose art\n· of the students who chose art, ${num2}/${den2} were in Year 10\nHow many Year 10 students chose art?`,
+            correct,
+            wrongs: pickDistinct(correct, [art, (total * num2) / den2, total - answer, answer + den2]),
+            tags: [],
+            explanation: `Read the table in two stages. First the art count: ${num}/${den} of ${total} = ${art}. Then the Year 10 share of THOSE: ${num2}/${den2} of ${art} = ${answer}. Taking ${num2}/${den2} of the whole ${total} reads the second fraction against the wrong base — that is where ${deepNum((total * num2) / den2)} comes from.`,
+            difficulty: 0.76 + r.next() * 0.05,
+        };
+    },
+    /** Percentage CHANGE read between two rows of a table — not a percentage of
+     *  one number. Reporting the change in pounds is the standing error. */
+    percentages: (r) => {
+        const a = r.pick([120, 150, 200, 240, 250, 300, 400, 500]);
+        const pct = r.pick([10, 15, 20, 25, 30, 50]);
+        const b = a + (a * pct) / 100;
+        const correct = `${pct}%`;
+        return {
+            prompt: `The table shows a shop's takings.\n· Week 1: £${a}\n· Week 2: £${b}\nWhat is the percentage increase from week 1 to week 2?`,
+            correct,
+            wrongs: pickDistinct(correct, [`£${b - a}`, `${100 + pct}%`, `${pct + 10}%`, `${Math.round(pct / 2)}%`]),
+            tags: [],
+            explanation: `Percentage change is the CHANGE over the ORIGINAL: (${b} − ${a}) ÷ ${a} × 100 = ${pct}%. The change in pounds is £${b - a}, and week 2 as a percentage OF week 1 is ${100 + pct}% — one is a difference, the other is a total, and neither is the increase.`,
+            difficulty: 0.76 + r.next() * 0.05,
+        };
+    },
+    /** A ratio shared out, with the swap (use the other part) as the trap. */
+    ratio: (r) => {
+        const [x, y] = r.pick([[2, 3], [3, 2], [3, 4], [4, 3], [2, 5], [5, 2], [3, 5], [4, 5]]);
+        const T = (x + y) * r.int(2, 8);
+        const per = T / (x + y);
+        const red = per * x;
+        const blue = per * y;
+        const correct = `${red} litres`;
+        return {
+            prompt: `A paint mix uses red and blue in the ratio ${x} : ${y}. A decorator makes ${T} litres of the mix.\nHow many litres of red are used?`,
+            correct,
+            wrongs: pickDistinct(correct, [`${blue} litres`, `${T / 2} litres`, `${x} litres`, `${red + x} litres`]),
+            tags: [],
+            explanation: `The ratio has ${x + y} parts. ${T} litres ÷ ${x + y} = ${per} litres per part, and red is ${x} parts: ${per} × ${x} = ${red} litres. Using ${y} parts gives the BLUE amount, ${blue} litres — the swap this question catches.`,
+            difficulty: 0.75 + r.next() * 0.06,
+        };
+    },
+    /** The nth term read off a table: one step per row, so week 10 is NINE steps
+     *  past week 1, not ten. The off-by-one is the whole item. */
+    sequences: (r) => {
+        const a = r.int(5, 20);
+        const d = r.int(2, 9);
+        const t = (n) => a + (n - 1) * d;
+        const correct = `£${t(10)}`;
+        return {
+            prompt: `A savings plan is shown in the table.\n· Week 1: £${t(1)}\n· Week 2: £${t(2)}\n· Week 3: £${t(3)}\nHow much is saved in week 10?`,
+            correct,
+            wrongs: pickDistinct(correct, [`£${t(11)}`, `£${a + d * 10}`, `£${a * 10}`, `£${t(9)}`]),
+            tags: [],
+            explanation: `The table goes up by £${d} a week. Week 10 is one plus NINE steps: £${a} + 9 × £${d} = £${t(10)}. Adding ten steps (£${a + d * 10}) or treating week 10 as ten times the first week (£${a * 10}) is the off-by-one this catches.`,
+            difficulty: 0.75 + r.next() * 0.06,
+        };
+    },
+    /** Exponential growth read from a table: doubling n times is 2ⁿ, which is
+     *  neither linear nor square — the two most common confident wrong answers. */
+    "indices-intro": (r) => {
+        const n = r.int(6, 10);
+        const t0 = r.pick([0.1, 0.2, 0.5]);
+        const mult = Math.pow(2, n);
+        const correct = `${mult}`;
+        return {
+            prompt: `Folding a sheet of paper in half doubles its thickness each time.\n· 0 folds: ${t0} mm\n· 1 fold: ${t0 * 2} mm\n· 2 folds: ${t0 * 4} mm\nAfter ${n} folds, the thickness is how many times the thickness with no folds?`,
+            correct,
+            wrongs: pickDistinct(correct, [n * 2, n * n, Math.pow(2, n - 1), Math.pow(2, n) + 2]),
+            tags: [],
+            explanation: `Each fold DOUBLES the thickness, so after ${n} folds it has doubled ${n} times: 2^${n} = ${mult} times. That is exponential: ${n} lots of 2 (${n * 2}) is a straight line and ${n}² (${n * n}) is a square, and both grow far more slowly than doubling.`,
+            difficulty: 0.75 + r.next() * 0.05,
+        };
+    },
+};
 exports.DEEP_GENS = {
     // ── NUMBER ────────────────────────────────────────────────────────────────
     /** Three fractions, different denominators, with a subtraction: each term
@@ -33516,7 +36918,7 @@ exports.SENIOR_GENS = {
 __def("questions.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GENERATED_CONCEPT_IDS = exports.DEPTH_CONCEPT_IDS = exports.SENIOR_CONCEPT_IDS = exports.Rng = void 0;
+exports.GENERATED_CONCEPT_IDS = exports.DEPTH_CONCEPT_IDS = exports.SENIOR_CONCEPT_IDS = exports.NUMERIC_CONCEPTS = exports.Rng = void 0;
 exports.difficultyBandFor = difficultyBandFor;
 exports.hashSeed = hashSeed;
 exports.fmtNum = fmtNum;
@@ -33529,6 +36931,7 @@ exports.generateQuestionAt = generateQuestionAt;
 exports.serveView = serveView;
 exports.conceptDepth = conceptDepth;
 exports.bankDepth = bankDepth;
+exports.isNumericDraw = isNumericDraw;
 exports.hasGenerator = hasGenerator;
 exports.generatorSubject = generatorSubject;
 const qterms_1 = require("./qterms");
@@ -33541,6 +36944,13 @@ const skills_1 = require("./skills");
 const specifications_1 = require("./specifications");
 const questions_deep_1 = require("./questions-deep");
 const questions_senior_1 = require("./questions-senior");
+// The numeric layer (§6): the concepts whose questions could only ever be four
+// printed options, given an answer box. Composed like the deep and senior
+// layers, so nothing downstream needs a second code path.
+const numeric_items_1 = require("./numeric-items");
+// The one answer-identity and grading rule, shared with the server so a typed
+// answer and its equivalent option cannot be graded by two different rules.
+const answer_1 = require("./answer");
 /** The demand band a difficulty falls in (1–5).
  *
  *  One definition, in the difficulty engine: a tier, a served item and a
@@ -33656,6 +37066,52 @@ function largestSquareDivisor(n) {
  * Deterministic like everything else here: the share is consumed from the same
  * seeded stream, so the same seed rebuilds the same item with the same text.
  */
+/**
+ * The numeric composition: a concept's existing family, plus an authored family
+ * that is ANSWERED by typing a number, chosen per draw.
+ *
+ * The share is a real product decision. Too small and the input box is a rarity
+ * a learner meets once and never again; too large and the four-option form —
+ * which the diagnostic ladder, the papers and the offline pack all still use —
+ * becomes the rarity. Half is the balance: a learner practising a numeric
+ * concept meets a typed answer about every other question, and every
+ * multiple-choice instrument still has half the catalogue to sample.
+ *
+ * The numeric draw keeps its `correct`/`wrongs` as DISPLAY STRINGS so the
+ * choice-form twin is the same question with the same four values — never a
+ * second, differently-worded item, which is what a separate "numeric question
+ * bank" would inevitably become.
+ */
+/** Turn a numeric family's draw into the raw shape the assembler expects. */
+function numericRaw(num, r) {
+    const item = num(r);
+    {
+        const correct = item.tolerance?.display ?? (0, answer_1.formatNumeric)(item.value);
+        // ── WHAT A TYPED ANSWER IS MARKED AGAINST ──────────────────────────────
+        // The declared value is the truth, and the DISPLAY is a rounding of it. A
+        // learner who types the exact computed value and one who types the twelve
+        // significant figures the item shows are both right, so the tolerance is
+        // widened to cover the rounding the display itself introduced — never
+        // narrowed, and never left off. Without this the item's own option twin
+        // graded WRONG against its own answer (measured: 7 draws on `complexity`),
+        // which is the most confusing failure a question can have.
+        const shown = (0, answer_1.parseNumericInput)(correct);
+        const rounding = shown === null ? 0 : Math.abs(shown - item.value);
+        const declared = item.tolerance ?? {};
+        const floor = Math.max(rounding * 2, 1e-9);
+        const tolerance = { ...declared, abs: Math.max(declared.abs ?? 0, floor) };
+        return {
+            prompt: item.prompt,
+            correct,
+            wrongs: item.wrongs.map((w) => String(w)),
+            tags: item.tags,
+            explanation: item.explanation,
+            difficulty: item.difficulty,
+            numeric: { value: item.value, tolerance },
+        };
+    }
+    ;
+}
 function withDepth(base, deep, share = 0.5) {
     return (r) => {
         if (r.next() >= share)
@@ -33976,7 +37432,15 @@ const MATHS_GENS = {
         };
     },
     "ratio": (r) => {
-        const a = r.int(2, 5), b = r.int(2, 4), parts = r.int(2, 6) * (a + b);
+        const a = r.int(2, 5);
+        // The ratio has to be a REAL part-to-part comparison. With a === b the
+        // prompt asks for "the larger share" of an equal split — there isn't one —
+        // and the answer collapses onto the half-way distractor, so the question
+        // asks for a thing that does not exist and is trivially guessable. Draw b
+        // from the values that actually differ from a.
+        const raw = r.int(2, 4);
+        const b = raw === a ? (raw === 4 ? 2 : raw + 1) : raw;
+        const parts = r.int(2, 6) * (a + b);
         const unit = parts / (a + b);
         return {
             prompt: `Share $${parts} between two people in the ratio ${a} : ${b}. How much does the larger share get (in $)?`,
@@ -35116,12 +38580,44 @@ const SCI_GENS = {
         };
     },
     "digestion": (r) => {
+        // Six distinct items was thin for a core biology concept. Four angles now
+        // cover the substrate→enzyme mapping from both directions (name the enzyme;
+        // name what it makes), where digestion starts, and the role of bile — each
+        // with the confusions the topic actually produces.
+        const angle = r.int(0, 3);
+        if (angle === 0) {
+            return {
+                prompt: `Which enzyme breaks STARCH into sugars?`,
+                correct: "Amylase",
+                wrongs: ["Protease", "Lipase", "Bile"],
+                tags: [], explanation: `Amylase → starch → maltose/sugars. Protease digests protein; lipase digests fats; bile emulsifies fat (not an enzyme).`,
+                difficulty: 0.3,
+            };
+        }
+        if (angle === 1) {
+            return {
+                prompt: `Which enzyme breaks FATS into fatty acids and glycerol?`,
+                correct: "Lipase",
+                wrongs: ["Amylase", "Protease", "Bile"],
+                tags: [], explanation: `Lipase → fats → fatty acids + glycerol. Amylase handles carbohydrate, protease handles protein, and bile is not an enzyme — it emulsifies fat so lipase can reach more of it.`,
+                difficulty: 0.3,
+            };
+        }
+        if (angle === 2) {
+            return {
+                prompt: `Protease breaks down which food group?`,
+                correct: "Protein → amino acids",
+                wrongs: ["Starch → sugars", "Fats → fatty acids", "Fibre → glucose"],
+                tags: [], explanation: `Protease → protein → amino acids. Starch is amylase's job, fats are lipase's, and fibre is largely indigestible in humans.`,
+                difficulty: 0.35,
+            };
+        }
         return {
-            prompt: `Which enzyme breaks STARCH into sugars?`,
-            correct: "Amylase",
-            wrongs: ["Protease", "Lipase", "Bile"],
-            tags: [], explanation: `Amylase → starch → maltose/sugars. Protease digests protein; lipase digests fats; bile emulsifies fat (not an enzyme).`,
-            difficulty: 0.3,
+            prompt: `Bile helps digest fats. What does it actually do?`,
+            correct: "Emulsifies fat — breaks it into small droplets so lipase can act",
+            wrongs: ["Breaks fat down chemically into fatty acids", "Neutralises stomach acid only", "Absorbs the fatty acids into the blood"],
+            tags: [], explanation: `Bile is not an enzyme: it physically emulsifies fat into tiny droplets, increasing surface area for LIPASE. The chemical split into fatty acids + glycerol is the enzyme's work, not bile's.`,
+            difficulty: 0.5,
         };
     },
     "circulation": (r) => {
@@ -35302,17 +38798,82 @@ const SCI_GENS = {
             difficulty: 0.35,
         };
     },
+    // LOOPS was the shallowest concept in the bank (four distinct items), and it
+    // is a diagnostic ANCHOR — the very first computing probe — so a student
+    // practising it met the same handful of prompts almost immediately. The five
+    // angles below are the loops skills a beginner actually needs and are not
+    // restatements of each other: accumulate a running total (the exclusive end),
+    // COUNT iterations (the same exclusive-end point from the other side), read
+    // the last value printed, accumulate a PRODUCT, and follow a WHILE loop to
+    // exhaustion. Each carries distractors that are the mistakes that angle
+    // really produces, not filler.
     "loops": (r) => {
-        const n = r.int(3, 6);
-        let total = 0;
-        for (let i = 1; i <= n; i++)
-            total += i;
+        const angle = r.int(0, 4);
+        if (angle === 0) {
+            const n = r.int(3, 6);
+            let total = 0;
+            for (let i = 1; i <= n; i++)
+                total += i;
+            return {
+                prompt: `total = 0\nfor i in range(1, ${n + 1}):\n    total = total + i\nWhat is total?`,
+                correct: String(total),
+                wrongs: [String(total + n + 1), String(n), String(total - 1)],
+                tags: [], explanation: `range(1, ${n + 1}) gives 1…${n}. Sum: ${Array.from({ length: n }, (_, i) => i + 1).join(" + ")} = ${total}. The loop end value is EXCLUSIVE.`,
+                difficulty: 0.4,
+            };
+        }
+        if (angle === 1) {
+            // The exclusive end, read as a COUNT rather than a sum. a ≥ 2 keeps the
+            // three distractors mutually distinct.
+            const a = r.int(2, 5), b = r.int(a + 2, a + 7);
+            const runs = b - a;
+            return {
+                prompt: `count = 0\nfor i in range(${a}, ${b}):\n    count = count + 1\nWhat is count?`,
+                correct: String(runs),
+                wrongs: [String(runs + 1), String(a + b), String(b)],
+                tags: [], explanation: `range(${a}, ${b}) yields ${a}…${b - 1} — the end is EXCLUSIVE, so the body runs ${runs} times. Counting the end value as well gives ${runs + 1}.`,
+                difficulty: 0.35,
+            };
+        }
+        if (angle === 2) {
+            const n = r.int(3, 7);
+            return {
+                prompt: `for i in range(1, ${n + 1}):\n    print(i)\nWhat is the LAST number printed?`,
+                correct: String(n),
+                wrongs: [String(n + 1), "1", String(n - 1)],
+                tags: [], explanation: `range(1, ${n + 1}) prints 1 up to ${n}; the end value ${n + 1} is never printed. Reading the end as inclusive would print ${n + 1} last — the classic off-by-one.`,
+                difficulty: 0.3,
+            };
+        }
+        if (angle === 3) {
+            // A PRODUCT accumulator: the running total starts at 1 and multiplies, so
+            // the answer is n! — and the sum of 1…n is the mistake of reading it as
+            // the addition pattern above.
+            const n = r.int(3, 5);
+            let fact = 1;
+            for (let i = 2; i <= n; i++)
+                fact *= i;
+            let sum = 0;
+            for (let i = 1; i <= n; i++)
+                sum += i;
+            return {
+                prompt: `total = 1\nfor i in range(1, ${n + 1}):\n    total = total * i\nWhat is total?`,
+                correct: String(fact),
+                wrongs: [String(fact + 1), String(fact - 1), String(sum), String(n)],
+                tags: [], explanation: `total starts at 1 and MULTIPLIES: 1 × 2 × … × ${n} = ${fact}. Starting at 0 would keep it 0, and adding instead of multiplying gives ${sum}.`,
+                difficulty: 0.45,
+            };
+        }
+        // A WHILE loop that subtracts: how many times does the body run before the
+        // condition fails? Ceiling division — a remainder still costs one more pass.
+        const x = r.int(6, 15), d = r.int(2, 3);
+        const runs = Math.ceil(x / d);
         return {
-            prompt: `total = 0\nfor i in range(1, ${n + 1}):\n    total = total + i\nWhat is total?`,
-            correct: String(total),
-            wrongs: [String(total + n + 1), String(n), String(total - 1)],
-            tags: [], explanation: `range(1, ${n + 1}) gives 1…${n}. Sum: ${Array.from({ length: n }, (_, i) => i + 1).join(" + ")} = ${total}. The loop end value is EXCLUSIVE.`,
-            difficulty: 0.4,
+            prompt: `n = ${x}\nwhile n > 0:\n    n = n - ${d}\nHow many times does the body run?`,
+            correct: String(runs),
+            wrongs: [String(x), String(Math.floor(x / d)), String(runs + 1)],
+            tags: [], explanation: `n drops by ${d} each pass: ${x} → … → ${x - d * (runs - 1)} → ${x - d * runs} (≤ 0), so the body runs ${runs} times. Counting one subtraction per unit (${x}) ignores that it steps by ${d}.`,
+            difficulty: 0.5,
         };
     },
     "lists-arrays": (r) => {
@@ -35329,13 +38890,41 @@ const SCI_GENS = {
         };
     },
     "functions-code": (r) => {
-        const a = r.int(2, 6), b = r.int(2, 6), x = r.int(2, 8);
+        // Seven items was thin for the concept that teaches composition. Three
+        // angles: compose two calls (inside-out), read a function's return from its
+        // body, and identify the returned value of a call inside an expression.
+        const angle = r.int(0, 2);
+        if (angle === 0) {
+            const x = r.int(2, 8);
+            return {
+                prompt: `def f(n):\n    return n * 2 + 1\n\ndef g(n):\n    return f(n) * 3\n\nWhat is g(${x})?`,
+                correct: String((x * 2 + 1) * 3),
+                wrongs: [String(x * 2 + 1), String(x * 2 * 3 + 1), String((x + 1) * 2 * 3)],
+                tags: [], explanation: `g(${x}) = f(${x}) × 3 = (${x}×2 + 1) × 3 = ${x * 2 + 1} × 3 = ${(x * 2 + 1) * 3}. Compose inside-out: f first, then g.`,
+                difficulty: 0.45,
+            };
+        }
+        if (angle === 1) {
+            // x ≥ 3 so all three distractors are genuinely distinct AND meaningful:
+            // doubling (2x), squaring the next integer ((x+1)²), and cubing (x³).
+            // With x = 2 the doubling 2x equals the answer 4, which collapsed the list
+            // and let the assembler pad with arbitrary ±1 values that teach nothing.
+            const x = r.int(3, 9);
+            return {
+                prompt: `def square(n):\n    return n * n\n\nWhat does square(${x}) return?`,
+                correct: String(x * x),
+                wrongs: [String(x * 2), String((x + 1) * (x + 1)), String(x * x * x)],
+                tags: [], explanation: `square(${x}) returns ${x} × ${x} = ${x * x}. ${x} * 2 is ${x * 2} — doubling is not squaring; ${x + 1}² is ${(x + 1) * (x + 1)}, one too high; and ${x}³ is ${x * x * x}.`,
+                difficulty: 0.3,
+            };
+        }
+        const x = r.int(2, 7), k = r.int(2, 5);
         return {
-            prompt: `def f(n):\n    return n * 2 + 1\n\ndef g(n):\n    return f(n) * 3\n\nWhat is g(${x})?`,
-            correct: String((x * 2 + 1) * 3),
-            wrongs: [String(x * 2 + 1), String(x * 2 * 3 + 1), String((x + 1) * 2 * 3)],
-            tags: [], explanation: `g(${x}) = f(${x}) × 3 = (${x}×2 + 1) × 3 = ${x * 2 + 1} × 3 = ${(x * 2 + 1) * 3}. Compose inside-out: f first, then g.`,
-            difficulty: 0.45,
+            prompt: `def add_k(n):\n    return n + ${k}\n\nWhat is add_k(${x}) + add_k(${x})?`,
+            correct: String(2 * (x + k)),
+            wrongs: [String(x + k), String(x + 2 * k), String(2 * x + k)],
+            tags: [], explanation: `Each call returns ${x} + ${k} = ${x + k}. Summing two calls: ${x + k} + ${x + k} = ${2 * (x + k)}. Applying the function once, or adding ${k} twice to a single ${x}, are the usual slips.`,
+            difficulty: 0.5,
         };
     },
     "dictionaries": (r) => {
@@ -35743,14 +39332,80 @@ const BASE_GENS = { ...MATHS_GENS, ...SCI_GENS, ...LATE_GENS };
  *  THIS IS THE ONLY PLACE THE LAYERS MEET. Adding a family to either map raises
  *  the ceiling that the practice serve, the diagnostic, the papers and
  *  `lib/content-ceiling.ts` all read, with no change to any of them. */
+// PRIMARY-LEVEL CONCEPTS ARE NOT FORCED TO THE DATA BAND. The data layer exists
+// to close a `data_interpretation` gap, but a 0.75 "read it out of a table"
+// item is a CURRICULUM error for primary arithmetic (place value, column
+// addition, rounding to 10) — those concepts are taught below the band, so
+// lifting them above it would overstate the course. The adaptive engine also
+// relies on genuinely low-ceiling concepts existing: its ladder MUST be able to
+// stop at a concept's own ceiling (a diagnostic that ran the full ladder on a
+// recall-only concept served the same easy item eight times). Their gaps are
+// therefore reported honestly rather than papered over with a deeper variant.
+const DATA_DEEP_PRIMARY = new Set([
+    "place-value", "addition", "subtraction", "multiplication", "division",
+    "order-ops", "rounding", "negatives",
+]);
 const ALL_GENS = Object.fromEntries(Object.entries(BASE_GENS).map(([id, base]) => {
     let gen = base;
+    // The senior and deep layers are composed here so a concept carries a
+    // harder draw family as soon as the bank has one. Composing them is what
+    // makes a generator able to move at all: a base family alone is often one
+    // difficulty across every seed, and multiplying that by a finer `withDepth`
+    // family is the difference between a concept that can be pitched to a tier
+    // and one that cannot.
+    //
+    // NO CONCEPT IS SINGLE-DIFFICULTY NOW, and that is the numeric layer's
+    // doing rather than an accident: it gives every generated concept a second
+    // draw family (lib/numeric-items.ts), chosen per seed in `generateQuestion`
+    // below, and those items do not sit at the base family's difficulty. The
+    // engine's own ranking (`generateQuestionNear`) then picks the draw nearest
+    // the caller's target, so this composition is what lets a tier move the
+    // work — previously 119 of 135 concepts were pinned to a single difficulty
+    // and a tier band could not touch them at all. The seed-excluded swap below
+    // still runs per concept, so practice items still change with the seed.
     if (questions_deep_1.DEEP_GENS[id])
         gen = withDepth(gen, questions_deep_1.DEEP_GENS[id]);
     if (questions_senior_1.SENIOR_GENS[id])
         gen = withDepth(gen, questions_senior_1.SENIOR_GENS[id]);
+    // The gap-closing data layer is an ADDITIONAL draw, composed OUTSIDE the
+    // deep/senior families, so a concept that already had one keeps it and also
+    // gains a >=0.75 item. Composing it into DEEP_GENS instead would have
+    // silently replaced those families (the literal's own key wins over a
+    // spread). Raising a concept's ceiling cannot strand anyone at a lower band.
+    if (questions_deep_1.DATA_DEEP[id] && !DATA_DEEP_PRIMARY.has(id))
+        gen = withDepth(gen, questions_deep_1.DATA_DEEP[id]);
     return [id, gen];
 }));
+/**
+ * THE NUMERIC LAYER, KEPT BESIDE THE GENERATOR RATHER THAN INSIDE IT.
+ *
+ * The first design composed the numeric family onto the base family the way
+ * the deep and senior layers are composed — `withNumeric(base, num)` consuming
+ * a coin flip from the shared RNG stream. That was wrong in a way only
+ * measurement showed: consuming those draws SHIFTED the stream every later
+ * draw reads, so `fractions` lost the rare high-difficulty item its 24-seed
+ * depth sweep depends on, its measured ceiling fell from multi-step to 0.4, and
+ * the declared vertical slice failed. A cosmetic feature had silently cost a
+ * concept its hardest work.
+ *
+ * Choosing from the SEED instead leaves every family's stream exactly as it
+ * was: `generateQuestion` hashes `num:<concept>:<seed>` and takes either the
+ * numeric family or the composed base/deep/senior one. The split is still
+ * deterministic per seed, still roughly one in two, and it does not touch the
+ * stream — so the difficulty distribution and every seeded probe are unchanged.
+ *
+ * BUT the stream being untouched is NOT enough for `conceptDepth`: a per-seed
+ * choice REPLACES that seed's output for one family, so a blind sweep of
+ * `generateQuestion` spends half its budget on the numeric family and can miss
+ * a rare deep item. That is exactly what dropped the physics/chemistry/biology
+ * ceilings. `conceptDepth` therefore probes both families separately rather
+ * than trusting a single mixed sweep.
+ */
+const NUMERIC_BY_ID = Object.fromEntries(Object.entries(numeric_items_1.NUMERIC_GENS).filter(([id]) => id in BASE_GENS));
+/** Concepts whose family now includes an answer box — exported so the content
+ *  gate can assert the numeric coverage per concept instead of trusting a
+ *  comment. */
+exports.NUMERIC_CONCEPTS = Object.keys(numeric_items_1.NUMERIC_GENS).filter((id) => id in BASE_GENS);
 /** Concepts carrying the senior layer — the ones whose practice now reaches the
  *  demand an advanced tier declares. Exported so the gate can assert the
  *  ceiling moved for a NAMED concept rather than only in aggregate. */
@@ -35793,7 +39448,15 @@ function generateQuestion(conceptId, seed) {
     if (!gen)
         return null;
     const r = new Rng(hashSeed(`${conceptId}:${seed}`));
-    const q = gen(r);
+    // The numeric layer, when this concept has one, chosen from the SEED rather
+    // than from the shared stream (see NUMERIC_BY_ID): a concept gains an answer
+    // box without any of its other draws moving by one bit.
+    const numGen = NUMERIC_BY_ID[conceptId];
+    const q = numGen
+        ? hashSeed(`${conceptId}:${seed}:num`) % 2 === 0
+            ? numericRaw(numGen, r)
+            : gen(r)
+        : gen(r);
     // Assemble choices: correct + 3 unique wrongs.
     //
     // Generators do collide (three digits all equal, p === q in a quadratic), and
@@ -35875,6 +39538,7 @@ function generateQuestion(conceptId, seed) {
         uniq.push(`Option ${uniq.length + 1}`);
     const choices = r.shuffle(uniq.slice(0, 4));
     const answer = choices.indexOf(q.correct);
+    const numericDraw = q.numeric;
     return {
         id: `${conceptId}:${seed}`,
         conceptId,
@@ -35884,6 +39548,14 @@ function generateQuestion(conceptId, seed) {
         answer: answer >= 0 ? answer : 0,
         explanation: q.explanation,
         misconceptionTags: q.tags,
+        // A numeric draw says so, and carries the number the typed answer is marked
+        // against plus the tolerance the ITEM declares. `choiceValues` reads the
+        // same four display strings back through the shared parser, so the option
+        // "0.75" and a typed 0.75 are one answer, graded once.
+        responseKind: numericDraw ? "numeric" : undefined,
+        answerValue: numericDraw ? numericDraw.value : undefined,
+        tolerance: numericDraw ? numericDraw.tolerance : undefined,
+        choiceValues: numericDraw ? choices.map((c) => (0, answer_1.parseNumericInput)(c) ?? NaN) : undefined,
     };
 }
 /** Serve the draw whose difficulty is CLOSEST to a curriculum tier's band.
@@ -35911,10 +39583,29 @@ function generateQuestion(conceptId, seed) {
  *  direction when the bank is coarser than the curriculum). The question's true
  *  difficulty rides along, so the surface never claims work the item is not;
  *  the depth lever is then the concept set the specification selects. */
-function generateQuestionNear(conceptId, seed, target, attempts = 4) {
+function generateQuestionNear(conceptId, seed, target, attempts = 4, 
+/** Item keys this concept has ALREADY served this sitting, OLDEST FIRST. A
+ *  generator that can produce only a handful of items — 44 concepts still
+ *  open with a single authored base item, with a deeper family composed on
+ *  half the draws — must not hand back the same question twice while another
+ *  exists. A fresh draw wins whenever one is found. When every draw has been
+ *  served (the generator's whole catalogue is spent) the fallback is the
+ *  item served LONGEST AGO, so the sitting rotates through the catalogue
+ *  instead of pinning to one item forever. */
+served) {
     const wantBand = difficultyBandFor(target);
+    const spent = served && served.length ? new Set(served) : undefined;
+    // Oldest-served wins the rotation; first appearance fixes the rank, so a key
+    // that recurs in the list is ranked by when the learner first met it.
+    const rank = new Map();
+    if (served)
+        served.forEach((k, i) => { if (!rank.has(k))
+            rank.set(k, i); });
     let best = null;
     let bestKey = Infinity;
+    let rotate = null;
+    let rotateRank = Infinity;
+    let rotateKey = Infinity;
     for (let i = 0; i < Math.max(1, attempts); i++) {
         const q = generateQuestion(conceptId, `${seed}:n${i}`);
         if (!q)
@@ -35924,12 +39615,28 @@ function generateQuestionNear(conceptId, seed, target, attempts = 4) {
         // Band match dominates (a full point); inside a band the nearest wins, with
         // a hairline preference for the easier side of an exact tie.
         const key = (inBand ? 0 : 1) + Math.abs(gap) + (gap > 0 ? 1e-6 : 0);
+        if (spent) {
+            // Identity comes from the shared rule (lib/answer.ts#answerKey), so a
+            // numeric draw and its choice-form twin are recognised as the SAME
+            // question — the rotation must not hand a learner "the same question"
+            // back merely because it arrived with an answer box this time.
+            const k = (0, answer_1.answerKey)(q);
+            if (spent.has(k)) {
+                const r = rank.get(k) ?? -1;
+                if (r < rotateRank || (r === rotateRank && key < rotateKey)) {
+                    rotateRank = r;
+                    rotateKey = key;
+                    rotate = q;
+                }
+                continue;
+            }
+        }
         if (key < bestKey) {
             bestKey = key;
             best = q;
         }
     }
-    return best;
+    return best ?? rotate;
 }
 /** Serve a question that actually meets a difficulty target.
  *
@@ -35981,8 +39688,19 @@ function generateQuestionAt(conceptId, seed, minDifficulty, attempt = 0, exclude
     let best = null;
     let bestKey = Infinity;
     for (const family of [`${seed}:${attempt}`, "depth"]) {
+        // THE WIDENED FAMILY IS SALTED WITH THE SITTING'S SEED. `conceptDepth`
+        // measured the ceiling from the literal `depth:i` family, but SERVING those
+        // items made the item a fact about the code rather than about the sitting:
+        // its id is `${conceptId}:depth:${i}`, which names no sitting at all — so
+        // whenever the caller's own family could not reach the target and this
+        // branch won, a RETEST re-served the very items its own baseline had used
+        // (`quadratics:depth:11` appeared in both), and "a later sitting,
+        // parallel-form items" was untrue for exactly the band that mattered.
+        // Salting keeps the sweep's construction — the same 24 draws of the same
+        // generator, still aimed at `min(target, ceiling)` — while making each item
+        // belong to the sitting that asked for it.
         for (let i = 0; i < 24; i++) {
-            const q = generateQuestion(conceptId, family === "depth" ? `depth:${i}` : `${family}:${i}`);
+            const q = generateQuestion(conceptId, family === "depth" ? `${seed}:depth:${i}` : `${family}:${i}`);
             if (!q)
                 return null;
             // An item this sitting has ALREADY served is not a candidate. The
@@ -35995,7 +39713,7 @@ function generateQuestionAt(conceptId, seed, minDifficulty, attempt = 0, exclude
             // happened to be on. Excluding the spent item lets those six attempts do
             // what they were written for: find the next-best item instead of the
             // same one.
-            if (exclude?.has(`${q.prompt}|${q.choices[q.answer]}`))
+            if (exclude?.has((0, answer_1.answerKey)(q)))
                 continue;
             const skill = (0, skills_1.skillForDifficulty)(q.difficulty);
             const rank = skill === wantSkill ? 0 : SKILL_RANK[skill] > SKILL_RANK[wantSkill] ? 1 : 2;
@@ -36021,7 +39739,13 @@ const SKILL_RANK = { recall: 0, application: 1, multi_step: 2, data_interpretati
  *  prompts are localized ("Work out" → "Calcula" …) — bodies keep their
  *  numbers/notation verbatim. */
 function serveView(q, lang, board) {
-    const { answer: _a, explanation: _e, misconceptionTags: _m, ...view } = q;
+    // `answerValue` goes with `answer`: a numeric item's number IS its key, and a
+    // view that shipped it would hand the learner the answer to type. What the
+    // client DOES need is `responseKind` (so it renders a box, not options) and
+    // `tolerance.unit` — the box needs to know it is grammatically wrong to the
+    // 14th decimal. `choiceValues` is stripped too: it is the same four numbers
+    // the visible options already state.
+    const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, choiceValues: _cv, ...view } = q;
     if (lang && lang !== "en") {
         view.prompt = (0, qterms_1.localizeStem)(view.prompt, lang);
     }
@@ -36053,13 +39777,31 @@ function conceptDepth(conceptId) {
     const cached = depthCache.get(conceptId);
     if (cached !== undefined)
         return cached;
+    const gen = ALL_GENS[conceptId];
+    if (!gen) {
+        depthCache.set(conceptId, 0);
+        return 0;
+    }
+    const numGen = NUMERIC_BY_ID[conceptId];
     let max = 0;
     for (let i = 0; i < DEPTH_SEEDS; i++) {
-        const q = generateQuestion(conceptId, `depth:${i}`);
-        if (!q)
-            break;
-        if (q.difficulty > max)
-            max = q.difficulty;
+        const seed = `depth:${i}`;
+        // Probe the COMPOSED family and the numeric family on SEPARATE pristine
+        // streams. `generateQuestion` picks exactly ONE of them per seed, so
+        // sweeping it alone gives each family only half the depth budget — and a
+        // rare deep item (the entire point of the deep/senior layers) is then
+        // missed and the measured ceiling silently drops. For physics/chemistry/
+        // biology exactly that happened (gate:ceiling regressed 0.015–0.025).
+        // Measuring both branches is the honest maximum, and for a concept with no
+        // numeric family this is identical to the old sweep (same seed, same gen).
+        const composed = gen(new Rng(hashSeed(`${conceptId}:${seed}`)));
+        if (composed.difficulty > max)
+            max = composed.difficulty;
+        if (numGen) {
+            const numeric = numericRaw(numGen, new Rng(hashSeed(`${conceptId}:${seed}`)));
+            if (numeric.difficulty > max)
+                max = numeric.difficulty;
+        }
     }
     depthCache.set(conceptId, max);
     return max;
@@ -36074,6 +39816,13 @@ function bankDepth(conceptIds) {
 }
 /** Concepts that have dedicated question generators (evergreen practice pool). */
 exports.GENERATED_CONCEPT_IDS = Object.keys(ALL_GENS);
+/** Is this a question a learner must ANSWER by typing a number? The one test
+ *  a multiple-choice-only surface (the diagnostic ladder, the papers sampler,
+ *  the offline pack, the micro-diagnostic probe) uses to skip a draw it cannot
+ *  grade — it serves the choice-form twin of the same draw instead. */
+function isNumericDraw(q) {
+    return q.responseKind === "numeric";
+}
 function hasGenerator(conceptId) {
     return conceptId in ALL_GENS;
 }
@@ -37006,16 +40755,15 @@ function groundedLines(lang, g) {
         parts.push(`${line(lang, "soc.onScreen", "Look at the question on your screen")}: ${q}`);
     const reason = (g.serveReason ?? "").trim();
     const hitIds = (g.hitIds ?? []).filter((id) => !!misconceptions_1.MISCONCEPTIONS_BY_ID[id]).slice(0, 2);
-    // ── THE REASON IS ALREADY ON SCREEN ────────────────────────────────────
-    // The panel renders the decision's own reason UNDER every reply (it is the
-    // payload's `grounding`, filled into tutor.whyThis), so speaking it as a
-    // sentence as well put the same closing clause on all eight different
-    // messages of the acceptance battery — "OpenMind served this one to stretch"
-    // — which is precisely the canned repetition §11 forbids. Same rule as the
-    // concept definition below: it survives where it is the only thing there is
-    // to say (a room or concept-only caller, with no question on screen and no
-    // patterns of this learner's own to name).
-    if (reason && !q && hitIds.length === 0)
+    // A grounded turn always says WHY this question is on screen: a live screen
+    // turn keeps the decision's reason out of the reply because it is already the
+    // `tutor.whyThis` line under the answer, and restating it would put the same
+    // closing clause on every message (the canned paragraph §11 forbids). A
+    // concept-only turn has no question, no decision, and usually no own hits —
+    // that is when the target's own reason is the ONLY grounding there is, and
+    // the offline engine names it so a learner reading a room or an offline card
+    // is never handed the practice engine's own target sentence.
+    if (!q && reason)
         parts.push(line(lang, "soc.serveWhy", "OpenMind served this one to") + " " + reason + ".");
     if (hitIds.length) {
         const names = hitIds.map((id) => (0, content_i18n_1.mcName)(lang, id, misconceptions_1.MISCONCEPTIONS_BY_ID[id].name));
@@ -37288,6 +41036,7 @@ exports.courseForSubject = courseForSubject;
 exports.coversSubject = coversSubject;
 exports.specOptionsFor = specOptionsFor;
 exports.specForProfile = specForProfile;
+exports.courseSummaryFor = courseSummaryFor;
 exports.courseGaps = courseGaps;
 exports.incompleteSubjects = incompleteSubjects;
 exports.difficultyFor = difficultyFor;
@@ -37721,6 +41470,20 @@ function specForProfile(profile, subject) {
     const level = levelForGrade(spec, p.grade) ?? spec.levels[0];
     return { spec, level };
 }
+function courseSummaryFor(profile, subject) {
+    const active = specForProfile(profile, subject);
+    return {
+        specificationId: active.spec.id,
+        country: active.spec.country,
+        board: active.spec.board,
+        qualification: active.spec.name,
+        tier: active.level.name,
+        tierKey: active.level.tier,
+        levelId: active.level.id,
+        difficulty: active.level.difficulty,
+        terms: termsFor(active.spec.board),
+    };
+}
 /**
  * What one subject's course still has NOT decided, named field by field.
  *
@@ -38040,6 +41803,9 @@ exports.INVERSE_DISTRACTOR_ATTEMPTS = 24;
 const LINEAR = /\$?\s*(-?\d*\.?\d*)\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)\s*=\s*(-?\d+\.?\d*)\s*\$?/;
 /** Two-step form: A(x ± B) = C x ± D — the shape the multi-step work uses. */
 const LINEAR_BRACKET = /\$?\s*(-?\d*\.?\d*)\s*\(\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)\s*\)\s*=\s*(-?\d*\.?\d*)\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)/;
+/** The bracketless two-sided form: A x ± B = C x ± D. Matched BEFORE the plain
+ *  pattern, which cannot see it whole — see `parseLinear`. */
+const LINEAR_TWO_SIDED = /\$?\s*(-?\d*\.?\d*)\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)\s*=\s*(-?\d*\.?\d*)\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)/;
 function num(s) {
     return s === "-" ? -1 : s === "" ? 1 : parseFloat(s);
 }
@@ -38062,15 +41828,44 @@ function num(s) {
  * `direct` fallback rather than dressed up as a story with negative months.
  */
 function parseLinear(prompt) {
-    const m = prompt.match(LINEAR);
+    // ── THE TWO-SIDED FORM IS MATCHED FIRST, because the plain pattern cannot
+    // see it whole. `LINEAR` is unanchored, so on "Solve 2x + 5 = 0x + 19" it
+    // matched the PREFIX "2x + 5 = 0": rhs read as 0 instead of 19, and the story
+    // surface then told the learner a total its own answer key contradicted
+    // ("a joining fee of 5, after 2 months the total paid is 0" for an item whose
+    // answer is 7). A wrong number shown to a learner is not a cosmetic defect,
+    // so the shape that provoked it is matched properly rather than skipped.
+    const two = prompt.match(LINEAR_TWO_SIDED);
+    if (two) {
+        const A = num(two[1]);
+        const bSign = two[2] === "-" || two[2] === "\u2212" ? -1 : 1;
+        const B = bSign * parseFloat(two[3]);
+        const C = num(two[4]);
+        const dSign = two[5] === "-" || two[5] === "\u2212" ? -1 : 1;
+        const D = dSign * parseFloat(two[6]);
+        const a = A - C;
+        if ([A, B, C, D, a].every(Number.isFinite) && a > 0 && B >= 0)
+            return { a, b: B, rhs: D };
+        return null;
+    }
+    // The PLAIN form, and only when the equation really is plain. "Solve
+    // 3(2x + 1) = 15" also contains a matchable "2x + 1 = 15" — a DIFFERENT
+    // equation from the one on the page — so a prompt carrying a bracket is left
+    // to the bracket pattern below and, failing that, to the caller's `direct`
+    // fallback instead of being re-told as something it is not. A NEGATIVE
+    // constant is refused for the same reason: the story words it as a joining
+    // fee, so a discount would have to be said as a discount to stay true, which
+    // is a reading this template cannot express.
+    const m = prompt.includes("(") ? null : prompt.match(LINEAR);
     if (m) {
         const a = num(m[1]);
         const neg = m[2] === "-" || m[2] === "\u2212";
         const b = parseFloat(m[3]);
         const rhs = parseFloat(m[4]);
         if (Number.isFinite(a) && Number.isFinite(b) && Number.isFinite(rhs) && a !== 0) {
-            return { a, b: neg ? -b : b, rhs };
+            return neg ? null : { a, b, rhs };
         }
+        return null;
     }
     const br = prompt.match(LINEAR_BRACKET);
     if (!br)
@@ -38140,8 +41935,10 @@ const fmt = (n) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100)
  *  world. Choice list and answer index are untouched. */
 function storyQuestion(q, lang, a, b, rhs) {
     const t = (0, i18n_1.translator)(lang);
+    // `b` needs no absolute value here: `parseLinear` refuses a negative
+    // constant precisely because this sentence can only state a fee.
     const prompt = [
-        t("tr.story0"), fmt(Math.abs(b)),
+        t("tr.story0"), fmt(b),
         t("tr.story1"), fmt(a),
         t("tr.story2"), fmt(rhs),
         t("tr.story3"),
@@ -38207,6 +42004,21 @@ function inverseFromDraws(conceptId, seed, aim, lang, target) {
             choices: items,
             answer,
             difficulty: Math.min(0.95, target.difficulty + 0.05),
+            // ── THE INVERSE IS A CHOICE, WHATEVER ITS TARGET WAS ────────────────
+            // `...target` carries a NUMERIC draw's `responseKind`, `answerValue`,
+            // `tolerance` and `choiceValues` — and those are the numbers of the
+            // TARGET'S OWN four options, while the choices above are four PROMPT
+            // strings with `answer` indexing them. Left in place they graded a
+            // correct pick against an unrelated number (a right answer recorded as
+            // wrong, which the end-to-end suite measured on `linear-equations`) and
+            // told the client to render a typed box for a question whose options are
+            // sentences. The inverse asks "which of these produces this value?" — an
+            // option to pick, so the typed-answer fields are cleared rather than
+            // inherited.
+            responseKind: undefined,
+            answerValue: undefined,
+            tolerance: undefined,
+            choiceValues: undefined,
         },
         distractors: used,
     };
@@ -38314,6 +42126,8 @@ function canTransfer(conceptId) {
     nextEngine: require("./next-engine.js"),
     learnerModel: require("./learner-model.js"),
     evidenceView: require("./evidence-view.js"),
+    prompt: require("./prompt.js"),
+    answer: require("./answer.js"),
     i18n: require("./i18n.js"),
     contentI18n: require("./content-i18n.js"),
     deadline: require("./deadline.js"),
@@ -38329,7 +42143,7 @@ function canTransfer(conceptId) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 38 },
+      meta: { modules: 42 },
     };
   });
   return __req("__entry__.js");

@@ -1,0 +1,188 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CI/CD — the deployment-readiness pipeline (§29 of the deployment brief).
+#
+# `gates.yml` already runs the engine suite, content checks, the content ceiling,
+# a production build, and the serve gates. This workflow adds the gates that make
+# the difference between "the code compiles" and "this deployment is ready":
+#
+#   · the content-release version       (content did not change underneath learners)
+#   · the authorization matrix          (permissions, over real HTTP)
+#   · the offline sync protocol         (dedupe, refusals, paging, replay)
+#   · the external smoke                (uptime-style: pages, assets, health, 404)
+#   · health + readiness                (liveness and readiness answered)
+#
+# It runs them through the ONE executable checklist, `npm run production-check`,
+# so CI and a human on a laptop run the same sequence with the same verdict. No
+# "it worked on my laptop": whatever CI decides is what the command decides.
+# ─────────────────────────────────────────────────────────────────────────────
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # A REAL DATABASE, because half of the checklist's value is that the database
+    # section (§4) runs rather than skipping. The application itself is still
+    # file-backed, so this service exists to make the migrated schema and the
+    # ledger's invariants part of what CI proves about every commit.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: openmind
+          POSTGRES_PASSWORD: openmind
+          POSTGRES_DB: openmind_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://openmind:openmind@localhost:5432/openmind_ci
+      OPENMIND_ENV: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+
+      # The schema must be the one the migration files describe BEFORE the
+      # checklist reads it — production-check deliberately never migrates.
+      - name: Migrate
+        run: npm run db:migrate
+
+      # The whole checklist: typecheck, engines, content graph, environment,
+      # question coverage, content-release version, the database schema and its
+      # invariants, production build, serve gates (asset integrity, render,
+      # smoke, permissions, sync), AI status, and the end-to-end suite against a
+      # development server.
+      - name: Production check
+        run: npm run production-check
+
+      - name: Server logs on failure
+        if: failure()
+        run: |
+          for d in /tmp/om-prodcheck-* /tmp/om-devcheck-*; do
+            if [ -f "$d/server.log" ]; then
+              echo "──── $d/server.log ────"
+              tail -60 "$d/server.log"
+            fi
+          done
+
+  # ── The database (§4): reversibility, and the guard against drift ──────────
+  #
+  # Every claim this job makes is a claim the runner could merely assert. It
+  # rehearses instead: apply, verify the ledger's invariants, reverse ALL the way
+  # down, confirm nothing was left behind, re-apply — and then deliberately edit
+  # an applied migration to prove drift is detected. A safety property that is
+  # never exercised is a comment.
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: openmind
+          POSTGRES_PASSWORD: openmind
+          POSTGRES_DB: openmind_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 10
+    env:
+      # `ci`, not `production`: the rehearsal reverses migrations, and the runner
+      # refuses to do that in production without --force.
+      DATABASE_URL: postgres://openmind:openmind@localhost:5432/openmind_ci
+      OPENMIND_ENV: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+
+      - name: Rehearse the migrations (up → verify → down → up)
+        run: npm run db:rehearse
+
+      - name: The evidence schema's invariants
+        run: npm run db:verify
+
+      - name: An applied migration may not be edited afterwards
+        run: |
+          npm run db:migrate
+          printf '\n-- edited after it was applied\n' >> db/migrations/0002_evidence_indexes.up.sql
+          if npm run db:status; then
+            echo "::error::an edited, already-applied migration was NOT detected — drift checks are broken"
+            exit 1
+          fi
+          echo "drift detected, as it must be"
+          git checkout -- db/migrations/0002_evidence_indexes.up.sql
+
+      - name: A migration without a reverse is refused
+        run: |
+          # The pairing rule is what makes "reversible" true rather than intended.
+          mv db/migrations/0003_course_versions.down.sql /tmp/0003.down.sql
+          if npm run db:migrate; then
+            echo "::error::a migration with no down file was accepted"
+            exit 1
+          fi
+          echo "refused, as it must be"
+          mv /tmp/0003.down.sql db/migrations/0003_course_versions.down.sql
+
+  # The real-browser accessibility walk. Kept as its own job because it needs a
+  # browser and a running development server, and because a failure here is a
+  # different kind of failure (rendering/accessibility) from a gate failure.
+  accessibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Job-level so the server and the walk agree on the store. A walk that reads
+    # one directory while the server writes another reports a working product as
+    # broken; both read this one variable.
+    env:
+      OPENMIND_DATA_DIR: ${{ runner.temp }}/om-ui-data
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+
+      # The walk reads the compiled mirror and drives real Chrome.
+      - name: Compile engines
+        run: npm run verify
+
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+
+      # Background processes survive between steps on the runner, which is how
+      # the serve gates in gates.yml already work.
+      - name: Start a development server
+        run: |
+          npm run dev > /tmp/openmind-ui.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -sf -o /dev/null http://localhost:4173/; then break; fi
+            sleep 2
+          done
+          curl -sf -o /dev/null http://localhost:4173/
+
+      - name: Accessibility / UI walk
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: npm run verify:ui
+
+      - name: Server log on failure
+        if: failure()
+        run: tail -40 /tmp/openmind-ui.log 2>/dev/null || true

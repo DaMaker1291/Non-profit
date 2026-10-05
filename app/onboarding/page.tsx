@@ -765,7 +765,23 @@ function OnboardingFlow() {
                         value={chosen}
                         onChange={(e) => {
                           const pick = options.find((x) => x.id === e.target.value);
-                          const level = pick ? levelForGrade(pick, grade) ?? pick.levels[0] : null;
+                          // THE TIER IS THE LEARNER'S OWN CHOICE. It used to be
+                          // seeded to `pick.levels[0]` whenever the year group
+                          // named no tier — and `levels[0]` is Foundation for the
+                          // GCSE, so a learner who chose "GCSE" (and nothing
+                          // else) was quietly enrolled at the easier tier, served
+                          // at its difficulty and taught at its depth. That is
+                          // the "the questions are too easy" complaint with a
+                          // cause. Silence is not a choice: a qualification with
+                          // a real tier choice now leaves it EMPTY, the step
+                          // names the tier as the field it is waiting for (the
+                          // gap line below), and `Next` waits for it. The year
+                          // group still seeds a tier when it genuinely names one,
+                          // and a course with a single tier has nothing to
+                          // choose.
+                          const level = pick
+                            ? levelForGrade(pick, grade) ?? (pick.levels.length === 1 ? pick.levels[0] : null)
+                            : null;
                           setCourses((prev) => ({ ...prev, [s]: { ...prev[s], spec: pick?.id, specLevel: level?.id } }));
                           // The flat fields follow the FIRST subject, which is
                           // what any single-course reader will see.
@@ -794,6 +810,11 @@ function OnboardingFlow() {
                             if (s === subjects[0]) setSpecLevel(e.target.value);
                           }}
                         >
+                          {/* An unchosen tier says so. Without this the browser
+                              paints the first tier as selected while the stored
+                              value is empty, so the learner reads a choice they
+                              never made. */}
+                          <option value="" disabled>{t("onb.pickLevel")}</option>
                           {levels.map((l) => (
                             <option key={l.id} value={l.id}>{levelLabel(lang, l.tier, l.name)}</option>
                           ))}

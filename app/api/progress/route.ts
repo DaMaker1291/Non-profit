@@ -3,6 +3,7 @@ import { updateProfile } from "@/lib/server/store";
 import { emptyProgress, isRetentionEvidence } from "@/lib/progress";
 import { canTransfer, serveTransfer, type Surface } from "@/lib/transfer";
 import { generateQuestion, generateQuestionNear, hasGenerator, serveView } from "@/lib/questions";
+import { answerKey, gradeChoice, gradeNumeric, parseNumericInput } from "@/lib/answer";
 import { practiceTarget, difficultyBandFor } from "@/lib/question-bank";
 import { applyTerminology, difficultyFor, specForProfile } from "@/lib/specifications";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
@@ -43,6 +44,11 @@ function checkSecret(state: ProfileState, presented: unknown): void {
 
 type Session = ProfileState & {
   practice?: Record<string, { q: Question }>;
+  /** Item keys already served for each concept this sitting, so a concept whose
+   *  generator can produce only a handful of items is not handed back to the
+   *  learner over and over. `prompt|correct answer` is the identity the serve
+   *  search uses; bounded per concept. */
+  servedPractice?: Record<string, string[]>;
   starter?: Record<string, { q: Question; s: ReturnType<typeof buildStarter> }>;
   /** Server-staged transfer requests (§10): the serve call declares the
    *  intent, the server remembers it. The client cannot claim transfer
@@ -70,7 +76,15 @@ type Session = ProfileState & {
 
 type ServeBody = { action: "serve"; id: string; conceptId: string; intent?: "transfer"; reveal?: boolean; lang?: string; secret?: string };
 interface AnswerBody {
-  action: "answer"; id: string; conceptId: string; questionId: string; choiceIndex: number;
+  action: "answer"; id: string; conceptId: string; questionId: string;
+  /** Multiple-choice: the picked option's index. Exactly one of this and
+   *  `numericAnswer` is present, and which one is decided by the question the
+   *  SERVER staged — the client cannot pick the grading rule. */
+  choiceIndex?: number;
+  /** Numeric entry: the learner's typed text, graded against the item's own
+   *  tolerance. Sent as text rather than a parsed number so the server, not the
+   *  browser, decides whether it was a number at all. */
+  numericAnswer?: string;
   ms?: number; lang?: string; secret?: string;
   /** The device's name for THIS submission (§ offline sync). Present on every
    *  answer the client sends, so a lost response cannot turn one answer into
@@ -169,11 +183,35 @@ export async function POST(req: Request): Promise<NextResponse> {
           base = served.question;
           surface = served.surface;
         } else {
-          const drawn = generateQuestionNear(conceptId, seed, aim, PRACTICE_DRAW_ATTEMPTS);
+          // A practice serve must not repeat a question the learner is already
+          // working through. Without this the search — which picks the draw
+          // NEAREST the target band, deterministically — returned the same item
+          // on every call for a concept whose generator has few variants: the
+          // learner answered the identical question again and again (44 concepts
+          // affected, measured). The already-served keys are excluded, and a
+          // concept that truly has nothing else still falls back to the nearest.
+          const served = sess.servedPractice?.[conceptId] ?? [];
+          const drawn = generateQuestionNear(
+            conceptId, seed, aim, PRACTICE_DRAW_ATTEMPTS, served,
+          );
           if (!drawn) return { error: "no question" as const };
           base = drawn;
         }
         const q = base;
+        // Record the served item so the NEXT serve on this concept skips it.
+        sess.servedPractice ??= {};
+        // Identity through the shared rule, so a numeric draw and its
+        // choice-form twin count as the same question spent.
+        const key = answerKey(q);
+        const list = sess.servedPractice[conceptId] ?? [];
+        // Always append, even a repeat: the list is ordered OLDEST FIRST and
+        // the serve rotates through the catalogue by that order once every
+        // item is spent, so the most-recently-served key must move to the back.
+        list.push(key);
+        // Bounded: a session's worth of practice on one concept cannot grow the
+        // stored state without limit, and after this many the learner has long
+        // since seen everything the generator makes.
+        sess.servedPractice[conceptId] = list.slice(-12);
         sess.practice ??= {};
         sess.practice[conceptId] = { q };
         if (isTransfer) {
@@ -235,7 +273,15 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     if (body.action === "answer") {
       const { conceptId, questionId, choiceIndex } = body;
-      if (typeof conceptId !== "string" || !conceptId || typeof questionId !== "string" || !questionId || !validChoice(choiceIndex)) {
+      // A TYPED (numeric) ANSWER NAMES NO OPTION. Requiring a valid `choiceIndex`
+      // here refused every numeric submission with "bad request" before the
+      // staged question could decide how it is marked — so no `responseKind:
+      // "numeric"` item could be answered at all. The presence check accepts
+      // EITHER form; which one is legal is still decided by the question the
+      // SERVER staged (see `q.responseKind` below), never by the client.
+      const hasChoice = validChoice(choiceIndex);
+      const hasNumeric = typeof (body as AnswerBody).numericAnswer === "string";
+      if (typeof conceptId !== "string" || !conceptId || typeof questionId !== "string" || !questionId || (!hasChoice && !hasNumeric)) {
         return NextResponse.json({ error: "bad request" }, { status: 400 });
       }
       // ── A REPLAYED SUBMISSION IS THE SAME EVENT, NOT A SECOND ANSWER ──
@@ -267,10 +313,56 @@ export async function POST(req: Request): Promise<NextResponse> {
         if (!q || q.id !== questionId) {
           return { error: "stale or unknown question" as const };
         }
-        if (choiceIndex >= q.choices.length) {
-          return { error: "choice out of range" as const };
+        // ── THE STAGED QUESTION DECIDES HOW IT IS MARKED ────────────────────
+        // Not the client, and not a guess from which field happens to be
+        // present. A numeric item is graded against its own declared tolerance
+        // by lib/answer.ts; a choice item by the shared value rule, which reads
+        // a numeric item's options as the same numbers so the two ways of
+        // answering it agree. An unparseable typed answer is REFUSED rather
+        // than recorded as wrong — a keystroke is not evidence about a
+        // learner's mathematics, and marking it would write a false fact into
+        // the ledger.
+        let correct: boolean;
+        // What the learner actually gave, in the form the ledger records it:
+        // a picked option is its index, a typed answer its canonical NUMBER.
+        let givenValue: number | null = null;
+        if (q.responseKind === "numeric") {
+          // A NUMERIC ITEM CAN BE ANSWERED EITHER WAY, and the two ways must
+          // agree (lib/answer.ts rule 3). Its four options carry the same
+          // numbers the typed form names, so a learner who TAPS "0.75" instead
+          // of typing it has done the same mathematics. Requiring the typed
+          // field alone refused every picked numeric item with "not a number"
+          // — even though the option the learner touched names exactly the
+          // number `gradeChoice` would mark it against. Only the TYPED form can
+          // be unparseable; a picked option names a value the server itself
+          // computed from the item's own choice strings.
+          if (typeof (body as AnswerBody).numericAnswer === "string") {
+            const parsed = parseNumericInput(
+              (body as AnswerBody).numericAnswer as string,
+              q.tolerance?.unit,
+            );
+            if (parsed === null) return { error: "not a number" as const };
+            givenValue = parsed;
+            correct = gradeNumeric(parsed, q.answerValue ?? NaN, q.tolerance);
+          } else {
+            if (!validChoice(choiceIndex) || choiceIndex >= q.choices.length) {
+              return { error: "choice out of range" as const };
+            }
+            // The option's own value, read from the numbers the item built it
+            // from. A filler option that names no number (one could survive
+            // into a padded set) is never the answer — the correct option
+            // always reads back as `answerValue` — but it IS the pick the
+            // learner made, so it is recorded as wrong, not refused.
+            const picked = Array.isArray(q.choiceValues) ? q.choiceValues[choiceIndex] : undefined;
+            givenValue = typeof picked === "number" && Number.isFinite(picked) ? picked : null;
+            correct = gradeChoice(q, choiceIndex);
+          }
+        } else {
+          if (!validChoice(choiceIndex) || choiceIndex >= q.choices.length) {
+            return { error: "choice out of range" as const };
+          }
+          correct = gradeChoice(q, choiceIndex);
         }
-        const correct = choiceIndex === q.answer;
         const ms = typeof (body as AnswerBody).ms === "number" ? Math.max(0, Math.min(3600000, (body as AnswerBody).ms as number)) : undefined;
         const langRaw = (body as AnswerBody).lang;
         // Server-side attribution (audit P0-B/§29): mode comes from the staged
@@ -349,7 +441,10 @@ export async function POST(req: Request): Promise<NextResponse> {
           specificationId: state.profile.spec ?? null,
           questionId,
           correct,
-          chosen: choiceIndex,
+          // −1 marks "the learner typed their answer": there is no option to
+          // have chosen, and 0 is a real index so it cannot double as a marker.
+          chosen: q.responseKind === "numeric" ? -1 : (choiceIndex as number),
+          givenValue,
           mode,
           hints: hintCount,
           ms: ms ?? null,

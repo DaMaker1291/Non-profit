@@ -7,8 +7,16 @@ import { localizeStem } from "./qterms";
 // back-import.
 import { skillForDifficulty } from "./skills";
 import { applyTerminology } from "./specifications";
-import { DEEP_GENS, fourDistinct, type DeepGen } from "./questions-deep";
+import { DEEP_GENS, DATA_DEEP, fourDistinct, type DeepGen } from "./questions-deep";
 import { SENIOR_GENS } from "./questions-senior";
+// The numeric layer (§6): the concepts whose questions could only ever be four
+// printed options, given an answer box. Composed like the deep and senior
+// layers, so nothing downstream needs a second code path.
+import { NUMERIC_GENS, type NumericGen } from "./numeric-items";
+// The one answer-identity and grading rule, shared with the server so a typed
+// answer and its equivalent option cannot be graded by two different rules.
+import { answerKey, formatNumeric, parseNumericInput } from "./answer";
+import type { NumericTolerance } from "./types";
 
 /** The demand band a difficulty falls in (1–5).
  *
@@ -121,6 +129,52 @@ type Gen = (r: Rng) => Omit<Question, "id" | "conceptId">;
  * Deterministic like everything else here: the share is consumed from the same
  * seeded stream, so the same seed rebuilds the same item with the same text.
  */
+/**
+ * The numeric composition: a concept's existing family, plus an authored family
+ * that is ANSWERED by typing a number, chosen per draw.
+ *
+ * The share is a real product decision. Too small and the input box is a rarity
+ * a learner meets once and never again; too large and the four-option form —
+ * which the diagnostic ladder, the papers and the offline pack all still use —
+ * becomes the rarity. Half is the balance: a learner practising a numeric
+ * concept meets a typed answer about every other question, and every
+ * multiple-choice instrument still has half the catalogue to sample.
+ *
+ * The numeric draw keeps its `correct`/`wrongs` as DISPLAY STRINGS so the
+ * choice-form twin is the same question with the same four values — never a
+ * second, differently-worded item, which is what a separate "numeric question
+ * bank" would inevitably become.
+ */
+/** Turn a numeric family's draw into the raw shape the assembler expects. */
+function numericRaw(num: NumericGen, r: Rng): ReturnType<RawGen> {
+  const item = num(r);
+  {
+    const correct = item.tolerance?.display ?? formatNumeric(item.value);
+    // ── WHAT A TYPED ANSWER IS MARKED AGAINST ──────────────────────────────
+    // The declared value is the truth, and the DISPLAY is a rounding of it. A
+    // learner who types the exact computed value and one who types the twelve
+    // significant figures the item shows are both right, so the tolerance is
+    // widened to cover the rounding the display itself introduced — never
+    // narrowed, and never left off. Without this the item's own option twin
+    // graded WRONG against its own answer (measured: 7 draws on `complexity`),
+    // which is the most confusing failure a question can have.
+    const shown = parseNumericInput(correct);
+    const rounding = shown === null ? 0 : Math.abs(shown - item.value);
+    const declared = item.tolerance ?? {};
+    const floor = Math.max(rounding * 2, 1e-9);
+    const tolerance = { ...declared, abs: Math.max(declared.abs ?? 0, floor) };
+    return {
+      prompt: item.prompt,
+      correct,
+      wrongs: item.wrongs.map((w) => String(w)),
+      tags: item.tags,
+      explanation: item.explanation,
+      difficulty: item.difficulty,
+      numeric: { value: item.value, tolerance },
+    };
+  };
+}
+
 export function withDepth(base: RawGen, deep: DeepGen, share = 0.5): RawGen {
   return (r) => {
     if (r.next() >= share) return base(r);
@@ -138,7 +192,16 @@ export function withDepth(base: RawGen, deep: DeepGen, share = 0.5): RawGen {
 // `wrongs` is string[] rather than a fixed triple: a generator whose three
 // distractors can collide for some draws supplies a spare, and generateQuestion
 // keeps the first three distinct ones.
-type RawGen = (r: Rng) => { prompt: string; correct: string; wrongs: string[]; tags: string[]; explanation: string; difficulty: number };
+//
+// `numeric` is present only on a draw that should be ANSWERED by typing a
+// number. `correct`/`wrongs` still carry the value as display strings, so the
+// same draw can also be served as its four-option twin by the multiple-choice
+// instruments (the diagnostic ladder, the papers sampler, the static pack) —
+// they lose the input box, never the question.
+type RawGen = (r: Rng) => {
+  prompt: string; correct: string; wrongs: string[]; tags: string[]; explanation: string; difficulty: number;
+  numeric?: { value: number; tolerance?: NumericTolerance };
+};
 
 // ── MATHS generators ────────────────────────────────────────────────────────
 const MATHS_GENS: Record<string, RawGen> = {
@@ -448,7 +511,15 @@ const MATHS_GENS: Record<string, RawGen> = {
     };
   },
   "ratio": (r) => {
-    const a = r.int(2, 5), b = r.int(2, 4), parts = r.int(2, 6) * (a + b);
+    const a = r.int(2, 5);
+    // The ratio has to be a REAL part-to-part comparison. With a === b the
+    // prompt asks for "the larger share" of an equal split — there isn't one —
+    // and the answer collapses onto the half-way distractor, so the question
+    // asks for a thing that does not exist and is trivially guessable. Draw b
+    // from the values that actually differ from a.
+    const raw = r.int(2, 4);
+    const b = raw === a ? (raw === 4 ? 2 : raw + 1) : raw;
+    const parts = r.int(2, 6) * (a + b);
     const unit = parts / (a + b);
     return {
       prompt: `Share $${parts} between two people in the ratio ${a} : ${b}. How much does the larger share get (in $)?`,
@@ -1585,12 +1656,44 @@ const SCI_GENS: Record<string, RawGen> = {
     };
   },
   "digestion": (r) => {
+    // Six distinct items was thin for a core biology concept. Four angles now
+    // cover the substrate→enzyme mapping from both directions (name the enzyme;
+    // name what it makes), where digestion starts, and the role of bile — each
+    // with the confusions the topic actually produces.
+    const angle = r.int(0, 3);
+    if (angle === 0) {
+      return {
+        prompt: `Which enzyme breaks STARCH into sugars?`,
+        correct: "Amylase",
+        wrongs: ["Protease", "Lipase", "Bile"] as [string, string, string],
+        tags: [], explanation: `Amylase → starch → maltose/sugars. Protease digests protein; lipase digests fats; bile emulsifies fat (not an enzyme).`,
+        difficulty: 0.3,
+      };
+    }
+    if (angle === 1) {
+      return {
+        prompt: `Which enzyme breaks FATS into fatty acids and glycerol?`,
+        correct: "Lipase",
+        wrongs: ["Amylase", "Protease", "Bile"] as [string, string, string],
+        tags: [], explanation: `Lipase → fats → fatty acids + glycerol. Amylase handles carbohydrate, protease handles protein, and bile is not an enzyme — it emulsifies fat so lipase can reach more of it.`,
+        difficulty: 0.3,
+      };
+    }
+    if (angle === 2) {
+      return {
+        prompt: `Protease breaks down which food group?`,
+        correct: "Protein → amino acids",
+        wrongs: ["Starch → sugars", "Fats → fatty acids", "Fibre → glucose"] as [string, string, string],
+        tags: [], explanation: `Protease → protein → amino acids. Starch is amylase's job, fats are lipase's, and fibre is largely indigestible in humans.`,
+        difficulty: 0.35,
+      };
+    }
     return {
-      prompt: `Which enzyme breaks STARCH into sugars?`,
-      correct: "Amylase",
-      wrongs: ["Protease", "Lipase", "Bile"] as [string, string, string],
-      tags: [], explanation: `Amylase → starch → maltose/sugars. Protease digests protein; lipase digests fats; bile emulsifies fat (not an enzyme).`,
-      difficulty: 0.3,
+      prompt: `Bile helps digest fats. What does it actually do?`,
+      correct: "Emulsifies fat — breaks it into small droplets so lipase can act",
+      wrongs: ["Breaks fat down chemically into fatty acids", "Neutralises stomach acid only", "Absorbs the fatty acids into the blood"] as [string, string, string],
+      tags: [], explanation: `Bile is not an enzyme: it physically emulsifies fat into tiny droplets, increasing surface area for LIPASE. The chemical split into fatty acids + glycerol is the enzyme's work, not bile's.`,
+      difficulty: 0.5,
     };
   },
   "circulation": (r) => {
@@ -1766,16 +1869,79 @@ const SCI_GENS: Record<string, RawGen> = {
       difficulty: 0.35,
     };
   },
+  // LOOPS was the shallowest concept in the bank (four distinct items), and it
+  // is a diagnostic ANCHOR — the very first computing probe — so a student
+  // practising it met the same handful of prompts almost immediately. The five
+  // angles below are the loops skills a beginner actually needs and are not
+  // restatements of each other: accumulate a running total (the exclusive end),
+  // COUNT iterations (the same exclusive-end point from the other side), read
+  // the last value printed, accumulate a PRODUCT, and follow a WHILE loop to
+  // exhaustion. Each carries distractors that are the mistakes that angle
+  // really produces, not filler.
   "loops": (r) => {
-    const n = r.int(3, 6);
-    let total = 0;
-    for (let i = 1; i <= n; i++) total += i;
+    const angle = r.int(0, 4);
+    if (angle === 0) {
+      const n = r.int(3, 6);
+      let total = 0;
+      for (let i = 1; i <= n; i++) total += i;
+      return {
+        prompt: `total = 0\nfor i in range(1, ${n + 1}):\n    total = total + i\nWhat is total?`,
+        correct: String(total),
+        wrongs: [String(total + n + 1), String(n), String(total - 1)] as [string, string, string],
+        tags: [], explanation: `range(1, ${n + 1}) gives 1…${n}. Sum: ${Array.from({ length: n }, (_, i) => i + 1).join(" + ")} = ${total}. The loop end value is EXCLUSIVE.`,
+        difficulty: 0.4,
+      };
+    }
+    if (angle === 1) {
+      // The exclusive end, read as a COUNT rather than a sum. a ≥ 2 keeps the
+      // three distractors mutually distinct.
+      const a = r.int(2, 5), b = r.int(a + 2, a + 7);
+      const runs = b - a;
+      return {
+        prompt: `count = 0\nfor i in range(${a}, ${b}):\n    count = count + 1\nWhat is count?`,
+        correct: String(runs),
+        wrongs: [String(runs + 1), String(a + b), String(b)] as [string, string, string],
+        tags: [], explanation: `range(${a}, ${b}) yields ${a}…${b - 1} — the end is EXCLUSIVE, so the body runs ${runs} times. Counting the end value as well gives ${runs + 1}.`,
+        difficulty: 0.35,
+      };
+    }
+    if (angle === 2) {
+      const n = r.int(3, 7);
+      return {
+        prompt: `for i in range(1, ${n + 1}):\n    print(i)\nWhat is the LAST number printed?`,
+        correct: String(n),
+        wrongs: [String(n + 1), "1", String(n - 1)] as [string, string, string],
+        tags: [], explanation: `range(1, ${n + 1}) prints 1 up to ${n}; the end value ${n + 1} is never printed. Reading the end as inclusive would print ${n + 1} last — the classic off-by-one.`,
+        difficulty: 0.3,
+      };
+    }
+    if (angle === 3) {
+      // A PRODUCT accumulator: the running total starts at 1 and multiplies, so
+      // the answer is n! — and the sum of 1…n is the mistake of reading it as
+      // the addition pattern above.
+      const n = r.int(3, 5);
+      let fact = 1;
+      for (let i = 2; i <= n; i++) fact *= i;
+      let sum = 0;
+      for (let i = 1; i <= n; i++) sum += i;
+      return {
+        prompt: `total = 1\nfor i in range(1, ${n + 1}):\n    total = total * i\nWhat is total?`,
+        correct: String(fact),
+        wrongs: [String(fact + 1), String(fact - 1), String(sum), String(n)],
+        tags: [], explanation: `total starts at 1 and MULTIPLIES: 1 × 2 × … × ${n} = ${fact}. Starting at 0 would keep it 0, and adding instead of multiplying gives ${sum}.`,
+        difficulty: 0.45,
+      };
+    }
+    // A WHILE loop that subtracts: how many times does the body run before the
+    // condition fails? Ceiling division — a remainder still costs one more pass.
+    const x = r.int(6, 15), d = r.int(2, 3);
+    const runs = Math.ceil(x / d);
     return {
-      prompt: `total = 0\nfor i in range(1, ${n + 1}):\n    total = total + i\nWhat is total?`,
-      correct: String(total),
-      wrongs: [String(total + n + 1), String(n), String(total - 1)] as [string, string, string],
-      tags: [], explanation: `range(1, ${n + 1}) gives 1…${n}. Sum: ${Array.from({ length: n }, (_, i) => i + 1).join(" + ")} = ${total}. The loop end value is EXCLUSIVE.`,
-      difficulty: 0.4,
+      prompt: `n = ${x}\nwhile n > 0:\n    n = n - ${d}\nHow many times does the body run?`,
+      correct: String(runs),
+      wrongs: [String(x), String(Math.floor(x / d)), String(runs + 1)] as [string, string, string],
+      tags: [], explanation: `n drops by ${d} each pass: ${x} → … → ${x - d * (runs - 1)} → ${x - d * runs} (≤ 0), so the body runs ${runs} times. Counting one subtraction per unit (${x}) ignores that it steps by ${d}.`,
+      difficulty: 0.5,
     };
   },
   "lists-arrays": (r) => {
@@ -1792,13 +1958,41 @@ const SCI_GENS: Record<string, RawGen> = {
     };
   },
   "functions-code": (r) => {
-    const a = r.int(2, 6), b = r.int(2, 6), x = r.int(2, 8);
+    // Seven items was thin for the concept that teaches composition. Three
+    // angles: compose two calls (inside-out), read a function's return from its
+    // body, and identify the returned value of a call inside an expression.
+    const angle = r.int(0, 2);
+    if (angle === 0) {
+      const x = r.int(2, 8);
+      return {
+        prompt: `def f(n):\n    return n * 2 + 1\n\ndef g(n):\n    return f(n) * 3\n\nWhat is g(${x})?`,
+        correct: String((x * 2 + 1) * 3),
+        wrongs: [String(x * 2 + 1), String(x * 2 * 3 + 1), String((x + 1) * 2 * 3)] as [string, string, string],
+        tags: [], explanation: `g(${x}) = f(${x}) × 3 = (${x}×2 + 1) × 3 = ${x * 2 + 1} × 3 = ${(x * 2 + 1) * 3}. Compose inside-out: f first, then g.`,
+        difficulty: 0.45,
+      };
+    }
+    if (angle === 1) {
+      // x ≥ 3 so all three distractors are genuinely distinct AND meaningful:
+      // doubling (2x), squaring the next integer ((x+1)²), and cubing (x³).
+      // With x = 2 the doubling 2x equals the answer 4, which collapsed the list
+      // and let the assembler pad with arbitrary ±1 values that teach nothing.
+      const x = r.int(3, 9);
+      return {
+        prompt: `def square(n):\n    return n * n\n\nWhat does square(${x}) return?`,
+        correct: String(x * x),
+        wrongs: [String(x * 2), String((x + 1) * (x + 1)), String(x * x * x)] as [string, string, string],
+        tags: [], explanation: `square(${x}) returns ${x} × ${x} = ${x * x}. ${x} * 2 is ${x * 2} — doubling is not squaring; ${x + 1}² is ${(x + 1) * (x + 1)}, one too high; and ${x}³ is ${x * x * x}.`,
+        difficulty: 0.3,
+      };
+    }
+    const x = r.int(2, 7), k = r.int(2, 5);
     return {
-      prompt: `def f(n):\n    return n * 2 + 1\n\ndef g(n):\n    return f(n) * 3\n\nWhat is g(${x})?`,
-      correct: String((x * 2 + 1) * 3),
-      wrongs: [String(x * 2 + 1), String(x * 2 * 3 + 1), String((x + 1) * 2 * 3)] as [string, string, string],
-      tags: [], explanation: `g(${x}) = f(${x}) × 3 = (${x}×2 + 1) × 3 = ${x * 2 + 1} × 3 = ${(x * 2 + 1) * 3}. Compose inside-out: f first, then g.`,
-      difficulty: 0.45,
+      prompt: `def add_k(n):\n    return n + ${k}\n\nWhat is add_k(${x}) + add_k(${x})?`,
+      correct: String(2 * (x + k)),
+      wrongs: [String(x + k), String(x + 2 * k), String(2 * x + k)] as [string, string, string],
+      tags: [], explanation: `Each call returns ${x} + ${k} = ${x + k}. Summing two calls: ${x + k} + ${x + k} = ${2 * (x + k)}. Applying the function once, or adding ${k} twice to a single ${x}, are the usual slips.`,
+      difficulty: 0.5,
     };
   },
   "dictionaries": (r) => {
@@ -2205,14 +2399,84 @@ const BASE_GENS: Record<string, RawGen> = { ...MATHS_GENS, ...SCI_GENS, ...LATE_
  *  THIS IS THE ONLY PLACE THE LAYERS MEET. Adding a family to either map raises
  *  the ceiling that the practice serve, the diagnostic, the papers and
  *  `lib/content-ceiling.ts` all read, with no change to any of them. */
+// PRIMARY-LEVEL CONCEPTS ARE NOT FORCED TO THE DATA BAND. The data layer exists
+// to close a `data_interpretation` gap, but a 0.75 "read it out of a table"
+// item is a CURRICULUM error for primary arithmetic (place value, column
+// addition, rounding to 10) — those concepts are taught below the band, so
+// lifting them above it would overstate the course. The adaptive engine also
+// relies on genuinely low-ceiling concepts existing: its ladder MUST be able to
+// stop at a concept's own ceiling (a diagnostic that ran the full ladder on a
+// recall-only concept served the same easy item eight times). Their gaps are
+// therefore reported honestly rather than papered over with a deeper variant.
+const DATA_DEEP_PRIMARY = new Set([
+  "place-value", "addition", "subtraction", "multiplication", "division",
+  "order-ops", "rounding", "negatives",
+]);
+
 const ALL_GENS: Record<string, RawGen> = Object.fromEntries(
   Object.entries(BASE_GENS).map(([id, base]) => {
     let gen = base;
+    // The senior and deep layers are composed here so a concept carries a
+    // harder draw family as soon as the bank has one. Composing them is what
+    // makes a generator able to move at all: a base family alone is often one
+    // difficulty across every seed, and multiplying that by a finer `withDepth`
+    // family is the difference between a concept that can be pitched to a tier
+    // and one that cannot.
+    //
+    // NO CONCEPT IS SINGLE-DIFFICULTY NOW, and that is the numeric layer's
+    // doing rather than an accident: it gives every generated concept a second
+    // draw family (lib/numeric-items.ts), chosen per seed in `generateQuestion`
+    // below, and those items do not sit at the base family's difficulty. The
+    // engine's own ranking (`generateQuestionNear`) then picks the draw nearest
+    // the caller's target, so this composition is what lets a tier move the
+    // work — previously 119 of 135 concepts were pinned to a single difficulty
+    // and a tier band could not touch them at all. The seed-excluded swap below
+    // still runs per concept, so practice items still change with the seed.
     if (DEEP_GENS[id]) gen = withDepth(gen, DEEP_GENS[id]);
     if (SENIOR_GENS[id]) gen = withDepth(gen, SENIOR_GENS[id]);
+    // The gap-closing data layer is an ADDITIONAL draw, composed OUTSIDE the
+    // deep/senior families, so a concept that already had one keeps it and also
+    // gains a >=0.75 item. Composing it into DEEP_GENS instead would have
+    // silently replaced those families (the literal's own key wins over a
+    // spread). Raising a concept's ceiling cannot strand anyone at a lower band.
+    if (DATA_DEEP[id] && !DATA_DEEP_PRIMARY.has(id)) gen = withDepth(gen, DATA_DEEP[id]);
     return [id, gen];
   }),
 );
+
+/**
+ * THE NUMERIC LAYER, KEPT BESIDE THE GENERATOR RATHER THAN INSIDE IT.
+ *
+ * The first design composed the numeric family onto the base family the way
+ * the deep and senior layers are composed — `withNumeric(base, num)` consuming
+ * a coin flip from the shared RNG stream. That was wrong in a way only
+ * measurement showed: consuming those draws SHIFTED the stream every later
+ * draw reads, so `fractions` lost the rare high-difficulty item its 24-seed
+ * depth sweep depends on, its measured ceiling fell from multi-step to 0.4, and
+ * the declared vertical slice failed. A cosmetic feature had silently cost a
+ * concept its hardest work.
+ *
+ * Choosing from the SEED instead leaves every family's stream exactly as it
+ * was: `generateQuestion` hashes `num:<concept>:<seed>` and takes either the
+ * numeric family or the composed base/deep/senior one. The split is still
+ * deterministic per seed, still roughly one in two, and it does not touch the
+ * stream — so the difficulty distribution and every seeded probe are unchanged.
+ *
+ * BUT the stream being untouched is NOT enough for `conceptDepth`: a per-seed
+ * choice REPLACES that seed's output for one family, so a blind sweep of
+ * `generateQuestion` spends half its budget on the numeric family and can miss
+ * a rare deep item. That is exactly what dropped the physics/chemistry/biology
+ * ceilings. `conceptDepth` therefore probes both families separately rather
+ * than trusting a single mixed sweep.
+ */
+const NUMERIC_BY_ID: Record<string, NumericGen> = Object.fromEntries(
+  Object.entries(NUMERIC_GENS).filter(([id]) => id in BASE_GENS),
+);
+
+/** Concepts whose family now includes an answer box — exported so the content
+ *  gate can assert the numeric coverage per concept instead of trusting a
+ *  comment. */
+export const NUMERIC_CONCEPTS: string[] = Object.keys(NUMERIC_GENS).filter((id) => id in BASE_GENS);
 
 /** Concepts carrying the senior layer — the ones whose practice now reaches the
  *  demand an advanced tier declares. Exported so the gate can assert the
@@ -2261,7 +2525,15 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
   const gen = ALL_GENS[conceptId];
   if (!gen) return null;
   const r = new Rng(hashSeed(`${conceptId}:${seed}`));
-  const q = gen(r);
+  // The numeric layer, when this concept has one, chosen from the SEED rather
+  // than from the shared stream (see NUMERIC_BY_ID): a concept gains an answer
+  // box without any of its other draws moving by one bit.
+  const numGen: NumericGen | undefined = NUMERIC_BY_ID[conceptId];
+  const q = numGen
+    ? hashSeed(`${conceptId}:${seed}:num`) % 2 === 0
+      ? numericRaw(numGen, r)
+      : gen(r)
+    : gen(r);
   // Assemble choices: correct + 3 unique wrongs.
   //
   // Generators do collide (three digits all equal, p === q in a quadratic), and
@@ -2333,6 +2605,7 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
   while (uniq.length < 4) uniq.push(`Option ${uniq.length + 1}`);
   const choices = r.shuffle(uniq.slice(0, 4));
   const answer = choices.indexOf(q.correct);
+  const numericDraw = q.numeric;
   return {
     id: `${conceptId}:${seed}`,
     conceptId,
@@ -2342,6 +2615,14 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
     answer: answer >= 0 ? answer : 0,
     explanation: q.explanation,
     misconceptionTags: q.tags,
+    // A numeric draw says so, and carries the number the typed answer is marked
+    // against plus the tolerance the ITEM declares. `choiceValues` reads the
+    // same four display strings back through the shared parser, so the option
+    // "0.75" and a typed 0.75 are one answer, graded once.
+    responseKind: numericDraw ? "numeric" : undefined,
+    answerValue: numericDraw ? numericDraw.value : undefined,
+    tolerance: numericDraw ? numericDraw.tolerance : undefined,
+    choiceValues: numericDraw ? choices.map((c) => parseNumericInput(c) ?? NaN) : undefined,
   };
 }
 
@@ -2370,10 +2651,32 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
  *  direction when the bank is coarser than the curriculum). The question's true
  *  difficulty rides along, so the surface never claims work the item is not;
  *  the depth lever is then the concept set the specification selects. */
-export function generateQuestionNear(conceptId: string, seed: string, target: number, attempts = 4): Question | null {
+export function generateQuestionNear(
+  conceptId: string,
+  seed: string,
+  target: number,
+  attempts = 4,
+  /** Item keys this concept has ALREADY served this sitting, OLDEST FIRST. A
+   *  generator that can produce only a handful of items — 44 concepts still
+   *  open with a single authored base item, with a deeper family composed on
+   *  half the draws — must not hand back the same question twice while another
+   *  exists. A fresh draw wins whenever one is found. When every draw has been
+   *  served (the generator's whole catalogue is spent) the fallback is the
+   *  item served LONGEST AGO, so the sitting rotates through the catalogue
+   *  instead of pinning to one item forever. */
+  served?: readonly string[],
+): Question | null {
   const wantBand = difficultyBandFor(target);
+  const spent = served && served.length ? new Set(served) : undefined;
+  // Oldest-served wins the rotation; first appearance fixes the rank, so a key
+  // that recurs in the list is ranked by when the learner first met it.
+  const rank = new Map<string, number>();
+  if (served) served.forEach((k, i) => { if (!rank.has(k)) rank.set(k, i); });
   let best: Question | null = null;
   let bestKey = Infinity;
+  let rotate: Question | null = null;
+  let rotateRank = Infinity;
+  let rotateKey = Infinity;
   for (let i = 0; i < Math.max(1, attempts); i++) {
     const q = generateQuestion(conceptId, `${seed}:n${i}`);
     if (!q) return null;
@@ -2382,9 +2685,23 @@ export function generateQuestionNear(conceptId: string, seed: string, target: nu
     // Band match dominates (a full point); inside a band the nearest wins, with
     // a hairline preference for the easier side of an exact tie.
     const key = (inBand ? 0 : 1) + Math.abs(gap) + (gap > 0 ? 1e-6 : 0);
+    if (spent) {
+      // Identity comes from the shared rule (lib/answer.ts#answerKey), so a
+      // numeric draw and its choice-form twin are recognised as the SAME
+      // question — the rotation must not hand a learner "the same question"
+      // back merely because it arrived with an answer box this time.
+      const k = answerKey(q);
+      if (spent.has(k)) {
+        const r = rank.get(k) ?? -1;
+        if (r < rotateRank || (r === rotateRank && key < rotateKey)) {
+          rotateRank = r; rotateKey = key; rotate = q;
+        }
+        continue;
+      }
+    }
     if (key < bestKey) { bestKey = key; best = q; }
   }
-  return best;
+  return best ?? rotate;
 }
 
 /** Serve a question that actually meets a difficulty target.
@@ -2443,8 +2760,19 @@ export function generateQuestionAt(
   let best: Question | null = null;
   let bestKey = Infinity;
   for (const family of [`${seed}:${attempt}`, "depth"]) {
+    // THE WIDENED FAMILY IS SALTED WITH THE SITTING'S SEED. `conceptDepth`
+    // measured the ceiling from the literal `depth:i` family, but SERVING those
+    // items made the item a fact about the code rather than about the sitting:
+    // its id is `${conceptId}:depth:${i}`, which names no sitting at all — so
+    // whenever the caller's own family could not reach the target and this
+    // branch won, a RETEST re-served the very items its own baseline had used
+    // (`quadratics:depth:11` appeared in both), and "a later sitting,
+    // parallel-form items" was untrue for exactly the band that mattered.
+    // Salting keeps the sweep's construction — the same 24 draws of the same
+    // generator, still aimed at `min(target, ceiling)` — while making each item
+    // belong to the sitting that asked for it.
     for (let i = 0; i < 24; i++) {
-      const q = generateQuestion(conceptId, family === "depth" ? `depth:${i}` : `${family}:${i}`);
+      const q = generateQuestion(conceptId, family === "depth" ? `${seed}:depth:${i}` : `${family}:${i}`);
       if (!q) return null;
       // An item this sitting has ALREADY served is not a candidate. The
       // diagnostic pools are single-use by design, and the ranking below is a
@@ -2456,7 +2784,7 @@ export function generateQuestionAt(
       // happened to be on. Excluding the spent item lets those six attempts do
       // what they were written for: find the next-best item instead of the
       // same one.
-      if (exclude?.has(`${q.prompt}|${q.choices[q.answer]}`)) continue;
+      if (exclude?.has(answerKey(q))) continue;
       const skill = skillForDifficulty(q.difficulty);
       const rank = skill === wantSkill ? 0 : SKILL_RANK[skill] > SKILL_RANK[wantSkill] ? 1 : 2;
       // In-demand wins; then the nearest draw above it; then the nearest below
@@ -2480,13 +2808,19 @@ const SKILL_RANK: Record<string, number> = { recall: 0, application: 1, multi_st
  *  the point of the architecture — leaking the answer would make "practice"
  *  a multiple-choice cheat sheet, and the tags are the grader's own
  *  discriminators, not learner-facing data. */
-export type QuestionView = Omit<Question, "answer" | "explanation" | "misconceptionTags">;
+export type QuestionView = Omit<Question, "answer" | "explanation" | "misconceptionTags" | "answerValue" | "choiceValues">;
 
 /** Strip grader-only fields. When a language is supplied, maths command-stem
  *  prompts are localized ("Work out" → "Calcula" …) — bodies keep their
  *  numbers/notation verbatim. */
 export function serveView(q: Question, lang?: string, board?: BoardId): QuestionView {
-  const { answer: _a, explanation: _e, misconceptionTags: _m, ...view } = q;
+  // `answerValue` goes with `answer`: a numeric item's number IS its key, and a
+  // view that shipped it would hand the learner the answer to type. What the
+  // client DOES need is `responseKind` (so it renders a box, not options) and
+  // `tolerance.unit` — the box needs to know it is grammatically wrong to the
+  // 14th decimal. `choiceValues` is stripped too: it is the same four numbers
+  // the visible options already state.
+  const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, choiceValues: _cv, ...view } = q;
   if (lang && lang !== "en") {
     view.prompt = localizeStem(view.prompt, lang);
   } else if (board) {
@@ -2518,11 +2852,26 @@ const depthCache = new Map<string, number>();
 export function conceptDepth(conceptId: string): number {
   const cached = depthCache.get(conceptId);
   if (cached !== undefined) return cached;
+  const gen = ALL_GENS[conceptId];
+  if (!gen) { depthCache.set(conceptId, 0); return 0; }
+  const numGen = NUMERIC_BY_ID[conceptId];
   let max = 0;
   for (let i = 0; i < DEPTH_SEEDS; i++) {
-    const q = generateQuestion(conceptId, `depth:${i}`);
-    if (!q) break;
-    if (q.difficulty > max) max = q.difficulty;
+    const seed = `depth:${i}`;
+    // Probe the COMPOSED family and the numeric family on SEPARATE pristine
+    // streams. `generateQuestion` picks exactly ONE of them per seed, so
+    // sweeping it alone gives each family only half the depth budget — and a
+    // rare deep item (the entire point of the deep/senior layers) is then
+    // missed and the measured ceiling silently drops. For physics/chemistry/
+    // biology exactly that happened (gate:ceiling regressed 0.015–0.025).
+    // Measuring both branches is the honest maximum, and for a concept with no
+    // numeric family this is identical to the old sweep (same seed, same gen).
+    const composed = gen(new Rng(hashSeed(`${conceptId}:${seed}`)));
+    if (composed.difficulty > max) max = composed.difficulty;
+    if (numGen) {
+      const numeric = numericRaw(numGen, new Rng(hashSeed(`${conceptId}:${seed}`)));
+      if (numeric.difficulty > max) max = numeric.difficulty;
+    }
   }
   depthCache.set(conceptId, max);
   return max;
@@ -2538,6 +2887,14 @@ export function bankDepth(conceptIds: readonly string[]): number {
 
 /** Concepts that have dedicated question generators (evergreen practice pool). */
 export const GENERATED_CONCEPT_IDS = Object.keys(ALL_GENS);
+
+/** Is this a question a learner must ANSWER by typing a number? The one test
+ *  a multiple-choice-only surface (the diagnostic ladder, the papers sampler,
+ *  the offline pack, the micro-diagnostic probe) uses to skip a draw it cannot
+ *  grade — it serves the choice-form twin of the same draw instead. */
+export function isNumericDraw(q: Question): boolean {
+  return q.responseKind === "numeric";
+}
 
 export function hasGenerator(conceptId: string): boolean {
   return conceptId in ALL_GENS;

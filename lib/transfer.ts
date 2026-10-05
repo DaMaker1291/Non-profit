@@ -58,6 +58,10 @@ const LINEAR = /\$?\s*(-?\d*\.?\d*)\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)\s*=\s*(-?\
 /** Two-step form: A(x ± B) = C x ± D — the shape the multi-step work uses. */
 const LINEAR_BRACKET = /\$?\s*(-?\d*\.?\d*)\s*\(\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)\s*\)\s*=\s*(-?\d*\.?\d*)\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)/;
 
+/** The bracketless two-sided form: A x ± B = C x ± D. Matched BEFORE the plain
+ *  pattern, which cannot see it whole — see `parseLinear`. */
+const LINEAR_TWO_SIDED = /\$?\s*(-?\d*\.?\d*)\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)\s*=\s*(-?\d*\.?\d*)\s*x\s*([+\-\u2212])\s*(\d+\.?\d*)/;
+
 function num(s: string): number {
   return s === "-" ? -1 : s === "" ? 1 : parseFloat(s);
 }
@@ -81,15 +85,43 @@ function num(s: string): number {
  * `direct` fallback rather than dressed up as a story with negative months.
  */
 function parseLinear(prompt: string): { a: number; b: number; rhs: number } | null {
-  const m = prompt.match(LINEAR);
+  // ── THE TWO-SIDED FORM IS MATCHED FIRST, because the plain pattern cannot
+  // see it whole. `LINEAR` is unanchored, so on "Solve 2x + 5 = 0x + 19" it
+  // matched the PREFIX "2x + 5 = 0": rhs read as 0 instead of 19, and the story
+  // surface then told the learner a total its own answer key contradicted
+  // ("a joining fee of 5, after 2 months the total paid is 0" for an item whose
+  // answer is 7). A wrong number shown to a learner is not a cosmetic defect,
+  // so the shape that provoked it is matched properly rather than skipped.
+  const two = prompt.match(LINEAR_TWO_SIDED);
+  if (two) {
+    const A = num(two[1]);
+    const bSign = two[2] === "-" || two[2] === "\u2212" ? -1 : 1;
+    const B = bSign * parseFloat(two[3]);
+    const C = num(two[4]);
+    const dSign = two[5] === "-" || two[5] === "\u2212" ? -1 : 1;
+    const D = dSign * parseFloat(two[6]);
+    const a = A - C;
+    if ([A, B, C, D, a].every(Number.isFinite) && a > 0 && B >= 0) return { a, b: B, rhs: D };
+    return null;
+  }
+  // The PLAIN form, and only when the equation really is plain. "Solve
+  // 3(2x + 1) = 15" also contains a matchable "2x + 1 = 15" — a DIFFERENT
+  // equation from the one on the page — so a prompt carrying a bracket is left
+  // to the bracket pattern below and, failing that, to the caller's `direct`
+  // fallback instead of being re-told as something it is not. A NEGATIVE
+  // constant is refused for the same reason: the story words it as a joining
+  // fee, so a discount would have to be said as a discount to stay true, which
+  // is a reading this template cannot express.
+  const m = prompt.includes("(") ? null : prompt.match(LINEAR);
   if (m) {
     const a = num(m[1]);
     const neg = m[2] === "-" || m[2] === "\u2212";
     const b = parseFloat(m[3]);
     const rhs = parseFloat(m[4]);
     if (Number.isFinite(a) && Number.isFinite(b) && Number.isFinite(rhs) && a !== 0) {
-      return { a, b: neg ? -b : b, rhs };
+      return neg ? null : { a, b, rhs };
     }
+    return null;
   }
   const br = prompt.match(LINEAR_BRACKET);
   if (!br) return null;
@@ -158,8 +190,10 @@ const fmt = (n: number): string => (Number.isInteger(n) ? String(n) : String(Mat
  *  world. Choice list and answer index are untouched. */
 function storyQuestion(q: Question, lang: string, a: number, b: number, rhs: number): Question {
   const t = translator(lang);
+  // `b` needs no absolute value here: `parseLinear` refuses a negative
+  // constant precisely because this sentence can only state a fee.
   const prompt = [
-    t("tr.story0"), fmt(Math.abs(b)),
+    t("tr.story0"), fmt(b),
     t("tr.story1"), fmt(a),
     t("tr.story2"), fmt(rhs),
     t("tr.story3"),
@@ -227,6 +261,21 @@ function inverseFromDraws(
       choices: items,
       answer,
       difficulty: Math.min(0.95, target.difficulty + 0.05),
+      // ── THE INVERSE IS A CHOICE, WHATEVER ITS TARGET WAS ────────────────
+      // `...target` carries a NUMERIC draw's `responseKind`, `answerValue`,
+      // `tolerance` and `choiceValues` — and those are the numbers of the
+      // TARGET'S OWN four options, while the choices above are four PROMPT
+      // strings with `answer` indexing them. Left in place they graded a
+      // correct pick against an unrelated number (a right answer recorded as
+      // wrong, which the end-to-end suite measured on `linear-equations`) and
+      // told the client to render a typed box for a question whose options are
+      // sentences. The inverse asks "which of these produces this value?" — an
+      // option to pick, so the typed-answer fields are cleared rather than
+      // inherited.
+      responseKind: undefined,
+      answerValue: undefined,
+      tolerance: undefined,
+      choiceValues: undefined,
     },
     distractors: used,
   };

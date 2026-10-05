@@ -114,14 +114,6 @@ export default function Home() {
     { href: "/access", title: "nav.accessTitle", body: "acc.lead", go: "acc.title" },
   ];
 
-  /** The three claims a marketing page may not make unaccompanied. Each carries
-   *  where it was counted, because a number nobody can check is decoration. */
-  const claims: { label: string; source: string }[] = [
-    { label: "home.free", source: "home.srcNoPayments" },
-    { label: "home.openSource", source: "home.srcLicence" },
-    { label: "home.languages", source: "home.srcDicts" },
-  ];
-
   return (
     <main className="container" style={{ paddingTop: 40 }}>
       <p className="eyebrow"><span className="no">◉</span> OpenMind</p>
@@ -179,16 +171,23 @@ export default function Home() {
         ))}
       </section>
 
-      {/* What is taught, and how far it goes — measured from the genome and the
-          bank, with the source of the measurement stated above the rows. Then
-          the three claims about the product, then the honest one: what it does
-          not know about the reader yet. */}
+      {/* What is taught, and how far the practice actually goes — measured
+          from the genome and the bank, so the figures cannot go stale.
+
+          This section used to be an engineering ledger titled "every claim on
+          this page, and where it was counted": the five subjects, then three
+          claims about the product each with its source, then a panel about what
+          OpenMind had not measured about the reader. Every figure was true and
+          every one was a receipt for the person who built the page — not for
+          the learner reading it, who should be left thinking "it knows what I
+          need", never "this system has an evidence ledger". The subject list
+          stays because it is the one thing a visitor needs before starting
+          (what can I study, and is the practice there real); a single honest
+          sentence about unknown-not-zero stays because that rule is the product. */}
       <section>
-        <h2 className="eyebrow">{t("home.claims")}</h2>
+        <h2 className="eyebrow">{t("home.subjects")}</h2>
         <div className="ledger">
           <div className="ledger-group">
-            <p className="ledger-h">{t("home.subjects")}</p>
-            <p className="ledger-src">{t("home.srcSubjects")}</p>
             {SUBJECTS.map((s) => {
               const level = SUBJECT_LEVEL[s.id];
               return (
@@ -204,25 +203,16 @@ export default function Home() {
               );
             })}
           </div>
-
-          <div className="ledger-group" style={{ paddingTop: "var(--s3)" }}>
-            {claims.map((c) => (
-              <div className="ledger-row" key={c.source}>
-                <span className="ledger-k">{t(c.label)}</span>
-                {" "}
-                <span className="ledger-v">{t(c.source)}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="ledger-group" style={{ paddingTop: "var(--s3)" }}>
-            <p className="ledger-h">
-              <span className="unmeasured" aria-hidden="true" />
-              {t("home.notMeasured")}
-            </p>
-            <p className="ledger-note">{t("home.notMeasuredNote")}</p>
-          </div>
         </div>
+        {/* Unknown is not zero, ON THE FRONT PAGE. The last thing a visitor
+            reads is the rule the whole engine is built on, drawn as an empty
+            ruled square rather than a figure — so "we have not measured this"
+            can never be mistaken for a zero. */}
+        <p className="ledger-h" style={{ marginTop: "var(--s3)" }}>
+          <span className="unmeasured" aria-hidden="true" />
+          {t("home.notMeasured")}
+        </p>
+        <p className="ledger-note">{t("home.notMeasuredNote")}</p>
       </section>
 
       <p className="small muted" style={{ marginTop: "var(--s3)" }}>

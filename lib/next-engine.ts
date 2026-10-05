@@ -460,6 +460,20 @@ export function decideNext(
   // claim: a slip the record has actually named twice is evidence, while an
   // unestablished prerequisite is often only an absence of measurement. When
   // both are true the learner is told the specific, checkable thing.
+  //
+  // THE GATE IS THE SLIP COUNT AND NOTHING ELSE, and there are two ways to get
+  // that wrong, both of which this line used to have. Requiring a correct
+  // answer before naming a slip (`correct > 0`) silenced the diagnosis for the
+  // learner who has NEVER got the concept right — the case where the slip is
+  // the entire record and the most nameable thing there is. Requiring the
+  // concept to be past the `introduce` rung did the same to a learner whose
+  // recurring slip is precisely what keeps their mastery low, and it was worse
+  // than useless: it demoted a named, thrice-repeating slip below a spaced
+  // review of the concept they were BEST at. Repairing the slip is what makes
+  // it stop being actionable, and that is already handled one level down — the
+  // misconception ledger stops reporting a slip after REPAIR_STREAK clean
+  // answers, so `topMisconception` goes null and this branch stops firing on
+  // its own.
   for (const e of snap.evidence) {
     if (e.misconceptionHits >= 2 && e.topMisconception && out.length < max && !out.some((a) => a.conceptId === e.conceptId)) {
       const m = MISCONCEPTIONS_BY_ID[e.topMisconception];
@@ -468,15 +482,6 @@ export function decideNext(
       push({
         kind: "REMEDIATE", conceptId: e.conceptId,
         title: `${t("next.title.fix")}: ${name(e.conceptId)}`,
-        // THE DICTIONARY OWNS THE QUOTES. This template used to wrap the name
-        // in hard-coded “ ”, while every one of the fifteen dictionaries ALSO
-        // carries the language's own marks around the same slot — so the
-        // translator path rendered `““Sign slip””`, and in French, German,
-        // Arabic, Persian and Portuguese it mixed two quoting systems
-        // (`mais « “Sign slip” »`, `aber „ “Sign slip” “`). The English
-        // fallback table below has no marks of its own, which is exactly why
-        // this survived: the one path nobody reads in production was the only
-        // one that looked right.
         reason: m
           ? `${t("next.reason.remediatePre")}${mName}${t("next.reason.remediatePost")}`
           : t("next.reason.remediateNoName"),

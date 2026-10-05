@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/client";
 import { anonMicroCheck } from "@/lib/anon-practice";
 import { mcName, mcCoaching } from "@/lib/content-i18n";
+import PromptText from "@/components/prompt-text";
 import type { FlarePayload } from "@/lib/microdiag";
 
 export default function MicroDiagnostic({ flare, lang }: { flare: FlarePayload; lang: string }) {
@@ -53,7 +54,7 @@ export default function MicroDiagnostic({ flare, lang }: { flare: FlarePayload; 
       {flare.check && !result && (
         <div style={{ marginTop: 12 }}>
           <p className="small" style={{ fontWeight: 600, margin: "0 0 8px" }}>{t("micro.question")}</p>
-          <p className="qprompt">{flare.check.question.prompt}</p>
+          <div className="qprompt"><PromptText text={flare.check.question.prompt} /></div>
           <div className="choices">
             {flare.check.question.choices.map((ch, i) => (
               <button

@@ -1,0 +1,125 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGING DEPLOYMENT — a TEMPLATE, not a working deployment.
+#
+# Read this before enabling it. This repository does not own a staging host, so
+# this workflow shows the SHAPE of a gated rollout and does nothing until a real
+# environment is configured. It is written to fail loudly and helpfully — never
+# to report a successful deploy that did not happen.
+#
+# Prerequisites (repository/environment secrets, set in the `staging`
+# environment):
+#
+#   STAGING_DEPLOY_HOOK   a URL that triggers the deploy on your host
+#                         (Render/Railway/Fly/a webhook — whatever you run)
+#   STAGING_URL           the public base URL staging serves, e.g.
+#                         https://staging.openmind.example.org
+#
+# With staging, the rule is: it looks exactly like production, uses a separate
+# data store and separate secrets, and can be destroyed and recreated. Never
+# point it at production data.
+#
+# Rollout shape:
+#   main green in ci.yml  →  deploy to staging  →  smoke the deployed URL
+#   →  manual approval  →  deploy-production.yml
+# ─────────────────────────────────────────────────────────────────────────────
+name: deploy-staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+
+      # Judge the artefact BEFORE it is deployed, not after.
+      - name: Production check
+        run: npm run production-check
+
+      # ── STAGING IS WHERE A MIGRATION IS TRIED FIRST ─────────────────────────
+      # The rule the brief states outright: never test a migration, an auth
+      # change or a data change directly on production. Staging carries the same
+      # sequence Production does (backup → migration → rollout → health check)
+      # so a migration that reverses badly is discovered here — on a database
+      # that is allowed to be destroyed and recreated, not on a class's term of
+      # work. The reversal itself is rehearsed in CI's `database` job, against a
+      # throwaway database, on every commit.
+      - name: Is a staging database configured?
+        id: db
+        run: |
+          if [ -n "${{ secrets.STAGING_DATABASE_URL }}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::no STAGING_DATABASE_URL secret — staging uses the file-backed store, so there is nothing to migrate."
+          fi
+
+      - name: Database pre-flight (drift, pending)
+        if: steps.db.outputs.configured == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          OPENMIND_ENV: staging
+        run: npm run db:status
+
+      - name: Migrate staging
+        if: steps.db.outputs.configured == 'true'
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          OPENMIND_ENV: staging
+          OPENMIND_RELEASE: ${{ github.sha }}
+        run: npm run db:migrate
+
+      - name: Is a staging target configured?
+        id: gate
+        run: |
+          if [ -n "${{ secrets.STAGING_DEPLOY_HOOK }}" ] && [ -n "${{ vars.STAGING_URL }}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::staging is not configured (STAGING_DEPLOY_HOOK secret and STAGING_URL variable). Skipping the deploy step — this is a template, not a live environment."
+          fi
+
+      # Replace the trigger with your host's deploy mechanism (a CLI, a Docker
+      # push, an image tag). The point is: deploy a BUILT ARTEFACT, never edit
+      # files on the host.
+      - name: Trigger the staging deploy
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          DEPLOY_HOOK: ${{ secrets.STAGING_DEPLOY_HOOK }}
+          DEPLOYMENT_ID: ${{ github.sha }}
+        run: |
+          curl -fsS -X POST "$DEPLOY_HOOK" \
+            -H "content-type: application/json" \
+            -d "{\"deploymentId\": \"${DEPLOYMENT_ID}\"}"
+          echo "deploy triggered for ${DEPLOYMENT_ID}"
+
+      # Prove the DEPLOYED thing serves before anyone trusts it.
+      - name: Smoke the deployed staging URL
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          OPENMIND_BASE: ${{ vars.STAGING_URL }}
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf -o /dev/null "$OPENMIND_BASE/api/health"; then break; fi
+            sleep 5
+          done
+          npm run smoke

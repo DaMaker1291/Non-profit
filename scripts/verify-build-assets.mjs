@@ -14,8 +14,8 @@
 // This is not hypothetical. The checkout shipped with `.next` holding DEVELOPMENT
 // output (static/development/, webpack hot-update files, no standalone/ at all)
 // while the real production build sat in `.next-prod`, and
-// `.next-prod/standalone/.next/static` did not exist. Serving that build returns
-// 200 for `/` and 404 for the stylesheet it asks for.
+// `.next-prod/standalone/.next-prod/static` did not exist. Serving that build
+// returns 200 for `/` and 404 for the stylesheet it asks for.
 //
 // This script makes that state impossible to serve silently. It does not guess:
 // it reads the HTML the server actually emits and checks every asset it points
@@ -66,7 +66,14 @@ if (!fs.existsSync(staticDir)) {
 console.log("\n2 · standalone bundle");
 const standalone = path.join(DIST, "standalone");
 if (fs.existsSync(path.join(standalone, "server.js"))) {
-  const bundled = path.join(standalone, ".next", "static");
+  // The standalone bundle MIRRORS the dist directory's own name: a default
+  // `.next` build nests `.next/standalone/.next/static`, and a build made with
+  // `NEXT_DIST_DIR=.next-prod` (the override next.config.mjs documents for
+  // coexisting with a running dev server) nests
+  // `.next-prod/standalone/.next-prod/static`. Hard-coding `.next` here meant
+  // this gate could never pass for the very dist dir the repo tells you to
+  // build into — it reported a correctly-assembled bundle as unservable.
+  const bundled = path.join(standalone, path.basename(path.resolve(DIST)), "static");
   if (!fs.existsSync(bundled)) {
     fail(`standalone/server.js exists but ${bundled} is missing — this build will serve UNSTYLED HTML`);
   } else {

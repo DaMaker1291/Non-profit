@@ -92,6 +92,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   return withSession(
     { account: publicAccount(account), profile: publicProfileState(state), secret },
     token,
+    200,
+    req,
   );
 }
 

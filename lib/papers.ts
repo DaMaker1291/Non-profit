@@ -441,6 +441,10 @@ export interface PaperResult {
     chosen: number | null;
     answer: number;
     explanation: string;
+    /** The misconceptions this question probes, from the answer key. Shown
+     *  beside a wrong answer so the exam-evidence screen can name the IDEA to
+     *  check — the one thing the score cannot say. */
+    tags: string[];
   }>;
 }
 
@@ -459,6 +463,7 @@ export function markPaper(
     return {
       id: q.id, conceptId: q.conceptId, marks: q.marks, awarded,
       correct, chosen, answer: q.answer, explanation: q.explanation,
+      tags: q.tags,
     };
   });
   const total = key.questions.reduce((s, q) => s + q.marks, 0);

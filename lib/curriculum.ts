@@ -95,6 +95,21 @@ export function curriculumFor(country: string): CurriculumRoute | null {
   return ROUTES[country] ?? null;
 }
 
+/** The awarding body's own name for an id — a proper noun ("AQA", "Pearson
+ *  Edexcel"), so it is never translated. Board ids are not globally unique
+ *  ("state" is Ghana and India; "kenyan" is Kenya, Tanzania and Uganda), so
+ *  this returns the first binding, which is the one the learner's own route
+ *  would have offered. An unknown id degrades to its uppercase letters rather
+ *  than to an empty header. */
+export function boardName(id: string | undefined | null): string {
+  if (!id) return "";
+  for (const route of Object.values(ROUTES)) {
+    const b = route.boards.find((x) => x.id === id);
+    if (b) return b.name;
+  }
+  return id.toUpperCase();
+}
+
 /** Emergency continuity core (§17): literacy + numeracy foundations that work
  *  fully offline from a printed pack. Filter NextStep/diagnostics to these. */
 export const CONTINUITY_CORE = [

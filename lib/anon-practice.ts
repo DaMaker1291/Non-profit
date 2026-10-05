@@ -20,6 +20,13 @@ export interface AnonPracticeQ {
   conceptId: string;
   prompt: string;
   choices: string[];
+  /** "numeric" = the learner TYPED. The box is keyed off this, so the surface
+   *  never has to infer the response kind from what happens to be in the
+   *  payload. */
+  responseKind?: "choice" | "numeric";
+  /** The unit the answer is in, for the box to show. `answerValue` is stripped
+   *  server-side, so what the box carries is deliberately the shape only. */
+  tolerance?: { unit?: string };
   difficulty: number;
 }
 
@@ -142,7 +149,7 @@ export async function anonServeTransfer(conceptId: string, language: string): Pr
  *  only whether it can be delivered yet. It names its own submission, so a
  *  replay after a dropped response is recorded once. */
 export async function anonAnswer(
-  conceptId: string, questionId: string, choiceIndex: number, language: string,
+  conceptId: string, questionId: string, given: { choiceIndex: number } | { numericAnswer: string }, language: string,
   meta?: { ms?: number },
 ): Promise<AnonAnswerOutcome> {
   const id = await ensureAnonProfile(language);
@@ -151,7 +158,7 @@ export async function anonAnswer(
     submissionId: newSubmissionId(),
     deviceAt: Date.now(),
     body: {
-      action: "answer", id, conceptId, questionId, choiceIndex, lang: language,
+      action: "answer", id, conceptId, questionId, ...given, lang: language,
       ms: meta?.ms, secret: ensureProfileSecret(),
     },
   });

@@ -160,7 +160,18 @@ export interface DiagnosticSession {
    *  whether it was right. The per-concept ladder cannot answer "can they
    *  APPLY but not interpret data?" — that question needs the individual
    *  answers, and it is the question a serious diagnostic exists to answer. */
-  log: Array<{ conceptId: string; difficulty: number; correct: boolean; source: QuestionSource }>;
+  log: Array<{
+    conceptId: string;
+    difficulty: number;
+    correct: boolean;
+    source: QuestionSource;
+    /** What the learner said about their own knowing BEFORE the verdict — see
+     *  lib/evidence.ts#Certainty. Null when the answer was given without one
+     *  (every answer from before this existed, and any answer that was not
+     *  asked). Kept per answer because the sitting's register is the one thing a
+     *  score cannot reconstruct. */
+    certainty: import("./evidence").Certainty | null;
+  }>;
 }
 
 export function newDiagnosticSession(
@@ -376,6 +387,10 @@ export function gradeAnswer(
   conceptId: string,
   question: Question,
   choiceIdx: number,
+  /** The learner's own statement about their knowing, made before this verdict
+   *  existed. Optional, and null by default: a caller that does not ask records
+   *  an absent self-report, never an implied "sure". */
+  certainty: import("./evidence").Certainty | null = null,
 ): { correct: boolean; explanation: string } {
   const correct = choiceIdx === question.answer;
   // The per-answer record, including the difficulty actually served, is what
@@ -384,7 +399,7 @@ export function gradeAnswer(
   // The SOURCE is recorded with every answer: today every probe is authored by
   // OpenMind, and the day a licensed board item is served this record is what
   // keeps "measured on real board material" from being an assumption.
-  s.log.push({ conceptId, difficulty: question.difficulty, correct, source: "openmind_authored" });
+  s.log.push({ conceptId, difficulty: question.difficulty, correct, source: "openmind_authored", certainty });
   const cur = s.concepts.find((c) => c.conceptId === conceptId);
   if (cur && !cur.done) {
     cur.asked++;
@@ -421,6 +436,42 @@ export function gradeAnswer(
     // one more question, which either confirms recovery or ends the band.
   }
   return { correct, explanation: question.explanation };
+}
+
+/**
+ * HOW LONG THIS SITTING IS, approximately — measured, never guessed.
+ *
+ * The diagnostic is adaptive, so its length is not a fixed number: a concept's
+ * band rules stop it the moment they decide, and a band the sitting has already
+ * PROVED is not re-proved on every concept after it. Both are facts about
+ * answers that do not exist yet, so no closed-form count can be honest about
+ * them — which is why the alternative, a constant like "12 questions", would be
+ * a number the app invented and the learner could catch it missing.
+ *
+ * So the estimate is a forward SIMULATION, and the one it runs is the honest
+ * one: clone the live sitting and climb the ladder answering everything
+ * CORRECTLY — the climb nothing would stop. It is therefore an upper-ish bound:
+ * a learner who misses early finishes below it, and the report is what says how
+ * far they actually got. That is exactly why the surface prints "about".
+ *
+ * Deterministic in the sitting it is handed, and it never mutates it: the clone
+ * starts from the `asked` the log already counts, so asking the same session
+ * twice returns the same number and one answered question cannot be counted
+ * twice.
+ */
+export function plannedQuestions(s: DiagnosticSession): number {
+  const clone = structuredClone(s) as DiagnosticSession;
+  let n = clone.log.length;
+  // A sitting is a handful of concepts and at most a few questions each. The
+  // guard exists only so a generator that can never close a concept cannot
+  // loop forever while a learner waits on the response.
+  for (let guard = 0; guard < 400; guard++) {
+    const q = nextQuestion(clone);
+    if (!q) break;
+    gradeAnswer(clone, q.conceptId, q, q.answer);
+    n++;
+  }
+  return n;
 }
 
 /** mastery from ladder position: 0.1 + 0.28/stage passed + 0.12 partial credit.
@@ -539,6 +590,25 @@ export interface DemandEvidence {
    *  Without this flag the report would say "not measured" and leave the
    *  learner to read it as a gap in themselves; with it, the reason is stated. */
   reachable: boolean;
+  /** Was this band never put on the table at all, because every concept the
+   *  sitting served OPENED ABOVE it (`openingStageFor`)?
+   *
+   *  THE THIRD REASON AN UNMEASURED BAND CAN HONESTLY HAVE, and the one the
+   *  two flags above cannot state. `reachable` is a fact about the sitting's
+   *  SAMPLED CONCEPTS (can these generators express the band?); this is a fact
+   *  about its PLACEMENT (did it start above it?). A Year 11 GCSE Higher
+   *  baseline is placed at its own course's rung — deliberately, so it is never
+   *  handed primary place value — and a learner who answers correctly on the way
+   *  up never descends below that rung, so `recall` came back "not measured"
+   *  with nothing to explain it. Placement is a statement about the SITTING, so
+   *  it can never be shown as a fact about the learner.
+   *
+   *  Derived from the LOG rather than from the configured floor: a band counts
+   *  as not-asked only when the sitting genuinely asked nothing below the lowest
+   *  band it reached. A learner who fails early is descended to, does ask at the
+   *  floor, and so has no not-asked band at all — which keeps the three reasons
+   *  from collapsing into one. */
+  notAsked: boolean;
   estimate: EvidenceEstimate;
 }
 
@@ -546,7 +616,14 @@ export function demandEstimates(s: DiagnosticSession): DemandEvidence[] {
   // The deepest question any of this session's concepts can serve. Measured
   // from the generators, not assumed from the syllabus.
   const deepest = s.concepts.reduce((m, c) => Math.max(m, conceptDepth(c.conceptId)), 0);
-  return SKILL_LADDER.map((skill) => {
+  // The lowest band this sitting actually asked at, or null when it asked
+  // nothing at all (an empty sitting has no placement to report).
+  const lowestAsked = s.log.reduce<number | null>((lo, a) => {
+    const i = SKILL_LADDER.indexOf(skillForDifficulty(a.difficulty));
+    if (i < 0) return lo;
+    return lo === null ? i : Math.min(lo, i);
+  }, null);
+  return SKILL_LADDER.map((skill, i) => {
     const rows = s.log
       .filter((a) => skillForDifficulty(a.difficulty) === skill)
       .map((a) => ({ correct: a.correct, source: a.source ?? ("openmind_authored" as QuestionSource) }));
@@ -554,9 +631,32 @@ export function demandEstimates(s: DiagnosticSession): DemandEvidence[] {
       skill,
       inBank: !SKILLS_NOT_IN_BANK.includes(skill),
       reachable: bandReachable(skill, deepest),
+      notAsked: lowestAsked !== null && i < lowestAsked,
       estimate: estimateEvidence(rows),
     };
   });
+}
+
+/**
+ * What the learner said about their own knowing, over a whole sitting.
+ *
+ * `unsureCorrect` is the reason this exists at all: an accuracy figure counts a
+ * confident right answer and a half-guessed one identically, and those are two
+ * different states to teach from. Only answers that STATED something are
+ * counted — a learner who was never asked the question has an empty tally, not
+ * a fabricated confident one.
+ *
+ * Read from the sitting's own log, so it is derived from the answers rather than
+ * from a counter that could drift away from them.
+ */
+export function certaintyTally(s: DiagnosticSession): { stated: number; unsure: number; unsureCorrect: number } {
+  const t = { stated: 0, unsure: 0, unsureCorrect: 0 };
+  for (const a of s.log) {
+    if (a.certainty !== "sure" && a.certainty !== "unsure") continue;
+    t.stated += 1;
+    if (a.certainty === "unsure") { t.unsure += 1; if (a.correct) t.unsureCorrect += 1; }
+  }
+  return t;
 }
 
 export function buildResult(s: DiagnosticSession): DiagnosticResult {
@@ -602,6 +702,10 @@ export function buildResult(s: DiagnosticSession): DiagnosticResult {
     skippedBands: SKILL_LADDER.filter((sk) =>
       s.concepts.some((c) => c.skippedBands?.includes(sk)),
     ),
+    // What the learner said about their own knowing, so the report can name the
+    // difference between "I know this" and "I got it, but I wasn't sure" — the
+    // one thing the score cannot say.
+    certainty: certaintyTally(s),
   };
 }
 

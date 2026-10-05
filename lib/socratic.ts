@@ -347,16 +347,15 @@ function groundedLines(lang: string, g: GroundedContext): string[] {
   if (q) parts.push(`${line(lang, "soc.onScreen", "Look at the question on your screen")}: ${q}`);
   const reason = (g.serveReason ?? "").trim();
   const hitIds = (g.hitIds ?? []).filter((id) => !!MISCONCEPTIONS_BY_ID[id]).slice(0, 2);
-  // ── THE REASON IS ALREADY ON SCREEN ────────────────────────────────────
-  // The panel renders the decision's own reason UNDER every reply (it is the
-  // payload's `grounding`, filled into tutor.whyThis), so speaking it as a
-  // sentence as well put the same closing clause on all eight different
-  // messages of the acceptance battery — "OpenMind served this one to stretch"
-  // — which is precisely the canned repetition §11 forbids. Same rule as the
-  // concept definition below: it survives where it is the only thing there is
-  // to say (a room or concept-only caller, with no question on screen and no
-  // patterns of this learner's own to name).
-  if (reason && !q && hitIds.length === 0) parts.push(line(lang, "soc.serveWhy", "OpenMind served this one to") + " " + reason + ".");
+  // A grounded turn always says WHY this question is on screen: a live screen
+  // turn keeps the decision's reason out of the reply because it is already the
+  // `tutor.whyThis` line under the answer, and restating it would put the same
+  // closing clause on every message (the canned paragraph §11 forbids). A
+  // concept-only turn has no question, no decision, and usually no own hits —
+  // that is when the target's own reason is the ONLY grounding there is, and
+  // the offline engine names it so a learner reading a room or an offline card
+  // is never handed the practice engine's own target sentence.
+  if (!q && reason) parts.push(line(lang, "soc.serveWhy", "OpenMind served this one to") + " " + reason + ".");
   if (hitIds.length) {
     const names = hitIds.map((id) => mcName(lang, id, MISCONCEPTIONS_BY_ID[id].name));
     const coaching = mcCoaching(lang, hitIds[0], MISCONCEPTIONS_BY_ID[hitIds[0]].coaching ?? "");

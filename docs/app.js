@@ -191,8 +191,21 @@
   function serveQuestion(conceptId) {
     var info = serveTarget(conceptId);
     var seed = "s" + Date.now() + ":" + conceptId + ":" + Math.floor(Math.random() * 1e9);
-    var q = E.questions.generateQuestionNear(conceptId, seed, info.aim, DRAW_ATTEMPTS);
+    // The already-served keys for this concept, OLDEST FIRST, so the search
+    // skips a question the learner is already working through — the same rule
+    // app/api/progress/route.ts applies. Without it the offline build (which
+    // runs from file:// and in the pack) handed back the identical item again
+    // and again, because the nearest-band draw is deterministic and the base
+    // item always won for a concept with few variants.
+    var served = servedPractice[conceptId] || [];
+    var q = E.questions.generateQuestionNear(conceptId, seed, info.aim, DRAW_ATTEMPTS, served);
     if (!q) return null;
+    // Record it, and bound the list the same way the server does. Identity
+    // comes from the SHARED rule (lib/answer.ts#answerKey), so a numeric draw
+    // and its choice-form twin count as the same question spent.
+    var key = E.answer.answerKey(q);
+    served.push(key);
+    servedPractice[conceptId] = served.slice(-12);
     return { q: q, info: info };
   }
 
@@ -224,6 +237,10 @@
       questionId: q.id,
       correct: opts.correct,
       chosen: opts.chosen,
+      // The canonical number a TYPED answer was, or null for a picked option —
+      // the same field the server records, so a rebuilt model from the offline
+      // ledger matches one built online.
+      givenValue: opts.givenValue == null ? null : opts.givenValue,
       mode: opts.mode,
       hints: opts.hints,
       ms: opts.ms == null ? null : opts.ms,
@@ -262,6 +279,15 @@
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
+  }
+
+  /** A prompt drawn as what it is: prose in the question's voice, a code block
+   *  in monospace. The split is the same one the React surfaces use
+   *  (lib/prompt.ts), so both builds set a code question identically. */
+  function promptHtml(text) {
+    return E.prompt.splitPrompt(String(text == null ? "" : text)).map(function (seg) {
+      return seg.kind === "code" ? '<pre class="qcode">' + esc(seg.text) + "</pre>" : esc(seg.text);
+    }).join("");
   }
   function el(tag, attrs, html) {
     var node = document.createElement(tag);
@@ -525,7 +551,7 @@
         return "<i" + (c.done ? ' class="done"' : c === cur ? ' class="now"' : "") + "></i>";
       }).join("") +
       "</div>" +
-      '<p class="q">' + esc(prompt) + "</p>" +
+      '<div class="q">' + promptHtml(prompt) + "</div>" +
       '<div class="choices" id="choices">' +
       view.choices.map(function (c, i) {
         return '<button class="choice" data-act="diag-answer" data-i="' + i + '"><span class="k">' + "ABCD".charAt(i) + "</span><span>" + esc(c) + "</span></button>";
@@ -715,6 +741,10 @@
   // ── Learn (practice) ──────────────────────────────────────────────────────
 
   var practice = null; // { conceptId, q, info, hints, startedAt, done:false }
+  // Per-concept served-item keys, OLDEST FIRST, bounded to 12 — the offline
+  // twin of the server's session.servedPractice, so a sitting rotates through
+  // the generator's catalogue instead of repeating one question.
+  var servedPractice = {};
 
   function viewLearn(conceptId) {
     setNav("/learn");
@@ -782,18 +812,61 @@
     root.innerHTML =
       '<div class="spread"><p class="eyebrow">' + esc(t("learn.practice")) + " · " + esc(ctitle(practice.conceptId)) + "</p>" +
       '<a class="progress-line" href="#/curriculum">' + esc(t("nav.currTitle")) + "</a></div>" +
-      '<p class="q">' + esc(prompt) + "</p>" +
-      '<div class="choices" id="choices">' +
-      view.choices.map(function (c, i) {
-        return '<button class="choice" data-act="answer" data-i="' + i + '"><span class="k">' + "ABCD".charAt(i) + "</span><span>" + esc(c) + "</span></button>";
-      }).join("") +
-      "</div>" +
+      '<div class="q">' + promptHtml(prompt) + "</div>" +
+      (q.responseKind === "numeric" ? numericAnswerHtml(q) :
+        '<div class="choices" id="choices">' +
+        view.choices.map(function (c, i) {
+          return '<button class="choice" data-act="answer" data-i="' + i + '"><span class="k">' + "ABCD".charAt(i) + "</span><span>" + esc(c) + "</span></button>";
+        }).join("") +
+        "</div>") +
       '<div id="hint-slot"></div>' +
       '<div id="verdict-slot"></div>' +
       '<div class="row"><button class="quiet" data-act="hint">' + esc(t("learn.hint")) + " (" + practice.hints + ")</button>" +
       '<button class="quiet" data-act="tutor-open">' + esc(t("learn.ask")) + "</button>" +
       '<span class="progress-line" style="margin-inline-start:auto">' + esc(t("sb.whyThis")) + ": " + esc(why) + "</span></div>" +
       '<div id="tutor-slot"></div>';
+  }
+
+  /** The answer box, for a question that is NOT multiple choice (§6). The
+   *  parsing and grading are the SHARED rule (lib/answer.ts), compiled into the
+   *  bundle, so the offline build cannot disagree with the server about whether
+   *  0.75 is right. */
+  function numericAnswerHtml(q) {
+    var unit = q.tolerance && q.tolerance.unit ? q.tolerance.unit : "";
+    return '<form class="numeric-answer" id="numeric-form" data-act="numeric-submit">' +
+      '<label class="numeric-field"><span class="numeric-label">' + esc(t("answer.label")) + "</span>" +
+      '<span class="numeric-row"><input class="numeric-input" id="numeric-input" inputmode="decimal" autocomplete="off" aria-label="' + esc(t("answer.label")) + '">' +
+      (unit ? '<span class="numeric-unit">' + esc(unit) + "</span>" : "") +
+      "</span></label>" +
+      '<button class="primary" type="submit">' + esc(t("learn.check")) + "</button></form>";
+  }
+
+  /** Grade a TYPED answer through the shared rule. Returns true when the entry
+   *  was a number at all; an unparseable entry is refused, never marked wrong. */
+  function answerPracticeNumeric(raw) {
+    var q = practice.q;
+    var parsed = E.answer.parseNumericInput(String(raw), q.tolerance && q.tolerance.unit);
+    if (parsed === null) {
+      var slot = document.getElementById("verdict-slot");
+      if (slot) slot.innerHTML = '<p class="small">' + esc(t("answer.needNumber")) + "</p>";
+      return;
+    }
+    var correct = E.answer.gradeNumeric(parsed, q.answerValue, q.tolerance);
+    var ms = Date.now() - practice.startedAt;
+    recordAnswer({
+      question: q,
+      chosen: -1,
+      givenValue: parsed,
+      correct: correct,
+      mode: practice.hints > 0 ? "guided" : "independent",
+      hints: practice.hints,
+      source: practice.info.due ? "retrieval" : "practice",
+      ms: ms,
+    });
+    practice.done = true;
+    var st = me();
+    var rec = st.progress[q.conceptId] || {};
+    showVerdict(correct, explanationText(q.explanation), q, -1, "next-q", rec);
   }
 
   function answerPractice(choice) {
@@ -1147,6 +1220,16 @@
 
   // ── Events ────────────────────────────────────────────────────────────────
 
+  // A typed answer is submitted by the FORM, not by a click: Enter and the
+  // Check button must both work, and a click handler alone would miss Enter.
+  document.addEventListener("submit", function (e) {
+    var form = e.target;
+    if (!form || form.id !== "numeric-form") return;
+    e.preventDefault();
+    var input = document.getElementById("numeric-input");
+    if (input) answerPracticeNumeric(input.value);
+  });
+
   document.addEventListener("click", function (e) {
     var node = e.target.closest("[data-act]");
     if (!node) return;
@@ -1164,6 +1247,11 @@
     if (act === "diag-finish") return finishDiagnostic();
     if (act === "retake") { diag = null; return go("#/diag"); }
     if (act === "answer") return answerPractice(parseInt(node.getAttribute("data-i"), 10));
+    if (act === "numeric-submit") {
+      // The form's own submit event does the grading (below); this only stops a
+      // click on the Check button from also being read as a page action.
+      return;
+    }
     if (act === "hint") return requestHint();
     if (act === "next-q") { startPractice(practice.conceptId); return drawPractice(); }
     if (act === "diag-next") {

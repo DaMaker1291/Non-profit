@@ -21,6 +21,16 @@ tsconfig.tsbuildinfo
 .next/
 .next-prod/
 .freebuff
+# Every other build directory the verification suites emit. `.next/` and
+# `.next-prod/` were listed and these were not, so `npm run verify`,
+# `npm run e2e`, `npm run verify:ui` and `npm run production-check` each left a
+# full Next.js build tree untracked in the working directory — several hundred
+# megabytes of reproducible output sitting one `git add -A` away from the
+# published site.
+.next-check/
+.next-dev/
+.next-e2e/
+.next-ui/
 
 # Learning data — never commit a classroom.
 .openmind-data

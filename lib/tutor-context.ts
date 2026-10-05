@@ -27,6 +27,7 @@
 
 import { ctitle } from "./content-i18n";
 import { getConcept } from "./genome";
+import type { CourseSummary } from "./specifications";
 
 /** One measured dimension of the concept being discussed: COUNTS, never a bare
  *  percentage. A dimension nobody has measured is not in this list at all —
@@ -80,6 +81,11 @@ export interface TutorGrounding {
   evidenceEvents: number;
   /** What the ledger cannot account for (a history older than the record). */
   unprojectable: { concepts: number; attempts: number } | null;
+  /** The learner's declared course, or null on a turn with no profile. A model
+   *  that is not told the qualification cannot pitch at the tier or use the
+   *  board's vocabulary; this is the SAME course the serve, the diagnostic and
+   *  the papers resolve. */
+  course: CourseSummary | null;
   language: string;
 }
 
@@ -173,6 +179,12 @@ export function tutorGroundingPacket(g: TutorGrounding, message: string, languag
 
   return [
     conceptLine(g, language),
+    g.course
+      ? `THE LEARNER'S COURSE: ${g.course.qualification} (${g.course.board.toUpperCase()}) — ${g.course.tier}. Pitch the explanation at this qualification's level.`
+      : "",
+    g.course && g.course.terms.length
+      ? `CURRICULUM VOCABULARY THIS BOARD USES: ${g.course.terms.map((t) => `${t.from} → ${t.to}`).join("; ")}`
+      : "",
     c?.lesson ? `LESSON: ${c.lesson}` : "",
     decisionLine(g),
     g.decision?.evidenceIds.length
@@ -222,6 +234,7 @@ export function conceptGrounding(conceptId: string, language: string): TutorGrou
     projectionVersion: null,
     evidenceEvents: 0,
     unprojectable: null,
+    course: null,
     language,
   };
 }

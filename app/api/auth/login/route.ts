@@ -27,5 +27,5 @@ export async function POST(req: Request): Promise<NextResponse> {
   void touchAccount(account.id);
 
   const token = await sessionTokenFor(account);
-  return withSession(payload, token);
+  return withSession(payload, token, 200, req);
 }

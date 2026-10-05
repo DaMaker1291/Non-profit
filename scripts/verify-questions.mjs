@@ -26,10 +26,13 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "om-questions-"));
 // Transitive closure of questions.ts. Kept in step with the imports themselves —
 // a missing link here is an ERR_MODULE_NOT_FOUND that reads like a broken
 // question bank rather than a stale list:
-//   questions -> {types, qterms, specifications}
+//   questions -> {types, qterms, specifications, skills, questions-deep,
+//                questions-senior, numeric-items, answer}
 //   qterms -> i18n
 //   specifications -> {genome, curriculum, types}, genome -> types
-for (const file of ["types.ts", "i18n.ts", "genome.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-senior.ts", "questions.ts"]) {
+//   numeric-items -> {types, numeric-items-core}, numeric-items-core -> numeric-items
+//   answer -> types
+for (const file of ["types.ts", "i18n.ts", "genome.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-senior.ts", "numeric-items.ts", "numeric-items-core.ts", "answer.ts", "questions.ts"]) {
   const src = fs.readFileSync(path.join(LIB, file), "utf8");
   const js = ts.transpileModule(src, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -55,7 +58,11 @@ function add(conceptId, kind, example) {
 // "undefined" as a QUOTED literal ('undefined') is legitimate CS vocabulary being
 // taught; a BARE `undefined` in prose is the leaked-interpolation artifact this
 // rule exists to catch. The quote guard keeps the detector aimed at the artifact.
-const FLOAT_NOISE = /\d\.\d{5,}|\d\.\d*9{4,}|e[+-]\d+|NaN|(?<!['"])\bundefined\b(?!['"])|Infinity/;
+// The decimal threshold is 9, not 5: IEEE-754 artifacts carry 10–17 decimal
+// digits (`13.333333333333334`), whereas an AUTHORED decimal can legitimately
+// have fewer (`0.00042`, a standard-form operand) and was a false positive at
+// 5. The `9{4,}` branch still catches the trailing-nines artifact.
+const FLOAT_NOISE = /\d\.\d{9,}|\d\.\d*9{4,}|e[+-]\d+|NaN|(?<!['"])\bundefined\b(?!['"])|Infinity/;
 
 // generateQuestion() pads colliding distractors with these. Seeing one means the
 // generator's own three distractors collided — a weak question, not a bug.
@@ -119,6 +126,22 @@ const SEMANTIC = {
       if (Math.abs(a2 - b2 * Math.sqrt(r2) - want) > 1e-6) {
         return `${k} ÷ (${m2} + √${s2}) = ${want.toFixed(6)}, not ${c}`;
       }
+      return null;
+    }
+    // The numeric layer asks for the COEFFICIENT, not the value: "Simplify √N
+    // as a√b where a is as large as possible. What is a?" — so the answer is
+    // the largest integer whose square divides N, and N/a² must be squarefree.
+    const simplify = q.prompt.match(/Simplify √(\d+) as a√b where a is as large as possible\. What is a\?/);
+    if (simplify) {
+      const N = Number(simplify[1]);
+      let a = 1;
+      let rem = N;
+      for (let i = 2; i * i <= rem; i++) {
+        while (rem % (i * i) === 0) { a *= i; rem /= i * i; }
+      }
+      const got = Number(q.choices[q.answer]);
+      if (got !== a) return `largest square factor of ${N} is ${a}, said ${got}`;
+      if (isPerfectSquare(rem)) return `left-over radicand ${rem} is a perfect square`;
       return null;
     }
     const m = q.prompt.match(/√(\d+)/);
@@ -185,6 +208,18 @@ const SEMANTIC = {
         if (!said) return `unparseable choice: ${q.choices[q.answer]}`;
         if (Number(said[1]) !== qq) return `minimum should be ${qq}, said ${said[1]}`;
         if (Number(said[2]) !== -h) return `minimum sits at x = ${-h}, said ${said[2]}`;
+        return null;
+      }
+      // The numeric layer's phrasing: "Write x² + bx + c in the form
+      // (x + p)² + q. What is q?" — q = c − (b/2)². Re-derived, not read off.
+      const write = q.prompt.match(/Write x² \+ (\d+)x \+ (\d+) in the form \(x \+ p\)² \+ q\. What is q\?/);
+      if (write) {
+        const wb = Number(write[1]);
+        const wc = Number(write[2]);
+        const wh = wb / 2;
+        const want = wc - wh * wh;
+        const got = Number(q.choices[q.answer]);
+        if (got !== want) return `expected q = ${want}, got ${got}`;
         return null;
       }
       const solve = q.prompt.match(/x² \+ (\d+)x ([+\u2212]) (\d+) = 0/);

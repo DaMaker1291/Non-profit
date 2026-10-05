@@ -121,7 +121,14 @@ export interface Dimension {
   band: "strong" | "developing" | null;
 }
 
-function dim(
+/** ONE dimension, from counts — and the ONLY place a rate becomes a band.
+ *
+ *  Exported because a group of concepts needs the same rule as one concept:
+ *  the Learn screen rolls a topic's answers up into a single status, and a
+ *  topic that were banded by its own threshold would read "Strong" at one
+ *  place and "Developing" at another for the same 8 answers out of 10. The
+ *  threshold lives here once, next to the four dimensions it produces. */
+export function dimensionFor(
   key: Dimension["key"], label: string, r: { asked: number; correct: number } | null,
 ): Dimension {
   if (!r || r.asked === 0) return { key, label, rate: null, band: null };
@@ -141,14 +148,14 @@ export function basedOn(
 ): { dimensions: Dimension[]; unmeasured: string[] } {
   const c = conceptId ? projection.byConcept[conceptId] : null;
   const dims = [
-    dim("recalled", t("evv.dim.recalled"), c && c.measured.asked > 0 ? c.measured : null),
-    dim("applied", t("evv.dim.applied"), c && c.independent.asked > 0 ? c.independent : null),
-    dim("transferred", t("evv.dim.transferred"), c && c.transfer.asked > 0 ? c.transfer : null),
+    dimensionFor("recalled", t("evv.dim.recalled"), c && c.measured.asked > 0 ? c.measured : null),
+    dimensionFor("applied", t("evv.dim.applied"), c && c.independent.asked > 0 ? c.independent : null),
+    dimensionFor("transferred", t("evv.dim.transferred"), c && c.transfer.asked > 0 ? c.transfer : null),
     // Retention, once the ledger holds a delayed re-measurement of it: a due
     // concept retrieved hint-free after it had aged. Before that it is a
     // scheduled promise, not a result — and it is listed as unmeasured below
     // rather than shown as a score nobody earned.
-    dim("retained", t("evv.dim.retention"), c && c.retention.asked > 0 ? c.retention : null),
+    dimensionFor("retained", t("evv.dim.retention"), c && c.retention.asked > 0 ? c.retention : null),
   ];
   const unmeasured: string[] = [];
   for (const d of dims) if (!d.rate) unmeasured.push(d.label);
@@ -203,7 +210,7 @@ export function conceptKnowledge(
     key: Dimension["key"], from: KnowledgeRow["from"], label: string,
     r: { asked: number; correct: number } | null,
   ): KnowledgeRow => {
-    const d = dim(key, label, r);
+    const d = dimensionFor(key, label, r);
     return { ...d, from, unmeasured: d.rate === null };
   };
   const rows: KnowledgeRow[] = [

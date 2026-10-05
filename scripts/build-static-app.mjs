@@ -59,6 +59,13 @@ const ENTRY = {
   nextEngine: "next-engine",
   learnerModel: "learner-model",
   evidenceView: "evidence-view",
+  // Prompt formatting (prose vs code), shared with the React surfaces so both
+  // builds set a code question the same way.
+  prompt: "prompt",
+  // The answer rule, so the offline build grades a typed number by the SAME
+  // tolerance the server would — the two kits must not disagree about whether
+  // 0.75 is right.
+  answer: "answer",
   i18n: "i18n",
   contentI18n: "content-i18n",
   deadline: "deadline",

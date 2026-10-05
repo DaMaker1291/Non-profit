@@ -15,5 +15,5 @@ import { accountFromRequest, clearCookieHeader, revokeSessions } from "@/lib/ser
 export async function POST(req: Request): Promise<NextResponse> {
   const account = await accountFromRequest(req);
   if (account) await revokeSessions(account.id);
-  return NextResponse.json({ ok: true }, { headers: { "Set-Cookie": clearCookieHeader() } });
+  return NextResponse.json({ ok: true }, { headers: { "Set-Cookie": clearCookieHeader(req) } });
 }

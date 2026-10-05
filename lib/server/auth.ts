@@ -348,15 +348,33 @@ export async function revokeSessions(accountId: string): Promise<void> {
   });
 }
 
-export function cookieHeader(token: string): string {
-  const maxAge = SESSION_DAYS * 24 * 60 * 60;
-  // HttpOnly so a script cannot read it; Lax so ordinary link navigation works
-  // from a school's portal without CSRF exposure on state-changing posts.
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`;
+/** The attributes every session cookie carries, wherever it is written.
+ *
+ *  `Secure` is added only when the request is actually served over HTTPS (or
+ *  behind a proxy that terminated TLS and set `x-forwarded-proto`). A blanket
+ *  `Secure` would make the cookie invisible on the plain-HTTP local and school
+ *  deployments this product explicitly supports, and a cookie that is never
+ *  sent is not a security improvement — it is a login that silently fails. A
+ *  blanket omission is worse: a real HTTPS deployment would then transmit the
+ *  session over any downgraded request. So the flag follows the scheme. */
+export function cookieAttributes(req?: Request): string {
+  const proto = req?.headers.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
+  const https = proto ? proto === "https" : (() => {
+    try { return new URL(req?.url ?? "").protocol === "https:"; } catch { return false; }
+  })();
+  return `Path=/; HttpOnly; SameSite=Lax${https ? "; Secure" : ""}`;
 }
 
-export function clearCookieHeader(): string {
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+export function cookieHeader(token: string, req?: Request): string {
+  const maxAge = SESSION_DAYS * 24 * 60 * 60;
+  // HttpOnly so a script cannot read it; Lax so ordinary link navigation works
+  // from a school's portal without CSRF exposure on state-changing posts;
+  // Secure over HTTPS only (see cookieAttributes).
+  return `${SESSION_COOKIE}=${token}; ${cookieAttributes(req)}; Max-Age=${maxAge}`;
+}
+
+export function clearCookieHeader(req?: Request): string {
+  return `${SESSION_COOKIE}=; ${cookieAttributes(req)}; Max-Age=0`;
 }
 
 /** Read the session cookie out of a plain Request (keeps this module free of

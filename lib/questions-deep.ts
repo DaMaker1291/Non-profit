@@ -208,6 +208,375 @@ export function fourDistinct(correct: string, wrongs: readonly string[]): string
 // THE FAMILIES
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── GAP-CLOSING DATA FAMILIES ───────────────────────────────────────────────
+// `npm run content-check` names a concept a CONTENT GAP when its generated depth
+// cannot clear a skill floor; for most GCSE maths the missing floor is
+// data_interpretation (0.75), meaning the hardest item is a chain of operations
+// but nothing reads an answer OUT OF A TABLE. Each family below is written to
+// that band — the answer is not in the question, it has to be read out of the
+// table it prints — and declares a difficulty at or above 0.75 so the
+// measurement matches the claim. Kept apart from the flagship families so the
+// gap list and its fix are one reviewable diff.
+export const DATA_DEEP: Record<string, DeepGen> = {
+  /** Place value read out of a table of logged readings. */
+  "place-value": (r) => {
+    const rows: Array<[string, number]> = [["0.452 s", 0.05], ["4.52 s", 0.5], ["45.2 s", 5], ["452 s", 50]];
+    const [label, worth] = r.pick(rows);
+    const correct = label;
+    return {
+      prompt: `A data logger records four times, in seconds.\n· 0.452\n· 4.52\n· 45.2\n· 452\nIn which reading is the digit 5 worth ${worth} s?`,
+      correct,
+      wrongs: pickDistinct(correct, rows.map((x) => x[0])),
+      tags: [],
+      explanation: `In 0.452 the 5 is hundredths (0.05), in 4.52 it is tenths (0.5), in 45.2 it is units (5), in 452 it is tens (50). Moving one column left multiplies the value by ten, so the digit 5 worth ${worth} s sits in ${correct}.`,
+      difficulty: 0.75 + r.next() * 0.05,
+    };
+  },
+
+  /** A three-day sales total, then compared to a target. */
+  addition: (r) => {
+    const a = r.int(120, 480), b = r.int(120, 480), c = r.int(120, 480);
+    const total = a + b + c;
+    const target = total - r.int(20, 120);
+    const over = total - target;
+    const correct = `£${over}`;
+    return {
+      prompt: `The table shows a shop's sales.\n· Monday: £${a}\n· Tuesday: £${b}\n· Wednesday: £${c}\nThe shop's target was £${target}. By how much did the three days BEAT the target?`,
+      correct,
+      wrongs: pickDistinct(correct, [`£${total}`, `£${total + target}`, `£${a + b}`, `£${over + 10}`]),
+      tags: [],
+      explanation: `Add the three days: ${a} + ${b} + ${c} = ${total}. Beating the £${target} target by ${total} − ${target} = £${over}. Reporting £${total} answers the total, not the amount ABOVE the target.`,
+      difficulty: 0.76 + r.next() * 0.05,
+    };
+  },
+
+  /** A net change read across a table, working with a signed answer. */
+  subtraction: (r) => {
+    const a = r.int(400, 900);
+    const d1 = r.int(30, 200);
+    let d2 = r.int(40, 250);
+    if (d2 === d1) d2 += 1;
+    const b = a - d1;
+    const c = b + d2;
+    const change = c - a;
+    const sign = change > 0 ? "+" : "−";
+    const correct = `${sign}${Math.abs(change)} litres`;
+    return {
+      prompt: `A reservoir is measured each morning.\n· Day 1: ${a} litres\n· Day 2: ${b} litres\n· Day 3: ${c} litres\nWhat was the net change from day 1 to day 3?`,
+      correct,
+      wrongs: pickDistinct(correct, [`${a + b + c} litres`, `${Math.abs(change)} litres`, `${change > 0 ? "−" : "+"}${Math.abs(change)} litres`, `${Math.abs(change) + 2} litres`]),
+      tags: [],
+      explanation: `Net change is the LAST reading minus the FIRST: ${c} − ${a} = ${sign}${Math.abs(change)} litres. Adding the three readings answers a different question, and dropping the sign loses the direction of the change.`,
+      difficulty: 0.75 + r.next() * 0.05,
+    };
+  },
+
+  /** A two-line order total read from a table. */
+  multiplication: (r) => {
+    const a = r.int(6, 20), b = r.int(4, 12), c = r.int(6, 20), d = r.int(4, 12);
+    const total = a * b + c * d;
+    const correct = String(total);
+    return {
+      prompt: `A warehouse order has two lines.\n· ${a} boxes of ${b} items each\n· ${c} boxes of ${d} items each\nHow many items are on the order in total?`,
+      correct,
+      wrongs: pickDistinct(correct, [(a + c) * (b + d), a * b, c * d, a + b + c + d]),
+      tags: [],
+      explanation: `Each line is boxes × items: ${a} × ${b} = ${a * b} and ${c} × ${d} = ${c * d}. The total is ${a * b} + ${c * d} = ${total}. Adding the boxes and multiplying by the sum of items (${(a + c) * (b + d)}) treats the two lines as one.`,
+      difficulty: 0.76 + r.next() * 0.05,
+    };
+  },
+
+  /** A share of a total, then a fraction kept — two stages from one table. */
+  division: (r) => {
+    const n = r.pick([4, 5, 6, 8, 10]);
+    const each = 4 * r.int(5, 22);
+    const t = n * each;
+    const kept = (each * 3) / 4;
+    const correct = `£${kept}`;
+    return {
+      prompt: `A charity raises £${t}, shown in the table as ${n} equal grants.\n· Total: £${t}\n· Grants: ${n}, equal\nEach grant keeps 3/4 and gives 1/4 to admin. How much does ONE grant keep?`,
+      correct,
+      wrongs: pickDistinct(correct, [`£${each}`, `£${each / 4}`, `£${t}`, `£${kept * 2}`]),
+      tags: [],
+      explanation: `Each grant is ${t} ÷ ${n} = £${each}. Keeping 3/4 of that is ${each} × 3 ÷ 4 = £${kept}. Stopping at £${each} forgets the second stage, and £${each / 4} is the 1/4 given to admin.`,
+      difficulty: 0.78 + r.next() * 0.05,
+    };
+  },
+
+  /** A temperature change across a table, crossing zero. */
+  negatives: (r) => {
+    const a = -r.int(2, 12);
+    const b = r.int(2, 14);
+    const rise = b - a;
+    const correct = `${rise}°C`;
+    return {
+      prompt: `The table shows the temperature at two times.\n· 06:00: ${a}°C\n· 14:00: ${b}°C\nHow much did the temperature RISE from 06:00 to 14:00?`,
+      correct,
+      wrongs: pickDistinct(correct, [`${b + a}°C`, `${a - b}°C`, `${Math.abs(a)}°C`, `${rise + 2}°C`]),
+      tags: [],
+      explanation: `Rise = later − earlier = ${b} − (${a}) = ${rise}°C. Subtracting the temperatures without the sign (${b + a}°C) ignores that ${a}°C is below zero, so the real rise is larger, not smaller.`,
+      difficulty: 0.75 + r.next() * 0.05,
+    };
+  },
+
+  /** A total of three decimals read from a table. */
+  decimals: (r) => {
+    const a = r.int(10, 90) / 10, b = r.int(10, 90) / 10, c = r.int(10, 90) / 10;
+    const total = Number((a + b + c).toFixed(2));
+    const correct = `${deepNum(total, 2)} kg`;
+    return {
+      prompt: `The table shows the mass of three samples.\n· A: ${deepNum(a, 1)} kg\n· B: ${deepNum(b, 1)} kg\n· C: ${deepNum(c, 1)} kg\nWhat is the total mass?`,
+      correct,
+      wrongs: pickDistinct(correct, [`${deepNum(a + b, 2)} kg`, `${deepNum(total + 0.1, 2)} kg`, `${deepNum(total - 0.1, 2)} kg`, `${deepNum(a * b, 2)} kg`]),
+      tags: [],
+      explanation: `Line up the decimal points and add: ${deepNum(a, 1)} + ${deepNum(b, 1)} + ${deepNum(c, 1)} = ${deepNum(total, 2)} kg. Adding only the first two (${deepNum(a + b, 2)}) drops a sample.`,
+      difficulty: 0.75 + r.next() * 0.05,
+    };
+  },
+
+  /** Rounding is the LAST step, applied to a summed total. */
+  rounding: (r) => {
+    const a = r.int(21, 240), b = r.int(21, 240), c = r.int(21, 240);
+    const total = a + b + c;
+    const rounded = Math.round(total / 10) * 10;
+    const eachRounded = Math.round(a / 10) * 10 + Math.round(b / 10) * 10 + Math.round(c / 10) * 10;
+    const correct = `${rounded} cm`;
+    return {
+      prompt: `The table shows three measured lengths.\n· ${a} cm\n· ${b} cm\n· ${c} cm\nWhat is the total length, rounded to the nearest 10 cm?`,
+      correct,
+      wrongs: pickDistinct(correct, [`${total} cm`, `${rounded + 10} cm`, `${eachRounded} cm`, `${rounded - 10} cm`]),
+      tags: [],
+      explanation: `Add first, round second: ${a} + ${b} + ${c} = ${total}, which is ${rounded} cm to the nearest 10. Rounding each length before adding piles up the error — that is how ${eachRounded} cm appears.`,
+      difficulty: 0.76 + r.next() * 0.05,
+    };
+  },
+
+  /** Order of operations applied to one row of a results table. */
+  "order-ops": (r) => {
+    const a = r.int(2, 20), b = r.int(2, 9), c = r.int(2, 9);
+    const correct = String(a + b * c);
+    return {
+      prompt: `A spreadsheet uses the rule result = ${a} + ${b} × ${c}.\nOne row of the results table holds ${a}, ${b} and ${c} in those columns.\nWhat is the result for that row?`,
+      correct,
+      wrongs: pickDistinct(correct, [(a + b) * c, a * b + c, b * c, a + b + c]),
+      tags: [],
+      explanation: `Multiply before adding: ${b} × ${c} = ${b * c}, then ${a} + ${b * c} = ${correct}. Working strictly left to right gives (${a} + ${b}) × ${c} = ${(a + b) * c} — the order-of-operations trap.`,
+      difficulty: 0.75 + r.next() * 0.05,
+    };
+  },
+
+  /** Fractions summed from a recipe table, with different denominators. */
+  "fraction-ops": (r) => {
+    const [d1, d2] = r.shuffle([3, 4, 5, 6, 8]).slice(0, 2);
+    const n1 = r.int(1, d1 - 1), n2 = r.int(1, d2 - 1);
+    const den = (d1 * d2) / deepGcd(d1, d2);
+    const num = (n1 * den) / d1 + (n2 * den) / d2;
+    const correct = deepFrac(num, den);
+    return {
+      prompt: `A recipe table gives the cups of stock for two stages.\n· Stage 1: ${n1}/${d1} cup\n· Stage 2: ${n2}/${d2} cup\nHow many cups in total?`,
+      correct,
+      wrongs: pickDistinct(correct, [`${n1 + n2}/${d1 + d2}`, deepFrac(n1 * n2, d1 * d2), `${n1}/${d1}`, `${n2}/${d2}`]),
+      tags: [],
+      explanation: `Put both over the common denominator ${den}: ${n1}/${d1} = ${(n1 * den) / d1}/${den} and ${n2}/${d2} = ${(n2 * den) / d2}/${den}. Adding the numerators gives ${num}/${den} = ${correct}. Adding tops and bottoms (${n1 + n2}/${d1 + d2}) is the classic error.`,
+      difficulty: 0.76 + r.next() * 0.05,
+    };
+  },
+
+  /** Direct proportion read from a recipe table. */
+  proportion: (r) => {
+    const serves = r.pick([2, 3, 4, 5, 6]);
+    const per = r.pick([40, 50, 60, 75, 80]);
+    const grams = serves * per;
+    const want = serves * r.int(2, 4);
+    const need = (grams / serves) * want;
+    const correct = `${deepNum(need, 2)} g`;
+    return {
+      prompt: `A recipe table shows the rice a kitchen uses.\n· ${serves} people need ${grams} g\nHow much rice do ${want} people need?`,
+      correct,
+      wrongs: pickDistinct(correct, [`${deepNum(grams + (want - serves), 2)} g`, `${deepNum(grams * want, 2)} g`, `${deepNum(grams / want, 2)} g`, `${deepNum(need + grams, 2)} g`]),
+      tags: [],
+      explanation: `Find the amount per person: ${grams} ÷ ${serves} = ${deepNum(grams / serves, 2)} g. For ${want} people: ${deepNum(grams / serves, 2)} × ${want} = ${deepNum(need, 2)} g. Multiplying by the number of people without dividing first (${deepNum(grams * want, 2)} g) skips the scaling.`,
+      difficulty: 0.76 + r.next() * 0.05,
+    };
+  },
+
+  /** A real-world function read from a two-row table (taxi fare). */
+  "algebra-expressions": (r) => {
+    const rate = r.int(2, 6);
+    const base = r.int(2, 9);
+    const m1 = r.int(2, 6);
+    const m2 = m1 + r.int(2, 6);
+    const want = m2 + r.int(2, 6);
+    const correct = `£${base + rate * want}`;
+    return {
+      prompt: `A taxi fare is shown in the table.\n· ${m1} miles costs £${base + rate * m1}\n· ${m2} miles costs £${base + rate * m2}\nWhat is the fare for ${want} miles?`,
+      correct,
+      wrongs: pickDistinct(correct, [`£${rate * want}`, `£${base + rate * m1}`, `£${(base + rate * want) + rate}`, `£${want}`]),
+      tags: [],
+      explanation: `The fare rises £${base + rate * m2 - (base + rate * m1)} over ${m2 - m1} miles, so the rate is £${rate} per mile and the fixed charge is £${base}. For ${want} miles: £${base} + ${rate} × ${want} = £${base + rate * want}. Ignoring the fixed charge gives £${rate * want}.`,
+      difficulty: 0.78 + r.next() * 0.05,
+    };
+  },
+
+  /** The midpoint of two plotted points, read from the plot's data table. */
+  coordinates: (r) => {
+    const x1 = r.int(1, 9) * 2, y1 = r.int(1, 9) * 2;
+    const x2 = x1 + r.int(1, 6) * 2, y2 = y1 + r.int(1, 6) * 2;
+    const correct = `(${(x1 + x2) / 2}, ${(y1 + y2) / 2})`;
+    return {
+      prompt: `A data plot has two markers, recorded in the table as\n· (${x1}, ${y1})\n· (${x2}, ${y2})\nWhat is the midpoint of the two markers?`,
+      correct,
+      wrongs: pickDistinct(correct, [`(${x2 - x1}, ${y2 - y1})`, `(${x1 + x2}, ${y1 + y2})`, `(${(x1 + x2) / 2 + 1}, ${(y1 + y2) / 2})`, `(${x1}, ${y2})`]),
+      tags: [],
+      explanation: `The midpoint averages each coordinate: x is (${x1} + ${x2}) ÷ 2 = ${(x1 + x2) / 2} and y is (${y1} + ${y2}) ÷ 2 = ${(y1 + y2) / 2}, giving ${correct}. Adding the coordinates instead of averaging gives (${x1 + x2}, ${y1 + y2}).`,
+      difficulty: 0.76 + r.next() * 0.05,
+    };
+  },
+
+  /** An angle read off a pie chart, converted to a count of people. */
+  "angles-lines": (r) => {
+    const sectors = r.pick([4, 6, 8, 9, 12]);
+    const total = sectors * r.pick([5, 10, 15, 20]);
+    const deg = 360 / sectors;
+    const count = total / sectors;
+    const correct = String(count);
+    return {
+      prompt: `A pie chart shows how ${total} people travel to work. The BUS sector is ${deg}°.\nHow many people travel by bus?`,
+      correct,
+      wrongs: pickDistinct(correct, [deg, total, total - count, count + sectors]),
+      tags: [],
+      explanation: `The whole pie is 360° for ${total} people, so 1° stands for ${total} ÷ 360 = ${deepNum(total / 360, 3)} people. The bus sector of ${deg}° is ${deepNum(total / 360, 3)} × ${deg} = ${count}. Reporting the ANGLE (${deg}) as if it were a count is the error.`,
+      difficulty: 0.78 + r.next() * 0.05,
+    };
+  },
+
+  /** A two-way table; the probability of NEITHER, by inclusion–exclusion. */
+  "probability-basics": (r) => {
+    const t = r.pick([20, 25, 30, 35]);
+    const k = r.pick([18, 22, 28, 32]);
+    const bo = r.pick([5, 8, 10, 12]);
+    const total = 100;
+    const neither = total - t - k + bo;
+    const correct = deepNum(neither / total, 2);
+    return {
+      prompt: `A two-way table of ${total} students shows:\n· likes tea: ${t}\n· likes coffee: ${k}\n· likes both: ${bo}\nWhat is the probability that a student chosen at random likes NEITHER?`,
+      correct,
+      wrongs: pickDistinct(correct, [deepNum((t + k) / total, 2), deepNum(bo / total, 2), deepNum((total - t - k) / total, 2), deepNum(neither, 2)]),
+      tags: [],
+      explanation: `Add the two totals and subtract the overlap counted twice: likes at least one = ${t} + ${k} − ${bo} = ${t + k - bo}. So neither = ${total} − ${t + k - bo} = ${neither}, giving ${correct}. Forgetting to remove the overlap gives ${deepNum((total - t - k) / total, 2)}.`,
+      difficulty: 0.78 + r.next() * 0.05,
+    };
+  },
+
+  /** The fixed charge in a two-row bill table — the intercept of a line. */
+  "linear-equations": (r) => {
+    const rate = r.int(2, 8);
+    const base = r.int(5, 20);
+    const m1 = r.int(10, 40);
+    const m2 = m1 + r.int(10, 30);
+    const c1 = base + rate * m1;
+    const correct = `£${base}`;
+    return {
+      prompt: `A phone plan's bill is shown in the table.\n· ${m1} minutes costs £${c1}\n· ${m2} minutes costs £${base + rate * m2}\nThe charge is a fixed amount plus a rate per minute. What is the fixed amount?`,
+      correct,
+      wrongs: pickDistinct(correct, [`£${rate}`, `£${c1}`, `£${c1 - m1}`, `£${base + rate}`]),
+      tags: [],
+      explanation: `Between the two rows the bill rises £${base + rate * m2 - c1} for ${m2 - m1} minutes, so the rate is £${rate} a minute. The fixed amount is what is left: £${c1} − ${rate} × ${m1} = £${base}. Reading the whole bill (£${c1}) as the fixed charge ignores the minutes.`,
+      difficulty: 0.78 + r.next() * 0.05,
+    };
+  },
+  /** A two-stage fraction of a sampled whole, read from a survey table. Taking
+   *  the second fraction of the WHOLE (not of the first part) is the error. */
+  fractions: (r) => {
+    const den = r.pick([3, 4, 5, 6]);
+    const num = r.int(1, den - 1);
+    const total = den * r.pick([6, 8, 10, 12]);
+    const art = (total * num) / den;
+    const div = [2, 3, 4, 5].filter((d) => art % d === 0);
+    const den2 = div.length ? r.pick(div) : 2;
+    const num2 = r.int(1, den2 - 1);
+    const answer = (art * num2) / den2;
+    const correct = String(answer);
+    return {
+      prompt: `A survey of ${total} students asked their favourite subject.\n· ${num}/${den} of the students chose art\n· of the students who chose art, ${num2}/${den2} were in Year 10\nHow many Year 10 students chose art?`,
+      correct,
+      wrongs: pickDistinct(correct, [art, (total * num2) / den2, total - answer, answer + den2]),
+      tags: [],
+      explanation: `Read the table in two stages. First the art count: ${num}/${den} of ${total} = ${art}. Then the Year 10 share of THOSE: ${num2}/${den2} of ${art} = ${answer}. Taking ${num2}/${den2} of the whole ${total} reads the second fraction against the wrong base — that is where ${deepNum((total * num2) / den2)} comes from.`,
+      difficulty: 0.76 + r.next() * 0.05,
+    };
+  },
+
+  /** Percentage CHANGE read between two rows of a table — not a percentage of
+   *  one number. Reporting the change in pounds is the standing error. */
+  percentages: (r) => {
+    const a = r.pick([120, 150, 200, 240, 250, 300, 400, 500]);
+    const pct = r.pick([10, 15, 20, 25, 30, 50]);
+    const b = a + (a * pct) / 100;
+    const correct = `${pct}%`;
+    return {
+      prompt: `The table shows a shop's takings.\n· Week 1: £${a}\n· Week 2: £${b}\nWhat is the percentage increase from week 1 to week 2?`,
+      correct,
+      wrongs: pickDistinct(correct, [`£${b - a}`, `${100 + pct}%`, `${pct + 10}%`, `${Math.round(pct / 2)}%`]),
+      tags: [],
+      explanation: `Percentage change is the CHANGE over the ORIGINAL: (${b} − ${a}) ÷ ${a} × 100 = ${pct}%. The change in pounds is £${b - a}, and week 2 as a percentage OF week 1 is ${100 + pct}% — one is a difference, the other is a total, and neither is the increase.`,
+      difficulty: 0.76 + r.next() * 0.05,
+    };
+  },
+
+  /** A ratio shared out, with the swap (use the other part) as the trap. */
+  ratio: (r) => {
+    const [x, y] = r.pick([[2, 3], [3, 2], [3, 4], [4, 3], [2, 5], [5, 2], [3, 5], [4, 5]]);
+    const T = (x + y) * r.int(2, 8);
+    const per = T / (x + y);
+    const red = per * x;
+    const blue = per * y;
+    const correct = `${red} litres`;
+    return {
+      prompt: `A paint mix uses red and blue in the ratio ${x} : ${y}. A decorator makes ${T} litres of the mix.\nHow many litres of red are used?`,
+      correct,
+      wrongs: pickDistinct(correct, [`${blue} litres`, `${T / 2} litres`, `${x} litres`, `${red + x} litres`]),
+      tags: [],
+      explanation: `The ratio has ${x + y} parts. ${T} litres ÷ ${x + y} = ${per} litres per part, and red is ${x} parts: ${per} × ${x} = ${red} litres. Using ${y} parts gives the BLUE amount, ${blue} litres — the swap this question catches.`,
+      difficulty: 0.75 + r.next() * 0.06,
+    };
+  },
+
+  /** The nth term read off a table: one step per row, so week 10 is NINE steps
+   *  past week 1, not ten. The off-by-one is the whole item. */
+  sequences: (r) => {
+    const a = r.int(5, 20);
+    const d = r.int(2, 9);
+    const t = (n: number) => a + (n - 1) * d;
+    const correct = `£${t(10)}`;
+    return {
+      prompt: `A savings plan is shown in the table.\n· Week 1: £${t(1)}\n· Week 2: £${t(2)}\n· Week 3: £${t(3)}\nHow much is saved in week 10?`,
+      correct,
+      wrongs: pickDistinct(correct, [`£${t(11)}`, `£${a + d * 10}`, `£${a * 10}`, `£${t(9)}`]),
+      tags: [],
+      explanation: `The table goes up by £${d} a week. Week 10 is one plus NINE steps: £${a} + 9 × £${d} = £${t(10)}. Adding ten steps (£${a + d * 10}) or treating week 10 as ten times the first week (£${a * 10}) is the off-by-one this catches.`,
+      difficulty: 0.75 + r.next() * 0.06,
+    };
+  },
+
+  /** Exponential growth read from a table: doubling n times is 2ⁿ, which is
+   *  neither linear nor square — the two most common confident wrong answers. */
+  "indices-intro": (r) => {
+    const n = r.int(6, 10);
+    const t0 = r.pick([0.1, 0.2, 0.5]);
+    const mult = Math.pow(2, n);
+    const correct = `${mult}`;
+    return {
+      prompt: `Folding a sheet of paper in half doubles its thickness each time.\n· 0 folds: ${t0} mm\n· 1 fold: ${t0 * 2} mm\n· 2 folds: ${t0 * 4} mm\nAfter ${n} folds, the thickness is how many times the thickness with no folds?`,
+      correct,
+      wrongs: pickDistinct(correct, [n * 2, n * n, Math.pow(2, n - 1), Math.pow(2, n) + 2]),
+      tags: [],
+      explanation: `Each fold DOUBLES the thickness, so after ${n} folds it has doubled ${n} times: 2^${n} = ${mult} times. That is exponential: ${n} lots of 2 (${n * 2}) is a straight line and ${n}² (${n * n}) is a square, and both grow far more slowly than doubling.`,
+      difficulty: 0.75 + r.next() * 0.05,
+    };
+  },
+};
+
 export const DEEP_GENS: Record<string, DeepGen> = {
   // ── NUMBER ────────────────────────────────────────────────────────────────
 

@@ -31,7 +31,7 @@ import { MISCONCEPTIONS_BY_ID } from "../misconceptions";
 import { translator } from "../i18n";
 import { ctitle, mcName } from "../content-i18n";
 import { getConcept } from "../genome";
-import { specForProfile, difficultyFor } from "../specifications";
+import { specForProfile, difficultyFor, courseSummaryFor } from "../specifications";
 import { practiceTarget } from "../question-bank";
 import { aiStatus, llmTutorReply, type AiUnavailableReason, type AiStatus } from "../llm";
 import { socraticReply } from "../socratic";
@@ -155,6 +155,11 @@ export async function tutorGroundingFor(
     projectionVersion: ctx.projectionVersion,
     evidenceEvents: ctx.events.length,
     unprojectable: ctx.unprojectable,
+    // The SAME course the serve, diagnostic and papers resolve — per SUBJECT,
+    // so a learner on GCSE Maths with A-Level Physics is tutored on the right
+    // one. A model told the qualification pitches at that tier and uses the
+    // board's vocabulary instead of a generic explanation.
+    course: courseSummaryFor(ctx.model.profile, getConcept(focus)?.subject ?? undefined),
     language,
   };
 }

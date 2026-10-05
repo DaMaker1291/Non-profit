@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { ProfileState, PublicAccount, SubjectCourse, SubjectId } from "./types";
 import {
@@ -238,6 +238,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<ProfileState | null>(null);
   const [profileStatus, setProfileStatus] = useState<ProfileStatus>("loading");
   const [generation, setGeneration] = useState(0);
+  /** Consecutive probes that could not reach the server. Reset on any answer. */
+  const probeRetry = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -260,10 +262,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return;
       }
       setProfileStatus("loading");
-      fetchProfile(id).then((p) => {
+      // `probeProfile` never rejects, so this always settles — the old code had
+      // no failure path, and a single failed fetch left `profileStatus` at
+      // "loading" for the life of the tab. `deriveLifecycle` reads that as
+      // `booting`, so every gated page rendered the boot screen — a page whose
+      // only control is a link it cannot resolve — and NOTHING the learner
+      // clicked did anything. That is what a stalled probe looks like from the
+      // outside, and it is why this branch exists at all.
+      probeProfile(id).then(({ state, gone }) => {
         if (!alive) return;
-        setProfile(p);
-        setProfileStatus(profileStatusOf(p));
+        if (gone) {
+          // The device names a profile the server does not have — a store reset,
+          // a profile erased on another device, a test id left behind. The ghost
+          // is not a learner: while it sits in localStorage, `loadLocalProfileId`
+          // keeps claiming one, the guard bounces the learner back to enrolment
+          // on every page, and enrolment PATCHes a profile that does not exist
+          // instead of creating one. Clear it, so "no learner" is true when we
+          // say it and the next move (a fresh enrolment) is honest.
+          clearSession();
+          setProfile(null);
+          setProfileStatus("missing");
+          return;
+        }
+        if (!state) {
+          // Unreachable, not gone. Keep the identity, stay in the boot state
+          // (which is never mistaken for signed-out), and ask again shortly — a
+          // flaky link is the normal case on the devices this is built for.
+          probeRetry.current += 1;
+          if (probeRetry.current <= MAX_PROBE_RETRIES) {
+            setTimeout(() => { if (alive) setGeneration((g) => g + 1); }, 600 * probeRetry.current);
+          }
+          return;
+        }
+        probeRetry.current = 0;
+        setProfile(state);
+        setProfileStatus(profileStatusOf(state));
       });
     });
     return () => { alive = false; };
@@ -272,7 +305,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const on = () => setGeneration((g) => g + 1);
     window.addEventListener(SESSION_EVENT, on);
-    return () => window.removeEventListener(SESSION_EVENT, on);
+    // Coming back online is itself a reason to re-probe: a probe that gave up
+    // while the connection was down should not leave a dead boot screen once it
+    // is back.
+    const onOnline = () => { probeRetry.current = 0; setGeneration((g) => g + 1); };
+    window.addEventListener("online", onOnline);
+    return () => {
+      window.removeEventListener(SESSION_EVENT, on);
+      window.removeEventListener("online", onOnline);
+    };
   }, []);
 
   const lifecycle = useMemo(
@@ -373,6 +414,45 @@ export async function fetchProfile(id: string): Promise<ProfileState | null> {
   // re-probe itself. The identity is unchanged; only the token is new.
   if (state.secret) window.localStorage.setItem(SECRET_KEY, state.secret);
   return state;
+}
+
+/** How many times a probe that could not REACH the server is retried before we
+ *  stop re-asking. Bounded so a genuinely dead server does not spin. */
+const MAX_PROBE_RETRIES = 4;
+
+/**
+ * The session provider's probe, and the one place two very different failures
+ * are told apart.
+ *
+ * `fetchProfile` answers a single question ("the profile, or nothing") because
+ * that is all its other callers need. The provider needs a second distinction,
+ * and without it the app had no honest state to move to:
+ *
+ *   gone      the server answered 404 — the learner this device names has been
+ *             erased or never existed. A FACT, and the identity must be cleared.
+ *   unreachable a network failure or a 5xx — we did not reach the server, so we
+ *             know NOTHING. Concluding "no learner" here, or clearing the
+ *             identity, would throw away a real learner over a dropped packet.
+ *
+ * Never rejects, so the caller cannot be left with a pending promise and a
+ * boot state it can never leave.
+ */
+async function probeProfile(id: string): Promise<{ state: ProfileState | null; gone: boolean }> {
+  const stored = window.localStorage.getItem(SECRET_KEY);
+  const qs = new URLSearchParams({ id });
+  if (stored) qs.set("secret", stored);
+  try {
+    const res = await fetch(`/api/profile?${qs.toString()}`);
+    if (res.status === 404) return { state: null, gone: true };
+    if (!res.ok) return { state: null, gone: false };
+    const state = (await res.json()) as ProfileState;
+    // Written directly, NOT through storeSecret: this is the provider's own
+    // probe, and announcing a change here would make it re-probe itself.
+    if (state.secret) window.localStorage.setItem(SECRET_KEY, state.secret);
+    return { state, gone: false };
+  } catch {
+    return { state: null, gone: false };
+  }
 }
 
 export function useProfile(): {

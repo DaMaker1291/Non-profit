@@ -69,6 +69,44 @@ export interface Concept {
   tags?: string[];
 }
 
+/**
+ * HOW A QUESTION IS ANSWERED — the one field that decides whether a surface
+ * shows a row of choices or an answer box.
+ *
+ * Every item in the bank before this existed was `"choice"`, so the field is
+ * OPTIONAL and absent means choice: a stored question, an old pack and a new
+ * draw all read the same way, and no existing generator had to change.
+ *
+ * A numeric item keeps its `choices` as the mark-free MCQ version of the same
+ * question (the same four values, shuffled), so the diagnostic ladder, the
+ * papers sampler and the static twin — which are multiple-choice instruments —
+ * can keep serving a numeric concept WITHOUT handing the learner an input box
+ * they cannot grade. `answerValue` is the truth; `choices` is the projection.
+ */
+export type ResponseKind = "choice" | "numeric";
+
+/**
+ * How close a typed number must be to the canonical answer.
+ *
+ * A tolerance is REQUIRED for a numeric item, not defaulted: grading a typed
+ * answer to the last bit of floating point would mark a learner wrong for
+ * 3.14 against π, which teaches nothing except that the machine is unfair. The
+ * author of the item is the only one who knows whether the answer is exact
+ * (a count of iterations, a mole ratio) or approximate (a decimal computed from
+ * an irrational), so the item states it rather than the grader guessing.
+ */
+export interface NumericTolerance {
+  /** Absolute slack: |given − answer| ≤ abs. */
+  abs?: number;
+  /** Relative slack: |given − answer| ≤ rel × |answer| (for large magnitudes). */
+  rel?: number;
+  /** The unit the answer is in, shown beside the box ("cm", "g", "mol"). */
+  unit?: string;
+  /** How the answer should be shown when it is revealed (e.g. "0.75", "1/2").
+   *  Absent = the number formatted by the shared rule. */
+  display?: string;
+}
+
 /** One generated practice question. */
 export interface Question {
   id: string;
@@ -77,7 +115,8 @@ export interface Question {
   difficulty: number;
   /** Prompt with $...$ maths placeholders the UI renders as-is. */
   prompt: string;
-  /** Multiple-choice options; correctness via `answer`. */
+  /** Multiple-choice options; correctness via `answer`. For a numeric item these
+   *  are the same values in choice form (see `responseKind`). */
   choices: string[];
   /** Index into `choices` (or index of canonical choice for type-in). */
   answer: number;
@@ -85,6 +124,18 @@ export interface Question {
   explanation: string;
   /** Which misconception catalogues this question discriminates. */
   misconceptionTags: string[];
+  /** How the learner answers it. Absent = "choice". */
+  responseKind?: ResponseKind;
+  /** The canonical answer as a NUMBER, present exactly when
+   *  `responseKind === "numeric"`. `choices[answer]` is its display form. */
+  answerValue?: number;
+  /** How close a typed answer must be. Required on a numeric item. */
+  tolerance?: NumericTolerance;
+  /** The four MCQ option VALUES, aligned with `choices` by index. Present on a
+   *  numeric item so a chosen option grades by value — a learner who picks the
+   *  option "0.75" and a learner who types 0.75 are the same answer, and the
+   *  ledger should record them the same way. */
+  choiceValues?: number[];
 }
 
 export interface Misconception {
@@ -160,12 +211,24 @@ export interface DiagnosticResult {
      *  unmeasured band says WHY (beyond the instrument, beyond the bank, or
      *  beyond what this course's questions reach). */
     reachable: boolean;
+    /** The third why, and the only one that is a fact about the SITTING rather
+     *  than about the learner or the bank: this band sits below the rung the
+     *  sitting's own placement opened at (`openingStageFor`), and a run that
+     *  answered correctly on the way up never descended to it. Shown to the
+     *  learner so a deliberately-unasked band is never read as a gap in them. */
+    notAsked?: boolean;
     estimate: import("./question-bank").EvidenceEstimate;
   }>;
   /** Demand bands a later concept did NOT re-prove, because the session had
    *  already demonstrated them (lib/diagnostic.ts `startingStage`). Reported so
    *  a shorter diagnostic is visibly a decision rather than a missing half. */
   skippedBands?: Array<import("./question-bank").SkillId>;
+  /** What the learner said about their own knowing during the sitting, tallied
+   *  before any verdict was shown. `unsureCorrect` is the number an accuracy
+   *  figure cannot express: right for now, and not yet trusted by the person who
+   *  got it right. Shape declared inline because types.ts is a leaf module and
+   *  must not import the evidence layer. */
+  certainty?: { stated: number; unsure: number; unsureCorrect: number };
 }
 
 /** The goal-first intent a student picks before anything else ("" = skipped). */

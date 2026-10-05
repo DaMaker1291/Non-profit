@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { updateProfile } from "@/lib/server/store";
-import { buildResult, currentConcept, gradeAnswer, markObservedConcepts, newDiagnosticSession, nextQuestion } from "@/lib/diagnostic";
+import { buildResult, certaintyTally, currentConcept, gradeAnswer, markObservedConcepts, newDiagnosticSession, nextQuestion, plannedQuestions } from "@/lib/diagnostic";
 import { serveView } from "@/lib/questions";
 import { applyTerminology, specForProfile } from "@/lib/specifications";
-import { EVIDENCE_SCHEMA_VERSION, answerEvidence, newEvidenceId, type EvidenceEvent } from "@/lib/evidence";
+import { EVIDENCE_SCHEMA_VERSION, answerEvidence, newEvidenceId, type Certainty, type EvidenceEvent } from "@/lib/evidence";
 import { appendEvidence } from "@/lib/server/evidence";
 import { commitAndProject } from "@/lib/server/projection";
 import type { ProfileState, Question, SubjectId } from "@/lib/types";
@@ -53,6 +53,12 @@ export async function POST(req: Request): Promise<NextResponse> {
       /** Test hook (non-production only): include answer fields for the E2E suite. */
       reveal?: boolean;
       chosen?: number;
+      /** The learner's own statement about their knowing, made before they saw
+       *  any verdict ("sure" = I think I know, "unsure" = I'm unsure). Omitted
+       *  by any caller that does not ask, and null is never implied to be a
+       *  confident answer. "I don't know" is NOT a value here — it is the
+       *  `skip` action, a refusal to answer rather than an answer. */
+      certainty?: string;
     };
     if (!body?.id || !body?.action || typeof body.subject !== "string" || !VALID_SUBJECTS.includes(body.subject)) {
       return NextResponse.json({ error: "bad request" }, { status: 400 });
@@ -127,6 +133,11 @@ export async function POST(req: Request): Promise<NextResponse> {
             // stage, so a resumed sitting could be labelled "01" at question
             // nine.
             asked: live.log?.length ?? 0,
+            // How long the whole sitting will be, so the counter can say "of
+            // about N" instead of a bare number that reads as infinite. The
+            // same estimate on a resume is the ABSOLUTE total (asked + what is
+            // left), so the denominator does not jump when a learner reloads.
+            estimate: plannedQuestions(live),
             question: q ? (reveal ? q : serveView(q, body.lang, state.profile.board)) : null,
             conceptId: currentConcept(live)?.conceptId ?? null,
           };
@@ -147,6 +158,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         (state as unknown as Record<string, unknown>)[sessionKey] = session;
         return {
           resumed: false,
+          estimate: plannedQuestions(session),
           question: q ? (reveal ? q : serveView(q, body.lang, state.profile.board)) : null,
           conceptId: currentConcept(session)?.conceptId ?? null,
         };
@@ -196,6 +208,11 @@ export async function POST(req: Request): Promise<NextResponse> {
           conceptId: null,
           specificationId: state.profile.spec ?? null,
           concepts: session.concepts.filter((c) => c.done).length,
+          // What the learner said about their own knowing, stated BEFORE any
+          // verdict. Carried whole on the sitting so the report does not have to
+          // re-derive it from the answer stream — and so the sitting makes one
+          // durable statement even though its per-answer detail is deliberately
+          // not folded into the model (lib/replay.ts).
           // The seeds the fold applied, carried ON the event: the projection
           // re-derives mastery with ladderMastery rather than trusting these
           // numbers, so an event can never hand the model a score.
@@ -211,6 +228,7 @@ export async function POST(req: Request): Promise<NextResponse> {
               correctThisStage: c.correctThisStage,
               servedDifficulty: [...c.servedDifficulty],
             })),
+          certainty: certaintyTally(session),
         };
         // ── THE CUTOVER: WRITE EVENT → CONFIRM APPEND → REPLAY → RESPOND ──
         // The sitting is ONE event, and it is written and confirmed BEFORE the
@@ -254,7 +272,11 @@ export async function POST(req: Request): Promise<NextResponse> {
         if ((body.chosen as number) >= q.choices.length) {
           return { error: "choice out of range" as const };
         }
-        const graded = gradeAnswer(session, q.conceptId, q, body.chosen as number);
+        // Only a real statement travels: an absent field or anything malformed
+        // is recorded as "not asked" rather than being promoted to a "sure".
+        const certainty: Certainty | null =
+          body.certainty === "sure" || body.certainty === "unsure" ? body.certainty : null;
+        const graded = gradeAnswer(session, q.conceptId, q, body.chosen as number, certainty);
         state.diagnostics[resultKey] = buildResult(session);
         // Hint-free by construction: the diagnostic has no hint action, so this
         // is independent evidence as well as measurement, and the ledger says
@@ -271,6 +293,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           chosen: body.chosen as number,
           mode: "independent",
           hints: 0,
+          certainty,
         }));
         const nextQ = nextQuestion(session);
         session.lastQ = nextQ;

@@ -560,6 +560,49 @@ export function specForProfile(profile: CourseFields, subject?: SubjectId): Acti
   return { spec, level };
 }
 
+/**
+ * A LEARNER'S COURSE AS DATA, so every layer can act on the SAME one.
+ *
+ * The serve, the diagnostic, the papers and the curriculum map each resolve an
+ * `ActiveSpec`; the tutor needed the course too (a model that is not told the
+ * qualification cannot pitch at the tier or use the board's words) and had no
+ * single value to read. This is that value: resolved once from the profile and
+ * the subject, so a surface can never disagree with another about which course
+ * a learner is on.
+ */
+export interface CourseSummary {
+  specificationId: string;
+  country: string;
+  board: BoardId;
+  /** The qualification's own name (GCSE, KCSE) — data, never translated: a
+   *  student in any language sits the same exam under the same name. */
+  qualification: string;
+  /** The system's own name for the tier ("Higher tier", "Form 4"). Data. */
+  tier: string;
+  /** The generic tier key (lvl.*), which IS translated. */
+  tierKey: TierId;
+  levelId: string;
+  /** Practice difficulty the tier targets (0–1). */
+  difficulty: number;
+  /** Canonical → local vocabulary this board substitutes. */
+  terms: Array<{ from: string; to: string }>;
+}
+
+export function courseSummaryFor(profile: CourseFields, subject?: SubjectId): CourseSummary {
+  const active = specForProfile(profile, subject);
+  return {
+    specificationId: active.spec.id,
+    country: active.spec.country,
+    board: active.spec.board,
+    qualification: active.spec.name,
+    tier: active.level.name,
+    tierKey: active.level.tier,
+    levelId: active.level.id,
+    difficulty: active.level.difficulty,
+    terms: termsFor(active.spec.board),
+  };
+}
+
 /** A course decision the engine genuinely cannot make without. */
 export type CourseField = "country" | "grade" | "spec" | "specLevel";
 

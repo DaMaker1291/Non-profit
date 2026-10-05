@@ -29,6 +29,10 @@ const progress = require("../.verify/progress.js");
 const proofMod = require("../.verify/proof.js");
 const socratic = require("../.verify/socratic.js");
 const i18n = require("../.verify/i18n.js");
+// Prompt formatting (prose vs code). Pure, shared with the static build, and
+// asserted here on the REAL question bank rather than by reading a renderer's
+// source for a string — which is what a page-source regex has to do.
+const promptFmt = require("../.verify/prompt.js");
 const matcher = require("../.verify/matcher.js");
 const retention = require("../.verify/retention.js");
 const hints = require("../.verify/hints.js");
@@ -180,6 +184,185 @@ for (let i = 0; i < 200; i++) {
   if (q.choices.filter((c, j) => j !== q.answer && c === q.choices[q.answer]).length > 0) wrongDistractors++;
 }
 ok(wrongDistractors === 0, "no distractor duplicates the correct answer");
+
+// ── 2b. A prompt is read as the thing it IS, and a sitting does not loop ────
+// Two learner-visible defects that a page-source regex could not catch, pinned
+// on the REAL bank instead:
+//   · about a quarter of prompts mix a code block into prose. Rendered in one
+//     proportional paragraph the indentation — the whole point of the example —
+//     collapses. `splitPrompt` divides prose from code, and must do so WITHOUT
+//     editing the question: the segments, read in order, are the original.
+//   · a generator with few items used to hand back the SAME item on every
+//     serve, because the search picks the draw nearest the band and the base
+//     item always won. Measured before the fix: `what-is-code` served ONE
+//     distinct question in 12. The serve now excludes already-served items.
+console.log("▸ Prompt formatting + anti-repetition");
+{
+  // (a) Lossless on every question the bank can make.
+  let mismatches = 0;
+  let codeConcepts = 0;
+  let codePrompts = 0;
+  let prosePrompts = 0;
+  for (const cid of genIds) {
+    let sawCode = false;
+    for (let i = 0; i < 8; i++) {
+      const q = questions.generateQuestion(cid, `fmt-${cid}-${i}`);
+      if (!q) continue;
+      const segs = promptFmt.splitPrompt(q.prompt);
+      // `sep` PRECEDES its segment, so the reconstruction is sep + text.
+      if (segs.map((s) => s.sep + s.text).join("") !== q.prompt) mismatches++;
+      if (segs.some((s) => s.kind === "code")) { sawCode = true; codePrompts++; }
+      else prosePrompts++;
+    }
+    if (sawCode) codeConcepts++;
+  }
+  ok(mismatches === 0,
+    `splitPrompt is LOSSLESS on the whole bank (mismatches: ${mismatches}) — a formatter a learner's question passes through must not edit it`);
+  ok(codeConcepts >= 5 && codeConcepts <= 20,
+    `code is detected where it exists, and not sprayed everywhere (${codeConcepts} concepts; ${codePrompts} code prompts, ${prosePrompts} prose)`);
+  // The false positive that would set a maths sentence like a program: an
+  // equation-only question whose FIRST line is prose, not an assignment.
+  let mathsCode = false;
+  for (let i = 0; i < 12; i++) {
+    const q = questions.generateQuestion("sim-equations-quad", `mq-${i}`);
+    if (q && promptFmt.splitPrompt(q.prompt).some((s) => s.kind === "code")) mathsCode = true;
+  }
+  ok(!mathsCode,
+    "a maths question holding two equations under a prose heading is NOT set as code (first line is a sentence, not an assignment)");
+
+  // (b) A sitting must not loop on one item. Serve each concept a whole
+  // session's worth, passing the bounded exclude list exactly as the route does
+  // (`list.slice(-12)`), and require that the generator's OWN catalogue is
+  // actually cycled: no concept may pin to a single item, and every concept
+  // must show at least as many distinct items as it has to give (>=2 unless the
+  // generator genuinely makes one).
+  const pinned = [];
+  const narrow = [];
+  for (const cid of genIds) {
+    let list = [];
+    const distinct = new Set();
+    for (let s = 0; s < 60; s++) {
+      const q = questions.generateQuestionNear(cid, `serve-${cid}-${s}`, 0.4, 40, list);
+      if (!q) break;
+      const key = `${q.prompt}|${q.choices[q.answer]}`;
+      distinct.add(key);
+      list.push(key);
+      list = list.slice(-12);
+    }
+    // The catalogue the generator can actually produce, for an honest ceiling.
+    const catalogue = new Set();
+    for (let s = 0; s < 60; s++) {
+      const q = questions.generateQuestion(cid, `cat-${cid}-${s}`);
+      if (q) catalogue.add(`${q.prompt}|${q.choices[q.answer]}`);
+    }
+    if (distinct.size <= 1) pinned.push(cid);
+    if (distinct.size < Math.min(2, catalogue.size)) narrow.push(cid);
+  }
+  ok(pinned.length === 0,
+    `no concept serves the SAME question all sitting (pinned: ${pinned.length ? pinned.join(", ") : "none"}) — this is the bug that made practice feel fake`);
+  ok(narrow.length === 0,
+    `and every concept with more than one item actually serves more than one (narrow: ${narrow.length ? narrow.join(", ") : "none"})`);
+}
+
+// ── 2c. A QUESTION THAT IS NOT MULTIPLE CHOICE ──────────────────────────────
+// The audit (§4.3) found the platform could only ever ask four printed options:
+// `Question` had no response type, so a learner who could COMPUTE 0.75 was asked
+// to RECOGNISE it among four strings — a lesser achievement, and the reason the
+// brief's whole response-type list read as unimplemented. The numeric layer
+// gives concepts an answer box. These assertions pin the three things that
+// could silently break it:
+//   · a typed answer and its equivalent option must be the SAME answer, graded
+//     once by one rule (the failure that shipped in the first draft: the item's
+//     own option twin graded wrong against its own answer on 7 draws);
+//   · an unparseable entry must be REFUSED, never recorded as a wrong answer —
+//     a keystroke is not evidence about a learner's mathematics;
+//   · coverage must be real and measured, not claimed by a comment.
+console.log("▸ Non-multiple-choice responses");
+{
+  const ans = require("../.verify/answer.js");
+  // (a) The answer rule itself.
+  ok(ans.parseNumericInput("0.75") === 0.75, "a plain decimal parses");
+  ok(ans.parseNumericInput("1,000") === 1000, "a thousands separator is read as the number the learner meant");
+  ok(ans.parseNumericInput("1/2") === 0.5, "a simple fraction is evaluated");
+  ok(ans.parseNumericInput("12 cm", "cm") === 12 && ans.parseNumericInput("12", "cm") === 12,
+    "a trailing unit is stripped only when the item declares that unit");
+  ok(ans.parseNumericInput("12 s", "cm") === null,
+    "and a DIFFERENT unit is not silently accepted as the declared one");
+  ok(ans.parseNumericInput("x + 3") === null && ans.parseNumericInput("") === null && ans.parseNumericInput("3 4") === null,
+    "an expression, an empty box and two numbers are NOT answers (null, never 0)");
+  ok(ans.parseNumericInput("\u22125") === -5, "a Unicode minus folds to ASCII before parsing");
+  ok(ans.gradeNumeric(3.14, Math.PI, { abs: 0.01 }) && !ans.gradeNumeric(3.14, 3.14 + 0.5, { abs: 0.01 }),
+    "a declared tolerance is honoured, and does not leak past itself");
+  ok(ans.gradeNumeric(5, 5) && !ans.gradeNumeric(5.0001, 5),
+    "with no tolerance declared, the comparison is exact");
+  ok(!ans.gradeNumeric(NaN, 5) && !ans.gradeNumeric(5, NaN),
+    "a non-finite value never grades as correct — no answer is not the right answer");
+
+  // (b) EVERY numeric draw in the bank: the option twin and the typed form
+  // must both grade correct against the item's own answer. This is the sweep
+  // that caught the display-rounding mismatch.
+  let numericConcepts = 0;
+  let numericDraws = 0;
+  let twinFailures = 0;
+  let missingValue = 0;
+  let unparseable = 0;
+  const noNumeric = [];
+  for (const cid of genIds) {
+    let saw = false;
+    for (let i = 0; i < 60; i++) {
+      const q = questions.generateQuestion(cid, `num-${cid}-${i}`);
+      if (!q) continue;
+      if (q.responseKind !== "numeric") continue;
+      saw = true;
+      numericDraws++;
+      if (typeof q.answerValue !== "number" || !Number.isFinite(q.answerValue)) missingValue++;
+      // The picked option must grade right, through the shared value rule.
+      if (!ans.gradeChoice(q, q.answer)) twinFailures++;
+      // And the DISPLAYED answer, typed by a learner, must grade right too.
+      const shown = q.choices[q.answer];
+      const parsed = ans.parseNumericInput(shown, q.tolerance && q.tolerance.unit);
+      if (parsed === null) { unparseable++; continue; }
+      if (!ans.gradeNumeric(parsed, q.answerValue, q.tolerance)) twinFailures++;
+      // A numeric item must NOT also be gradable as a wrong pick.
+      const wrongIdx = (q.answer + 1) % q.choices.length;
+      if (ans.gradeChoice(q, wrongIdx)) twinFailures++;
+    }
+    if (saw) numericConcepts++;
+    else noNumeric.push(cid);
+  }
+  ok(missingValue === 0, `every numeric draw carries a finite answerValue (missing: ${missingValue})`);
+  ok(unparseable === 0,
+    `and an answer a learner is shown can be typed back in (unparseable: ${unparseable}) — a display form the parser rejects would make the item unanswerable`);
+  ok(twinFailures === 0,
+    `a typed answer and its option twin grade IDENTICALLY, and a wrong option never grades right (failures: ${twinFailures})`);
+  ok(numericConcepts === genIds.length,
+    `EVERY concept can ask a question that is not multiple choice (${numericConcepts}/${genIds.length}; without: ${noNumeric.slice(0, 6).join(", ") || "none"})`);
+  ok(numericDraws >= 0.5 * (genIds.length * 60),
+    `and they are not a rarity: ${numericDraws} of ${genIds.length * 60} draws are answered by typing (${(100 * numericDraws / (genIds.length * 60)).toFixed(1)}%)`);
+
+  // (c) The evidence event keeps the two kinds APART: a typed answer records
+  // the canonical number and a −1 marker (0 is a real option index), and the
+  // ingestion door accepts both shapes without inventing a number for a choice.
+  const evTyped = evidence.answerEvidence({
+    learnerId: "verify-numeric", at: Date.now(), source: "practice", subject: "maths",
+    conceptId: "fractions", specificationId: null, questionId: "q1",
+    correct: true, chosen: -1, givenValue: 0.5, mode: "independent", hints: 0,
+  });
+  ok(evTyped.givenValue === 0.5 && evTyped.chosen === -1,
+    "a typed answer's event carries the canonical number, and −1 marks \"no option chosen\"");
+  const roundTrip = evidence.validateEvent(JSON.parse(JSON.stringify(evTyped)), "verify-numeric");
+  ok(roundTrip.ok && roundTrip.event.givenValue === 0.5,
+    "and it survives the ingestion door, so a device's offline typed answer replays identically");
+  const evChoice = evidence.answerEvidence({
+    learnerId: "verify-numeric", at: Date.now(), source: "practice", subject: "maths",
+    conceptId: "fractions", specificationId: null, questionId: "q2",
+    correct: true, chosen: 0, mode: "independent", hints: 0,
+  });
+  ok(evChoice.givenValue === null && evChoice.chosen === 0,
+    "while a picked option records NO number — an absent number is not the number zero");
+  ok(!evidence.validateEvent({ ...evChoice, chosen: -2 }, "verify-numeric").ok,
+    "and a marker below −1 is refused, so a malformed index cannot become evidence");
+}
 
 // ── 3. Diagnostic ladder ────────────────────────────────────────────────────
 console.log("▸ Diagnostic engine");
@@ -1806,7 +1989,23 @@ console.log("▸ Curriculum specifications");
     // case the served difficulty must equal the concept's one true value — no
     // fabricated variation — and the curriculum's real depth lever remains the
     // concept set its stage window selects.
+    // HOW MUCH OF THE BANK A TIER CAN ACTUALLY MOVE. The claim used to be that
+    // single-difficulty generators EXIST (`uniformConcepts > 0`) and are declared
+    // rather than hidden — true of the bank as it stood, where 119 of 135
+    // concepts sat at one difficulty and the curriculum's only real depth lever
+    // was which concepts its stage window selected. The numeric layer
+    // (lib/numeric-items.ts) then gave every generated concept a second draw
+    // family, so no concept is single-difficulty any more and the old assertion
+    // failed for an improvement rather than for a defect.
+    //
+    // The honest replacement keeps both halves of the original intent: nothing
+    // may FAKE variation (`fabricated === 0` — a concept with one difficulty
+    // must never be served a harder draw it does not have), and the variation
+    // that exists must reach MOST of the bank, because that is exactly what the
+    // tier-targeting claim above (`easy < hard`) rests on. Reported either way,
+    // so the uniformity that remains is visible rather than assumed.
     let uniformConcepts = 0;
+    let movableConcepts = 0;
     let fabricated = 0;
     for (const id of questions.GENERATED_CONCEPT_IDS) {
       const seen = new Set();
@@ -1819,11 +2018,13 @@ console.log("▸ Curriculum specifications");
         const only = [...seen][0];
         const served = questions.generateQuestionNear(id, "uni", 0.95, 5);
         if (!served || served.difficulty !== only) fabricated++;
+      } else {
+        movableConcepts++;
       }
     }
     ok(fabricated === 0, `a uniform generator never fakes a harder draw (bad: ${fabricated})`);
-    ok(uniformConcepts > 0,
-      `single-difficulty generators are declared, not hidden (${uniformConcepts} of ${questions.GENERATED_CONCEPT_IDS.length})`);
+    ok(movableConcepts > questions.GENERATED_CONCEPT_IDS.length / 2,
+      `a tier band can pitch most of the bank, because most drawers really vary (${movableConcepts} of ${questions.GENERATED_CONCEPT_IDS.length} vary across seeds; ${uniformConcepts} still sit at a single difficulty, and none of them fakes a harder one)`);
   }
 }
 
@@ -1916,6 +2117,117 @@ console.log("▸ Paper analysis");
   ok(enName !== arName, `a built paper's name follows the learner's language (${enName} / ${arName})`);
   const authoredName = papers.papersForSpec("uk-gcse", "maths")[0].name;
   ok(/Mathematics/.test(authoredName), "an authored paper keeps the awarding body's own name");
+}
+
+// ── M9c. A paper is SAT like an exam, not scrolled like a worksheet ─────────
+// FOUND BY READING THE SURFACE, NOT THE ENGINE. Every paper rendered as ONE
+// long scroll of every section, in order, with no counter, no marks worth
+// showing, no way to mark a question to come back to and no way to move
+// around the paper. That is a worksheet. The whole point of sitting a full
+// paper is that it feels like the exam room — and the result should read as
+// evidence (what those marks PROVE), not a score with a tick beside it.
+console.log("▸ The paper is sat like an exam");
+{
+  const page = fs.readFileSync("app/papers/page.tsx", "utf8");
+  ok(!/paper\.sections\.map/.test(page),
+    "the sitting no longer renders every section as one long scroll");
+  ok(page.includes("data-exam-head") && /boardName\(p\.board\)/.test(page),
+    "the header names the awarding body, the qualification and the tier");
+  ok(/fill\(t\("pp\.questionOf"\), \{ n: num, m: total \}\)/.test(page),
+    "and the candidate always knows which question of how many they are on");
+  ok(page.includes("data-question-of") && /q\.marks\} \{t\("pp\.marks"\)\}/.test(page),
+    "and what the question is worth");
+  ok(page.includes('aria-label={t("pp.grid")}') && page.includes("data-question-grid") && /flat\.map\(\(qq, i\)/.test(page),
+    "a grid gives every question a numbered press, as a real paper does");
+  ok(page.includes("data-flag-control") && page.includes('t("pp.flag")') && page.includes('t("pp.flagged")'),
+    "a question can be flagged to come back to");
+  ok(page.includes('t("pp.prev")') && page.includes('t("pp.next")') && page.includes('t("pp.submit")'),
+    "and the candidate can move back, forward, or finish at any point");
+
+  ok(page.includes('t("pp.correct")') && page.includes('t("pp.incorrect")') && page.includes('t("pp.blank")'),
+    "the result classifies every question: correct, incorrect, or not attempted");
+  ok(page.includes('t("pp.checkIdea")') && page.includes("mcName(lang, tag,"),
+    "and names the idea a wrong answer points at, in the learner's language");
+  // A question nobody answered proves nothing about what the learner believes,
+  // so it must never be tagged with a misconception.
+  ok(/q\.correct === false \? \(q\.tags \?\? \[\]\)\.find/.test(page),
+    "a skipped question is never claimed as a misconception");
+
+  // The tags have to survive the round trip for the screen above to mean
+  // anything: marking must carry them, not just the analysis panel.
+  const spec = require("../.verify/specifications.js");
+  const uk = spec.specById("uk-gcse");
+  const uiBuilt = papers.buildPaper({ active: { spec: uk, level: uk.levels[uk.levels.length - 1] }, subject: "maths", seed: "exam-ui-1" });
+  const anyTagged = uiBuilt.key.questions.find((q) => (q.tags ?? []).length > 0);
+  ok(Boolean(anyTagged), "some questions in a real paper carry misconception tags");
+  const wrongOnly = {};
+  wrongOnly[anyTagged.id] = (anyTagged.answer + 1) % 4;
+  const marked = papers.markPaper(uiBuilt.key, wrongOnly);
+  ok(marked.perQuestion.every((q) => Array.isArray(q.tags)),
+    "marking carries each question's tags through to the result");
+  const mt = marked.perQuestion.find((q) => q.id === anyTagged.id);
+  ok(mt.correct === false && mt.tags.length === anyTagged.tags.length,
+    "so a wrong answer's result still knows the idea the question probed");
+
+  // Every string on the screen is read by the learner, so all fifteen
+  // dictionaries must carry it.
+  const examI18n = fs.readFileSync("lib/i18n.ts", "utf8");
+  for (const key of ["pp.questionOf", "pp.flag", "pp.flagged", "pp.prev", "pp.next", "pp.grid", "pp.correct", "pp.incorrect", "pp.blank", "pp.checkIdea"]) {
+    const count = (examI18n.match(new RegExp(`"${key}":`, "g")) ?? []).length;
+    ok(count === 15, `${key} is authored in all 15 dictionaries (${count})`);
+  }
+}
+
+// ── The shell names the learner's course, not just the page ─────────────────
+// A learner's whole experience changes with their course — the curriculum map,
+// the questions served, the papers offered and the vocabulary — and none of it
+// was visible from the shell, which showed a bare subject name and a board code.
+// The context strip names it in one quiet line. Its parts are DATA (proper nouns
+// the product already shows elsewhere), so the strip adds no prose to translate;
+// the one key it needs is the accessible NAME, because a run of bare nouns
+// joined by "·" tells a screen-reader user nothing about what they are.
+console.log("▸ The shell names the learner's course");
+{
+  const strip = fs.readFileSync("components/context-strip.tsx", "utf8");
+  const nav = fs.readFileSync("components/nav.tsx", "utf8");
+  ok(/export function ContextStrip/.test(strip),
+    "the shell has a context strip");
+  ok(strip.includes("specForProfile") && strip.includes("COUNTRIES") && strip.includes("boardName(p.board)"),
+    "built from the RESOLVED course, the country list and the awarding body's own name");
+  ok(/data-context-strip/.test(strip) && nav.includes("<ContextStrip />"),
+    "and it is rendered in the topbar, so it is on every page");
+  ok(strip.includes('role="group"') && strip.includes('t("ctx.aria")'),
+    "with an accessible name — bare nouns joined by a separator announce nothing");
+  // A course the learner never chose is ABSENT, never guessed: the strip returns
+  // nothing rather than naming a qualification that is not theirs, and it never
+  // shows two awarding bodies at once (the course's board wins over a stale
+  // profile board).
+  ok(/return null;/.test(strip) && !/fallback|default.*spec|uk-gcse/.test(strip),
+    "an unresolvable course is reported as absent, never invented");
+  ok(/active \? boardName\(active\.spec\.board\) : boardName\(p\.board\)/.test(strip),
+    "and the course's own board wins over the profile's, so it can never name two at once");
+
+  // The parts it composes, asserted on a REAL course rather than by reading the
+  // component: this is the same resolution the rest of the product uses.
+  const ctxSpec = require("../.verify/specifications.js");
+  const ctxCurriculum = require("../.verify/curriculum.js");
+  const ctxI18n = require("../.verify/i18n.js");
+  const active = ctxSpec.specForProfile(
+    { country: "GB", board: "aqa", grade: "Year 11", subjects: ["maths"], subjectCourses: { maths: { spec: "uk-gcse", specLevel: "higher" } } },
+    "maths",
+  );
+  ok(active.spec.name === "GCSE" && active.level.name === "Higher tier",
+    `a real learner's course resolves to its own qualification and tier (${active.spec.name} · ${active.level.name})`);
+  ok(ctxCurriculum.boardName(active.spec.board) === "AQA",
+    "and the awarding body is named by its own proper noun, not its internal id");
+  ok(ctxCurriculum.boardName(undefined) === "",
+    "a learner with no board has no board named rather than an empty uppercase badge");
+  ok(ctxI18n.COUNTRIES.find((c) => c.code === "GB")?.name === "United Kingdom",
+    "and the country comes from the one country list the picker already uses");
+
+  const stripI18n = fs.readFileSync("lib/i18n.ts", "utf8");
+  const stripKeyCount = (stripI18n.match(/"ctx\.aria":/g) ?? []).length;
+  ok(stripKeyCount === 15, `the strip's accessible name is authored in all 15 dictionaries (${stripKeyCount})`);
 }
 
 // ── M9a. The client/API credential contract ─────────────────────────────────
@@ -2445,23 +2757,50 @@ console.log("▸ Evidence drives the experience");
 
   // ── The OTHER branch of the same rule, on real concepts. Where no second
   // surface genuinely exists the offer must stay DEEPER WORK on that concept.
-  // Two concepts, one per exclusion FAMILY, so the gate cannot widen by
-  // loosening a rule: `proof` answers in prose (two defensible answers can be
-  // the same fact said differently, which would mark a right answer wrong) and
-  // `volume` states its items over several lines (a paragraph is not an option).
+  //
+  // THE CONCEPTS ARE DERIVED, NOT NAMED, and that is a fix rather than a
+  // loosening. The list used to be hard-coded — `proof` (its answers are prose,
+  // and two defensible prose answers can be the same fact said differently,
+  // which would mark a right answer wrong) and `volume` (its items run over
+  // several lines, and a paragraph is not an option). Both reasons are still
+  // true of those concepts' BASE families, but the numeric layer
+  // (lib/numeric-items.ts) gave every generated concept a second draw family
+  // whose answers ARE values and whose stems ARE one line — so `proof` and
+  // `volume` now re-frame exactly as `fractions` does, which this same block
+  // asserts they must. A hard-coded exclusion list cannot survive a change to
+  // the bank it describes: reading the set off `canTransfer` keeps the RULE
+  // pinned (the branch is still exercised, on whatever the bank really cannot
+  // re-frame today) instead of pinning the bank as it stood.
+  //
+  // One concept per exclusion FAMILY, so the gate cannot widen by loosening a
+  // single rule: `answer` = the item's answer is not a value (the prose family),
+  // `prompt` = the surface could not be assembled from the items at all (a
+  // stem that is not one line, or too few distinct-valued neighbours at the
+  // band). Classified through the exported `answerValueKey` — the predicate the
+  // re-framer itself uses.
+  //
   // The coverage itself is counted here too — "the gate says no" is only honest
   // if it says yes often enough to matter.
   const REFRAMABLE = Object.keys(genome.CONCEPTS_BY_ID).filter((cid) => transferMod.canTransfer(cid));
   ok(REFRAMABLE.length > 50,
     `${REFRAMABLE.length} of ${Object.keys(genome.CONCEPTS_BY_ID).length} concepts serve a REAL second surface (it was 2 when the gate was first made honest)`);
   {
-    const WHY_NO_SURFACE = {
-      proof: "its answers are prose, and two prose answers can be the same fact said differently",
-      volume: "its items run over several lines, and a paragraph is not an option",
+    const noSurfaceFamily = (cid) => {
+      for (let i = 0; i < 10; i++) {
+        const q = questions.generateQuestion(cid, `nosurface-${i}`);
+        if (q && transferMod.answerValueKey(q.choices[q.answer] ?? "") !== null) return "prompt";
+      }
+      return "answer";
     };
-    for (const NO_SURFACE of Object.keys(WHY_NO_SURFACE)) {
+    const NO_SURFACE_SET = Object.keys(genome.CONCEPTS_BY_ID).filter((cid) => !transferMod.canTransfer(cid));
+    const NO_SURFACE_PICKS = ["answer", "prompt"]
+      .map((f) => NO_SURFACE_SET.find((cid) => noSurfaceFamily(cid) === f))
+      .filter(Boolean);
+    ok(NO_SURFACE_PICKS.length > 0,
+      `the bank still has concepts with no second surface, so this branch is tested on a real one (${NO_SURFACE_PICKS.join(", ") || "none"} of ${NO_SURFACE_SET.length})`);
+    for (const NO_SURFACE of NO_SURFACE_PICKS) {
       ok(!transferMod.canTransfer(NO_SURFACE),
-        `${NO_SURFACE}: genuinely no second surface — ${WHY_NO_SURFACE[NO_SURFACE]}`);
+        `${NO_SURFACE}: genuinely no second surface — the re-framer refuses every probe band it serves at`);
       const sN = fresh();
       const evs = [];
       for (let i = 0; i < 5; i++) {
@@ -4529,7 +4868,7 @@ console.log("\n▸ On-device AI, on the phone the learner has");
     ["bad_time", base({ at: 0 })],
     ["bad_source", base({ source: "wishful_thinking" })],
     ["bad_mode", base({ mode: "probably" })],
-    ["bad_choice", base({ chosen: -1 })],
+    ["bad_choice", base({ chosen: -2 })],
     ["unknown_type", base({ type: "vibes_submitted" })],
   ];
   const mislabelled = refusals.filter(([reason, ev]) => {
@@ -6955,16 +7294,36 @@ console.log("▸ AI explains, never records");
   // stylesheet — hover states and decorative markers must not spend it.
   const css = fs.readFileSync("app/globals.css", "utf8");
   const bodyOnly = css.replace(/html\.access-contrast\s*{[\s\S]*?}/m, "");
-  ok(!/a:hover[^}]*margin-red/.test(bodyOnly),
+  ok(!/a:hover[^}]*--(margin-red|mark-wrong)/.test(bodyOnly),
     "hover states do not spend the accent — red marks meaning, not pointers");
-  ok(!/\.eyebrow \.no { color: var\(--margin-red\)/.test(bodyOnly),
+  ok(!/\.eyebrow \.no { color: var\(--mark-wrong\)/.test(bodyOnly),
     "section markers are neutral; the accent is not wallpaper");
   // Bounded by MEANING, not by taste: 1 variable, 1 focus ring, 1 active-nav
   // rule (+ its RTL twin), the hero underline, and the semantic marking set
   // (wrong answer / bad feedback / bad chips) — everything else stays neutral.
-  // The bound is a tripwire: crossing it should require a conscious decision.
-  ok((bodyOnly.match(/--margin-red/g) ?? []).length <= 24,
-    `the accent keeps a bounded footprint in the stylesheet (${(bodyOnly.match(/--margin-red/g) ?? []).length} uses)`);
+  // The bound counts BOTH names, because the semantic alias `--mark-wrong` is
+  // what rules now use and the primitive `--margin-red` is what it aliases —
+  // counting only one would let the other grow unbounded behind the tripwire.
+  ok((bodyOnly.match(/--(margin-red|mark-wrong)/g) ?? []).length <= 24,
+    `the accent keeps a bounded footprint in the stylesheet (${(bodyOnly.match(/--(margin-red|mark-wrong)/g) ?? []).length} uses)`);
+
+  // ── The design system has a semantic rung ────────────────────────────────
+  // Every rule reads a JOB, not an appearance: `--text`, not `--ink`. The
+  // appearance primitives are private to the token layer, so a theme retargets
+  // in one place (the high-contrast block does exactly that) and a rule's intent
+  // is readable without knowing the palette. Without this test the layer would
+  // rot back into direct primitive use, one rule at a time.
+  const SEMANTIC = [
+    "--text", "--text-soft", "--text-muted", "--text-on-strong",
+    "--ui-strong", "--ui-soft", "--ui-muted", "--surface-sunken",
+    "--mark-correct", "--mark-wrong", "--mark-caution",
+  ];
+  ok(SEMANTIC.every((t) => new RegExp(`${t}\\s*:\\s*var\\(--`).test(css)),
+    "every semantic token aliases a primitive — the layer is complete, not partial");
+  const rulesOnly = bodyOnly.replace(/:root\s*{[\s\S]*?\n}/m, "");
+  const leaked = rulesOnly.match(/var\(--(ink|ink-soft|pencil|paper-deep|margin-red|tick-green|amber)\)/g) ?? [];
+  ok(leaked.length === 0,
+    `component rules read the semantic tokens, never the appearance primitives (${leaked.length} leaks)`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -7076,6 +7435,19 @@ console.log("▸ AI explains, never records");
   // field beside it ("I'm learning independently" as a LEVEL).
   ok(onb.includes("levels.length > 0 &&"),
     "the Level field is offered only when the chosen course has levels to choose");
+  // ── A tier the learner must CHOOSE is not chosen for them ──────────────
+  // Choosing a qualification seeded the tier from `pick.levels[0]`, and
+  // `levels[0]` is Foundation for the GCSE — so a learner who chose "GCSE" (and
+  // nothing else) was quietly enrolled at the easier tier, served at its
+  // difficulty and taught at its depth, never having made that choice. That is
+  // a real cause of "the questions are too easy". The tier is seeded only when
+  // the year group genuinely names one, or when there is nothing to choose
+  // between; otherwise the field is left empty, NAMED as missing (the gap line
+  // above), and `Next` waits for it.
+  ok(onb.includes("pick.levels.length === 1 ? pick.levels[0] : null"),
+    "choosing a qualification does not enrol the learner at the qualification's first tier");
+  ok(onb.includes('<option value="" disabled>{t("onb.pickLevel")}</option>'),
+    "and an unchosen tier says so, rather than painting the first tier as the learner's own answer");
 
   // ── Said once, where it is true ────────────────────────────────────────
   const noteUses = (onb.match(/t\("onb\.subjectsNote"\)/g) ?? []).length;
@@ -7127,6 +7499,171 @@ console.log("▸ The exercise header counts what is on screen");
   const qFills = conceptPage.match(/fill\(t\("sess\.qOf"\), \{[^}]*\}\)/g) ?? [];
   ok(qFills.length >= 3 && qFills.every((f) => f.includes("n: qOrdinal")),
     `and every place that prints it reads that one value (${qFills.length} sites)`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// LEARN IS THE LEARNER'S CURRICULUM, WITH A STATUS PER TOPIC
+//
+// The subject screen printed the PLATFORM's concept count under the learner's
+// own qualification. Measured against the real courses those are different
+// numbers: uk-alevel/a2 covers 43 of 67 maths concepts and uk-gcse/foundation
+// 55 of 67, so an A2 learner was reading `place-value` and `addition` as
+// A-Level work and a Foundation learner was reading completing-square and
+// binomial under a Foundation heading. It also read `profile.board`, the FLAT
+// field that mirrors a learner's FIRST subject, so a GCSE maths learner saw
+// the GCSE chip on their A-Level physics page.
+//
+// Three claims, checked at the source and then checked against the real
+// courses by running them:
+//   THE LIST IS THE COURSE. It comes from `coverageOf(specForProfile(...))`
+//   and the header cannot print the platform's count as if it were the
+//   learner's.
+//   THE TOPICS CARRY A STATUS. One band per topic, from the learner's own
+//   answers, through the SAME function that bands a single concept - a second
+//   threshold here would give one learner two words for the same 8 of 10.
+//   WHAT IS OUTSIDE IS NAMED. Not deleted, and not presented as the syllabus.
+// ════════════════════════════════════════════════════════════════════════════
+console.log("▸ Learn shows the learner's own curriculum, with a status per topic");
+{
+  const page = fs.readFileSync("app/learn/[subject]/page.tsx", "utf8");
+  // The page's own prose NAMES the flat board field, because explaining what it
+  // stopped doing is worth two lines. So every source claim below is made
+  // against the code with comments removed - otherwise the fix explains itself
+  // into the next failure.
+  const code = page.split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n");
+  const css = fs.readFileSync("app/globals.css", "utf8");
+
+  // ── THE LIST IS THE COURSE ───────────────────────────────────────────────
+  ok(page.includes("specForProfile(p, subject)"),
+    "the course in force is resolved WITH the subject, not from the flat profile fields");
+  ok(!/\.board\)|profile\.board|p\?\.board/.test(code),
+    "and the page no longer reads the flat board field, which mirrors the learner's FIRST subject");
+  ok(page.includes("courseGaps(p, subject)") && page.includes("specForProfile(p, subject)"),
+    "both the course and its gaps are asked of this subject");
+  ok(/const inCourse = active \? coverageOf\(active\)\.filter\(\(c\) => c\.subject === subject\) : null/.test(page),
+    "the concepts on the page are the ones this course covers");
+  ok(/const listed = inCourse \?\? all/.test(page),
+    "and when no course is finished, the whole subject is listed rather than nothing");
+
+  // ── THE HEADER COUNTS THE COURSE, NOT THE PLATFORM ──────────────────────
+  ok(/\{touched\}\/\{listed\.length\}/.test(page) && !/\{touched\}\/\{all\.length\}/.test(page),
+    "the header's own fraction counts what is listed");
+  ok(/\{\s*n: String\(inCourse\.length\), total: String\(all\.length\)\s*\}/.test(code),
+    "and the platform's size is printed only as the size of the gap, never as the course");
+
+  // ── ONE STATUS PER TOPIC ───────────────────────────────────────────���─────
+  ok(page.includes("dimensionFor(\"recalled\"") && page.includes("askedOf") && page.includes("correctOf"),
+    "a topic's status is rolled up from the learner's own answers in it");
+  ok(/import \{ dimensionFor \} from "@\/lib\/evidence-view"/.test(page)
+    && /import \{ bandKey \} from "@\/components\/dims"/.test(page),
+    "through the shared band function and the shared band word - a topic is banded like a concept, not by its own rule");
+  ok(!/0\.7|>= *0\.[0-9]/.test(code),
+    "the page carries no threshold of its own, so the two screens cannot disagree about the same rate");
+  ok(/dimensionFor\("recalled", t\(`stage\.\$\{stage\}`\), a > 0 \? \{ asked: a, correct: k \} : null\)/.test(code),
+    "and a topic with no answers is UNMEASURED rather than banded from a prior");
+  ok(page.includes("<details key={topic.stage}") && page.includes('className="topic"'),
+    "the concepts are one disclosure away per topic, not 63 rows on one page");
+  ok(page.includes("band === \"strong\"") && page.includes("d.rate.correct}/{d.rate.asked"),
+    "the band word is shown with the exact count beside it");
+
+  // ── WHAT IS OUTSIDE THE COURSE IS NAMED ────────────────────────────────
+  ok(page.includes("const outside = inIds ? all.filter((c) => !inIds.has(c.id)) : []"),
+    "the concepts the course excludes are computed, not assumed away");
+  ok(page.includes('t("cur.outside")') && page.includes('t("cur.outsideNote")'),
+    "and the screen says which they are");
+  ok(page.includes("outside.map(row)"),
+    "they stay reachable - the genome is larger than any one qualification and nothing here deletes it");
+  // The flat list it replaced was the whole subject under the learner's own
+  // heading. That specific number is what these assertions exist to stop.
+  ok(!/const concepts = bySubject\(subject\);\s*$/m.test(page),
+    "the page does not bind the subject's whole concept list and present it as the curriculum");
+
+  // ── AND IT HOLDS AGAINST THE REAL COURSES ──────────────────────────────
+  {
+    const { SPECIFICATIONS, coverageOf } = require("../.verify/specifications.js");
+    const bySub = require("../.verify/genome.js").bySubject;
+    const allMaths = bySub("maths").map((c) => c.id);
+    let checked = 0;
+    const empty = [];
+    const identical = [];
+    for (const spec of SPECIFICATIONS) {
+      for (const level of spec.levels) {
+        const covered = coverageOf({ spec, level });
+        const maths = covered.filter((c) => c.subject === "maths");
+        // A course that covers NOTHING in a subject the learner can open would
+        // render an empty curriculum with nothing to say why.
+        if (!maths.length) empty.push(`${spec.id}/${level.id}`);
+        checked++;
+      }
+    }
+    // The measurement has to be capable of DIFFERING, or asserting anything
+    // about "the course, not the platform" is asserting nothing. Every pair of
+    // courses that covers the same set means the screen's whole premise is
+    // untestable.
+    const gcse = SPECIFICATIONS.find((s) => s.id === "uk-gcse");
+    const f = coverageOf({ spec: gcse, level: gcse.levels.find((l) => l.id === "foundation") }).filter((c) => c.subject === "maths").map((c) => c.id).sort();
+    const h = coverageOf({ spec: gcse, level: gcse.levels.find((l) => l.id === "higher") }).filter((c) => c.subject === "maths").map((c) => c.id).sort();
+    const a2spec = SPECIFICATIONS.find((s) => s.id === "uk-alevel");
+    const a2 = coverageOf({ spec: a2spec, level: a2spec.levels.find((l) => l.id === "a2") }).filter((c) => c.subject === "maths").map((c) => c.id).sort();
+    if (f.join("|") === h.join("|")) identical.push("gcse foundation === gcse higher");
+    if (h.join("|") === a2.join("|")) identical.push("gcse higher === uk-alevel a2");
+    ok(checked >= 8, `every declared course was measured (${checked})`);
+    ok(empty.length === 0,
+      `no course renders as an empty curriculum in a subject the learner can open (${empty.slice(0, 3).join(", ") || "none"})`);
+    ok(identical.length === 0,
+      `and courses really do differ, or "the course, not the platform" would be unfalsifiable (${identical.join("; ") || "they differ"})`);
+    // The headline the rebuild exists for, measured rather than asserted.
+    ok(f.length < allMaths.length && a2.length < f.length,
+      `a course is smaller than the subject and the tiers differ — the old header could not have been one number (all ${allMaths.length}, Foundation ${f.length}, Higher ${h.length}, A2 ${a2.length})`);
+    ok(f.length - new Set(a2).size > 0 || a2.length !== h.length,
+      "and the outside list is non-trivial for at least one real course");
+  }
+
+  // ── THE SENTENCES EXIST, IN EVERY LANGUAGE ────────────────────────────────
+  const learnKeys = ["cur.covers", "cur.outside", "cur.outsideNote"];
+  const learnGaps = [];
+  const english = i18n.translator("en");
+  for (const l of i18n.LANGS) {
+    const tr2 = i18n.translator(l.code);
+    for (const k of learnKeys) {
+      if (tr2(k) === k) learnGaps.push(`${l.code}:${k} unresolved`);
+      // A missing key falls back to English and reads perfectly. So a language
+      // that merely COPIED the English is caught by comparing the two.
+      else if (l.code !== "en" && tr2(k) === english(k)) learnGaps.push(`${l.code}:${k} is English`);
+    }
+  }
+  ok(learnGaps.length === 0,
+    `every sentence the curriculum screen adds is translated in all ${i18n.LANGS.length} languages (${learnGaps.slice(0, 4).join(", ") || "none missing"})`);
+  // And the same, for the one-shot script that wrote them: it has to put each
+  // language's own text INSIDE that language's dictionary. The sibling script
+  // that anchored on a key inside the block put Persian and Urdu into the
+  // Chinese dictionary and left Urdu on the English fallback - invisible, and
+  // with nothing to catch it.
+  {
+    const i18nSrc = fs.readFileSync("lib/i18n.ts", "utf8").split("\n");
+    const misplaced = [];
+    for (const l of i18n.LANGS) {
+      const start = i18nSrc.findIndex((x) => new RegExp(`^(export )?const ${l.code}: Dict = \\{$`).test(x));
+      if (start < 0) continue;
+      const next = i18nSrc.findIndex((x, i) => i > start && /^(export )?const [a-z]{2}: Dict = \{$/.test(x));
+      const body = i18nSrc.slice(start, next < 0 ? i18nSrc.length : next);
+      const tr3 = i18n.translator(l.code);
+      for (const k of learnKeys) {
+        const want = `"${k}": "${tr3(k).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}",`;
+        if (!body.some((x) => x.trim() === want)) misplaced.push(`${l.code}:${k}`);
+      }
+    }
+    ok(misplaced.length === 0,
+      `each language's curriculum strings live inside that language's own dictionary (${misplaced.slice(0, 4).join(", ") || "all 15 correct"})`);
+  }
+
+  // ── AND THE BAND RULE IS ONE RULE ───────────────────────────────────────
+  ok(/export function dimensionFor\(/.test(fs.readFileSync("lib/evidence-view.ts", "utf8")),
+    "the function that turns a rate into a band is exported, so a roll-up asks it rather than reimplements it");
+  const evSrc = fs.readFileSync("lib/evidence-view.ts", "utf8");
+  const thresholds = [...evSrc.matchAll(/>= *([0-9.]+) \? "strong"/g)].map((m) => m[1]);
+  ok(thresholds.length === 1 && thresholds[0] === "0.7",
+    `and there is exactly one threshold for it (${thresholds.join(", ") || "none"})`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -7190,6 +7727,17 @@ console.log("▸ A missing course is named by field, and can be finished where w
   });
   ok(missing.length === 0,
     `the gap phrase is authored in all ${LANG_CODES.length} languages and keeps its placeholder${missing.length ? ` (missing or placeholder-free: ${missing.join(", ")})` : ""}`);
+
+  // The tier select's placeholder is read by the same learner on the same
+  // screen, so it is held to the same rule: a missing entry falls back to
+  // English at render time, and the raw `onb.pickLevel` would ship if NO
+  // dictionary had it.
+  const noTierLabel = LANG_CODES.filter((code) => {
+    const body = dictBody(code);
+    return body === null || !/"onb\.pickLevel":\s*"[^"]+"/.test(body);
+  });
+  ok(noTierLabel.length === 0,
+    `the tier placeholder is authored in all ${LANG_CODES.length} languages${noTierLabel.length ? ` (missing: ${noTierLabel.join(", ")})` : ""}`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -7261,6 +7809,130 @@ console.log("▸ A reload mid-diagnostic resumes the sitting instead of replacin
   ok(/setResumed\(false\);\n/.test(diagPage),
     "the notice is dropped once the learner answers, rather than haunting the whole sitting");
 
+  // ── The sitting says how long it is, and lets the learner out ────────────
+  // The only number on the first-run screen was a bare `01.`: no total, no
+  // concept named, and no way out, so an adaptive sitting read as open-ended.
+  // An adaptive sitting has no fixed length, so the honest answer is an
+  // ESTIMATE — and the ENGINE measures it (a forward simulation of the climb)
+  // rather than the app inventing a constant a learner could catch it missing.
+  // The counter therefore says "about", the concept being measured is named,
+  // and a learner who does not know can say so instead of guessing.
+  const specsMod = require("../.verify/specifications.js");
+  const activeSpec = specsMod.specForProfile(
+    { country: "GB", spec: "uk-gcse", specLevel: "higher", grade: "Year 11" }, "maths");
+  const sitting = diag.newDiagnosticSession("maths", "baseline", activeSpec);
+  const beforeLog = sitting.log.length;
+  const est = diag.plannedQuestions(sitting);
+  ok(Number.isFinite(est) && est >= sitting.concepts.length,
+    `the engine measures how long a sitting is, from the sitting itself (${est} questions over ${sitting.concepts.length} concepts)`);
+  ok(sitting.log.length === beforeLog && sitting.concepts.every((c) => !c.done),
+    "and the estimate is a SIMULATION: it neither mutates the sitting nor answers anything on it");
+  ok(diag.plannedQuestions(sitting) === est,
+    "and it is deterministic — the same sitting yields the same number, so a reload cannot move the finish line");
+  ok(/plannedQuestions/.test(startBlock) && (startBlock.match(/plannedQuestions\(/g) ?? []).length >= 2,
+    "the start action hands the estimate back for BOTH a fresh sitting and a resumed one");
+  ok(diagPage.includes('t("diag.progress")') && diagPage.includes("estimate > 0"),
+    "the sitting names its own length (\u201cQuestion N of about M\u201d), and only once the number is real");
+  ok(diagPage.includes("q?.conceptId") && diagPage.includes("ctitle(lang, q.conceptId)"),
+    "and names the concept being measured, not just the count");
+  ok(/action: "skip"/.test(diagPage) && diagPage.includes('t("diag.dontKnow")'),
+    "a learner who does not know can say so rather than guess");
+  ok(diagPage.includes('t("diag.leave")'),
+    "and can leave the sitting without losing it (the server resumes it)");
+  // The two phrases are read by the learner, so every dictionary must carry
+  // them: a missing entry falls back to English, which is a silent language
+  // loss rather than a visible one.
+  const i18nSrc = fs.readFileSync("lib/i18n.ts", "utf8");
+  for (const key of ["diag.progress", "diag.leave"]) {
+    const count = (i18nSrc.match(new RegExp(`"${key}":`, "g")) ?? []).length;
+    ok(count === 15, `${key} is authored in all 15 dictionaries (${count})`);
+  }
+
+  // ── The learner's OWN certainty, recorded before the verdict ──────────────
+  // A diagnostic that records only right/wrong throws away the thing it most
+  // needs to know: whether the learner thought they knew. A confident right
+  // answer and a half-guessed one are the same tick and different states to
+  // teach from — and the self-report has to be captured BEFORE any marking, or
+  // the grade contaminates it. Deliberately NOT called "confidence": that word
+  // already means the statistical confidence of an estimate
+  // (`confidenceOf` / `ConfidenceLevel`), which is a property of the EVIDENCE.
+  console.log("▸ The learner's own certainty, before the verdict");
+  {
+    const certPage = fs.readFileSync("app/diagnostic/[subject]/page.tsx", "utf8");
+
+    // The event carries it, and an absent self-report stays absent.
+    const certBase = {
+      learnerId: "cert-1", at: 1000, source: "diagnostic", subject: "maths",
+      conceptId: "fractions", specificationId: null, questionId: "q1",
+      chosen: 0, mode: "independent", hints: 0,
+    };
+    const saidSure = evidence.answerEvidence({ ...certBase, correct: true, certainty: "sure" });
+    const saidUnsure = evidence.answerEvidence({ ...certBase, correct: true, certainty: "unsure" });
+    const neverAsked = evidence.answerEvidence({ ...certBase, correct: true });
+    ok(saidSure.certainty === "sure" && saidUnsure.certainty === "unsure" && neverAsked.certainty === null,
+      "an answer carries the learner's own statement, and an unasked one stays null rather than becoming a 'sure'");
+
+    // The projection keeps the dimension BESIDE the outcome, not folded into it.
+    const certProj = evidence.projectLearner([saidSure, saidUnsure, neverAsked]);
+    ok(certProj.byConcept.fractions.certainty.stated === 2,
+      `only answers that STATED something are counted (${certProj.byConcept.fractions.certainty.stated} of 3)`);
+    ok(certProj.byConcept.fractions.certainty.unsure === 1 && certProj.byConcept.fractions.certainty.unsureCorrect === 1,
+      "and 'right, but unsure' is its own number — the one an accuracy figure cannot express");
+    ok(certProj.totals.certainty.stated === 2 && certProj.totals.certainty.unsureCorrect === 1,
+      "the same tally is kept for the learner, not only per concept");
+    const wrongUnsure = evidence.answerEvidence({ ...certBase, correct: false, certainty: "unsure" });
+    const certProj2 = evidence.projectLearner([wrongUnsure]);
+    ok(certProj2.byConcept.fractions.certainty.unsure === 1 && certProj2.byConcept.fractions.certainty.unsureCorrect === 0,
+      "a wrong answer can be unsure without inflating the unsure-and-right count");
+
+    // An event that predates the field has none, and must not be read as a sure.
+    const legacy = { ...saidSure };
+    delete legacy.certainty;
+    const legacyProj = evidence.projectLearner([legacy]);
+    ok(legacyProj.byConcept.fractions.certainty.stated === 0,
+      "an event written before this existed keeps an empty tally, never a fabricated confident one");
+
+    // The sitting reads its own tally from the answers it recorded.
+    const certSession = diag.newDiagnosticSession("maths", "probe");
+    const certQ = diag.nextQuestion(certSession);
+    diag.gradeAnswer(certSession, certQ.conceptId, certQ, certQ.answer, "unsure");
+    const tally = diag.certaintyTally(certSession);
+    ok(tally.stated === 1 && tally.unsure === 1 && tally.unsureCorrect === 1,
+      "a sitting reads its certainty from the answers it recorded, not from a counter that could drift");
+    const emptyTally = diag.buildResult(diag.newDiagnosticSession("maths", "probe")).certainty;
+    ok(emptyTally && emptyTally.stated === 0 && emptyTally.unsure === 0,
+      "and a sitting nobody was asked about reports an empty tally, not a fabricated confident one");
+
+    // The route accepts it, and only as one of the two real statements.
+    const certRoute = fs.readFileSync("app/api/diagnostic/route.ts", "utf8");
+    ok(certRoute.includes('body.certainty === "sure" || body.certainty === "unsure"'),
+      "the route records a self-report only when it is one of the two real statements");
+    ok(/certaintyTally\(session\)/.test(certRoute),
+      "and the finished sitting carries the whole tally on its own event");
+
+    // COMMITTED BEFORE THE VERDICT. If the choices appeared and were marked
+    // first, the learner's statement would be contaminated by knowing whether
+    // they were right — and it would measure nothing.
+    ok(certPage.includes("data-certainty") && certPage.includes('t("diag.certaintyAsk")'),
+      "the sitting asks how sure the learner is, before it shows them anything");
+    ok(/\(certainty \|\| graded\) && \(/.test(certPage),
+      "and the choices are revealed only after they have said, so the grade cannot contaminate the self-report");
+    ok(certPage.includes("data-certainty-note") && certPage.includes('t("diag.certaintyNote")'),
+      "the report separates 'right' from 'right, but unsure'");
+    ok((certPage.match(/setCertainty\(null\)/g) ?? []).length >= 2,
+      "and one question's self-report never carries over onto the next");
+    // "I don't know" is a REFUSAL to answer, not a third certainty value: it
+    // runs the diagnostic's existing skip action, and a guess would be worse
+    // measurement than the admission.
+    ok(certPage.includes('action: "skip"') && certPage.includes('t("diag.dontKnow")'),
+      "an honest 'I don't know' stays a refusal, running the server's own skip action");
+
+    for (const key of ["diag.certaintyAsk", "diag.sure", "diag.unsure", "diag.dontKnow", "diag.certaintyNote"]) {
+      const count = (i18nSrc.match(new RegExp(`"${key}":`, "g")) ?? []).length;
+      ok(count === 15, `${key} is authored in all 15 dictionaries (${count})`);
+    }
+  }
+
   // FOUND WHILE PLAYTESTING THE SAME RUN. The concept page's eyebrow rendered
   // the concept's raw internal `stage` — so a learner was greeted with a bare
   // "0" beside the subject name, a number with no label and nothing to do. Every
@@ -7308,18 +7980,29 @@ console.log("▸ A finished diagnostic is a change to where the learner belongs"
   // double-click asked the server to finish twice — and the second ask is
   // `400 no active session`, which the error branch puts on screen as raw server
   // text mid-first-run. Measured against the live route: 200 then 400.
-  // Scoped to `next` ON PURPOSE: both pins below read a function whose guard
-  // exists to be escaped. `answer` carries its own try/finally with the same
-  // line, so a file-wide match would pass on the sibling whenever this one lost
-  // its release — a pin that measures the wrong function is a pin that lies.
+  // Scoped to the ONE function that owns the guard ON PURPOSE: these pins read
+  // a function whose guard exists to be escaped. `answer` carries its own
+  // try/finally with the same line, so a file-wide match would pass on the
+  // sibling whenever this one lost its release — a pin that measures the wrong
+  // function is a pin that lies.
+  //
+  // The guard now lives on `finish`, because the "I don't know" control ends the
+  // sitting through the SAME path: two callers asking the server to close one
+  // sitting is exactly the double-finish this guard exists to refuse. So the
+  // scope follows the guard, and `next` must be seen to delegate to it.
   const nextFn = /async function next\(\)[\s\S]*?\n  }\n/.exec(diag)?.[0] ?? "";
+  const finishFn = /async function finish\(\)[\s\S]*?\n  }\n/.exec(diag)?.[0] ?? "";
   ok(nextFn.length > 0, "the diagnostic still has its next-step control");
-  ok(/if \(busy\.current\) return;\s*\n\s*busy\.current = true;\s*\n\s*try \{/.test(nextFn),
+  ok(finishFn.length > 0, "and closing the sitting is its own function, so one guard can own it");
+  ok(/await finish\(\);/.test(nextFn), "which the next-step control delegates to");
+  ok(/if \(busy\.current\) return;\s*\n\s*busy\.current = true;\s*\n\s*try \{/.test(finishFn),
     "and a second press is refused while the first is in flight");
   // The guard must not latch: clearing it only on the success path would leave
   // every later submission refused for the life of the page.
-  ok(/} finally \{\s*\n\s*busy\.current = false;/.test(nextFn),
+  ok(/} finally \{\s*\n\s*busy\.current = false;/.test(finishFn),
     "and the guard is released on every path, so the button cannot latch shut");
+  ok(finishFn.includes('action: "finish"'),
+    "and the function that owns the guard is the one that actually finishes");
   ok(diag.includes('<h1>{t("diag.report")}</h1>'),
     "and the report titles itself with a heading of its own");
   ok(!/<h1>\{t\("diag\.done"\)\}<\/h1>/.test(diag),
@@ -8168,6 +8851,183 @@ console.log("▸ Specification isolation: an advanced learner is not routed to e
     juniorInHl.length > 0,
     `int-ib/hl still declares junior maths inside an advanced tier (${juniorInHl.length} of ${hlMaths.length}) — this assertion pins the KNOWN declaration gap so it is reported, not silently grown`,
   );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// A SESSION COOKIE IS SECURE WHERE IT CAN BE, AND USABLE WHERE IT MUST BE
+// ════════════════════════════════════════════════════════════════════════════
+// The cookie was HttpOnly and SameSite=Lax but never Secure, in every
+// environment. That is wrong in BOTH directions at once: a real HTTPS
+// deployment transmitted the session on any downgraded request, while a
+// blanket `Secure` would have made the cookie invisible on the plain-HTTP
+// local and school deployments this product explicitly supports — a login that
+// silently fails. The flag follows the scheme, and the rule is asserted on the
+// REAL module rather than read out of its source.
+console.log("▸ A session cookie is Secure over HTTPS and usable over plain HTTP");
+{
+  const authMod = require("../.verify/server/auth.js");
+  const onHttp = authMod.cookieHeader("tok", new Request("http://localhost:3000/api/auth/login"));
+  const onHttps = authMod.cookieHeader("tok", new Request("https://openmind.example/api/auth/login"));
+  // A proxy terminates TLS and forwards plain HTTP with the original scheme.
+  const behindTls = authMod.cookieHeader(
+    "tok",
+    new Request("http://10.0.0.1/api/auth/login", { headers: { "x-forwarded-proto": "https" } }),
+  );
+  const cleared = authMod.clearCookieHeader(new Request("https://openmind.example/api/auth/logout"));
+  ok(/HttpOnly/.test(onHttp) && /SameSite=Lax/.test(onHttp),
+    "every session cookie is HttpOnly and SameSite=Lax");
+  ok(!/Secure/.test(onHttp),
+    "and is NOT Secure over plain HTTP — a cookie that is never sent is a login that silently fails on the local/school deployments this product supports");
+  ok(/Secure/.test(onHttps) && /Secure/.test(behindTls),
+    "but IS Secure over HTTPS and behind a TLS-terminating proxy, so a downgraded request cannot carry the session");
+  ok(/Secure/.test(cleared) && /Max-Age=0/.test(cleared),
+    "and the sign-out cookie clears with the same flags it was set with");
+}
+
+// ── ONE DECLARED COURSE DRIVES EVERY LAYER ─────────────────────────────────
+// A learner who says "Year 11" has not configured a label: they have chosen a
+// curriculum, a difficulty, a diagnostic sample, a paper and a tutor's frame.
+// This block declares ONE course and asserts each layer reads it, so a
+// regression in a single link fails here instead of surfacing as a Year 11
+// being served primary arithmetic.
+console.log("▸ One declared course drives every layer");
+{
+  const S = require("../.verify/specifications.js");
+  const papersMod = require("../.verify/papers.js");
+  const ctxMod = require("../.verify/tutor-context.js");
+
+  // AQA GCSE Mathematics, Higher tier, Year 11 — the flagship slice.
+  const higher = { country: "GB", board: "aqa", spec: "uk-gcse", specLevel: "higher", grade: "Year 11", subjects: ["maths"] };
+  const foundation = { country: "GB", board: "aqa", spec: "uk-gcse", specLevel: "foundation", grade: "Year 10", subjects: ["maths"] };
+  const activeH = S.specForProfile(higher, "maths");
+  const activeF = S.specForProfile(foundation, "maths");
+  const coveredH = new Set(S.coverageOf(activeH).map((c) => c.id));
+  const coveredF = new Set(S.coverageOf(activeF).map((c) => c.id));
+
+  // 1. CURRICULUM — the declared qualification and tier choose the concepts,
+  //    including the ones the tier EXCLUDES.
+  ok(activeH.spec.id === "uk-gcse" && activeH.level.id === "higher",
+    `the declared course resolves to its specification and tier (${activeH.spec.id}/${activeH.level.id})`);
+  ok(coveredH.has("quadratics") && !coveredH.has("logs") && !coveredH.has("calculus-diff"),
+    "and the Higher tier's own exclusions are honoured (no logs, no calculus)");
+  ok(coveredF.has("fractions") && !coveredF.has("completing-square") && coveredF.size !== coveredH.size,
+    "and a different tier is a DIFFERENT curriculum — Foundation excludes completing-square and is not Higher's set");
+
+  // 2. DIFFICULTY — the tier's band is what the serve aims at, and it moves
+  //    what is actually served.
+  ok(S.difficultyFor(activeH) === 0.65 && S.difficultyFor(activeF) === 0.45,
+    `the tier sets the practice difficulty (${S.difficultyFor(activeH)} vs ${S.difficultyFor(activeF)})`);
+  const meanAt = (aim) => {
+    let sum = 0, n = 0;
+    for (let i = 0; i < 12; i++) {
+      const q = questions.generateQuestionNear("quadratics", `course:${i}`, aim, 40);
+      if (q) { sum += q.difficulty; n++; }
+    }
+    return n ? sum / n : 0;
+  };
+  ok(meanAt(0.65) >= meanAt(0.45),
+    `and the served difficulty follows it (Higher mean ${meanAt(0.65).toFixed(3)} >= Foundation ${meanAt(0.45).toFixed(3)})`);
+
+  // 3. DIAGNOSTIC SAMPLING — a baseline samples the COURSE's concepts.
+  const sitting = diag.newDiagnosticSession("maths", "baseline", activeH);
+  ok(sitting.concepts.length >= 3 && sitting.concepts.every((c) => coveredH.has(c.conceptId)),
+    `a baseline samples only the declared course's concepts (${sitting.concepts.map((c) => c.conceptId).join(", ")})`);
+
+  // 4. PAPER SELECTION — a paper draws from the same course, and the tier
+  //    changes which concepts it may use.
+  const paperIdsH = papersMod.paperConcepts(activeH, "maths");
+  const paperIdsF = papersMod.paperConcepts(activeF, "maths");
+  ok(paperIdsH.length > 0 && paperIdsH.every((id) => coveredH.has(id)),
+    `a paper's concepts are the declared course's own (${paperIdsH.length} usable)`);
+  ok(paperIdsH.join("|") !== paperIdsF.join("|"),
+    "and a different tier selects a different paper's worth of concepts");
+
+  // 5. AI CONTEXT — the tutor is told the qualification, the board and the tier.
+  const course = S.courseSummaryFor(higher, "maths");
+  ok(course.qualification === "GCSE" && course.board === "aqa" && course.difficulty === 0.65,
+    `the tutor's course summary IS the declared course (${course.qualification} ${course.board} ${course.difficulty})`);
+  const packet = ctxMod.tutorGroundingPacket({
+    learnerId: "x", focus: { conceptId: "quadratics", title: "Quadratics", subject: "maths" },
+    decision: null, measured: [], unmeasured: [], misconceptions: [], serveReason: null,
+    projectionVersion: null, evidenceEvents: 0, unprojectable: null, course, language: "en",
+  }, "why is this hard?", "en");
+  ok(packet.includes("GCSE") && packet.includes("AQA"),
+    "and the model's prompt actually carries it (qualification and board appear in the packet)");
+
+  // 6. TERMINOLOGY — the board chooses the learner's own vocabulary.
+  ok(S.applyTerminology("Gradient", "commoncore") === "Slope" && S.applyTerminology("gradient", "aqa") === "gradient",
+    "the board drives the curriculum vocabulary (US 'slope' vs UK 'gradient')");
+  ok(S.courseSummaryFor({ country: "US", board: "commoncore", spec: "us-core", specLevel: "high" }, "maths").terms.some((t) => t.from === "gradient"),
+    "and that vocabulary is carried on the course summary the tutor reads");
+}
+
+// ── THE DEPLOYMENT REPORTS ITS OWN CONFIGURATION ───────────────────────────
+// The readiness check (/api/ready) and `npm run production-check` both act on
+// lib/env.ts, so the rules that decide "is this deployment configured?" are
+// pinned HERE rather than trusted. The honesty rule under test is that this
+// product needs NO environment variable to run: an empty environment is valid,
+// and only a PRESENT-AND-WRONG value is a problem.
+console.log("▸ The deployment reports its own configuration, and invents no requirements");
+{
+  const envMod = require("../.verify/env.js");
+  const versionMod = require("../.verify/version.js");
+
+  // 1. An empty environment is a VALID deployment — nothing is required.
+  const bare = envMod.envReport({});
+  ok(bare.ok === true, "an empty environment is well-formed (no variable is required to run)");
+  ok(bare.problems.length === 0, "it reports no problems");
+  ok(bare.deployment.profile.id === "default", `it runs the declared default profile (${bare.deployment.profile.id})`);
+  ok(bare.ai.provider === "offline", "and names the offline tutor as the AI provider");
+  ok(bare.notes.some((n) => n.code === "session_secret_generated"), "a generated session secret is a NOTE, never a problem");
+  ok(bare.notes.some((n) => n.code === "no_model_configured"), "so is having no model configured");
+
+  // 2. A refused deployment profile is a PROBLEM and the default is reported —
+  //    never the profile that was asked for.
+  const refused = envMod.envReport({ OPENMIND_DEPLOYMENT: "not_a_real_profile" });
+  ok(refused.ok === false, "an unknown deployment profile is a problem");
+  ok(refused.problems.some((p) => p.code === "unknown_profile"), "named unknown_profile");
+  ok(refused.deployment.profile.id === "default", "and the site is reported as the default, not the requested id");
+
+  // 3. A half-set AI endpoint is the classic silent misconfiguration.
+  const aiHalf = envMod.envReport({ OPENMIND_AI_BASE_URL: "https://model.internal/v1/chat/completions" });
+  ok(aiHalf.problems.some((p) => p.code === "ai_key_missing"), "a base URL with no key is a problem (ai_key_missing)");
+  const aiFull = envMod.envReport({ OPENMIND_AI_BASE_URL: "https://model.internal/v1", OPENMIND_AI_KEY: "k" });
+  ok(aiFull.ok && aiFull.ai.provider === "custom", "base URL + key resolves to the custom provider");
+  ok(envMod.envReport({ OPENMIND_AI_KEY: "k" }).problems.some((p) => p.code === "ai_base_url_missing"),
+    "a key with no base URL is a problem too (the key would never be used)");
+
+  // 4. The signing secret: short is a problem, long is not, absent is a note.
+  ok(envMod.envReport({ OPENMIND_SESSION_SECRET: "short" }).problems.some((p) => p.code === "session_secret_short"),
+    "a short session secret is a problem");
+  ok(envMod.envReport({ OPENMIND_SESSION_SECRET: "x".repeat(40) }).problems.length === 0,
+    "a 40-character session secret is accepted");
+
+  // 5. The impact key: short is a problem; absent is the documented open default.
+  ok(envMod.envReport({ OPENMIND_IMPACT_KEY: "tiny" }).problems.some((p) => p.code === "impact_key_short"),
+    "a short impact key is a problem");
+  ok(envMod.envReport({}).notes.some((n) => n.code === "impact_open"),
+    "an absent impact key is disclosed as an open aggregate report");
+
+  // 6. The public origin and the AI timeout are validated by shape.
+  ok(envMod.envReport({ NEXT_PUBLIC_APP_URL: "openmind.example.org" }).problems.some((p) => p.code === "app_url_bad"),
+    "a non-absolute app URL is a problem");
+  ok(envMod.envReport({ NEXT_PUBLIC_APP_URL: "https://openmind.example.org" }).problems.length === 0,
+    "an absolute app URL is accepted");
+  ok(envMod.envReport({ OPENMIND_AI_TIMEOUT_MS: "10" }).problems.some((p) => p.code === "ai_timeout_bad"),
+    "a nonsensical AI timeout is a problem");
+
+  // 7. The one-line summary is honest about both outcomes.
+  ok(envMod.envSummary(bare).includes("configuration ok"), "the summary says configuration is ok when it is");
+  ok(envMod.envSummary(refused).includes("problem"), "and says problem when there is one");
+
+  // 8. Version identity: the deployment id names a release, or admits it is local.
+  const pkg = JSON.parse(fs.readFileSync(nodePath.join(process.cwd(), "package.json"), "utf8"));
+  ok(versionMod.APP_VERSION === pkg.version, `APP_VERSION matches package.json (${versionMod.APP_VERSION})`);
+  ok(versionMod.deploymentId({}) === `local-${versionMod.APP_VERSION}`, "an undeclared build admits it is local");
+  ok(versionMod.deploymentId({ OPENMIND_DEPLOYMENT_ID: "2026.10.05-abc123" }) === "2026.10.05-abc123",
+    "an operator-declared deployment id is reported verbatim");
+  ok(versionMod.deploymentDeclared({}) === false && versionMod.deploymentDeclared({ OPENMIND_DEPLOYMENT_ID: "x" }) === true,
+    "and the report distinguishes a declared release from the local fallback");
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

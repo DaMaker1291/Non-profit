@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LanguagePicker, useAccount, useI18n, useProfile } from "@/lib/client";
+import { ContextStrip } from "@/components/context-strip";
 import { ctitle } from "@/lib/content-i18n";
 import { CONCEPTS } from "@/lib/genome";
 import { SUBJECT_LABELS } from "@/lib/subjects";
@@ -173,7 +174,6 @@ export function Nav() {
 export function Topbar() {
   const { t, lang } = useI18n();
   const { session, ready } = useAccount();
-  const { state } = useProfile();
   const path = usePathname();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -200,10 +200,9 @@ export function Topbar() {
     : path.startsWith("/papers") ? t("nav.papers")
       : path.startsWith("/progress") ? t("prog.title")
         : path.startsWith("/mind") ? t("mm.yourKnowledge")
-          : path.startsWith("/teacher") ? t("nav.teach")
-            : path.startsWith("/learn") ? t("nav.subjects")
+          : path.startsWith("/teacher") ? t("nav.teach")              : path.startsWith("/learn") ? t("nav.subjects")
               : "";
-  const subjects = state?.profile.subjects ?? [];
+
 
   return (
     <header className="topbar">
@@ -213,12 +212,11 @@ export function Topbar() {
           to see WHICH course this is being taught as, without opening anything. */}
       <div className="topbar-where">
         {here && <b>{here}</b>}
-        {subjects.length > 0 && (
-          <span>
-            {t(SUBJECT_LABELS[subjects[0]] ?? `subj.${subjects[0]}`)}
-            {state?.profile.board ? ` · ${String(state.profile.board).toUpperCase()}` : ""}
-          </span>
-        )}
+        {/* WHICH COURSE this is being taught as — country, qualification, board,
+            year and subject · tier. It used to be a bare subject name and a
+            board code, which told a learner nothing about the context the whole
+            product was in. See components/context-strip.tsx. */}
+        <ContextStrip />
       </div>
       <div className="topbar-spacer" />
 

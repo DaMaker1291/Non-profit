@@ -8,6 +8,7 @@ import { getConcept } from "@/lib/genome";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { SUBJECT_IDS, SUBJECT_LABELS, subjectFromParam } from "@/lib/subjects";
 import { ctitle, mcName, mcCoaching } from "@/lib/content-i18n";
+import PromptText from "@/components/prompt-text";
 import { fill } from "@/lib/i18n";
 import type { DiagnosticResult, Question, SubjectId } from "@/lib/types";
 
@@ -25,12 +26,21 @@ export default function DiagnosticPage() {
   const [q, setQ] = useState<Question | null>(null);
   const [nextQ, setNextQ] = useState<Question | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
+  /** What the learner says about their OWN knowing, before they see the choices
+   *  and before any verdict. Committed early on purpose: a grade shown first
+   *  contaminates the self-report, and the whole point is a clean signal.
+   *  "I don't know" is not a value here — it runs `skip`, a refusal to answer. */
+  const [certainty, setCertainty] = useState<"sure" | "unsure" | null>(null);
   const [graded, setGraded] = useState<Graded | null>(null);
   const [n, setN] = useState(0);
   const [nCorrect, setNCorrect] = useState(0);
   const [done, setDone] = useState<DiagnosticResult | null>(null);
   /** True when this mount picked up a sitting that was already in progress. */
   const [resumed, setResumed] = useState(false);
+  /** How long the whole sitting will be, from the server's forward simulation
+   *  (`plannedQuestions`). Zero until it arrives, so the counter degrades to a
+   *  bare number rather than to a total the app invented. */
+  const [estimate, setEstimate] = useState(0);
   const [err, setErr] = useState("");
   const busy = useRef(false);
 
@@ -48,6 +58,10 @@ export default function DiagnosticPage() {
     if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
     if (!body.question) { setErr(t("common.error")); return; }
     setQ(body.question);
+    // An adaptive sitting has NO fixed length, so the server hands back a
+    // measured estimate (it simulates the climb). The counter says "about"
+    // because that is exactly what the number is.
+    setEstimate(typeof body.estimate === "number" ? body.estimate : 0);
     // A RESUMED SITTING SAYS SO, AND KEEPS ITS PLACE. The route used to replace
     // the live sitting on every mount, so a reload served a different question
     // 01 and `setN(1)` labelled it "01" — a learner reloading mid-diagnostic was
@@ -77,7 +91,7 @@ export default function DiagnosticPage() {
       const res = await fetch("/api/diagnostic", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "answer", id, subject, questionId: q.id, chosen: i, lang, secret }),
+        body: JSON.stringify({ action: "answer", id, subject, questionId: q.id, chosen: i, lang, secret, certainty }),
       });
       const body = await res.json();
       if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
@@ -95,9 +109,53 @@ export default function DiagnosticPage() {
       setNextQ(null);
       setPicked(null);
       setGraded(null);
+      // The NEXT question is its own question: the previous one's self-report is
+      // already on the ledger and must not carry over as if it had been stated
+      // about this one.
+      setCertainty(null);
       setN((v) => v + 1);
       return;
     }
+    await finish();
+  }
+
+  /** "I don't know" — close the concept being measured and take the next one.
+   *  The server has owned this action (`skip`) all along; the page never
+   *  offered it, so a learner who genuinely did not know had to guess, and a
+   *  guess is a worse measurement than an admission — it is noise the report
+   *  then has to reason about. When nothing follows, the sitting is over and
+   *  closes exactly as the last question would. */
+  async function skip() {
+    if (busy.current || graded || !id) return;
+    busy.current = true;
+    try {
+      const res = await fetch("/api/diagnostic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "skip", id, subject, lang, secret }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
+      setResumed(false);
+      if (!body.next) {
+        // Release the lock so `finish` can take it — it guards the same ref.
+        busy.current = false;
+        await finish();
+        return;
+      }
+      setQ(body.next);
+      setNextQ(null);
+      setPicked(null);
+      setGraded(null);
+      setCertainty(null);
+      setN((v) => v + 1);
+    } finally {
+      busy.current = false;
+    }
+  }
+
+  /** Close the sitting and show the report. */
+  async function finish() {
     // ONE GUARD, BOTH PATHS. `answer` has always refused a second submission
     // while one was in flight; this one did not — so a double-click on the
     // button that ENDS the sitting asked the server to finish twice, and the
@@ -155,8 +213,12 @@ export default function DiagnosticPage() {
     const weakLine = weakest && weakest !== strongest && (weakest.estimate.value ?? 1) < 0.65 ? weakest : null;
     // "Thin" counts bands this sitting COULD have measured and did not — not
     // bands the instrument or the course's own questions cannot reach, which
-    // have their own notes and are not the learner's gap.
-    const thin = (done.skills ?? []).filter((s) => s.inBank && s.reachable && !s.estimate.measured).length;
+    // have their own notes and are not the learner's gap, and not bands the
+    // sitting's own PLACEMENT opened above (`notAsked`), which a learner who
+    // answered correctly on the way up used to be shown as a bare "not
+    // measured" — an absence of a question presented as an absence of knowing.
+    const thin = (done.skills ?? []).filter((s) => s.inBank && s.reachable && !s.estimate.measured && !s.notAsked).length;
+    const notAsked = (done.skills ?? []).filter((s) => s.inBank && s.notAsked);
     const skipped = done.skippedBands ?? [];
     return (
       <main className="container narrow" style={{ paddingTop: 44 }}>
@@ -168,6 +230,16 @@ export default function DiagnosticPage() {
             itself. */}
         <h1>{t("diag.report")}</h1>
         <p className="lead">{n} {t("diag.q1").toLowerCase()} · {nCorrect} ✓ · {done.misconceptions.length} {t("learn.misconceptions").toLowerCase()}</p>
+
+        {/* WHAT THE LEARNER SAID ABOUT THEIR OWN KNOWING. A score counts a
+            confident right answer and a half-guessed one identically; this is
+            the one line that tells them apart, and it is only shown when there
+            is something to say — never as an empty reassurance. */}
+        {done.certainty && done.certainty.unsureCorrect > 0 && (
+          <p className="note" data-certainty-note>
+            <span>{fill(t("diag.certaintyNote"), { u: done.certainty.unsureCorrect, n: nCorrect })}</span>
+          </p>
+        )}
 
         {done.misconceptions.length > 0 && (
           <section className="ruled">
@@ -227,6 +299,11 @@ export default function DiagnosticPage() {
             {done.skills.some((sk) => sk.inBank && !sk.reachable) && (
               <p className="small muted" style={{ marginTop: 4 }}>{t("diag.unreachableNote")}</p>
             )}
+            {/* The third honesty, and the one placement alone can state: the
+                sitting started above this level, so it was never asked. */}
+            {notAsked.length > 0 && (
+              <p className="small muted" style={{ marginTop: 4 }}>{t("diag.notAskedNote")}</p>
+            )}
           </section>
         )}
 
@@ -234,7 +311,7 @@ export default function DiagnosticPage() {
             them. Every sentence here is derived from the evidence above — the
             strongest and weakest measured levels, what was not measured, and
             any band skipped as already demonstrated. */}
-        {(strongest || weakLine || thin > 0 || skipped.length > 0) && (
+        {(strongest || weakLine || thin > 0 || skipped.length > 0 || notAsked.length > 0) && (
           <section className="ruled">
             <p className="eyebrow"><span className="no">✓</span> {t("diag.foundTitle")}</p>
             {strongest && (
@@ -250,6 +327,11 @@ export default function DiagnosticPage() {
             {thin > 0 && (
               <p style={{ margin: "0 0 6px" }}>{fill(t("diag.foundThin"), { k: thin })}</p>
             )}
+            {notAsked.map((s) => (
+              <p key={s.skill} className="small muted" style={{ margin: "0 0 6px" }}>
+                {fill(t("diag.foundNotAsked"), { band: t(`skill.${s.skill}`) })}
+              </p>
+            ))}
             {skipped.map((b) => (
               <p key={b} className="small muted" style={{ margin: "0 0 6px" }}>
                 {fill(t("diag.foundSkip"), { band: t(`skill.${b}`) })}
@@ -309,6 +391,29 @@ export default function DiagnosticPage() {
       <p className="eyebrow"><span className="no">{String(n).padStart(2, "0")}</span> {t("diag.title")} · {t(`subj.${subject}`)}</p>
       <h1 className="visually-small">{t("diag.sub")}</h1>
 
+      {/* HOW LONG THIS IS, AND A WAY OUT. The only number on this screen used
+          to be a bare `01.`, with no total and no exit, so the sitting read as
+          open-ended. The total is an ESTIMATE — a sitting is adaptive, so the
+          server measures it by simulating the climb and the counter says
+          "about" — and the concept is NAMED, so the learner knows what is
+          being measured rather than only how many are left. Leaving keeps the
+          sitting: the server resumes the same kind of sitting, and the notice
+          below says so when they come back. */}
+      <div className="rowline" style={{ marginBottom: 6 }}>
+        <span className="grow small muted" role="status" aria-live="polite">
+          {estimate > 0 ? fill(t("diag.progress"), { n, m: estimate }) : String(n)}
+          {q?.conceptId ? ` · ${ctitle(lang, q.conceptId)}` : ""}
+        </span>
+        <Link href={`/learn/${subject}`} className="small muted">{t("diag.leave")}</Link>
+      </div>
+      {/* It measures a starting point; it is not a grade. One line, already
+          authored in every dictionary, shown on the FIRST question of a fresh
+          sitting only — a resumed sitting is past being introduced to itself,
+          and a reassurance repeated under every question is noise. */}
+      {!resumed && n === 1 && (
+        <p className="small muted" style={{ margin: "0 0 8px" }}>{t("state.needsDiagnostic")}</p>
+      )}
+
       {/* A resumed sitting SAYS SO. Reloading mid-diagnostic used to serve a
           different question 01 labelled "01", and the only honest reading of
           that was "the app threw my work away". One line, using a key that is
@@ -331,7 +436,20 @@ export default function DiagnosticPage() {
       {q && (
         <div className="exercise">
           <p className="qnum mono">{String(n).padStart(2, "0")}.</p>
-          <p className="qtext">{q.prompt}</p>
+          <div className="qtext"><PromptText text={q.prompt} /></div>
+          {/* HOW SURE ARE YOU — asked FIRST, before the choices are revealed and
+              before anything is marked, so the grade cannot contaminate the
+              self-report. "I don't know" runs the existing skip action: a
+              refusal to answer, which is a better measurement than a guess. */}
+          {!certainty && !graded && (
+            <div className="actions" role="group" aria-label={t("diag.certaintyAsk")} data-certainty>
+              <span className="small muted" style={{ flexBasis: "100%" }}>{t("diag.certaintyAsk")}</span>
+              <button className="btn ghost small" onClick={() => setCertainty("sure")}>{t("diag.sure")}</button>
+              <button className="btn ghost small" onClick={() => setCertainty("unsure")}>{t("diag.unsure")}</button>
+              <button className="btn ghost small" onClick={skip}>{t("diag.dontKnow")}</button>
+            </div>
+          )}
+          {(certainty || graded) && (
           <div className="choices">
             {q.choices.map((c, i) => (
               <button
@@ -345,6 +463,7 @@ export default function DiagnosticPage() {
               </button>
             ))}
           </div>
+          )}
           {graded && (
             <div className={`marking ${graded.correct ? "good" : "bad"}`}>
               <span className="mark" aria-hidden="true">{graded.correct ? "✓" : "✗"}</span>
@@ -352,6 +471,10 @@ export default function DiagnosticPage() {
             </div>
           )}
           <div className="actions">
+            {/* The ways out are all above the fold now: "I don't know" sits
+                beside the two certainty options (it is a refusal to answer, and
+                a refusal the server already knew how to record), and once an
+                answer is marked this is the single primary action. */}
             {graded && (
               <button className="btn" onClick={next}>
                 {nextQ ? `${t("diag.next")} →` : `${t("diag.done")} →`}

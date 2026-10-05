@@ -6,6 +6,7 @@
 // strongest available claim about "your own paper" is that the store contains
 // marks and ideas and no question text, and only the file can prove it.
 import fs from "node:fs";
+import path from "node:path";
 import { createRequire } from "node:module";
 
 // One compiled fact the pack assertions need: which subject a concept belongs
@@ -14,7 +15,20 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const genome = require("../.verify/genome.js");
 
-const BASE = "http://localhost:4173";
+// Overridable so the suite can run beside a server that already owns 4173 — the
+// documented NEXT_DIST_DIR workflow exists precisely so a production build and a
+// dev server can coexist, and a harness that can only find one of them forces
+// the wrong one to be stopped. Defaults to the dev port the repo documents.
+const BASE = process.env.OPENMIND_BASE ?? "http://localhost:4173";
+// The store these file-level assertions READ has to be the store the server
+// WRITES. The routes resolve `OPENMIND_DATA_DIR` (lib/server/store.ts), so a
+// suite that hard-codes `.openmind-data` can only be run against the live local
+// store: point a server at a scratch directory and the file reads go to a
+// different tree, which reports a working product as broken. Same rule as the
+// server, so a scratch store proves the same claims without touching real data.
+const DATA_DIR = process.env.OPENMIND_DATA_DIR
+  ? path.resolve(process.env.OPENMIND_DATA_DIR)
+  : path.join(process.cwd(), ".openmind-data");
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.error("  ✗", m); } };
 
@@ -478,10 +492,19 @@ ok(dFin.body.result.misconceptions !== undefined, "result carries misconception 
   // learner.
   const reachable = (res.skills ?? []).filter((s) => s.inBank && s.reachable);
   ok(reachable.length >= 2, `this course's questions reach at least two demand bands (${reachable.map((s) => s.skill).join(", ")})`);
-  ok(reachable.every((s) => s.estimate.measured),
-    `a full baseline measures every band this course can reach (missing: ${reachable.filter((s) => !s.estimate.measured).map((s) => s.skill).join(", ") || "none"})`);
-  ok((res.skills ?? []).every((s) => s.estimate.measured || !s.inBank || !s.reachable),
-    `an unmeasured band always says why (${(res.skills ?? []).filter((s) => !s.estimate.measured).map((s) => `${s.skill}:${s.inBank ? (s.reachable ? "reachable" : "beyond-course") : "beyond-instrument"}`).join(", ")})`);
+  // A BAND THE SITTING WAS PLACED ABOVE IS NOT A BAND IT FAILED TO MEASURE.
+  // `notAsked` is the server's own statement that its placement opened higher
+  // (`openingStageFor`) and a correct run never descended below it — a fact
+  // about the SITTING, which the report shows the learner rather than leaving a
+  // bare “not measured” to be read as a gap in them. So the honest claim is the
+  // one that can be true: every reachable band is either measured or declared
+  // not-asked-here. Written without that clause the assertion demanded a
+  // `recall` measurement from a sitting deliberately placed at GCSE Higher — the
+  // same placement another gate section pins as correct.
+  ok(reachable.every((s) => s.estimate.measured || s.notAsked),
+    `a full baseline measures every band this course can reach, or says its own placement started above it (missing: ${reachable.filter((s) => !s.estimate.measured && !s.notAsked).map((s) => s.skill).join(", ") || "none"})`);
+  ok((res.skills ?? []).every((s) => s.estimate.measured || !s.inBank || !s.reachable || s.notAsked),
+    `an unmeasured band always says why (${(res.skills ?? []).filter((s) => !s.estimate.measured).map((s) => `${s.skill}:${s.inBank ? (s.notAsked ? "not-asked-here" : s.reachable ? "reachable" : "beyond-course") : "beyond-instrument"}`).join(", ")})`);
 
   const spent = (await getAuthed(`/api/profile?id=${pid}`, pid)).body;
   const ledger = spent.seenQuestions ?? {};
@@ -1251,7 +1274,7 @@ ok(typeof mWrong.body.hint?.text === "string" && mWrong.body.hint.text.length > 
 
   // ── The strongest claim of all, checked against the FILE: OpenMind stored
   //    marks and ideas, and no question text, because none was ever sent.
-  const stored = JSON.parse(fs.readFileSync(".openmind-data/personal-papers.json", "utf8"));
+  const stored = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "personal-papers.json"), "utf8"));
   const record = Object.values(stored).find((p) => p && p.id === made.body.paper.id);
   ok(Boolean(record), "the personal paper is on disk under its own id");
   const allowedPaper = ["id", "owner", "origin", "title", "board", "specId", "year", "questions", "createdAt"];
@@ -1519,7 +1542,7 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   // Read the MODEL off disk, not through the public profile view: the view
   // deliberately omits progress, and the claim here is about the model the
   // teaching engine actually reads.
-  const stored = JSON.parse(fs.readFileSync(".openmind-data/profiles.json", "utf8"));
+  const stored = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "profiles.json"), "utf8"));
   // Shape on disk: { [profileId]: { profile, progress, ... } } — progress is a
   // SIBLING of profile, not inside it.
   const model = stored[id]?.progress?.fractions ?? stored[id]?.profile?.progress?.fractions;
@@ -1661,7 +1684,7 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
 
   // The live model really does carry the deep surface being compared —
   // otherwise "zero differences" could mean "nothing was checked".
-  const storedR = JSON.parse(fs.readFileSync(".openmind-data/profiles.json", "utf8"));
+  const storedR = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "profiles.json"), "utf8"));
   const rmodel = storedR[rid]?.progress?.fractions;
   ok(!!rmodel && typeof rmodel.accuracy === "number" && typeof rmodel.totalMs === "number" && rmodel.attempts === 2,
     "the live model carries the deep surface (accuracy, pace) the replay claims to reproduce");
@@ -2431,7 +2454,7 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
   const CONCEPTS = ["fractions", "decimals", "ratio"];
   const courses = async (handle) =>
     (await newProfile({ handle, country: "GB", language: "en", subjects: ["maths"], spec: "uk-gcse" })).body.profile?.id;
-  const ledgerFile = (id) => `.openmind-data/evidence/${id}.jsonl`;
+  const ledgerFile = (id) => path.join(DATA_DIR, "evidence", `${id}.jsonl`);
   /** Serve one question per concept and keep the served id + right choice, so a
    *  later delivery can name the SAME question the device was holding. */
   const stage = async (id) => {

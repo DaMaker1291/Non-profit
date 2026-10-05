@@ -353,6 +353,24 @@ async function main() {
     const specText = await p.pick(qual(0), gbSpec, "the first subject's qualification");
     check(await p.valueOf(qual(0)) === gbSpec, `the qualification is chosen by keystroke (${specText})`);
 
+    // THE TIER IS THE LEARNER'S OWN CHOICE. Choosing a tiered qualification
+    // must NOT quietly enrol them at the qualification's first tier. Measured
+    // live, the select arrived with `levels[0]` (GCSE Foundation) already
+    // selected, so a Higher candidate was served — and taught — at Foundation
+    // depth without ever making that choice. The placeholder is the field
+    // saying so, and the gap line names the tier it is waiting for.
+    await p.waitFor(`return !!${level(0)};`, "the tier select to appear with the qualification");
+    check(await p.valueOf(level(0)) === "", "choosing a tiered qualification leaves the tier UNCHOSEN rather than defaulting to its first one");
+    const missingTier = await p.evaluate(`return (document.querySelector("main").innerText.match(/Mathematics · needs: [^\\n]+/) || [null])[0];`);
+    check(/Level/.test(missingTier ?? ""), `and the step names the tier it is waiting for (${missingTier})`);
+
+    // The tier options must belong to THAT qualification.
+    const tiers = await p.evaluate(`return [...${level(0)}.options].map(o => o.value).filter(Boolean);`);
+    const tier = tiers.includes("foundation") ? "foundation" : tiers[0];
+    check(Boolean(tier), `the qualification's tiers are offered (${tiers.join(", ")})`);
+    await p.pick(level(0), tier, "the first subject's tier");
+    check(await p.valueOf(level(0)) === tier, `and the tier belongs to it (${tier})`);
+
     // THE GATE, WHILE IT IS STILL CLOSED. One course per subject means a
     // half-configured learner must not be able to continue — and the screen has
     // to say which subject it is waiting for AND which part of the course is
@@ -364,19 +382,11 @@ async function main() {
     check(Boolean(refused.why), `and it names the subject it is waiting for, with the field it is missing (${refused.why})`);
     check(/Qualification/.test(refused.why ?? ""), "and the field it names is the one that is actually missing");
 
-    // The tier select only exists once a qualification with tiers is chosen —
-    // and the tier options must belong to THAT qualification.
-    await p.waitFor(`return !!${level(0)};`, "the tier select to appear with the qualification");
-    const tiers = await p.evaluate(`return [...${level(0)}.options].map(o => o.value);`);
-    const tier = tiers.includes("foundation") ? "foundation" : tiers[0];
-    await p.pick(level(0), tier, "the first subject's tier");
-    check(await p.valueOf(level(0)) === tier, `and the tier belongs to it (${tier} of ${tiers.join(", ")})`);
-
     // The second subject — its own course, chosen separately.
     await p.pick(qual(1), gbSpec, "the second subject's qualification");
     check(await p.valueOf(qual(1)) === gbSpec, "the second subject's course is chosen separately, not copied");
     if (await p.evaluate(`return !!${level(1)};`)) {
-      const tiers2 = await p.evaluate(`return [...${level(1)}.options].map(o => o.value);`);
+      const tiers2 = await p.evaluate(`return [...${level(1)}.options].map(o => o.value).filter(Boolean);`);
       await p.pick(level(1), tiers2.includes("foundation") ? "foundation" : tiers2[0], "the second subject's tier");
       check(await p.valueOf(level(1)) !== "", "and its tier is answered too");
     }
@@ -436,6 +446,80 @@ async function main() {
     await p.waitFor(`return location.pathname.startsWith("/diagnostic/");`, "the enrolment to finish and the diagnostic to open", 25000);
     const landed = await p.evaluate(`return { path: location.pathname, subject: location.pathname.split("/").pop() };`);
     check(landed.subject === "maths", `a new learner lands on the diagnostic for their first subject (${landed.path})`);
+
+    // ── The very first screen a new learner meets, in their own browser ──────
+    // A sitting is adaptive, so it has no fixed length — and it used to show a
+    // bare `01.` with no total, no concept named and no exit, which reads as
+    // open-ended. The denominator is the ENGINE's estimate (it simulates the
+    // climb), the concept is named, and a learner who does not know can say so
+    // instead of guessing.
+    // The counters render only once the first question has been served, so wait
+    // for the sitting rather than reading the screen mid-fetch.
+    await p.waitFor(`return /Question \\d+ of about \\d+/.test(document.querySelector("main").innerText);`, "the sitting to serve its first question and say how long it is", 20000);
+    const sitting = await p.evaluate(`const t = document.querySelector("main").innerText; const progress = (t.match(/Question \\d+ of about \\d+/) || [null])[0]; const buttons = [...document.querySelectorAll("main button")].map((b) => b.textContent.trim()); const links = [...document.querySelectorAll("main a")].map((a) => a.textContent.trim()); return { progress, sure: buttons.some((x) => /I think I know/.test(x)), unsure: buttons.some((x) => /I'm unsure/.test(x)), idk: buttons.some((x) => /I don't know/.test(x)), ask: !!document.querySelector("[data-certainty]"), choices: document.querySelectorAll("main .choices button").length, leave: links.some((x) => /Leave for now/.test(x)) };`);
+    check(/^Question \d+ of about \d+$/.test(sitting.progress ?? ""), `the sitting says how long it is, approximately (${sitting.progress})`);
+    check(sitting.sure && sitting.unsure && sitting.idk,
+      "and asks how sure the learner is, with an honest way to say they don't know");
+    // COMMITTED BEFORE THE VERDICT: the choices stay hidden until the learner has
+    // said, so a grade can never contaminate the self-report.
+    check(sitting.ask === true && sitting.choices === 0,
+      `the choices are withheld until the learner says how sure they are (${sitting.choices} shown)`);
+    check(sitting.leave, "and a way to leave without losing the sitting");
+
+    // And the self-report actually drives the sitting: saying it reveals the
+    // choices, and answering is marked server-side as always.
+    await p.clickExpr(`[...document.querySelectorAll("[data-certainty] button")].find(b => /think I know/.test(b.textContent || ""))`, 'the "I think I know" choice');
+    await p.waitFor(`return document.querySelectorAll("main .choices button").length > 0;`, "the choices to appear once the learner has said", 10000);
+    check(true, "saying how sure you are reveals the choices");
+    await p.clickExpr(`[...document.querySelectorAll("main .choices button")][0]`, "the first choice");
+    await p.waitFor(`return !!document.querySelector("main .marking");`, "the answer to come back marked", 15000);
+    const marked = await p.evaluate(`const m = document.querySelector("main .marking"); return { cls: m ? m.className : "" };`);
+    check(/good|bad/.test(marked.cls), `and the answer is still marked by the server (${marked.cls})`);
+
+    // ── §14: a paper is sat like an exam, not scrolled like a worksheet ─────
+    // The walk's learner is enrolled on GCSE maths, so the papers surface has a
+    // paper for them. The claim is that the sitting FEELS like an exam: a header
+    // that names the board and tier, a counter that says which question of how
+    // many, a grid to jump through, a flag, and Prev / Next / Finish.
+    section("A paper is sat like an exam");
+    await p.goto(`${BASE}/papers`);
+    await p.waitFor(`return [...document.querySelectorAll("main button")].some(b => /Start/.test(b.textContent || ""));`, "the paper picker to offer a paper to start", 20000);
+    await p.clickExpr(`[...document.querySelectorAll("main button")].find(b => /Start/.test(b.textContent || ""))`, "the first paper's Start button");
+    await p.waitFor(`return !!document.querySelector("[data-exam-head]") && /Question 1 of \\d+/.test(document.querySelector("[data-question-of]")?.textContent || "");`, "the exam header to name question 1 of how many", 25000);
+    const exam = await p.evaluate(`
+      const head = document.querySelector("[data-exam-head]");
+      const of = document.querySelector("[data-question-of]")?.textContent?.trim() ?? "";
+      const nums = [...document.querySelectorAll("[data-question-grid] button")].map(b => (b.textContent || "").trim()).filter(x => /^\\d+$/.test(x));
+      const labels = [...document.querySelectorAll("main button")].map(b => (b.textContent || "").trim());
+      return { head: (head?.innerText || "").replace(/\\n+/g, " · "), of, count: nums.length, flag: (document.querySelector("[data-flag-control]")?.textContent || "").trim(), prev: labels.some(x => /Previous/.test(x)), next: labels.some(x => /Next/.test(x)), finish: labels.some(x => /Finish/.test(x)) };
+    `);
+    check(/ · /.test(exam.head) && exam.head.length > 6, `the exam header names the paper's board, qualification and tier (${exam.head})`);
+    check(/^Question 1 of \d+$/.test(exam.of ?? ""), `the sitting says which question of how many (${exam.of})`);
+    check(exam.count >= 10, `every question in the paper gets a numbered press in the grid (${exam.count})`);
+    check(Boolean(exam.flag), `a question can be flagged to come back to (${exam.flag})`);
+    check(exam.prev && exam.next && exam.finish, "and the candidate can go back, forward, or finish at any point");
+
+    // The grid must MOVE the sitting, not merely highlight a box.
+    await p.clickExpr(`[...document.querySelectorAll("[data-question-grid] button")].find(b => (b.textContent || "").trim() === "3")`, "question 3 in the grid");
+    await p.waitFor(`return /Question 3 of \\d+/.test(document.querySelector("[data-question-of]")?.textContent || "");`, "the grid to move the sitting to question 3", 8000);
+    check(true, "the grid jumps the sitting to the question it names");
+
+    // Flagging must mark the QUESTION, not just the button.
+    await p.clickExpr(`document.querySelector("[data-flag-control]")`, "the flag control");
+    const flagged = await p.evaluate(`const b = document.querySelector("[data-flag-control]"); return { pressed: b?.getAttribute("aria-pressed"), label: (b?.textContent || "").trim(), marked: [...document.querySelectorAll("[data-question-grid] button")].some(x => x.getAttribute("data-flagged") === "1") };`);
+    check(flagged.pressed === "true" && flagged.marked, `flagging marks the question to come back to (${flagged.label})`);
+
+    // §20: the shell names the learner's COURSE, not just the page. The whole
+    // experience changes with it — curriculum map, questions, papers, vocabulary
+    // — and none of that was visible from the chrome, which showed a subject
+    // name and a board code and nothing about which course this actually was.
+    section("The shell names the learner's course");
+    const strip = await p.evaluate(`const el = document.querySelector("[data-context-strip]"); return { text: ((el?.innerText || el?.textContent || "")).trim(), label: el?.getAttribute("aria-label") ?? "" };`);
+    check(/United Kingdom/.test(strip.text) && /GCSE/.test(strip.text) && /AQA/.test(strip.text) && /Year 10/.test(strip.text),
+      `the shell names the learner's own country, course, board and year (${strip.text})`);
+    check(/Mathematics/.test(strip.text),
+      "and the subject they are being taught, in their own course's words");
+    check(Boolean(strip.label), "with an accessible name — it is a run of bare nouns joined by separators");
 
     const stored = await p.evaluate(`return { id: localStorage.getItem("openmind:profileId"), secret: localStorage.getItem("openmind:profileSecret") };`);
     profileId = stored.id;

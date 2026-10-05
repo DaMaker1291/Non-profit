@@ -20,6 +20,17 @@ export const ENGINE_SOURCES = [
   "lib/skills.ts",
   "lib/questions.ts",
   "lib/questions-deep.ts",
+  // The numeric-item families (§6): the concepts whose questions could only
+  // ever be four printed options, given an answer box. Compiled with the bank
+  // because the bank composes them, so the gate asserts the coverage on the
+  // REAL composed generator rather than a parallel list.
+  "lib/numeric-items.ts",
+  "lib/numeric-items-core.ts",
+  // The ONE answer-identity and grading rule. Pure, and shared by the server
+  // grade, the static twin and the serve search — a typed answer and its
+  // equivalent option must be the same answer everywhere, so it is compiled
+  // with the rest rather than left to each caller to re-derive.
+  "lib/answer.ts",
   // The re-framer, and its own question — can this concept's questions be put
   // on a second surface at all? The decision engine asks it (a TRANSFER
   // recommendation the serve cannot honour is a promise the product cannot
@@ -52,6 +63,14 @@ export const ENGINE_SOURCES = [
   // a leaf or the module graph closes a cycle.
   "lib/content-ceiling.ts",
   "lib/questions-senior.ts",
+  // The target environment, its derived answers, and the deployment's own
+  // configuration report. Pure (an env object in, a report out, no disk), so the
+  // suite can pin the rules that /api/ready and `npm run production-check` both
+  // act on — one definition, two callers, no second opinion about what
+  // "configured" means.
+  "lib/deployment.ts",
+  "lib/version.ts",
+  "lib/env.ts",
   // The profile's own shape (a new learner state, and the wire-stripping rule)
   // is pure, so it lives outside the fs-bound store and both builds share it.
   "lib/learner-profile.ts",
@@ -76,6 +95,11 @@ export const ENGINE_SOURCES = [
   "lib/replay.ts",
   "lib/decision.ts",
   "lib/server/store.ts",
+  // Real accounts: scrypt hashing, the signed session token, and the cookie
+  // attributes. Compiled with the rest so the suite can assert the SESSION
+  // FLAGS BEHAVIOURALLY (Secure follows the scheme, never blanket-on or
+  // blanket-off) rather than reading the source for a string.
+  "lib/server/auth.ts",
   "lib/server/evidence.ts",
   "lib/server/projection.ts",
   "lib/server/decision.ts",
@@ -86,6 +110,10 @@ export const ENGINE_SOURCES = [
   // of the pipeline runs from — no block may depend on another block's private
   // compile step to load it.
   "lib/evidence-view.ts",
+  // Prompt formatting (prose vs code). Pure and shared with the static build,
+  // so the suite can assert the split on the REAL questions rather than reading
+  // a regex over a renderer's source.
+  "lib/prompt.ts",
   // The AI layer's grounding. It belongs in the same mirror for the same
   // reason: the suite asserts that the tutor's input IS the decision the
   // surfaces display, and that nothing on the AI path can write. Both claims
