@@ -21,6 +21,37 @@ npm run db:rehearse   # up → verify → all the way down → up  (a scratch da
 npm run db:down       # revert the last migration (refused in production without --force)
 ```
 
+## Rehearsing it on a scratch database (what CI does, done locally)
+
+`npm run db:rehearse` needs a database it may destroy, so it must never be
+pointed at one holding a learner's record. A throwaway cluster is four commands
+and touches nothing on the machine that already runs PostgreSQL:
+
+```bash
+export PATH="$(brew --prefix postgresql@15)/bin:$PATH"
+export LC_ALL=C                      # see the note below — this is not optional on macOS
+initdb -D /tmp/om-pg/data -U openmind --auth=trust
+pg_ctl -D /tmp/om-pg/data -o "-p 55432 -k /tmp/om-pg -c listen_addresses=127.0.0.1" -l /tmp/om-pg/server.log start
+createdb -h 127.0.0.1 -p 55432 -U openmind openmind_rehearse
+
+export DATABASE_URL="postgres://openmind@127.0.0.1:55432/openmind_rehearse"
+npm run db:status && npm run db:rehearse && npm run db:verify
+pg_ctl -D /tmp/om-pg/data stop      # when you are done
+```
+
+**`LC_ALL` IS LOAD-BEARING, and the failure it prevents is unhelpful.** Without a
+valid locale the postmaster aborts during startup with
+`FATAL: postmaster became multithreaded during startup` — a message that names
+nothing about the environment and reads like a corrupted data directory. It is a
+macOS/locale interaction, and `LC_ALL=C` is the whole fix.
+
+`production-check` also has a database branch, and it is worth running once
+against this cluster: with `DATABASE_URL` set it reads the schema's status (and
+FAILS on pending or drifted migrations rather than passing quietly) and then
+executes `db:verify`'s invariants — append-only, idempotent re-send, erasure —
+against the real database. Without `DATABASE_URL` the same step is reported as a
+skip with its reason, never as a pass.
+
 ## The rules, and why the runner enforces each one
 
 1. **Every migration is PAIRED.** A `.up.sql` with no `.down.sql` is not a
