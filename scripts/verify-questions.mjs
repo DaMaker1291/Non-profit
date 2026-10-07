@@ -32,7 +32,7 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "om-questions-"));
 //   specifications -> {genome, curriculum, types}, genome -> types
 //   numeric-items -> {types, numeric-items-core}, numeric-items-core -> numeric-items
 //   answer -> types
-for (const file of ["types.ts", "i18n.ts", "genome.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-computing.ts", "questions-chemistry.ts", "questions-physics.ts", "questions-biology.ts", "questions-senior.ts", "numeric-items.ts", "numeric-items-core.ts", "answer.ts", "questions.ts"]) {
+for (const file of ["types.ts", "i18n.ts", "genome.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-computing.ts", "questions-chemistry.ts", "questions-physics.ts", "questions-biology.ts", "questions-mid-maths.ts", "questions-mid-computing.ts", "questions-mid-physics.ts", "questions-mid-chemistry.ts", "questions-mid-biology.ts", "questions-senior.ts", "numeric-items.ts", "numeric-items-core.ts", "answer.ts", "questions.ts"]) {
   const src = fs.readFileSync(path.join(LIB, file), "utf8");
   const js = ts.transpileModule(src, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },

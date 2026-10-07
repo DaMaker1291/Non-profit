@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T18:16:33.668Z",
+  "generatedAt": "2026-10-07T21:00:22.669Z",
   "productionAttempts": 40,
   "drawsPerConcept": 5,
   "note": "Current-code measurements, not a transcription of the audit. Where current code differs from the audit, F1 and F3 carry the explanation.",
@@ -28,11 +28,11 @@
       "method": "generateQuestionNear(id, seed, level.difficulty, 40) — the call app/api/progress/route.ts makes, not the library default.",
       "tiersMeasured": 55,
       "advancedTiers": 16,
-      "advancedMedianReachingTarget": 8,
-      "advancedMeanServed": 0.676,
+      "advancedMedianReachingTarget": 11,
+      "advancedMeanServed": 0.753,
       "servedRange": [
-        0.302,
-        0.794
+        0.351,
+        0.899
       ],
       "declaredRange": [
         0.35,
@@ -48,40 +48,40 @@
           "target": 0.9,
           "concepts": 87,
           "items": 435,
-          "meanServed": 0.794,
-          "medianServed": 0.8,
-          "reachesTargetByMedian": false,
+          "meanServed": 0.899,
+          "medianServed": 0.901,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 43,
-              "ceilingBelowTarget": 0,
-              "minCeiling": 0.903,
+              "ceilingBelowTarget": 3,
+              "minCeiling": 0.886,
               "maxCeiling": 0.94
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 14,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.8
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 12,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.856,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 8,
-              "ceilingBelowTarget": 8,
-              "minCeiling": 0.45,
-              "maxCeiling": 0.75
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.947,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 10,
-              "ceilingBelowTarget": 10,
-              "minCeiling": 0.45,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.959
             }
           }
         },
@@ -92,40 +92,40 @@
           "target": 0.9,
           "concepts": 131,
           "items": 655,
-          "meanServed": 0.696,
-          "medianServed": 0.75,
+          "meanServed": 0.853,
+          "medianServed": 0.9,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 24,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 27,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 18,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 16,
-              "ceilingBelowTarget": 16,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 16,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 4,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 18,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -136,40 +136,40 @@
           "target": 0.85,
           "concepts": 87,
           "items": 435,
-          "meanServed": 0.775,
-          "medianServed": 0.8,
-          "reachesTargetByMedian": false,
+          "meanServed": 0.881,
+          "medianServed": 0.885,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 43,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.903,
+              "minCeiling": 0.886,
               "maxCeiling": 0.94
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 14,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.8
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 12,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.856,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 8,
-              "ceilingBelowTarget": 8,
-              "minCeiling": 0.45,
-              "maxCeiling": 0.75
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.947,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 10,
-              "ceilingBelowTarget": 10,
-              "minCeiling": 0.45,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.959
             }
           }
         },
@@ -180,40 +180,40 @@
           "target": 0.85,
           "concepts": 131,
           "items": 655,
-          "meanServed": 0.685,
-          "medianServed": 0.75,
-          "reachesTargetByMedian": false,
+          "meanServed": 0.839,
+          "medianServed": 0.874,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 24,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 23,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 18,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 16,
-              "ceilingBelowTarget": 16,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 16,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 18,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -224,40 +224,40 @@
           "target": 0.85,
           "concepts": 131,
           "items": 655,
-          "meanServed": 0.685,
-          "medianServed": 0.75,
-          "reachesTargetByMedian": false,
+          "meanServed": 0.839,
+          "medianServed": 0.875,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 24,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 23,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 18,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 16,
-              "ceilingBelowTarget": 16,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 16,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 1,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 18,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -268,40 +268,40 @@
           "target": 0.8,
           "concepts": 135,
           "items": 675,
-          "meanServed": 0.689,
-          "medianServed": 0.75,
-          "reachesTargetByMedian": false,
+          "meanServed": 0.835,
+          "medianServed": 0.874,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 67,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.94
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 14,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 16,
-              "ceilingBelowTarget": 16,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 16,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 18,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -312,40 +312,40 @@
           "target": 0.78,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.651,
-          "medianServed": 0.72,
+          "meanServed": 0.712,
+          "medianServed": 0.75,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 6,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 13,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 14,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 18,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -356,40 +356,40 @@
           "target": 0.75,
           "concepts": 83,
           "items": 415,
-          "meanServed": 0.721,
-          "medianServed": 0.75,
-          "reachesTargetByMedian": true,
-          "allConceptsCeilingAtTarget": false,
+          "meanServed": 0.717,
+          "medianServed": 0.737,
+          "reachesTargetByMedian": false,
+          "allConceptsCeilingAtTarget": true,
           "bySubject": {
             "maths": {
               "concepts": 39,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.903,
+              "minCeiling": 0.886,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 4,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.8
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 12,
-              "ceilingBelowTarget": 6,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.856,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 8,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.45,
-              "maxCeiling": 0.75
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.947,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 10,
-              "ceilingBelowTarget": 10,
-              "minCeiling": 0.45,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.959
             }
           }
         },
@@ -400,40 +400,40 @@
           "target": 0.75,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.649,
-          "medianServed": 0.72,
+          "meanServed": 0.708,
+          "medianServed": 0.749,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 4,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 6,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 6,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 18,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -444,40 +444,40 @@
           "target": 0.7,
           "concepts": 131,
           "items": 655,
-          "meanServed": 0.641,
+          "meanServed": 0.684,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 16,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 4,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 15,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -488,40 +488,40 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.639,
+          "meanServed": 0.681,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 4,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 15,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -532,40 +532,40 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.639,
+          "meanServed": 0.681,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 4,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 15,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -576,40 +576,40 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.639,
+          "meanServed": 0.683,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 4,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 15,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -620,40 +620,40 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.639,
+          "meanServed": 0.681,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 4,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 15,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -664,40 +664,40 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.639,
+          "meanServed": 0.68,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 4,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 15,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -708,40 +708,40 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.639,
+          "meanServed": 0.678,
           "medianServed": 0.7,
-          "reachesTargetByMedian": true,
+          "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 4,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 15,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -752,40 +752,40 @@
           "target": 0.68,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.624,
-          "medianServed": 0.66,
-          "reachesTargetByMedian": false,
+          "meanServed": 0.669,
+          "medianServed": 0.68,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 15,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -796,40 +796,40 @@
           "target": 0.68,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.624,
-          "medianServed": 0.66,
-          "reachesTargetByMedian": false,
+          "meanServed": 0.67,
+          "medianServed": 0.68,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 15,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -840,40 +840,40 @@
           "target": 0.68,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.624,
-          "medianServed": 0.66,
+          "meanServed": 0.667,
+          "medianServed": 0.679,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 21,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 15,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -884,40 +884,40 @@
           "target": 0.65,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.59,
-          "medianServed": 0.62,
+          "meanServed": 0.634,
+          "medianServed": 0.645,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 20,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 14,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -928,40 +928,40 @@
           "target": 0.65,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.59,
-          "medianServed": 0.62,
+          "meanServed": 0.633,
+          "medianServed": 0.644,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 20,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 14,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -972,40 +972,40 @@
           "target": 0.65,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.59,
-          "medianServed": 0.62,
+          "meanServed": 0.629,
+          "medianServed": 0.642,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 20,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 14,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1016,40 +1016,40 @@
           "target": 0.65,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.59,
-          "medianServed": 0.62,
+          "meanServed": 0.636,
+          "medianServed": 0.645,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 20,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 14,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1060,40 +1060,40 @@
           "target": 0.65,
           "concepts": 126,
           "items": 630,
-          "meanServed": 0.59,
-          "medianServed": 0.62,
+          "meanServed": 0.632,
+          "medianServed": 0.644,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 20,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1104,40 +1104,40 @@
           "target": 0.65,
           "concepts": 126,
           "items": 630,
-          "meanServed": 0.589,
-          "medianServed": 0.62,
+          "meanServed": 0.633,
+          "medianServed": 0.646,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 20,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1148,40 +1148,40 @@
           "target": 0.65,
           "concepts": 126,
           "items": 630,
-          "meanServed": 0.59,
-          "medianServed": 0.62,
+          "meanServed": 0.634,
+          "medianServed": 0.647,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 20,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1192,15 +1192,15 @@
           "target": 0.6,
           "concepts": 53,
           "items": 265,
-          "meanServed": 0.531,
-          "medianServed": 0.601,
+          "meanServed": 0.607,
+          "medianServed": 0.611,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 53,
-              "ceilingBelowTarget": 13,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             }
           }
@@ -1212,40 +1212,40 @@
           "target": 0.6,
           "concepts": 131,
           "items": 655,
-          "meanServed": 0.564,
-          "medianServed": 0.6,
+          "meanServed": 0.624,
+          "medianServed": 0.62,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 63,
-              "ceilingBelowTarget": 13,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 16,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1256,40 +1256,40 @@
           "target": 0.55,
           "concepts": 122,
           "items": 610,
-          "meanServed": 0.484,
+          "meanServed": 0.512,
           "medianServed": 0.5,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 55,
-              "ceilingBelowTarget": 13,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 7,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1300,40 +1300,40 @@
           "target": 0.55,
           "concepts": 123,
           "items": 615,
-          "meanServed": 0.484,
+          "meanServed": 0.513,
           "medianServed": 0.5,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 56,
-              "ceilingBelowTarget": 13,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 7,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1344,40 +1344,40 @@
           "target": 0.55,
           "concepts": 123,
           "items": 615,
-          "meanServed": 0.484,
+          "meanServed": 0.512,
           "medianServed": 0.5,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 56,
-              "ceilingBelowTarget": 13,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 7,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1388,40 +1388,40 @@
           "target": 0.55,
           "concepts": 123,
           "items": 615,
-          "meanServed": 0.484,
+          "meanServed": 0.511,
           "medianServed": 0.5,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 56,
-              "ceilingBelowTarget": 13,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 7,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1432,40 +1432,40 @@
           "target": 0.55,
           "concepts": 123,
           "items": 615,
-          "meanServed": 0.484,
+          "meanServed": 0.512,
           "medianServed": 0.5,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 56,
-              "ceilingBelowTarget": 13,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 8,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 7,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1476,40 +1476,40 @@
           "target": 0.5,
           "concepts": 123,
           "items": 615,
-          "meanServed": 0.448,
-          "medianServed": 0.45,
-          "reachesTargetByMedian": false,
+          "meanServed": 0.481,
+          "medianServed": 0.5,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 56,
-              "ceilingBelowTarget": 13,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 7,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 2,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 7,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1520,40 +1520,40 @@
           "target": 0.45,
           "concepts": 122,
           "items": 610,
-          "meanServed": 0.423,
+          "meanServed": 0.465,
           "medianServed": 0.45,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 55,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 18,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.8,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 15,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 16,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 18,
-              "ceilingBelowTarget": 5,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.72
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.923,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1564,40 +1564,40 @@
           "target": 0.45,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.41,
+          "meanServed": 0.462,
           "medianServed": 0.45,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 5,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1608,40 +1608,40 @@
           "target": 0.45,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.41,
+          "meanServed": 0.462,
           "medianServed": 0.45,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 5,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1652,40 +1652,40 @@
           "target": 0.42,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.363,
+          "meanServed": 0.385,
           "medianServed": 0.4,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 5,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1696,40 +1696,40 @@
           "target": 0.42,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.364,
+          "meanServed": 0.386,
           "medianServed": 0.4,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 5,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1740,40 +1740,40 @@
           "target": 0.42,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.364,
+          "meanServed": 0.387,
           "medianServed": 0.4,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 5,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1784,40 +1784,40 @@
           "target": 0.42,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.363,
+          "meanServed": 0.387,
           "medianServed": 0.4,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 5,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1828,40 +1828,40 @@
           "target": 0.42,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.362,
+          "meanServed": 0.386,
           "medianServed": 0.4,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 5,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1872,40 +1872,40 @@
           "target": 0.42,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.364,
+          "meanServed": 0.387,
           "medianServed": 0.4,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 5,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1916,40 +1916,40 @@
           "target": 0.42,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.364,
+          "meanServed": 0.387,
           "medianServed": 0.4,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 12,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 6,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 5,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -1960,40 +1960,40 @@
           "target": 0.4,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.361,
+          "meanServed": 0.387,
           "medianServed": 0.4,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 11,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -2004,40 +2004,40 @@
           "target": 0.4,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.36,
+          "meanServed": 0.386,
           "medianServed": 0.4,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 11,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -2048,40 +2048,40 @@
           "target": 0.4,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.361,
+          "meanServed": 0.387,
           "medianServed": 0.4,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 11,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -2092,40 +2092,40 @@
           "target": 0.4,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.361,
+          "meanServed": 0.387,
           "medianServed": 0.4,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 11,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -2136,40 +2136,40 @@
           "target": 0.4,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.361,
+          "meanServed": 0.386,
           "medianServed": 0.4,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 11,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -2180,40 +2180,40 @@
           "target": 0.4,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.36,
+          "meanServed": 0.386,
           "medianServed": 0.4,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 11,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -2224,40 +2224,40 @@
           "target": 0.4,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.361,
+          "meanServed": 0.387,
           "medianServed": 0.4,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 11,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -2268,40 +2268,40 @@
           "target": 0.4,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.361,
+          "meanServed": 0.386,
           "medianServed": 0.4,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 11,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -2312,40 +2312,40 @@
           "target": 0.4,
           "concepts": 94,
           "items": 470,
-          "meanServed": 0.361,
+          "meanServed": 0.386,
           "medianServed": 0.4,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 42,
-              "ceilingBelowTarget": 11,
-              "minCeiling": 0.08,
+              "ceilingBelowTarget": 5,
+              "minCeiling": 0.3,
               "maxCeiling": 0.938
             },
             "physics": {
               "concepts": 14,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.25,
-              "maxCeiling": 0.811
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.811,
+              "maxCeiling": 0.96
             },
             "chemistry": {
               "concepts": 11,
-              "ceilingBelowTarget": 1,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.78
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.853,
+              "maxCeiling": 0.96
             },
             "biology": {
               "concepts": 13,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "minCeiling": 0.85,
+              "maxCeiling": 0.96
             },
             "computing": {
               "concepts": 14,
-              "ceilingBelowTarget": 3,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.7
+              "ceilingBelowTarget": 0,
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -2356,40 +2356,40 @@
           "target": 0.35,
           "concepts": 48,
           "items": 240,
-          "meanServed": 0.303,
+          "meanServed": 0.351,
           "medianServed": 0.35,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 24,
-              "ceilingBelowTarget": 11,
-              "minCeiling": 0.08,
-              "maxCeiling": 0.827
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.3,
+              "maxCeiling": 0.856
             },
             "physics": {
               "concepts": 4,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.78,
-              "maxCeiling": 0.811
+              "minCeiling": 0.811,
+              "maxCeiling": 0.859
             },
             "chemistry": {
               "concepts": 4,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.75,
-              "maxCeiling": 0.78
+              "minCeiling": 0.853,
+              "maxCeiling": 0.86
             },
             "biology": {
               "concepts": 8,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "minCeiling": 0.85,
+              "maxCeiling": 0.959
             },
             "computing": {
               "concepts": 8,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.58
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         },
@@ -2400,40 +2400,40 @@
           "target": 0.35,
           "concepts": 48,
           "items": 240,
-          "meanServed": 0.302,
-          "medianServed": 0.3,
-          "reachesTargetByMedian": false,
+          "meanServed": 0.351,
+          "medianServed": 0.35,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
               "concepts": 24,
-              "ceilingBelowTarget": 11,
-              "minCeiling": 0.08,
-              "maxCeiling": 0.827
+              "ceilingBelowTarget": 2,
+              "minCeiling": 0.3,
+              "maxCeiling": 0.856
             },
             "physics": {
               "concepts": 4,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.78,
-              "maxCeiling": 0.811
+              "minCeiling": 0.811,
+              "maxCeiling": 0.859
             },
             "chemistry": {
               "concepts": 4,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.75,
-              "maxCeiling": 0.78
+              "minCeiling": 0.853,
+              "maxCeiling": 0.86
             },
             "biology": {
               "concepts": 8,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.4,
-              "maxCeiling": 0.78
+              "minCeiling": 0.85,
+              "maxCeiling": 0.959
             },
             "computing": {
               "concepts": 8,
               "ceilingBelowTarget": 0,
-              "minCeiling": 0.35,
-              "maxCeiling": 0.58
+              "minCeiling": 0.94,
+              "maxCeiling": 0.96
             }
           }
         }
@@ -2449,28 +2449,28 @@
           "target": 0.9,
           "byAttempts": {
             "4": {
-              "meanServed": 0.72,
-              "p25": 0.6,
-              "median": 0.75,
-              "p75": 0.897,
-              "pctAtOrAbove075": 54,
-              "pctMoreThanOneBandOut": 23
+              "meanServed": 0.821,
+              "p25": 0.724,
+              "median": 0.9,
+              "p75": 0.919,
+              "pctAtOrAbove075": 74,
+              "pctMoreThanOneBandOut": 9
             },
             "12": {
-              "meanServed": 0.781,
-              "p25": 0.72,
-              "median": 0.8,
-              "p75": 0.9,
-              "pctAtOrAbove075": 70,
-              "pctMoreThanOneBandOut": 12
+              "meanServed": 0.897,
+              "p25": 0.897,
+              "median": 0.904,
+              "p75": 0.914,
+              "pctAtOrAbove075": 97,
+              "pctMoreThanOneBandOut": 1
             },
             "40": {
-              "meanServed": 0.794,
-              "p25": 0.75,
-              "median": 0.8,
-              "p75": 0.9,
-              "pctAtOrAbove075": 76,
-              "pctMoreThanOneBandOut": 8
+              "meanServed": 0.899,
+              "p25": 0.899,
+              "median": 0.901,
+              "p75": 0.904,
+              "pctAtOrAbove075": 99,
+              "pctMoreThanOneBandOut": 0
             }
           }
         },
@@ -2480,28 +2480,28 @@
           "target": 0.9,
           "byAttempts": {
             "4": {
-              "meanServed": 0.621,
-              "p25": 0.45,
-              "median": 0.649,
-              "p75": 0.865,
-              "pctAtOrAbove075": 40,
-              "pctMoreThanOneBandOut": 39
+              "meanServed": 0.784,
+              "p25": 0.7,
+              "median": 0.867,
+              "p75": 0.912,
+              "pctAtOrAbove075": 70,
+              "pctMoreThanOneBandOut": 15
             },
             "12": {
-              "meanServed": 0.684,
-              "p25": 0.6,
-              "median": 0.75,
-              "p75": 0.896,
-              "pctAtOrAbove075": 54,
-              "pctMoreThanOneBandOut": 24
+              "meanServed": 0.849,
+              "p25": 0.845,
+              "median": 0.9,
+              "p75": 0.91,
+              "pctAtOrAbove075": 91,
+              "pctMoreThanOneBandOut": 7
             },
             "40": {
-              "meanServed": 0.696,
-              "p25": 0.62,
-              "median": 0.75,
-              "p75": 0.899,
-              "pctAtOrAbove075": 59,
-              "pctMoreThanOneBandOut": 22
+              "meanServed": 0.853,
+              "p25": 0.856,
+              "median": 0.9,
+              "p75": 0.903,
+              "pctAtOrAbove075": 94,
+              "pctMoreThanOneBandOut": 6
             }
           }
         },
@@ -2511,28 +2511,28 @@
           "target": 0.85,
           "byAttempts": {
             "4": {
-              "meanServed": 0.715,
-              "p25": 0.58,
-              "median": 0.75,
-              "p75": 0.879,
-              "pctAtOrAbove075": 56,
-              "pctMoreThanOneBandOut": 25
+              "meanServed": 0.823,
+              "p25": 0.75,
+              "median": 0.893,
+              "p75": 0.916,
+              "pctAtOrAbove075": 75,
+              "pctMoreThanOneBandOut": 9
             },
             "12": {
-              "meanServed": 0.768,
-              "p25": 0.72,
-              "median": 0.8,
-              "p75": 0.87,
-              "pctAtOrAbove075": 71,
-              "pctMoreThanOneBandOut": 10
+              "meanServed": 0.887,
+              "p25": 0.876,
+              "median": 0.898,
+              "p75": 0.911,
+              "pctAtOrAbove075": 96,
+              "pctMoreThanOneBandOut": 0
             },
             "40": {
-              "meanServed": 0.775,
-              "p25": 0.74,
-              "median": 0.8,
-              "p75": 0.861,
-              "pctAtOrAbove075": 75,
-              "pctMoreThanOneBandOut": 8
+              "meanServed": 0.881,
+              "p25": 0.863,
+              "median": 0.885,
+              "p75": 0.902,
+              "pctAtOrAbove075": 100,
+              "pctMoreThanOneBandOut": 0
             }
           }
         },
@@ -2542,28 +2542,28 @@
           "target": 0.65,
           "byAttempts": {
             "4": {
-              "meanServed": 0.569,
-              "p25": 0.45,
-              "median": 0.6,
-              "p75": 0.72,
-              "pctAtOrAbove075": 24,
-              "pctMoreThanOneBandOut": 23
+              "meanServed": 0.58,
+              "p25": 0.5,
+              "median": 0.59,
+              "p75": 0.654,
+              "pctAtOrAbove075": 15,
+              "pctMoreThanOneBandOut": 10
             },
             "12": {
-              "meanServed": 0.593,
-              "p25": 0.5,
+              "meanServed": 0.618,
+              "p25": 0.55,
               "median": 0.62,
-              "p75": 0.7,
-              "pctAtOrAbove075": 22,
-              "pctMoreThanOneBandOut": 16
+              "p75": 0.695,
+              "pctAtOrAbove075": 15,
+              "pctMoreThanOneBandOut": 6
             },
             "40": {
-              "meanServed": 0.59,
-              "p25": 0.58,
-              "median": 0.62,
-              "p75": 0.66,
-              "pctAtOrAbove075": 19,
-              "pctMoreThanOneBandOut": 15
+              "meanServed": 0.634,
+              "p25": 0.6,
+              "median": 0.645,
+              "p75": 0.669,
+              "pctAtOrAbove075": 14,
+              "pctMoreThanOneBandOut": 5
             }
           }
         }
@@ -2582,136 +2582,136 @@
           "spec": "int-ib",
           "level": "sl",
           "target": 0.7,
-          "juniorInMaths": 21,
+          "juniorInMaths": 8,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "int-ib",
           "level": "hl",
           "target": 0.9,
-          "juniorInMaths": 24,
+          "juniorInMaths": 27,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "au-acara",
           "level": "senior",
           "target": 0.7,
-          "juniorInMaths": 21,
+          "juniorInMaths": 8,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "ie-junior",
           "level": "senior",
           "target": 0.7,
-          "juniorInMaths": 21,
+          "juniorInMaths": 8,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "in-cbse",
           "level": "class11-12",
           "target": 0.85,
-          "juniorInMaths": 24,
+          "juniorInMaths": 23,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "in-icse",
           "level": "isc",
           "target": 0.85,
-          "juniorInMaths": 24,
+          "juniorInMaths": 23,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "pk-matric",
           "level": "inter",
           "target": 0.75,
-          "juniorInMaths": 21,
+          "juniorInMaths": 8,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "bd-ssc",
           "level": "hsc",
           "target": 0.78,
-          "juniorInMaths": 21,
+          "juniorInMaths": 8,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "ke-kcse",
           "level": "form4",
           "target": 0.7,
-          "juniorInMaths": 21,
+          "juniorInMaths": 8,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "ng-waec",
           "level": "sss",
           "target": 0.7,
-          "juniorInMaths": 21,
+          "juniorInMaths": 8,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "br-enem",
           "level": "medio",
           "target": 0.7,
-          "juniorInMaths": 21,
+          "juniorInMaths": 8,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "mx-sep",
           "level": "prepa",
           "target": 0.7,
-          "juniorInMaths": 21,
+          "juniorInMaths": 8,
           "mathsConcepts": 63,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         },
         {
           "spec": "any-independent",
           "level": "advanced",
           "target": 0.8,
-          "juniorInMaths": 21,
+          "juniorInMaths": 8,
           "mathsConcepts": 67,
-          "lowestCeiling": 0.08
+          "lowestCeiling": 0.3
         }
       ],
       "perSubjectAcrossAdvancedTiers": {
         "maths": {
           "concepts": 948,
-          "ceilingBelowTarget": 282,
-          "tiersBelow": 13,
+          "ceilingBelowTarget": 156,
+          "tiersBelow": 14,
           "tiers": 16
         },
         "physics": {
           "concepts": 276,
-          "ceilingBelowTarget": 131,
-          "tiersBelow": 16,
+          "ceilingBelowTarget": 11,
+          "tiersBelow": 5,
           "tiers": 16
         },
         "chemistry": {
           "concepts": 236,
-          "ceilingBelowTarget": 134,
-          "tiersBelow": 16,
+          "ceilingBelowTarget": 6,
+          "tiersBelow": 2,
           "tiers": 16
         },
         "biology": {
           "concepts": 232,
-          "ceilingBelowTarget": 131,
-          "tiersBelow": 16,
+          "ceilingBelowTarget": 6,
+          "tiersBelow": 3,
           "tiers": 16
         },
         "computing": {
           "concepts": 264,
-          "ceilingBelowTarget": 243,
-          "tiersBelow": 16,
+          "ceilingBelowTarget": 0,
+          "tiersBelow": 0,
           "tiers": 16
         }
       },
@@ -2720,37 +2720,37 @@
           "spec": "uk-alevel",
           "level": "a2",
           "target": 0.9,
-          "meanServed": 0.794
+          "meanServed": 0.899
         },
         {
           "spec": "int-ib",
           "level": "hl",
           "target": 0.9,
-          "meanServed": 0.696
+          "meanServed": 0.853
         },
         {
           "spec": "us-ap",
           "level": "ap",
           "target": 0.85,
-          "meanServed": 0.775
+          "meanServed": 0.881
         },
         {
           "spec": "in-cbse",
           "level": "class11-12",
           "target": 0.85,
-          "meanServed": 0.685
+          "meanServed": 0.839
         },
         {
           "spec": "in-icse",
           "level": "isc",
           "target": 0.85,
-          "meanServed": 0.685
+          "meanServed": 0.839
         },
         {
           "spec": "any-independent",
           "level": "advanced",
           "target": 0.8,
-          "meanServed": 0.689
+          "meanServed": 0.835
         }
       ]
     },
@@ -2766,25 +2766,25 @@
         "extended_response": 0
       },
       "producible": {
-        "recall": 19,
-        "application": 41,
-        "multi_step": 17,
-        "data_interpretation": 22,
+        "recall": 7,
+        "application": 46,
+        "multi_step": 21,
+        "data_interpretation": 25,
         "extended_response": 0
       },
       "extendedResponseExists": false,
       "driftAtLeast5Points": [
         {
-          "skill": "application",
-          "declaredPct": 33,
-          "produciblePct": 41,
-          "driftPctPoints": 8
+          "skill": "recall",
+          "declaredPct": 22,
+          "produciblePct": 7,
+          "driftPctPoints": -15
         },
         {
-          "skill": "multi_step",
-          "declaredPct": 22,
-          "produciblePct": 17,
-          "driftPctPoints": -5
+          "skill": "application",
+          "declaredPct": 33,
+          "produciblePct": 46,
+          "driftPctPoints": 13
         }
       ],
       "note": "extended_response is 0 in BOTH the declared mix and the bank, so the diagnostic does not claim to assess extended response. The other three skills drift by 5+ points, which means the blueprint over- or under-asks relative to what the bank can actually produce."
@@ -2794,7 +2794,7 @@
       "method": "Fetch the served HTML of the landing page and scan the rendered text.",
       "verdict": "CLEAN on the Next app; the STATIC build was found separately and is recorded in F5b.",
       "measured": {
-        "bytes": 19026,
+        "bytes": 19024,
         "sectionMarkerCount": 0,
         "sectionHeadings": [],
         "telemetryPhrases": [],
@@ -2848,11 +2848,9 @@
       "navElements": [
         "Main menu",
         "Help",
-        "Main menu"
+        "Sections"
       ],
-      "duplicateAriaLabels": [
-        "Main menu"
-      ],
+      "duplicateAriaLabels": [],
       "skipLink": true,
       "interactiveWithoutLabel": 0,
       "positiveTabindex": 0,

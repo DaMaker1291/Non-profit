@@ -28,6 +28,15 @@ export const ENGINE_SOURCES = [
   "lib/questions-chemistry.ts",
   "lib/questions-physics.ts",
   "lib/questions-biology.ts",
+  // THE MISSING MIDDLE — the band-3/4 families the audit measured as
+  // unreachable for 50 of the 135 concepts. Compiled with the bank that
+  // composes them, so the ceiling gate and the content audit measure the REAL
+  // composed generator rather than a parallel list.
+  "lib/questions-mid-maths.ts",
+  "lib/questions-mid-computing.ts",
+  "lib/questions-mid-physics.ts",
+  "lib/questions-mid-chemistry.ts",
+  "lib/questions-mid-biology.ts",
   // The numeric-item families (§6): the concepts whose questions could only
   // ever be four printed options, given an answer box. Compiled with the bank
   // because the bank composes them, so the gate asserts the coverage on the

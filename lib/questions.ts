@@ -20,6 +20,20 @@ import { COMPUTING_DEEP } from "./questions-computing";
 import { CHEMISTRY_DEEP } from "./questions-chemistry";
 import { PHYSICS_DEEP } from "./questions-physics";
 import { BIOLOGY_DEEP } from "./questions-biology";
+// THE MIDDLE OF THE LADDER — the bands the audit found UNREACHABLE for 50 of
+// the 135 concepts. `npm run content-audit` draws each concept's whole
+// catalogue and asks, per course, whether any draw sits in the demand band that
+// course serves at; the answer was no for a bimodal generator (base 0.25–0.45,
+// depth 0.85–0.96) or for a subject whose ceiling stopped just under a band's
+// floor. The cause was never the search — cause A is 0 across the platform, and
+// the budget was raised from 40 to 400 draws to prove it. So the fix is
+// content, composed as ONE ADDITIONAL draw exactly like the data and subject
+// layers below.
+import { MID_MATHS } from "./questions-mid-maths";
+import { MID_COMPUTING } from "./questions-mid-computing";
+import { MID_PHYSICS } from "./questions-mid-physics";
+import { MID_CHEMISTRY } from "./questions-mid-chemistry";
+import { MID_BIOLOGY } from "./questions-mid-biology";
 import { SENIOR_GENS } from "./questions-senior";
 // The numeric layer (§6): the concepts whose questions could only ever be four
 // printed options, given an answer box. Composed like the deep and senior
@@ -2444,6 +2458,41 @@ const SUBJECT_DEEP: Record<string, Record<string, DeepGen>> = {
   biology: BIOLOGY_DEEP,
 };
 
+/**
+ * THE MIDDLE OF THE LADDER, one record per subject, composed as ONE MORE
+ * `withDepth` draw.
+ *
+ * WHY THIS EXISTS AT ALL, and why it is content rather than a serving tweak:
+ * `npm run content-audit` draws every concept's whole catalogue and asks, per
+ * course, whether any draw lands in the demand band that course serves at
+ * (`generateQuestionNear` prefers an in-band item over any nearer out-of-band
+ * one, so "can this concept answer this rung?" is a question about BANDS).
+ * Fifty of the 135 concepts answered no, in one of two shapes: a BIMODAL
+ * generator (base 0.25–0.45, depth 0.85–0.96, nothing between — band 3 and
+ * band 4 unreachable) or a subject whose ceiling stopped just under a band's
+ * floor (0.75–0.78 against a band-5 floor of 0.80). The audit attributes every
+ * single shortfall to "B generator", with cause "A search" = 0 across the
+ * platform: there was no in-band item the production serve failed to find.
+ * Raising the production draw budget from 40 to 400 changed the served
+ * distribution not at all, which is the proof.
+ *
+ * THE POSITION IN THE CHAIN IS DELIBERATE. This layer is composed BEFORE the
+ * per-subject layers (see the loop below), which puts it INSIDE them: a concept
+ * that belongs to a subject layer keeps that layer's 50% share of the draws, so
+ * the ceiling those layers established is untouched, while the mid band still
+ * gets a quarter of them — more than enough for the 240-draw spectrum the audit
+ * measures and for the 40-draw search the serve runs. Composed outermost it
+ * would have halved every subject ceiling, which is a regression the ceiling
+ * gate would rightly catch.
+ */
+const MID_GENS: Record<string, DeepGen> = {
+  ...MID_MATHS,
+  ...MID_COMPUTING,
+  ...MID_PHYSICS,
+  ...MID_CHEMISTRY,
+  ...MID_BIOLOGY,
+};
+
 const ALL_GENS: Record<string, RawGen> = Object.fromEntries(
   Object.entries(BASE_GENS).map(([id, base]) => {
     let gen = base;
@@ -2471,6 +2520,11 @@ const ALL_GENS: Record<string, RawGen> = Object.fromEntries(
     // silently replaced those families (the literal's own key wins over a
     // spread). Raising a concept's ceiling cannot strand anyone at a lower band.
     if (DATA_DEEP[id] && !DATA_DEEP_PRIMARY.has(id)) gen = withDepth(gen, DATA_DEEP[id]);
+    // THE MIDDLE OF THE LADDER — the bands the audit measured as unreachable.
+    // Composed BEFORE the subject layers so it sits INSIDE them: composing it
+    // outermost would halve every subject family's share of the draws and take
+    // the ceilings those layers were built to reach with it.
+    if (MID_GENS[id]) gen = withDepth(gen, MID_GENS[id]);
     // THE PER-SUBJECT DEPTH LAYERS — the same remedy as the data layer above,
     // for the four subjects the remedy had never been applied to. Each was
     // measured by `npm run gate:ceiling` as declaring an advanced depth it could

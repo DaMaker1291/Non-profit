@@ -17,6 +17,8 @@
     "content-check": "node scripts/content-check.mjs",
     "verify:q": "node scripts/verify-questions.mjs",
     "gate:ceiling": "node scripts/ceiling-gate.mjs",
+    "content-audit": "node scripts/content-audit.mjs",
+    "content-gate": "node scripts/content-gate.mjs",
     "e2e": "node scripts/e2e-api.mjs",
     "e2e:fresh": "node scripts/run-production-e2e.mjs",
     "e2e:fresh:only": "node scripts/e2e-fresh-learner.mjs",

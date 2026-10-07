@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 52 modules compiled from lib/ by that script, wired
+ * Source: 57 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -38149,6 +38149,1906 @@ exports.DEEP_GENS = {
 };
 
 });
+__def("questions-mid-biology.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MID_BIOLOGY = void 0;
+/** The first `n` candidates genuinely different from the answer and each other.
+ *  Fewer than three distinct wrongs and the assembler falls back to filler,
+ *  which the question audit rightly calls a broken item. */
+function distinct(correct, candidates, n = 3) {
+    const out = [];
+    for (const cand of candidates) {
+        const s = String(cand);
+        if (s !== correct && !out.includes(s) && out.length < n)
+            out.push(s);
+    }
+    return out;
+}
+/** A number a student would write: never a floating-point tail. */
+function num(x, dp = 2) {
+    return String(Number(x.toFixed(dp)));
+}
+/** Band 3 (0.45–0.60): two linked steps. */
+function mid3(r) {
+    return 0.47 + r.next() * 0.11;
+}
+/** Band 4 (0.60–0.80): three linked steps, with the values stated. */
+function mid4(r) {
+    return 0.63 + r.next() * 0.14;
+}
+/** Band 5 (0.80–0.90), held under 0.90 on purpose: the answer is read OUT OF A
+ *  TABLE the question prints. */
+function midband(r) {
+    return 0.8 + r.next() * 0.06;
+}
+function table(rows) {
+    return rows.map(([a, b]) => `· ${a}: ${b}`).join("\n");
+}
+exports.MID_BIOLOGY = {
+    // ── MICROSCOPY ────────────────────────────────────────────────────────────
+    /** Band 3: magnification applied, then the answer converted into millimetres.
+     *  Band 4: the conversion the OTHER way — an image size in centimetres has to
+     *  be taken back to micrometres before it can be divided by the magnification. */
+    microscopy: (r) => {
+        const real = r.pick([5, 10, 20, 40, 50, 100]);
+        const mag = r.pick([100, 200, 400, 500, 1000]);
+        if (r.next() < 0.5) {
+            const imageMm = (real * mag) / 1000;
+            const correct = `${num(imageMm, 3)} mm`;
+            return {
+                prompt: `A cell is ${real} μm across. It is viewed with a microscope at a magnification of ${mag}×. Work out the width of the cell's IMAGE, in millimetres.`,
+                correct,
+                wrongs: distinct(correct, [
+                    // The image size left in micrometres.
+                    `${num(real * mag, 3)} μm`,
+                    // Multiplied by 1000 instead of divided.
+                    `${num(real * mag * 1000, 3)} mm`,
+                    // The magnification quoted as a size.
+                    `${mag} mm`,
+                    // Only the real size, as if nothing had been magnified.
+                    `${num(real, 3)} mm`,
+                    `${num(imageMm + real, 3)} mm`,
+                ]),
+                tags: [],
+                explanation: `Magnification compares two lengths in the SAME unit, so the unit is the second step, not an afterthought. First the image: ${real} μm × ${mag} = ${num(real * mag, 1)} μm. Then convert, because the question asks for millimetres and there are 1000 μm in a millimetre: ${num(real * mag, 1)} ÷ 1000 = ${correct}. Answering ${num(real * mag, 3)} μm is right in size and wrong in unit, which is worth no marks at all on a question that names the unit.`,
+                difficulty: mid3(r),
+            };
+        }
+        const imageCm = r.pick([1, 2, 4, 5, 8, 10]);
+        const realUm = (imageCm * 10000) / mag;
+        const correct = `${num(realUm, 2)} μm`;
+        return {
+            prompt: `An image of a cell measures ${imageCm} cm across at a magnification of ${mag}×. Work out the real width of the cell, in micrometres (1 cm = 10 000 μm).`,
+            correct,
+            wrongs: distinct(correct, [
+                // The image size quoted as the real size.
+                `${num(imageCm, 2)} μm`,
+                // The conversion taken the wrong way.
+                `${num((imageCm / 10000) / mag, 4)} μm`,
+                // Multiplied by the magnification instead of divided.
+                `${num(imageCm * 10000 * mag, 2)} μm`,
+                // The micrometres not converted before dividing.
+                `${num(imageCm / mag, 4)} μm`,
+                `${num(realUm * mag, 2)} μm`,
+            ]),
+            tags: [],
+            explanation: `mag = image ÷ real, so the real size is image ÷ mag — but only once both lengths are in the SAME unit. Convert first: ${imageCm} cm × 10 000 = ${imageCm * 10000} μm. Then divide: ${num(imageCm * 10000, 1)} ÷ ${mag} = ${correct}. Multiplying by the magnification (${num(imageCm * 10000 * mag, 2)} μm) turns a microscope into a shrink ray, and reporting ${num(imageCm, 2)} μm says the drawing is life-size.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── GENETICS ──────────────────────────────────────────────────────────────
+    /** Band 4: the ratio has to be worked out from the genotypes, then turned
+     *  into an EXPECTED COUNT out of a real number of offspring — three linked
+     *  steps, and the middle one is the ratio itself. */
+    genetics: (r) => {
+        const testCross = r.next() < 0.5;
+        const tally = r.int(4, 20) * 20; // divisible by 4, so 3/4 and 1/4 are whole
+        // Tt × Tt gives 3 tall : 1 short; Tt × tt gives 1 tall : 1 short.
+        const dominantShare = testCross ? 1 / 2 : 3 / 4;
+        const dominantCount = tally * dominantShare;
+        const recessiveCount = tally - dominantCount;
+        const countDominant = r.next() < 0.5;
+        const correct = String(countDominant ? dominantCount : recessiveCount);
+        const parents = testCross ? "Tt × tt" : "Tt × Tt";
+        const want = countDominant ? "tall" : "short";
+        const ratio = testCross ? "1 : 1" : "3 : 1";
+        return {
+            prompt: `In pea plants, the allele T (tall) is dominant over t (short). Two plants with the genotypes ${parents} are crossed and produce ${tally} offspring.\n\nHow many of the offspring would you EXPECT to be ${want}?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The other class counted.
+                countDominant ? recessiveCount : dominantCount,
+                // Everybody, as if the cross were pure-breeding.
+                tally,
+                // Half of them, whichever cross it was.
+                tally / 2,
+                // The ratio's parts quoted as a count.
+                testCross ? 1 : 3,
+                countDominant ? recessiveCount / 2 : dominantCount + tally / 4,
+            ]),
+            tags: [],
+            explanation: `Three steps, and the middle one is the step students skip. (1) Work out the gametes and the ratio: ${parents} gives ${ratio}. (2) Turn the ratio into a fraction of the offspring: ${testCross ? "one part in two, that is 1/2" : "three parts in four, that is 3/4"}. (3) Apply it to the real number born: ${tally} × ${testCross ? "1/2" : "3/4"} = ${correct}. "Expected" is a PROPORTION applied to a real total — answering ${tally} says every plant must show the dominant feature, and ${testCross ? 1 : 3} reports the ratio itself as though it were a count of plants.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── ENZYMES ───────────────────────────────────────────────────────────────
+    /** Band 3: a rate, then the unit conversion — a rate question is never just
+     *  one division when the units asked for are not the units given. Band 5: the
+     *  rate has to be read out of a table of pH against rate, and half the
+     *  maximum is nowhere in it. */
+    enzymes: (r) => {
+        if (r.next() < 0.5) {
+            const time = r.pick([10, 15, 20, 30]);
+            const volume = r.pick([5, 10, 20, 30, 40, 60]);
+            const perMin = (volume / time) * 60;
+            const correct = `${num(perMin, 2)} cm³ per minute`;
+            return {
+                prompt: `An enzyme-catalysed reaction produces ${volume} cm³ of gas in ${time} seconds. Work out the rate of reaction in cm³ per MINUTE.`,
+                correct,
+                wrongs: distinct(correct, [
+                    // The rate per second, which is a different unit.
+                    `${num(volume / time, 2)} cm³ per minute`,
+                    // Divided by 60 instead of multiplied.
+                    `${num(volume / time / 60, 2)} cm³ per minute`,
+                    // The volume with no rate in it.
+                    `${volume} cm³ per minute`,
+                    // The time quoted as the rate.
+                    `${time} cm³ per minute`,
+                    `${num(perMin * 60, 2)} cm³ per minute`,
+                ]),
+                tags: [],
+                explanation: `A rate is an amount divided by a time, and the answer has to come out in the units the question asks for. Per second: ${volume} ÷ ${time} = ${num(volume / time, 2)} cm³/s. There are 60 seconds in a minute, so the rate is ${num(volume / time, 2)} × 60 = ${correct}. Answering ${num(volume / time, 2)} cm³ per minute is the per-second rate wearing the per-minute label — the number is right for a unit nobody asked for, which is why the unit is printed in the answer.`,
+                difficulty: mid3(r),
+            };
+        }
+        // A table of pH against rate: find the pH at which the rate is HALF the
+        // maximum, which needs the maximum found first.
+        const base = r.int(20, 44);
+        const optIdx = r.int(1, 4); // the optimum is never the first or last row
+        const halfIdx = optIdx - 1; // exactly one row sits at half the maximum
+        const phs = [3, 4, 5, 6, 7, 8, 9];
+        // BUILT, not sampled: one row is the maximum, one row is exactly half of
+        // it, and every other row is off the half-value by a known amount — so
+        // "half the maximum" matches exactly one row on every draw.
+        const others = [base - 9, base + 6, base - 15, base + 11, base + 17, base - 4].filter((x) => x > 0);
+        let next = 0;
+        const rates = phs.map((_, i) => {
+            if (i === optIdx)
+                return base * 2;
+            if (i === halfIdx)
+                return base;
+            return others[next++ % others.length];
+        });
+        const correct = `pH ${phs[halfIdx]}`;
+        return {
+            prompt: `A table shows the rate of an enzyme-controlled reaction at different pH values.\n${table(phs.map((p, i) => [`pH ${p}`, `${rates[i]} units`]))}\n\nAt which pH is the rate HALF of the maximum rate?`,
+            correct,
+            wrongs: distinct(correct, phs.map((p) => `pH ${p}`)),
+            tags: [],
+            explanation: `Two steps, and the first one is the one that gets skipped: find the MAXIMUM in the table first. The highest rate is ${base * 2} units, at pH ${phs[optIdx]}. Half of that is ${base} units, and the table shows exactly ${base} units at ${correct}. Halving the pH NUMBER instead (${num(phs[optIdx] / 2, 1)}) answers a question about the column heading rather than about the rate — the axis and the value are different quantities, and only one of them was asked about.`,
+            difficulty: midband(r),
+        };
+    },
+    // ── BREATHING & GAS EXCHANGE ──────────────────────────────────────────────
+    /** Band 5: three people's breath volumes and rates have to be multiplied out
+     *  before any of them can be compared — the table gives neither product. */
+    "breathing-gas": (r) => {
+        const names = ["a resting adult", "a runner during a race", "a sleeping child", "a swimmer under water"];
+        const rows = names.map((n) => {
+            const volume = r.pick([0.4, 0.5, 0.8, 1.2, 2, 3]);
+            const rate = r.pick([8, 10, 12, 15, 20, 30, 40]);
+            return { n, volume, rate, perMin: volume * rate };
+        });
+        let best = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].perMin > rows[best].perMin)
+                best = i;
+        let fastest = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].rate > rows[fastest].rate)
+                fastest = i;
+        let biggest = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].volume > rows[biggest].volume)
+                biggest = i;
+        let worst = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].perMin < rows[worst].perMin)
+                worst = i;
+        const correct = rows[best].n;
+        return {
+            prompt: `A table records the breathing of four people.\n${table(rows.map((x) => [x.n, `${x.volume} dm³ per breath, ${x.rate} breaths per minute`]))}\n\nWho breathes the GREATEST VOLUME of air per minute?`,
+            correct,
+            // The teaching distractors come first, but the full list of names is
+            // appended: one person can be both the deepest breather AND the highest
+            // volume per minute, and when that happens the first three candidates
+            // collapse and the assembler pads the question with "None of these" —
+            // measured, not guessed (the question audit failed this family on exactly
+            // that). Appending the names guarantees three distinct wrongs.
+            wrongs: distinct(correct, [
+                // The fastest breathing rate, which is only part of the answer.
+                rows[fastest].n,
+                // The deepest single breath.
+                rows[biggest].n,
+                // The person with the smallest volume per minute.
+                rows[worst].n,
+                ...rows.map((x) => x.n),
+            ]),
+            tags: [],
+            explanation: `The table gives a volume PER BREATH and a RATE, and neither is the answer on its own — they have to be multiplied: ${rows.map((x) => `${x.n}: ${x.volume} × ${x.rate} = ${num(x.perMin, 2)} dm³ per minute`).join("; ")}. The greatest total is ${correct}. Answering ${rows[fastest].n} counts breaths rather than air, and ${rows[biggest].n} counts one deep breath as if the rate did not matter — a fast shallow breath and a slow deep one move very different amounts of air.`,
+            difficulty: midband(r),
+        };
+    },
+    // ── DIFFUSION ─────────────────────────────────────────────────────────────
+    /** Band 5: a distance and a time per run means the SPEED of diffusion has to
+     *  be computed for every row before the fastest can be named. */
+    diffusion: (r) => {
+        const conditions = ["in water at 5 °C", "in water at 20 °C", "in water at 40 °C", "in a gel at 20 °C", "as a gas at 20 °C"];
+        const picked = r.shuffle(conditions).slice(0, 4);
+        const rows = picked.map((c) => {
+            const dist = r.pick([10, 20, 30, 40, 50, 60, 80]);
+            const time = r.pick([5, 10, 20, 25, 40, 50]);
+            return { c, dist, time, speed: dist / time };
+        });
+        let best = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].speed > rows[best].speed)
+                best = i;
+        let longest = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].dist > rows[longest].dist)
+                longest = i;
+        let shortest = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].time < rows[shortest].time)
+                shortest = i;
+        let slowest = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].speed < rows[slowest].speed)
+                slowest = i;
+        const correct = rows[best].c;
+        return {
+            prompt: `A table records how far a coloured substance diffused in different conditions.\n${table(rows.map((x) => [x.c, `${x.dist} mm in ${x.time} s`]))}\n\nIn which condition did the substance diffuse FASTEST?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The longest distance, which says nothing without the time.
+                rows[longest].c,
+                // The shortest time, which says nothing without the distance.
+                rows[shortest].c,
+                // The slowest rate.
+                rows[slowest].c,
+            ]),
+            tags: [],
+            explanation: `"Fastest" is a RATE, and the table gives two different quantities — a distance and a time — so neither column can be compared on its own. The rate is distance ÷ time for each row: ${rows.map((x) => `${x.c}: ${x.dist} ÷ ${x.time} = ${num(x.speed, 2)} mm/s`).join("; ")}. The fastest is ${correct}. Answering ${rows[longest].c} is the longest DISTANCE, which may simply have had longer to happen, and ${rows[shortest].c} is the shortest time, which may have covered almost nothing.`,
+            difficulty: midband(r),
+        };
+    },
+    // ── CELLS ─────────────────────────────────────────────────────────────────
+    /** Band 5: a surface-area-to-volume RATIO per cell — two computations per row
+     *  before the comparison can be made. */
+    cells: (r) => {
+        const labels = ["cell A", "cell B", "cell C", "cell D"];
+        // BUILT, not sampled. Two random surface areas and volumes collide on the
+        // same ratio far more often than they look like they should (6/2 and 12/4
+        // are both 3), and a table with two greatest ratios is not a question — so
+        // the RATIOS are chosen distinct and the surface areas derived from them.
+        const vols = [2, 3, 4, 6];
+        const ratios = r.shuffle([1, 2, 3, 4, 6, 8, 9]).slice(0, 4);
+        const rows = labels.map((l, i) => ({ l, vol: vols[i], ratio: ratios[i], sa: ratios[i] * vols[i] }));
+        let best = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].ratio > rows[best].ratio)
+                best = i;
+        const correct = rows[best].l;
+        return {
+            prompt: `A table gives the surface area and volume of four cells.\n${table(rows.map((x) => [x.l, `surface area ${x.sa} mm², volume ${x.vol} mm³`]))}\n\nWhich cell has the GREATEST surface area to volume RATIO?`,
+            correct,
+            wrongs: distinct(correct, rows.map((x) => x.l)),
+            tags: [],
+            explanation: `A ratio is one quantity divided by the other, so the table's two columns have to be combined rather than compared: ${rows.map((x) => `${x.l}: ${x.sa} ÷ ${x.vol} = ${num(x.ratio, 2)}`).join("; ")}. ${correct} has the greatest ratio. The biggest surface area (${rows.reduce((a, x) => (x.sa > a.sa ? x : a)).l}) is not the same thing, and neither is the smallest volume — which is why diffusion is fast into a small cell and slows as a cell grows: volume rises faster than surface area, so the ratio falls.`,
+            difficulty: midband(r),
+        };
+    },
+};
+
+});
+__def("questions-mid-chemistry.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MID_CHEMISTRY = void 0;
+/** The first `n` candidates genuinely different from the answer and each other.
+ *  Fewer than three distinct wrongs and the assembler falls back to filler,
+ *  which the question audit rightly calls a broken item. */
+function distinct(correct, candidates, n = 3) {
+    const out = [];
+    for (const cand of candidates) {
+        const s = String(cand);
+        if (s !== correct && !out.includes(s) && out.length < n)
+            out.push(s);
+    }
+    return out;
+}
+/** A number a student would write: never a floating-point tail. */
+function num(x, dp = 2) {
+    return String(Number(x.toFixed(dp)));
+}
+/** Band 4 (0.60–0.80): three linked steps, with the values stated. */
+function mid4(r) {
+    return 0.63 + r.next() * 0.14;
+}
+/** Band 5 (0.80–0.90), held under 0.90 on purpose: the answer is read OUT OF A
+ *  TABLE the question prints. */
+function midband(r) {
+    return 0.8 + r.next() * 0.06;
+}
+/** A four-row table rendered the way the questions present it. */
+function table(rows) {
+    return rows.map(([a, b]) => `· ${a}: ${b}`).join("\n");
+}
+exports.MID_CHEMISTRY = {
+    // ── MOLE CALCULATIONS ─────────────────────────────────────────────────────
+    /** Band 4: mass → moles → the equation's ratio → mass again. Three linked
+     *  steps, which is why a moles question is never a single multiplication. */
+    "moles-calcs": (r) => {
+        const metals = [
+            ["magnesium", "Mg", 24],
+            ["calcium", "Ca", 40],
+            ["zinc", "Zn", 65],
+            ["copper", "Cu", 64],
+        ];
+        const [metal, sym, ar] = r.pick(metals);
+        const mr = ar + 16; // the metal oxide MO
+        const moles = r.int(2, 9);
+        const mass = ar * moles; // chosen so the moles are a whole number
+        const product = mr * moles;
+        const oxygenUsed = (moles / 2) * 32;
+        const correct = `${product} g`;
+        return {
+            prompt: `The equation for burning ${metal} is:\n\n2 ${sym} + O₂ → 2 ${sym}O\n\nRelative atomic masses: ${sym} = ${ar}, O = 16.\n\nWhat mass of ${metal} oxide (${sym}O) is formed when ${mass} g of ${metal} burns completely?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The reactant's mass quoted as the product's.
+                `${mass} g`,
+                // Moles multiplied by the wrong relative mass.
+                `${ar * moles} g`,
+                // The oxygen consumed, not the oxide formed.
+                `${num(oxygenUsed, 2)} g`,
+                `${mass + num(oxygenUsed, 2)} g`,
+                `${mr * moles + ar} g`,
+            ]),
+            tags: [],
+            explanation: `A balanced equation is a ratio in MOLES, so mass alone cannot be compared with it. Step 1, the moles of ${metal}: ${mass} g ÷ ${ar} g/mol = ${moles} mol. Step 2, the ratio — the equation puts 2 mol of ${metal} with 2 mol of ${metal} oxide, so the ratio is 1:1 and ${moles} mol of ${metal} gives ${moles} mol of ${metal} oxide. Step 3, back to mass: ${moles} × (${ar} + 16) = ${product} g. Reporting ${mass} g assumes mass is conserved in the ratio, which is exactly what the oxygen it picked up makes false.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── THE PERIODIC TABLE ────────────────────────────────────────────────────
+    /** Band 5: the number of neutrons is nowhere in the table — it has to be
+     *  worked out for every row before any of them can be compared. */
+    "periodic-table": (r) => {
+        // THE ROWS ARE CHOSEN AS A WHOLE, not sampled one by one. Neutron counts can
+        // tie, and a table with two right answers is not a question — so the sets
+        // below are picked because each has one clear winner, and the generator
+        // never has to hope that a random draw produced one.
+        const sets = [
+            [["carbon", 6, 12], ["sodium", 11, 23], ["chlorine", 17, 35], ["iron", 26, 56]],
+            [["oxygen", 8, 16], ["aluminium", 13, 27], ["chlorine", 17, 35], ["calcium", 20, 40]],
+            [["carbon", 6, 12], ["oxygen", 8, 16], ["sodium", 11, 23], ["aluminium", 13, 27]],
+            [["sodium", 11, 23], ["chlorine", 17, 35], ["potassium", 19, 39], ["iron", 26, 56]],
+        ];
+        const chosen = r.pick(sets);
+        const neutrons = chosen.map(([, z, a]) => a - z);
+        let bestIdx = 0;
+        for (let i = 1; i < chosen.length; i++)
+            if (neutrons[i] > neutrons[bestIdx])
+                bestIdx = i;
+        const rows = chosen.map(([name, z, a]) => [name, `protons ${z}, mass number ${a}`]);
+        const correct = chosen[bestIdx][0];
+        return {
+            prompt: `A table lists four atoms.\n${table(rows)}\n\nWhich atom has the MOST neutrons in its nucleus?`,
+            correct,
+            wrongs: distinct(correct, chosen.map(([name]) => name)),
+            tags: [],
+            explanation: `A mass number counts protons AND neutrons together, so the neutron count is a subtraction that has to be done for every row before they can be compared: ${chosen.map(([name, z, a]) => `${name}: ${a} − ${z} = ${a - z}`).join(", ")}. The largest is ${correct}. Answering the atom with the largest mass number is right only when the proton counts are equal — a heavy atom with many protons can carry fewer neutrons than a lighter one.`,
+            difficulty: midband(r),
+        };
+    },
+    // ── ATOMS & ELEMENTS ──────────────────────────────────────────────────────
+    /** Band 5: the charge of each species has to be derived from the table. The
+     *  charge is nowhere in it. */
+    "atoms-elements": (r) => {
+        const labels = ["A", "B", "C", "D"];
+        // BUILT, not sampled: the charge asked for is placed in exactly one row and
+        // the other three are given charges that are definitely not it, so the item
+        // can never have two right answers.
+        const want = r.pick([1, 2, 3, -1, -2, -3]);
+        const others = r.shuffle([1, 2, 3, -1, -2, -3, 0].filter((c) => c !== want)).slice(0, 3);
+        const at = r.int(0, 3);
+        const charges = labels.map((_, i) => (i === at ? want : others[i > at ? i - 1 : i]));
+        const protons = [4 + at, 12, 17, 20];
+        const rows = labels.map((l, i) => ({ protons: protons[i], electrons: protons[i] - charges[i], charge: charges[i] }));
+        const correct = labels[at];
+        const chargeText = `${want > 0 ? `${want}+` : `${-want}−`}`;
+        return {
+            prompt: `A table records four species.\n${table(labels.map((l, i) => [l, `protons ${rows[i].protons}, electrons ${rows[i].electrons}`]))}\n\nWhich species carries a charge of ${chargeText}?`,
+            correct,
+            wrongs: distinct(correct, labels),
+            tags: [],
+            explanation: `An atom's charge is decided by the BALANCE of protons and electrons, and the table does not give it away. Subtract for each row: ${labels.map((l, i) => `${l}: ${rows[i].protons} − ${rows[i].electrons} = ${rows[i].charge > 0 ? `+${rows[i].charge}` : rows[i].charge}`).join(", ")}. Only ${correct} carries ${chargeText}. Reading the counts as the charge — answering the row with the most protons, or forgetting that an atom with equal numbers is neutral — is the slip this table is built to catch.`,
+            difficulty: midband(r),
+        };
+    },
+    // ── ELECTRON SHELLS ───────────────────────────────────────────────────────
+    /** Band 5: the OUTER shell is the last number of each configuration, so the
+     *  table has to be read row by row rather than recognised. */
+    "electron-shells": (r) => {
+        const elements = [
+            ["lithium", [2, 1]],
+            ["oxygen", [2, 6]],
+            ["sodium", [2, 8, 1]],
+            ["chlorine", [2, 8, 7]],
+            ["argon", [2, 8, 8]],
+            ["magnesium", [2, 8, 2]],
+            ["aluminium", [2, 8, 3]],
+            ["potassium", [2, 8, 8, 1]],
+        ];
+        const picked = r.shuffle(elements).slice(0, 4);
+        const outer = picked.map(([, shells]) => shells[shells.length - 1]);
+        const targets = [1, 2, 6, 7, 8].filter((n) => outer.filter((o) => o === n).length === 1);
+        if (!targets.length)
+            return exports.MID_CHEMISTRY["electron-shells"](r);
+        const want = r.pick(targets);
+        const correct = picked[outer.indexOf(want)][0];
+        return {
+            prompt: `A table gives the electron arrangement of four elements.\n${table(picked.map(([name, shells]) => [name, `shells ${shells.join(", ")}`]))}\n\nWhich element has ${want} electron${want === 1 ? "" : "s"} in its OUTER shell?`,
+            correct,
+            wrongs: distinct(correct, picked.map(([name]) => name)),
+            tags: [],
+            explanation: `Shells fill from the inside out, so the OUTER shell is the LAST number in the arrangement: ${picked.map(([name, shells]) => `${name} (${shells.join(", ")}) has ${shells[shells.length - 1]} in its outer shell`).join("; ")}. Exactly one of them has ${want}, and it is ${correct}. Adding the shells up, or reading the FIRST number, answers a different question — the total number of electrons is the atomic number, but chemical behaviour is decided by the outermost shell alone.`,
+            difficulty: midband(r),
+        };
+    },
+    // ── COMPOUNDS & MIXTURES ──────────────────────────────────────────────────
+    /** Band 5: a pure substance melts at one temperature; a mixture melts across
+     *  a range. The range is in the table and has to be spotted, not recalled. */
+    "compounds-mixtures": (r) => {
+        const sampleNames = ["sample A", "sample B", "sample C", "sample D"];
+        const pure = r.shuffle(sampleNames).slice(0, 3);
+        const mp = () => r.int(30, 140);
+        const rows = pure.map((name) => {
+            const t = mp();
+            return { name, text: `melts sharply at ${t} °C`, mixture: false };
+        });
+        const lo = r.int(30, 90);
+        const hi = lo + r.int(8, 30);
+        rows.push({ name: sampleNames.find((n) => !pure.includes(n)) ?? "sample D", text: `melts between ${lo} °C and ${hi} °C`, mixture: true });
+        for (let i = rows.length - 1; i > 0; i--) {
+            const j = r.int(0, i);
+            [rows[i], rows[j]] = [rows[j], rows[i]];
+        }
+        const correct = rows.find((x) => x.mixture)?.name ?? "sample D";
+        return {
+            prompt: `A table gives the melting behaviour of four samples.\n${table(rows.map((x) => [x.name, x.text]))}\n\nWhich sample is a MIXTURE?`,
+            correct,
+            wrongs: distinct(correct, rows.map((x) => x.name)),
+            tags: [],
+            explanation: `A PURE substance has a single, sharp melting point, because every particle breaks out of the solid at the same temperature. A MIXTURE is made of substances with different melting points, so it softens and melts across a RANGE: ${correct} melts between two temperatures, while the other samples each have one. Melting over a range is the evidence, not an impurity you can see — this is why a melting point is measured to check purity.`,
+            difficulty: midband(r),
+        };
+    },
+    // ── METALLIC BONDING ──────────────────────────────────────────────────────
+    /** Band 5: two properties have to be compared across the table at once — the
+     *  number of delocalised electrons AND the melting point — because metallic
+     *  bonding is stronger when there are more of them. */
+    "metallic-bonding": (r) => {
+        const metals = [
+            ["potassium", 1, 63],
+            ["sodium", 1, 98],
+            ["calcium", 2, 842],
+            ["magnesium", 2, 650],
+            ["aluminium", 3, 660],
+        ];
+        const picked = r.shuffle(metals).slice(0, 4);
+        let best = 0;
+        for (let i = 1; i < picked.length; i++) {
+            if (picked[i][1] > picked[best][1] || (picked[i][1] === picked[best][1] && picked[i][2] > picked[best][2]))
+                best = i;
+        }
+        // The strongest is unique only when no other row matches both counts.
+        const ties = picked.filter((x) => x[1] === picked[best][1] && x[2] === picked[best][2]).length;
+        if (ties > 1)
+            return exports.MID_CHEMISTRY["metallic-bonding"](r);
+        const correct = picked[best][0];
+        return {
+            prompt: `A table gives two properties of four metals.\n${table(picked.map(([name, e, melt]) => [name, `${e} delocalised electron${e === 1 ? "" : "s"} per atom, melting point ${melt} °C`]))}\n\nWhich metal has the STRONGEST metallic bonding?`,
+            correct,
+            wrongs: distinct(correct, picked.map(([name]) => name)),
+            tags: [],
+            explanation: `Metallic bonding is the attraction between the positive ions and the sea of delocalised electrons, so it gets stronger when each atom contributes MORE electrons and when the ions are closer together — which is what a higher melting point measures. Reading both columns: ${picked.map(([name, e, melt]) => `${name} contributes ${e} electron${e === 1 ? "" : "s"} and melts at ${melt} °C`).join("; ")}. ${correct} contributes the most electrons, and its melting point confirms it. Reading the melting point alone gives the same answer here, but the number of delocalised electrons is the CAUSE and the melting point is the evidence — confusing the two is how the wrong metal gets chosen on a table where they disagree.`,
+            difficulty: midband(r),
+        };
+    },
+};
+
+});
+__def("questions-mid-computing.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MID_COMPUTING = void 0;
+/** The first `n` candidates genuinely different from the answer and each other.
+ *  Fewer than three distinct wrongs and the assembler falls back to filler,
+ *  which the question audit rightly calls a broken item — so every family below
+ *  passes more candidates than it needs. */
+function distinct(correct, candidates, n = 3) {
+    const out = [];
+    for (const cand of candidates) {
+        const s = String(cand);
+        if (s !== correct && !out.includes(s) && out.length < n)
+            out.push(s);
+    }
+    return out;
+}
+const joinList = (xs) => xs.join(", ");
+/** Band 3 (0.45–0.60): two linked steps. */
+function mid3(r) {
+    return 0.47 + r.next() * 0.11;
+}
+/** Band 4 (0.60–0.80): three linked steps. */
+function mid4(r) {
+    return 0.63 + r.next() * 0.14;
+}
+/** A binary rendering with a fixed width, so a byte looks like a byte. */
+function bin(n, width = 8) {
+    return n.toString(2).padStart(width, "0");
+}
+exports.MID_COMPUTING = {
+    // ── VARIABLES ─────────────────────────────────────────────────────────────
+    /** Band 3: a swap through a temporary — four lines, two live values. Band 4:
+     *  four assignments that each build on the last, where reading the value of
+     *  the variable mid-way is the error. */
+    variables: (r) => {
+        const x = r.int(3, 20);
+        let y = r.int(3, 20);
+        if (y === x)
+            y += 1;
+        if (r.next() < 0.5) {
+            const correct = String(y);
+            return {
+                prompt: `Trace this code.\n\na = ${x}\nb = ${y}\ntemp = a\na = b\nb = temp\n\nWhat is the value of a at the end?`,
+                correct,
+                wrongs: distinct(correct, [
+                    // The variable never updated — the swap read as two separate lines.
+                    x,
+                    // The third line read as if it copied b rather than a.
+                    y,
+                    // The two values added.
+                    x + y,
+                    // The last line's target quoted.
+                    y * 2,
+                ]),
+                tags: [],
+                explanation: `A temporary keeps the value that is about to be overwritten. Before line 3, a = ${x} and b = ${y}. Line 3 stores ${x} in temp. Line 4 OVERWRITES a with b, so a becomes ${y}. Line 5 puts the saved ${x} into b. At the end a = ${y} and b = ${x} — the two values have swapped. Answering ${x} stops at line 3, and ${x + y} treats assignment as addition.`,
+                difficulty: mid3(r),
+            };
+        }
+        // Four assignments, each built on the last.
+        const step = r.int(2, 9);
+        const after1 = x + step;
+        const after2 = after1 * 2;
+        const result = after2 - x;
+        const correct = String(result);
+        return {
+            prompt: `Trace this code.\n\nscore = ${x}\nscore = score + ${step}\nscore = score * 2\nscore = score - ${x}\n\nWhat is the value of score at the end?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The value after the multiply, one line short.
+                after2,
+                // The value after the add.
+                after1,
+                // The original, as if only x had been stored.
+                x,
+                // The additions and multiplications collapsed instead of sequenced.
+                x + step * 2 - x,
+                result + step,
+            ]),
+            tags: [],
+            explanation: `Assignment keeps one value per variable, and each line replaces the last. ${x} + ${step} = ${after1}; ${after1} × 2 = ${after2}; ${after2} − ${x} = ${result}. Reporting ${after2} stops one line early — and the reason a trace is necessary at all is that the arithmetic is not the same as the algebra: ${x} + ${step} × 2 − ${x} does NOT equal ${result}.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── CONDITIONALS ──────────────────────────────────────────────────────────
+    /** Band 3: a compound condition, where both halves must be worked out before
+     *  they can be combined. Band 4: the same rule applied to four inputs, which
+     *  has to be evaluated case by case and then counted. */
+    conditionals: (r) => {
+        const threshold = r.int(40, 70);
+        const attendance = r.pick([0.7, 0.75, 0.8, 0.85, 0.9, 0.95]);
+        const score = r.int(30, 95);
+        const passes = score >= threshold && attendance >= 0.85;
+        if (r.next() < 0.5) {
+            const correct = passes ? "true" : "false";
+            return {
+                prompt: `An exam is offered to a student who scores at least ${threshold} AND attends at least 85% of lessons.\n\nThe student scores ${score} and attends ${attendance * 100}% of lessons.\n\nIs the student offered the exam?\n\nif score >= ${threshold} and attendance >= 0.85:\n    offered = true\nelse:\n    offered = false`,
+                correct,
+                wrongs: distinct(correct, [passes ? "false" : "true", "0", "1", "cannot be determined"]),
+                tags: [],
+                explanation: `\`and\` needs BOTH sides true. The score test is ${score} >= ${threshold}, which is ${score >= threshold}; the attendance test is ${attendance} >= 0.85, which is ${attendance >= 0.85}. Since ${score >= threshold ? "the first" : "the second"} test is ${score >= threshold ? "true" : "false"}, the whole condition is ${correct}. A compound condition is not a vote: one false half makes the whole thing false, however comfortably the other half passes.`,
+                difficulty: mid3(r),
+            };
+        }
+        // The same rule across four applicants, evaluated and counted.
+        const cut = r.int(50, 80);
+        const marks = [r.int(40, 90), r.int(40, 90), r.int(40, 90), r.int(40, 90)];
+        const names = ["Ana", "Bo", "Cy", "Di"];
+        const offer = marks.map((m) => m >= cut);
+        const count = offer.filter(Boolean).length;
+        const correct = String(count);
+        return {
+            prompt: `Four students apply. The rule is: offer a place if mark >= ${cut}.\n\n${names.map((n, i) => `· ${n}: ${marks[i]}`).join("\n")}\n\nif mark >= ${cut}:\n    place = true\nelse:\n    place = false\n\nHow many students are offered a place?`,
+            correct,
+            wrongs: distinct(correct, [
+                4 - count,
+                // The ones who missed, plus one.
+                count + 1,
+                count === 0 ? 1 : count - 1,
+                // The highest mark quoted as a count.
+                Math.max(...marks),
+                marks.filter((m) => m > cut).length,
+            ]),
+            tags: [],
+            explanation: `Apply the rule to each applicant and then count the true results. ${names.map((n, i) => `${n} (${marks[i]} ${offer[i] ? ">=" : "<"} ${cut})`).join(", ")}. That is ${count} place${count === 1 ? "" : "s"}. The condition uses >=, so a mark of exactly ${cut} counts — and ${marks.filter((m) => m > cut).length} is the answer you get by reading it as strict >, which is a different rule.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── FUNCTIONS ─────────────────────────────────────────────────────────────
+    /** Band 4: the same function called twice with its results accumulated, so
+     *  the body has to be evaluated for two different arguments and the results
+     *  then combined. */
+    "functions-code": (r) => {
+        const mul = r.int(2, 7);
+        const add = r.int(1, 15);
+        const n1 = r.int(2, 12);
+        let n2 = r.int(2, 12);
+        if (n2 === n1)
+            n2 += 1;
+        const f = (x) => x * mul + add;
+        const total = f(n1) + f(n2);
+        const correct = String(total);
+        return {
+            prompt: `Trace this code.\n\nfunction f(x):\n    return x * ${mul} + ${add}\n\ntotal = 0\ntotal = total + f(${n1})\ntotal = total + f(${n2})\n\nWhat is the value of total?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The function applied to the SUM of the arguments instead of to each.
+                f(n1 + n2),
+                // Only the first call counted.
+                f(n1),
+                // The two arguments added without going through the function.
+                n1 + n2,
+                total + add,
+                total - mul,
+            ]),
+            tags: [],
+            explanation: `The body runs once per call, with the argument substituted for x each time. f(${n1}) = ${n1} × ${mul} + ${add} = ${f(n1)}; f(${n2}) = ${n2} × ${mul} + ${add} = ${f(n2)}. Adding those gives ${total}. Applying the function to ${n1} + ${n2} = ${n1 + n2} (${f(n1 + n2)}) is the mistake functions exist to prevent — a function is a rule applied to EACH input, not a multiplier you can pour all the numbers into at once.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── WHAT IS CODE ──────────────────────────────────────────────────────────
+    /** Band 3: assignment COPIES, so reassigning one variable leaves the other
+     *  alone. Band 4: the same fact across three names, where the order of the
+     *  assignments decides what is printed. */
+    "what-is-code": (r) => {
+        const words = ["ab", "go", "it", "no", "so", "up", "at", "id"];
+        const first = r.pick(words);
+        const second = r.pick(words.filter((w) => w !== first));
+        if (r.next() < 0.5) {
+            const correct = `${second} ${first}`;
+            return {
+                prompt: `Trace this code.\n\na = "${first}"\nb = a\na = "${second}"\nprint(a, b)\n\nWhat does it print?`,
+                correct,
+                wrongs: distinct(correct, [
+                    // b read as an alias for a, so it changes when a does.
+                    `${second} ${second}`,
+                    `${first} ${second}`,
+                    `${first} ${first}`,
+                    second,
+                    second + first,
+                ]),
+                tags: [],
+                explanation: `\`b = a\` copies the VALUE held by a at that moment — it does not make b another name for a. So b keeps "${first}" for ever, while a is replaced by "${second}". The printed pair is "${second} ${first}". Printing "${second} ${second}" treats b as an alias, which is how assignment and reference are confused in nearly every language with both.`,
+                difficulty: mid3(r),
+            };
+        }
+        // Three names: a saves a value, a and b are swapped through it.
+        const correct = `${second}${first}`;
+        return {
+            prompt: `Trace this code.\n\nfirst = "${first}"\nsecond = "${second}"\nsaved = first\nfirst = second\nsecond = saved\nprint(first + second)\n\nWhat does it print?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The swap read as a copy, so both keep their own value.
+                first + second,
+                `${first}${first}`,
+                `${second}${second}`,
+                // The concatenation done before the swap.
+                second,
+                first,
+            ]),
+            tags: [],
+            explanation: `Three lines, three values at each stage. \`saved = first\` keeps "${first}" after first is overwritten; \`first = second\` makes first "${second}"; \`second = saved\` puts "${first}" back into second. The program has swapped two words, so printing first + second gives "${correct}". Printing "${first}${second}" reads the swap as a no-op, and "${second}${second}" happens whenever the temporary line is dropped — without a saved copy the original value is gone.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── DICTIONARIES ──────────────────────────────────────────────────────────
+    /** Band 4: a value READ after it was changed — three lookups, one of them
+     *  after an update, so the order of the statements decides the total. */
+    dictionaries: (r) => {
+        const names = ["ana", "bo", "cy"];
+        const before = r.int(2, 9);
+        const bumped = before + r.int(1, 9);
+        const other = r.int(2, 9);
+        const third = r.int(2, 9);
+        const total = before + other + bumped;
+        const correct = String(total);
+        return {
+            prompt: `Trace this code.\n\nscores = {"${names[0]}": ${before}, "${names[1]}": ${other}, "${names[2]}": ${third}}\ntotal = 0\ntotal = total + scores["${names[1]}"]\ntotal = total + scores["${names[0]}"]\nscores["${names[0]}"] = ${bumped}\ntotal = total + scores["${names[0]}"]\n\nWhat is the value of total?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The last lookup read BEFORE the update, so the change is missed.
+                before + other + before,
+                // The update applied to both earlier lookups.
+                other + bumped + bumped,
+                // All three of the dictionary's values added.
+                before + other + third,
+                // One value left out.
+                before + other,
+                total + bumped,
+            ]),
+            tags: [],
+            explanation: `A dictionary read returns whatever is stored AT THE MOMENT OF THE READ. Line 3 reads ${names[1]}'s ${other}; line 4 reads ${names[0]}'s ${before}; line 5 CHANGES ${names[0]} to ${bumped}; line 6 reads ${names[0]} again and gets ${bumped}. So total = ${other} + ${before} + ${bumped} = ${total}. Reading ${before} twice (${before + other + before}) misses the update entirely — the same key can hand back two different values in one program, which is exactly what mutating state means.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── ALGORITHMS: SORT ──────────────────────────────────────────────────────
+    /** Band 4: TWO passes of bubble sort, actually simulated. One pass is a rule;
+     *  two passes is where the learner has to keep the intermediate list. */
+    "algorithms-sort": (r) => {
+        const vals = [];
+        while (vals.length < 4) {
+            const v = r.int(11, 99);
+            if (!vals.includes(v))
+                vals.push(v);
+        }
+        const bubblePass = (list) => {
+            const out = list.slice();
+            for (let i = 0; i < out.length - 1; i++) {
+                if (out[i] > out[i + 1])
+                    [out[i], out[i + 1]] = [out[i + 1], out[i]];
+            }
+            return out;
+        };
+        const pass1 = bubblePass(vals);
+        const pass2 = bubblePass(pass1);
+        const pass3 = bubblePass(pass2);
+        const sorted = vals.slice().sort((a, b) => a - b);
+        const correct = joinList(pass2);
+        return {
+            prompt: `Bubble sort compares each neighbouring pair, left to right, and SWAPS them if they are out of order. One pass moves along the whole list once.\n\nThe list starts as [${joinList(vals)}].\n\nWhat is the list after TWO passes?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The starting list, as if nothing moved.
+                joinList(vals),
+                // One pass.
+                joinList(pass1),
+                // The fully sorted list, which is more passes than were asked for.
+                joinList(sorted),
+                joinList(pass3),
+                joinList(pass2.slice().reverse()),
+            ]),
+            tags: [],
+            explanation: `A pass is a walk, not a sort. After one pass the list is [${joinList(pass1)}] — the largest item has walked all the way to the end, which is what a pass guarantees. The second pass moves along it again and gives [${joinList(pass2)}]. Reporting [${joinList(pass1)}] is one pass, and [${joinList(sorted)}] is the whole algorithm: a sorted list is not evidence that one pass happened, and the passes have to be counted rather than assumed.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── LOOPS ─────────────────────────────────────────────────────────────────
+    /** Band 4: the counter is DOUBLED rather than incremented, so the number of
+     *  runs has to be traced rather than divided out of the range. */
+    loops: (r) => {
+        const limit = r.pick([40, 50, 60, 70, 80, 100, 120]);
+        const factor = r.pick([2, 3]);
+        let i = 1;
+        let runs = 0;
+        while (i < limit) {
+            runs++;
+            i *= factor;
+        }
+        const last = i;
+        const correct = String(runs);
+        return {
+            prompt: `Trace this loop.\n\ncount = 0\ni = 1\nwhile i < ${limit}:\n    count = count + 1\n    i = i * ${factor}\n\nHow many times does the loop body run?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The counter's final value quoted as the number of runs.
+                last,
+                // The range divided by the factor, as if the counter added instead.
+                Math.floor((limit - 1) / factor),
+                // One out either way.
+                runs + 1,
+                runs - 1,
+                // The limit itself.
+                limit,
+            ]),
+            tags: [],
+            explanation: `The counter MULTIPLIES, so the runs are counted rather than divided. It takes the values 1, ${factor}${factor === 2 ? ", 4, 8" : ", 9, 27"} … up to ${last / factor}, which is ${runs} runs before i reaches ${last} and the condition i < ${limit} fails. ${last} is the counter's final value, NOT the number of runs — a loop that doubles gets there in very few steps, which is the whole reason logarithmic searches are fast.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── BINARY DATA ───────────────────────────────────────────────────────────
+    /** Band 4: two bytes added, so both have to be read with their place values
+     *  before anything can be summed. */
+    "binary-data": (r) => {
+        const a = r.int(40, 160);
+        const b = r.int(20, 90);
+        const correct = String(a + b);
+        return {
+            prompt: `A program reads two bytes from memory:\n· byte 1: ${bin(a)}\n· byte 2: ${bin(b)}\n\nThe program adds them as whole numbers. What is the result in decimal?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The bytes read as if the eight digits were decimal digits.
+                Number(bin(a)) + Number(bin(b)),
+                // The bit patterns combined with OR instead of added.
+                a | b,
+                // The bit patterns combined with AND.
+                a & b,
+                a + b + 1,
+                a * b,
+            ]),
+            tags: [],
+            explanation: `Each position in a byte is worth a power of two, and the reading has to happen before the addition. ${bin(a)} = ${a} and ${bin(b)} = ${b}, so the sum is ${a + b}. Reading the digits as decimal (${bin(a)} + ${bin(b)} = ${Number(bin(a)) + Number(bin(b))}) is the same mistake place value exists to prevent, and OR (${a | b}) is not addition — it only sets a bit when a bit in either number is set, so it always gives less than the sum whenever the two disagree.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── LISTS & ARRAYS ────────────────────────────────────────────────────────
+    /** Band 4: three index accesses, one of which reads a value that a later line
+     *  overwrites — so the ORDER of the lines is the whole question. */
+    "lists-arrays": (r) => {
+        const base = [r.int(2, 9), r.int(10, 19), r.int(20, 29), r.int(30, 39)];
+        const moved = base[3];
+        const after = [moved, base[1], base[2], 0];
+        const correct = joinList(after);
+        return {
+            prompt: `Trace this code.\n\nlist = [${joinList(base)}]\nlist[0] = list[3]\nlist[3] = 0\n\nWhat is the list now?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The starting list, as if the assignments had not happened.
+                joinList(base),
+                // The value at index 3 read AFTER the first line, so the copy is lost.
+                joinList([moved, base[1], base[2], moved]),
+                // The write and the read swapped.
+                joinList([0, base[1], base[2], moved]),
+                // The overwrite applied one index too far to the left.
+                joinList([moved, base[0], base[2], 0]),
+                joinList(after.slice().reverse()),
+            ]),
+            tags: [],
+            explanation: `Line 2 reads index 3 — ${moved} — and copies it into index 0. Line 3 then REPLACES index 3 with 0. The value copied out is safe, because an index holds a value and the copy was made before the overwrite, so the list becomes [${joinList(after)}]. Reporting [${joinList(base)}] treats an index as a label pointing at another index: index 0 now holds ${moved} itself, not a link to wherever ${moved} came from.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── STATISTICS FROM DATA ──────────────────────────────────────────────────
+    /** Band 4: an EVEN number of readings, so the median is the average of the two
+     *  middle values once they are in order — three steps, not one. */
+    "statistics-data": (r) => {
+        const data = [];
+        while (data.length < 6) {
+            const v = r.int(9, 70);
+            if (!data.includes(v))
+                data.push(v);
+        }
+        // The readings are put in order ONCE, and the median is then read off
+        // that same list. (An earlier draft nudged the two middle values to make
+        // the median whole, which quietly changed the data the question prints —
+        // the answer has to be the answer to the question actually asked. A
+        // six-item list can give a `.5` median, and that is a correct answer, not
+        // float noise.)
+        const sorted = data.slice().sort((a, b) => a - b);
+        const median = (sorted[2] + sorted[3]) / 2;
+        const mean = data.reduce((a, b) => a + b, 0) / data.length;
+        const correct = String(median);
+        return {
+            prompt: `A sensor logs six readings, in this order: ${joinList(data)} min. What is the MEDIAN reading?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The average of the OLD middle values, taken before the data is put in
+                // order.
+                (data[2] + data[3]) / 2,
+                // The single middle value of a six-item list, as if it were odd.
+                sorted[3],
+                // The mean.
+                Number(mean.toFixed(2)),
+                sorted[2],
+                sorted[5],
+            ]),
+            tags: [],
+            explanation: `A median needs the readings IN ORDER first: ${joinList(sorted)}. Six readings have no single middle one, so the median is the average of the 3rd and 4th: (${sorted[2]} + ${sorted[3]}) ÷ 2 = ${median}. Averaging the 3rd and 4th of the LOGGED order (${Number(((data[2] + data[3]) / 2).toFixed(2))}) reads the order they arrived in as if it were their size, and ${Number(mean.toFixed(2))} is the mean — a different statistic that a stray large reading drags away.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── DATABASES & SQL ───────────────────────────────────────────────────────
+    /** Band 4: TWO statements, where the second one counts rows the first one
+     *  changed. The order matters, and so does the condition being applied after
+     *  the update rather than before. */
+    "databases-sql": (r) => {
+        const subjects = ["computing", "maths", "science"];
+        const want = r.pick(subjects);
+        const others = subjects.filter((s) => s !== want);
+        const bump = r.pick([5, 10, 15]);
+        const cutoff = r.pick([60, 65, 70, 75]);
+        const rows = [];
+        const wantCount = r.int(3, 6);
+        const otherCount = r.int(2, 5);
+        for (let i = 0; i < wantCount; i++)
+            rows.push({ subject: want, mark: r.int(30, 85) });
+        for (let i = 0; i < otherCount; i++)
+            rows.push({ subject: r.pick(others), mark: r.int(30, 85) });
+        // Shuffled from the seeded RNG, so the matching rows are not always the first
+        // ones read and the learner has to apply the condition rather than count.
+        for (let i = rows.length - 1; i > 0; i--) {
+            const j = r.int(0, i);
+            [rows[i], rows[j]] = [rows[j], rows[i]];
+        }
+        const after = rows.map((x) => (x.subject === want ? { ...x, mark: x.mark + bump } : x));
+        const correct = String(after.filter((x) => x.subject === want && x.mark >= cutoff).length);
+        const beforeMatch = rows.filter((x) => x.subject === want && x.mark >= cutoff).length;
+        const afterAll = after.filter((x) => x.subject === want).length;
+        return {
+            prompt: `The table results holds these rows:\n\n${rows.map((x, i) => `· id ${i + 1}: subject = ${x.subject}, mark = ${x.mark}`).join("\n")}\n\nUPDATE results SET mark = mark + ${bump} WHERE subject = '${want}';\nSELECT COUNT(*) FROM results WHERE subject = '${want}' AND mark >= ${cutoff};\n\nWhat number does the second statement return?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The update never applied.
+                beforeMatch,
+                // Every row of that subject counted, without the mark condition.
+                afterAll,
+                // The whole table counted.
+                rows.length,
+                // Only the rows whose marks were BELOW the cutoff, which are the ones
+                // the update could have changed the answer for.
+                afterAll - Number(correct),
+                Number(correct) + 1,
+            ]),
+            tags: [],
+            explanation: `Statement 1 adds ${bump} to the mark of every row whose subject is ${want} — and to those rows only. Statement 2 then counts the rows of that subject whose UPDATED mark is at least ${cutoff}: ${correct}. Counting before the update (${beforeMatch}) ignores statement 1; counting every row of the subject (${afterAll}) throws the mark condition away; and ${rows.length} is the whole table, which two WHERE clauses have both been dropped from.`,
+            difficulty: mid4(r),
+        };
+    },
+};
+
+});
+__def("questions-mid-maths.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MID_MATHS = void 0;
+/** The first `n` candidates genuinely different from the answer and each other.
+ *  A family that returns fewer than three distinct wrong answers makes the
+ *  assembler fall back to filler ("None of these"), which the question audit
+ *  rightly calls a broken item — so every family passes more candidates than it
+ *  needs and lets this decide. */
+function distinct(correct, candidates, n = 3) {
+    const out = [];
+    for (const cand of candidates) {
+        const s = String(cand);
+        if (s !== correct && !out.includes(s) && out.length < n)
+            out.push(s);
+    }
+    return out;
+}
+/** A number a student would write: never a floating-point tail. */
+function num(x, dp = 2) {
+    return String(Number(x.toFixed(dp)));
+}
+function gcd(a, b) {
+    if (!Number.isFinite(a) || !Number.isFinite(b))
+        return 1;
+    return b === 0 ? Math.abs(a) : gcd(b, a % b);
+}
+/** A fraction in lowest terms, as a student writes it. */
+function frac(n, d) {
+    const g = gcd(n, d) || 1;
+    const nn = n / g;
+    const dd = d / g;
+    if (dd === 1)
+        return String(nn);
+    return dd < 0 ? `${nn > 0 ? "-" : ""}${Math.abs(nn)}/${-dd}` : `${nn}/${dd}`;
+}
+/** A bearing as three digits with the degree sign: 45 → `045°`. */
+function bearing(deg) {
+    return `${String(((Math.round(deg) % 360) + 360) % 360).padStart(3, "0")}°`;
+}
+/** A whole number rendered in base b (2…8, so every digit is unambiguous). */
+function toBase(n, b) {
+    if (n <= 0)
+        return "0";
+    let out = "";
+    let m = n;
+    while (m > 0) {
+        out = String(m % b) + out;
+        m = Math.floor(m / b);
+    }
+    return out;
+}
+/** Band 3 (0.45–0.60): two linked steps. */
+function mid3(r) {
+    return 0.47 + r.next() * 0.11;
+}
+/** Band 4 (0.60–0.80): three linked steps. */
+function mid4(r) {
+    return 0.63 + r.next() * 0.14;
+}
+/** Band 5 (0.80–0.90), held under 0.90 on purpose: three linked steps AND the
+ *  value read out of a table. Never above 0.90, so a mid family can never be
+ *  mistaken for the bank's deepest work. */
+function deep5(r) {
+    return 0.8 + r.next() * 0.06;
+}
+const MONTHS = ["Monday", "Tuesday", "Wednesday", "Thursday"];
+exports.MID_MATHS = {
+    // ── ANGLES ────────────────────────────────────────────────────────────────
+    /** Band 3: form the equation from the angle sum, then divide. Band 4: the
+     *  angles of a triangle in a ratio — parts, one part, then back up. */
+    "angles-lines": (r) => {
+        if (r.next() < 0.5) {
+            // Every pair makes the two unknown angles integer multiples of x, so the
+            // answer is exact rather than a rounded decimal.
+            const [k, x] = r.pick([[2, 30], [2, 35], [2, 40], [2, 45], [3, 20], [3, 25], [3, 30], [3, 35], [4, 15], [4, 20], [4, 25]]);
+            const third = 180 - (k + 1) * x;
+            const correct = String(x);
+            return {
+                prompt: `In a triangle, the three angles are x°, ${k}x° and ${third}°. Work out the value of x.`,
+                correct,
+                wrongs: distinct(correct, [k * x, third, k * x + third, 180 / (k + 1), Math.round((180 - third) / k), x + k]),
+                tags: [],
+                explanation: `The angles of a triangle add to 180°, so x + ${k}x + ${third} = 180. The two unknown angles are ${k + 1} lots of x between them, leaving ${k + 1}x = 180 − ${third} = ${180 - third}, so x = ${180 - third} ÷ ${k + 1} = ${x}. Reporting ${k * x} gives the OTHER unknown angle, and ${third} is the angle that was already given.`,
+                difficulty: mid3(r),
+            };
+        }
+        const [a, b, c] = r.pick([[1, 2, 3], [2, 3, 4], [1, 3, 5], [1, 2, 6], [1, 4, 5], [2, 2, 5], [3, 4, 5], [2, 3, 7]]);
+        const unit = 180 / (a + b + c);
+        const largest = Math.max(a, b, c) * unit;
+        const correct = `${num(largest, 0)}°`;
+        return {
+            prompt: `The three angles of a triangle are in the ratio ${a} : ${b} : ${c}. Work out the size of the largest angle.`,
+            correct,
+            wrongs: distinct(correct, [
+                // The whole turned into ONE part.
+                `${num(unit, 0)}°`,
+                `${num(Math.min(a, b, c) * unit, 0)}°`,
+                // 180 minus the answer, and the answer with one part added.
+                `${num(180 - largest, 0)}°`,
+                `${num(largest + unit, 0)}°`,
+                `${num(largest - unit, 0)}°`,
+            ]),
+            tags: [],
+            explanation: `A ratio needs the parts counted before anything can be shared out: ${a} + ${b} + ${c} = ${a + b + c} parts, and 180° ÷ ${a + b + c} = ${num(unit, 2)}° per part. The largest angle is the largest share, ${Math.max(a, b, c)} parts: ${Math.max(a, b, c)} × ${num(unit, 2)} = ${num(largest, 1)}°. Answering ${num(unit, 0)}° gives one part, not the biggest angle.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── AREA & PERIMETER ─────────────────────────────────────────────────────
+    /** Band 3: an L-shape's perimeter, where the missing sides have to be
+     *  reconstructed (and the answer is the bounding rectangle's). Band 4: the
+     *  area, then the cost — three linked steps. */
+    "area-perimeter": (r) => {
+        const W = r.int(8, 16);
+        const H = r.int(8, 16);
+        const nw = r.int(2, W - 4);
+        const nh = r.int(2, H - 4);
+        const outer = 2 * (W + H);
+        if (r.next() < 0.5) {
+            const correct = `${outer} cm`;
+            return {
+                prompt: `An L-shape is made by cutting a ${nw} cm by ${nh} cm rectangle out of a corner of a ${W} cm by ${H} cm rectangle. Work out the perimeter of the L-shape.`,
+                correct,
+                wrongs: distinct(correct, [
+                    // The notch's edges added to the perimeter instead of moved to it.
+                    `${outer + 2 * (nw + nh)} cm`,
+                    `${outer - 2 * (nw + nh)} cm`,
+                    // The AREA quoted as a perimeter.
+                    `${W * H - nw * nh} cm`,
+                    `${W * H} cm`,
+                    `${outer - (nw + nh)} cm`,
+                ]),
+                tags: [],
+                explanation: `Cutting a rectangle from a CORNER does not change the perimeter: the two edges of the notch are exactly as long as the two edges they replace. So the perimeter is the outer rectangle's, 2 × (${W} + ${H}) = ${outer} cm. Adding the notch's edges on top (${outer + 2 * (nw + nh)} cm) counts every side as if it had been added rather than moved, and ${W * H - nw * nh} cm is the AREA in square units.`,
+                difficulty: mid3(r),
+            };
+        }
+        const area = W * H - nw * nh;
+        const rate = r.pick([12, 15, 18, 22, 25, 30]);
+        const cost = area * rate;
+        const correct = `£${cost}`;
+        return {
+            prompt: `A floor is a ${W} m by ${H} m rectangle with a ${nw} m by ${nh} m rectangle missing from one corner. Carpet costs £${rate} per square metre. Work out the total cost of carpeting the floor.`,
+            correct,
+            wrongs: distinct(correct, [
+                // The whole rectangle carpeted, notch and all.
+                `£${W * H * rate}`,
+                // Only the notch costed.
+                `£${nw * nh * rate}`,
+                // The area reported instead of the cost.
+                `£${area}`,
+                `£${area * rate + rate}`,
+            ]),
+            tags: [],
+            explanation: `Three steps. Find the whole rectangle: ${W} × ${H} = ${W * H} m². Take off the part that is missing: ${W * H} − ${nw * nh} = ${area} m². Then price it: ${area} × £${rate} = ${correct}. Costing the full ${W * H} m² (£${W * H * rate}) carpets the corner that is not there, and £${area} is the area, not the cost.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── AVERAGES ──────────────────────────────────────────────────────────────
+    /** Band 3: the total is not given — it has to be reconstructed from the mean
+     *  before the missing value can be found. Band 4: a combined mean, where the
+     *  group SIZES matter and the unweighted average is the trap. */
+    averages: (r) => {
+        if (r.next() < 0.5) {
+            const n = r.pick([4, 5, 6]);
+            const given = [];
+            let sum = 0;
+            for (let i = 0; i < n - 1; i++) {
+                const v = r.int(10, 32);
+                given.push(v);
+                sum += v;
+            }
+            // The missing reading is chosen from the values that make the stated mean
+            // a whole number, so the item has no rounding in it anywhere.
+            const candidates = [];
+            for (let m = 8; m <= 36; m++)
+                if ((sum + m) % n === 0)
+                    candidates.push(m);
+            const missing = r.pick(candidates.length ? candidates : [sum % n === 0 ? 0 : n - (sum % n)]);
+            const mean = (sum + missing) / n;
+            const correct = String(missing);
+            return {
+                prompt: `The mean of ${n} readings is ${mean}. ${n - 1} of them are ${given.join(", ")}. What is the missing reading?`,
+                correct,
+                wrongs: distinct(correct, [
+                    // The mean quoted back.
+                    mean,
+                    // The total, not the missing part of it.
+                    sum + missing,
+                    // Only the known readings added up.
+                    sum,
+                    // The answer moved by one step either way.
+                    missing + n,
+                    missing - n,
+                ]),
+                tags: [],
+                explanation: `The mean is the TOTAL shared out, so start by rebuilding the total: ${n} × ${mean} = ${sum + missing}. The ${n - 1} readings we have add to ${sum}, so the missing one is ${sum + missing} − ${sum} = ${missing}. Answering ${mean} gives the mean back, and ${sum + missing} is the whole total rather than the gap in it.`,
+                difficulty: mid3(r),
+            };
+        }
+        let na = r.int(9, 26);
+        let nb = r.int(9, 26);
+        if (na === nb)
+            nb += 1;
+        const ma = r.int(42, 82);
+        let mb = r.int(42, 82);
+        if (mb === ma)
+            mb += 3;
+        const combined = (na * ma + nb * mb) / (na + nb);
+        const correct = `${num(combined, 2)} marks`;
+        return {
+            prompt: `Class A has ${na} students with a mean test mark of ${ma}. Class B has ${nb} students with a mean test mark of ${mb}. Work out the mean mark of both classes together. Give your answer to 2 decimal places.`,
+            correct,
+            wrongs: distinct(correct, [
+                // The unweighted average: correct only when the groups are the same size.
+                `${num((ma + mb) / 2, 2)} marks`,
+                // The total marks, never divided by the total number of students.
+                `${na * ma + nb * mb} marks`,
+                `${ma} marks`,
+                `${mb} marks`,
+                `${num(combined + 1, 2)} marks`,
+            ]),
+            tags: [],
+            explanation: `A mean cannot be averaged without its group size. Convert both back to totals first: ${na} × ${ma} = ${na * ma} and ${nb} × ${mb} = ${nb * mb}, so the two classes hold ${na * ma + nb * mb} marks between ${na + nb} students. The combined mean is ${na * ma + nb * mb} ÷ ${na + nb} = ${num(combined, 2)}. Averaging the two means (${num((ma + mb) / 2, 2)}) is only right when the classes are the same size, and ${na * ma + nb * mb} is the total the mean describes rather than the mean itself.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── FRACTIONS ─────────────────────────────────────────────────────────────
+    /** Band 3: unlike denominators, put over a common one, then add or subtract.
+     *  Band 4: a fraction, then a fraction OF WHAT IS LEFT — three stages. */
+    fractions: (r) => {
+        if (r.next() < 0.5) {
+            const [d1, d2] = r.shuffle([3, 4, 5, 6, 8, 10]).slice(0, 2);
+            const n1 = r.int(1, d1 - 1);
+            const n2 = r.int(1, d2 - 1);
+            const lcm = (d1 * d2) / gcd(d1, d2);
+            const a1 = (n1 * lcm) / d1;
+            const a2 = (n2 * lcm) / d2;
+            const adding = r.next() < 0.5 || a1 === a2;
+            const top = adding ? a1 + a2 : Math.abs(a1 - a2);
+            const correct = frac(top, lcm);
+            const symbol = adding ? "+" : "−";
+            return {
+                prompt: `Work out ${n1}/${d1} ${symbol} ${n2}/${d2}. Give your answer as a fraction in its simplest form.`,
+                correct,
+                wrongs: distinct(correct, [
+                    // Tops added and bottoms added: the classic slip.
+                    frac(n1 + n2, d1 + d2),
+                    // The bottoms multiplied instead of finding the lowest common one.
+                    frac(n1 * d2 + n2 * d1, d1 * d2),
+                    // The untouched operand.
+                    `${n2}/${d2}`,
+                    `${n1}/${d1}`,
+                    frac(top + lcm, lcm),
+                ]),
+                tags: [],
+                explanation: `The denominators are different, so the fractions cannot be counted directly. The lowest common denominator of ${d1} and ${d2} is ${lcm}: ${n1}/${d1} = ${a1}/${lcm} and ${n2}/${d2} = ${a2}/${lcm}. So the answer is (${a1} ${symbol} ${a2})/${lcm} = ${correct}. Adding the bottoms (${n1 + n2}/${d1 + d2}) treats the denominator as a size to add rather than a count of equal parts — the bottom number says what the parts are, never how many.`,
+                difficulty: mid3(r),
+            };
+        }
+        // Three stages: a fraction of the whole, then a fraction of what is LEFT.
+        const total = r.pick([24, 30, 36, 40, 48, 60, 72]);
+        const den1 = r.pick([3, 4, 5, 6].filter((d) => total % d === 0));
+        const num1 = r.int(1, den1 - 1);
+        const first = (total * num1) / den1;
+        const rest = total - first;
+        const den2 = r.pick([2, 3, 4, 5].filter((d) => rest % d === 0));
+        const num2 = r.int(1, den2 - 1);
+        const second = (rest * num2) / den2;
+        const left = rest - second;
+        const correct = String(left);
+        return {
+            prompt: `A box holds ${total} pens. ${num1}/${den1} of them are red. Of the pens that are NOT red, ${num2}/${den2} are blue. How many pens are neither red nor blue?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The blue count, one subtraction short of the answer.
+                second,
+                // The red count.
+                first,
+                // The fraction taken from the WHOLE box instead of from the rest.
+                total - first - (total * num2) / den2,
+                rest,
+                left + second,
+            ]),
+            tags: [],
+            explanation: `Read it in stages, and each stage uses what the last one LEFT. Red: ${num1}/${den1} of ${total} = ${first}. Not red: ${total} − ${first} = ${rest}. Blue: ${num2}/${den2} of ${rest} = ${second} — of the REST, not of the whole box. Neither: ${rest} − ${second} = ${left}. Taking the second fraction of the whole box (${num2}/${den2} of ${total}) uses the wrong base entirely, and ${second} is the blue count.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── DATA CHARTS ───────────────────────────────────────────────────────────
+    /** Band 3 only for this concept — the depth layer already supplies its ≥0.75
+     *  table read, so what was missing was the two-step tally in between. */
+    "data-charts": (r) => {
+        const key = r.pick([2, 4, 5, 10]);
+        const marks = MONTHS.map(() => r.int(2, 7));
+        const counts = marks.map((m) => m * key);
+        const hi = counts.indexOf(Math.max(...counts));
+        const lo = counts.indexOf(Math.min(...counts));
+        const diff = counts[hi] - counts[lo];
+        const correct = String(diff);
+        return {
+            prompt: `A chart records how many people visited a museum. Each tally mark stands for ${key} people.\n${MONTHS.map((d, i) => `· ${d}: ${"|".repeat(marks[i])}`).join("\n")}\nHow many more people visited on ${MONTHS[hi]} than on ${MONTHS[lo]}?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The difference counted in MARKS, before the key was applied.
+                marks[hi] - marks[lo],
+                // The two counts added instead of compared.
+                counts[hi] + counts[lo],
+                // Only the busier day counted.
+                counts[hi],
+                diff + key,
+                marks[hi],
+            ]),
+            tags: [],
+            explanation: `A tally mark is a GROUP, not one person, so the key has to be applied before anything is compared. ${MONTHS[hi]} shows ${marks[hi]} marks, which is ${marks[hi]} × ${key} = ${counts[hi]} people; ${MONTHS[lo]} shows ${marks[lo]} marks, which is ${marks[lo]} × ${key} = ${counts[lo]} people. The difference is ${counts[hi]} − ${counts[lo]} = ${diff}. Reporting ${marks[hi] - marks[lo]} is the gap in MARKS, which answers a question about tally marks rather than about people.`,
+            difficulty: mid3(r),
+        };
+    },
+    // ── LOCI ──────────────────────────────────────────────────────────────────
+    /** Band 4: a region built from a rule, where the fraction of the circle has
+     *  to be worked out before anything is evaluated. The answer stays a multiple
+     *  of π, so the item never depends on which approximation a student's
+     *  calculator holds. */
+    "loci-constructions": (r) => {
+        const rad = r.pick([4, 6, 8, 10, 12]);
+        const [fracNum, fracDen, where] = r.pick([
+            [3, 4, "the corner of a square barn"],
+            [1, 2, "a point on a straight fence"],
+            [1, 4, "the point where two walls meet at a right angle"],
+        ]);
+        const coef = (fracNum * rad * rad) / fracDen;
+        const correct = `${num(coef, 2).replace(/\.00$/, "")}π m²`;
+        return {
+            prompt: `A goat is tied to ${where} with a rope ${rad} m long. The wall blocks part of the circle the goat could otherwise reach, so it can graze ${fracNum}/${fracDen} of that circle. Work out the area the goat can graze, in terms of π.`,
+            correct,
+            wrongs: distinct(correct, [
+                // The whole circle, before the fraction is applied.
+                `${rad * rad}π m²`,
+                // The wrong fraction of the same circle.
+                `${num((rad * rad) / fracDen, 2).replace(/\.00$/, "")}π m²`,
+                `${num((2 * rad * rad) / fracDen, 2).replace(/\.00$/, "")}π m²`,
+                // The area doubled, or halved once too often.
+                `${coef * 2}π m²`,
+                `${num(coef / 2, 2).replace(/\.00$/, "")}π m²`,
+            ]),
+            tags: [],
+            explanation: `Two steps before the fraction means anything. First the circle the full rope would reach: πr² = π × ${rad}² = ${rad * rad}π m². Then the share the wall leaves: ${fracNum}/${fracDen} of ${rad * rad}π = ${num(coef, 2).replace(/\.00$/, "")}π m². Reporting ${rad * rad}π m² forgets that the wall is there at all — the rule that defines the locus is "how far from the tie, WITHIN what the wall leaves", and both halves have to be used.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── TRANSFORMATIONS ───────────────────────────────────────────────────────
+    /** Band 4: two transformations applied in order, where the second one acts on
+     *  the output of the first. A single transformation is a lookup; two in
+     *  sequence is where the order starts to matter. */
+    transformations: (r) => {
+        const x = r.int(1, 8);
+        const y = r.int(1, 8);
+        const a = r.int(1, 6);
+        const b = r.int(1, 6);
+        if (r.next() < 0.5) {
+            // 90° clockwise about the origin: (x, y) → (y, −x), then translate.
+            const correct = `(${y + a}, ${b - x})`;
+            return {
+                prompt: `Point A is at (${x}, ${y}). A shape containing A is rotated 90° clockwise about the origin, and then translated by ${a} to the right and ${b} up. What are the coordinates of the image of A?`,
+                correct,
+                wrongs: distinct(correct, [
+                    // The translation only — the rotation dropped.
+                    `(${x + a}, ${y + b})`,
+                    // Rotated ANTICLOCKWISE: (x, y) → (−y, x).
+                    `(${a - y}, ${x + b})`,
+                    // The two coordinates swapped by the rotation and then not moved.
+                    `(${y}, ${-x})`,
+                    // The translation applied to the original coordinates.
+                    `(${b - y}, ${x + a})`,
+                ]),
+                tags: [],
+                explanation: `Do them in the order given. A 90° clockwise turn about the origin sends (x, y) to (y, −x), so A goes to (${y}, ${-x}). The translation then moves that point ${a} right and ${b} up: (${y} + ${a}, ${-x} + ${b}) = (${y + a}, ${b - x}). Translating the ORIGINAL point (${x + a}, ${y + b}) skips the rotation, and a 90° anticlockwise turn — (x, y) → (−y, x) — is the commonest mix-up because both are "90 degrees".`,
+                difficulty: mid4(r),
+            };
+        }
+        // Enlargement by k about the origin, then a reflection in the x-axis.
+        const k = r.pick([2, 3, 4, 5]);
+        const correct = `(${k * x}, ${-k * y})`;
+        return {
+            prompt: `Point A is at (${x}, ${y}). A shape containing A is enlarged by scale factor ${k} about the origin, and then reflected in the x-axis. What are the coordinates of the image of A?`,
+            correct,
+            wrongs: distinct(correct, [
+                // Reflected in the y-axis instead of the x-axis.
+                `(${-k * x}, ${k * y})`,
+                // Added k instead of multiplying by it.
+                `(${x + k}, ${y + k})`,
+                // Reflected but never enlarged.
+                `(${x}, ${-y})`,
+                // Enlarged and then reflected in the line y = x.
+                `(${-k * y}, ${k * x})`,
+            ]),
+            tags: [],
+            explanation: `An enlargement about the origin MULTIPLIES both coordinates: (${x}, ${y}) → (${k * x}, ${k * y}). A reflection in the x-axis leaves the x-coordinate alone and flips the sign of the y-coordinate, giving (${k * x}, ${-k * y}). Reflecting in the y-axis flips the other one (${-k * x}, ${k * y}), and adding the scale factor (${x + k}, ${y + k}) is the slip that confuses "scale factor ${k}" with "move ${k} squares".`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── SETS & VENN ───────────────────────────────────────────────────────────
+    /** Band 4: the union, then the complement, then the split — three linked
+     *  steps, with "at least one" always offered as the wrong answer because that
+     *  is the step learners stop at. */
+    "sets-venn": (r) => {
+        const both = r.int(4, 13);
+        const onlyA = r.int(3, 15);
+        const onlyB = r.int(3, 15);
+        const neither = r.int(2, 11);
+        const total = both + onlyA + onlyB + neither;
+        const a = onlyA + both;
+        const b = onlyB + both;
+        const exactlyOne = onlyA + onlyB;
+        const correct = String(exactlyOne);
+        return {
+            prompt: `In a survey of ${total} people, ${a} like tea, ${b} like coffee and ${both} like both. How many like EXACTLY ONE of the two drinks?`,
+            correct,
+            wrongs: distinct(correct, [
+                // At least one — the union, one step short of the answer.
+                a + b - both,
+                // The two totals added, counting the overlap twice.
+                a + b,
+                // Everybody who likes neither.
+                total - (a + b - both),
+                // The overlap itself.
+                both,
+                // Everybody who does not like both.
+                total - both,
+            ]),
+            tags: [],
+            explanation: `Subtract the overlap before splitting: the people who like at least one drink number ${a} + ${b} − ${both} = ${a + b - both}. Of those, ${both} like both, so exactly one drink is liked by ${a + b - both} − ${both} = ${exactlyOne}. Stopping at ${a + b - both} answers "at least one", and ${a + b} counts the ${both} people who like both a second time — which is why the two totals cannot simply be added.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── NUMBER BASES ──────────────────────────────────────────────────────────
+    /** Band 4: two conversions around an addition. Three linked steps, and the
+     *  decimal sum is always on offer because that is where learners stop. */
+    "number-bases": (r) => {
+        const base = r.pick([2, 3, 4, 5, 8]);
+        const a = r.int(1, base * base + base);
+        const b = r.int(1, base * base + base);
+        const totalDec = a + b;
+        const correct = toBase(totalDec, base);
+        return {
+            prompt: `Work out ${toBase(a, base)} + ${toBase(b, base)}, giving your answer in base ${base}.`,
+            correct,
+            wrongs: distinct(correct, [
+                // The answer left in decimal.
+                String(totalDec),
+                // The sum one place out, either side.
+                toBase(totalDec + 1, base),
+                toBase(totalDec - 1, base),
+                // Place value applied as if the base were ten.
+                String(Number(toBase(a, base)) + Number(toBase(b, base))),
+                toBase(a * b, base),
+            ]),
+            tags: [],
+            explanation: `A base is a place-value system, so convert, add, and convert back. In base ${base}, ${toBase(a, base)} is worth ${a} and ${toBase(b, base)} is worth ${b}; adding gives ${totalDec} in decimal. Writing ${totalDec} in base ${base} means dividing by ${base} repeatedly: ${totalDec} → ${correct}. Answering ${totalDec} leaves the sum in decimal, and ${String(Number(toBase(a, base)) + Number(toBase(b, base)))} adds the digits as if the column were worth ten — the exact error the base exists to change.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── BEARINGS ──────────────────────────────────────────────────────────────
+    /** Band 3: two equal legs at a right angle, so the direct bearing bisects
+     *  the turn. Band 4: an unequal right-angled pair, where the angle has to be
+     *  found with trigonometry and then converted into a three-figure bearing. */
+    bearings: (r) => {
+        if (r.next() < 0.5) {
+            const start = r.pick([0, 45, 90, 135, 180, 225, 270, 315]);
+            const dir = r.next() < 0.5 ? 1 : -1;
+            const turnDeg = (start + dir * 90 + 360) % 360;
+            const final = (start + dir * 45 + 360) % 360;
+            const dist = r.int(4, 20);
+            const correct = bearing(final);
+            return {
+                prompt: `A walker sets off from a hut and walks ${dist} km on a bearing of ${bearing(start)}. They then turn and walk another ${dist} km on a bearing of ${bearing(turnDeg)}. Work out the bearing of the walker from the hut.`,
+                correct,
+                wrongs: distinct(correct, [
+                    bearing(turnDeg),
+                    bearing(start),
+                    bearing(final + 180),
+                    bearing(start - dir * 45),
+                    bearing(turnDeg + dir * 45),
+                ]),
+                tags: [],
+                explanation: `The two legs are the same length and meet at 90° (${bearing(start)} to ${bearing(turnDeg)} is a right-angle turn), so the triangle is isosceles and the direct line splits that 90° into two 45° angles. The walker is therefore 45° round from the first bearing in the direction they turned: ${bearing(start)} + ${dir * 45}° = ${correct}. Reporting ${bearing(turnDeg)} is the SECOND leg's direction, and ${bearing(final + 180)} is the bearing back — a bearing is measured at its own starting point.`,
+                difficulty: mid3(r),
+            };
+        }
+        // A right-angled pair with unequal legs: the angle needs the tangent.
+        const legs = [
+            ["north", "east", 0, 1],
+            ["south", "east", 0, -1],
+            ["south", "west", 0, -1],
+            ["north", "west", 0, 1],
+        ];
+        const [firstDir, secondDir, ns, ew] = r.pick(legs);
+        const d1 = r.int(3, 14);
+        const d2 = r.int(3, 14);
+        // First leg runs north/south (ns), the second east/west (ew).
+        const E = ew * d2;
+        const N = ns * d1;
+        const angle = ((Math.atan2(E, N) * 180) / Math.PI + 360) % 360;
+        const correct = `${num(angle, 1)}°`;
+        return {
+            prompt: `A ship sails ${d1} km ${firstDir}, then ${d2} km ${secondDir}. Work out the bearing of the ship from its starting point. Give your answer to 1 decimal place.`,
+            correct,
+            wrongs: distinct(correct, [
+                `${num((90 - angle + 360) % 360, 1)}°`,
+                `${num((angle + 90) % 360, 1)}°`,
+                `${num((360 - angle) % 360, 1)}°`,
+                `${num(d2 / d1, 1)}°`,
+                `${num(((Math.atan2(N, E) * 180) / Math.PI + 360) % 360, 1)}°`,
+            ]),
+            tags: [],
+            explanation: `Draw it: the two legs are perpendicular, so the direct line is the hypotenuse of a right-angled triangle ${firstDir === "north" || firstDir === "south" ? `with the ${Math.abs(N)} km leg running north–south` : ""} and the ${Math.abs(E)} km leg east–west. The angle is found from the tangent of the legs: tan θ = ${Math.abs(E)}/${Math.abs(N)}, so θ = ${num(angle, 1)}°. Bearings are measured CLOCKWISE FROM NORTH, so the angle from the north line is the bearing itself when the ship finishes north-east of where it started, and ${num((360 - angle) % 360, 1)}° when it finishes north-west. Dividing the legs (${num(d2 / d1, 1)}°) gives a ratio, not an angle.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── CIRCLE THEOREMS ───────────────────────────────────────────────────────
+    /** Band 4: two theorems used one after the other. The chord AC is a diameter,
+     *  so BOTH triangles on it are right-angled, and the answer is the sum of the
+     *  two angles that are left. */
+    "circle-theorems": (r) => {
+        const p = r.pick([20, 25, 30, 35, 40]);
+        const q = r.pick([15, 20, 25, 30, 35]);
+        const acb = 90 - p; // angle in a semicircle, then the angle sum of ABC
+        const acd = 90 - q; // the same two theorems again in ACD
+        const bcd = acb + acd;
+        const correct = `${bcd}°`;
+        return {
+            prompt: `A, B, C and D are four points on a circle, in that order. The chord AC passes through the centre of the circle. Angle BAC = ${p}° and angle CAD = ${q}°. Work out the size of angle BCD.`,
+            correct,
+            wrongs: distinct(correct, [
+                // Only one of the two triangles used.
+                `${acb}°`,
+                `${acd}°`,
+                // The angles at A added and then subtracted from 180 — the same sum
+                // only if the two semicircle facts are both used, which is the point.
+                `${180 - p - q}°`,
+                `${p + q}°`,
+                // The semicircle angle quoted on its own.
+                "90°",
+            ]),
+            tags: [],
+            explanation: `AC is a diameter, so the angle in a semicircle makes both triangles right-angled: angle ABC = ${90}° and angle ADC = ${90}°. Two steps follow, one per triangle. In ABC, angle ACB = 180 − 90 − ${p} = ${acb}. In ACD, angle ACD = 180 − 90 − ${q} = ${acd}. Angle BCD is those two together — ${acb} + ${acd} = ${bcd}. Using only one triangle gives ${acb}°, and ${p + q}° is the angle at A, which is the angle the two interior angles are measured from, not the answer.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── QUADRATIC GRAPHS ──────────────────────────────────────────────────────
+    /** Band 4: the turning point, where the x-coordinate comes from completing
+     *  the square and the y-coordinate needs that value substituted back. */
+    "quadratic-graphs": (r) => {
+        const b = r.pick([2, 4, 6, 8, 10, 12]) * (r.next() < 0.5 ? 1 : -1);
+        const c = r.int(-9, 12);
+        const h = -b / 2;
+        const k = c - h * h;
+        const sign = b > 0 ? "+" : "−";
+        const correct = String(k);
+        return {
+            prompt: `The graph of y = x² ${sign} ${Math.abs(b)}x ${c < 0 ? "−" : "+"} ${Math.abs(c)} has a minimum point at (${h}, k). Work out the value of k.`,
+            correct,
+            wrongs: distinct(correct, [
+                // The y-intercept, left where the line starts instead of moved to the
+                // turning point.
+                String(c),
+                String(-k),
+                String(k + 1),
+                String(h),
+                String(k - h),
+            ]),
+            tags: [],
+            explanation: `Complete the square: x² ${sign} ${Math.abs(b)}x ${c < 0 ? "−" : "+"} ${Math.abs(c)} = (x ${h < 0 ? "+" : "−"} ${Math.abs(h)})² ${k < 0 ? "−" : "+"} ${Math.abs(k)}, so the least value of y is ${k} and it happens at x = ${h}. Notice that the k is NOT the ${c} where the graph crosses the y-axis (that is the y-value at x = 0, not at the turning point), and (x${h < 0 ? "+" : "−"}${Math.abs(h)})² is never negative, which is why ${k} is a minimum and not just a value.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── FUNCTIONS ─────────────────────────────────────────────────────────────
+    /** Band 3: rearrange for the input that gives a stated output. Band 4: two
+     *  functions composed, where the inner one has to be evaluated first. */
+    functions: (r) => {
+        const a = r.int(2, 7);
+        const b = r.int(1, 12);
+        const c = r.int(2, 9);
+        const d = r.int(1, 12);
+        if (r.next() < 0.5) {
+            // f⁻¹: solve ax + b = target for a whole-number input.
+            const target = a * r.int(3, 12) + b;
+            const input = (target - b) / a;
+            const correct = String(input);
+            return {
+                prompt: `f(x) = ${a}x + ${b}. Work out the value of x for which f(x) = ${target}.`,
+                correct,
+                wrongs: distinct(correct, [
+                    // The output quoted as the input.
+                    target,
+                    // The subtraction done the wrong way round.
+                    num((target + b) / a, 1),
+                    // The division applied before the subtraction.
+                    num(target / a - b, 1),
+                    // One step out.
+                    input + 1,
+                    input - 1,
+                ]),
+                tags: [],
+                explanation: `f(x) = ${target} means ${a}x + ${b} = ${target}. Undo the operations in reverse order: subtract ${b} first, giving ${a}x = ${target - b}, then divide by ${a}, so x = ${correct}. Answering ${target} gives the OUTPUT of the function rather than the input that produced it, and ${num(target / a - b, 1)} divides before subtracting — undoing has to take the last operation off first.`,
+                difficulty: mid3(r),
+            };
+        }
+        const inner = r.int(2, 12);
+        const first = a * inner + b; // f(inner)
+        const result = c * first + d; // g(f(inner)) with g(x) = cx + d
+        const correct = String(result);
+        return {
+            prompt: `f(x) = ${a}x + ${b} and g(x) = ${c}x + ${d}. Work out the value of g(f(${inner})).`,
+            correct,
+            wrongs: distinct(correct, [
+                // The inner function's value, one step short.
+                first,
+                // The order of composition swapped: f(g(inner)).
+                a * (c * inner + d) + b,
+                // The two functions multiplied.
+                first * (c * inner + d),
+                // Both functions applied to the same input and added.
+                first + c * inner + d,
+                // The outer function applied to the raw input.
+                c * inner + d,
+            ]),
+            tags: [],
+            explanation: `g(f(${inner})) is read inside out, and the brackets say so. First f(${inner}) = ${a} × ${inner} + ${b} = ${first}. That value becomes the input to g: g(${first}) = ${c} × ${first} + ${d} = ${correct}. Stopping at ${first} answers f(${inner}), and f(g(${inner})) = ${a * (c * inner + d) + b} exists too — but it is a different function, because composition does not commute.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── DECIMALS ──────────────────────────────────────────────────────────────
+    /** Band 5: three measurements in three different units, read from a table,
+     *  each needing a conversion before anything can be added. */
+    decimals: (r) => {
+        const m = r.int(1, 9);
+        const cm = r.int(11, 89);
+        const mm = r.int(11, 89);
+        const total = m + cm / 100 + mm / 1000;
+        const correct = `${num(total, 3)} m`;
+        return {
+            prompt: `A table lists the lengths of three pipes:
+· pipe A: ${m} m
+· pipe B: ${cm} cm
+· pipe C: ${mm} mm
+Work out the total length of the three pipes in metres.`,
+            correct,
+            wrongs: distinct(correct, [
+                // The numbers added as if they shared a unit.
+                `${num(m + cm + mm, 3)} m`,
+                // The last measurement dropped.
+                `${num(m + cm / 100, 3)} m`,
+                // The centimetres converted as millimetres and vice versa.
+                `${num(m + cm / 1000 + mm / 100, 3)} m`,
+                `${num(total * 1000, 3)} m`,
+                `${num(total * 100, 3)} m`,
+            ]),
+            tags: [],
+            explanation: `A table with mixed units cannot be added until every row is in the SAME unit, and the question asks for metres. Pipe B is ${cm} cm = ${num(cm / 100, 2)} m (divide by 100) and pipe C is ${mm} mm = ${num(mm / 1000, 3)} m (divide by 1000). So the total is ${m} + ${num(cm / 100, 2)} + ${num(mm / 1000, 3)} = ${num(total, 3)} m. Adding ${m}, ${cm} and ${mm} as they stand (${num(m + cm + mm, 3)}) treats a millimetre as a metre — a factor of a thousand, which is the whole reason the units are printed.`,
+            difficulty: deep5(r),
+        };
+    },
+    // ── INDICES ───────────────────────────────────────────────────────────────
+    /** Band 5: the index laws chained — add the indices, subtract the third, and
+     *  only then evaluate the power. A negative result has to be turned into a
+     *  reciprocal, which is the second thing the laws license. */
+    "indices-intro": (r) => {
+        // The answer's index is chosen FIRST and the divisor derived from it, so the
+        // result is a whole number of times the base rather than something that has
+        // to be rounded into a distractor.
+        const base = r.pick([2, 3, 5]);
+        const p = r.int(3, 7);
+        const q = r.int(2, 6);
+        const net = r.int(2, 4);
+        const s = p + q - net;
+        if (r.next() < 0.5) {
+            // Positive index: add, subtract, then evaluate.
+            const value = Math.pow(base, net);
+            const correct = String(value);
+            return {
+                prompt: `Work out (${base}${sup(p)} × ${base}${sup(q)}) ÷ ${base}${sup(s)}. Give your answer as a whole number.`,
+                correct,
+                wrongs: distinct(correct, [
+                    // The indices multiplied (the power-of-a-power law) instead of added.
+                    String(p * q),
+                    // The divisor's index added instead of subtracted.
+                    String(Math.pow(base, p + q + s)),
+                    // One out either way.
+                    String(Math.pow(base, net + 1)),
+                    String(Math.pow(base, net + 2)),
+                    String(base * p * q),
+                ]),
+                tags: [],
+                explanation: `The index laws work on the indices first, and only then on the number. Multiplying powers of ${base} ADDS the indices: ${p} + ${q} = ${p + q}. Dividing SUBTRACTS: ${p + q} − ${s} = ${net}. So the expression is ${base}${sup(net)} = ${value}. Multiplying the indices (${p} × ${q}) is a real law too — but it belongs to a power OF a power, that is (${base}${sup(p)})${sup(q)}, and there is no bracket here.`,
+                difficulty: deep5(r),
+            };
+        }
+        // A negative index: the answer is a reciprocal, and a fraction is the honest
+        // way to write it rather than a decimal that never terminates.
+        const p2 = r.int(2, 5);
+        const s2 = p2 + net + 1;
+        const denom = Math.pow(base, s2 - p2);
+        const correct = frac(1, denom);
+        return {
+            prompt: `Work out ${base}${sup(p2)} ÷ ${base}${sup(s2)}. Give your answer as a fraction in its simplest form.`,
+            correct,
+            wrongs: distinct(correct, [
+                // The reciprocal the other way up.
+                String(denom),
+                // The indices ADDED where they should be subtracted.
+                String(Math.pow(base, p2 + s2)),
+                // The negative sign kept on the whole number.
+                `-${denom}`,
+                frac(1, denom + 1),
+                frac(1, denom * base),
+            ]),
+            tags: [],
+            explanation: `Dividing powers of the same base SUBTRACTS the indices: ${p2} − ${s2} = ${p2 - s2}. A NEGATIVE index means a reciprocal, not a negative number: ${base}${sup(p2 - s2)} = 1 ÷ ${base}${sup(s2 - p2)} = ${correct}. Answering ${denom} turns the reciprocal the wrong way up, and −${denom} treats an index of ${p2 - s2} as "minus ${denom}" — a negative index never makes a negative value.`,
+            difficulty: deep5(r),
+        };
+    },
+};
+const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+/** A Unicode superscript, so an index is printed as an index and never as `^`.
+ *  A negative index keeps its minus sign in front (`10⁻³`). */
+function sup(n) {
+    const digits = String(Math.abs(n))
+        .split("")
+        .map((c) => SUP[Number(c)])
+        .join("");
+    return n < 0 ? `⁻${digits}` : digits;
+}
+
+});
+__def("questions-mid-physics.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MID_PHYSICS = void 0;
+/** The first `n` candidates genuinely different from the answer and each other.
+ *  Fewer than three distinct wrongs and the assembler falls back to filler,
+ *  which the question audit rightly calls a broken item. */
+function distinct(correct, candidates, n = 3) {
+    const out = [];
+    for (const cand of candidates) {
+        const s = String(cand);
+        if (s !== correct && !out.includes(s) && out.length < n)
+            out.push(s);
+    }
+    return out;
+}
+/** A number a student would write: never a floating-point tail. */
+function num(x, dp = 2) {
+    return String(Number(x.toFixed(dp)));
+}
+/** Band 4 (0.60–0.80): three linked steps, with the values stated. */
+function mid4(r) {
+    return 0.63 + r.next() * 0.14;
+}
+/** Band 5 (0.80–0.90), held under 0.90 on purpose: the answer is read OUT OF A
+ *  TABLE, which is what the data-interpretation band means. */
+function midband(r) {
+    return 0.8 + r.next() * 0.06;
+}
+exports.MID_PHYSICS = {
+    // ── ATOMS & NUCLEI ────────────────────────────────────────────────────────
+    /** Band 4: a relative atomic mass from two isotopes' abundances — two
+     *  weighted products, a sum, and a divide, which is three linked steps and
+     *  the standard reason the table of isotopes exists. */
+    "atoms-nucleus": (r) => {
+        const pct = r.pick([20, 25, 30, 40, 50, 60, 75, 80]);
+        const qPct = 100 - pct;
+        const m1 = r.int(20, 60);
+        let m2 = m1 + r.int(1, 4);
+        if (m2 === m1)
+            m2 += 1;
+        const weighted = (pct * m1 + qPct * m2) / 100;
+        const correct = num(weighted, 2);
+        return {
+            prompt: `An element has two stable isotopes.\n· isotope 1: mass number ${m1}, abundance ${pct}%\n· isotope 2: mass number ${m2}, abundance ${qPct}%\n\nWork out the element's relative atomic mass. Give your answer to 2 decimal places.`,
+            correct,
+            wrongs: distinct(correct, [
+                // The plain average of the two mass numbers — correct only at 50%.
+                num((m1 + m2) / 2, 2),
+                // The heavier isotope's mass number quoted on its own.
+                m2,
+                // The weighted sum never divided by 100.
+                num((pct * m1 + qPct * m2) / 1, 2),
+                // The abundances multiplied instead of weighting the masses.
+                num((pct * qPct) / 100, 2),
+                num((pct * m2 + qPct * m1) / 100, 2),
+            ]),
+            tags: [],
+            explanation: `An average mass is WEIGHTED by how much of each isotope there is. Each isotope contributes its abundance as a fraction times its mass number: ${pct}% gives ${pct}/100 × ${m1} = ${num((pct * m1) / 100, 2)} and ${qPct}% gives ${qPct}/100 × ${m2} = ${num((qPct * m2) / 100, 2)}. Adding those gives ${correct}. Averaging the two mass numbers (${num((m1 + m2) / 2, 2)}) ignores the abundances completely, and ${num((pct * m1 + qPct * m2) / 1, 2)} is the same sum before it is divided by 100 — a number a hundred times too big.`,
+            difficulty: mid4(r),
+        };
+    },
+    // ── WAVES ─────────────────────────────────────────────────────────────────
+    /** Band 5: four waves' speeds and wavelengths are given in a table; the
+     *  frequency of each has to be computed before they can be compared. */
+    "waves-basics": (r) => {
+        const names = ["sound in air", "a radio wave", "a water wave", "an ultrasound pulse"];
+        const rows = names.map((n) => {
+            const speed = r.pick([340, 1500, 3000, 6000]);
+            const wave = r.pick([0.5, 1, 2, 2.5, 4, 5]);
+            return { n, speed, wave, f: speed / wave };
+        });
+        // The fastest frequency, and the two tables that make it a comparison
+        // rather than a lookup.
+        let best = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].f > rows[best].f)
+                best = i;
+        let worst = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].f < rows[worst].f)
+                worst = i;
+        let fastestSpeed = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].speed > rows[fastestSpeed].speed)
+                fastestSpeed = i;
+        let longest = 0;
+        for (let i = 1; i < rows.length; i++)
+            if (rows[i].wave > rows[longest].wave)
+                longest = i;
+        const correct = rows[best].n;
+        return {
+            prompt: `A table records four waves.\n${rows.map((x) => `· ${x.n}: speed ${x.speed} m/s, wavelength ${x.wave} m`).join("\n")}\n\nWhich wave has the HIGHEST frequency?`,
+            correct,
+            // The teaching distractors come FIRST, but the full list of names is
+            // appended: one wave can be both the fastest AND the highest-frequency,
+            // and when that happens the first three candidates collapse to fewer than
+            // three distinct wrongs and the assembler pads the question with "None of
+            // these" — measured, not guessed (the question audit failed this family
+            // on exactly that). Appending the names guarantees three.
+            wrongs: distinct(correct, [
+                // The highest speed, read as the highest frequency.
+                rows[fastestSpeed].n,
+                // The longest wavelength.
+                rows[longest].n,
+                // The lowest frequency.
+                rows[worst].n,
+                ...rows.map((x) => x.n),
+            ]),
+            tags: [],
+            explanation: `The table gives speed and wavelength, not frequency, so none of these numbers may be compared as they stand. The wave equation, v = f λ, has to be rearranged first: f = v ÷ λ. Computing each row gives ${rows.map((x) => `${x.n}: ${x.speed} ÷ ${x.wave} = ${num(x.f, 2)} Hz`).join("; ")}. The highest is ${correct}. Answering ${rows[fastestSpeed].n} reads the fastest SPEED as the highest frequency, which is only true when the wavelengths match — and ${rows[longest].n} does the same with the wavelength, which is inversely related to frequency.`,
+            difficulty: midband(r),
+        };
+    },
+    // ── MOTION GRAPHS ─────────────────────────────────────────────────────────
+    /** Band 5: the speed has to be read out of the table between two of its rows,
+     *  which is the gradient of a distance–time graph in numerical form. */
+    "motion-graphs": (r) => {
+        const t0 = r.int(2, 6);
+        const t1 = t0 + r.int(4, 10);
+        const v = r.pick([2, 3, 4, 5, 6, 8, 10]);
+        // The table starts with a stationary period, so the total distance over the
+        // total time is deliberately NOT the answer.
+        const d0 = r.int(10, 40);
+        const d1 = d0 + v * (t1 - t0);
+        const totalTime = t1 + r.int(2, 6);
+        const totalDist = d1 + v * 2;
+        const rows = [
+            [0, 0],
+            [t0, d0],
+            [t1, d1],
+            [totalTime, totalDist],
+        ];
+        const correct = `${num((d1 - d0) / (t1 - t0), 2)} m/s`;
+        return {
+            prompt: `A distance–time graph is drawn from this table.\n${rows.map(([t, d]) => `· time ${t} s, distance ${d} m`).join("\n")}\n\nWhat is the object's speed between ${t0} s and ${t1} s?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The average speed over the WHOLE journey, which includes the
+                // stationary part at the start.
+                `${num(totalDist / totalTime, 2)} m/s`,
+                // The distance divided by the wrong time, or the time quoted as a
+                // speed.
+                `${num(d1 / t1, 2)} m/s`,
+                `${num(t1 - t0, 2)} m/s`,
+                // The distance covered, not the rate of covering it.
+                `${num(d1 - d0, 2)} m/s`,
+                `${num((d1 + d0) / (t1 - t0), 2)} m/s`,
+            ]),
+            tags: [],
+            explanation: `A distance–time graph shows speed as its GRADIENT, so the question is about one segment, not the whole line. Between ${t0} s and ${t1} s the distance goes from ${d0} m to ${d1} m — a change of ${d1 - d0} m — over a time of ${t1} − ${t0} = ${t1 - t0} s. So the speed is ${d1 - d0} ÷ ${t1 - t0} = ${correct}. Dividing the whole distance by the whole time (${num(totalDist / totalTime, 2)} m/s) answers "average speed over the journey", and the table's first rows were put there to make the two numbers different.`,
+            difficulty: midband(r),
+        };
+    },
+    // ── ENERGY CONSERVATION ───────────────────────────────────────────────────
+    /** Band 5: the energy lost to friction is the DIFFERENCE between two rows of
+     *  gravitational potential energy, each of which has to be computed first. */
+    "energy-conservation": (r) => {
+        const mass = r.pick([0.5, 1, 1.5, 2, 2.5, 4]);
+        const g = 10;
+        const h1 = r.int(2, 12);
+        const h2 = h1 - r.int(1, Math.max(1, h1 - 1));
+        const gpe1 = mass * g * h1;
+        const gpe2 = mass * g * h2;
+        const lost = gpe1 - gpe2;
+        const correct = `${num(lost, 2)} J`;
+        return {
+            prompt: `A ball of mass ${num(mass, 2)} kg is released from a height of ${h1} m and caught at a height of ${h2} m. A table of its gravitational potential energy has been worked out for two heights (take g = ${g} N/kg):\n· at ${h1} m: ${deepNumCell(gpe1)} J\n· at ${h2} m: ${deepNumCell(gpe2)} J\n\nIt is moving slower than a frictionless fall would explain. How much energy was transferred to the surroundings?`,
+            correct,
+            wrongs: distinct(correct, [
+                // The energy at the top, not the amount that went missing.
+                `${num(gpe1, 2)} J`,
+                // The energy at the bottom.
+                `${num(gpe2, 2)} J`,
+                // The two energies added.
+                `${num(gpe1 + gpe2, 2)} J`,
+                `${num(h1 - h2, 2)} J`,
+                `${num(lost * 2, 2)} J`,
+            ]),
+            tags: [],
+            explanation: `The table already holds both potential energies, so the loss is a DIFFERENCE: ${num(gpe1, 2)} J at the top minus ${num(gpe2, 2)} J where it was caught = ${correct}. Energy is conserved, so the missing amount went to the surroundings as heat and sound rather than disappearing. Reporting ${num(gpe1, 2)} J is the energy at the start, not the part that was lost, and ${num(gpe2, 2)} J is what is still stored — neither is the amount that changed form.`,
+            difficulty: midband(r),
+        };
+    },
+};
+/** A table cell a student would write: no float tail, no trailing zeros beyond
+ *  what the value needs. */
+function deepNumCell(x) {
+    return String(Number(x.toFixed(3)));
+}
+
+});
 __def("questions-physics.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -40026,6 +41926,20 @@ const questions_computing_1 = require("./questions-computing");
 const questions_chemistry_1 = require("./questions-chemistry");
 const questions_physics_1 = require("./questions-physics");
 const questions_biology_1 = require("./questions-biology");
+// THE MIDDLE OF THE LADDER — the bands the audit found UNREACHABLE for 50 of
+// the 135 concepts. `npm run content-audit` draws each concept's whole
+// catalogue and asks, per course, whether any draw sits in the demand band that
+// course serves at; the answer was no for a bimodal generator (base 0.25–0.45,
+// depth 0.85–0.96) or for a subject whose ceiling stopped just under a band's
+// floor. The cause was never the search — cause A is 0 across the platform, and
+// the budget was raised from 40 to 400 draws to prove it. So the fix is
+// content, composed as ONE ADDITIONAL draw exactly like the data and subject
+// layers below.
+const questions_mid_maths_1 = require("./questions-mid-maths");
+const questions_mid_computing_1 = require("./questions-mid-computing");
+const questions_mid_physics_1 = require("./questions-mid-physics");
+const questions_mid_chemistry_1 = require("./questions-mid-chemistry");
+const questions_mid_biology_1 = require("./questions-mid-biology");
 const questions_senior_1 = require("./questions-senior");
 // The numeric layer (§6): the concepts whose questions could only ever be four
 // printed options, given an answer box. Composed like the deep and senior
@@ -42446,6 +44360,40 @@ const SUBJECT_DEEP = {
     physics: questions_physics_1.PHYSICS_DEEP,
     biology: questions_biology_1.BIOLOGY_DEEP,
 };
+/**
+ * THE MIDDLE OF THE LADDER, one record per subject, composed as ONE MORE
+ * `withDepth` draw.
+ *
+ * WHY THIS EXISTS AT ALL, and why it is content rather than a serving tweak:
+ * `npm run content-audit` draws every concept's whole catalogue and asks, per
+ * course, whether any draw lands in the demand band that course serves at
+ * (`generateQuestionNear` prefers an in-band item over any nearer out-of-band
+ * one, so "can this concept answer this rung?" is a question about BANDS).
+ * Fifty of the 135 concepts answered no, in one of two shapes: a BIMODAL
+ * generator (base 0.25–0.45, depth 0.85–0.96, nothing between — band 3 and
+ * band 4 unreachable) or a subject whose ceiling stopped just under a band's
+ * floor (0.75–0.78 against a band-5 floor of 0.80). The audit attributes every
+ * single shortfall to "B generator", with cause "A search" = 0 across the
+ * platform: there was no in-band item the production serve failed to find.
+ * Raising the production draw budget from 40 to 400 changed the served
+ * distribution not at all, which is the proof.
+ *
+ * THE POSITION IN THE CHAIN IS DELIBERATE. This layer is composed BEFORE the
+ * per-subject layers (see the loop below), which puts it INSIDE them: a concept
+ * that belongs to a subject layer keeps that layer's 50% share of the draws, so
+ * the ceiling those layers established is untouched, while the mid band still
+ * gets a quarter of them — more than enough for the 240-draw spectrum the audit
+ * measures and for the 40-draw search the serve runs. Composed outermost it
+ * would have halved every subject ceiling, which is a regression the ceiling
+ * gate would rightly catch.
+ */
+const MID_GENS = {
+    ...questions_mid_maths_1.MID_MATHS,
+    ...questions_mid_computing_1.MID_COMPUTING,
+    ...questions_mid_physics_1.MID_PHYSICS,
+    ...questions_mid_chemistry_1.MID_CHEMISTRY,
+    ...questions_mid_biology_1.MID_BIOLOGY,
+};
 const ALL_GENS = Object.fromEntries(Object.entries(BASE_GENS).map(([id, base]) => {
     let gen = base;
     // The senior and deep layers are composed here so a concept carries a
@@ -42475,6 +44423,12 @@ const ALL_GENS = Object.fromEntries(Object.entries(BASE_GENS).map(([id, base]) =
     // spread). Raising a concept's ceiling cannot strand anyone at a lower band.
     if (questions_deep_1.DATA_DEEP[id] && !DATA_DEEP_PRIMARY.has(id))
         gen = withDepth(gen, questions_deep_1.DATA_DEEP[id]);
+    // THE MIDDLE OF THE LADDER — the bands the audit measured as unreachable.
+    // Composed BEFORE the subject layers so it sits INSIDE them: composing it
+    // outermost would halve every subject family's share of the draws and take
+    // the ceilings those layers were built to reach with it.
+    if (MID_GENS[id])
+        gen = withDepth(gen, MID_GENS[id]);
     // THE PER-SUBJECT DEPTH LAYERS — the same remedy as the data layer above,
     // for the four subjects the remedy had never been applied to. Each was
     // measured by `npm run gate:ceiling` as declaring an advanced depth it could
@@ -45593,7 +47547,7 @@ function canTransfer(conceptId) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 52 },
+      meta: { modules: 57 },
     };
   });
   return __req("__entry__.js");
