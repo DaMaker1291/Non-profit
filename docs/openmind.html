@@ -100,10 +100,18 @@
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
   /* ── The shell ──
-     One measure for the header, the page and the footer alike, so the three line
-     up on every screen. 50rem is a comfortable column for a screen made of
-     questions, lists and short tables rather than long paragraphs. */
+     One measure for the page and the footer, so the two line up on every screen.
+     50rem is a comfortable column for a screen made of questions, lists and
+     short tables rather than long paragraphs. */
   --measure: 50rem;
+  /* The header is CHROME, not prose, and chrome needs more room than reading
+     does. Five destinations plus the brand and the language control do not fit
+     in 50rem: measured on the published page, the nav overflowed its own
+     container by 277px at 768px and by 245px at every width up to 1440 — and
+     because that overflow sat behind `scrollbar-width: none`, the last two
+     destinations were not cramped, they were unreachable. Chrome gets its own
+     measure; the page and the footer keep the reading one. */
+  --measure-chrome: 62rem;
   --nav-h: 3.5rem;
 
   /* ── The semantic rung: PRIMITIVE → SEMANTIC → COMPONENT ──
@@ -249,19 +257,29 @@ p { margin: 0 0 0.8rem; }
 }
 
 .top-in {
-  max-width: var(--measure);
+  max-width: var(--measure-chrome);
   margin: 0 auto;
   min-height: var(--nav-h);
   padding: 0 1.15rem;
   display: flex;
   align-items: center;
   gap: 0.9rem;
+  /* Below about 900px the row genuinely cannot hold brand + nav + controls.
+     When that happens the NAV takes its own line inside the same container
+     instead of being clipped: a two-row header at tablet widths is a smaller
+     price than navigation the learner cannot see. The rule that does it lives
+     AFTER `.top nav`, because that rule's `flex: 1` shorthand resets
+     `flex-basis` — declared before it, the override silently did nothing. */
+  flex-wrap: wrap;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  /* A control's minimum for a link that is a control. Measured before this:
+     120x29 — the whole wordmark was a 29px-tall target. */
+  min-height: 2.25rem;
   font-family: var(--serif);
   font-size: 1.12rem;
   font-weight: 700;
@@ -276,7 +294,9 @@ p { margin: 0 0 0.8rem; }
 /* The learner's own context, filed in the margin of the header. Truncated rather
    than pushing the controls off the bar: a fact to glance at, not a control. */
 .brand-note {
-  max-width: 12rem;
+  /* Truncated to a glance, not to a headline: at 12rem the brand took 320px of
+     the bar, which is what pushed the navigation out of the container. */
+  max-width: 6rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -303,6 +323,16 @@ p { margin: 0 0 0.8rem; }
 /* Where the learner IS is the one place the chrome spends the accent. */
 .top nav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent-deep); font-weight: 650; }
 
+/* The header's second row. Declared here, after `.top nav`'s own `flex: 1`, or
+   the basis is reset and the nav is clipped again — which is exactly what the
+   first attempt at this fix did. Measured after this order: the nav fits from
+   900px up and takes its own full-width row below that, down to the 720px
+   point where the phone bar replaces it entirely. */
+@media (max-width: 900px) {
+  .top-in { padding-block: 0.45rem; row-gap: 0.15rem; }
+  .top nav { order: 2; flex-basis: 100%; }
+}
+
 .top-tools { display: flex; align-items: center; gap: 0.45rem; }
 select.lang {
   font: inherit;
@@ -317,6 +347,9 @@ select.lang {
 .theme-btn {
   display: grid;
   place-items: center;
+  /* Was 31px wide — under the 32px an icon control needs for a thumb. */
+  min-width: 2.25rem;
+  min-height: 2.25rem;
   padding: 0.38rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-btn);
@@ -368,8 +401,6 @@ select.lang {
   .tabbar a svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .tabbar a[aria-current="page"] { color: var(--accent); }
   .tabbar a + a { border-inline-start: 1px solid var(--line-soft); }
-  main { padding-bottom: calc(4.8rem + env(safe-area-inset-bottom)); }
-  footer { padding-bottom: calc(4.8rem + env(safe-area-inset-bottom)); }
 }
 
 /* ── Page frame ─────────────────────────────────────────────────────────── */
@@ -397,6 +428,31 @@ footer {
   align-items: center;
 }
 footer button { font-size: 0.8rem; }
+/* A footer link is still a control, so it gets a control's minimum height.
+   Measured: the source link was 79x21 — under the 24px WCAG 2.2 floor and
+   awkward to hit with a thumb. */
+footer a, footer button { display: inline-flex; align-items: center; min-height: 2.25rem; }
+/* A link that is the WHOLE of its paragraph is a control, not prose, and gets a
+   control's minimum height. Measured before this: "View your evidence" was
+   141x18 and `.progress-line` (the mono cross-reference to the curriculum)
+   116x20 — both under the 24x24 WCAG 2.2 asks of a target. `p > a:only-child`
+   is deliberately narrow: a link inside a sentence takes its hit area from the
+   line box already, and padding every inline link would push the prose apart. */
+p > a:only-child, a.progress-line { display: inline-flex; align-items: center; min-height: 1.5rem; }
+
+/* ── The phone bar owns the bottom of the screen ──────────────────────────────
+   `.tabbar` is FIXED, so the flow must reserve its height or the last line of
+   the page lives underneath it. This reservation used to be declared INSIDE the
+   `max-width: 720px` block above — which sits BEFORE these base `main` and
+   `footer` rules. Equal specificity, later declaration wins, so the base
+   `padding: … 3rem` beat it and the reservation never applied at all.
+   Measured on the published page at 390x844: footer bottom 844, phone-bar top
+   788 — the footer's entire last line, source link included, was behind the bar.
+   Declared here, after the rules it overrides, and tied to `--nav-h` so the
+   clearance cannot drift away from the bar's own height. */
+@media (max-width: 720px) {
+  footer { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--s2)); }
+}
 
 /* ── Typographic furniture ──────────────────────────────────────────────── */
 
@@ -551,7 +607,10 @@ input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--ma
 /* The receipts behind the decision: closed by default, so the card leads with the
    decision rather than with its evidence. */
 details.evidence { margin-top: 0.8rem; padding-top: 0.6rem; border-top: 1px solid var(--line-soft); font-size: 0.87rem; }
-details.evidence summary { cursor: pointer; font-weight: 600; color: var(--text-muted); }
+/* min-height, NOT `display: flex`: the disclosure marker comes from
+   `display: list-item` and switching it would delete the triangle that says
+   this line opens. 22px tall as measured; 24 is the floor. */
+details.evidence summary { cursor: pointer; font-weight: 600; color: var(--text-muted); min-height: 1.5rem; }
 details.evidence summary:hover { color: var(--text); }
 details.evidence ul { margin: 0.5rem 0 0; padding-inline-start: 1.1rem; color: var(--text-soft); }
 details.evidence li { margin-bottom: 0.25rem; }
@@ -753,10 +812,23 @@ ul.items li {
   justify-content: space-between;
   align-items: baseline;
   gap: 1rem;
+  /* A row may carry more than its title/value pair: the curriculum adds the
+     concept's blurb, and the row the learner is ON adds its demonstration
+     split. Those are LINES UNDER the row, not a second and third COLUMN of it
+     — the React list stacks them inside its row for exactly this reason. Left
+     nowrap they became squeezed columns that could not shrink past their
+     longest word, and at 320px the curriculum row overflowed the viewport by
+     26px (measured: `p.small.muted` 85px wide, right edge 26px past the
+     screen). Wrapping plus a full-width basis puts them where they read. */
+  flex-wrap: wrap;
   padding: 0.65rem 0;
   border-top: 1px solid var(--line-soft);
 }
 ul.items li:first-child { border-top: 0; }
+/* The row's stacked lines. `flex: 1 0 100%` forces a line break before them
+   whatever the title's own width, and `min-width: 0` lets the text wrap rather
+   than push the row wide open. */
+ul.items li > p { flex: 1 0 100%; min-width: 0; }
 ul.items li > a {
   flex: 1;
   display: flex;
