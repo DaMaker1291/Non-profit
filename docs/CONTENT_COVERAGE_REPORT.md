@@ -8,6 +8,20 @@ recorded in `docs/GLOBAL_STANDARD_AUDIT.md` §4.
 
 **Date:** 2026-10-03.
 
+> **Update — 2026-10-06.** The demand and depth figures below are a snapshot from
+> before the per-SUBJECT depth layers existed
+> (`lib/questions-{computing,chemistry,physics,biology}.ts`) and are now stale.
+> Re-measured today by `npm run content-check`: **135/135** concepts have a
+> generator · **application 133 · multi_step 127 · data_interpretation 127 ·
+> extended_response 0** (was 80 at `data_interpretation`), and the **content-gap
+> queue is 8**, every one of them a primary-arithmetic concept deliberately kept
+> shallow (`place-value`, `addition`, `subtraction`, `multiplication`, `division`,
+> `negatives`, `rounding`, `order-ops` — the `DATA_DEEP_PRIMARY` set, whose
+> low ceilings the engine suite's fixtures depend on). `npm run gate:ceiling`
+> reports **REACHED 80/80** advanced tier×subject rows, PASS 246 FAIL 0. Treat
+> `npm run content-check` as the source of truth and re-measure §1–§3 before
+> quoting any item count, difficulty reach or catalogue size from this report.
+
 ---
 
 ## 1. The bank
