@@ -8,8 +8,8 @@
  * and that is what this caches — the shell, the stylesheet and the engine
  * bundle.
  */
-const CACHE = "openmind-static-f5efc4f2ae64";
-const SHELL = ["./", "./index.html", "./openmind.engine.2fbdc6967b15.js", "./app.79241ac0acd2.js", "./app.8fd59d4c8d63.css"];
+const CACHE = "openmind-static-3a7a96a8b4af";
+const SHELL = ["./", "./index.html", "./openmind.engine.69ac4d5e110f.js", "./app.79241ac0acd2.js", "./app.031b1275d905.css"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

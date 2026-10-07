@@ -103,6 +103,10 @@
      measure; the page and the footer keep the reading one. */
   --measure-chrome: 62rem;
   --nav-h: 3.5rem;
+  /* The desktop rail. Wide enough for the longest destination in any of the 15
+     languages without wrapping, and narrow enough that the reading column keeps
+     its measure on a 1280-wide laptop. */
+  --rail-w: 13.5rem;
 
   /* ── The semantic rung: PRIMITIVE → SEMANTIC → COMPONENT ──
      Every rule below reads a JOB, not an appearance: `--text`, not `--ink`;
@@ -357,6 +361,59 @@ select.lang {
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) .theme-btn .i-sun { display: none; }
   :root:not([data-theme]) .theme-btn .i-moon { display: block; }
+}
+
+/* ── Chrome: the desktop rail ─────────────────────────────────────────────
+   From 900px up the destinations stop being a row above the work and become the
+   exercise book's margin: a rail down the left, which is where a book puts its
+   index. This is the shape the app itself already uses (`.side` in
+   `app/globals.css`), because the two surfaces are two views of one product and
+   the navigation is the part a learner reads without having to think.
+
+   900px is not a new breakpoint. It is the width at which the header already
+   stops fitting brand + destinations + controls on one line — the rule directly
+   above exists to handle exactly that. Below it nothing changes: the row still
+   wraps at tablet width, and under 720px the phone bar takes over entirely.
+
+   The rail is FIXED rather than part of the document, so a long page scrolls
+   underneath it and the destinations never leave the screen. The space is
+   carried by `body` rather than `main`, which leaves `main`'s own `margin: 0
+   auto` centring the reading column inside whatever is left of the width. */
+@media (min-width: 901px) {
+  body { padding-left: var(--rail-w); }
+  body[dir="rtl"] { padding-left: 0; padding-right: var(--rail-w); }
+
+  .top nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--rail-w);
+    /* These three lines UNDO the header row. `flex: none` is not optional:
+       the `.top nav` rule above sets `flex: 1`, and that shorthand resets
+       `flex-basis`, which is why anything overriding it has to be declared
+       after that rule rather than beside the rest of the layout. */
+    flex: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.15rem;
+    padding: 0.85rem 0.7rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--paper);
+    border-right: 1px solid var(--line);
+  }
+  body[dir="rtl"] .top nav {
+    left: auto;
+    right: 0;
+    border-right: 0;
+    border-left: 1px solid var(--line);
+  }
+  .top nav a {
+    justify-content: flex-start;
+    padding: 0.5rem 0.7rem;
+    border-radius: var(--radius-btn);
+  }
 }
 
 /* ── Chrome: the phone bar ──────────────────────────────────────────────── */
