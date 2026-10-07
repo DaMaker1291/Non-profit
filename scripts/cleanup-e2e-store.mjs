@@ -49,4 +49,51 @@ sweepRecent("classes.json");
 sweepRecent("rooms.json");
 sweepRecent("papers.json");
 sweepRecent("personal-papers.json");
+
+// ── ARTEFACTS WHOSE PEOPLE ARE GONE ────────────────────────────────────────
+// The recency sweep above cannot do this job, and the gap it leaves is not
+// theoretical: measured on the live store, 196 classes and 27 personal papers
+// were residue from runs OLDER than the cutoff, so they survived every previous
+// cleanup. They are unreachable by construction — every read of them is
+// owner-scoped (`getPersonalPaper(id, owner)`, `lib/server/class-membership.ts`
+// answers only a profile in `cls.members`) — so no learner can ever claim one
+// back, and AGENTS.md's rule is explicit: "delete those profiles and any paper
+// whose owner is gone".
+//
+// WHAT COUNTS AS PROOF, per file, because guessing here would delete a real
+// learner's work. A CLASS is dead when its `members` array holds no surviving
+// profile id: that array is profile ids (`membersById` and `students` are
+// HANDLE-keyed, so they prove nothing either way, and `teacher` is the literal
+// role string, not an id). A PAPER is dead when its `owner` is gone — papers
+// are read owner-scoped too. A ROOM has no profile id anywhere in it
+// (`createdBy` and `members` are handles), so rooms are left to the recency
+// sweep rather than judged by a field that cannot carry the answer.
+const live = new Set(Object.keys(profiles));
+
+const sweepWhere = (name, isGone, why) => {
+  backup(name);
+  const j = JSON.parse(fs.readFileSync(`${DIR}/${name}`, "utf8"));
+  const entries = Array.isArray(j) ? j.map((v) => [null, v]) : Object.entries(j);
+  const beforeN = entries.length;
+  const kept = entries.filter(([, v]) => !isGone(v));
+  if (Array.isArray(j)) fs.writeFileSync(`${DIR}/${name}`, JSON.stringify(kept.map(([, v]) => v), null, 2));
+  else fs.writeFileSync(`${DIR}/${name}`, JSON.stringify(Object.fromEntries(kept), null, 2));
+  console.log(`${name}: ${beforeN} -> ${kept.length} (dropped ${beforeN - kept.length} ${why})`);
+};
+
+sweepWhere(
+  "classes.json",
+  (v) => Array.isArray(v.members) && v.members.length > 0 && !v.members.some((m) => live.has(m)),
+  "with no surviving member",
+);
+sweepWhere(
+  "personal-papers.json",
+  (v) => typeof v.owner === "string" && v.owner && !live.has(v.owner),
+  "whose owner is gone",
+);
+sweepWhere(
+  "papers.json",
+  (v) => typeof v.owner === "string" && v.owner && !live.has(v.owner),
+  "whose owner is gone",
+);
 console.log("done");
