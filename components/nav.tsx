@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LanguagePicker, useAccount, useI18n, useProfile } from "@/lib/client";
 import { ContextStrip } from "@/components/context-strip";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { ctitle } from "@/lib/content-i18n";
 import { CONCEPTS } from "@/lib/genome";
 import { SUBJECT_LABELS } from "@/lib/subjects";
@@ -248,6 +249,10 @@ export function Topbar() {
       </div>
 
       <LanguagePicker compact />
+      {/* Beside the language control, not at the far edge: both are preferences
+          about how the product is presented, and grouping them keeps the
+          account control as the last thing on the line. */}
+      <ThemeToggle />
       {/* There IS an account system now: a signed-in learner gets their own
           name as the entry point, and a guest is offered the real sign-up.
           While the session probe is in flight NEITHER shows: “Create

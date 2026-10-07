@@ -125,6 +125,80 @@
   --mark-caution: var(--amber);        /* scaffolding, a caveat, a warning */
 }
 
+/* ── THE DARK THEME ──────────────────────────────────────────────────────────
+   This block retargets the PRIMITIVES above and nothing else, because every
+   semantic token in the block above is an ALIAS resolved on `:root` — the same
+   element this block declares. Set a dark `--ink` here and `--text`, `--ui-muted`
+   and every rule in the rest of this file follow, without one of them knowing a
+   theme exists. That single-owner property is the whole reason adding a theme
+   is a block of values rather than a second stylesheet.
+
+   The values are the published page's (`docs/app.css`), which has shipped this
+   theme since the static build. The two files are kept in step by hand, and a
+   learner moving between the app and the published page must not see two
+   products — so these are copied, not re-invented.
+
+   Note what the accent does: it LIGHTENS rather than staying put. A deep indigo
+   that reads as calm on paper disappears against a dark surface, so the hue is
+   kept and the lightness is inverted. The marks (red / green / amber) lighten
+   for the same reason — a colour that means "wrong" has to stay legible to keep
+   meaning it.
+
+   WHICH theme is in force is decided in exactly one place, and it is not here.
+   `components/theme-toggle.tsx` writes `<html data-theme>`, and an ABSENT
+   attribute means "follow the machine" — which is what a learner whose phone is
+   already dark expects on their first visit, before they have chosen anything.
+   The inline script in `app/layout.tsx` applies the stored choice before the
+   first paint; without it a dark-mode learner gets a white flash on every load.
+
+   The rule is duplicated rather than merged because the two cases are genuinely
+   different: a media query cannot be negated by an attribute, so `:root:not(
+   [data-theme="light"])` is what lets an explicit LIGHT choice beat a dark
+   machine. Getting that backwards is how a toggle appears to do nothing. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #101216;
+    --paper-deep: #171a20;
+    --surface: #1a1e25;
+    --grid: #22262e;
+    --ink: #eef0f3;
+    --ink-soft: #c6cad2;
+    --pencil: #99a0ac;
+    --line: #2c323b;
+    --line-soft: #232830;
+    --margin-red: #f08a80;
+    --tick-green: #6fd39b;
+    --amber: #e8ba6a;
+    --accent: #9db4ea;
+    --accent-ink: #b9c9f4;
+    --accent-soft: #1d2740;
+    --accent-line: #3a4a70;
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #101216;
+  --paper-deep: #171a20;
+  --surface: #1a1e25;
+  --grid: #22262e;
+  --ink: #eef0f3;
+  --ink-soft: #c6cad2;
+  --pencil: #99a0ac;
+  --line: #2c323b;
+  --line-soft: #232830;
+  --margin-red: #f08a80;
+  --tick-green: #6fd39b;
+  --amber: #e8ba6a;
+  --accent: #9db4ea;
+  --accent-ink: #b9c9f4;
+  --accent-soft: #1d2740;
+  --accent-line: #3a4a70;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
@@ -285,6 +359,40 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    fact to glance at, not a control to reach for. */
 .context-strip { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-spacer { flex: 1; }
+
+/* ── The theme switch ──────────────────────────────────────────────────────
+   WHICH icon is visible is decided entirely in CSS, from the very same
+   `data-theme` attribute the palette above reads. That is deliberate: a
+   component that had to compute the current theme in JavaScript could not know
+   it while rendering on the server, so the first client paint would disagree
+   with the HTML and then correct itself — a wrong icon for a frame, plus a
+   hydration mismatch. Here the right icon is on screen from the first paint,
+   before any script has run. `components/theme-toggle.tsx` renders both icons
+   and holds no state at all; see the note there.
+
+   The icon shows the theme IN FORCE rather than the one a press will produce,
+   so the control reads as what it currently is. */
+.theme-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; min-height: 42px; padding: 0;
+  background: var(--surface); color: var(--text);
+  border: 1.5px solid var(--line); border-radius: var(--radius-btn);
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+.theme-btn:hover { background: var(--surface-sunken); border-color: var(--ui-muted); }
+.theme-btn svg {
+  width: 1.05rem; height: 1.05rem;
+  fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round;
+}
+.theme-btn .i-sun { display: block; }
+.theme-btn .i-moon { display: none; }
+:root[data-theme="dark"] .theme-btn .i-sun { display: none; }
+:root[data-theme="dark"] .theme-btn .i-moon { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .theme-btn .i-sun { display: none; }
+  :root:not([data-theme]) .theme-btn .i-moon { display: block; }
+}
 .topbar select {
   font-family: var(--mono); font-size: 12px;
   background: transparent; color: var(--text);
@@ -466,7 +574,14 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: 16px; margin: 0 0 6px; line
    focus ring. ── */
 .btn {
   display: inline-flex; align-items: center; gap: var(--s1); justify-content: center;
-  background: var(--accent); color: var(--accent-ink);
+  /* `--text-on-strong`, NOT `--accent-ink`. This was `--accent-ink`, which put
+     the accent's own darker shade as text ON the accent: #24396d on #2f4a8a,
+     measured in the browser at 1.31:1. Every primary button in the product —
+     "Start learning", "Create account", "Check answer" — was very nearly
+     invisible, and it was the first thing a visitor saw. The published page
+     (`docs/app.css`, `button.primary`) has always used `--text-on-strong` here,
+     which is what the token exists for; the app had drifted from it. */
+  background: var(--accent); color: var(--text-on-strong);
   font-family: var(--font); font-weight: 650; font-size: 15px;
   border: 1.5px solid var(--accent); border-radius: var(--radius-btn);
   padding: 13px 22px; cursor: pointer;
@@ -947,6 +1062,31 @@ html.access-contrast {
   --tick-green: #0f5c33;
   --amber: #7d4a00;
   --surface: #ffffff;
+}
+
+/* High contrast ON dark, which is not the same preference as either one alone.
+   The dark block above outranks `html.access-contrast` on specificity (it is
+   `:root[data-theme="dark"]`, one attribute more), so without these two rules a
+   learner who asked for high contrast AND runs a dark device would silently get
+   the ordinary dark palette — their accessibility preference would stop working
+   at the moment it started mattering. Contrast in the dark direction means ink
+   goes to pure white and the structural rules brighten, the mirror of what the
+   light rules above do. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]).access-contrast {
+    --ink: #ffffff;
+    --ink-soft: #e6e9ee;
+    --pencil: #c2c8d2;
+    --line: #5a6472;
+    --line-soft: #48505c;
+  }
+}
+:root[data-theme="dark"].access-contrast {
+  --ink: #ffffff;
+  --ink-soft: #e6e9ee;
+  --pencil: #c2c8d2;
+  --line: #5a6472;
+  --line-soft: #48505c;
 }
 html.access-contrast .choice,
 html.access-contrast .card,

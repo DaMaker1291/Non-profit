@@ -16,8 +16,28 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#f8f9f4",
+  // Both palettes from globals.css, so the browser's own chrome (the phone's
+  // address bar) does not stay white above a dark page.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#faf9f6" },
+    { media: "(prefers-color-scheme: dark)", color: "#101216" },
+  ],
 };
+
+/**
+ * THE STORED THEME IS APPLIED BY THIS INLINE SCRIPT, and it has to be inline.
+ *
+ * A module cannot do this job: it would run after the first paint, so a learner
+ * who chose dark would get a white flash on every navigation — the one thing
+ * that makes a theme toggle feel broken. Executing here, as the parser reaches
+ * it, puts the attribute on `<html>` before anything below is painted.
+ *
+ * The key is the same one `components/theme-toggle.tsx` writes. An ABSENT value
+ * is deliberately NOT resolved here: leaving the attribute off is what makes
+ * `prefers-color-scheme` in globals.css take over, so a learner who has chosen
+ * nothing follows their device instead of being pinned to light.
+ */
+const THEME_BOOT = `try{var t=localStorage.getItem("openmind:theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
 
 /**
  * THE SHELL, mounted once.
@@ -38,6 +58,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <body>
+        {/* First child of the body on purpose: it must run before the shell
+            below it is painted. See THEME_BOOT. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <I18nProvider>
           <AppProvider>
             <AccessProvider>
