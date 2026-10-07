@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchProfile, loadLocalProfileId, loadLocalProfileSecret, saveProfilePatch, signOut, updateAccount, useAccount, useI18n } from "@/lib/client";
+import * as api from "@/lib/api/client";
+import { ApiError } from "@/lib/api/client";
 import type { ProfileState } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,27 +67,26 @@ export default function AccountPage() {
     setJoinErr("");
     setJoinedMsg("");
     try {
-      const res = await fetch("/api/classes", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, secret, action: "join", joinCode: code, handle: profile?.profile.handle }),
-      });
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) { setJoinErr(j.error ?? `HTTP ${res.status}`); return; }
+      try {
+        await api.classAction({ action: "join", id, joinCode: code, handle: profile?.profile.handle });
+      } catch (e) {
+        setJoinErr(e instanceof ApiError && e.code ? e.code : (e instanceof ApiError ? `HTTP ${e.status}` : t("common.error")));
+        return;
+      }
       // One snapshot of the learner model joins the roster's stored record;
       // from here the teacher's table reads the LEDGER, which updates itself
-      // as the learner answers — nothing more needs sending.
+      // as the learner answers — nothing more needs sending. A report that
+      // fails does not undo the join, so it is not allowed to block the news.
       if (profile) {
         const mastery: Record<string, number> = {};
         for (const [cid, p] of Object.entries(profile.progress)) mastery[cid] = p.mastery;
-        void fetch("/api/classes", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, secret, action: "report", joinCode: code, handle: profile.profile.handle, conceptMastery: mastery }),
-        });
+        void api.classAction({
+          action: "report", id, joinCode: code,
+          handle: profile.profile.handle, conceptMastery: mastery,
+        }).catch(() => { /* the roster refreshes from the ledger anyway */ });
       }
       setJoinedMsg(t("acct.joined"));
       setClassCode("");
-    } catch {
-      setJoinErr(t("common.error"));
     } finally {
       setJoining(false);
     }
@@ -262,17 +263,13 @@ export default function AccountPage() {
                     disabled={erasing || eraseWord !== "ERASE"}
                     onClick={async () => {
                       const pid = profile?.profile.id;
-                      const secret = loadLocalProfileSecret() ?? "";
                       if (!pid) return;
                       setErasing(true);
                       setEraseErr("");
                       try {
-                        const res = await fetch(`/api/profile?id=${encodeURIComponent(pid)}&secret=${encodeURIComponent(secret)}&confirm=ERASE`, { method: "DELETE" });
-                        if (!res.ok) {
-                          const j = await res.json().catch(() => ({}));
-                          setEraseErr(j.error ?? `HTTP ${res.status}`);
-                          return;
-                        }
+                        // The confirmation word is part of the OPERATION, so no
+                        // caller can erase a learner without meaning to.
+                        await api.eraseProfile(pid);
                         // The record is gone; the session is too. A sign-out
                         // lands the learner on a fresh Home — nothing of the
                         // old profile is left on this device to read.

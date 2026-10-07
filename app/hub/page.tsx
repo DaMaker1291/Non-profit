@@ -4,13 +4,14 @@
 // Counts only, no learner data shown. Students just connect — no setup.
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/client";
+import { hubStatus } from "@/lib/api/client";
 
 export default function HubPage() {
   const { t } = useI18n();
   const [s, setS] = useState<{ learners: number; rooms: number; classes: number } | null>(null);
   const [online, setOnline] = useState(true);
   useEffect(() => {
-    fetch("/api/hub-status").then((r) => r.json()).then((j) => setS(j)).catch(() => {});
+    hubStatus().then((j) => setS(j)).catch(() => {});
     setOnline(navigator.onLine);
     const on = () => setOnline(true);
     const off = () => setOnline(false);

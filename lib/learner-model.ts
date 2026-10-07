@@ -2,7 +2,9 @@
 // Pure functions of ProfileState — the single source the Mind Map, Review
 // Queue, Next Step and Offline Pack all read. No estimates, no simulation.
 import { getConcept } from "./genome";
+import { retentionState, strongestProof, type ProofVerdict } from "./proof";
 import { confidenceOf, dueReviews } from "./retention";
+import { canTransfer } from "./transfer";
 import type { ProfileState } from "./types";
 
 export interface ConceptEvidence {
@@ -313,5 +315,157 @@ export function buildSnapshot(state: ProfileState): LearnerSnapshot {
       .map(([id, hits]) => ({ id, hits }))
       .sort((a, b) => b.hits - a.hits)
       .slice(0, 5),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WHAT THIS RECORD HAS DEMONSTRATED — and what it has not.
+//
+// The learner's question is not "what is my score?" but "what have I actually
+// shown, and what is still missing?" — and that question has a LIST for an
+// answer, not a number. "Mastery 0.7" cannot say "recall is there, independence
+// is not", which is precisely the sentence that tells a learner what today's
+// work is FOR. The four rungs are the four dimensions the model already keeps,
+// in the order a learner earns them (the same words the concept page and My
+// Evidence show; lib/evidence-view#conceptKnowledge renders the same slices).
+//
+// Every rung is a predicate over a count the ledger already holds, so nothing
+// is measured here and nothing here can disagree with a replay:
+//
+//   recalled     got it right at least once, however they got there — help
+//                allowed, because the claim is "you have recalled this", not
+//                "you have recalled it unaided";
+//   applied      proved it with NO help at all (provedUnaided: the one form in
+//                which a claim about autonomy may be asserted — see its note);
+//   transferred  proved it on unfamiliar wording;
+//   retained     a DELAYED, unaided recall HELD (lib/proof#retentionState: the
+//                latest outcome, not the ratio).
+//
+// `applied` asks `provedUnaided` (independent OR transfer) rather than counting
+// `independentCorrect` alone, and that is not a shortcut. `recordAnswer` makes
+// the two modes an either/or — a transfer answer increments `transfer` and
+// NOT `independent` (lib/progress.ts: `if (mode === "transfer") … else if
+// (mode === "independent")`), so a learner whose only unaided work was served
+// as a transfer has `transferCorrect > 0` and `independentCorrect === 0`, and a
+// strict count would print "✓ Transfer" above "△ Application" — a card saying
+// they have applied this on unfamiliar wording but not applied it at all. The
+// two sibling rungs can genuinely stand alone (a delayed unaided recall does
+// not imply unfamiliar wording either), so the list is not always a prefix; it
+// is still never a contradiction.
+//
+// `next` is the first rung not yet earned — the one today's decision points at
+// — and it is null only when all four are. Callers MUST NOT render the split
+// for a learner who has earned none: four "not yet" rows on a beginner's first
+// screen is a page of deficits, the one thing this product is built not to
+// open with (§1 — an unmeasured dimension is not a failed one).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The four things a record can demonstrate, in the order they are earned. */
+export type Demonstrated = "recalled" | "applied" | "transferred" | "retained";
+
+export const DEMONSTRATED_ORDER: readonly Demonstrated[] = [
+  "recalled", "applied", "transferred", "retained",
+];
+
+/** The label for one rung. The three that name a dimension borrow the words the
+ *  rest of the product already uses for it; retention's key is spelled
+ *  `evv.dim.retention` because that is the key its own row in the evidence
+ *  record uses — one word, one key, wherever it is said. */
+export function demonstratedLabelKey(d: Demonstrated): string {
+  return d === "retained" ? "evv.dim.retention" : `evv.dim.${d}`;
+}
+
+export interface DemonstrationSplit {
+  demonstrated: Demonstrated[];
+  pending: Demonstrated[];
+  /** The first rung not yet earned. Null when every rung is. */
+  next: Demonstrated | null;
+}
+
+/** What this learner has demonstrated about one concept, and what remains. */
+export function demonstrationSplit(state: ProfileState, conceptId: string): DemonstrationSplit {
+  const e = evidenceFor(state, conceptId);
+  const earned: Record<Demonstrated, boolean> = {
+    recalled: !!e && e.attempts > 0 && e.correct > 0,
+    applied: !!e && provedUnaided(e),
+    transferred: !!e && e.transferCorrect > 0,
+    retained: retentionState(state.progress[conceptId]?.retention) === "retained",
+  };
+  const demonstrated = DEMONSTRATED_ORDER.filter((d) => earned[d]);
+  const pending = DEMONSTRATED_ORDER.filter((d) => !earned[d]);
+  return { demonstrated, pending, next: pending[0] ?? null };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THE STANDING OF ONE CONCEPT — everything a syllabus ROW has to show.
+//
+// A curriculum row answers four questions, and each answer already has an owner:
+//
+//   what you know       → demonstrated      (demonstrationSplit)
+//   what is uncertain   → pending, and whether ANYTHING is measured
+//   prerequisite        → blockedBy         (unmetPrerequisites: the declared
+//                                            edges, never an inferred order)
+//   next action         → next              (the first rung not yet earned)
+//
+// It exists because both products draw a syllabus list and they answered the
+// first question DIFFERENTLY. The React page banded a concept with the shared
+// proof vocabulary (lib/proof), while the published static page used a private
+// accuracy ratio of its own (>= 0.8 "good", < 0.5 "weak") — so ONE learner's
+// record produced two different words for the same idea depending on which
+// product they opened. That is the two-products split in miniature, and the fix
+// is the same one the rest of this project uses: compose the existing owners in
+// one place and let every surface ask IT.
+//
+// `mark` is the single glyph a list can afford: ✓ finished, ◐ underway,
+// ○ nothing measured. `done` is the ENGINE's definition — a live slip reopens
+// it, and a transfer rung on a concept with no second surface is not "still to
+// do" — so the list cannot call a concept finished that the engine would still
+// serve, nor leave one open that the engine has nothing left to ask about.
+// `proved` is the strongest thing the record supports, in the product's own four
+// words, and null when nothing was right: a miss is not a verdict.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ConceptStanding {
+  conceptId: string;
+  stage: ConceptStage;
+  demonstrated: Demonstrated[];
+  pending: Demonstrated[];
+  /** The first rung not yet earned — what the next action on this idea is FOR. */
+  next: Demonstrated | null;
+  /** Nothing has been measured on this idea. An absence, never a failure (§1). */
+  unmeasured: boolean;
+  /** Declared prerequisites this learner has not established, in curriculum order. */
+  blockedBy: string[];
+  /** Finished as the engine means it (see the header). */
+  done: boolean;
+  /** The strongest thing the record proved, in the product's four words. */
+  proved: ProofVerdict | null;
+  /** ✓ finished · ◐ underway · ○ nothing measured. */
+  mark: "done" | "underway" | "unstarted";
+}
+
+export function conceptStanding(state: ProfileState, conceptId: string): ConceptStanding {
+  const split = demonstrationSplit(state, conceptId);
+  const e = evidenceFor(state, conceptId);
+  const unmeasured = !e || e.attempts === 0;
+  const done = !!e && conceptDone(e, canTransfer);
+  return {
+    conceptId,
+    stage: e ? stageOf(e) : "unmeasured",
+    demonstrated: split.demonstrated,
+    pending: split.pending,
+    next: split.next,
+    unmeasured,
+    blockedBy: unmetPrerequisites(conceptId, state),
+    done,
+    proved: e
+      ? strongestProof({
+        correct: e.correct,
+        independentCorrect: e.independentCorrect,
+        transferCorrect: e.transferCorrect,
+        retentionCorrect: state.progress[conceptId]?.retention?.correct ?? 0,
+      })
+      : null,
+    mark: done ? "done" : unmeasured ? "unstarted" : "underway",
   };
 }

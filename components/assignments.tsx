@@ -2,24 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useI18n, useProfile, loadLocalProfileId, withCapability } from "@/lib/client";
+import { useI18n, useProfile, loadLocalProfileId } from "@/lib/client";
+import { assignments as fetchAssignments, type AssignedWork } from "@/lib/api/client";
 import { ctitle } from "@/lib/content-i18n";
 import { dueLabel, fill } from "@/lib/i18n";
 import { getConcept } from "@/lib/genome";
 import { SUBJECT_LABELS } from "@/lib/subjects";
 import { proofLabelKey } from "@/lib/proof";
-import type { Assignment, AssignmentMemberProgress, SubjectId } from "@/lib/types";
-
 /** What one learner sees about work set for them: the assignment, the class it
- *  came from, and their OWN derived row (lib/server/assignment-view). The row is
- *  a projection of their ledger, so the panel never carries a number the client
- *  could have computed differently — and never another member's work. */
-export interface AssignedWork {
-  assignment: Assignment;
-  className: string;
-  subject: SubjectId;
-  mine: AssignmentMemberProgress;
-}
+ *  came from, and their OWN derived row (lib/server/assignment-view). The shape
+ *  is the DOOR's (lib/api/client.ts#AssignedWork), re-exported rather than
+ *  redeclared, so a panel and the route cannot disagree about what a row is. */
+export type { AssignedWork };
 
 /**
  * ASSIGNED WORK, on the surfaces a learner actually opens.
@@ -42,12 +36,11 @@ export default function AssignmentsPanel({ conceptId }: { conceptId?: string }) 
   useEffect(() => {
     const id = loadLocalProfileId();
     if (!id) return;
-    fetch(withCapability(`/api/assignments?me=${encodeURIComponent(id)}`))
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`http ${r.status}`))))
-      // A read that failed is not an empty list: it says so rather than telling
-      // a learner with homework that none was set. (A fetch with no profile yet
-      // simply returns before this, and renders nothing.)
-      .then((j) => setWork((j.assigned ?? []) as AssignedWork[]))
+    // A read that failed is not an empty list: it says so rather than telling
+    // a learner with homework that none was set. (A read with no profile yet
+    // simply returns before this, and renders nothing.)
+    fetchAssignments(id)
+      .then((j) => setWork(j.assigned ?? []))
       .catch(() => setFailed(true));
   }, [state]);
 

@@ -3,13 +3,17 @@
 import Link from "next/link";
 import { useI18n } from "@/lib/client";
 import SpeakButton from "@/components/speak-button";
-import { CONCEPTS } from "@/lib/genome";
-import { MISCONCEPTIONS } from "@/lib/misconceptions";
-import { LANGS } from "@/lib/i18n";
+// Every number on this page comes from the code that makes it true, never from
+// a literal. It used to be `{CONCEPTS.length} ... {MISCONCEPTIONS.length} ... 5
+// subjects ... {LANGS.length}` with the count stripped out of a translated
+// phrase — so the subject count was a typed `5` and `home.languages` carried a
+// hardcoded 15 in all fifteen dictionaries. lib/claims.ts is now the one owner
+// of both, and this page reads it like any other surface.
+import { CLAIM_COUNTS, claim } from "@/lib/claims";
 import WorkedExample from "@/components/worked-example";
 
 export default function About() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   return (
     <main className="container narrow" style={{ paddingTop: 40 }}>
       <p className="eyebrow">{t("about.title")}</p>
@@ -64,7 +68,7 @@ export default function About() {
           {t("about.genomeBody")}
         </p>
         <p className="mono small" style={{ margin: "12px 0 0", color: "var(--pencil)" }}>
-          {CONCEPTS.length} {t("map.concepts")} · {MISCONCEPTIONS.length} {t("learn.misconceptions").toLowerCase()} · 5 {t("nav.subjects").toLowerCase()} · {LANGS.length} {t("home.languages").replace(/^\D*\d+\S*\s*/, "")}
+          {CLAIM_COUNTS.concepts} {t("map.concepts")} · {CLAIM_COUNTS.misconceptions} {t("learn.misconceptions").toLowerCase()} · {CLAIM_COUNTS.subjects} {t("nav.subjects").toLowerCase()} · {claim("home.languages", lang)}
         </p>
         <Link href="/genome" className="btn small" style={{ marginTop: 14 }}>{t("home.cta2")} →</Link>
       </div>

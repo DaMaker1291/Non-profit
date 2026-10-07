@@ -42,7 +42,7 @@ export default function MindPage() {
     if (!pid) return;
     let alive = true;
     setLedger({ status: "loading" });
-    loadLedgerState(pid, secret).then((r) => { if (alive) setLedger(r.status === "ready" ? { status: "ready", ledger: r.ledger } : { status: "failed" }); });
+    loadLedgerState(pid).then((r) => { if (alive) setLedger(r.status === "ready" ? { status: "ready", ledger: r.ledger } : { status: "failed" }); });
     return () => { alive = false; };
   }, [tries]);
   const ready = ledger.status === "ready" ? ledger.ledger : null;

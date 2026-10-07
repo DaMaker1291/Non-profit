@@ -87,6 +87,39 @@ jobs:
       - name: Production render gate
         run: npm run verify:render -- --port 3000
 
+      # ── THE ONE MANDATORY JOURNEY, AGAINST THE ARTEFACT WE SHIP ────────────
+      # A learner who has never been here, from the front door to their next
+      # recommendation: sign up → onboard → select course → diagnostic → first
+      # task → answer → feedback → evidence → next recommendation.
+      #
+      # It runs against the PRODUCTION server started above (port 3000), not the
+      # dev server below, and that is the whole point of it: the deep suite
+      # (npm run e2e) needs the `reveal` test hook, which a production build
+      # strips on purpose, so until this step existed no test could run against
+      # the build we actually serve. This one asks only for what a learner could
+      # ask for — the product tells the learner the answer AFTER they answer, so
+      # the journey never needs to know it in advance.
+      - name: Fresh-learner journey (production build)
+        run: npm run e2e:fresh:only
+        env:
+          OPENMIND_BASE: http://localhost:3000
+
+
+      # ── AND THE SITE LEARNERS ACTUALLY USE ────────────────────────────────
+      # Everything above drives the Next application, which needs a server.
+      # The pages GitHub Pages serves are the static build in `docs/`, and until
+      # this step existed nothing loaded them in a browser: `verify:static`
+      # checks the artefact as FILES, and says so in its own header. So the one
+      # product with real users was the one outside behavioural coverage, and a
+      # renamed asset (the engine then never loads) or a raw dictionary key
+      # could ship unnoticed.
+      #
+      # `verify:ui` walks the Next application; this walks the published page.
+      # Both need Chrome, which the runner has.
+      - name: The published page, walked in a real browser
+        run: |
+          npm run build:static
+          npm run verify:live
 
       # The suite drives the `reveal` test hook, which a production build strips
       # on purpose — a hook that works in production is a production hole. So it
@@ -103,4 +136,5 @@ jobs:
             sleep 2
           done
           npm run e2e
+          npm run verify:ui
           if [ -f /tmp/openmind-ci.log ]; then tail -20 /tmp/openmind-ci.log; fi

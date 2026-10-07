@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { MasteryBar, useI18n, useProfile, loadLocalProfileId, loadLocalProfileSecret, withCapability } from "@/lib/client";
+import { MasteryBar, useI18n, useProfile, loadLocalProfileId } from "@/lib/client";
+import * as api from "@/lib/api/client";
+import { ApiError, classPackUrl } from "@/lib/api/client";
 import { getConcept } from "@/lib/genome";
 import { ctitle } from "@/lib/content-i18n";
 import { dueLabel, fill } from "@/lib/i18n";
@@ -19,13 +21,16 @@ import { proofLabelKey } from "@/lib/proof";
 
 /** What the assignment door says a class the caller owns may be set work on.
  *  Computed SERVER-SIDE from the class's declared curriculum, so the picker
- *  cannot offer a concept the door would refuse. */
-interface OwnedClass {
-  id: string;
-  name: string;
-  subject: SubjectId | null;
-  specificationId: string | null;
-  assignable: string[];
+ *  cannot offer a concept the door would refuse. The shape is the DOOR's
+ *  (lib/api/client.ts#AssignableClass); this names it locally only so the
+ *  component below reads well. */
+type OwnedClass = api.AssignableClass;
+
+/** A failed read, in a form a teacher can see and a developer can act on: the
+ *  server's own reason when it gave one, else the status. "We could not read
+ *  this" must never render as "you have nothing". */
+function failureText(e: unknown): string {
+  return e instanceof ApiError ? e.code || `HTTP ${e.status}` : "HTTP ?";
 }
 
 export default function TeacherPage() {
@@ -64,41 +69,39 @@ export default function TeacherPage() {
   // list that loaded is not thrown away because the monitor did not.
   const [readErr, setReadErr] = useState({ classes: "", work: "" });
 
-  // Every class read and write presents the CALLER's capability: a class
-  // carries its learners' handles, their mastery and its join code, so the
-  // class door answers authenticated profiles only (it used to answer anyone).
-  const capability = useCallback(() => ({
-    id: state?.profile.id ?? loadLocalProfileId() ?? "",
-    secret: loadLocalProfileSecret() ?? "",
-  }), [state]);
+  // Every class read and write is about the CALLER: a class carries its
+  // learners' handles, their mastery and its join code, so the class door
+  // answers authenticated profiles only. WHAT the caller is, this page still
+  // has to say — but the capability itself is attached by the operation
+  // (lib/api/transport.ts knows which doors carry it and how), so this is a
+  // question about identity, not about tokens.
+  const meId = useCallback(() => state?.profile.id ?? loadLocalProfileId() ?? "", [state]);
 
   const refresh = useCallback(async () => {
-    const { id, secret } = capability();
+    const id = meId();
     // No capability yet is LOADING, not failure: the profile has not landed.
-    if (!id || !secret) return;
-    const res = await fetch(withCapability(`/api/classes?me=${encodeURIComponent(id)}`));
-    if (!res.ok) {
-      setReadErr((e) => ({ ...e, classes: `HTTP ${res.status}` }));
-      return;
+    if (!id) return;
+    try {
+      const j = await api.classes(id);
+      setReadErr((e) => ({ ...e, classes: "" }));
+      setClasses(j.classes ?? []);
+    } catch (e) {
+      setReadErr((prev) => ({ ...prev, classes: failureText(e) }));
     }
-    const j = (await res.json()) as { classes: ClassRoster[] };
-    setReadErr((e) => ({ ...e, classes: "" }));
-    setClasses(j.classes ?? []);
-  }, [capability]);
+  }, [meId]);
 
   const refreshWork = useCallback(async () => {
-    const { id, secret } = capability();
-    if (!id || !secret) return;
-    const res = await fetch(withCapability(`/api/assignments?me=${encodeURIComponent(id)}`));
-    if (!res.ok) {
-      setReadErr((e) => ({ ...e, work: `HTTP ${res.status}` }));
-      return;
+    const id = meId();
+    if (!id) return;
+    try {
+      const j = await api.assignments(id);
+      setReadErr((e) => ({ ...e, work: "" }));
+      setMonitor(j.monitor ?? []);
+      setOwned(j.classes ?? []);
+    } catch (e) {
+      setReadErr((prev) => ({ ...prev, work: failureText(e) }));
     }
-    const j = (await res.json()) as { monitor?: AssignmentMonitor[]; classes?: OwnedClass[] };
-    setReadErr((e) => ({ ...e, work: "" }));
-    setMonitor(j.monitor ?? []);
-    setOwned(j.classes ?? []);
-  }, [capability]);
+  }, [meId]);
 
   // Keyed on the profile, not on mount: the capability does not exist until
   // the learner profile has landed, and a class list fetched before that would
@@ -108,18 +111,21 @@ export default function TeacherPage() {
   async function create() {
     if (!name.trim() || !subject) return;
     setErr("");
-    const res = await fetch("/api/classes", {
-      method: "POST", headers: { "Content-Type": "application/json" },
+    try {
       // The class declares the curriculum it is taught. Assigned work is drawn
       // from that declaration, never from a default subject.
-      body: JSON.stringify({ ...capability(), action: "create", name: name.trim(), subject, specificationId: course || null, handle: state?.profile.handle ?? "teacher" }),
-    });
-    const j = await res.json();
-    if (!res.ok) { setErr(courseErrText(j.error, res.status)); return; }
-    setName("");
-    setSubject("");
-    setCourse("");
-    setNotice(`${t("teach.invite")}: ${j.cls.joinCode}`);
+      const j = await api.classAction({
+        action: "create", id: meId(), name: name.trim(), subject,
+        specificationId: course || null, handle: state?.profile.handle ?? "teacher",
+      });
+      setName("");
+      setSubject("");
+      setCourse("");
+      setNotice(`${t("teach.invite")}: ${(j.cls as ClassRoster).joinCode}`);
+    } catch (e) {
+      setErr(e instanceof ApiError ? courseErrText(e.code, e.status) : t("common.error"));
+      return;
+    }
     void refresh();
     void refreshWork();
   }
@@ -139,12 +145,12 @@ export default function TeacherPage() {
    *  server refuses by name a qualification the subject is not part of. */
   async function declareCourse(clsId: string, specificationId: string | null) {
     setErr("");
-    const res = await fetch("/api/classes", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...capability(), action: "update", clsId, specificationId }),
-    });
-    const j = await res.json().catch(() => ({}));
-    if (!res.ok) { setErr(courseErrText(j.error, res.status)); return; }
+    try {
+      await api.classAction({ action: "update", id: meId(), clsId, specificationId });
+    } catch (e) {
+      setErr(e instanceof ApiError ? courseErrText(e.code, e.status) : t("common.error"));
+      return;
+    }
     await refresh();
     // What the class may be set changed with its curriculum, so the picker is
     // re-read from the server rather than patched in place.
@@ -155,44 +161,43 @@ export default function TeacherPage() {
    *  curriculum the class declared. The concept list comes from the server's
    *  own candidate list, so the picker cannot offer what the door refuses. */
   async function setWork(clsId: string, body: { conceptIds: string[]; dueAt: number; title: string; subject?: SubjectId }) {
-    const res = await fetch("/api/assignments", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...capability(), action: "create", clsId, ...body }),
-    });
-    const j = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
+    try {
+      await api.assignmentAction({ action: "create", id: meId(), clsId, ...body });
+    } catch (e) {
+      throw new Error(failureText(e));
+    }
     await refreshWork();
   }
 
   async function removeWork(clsId: string, assignmentId: string) {
-    const res = await fetch("/api/assignments", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...capability(), action: "remove", clsId, assignmentId }),
-    });
-    if (!res.ok) { const j = await res.json().catch(() => ({})); setErr(j.error ?? `HTTP ${res.status}`); return; }
+    try {
+      await api.assignmentAction({ action: "remove", id: meId(), clsId, assignmentId });
+    } catch (e) {
+      setErr(failureText(e));
+      return;
+    }
     await refreshWork();
   }
 
   async function join() {
     setErr("");
     setNotice("");
-    const res = await fetch("/api/classes", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...capability(), action: "join", joinCode, handle: state?.profile.handle }),
-    });
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      setErr(j.error ?? (joinCode ? `${joinCode} — ${t("common.error").toLowerCase()}` : t("common.error")));
+    try {
+      await api.classAction({ action: "join", id: meId(), joinCode, handle: state?.profile.handle });
+    } catch (e) {
+      setErr(e instanceof ApiError && e.code
+        ? e.code
+        : (joinCode ? `${joinCode} — ${t("common.error").toLowerCase()}` : t("common.error")));
       return;
     }
     // report current mastery snapshot for the roster
     if (state) {
       const mastery: Record<string, number> = {};
       for (const [cid, p] of Object.entries(state.progress)) mastery[cid] = p.mastery;
-      await fetch("/api/classes", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...capability(), action: "report", joinCode, handle: state.profile.handle, conceptMastery: mastery }),
-      });
+      await api.classAction({
+        action: "report", id: meId(), joinCode,
+        handle: state.profile.handle, conceptMastery: mastery,
+      }).catch(() => { /* the roster report is a bonus; joining already happened */ });
     }
     setNotice(`${joinCode.toUpperCase()} ✓`);
     void refresh();
@@ -715,10 +720,10 @@ function WeeklyPlanPanel({ cls }: { cls: ClassRoster }) {
           who pressed Print. `me` names the member; the capability rides beside
           it, exactly as the roster fetch above does it. */}
       <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-        <a className="btn ghost small" href={withCapability(`/api/pack-export?id=${encodeURIComponent(cls.id)}&me=${encodeURIComponent(loadLocalProfileId() ?? "")}&format=html`)} target="_blank" rel="noreferrer">
+        <a className="btn ghost small" href={classPackUrl(cls.id, loadLocalProfileId() ?? "", "html")} target="_blank" rel="noreferrer">
           🖨 {t("plan.print")}
         </a>
-        <a className="btn ghost small" href={withCapability(`/api/pack-export?id=${encodeURIComponent(cls.id)}&me=${encodeURIComponent(loadLocalProfileId() ?? "")}&format=json`)} target="_blank" rel="noreferrer">
+        <a className="btn ghost small" href={classPackUrl(cls.id, loadLocalProfileId() ?? "", "json")} target="_blank" rel="noreferrer">
           ⤓ {t("plan.export")}
         </a>
       </div>

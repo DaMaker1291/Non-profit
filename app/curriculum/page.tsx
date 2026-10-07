@@ -14,7 +14,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { loadLocalProfileId, loadLocalProfileSecret, useI18n, useProfile } from "@/lib/client";
+import { loadLocalProfileId, useI18n, useProfile } from "@/lib/client";
+import * as api from "@/lib/api/client";
 import { curriculumFor } from "@/lib/curriculum";
 import { COUNTRIES } from "@/lib/i18n";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
@@ -81,26 +82,33 @@ export default function CurriculumPage() {
     if (!id) return;
     // Written to THIS subject's course. /api/profile mirrors the learner's first
     // subject into the flat fields, so single-course readers stay true.
-    await fetch("/api/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id,
-        secret: loadLocalProfileSecret(),
+    //
+    // THE SAVE'S OWN RESPONSE IS THE NEW PROFILE, and that is what the page
+    // adopts. This used to POST the course and then read `/api/progress` and
+    // store the result as if it were a profile — so a learner who had just set
+    // "AQA GCSE Mathematics Higher" watched the page redraw from a payload that
+    // never contained a profile, and their course looked unset again. One write,
+    // one read, the thing that actually changed.
+    let fresh: ProfileState;
+    try {
+      fresh = await api.saveProfile({
         subjectCourses: { [subject]: { spec: active.spec.id, specLevel: active.level.id } },
         // Sent only when the learner actually chose one: an untouched select must
         // not write anything back, and `country` is validated as an ISO code
         // server-side (a blank one is simply ignored, never stored).
         ...(countryId ? { country: countryId } : {}),
         ...(grade ? { grade } : {}),
-      }),
-    });
+      }, id);
+    } catch {
+      // Refused writes leave the selection alone: clearing it would look like a
+      // save that did not happen, which is the one thing this screen must not do.
+      return;
+    }
+    set(fresh);
     setSpecId(null);
     setLevelId(null);
     setCountryId(null);
     setGradeId(null);
-    const res = await fetch(`/api/progress?id=${id}&secret=${loadLocalProfileSecret()}`);
-    if (res.ok) set((await res.json()) as ProfileState);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }

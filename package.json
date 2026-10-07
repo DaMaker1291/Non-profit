@@ -1,7 +1,7 @@
 {
   "name": "openmind",
   "version": "1.0.0",
-  "description": "A free, open-source, multilingual AI-powered learning network — a world-class tutor for every student. `npm run verify` proves the engines, `npm run verify:q` proves every generated question is answerable, `npm run e2e` proves the API end to end. `npm run benchmark` measures what the decision engine actually decides for adversarial learner states — and, deliberately, does not measure learning.",
+  "description": "OpenMind — a free, open-source, multilingual learning network. Adaptive learning with optional AI assistance: the diagnostic, the question bank, the grader, the learner model and the tutor are all deterministic and work with no model configured, so the AI is an extra rather than the product. `npm run verify` proves the engines, `npm run verify:q` proves every generated question is answerable, `npm run e2e` proves the API end to end. `npm run benchmark` measures what the decision engine actually decides for adversarial learner states — and, deliberately, does not measure learning.",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -18,7 +18,10 @@
     "verify:q": "node scripts/verify-questions.mjs",
     "gate:ceiling": "node scripts/ceiling-gate.mjs",
     "e2e": "node scripts/e2e-api.mjs",
+    "e2e:fresh": "node scripts/run-production-e2e.mjs",
+    "e2e:fresh:only": "node scripts/e2e-fresh-learner.mjs",
     "verify:ui": "node scripts/ui-walk.mjs",
+    "verify:live": "node scripts/static-page-walk.mjs",
     "verify:permissions": "node scripts/verify-permissions.mjs",
     "verify:sync": "node scripts/verify-offline-sync.mjs",
     "verify:content-release": "node scripts/verify-content-release.mjs",
@@ -33,7 +36,8 @@
     "verify:static": "node scripts/static-smoke.mjs",
     "ai-stub": "node scripts/ai-stub.mjs",
     "superiority-test": "node scripts/superiority-test.mjs",
-    "product-benchmark": "node scripts/product-superiority-benchmark.mjs"
+    "product-benchmark": "node scripts/run-product-benchmark.mjs",
+    "product-benchmark:only": "node scripts/product-superiority-benchmark.mjs"
   },
   "dependencies": {
     "next": "^15.5.25",

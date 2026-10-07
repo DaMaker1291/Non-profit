@@ -6,10 +6,18 @@
 // engages — and never demands a name, email or account. Every answer still
 // flows through the server-graded practice API, so the learner model starts
 // recording from the very first question without any onboarding.
+//
+// NO ROUTE STRINGS AND NO fetch HERE ANY MORE. This module used to spell out
+// seven URLs, its own query strings and its own error handling, which is how
+// the anonymous path and the signed-in path came to differ about what an answer
+// meant. It now names OPERATIONS (lib/api/client.ts) — the same ones the
+// concept page uses — so the two front ends cannot disagree, and the capability
+// travels where the operation says it does rather than from a `secret=` string
+// rebuilt at each call site.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { loadLocalProfileId, storeLocalProfileId, ensureProfileSecret } from "@/lib/client";
-import { newSubmissionId, postAnswer } from "@/lib/sync-queue";
+import { loadProfileId, writeProfileId } from "@/lib/api/identity";
+import * as api from "@/lib/api/client";
 import type { FlarePayload, MicroDiagStatus } from "@/lib/microdiag";
 import type { StarterReveal, StarterView } from "@/lib/starter";
 
@@ -56,7 +64,9 @@ export interface AnonGrade {
 export type AnonAnswerOutcome =
   | { kind: "graded"; grade: AnonGrade }
   | { kind: "offline" }
-  | { kind: "error"; status: number };/** Single-flight guard: concurrent callers (StrictMode double-effects, rapid
+  | { kind: "error"; status: number };
+
+/** Single-flight guard: concurrent callers (StrictMode double-effects, rapid
  *  clicks) share one creation instead of minting rival anonymous profiles. */
 let pendingAnon: Promise<string | null> | null = null;
 
@@ -65,44 +75,25 @@ let pendingAnon: Promise<string | null> | null = null;
  *  store, a moved deployment), a fresh anonymous profile is created instead
  *  of dead-ending the returning visitor. Returns null only if unreachable. */
 export async function ensureAnonProfile(language: string): Promise<string | null> {
-  const existing = loadLocalProfileId();
+  const existing = loadProfileId();
   // "unknown" (unreachable) keeps the profile we already have. Creating a new
   // one would need the network anyway, and would abandon the learner's history.
-  if (existing && (await profileExists(existing)) !== false) return existing;
+  if (existing && (await api.learnerExists(existing)) !== false) return existing;
   pendingAnon ??= createAnonProfile(language).finally(() => { pendingAnon = null; });
   return pendingAnon;
 }
 
-/** Does this profile still exist on the server?
- *
- *  THREE answers, not two — and the third is the one that matters offline. An
- *  unreachable server (a network error, a 5xx) is NOT the same fact as a 404:
- *  treating it as "gone" mints a brand-new profile on every flaky connection,
- *  which loses the learner the very model the answer was supposed to update.
- *  "unknown" keeps the id we have and lets the answer queue instead. */
-async function profileExists(id: string): Promise<boolean | "unknown"> {
-  try {
-    const res = await fetch(`/api/progress?id=${encodeURIComponent(id)}&subject=maths&secret=${encodeURIComponent(ensureProfileSecret())}`);
-    if (res.status === 404) return false;
-    if (res.ok) return true;
-    return res.status >= 500 ? "unknown" : false;
-  } catch {
-    return "unknown";
-  }
-}
-
 async function createAnonProfile(language: string): Promise<string | null> {
   try {
-    const res = await fetch("/api/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ handle: "anon", country: "XX", language }),
-    });
-    if (!res.ok) return null;
-    const j = await res.json();
-    const id = j?.profile?.id as string | undefined;
+    // Only what an anonymous learner needs: a name is never required, and the
+    // profile is born with its own capability so the very first recorded answer
+    // is attributable to it.
+    const state = await api.createProfile({ handle: "anon", country: "XX", language });
+    const id = state.profile?.id;
     if (!id) return null;
-    storeLocalProfileId(id);
+    // `createProfile` already adopts the identity; this makes the ordering
+    // explicit for the caller that stores the id, not redundant.
+    writeProfileId(id);
     return id;
   } catch {
     return null;
@@ -114,14 +105,12 @@ async function createAnonProfile(language: string): Promise<string | null> {
 export async function anonServe(conceptId: string, language: string): Promise<AnonPracticeQ | null> {
   const id = await ensureAnonProfile(language);
   if (!id) return null;
-  const res = await fetch("/api/progress", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "serve", id, conceptId, lang: language, secret: ensureProfileSecret() }),
-  });
-  if (!res.ok) return null;
-  const j = await res.json();
-  return (j.question as AnonPracticeQ) ?? null;
+  try {
+    const body = await api.serveQuestion(id, conceptId, { lang: language });
+    return body.question ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Serve a *transfer* question: the serve request declares the intent, the
@@ -130,14 +119,12 @@ export async function anonServe(conceptId: string, language: string): Promise<An
 export async function anonServeTransfer(conceptId: string, language: string): Promise<AnonPracticeQ | null> {
   const id = await ensureAnonProfile(language);
   if (!id) return null;
-  const res = await fetch("/api/progress", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "serve", id, conceptId, intent: "transfer", lang: language, secret: ensureProfileSecret() }),
-  });
-  if (!res.ok) return null;
-  const j = await res.json();
-  return (j.question as AnonPracticeQ) ?? null;
+  try {
+    const body = await api.serveQuestion(id, conceptId, { intent: "transfer", lang: language });
+    return body.question ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Grade a picked choice through the server; the client never decides
@@ -145,8 +132,8 @@ export async function anonServeTransfer(conceptId: string, language: string): Pr
  *  both: the serve intent staged transfer, and its hint ledger counted the
  *  scaffolding actually handed out (audit P0-B / §29).
  *
- *  The answer goes through the SAME route either way; what changes offline is
- *  only whether it can be delivered yet. It names its own submission, so a
+ *  The answer goes through the SAME operation either way; what changes offline
+ *  is only whether it can be delivered yet. It names its own submission, so a
  *  replay after a dropped response is recorded once. */
 export async function anonAnswer(
   conceptId: string, questionId: string, given: { choiceIndex: number } | { numericAnswer: string }, language: string,
@@ -154,45 +141,28 @@ export async function anonAnswer(
 ): Promise<AnonAnswerOutcome> {
   const id = await ensureAnonProfile(language);
   if (!id) return { kind: "error", status: 0 };
-  const outcome = await postAnswer("/api/progress", {
-    submissionId: newSubmissionId(),
-    deviceAt: Date.now(),
-    body: {
-      action: "answer", id, conceptId, questionId, ...given, lang: language,
-      ms: meta?.ms, secret: ensureProfileSecret(),
-    },
+  const outcome = await api.answerQuestion({
+    id, conceptId, questionId, ...given, lang: language, ms: meta?.ms,
   });
-  if (outcome.kind === "held") return { kind: "offline" };
-  if (outcome.kind === "refused") return { kind: "error", status: outcome.status };
-  let j: Record<string, unknown>;
-  try {
-    j = (await outcome.res.json()) as Record<string, unknown>;
-  } catch {
-    return { kind: "error", status: outcome.res.status };
-  }
-  if (j.duplicate === true) {
+  if (outcome.kind === "offline") return { kind: "offline" };
+  if (outcome.kind === "error") return { kind: "error", status: outcome.status };
+  const v = outcome.verdict;
+  if (v.duplicate) {
     // The ledger already holds this submission. Show what it recorded, and
     // nothing it did not: a replayed answer has no fresh explanation to give.
     return {
       kind: "graded",
-      grade: {
-        correct: j.correct === true,
-        answerIndex: null,
-        explanation: "",
-        misconceptionId: null,
-        flare: null,
-        duplicate: true,
-      },
+      grade: { correct: v.correct, answerIndex: null, explanation: "", misconceptionId: null, flare: null, duplicate: true },
     };
   }
   return {
     kind: "graded",
     grade: {
-      correct: !!j.correct,
-      answerIndex: typeof j.answerIndex === "number" ? j.answerIndex : null,
-      explanation: typeof j.explanation === "string" ? j.explanation : "",
-      misconceptionId: typeof j.misconceptionId === "string" ? j.misconceptionId : null,
-      flare: (j.flare as FlarePayload | null) ?? null,
+      correct: v.correct,
+      answerIndex: v.answerIndex,
+      explanation: v.explanation,
+      misconceptionId: v.misconceptionId,
+      flare: v.flare ?? null,
     },
   };
 }
@@ -209,14 +179,11 @@ export async function anonMicroCheck(
 ): Promise<{ status: MicroDiagStatus; correct: boolean; explanation: string } | null> {
   const id = await ensureAnonProfile(language);
   if (!id) return null;
-  const res = await fetch("/api/progress", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "micro", id, conceptId, misconceptionId, questionId, choiceIndex, secret: ensureProfileSecret() }),
-  });
-  if (!res.ok) return null;
-  const j = await res.json();
-  return { status: j.status, correct: !!j.correct, explanation: typeof j.explanation === "string" ? j.explanation : "" };
+  try {
+    return await api.microCheck(id, conceptId, misconceptionId, questionId, choiceIndex);
+  } catch {
+    return null;
+  }
 }
 
 /** Open the Starter Mode flow (§6/§15) for a served question: the four-step
@@ -225,13 +192,11 @@ export async function anonMicroCheck(
 export async function anonStarter(conceptId: string, questionId: string, language: string): Promise<StarterView | null> {
   const id = await ensureAnonProfile(language);
   if (!id) return null;
-  const res = await fetch("/api/progress", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "starter", id, conceptId, questionId, secret: ensureProfileSecret() }),
-  });
-  if (!res.ok) return null;
-  return (await res.json()) as StarterView;
+  try {
+    return await api.starterView(id, conceptId, questionId);
+  } catch {
+    return null;
+  }
 }
 
 /** Grade the bridge pick; the reveal names the real connector and hands over
@@ -244,11 +209,9 @@ export async function anonStarterPick(
 ): Promise<StarterReveal | null> {
   const id = await ensureAnonProfile(language);
   if (!id) return null;
-  const res = await fetch("/api/progress", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "starterPick", id, conceptId, questionId, choiceIndex, secret: ensureProfileSecret() }),
-  });
-  if (!res.ok) return null;
-  return (await res.json()) as StarterReveal;
+  try {
+    return await api.starterPick(id, conceptId, questionId, choiceIndex);
+  } catch {
+    return null;
+  }
 }

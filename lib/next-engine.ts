@@ -13,7 +13,7 @@ import {
   unmetPrerequisites,
   type ConceptEvidence,
 } from "./learner-model";
-import { MISCONCEPTIONS_BY_ID } from "./misconceptions";
+import { MISCONCEPTIONS_BY_ID, beliefName } from "./misconceptions";
 import { isRetentionEvidence } from "./proof";
 import { orderEvents, type AnswerSubmitted, type EvidenceEvent } from "./evidence";
 import { canTransfer } from "./transfer";
@@ -25,26 +25,10 @@ export type NextT = (key: string) => string;
 const EN: NextT = (k) => EN_NEXT[k] ?? k;
 export function nextT(t: NextT | undefined): NextT { return t ?? EN; }
 
-/**
- * A belief's name, in the learner's language, that can never be a raw key.
- *
- * The engine composes the remediation sentence from a fragment and a name, so
- * a missing `mc.<id>` key does not degrade gracefully — it ships
- * `You can do the steps, but “mc.sf-sig” keeps recurring` to the learner. That
- * is not hypothetical: English was missing all 53 `mc.*` names while every
- * other dictionary had them (see scripts/i18n-misconception-names.mjs), so the
- * SOURCE language was the one showing keys.
- *
- * A translator renders an undefined key as its own name, which is detectable,
- * and the catalogue's authored English is the right fallback for it: the belief
- * being named is a fact about arithmetic, not prose to be localized.
- */
-function beliefName(t: NextT, id: string): string {
-  const key = `mc.${id}`;
-  const v = t(key);
-  if (v !== key) return v;
-  return MISCONCEPTIONS_BY_ID[id]?.name ?? id;
-}
+// The belief-naming rule used to live here, as a private copy. It now lives in
+// the CATALOGUE it names (lib/misconceptions#beliefName), because a surface that
+// renders an item's discriminated misconceptions asks the same question, and two
+// copies of "how a belief is named" is how one of them ends up showing a key.
 
 export type NextKind =
   | "EXPLAIN" | "PRACTISE" | "RETRIEVE" | "REMEDIATE"
@@ -476,14 +460,18 @@ export function decideNext(
   // its own.
   for (const e of snap.evidence) {
     if (e.misconceptionHits >= 2 && e.topMisconception && out.length < max && !out.some((a) => a.conceptId === e.conceptId)) {
-      const m = MISCONCEPTIONS_BY_ID[e.topMisconception];
-      const mName = m ? beliefName(t, m.id) : "";
+      // The sentence names the belief only when the CATALOGUE knows it: a
+      // ledger id with no catalogue entry has no name to show, and
+      // "…but “mc.xyz” keeps recurring" is exactly what the unnamed fallback
+      // exists to prevent. How a KNOWN id is worded is
+      // lib/misconceptions#beliefName's rule — the one owner now, not a copy.
+      const known = !!e.topMisconception && !!MISCONCEPTIONS_BY_ID[e.topMisconception];
       const recent = recentFor(ledger, e.conceptId, 4);
       push({
         kind: "REMEDIATE", conceptId: e.conceptId,
         title: `${t("next.title.fix")}: ${name(e.conceptId)}`,
-        reason: m
-          ? `${t("next.reason.remediatePre")}${mName}${t("next.reason.remediatePost")}`
+        reason: known && e.topMisconception
+          ? `${t("next.reason.remediatePre")}${beliefName(t, e.topMisconception)}${t("next.reason.remediatePost")}`
           : t("next.reason.remediateNoName"),
         evidence: `${e.attempts} ${t(e.attempts === 1 ? "next.ev.attemptsOne" : "next.ev.attempts")} · ${t("next.ev.mastery")} ${Math.round(e.mastery * 100)}% · ${t("next.ev.sameSlip")} ${e.misconceptionHits}×`,
         minutes: 10,
@@ -688,7 +676,17 @@ export const EN_NEXT: Record<string, string> = {
   // verifier pins this table to the `en` dictionary key-by-key, which is why a
   // one-character difference here went unnoticed while the text was still
   // English in both.
-  "next.reason.practisePre": "You solve straightforward ones at",  "next.reason.practisePost": "% — now recognise when the method applies.",
+  //
+  // THE SENTENCE NAMES THE MEASUREMENT IT PRINTS, and it did not always. It used
+  // to read "You solve straightforward ones at 64%" over `e.mastery` — a
+  // projected, evidence-integrated number (lib/mastery.ts), not the share of
+  // answers that were right. A learner who had just read the diagnostic
+  // report's demand row ("Straightforward steps — 3 of 3") therefore saw the
+  // same words carrying two different quantities, on consecutive screens, with
+  // nothing to say which was which. The label is now the one the evidence line
+  // below already uses (`next.ev.mastery`), so the number cannot be read as a
+  // score it was never computed to be.
+  "next.reason.practisePre": "Your mastery here is",  "next.reason.practisePost": "% — now recognise when the method applies.",
   "next.reason.proveNoHelp": "You have got these right, but every one needed help — do one unaided before moving on.",
   "next.reason.transfer": "Straightforward questions are solid — now the same idea in unfamiliar wording.",
   "next.reason.project": " concepts strong — apply them in a project.",

@@ -35,7 +35,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useI18n, useProfile, loadLocalProfileId, loadLocalProfileSecret } from "@/lib/client";
-import { loadLedger, type LedgerFetch } from "@/lib/evidence-view";
+import { hasRecordedWork, loadLedger, type LedgerFetch } from "@/lib/evidence-view";
+import { pathFor, sessionState } from "@/lib/api/client";
 import { dueLabel, fill } from "@/lib/i18n";
 import { reasonKey } from "@/lib/session";
 import { proofLabelKey, strongestProof } from "@/lib/proof";
@@ -72,10 +73,9 @@ export default function LearnerHome() {
     const pid = loadLocalProfileId();
     if (!pid) return;
     const secret = loadLocalProfileSecret() ?? "";
-    loadLedger(pid, secret).then((l) => setLedger(l));
-    fetch(`/api/session?id=${encodeURIComponent(pid)}&secret=${encodeURIComponent(secret)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (j?.session && !j.session.complete) setOpenSession(j.session); })
+    loadLedger(pid).then((l) => setLedger(l));
+    sessionState(pid)
+      .then((j) => { if (j.session && !j.session.complete) setOpenSession(j.session); })
       .catch(() => { /* no open session is the normal case */ });
   }, []);
 
@@ -89,9 +89,8 @@ export default function LearnerHome() {
     const id = loadLocalProfileId();
     if (!id || !state?.profile.goal) return;
     for (const s of state.profile.subjects) {
-      fetch(`/api/path?id=${id}&subject=${s}&secret=${encodeURIComponent(loadLocalProfileSecret() ?? "")}`)
-        .then((r) => r.json())
-        .then((j) => setPaths((p) => ({ ...p, [s]: j.path ?? [] })))
+      pathFor(id, s)
+        .then((j) => setPaths((p) => ({ ...p, [s]: (j.path ?? []) as PathStep[] })))
         .catch(() => { /* a path we could not read is not an empty path */ });
     }
   }, [state]);
@@ -163,7 +162,20 @@ export default function LearnerHome() {
     <main className="container narrow page">
       {/* Identity without database residue: the eyebrow carries course
           context, never the auto-id. A chosen name appears in the greeting
-          itself; an unnamed learner is simply "Welcome back". */}
+          itself; an unnamed learner is simply greeted.
+
+          Which greeting is decided by the EVIDENCE, not by the existence of a
+          profile: setup creates a profile and no record, and opening this page
+          for the first time with "Welcome back" over it is a claim the empty
+          ledger underneath contradicts. Nobody arrives here having been here
+          before.
+
+          The predicate itself is NOT decided here either: it used to read
+          `entries.length === 0`, while the static build read
+          `recentAnswers(events, 5).length === 0` — two different facts about the
+          same learner, which is how the two products came to disagree about a
+          sentence the learner reads first. lib/evidence-view#hasRecordedWork is
+          the one owner. */}
       {/* The course, then the person. The course line is mono and quiet — a
           label on the exercise book, not a heading — so the only large text on
           Home is the learner's own name and the decision under it. */}
@@ -173,8 +185,10 @@ export default function LearnerHome() {
           {p.board && `${p.country !== "XX" ? " · " : ""}${p.board}`}
           {p.exam && ` · ${p.exam}`}
         </p>
-      )}
-      <h1 className="greeting">{t("dash.hi")}{p.handle ? `, ${p.handle}` : ""}</h1>
+      )}        <h1 className="greeting">
+          {t(hasRecordedWork(state) ? "dash.hi" : "dash.hello")}
+          {p.handle ? `, ${p.handle}` : ""}
+        </h1>
 
       {/* 2: what to do, why, and the one button that starts it. This is the
           only primary action on the page. */}

@@ -11,7 +11,7 @@
 // honest fallback, never a raw key and never a fake translation.
 import { translator } from "./i18n";
 import { getConcept } from "./genome";
-import { MISCONCEPTIONS_BY_ID } from "./misconceptions";
+import { MISCONCEPTIONS_BY_ID, beliefName } from "./misconceptions";
 
 export function ctitle(lang: string, conceptId: string): string {
   const c = getConcept(conceptId);
@@ -52,9 +52,23 @@ export function levelLabel(lang: string, tier: string, name?: string): string {
   return own === generic ? generic : `${generic} · ${own}`;
 }
 
-export function mcName(lang: string, id: string, fallback: string): string {
-  const v = translator(lang)(`mc.${id}`);
-  return v === `mc.${id}` ? fallback : v;
+/** A belief's name, in the learner's language.
+ *
+ *  THE RULE LIVES IN THE CATALOGUE (lib/misconceptions#beliefName) and this is
+ *  its language-code face, for the surfaces that hold a `lang` rather than a
+ *  translator. Two implementations of "name a belief, never a raw key" is how
+ *  one of them ends up showing `mc.sf-sig` on screen, so there is one: this
+ *  delegates.
+ *
+ *  The third argument is a caller's fallback and is now redundant — every call
+ *  site passes the catalogue's own name, which is what the rule already falls
+ *  back to. It is kept so that the change is a delegation rather than a
+ *  28-site refactor; the behaviour is identical for a known id, and for an
+ *  unknown one the rule answers with the id, which is the most honest thing
+ *  that can be said about a belief the catalogue does not hold. */
+export function mcName(lang: string, id: string, fallback?: string): string {
+  const named = beliefName(translator(lang), id);
+  return named === id ? (fallback ?? id) : named;
 }
 
 export function mcCoaching(lang: string, id: string, fallback: string): string {

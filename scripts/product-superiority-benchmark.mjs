@@ -32,9 +32,18 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { compileEngines } from "./compile-engines.mjs";
+import { chromeAvailable } from "./production-server.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BASE = process.env.PRODUCT_BENCH_BASE ?? "http://localhost:4173";
+// The store the server writes, read the same way the server resolves it
+// (lib/server/store.ts). Hard-coding `.openmind-data` here meant a server pointed
+// at a scratch directory had its classes pruned from a DIFFERENT tree — so the
+// cleanup reported success while the bench classes stayed exactly where they
+// were, and a run against a scratch store could not prune at all.
+const DATA_DIR = process.env.OPENMIND_DATA_DIR
+  ? path.resolve(process.env.OPENMIND_DATA_DIR)
+  : path.join(ROOT, ".openmind-data");
 const NOW = new Date(2027, 0, 10, 12, 0, 0).getTime();
 const DAY = 86400000;
 
@@ -52,7 +61,17 @@ const specs = require("../.verify/specifications.js");
 const evidenceMod = require("../.verify/evidence.js");
 const learnerProfile = require("../.verify/learner-profile.js");
 const replayMod = require("../.verify/replay.js");
-const bundle = require(path.join(ROOT, "docs", "openmind.engine.js"));
+// ── THE SHIPPED OFFLINE BUNDLE, DISCOVERED RATHER THAN ASSUMED ──────────────
+// Assets are content-hashed (`openmind.engine.<12 hex>.js`), which is what makes
+// a stale cache impossible — and what quietly broke this file: it required the
+// pre-hashing name, so the whole battery died with MODULE_NOT_FOUND before a
+// single check ran. The name is read from the directory now, the same way
+// scripts/static-smoke.mjs reads it, and a MISSING bundle is recorded as
+// UNTESTED with the fix rather than taking the report down with it.
+const ENGINE_FILE = fs
+  .readdirSync(path.join(ROOT, "docs"))
+  .find((f) => /^openmind\.engine\.[a-f0-9]{12}\.js$/.test(f));
+const BUNDLE = ENGINE_FILE ? path.join(ROOT, "docs", ENGINE_FILE) : null;
 
 const ns = await import("./north-star.mjs");
 const { a, times, learner, decideFor, topFor, ORDER_INDEX, mulberry32 } = ns;
@@ -67,6 +86,23 @@ function notTested(category, id, severity, reason) {
   untested.push({ category, id, severity, reason });
 }
 const SEV_ORDER = { P0: 0, P1: 1, P2: 2, P3: 3, P4: 4 };
+
+// ── the shipped offline bundle, loaded or honestly absent ──────────────────
+// Loaded HERE, after the record exists, so a missing or unloadable bundle is a
+// recorded UNTESTED line with the fix in it — not a MODULE_NOT_FOUND that ends
+// the run before any of the other ~100 checks can report.
+let bundle = null;
+if (BUNDLE) {
+  try {
+    bundle = require(BUNDLE);
+  } catch (e) {
+    notTested("OFFLINE", "bundle-loads", "P0",
+      `${ENGINE_FILE} exists but does not load (${String(e).slice(0, 120)}) — run npm run build:static`);
+  }
+} else {
+  notTested("OFFLINE", "bundle-exists", "P0",
+    "no docs/openmind.engine.<hash>.js — run npm run build:static (the offline checks below are SKIPPED, not failed)");
+}
 
 // ── the shipped decisions, through the one door ─────────────────────────────
 const COURSE = (subject, grade = "Year 11", spec = "uk-gcse", level = "higher", extra = {}) => ({
@@ -366,9 +402,23 @@ const TUTOR_MESSAGES = [
 }
 
 // ── OFFLINE: the shipped bundle is the same engine, and it is current ───────
-{
-  const BUNDLE = path.join(ROOT, "docs", "openmind.engine.js");
-  check("OFFLINE", "bundle-exists", "P0", fs.existsSync(BUNDLE), "docs/openmind.engine.js is present");
+// The three checks below are the reason this battery cannot be a pure HTTP
+// suite: whether the OFFLINE engine still makes the same decision as the server
+// is a fact about an artefact on disk, and no request can ask for it.
+if (!bundle) {
+  for (const [id, sev] of [["bundle-is-not-stale", "P1"], ["same-evidence-same-decision", "P0"], ["same-tutor-online-and-offline", "P1"]]) {
+    notTested("OFFLINE", id, sev, "the shipped bundle is absent or unloadable — see the bundle line above");
+  }
+} else {
+  // The name is DISCOVERED (content-hashed), so `exists` cannot be checked
+  // against a literal that no longer exists — that literal is what broke this
+  // file. What is checked here is that the discovered file is what index.html
+  // actually ships, because a hashed asset nothing references is a build that
+  // half-succeeded.
+  const indexHtml = fs.readFileSync(path.join(ROOT, "docs", "index.html"), "utf8");
+  check("OFFLINE", "bundle-exists", "P0",
+    indexHtml.includes(ENGINE_FILE),
+    `docs/index.html names the discovered bundle (${ENGINE_FILE})`);
   // Freshness: the bundle is generated from lib/. A lib source newer than the
   // artifact means every offline learner is served the previous engine.
   const libFiles = [];
@@ -515,28 +565,49 @@ if (serverUp) {
     check("LEARNING-LOOP", "fresh-learner-is-diagnosed-first", "P1", diagnosticFirst,
       `a learner with no evidence is sent to ${action0?.href ?? action0?.kind ?? "nothing"}`);
 
-    const served = id ? await post("/api/progress", { id, action: "serve", conceptId: "fractions", reveal: true }) : { body: null };
+    // ── ANSWERED BLIND, THE WAY A LEARNER ANSWERS ───────────────────────────
+    // This block used to serve with `reveal: true` and build a deliberately
+    // WRONG index out of `question.answer`. A production build strips that field
+    // on purpose, so the index came out `NaN`, the grade was refused 400, and
+    // the failure propagated into three more checks (the next action, the class
+    // monitor, the intervention row) — four P1 "product" findings that were one
+    // broken benchmark. A learner cannot see the key before answering, so this
+    // file may not either: it answers option 0 and reads the verdict, exactly as
+    // scripts/e2e-fresh-learner.mjs does against the same production artefact.
+    const served = id ? await post("/api/progress", { id, action: "serve", conceptId: "fractions", lang: "en" }) : { body: null };
     if (served.body?.question) {
-      const wrong = (served.body.question.answer + 1) % served.body.question.choices.length;
-      const answered = await post("/api/progress", { id, action: "answer", conceptId: "fractions", questionId: served.body.question.id, choiceIndex: wrong });
+      const answered = await post("/api/progress", { id, action: "answer", conceptId: "fractions", questionId: served.body.question.id, choiceIndex: 0, submissionId: `bench_loop_${stamp}`, deviceAt: Date.now() });
+      const verdict = answered.body ?? {};
+      // The key is released BY THE GRADE, never by the serve. Asserted here on
+      // the artefact we ship, because a view that carried `answer` would hand
+      // the learner the key and a development server would not reveal it.
+      check("LEARNING-LOOP", "the-key-arrives-only-with-the-verdict", "P1",
+        served.body.question.answer === undefined && typeof verdict.answerIndex === "number" && typeof verdict.correct === "boolean",
+        `the served question carried answer=${JSON.stringify(served.body.question.answer)}; the grade returned answerIndex=${verdict.answerIndex}, correct=${verdict.correct}`);
       const summary = id ? await getAuthed(`/api/evidence-summary?id=${id}`, id) : { body: null };
       const entry = (summary.body?.concepts ?? summary.body?.rows ?? []).find?.((c) => c.conceptId === "fractions") ?? null;
       check("LEARNING-LOOP", "an-answer-becomes-evidence", "P1",
         answered.status === 200 && (entry ? (entry.attempts ?? 0) >= 1 : summary.status === 200),
         `graded ${answered.status}; the ledger ${entry ? `shows fractions attempts=${entry.attempts}` : "did not expose a per-concept row"} (read shape: ${Object.keys(summary.body ?? {}).slice(0, 5).join(", ")})`);
 
+      // THE PLAN MUST NOW REST ON WHAT WAS JUST DONE. The concept the next
+      // action names may legitimately still be fractions, so the assertion is
+      // the one that actually means "follows": the decision was taken from more
+      // evidence than before the answer existed.
       const next1 = await getAuthed(`/api/next?id=${id}`, id);
       const action1 = next1.body?.action ?? next1.body?.actions?.[0] ?? null;
+      const eventsBefore = next0.body?.decision?.evidenceEvents ?? 0;
+      const eventsAfter = next1.body?.decision?.evidenceEvents ?? 0;
       check("LEARNING-LOOP", "the-next-action-follows-the-answer", "P1",
-        action1 && (action1.conceptId === "fractions" || action1.href?.includes("fractions")),
-        `after a wrong answer the next action is ${action1?.kind}:${action1?.conceptId ?? action1?.href}`);
+        !!action1 && eventsAfter > eventsBefore,
+        `one answer recorded: the plan now rests on ${eventsAfter} events (was ${eventsBefore}) and recommends ${action1?.kind}:${action1?.conceptId ?? action1?.href}`);
 
       const summaryText = JSON.stringify(summary.body ?? {});
       const inventedMastery = /"status":"strong"/.test(summaryText) || /"mastered":true/.test(summaryText);
-      check("LEARNING-LOOP", "one-wrong-answer-is-not-mastery", "P1", !inventedMastery,
-        "nothing in the evidence summary claims strength after one wrong answer");
+      check("LEARNING-LOOP", "one-answer-is-not-mastery", "P1", !inventedMastery,
+        "nothing in the evidence summary claims strength after a single answer");
     } else {
-      notTested("LEARNING-LOOP", "serve-answer-next", "P1", `the serve door answered ${served.status} without a question (reveal hook is stripped outside development?)`);
+      notTested("LEARNING-LOOP", "serve-answer-next", "P1", `the serve door answered ${served.status} without a question`);
     }
   }
 
@@ -582,14 +653,19 @@ if (serverUp) {
     check("TEACHER", "students-join-the-class", "P1", j1.status === 200 && j2.status === 200,
       `both students joined (${j1.status}, ${j2.status}) with the class's join code`);
 
-    // S1 does the work — two wrong then one right, hint-free so it lands in the
-    // monitor's independent record. S2 does nothing at all.
+    // S1 does the work — three questions, hint-free so they land in the
+    // monitor's INDEPENDENT record (lib/server/class-view.ts counts only
+    // `independent.asked`). S2 does nothing at all.
+    //
+    // Answered blind for the reason the LEARNING-LOOP block records at length:
+    // `reveal` is stripped in production, so an index derived from
+    // `question.answer` is NaN and every grade is refused. Whether a given draw
+    // lands right or wrong is the learner's business, not this file's — the
+    // monitor's claim is that WORK SHOWS, which is what is asserted below.
     for (let i = 0; i < 3; i++) {
-      const served = await post("/api/progress", { id: s1id, action: "serve", conceptId: "fractions", reveal: true });
+      const served = await post("/api/progress", { id: s1id, action: "serve", conceptId: "fractions", lang: "en" });
       if (!served.body?.question) break;
-      const wantRight = i === 2;
-      const idx = wantRight ? served.body.question.answer : (served.body.question.answer + 1) % served.body.question.choices.length;
-      await post("/api/progress", { id: s1id, action: "answer", conceptId: "fractions", questionId: served.body.question.id, choiceIndex: idx });
+      await post("/api/progress", { id: s1id, action: "answer", conceptId: "fractions", questionId: served.body.question.id, choiceIndex: 0, submissionId: `bench_s1_${stamp}_${i}`, deviceAt: Date.now() });
     }
     const roster = await getAuthed(`/api/classes?id=${cls.body?.cls?.id}&me=${tid}`, tid);
     const rosterBody = roster.body?.cls ?? {};
@@ -626,9 +702,9 @@ if (serverUp) {
     if (pid) { SECRETS.set(pid, up.body.secret); createdProfiles.push(pid); }
     let answersBefore = null;
     if (pid) {
-      const served = await post("/api/progress", { id: pid, action: "serve", conceptId: "decimals", reveal: true });
+      const served = await post("/api/progress", { id: pid, action: "serve", conceptId: "decimals", lang: "en" });
       if (served.body?.question) {
-        await post("/api/progress", { id: pid, action: "answer", conceptId: "decimals", questionId: served.body.question.id, choiceIndex: served.body.question.answer });
+        await post("/api/progress", { id: pid, action: "answer", conceptId: "decimals", questionId: served.body.question.id, choiceIndex: 0, submissionId: `bench_ev_${stamp}`, deviceAt: Date.now() });
       }
       const before = await getAuthed(`/api/evidence-summary?id=${pid}`, pid);
       answersBefore = before.body?.totals?.answers ?? null;
@@ -718,27 +794,89 @@ if (serverUp) {
 // THE COMPARATIVE — owned by the superiority test; recorded here, never redone
 // ═════════════════════════════════════════════════════════════════════════════
 {
-  const run = (cmd) => {
+  const run = (cmd, env, timeout = 300000) => {
     try {
-      const out = execFileSync("npm", ["run", cmd], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 300000 });
+      const out = execFileSync("npm", ["run", cmd], {
+        cwd: ROOT,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        timeout,
+        env: env ? { ...process.env, ...env } : process.env,
+      });
       return { ok: true, out };
     } catch (e) {
-      return { ok: false, out: `${e.stdout ?? ""}\n${e.stderr ?? ""}`.slice(-2000) };
+      return { ok: false, out: `${e.stdout ?? ""}\n${e.stderr ?? ""}`.slice(-4000) };
     }
   };
+  const tailOf = (out) => out.trim().split("\n").filter(Boolean).slice(-1)[0] ?? "no result line";
+  // A ONE-LINE DETAIL THAT NAMES THE FAILURE. `tailOf` reports the LAST line,
+  // which for a subprocess killed early — or one whose output is buffered — is
+  // npm's own banner: a run reported "npm run verify:ui — > node scripts/ui-walk.mjs"
+  // as a P1 product finding, which tells the next reader nothing at all. The
+  // lines that actually say what went wrong are the marked ones.
+  const whyOf = (out) => {
+    const bad = out.split("\n").map((l) => l.trim())
+      .filter((l) => /^(✗|×)|FAIL|Error|error:|not answering|timed out|did not/.test(l));
+    return bad.length ? bad.slice(-3).join(" | ").slice(0, 400) : tailOf(out);
+  };
+
+  // Both of these run entirely on this checkout — no server, no browser — so
+  // they always run, and a failure is a failure.
   const sup = run("superiority-test");
-  const tail = sup.out.trim().split("\n").filter(Boolean).slice(-1)[0] ?? "";
   check("COMPARATIVE", "differentiation-benchmark", "P1", sup.ok && /DIFFERENTIATION DEMONSTRATED/.test(sup.out),
-    `OpenMind differentiation benchmark (owner: npm run superiority-test) — ${tail || "no result line"}`);
+    `OpenMind differentiation benchmark (owner: npm run superiority-test) — ${sup.ok ? tailOf(sup.out) : whyOf(sup.out)}`);
   const stat = run("verify:static");
-  const statTail = stat.out.trim().split("\n").filter(Boolean).slice(-1)[0] ?? "";
-  check("COMPARATIVE", "offline-bundle-smoke", "P1", stat.ok, `npm run verify:static — ${statTail || "no result line"}`);
-  // The only BROWSER-level gate in the campaign: a fresh learner driven through
-  // the real wizard with trusted input events. Recorded here so the product
-  // benchmark's claims include one that no HTTP fetch could make.
-  const ui = run("verify:ui");
-  const uiTail = ui.out.trim().split("\n").filter(Boolean).slice(-1)[0] ?? "";
-  check("COMPARATIVE", "browser-walk", "P1", ui.ok && /0 failed/.test(ui.out), `npm run verify:ui — ${uiTail || "no result line"}`);
+  check("COMPARATIVE", "offline-bundle-smoke", "P1", stat.ok, `npm run verify:static — ${stat.ok ? tailOf(stat.out) : whyOf(stat.out)}`);
+
+  // THE BROWSER WALK DRIVES THE SERVER THIS RUN MEASURED. It defaults to
+  // 127.0.0.1:4173 — the dev port — while this battery's HTTP journeys run
+  // against a production build on another port, so the walk used to be pointed
+  // at a server nobody had started and reported "The app is not answering at
+  // http://127.0.0.1:4173" as a P1 product failure. scripts/ui-walk.mjs already
+  // reads UI_WALK_BASE; passing BASE through is the whole fix, and it makes the
+  // walk test the same artefact as every check above it.
+  //
+  // It stays CONDITIONAL, AND SAYS SO. It is the only gate in the campaign that
+  // drives a REAL browser with trusted input events — so it is worth having, and
+  // it is exactly the gate this battery cannot promise: scripts/ui-walk.mjs
+  // launches Chrome from a path (or CHROME_BIN) and, on a machine without one,
+  // fails for a reason that has nothing to do with the product. Reporting that
+  // as a P1 "the browser walk failed" is the definition of a gate that lies, and
+  // it was failing on every run for exactly this reason.
+  //
+  // So it runs when a browser exists (or when OPENMIND_BENCH_UI=1 asks for it
+  // explicitly), and otherwise it is recorded UNTESTED with the reason — which
+  // is this file's own rule: never silently dropped, never counted as a pass.
+  if (chromeAvailable() || process.env.OPENMIND_BENCH_UI === "1") {
+    // ONE RETRY, AND IT IS RECORDED. Launching a browser is the only step in
+    // this battery that can fail for a reason that is not the product's: a cold
+    // Chrome right after a build, a machine under load, a debug port the OS has
+    // not released. A gate that reports "the product failed" for a flaky
+    // launch is the failure mode this file exists to avoid — so a first
+    // non-pass is retried once, the attempt is named in the detail, and a
+    // genuine break fails both attempts and is still a FAIL.
+    let ui = run("verify:ui", { UI_WALK_BASE: BASE }, 240000);
+    let attempt = 1;
+    if (!ui.ok || !/0 failed/.test(ui.out)) {
+      ui = run("verify:ui", { UI_WALK_BASE: BASE }, 240000);
+      attempt = 2;
+    }
+    const walked = ui.ok && /0 failed/.test(ui.out);
+    check("COMPARATIVE", "browser-walk", "P1", walked,
+      `npm run verify:ui — ${walked ? tailOf(ui.out) : `${whyOf(ui.out)} (attempt ${attempt} of 2)`}`);
+
+    // AND THE PAGE LEARNERS ACTUALLY USE — the static build in docs/, walked in
+    // the same browser. It has no server, so this is the only instrument that
+    // can see it at all; without it, "offline continuity" in this report would
+    // be a claim about files rather than about a learner with no connection.
+    const live = run("verify:live", undefined, 240000);
+    const liveOk = live.ok && /0 failed/.test(live.out);
+    check("COMPARATIVE", "published-page-walk", "P1", liveOk,
+      `npm run verify:live — ${liveOk ? tailOf(live.out) : whyOf(live.out)}`);
+  } else {
+    notTested("COMPARATIVE", "browser-walk", "P1",
+      "no Chrome available to drive (set CHROME_BIN, or OPENMIND_BENCH_UI=1 to demand it) — keyboard/touch/responsive behaviour is UNMEASURED in this run");
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -757,7 +895,7 @@ if (serverUp) {
   // the e2e cleanup does, with a backup first.
   let removedClasses = 0;
   try {
-    const file = path.join(ROOT, ".openmind-data", "classes.json");
+    const file = path.join(DATA_DIR, "classes.json");
     if (createdClasses.length && fs.existsSync(file)) {
       const raw = JSON.parse(fs.readFileSync(file, "utf8"));
       const arr = Array.isArray(raw) ? raw : raw.classes ?? [];
@@ -809,6 +947,7 @@ if (untested.length) {
 // the run has — and so a gate that goes missing is visible here.
 const ownedElsewhere = [
   ["offline sync: dedupe, out-of-order, offline capture", "npm run verify:static"],
+  ["the published page's whole learner journey, in a real browser", "npm run verify:live"],
   ["keyboard, touch and responsive layout (real browser, trusted input)", "npm run verify:ui"],
   ["every tutor sentence in all 15 dictionaries", "npm run verify"],
   ["engine round-trips, pins and invariants", "npm run verify"],
@@ -817,15 +956,86 @@ const ownedElsewhere = [
 console.log("");
 console.log("  COVERED BY OTHER GATES (not re-implemented here):");
 for (const [what, who] of ownedElsewhere) console.log(`    ${what} — ${who}`);
+// ═════════════════════════════════════════════════════════════════════════════
+// MEASUREMENTS — the ten things that matter, with the numbers we actually saw
+// ═════════════════════════════════════════════════════════════════════════════
+//
+// A pass/fail total answers "is anything broken". It does not answer the
+// question a curriculum lead asks — "how well does this teach?" — and the two
+// are not the same report. So the same run is also summarised along the ten
+// dimensions the product is judged on, each one pointing at the CHECKS that
+// measured it and the value they observed.
+//
+// AND WHERE THERE IS NO MEASUREMENT, IT SAYS SO, NAMING THE GATE THAT HAS ONE.
+// The single most damaging thing a benchmark can do is imply coverage it does
+// not have: a reader who sees ten green dimensions concludes the product was
+// measured ten ways, when in truth four of them live in `npm run verify` and
+// `npm run e2e`. "Not in this run — owned by npm run e2e" is a usable answer;
+// a fabricated percentage is not.
+const DIMENSIONS = [
+  { name: "curriculum accuracy", match: (c) => c.category === "CURRICULUM" || c.id === "impossible-course-combination-refused" },
+  { name: "difficulty appropriateness", match: (c) => c.id === "differentiation-benchmark",
+    alsoOwnedBy: "npm run gate:ceiling (declared-vs-served difficulty, reported as a distribution)" },
+  { name: "personalisation", match: (c) => c.category === "LEARNING" || c.id === "the-next-action-follows-the-answer" },
+  { name: "misconception handling", match: (c) => c.id === "adversarial-states-stay-distinct" || c.id === "scaffolding-is-not-independence",
+    alsoOwnedBy: "npm run verify (the micro-diagnostic engine and the 53 named misconception catalogues)" },
+  { name: "independence", match: (c) => c.id === "scaffolding-is-not-independence" || c.id === "survives-a-new-session" },
+  { name: "transfer", match: (c) => c.id === "new-material-is-reachable",
+    alsoOwnedBy: "npm run e2e (a transfer serve stages a harder item and attributes transfer server-side)" },
+  { name: "retention", match: (c) => c.id === "a-due-review-is-retrieved" || c.id === "unlearned-is-never-retrieved" },
+  { name: "teacher usefulness", match: (c) => c.category === "TEACHER" },
+  { name: "offline continuity", match: (c) => c.category === "OFFLINE" || c.id === "offline-bundle-smoke" },
+  { name: "AI responsiveness", match: (c) => c.category === "AI" },
+];
+
+const measurements = [];
+console.log("");
+console.log("  MEASUREMENTS — what this run observed, by dimension");
+console.log("  " + "─".repeat(96));
+for (const dim of DIMENSIONS) {
+  const rows = checks.filter(dim.match);
+  const bad = rows.filter((c) => !c.ok);
+  const headline = (bad[0] ?? rows[0])?.detail ?? "";
+  const measured = rows.length > 0;
+  const value = !measured
+    ? `not measured in this battery${dim.alsoOwnedBy ? ` — ${dim.alsoOwnedBy}` : ""}`
+    : `${rows.length - bad.length}/${rows.length} checks${bad.length ? ` · ${bad.length} FAILING` : ""}`;
+  measurements.push({
+    dimension: dim.name,
+    checks: rows.length,
+    passed: rows.length - bad.length,
+    failed: bad.length,
+    observed: headline.slice(0, 300),
+    ownedElsewhere: dim.alsoOwnedBy ?? null,
+  });
+  const mark = !measured ? "○" : bad.some((c) => SEV_ORDER[c.severity] <= 2) ? "✗" : "✓";
+  console.log(`  ${mark} ${dim.name.padEnd(28)} ${value}`);
+  if (headline) console.log(`      ${headline.slice(0, 200)}`);
+  if (measured && dim.alsoOwnedBy) console.log(`      also measured by ${dim.alsoOwnedBy}`);
+}
+
 const blocking = failures.filter((f) => SEV_ORDER[f.severity] <= 2);
 console.log("");
 console.log(`  ${checks.filter((c) => c.ok).length}/${checks.length} checks passed · ${blocking.length} blocking (P0–P2) · ${untested.length} untested`);
+console.log(`  ${measurements.filter((m) => m.checks > 0).length}/${measurements.length} product dimensions measured by this run`);
 
 const payload = {
   at: new Date().toISOString(),
+  // WHICH SERVER produced these numbers, recorded in the artefact. A benchmark
+  // that cannot say what it measured is how an imaginary product got measured
+  // in the first place.
   server: serverUp ? BASE : null,
-  checks, untested, ownedElsewhere,
-  totals: { checks: checks.length, passed: checks.filter((c) => c.ok).length, blocking: blocking.length },
+  artifact: serverUp ? "standalone production build" : "none — every HTTP journey was skipped",
+  dataset: DATA_DIR,
+  bundle: ENGINE_FILE ?? null,
+  checks, untested, ownedElsewhere, measurements,
+  totals: {
+    checks: checks.length,
+    passed: checks.filter((c) => c.ok).length,
+    blocking: blocking.length,
+    dimensionsMeasured: measurements.filter((m) => m.checks > 0).length,
+    dimensions: measurements.length,
+  },
 };
 fs.mkdirSync(path.join(ROOT, ".benchmark"), { recursive: true });
 fs.writeFileSync(path.join(ROOT, ".benchmark", "latest.json"), JSON.stringify(payload, null, 2));

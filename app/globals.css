@@ -148,7 +148,10 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-::selection { background: rgba(224, 62, 45, 0.18); }
+/* Selecting is the learner's own act, so the highlight is the accent rather than a
+   tint of the marking red: red here would read as "this is wrong", and it is the
+   one colour in the file that is never decoration. */
+::selection { background: color-mix(in srgb, var(--accent) 24%, transparent); }
 
 a { color: var(--text); text-decoration-color: var(--accent-line); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
 /* Hover stays neutral: colour appears where meaning lives (the active item, the
@@ -527,17 +530,17 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: 16px; margin: 0 0 6px; line
 }
 .choice .mark::before { content: attr(data-idx); color: var(--text-muted); font-size: 12px; }
 .choice.sel { border-color: var(--ui-strong); border-width: 2px; }
-.choice.ok { border-color: var(--mark-correct); background: rgba(30, 122, 70, 0.07); }
+.choice.ok { border-color: var(--mark-correct); background: color-mix(in srgb, var(--mark-correct) 8%, var(--surface)); }
 .choice.ok .mark { background: var(--mark-correct); border-color: var(--mark-correct); }
 .choice.ok .mark::before { content: "✓"; color: var(--text-on-strong); }
 /* One rule for a wrong choice, two spellings: the marking set (`.bad`) and the
    diagnostic sheet's data-state (`.wrong`). They mean the same thing, so they
    are written once. */
-.choice.bad, .choice[data-state="wrong"] { border-color: var(--mark-wrong); background: rgba(224, 62, 45, 0.05); }
+.choice.bad, .choice[data-state="wrong"] { border-color: var(--mark-wrong); background: color-mix(in srgb, var(--mark-wrong) 6%, var(--surface)); }
 .choice.bad .mark, .choice[data-state="wrong"] .letter { background: var(--mark-wrong); border-color: var(--mark-wrong); color: var(--text-on-strong); }
 .choice.bad .mark::before { content: "✗"; color: var(--text-on-strong); }
-.choice.bad .choice-text { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: rgba(224, 62, 45, 0.6); }
-.choice.reveal.ok { background: rgba(30, 122, 70, 0.07); }
+.choice.bad .choice-text { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: color-mix(in srgb, var(--mark-wrong) 55%, transparent); }
+.choice.reveal.ok { background: color-mix(in srgb, var(--mark-correct) 8%, var(--surface)); }
 .choice:disabled { cursor: default; }
 .choice-text { flex: 1; }
 .choice .letter {
@@ -546,7 +549,7 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: 16px; margin: 0 0 6px; line
   font-family: var(--mono); font-weight: 700; font-size: 12px;
   border: 1.5px solid var(--line); border-radius: 6px; color: var(--text-muted);
 }
-.choice[data-state="right"] { border-color: var(--mark-correct); background: rgba(30, 122, 70, 0.07); }
+.choice[data-state="right"] { border-color: var(--mark-correct); background: color-mix(in srgb, var(--mark-correct) 8%, var(--surface)); }
 .choice[data-state="right"] .letter { background: var(--mark-correct); border-color: var(--mark-correct); color: var(--text-on-strong); }
 .choice[data-state="dim"] { opacity: 0.55; }
 
@@ -664,7 +667,7 @@ a.chip:hover { border-color: var(--ui-strong); color: var(--text); }
 .chip.bad, .chip.red { color: var(--mark-wrong); border-color: var(--mark-wrong); }
 .chip.red { font-weight: 700; }
 .chip.on { border-color: var(--ui-strong); color: var(--text); background: var(--surface-sunken); font-weight: 700; }
-.chip.ok { border-color: var(--mark-correct); color: var(--mark-correct); background: rgba(30, 122, 70, 0.07); }
+.chip.ok { border-color: var(--mark-correct); color: var(--mark-correct); background: color-mix(in srgb, var(--mark-correct) 8%, var(--surface)); }
 button.chip { cursor: pointer; font-family: var(--mono); }
 
 /* A dimension in the evidence tables: label, value, and the honest dash. */
@@ -740,8 +743,8 @@ button.chip { cursor: pointer; font-family: var(--mono); }
 }
 .node:hover { border-color: var(--ui-strong); text-decoration: none; }
 .node .sub { display: block; color: var(--text-muted); font-weight: 500; font-size: 12.5px; margin-top: 4px; }
-.node.strong { background: rgba(30, 122, 70, 0.08); }
-.node.weak { background: rgba(224, 62, 45, 0.06); }
+.node.strong { background: color-mix(in srgb, var(--mark-correct) 9%, var(--surface)); }
+.node.weak { background: color-mix(in srgb, var(--mark-wrong) 7%, var(--surface)); }
 
 /* ── How a session works: a numbered sequence, not a grid of feature cards.
    The order IS the information — each step feeds the next — so it is set as an
@@ -811,7 +814,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .stat { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
 .stat-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted); }
 
-.alert { border: 1.5px solid var(--mark-caution); border-inline-start: 4px solid var(--mark-caution); background: rgba(176, 103, 11, 0.06); color: var(--text); border-radius: var(--radius-card); padding: 12px 14px; font-size: 14.5px; }
+.alert { border: 1.5px solid var(--mark-caution); border-inline-start: 4px solid var(--mark-caution); background: color-mix(in srgb, var(--mark-caution) 8%, var(--surface)); color: var(--text); border-radius: var(--radius-card); padding: 12px 14px; font-size: 14.5px; }
 .list-plain { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 .ruled { border-top: 1px solid var(--line-soft); margin: var(--s3) 0; }
 .rowline {

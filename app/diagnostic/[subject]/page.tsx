@@ -3,14 +3,17 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { fetchProfile, useI18n, loadLocalProfileId, loadLocalProfileSecret, useProfile } from "@/lib/client";
+import { fetchProfile, useI18n, loadLocalProfileId, useProfile } from "@/lib/client";
+import * as api from "@/lib/api/client";
+import { ApiError } from "@/lib/api/client";
 import { getConcept } from "@/lib/genome";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { SUBJECT_IDS, SUBJECT_LABELS, subjectFromParam } from "@/lib/subjects";
 import { ctitle, mcName, mcCoaching } from "@/lib/content-i18n";
 import PromptText from "@/components/prompt-text";
 import { fill } from "@/lib/i18n";
-import type { DiagnosticResult, Question, SubjectId } from "@/lib/types";
+import type { DiagnosticResult, SubjectId } from "@/lib/types";
+import type { QuestionView } from "@/lib/questions";
 
 type Graded = { correct: boolean; explanation: string; answerIndex: number | null };
 
@@ -23,8 +26,10 @@ export default function DiagnosticPage() {
    *  learner belongs, and the route guard derives that from here — see `next`. */
   const { set: setLearner } = useProfile();
 
-  const [q, setQ] = useState<Question | null>(null);
-  const [nextQ, setNextQ] = useState<Question | null>(null);
+  // SERVED views: the diagnostic grades server-side, and the answer is not on
+  // the wire. `Question` would be a type claiming a field that is not there.
+  const [q, setQ] = useState<QuestionView | null>(null);
+  const [nextQ, setNextQ] = useState<QuestionView | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
   /** What the learner says about their OWN knowing, before they see the choices
    *  and before any verdict. Committed early on purpose: a grade shown first
@@ -45,17 +50,21 @@ export default function DiagnosticPage() {
   const busy = useRef(false);
 
   const id = loadLocalProfileId();
-  const secret = loadLocalProfileSecret();
+
+  /** One refused step, in a form the learner reads rather than a status code. */
+  function stepError(e: unknown): string {
+    return e instanceof ApiError ? (e.code || `HTTP ${e.status}`) : `HTTP ?`;
+  }
 
   const start = useCallback(async () => {
     if (!id) { setErr(t("onb.title")); return; }
-    const res = await fetch("/api/diagnostic", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start", id, subject, lang, kind: "baseline", secret }),
-    });
-    const body = await res.json();
-    if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
+    let body: Awaited<ReturnType<typeof api.diagnose>>;
+    try {
+      body = await api.diagnose({ action: "start", id, subject, lang, kind: "baseline" });
+    } catch (e) {
+      setErr(stepError(e));
+      return;
+    }
     if (!body.question) { setErr(t("common.error")); return; }
     setQ(body.question);
     // An adaptive sitting has NO fixed length, so the server hands back a
@@ -69,13 +78,14 @@ export default function DiagnosticPage() {
     // screen to explain it. The server now hands back the unfinished sitting and
     // how far along it is, so the counter is honest and the banner names the
     // truth rather than letting the learner conclude the app lost their work.
-    if (body.resumed && body.asked > 0) {
-      setN(body.asked + 1);
+    const asked = body.asked ?? 0;
+    if (body.resumed && asked > 0) {
+      setN(asked + 1);
       setResumed(true);
     } else {
       setN(1);
     }
-  }, [id, subject]);
+  }, [id, subject, lang, t]);
 
   useEffect(() => { void start(); }, [start]);
 
@@ -88,13 +98,9 @@ export default function DiagnosticPage() {
     // being recovered while they work.
     setResumed(false);
     try {
-      const res = await fetch("/api/diagnostic", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "answer", id, subject, questionId: q.id, chosen: i, lang, secret, certainty }),
+      const body = await api.diagnose({
+        action: "answer", id, subject, questionId: q.id, chosen: i, lang, certainty: certainty ?? undefined,
       });
-      const body = await res.json();
-      if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
       setGraded({ correct: !!body.correct, explanation: String(body.explanation ?? ""), answerIndex: typeof body.answerIndex === "number" ? body.answerIndex : null });
       setNCorrect((c) => c + (body.correct ? 1 : 0));
       setNextQ(body.next ?? null);
@@ -129,13 +135,13 @@ export default function DiagnosticPage() {
     if (busy.current || graded || !id) return;
     busy.current = true;
     try {
-      const res = await fetch("/api/diagnostic", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "skip", id, subject, lang, secret }),
-      });
-      const body = await res.json();
-      if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
+      let body: Awaited<ReturnType<typeof api.diagnose>>;
+      try {
+        body = await api.diagnose({ action: "skip", id, subject, lang });
+      } catch (e) {
+        setErr(stepError(e));
+        return;
+      }
       setResumed(false);
       if (!body.next) {
         // Release the lock so `finish` can take it — it guards the same ref.
@@ -163,6 +169,10 @@ export default function DiagnosticPage() {
     // screen as raw server text in the middle of a first run. Measured against
     // the live route: first finish 200 with the report, second 400 with that
     // error string.
+    // `start` already refuses without a learner, so this is unreachable in the
+    // ordinary flow — but the sitting is about a NAMED learner, and a close with
+    // no name is not a close.
+    if (!id) { setErr(t("onb.title")); return; }
     if (busy.current) return;
     busy.current = true;
     try {
@@ -170,13 +180,13 @@ export default function DiagnosticPage() {
       // per-concept ladders ride along (audit P0-A): the grading route folds
       // this run's evidence into the learner model, so the diagnostic actually
       // initializes the state the next-step engine reads.
-      const res = await fetch("/api/diagnostic", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "finish", id, subject, secret }),
-      });
-      const body = await res.json();
-      if (!res.ok) { setErr(body.error ?? `HTTP ${res.status}`); return; }
+      let body: Awaited<ReturnType<typeof api.diagnose>>;
+      try {
+        body = await api.diagnose({ action: "finish", id, subject });
+      } catch (e) {
+        setErr(stepError(e));
+        return;
+      }
       // A FINISHED SITTING IS A CHANGE TO WHERE THIS LEARNER BELONGS, and the
       // guard reads that from the shell's learner state. Nothing refreshed it
       // here, so the report's own primary CTA — "Home →" — was bounced straight

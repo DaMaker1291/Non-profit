@@ -36,7 +36,7 @@
 import { getConcept } from "./genome";
 import { coverageOf, type ActiveSpec } from "./specifications";
 import { difficultyBandFor, hashSeed } from "./questions";
-import type { BoardId, ProfileState, SubjectId } from "./types";
+import type { BoardId, ProfileState, Question, ResponseKind, SubjectId } from "./types";
 
 // ── Pools ───────────────────────────────────────────────────────────────────
 
@@ -310,6 +310,74 @@ export function itemFor(
       specId: active.spec.id,
       qualification: `${active.spec.name}${active.level.name ? ` ${active.level.name}` : ""}`,
     },
+  };
+}
+
+/**
+ * What `declareQuestion` needs, which is deliberately LESS than a full question:
+ * a SERVED question reaches the client as a `QuestionView` — the answer, the
+ * explanation and the tags are withheld until the verdict, because a client that
+ * holds the key can be made to show it. So the declaration is built from the
+ * fields every surface has, and the two that only exist where the key does
+ * (`misconceptions`, `explanation`) come back empty on the client rather than
+ * forcing a second shape or a second rule for the demand level.
+ */
+export interface QuestionDeclarable {
+  conceptId: string;
+  difficulty: number;
+  responseKind?: ResponseKind;
+  /** Withheld from the client with the rest of the key. */
+  misconceptionTags?: string[];
+  explanation?: string;
+}
+
+/**
+ * THE QUESTION, DECLARED — the teaching record of one item, as a surface asks
+ * for it.
+ *
+ * Every field below already existed, scattered: the demand level was computed by
+ * `skillForDifficulty` and shown only AFTER the sitting, in the diagnostic
+ * report; the response rule lived in `responseKind`; the marks in the bank item;
+ * the beliefs an item discriminates in its tags, which reached the learner only
+ * as the DIAGNOSIS that follows a wrong answer. A learner working through a
+ * question was told what it asked for only in retrospect.
+ *
+ * So this composes the existing owners and nothing else — no new rule, no new
+ * number — and it works on the SERVED question rather than a bank lookup, so
+ * both products declare one item identically and neither can disagree with the
+ * report that will judge the same answer.
+ *
+ * `marks` is `AUTHORED_MARKS`: an authored item is one answer, and claiming it is
+ * worth more would be a claim about a mark scheme we do not have (an official
+ * paper item carries its own, and those arrive through lib/papers instead).
+ */
+export interface QuestionDeclaration {
+  conceptId: string;
+  subject: SubjectId;
+  /** Cognitive demand, from the ONE difficulty→demand mapping (lib/skills). */
+  skill: SkillId;
+  difficulty: number;
+  /** How the learner answers it: a choice, or a typed number. */
+  marking: ResponseKind;
+  marks: number;
+  /** Catalogue ids of the beliefs this item discriminates — named for a reader
+   *  by lib/misconceptions#beliefName, never rendered raw. Empty where the
+   *  answer key is withheld (a served question). */
+  misconceptions: string[];
+  explanation: string;
+}
+
+export function declareQuestion(q: QuestionDeclarable): QuestionDeclaration {
+  const c = getConcept(q.conceptId);
+  return {
+    conceptId: q.conceptId,
+    subject: c?.subject ?? "maths",
+    skill: skillForDifficulty(q.difficulty),
+    difficulty: q.difficulty,
+    marking: q.responseKind ?? "choice",
+    marks: AUTHORED_MARKS,
+    misconceptions: q.misconceptionTags ?? [],
+    explanation: q.explanation ?? "",
   };
 }
 

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { useI18n, loadLocalProfileId, loadLocalProfileSecret } from "@/lib/client";
+import { useI18n, loadLocalProfileId } from "@/lib/client";
+import { tutorTurn } from "@/lib/api/client";
 import { fill } from "@/lib/i18n";
 import { getConcept } from "@/lib/genome";
 import { disclosureKey } from "@/lib/tutor-context";
@@ -66,14 +67,12 @@ export default function TutorPage() {
       // The learner's capability rides along so the turn can be grounded in
       // their own projection — the plan, the reason and the citations are read
       // server-side from that profile, never from this request.
-      const id = loadLocalProfileId();
-      const secret = id ? loadLocalProfileSecret() : null;
-      const res = await fetch("/api/tutor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conceptId, message, language: lang, id, secret }),
+      const body = await tutorTurn({
+        conceptId,
+        message,
+        language: lang,
+        id: loadLocalProfileId(),
       });
-      const body = await res.json();
       setTurns((prev) => [...prev, {
         role: "tutor",
         text: body.reply ?? "…",

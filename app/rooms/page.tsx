@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n, useProfile } from "@/lib/client";
+import { ApiError, roomAction, rooms as fetchRooms } from "@/lib/api/client";
 import { getConcept } from "@/lib/genome";
 import { ctitle } from "@/lib/content-i18n";
 import { SUBJECT_LABELS, SUBJECT_IDS } from "@/lib/subjects";
@@ -22,9 +23,7 @@ export default function RoomsPage() {
   const chatRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
-    const res = await fetch("/api/rooms");
-    const j = (await res.json()) as { rooms: StudyRoom[] };
-    setRooms(j.rooms ?? []);
+    setRooms((await fetchRooms()).rooms ?? []);
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
@@ -37,46 +36,46 @@ export default function RoomsPage() {
       maths: "linear-equations", physics: "forces-basics", chemistry: "acids-bases",
       biology: "cells", computing: "variables",
     };
-    const res = await fetch("/api/rooms", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      await roomAction({
         action: "create", name: name || `${t(SUBJECT_LABELS[subject])} ${t("rooms.room")}`,
         subject, conceptIds: [focus[subject]], language: lang, handle,
-      }),
-    });
-    if (!res.ok) { setErr(`HTTP ${res.status}`); return; }
+      });
+    } catch (e) {
+      setErr(e instanceof ApiError ? (e.code || `HTTP ${e.status}`) : t("common.error"));
+      return;
+    }
     setName("");
     void refresh();
   }
 
   async function openRoom(id: string) {
     setErr("");
-    const res = await fetch("/api/rooms", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "join", id, handle }),
-    });
-    const j = await res.json();
-    if (j.room) setOpen(j.room); else setErr(t("common.error"));
+    try {
+      const j = await roomAction({ action: "join", id, handle });
+      if (j.room) setOpen(j.room as StudyRoom);
+      else setErr(t("common.error"));
+    } catch {
+      setErr(t("common.error"));
+    }
   }
 
   async function send() {
     if (!open || !text.trim()) return;
-    const res = await fetch("/api/rooms", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "message", id: open.id, handle, text }),
-    });
-    const j = await res.json();
-    if (j.room) setOpen(j.room);
+    // The tutor's turn is taken OUTSIDE the room lock server-side, so a slow
+    // reply must not read as a failed message: the text is cleared either way.
+    try {
+      const j = await roomAction({ action: "message", id: open.id, handle, text });
+      if (j.room) setOpen(j.room as StudyRoom);
+    } catch { /* the message did not land; the box keeps the words */ return; }
     setText("");
   }
 
   async function fork(id: string) {
-    const res = await fetch("/api/rooms", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "fork", id, handle }),
-    });
-    const j = await res.json();
-    if (j.room) setOpen(j.room);
+    try {
+      const j = await roomAction({ action: "fork", id, handle });
+      if (j.room) setOpen(j.room as StudyRoom);
+    } catch { /* a fork we could not make leaves the room we are in untouched */ }
     void refresh();
   }
 

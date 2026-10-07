@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { decideOne, decisionContextFrom } from "@/lib/decision";
+import { demonstrationSplit, demonstratedLabelKey } from "@/lib/learner-model";
 import { incompleteSubjects } from "@/lib/specifications";
 import { getConcept } from "@/lib/genome";
 import CourseFirst from "@/components/course-first";
@@ -68,12 +69,47 @@ export default function NextStep({
       </section>
     );
   }
+
+  // WHAT THE RECORD HAS SHOWN, and what it has not (lib/learner-model
+  // #demonstrationSplit — the ONE owner of that question, so this card and the
+  // published static page cannot describe the same ledger two ways).
+  //
+  // Rendered only once something HAS been demonstrated. Four "not yet" rows on
+  // a beginner's first screen is a page of deficits, and the decision for a
+  // learner we have not measured is already "find your starting point" — the
+  // split would add nothing but a list of things they have not failed yet.
+  const split = top.conceptId ? demonstrationSplit(state, top.conceptId) : null;
+  const showSplit = !!split && split.demonstrated.length > 0;
   return (
     <section className="card primary" style={{ borderLeft: "4px solid var(--margin-red)" }} aria-label={t("next.aria")}>
       {/* No raw `kind` badge: it is an English enum (EXPLAIN, REMEDIATE) that no
           dictionary can translate, and the title already opens with the
           translated verb — "Learn:", "Practise:", "Fix:". */}
       <p className="eyebrow" style={{ margin: 0 }}><span className="no">→</span> {t("next.eyebrow")}</p>
+      {showSplit && split && (
+        <div style={{ margin: "10px 0 2px" }}>
+          <p className="small" style={{ margin: 0 }}>
+            <span className="muted">{t("next.haveDemonstrated")}</span>{" "}
+            {split.demonstrated.map((d) => (
+              <span className="chip good" key={d} style={{ marginLeft: 6 }}>✓ {t(demonstratedLabelKey(d))}</span>
+            ))}
+          </p>
+          {split.pending.length > 0 && (
+            <p className="small" style={{ margin: "6px 0 0" }}>
+              <span className="muted">{t("next.notYetDemonstrated")}</span>{" "}
+              {split.pending.map((d, i) => (
+                // The FIRST pending rung is what this card's own action is for,
+                // so it is marked as current (`.chip.on`) — the learner can see
+                // which missing dimension today's work is aimed at without a
+                // second sentence saying so.
+                <span className={`chip${i === 0 ? " on" : ""}`} key={d} style={{ marginLeft: 6 }}>
+                  △ {t(demonstratedLabelKey(d))}
+                </span>
+              ))}
+            </p>
+          )}
+        </div>
+      )}
       <p style={{ margin: "10px 0 6px", fontSize: 22, fontWeight: 700, letterSpacing: "-0.01em" }}>
         <Link href={top.href}>{top.title}</Link>
       </p>

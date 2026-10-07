@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { useI18n, useProfile, loadLocalProfileId, loadLocalProfileSecret, fetchProfile, withCapability } from "@/lib/client";
+import { useI18n, useProfile, loadLocalProfileId, loadLocalProfileSecret, fetchProfile } from "@/lib/client";
+import * as api from "@/lib/api/client";
+import { ApiError, answerQuestion } from "@/lib/api/client";
 import { ctitle, cblurb, mcName, mcCoaching } from "@/lib/content-i18n";
 import { dueLabel, fill } from "@/lib/i18n";
 import { isNextKind, type NextAction, type NextKind } from "@/lib/next-engine";
 import { decideOne, decisionContextFrom } from "@/lib/decision";
 import { loadLedger, conceptKnowledge, type LedgerFetch } from "@/lib/evidence-view";
-import { newSubmissionId, postAnswer } from "@/lib/sync-queue";
+import type { QuestionView } from "@/lib/questions";
 import { SESSION_TARGET, type SessionResult } from "@/lib/session";
 import { proofLabelKey, proofSentenceKey, proofVerdict } from "@/lib/proof";
+import { declareQuestion } from "@/lib/question-bank";
 import { evidenceFor } from "@/lib/learner-model";
 import SessionResultPanel from "@/components/session-result";
 import { Dims } from "@/components/dims";
@@ -28,7 +31,7 @@ import PeerTeach from "@/components/peer-teach";
 import { exampleFor } from "@/lib/culture";
 import type { FlarePayload } from "@/lib/microdiag";
 import { subjectFromParam } from "@/lib/subjects";
-import type { Question, StudyPack } from "@/lib/types";
+import type { StudyPack } from "@/lib/types";
 
 type Graded = { correct: boolean; explanation: string; misconceptionId?: string | null; answerIndex: number | null; flare?: FlarePayload | null; evidence?: AnswerEvidence | null };
 
@@ -68,7 +71,9 @@ export default function ConceptPage() {
   const c = getConcept(conceptId);
   const { t, lang } = useI18n();
   const { state, set: setState } = useProfile();
-  const [q, setQ] = useState<Question | null>(null);
+  // The SERVED view, not the bank's Question: the answer is not on the wire,
+  // and the type is what stops a surface from reaching for it.
+  const [q, setQ] = useState<QuestionView | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
   const [graded, setGraded] = useState<Graded | null>(null);
   /** This answer is held on the device and will be marked on reconnect (§4
@@ -154,14 +159,11 @@ export default function ConceptPage() {
     const pid = loadLocalProfileId();
     if (!pid || !conceptId) return;
     let alive = true;
-    fetch(withCapability(`/api/assignments?me=${encodeURIComponent(pid)}`))
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`http ${r.status}`))))
+    api.assignments(pid)
       .then((j) => {
-        const w = (j.assigned ?? []).find(
-          (x: { assignment: { conceptIds: string[] }; mine: { outstanding: string[] } }) =>
-            x.assignment.conceptIds.includes(conceptId),
-        );
-        if (alive && w) setAssignedDue(w.assignment.dueAt as number);
+        // The deadline of the work that covers THIS concept, if any was set.
+        const w = (j.assigned ?? []).find((x) => x.assignment.conceptIds.includes(conceptId));
+        if (alive && w) setAssignedDue(w.assignment.dueAt);
       })
       .catch(() => { /* no assignment read here — Home says so if it failed */ });
     return () => { alive = false; };
@@ -198,21 +200,21 @@ export default function ConceptPage() {
     setHintLevel(0);
     setStage_("lesson");
     setTransferOk(false);
-    const res = await fetch("/api/progress", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "serve", id, conceptId, lang, secret: withSecret() }),
-    });
-    if (!res.ok) { setErr(`HTTP ${res.status}`); return; }
-    const body = await res.json();
+    let body: api.ServedQuestionResponse;
+    try {
+      body = await api.serveQuestion(id, conceptId, { lang });
+    } catch (e) {
+      setErr(e instanceof ApiError ? (e.code || `HTTP ${e.status}`) : `HTTP ?`);
+      return;
+    }
     setQ(body.question ?? null);
     if (typeof body.transferable === "boolean") setTransferable(body.transferable);
-    setWhy((body.target as ServeTarget | null) ?? null);
+    setWhy(body.target ?? null);
     // When the serve says this learner needs support, the ladder is OPEN rather
     // than merely available: a student who is struggling should not have to
     // guess that help exists. Nothing is recorded by opening it — hint credit
     // is only counted when a hint is actually asked for.
-    setStuck(Boolean((body.target as ServeTarget | null)?.scaffold));
+    setStuck(Boolean(body.target?.scaffold));
     setServedAt(Date.now());
   }, [id, conceptId, t, lang]);
 
@@ -224,13 +226,9 @@ export default function ConceptPage() {
     setResult(null);
     setNextAction(null);
     try {
-      const res = await fetch("/api/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start", id, conceptId, kind: intent, secret: withSecret() }),
-      });
-      if (!res.ok) { setSessErr(t("sess.err")); return; }
-      const body = await res.json();
+      // Resuming is the server's decision: a session already open for this
+      // concept continues rather than silently restarting the measurement.
+      const body = await api.startSession(id, conceptId, { kind: intent });
       setTarget(body.session?.target ?? SESSION_TARGET);
       setCount(body.session?.asked ?? 0);
       setPhase("active");
@@ -257,7 +255,7 @@ export default function ConceptPage() {
   useEffect(() => {
     if (!id) return;
     let alive = true;
-    loadLedger(id, withSecret()).then((l) => { if (alive) setLedger(l); });
+    loadLedger(id).then((l) => { if (alive) setLedger(l); });
     return () => { alive = false; };
     // `withSecret` is a fresh closure each render, so it must not be a dep or
     // this fetches on every render.
@@ -280,9 +278,7 @@ export default function ConceptPage() {
 
   const loadPacks = useCallback(async () => {
     try {
-      const res = await fetch(`/api/packs?conceptId=${encodeURIComponent(conceptId)}`);
-      if (!res.ok) return;
-      const j = await res.json();
+      const j = await api.packsFor(conceptId);
       setPacks(j.packs ?? []);
     } catch {
       /* packs are a bonus layer; the lesson works without them */
@@ -291,17 +287,14 @@ export default function ConceptPage() {
 
   useEffect(() => { void loadPacks(); }, [loadPacks]);
 
-  async function postPack(payload: Record<string, unknown>) {
+  async function postPack(payload: { action: "create" | "fork" | "helpful"; [k: string]: unknown }) {
     if (!id) return;
     setPackBusy(true);
     try {
-      const res = await fetch("/api/packs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...payload }),
-      });
-      if (res.ok) await loadPacks();
-    } finally {
+      await api.packAction({ id, ...payload });
+      await loadPacks();
+    } catch { /* packs are a bonus layer; the lesson works without them */ }
+    finally {
       setPackBusy(false);
     }
   }
@@ -357,31 +350,24 @@ export default function ConceptPage() {
       // instead of losing it. Online this is also what makes a lost response
       // safe: the server derives the ledger event's id from the submission, so
       // a replay is the same event rather than a second answer.
-      const outcome = await postAnswer("/api/progress", {
-        submissionId: newSubmissionId(),
-        deviceAt: Date.now(),
-        body: {
-          action: "answer", id, conceptId, questionId: q.id, ...given,
-          ms: servedAt ? Date.now() - servedAt : undefined,
-          lang, secret: withSecret(),
-        },
+      const outcome = await answerQuestion({
+        id, conceptId, questionId: q.id, ...given,
+        ms: servedAt ? Date.now() - servedAt : undefined,
+        lang,
       });
-      if (outcome.kind === "held") {
+      if (outcome.kind === "offline") {
         // Not marked yet, and the learner is told exactly that. The question is
         // NOT consumed: nothing has been recorded, so nothing may be advanced.
         setSaved(true);
         return;
       }
-      if (outcome.kind === "refused") {
-        const refused = (await outcome.res.json().catch(() => ({}))) as { error?: string };
-        setErr(refusalText(refused.error));
+      if (outcome.kind === "error") {
+        setErr(refusalText(outcome.code));
         return;
       }
-      const res = outcome.res;
-      const body = await res.json();
-      if (!res.ok) { setErr(refusalText(body.error)); return; }
-      const correct = !!body.correct;
-      const g: Graded = { correct, explanation: body.explanation ?? "", misconceptionId: body.misconceptionId, answerIndex: typeof body.answerIndex === "number" ? body.answerIndex : null, flare: body.flare ?? null, evidence: (body.demonstrated as AnswerEvidence | undefined) ?? null };
+      const body = outcome.verdict;
+      const correct = body.correct;
+      const g: Graded = { correct, explanation: body.explanation, misconceptionId: body.misconceptionId, answerIndex: body.answerIndex, flare: body.flare ?? null, evidence: (body.demonstrated as AnswerEvidence | undefined) ?? null };
       setGraded(g);
       // The session's own count of what it has asked; the server holds the same
       // count authoritatively (it increments on grading) and wins at finish.
@@ -399,14 +385,13 @@ export default function ConceptPage() {
     if (!id) return;
     setSessErr("");
     try {
-      const res = await fetch("/api/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "finish", id, conceptId, secret: withSecret() }),
-      });
-      const body = await res.json();
-      if (!res.ok) {
-        setSessErr(t(body.error === "no_session" ? "sess.nothing" : "sess.err"));
+      let body: Record<string, unknown>;
+      try {
+        body = await api.finishSession(id, conceptId);
+      } catch (e) {
+        // "Nothing to close" is a different sentence from "we could not close
+        // it", and a learner who never opened a session deserves the first.
+        setSessErr(t(e instanceof ApiError && e.code === "no_session" ? "sess.nothing" : "sess.err"));
         return;
       }
       setResult(body.result as SessionResult);
@@ -415,7 +400,7 @@ export default function ConceptPage() {
       // shows the plan the session produced rather than the one it started with.
       // The session just wrote evidence, so the ledger is re-read rather than
       // reused: the recomputed plan has to be the one the new evidence produced.
-      const [fresh, led] = await Promise.all([fetchProfile(id), loadLedger(id, withSecret())]);
+      const [fresh, led] = await Promise.all([fetchProfile(id), loadLedger(id)]);
       setLedger(led);
       if (fresh) {
         setState(fresh);
@@ -439,15 +424,9 @@ export default function ConceptPage() {
     setStuck(false);
     (async () => {
       try {
-        const res = await fetch("/api/progress", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          // Transfer intent declared server-side: harder question staged, and
-          // the grading is attributed as transfer by the server, not the client.
-          body: JSON.stringify({ action: "serve", id, conceptId, intent: "transfer", lang, secret: withSecret() }),
-        });
-        if (!res.ok) return;
-        const body = await res.json();
+        // Transfer intent declared server-side: harder question staged, and the
+        // grading is attributed as transfer by the server, not the client.
+        const body = await api.serveQuestion(id, conceptId, { intent: "transfer", lang });
         const q = body.question;
         if (!q) return;
         setReframed(typeof body.reframed === "boolean" ? body.reframed : null);
@@ -465,17 +444,19 @@ export default function ConceptPage() {
     if (!q || !id || hintBusy) return;
     setHintBusy(true);
     try {
-      const res = await fetch("/api/progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "hint", id, conceptId, questionId: q.id, level, secret: withSecret() }),
-      });
-      const body = await res.json();
-      if (res.ok && body.hint && (typeof body.hint === "string" || typeof body.hint.key === "string" || typeof body.hint.text === "string")) {
-        setHint(typeof body.hint === "string" ? body.hint : [body.hint.text, body.hint.key ? t(body.hint.key) : ""].filter(Boolean).join(" "));
+      let body: api.HintPayload;
+      try {
+        body = await api.hint(id, conceptId, q.id, level);
+      } catch (e) {
+        setErr(e instanceof ApiError ? (e.code || `HTTP ${e.status}`) : t("common.error"));
+        return;
+      }
+      const h = body.hint;
+      if (h && (typeof h === "string" || typeof h.key === "string" || typeof h.text === "string")) {
+        setHint(typeof h === "string" ? h : [h.text, h.key ? t(h.key) : ""].filter(Boolean).join(" "));
         setHintLevel(level);
       } else {
-        setErr(body.error ?? `HTTP ${res.status}`);
+        setErr(t("common.error"));
       }
     } finally {
       setHintBusy(false);
@@ -751,6 +732,19 @@ export default function ConceptPage() {
               <PromptText text={q.prompt} />
               <SpeakButton text={q.prompt} />
             </div>
+            {/* WHAT THIS QUESTION IS TESTING, said BEFORE it is answered.
+
+                Every field in this line existed already and reached the learner
+                only later: the demand level surfaced after the sitting, in the
+                diagnostic report; the marks nowhere at all. The rule that
+                composes them is lib/question-bank#declareQuestion, so this page
+                and the published static page declare one item the same way.
+
+                THE BELIEFS IT DISCRIMINATES ARE NOT NAMED HERE. Reading "sign
+                slip" before answering is a hint, and a question that warns you
+                about its own trap measures nothing — they appear with the
+                verdict, where they can teach instead of pre-empt. */}
+            <QuestionDeclaration q={q} t={t} />
             {/* ── HOW THIS QUESTION IS ANSWERED ────────────────────────────
                 A numeric item asks the learner to PRODUCE the answer, so it
                 gets a box; everything else keeps the four options. The switch
@@ -868,6 +862,14 @@ export default function ConceptPage() {
                     </p>
                   ) : null;
                 })()}
+                {/* WHAT THE ITEM WAS CHECKING FOR is not listed here, and that is
+                    a design fact rather than an omission: a served question
+                    withholds its tags with the rest of the answer key
+                    (QuestionView), so the beliefs an item discriminates reach
+                    the learner as the DIAGNOSIS above — named for the mistake
+                    actually made, which teaches, rather than as a list of traps
+                    to watch for, which is a hint. The full tag list is in the
+                    declaration for the surfaces that hold the key. */}
               </div>
             )}
             {graded?.flare && <MicroDiagnostic flare={graded.flare} lang={lang} />}
@@ -976,5 +978,25 @@ export default function ConceptPage() {
         <Link href={`/tutor/${c.id}`} className="btn small">{t("learn.ask")} →</Link>
       </div>
     </main>
+  );
+}
+
+/** WHAT THIS QUESTION IS TESTING — the demand it asks for, and what it is worth.
+ *
+ *  The record itself is lib/question-bank#declareQuestion's; this only words it,
+ *  so the React question screen and the published static one declare one item
+ *  the same way. The beliefs the item discriminates are deliberately NOT part of
+ *  this line: naming them before the answer is a hint, and they are rendered
+ *  with the verdict instead (see the feedback block above).
+ */
+function QuestionDeclaration({ q, t }: { q: Parameters<typeof declareQuestion>[0]; t: (key: string) => string }) {
+  const declared = declareQuestion(q);
+  return (
+    <p className="small muted" style={{ margin: "6px 0 0" }}>
+      <span className="why-label">{t("ask.whatTesting")}</span>{" "}
+      {t(`skill.${declared.skill}`)}
+      {" · "}
+      {t("own.marks")}: {declared.marks}
+    </p>
   );
 }

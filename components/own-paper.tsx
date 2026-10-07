@@ -16,7 +16,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { loadLocalProfileSecret, loadLocalProfileId, useI18n } from "@/lib/client";
+import { loadLocalProfileId, useI18n } from "@/lib/client";
+import { ApiError, myPaperAction, myPapers } from "@/lib/api/client";
 import { ctitle } from "@/lib/content-i18n";
 import PaperAnalysisPanel, { type PaperAnalysisShape } from "@/components/paper-analysis";
 import type { BoardId, SubjectId } from "@/lib/types";
@@ -36,7 +37,8 @@ interface Row {
 interface SavedPaper {
   id: string;
   title: string;
-  year?: string;
+  /** As the learner typed it (lib/api/client.ts#PersonalPaperEntry). */
+  year?: string | number;
   questionCount: number;
 }
 
@@ -63,11 +65,10 @@ export default function OwnPaper({ concepts, board }: { concepts: OwnPaperConcep
 
   const load = useCallback(async () => {
     if (!id) return;
-    const secret = loadLocalProfileSecret();
-    const res = await fetch(`/api/my-paper?id=${encodeURIComponent(id)}&secret=${encodeURIComponent(secret ?? "")}`);
-    if (!res.ok) return;
-    const body = await res.json();
-    setSaved(body.papers ?? []);
+    try {
+      const body = await myPapers(id);
+      setSaved(body.papers ?? []);
+    } catch { /* a list we could not read is not an empty one — keep what we have */ }
   }, [id]);
 
   useEffect(() => { void load(); }, [load]);
@@ -81,13 +82,11 @@ export default function OwnPaper({ concepts, board }: { concepts: OwnPaperConcep
     setBusy(true);
     setErr("");
     try {
-      const res = await fetch("/api/my-paper", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      let body: Record<string, unknown>;
+      try {
+        body = await myPaperAction({
           action: "create",
           id,
-          secret: loadLocalProfileSecret(),
           title,
           year: year || undefined,
           board,
@@ -97,17 +96,16 @@ export default function OwnPaper({ concepts, board }: { concepts: OwnPaperConcep
             awarded: Number(r.awarded),
             conceptId: r.conceptId,
           })),
-        }),
-      });
-      const body = await res.json();
-      if (!res.ok) {
+        });
+      } catch (e) {
         // Server rejections are named ("bad_marks", "content_not_accepted") so
         // the learner is told what was refused, not just "invalid input".
+        const code = e instanceof ApiError ? e.code : "";
         const known = ["bad_marks", "bad_concept", "empty", "duplicate_question", "bad_title", "too_many_questions", "content_not_accepted"];
-        setErr(known.includes(body.error) ? t(`own.err.${body.error}`) : (body.error ?? t("common.error")));
+        setErr(known.includes(code) ? t(`own.err.${code}`) : (code || t("common.error")));
         return;
       }
-      setAnalysis(body.analysis ?? null);
+      setAnalysis((body.analysis as PaperAnalysisShape | null) ?? null);
       setRecorded(typeof body.recorded === "number" ? body.recorded : null);
       setTitle("");
       setRows([emptyRow(1)]);
@@ -121,13 +119,11 @@ export default function OwnPaper({ concepts, board }: { concepts: OwnPaperConcep
 
   async function reopen(paperId: string) {
     if (!id) return;
-    const res = await fetch("/api/my-paper", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "mark", id, secret: loadLocalProfileSecret(), paperId }),
-    });
-    const body = await res.json();
-    if (res.ok) { setAnalysis(body.analysis ?? null); setRecorded(null); }
+    try {
+      const body = await myPaperAction({ action: "mark", id, paperId });
+      setAnalysis((body.analysis as PaperAnalysisShape | null) ?? null);
+      setRecorded(null);
+    } catch { /* reopening one paper failing must not clear the panel */ }
   }
 
   const input = { padding: "8px 10px", border: "1px solid var(--rule, #e5e7eb)", borderRadius: 8, fontSize: 14 } as const;

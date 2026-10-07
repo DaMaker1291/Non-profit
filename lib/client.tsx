@@ -3,7 +3,10 @@
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import type { ProfileState, PublicAccount, SubjectCourse, SubjectId } from "./types";
+import type { ProfileState, SubjectCourse, SubjectId } from "./types";
+import { clearIdentity, ensureSecret, loadProfileId, loadSecret, onIdentityChange, writeProfileId, writeSecret } from "./api/identity";
+import * as api from "./api/client";
+import { ApiError } from "./api/client";
 import {
   deriveLifecycle, profileStatusOf, resolveRoute, safeReturnPath, withReturn,
   type AuthStatus, type Lifecycle, type ProfileStatus, type RouteDecision,
@@ -13,9 +16,18 @@ import { LANGS, isRtl, langMeta, translator } from "./i18n";
 // ── Identity on this device ─────────────────────────────────────────────────
 // One event, one meaning: "the learner identity stored on this device changed".
 // Sign-up, sign-in, sign-out, profile creation and account-claiming all end in
-// a write here, and the AppProvider re-probes the server when it fires. This is
-// what stops the classic bug where a client-side navigation right after signing
-// in is served by a session provider that still believes nobody is signed in.
+// a write, and the AppProvider re-probes the server when it fires. This is what
+// stops the classic bug where a client-side navigation right after signing in
+// is served by a session provider that still believes nobody is signed in.
+//
+// THE STORAGE IS NOT HERE ANY MORE. It lives in lib/api/identity.ts, next to
+// the ONE rule about when a write is a change: a value that actually moved
+// announces, and a value written back unchanged does not. That rule used to be
+// three rules — announced-on-id, announced-on-secret, and a private silent
+// write for the session probe's own updates so it would not re-trigger itself —
+// so "does this update the app?" depended on WHICH function you called. Now the
+// probe is safe by construction (it writes back what it just read) and this
+// module has one job left: turn an announcement into a React event.
 
 export const SESSION_EVENT = "openmind:session";
 
@@ -24,67 +36,28 @@ function emitSessionChange(): void {
   window.dispatchEvent(new Event(SESSION_EVENT));
 }
 
+if (typeof window !== "undefined") onIdentityChange(emitSessionChange);
+
 // ── Profile bootstrap ───────────────────────────────────────────────────────
 
 export function loadLocalProfileId(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem("openmind:profileId");
+  return loadProfileId();
 }
 
 export function storeLocalProfileId(id: string): void {
-  if (typeof window === "undefined") return;
-  const changed = window.localStorage.getItem("openmind:profileId") !== id;
-  window.localStorage.setItem("openmind:profileId", id);
-  // Emit on CHANGE only. The provider's own probe writes the same values back,
-  // and an unconditional emit would make the probe trigger itself forever.
-  if (changed) emitSessionChange();
+  writeProfileId(id);
 }
 
-/** Store the capability secret, announcing a change only when it really is one
- *  (same reason as above: an emit loop is an infinite probe loop). */
-function storeSecret(secret: string): void {
-  if (typeof window === "undefined") return;
-  const changed = window.localStorage.getItem(SECRET_KEY) !== secret;
-  window.localStorage.setItem(SECRET_KEY, secret);
-  if (changed) emitSessionChange();
-}
-
-// Audit P0-E: the profile's capability secret. The id alone stopped being a
-// credential — every authenticated write/read also presents this token. It is
-// generated once with the profile and lives in localStorage next to the id.
-const SECRET_KEY = "openmind:profileSecret";
-
+/** The capability secret this device presents to every learner-scoped route.
+ *  Audit P0-E: an id alone is not a credential — it sits in URLs and
+ *  screenshots — so each profile also has a token, minted here when a device
+ *  has none (legacy profiles bind it on their first authenticated call). */
 export function loadLocalProfileSecret(): string | null {
   if (typeof window === "undefined") return null;
-  return ensureProfileSecret();
+  return ensureSecret();
 }
 
-/**
- * A read URL with the caller's capability attached.
- *
- * Every learner-scoped GET presents the secret now, not just an id: an id is
- * not a credential (it sits in URLs and screenshots). Callers that must also
- * name themselves in the query — the class door asks with `me=` — build that
- * part themselves; this appends only the token, so exactly one place knows how
- * a capability travels over HTTP.
- */
-export function withCapability(url: string): string {
-  const secret = loadLocalProfileSecret() ?? "";
-  return `${url}${url.includes("?") ? "&" : "?"}secret=${encodeURIComponent(secret)}`;
-}
-
-/** Load-or-create the capability secret (audit P0-E rollout). Profiles created
- *  before secrets existed get one generated here; the server binds it to this
- *  id on the first authenticated call if the profile has none yet. From then
- *  on the binding is immutable — the secret IS the credential. */
-export function ensureProfileSecret(): string {
-  let s = window.localStorage.getItem(SECRET_KEY);
-  if (!s) {
-    s = crypto.randomUUID().replace(/-/g, "");
-    window.localStorage.setItem(SECRET_KEY, s);
-  }
-  return s;
-}
+export const ensureProfileSecret = ensureSecret;
 
 // ── Real accounts ───────────────────────────────────────────────────────────
 // Sign-up / sign-in return the whole learner profile plus its capability
@@ -92,25 +65,31 @@ export function ensureProfileSecret(): string {
 // API keeps working on this device. That is what makes an account actually
 // save the work rather than just label it.
 
-export interface AccountSession {
-  account: PublicAccount | null;
-  profile: ProfileState | null;
-  secret: string | null;
-}
+/** The signed-in learner, its profile and its capability. The shape lives with
+ *  the operations that produce it (lib/api/client.ts), so a response cannot
+ *  drift from what the callers here destructure. */
+export type AccountSession = api.AccountSession;
+export const EMPTY_SESSION: AccountSession = api.EMPTY_SESSION;
 
-export const EMPTY_SESSION: AccountSession = { account: null, profile: null, secret: null };
-
+/** Adopt an account's identity as THIS device's learner. Both halves matter:
+ *  without the id every later page reads "no profile", and without the secret
+ *  every later write is refused with no session to fall back on. */
 export function adoptSession(s: AccountSession): void {
   if (typeof window === "undefined") return;
-  if (s.profile) storeLocalProfileId(s.profile.profile.id);
-  if (s.secret) storeSecret(s.secret);
+  if (s.profile) writeProfileId(s.profile.profile.id);
+  if (s.secret) writeSecret(s.secret);
+}
+
+/** The server's own reason for a refusal, so a caller can explain rather than
+ *  report "something went wrong" — and so the fallback is the caller's to name
+ *  rather than a status code leaking into a sentence a learner reads. */
+function reasonOf(e: unknown, fallback: string): string {
+  return e instanceof ApiError && e.code ? e.code : fallback;
 }
 
 export function clearSession(): void {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem("openmind:profileId");
-  window.localStorage.removeItem(SECRET_KEY);
-  emitSessionChange();
+  clearIdentity();
 }
 
 export interface SignUpInput {
@@ -127,45 +106,35 @@ export interface SignUpInput {
 
 export async function signUp(input: SignUpInput): Promise<AccountSession> {
   const claim = input.claimCurrent ? currentGuestClaim() : null;
-  const res = await fetch("/api/auth/signup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...input, claim }),
-  });
-  const data = (await res.json()) as AccountSession & { error?: string };
-  if (!res.ok) throw new Error(data.error ?? "signup_failed");
-  adoptSession(data);
-  return data;
+  try {
+    const data = await api.signUp({ ...input, claim });
+    adoptSession(data);
+    return data;
+  } catch (e) {
+    throw new Error(reasonOf(e, "signup_failed"));
+  }
 }
 
 export async function signIn(email: string, password: string): Promise<AccountSession> {
-  const res = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  const data = (await res.json()) as AccountSession & { error?: string };
-  if (!res.ok) throw new Error(data.error ?? "login_failed");
-  adoptSession(data);
-  return data;
+  try {
+    const data = await api.signIn(email, password);
+    adoptSession(data);
+    return data;
+  } catch (e) {
+    throw new Error(reasonOf(e, "login_failed"));
+  }
 }
 
 export async function signOut(): Promise<void> {
-  await fetch("/api/auth/logout", { method: "POST" });
+  await api.signOut();
   clearSession();
 }
 
 /** Who is signed in on this device, and which learner profile that is. */
 export async function fetchSession(): Promise<AccountSession> {
-  try {
-    const res = await fetch("/api/auth/me");
-    if (!res.ok) return EMPTY_SESSION;
-    const data = (await res.json()) as AccountSession;
-    if (data.profile) adoptSession(data);
-    return data.account ? data : EMPTY_SESSION;
-  } catch {
-    return EMPTY_SESSION;
-  }
+  const data = await api.session();
+  if (data.profile) adoptSession(data);
+  return data;
 }
 
 /** The anonymous profile on this device, if any — what a sign-up can claim. */
@@ -190,27 +159,20 @@ export async function claimGuestProfile(
 ): Promise<void> {
   const claim = guest ?? currentGuestClaim();
   if (!claim) return;
-  const res = await fetch("/api/auth/claim", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(claim),
-  });
-  const data = (await res.json()) as AccountSession & { error?: string };
-  if (!res.ok) throw new Error(data.error ?? "claim_failed");
-  adoptSession(data);
+  try {
+    adoptSession(await api.claimProfile(claim));
+  } catch (e) {
+    throw new Error(reasonOf(e, "claim_failed"));
+  }
 }
 
 export async function updateAccount(patch: {
   name?: string; role?: string; currentPassword?: string; newPassword?: string;
 }): Promise<void> {
-  const res = await fetch("/api/auth/me", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(patch),
-  });
-  if (!res.ok) {
-    const data = (await res.json()) as { error?: string };
-    throw new Error(data.error ?? "update_failed");
+  try {
+    await api.updateAccount(patch);
+  } catch (e) {
+    throw new Error(reasonOf(e, "update_failed"));
   }
 }
 
@@ -361,22 +323,16 @@ export async function createProfile(init: {
   subjectCourses?: Partial<Record<SubjectId, SubjectCourse>>;
   onboarded?: boolean;
 }): Promise<ProfileState> {
-  // Audit P0-E: every profile is born with its capability secret. A signed-in
-  // learner needs none — the session cookie authorises the write.
-  const secret = ensureProfileSecret();
-  const res = await fetch("/api/profile", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...init, secret }),
-  });
-  if (!res.ok) throw new Error("profile create failed");
-  const state = (await res.json()) as ProfileState;
-  // Adopt the profile as *this device's* learner. Both halves matter: without
-  // the id every later page reads "no profile", without the secret every later
-  // write is rejected — and the guest path has no session to fall back on.
-  storeLocalProfileId(state.profile.id);
-  if (state.secret) storeSecret(state.secret);
-  return state;
+  // Every profile is born with its capability secret (lib/api/transport.ts puts
+  // it in the body for this door) — a signed-in learner needs none, because the
+  // session cookie authorises the write. The operation adopts the profile as
+  // *this device's* learner; without that the guest path has no session and no
+  // identity, and every later write is refused.
+  try {
+    return await api.createProfile(init);
+  } catch {
+    throw new Error("profile create failed");
+  }
 }
 
 /** Save changes to the existing learner profile (used by the enrolment flow
@@ -385,35 +341,24 @@ export async function saveProfilePatch(
   patch: Partial<Parameters<typeof createProfile>[0]> & Record<string, unknown>,
 ): Promise<ProfileState> {
   const id = loadLocalProfileId();
-  const secret = ensureProfileSecret();
-  const res = await fetch("/api/profile", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...patch, id: id ?? undefined, secret }),
-  });
-  if (!res.ok) throw new Error("profile save failed");
-  const state = (await res.json()) as ProfileState;
-  if (state.profile?.id) storeLocalProfileId(state.profile.id);
-  if (state.secret) storeSecret(state.secret);
-  return state;
+  try {
+    return await api.saveProfile(patch, id);
+  } catch {
+    throw new Error("profile save failed");
+  }
 }
 
 export async function fetchProfile(id: string): Promise<ProfileState | null> {
-  // Present the stored capability secret when there is one: legacy profiles
-  // (no server-side secret yet) bind the caller's token on this first
-  // authenticated call. On a device that has only just signed in there is no
-  // secret yet — the session cookie authorises the read instead.
-  const stored = window.localStorage.getItem(SECRET_KEY);
-  const qs = new URLSearchParams({ id });
-  if (stored) qs.set("secret", stored);
-  const res = await fetch(`/api/profile?${qs.toString()}`);
-  if (!res.ok) return null;
-  const state = (await res.json()) as ProfileState;
-  // Written directly, NOT through storeSecret: this call is made by the session
-  // provider's own probe, so announcing a change here would make the provider
-  // re-probe itself. The identity is unchanged; only the token is new.
-  if (state.secret) window.localStorage.setItem(SECRET_KEY, state.secret);
-  return state;
+  try {
+    const state = await api.readProfile(id);
+    // A changed token is a real change to this device's credential, so it is
+    // announced by the write itself; writing back the token we already sent is
+    // not a change and stays silent (lib/api/identity.ts owns that rule).
+    if (state.secret && loadSecret() !== state.secret) writeSecret(state.secret);
+    return state;
+  } catch {
+    return null;
+  }
 }
 
 /** How many times a probe that could not REACH the server is retried before we
@@ -438,21 +383,15 @@ const MAX_PROBE_RETRIES = 4;
  * boot state it can never leave.
  */
 async function probeProfile(id: string): Promise<{ state: ProfileState | null; gone: boolean }> {
-  const stored = window.localStorage.getItem(SECRET_KEY);
-  const qs = new URLSearchParams({ id });
-  if (stored) qs.set("secret", stored);
-  try {
-    const res = await fetch(`/api/profile?${qs.toString()}`);
-    if (res.status === 404) return { state: null, gone: true };
-    if (!res.ok) return { state: null, gone: false };
-    const state = (await res.json()) as ProfileState;
-    // Written directly, NOT through storeSecret: this is the provider's own
-    // probe, and announcing a change here would make it re-probe itself.
-    if (state.secret) window.localStorage.setItem(SECRET_KEY, state.secret);
-    return { state, gone: false };
-  } catch {
-    return { state: null, gone: false };
+  const r = await api.probeProfile(id);
+  if (r.status !== "ok") {
+    // Only a 404 is a fact about the learner. A refusal or an unanswered call
+    // is NO information, and treating either as "gone" would erase a real
+    // learner over a dropped packet.
+    return { state: null, gone: r.status === "notFound" };
   }
+  if (r.data.secret && loadSecret() !== r.data.secret) writeSecret(r.data.secret);
+  return { state: r.data, gone: false };
 }
 
 export function useProfile(): {

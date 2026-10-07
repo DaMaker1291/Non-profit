@@ -49,9 +49,9 @@ const MIRROR = path.join(ROOT, ".verify");
 // yesterday's engine after a deploy, which no service-worker cache key could
 // fix). The stylesheet is hashed for the same reason, and it was the one that
 // was still fixed — observed live — so it is asserted here beside the engine.
-// So the files to load are discovered, not hardcoded — and the discovery itself
-// is asserted below, because "the hashed file is what index.html names" is the
-// whole mechanism.
+// So the files to load are discovered, not hardcoded — and the discovery
+// itself is asserted below, because "the hashed file is what index.html names"
+// is the whole mechanism.
 const DOCS = path.join(ROOT, "docs");
 const engineFile = fs
   .readdirSync(DOCS)
@@ -298,6 +298,78 @@ async function main() {
     unsafe = true;
   }
   ok(unsafe, "an id that is not a safe key is refused");
+
+  // ── 6b. THE PAGE'S OWN SERVE PATH, DRIVEN THROUGH THE BUNDLE IT LOADS ────
+  // The static build answers serves with NO SERVER: `docs/app.js` calls
+  // `E.operations.servePractice`, which is the same operation
+  // app/api/progress/route.ts calls. Before that module existed the page held
+  // its own copy of the decision, and the copy had drifted — so the thing worth
+  // gating is not "the file names the operation" (that is asserted in the
+  // engine suite) but that the operation, AS PUBLISHED, does what the page
+  // depends on: it stages the item it returns, it remembers what it has handed
+  // out, and the next serve moves on instead of repeating.
+  //
+  // This is the closest thing to the browser a gate can be without a browser:
+  // the file loaded here IS the file the page loads, running in plain Node.
+  section("The published serve path: what the page actually calls");
+  ok(typeof client.operations?.servePractice === "function",
+    "the bundle exposes the serve operation the page calls");
+  ok(typeof client.operations?.practiceAim === "function", "and the aim, so a surface can say why");
+  {
+    const pageState = profileFor();
+    const seen = [];
+    let stagedEveryTime = true;
+    let reasonsNamed = true;
+    for (let i = 0; i < 3; i++) {
+      const r = client.operations.servePractice({ state: pageState, conceptId: "fractions", seed: `smoke-serve-${i}` });
+      if (!r.ok) { ok(false, `a serve decided (draw ${i}: ${r.error})`); break; }
+      const staged = pageState.practice?.fractions?.q;
+      if (!staged || staged.id !== r.served.question.id) stagedEveryTime = false;
+      if (typeof r.served.aim?.target?.reason !== "string") reasonsNamed = false;
+      seen.push(client.answer.answerKey(r.served.question));
+    }
+    ok(stagedEveryTime, "every serve stages the item it returns — nothing can be answered that was never served");
+    ok(reasonsNamed, "and every serve carries the reason the record moved the rung, from the record itself");
+    ok(seen.length === 3 && new Set(seen).size === 3,
+      `three serves on one concept are three DIFFERENT items (${seen.length} drawn, ${new Set(seen).size} distinct)`);
+    const recorded = pageState.servedPractice?.fractions ?? [];
+    ok(recorded.length === seen.length,
+      `and every item handed out is remembered in the learner's own state (${recorded.length} keys)`);
+
+    // ── A DUE REVIEW IS SERVED AS A REVIEW, AND THE PAGE CANNOT DECLARE ONE ─
+    // Retention is only evidence when the recall was genuinely delayed. The
+    // staging that decides it is written by the operation, so the page has no
+    // way to ask for retention credit: it can only serve and find out.
+    const aged = profileFor();
+    for (const id of Object.keys(aged.progress)) delete aged.progress[id];
+    aged.progress.fractions = {
+      ...(aged.progress.fractions ?? {}),
+      attempts: 5, correct: 5, streak: 5, mastery: 0.95, accuracy: 1,
+      lastSeen: Date.now() - 60 * 24 * 60 * 60 * 1000,
+    };
+    const dueServe = client.operations.servePractice({ state: aged, conceptId: "fractions", seed: "smoke-due" });
+    ok(dueServe.ok === true && dueServe.served.aim.due === true,
+      "a concept the scheduler has aged into a review is served AS a review");
+    ok(aged.retrievalStage?.fractions?.questionId === dueServe.served.question.id,
+      "and the stage that will stamp the answer `retrieval` is written by the operation, not by a caller");
+
+    // ── WHAT AN ANSWER DEMONSTRATED, THROUGH THE BUNDLE THE PAGE LOADS ──────
+    // The page writes its own answers, so the claim "this was independent" is
+    // made HERE, on the learner's device — which is exactly why the rule cannot
+    // be the page's: the same operation the server grades by decides it.
+    const att = profileFor();
+    const aServe = client.operations.servePractice({ state: att, conceptId: "decimals", seed: "smoke-attrib" });
+    ok(aServe.ok === true, "a serve to attribute an answer against");
+    const qid = aServe.served.question.id;
+    const fresh = client.operations.answerDisposition(att, "decimals", qid);
+    ok(fresh.mode === "independent" && fresh.source === "practice" && fresh.hints === 0,
+      `training an unaided answer is independent practice (${fresh.mode}/${fresh.source}, ${fresh.hints} hints)`);
+    ok(client.operations.noteHint(att, qid) === 1,
+      "and a hint taken is counted by the operation, in the ledger the grader reads");
+    const helped = client.operations.answerDisposition(att, "decimals", qid);
+    ok(helped.mode === "guided" && helped.hints === 1,
+      `so the SAME answer is guided once help was given (${helped.mode}, ${helped.hints}) — a page cannot declare its way to independence`);
+  }
 
   // ── 7. The published TUTOR is the source's tutor ────────────────────────
   // The bundle is GENERATED from lib/, so the offline app has ONE tutor

@@ -1,6 +1,6 @@
 import type { Misconception } from "./types";
 
-// 43 misconception catalogues. Each is a *pattern of thinking*, not a topic:
+// The misconception catalogues. Each is a *pattern of thinking*, not a topic:
 // the diagnostic engine fires them from wrong-answer signatures across many
 // questions, then coaches the underlying belief rather than the symptom.
 export const MISCONCEPTIONS: Misconception[] = [
@@ -58,6 +58,27 @@ export const MISCONCEPTIONS: Misconception[] = [
   { id: "mass-balance", name: "Unbalanced equations", pattern: "Changes formulas (H₂ → H) to balance instead of adding coefficients.", coaching: "You may ONLY change the big numbers (coefficients), never the small ones (subscripts) — changing H₂O to H₂O₂ makes it a different substance! Balance by counting each element on both sides and adjusting coefficients, starting with the rarest element. Atoms are conserved; the equation must show it.", concepts: ["equations-stoich"] },
   { id: "strong-conc", name: "Strong acid = concentrated acid", pattern: "Uses 'strong' and 'concentrated' interchangeably.", coaching: "Strength = degree of ionisation (strong: every molecule releases H⁺); concentration = moles per litre (how much is dissolved). Dilute sulfuric acid is still STRONG (fully ionised) but low concentration. Two independent dials — describe both separately.", concepts: ["acids-bases"] },
 ];
+
+/**
+ * A belief's name, in the learner's language, that can never be a raw key.
+ *
+ * A sentence is composed from a fragment and a name, so a missing `mc.<id>` key
+ * does not degrade gracefully — it ships `You can do the steps, but "mc.sf-sig"
+ * keeps recurring` to the learner. That is not hypothetical: English was once
+ * missing all 53 `mc.*` names while every other dictionary had them, so the
+ * SOURCE language was the one showing keys.
+ *
+ * A translator renders an undefined key as its own name, which is detectable,
+ * and the catalogue's authored English is the right fallback for it: the belief
+ * being named is a fact about arithmetic, not prose to be localized. ONE owner,
+ * asked by the decision engine and by every surface that names a belief.
+ */
+export function beliefName(t: (key: string) => string, id: string): string {
+  const key = `mc.${id}`;
+  const v = t(key);
+  if (v !== key) return v;
+  return MISCONCEPTIONS_BY_ID[id]?.name ?? id;
+}
 
 export const MISCONCEPTIONS_BY_ID: Record<string, Misconception> = Object.fromEntries(
   MISCONCEPTIONS.map((m) => [m.id, m]),

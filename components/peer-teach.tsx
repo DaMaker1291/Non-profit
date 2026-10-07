@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { reviewExplanation } from "@/lib/peer-review";
-import { loadLocalProfileId, loadLocalProfileSecret, useI18n } from "@/lib/client";
+import { loadLocalProfileId, useI18n } from "@/lib/client";
+import { peerMark } from "@/lib/api/client";
 
 /** Peer teach (§13): "explain it in your own words" — checked offline for
  *  correctness coverage, clarity gaps and missing threads. */
@@ -33,11 +34,7 @@ export default function PeerTeach({ lesson, conceptTitle, conceptId }: { lesson:
           const id = loadLocalProfileId();
           if (id) {
             try {
-              await fetch("/api/progress", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "peer", id, conceptId, strong: v.verdict === "strong", secret: loadLocalProfileSecret() ?? "" }),
-              });
+              await peerMark(id, conceptId, v.verdict === "strong");
             } catch { /* evidence is bonus; the feedback already landed */ }
           }
         }}

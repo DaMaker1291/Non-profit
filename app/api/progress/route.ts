@@ -1,31 +1,28 @@
 import { NextResponse } from "next/server";
 import { updateProfile } from "@/lib/server/store";
 import { emptyProgress, isRetentionEvidence } from "@/lib/progress";
-import { canTransfer, serveTransfer, type Surface } from "@/lib/transfer";
-import { generateQuestion, generateQuestionNear, hasGenerator, serveView } from "@/lib/questions";
-import { answerKey, gradeChoice, gradeNumeric, parseNumericInput } from "@/lib/answer";
-import { practiceTarget, difficultyBandFor } from "@/lib/question-bank";
-import { applyTerminology, difficultyFor, specForProfile } from "@/lib/specifications";
+// ── THE SERVE'S DECISION LIVES IN lib/operations.ts, NOT HERE ──────────────
+// Which band, whether the recall is due, which draw, which served keys are
+// excluded and what gets staged: one operation, because the published static
+// build answers a serve too — with no server and no disk — and the two must not
+// be able to disagree about the same learner. This route keeps what is
+// genuinely its own: the capability, the persistence of the staging, and what
+// crosses the wire.
+import { answerDisposition, noteHint, servePractice, type ServeState } from "@/lib/operations";
+import { generateQuestion, hasGenerator, serveView } from "@/lib/questions";
+import { gradeChoice, gradeNumeric, parseNumericInput } from "@/lib/answer";
+import { difficultyBandFor } from "@/lib/question-bank";
+import { applyTerminology } from "@/lib/specifications";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { pushRecentHit, buildFlare, gradeMicroCheck } from "@/lib/microdiag";
 import { buildStarter, viewStarter, gradeConnector } from "@/lib/starter";
 import { buildHint } from "@/lib/hints";
 import { noteActivity, type SessionLedger } from "@/lib/session";
-import { isRetentionDue } from "@/lib/retention";
 import { getConcept } from "@/lib/genome";
 import { answerEvidence, deviceClaimAt, hintEvidence, submissionEventId, type EvidenceEvent } from "@/lib/evidence";
 import { appendEvidence, hasEvidence, readEvidence } from "@/lib/server/evidence";
 import { commitAndProject } from "@/lib/server/projection";
 import type { ProfileState, Question } from "@/lib/types";
-
-/** How many draws a practice serve searches for an item in the aimed band.
- *  Band-first selection (lib/questions.ts#generateQuestionNear) makes the tier
- *  decide which band the learner is served; the budget is what turns that from
- *  "usually" into "for any band the bank can produce at all". The draws are
- *  pure generator calls — microseconds — and the search is only spent in full
- *  when a band is genuinely unreachable, where no number of draws could find
- *  one and the honest nearest fallback takes over instead. */
-const PRACTICE_DRAW_ATTEMPTS = 40;
 
 /** A choice index must be a real array index: anything else is a client bug,
  *  and recording it as a "wrong answer" would corrupt learning data. */
@@ -42,32 +39,13 @@ function checkSecret(state: ProfileState, presented: unknown): void {
   if (state.secret !== presented) throw new Error("unauthorized");
 }
 
-type Session = ProfileState & {
-  practice?: Record<string, { q: Question }>;
-  /** Item keys already served for each concept this sitting, so a concept whose
-   *  generator can produce only a handful of items is not handed back to the
-   *  learner over and over. `prompt|correct answer` is the identity the serve
-   *  search uses; bounded per concept. */
-  servedPractice?: Record<string, string[]>;
+type Session = ServeState & {
   starter?: Record<string, { q: Question; s: ReturnType<typeof buildStarter> }>;
-  /** Server-staged transfer requests (§10): the serve call declares the
-   *  intent, the server remembers it. The client cannot claim transfer
-   *  credit for an ordinary practice question — attribution is the server's. */
-  transferStage?: Record<string, { questionId: string }>;
-  /** The surface each staged transfer actually used (audit P0-D): credit is
-   *  only given for a genuinely different surface, never for a same-surface
-   *  re-draw. Keyed by the transfer question's id. */
-  transferSurface?: Record<string, Surface>;
   /** Interface language: localizes served question stems (q.* keys). */
   lang?: string;
   /** Hint ledger, per served question id. Independence (hint-free proof) is
    *  a server-side fact, not a client-declared number (audit §29). */
   hintsByQ?: Record<string, number>;
-  /** Server-staged RETRIEVAL requests: a concept the scheduler (lib/retention)
-   *  had due is served as a review, and the answer that follows is recorded with
-   *  `source: "retrieval"`. Deliberately not client-declarable — a learner
-   *  cannot ask for retention credit, only earn it by recalling aged work. */
-  retrievalStage?: Record<string, { questionId: string }>;
   /** The open learning session (lib/session.ts). Activity is incremented here,
    *  where the grading actually happens, so the session's "asked/correct"
    *  counters cannot be inflated by the client. */
@@ -145,95 +123,15 @@ export async function POST(req: Request): Promise<NextResponse> {
       const upd = await updateProfile(body.id, (state) => {
         checkSecret(state, body.secret);
         const sess = (state as Session);
-        const seed = `p${Date.now()}:${conceptId}:${Math.floor(Math.random() * 1e9)}`;
-        // Difficulty follows the student's curriculum level (§9): a GCSE
-        // Foundation student and an A-Level student meet the same concept at
-        // the depth their course expects. Practice targets the tier's band from
-        // both sides (nearest draw, not "at least"), while transfer keeps its
-        // deliberate floor — it must be harder by construction.
-        const band = difficultyFor(specForProfile(state.profile));
-        // ── PRACTICE DIFFICULTY FOLLOWS THE LEARNER'S OWN RECORD ──────────
-        // The tier is the anchor; the record moves the rung. A due review and a
-        // transfer request are both deliberately exempt: a delayed-recall check
-        // must be at the concept's own level (or "remembered it" would mean
-        // "answered an easier question"), and transfer has its own floor below.
-        const due = isRetentionDue(state, conceptId);
-        const record = state.progress[conceptId];
-        const target = practiceTarget({
-          tier: band,
-          attempts: record?.attempts ?? 0,
-          correct: record?.correct ?? 0,
-          streak: record?.streak ?? 0,
-          misconceptionHits: record?.misconceptions
-            ? Object.values(record.misconceptions).reduce((s, n) => s + n, 0)
-            : 0,
+        const served = servePractice({
+          state: sess,
+          conceptId,
+          intent: isTransfer ? "transfer" : undefined,
+          lang: body.lang,
         });
-        // ── A TRANSFER SERVE HAS ONE OWNER ──────────────────────────────────
-        // Genuine transfer (audit P0-D) is a re-framing the serve can really
-        // deliver, and what counts as one — plus which draw delivers it — is
-        // decided in lib/transfer.ts#serveTransfer, not here. This route used to
-        // run its own sweep with its own attempt cap, which is one more place
-        // for the gate and the serve to disagree about the same concept.
-        const aim = isTransfer ? Math.max(0.5, band) : due ? band : target.difficulty;
-        let base: Question;
-        let surface: Surface = "direct";
-        if (isTransfer) {
-          const served = serveTransfer(conceptId, seed, aim, body.lang ?? "en");
-          if (!served) return { error: "no question" as const };
-          base = served.question;
-          surface = served.surface;
-        } else {
-          // A practice serve must not repeat a question the learner is already
-          // working through. Without this the search — which picks the draw
-          // NEAREST the target band, deterministically — returned the same item
-          // on every call for a concept whose generator has few variants: the
-          // learner answered the identical question again and again (44 concepts
-          // affected, measured). The already-served keys are excluded, and a
-          // concept that truly has nothing else still falls back to the nearest.
-          const served = sess.servedPractice?.[conceptId] ?? [];
-          const drawn = generateQuestionNear(
-            conceptId, seed, aim, PRACTICE_DRAW_ATTEMPTS, served,
-          );
-          if (!drawn) return { error: "no question" as const };
-          base = drawn;
-        }
-        const q = base;
-        // Record the served item so the NEXT serve on this concept skips it.
-        sess.servedPractice ??= {};
-        // Identity through the shared rule, so a numeric draw and its
-        // choice-form twin count as the same question spent.
-        const key = answerKey(q);
-        const list = sess.servedPractice[conceptId] ?? [];
-        // Always append, even a repeat: the list is ordered OLDEST FIRST and
-        // the serve rotates through the catalogue by that order once every
-        // item is spent, so the most-recently-served key must move to the back.
-        list.push(key);
-        // Bounded: a session's worth of practice on one concept cannot grow the
-        // stored state without limit, and after this many the learner has long
-        // since seen everything the generator makes.
-        sess.servedPractice[conceptId] = list.slice(-12);
-        sess.practice ??= {};
-        sess.practice[conceptId] = { q };
-        if (isTransfer) {
-          sess.transferStage ??= {};
-          sess.transferStage[conceptId] = { questionId: q.id };
-          if (surface !== "direct") {
-            sess.transferSurface ??= {};
-            sess.transferSurface[q.id] = surface;
-          }
-        }
-        // ── A due concept is served as a RETRIEVAL, and the SERVER decides ──
-        // Retention is only evidence when the recall was genuinely delayed, and
-        // "genuinely" is taken from this learner's own model: the concept has
-        // aged past the interval lib/retention schedules for its mastery. The
-        // client never declares this — the answer is stamped `source:
-        // "retrieval"` because the server knew it was due, which is why a
-        // request cannot award itself retention credit. A repeat within the
-        // same sitting fails the ledger's own age test in lib/progress.ts.
-        if (due) {
-          sess.retrievalStage ??= {};
-          sess.retrievalStage[conceptId] = { questionId: q.id };
-        }
+        if (!served.ok) return { error: "no question" as const };
+        const { question: q, aim, reframed, transferable } = served.served;
+        const due = aim.due;
         // Answers never leave the server before grading. The only exception is
         // an explicit test-hook request on a non-production server, which the
         // E2E suite uses to build known mastery state. In production builds
@@ -247,21 +145,19 @@ export async function POST(req: Request): Promise<NextResponse> {
           question: reveal ? q : serveView(q, body.lang, state.profile.board),
           // Did the transfer serve actually achieve a SECOND SURFACE? The
           // learner is about to be told what this stage is, and the honest
-          // answer is decided here, not by the client's intent: a concept whose
-          // questions cannot be re-framed gets a harder direct draw, which is
-          // deeper work on the same form — not transfer. Without this the page
-          // promises "the same idea in unfamiliar wording" for a question that
-          // never leaves its own wording.
-          reframed: isTransfer ? surface !== "direct" : undefined,
+          // answer is decided by the OPERATION, not by the client's intent: a
+          // concept whose questions cannot be re-framed gets a harder direct
+          // draw, which is deeper work on the same form — not transfer.
+          reframed: isTransfer ? reframed : undefined,
           // Is a SECOND SURFACE possible for this concept at all? A fact about
           // the concept, not a claim about this draw — so the page can label the
           // stage from the first question instead of promising "Transfer" until
           // the serve contradicts it. Asked of the re-framer itself.
-          transferable: canTransfer(conceptId),
+          transferable,
           target: isTransfer || due ? null : {
-            reason: target.reason,
-            band: difficultyBandFor(base.difficulty),
-            scaffold: target.scaffold,
+            reason: aim.target.reason,
+            band: difficultyBandFor(q.difficulty),
+            scaffold: aim.target.scaffold,
           },
         };
       });
@@ -365,34 +261,21 @@ export async function POST(req: Request): Promise<NextResponse> {
         }
         const ms = typeof (body as AnswerBody).ms === "number" ? Math.max(0, Math.min(3600000, (body as AnswerBody).ms as number)) : undefined;
         const langRaw = (body as AnswerBody).lang;
-        // Server-side attribution (audit P0-B/§29): mode comes from the staged
-        // serve intent, the hint count from the server's own hint ledger.
-        // Nothing the client asserts here can buy independence or transfer credit.
+        // ── ATTRIBUTION IS NOT DECIDED HERE EITHER ──────────────────────
+        // What an answer demonstrated — guided, independent or transfer, and
+        // under which source — is read from what the SERVE staged (the hint
+        // ledger, the transfer stage, the retrieval stage), never from what a
+        // client says about itself. That rule is one operation now
+        // (lib/operations.ts#answerDisposition), because the published static
+        // page grades its own answers and used to derive this from a counter in
+        // its own view: two products, two answers to "did this learner need
+        // help?" for the same answer.
         const sess = state as Session;
-        const hintCount = sess.hintsByQ?.[questionId] ?? 0;
-        const stagedTransfer = sess.transferStage?.[conceptId];
-        const isTransfer = stagedTransfer?.questionId === questionId;
-        // Was THIS question the one the scheduler served as a due review? Read
-        // from the server's own stage, so the source is a fact the server kept
-        // rather than a claim the client made.
-        const isRetrieval = sess.retrievalStage?.[conceptId]?.questionId === questionId;
-        // The surface decides whether this is genuine transfer evidence or a
-        // same-surface re-draw (audit P0-D). Only a story/inverse re-framing
-        // counts as transfer; a direct re-draw is recorded but never proves
-        // recognition of the idea in a new situation.
-        const transferSurface = sess.transferSurface?.[questionId];
-        // Honest derivation: a hinted answer is guided — it never becomes
-        // independence evidence merely because the client asked.
-        //
-        // HINTS ARE CHECKED FIRST, and that order is the whole rule. Written the
-        // other way round (`isTransfer ? "independent" : hintCount > 0 ? …`), a
-        // transfer request whose concept has no re-framed surface returned
-        // `mode: "independent"` for an answer that had taken a hint: the
-        // ledger declined to credit independence (recordAnswer checks hints
-        // itself) while the disposition the learner is SHOWN said "independent".
-        // The acceptance battery found it on the hinted-transfer case.
-        const mode: "guided" | "independent" | "transfer" =
-          hintCount > 0 ? "guided" : isTransfer && transferSurface ? "transfer" : "independent";
+        const disposition = answerDisposition(sess, conceptId, questionId);
+        const { hints: hintCount, mode, source } = disposition;
+        const isTransfer = disposition.wasTransfer;
+        const isRetrieval = disposition.wasRetrieval;
+        const transferSurface = disposition.surface;
         // One clock for this answer: the event and the model the ledger
         // projects from it carry the SAME stamp, so a replay reproduces
         // lastSeen exactly.
@@ -401,11 +284,10 @@ export async function POST(req: Request): Promise<NextResponse> {
         // rule the ingestion door uses (lib/evidence.ts#deviceClaimAt) and kept
         // on the event as a claim: the projection reads `at`, above.
         const deviceAt = deviceClaimAt((body as AnswerBody).deviceAt, at);
-        // The evidence source this answer is recorded under, named once so the
-        // event and the grade's own explanation cannot disagree about what the
-        // answer WAS.
-        const source: "retrieval" | "transfer" | "practice" =
-          isRetrieval ? "retrieval" : mode === "transfer" ? "transfer" : "practice";
+        // `source` — the name this answer is recorded under — came back from the
+        // disposition above, derived from the same staged facts that decided the
+        // mode, so the event and the grade's own explanation cannot disagree
+        // about what the answer WAS.
         // Was this answer delayed recall? Read from the model BEFORE the answer
         // moves it, through the ONE retention rule (lib/progress.ts) shared with
         // the live model and the ledger projection — so the sentence the learner
@@ -560,10 +442,12 @@ export async function POST(req: Request): Promise<NextResponse> {
         if (!q || q.id !== questionId) {
           return { error: "stale or unknown question" as const };
         }
-        // Server-side hint ledger: independence is deduced from what the
-        // server actually handed out, never from what the client reports.
-        state_.hintsByQ ??= {};
-        state_.hintsByQ[questionId] = Math.min(4, (state_.hintsByQ[questionId] ?? 0) + 1);
+        // Server-side hint ledger: independence is deduced from what the server
+        // actually handed out, never from what the client reports. The rule is
+        // the operation's (lib/operations.ts#noteHint) because the static build
+        // hands hints out too, and one of the two writing its own count is one
+        // of the two being wrong about the same learner.
+        noteHint(state_, questionId);
         // Scaffolding demand is learner-model data: record it per concept.
         // Create the entry if needed — a student who asks for help before
         // their first answer still leaves a learner-model trace.

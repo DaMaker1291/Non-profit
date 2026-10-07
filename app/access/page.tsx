@@ -7,7 +7,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAccess } from "@/components/access-provider";
-import { useI18n, useLearnLangs, useProfile, loadLocalProfileId, loadLocalProfileSecret } from "@/lib/client";
+import { useI18n, useLearnLangs, useProfile, loadLocalProfileId } from "@/lib/client";
+import * as api from "@/lib/api/client";
 import { LANGS } from "@/lib/i18n";
 import LangQuick from "@/components/lang-quick";
 import { queueLength } from "@/lib/sync-queue";
@@ -41,13 +42,15 @@ export default function AccessPage() {
   async function save() {
     const id = loadLocalProfileId();
     if (!id) return;
-    await fetch("/api/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, secret: loadLocalProfileSecret(), termsMode: terms, explainLen, resources, board, exam, learningStyle }),
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    try {
+      await api.saveProfile({ termsMode: terms, explainLen, resources, board, exam, learningStyle }, id);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      // The badge is a claim the learner can check, so a write that was refused
+      // must not earn it — and the selections stay on screen for a retry rather
+      // than being cleared as though they had been stored.
+    }
   }
 
   const Toggle = ({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) => (

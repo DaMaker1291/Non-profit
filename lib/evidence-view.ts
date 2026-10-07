@@ -15,6 +15,7 @@
 
 import { isDeviceReported, type AnswerSubmitted, type EvidenceEvent, type LearnerProjection } from "./evidence";
 import { retentionState, type RetentionState } from "./proof";
+import { ledger } from "./api/client";
 
 export interface LedgerFetch {
   events: EvidenceEvent[];
@@ -36,19 +37,24 @@ export type LedgerLoad =
   | { status: "ready"; ledger: LedgerFetch }
   | { status: "failed" };
 
-/** Read the learner's ledger, saying WHICH of the three happened. */
+/**
+ * Read the learner's ledger, saying WHICH of the three happened.
+ *
+ *  No capability parameter: this is an OPERATION (lib/api/client.ts#ledger) and
+ *  the token travels with it, so a caller cannot present the wrong one. It
+ *  could before, and the result was a page telling a learner who had answered
+ *  forty questions that they had demonstrated nothing — a refusal and an empty
+ *  record look identical from a surface's side unless the surface asks.
+ *
+ *  A refusal is still a failure here, never an empty record: the operation
+ *  throws, and only a response whose SHAPE is right becomes `ready`. Reading
+ *  `events` as `[]` is how a malformed response becomes "nothing recorded".
+ */
 export async function loadLedgerState(
   id: string,
-  secret: string,
 ): Promise<{ status: "ready"; ledger: LedgerFetch } | { status: "failed" }> {
   try {
-    const res = await fetch(`/api/evidence?id=${encodeURIComponent(id)}&secret=${encodeURIComponent(secret)}`);
-    // A refusal is a failure, not an empty record: a learner whose capability
-    // secret expired does not stop having answered questions.
-    if (!res.ok) return { status: "failed" };
-    const j = (await res.json()) as { events?: EvidenceEvent[]; projection?: LearnerProjection };
-    // A 200 whose SHAPE is wrong is a failure too. Reading `events` as `[]` here
-    // is how a malformed response becomes "you have demonstrated nothing".
+    const j: { events?: EvidenceEvent[]; projection?: LearnerProjection } = await ledger(id);
     if (!Array.isArray(j.events) || !j.projection) return { status: "failed" };
     return { status: "ready", ledger: { events: j.events, projection: j.projection } };
   } catch {
@@ -63,8 +69,8 @@ export async function loadLedgerState(
  * surface whose PURPOSE is evidence uses `loadLedgerState` and shows all three
  * outcomes instead; see the Mind pages and /progress.
  */
-export async function loadLedger(id: string, secret: string): Promise<LedgerFetch | null> {
-  const r = await loadLedgerState(id, secret);
+export async function loadLedger(id: string): Promise<LedgerFetch | null> {
+  const r = await loadLedgerState(id);
   return r.status === "ready" ? r.ledger : null;
 }
 
@@ -246,6 +252,40 @@ export function recentAnswers(events: readonly EvidenceEvent[], n = 12): AnswerS
     .filter((e): e is AnswerSubmitted => e.type === "answer_submitted")
     .sort((a, b) => b.at - a.at)
     .slice(0, n);
+}
+
+/** Has this learner actually done any work here yet?
+ *
+ *  THE DIVERGENCE THIS ENDS, MEASURED IN THE SHIPPED PRODUCTS. Two surfaces ask
+ *  this question every time Home renders, because it is the difference between
+ *  "Welcome back" and a first hello — and they were asking it about two
+ *  different facts:
+ *
+ *    docs/app.js                   recentAnswers(events, 5).length === 0
+ *    components/learner-home.tsx   Object.keys(state.progress).length === 0
+ *
+ *  Those are not the same fact, and they can disagree. `progress` keeps an
+ *  entry for every concept the projection has SEEN, and the React page says so
+ *  itself: it counts `measured` as `attempts > 0` separately from the entries it
+ *  already holds, which is only a distinction if a zero-attempt entry exists. So
+ *  the same learner, on the same record, could be greeted as a returning one on
+ *  one surface and as a new one on the other — and neither surface was wrong
+ *  about its own fact.
+ *
+ *  A rule that a learner READS belongs in the shared layer for exactly this
+ *  reason: there is then one fact to be right or wrong about. Both surfaces call
+ *  this, on the model they already hold, so neither has to load anything to
+ *  answer it and the greeting cannot depend on which request landed first.
+ *
+ *  The fact chosen is the model's own: a concept carries `attempts` only once an
+ *  answer has been folded into it. A profile is NOT work — setup creates one, and
+ *  a learner who has just finished setup has nothing to come back TO. */
+export function hasRecordedWork(
+  state: { progress?: Record<string, { attempts?: number } | undefined> } | null | undefined,
+): boolean {
+  const progress = state?.progress;
+  if (!progress) return false;
+  return Object.values(progress).some((p) => (p?.attempts ?? 0) > 0);
 }
 
 /**

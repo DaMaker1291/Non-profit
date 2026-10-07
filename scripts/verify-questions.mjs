@@ -32,7 +32,7 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "om-questions-"));
 //   specifications -> {genome, curriculum, types}, genome -> types
 //   numeric-items -> {types, numeric-items-core}, numeric-items-core -> numeric-items
 //   answer -> types
-for (const file of ["types.ts", "i18n.ts", "genome.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-senior.ts", "numeric-items.ts", "numeric-items-core.ts", "answer.ts", "questions.ts"]) {
+for (const file of ["types.ts", "i18n.ts", "genome.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-computing.ts", "questions-chemistry.ts", "questions-physics.ts", "questions-biology.ts", "questions-senior.ts", "numeric-items.ts", "numeric-items-core.ts", "answer.ts", "questions.ts"]) {
   const src = fs.readFileSync(path.join(LIB, file), "utf8");
   const js = ts.transpileModule(src, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -62,7 +62,14 @@ function add(conceptId, kind, example) {
 // digits (`13.333333333333334`), whereas an AUTHORED decimal can legitimately
 // have fewer (`0.00042`, a standard-form operand) and was a false positive at
 // 5. The `9{4,}` branch still catches the trailing-nines artifact.
-const FLOAT_NOISE = /\d\.\d{9,}|\d\.\d*9{4,}|e[+-]\d+|NaN|(?<!['"])\bundefined\b(?!['"])|Infinity/;
+// `NaN` IS MATCHED AS A TOKEN, NOT AS THREE LETTERS. The chemistry depth layer
+// renders real formulae, and NaNO₃ contains N-a-N — so the unanchored form
+// reported "float noise: NaNO₃2 | NaNO₃" on a perfectly correct item, which is
+// the checker's gap wearing the costume of a content bug (the same failure mode
+// as the SEMANTIC map read on a shape it does not know). A leaked NaN is always
+// a standalone token: it is printed by `String(NaN)` into a slot where nothing
+// else shares its word.
+const FLOAT_NOISE = /\d\.\d{9,}|\d\.\d*9{4,}|e[+-]\d+|(?<![A-Za-z])NaN(?![A-Za-z])|(?<!['"])\bundefined\b(?!['"])|Infinity/;
 
 // generateQuestion() pads colliding distractors with these. Seeing one means the
 // generator's own three distractors collided — a weak question, not a bug.

@@ -25,7 +25,36 @@
 //
 // The only dependency is `fetch` and localStorage; both are read at call time,
 // so the module is testable in Node with a fake window.
+//
+// ── AND THE `fetch` IS SWAPPABLE, WHICH IT WAS NOT ──────────────────────────
+// An answer is the one call a learner's work depends on, and it did not go
+// through the seam the rest of the product uses
+// (lib/api/transport.ts#setApiSender): this module called `fetch` itself. So a
+// build that installed its own wire — a static export with no server, an
+// offline PWA, a test with no port — would have every call answered locally
+// EXCEPT the answer, which would reach for a URL that is not there, fail, and
+// queue itself for ever. That is the worst possible place for a hole: the
+// learner's work would look recorded and never arrive.
+//
+// `setAnswerWire` is that hole closed. The transport swaps it whenever the
+// sender changes, so the two halves of the seam move together, and the queue's
+// replay goes out the same way the original attempt did — which is what makes
+// "write it offline, sync later" mean the same thing on every build.
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** How an answer leaves the device. Responds with a `Response`, so nothing
+ *  above this line has to change shape when the wire does. */
+export type AnswerWire = (url: string, init: { method: string; headers: Record<string, string>; body: string }) => Promise<Response>;
+
+const httpWire: AnswerWire = (url, init) => fetch(url, init);
+
+let wire: AnswerWire = httpWire;
+
+/** Install a different wire for answers — and for the queue's replay of them.
+ *  `null` restores HTTP. Called by the transport, not by pages. */
+export function setAnswerWire(next: AnswerWire | null): void {
+  wire = next ?? httpWire;
+}
 
 const KEY = "openmind:sync-queue";
 const REFUSED_KEY = "openmind:sync-refused";
@@ -237,7 +266,7 @@ export async function postAnswer(url: string, req: AnswerRequest): Promise<PostO
   const body = { ...req.body, submissionId: req.submissionId, deviceAt };
   let res: Response;
   try {
-    res = await fetch(url, {
+    res = await wire(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -294,7 +323,10 @@ async function runFlush(): Promise<FlushResult> {
     }
     let res: Response;
     try {
-      res = await fetch(op.url, {
+      // The SAME wire the original attempt used: a replay must go out the way
+      // the answer went out, or a build whose wire is local would replay into a
+      // server that never received the first attempt.
+      res = await wire(op.url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(op.body),

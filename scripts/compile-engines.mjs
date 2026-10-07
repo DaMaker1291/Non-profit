@@ -20,6 +20,14 @@ export const ENGINE_SOURCES = [
   "lib/skills.ts",
   "lib/questions.ts",
   "lib/questions-deep.ts",
+  // The per-SUBJECT depth layers: a subject with no depth family of its own
+  // declared an advanced difficulty it could not serve, so its families are
+  // compiled with the bank that composes them — a mirror that omitted one of
+  // these files would measure a bank the product does not run.
+  "lib/questions-computing.ts",
+  "lib/questions-chemistry.ts",
+  "lib/questions-physics.ts",
+  "lib/questions-biology.ts",
   // The numeric-item families (§6): the concepts whose questions could only
   // ever be four printed options, given an answer box. Compiled with the bank
   // because the bank composes them, so the gate asserts the coverage on the
@@ -79,12 +87,40 @@ export const ENGINE_SOURCES = [
   // JSONL store, the static build uses localStorage, and one module decides
   // the order of operations for both.
   "lib/ledger.ts",
+  // ── THE SHARED CLIENT LAYER, COMPILED WITH THE ENGINES ──────────────────
+  // Every page asks for an OPERATION (lib/api/client.ts) and never for a URL,
+  // and lib/api/transport.ts is the one module that knows how an operation
+  // travels. Compiled here because the published static build has to reach the
+  // SAME operations with no server at all — which is the whole point of the
+  // seam — and because the gate suite can then hold the seam still: installing
+  // a wire must move every call, INCLUDING the answer (lib/sync-queue.ts
+  // reached `fetch` itself until `setAnswerWire` closed that hole).
+  "lib/api/identity.ts",
+  "lib/api/transport.ts",
+  "lib/api/client.ts",
+  // ── THE SERVE, WITHOUT A TRANSPORT ──────────────────────────────────────
+  // A serve is answered in two places — the Next route handler and the
+  // published static build — and both must make the SAME educational decision:
+  // which band, whether the recall is due, which draw, which served keys are
+  // excluded, what gets staged. It used to live in the route with a copy in
+  // docs/app.js, and the copy had already drifted (the page read the concept's
+  // own subject's course, the route the profile's first one). Compiled here so
+  // the static build can reach the ONE decision, and asserted by
+  // scripts/verify-engines.mjs so neither caller can quietly re-derive it.
+  "lib/operations.ts",
   "lib/next-engine.ts",
   "lib/session.ts",
   "lib/papers.ts",
   "lib/paper-analysis.ts",
   "lib/content-i18n.ts",
   "lib/subjects.ts",
+  // Every number the product publishes about itself, derived from the code that
+  // makes it true. Compiled with the rest because the suite must hold the
+  // CLAIMS and the FACTS together: the copy in all fifteen dictionaries carries
+  // placeholders, and this module is the only thing that can fill them. While it
+  // sat outside the mirror the dictionary could say 43 about a catalogue of 53
+  // and no assertion in the repository could tell.
+  "lib/claims.ts",
   "lib/question-bank.ts",
   "lib/content-rights.ts",
   "lib/personal-paper.ts",

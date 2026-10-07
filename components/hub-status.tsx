@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/client";
+import { hubStatus } from "@/lib/api/client";
 
 /** Hub status card (§5): one school computer serving a room over local Wi-Fi.
  *  Counts only — no learner data leaves the hub. */
@@ -9,7 +10,7 @@ export default function HubStatus() {
   const { t } = useI18n();
   const [s, setS] = useState<{ learners: number; rooms: number; classes: number } | null>(null);
   useEffect(() => {
-    fetch("/api/hub-status").then((r) => r.json()).then((j) => setS(j)).catch(() => {});
+    hubStatus().then((j) => setS(j)).catch(() => {});
   }, []);
   if (!s) return null;
   return (

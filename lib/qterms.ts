@@ -32,8 +32,16 @@ export function stemKeyOf(prompt: string): { key: string; len: number } | null {
 export function localizeStem(prompt: string, lang: string): string {
   const hit = stemKeyOf(prompt);
   if (!hit) return prompt;
+  // `hit.len` is the length of the stem INCLUDING the space that separated it
+  // from the body (`/^Solve /`), and the dictionary holds the verb alone
+  // ("Resuelve", "احسب", "计算"). Joining them without re-inserting that
+  // separator glued the two together on every localized question — the first
+  // line a learner reads looked like "Resuelvey = x² and y = 3x − 2",
+  // "احسب79 + 43", "计算12 × 8" — measured on 18 of the 135 concepts in every
+  // non-English language. The space is the one character the match consumed, so
+  // the join has to put it back.
   const rest = prompt.slice(hit.len);
-  return `${translator(lang)(hit.key)}${rest}`;
+  return `${translator(lang)(hit.key)} ${rest}`;
 }
 
 // ── Genuine transfer (audit P0-D) ───────────────────────────────────────────

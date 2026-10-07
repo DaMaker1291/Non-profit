@@ -46,8 +46,21 @@ export type Surface = "direct" | "story" | "inverse";
  * the target's — so a concept with a narrow range can take a few draws to find
  * them. Bounded so a concept with no second surface costs a handful of draws,
  * not a loop, and exported so the behaviour can be asserted.
+ *
+ * RAISED FROM 6 TO 12 BY MEASUREMENT, when the per-subject depth layers landed
+ * (lib/questions-{computing,chemistry,physics,biology}.ts). Those layers added
+ * TABLE items — a results table, a set of recorded forces, a Punnett square —
+ * and `readableOption` above excludes any prompt carrying a newline from an
+ * option list, which is right: four three-line tables as choices is a wall of
+ * text, not a question. The effect was that a share of the draws at each band
+ * can no longer BECOME an option, and at 6 attempts the serve ran out of draws
+ * before it found its three - the suite measured 99 inverse items where it had
+ * insisted on more than 100, i.e. transfer coverage really did shrink. The
+ * answer is to look further, not to loosen the rule: the exclusion is what keeps
+ * "exactly one option is correct" true, and a deeper bank legitimately needs a
+ * few more draws to put the same idea on a second surface.
  */
-export const TRANSFER_SURFACE_ATTEMPTS = 6;
+export const TRANSFER_SURFACE_ATTEMPTS = 12;
 
 /** Draws the inverse may look at while collecting its three distractors. */
 export const INVERSE_DISTRACTOR_ATTEMPTS = 24;

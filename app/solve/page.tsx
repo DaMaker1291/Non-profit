@@ -10,7 +10,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useI18n, loadLocalProfileId, useLearnLangs, loadLocalProfileSecret, withCapability } from "@/lib/client";
+import { useI18n, loadLocalProfileId, useLearnLangs } from "@/lib/client";
+import { ApiError, matchText, pathFor, progressFor, tutorTurn } from "@/lib/api/client";
 import { ctitle, cblurb } from "@/lib/content-i18n";
 import { getConcept } from "@/lib/genome";
 import { anonServe, anonServeTransfer, anonAnswer } from "@/lib/anon-practice";
@@ -63,19 +64,17 @@ export default function SolvePage() {
         // their weakest *reported* concept first. Unseen concepts default to
         // 0.2 mastery in the path engine, so the raw path would point a
         // student with history at stage-0 concepts they've long outgrown.
-        const res = await fetch(`/api/progress?id=${encodeURIComponent(id)}&subject=${encodeURIComponent(subject)}&secret=${encodeURIComponent(loadLocalProfileSecret() ?? "")}`);
-        if (res.ok) {
-          const j = await res.json();
-          const weak = (Object.entries(j?.progress ?? {}) as Array<[string, { mastery?: number }]>)
+        try {
+          const j = await progressFor(id, subject);
+          const weak = (Object.entries(j.progress ?? {}) as Array<[string, { mastery?: number }]>)
             .filter(([cid, p]) => cid !== conceptId && (p.mastery ?? 0) < 0.65 && getConcept(cid)?.subject === subject)
             .sort((a, b) => (a[1].mastery ?? 0) - (b[1].mastery ?? 0))[0];
           if (weak) { if (!cancelled) setNextId(weak[0]); return; }
-        }
+        } catch { /* a progress read we could not make falls through to the path */ }
         // Fallback for a brand-new student: the path engine's foundations-first pick.
-        const pr = await fetch(withCapability(`/api/path?subject=${encodeURIComponent(subject)}&id=${encodeURIComponent(id)}`));
-        if (!pr.ok || cancelled) return;
-        const j = await pr.json();
-        const first = j?.path?.find((s: { conceptId: string }) => s.conceptId && s.conceptId !== conceptId);
+        const pr = await pathFor(id, subject);
+        if (cancelled) return;
+        const first = pr.path?.find((s) => s.conceptId && s.conceptId !== conceptId);
         if (first) setNextId(first.conceptId);
       } catch { /* the suggestion is a bonus layer; never block the moment */ }
     })();
@@ -87,16 +86,16 @@ export default function SolvePage() {
     setBusy(true);
     setErr("");
     try {
-      const res = await fetch("/api/match", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      const j = await res.json();
-      if (!res.ok) { setErr(j.error ?? `HTTP ${res.status}`); return; }
+      let j: Awaited<ReturnType<typeof matchText>>;
+      try {
+        j = await matchText(text);
+      } catch (e) {
+        setErr(e instanceof ApiError ? (e.code || `HTTP ${e.status}`) : `HTTP ?`);
+        return;
+      }
       if (j.match) {
         setConceptId(j.match.conceptId);
-        setAltIds(j.alternatives ?? []);
+        setAltIds(j.alternatives.map((a) => a.conceptId));
         setUnsure(!j.match.confident);
       } else {
         setConceptId(null);
@@ -115,13 +114,12 @@ export default function SolvePage() {
     if (!conceptId) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/tutor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conceptId, message: text.slice(0, 400), language: teachLang }),
-      });
-      const j = await res.json();
-      if (res.ok) setHint(j.reply ?? null);
+      try {
+        // No id: this is the anonymous wedge, so the reply is concept-grounded
+        // rather than grounded in a record the visitor may not have yet.
+        const j = await tutorTurn({ conceptId, message: text.slice(0, 400), language: teachLang });
+        setHint(j.reply ?? null);
+      } catch { /* the hint is a bonus layer; never block the moment */ }
     } finally {
       setBusy(false);
     }

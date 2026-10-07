@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/client";
+import { matchText } from "@/lib/api/client";
 import VoiceInput from "@/components/voice-input";
 
 /** Calm companion entry (§home): one huge ask box, photo-of-question entry,
@@ -40,12 +41,7 @@ export default function AskHero() {
             setGuessing(true);
             setGuess(null);
             try {
-              const res = await fetch("/api/match", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text }),
-              });
-              const j = await res.json();
+              const j = await matchText(text);
               if (j.match?.conceptId) {
                 const { getConcept } = await import("@/lib/genome");
                 const c = getConcept(j.match.conceptId);

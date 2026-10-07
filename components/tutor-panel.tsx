@@ -20,7 +20,8 @@
 // where there was a lookup is lying to a thirteen-year-old (§11).
 // ─────────────────────────────────────────────────────────────────────────────
 import { useEffect, useRef, useState } from "react";
-import { loadLocalProfileId, loadLocalProfileSecret, useI18n } from "@/lib/client";
+import { loadLocalProfileId, useI18n } from "@/lib/client";
+import { tutorTurn } from "@/lib/api/client";
 import { fill } from "@/lib/i18n";
 import { ctitle } from "@/lib/content-i18n";
 import { disclosureKey } from "@/lib/tutor-context";
@@ -74,29 +75,21 @@ export default function TutorPanel({
     setText("");
     setTurns((prev) => [...prev, { role: "you", text: body }]);
     try {
-      // The learner's capability rides along so the turn can be grounded in
-      // their own projection. The question in front of them rides along as
-      // CONTEXT, never as an instruction.
-      const id = loadLocalProfileId();
-      const secret = id ? loadLocalProfileSecret() : null;
-      const res = await fetch("/api/tutor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conceptId,
-          message: body,
-          // The question on screen travels as its OWN field, not glued onto the
-          // learner's sentence: a tutor that reads "what is the capital of
-          // France? [question: 3/4 + 2/5]" cannot tell what the learner said
-          // from what the page said.
-          question: questionText ? questionText.slice(0, 300) : undefined,
-          language: lang,
-          id,
-          secret,
-        }),
+      // The turn is grounded in the learner's OWN projection, which is why the
+      // id travels with it — the operation attaches the capability, so this
+      // panel never handles the token. The question in front of the learner
+      // rides along as CONTEXT, never as an instruction.
+      const payload = await tutorTurn({
+        conceptId,
+        message: body,
+        // The question on screen travels as its OWN field, not glued onto the
+        // learner's sentence: a tutor that reads "what is the capital of
+        // France? [question: 3/4 + 2/5]" cannot tell what the learner said
+        // from what the page said.
+        question: questionText ? questionText.slice(0, 300) : undefined,
+        language: lang,
+        id: loadLocalProfileId(),
       });
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload?.error ?? `HTTP ${res.status}`);
       setTurns((prev) => [...prev, {
         role: "tutor",
         text: payload.reply ?? "…",

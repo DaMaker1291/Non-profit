@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ctitle, mcName } from "@/lib/content-i18n";
 import { boardName } from "@/lib/curriculum";
-import { ensureProfileSecret, loadLocalProfileId, useI18n } from "@/lib/client";
+import { loadLocalProfileId, loadLocalProfileSecret, useI18n } from "@/lib/client";
+import * as api from "@/lib/api/client";
 import { fill } from "@/lib/i18n";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import PaperAnalysisPanel, { type PaperAnalysisShape } from "@/components/paper-analysis";
@@ -104,39 +105,38 @@ export default function PapersPage() {
     [profile],
   );
 
-  /** The learner's own profile + secret — papers are recorded as independent
-   *  evidence, so the sitting has to be attributable to a real learner. */
-  const authQuery = useCallback((): string => {
+  /** Who the paper is FOR. Papers are recorded as independent evidence, so the
+   *  sitting has to be attributable to a real learner — but only the IDENTIFIER
+   *  is named here: the capability is not the page's to build, and the operation
+   *  attaches it (lib/api/transport.ts).
+   *
+   *  The language belongs in every paper request, including the list: a
+   *  specification-built paper is NAMED in the learner's language, and the list
+   *  is where that name is first read. */
+  const authQuery = useCallback((): { id?: string; lang: string } => {
     const id = loadLocalProfileId();
-    const secret = typeof window === "undefined" ? "" : (window.localStorage.getItem("openmind:profileSecret") ?? ensureProfileSecret());
-    const q = new URLSearchParams();
-    if (id) q.set("id", id);
-    if (secret) q.set("secret", secret);
-    // The language belongs in every paper request, including the list: a
-    // specification-built paper is NAMED in the learner's language, and the
-    // list is where that name is first read.
-    if (lang) q.set("lang", lang);
-    return q.toString();
+    return { ...(id ? { id } : {}), lang };
   }, [lang]);
 
   useEffect(() => {
-    const q = authQuery();
-    fetch(`/api/paper?list=1${q ? `&${q}` : ""}`)
-      .then((r) => r.json())
-      .then((d: { papers?: PaperListEntry[]; qualification?: string; level?: string; ai?: AiStatusShape }) => {
+    api.paperList(authQuery())
+      .then((d) => {
         setList(d.papers ?? []);
         setQualification(d.qualification ?? "");
         setLevel(d.level ?? "");
-        if (d.ai) setAi(d.ai);
+        if (d.ai) setAi(d.ai as AiStatusShape);
       })
       .catch(() => setErr(t("common.error")));
 
     const id = loadLocalProfileId();
     if (id) {
-      const secret = window.localStorage.getItem("openmind:profileSecret") ?? ensureProfileSecret();
-      fetch(`/api/profile?id=${encodeURIComponent(id)}&secret=${encodeURIComponent(secret)}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((s) => s && setProfile(s as ProfileState))
+      // A device that predates capability secrets has an id but no token; this
+      // read BINDS one to it. That is the only place a read still mints by
+      // hand, and it is why it happens before the operation rather than inside
+      // it — see the policy note on lib/api/transport.ts#LEARNER_DOORS.
+      loadLocalProfileSecret();
+      api.readProfile(id)
+        .then((s) => setProfile(s as ProfileState))
         .catch(() => undefined);
     }
   }, [authQuery, t]);
@@ -153,15 +153,13 @@ export default function PapersPage() {
     setErr("");
     setResult(null);
     try {
-      const q = new URLSearchParams(authQuery());
-      q.set("templateId", templateId);
-      q.set("subject", subject);
-      q.set("lang", lang);
-      q.set("seed", `${Date.now().toString(36)}`);
-      if (withAi && ai.enabled) q.set("ai", "1");
-      const res = await fetch(`/api/paper?${q.toString()}`);
-      if (!res.ok) throw new Error("paper_failed");
-      const data = (await res.json()) as { paper: Paper; source: string; aiQuestions: number; engineQuestions: number };
+      const data = await api.paperFor({
+        ...authQuery(),
+        templateId,
+        subject,
+        seed: `${Date.now().toString(36)}`,
+        ...(withAi && ai.enabled ? { ai: 1 } : {}),
+      });
       setPaper(data.paper);
       setSource({ source: data.source, aiQuestions: data.aiQuestions, engineQuestions: data.engineQuestions });
       setAnswers({});
@@ -191,24 +189,14 @@ export default function PapersPage() {
     setBusy(true);
     setErr("");
     try {
-      const body: Record<string, unknown> = { paperId: paper.id, answers, lang };
+      // With an id, the marking is RECORDED as evidence; without one, the paper
+      // is still marked and nothing is stored. The learner id is named here
+      // because only the page knows whether there is a learner; the capability
+      // travels with the operation.
       const id = loadLocalProfileId();
-      if (id) body.id = id;
-      const secret = window.localStorage.getItem("openmind:profileSecret") ?? ensureProfileSecret();
-      if (secret) body.secret = secret;
-      const res = await fetch("/api/paper", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error("mark_failed");
-      const data = (await res.json()) as {
-        result: MarkResult;
-        analysis?: PaperAnalysisShape;
-        conceptsTested: Array<{ id: string; title: string; subject: string }>;
-      };
+      const data = await api.markPaper({ paperId: paper.id, answers, lang, ...(id ? { id } : {}) });
       setResult(data.result);
-      setAnalysis(data.analysis ?? null);
+      setAnalysis((data.analysis as PaperAnalysisShape | null) ?? null);
       setConceptsTested(data.conceptsTested ?? []);
     } catch {
       setErr(t("common.error"));

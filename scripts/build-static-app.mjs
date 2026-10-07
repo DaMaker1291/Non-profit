@@ -53,6 +53,29 @@ const ENTRY = {
   subjects: "subjects",
   evidence: "evidence",
   replay: "replay",
+  // ── THE ONE CLIENT LAYER, IN THE PAGE AS WELL AS THE SERVER ─────────────
+  // Every surface asks for an OPERATION (lib/api/client.ts) and never for a
+  // URL; lib/api/transport.ts is where an operation becomes a wire, and
+  // `setApiSender` is the seam. Until this entry existed the published page
+  // could not reach either: it called the engines directly with its own view of
+  // what an operation was, which is how two products grew from one engine. The
+  // page can now install a wire and use the SAME operations the React app
+  // does — including answers, which go through the queue.
+  api: "api/client",
+  // …AND THE SEAM ITSELF, WHICH IS NOT AN OPERATION. The wire is transport's
+  // business, so it is exposed under its own name: a build installs a wire
+  // (`setApiSender`) and then asks for operations. Kept separate so nobody has
+  // to pretend that "replace the network" is something a page does.
+  apiTransport: "api/transport",
+  // ── HOW A SERVE IS DECIDED, ONCE ────────────────────────────────────────
+  // The published page answers serves itself (there is no server on GitHub
+  // Pages), and it used to hold its own copy of that decision — the tier, the
+  // due check, the draw, the served-key ledger — beside app/api/progress's.
+  // The copy had drifted: the page read the tier from the concept's own
+  // subject while the route read the profile's FIRST subject, so a learner
+  // sitting two courses got a different depth depending on which product
+  // answered them. The decision is compiled in now, and the page calls it.
+  operations: "operations",
   ledger: "ledger",
   learnerProfile: "learner-profile",
   decision: "decision",
@@ -68,6 +91,10 @@ const ENTRY = {
   answer: "answer",
   i18n: "i18n",
   contentI18n: "content-i18n",
+  // The published numbers' one source of truth, so the static build fills
+  // "{languages} languages" from the same catalogue the server does rather than
+  // from a literal that a dictionary author typed.
+  claims: "claims",
   deadline: "deadline",
   hints: "hints",
   socratic: "socratic",
@@ -339,19 +366,19 @@ const SHELL_FILES = ["index.html"];
  * re-read to discover the new names, so the worker serves it network-first and
  * falls back to the cache only when there is no network.
  *
- * THE STYLESHEET WAS THE HOLE, AND IT WAS OBSERVED, NOT FEARED. The paragraphs
- * above were written for the engine and the app script; `app.css` kept a fixed
- * URL AND stayed on the worker's cache-first list, which is the one combination
- * this fix is supposed to make impossible. Measured on the published site
- * minutes after a deploy that changed only styles: the first visit rendered the
- * PREVIOUS stylesheet — the head read `--accent: #82a5ff` and `--serif:
- * ui-serif, "Iowan Old Style", Georgia, "Times New Roman", serif`, two values
- * that exist nowhere in the file being served — and a reload applied the new
- * one. A returning learner therefore meets the old design on the visit that
- * matters (the first one), while this comment claimed otherwise. `app.css` is
- * content-hashed below for the same reason the other two are: a new build's
- * stylesheet must be a URL no cache has ever held. The unhashed `app.css` stays
- * on disk as the SOURCE.
+ * THE STYLESHEET WAS THE HOLE, AND IT WAS OBSERVED, NOT FEARED. The first two
+ * paragraphs above were written for the engine and the app script; `app.css`
+ * kept a fixed URL AND stayed on the worker's cache-first list, which is the
+ * one combination the fix is supposed to make impossible. Measured on the
+ * published site minutes after a deploy that changed only styles: the first
+ * visit rendered the PREVIOUS stylesheet — the head read
+ * `--accent: #82a5ff` / `--serif: ui-serif, "Iowan Old Style", Georgia,
+ * "Times New Roman", serif`, two values that exist nowhere in the file being
+ * served — and a reload applied the new one. A returning learner therefore
+ * meets the old design on the visit that matters (the first one), and the
+ * fix's own comment claimed otherwise. `app.css` is content-hashed below for
+ * the same reason the other two are: a new build's stylesheet must be a URL
+ * no cache has ever held. The unhashed `app.css` stays on disk as the SOURCE.
  */
 const HASHED = { engine: null, app: null, css: null };
 

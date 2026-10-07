@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { loadLocalProfileId, useI18n, withCapability } from "@/lib/client";
+import { loadLocalProfileId, useI18n } from "@/lib/client";
+import { myPack } from "@/lib/api/client";
 
 /** Download-my-learning-pack (§4): lessons + progress + review queue as one
  *  JSON file. Works with the printable class pack: personal + class cover
@@ -20,9 +21,7 @@ export default function DownloadPack() {
           if (!id) return;
           setBusy(true);
           try {
-            const res = await fetch(withCapability(`/api/my-pack?id=${encodeURIComponent(id)}`));
-            if (!res.ok) return;
-            const j = await res.json();
+            const j = await myPack(id);
             const blob = new Blob([JSON.stringify(j)], { type: "application/json" });
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);

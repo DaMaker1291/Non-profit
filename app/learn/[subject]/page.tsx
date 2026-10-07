@@ -34,7 +34,9 @@ import { use } from "react";
 import { useI18n, useProfile } from "@/lib/client";
 import { bySubject } from "@/lib/genome";
 import { ctitle, cblurb } from "@/lib/content-i18n";
-import { proofLabelKey, strongestProof } from "@/lib/proof";
+import { proofLabelKey } from "@/lib/proof";
+import { conceptStanding, demonstratedLabelKey } from "@/lib/learner-model";
+import { decideOne, decisionContextFrom } from "@/lib/decision";
 import { coverageOf, courseGaps, specForProfile } from "@/lib/specifications";
 import { dimensionFor } from "@/lib/evidence-view";
 import { bandKey } from "@/components/dims";
@@ -78,46 +80,76 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
   const inIds = inCourse ? new Set(inCourse.map((c) => c.id)) : null;
   const outside = inIds ? all.filter((c) => !inIds.has(c.id)) : [];
 
-  /** The right-hand side of a row: what this learner's record already supports.
-   *  Returns [] for an untouched concept, which is the point — an empty cell
-   *  claims nothing. */
-  const stateChips = (id: string) => {
-    const pr = state?.progress[id];
-    const asked = askedOf(id);
-    if (!pr || asked === 0) return [];
-    // The chip is banded by the SAME rule every other surface uses, so this
-    // row's word and a concept page's word can never disagree about one rate.
-    const recalled = dimensionFor("recalled", t("evv.dim.recalled"), { asked, correct: correctOf(id) });
-    const chips: { label: string; strong: boolean }[] = [
-      { label: t("evv.dim.recalled"), strong: recalled.band === "strong" },
-    ];
-    // The strongest thing the record PROVED, in the same four words the mark's
-    // own sentence uses (lib/proof) — so "Independent" on this list and
-    // "Independent" under a question mean the same claim.
-    const proved = strongestProof({
-      correct: pr.correct,
-      independentCorrect: pr.independent?.correct ?? 0,
-      transferCorrect: pr.transfer?.correct ?? 0,
-      retentionCorrect: pr.retention?.correct ?? 0,
-    });
-    if (proved) chips.push({ label: t(proofLabelKey(proved)), strong: proved !== "supported" });
-    return chips;
-  };
+  // WHICH IDEA "YOU ARE HERE" IS — not the first row, and not a guess. It is the
+  // concept the ONE decision door points at, so this list and the card on Home
+  // cannot name two different next actions. The ledger is not loaded on this
+  // screen, so the decision's BASIS is `unknown`; the CHOICE of work never
+  // depends on it (lib/decision#decisionContextFrom).
+  const currentId = state
+    ? decideOne(decisionContextFrom(state, null), { tt: t, title: (id) => ctitle(lang, id) })?.conceptId ?? null
+    : null;
 
+  /** One row of the syllabus. EVERY fact in it comes from
+   *  lib/learner-model#conceptStanding — the same function the published static
+   *  page asks. This row used to band a concept with its own accuracy ratio
+   *  while the static list used the shared proof vocabulary, so one learner's
+   *  record produced two different words for one idea depending on the product.
+   *
+   *  The marker is the ONE glyph a list can afford: ✓ finished (as the ENGINE
+   *  means it), ◐ underway, ○ nothing measured. An unmeasured concept is ○, and
+   *  says "not yet measured" — never "0%" and never "weak": a prior is not a
+   *  measurement. */
   const row = (c: (typeof all)[number]) => {
-    const chips = stateChips(c.id);
+    const s = state ? conceptStanding(state, c.id) : null;
     const pr = state?.progress[c.id];
+    const mark = s?.mark === "done" ? "✓" : s?.mark === "underway" ? "◐" : "○";
+    const here = !!s && currentId === c.id;
     return (
       <Link key={c.id} href={`/learn/${subject}/${c.id}`} className="concept-row">
         <span className="grow">
-          <b>{ctitle(lang, c.id)}</b>
-          {chips.length === 0 && <span className="blurb">{cblurb(lang, c.id)}</span>}
+          <b>
+            <span className="mark" aria-hidden="true" style={{ fontFamily: "var(--mono)", marginInlineEnd: 6 }}>{mark}</span>
+            {ctitle(lang, c.id)}
+          </b>
+          {!s?.proved && !here && <span className="blurb">{cblurb(lang, c.id)}</span>}
+          {here && s && (
+            <span className="standing" style={{ display: "block", marginTop: 4 }}>
+              {/* What you know → what is uncertain → prerequisite. The first
+                  rung not yet earned carries the CURRENT marker, which is what
+                  makes it the next action rather than a fourth sentence
+                  repeating the third. */}
+              {s.demonstrated.length > 0 && (
+                <span style={{ display: "block" }} className="small">
+                  <span className="muted">{t("next.haveDemonstrated")}</span>{" "}
+                  {s.demonstrated.map((d) => (
+                    <span key={d} className="chip good" style={{ marginInlineStart: 6 }}>✓ {t(demonstratedLabelKey(d))}</span>
+                  ))}
+                </span>
+              )}
+              {s.pending.length > 0 && (
+                <span style={{ display: "block", marginTop: 4 }} className="small">
+                  <span className="muted">{t("next.notYetDemonstrated")}</span>{" "}
+                  {s.pending.map((d, i) => (
+                    <span key={d} className={`chip${i === 0 ? " on" : ""}`} style={{ marginInlineStart: 6 }}>
+                      △ {t(demonstratedLabelKey(d))}
+                    </span>
+                  ))}
+                </span>
+              )}
+              {s.blockedBy.length > 0 && (
+                <span style={{ display: "block", marginTop: 4 }} className="small muted">
+                  {t("common.prereqs")} {s.blockedBy.map((id) => ctitle(lang, id)).join(" · ")} — {t("path.prerequisite")}
+                </span>
+              )}
+            </span>
+          )}
         </span>
         <span className="state">
-          {chips.map((ch) => (
-            <span key={ch.label} className={`chip ${ch.strong ? "good" : ""}`}>{ch.label}</span>
-          ))}
-          {chips.length > 0 && pr && (
+          {s?.proved && (
+            <span className={`chip ${s.proved !== "supported" ? "good" : ""}`}>{t(proofLabelKey(s.proved))}</span>
+          )}
+          {s?.unmeasured && <span className="chip">{t("evv.unmeasured")}</span>}
+          {pr && pr.attempts > 0 && (
             <span className="mono small muted">{pr.correct}/{pr.attempts}</span>
           )}
         </span>

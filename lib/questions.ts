@@ -8,6 +8,18 @@ import { localizeStem } from "./qterms";
 import { skillForDifficulty } from "./skills";
 import { applyTerminology } from "./specifications";
 import { DEEP_GENS, DATA_DEEP, fourDistinct, type DeepGen } from "./questions-deep";
+// The per-SUBJECT depth layers live in their own modules because each is a set
+// of whole families whose answers are COMPUTED (a trace simulated, a Punnett
+// square enumerated, a subnet sized) rather than worked out by hand — and
+// because a subject that has no depth layer at all is a reviewable fact, not a
+// scattering of edits through a 5,500-line file. Every one of these exists for
+// the same measured reason: `npm run gate:ceiling` found that subject's advanced
+// courses declaring a depth it could not serve (computing 0.58, chemistry and
+// biology 0.75, physics 0.78 against declarations of 0.70 to 0.90).
+import { COMPUTING_DEEP } from "./questions-computing";
+import { CHEMISTRY_DEEP } from "./questions-chemistry";
+import { PHYSICS_DEEP } from "./questions-physics";
+import { BIOLOGY_DEEP } from "./questions-biology";
 import { SENIOR_GENS } from "./questions-senior";
 // The numeric layer (§6): the concepts whose questions could only ever be four
 // printed options, given an answer box. Composed like the deep and senior
@@ -2413,6 +2425,25 @@ const DATA_DEEP_PRIMARY = new Set([
   "order-ops", "rounding", "negatives",
 ]);
 
+/**
+ * THE PER-SUBJECT DEPTH LAYERS, IN THE ORDER THEY ARE COMPOSED.
+ *
+ * Each is an ADDITIONAL `withDepth` draw rather than keys in `DEEP_GENS`, for
+ * the reason recorded at the composition site below: a family added to that
+ * literal by spread is silently overridden by the literal's own same-named key,
+ * and most of these concepts already own a deep family that has to be KEPT.
+ *
+ * Exported so the content sweep in `npm run verify` and the ceiling gate read
+ * ONE list: a subject that gains a layer is measured by adding an entry here,
+ * and a layer that nobody measured is not something this file can express.
+ */
+const SUBJECT_DEEP: Record<string, Record<string, DeepGen>> = {
+  computing: COMPUTING_DEEP,
+  chemistry: CHEMISTRY_DEEP,
+  physics: PHYSICS_DEEP,
+  biology: BIOLOGY_DEEP,
+};
+
 const ALL_GENS: Record<string, RawGen> = Object.fromEntries(
   Object.entries(BASE_GENS).map(([id, base]) => {
     let gen = base;
@@ -2440,6 +2471,22 @@ const ALL_GENS: Record<string, RawGen> = Object.fromEntries(
     // silently replaced those families (the literal's own key wins over a
     // spread). Raising a concept's ceiling cannot strand anyone at a lower band.
     if (DATA_DEEP[id] && !DATA_DEEP_PRIMARY.has(id)) gen = withDepth(gen, DATA_DEEP[id]);
+    // THE PER-SUBJECT DEPTH LAYERS — the same remedy as the data layer above,
+    // for the four subjects the remedy had never been applied to. Each was
+    // measured by `npm run gate:ceiling` as declaring an advanced depth it could
+    // not serve, and the cause was the same every time: the ceiling of the
+    // subject, not the sampling.
+    //
+    // Composed as an ADDITIONAL draw and NOT as keys in `DEEP_GENS`, for the
+    // reason recorded above: a family added to that literal by spread is
+    // silently overridden by the literal's own same-named key, and most of these
+    // concepts already own a deep family that must be KEPT, not replaced.
+    // Nesting this OUTSIDE the existing chain means the whole chain underneath
+    // still runs on the other side of the coin, while the deeper band becomes
+    // reachable in half the draws rather than a fraction of them.
+    for (const layer of Object.values(SUBJECT_DEEP)) {
+      if (layer[id]) gen = withDepth(gen, layer[id]);
+    }
     return [id, gen];
   }),
 );
@@ -2486,6 +2533,14 @@ export const SENIOR_CONCEPT_IDS: string[] = Object.keys(SENIOR_GENS).filter((id)
 /** Concepts whose practice range now reaches the deep bands — exported so a
  *  test can assert the depth is where it claims to be, per concept. */
 export const DEPTH_CONCEPT_IDS: string[] = Object.keys(DEEP_GENS).filter((id) => id in BASE_GENS);
+
+/** Concepts carrying a per-subject depth layer, by subject — exported for the
+ *  same reason as the senior and depth lists: the gate and `npm run verify` must
+ *  be able to assert that the families are WIRED (a composed family that never
+ *  runs measures as absent), not merely that they are written. */
+export const SUBJECT_DEPTH_IDS: Record<string, string[]> = Object.fromEntries(
+  Object.entries(SUBJECT_DEEP).map(([subject, layer]) => [subject, Object.keys(layer).filter((id) => id in BASE_GENS)]),
+);
 
 /**
  * Generator classes:

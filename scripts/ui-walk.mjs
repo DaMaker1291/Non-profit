@@ -31,14 +31,17 @@
 //
 // Run with the dev server up:   npm run verify:ui
 // Optional env: UI_WALK_BASE (default http://127.0.0.1:4173), CHROME_BIN.
+//
+// THE BROWSER ITSELF IS NOT THIS FILE'S BUSINESS. Chrome, the CDP client and
+// the element addresser live in scripts/browser.mjs, because the published
+// static build needs the same three things (scripts/static-page-walk.mjs) and
+// two copies of a browser harness is two chances to drive a subtly different
+// browser. What stays here is what only this walk knows: the Next application's
+// wizard, its field labels, its selects and its Next button.
 // ─────────────────────────────────────────────────────────────────────────────
-import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import { pageFor, launchChrome, sleep } from "./browser.mjs";
 
 const BASE = process.env.UI_WALK_BASE ?? "http://127.0.0.1:4173";
-const CHROME = process.env.CHROME_BIN ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PORT = 9333 + Math.floor(Math.random() * 400);
 
 let passed = 0;
@@ -47,152 +50,9 @@ const check = (cond, msg) => {
   if (cond) { passed++; console.log(`   ✓ ${msg}`); }
   else { failed++; console.log(`   ✗ FAIL: ${msg}`); }
 };
-const section = (name) => console.log(`\n▸ ${name}`);
-
-// ── A minimal CDP client ────────────────────────────────────────────────────
-function client(ws) {
-  let seq = 0;
-  const pending = new Map();
-  ws.addEventListener("message", (ev) => {
-    const m = JSON.parse(ev.data);
-    if (!m.id || !pending.has(m.id)) return;
-    const { resolve, reject } = pending.get(m.id);
-    pending.delete(m.id);
-    if (m.error) reject(new Error(`${m.error.message ?? "cdp error"}`));
-    else resolve(m.result);
-  });
-  return (method, params = {}) =>
-    new Promise((resolve, reject) => {
-      const id = ++seq;
-      pending.set(id, { resolve, reject });
-      ws.send(JSON.stringify({ id, method, params }));
-    });
-}
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function launch() {
-  const dir = mkdtempSync(path.join(tmpdir(), "openmind-uiwalk-"));
-  let stderr = "";
-  const proc = spawn(CHROME, [
-    "--headless=new",
-    `--remote-debugging-port=${PORT}`,
-    `--user-data-dir=${dir}`,
-    "--no-first-run", "--no-default-browser-check", "--disable-gpu",
-    "--disable-dev-shm-usage", "--no-sandbox", "--window-size=1280,900",
-    "about:blank",
-  ], { stdio: ["ignore", "ignore", "pipe"] });
-  proc.stderr.on("data", (d) => { stderr += d.toString(); });
-
-  const deadline = Date.now() + 20000;
-  let target = null;
-  while (Date.now() < deadline) {
-    try {
-      const list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json();
-      target = list.find((t) => t.type === "page" && t.webSocketDebuggerUrl);
-      if (target) break;
-    } catch { /* not up yet */ }
-    await sleep(250);
-  }
-  if (!target) {
-    proc.kill("SIGKILL");
-    throw new Error(`Chrome did not expose a page target on :${PORT}.\n${stderr.slice(-600)}`);
-  }
-  const ws = new WebSocket(target.webSocketDebuggerUrl);
-  await new Promise((resolve, reject) => {
-    ws.addEventListener("open", resolve, { once: true });
-    ws.addEventListener("error", () => reject(new Error("could not open the CDP socket")), { once: true });
-  });
-  const send = client(ws);
-  await send("Page.enable");
-  await send("Runtime.enable");
-  const close = async () => {
-    try { await send("Browser.close"); } catch { /* already gone */ }
-    try { ws.close(); } catch { /* already closed */ }
-    proc.kill("SIGKILL");
-    try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
-  };
-  return { send, close };
-}
-
-// ── Page helpers ────────────────────────────────────────────────────────────
-function page(send) {
-  const evaluate = async (body) => {
-    const r = await send("Runtime.evaluate", {
-      expression: `JSON.stringify((() => { ${body} })())`,
-      awaitPromise: true, returnByValue: true,
-    });
-    if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description ?? "evaluate threw");
-    return r.result.value === undefined ? null : JSON.parse(r.result.value);
-  };
-
-  const goto = async (url) => {
-    await send("Page.navigate", { url });
-    await waitFor(`return document.readyState === "complete";`, `a completed load of ${url}`);
-  };
-
-  const waitFor = async (body, what, timeout = 20000) => {
-    const end = Date.now() + timeout;
-    while (Date.now() < end) {
-      try { if (await evaluate(body)) return true; } catch { /* mid-navigation */ }
-      await sleep(200);
-    }
-    // A gate that says only "timed out" wastes the next run. Show what the page
-    // was actually displaying, which is enough to tell a wrong selector from a
-    // step that never advanced.
-    let where = "(the page could not be read)";
-    try {
-      where = await evaluate(`const m = document.querySelector("main"); return { heading: m?.querySelector("h1")?.textContent?.trim() ?? null, step: (m?.innerText.match(/Step \\d+\\s*\\/\\s*\\d+/) || [null])[0], text: (m?.innerText || "").replace(/\\n+/g, " · ").slice(0, 220) };`);
-    } catch { /* keep the generic sentence */ }
-    throw new Error(`timed out waiting for ${what} — on screen: ${JSON.stringify(where)}`);
-  };
-
-  /**
-   * Where to click an element — SCROLLED INTO VIEW first.
-   *
-   * `getBoundingClientRect()` is viewport-relative, so a control below the fold
-   * returns a y past the window and a mouse event at that coordinate hits
-   * nothing at all. The tall steps (two subjects, each with its own selects) put
-   * `Next` below the fold, which is exactly how a real click silently did
-   * nothing while the button was enabled: the walk read "enabled", clicked at
-   * y=1400, and the step never moved. A user scrolls; so does this.
-   */
-  const rectOf = (expr) => evaluate(`
-    const el = ${expr};
-    if (!el) return null;
-    el.scrollIntoView({ block: "center", inline: "center" });
-    let r = el.getBoundingClientRect();
-    const vh = window.innerHeight || 900;
-    if (r.top < 8 || r.bottom > vh - 8) {
-      window.scrollBy(0, r.top - (vh - r.height) / 2);
-      r = el.getBoundingClientRect();
-    }
-    return { x: r.x + r.width / 2, y: r.y + r.height / 2, w: r.width, h: r.height, inView: r.top >= 0 && r.bottom <= (window.innerHeight || 900) && r.left >= 0 && r.right <= (window.innerWidth || 1280), text: (el.textContent || "").trim().slice(0, 40) };
-  `);
-
-  /** A real, trusted mouse click at the element's centre — not `el.click()`. */
-  const clickExpr = async (expr, what) => {
-    const p = await rectOf(expr);
-    if (!p || !p.w || !p.h) throw new Error(`nothing clickable for ${what}`);
-    if (!p.inView) throw new Error(`${what} could not be scrolled into the viewport (x=${Math.round(p.x)}, y=${Math.round(p.y)})`);
-    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: p.x, y: p.y });
-    await send("Input.dispatchMouseEvent", { type: "mousePressed", x: p.x, y: p.y, button: "left", clickCount: 1 });
-    await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: p.x, y: p.y, button: "left", clickCount: 1 });
-    await sleep(150);
-    return p.text;
-  };
-
-  /** One real key press (with the character, so the page sees typed input). */
-  const press = async (key) => {
-    await send("Input.dispatchKeyEvent", { type: "keyDown", key, text: key, unmodifiedText: key });
-    await send("Input.dispatchKeyEvent", { type: "keyUp", key });
-  };
-
-  /** Real typing into a field: focus with a click, then per-character key events. */
-  const typeInto = async (expr, text, what) => {
-    await clickExpr(expr, what);
-    for (const ch of text) { await press(ch); await sleep(25); }
-  };
+const section = (name) => console.log(`\n▸ ${name}`);// ── What only the NEXT application's wizard needs ────────────────────────────
+function nextAppHelpers(base, send) {
+  const { evaluate, clickExpr, text, pickOption } = base;
 
   // A label's OWN text, not everything inside it. `textContent` includes the
   // options of a select it wraps, so "Level" matched the QUALIFICATION field
@@ -210,65 +70,9 @@ function page(send) {
     `[...document.querySelectorAll("main label")].filter(l => { const s = l.querySelector(":scope > span"); return s && s.textContent.trim() === ${JSON.stringify(labelText)}; })[${n}]?.querySelector("select")`;
   const buttonMatching = (re) => `[...document.querySelectorAll("main button")].find(b => ${re}.test(b.textContent || ""))`;
 
-  /**
-   * Choose an option in a native select USING REAL KEYS.
-   * Reads the options out of the DOM, then presses the target label's first
-   * character until the value matches (repeating cycles matches, which is the
-   * browser's own behaviour for a select).
-   */
-  const pick = async (selectExpr, wanted, what, settle) => {
-    const sel = `(() => { const s = ${selectExpr}; if (!s) return null; return { value: s.value, options: [...s.options].map(o => ({ value: o.value, text: (o.textContent || "").trim() })) }; })()`;
-    const info = await evaluate(`return ${sel};`);
-    if (!info) throw new Error(`the ${what} select is not on the page`);
-    const target = info.options.find((o) => o.value === wanted);
-    if (!target) throw new Error(`no option "${wanted}" in the ${what} select: ${info.options.map((o) => o.value || "(empty)").join(", ")}`);
-    if (info.value === wanted) return target.text;
-    // Blur first: Chromium keeps a select's typeahead SEARCH STRING alive while
-    // the element stays focused, so typing "e" straight after a pick that ended
-    // in "fr" extends that search to "fre" — never a match, and the control looks
-    // unfocusable while it is working perfectly. Dropping focus resets the string.
-    await evaluate(`const el = ${selectExpr}; if (el) { el.blur(); el.focus(); } return true;`);
-    await sleep(150);
-    const read = async () => (settle
-      ? await evaluate(`return !!(${settle});`)
-      : (await evaluate(`const el = ${selectExpr}; return el ? el.value : null;`)) === wanted);
+  /** This walk's name for the shared select driver. */
+  const pick = (selectExpr, wanted, what, settle) => pickOption(selectExpr, wanted, what, settle);
 
-    // TYPE THE SHORTEST UNIQUE PREFIX of the option's label. One character is
-    // rarely unique — "English" and "Español" both start with E — and cycling on
-    // a shared character lands on whichever match follows the current one, which
-    // is how switching the interface back to English stalled on French. A prefix
-    // no other option shares selects the choice outright.
-    const labels = info.options.map((o) => ({ value: o.value, text: (o.text || "").trim().toLowerCase() }));
-    const own = (target.text || "").trim().toLowerCase();
-    let prefix = own.slice(0, 1);
-    for (let n = 1; n <= own.length; n++) {
-      const cand = own.slice(0, n);
-      prefix = cand;
-      if (!labels.some((o) => o.value !== wanted && o.text.startsWith(cand))) break;
-    }
-    // A space would open the dropdown rather than type into it, so labels needing
-    // one ("United Kingdom") keep the cycling behaviour below.
-    if (prefix && !prefix.includes(" ")) {
-      for (const ch of prefix) { await press(ch); await sleep(60); }
-      await sleep(150);
-      if (await read()) return target.text;
-    }
-    const first = own.slice(0, 1) || "a";
-    await sleep(1300); // let any half-typed search string expire before cycling
-    for (let i = 0; i < info.options.length + 2; i++) {
-      await press(first);
-      await sleep(90);
-      if (await read()) return target.text;
-    }
-    // Say WHY it refused: a select that keeps its old value after a real key
-    // press is either not focused any more, or has no option whose label starts
-    // with the character typed. Both are visible in one line.
-    const diag = await evaluate(`const s = ${selectExpr}; return { focused: document.activeElement === s, value: s?.value ?? null, labels: [...(s?.options ?? [])].map(o => (o.textContent || "").trim()).slice(0, 8) };`);
-    throw new Error(`could not choose "${wanted}" in the ${what} select — it stayed on "${info.value}" (focused=${diag.focused}, labels: ${diag.labels.join(" | ")})`);
-  };
-
-  const valueOf = (expr) => evaluate(`return ${expr}?.value ?? null;`);
-  const text = () => evaluate(`return (document.querySelector("main")?.innerText || "").replace(/\\n+/g, " · ").slice(0, 400);`);
   const stepCounter = () => evaluate(`return (document.querySelector("main")?.innerText || "").match(/Step \\d+ of \\d+/)?.[0] ?? null;`);
 
   const nextButton = buttonMatching('/(Next|Start learning)/');
@@ -279,7 +83,7 @@ function page(send) {
     await clickExpr(nextButton, `the button that advances ${what}`);
   };
 
-  return { evaluate, goto, waitFor, clickExpr, press, typeInto, pick, valueOf, text, stepCounter, clickNext, labelWith, selectUnder, selectUnderNth, buttonMatching };
+  return { pick, stepCounter, clickNext, labelWith, selectUnder, selectUnderNth, buttonMatching };
 }
 
 // ── The walk ────────────────────────────────────────────────────────────────
@@ -293,8 +97,10 @@ async function main() {
     process.exit(2);
   }
 
-  const { send, close } = await launch();
-  const p = page(send);
+  const { send, close } = await launchChrome({ port: PORT });
+  // The shared plumbing, plus what only this walk knows about this application.
+  const base = pageFor(send);
+  const p = { ...base, ...nextAppHelpers(base, send) };
   let profileId = null;
   try {
     section("A fresh learner opens the wizard");
