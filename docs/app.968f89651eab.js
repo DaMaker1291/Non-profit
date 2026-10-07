@@ -25,6 +25,7 @@
   }
 
   var DB_KEY = "openmind.static.v1";
+  var DRAW_ATTEMPTS = 40;
 
   // ── Storage ───────────────────────────────────────────────────────────────
   // One device, one learner, one blob. The LEDGER is the engine's own
@@ -82,23 +83,6 @@
   function maybe(key) {
     var s = t(key);
     return s === key ? "" : s;
-  }
-  /** A course tier's label, named the way every other surface names it.
-   *
-   *  `levelLabel` (lib/content-i18n.ts) is the repo's ONE owner of this: it
-   *  reads `lvl.<tier>`, appends the qualification's own label ("AS", "Class
-   *  10", "Digital SAT"), and falls back to that label when the tier has no
-   *  translation. This build hand-rolled the lookup as `t("lvl." + level.id)`
-   *  instead, and there is no `lvl.as`, `lvl.a2`, `lvl.class10`, `lvl.sat` or
-   *  `lvl.matric` key — 33 of the 39 level ids in lib/specifications.ts — so
-   *  Home read "maths · A-Level (lvl.as)": a raw key where a learner's own
-   *  course should be named. `maybe()` is not the fix: a key defined in `en`
-   *  and missing elsewhere renders in ENGLISH, which is how a translated
-   *  interface grows an English label with no raw key to notice. */
-  function levelName(lv) {
-    if (!lv) return "";
-    var label = E.contentI18n.levelLabel(lang(), lv.tier, lv.name);
-    return /^lvl\./.test(label) ? lv.name || lv.id || "" : label;
   }
 
   // ── The learner ───────────────────────────────────────────────────────────
@@ -184,28 +168,45 @@
     return out;
   }
 
-  /** PRACTICE DIFFICULTY IS NOT DECIDED HERE.
-   *
-   *  The tier is the anchor and the learner's own record moves the rung — but
-   *  that decision belongs to `lib/operations.ts#servePractice`, which the
-   *  server's serve action calls too. This page used to hold a copy of it (the
-   *  band from the concept's own subject, the due check, the nearest-band draw,
-   *  the already-served keys), and the copy had ALREADY drifted from the route:
-   *  a learner sitting two courses got one depth from the server and another
-   *  from this page. One decision, reached through the bundle, for both.
-   *
-   *  What the page still owns is what it always owned: what to DRAW it with (a
-   *  fresh seed), what to keep on screen, and persisting the state the
-   *  operation staged into. */
-  function serveQuestion(conceptId) {
+  /** Practice difficulty: the tier is the anchor, the learner's own record moves
+   *  the rung. The same rule the server's serve action uses, so a learner sees
+   *  the same item either way. */
+  function serveTarget(conceptId) {
     var st = me();
-    var served = E.operations.servePractice({ state: st, conceptId: conceptId, lang: lang() });
-    if (!served.ok) return null;
-    // The staging is STATE (which item is out for grading, which item keys this
-    // concept has already spent), so it is saved with everything else rather
-    // than living in a variable this page keeps for as long as the tab does.
-    saveProfile(st);
-    return { q: served.served.question, info: served.served.aim };
+    var concept = E.genome.getConcept(conceptId);
+    var active = activeSpec(concept ? concept.subject : undefined);
+    var tier = E.specifications.difficultyFor(active);
+    var rec = st.progress[conceptId];
+    var due = E.retention.isRetentionDue(st, conceptId);
+    var target = E.questionBank.practiceTarget({
+      tier: tier,
+      attempts: (rec && rec.attempts) || 0,
+      correct: (rec && rec.correct) || 0,
+      streak: (rec && rec.streak) || 0,
+      misconceptionHits: rec && rec.misconceptions ? Object.keys(rec.misconceptions).reduce(function (s, k) { return s + rec.misconceptions[k]; }, 0) : 0,
+    });
+    return { target: target, tier: tier, due: due, aim: due ? tier : target.difficulty };
+  }
+
+  function serveQuestion(conceptId) {
+    var info = serveTarget(conceptId);
+    var seed = "s" + Date.now() + ":" + conceptId + ":" + Math.floor(Math.random() * 1e9);
+    // The already-served keys for this concept, OLDEST FIRST, so the search
+    // skips a question the learner is already working through — the same rule
+    // app/api/progress/route.ts applies. Without it the offline build (which
+    // runs from file:// and in the pack) handed back the identical item again
+    // and again, because the nearest-band draw is deterministic and the base
+    // item always won for a concept with few variants.
+    var served = servedPractice[conceptId] || [];
+    var q = E.questions.generateQuestionNear(conceptId, seed, info.aim, DRAW_ATTEMPTS, served);
+    if (!q) return null;
+    // Record it, and bound the list the same way the server does. Identity
+    // comes from the SHARED rule (lib/answer.ts#answerKey), so a numeric draw
+    // and its choice-form twin count as the same question spent.
+    var key = E.answer.answerKey(q);
+    served.push(key);
+    servedPractice[conceptId] = served.slice(-12);
+    return { q: q, info: info };
   }
 
   /** A question reframed through this learner's curriculum vocabulary. */
@@ -226,38 +227,22 @@
   function recordAnswer(opts) {
     var st = me();
     var q = opts.question;
-    var disposition = E.operations.answerDisposition(st, q.conceptId, q.id);
-    var source = opts.attribution ? opts.attribution.source : disposition.source;
     var ev = E.evidence.answerEvidence({
       learnerId: profileId(),
       at: Date.now(),
+      source: opts.source,
       subject: q.subject || (E.genome.getConcept(q.conceptId) || {}).subject || null,
       conceptId: q.conceptId,
       specificationId: st.profile.spec || null,
       questionId: q.id,
       correct: opts.correct,
       chosen: opts.chosen,
-      source: source,
       // The canonical number a TYPED answer was, or null for a picked option —
       // the same field the server records, so a rebuilt model from the offline
       // ledger matches one built online.
       givenValue: opts.givenValue == null ? null : opts.givenValue,
-      // ── WHAT THIS ANSWER DEMONSTRATED IS NOT THE CALLER'S TO DECLARE ────
-      // `mode`, `hints` and `source` come from what the serve STAGED — the
-      // hint ledger, the transfer stage, the retrieval stage — through
-      // E.operations.answerDisposition, the same operation the server grades
-      // by. This page used to be handed all three by whichever handler called
-      // it (`practice.hints > 0 ? "guided" : "independent"`), which is a
-      // surface's claim about itself; the consequence is that a page could put
-      // "you did this on your own" over work it had just helped with, and the
-      // ledger would record it that way for ever.
-      //
-      // A SITTING WHOSE DOOR OWNS ITS OWN ATTRIBUTION passes `attribution`:
-      // the diagnostic is the only one, because app/api/diagnostic records its
-      // probes as `source: "diagnostic"` with no help taken, and this page
-      // mirrors that door rather than inventing a rule beside it.
-      mode: opts.attribution ? opts.attribution.mode : disposition.mode,
-      hints: opts.attribution ? opts.attribution.hints : disposition.hints,
+      mode: opts.mode,
+      hints: opts.hints,
       ms: opts.ms == null ? null : opts.ms,
       tags: q.misconceptionTags || [],
       deviceAt: E.evidence.deviceClaimAt(opts.deviceAt, Date.now()),
@@ -274,11 +259,6 @@
 
   function recordHint(question) {
     var st = me();
-    // The hint LEDGER moves before the event does. Independence is deduced from
-    // what was actually handed out, so the count is written where the hint is
-    // given — and the number the button shows is that count, not a view
-    // variable beside it (which is how "Hint (0)" once sat next to "Hint 1").
-    var count = E.operations.noteHint(st, question.id);
     var ev = E.evidence.hintEvidence({
       learnerId: profileId(),
       at: Date.now(),
@@ -291,7 +271,6 @@
     E.ledger.commitAndProject(profileId(), st, [ev], LEDGER);
     save();
     saveProfile(st);
-    return count;
   }
 
   // ── Small DOM helpers ─────────────────────────────────────────────────────
@@ -517,7 +496,7 @@
           levels.forEach(function (lv) {
             options.push({
               value: spec.id + "|" + (lv.id || ""),
-              label: (spec.name || spec.id) + (lv.id ? " · " + levelName(lv) : ""),
+              label: (spec.name || spec.id) + (lv.id ? " · " + (maybe("lvl." + lv.id) || lv.id) : ""),
             });
           });
         });
@@ -661,10 +640,7 @@
     var graded = E.diagnostic.gradeAnswer(diag.session, q.conceptId, q, choice);
     // Measurement: this probe was hint-free, which is why it records both that
     // it is diagnostic evidence and that it is independent evidence.
-    // A DIAGNOSTIC PROBE IS ITS OWN DOOR'S ANSWER TO ATTRIBUTE: app/api/diagnostic
-    // records `source: "diagnostic"`, no help taken, and this page mirrors that
-    // door exactly rather than deriving a rule of its own beside it.
-    recordAnswer({ question: q, chosen: choice, correct: graded.correct, attribution: { mode: "independent", hints: 0, source: "diagnostic" } });
+    recordAnswer({ question: q, chosen: choice, correct: graded.correct, mode: "independent", hints: 0, source: "diagnostic" });
     diag.asked++;
     var nxt = E.diagnostic.nextQuestion(diag.session);
     diag.last = nxt;
@@ -771,21 +747,12 @@
       }).join("") + "</ul>"
       : '<p class="muted">' + esc(t("ev.none")) + "</p>";
 
-    // "Welcome back" to someone who has never been here is the first thing this
-    // screen says, and it is not true: a learner who has just finished setup has
-    // nothing to come back TO. The rule is NOT decided here. This surface and
-    // the React Home each answered it with a different fact — this one with
-    // recentAnswers().length, that one with Object.keys(progress).length — and
-    // the two can disagree. lib/evidence-view#hasRecordedWork owns it now, so
-    // there is one fact to be right or wrong about.
-    var greeting = E.evidenceView.hasRecordedWork(st) ? t("dash.hi") : t("dash.hello");
     root.innerHTML =
-      '<p class="eyebrow">' + esc(greeting) + (st.profile.handle ? ", " + esc(st.profile.handle) : "") + "</p>" +
+      '<p class="eyebrow">' + esc(t("dash.hi")) + (st.profile.handle ? ", " + esc(st.profile.handle) : "") + "</p>" +
       courseLine() +
       (head
         ? '<div class="next">' +
           '<p class="eyebrow">' + esc(t("next.eyebrow")) + "</p>" +
-          splitBlock(head.conceptId) +
           "<h2>" + esc(head.title) + "</h2>" +
           '<p class="why">' + esc(head.reason) + "</p>" +
           '<p class="why"><b>' + esc(t("next.whyNow")) + "</b> " + esc(head.why) + "</p>" +
@@ -827,35 +794,6 @@
    *  which do not exist here — a static host has no such page, and following one
    *  lands the learner on a 404 in the middle of their own study session. So the
    *  action's own concept is routed to the screen that can actually serve it. */
-  /** WHAT THE RECORD HAS SHOWN about a concept, and what it has not.
-   *
-   *  The rule is not written here. lib/learner-model#demonstrationSplit is the
-   *  one owner — this page and the React Home ask the same function, over the
-   *  same ledger, so the two products cannot describe one record two ways
-   *  (which is how the two-products split grew in the first place).
-   *
-   *  Rendered only once something HAS been demonstrated: four "not yet" rows on
-   *  a beginner's first screen is a page of deficits, and the decision for a
-   *  learner nobody has measured is already "find your starting point".
-   */
-  function splitBlock(conceptId) {
-    var s = E.learnerModel.demonstrationSplit(me(), conceptId);
-    if (!s.demonstrated.length) return "";
-    function chip(d, cls) {
-      return '<span class="chip ' + cls + '">' + (cls === "good" ? "✓ " : "△ ") +
-        esc(t(E.learnerModel.demonstratedLabelKey(d))) + "</span>";
-    }
-    return '<p class="small"><span class="muted">' + esc(t("next.haveDemonstrated")) + "</span> " +
-      s.demonstrated.map(function (d) { return chip(d, "good"); }).join(" ") + "</p>" +
-      (s.pending.length
-        ? '<p class="small"><span class="muted">' + esc(t("next.notYetDemonstrated")) + "</span> " +
-          // The first pending rung is the one this card's own action is FOR, so
-          // it carries the current marker (`.on`) rather than a second sentence
-          // saying which missing dimension today is aimed at.
-          s.pending.map(function (d, i) { return chip(d, i === 0 ? "on" : ""); }).join(" ") + "</p>"
-        : "");
-  }
-
   function routeFor(action) {
     // The engine NAMES its destination in `href`, and the start-point action
     // names `/diagnostic/maths` — this build's diagnostic is `#/diag`. Reading
@@ -878,7 +816,7 @@
     var st = me();
     var specs = (st.profile.subjects || []).map(function (s) {
       var active = E.specifications.specForProfile(st.profile, s);
-      return s + " · " + (active.spec ? active.spec.name || active.spec.id : "?") + (active.level ? " (" + levelName(active.level) + ")" : "");
+      return s + " · " + (active.spec ? active.spec.name || active.spec.id : "?") + (active.level ? " (" + (t("lvl." + active.level.id) || active.level.id) + ")" : "");
     });
     return '<p class="small muted">' + esc(specs.join("  ·  ")) + "</p>";
   }
@@ -886,12 +824,10 @@
   // ── Learn (practice) ──────────────────────────────────────────────────────
 
   var practice = null; // { conceptId, q, info, hints, startedAt, done:false }
-  // The per-concept served-item keys used to live here as a variable, "the
-  // offline twin of the server's session.servedPractice". It is not a twin any
-  // more: the operation writes them into the learner's own state, which is what
-  // survives a reload — so a sitting rotates through the generator's catalogue
-  // instead of repeating the one question it happened to hand out before the
-  // tab was closed.
+  // Per-concept served-item keys, OLDEST FIRST, bounded to 12 — the offline
+  // twin of the server's session.servedPractice, so a sitting rotates through
+  // the generator's catalogue instead of repeating one question.
+  var servedPractice = {};
 
   function viewLearn(conceptId) {
     setNav("/learn");
@@ -960,14 +896,6 @@
       '<div class="spread"><p class="eyebrow">' + esc(t("learn.practice")) + " · " + esc(ctitle(practice.conceptId)) + "</p>" +
       '<a class="progress-line" href="#/curriculum">' + esc(t("nav.currTitle")) + "</a></div>" +
       '<div class="q">' + promptHtml(prompt) + "</div>" +
-      // WHAT THIS QUESTION IS TESTING, before it is answered. Every field here
-      // existed already and reached the learner only LATER — the demand level in
-      // the diagnostic report, the marks nowhere at all. ONE rule composes them
-      // (lib/question-bank#declareQuestion), and the React question screen draws
-      // the same line from the same function, so one item cannot read two ways.
-      // The beliefs the item discriminates are NOT named here: before the answer
-      // that is a hint, and they arrive with the verdict as the diagnosis.
-      declarationHtml(q) +
       (q.responseKind === "numeric" ? numericAnswerHtml(q) :
         '<div class="choices" id="choices">' +
         view.choices.map(function (c, i) {
@@ -980,18 +908,6 @@
       '<button class="quiet" data-act="tutor-open">' + esc(t("learn.ask")) + "</button>" +
       '<span class="progress-line" style="margin-inline-start:auto">' + esc(t("sb.whyThis")) + ": " + esc(why) + "</span></div>" +
       '<div id="tutor-slot"></div>';
-  }
-
-  /** What a question is testing, said before it is answered.
-   *
-   *  The record is lib/question-bank#declareQuestion's; this only words it. Both
-   *  products declare one item the same way, and neither can disagree with the
-   *  report that will later judge the same answer. */
-  function declarationHtml(q) {
-    var d = E.questionBank.declareQuestion(q);
-    return '<p class="small muted" style="margin:.35rem 0 0">' +
-      '<span class="why-label">' + esc(t("ask.whatTesting")) + "</span> " +
-      esc(t("skill." + d.skill)) + " · " + esc(t("own.marks")) + ": " + d.marks + "</p>";
   }
 
   /** The answer box, for a question that is NOT multiple choice (§6). The
@@ -1033,6 +949,9 @@
       chosen: -1,
       givenValue: parsed,
       correct: correct,
+      mode: practice.hints > 0 ? "guided" : "independent",
+      hints: practice.hints,
+      source: practice.info.due ? "retrieval" : "practice",
       ms: ms,
     });
     practice.done = true;
@@ -1049,6 +968,9 @@
       question: q,
       chosen: choice,
       correct: correct,
+      mode: practice.hints > 0 ? "guided" : "independent",
+      hints: practice.hints,
+      source: practice.info.due ? "retrieval" : "practice",
       ms: ms,
     });
     practice.done = true;
@@ -1075,14 +997,6 @@
     var mcEntry = mcId ? E.misconceptions.MISCONCEPTIONS_BY_ID[mcId] : null;
     var second = mcId ? E.contentI18n.mcName(lang(), mcId, mcEntry ? mcEntry.name : mcId) : "";
     var coaching = mcId ? E.contentI18n.mcCoaching(lang(), mcId, mcEntry ? mcEntry.coaching || "" : "") : "";
-    // The item's trap and the learner's OWN misconception are two different
-    // claims, and one line was making both. `q.misconceptionTags` belongs to the
-    // QUESTION — a diagnostic item carries the belief it can test — so on a
-    // CORRECT answer the same sentence read "Common issue: <belief>" over a
-    // learner who had just shown they did not have it. The wrong-answer case
-    // keeps the catalogue label; the right-answer case names the trap as a trap,
-    // with the label the paper-analysis screen already uses for that claim.
-    var secondLabel = correct ? "pp.checkIdea" : "ev.issue";
     var change = rec
       ? '<p class="small mono">' + esc(t("learn.attempts")) + ": " + (rec.attempts || 0) + " · " + esc(t("prog.accuracy")) + ": " +
         Math.round(((rec.accuracy || 0) * 100)) + "% · " + esc(t("prog.mastery")) + ": " + Math.round((rec.mastery || 0) * 100) + "%</p>"
@@ -1091,7 +1005,7 @@
       '<p class="head">' + esc(correct ? t("learn.correct") : t("learn.wrong")) + "</p>" +
       (!correct ? '<p class="small">' + esc(t("sb.correctWas")) + ": <b class=\"mono\">" + esc(q.choices[q.answer]) + "</b></p>" : "") +
       '<p class="expl">' + esc(explanation) + "</p>" +
-      (second ? '<p class="small muted"><b>' + esc(t(secondLabel)) + ":</b> " + esc(second) +
+      (second ? '<p class="small muted"><b>' + esc(t("ev.issue")) + ":</b> " + esc(second) +
         (coaching ? " — " + esc(coaching) : "") + "</p>" : "") +
       (usedHints > 0 ? '<p class="small muted">' + esc(t("sb.hintGuided")) + "</p>" : "") +
       change +
@@ -1113,9 +1027,8 @@
 
   function requestHint() {
     if (!practice || practice.done) return;
-    // The count comes back FROM the ledger the grader will read, so the button,
-    // the box and the evidence cannot disagree about how much help was taken.
-    practice.hints = recordHint(practice.q);
+    practice.hints++;
+    recordHint(practice.q);
     var level = Math.min(practice.hints, E.hints.HINT_LEVELS.length);
     var hint = E.hints.buildHint({ prompt: practice.q.prompt, explanation: practice.q.explanation }, level);
     // A Hint is an i18n KEY for the generic rungs of the ladder (level 1–2), or
@@ -1127,42 +1040,9 @@
     slot.innerHTML = '<div class="hintbox"><b>' + esc(t("learn.hint")) + " " + level + " · " +
       esc(maybe(E.hints.HINT_LEVELS[level - 1].labelKey) || E.hints.HINT_LEVELS[level - 1].labelKey) + "</b> — " + esc(body) + "</div>" +
       (level < E.hints.HINT_LEVELS.length ? '<p class="small muted">' + esc(t("hint.howMuch")) + "</p>" : "");
-    // The button's own count is drawn once, by `drawPractice`, so it never
-    // moved: it read "Hint (0)" while the box beside it said "Hint 1", then
-    // "Hint 2". The learner's tally of how much help they had taken is the one
-    // number this screen exists to be honest about.
-    var btn = document.querySelector('[data-act="hint"]');
-    if (btn) btn.textContent = t("learn.hint") + " (" + practice.hints + ")";
   }
 
   // ── Curriculum ────────────────────────────────────────────────────────────
-
-  /** The four facts a syllabus row owes once the learner is ON it.
-   *
-   *  The RULE is lib/learner-model#conceptStanding's; this only words it. What
-   *  you know → what is uncertain → prerequisite — and the next action is the
-   *  first rung not yet earned, which carries the current marker rather than a
-   *  fourth sentence repeating the third. */
-  function standingBlock(s) {
-    function chip(d, cls) {
-      return '<span class="chip ' + cls + '">' + (cls === "good" ? "✓ " : "△ ") +
-        esc(t(E.learnerModel.demonstratedLabelKey(d))) + "</span>";
-    }
-    var out = "";
-    if (s.demonstrated.length) {
-      out += '<p class="small" style="margin:.25rem 0 0"><span class="muted">' + esc(t("next.haveDemonstrated")) +
-        "</span> " + s.demonstrated.map(function (d) { return chip(d, "good"); }).join(" ") + "</p>";
-    }
-    if (s.pending.length) {
-      out += '<p class="small" style="margin:.25rem 0 0"><span class="muted">' + esc(t("next.notYetDemonstrated")) +
-        "</span> " + s.pending.map(function (d, i) { return chip(d, i === 0 ? "on" : ""); }).join(" ") + "</p>";
-    }
-    if (s.blockedBy.length) {
-      out += '<p class="small muted" style="margin:.25rem 0 0">' + esc(t("common.prereqs")) + " " +
-        esc(s.blockedBy.map(function (id) { return ctitle(id); }).join(" · ")) + " — " + esc(t("path.prerequisite")) + "</p>";
-    }
-    return out;
-  }
 
   function viewCurriculum(subject) {
     setNav("/curriculum");
@@ -1171,10 +1051,7 @@
     var subjects = st.profile.subjects || ["maths"];
     subject = subject && subjects.indexOf(subject) >= 0 ? subject : subjects[0];
     var list = conceptList(subject);
-    // WHICH IDEA THIS LIST CALLS "HERE". Not the first row and not a guess: it
-    // is the concept the ONE decision door points at, so the marker here and the
-    // card on Home can only ever name one next action.
-    var head = decide(1)[0];
+    var proj = projection();
 
     root.innerHTML =
       "<h1>" + esc(t("curr.title")) + "</h1>" +
@@ -1185,35 +1062,18 @@
       '<p class="small muted">' + esc(t("curr.specsNote")) + "</p>" +
       '<hr class="rule">' +
       '<ul class="items">' + list.map(function (c) {
-        // EVERY FACT ABOUT A ROW COMES FROM ONE FUNCTION. This list used to
-        // band a concept with an accuracy ratio of its own (>= .8 "good", < .5
-        // "weak") while the React page used the shared proof vocabulary — one
-        // learner's record, two different words for one idea, depending on
-        // which product they opened. lib/learner-model#conceptStanding is the
-        // one answer, and it is the function the React list asks too.
-        var s = E.learnerModel.conceptStanding(st, c.id);
-        var glyph = s.mark === "done" ? "✓" : s.mark === "underway" ? "◐" : "○";
-        var mark = '<span style="font-family:var(--mono);color:var(--ink-2);margin-right:.3rem" aria-hidden="true">' + glyph + "</span>";
-        // The word is the strongest thing the record PROVED, in the product's
-        // own four words; an unmeasured concept says so rather than showing a
-        // rate nobody earned. The count stays beside it, because it is a fact
-        // and a verdict is not.
-        var pr = st.progress[c.id];
-        var count = pr && pr.attempts ? '<span class="mono"> ' + pr.correct + "/" + pr.attempts + "</span>" : "";
-        var word = s.proved
-          ? '<span class="tag good">' + esc(t("prf." + s.proved)) + "</span>"
-          : '<span class="muted">' + esc(t("evv.unmeasured")) + "</span>";
-        // The concept's own four facts are drawn for the ONE row the learner is
-        // on. A syllabus of 63 rows cannot carry four facts each — and the
-        // concept's own page does, at the same place, from the same rule.
-        var here = !!head && head.conceptId === c.id;
-        var hereTag = here ? ' <span class="chip on">' + esc(t("curr.youAreHere")) + "</span>" : "";
+        var rec = proj.byConcept[c.id];
+        var asked = (rec && rec.attempts) || 0;
+        var state = asked
+          ? (rec.correct / asked >= 0.8 ? "good" : rec.correct / asked < 0.5 ? "weak" : "")
+          : "";
+        var meta = asked
+          ? Math.round((rec.correct / asked) * 100) + "% · " + asked + " " + esc(t("learn.attempts"))
+          : esc(t("evv.unmeasured"));
         return "<li>" + (c.ready
-          ? '<a href="#/learn?concept=' + encodeURIComponent(c.id) + '"><span>' + mark + esc(c.title) + hereTag + "</span>" +
-            '<span class="meta">' + word + count + "</span></a>"
-          : '<div style="display:flex;justify-content:space-between;gap:1rem"><span>' + mark + esc(c.title) +
-            '</span><span class="meta">' + esc(t("sb.noContent")) + "</span></div>") +
-          (here ? standingBlock(s) : "") +
+          ? '<a href="#/learn?concept=' + encodeURIComponent(c.id) + '"><span>' + esc(c.title) + "</span>" +
+            '<span class="meta">' + (state ? '<span class="tag ' + state + '">' : "") + meta + (state ? "</span>" : "") + "</span></a>"
+          : '<div style="display:flex;justify-content:space-between;gap:1rem"><span>' + esc(c.title) + '</span><span class="meta">' + esc(t("sb.noContent")) + "</span></div>") +
           '<p class="small muted" style="margin:.15rem 0 0">' + esc(c.blurb) + "</p></li>";
       }).join("") + "</ul>";
   }
@@ -1298,28 +1158,6 @@
       '<div class="field"><label for="a-endpoint">Endpoint</label><input id="a-endpoint" value="' + esc(db.ui.endpoint || "https://api.openai.com/v1/chat/completions") + '"></div>' +
       '<div class="field"><label for="a-model">Model</label><input id="a-model" value="' + esc(db.ui.model || "gpt-4o-mini") + '"></div>' +
       '<p><button data-act="save-tutor">' + esc(t("common.save")) + "</button></p></div>";
-    // The language select on THIS page is the one a learner reaches when they
-    // come looking for it — the header select is in a corner of the chrome — and
-    // it had no listener at all. Choosing a language here and pressing Save
-    // changed nothing: `ui.lang` stayed as it was, the interface stayed in the
-    // old language, the select kept showing the new one, and the toast said
-    // "Saved". One control, one handler.
-    document.getElementById("a-lang").addEventListener("change", function (e) { setLanguage(e.target.value); });
-  }
-
-  /** Change the interface language — the one path, for every control that offers
-   *  it (the header's select and the Access page's). */
-  function setLanguage(code) {
-    if (!code || code === lang()) return;
-    db.ui.lang = code;
-    save();
-    var st = me();
-    if (st) {
-      st.profile.language = db.ui.lang;
-      saveProfile(st);
-    }
-    applyDirection();
-    paint();
   }
 
   function saveSettings() {
@@ -1557,7 +1395,17 @@
     }
   });
 
-  document.getElementById("lang").addEventListener("change", function (e) { setLanguage(e.target.value); });
+  document.getElementById("lang").addEventListener("change", function (e) {
+    db.ui.lang = e.target.value;
+    save();
+    var st = me();
+    if (st) {
+      st.profile.language = db.ui.lang;
+      saveProfile(st);
+    }
+    applyDirection();
+    paint();
+  });
 
   function applyDirection() {
     var rtl = E.i18n.isRtl(lang());

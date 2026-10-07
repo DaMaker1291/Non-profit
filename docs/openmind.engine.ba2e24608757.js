@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 52 modules compiled from lib/ by that script, wired
+ * Source: 42 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -352,928 +352,6 @@ function gradeChoice(q, choiceIndex) {
     }
     return choiceIndex === q.answer;
 }
-
-});
-__def("api/client.js", function (module, exports, require) {
-"use strict";
-// ─────────────────────────────────────────────────────────────────────────────
-// THE LEARNER API, AS OPERATIONS.
-//
-// This is the seam the whole product talks through. A page asks for a THING —
-// "the next task", "one practice question", "this class's roster" — and never
-// for a URL. Every route string in the application now exists in this one file,
-// which is what makes the remaining work possible:
-//
-//   · the three-product split ended here. `docs/app.js` (the hand-written
-//     static product) and the React app both need the same ~40 operations, and
-//     before this file each of them had its own idea of what `/api/progress`
-//     meant. Now there is one meaning, and a second front end is a second
-//     consumer rather than a second implementation;
-//
-//   · the same operations run with NO SERVER. lib/api/transport.ts takes a
-//     sender, so a static build installs one that answers from the engines
-//     in-process. The operations below do not change; the wire does;
-//
-//   · a response SHAPE is checked once. `{ progress, masteries }` used to be
-//     destructured at a dozen call sites, each of which decided for itself what
-//     a missing field meant. Here it is a type, so a caller that reads a field
-//     the route does not send is a compile error rather than a silent zero.
-//
-// Nothing here decides anything. Grading, attribution, mode, hint counts,
-// retention credit and the next action are all decided server-side, from the
-// learner's own record — this file only carries the question and the answer.
-// ─────────────────────────────────────────────────────────────────────────────
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ensureSecret = exports.EMPTY_SESSION = exports.ApiError = void 0;
-exports.signUp = signUp;
-exports.signIn = signIn;
-exports.signOut = signOut;
-exports.session = session;
-exports.claimProfile = claimProfile;
-exports.updateAccount = updateAccount;
-exports.readProfile = readProfile;
-exports.probeProfile = probeProfile;
-exports.createProfile = createProfile;
-exports.saveProfile = saveProfile;
-exports.eraseProfile = eraseProfile;
-exports.progressFor = progressFor;
-exports.learnerExists = learnerExists;
-exports.serveQuestion = serveQuestion;
-exports.answerQuestion = answerQuestion;
-exports.hint = hint;
-exports.microCheck = microCheck;
-exports.starterView = starterView;
-exports.starterPick = starterPick;
-exports.peerMark = peerMark;
-exports.nextTask = nextTask;
-exports.pathFor = pathFor;
-exports.ledger = ledger;
-exports.sessionState = sessionState;
-exports.startSession = startSession;
-exports.finishSession = finishSession;
-exports.diagnose = diagnose;
-exports.paperList = paperList;
-exports.paperFor = paperFor;
-exports.markPaper = markPaper;
-exports.myPapers = myPapers;
-exports.myPaperAction = myPaperAction;
-exports.packsFor = packsFor;
-exports.packAction = packAction;
-exports.myPack = myPack;
-exports.classPackUrl = classPackUrl;
-exports.matchText = matchText;
-exports.tutorTurn = tutorTurn;
-exports.concepts = concepts;
-exports.classes = classes;
-exports.classById = classById;
-exports.classAction = classAction;
-exports.assignments = assignments;
-exports.assignmentAction = assignmentAction;
-exports.rooms = rooms;
-exports.roomAction = roomAction;
-exports.hubStatus = hubStatus;
-const transport_1 = require("./transport");
-Object.defineProperty(exports, "ApiError", { enumerable: true, get: function () { return transport_1.ApiError; } });
-const sync_queue_1 = require("../sync-queue");
-const identity_1 = require("./identity");
-Object.defineProperty(exports, "ensureSecret", { enumerable: true, get: function () { return identity_1.ensureSecret; } });
-exports.EMPTY_SESSION = { account: null, profile: null, secret: null };
-function signUp(input) {
-    return (0, transport_1.send)("/api/auth/signup", { method: "POST", body: { ...input } });
-}
-function signIn(email, password) {
-    return (0, transport_1.send)("/api/auth/login", { method: "POST", body: { email, password } });
-}
-/** Sign out. The server revokes every session in this account's epoch, so this
- *  is not a client-side fiction — after it, the cookie is worthless. */
-async function signOut() {
-    // Tolerated: a sign-out that reaches a server which has already forgotten the
-    // session has still signed the learner out, and refusing to clear the device
-    // over it would leave them signed in locally for no reason.
-    await (0, transport_1.send)("/api/auth/logout", { method: "POST", body: {}, tolerate: [401] });
-}
-/** Who is signed in on this device, and which learner profile that is. A failure
- *  is an empty session, not a thrown error: the shell renders signed-out. */
-async function session() {
-    try {
-        const data = await (0, transport_1.send)("/api/auth/me");
-        return data.account ? data : exports.EMPTY_SESSION;
-    }
-    catch {
-        return exports.EMPTY_SESSION;
-    }
-}
-/** Move an anonymous device's work into the signed-in account. */
-function claimProfile(claim) {
-    return (0, transport_1.send)("/api/auth/claim", { method: "POST", body: { ...claim } });
-}
-function updateAccount(patch) {
-    return (0, transport_1.send)("/api/auth/me", { method: "POST", body: { ...patch } });
-}
-// ─────────────────────────────────────────────────────────────────────────────
-// PROFILE
-// ─────────────────────────────────────────────────────────────────────────────
-/**
- * Read one learner profile.
- *
- * A capability is presented only when this device already holds one. That is
- * not a shortcut: `GET /api/profile` binds an unclaimed secret to the profile on
- * first use, so a device that minted one merely to ASK would be CLAIMING the
- * profile it asked about. A genuine read never takes ownership.
- */
-function readProfile(id) {
-    return (0, transport_1.send)("/api/profile", { query: { id } });
-}
-/** The same read, saying which of the four things happened. */
-function probeProfile(id) {
-    return (0, transport_1.probe)("/api/profile", { query: { id } });
-}
-/** Create the learner, and adopt it as this device's — id AND secret, because
- *  without the secret every later write to it is refused and a guest has no
- *  session to fall back on. */
-async function createProfile(init) {
-    const state = await (0, transport_1.send)("/api/profile", { method: "POST", body: { ...init } });
-    adoptProfile(state);
-    return state;
-}
-/** Change the existing learner. Falls back to creating one when the id this
- *  device holds no longer exists, which is what makes enrolment self-healing
- *  after a store reset. */
-async function saveProfile(patch, id) {
-    const state = await (0, transport_1.send)("/api/profile", {
-        method: "POST",
-        body: { ...patch, id: id ?? undefined },
-    });
-    adoptProfile(state);
-    return state;
-}
-/** Erase the learner's record. Requires the confirmation word the route
- *  demands, so no caller can do this by accident. */
-async function eraseProfile(id) {
-    await (0, transport_1.send)("/api/profile", { query: { id, confirm: "ERASE" }, method: "DELETE" });
-}
-/** Write the profile's identity onto this device. One helper so create and save
- *  cannot disagree about which half of the identity they adopt. */
-function adoptProfile(state) {
-    if (state.profile?.id)
-        (0, identity_1.writeProfileId)(state.profile.id);
-    if (state.secret)
-        (0, identity_1.writeSecret)(state.secret);
-}
-// ─────────────────────────────────────────────────────────────────────────────
-// LEARNING — the loop itself
-// ─────────────────────────────────────────────────────────────────────────────
-/** The learner's progress snapshot, optionally for one subject. */
-function progressFor(id, subject) {
-    return (0, transport_1.send)("/api/progress", { query: { id, subject } });
-}
-/**
- * Is this learner still there? THREE answers, not two — and the third is the
- * one that matters offline:
- *
- *   true       the door answered
- *   false      the server answered 404 — a FACT about the learner
- *   "unknown"  we did not reach the server, or it failed to answer (5xx). NO
- *              information at all.
- *
- * Treating "unknown" as "gone" mints a brand-new profile on every flaky
- * connection, which loses the learner the very model the answer was meant to
- * update. Callers that must tell the three apart get them; callers that only
- * want a yes/no can collapse it themselves.
- */
-async function learnerExists(id, subject = "maths") {
-    try {
-        await (0, transport_1.send)("/api/progress", { query: { id, subject } });
-        return true;
-    }
-    catch (e) {
-        if (!(e instanceof transport_1.ApiError))
-            return "unknown";
-        if (e.notFound)
-            return false;
-        if (e.unreachable)
-            return "unknown";
-        return e.status >= 500 ? "unknown" : false;
-    }
-}
-/** Ask for one practice question. `intent: "transfer"` makes the SERVER stage a
- *  re-framed item and attribute transfer credit on grading — the client cannot
- *  claim transfer for an ordinary draw by asking for one. */
-function serveQuestion(id, conceptId, opts = {}) {
-    return (0, transport_1.send)("/api/progress", {
-        method: "POST",
-        body: { action: "serve", id, conceptId, lang: opts.lang, intent: opts.intent, reveal: opts.reveal },
-    });
-}
-/**
- * Send one answer. This is the ONLY write that must survive a dead connection,
- * so it goes through the offline queue: a failure the server would repeat is
- * reported, and a failure a later attempt could fix is HELD on the device and
- * replayed through this same operation when the connection returns.
- *
- * The caller never declares mode, hint count or retention credit — the server
- * derives all three from what it actually handed out.
- */
-async function answerQuestion(input) {
-    const { id, conceptId, questionId, lang, ms, ...given } = input;
-    const submissionId = input.submissionId ?? (0, sync_queue_1.newSubmissionId)();
-    const deviceAt = input.deviceAt ?? Date.now();
-    const outcome = await (0, transport_1.postAnswer)("/api/progress", { action: "answer", id, conceptId, questionId, lang, ms, ...given }, submissionId, deviceAt);
-    if (outcome.kind === "held")
-        return { kind: "offline" };
-    if (outcome.kind === "refused") {
-        // A refusal retrying cannot fix. The server's own reason rides back so the
-        // learner is told what was refused ("that is not a number", "stale or
-        // unknown question") rather than shown a status code.
-        const refusedBody = (await safeJson(outcome.res));
-        return { kind: "error", status: outcome.status, code: typeof refusedBody?.error === "string" ? refusedBody.error : "" };
-    }
-    const j = (await safeJson(outcome.res));
-    if (!j)
-        return { kind: "error", status: outcome.res.status, code: "" };
-    if (j.duplicate === true) {
-        return {
-            kind: "graded",
-            verdict: {
-                correct: j.correct === true,
-                answerIndex: null,
-                explanation: "",
-                misconceptionId: null,
-                flare: null,
-                duplicate: true,
-            },
-        };
-    }
-    return {
-        kind: "graded",
-        verdict: {
-            correct: j.correct === true,
-            answerIndex: typeof j.answerIndex === "number" ? j.answerIndex : null,
-            explanation: typeof j.explanation === "string" ? j.explanation : "",
-            streak: typeof j.streak === "number" ? j.streak : undefined,
-            mastery: typeof j.mastery === "number" ? j.mastery : undefined,
-            misconceptionId: typeof j.misconceptionId === "string" ? j.misconceptionId : null,
-            flare: j.flare ?? null,
-            demonstrated: j.demonstrated,
-        },
-    };
-}
-async function safeJson(res) {
-    try {
-        return await res.json();
-    }
-    catch {
-        return null;
-    }
-}
-/** Open one hint level. The server counts what it hands out; that count is what
- *  decides whether a later correct answer counts as independent work, so the
- *  client never reports it. */
-function hint(id, conceptId, questionId, level) {
-    return (0, transport_1.send)("/api/progress", { method: "POST", body: { action: "hint", id, conceptId, questionId, level } });
-}
-/** Grade one micro-diagnostic probe: did the learner miss the CONCEPT or just
- *  the execution? That distinction is the whole point of asking. */
-function microCheck(id, conceptId, misconceptionId, questionId, choiceIndex) {
-    return (0, transport_1.send)("/api/progress", {
-        method: "POST",
-        body: { action: "micro", id, conceptId, misconceptionId, questionId, choiceIndex },
-    });
-}
-/** Open Starter Mode for a served question: the four-step problem-initiation
- *  scaffold. The learner's own givens/goal text stays on the device. */
-function starterView(id, conceptId, questionId) {
-    return (0, transport_1.send)("/api/progress", { method: "POST", body: { action: "starter", id, conceptId, questionId } });
-}
-/** Grade the bridge pick. A wrong pick still completes the flow — teaching, not
- *  gating. */
-function starterPick(id, conceptId, questionId, choiceIndex) {
-    return (0, transport_1.send)("/api/progress", {
-        method: "POST",
-        body: { action: "starterPick", id, conceptId, questionId, choiceIndex },
-    });
-}
-/** A peer's own words about whether they can explain this concept. */
-function peerMark(id, conceptId, strong) {
-    return (0, transport_1.send)("/api/progress", { method: "POST", body: { action: "peer", id, conceptId, strong } });
-}
-/** What should this learner do next — decided from their own record. */
-function nextTask(id) {
-    return (0, transport_1.send)("/api/next", { query: { id } });
-}
-/** The mastery map and its narrative for one subject: which concepts THIS
- *  learner is weak at, in the order the engine would teach them. */
-function pathFor(id, subject) {
-    return (0, transport_1.send)("/api/path", { query: { id, subject } });
-}
-/** The learner's own ledger. Held to the capability exactly as a write is: a
- *  wrong token is a refusal, never an empty record. */
-function ledger(id, since) {
-    return (0, transport_1.send)("/api/evidence", { query: { id, since } });
-}
-function sessionState(id) {
-    return (0, transport_1.send)("/api/session", { query: { id } });
-}
-function startSession(id, conceptId, opts = {}) {
-    return (0, transport_1.send)("/api/session", { method: "POST", body: { action: "start", id, conceptId, ...opts } });
-}
-function finishSession(id, conceptId) {
-    return (0, transport_1.send)("/api/session", { method: "POST", body: { action: "finish", id, conceptId } });
-}
-/**
- * One call into the adaptive diagnostic.
- *
- * `start` RESUMES rather than replaces — a learner who leaves and returns
- * continues the measurement instead of silently beginning a second one — and
- * `finish` commits exactly one `diagnostic_completed` event.
- */
-function diagnose(input) {
-    return (0, transport_1.send)("/api/diagnostic", { method: "POST", body: { ...input } });
-}
-/** The papers this deployment can serve for one course. */
-function paperList(query) {
-    return (0, transport_1.send)("/api/paper", { query: { ...query, list: 1 } });
-}
-/** Build one paper. Deterministic first; AI only fills slots the engine could
- *  not, and anything the AI wrote is disclosed as such. */
-function paperFor(query) {
-    return (0, transport_1.send)("/api/paper", { query });
-}
-/** Mark a paper. With an id the result is also recorded as evidence; without
- *  one the paper is still marked and nothing is stored. */
-function markPaper(input) {
-    return (0, transport_1.send)("/api/paper", { method: "POST", body: { ...input } });
-}
-function myPapers(id) {
-    return (0, transport_1.send)("/api/my-paper", { query: { id } });
-}
-/** Create or mark one of the learner's OWN papers. The route accepts marks and
- *  concept tags only — never question text — so a personal paper cannot become
- *  a content store by accident. */
-function myPaperAction(input) {
-    return (0, transport_1.send)("/api/my-paper", { method: "POST", body: { ...input } });
-}
-function packsFor(conceptId) {
-    return (0, transport_1.send)("/api/packs", { query: { conceptId } });
-}
-function packAction(input) {
-    return (0, transport_1.send)("/api/packs", { method: "POST", body: { ...input } });
-}
-function myPack(id) {
-    return (0, transport_1.send)("/api/my-pack", { query: { id } });
-}
-/**
- * The teacher's class pack, as a DOWNLOAD.
- *
- * The browser must fetch this one itself (it is an `<a href>`, not a `fetch`),
- * so it cannot go through `send` and the capability has to be built here rather
- * than spelled out at the link. It was spelled out at the link once, and a
- * teacher pressing Print got `{"error":"missing id"}` in a new tab — the pack
- * carries the week's answer key, so the door answers a member of the class and
- * nobody else, and a link that forgets the token fails in a way that looks like
- * the product being broken.
- */
-function classPackUrl(clsId, me, format) {
-    return (0, transport_1.buildUrl)("/api/pack-export", { id: clsId, me, format }, (0, transport_1.capabilityFor)("/api/pack-export", "GET"), "GET");
-}
-/** Free-text → the concept the learner means, plus the runners-up. `confident`
- *  is false when nothing cleared the signal floor: an honest "not sure" rather
- *  than the best of a bad set presented as an answer. */
-function matchText(text) {
-    return (0, transport_1.send)("/api/match", { method: "POST", body: { text } });
-}
-/** One tutor turn. Context is the SERVER's to assemble from the learner's own
- *  record; the client sends the question, not the history. */
-function tutorTurn(input) {
-    return (0, transport_1.send)("/api/tutor", { method: "POST", body: { ...input } });
-}
-/** The public concept genome: prerequisites, unlocks, generators, misconceptions. */
-function concepts(query) {
-    return (0, transport_1.send)("/api/concepts", { query });
-}
-// ─────────────────────────────────────────────────────────────────────────────
-// PEOPLE — classes, assignments, rooms
-// ─────────────────────────────────────────────────────────────────────────────
-/** The rosters this learner belongs to (as a teacher, or as a member). */
-function classes(me) {
-    return (0, transport_1.send)("/api/classes", { query: { me } });
-}
-function classById(id, me) {
-    return (0, transport_1.send)("/api/classes", { query: { id, me } });
-}
-function classAction(input) {
-    return (0, transport_1.send)("/api/classes", { method: "POST", body: { ...input } });
-}
-function assignments(me) {
-    return (0, transport_1.send)("/api/assignments", { query: { me } });
-}
-function assignmentAction(input) {
-    return (0, transport_1.send)("/api/assignments", { method: "POST", body: { ...input } });
-}
-function rooms() {
-    return (0, transport_1.send)("/api/rooms");
-}
-function roomAction(input) {
-    return (0, transport_1.send)("/api/rooms", { method: "POST", body: { ...input } });
-}
-// ─────────────────────────────────────────────────────────────────────────────
-// DEPLOYMENT
-// ─────────────────────────────────────────────────────────────────────────────
-/** What this deployment is, and what it can actually do offline. Public by
- *  design: it describes the DEPLOYMENT, never a learner. */
-function hubStatus() {
-    return (0, transport_1.send)("/api/hub-status");
-}
-
-});
-__def("api/identity.js", function (module, exports, require) {
-"use strict";
-// ─────────────────────────────────────────────────────────────────────────────
-// WHO THIS DEVICE IS, AND WHAT IT MAY READ.
-//
-// One module owns two values in localStorage — the learner profile id and that
-// profile's capability secret — and nothing else. It is deliberately free of
-// React and free of the network, so the transport (lib/api/transport.ts) can
-// present a capability without importing a component tree, and the static build
-// can read the same storage without a hook.
-//
-// ONE RULE FOR ANNOUNCING. There used to be three: a write of the id announced
-// a change, a write of the secret announced a change, and the session probe's
-// own writes announced nothing (deliberately, or the provider would re-probe
-// itself forever). Which rule applied was a property of WHICH FUNCTION you
-// called, so "does this update the app?" was answered differently in three
-// places. Here it is a property of the fact: a write that CHANGES the stored
-// value announces, and a write that changes nothing does not. The probe is then
-// safe by construction — it writes the value it just read, so it cannot
-// announce, and a genuine token change announces exactly once.
-//
-// `lib/client.tsx` subscribes once and re-dispatches to React; it no longer
-// needs to know when identity is written.
-// ─────────────────────────────────────────────────────────────────────────────
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.PROFILE_SECRET_KEY = exports.PROFILE_ID_KEY = void 0;
-exports.onIdentityChange = onIdentityChange;
-exports.loadProfileId = loadProfileId;
-exports.writeProfileId = writeProfileId;
-exports.loadSecret = loadSecret;
-exports.writeSecret = writeSecret;
-exports.mintSecret = mintSecret;
-exports.ensureSecret = ensureSecret;
-exports.clearIdentity = clearIdentity;
-exports.PROFILE_ID_KEY = "openmind:profileId";
-exports.PROFILE_SECRET_KEY = "openmind:profileSecret";
-/** localStorage, or null when there is no window (server render, tests) or when
- *  storage is blocked (private mode). Every accessor below tolerates both. */
-function storage() {
-    if (typeof window === "undefined")
-        return null;
-    try {
-        return window.localStorage ?? null;
-    }
-    catch {
-        return null;
-    }
-}
-const listeners = new Set();
-/**
- * Called whenever the learner this device names actually changes.
- *
- * The subscription is registered by the shell, not read from the environment:
- * this module is imported by transport code that has no window and by tests
- * that have no React, so the notification has to be something a caller opts
- * into.
- */
-function onIdentityChange(fn) {
-    listeners.add(fn);
-    return () => { listeners.delete(fn); };
-}
-function announce() {
-    for (const fn of [...listeners]) {
-        try {
-            fn();
-        }
-        catch {
-            // One broken listener must not stop the others, and must not turn an
-            // identity write into a thrown error the caller has to handle.
-        }
-    }
-}
-function setIfChanged(key, value) {
-    const store = storage();
-    if (!store)
-        return;
-    const before = store.getItem(key);
-    if (before === value)
-        return; // no change, no announcement — see the header
-    if (value === null)
-        store.removeItem(key);
-    else
-        store.setItem(key, value);
-    announce();
-}
-function loadProfileId() {
-    return storage()?.getItem(exports.PROFILE_ID_KEY) ?? null;
-}
-function writeProfileId(id) {
-    setIfChanged(exports.PROFILE_ID_KEY, id);
-}
-/** The secret this device holds, or null. Never mints — a read must be able to
- *  ask "do I have a token?" without creating one. */
-function loadSecret() {
-    return storage()?.getItem(exports.PROFILE_SECRET_KEY) ?? null;
-}
-function writeSecret(secret) {
-    setIfChanged(exports.PROFILE_SECRET_KEY, secret);
-}
-/** A capability secret the server will accept: 32 hex characters, inside the
- *  16..128 range every door validates. */
-function mintSecret() {
-    const uuid = globalThis.crypto?.randomUUID?.();
-    if (uuid)
-        return uuid.replace(/-/g, "");
-    // No WebCrypto (an old browser, a Node test harness): still unpredictable
-    // enough for a bearer token that only ever guards its own learner, and never
-    // the same twice.
-    const part = () => Math.random().toString(36).slice(2);
-    return `${Date.now().toString(36)}${part()}${part()}${part()}`.slice(0, 32);
-}
-/** Load-or-mint. The secret is the credential for every learner-scoped route, so
- *  a device that has none gets one now rather than sending an empty token and
- *  being told it is not allowed to read its own work. */
-function ensureSecret() {
-    const existing = loadSecret();
-    if (existing)
-        return existing;
-    const secret = mintSecret();
-    writeSecret(secret);
-    return secret;
-}
-/** Forget this device's learner entirely. Used when the server confirms the
- *  profile is gone (404) — keeping the ghost would make every page insist on a
- *  learner that no longer exists. */
-function clearIdentity() {
-    const store = storage();
-    if (!store)
-        return;
-    const had = store.getItem(exports.PROFILE_ID_KEY) !== null || store.getItem(exports.PROFILE_SECRET_KEY) !== null;
-    store.removeItem(exports.PROFILE_ID_KEY);
-    store.removeItem(exports.PROFILE_SECRET_KEY);
-    if (had)
-        announce();
-}
-
-});
-__def("api/transport.js", function (module, exports, require) {
-"use strict";
-// ─────────────────────────────────────────────────────────────────────────────
-// THE ONE PLACE A CLIENT REACHES THE NETWORK.
-//
-// Before this module existed, ~50 call sites across app/, components/ and lib/
-// each spelled out their own `fetch`, their own query string, their own
-// `if (!res.ok)`, their own JSON parse and their own decision about whether the
-// capability secret belonged in the URL or in the body. That is three products
-// wearing one name: the React page, the static page and the tests all had a
-// private opinion about how a learner's work is read and written.
-//
-// So the network is here, once, behind `send()`. Everything above it — the
-// pages, the components, the static build — asks for an OPERATION
-// (lib/api/client.ts) and never for a URL.
-//
-// Two rules are enforced here rather than at each call site:
-//
-//   1. A LEARNER DOOR ALWAYS PRESENTS THE CAPABILITY. The table below is the
-//      only place that knows how a capability travels (query for a read, body
-//      for a write), so a new page physically cannot forget the token — and a
-//      page that 401s can no longer paint an empty state as if the learner had
-//      done nothing.
-//
-//   2. THE SENDER IS SWAPPABLE. `setApiSender` replaces HTTP with anything that
-//      answers the same shape. That is the seam a server-less build (the static
-//      export, an offline PWA, a test) installs: the SAME domain logic, the same
-//      operations, a different wire. Nothing above this line changes.
-// ─────────────────────────────────────────────────────────────────────────────
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ApiError = void 0;
-exports.capabilityFor = capabilityFor;
-exports.buildUrl = buildUrl;
-exports.buildBody = buildBody;
-exports.setApiSender = setApiSender;
-exports.send = send;
-exports.probe = probe;
-exports.postAnswer = postAnswer;
-exports.learnerDoors = learnerDoors;
-const identity_1 = require("./identity");
-const sync_queue_1 = require("../sync-queue");
-/**
- * A failed call — ONE error type, carrying the two facts a caller actually
- * needs to tell apart:
- *
- *   status      the HTTP status. `0` means we never reached the server at all,
- *               which is a different sentence from any answer the server gave;
- *   code        the server's own `error` key when it named one, else "".
- *
- * The distinction is load-bearing and used to be re-derived (badly) at every
- * call site: a 404 is a FACT about the learner ("this profile is gone"), while
- * an unreachable server is NO information about them. Collapsing the two is how
- * a dropped packet becomes "you have recorded no evidence".
- */
-class ApiError extends Error {
-    constructor(status, code, message) {
-        super(message ?? code ?? `http_${status}`);
-        this.name = "ApiError";
-        this.status = status;
-        this.code = code;
-    }
-    /** We did not reach the server. Nothing is known about the request. */
-    get unreachable() {
-        return this.status === 0;
-    }
-    /** The server answered, and the thing asked about does not exist. */
-    get notFound() {
-        return this.status === 404;
-    }
-}
-exports.ApiError = ApiError;
-/**
- * The doors that speak about ONE learner. Every one of them is authorised by
- * the profile's capability secret, so every one of them must present it.
- *
- * The ONE exception is a read of `/api/profile`, and it is a deliberate one:
- * that door binds an unclaimed secret to a profile on first use ("first writer
- * wins"), so a stranger holding an id must be able to ASK without thereby
- * CLAIMING. A read that mints a secret would turn a lookup into a takeover. A
- * write to the same door does mint — creating a profile is exactly the moment
- * the device is supposed to take ownership.
- */
-const LEARNER_DOORS = new Set([
-    "next", "my-pack", "path", "classes", "assignments", "profile",
-    "session", "progress", "evidence", "evidence-summary", "my-paper",
-    "diagnostic", "paper", "tutor", "packs", "pack-export",
-]);
-function doorOf(path) {
-    const m = /^\/api\/([a-z-]+)/.exec(path);
-    return m ? m[1] : "";
-}
-/** The capability policy for one request, derived from the door and the method
- *  so that no caller has to remember it. */
-function capabilityFor(path, method) {
-    const door = doorOf(path);
-    if (!LEARNER_DOORS.has(door))
-        return "none";
-    if (door === "profile" && method === "GET")
-        return "device";
-    return "mint";
-}
-function capabilityValue(policy) {
-    if (policy === "none")
-        return null;
-    if (policy === "device")
-        return (0, identity_1.loadSecret)();
-    return (0, identity_1.ensureSecret)();
-}
-/** Build the URL for one request: the caller's query, plus the capability when
- *  this is a learner read. */
-function buildUrl(path, query, policy, method) {
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(query ?? {})) {
-        if (value === undefined || value === null)
-            continue;
-        params.set(key, String(value));
-    }
-    // A write carries its capability in the BODY (that is the shape every Post
-    // handler reads); a read can only carry it in the query.
-    if (policy !== "none" && method !== "POST") {
-        const secret = capabilityValue(policy);
-        if (secret)
-            params.set("secret", secret);
-    }
-    const qs = params.toString();
-    return qs ? `${path}?${qs}` : path;
-}
-/** Build the request body for one request, capability included. */
-function buildBody(body, policy, method) {
-    if (method !== "POST")
-        return undefined;
-    const base = body ?? {};
-    if (policy === "none")
-        return base;
-    const secret = capabilityValue(policy);
-    return secret ? { ...base, secret } : base;
-}
-/**
- * The default sender: HTTP, in the browser.
- *
- * A network failure is reported as status 0 rather than thrown raw, so every
- * caller above this line sees one error type and one distinction.
- */
-async function httpSender(req) {
-    let res;
-    try {
-        res = await fetch(req.url, {
-            method: req.method,
-            headers: req.body === undefined ? undefined : { "Content-Type": "application/json" },
-            body: req.body === undefined ? undefined : JSON.stringify(req.body),
-        });
-    }
-    catch {
-        throw new ApiError(0, "unreachable", "the server could not be reached");
-    }
-    return { status: res.status, json: await readJson(res) };
-}
-async function readJson(res) {
-    try {
-        return await res.json();
-    }
-    catch {
-        return null;
-    }
-}
-let sender = httpSender;
-/**
- * Deliver one request through `sender` and dress the answer as a `Response`.
- *
- * This exists for ONE caller: the offline queue (lib/sync-queue.ts), which
- * holds an answer and returns what the route said in the shape the callers of
- * `postAnswer` already read. Without it, installing a wire moved every call
- * except the answer — the one that matters most — and a server-less build would
- * fail to grade and hold the learner's work for a server that is not there.
- */
-function respondThroughSender(url, init) {
-    const path = url.split("?")[0];
-    let body;
-    try {
-        body = init.body ? JSON.parse(init.body) : undefined;
-    }
-    catch {
-        body = undefined;
-    }
-    return sender({ path, method: "POST", url, body }).then((res) => new Response(JSON.stringify(res.json ?? null), { status: res.status, headers: { "Content-Type": "application/json" } }), 
-    // A wire that could not answer is a network failure, in the shape the queue
-    // already understands: it holds the answer rather than losing it.
-    () => { throw new ApiError(0, "unreachable", "the wire could not deliver the answer"); });
-}
-/**
- * Install a different wire. The static build and the tests use this; the
- * product never calls it outside bootstrap.
- *
- * IT MOVES THE ANSWERS TOO. `setAnswerWire` is called here rather than left to
- * the caller, because two installs that can disagree is exactly how the seam
- * ended up covering every call except the one a learner's work depends on.
- */
-function setApiSender(next) {
-    sender = next ?? httpSender;
-    (0, sync_queue_1.setAnswerWire)(next ? respondThroughSender : null);
-}
-/**
- * Send one request and return its parsed body.
- *
- * Throws `ApiError` for a status the caller did not tolerate. An empty body
- * returns `{}` so callers never have to null-check a 200.
- */
-async function send(path, opts = {}) {
-    const method = opts.method ?? "GET";
-    const policy = opts.capability ?? capabilityFor(path, method);
-    const req = {
-        path,
-        method,
-        url: buildUrl(path, opts.query, policy, method),
-        body: buildBody(opts.body, policy, method),
-    };
-    const res = await sender(req);
-    if (!opts.tolerate?.includes(res.status) && (res.status < 200 || res.status >= 300)) {
-        throw new ApiError(res.status, errorCode(res.json), `http_${res.status}`);
-    }
-    return (res.json ?? {});
-}
-/** The server's own error key, when it named one. Every route in this app
- *  reports failures as `{ error: "some_key" }`, so that key is the honest thing
- *  to surface rather than the status. */
-function errorCode(body) {
-    if (body && typeof body === "object" && typeof body.error === "string") {
-        return body.error;
-    }
-    return "";
-}
-async function probe(path, opts = {}) {
-    try {
-        return { status: "ok", data: await send(path, { ...opts, tolerate: [] }) };
-    }
-    catch (e) {
-        if (!(e instanceof ApiError))
-            throw e;
-        if (e.unreachable)
-            return { status: "unreachable" };
-        if (e.notFound)
-            return { status: "notFound" };
-        return { status: "refused", code: e.code || `http_${e.status}` };
-    }
-}
-/**
- * One answer, written through the OFFLINE-SAFE path.
- *
- * An answer is the one request that must not be lost to a dropped connection,
- * so it does not go through `send`: it goes through the queue, which either
- * delivers it now or holds the exact body for replay through the same door. The
- * caller learns which, because "we will mark it when the connection returns" is
- * a different sentence from "you were wrong".
- */
-function postAnswer(path, body, submissionId, deviceAt) {
-    const policy = capabilityFor(path, "POST");
-    const withCapability = buildBody(body, policy, "POST") ?? body;
-    return (0, sync_queue_1.postAnswer)(path, {
-        submissionId,
-        deviceAt,
-        body: withCapability,
-    });
-}
-/** Exposed for the gate suite: the table itself, so the doors that carry a
- *  capability are asserted rather than described in a comment. */
-function learnerDoors() {
-    return [...LEARNER_DOORS].sort();
-}
-
-});
-__def("claims.js", function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CLAIM_COUNTS = void 0;
-exports.claimFacts = claimFacts;
-exports.claim = claim;
-// ─────────────────────────────────────────────────────────────────────────────
-// THE SELF-CLAIMS — every number OpenMind publishes about itself, computed from
-// the code that makes it true.
-//
-// THE FAILURE THIS FILE EXISTS TO END, OBSERVED IN THE SHIPPED BUILD. The
-// catalogue declared 53 misconception patterns. The copy in all fifteen
-// dictionaries said 43, and the gate asserted only
-//
-//     ok(misconceptions.MISCONCEPTIONS.length >= 40, ...)
-//
-// which is a FLOOR, not a claim check — both numbers passed it. So the reader
-// was told 43 about a system that had 53, and nothing anywhere could notice,
-// because the claim and the fact were two separate literals that no test held
-// together. `home.languages` carried the same defect ("15 languages" typed
-// fifteen times) and app/about/page.tsx typed the subject count as a bare `5`.
-//
-// THE RULE, and the whole reason this module exists:
-//
-//     A public quantitative claim is never typed into a dictionary.
-//
-// So a count is a PLACEHOLDER in the sentence and a FACT here. `claim()` fills
-// one from the other, which makes drift impossible rather than merely
-// discouraged: the sentence moves when the catalogue moves, and a placeholder
-// that somehow cannot be filled renders as `{misconceptions}` — visibly broken
-// to a reviewer — instead of silently reading a plausible, wrong number.
-//
-// The numerals are rendered in the digits CLDR gives that language, which is
-// not the same as the digits a dictionary author would type by hand. Persian
-// and Bengali get ۵۳ and ৫৩; Urdu, whose dictionaries spelled "۴۳", is given
-// Latin digits by CLDR — so the rendered numeral can differ from the hand-typed
-// one it replaces. That is the intended trade: a count whose SCRIPT follows the
-// locale, and whose VALUE follows the catalogue, beats a count that is correct
-// in neither. `toLocaleString` is guarded because a bad locale must not take a
-// page down.
-//
-// scripts/verify-engines.mjs holds this to both ends: every dictionary must
-// carry the placeholder, and `claim()` must resolve it in every language.
-const i18n_1 = require("./i18n");
-const genome_1 = require("./genome");
-const misconceptions_1 = require("./misconceptions");
-const subjects_1 = require("./subjects");
-/** The numbers, as this language writes them. */
-function claimFacts(lang) {
-    const n = (value) => {
-        try {
-            return value.toLocaleString(lang);
-        }
-        catch {
-            return String(value);
-        }
-    };
-    return {
-        misconceptions: n(misconceptions_1.MISCONCEPTIONS.length),
-        concepts: n(genome_1.CONCEPTS.length),
-        languages: n(i18n_1.LANGS.length),
-        subjects: n(subjects_1.SUBJECT_IDS.length),
-    };
-}
-/** A translated sentence with its numbers filled from the source of truth.
- *
- *  `translator()` already falls back lang → en → key, so a dictionary missing
- *  the sentence is a visible key rather than a blank paragraph. */
-function claim(key, lang = "en") {
-    return (0, i18n_1.fill)((0, i18n_1.translator)(lang)(key), claimFacts(lang));
-}
-/** The raw counts, for a surface that composes its own sentence (app/about
- *  prints "135 concepts · 53 misconceptions · 5 subjects · 15 languages" as
- *  figures, not as translated phrases). Same source, so the two forms cannot
- *  disagree. */
-exports.CLAIM_COUNTS = {
-    misconceptions: misconceptions_1.MISCONCEPTIONS.length,
-    concepts: genome_1.CONCEPTS.length,
-    languages: i18n_1.LANGS.length,
-    subjects: subjects_1.SUBJECT_IDS.length,
-};
 
 });
 __def("content-graph.js", function (module, exports, require) {
@@ -1748,23 +826,9 @@ function levelLabel(lang, tier, name) {
         return own;
     return own === generic ? generic : `${generic} · ${own}`;
 }
-/** A belief's name, in the learner's language.
- *
- *  THE RULE LIVES IN THE CATALOGUE (lib/misconceptions#beliefName) and this is
- *  its language-code face, for the surfaces that hold a `lang` rather than a
- *  translator. Two implementations of "name a belief, never a raw key" is how
- *  one of them ends up showing `mc.sf-sig` on screen, so there is one: this
- *  delegates.
- *
- *  The third argument is a caller's fallback and is now redundant — every call
- *  site passes the catalogue's own name, which is what the rule already falls
- *  back to. It is kept so that the change is a delegation rather than a
- *  28-site refactor; the behaviour is identical for a known id, and for an
- *  unknown one the rule answers with the id, which is the most honest thing
- *  that can be said about a belief the catalogue does not hold. */
 function mcName(lang, id, fallback) {
-    const named = (0, misconceptions_1.beliefName)((0, i18n_1.translator)(lang), id);
-    return named === id ? (fallback ?? id) : named;
+    const v = (0, i18n_1.translator)(lang)(`mc.${id}`);
+    return v === `mc.${id}` ? fallback : v;
 }
 function mcCoaching(lang, id, fallback) {
     const v = (0, i18n_1.translator)(lang)(`mcp.${id}`);
@@ -2959,27 +2023,20 @@ exports.dimensionFor = dimensionFor;
 exports.basedOn = basedOn;
 exports.conceptKnowledge = conceptKnowledge;
 exports.recentAnswers = recentAnswers;
-exports.hasRecordedWork = hasRecordedWork;
 exports.conceptAnswers = conceptAnswers;
 const evidence_1 = require("./evidence");
 const proof_1 = require("./proof");
-const client_1 = require("./api/client");
-/**
- * Read the learner's ledger, saying WHICH of the three happened.
- *
- *  No capability parameter: this is an OPERATION (lib/api/client.ts#ledger) and
- *  the token travels with it, so a caller cannot present the wrong one. It
- *  could before, and the result was a page telling a learner who had answered
- *  forty questions that they had demonstrated nothing — a refusal and an empty
- *  record look identical from a surface's side unless the surface asks.
- *
- *  A refusal is still a failure here, never an empty record: the operation
- *  throws, and only a response whose SHAPE is right becomes `ready`. Reading
- *  `events` as `[]` is how a malformed response becomes "nothing recorded".
- */
-async function loadLedgerState(id) {
+/** Read the learner's ledger, saying WHICH of the three happened. */
+async function loadLedgerState(id, secret) {
     try {
-        const j = await (0, client_1.ledger)(id);
+        const res = await fetch(`/api/evidence?id=${encodeURIComponent(id)}&secret=${encodeURIComponent(secret)}`);
+        // A refusal is a failure, not an empty record: a learner whose capability
+        // secret expired does not stop having answered questions.
+        if (!res.ok)
+            return { status: "failed" };
+        const j = (await res.json());
+        // A 200 whose SHAPE is wrong is a failure too. Reading `events` as `[]` here
+        // is how a malformed response becomes "you have demonstrated nothing".
         if (!Array.isArray(j.events) || !j.projection)
             return { status: "failed" };
         return { status: "ready", ledger: { events: j.events, projection: j.projection } };
@@ -2995,8 +2052,8 @@ async function loadLedgerState(id) {
  * surface whose PURPOSE is evidence uses `loadLedgerState` and shows all three
  * outcomes instead; see the Mind pages and /progress.
  */
-async function loadLedger(id) {
-    const r = await loadLedgerState(id);
+async function loadLedger(id, secret) {
+    const r = await loadLedgerState(id, secret);
     return r.status === "ready" ? r.ledger : null;
 }
 function citationsFor(evidenceIds, events, opts) {
@@ -3119,38 +2176,6 @@ function recentAnswers(events, n = 12) {
         .filter((e) => e.type === "answer_submitted")
         .sort((a, b) => b.at - a.at)
         .slice(0, n);
-}
-/** Has this learner actually done any work here yet?
- *
- *  THE DIVERGENCE THIS ENDS, MEASURED IN THE SHIPPED PRODUCTS. Two surfaces ask
- *  this question every time Home renders, because it is the difference between
- *  "Welcome back" and a first hello — and they were asking it about two
- *  different facts:
- *
- *    docs/app.js                   recentAnswers(events, 5).length === 0
- *    components/learner-home.tsx   Object.keys(state.progress).length === 0
- *
- *  Those are not the same fact, and they can disagree. `progress` keeps an
- *  entry for every concept the projection has SEEN, and the React page says so
- *  itself: it counts `measured` as `attempts > 0` separately from the entries it
- *  already holds, which is only a distinction if a zero-attempt entry exists. So
- *  the same learner, on the same record, could be greeted as a returning one on
- *  one surface and as a new one on the other — and neither surface was wrong
- *  about its own fact.
- *
- *  A rule that a learner READS belongs in the shared layer for exactly this
- *  reason: there is then one fact to be right or wrong about. Both surfaces call
- *  this, on the model they already hold, so neither has to load anything to
- *  answer it and the greeting cannot depend on which request landed first.
- *
- *  The fact chosen is the model's own: a concept carries `attempts` only once an
- *  answer has been folded into it. A profile is NOT work — setup creates one, and
- *  a learner who has just finished setup has nothing to come back TO. */
-function hasRecordedWork(state) {
-    const progress = state?.progress;
-    if (!progress)
-        return false;
-    return Object.values(progress).some((p) => (p?.attempts ?? 0) > 0);
 }
 /**
  * ONE concept's own answers, newest first: the trail a concept page shows.
@@ -4265,7 +3290,6 @@ const en = {
     "curr.change": "Change subjects and support",
     "curr.specsNote": "courses from 20 countries are mapped onto the same knowledge graph.",
     "curr.noProfile": "Set up a profile first — your course is saved there.",
-    "curr.youAreHere": "You are here",
     "lvl.primary": "Primary",
     "lvl.junior": "Lower secondary",
     "lvl.foundation": "Foundation tier",
@@ -4325,7 +3349,7 @@ const en = {
     "next.reason.retrieve": "You proved this before — a quick retrieval now makes it stick.",
     "next.reason.retrieveUnproved": "This is due for review and has not been done unaided yet — recalling it now is what tells us where it really stands.",
     "next.reason.explain": "Straightforward steps are shaky — rebuild the idea before drilling.",
-    "next.reason.practisePre": "Your mastery here is",
+    "next.reason.practisePre": "You solve straightforward ones at",
     "next.reason.practisePost": "% — now recognise when the method applies.",
     "next.title.advance": "Next topic",
     "next.reason.advance": "You have demonstrated everything up to here — next is {next}.",
@@ -4333,8 +3357,6 @@ const en = {
     "next.reason.prereqNew": "{next} is built on this, and you have not covered it yet — this comes first.",
     "next.ev.prereqsMet": "foundations met",
     "next.ev.demonstrated": "demonstrated",
-    "next.haveDemonstrated": "You have demonstrated:",
-    "next.notYetDemonstrated": "You haven't yet demonstrated:",
     "next.title.prove": "Prove it",
     "next.reason.proveNoHelp": "You have got these right, but every one needed help — do one unaided before moving on.",
     "next.ev.needsNoHelp": "nothing done unaided yet",
@@ -4683,11 +3705,11 @@ const en = {
     "home.cta2": "Explore the Knowledge Genome",
     "home.free": "100% free",
     "home.offline": "Graded on this device",
-    "home.languages": "{languages} languages",
+    "home.languages": "15 languages",
     "home.openSource": "Open source",
     "how.title": "Diagnose. Learn. Prove.",
     "how.p1": "A short adaptive diagnostic maps what you actually know — not what a syllabus assumes. It climbs a difficulty ladder per concept, so strong students finish fast and struggling students never feel tested beyond reach.",
-    "how.p2": "Every lesson teaches the idea, not just the steps. Practice is unlimited and freshly generated, and every wrong answer is checked against {misconceptions} known misconception patterns — so you learn why you slipped, not just that you did.",
+    "how.p2": "Every lesson teaches the idea, not just the steps. Practice is unlimited and freshly generated, and every wrong answer is checked against 43 known misconception patterns — so you learn why you slipped, not just that you did.",
     "how.p3": "Your evidence: mastery per concept, misconceptions fading over time, streaks that show consistency. Exportable progress that teachers and chapters can build on.",
     "subj.title": "Five subjects, one Knowledge Genome",
     "onb.title": "Set up your learning profile",
@@ -4704,7 +3726,7 @@ const en = {
     "onb.start": "Start learning",
     "onb.handle": "Choose a nickname",
     "onb.goalPh": "e.g. I want to become an engineer",
-    "dash.hello": "Hello", "dash.hi": "Welcome back",
+    "dash.hi": "Welcome back",
     "dash.continue": "Continue your path",
     "dash.diagnose": "Take a diagnostic",
     "dash.recommended": "Recommended next",
@@ -4840,7 +3862,7 @@ const en = {
     "common.free": "Free",
     "common.country": "Country",
     "common.anon": "Anonymous by design",
-    "home.tryCaption": "Every question on OpenMind is generated fresh and marked honestly — wrong answers are checked against {misconceptions} known misconception patterns.",
+    "home.tryCaption": "Every question on OpenMind is generated fresh and marked honestly — wrong answers are checked against 43 known misconception patterns.",
     "home.tryLink": "Try the full diagnostic →",
     "tutor.title": "Tutor",
     "tutor.sub": "Ask anything about this concept — the tutor guides with questions, never answers.",
@@ -5424,7 +4446,6 @@ const es = {
     "curr.change": "Cambiar asignaturas y apoyos",
     "curr.specsNote": "cursos de 20 países están mapeados sobre el mismo grafo de conocimiento.",
     "curr.noProfile": "Primero crea un perfil: tu curso se guarda ahí.",
-    "curr.youAreHere": "Estás aquí",
     "lvl.primary": "Primaria",
     "lvl.junior": "Secundaria básica",
     "lvl.foundation": "Nivel básico",
@@ -5839,7 +4860,7 @@ const es = {
     "next.reason.retrieve": "Ya lo demostraste antes — repasarlo ahora lo fija.",
     "next.reason.retrieveUnproved": "Toca repasarlo y aún no lo has hecho sin ayuda: recordarlo ahora es lo que nos dice en qué punto estás de verdad.",
     "next.reason.explain": "Los pasos directos tambalean — reconstruye la idea antes de ejercitar.",
-    "next.reason.practisePre": "Tu dominio aquí es del",
+    "next.reason.practisePre": "Resuelves los directos al",
     "next.reason.practisePost": "% — ahora reconoce cuándo aplica el método.",
     "next.title.advance": "Siguiente tema",
     "next.reason.advance": "Has demostrado todo hasta aquí — lo siguiente es {next}.",
@@ -5847,8 +4868,6 @@ const es = {
     "next.reason.prereqNew": "{next} se apoya en esto, y aún no lo has visto — esto va primero.",
     "next.ev.prereqsMet": "bases afianzadas",
     "next.ev.demonstrated": "demostrados",
-    "next.haveDemonstrated": "Has demostrado:",
-    "next.notYetDemonstrated": "Aún no has demostrado:",
     "next.title.prove": "Demuéstralo",
     "next.reason.proveNoHelp": "Las has acertado, pero en todas necesitaste ayuda — haz una sin ayuda antes de seguir.",
     "next.ev.needsNoHelp": "aún nada hecho sin ayuda",
@@ -5874,9 +4893,6 @@ const es = {
     "next.ev.kcapability": "Conocimiento → capacidad",
     "q.workOut": "Calcula",
     "q.solve": "Resuelve",
-    "answer.label": "Tu respuesta",
-    "answer.needNumber": "Escribe un número para comprobar tu respuesta.",
-    "answer.unitHint": "en {unit}",
     "q.simplify": "Simplifica",
     "q.expand": "Desarrolla",
     "q.evaluate": "Evalúa",
@@ -6151,16 +5167,16 @@ const es = {
     "home.heroTitle": "Práctica que se adapta a lo que realmente sabes.",
     "home.heroSub": "OpenMind encuentra lo que ya sabes, practica lo que no, y recuerda por qué te equivocaste. Tus respuestas se quedan en este dispositivo, así que sigue funcionando sin conexión.",
     "home.cta": "Empieza a aprender gratis", "home.cta2": "Explora el Genoma del Conocimiento",
-    "home.free": "100% gratis", "home.offline": "Corregido en este dispositivo", "home.languages": "{languages} idiomas", "home.openSource": "Código abierto",
+    "home.free": "100% gratis", "home.offline": "Corregido en este dispositivo", "home.languages": "15 idiomas", "home.openSource": "Código abierto",
     "how.title": "Diagnostica. Aprende. Demuestra.",
     "how.p1": "Un diagnóstico adaptativo breve mapea lo que realmente sabes. Sube una escalera de dificultad por concepto: los avanzados terminan rápido y los que luchan nunca se sienten fuera de alcance.",
-    "how.p2": "Cada lección enseña la idea, no solo los pasos. La práctica es ilimitada y recién generada, y cada error se compara con {misconceptions} patrones de conceptos erróneos conocidos: aprendes por qué te equivocaste, no solo que te equivocaste.",
+    "how.p2": "Cada lección enseña la idea, no solo los pasos. La práctica es ilimitada y recién generada, y cada error se compara con 43 patrones de conceptos erróneos conocidos: aprendes por qué te equivocaste, no solo que te equivocaste.",
     "how.p3": "Tu evidencia: dominio por concepto, conceptos erróneos que se desvanecen, rachas que muestran constancia. Progreso exportable sobre el que docentes y capítulos pueden construir.",
     "subj.title": "Cinco materias, un Genoma del Conocimiento",
     "onb.title": "Configura tu perfil de aprendizaje",
     "onb.country": "País", "onb.age": "Edad", "onb.language": "Idioma", "onb.goal": "Tu meta", "onb.subjects": "Materias que quieres",
     "onb.start": "Empezar a aprender", "onb.handle": "Elige un apodo", "onb.goalPh": "p. ej. quiero ser ingeniero",
-    "dash.hello": "Hola", "dash.hi": "Bienvenido de nuevo", "dash.continue": "Continúa tu ruta", "dash.diagnose": "Haz un diagnóstico",
+    "dash.hi": "Bienvenido de nuevo", "dash.continue": "Continúa tu ruta", "dash.diagnose": "Haz un diagnóstico",
     "dash.recommended": "Recomendado a continuación", "dash.mastery": "Dominio", "dash.rooms": "Salas de estudio", "dash.genome": "Mapa del genoma",
     "dash.language": "Idioma", "dash.subjects": "Materias",
     "diag.title": "Diagnóstico adaptativo",
@@ -6241,7 +5257,7 @@ const es = {
     "common.subject": "Materia", "common.stage": "Etapa", "common.prereqs": "Se basa en", "common.you": "Tú", "common.save": "Guardar",
     "common.close": "Cerrar", "common.loading": "Cargando…", "common.error": "Algo salió mal", "common.retry": "Reintentar",
     "common.free": "Gratis", "common.country": "País", "common.anon": "Anónimo por diseño",
-    "home.tryCaption": "Cada pregunta se genera nueva y se corrige con honestidad: los errores se comparan con {misconceptions} patrones de conceptos erróneos.",
+    "home.tryCaption": "Cada pregunta se genera nueva y se corrige con honestidad: los errores se comparan con 43 patrones de conceptos erróneos.",
     "home.tryLink": "Probar el diagnóstico completo →",
     "diag.q1": "preguntas",
     "learn.misconceptions": "Ideas erróneas",
@@ -6831,7 +5847,6 @@ const fr = {
     "curr.change": "Changer de matières et d'aides",
     "curr.specsNote": "cursus de 20 pays sont reliés au même graphe de connaissances.",
     "curr.noProfile": "Crée d'abord un profil : ton cursus y est enregistré.",
-    "curr.youAreHere": "Tu es ici",
     "lvl.primary": "Primaire",
     "lvl.junior": "Premier cycle du secondaire",
     "lvl.foundation": "Niveau de base",
@@ -7246,7 +6261,7 @@ const fr = {
     "next.reason.retrieve": "Tu l'avais déjà prouvé — une révision rapide l'ancre maintenant.",
     "next.reason.retrieveUnproved": "C'est à revoir, et tu ne l'as pas encore fait sans aide — s'en souvenir maintenant est ce qui nous dit où tu en es vraiment.",
     "next.reason.explain": "Les étapes directes sont fragiles — reconstruis l'idée avant de t'exercer.",
-    "next.reason.practisePre": "Ta maîtrise ici est de",
+    "next.reason.practisePre": "Tu réussis les exercices directs à",
     "next.reason.practisePost": "% — maintenant, reconnais quand la méthode s'applique.",
     "next.title.advance": "Notion suivante",
     "next.reason.advance": "Tu as démontré tout ce qui précède — la suite est {next}.",
@@ -7254,8 +6269,6 @@ const fr = {
     "next.reason.prereqNew": "{next} repose là-dessus, et tu ne l'as pas encore vu — cela vient d'abord.",
     "next.ev.prereqsMet": "bases acquises",
     "next.ev.demonstrated": "démontrés",
-    "next.haveDemonstrated": "Tu as démontré :",
-    "next.notYetDemonstrated": "Tu n'as pas encore démontré :",
     "next.title.prove": "Prouve-le",
     "next.reason.proveNoHelp": "Tu les as réussies, mais tu as eu besoin d'aide à chaque fois — fais-en une seul avant de continuer.",
     "next.ev.needsNoHelp": "rien fait sans aide pour l'instant",
@@ -7281,9 +6294,6 @@ const fr = {
     "next.ev.kcapability": "Savoir → capacité",
     "q.workOut": "Calcule",
     "q.solve": "Résous",
-    "answer.label": "Ta réponse",
-    "answer.needNumber": "Écris un nombre pour vérifier ta réponse.",
-    "answer.unitHint": "en {unit}",
     "q.simplify": "Simplifie",
     "q.expand": "Développe",
     "q.evaluate": "Évalue",
@@ -7558,16 +6568,16 @@ const fr = {
     "home.heroTitle": "Des exercices qui s’adaptent à ce que vous savez vraiment.",
     "home.heroSub": "OpenMind repère ce que vous savez déjà, travaille ce que vous ne savez pas, et se souvient de vos erreurs. Vos réponses restent sur cet appareil : tout continue de fonctionner sans connexion.",
     "home.cta": "Commencer gratuitement", "home.cta2": "Explorer le Génome du Savoir",
-    "home.free": "100% gratuit", "home.offline": "Corrigé sur cet appareil", "home.languages": "{languages} langues", "home.openSource": "Open source",
+    "home.free": "100% gratuit", "home.offline": "Corrigé sur cet appareil", "home.languages": "15 langues", "home.openSource": "Open source",
     "how.title": "Diagnostiquer. Apprendre. Prouver.",
     "how.p1": "Un diagnostic adaptatif bref cartographie ce que vous savez vraiment. Il gravit un échelonnier de difficulté par concept : les forts finissent vite, les fragiles ne se sentent jamais dépassés.",
-    "how.p2": "Chaque leçon enseigne l'idée, pas seulement les étapes. La pratique est illimitée et fraîchement générée, et chaque erreur est comparée à {misconceptions} schémas d'idées fausses connus : vous apprenez pourquoi vous avez glissé.",
+    "how.p2": "Chaque leçon enseigne l'idée, pas seulement les étapes. La pratique est illimitée et fraîchement générée, et chaque erreur est comparée à 43 schémas d'idées fausses connus : vous apprenez pourquoi vous avez glissé.",
     "how.p3": "Vos preuves : maîtrise par concept, idées fausses qui s'estompent, séries qui montrent la régularité. Des progrès exportables pour les enseignants et les chapitres.",
     "subj.title": "Cinq matières, un Génome du Savoir",
     "onb.title": "Configurez votre profil d'apprentissage",
     "onb.country": "Pays", "onb.age": "Âge", "onb.language": "Langue", "onb.goal": "Votre objectif", "onb.subjects": "Matières souhaitées",
     "onb.start": "Commencer à apprendre", "onb.handle": "Choisissez un pseudo", "onb.goalPh": "p. ex. je veux devenir ingénieur",
-    "dash.hello": "Bonjour", "dash.hi": "Bon retour", "dash.continue": "Continuer votre parcours", "dash.diagnose": "Passer un diagnostic",
+    "dash.hi": "Bon retour", "dash.continue": "Continuer votre parcours", "dash.diagnose": "Passer un diagnostic",
     "dash.recommended": "Recommandé ensuite", "dash.mastery": "Maîtrise", "dash.rooms": "Salles d'étude", "dash.genome": "Carte du génome",
     "dash.language": "Langue", "dash.subjects": "Matières",
     "diag.title": "Diagnostic adaptatif",
@@ -7648,7 +6658,7 @@ const fr = {
     "common.subject": "Matière", "common.stage": "Étape", "common.prereqs": "S'appuie sur", "common.you": "Vous", "common.save": "Enregistrer",
     "common.close": "Fermer", "common.loading": "Chargement…", "common.error": "Une erreur est survenue", "common.retry": "Réessayer",
     "common.free": "Gratuit", "common.country": "Pays", "common.anon": "Anonyme par conception",
-    "home.tryCaption": "Chaque question est générée à neuf et corrigée honnêtement : les erreurs sont comparées à {misconceptions} schémas d'idées fausses.",
+    "home.tryCaption": "Chaque question est générée à neuf et corrigée honnêtement : les erreurs sont comparées à 43 schémas d'idées fausses.",
     "home.tryLink": "Essayer le diagnostic complet →",
     "diag.q1": "questions",
     "learn.misconceptions": "Idées fausses",
@@ -8238,7 +7248,6 @@ const pt = {
     "curr.change": "Alterar disciplinas e apoios",
     "curr.specsNote": "cursos de 20 países estão mapeados no mesmo grafo de conhecimento.",
     "curr.noProfile": "Cria primeiro um perfil — o teu curso é guardado aí.",
-    "curr.youAreHere": "Estás aqui",
     "lvl.primary": "Primário",
     "lvl.junior": "Secundário básico",
     "lvl.foundation": "Nível básico",
@@ -8653,7 +7662,7 @@ const pt = {
     "next.reason.retrieve": "Já o provaste antes — uma revisão rápida agora fixa-o.",
     "next.reason.retrieveUnproved": "Está na hora de revisar e ainda não o fizeste sem ajuda — recordá-lo agora é o que nos diz onde estás de verdade.",
     "next.reason.explain": "Os passos diretos estão frágeis — reconstrói a ideia antes de exercitar.",
-    "next.reason.practisePre": "O teu domínio aqui é de",
+    "next.reason.practisePre": "Resolves os diretos a",
     "next.reason.practisePost": "% — agora reconhece quando o método se aplica.",
     "next.title.advance": "Próximo tópico",
     "next.reason.advance": "Demonstraste tudo até aqui — o próximo é {next}.",
@@ -8661,8 +7670,6 @@ const pt = {
     "next.reason.prereqNew": "{next} baseia-se nisto, e ainda não o estudaste — isto vem primeiro.",
     "next.ev.prereqsMet": "bases consolidadas",
     "next.ev.demonstrated": "demonstrados",
-    "next.haveDemonstrated": "Já demonstraste:",
-    "next.notYetDemonstrated": "Ainda não demonstraste:",
     "next.title.prove": "Prova-o",
     "next.reason.proveNoHelp": "Acertaste estas, mas precisaste de ajuda em todas — faz uma sozinho antes de avançar.",
     "next.ev.needsNoHelp": "nada feito sem ajuda ainda",
@@ -8688,9 +7695,6 @@ const pt = {
     "next.ev.kcapability": "Conhecimento → capacidade",
     "q.workOut": "Calcula",
     "q.solve": "Resolve",
-    "answer.label": "A tua resposta",
-    "answer.needNumber": "Escreve um número para verificar a tua resposta.",
-    "answer.unitHint": "em {unit}",
     "q.simplify": "Simplifica",
     "q.expand": "Desenvolve",
     "q.evaluate": "Avalia",
@@ -8965,16 +7969,16 @@ const pt = {
     "home.heroTitle": "Prática que se adapta ao que você realmente sabe.",
     "home.heroSub": "O OpenMind encontra o que você já sabe, pratica o que não sabe e lembra por que você errou. As suas respostas ficam neste dispositivo, por isso continua a funcionar sem ligação.",
     "home.cta": "Começar a aprender grátis", "home.cta2": "Explorar o Genoma do Conhecimento",
-    "home.free": "100% grátis", "home.offline": "Corrigido neste dispositivo", "home.languages": "{languages} idiomas", "home.openSource": "Código aberto",
+    "home.free": "100% grátis", "home.offline": "Corrigido neste dispositivo", "home.languages": "15 idiomas", "home.openSource": "Código aberto",
     "how.title": "Diagnosticar. Aprender. Provar.",
     "how.p1": "Um diagnóstico adaptativo curto mapeia o que você realmente sabe. Sobe uma escada de dificuldade por conceito: os fortes terminam rápido, os que lutam nunca se sentem além do alcance.",
-    "how.p2": "Cada lição ensina a ideia, não só os passos. A prática é ilimitada e recém-gerada, e cada erro é comparado a {misconceptions} padrões de equívocos conhecidos — você aprende por que escorregou.",
+    "how.p2": "Cada lição ensina a ideia, não só os passos. A prática é ilimitada e recém-gerada, e cada erro é comparado a 43 padrões de equívocos conhecidos — você aprende por que escorregou.",
     "how.p3": "Sua evidência: domínio por conceito, equívocos que desaparecem, sequências que mostram constância. Progresso exportável para professores e núcleos.",
     "subj.title": "Cinco matérias, um Genoma do Conhecimento",
     "onb.title": "Configure seu perfil de aprendizagem",
     "onb.country": "País", "onb.age": "Idade", "onb.language": "Idioma", "onb.goal": "Seu objetivo", "onb.subjects": "Matérias desejadas",
     "onb.start": "Começar a aprender", "onb.handle": "Escolha um apelido", "onb.goalPh": "ex.: quero ser engenheiro",
-    "dash.hello": "Olá", "dash.hi": "Bem-vindo de volta", "dash.continue": "Continue sua trilha", "dash.diagnose": "Fazer um diagnóstico",
+    "dash.hi": "Bem-vindo de volta", "dash.continue": "Continue sua trilha", "dash.diagnose": "Fazer um diagnóstico",
     "dash.recommended": "Recomendado a seguir", "dash.mastery": "Domínio", "dash.rooms": "Salas de estudo", "dash.genome": "Mapa do genoma",
     "dash.language": "Idioma", "dash.subjects": "Matérias",
     "diag.title": "Diagnóstico adaptativo",
@@ -9055,7 +8059,7 @@ const pt = {
     "common.subject": "Matéria", "common.stage": "Etapa", "common.prereqs": "Baseia-se em", "common.you": "Você", "common.save": "Salvar",
     "common.close": "Fechar", "common.loading": "Carregando…", "common.error": "Algo deu errado", "common.retry": "Tentar de novo",
     "common.free": "Grátis", "common.country": "País", "common.anon": "Anônimo por design",
-    "home.tryCaption": "Cada pergunta é gerada nova e corrigida com honestidade: erros são comparados a {misconceptions} padrões de equívocos.",
+    "home.tryCaption": "Cada pergunta é gerada nova e corrigida com honestidade: erros são comparados a 43 padrões de equívocos.",
     "home.tryLink": "Experimentar o diagnóstico completo →",
     "diag.q1": "perguntas",
     "learn.misconceptions": "Ideias erradas",
@@ -9645,7 +8649,6 @@ const ar = {
     "curr.change": "غيّر المواد والدعم",
     "curr.specsNote": "مساراً من 20 بلداً مرسومة على خريطة المعرفة نفسها.",
     "curr.noProfile": "أنشئ ملفاً أولاً — يُحفظ مسارك فيه.",
-    "curr.youAreHere": "أنت هنا",
     "lvl.primary": "المرحلة الابتدائية",
     "lvl.junior": "المرحلة الإعدادية",
     "lvl.foundation": "المستوى الأساسي",
@@ -10060,7 +9063,7 @@ const ar = {
     "next.reason.retrieve": "أثبتها سابقًا — استرجاع سريع الآن يثبّتها.",
     "next.reason.retrieveUnproved": "حان وقت المراجعة ولم تُنجزه بعد دون مساعدة — استرجاعه الآن هو ما يخبرنا أين تقف حقًا.",
     "next.reason.explain": "الخطوات المباشرة متعثرة — أعد بناء الفكرة قبل التمرين.",
-    "next.reason.practisePre": "إتقانك هنا هو",
+    "next.reason.practisePre": "تحل المباشرة بنسبة",
     "next.reason.practisePost": "% — الآن تعرّف متى ينطبق الأسلوب.",
     "next.title.advance": "الموضوع التالي",
     "next.reason.advance": "لقد أثبتت كل ما سبق — التالي هو {next}.",
@@ -10068,8 +9071,6 @@ const ar = {
     "next.reason.prereqNew": "{next} مبني على هذا، ولم تتناوله بعد — هذا يأتي أولًا.",
     "next.ev.prereqsMet": "الأساسات مكتملة",
     "next.ev.demonstrated": "مُثبَت",
-    "next.haveDemonstrated": "لقد أثبتّ:",
-    "next.notYetDemonstrated": "لم تُثبت بعد:",
     "next.title.prove": "أثبته",
     "next.reason.proveNoHelp": "أجبت عنها جميعًا بشكل صحيح، لكنك احتجت إلى المساعدة في كل مرة — أجب عن واحدة بمفردك قبل المتابعة.",
     "next.ev.needsNoHelp": "لم تُنجز أي شيء بمفردك بعد",
@@ -10095,9 +9096,6 @@ const ar = {
     "next.ev.kcapability": "معرفة → قدرة",
     "q.workOut": "احسب",
     "q.solve": "حُلّ",
-    "answer.label": "إجابتك",
-    "answer.needNumber": "اكتب رقمًا ليتحقّق من إجابتك.",
-    "answer.unitHint": "بوحدة {unit}",
     "q.simplify": "بسّط",
     "q.expand": "فُكّ",
     "q.evaluate": "قَيّم",
@@ -10372,16 +9370,16 @@ const ar = {
     "home.heroTitle": "تدريب يتكيّف مع ما تعرفه فعلاً.",
     "home.heroSub": "يحدّد OpenMind ما تعرفه بالفعل، ويتدرّب على ما لا تعرفه، ويتذكّر سبب أخطائك. تبقى إجاباتك على هذا الجهاز، فيستمر بالعمل دون اتصال.",
     "home.cta": "ابدأ التعلم مجانًا", "home.cta2": "استكشف جينوم المعرفة",
-    "home.free": "مجاني 100%", "home.offline": "يُصحَّح على هذا الجهاز", "home.languages": "{languages} لغة", "home.openSource": "مفتوح المصدر",
+    "home.free": "مجاني 100%", "home.offline": "يُصحَّح على هذا الجهاز", "home.languages": "15 لغة", "home.openSource": "مفتوح المصدر",
     "how.title": "شخّص. تعلّم. أثبت.",
     "how.p1": "تشخيص تكيّفي قصير يرسم ما تعرفه فعلًا. يصعد سلّم صعوبة لكل مفهوم: الأقوياء ينتهون سريعًا، والمتعثرون لا يشعرون أبدًا بأن الأسئلة أبعد من متناولهم.",
-    "how.p2": "كل درس يعلّم الفكرة لا الخطوات فقط. التدريب غير محدود ومولود جديدًا، وكل إجابة خاطئة تُقارن بـ{misconceptions} نمط سوء فهم معروف — فتتعلم لماذا انزلقت، لا فقط أنك انزلقت.",
+    "how.p2": "كل درس يعلّم الفكرة لا الخطوات فقط. التدريب غير محدود ومولود جديدًا، وكل إجابة خاطئة تُقارن بـ43 نمط سوء فهم معروف — فتتعلم لماذا انزلقت، لا فقط أنك انزلقت.",
     "how.p3": "دليلك: إتقان لكل مفهوم، سوء فهم يتلاشى، وسلاسل تُظهر الانتظام. تقدم قابل للتصدير يبني عليه المعلمون والفصول.",
     "subj.title": "خمس مواد، جينوم معرفة واحد",
     "onb.title": "أنشئ ملفك التعليمي",
     "onb.country": "البلد", "onb.age": "العمر", "onb.language": "اللغة", "onb.goal": "هدفك", "onb.subjects": "المواد التي تريدها",
     "onb.start": "ابدأ التعلم", "onb.handle": "اختر اسمًا مستعارًا", "onb.goalPh": "مثال: أريد أن أصبح مهندسًا",
-    "dash.hello": "مرحبًا", "dash.hi": "مرحبًا بعودتك", "dash.continue": "تابع مسارك", "dash.diagnose": "خذ تشخيصًا",
+    "dash.hi": "مرحبًا بعودتك", "dash.continue": "تابع مسارك", "dash.diagnose": "خذ تشخيصًا",
     "dash.recommended": "المقترح تاليًا", "dash.mastery": "الإتقان", "dash.rooms": "غرف الدراسة", "dash.genome": "خريطة الجينوم",
     "dash.language": "اللغة", "dash.subjects": "المواد",
     "diag.title": "تشخيص تكيّفي",
@@ -10462,7 +9460,7 @@ const ar = {
     "common.subject": "المادة", "common.stage": "المرحلة", "common.prereqs": "يبني على", "common.you": "أنت", "common.save": "حفظ",
     "common.close": "إغلاق", "common.loading": "جارٍ التحميل…", "common.error": "حدث خطأ ما", "common.retry": "أعد المحاولة",
     "common.free": "مجاني", "common.country": "البلد", "common.anon": "مجهول الهوية بالتصميم",
-    "home.tryCaption": "كل سؤال يُولَّد جديدًا ويُصحَّح بصدق: الأخطاء تُقارن بـ{misconceptions} نمط سوء فهم معروف.",
+    "home.tryCaption": "كل سؤال يُولَّد جديدًا ويُصحَّح بصدق: الأخطاء تُقارن بـ43 نمط سوء فهم معروف.",
     "home.tryLink": "جرّب التشخيص الكامل ←",
     "diag.q1": "أسئلة",
     "learn.misconceptions": "مفاهيم خاطئة",
@@ -11052,7 +10050,6 @@ const sw = {
     "curr.change": "Badilisha masomo na msaada",
     "curr.specsNote": "kozi kutoka nchi 20 zimepangwa juu ya ramani moja ya maarifa.",
     "curr.noProfile": "Unda wasifu kwanza — kozi yako huhifadhiwa hapo.",
-    "curr.youAreHere": "Uko hapa",
     "lvl.primary": "Msingi",
     "lvl.junior": "Sekondari ya chini",
     "lvl.foundation": "Ngazi ya msingi",
@@ -11467,7 +10464,7 @@ const sw = {
     "next.reason.retrieve": "Uliithibitisha awali — kurudia sasa kunaiimarisha.",
     "next.reason.retrieveUnproved": "Ni wakati wa kurudia na bado hujafanya bila msaada — kuikumbuka sasa ndiko kunatuambia ulipo kweli.",
     "next.reason.explain": "Hatua za moja kwa moja zetatizika — jenga upya wazo kabla ya mazoezi.",
-    "next.reason.practisePre": "Umahiri wako hapa ni",
+    "next.reason.practisePre": "Unayatatua za moja kwa moja kwa",
     "next.reason.practisePost": "% — sasa tambua linapohitajika njia hii.",
     "next.title.advance": "Mada inayofuata",
     "next.reason.advance": "Umeonyesha kila kitu hadi hapa — kinachofuata ni {next}.",
@@ -11475,8 +10472,6 @@ const sw = {
     "next.reason.prereqNew": "{next} imejengwa juu ya hili, na bado hukulijifunza — hili linakuja kwanza.",
     "next.ev.prereqsMet": "misingi imekamilika",
     "next.ev.demonstrated": "imethibitishwa",
-    "next.haveDemonstrated": "Umeonyesha:",
-    "next.notYetDemonstrated": "Bado hujaonyesha:",
     "next.title.prove": "Ithibitishe",
     "next.reason.proveNoHelp": "Umezipata sawa, lakini kila moja ilihitaji msaada — fanya moja bila msaada kabla ya kuendelea.",
     "next.ev.needsNoHelp": "hakuna lililofanywa bila msaada bado",
@@ -11502,9 +10497,6 @@ const sw = {
     "next.ev.kcapability": " Maarifa → uwezo",
     "q.workOut": "Kokotoa",
     "q.solve": "Suluhisha",
-    "answer.label": "Jibu lako",
-    "answer.needNumber": "Andika namba ili kuangalia jibu lako.",
-    "answer.unitHint": "katika {unit}",
     "q.simplify": "Rahisisha",
     "q.expand": "Panua",
     "q.evaluate": "Thamini",
@@ -11779,16 +10771,16 @@ const sw = {
     "home.heroTitle": "Mazoizi yanayobadilika kwa kile unachojua hasa.",
     "home.heroSub": "OpenMind hupata unayojua tayari, inafanya mazoizi kwa yale usiyoyajua, na hukumbuka sababu ulikosea. Majibu yako yanabaki kwenye kifaa hiki, hivyo inaendelea kufanya kazi bila mtandao.",
     "home.cta": "Anza kujifunza bure", "home.cta2": "Chunguza Jenomu ya Maarifa",
-    "home.free": "Bure 100%", "home.offline": "Husahiliwa kwenye kifaa hiki", "home.languages": "Lugha {languages}", "home.openSource": "Chanzo wazi",
+    "home.free": "Bure 100%", "home.offline": "Husahiliwa kwenye kifaa hiki", "home.languages": "Lugha 15", "home.openSource": "Chanzo wazi",
     "how.title": "Chunguza. Jifunza. Thibitisha.",
     "how.p1": "Uchunguzi mfupi unaojibu kwa majibu yako unapima unachojua kweli. Unapanda ngazi ya ugumu kwa dhana kila moja: wenye uwezo huisha haraka, na wanaopambana hawajisikii kabisa kuwa nje ya uwezo wao.",
-    "how.p2": "Kila somo hufundisha wazo, si hatua tu. Mazoezi ni yasiyokoma na hutengenezwa upya, na kila jibu potofu hulinganishwa na mifumo {misconceptions} ya makosa ya kawaida — unajua kwa nini uliteleza, si tu kuwa utelezaje.",
+    "how.p2": "Kila somo hufundisha wazo, si hatua tu. Mazoezi ni yasiyokoma na hutengenezwa upya, na kila jibu potofu hulinganishwa na mifumo 43 ya makosa ya kawaida — unajua kwa nini uliteleza, si tu kuwa utelezaje.",
     "how.p3": "Ushahidi wako: umilisi kwa dhana, makosa yanayopungua, na mfululizo unaoonyesha uthabiti. Maendeleo yanayoweza kuhifadhiwa kwa walimu na makundi.",
     "subj.title": "Masomo matano, Jenomu moja ya Maarifa",
     "onb.title": "Weka wasifu wako wa kujifunza",
     "onb.country": "Nchi", "onb.age": "Umri", "onb.language": "Lugha", "onb.goal": "Lengo lako", "onb.subjects": "Masomo unayotaka",
     "onb.start": "Anza kujifunza", "onb.handle": "Chagua jina la utani", "onb.goalPh": "k.m. nataka kuwa mhandisi",
-    "dash.hello": "Habari", "dash.hi": "Karibu tena", "dash.continue": "Endelea na njia yako", "dash.diagnose": "Fanya uchunguzi",
+    "dash.hi": "Karibu tena", "dash.continue": "Endelea na njia yako", "dash.diagnose": "Fanya uchunguzi",
     "dash.recommended": "Nini kifuatacho", "dash.mastery": "Umilisi", "dash.rooms": "Vyumba vya kujifunza", "dash.genome": "Ramani ya jenomu",
     "dash.language": "Lugha", "dash.subjects": "Masomo",
     "diag.title": "Uchunguzi unaobadilika",
@@ -11869,7 +10861,7 @@ const sw = {
     "common.subject": "Somo", "common.stage": "Hatua", "common.prereqs": "Inajengwa juu ya", "common.you": "Wewe", "common.save": "Hifadhi",
     "common.close": "Funga", "common.loading": "Inapakia…", "common.error": "Kuna kilichokosekana", "common.retry": "Jaribu tena",
     "common.free": "Bure", "common.country": "Nchi", "common.anon": "Bila majina kwa makusudi",
-    "home.tryCaption": "Kila swali hutengenezwa upya na kusahihishwa kwa ukweli: makosa hulinganishwa na mifumo {misconceptions} ya makosa ya kawaida.",
+    "home.tryCaption": "Kila swali hutengenezwa upya na kusahihishwa kwa ukweli: makosa hulinganishwa na mifumo 43 ya makosa ya kawaida.",
     "home.tryLink": "Jaribu uchunguzi kamili →",
     "diag.q1": "maswali",
     "learn.misconceptions": "Mawazo potofu",
@@ -12459,7 +11451,6 @@ const hi = {
     "curr.change": "विषय और सहायता बदलें",
     "curr.specsNote": "देशों के कोर्स एक ही ज्ञान-नक्शे पर जुड़े हैं।",
     "curr.noProfile": "पहले प्रोफ़ाइल बनाएँ — आपका कोर्स वहीं सहेजा जाता है।",
-    "curr.youAreHere": "आप यहाँ हैं",
     "lvl.primary": "प्राथमिक",
     "lvl.junior": "निम्न माध्यमिक",
     "lvl.foundation": "आधार स्तर",
@@ -12874,16 +11865,14 @@ const hi = {
     "next.reason.retrieve": "आपने पहले सिद्ध किया — अब दोहराने से यह पक्का होगा।",
     "next.reason.retrieveUnproved": "यह दोहराने का समय है और अभी तक बिना मदद के किया नहीं गया — अब याद करना ही बताता है कि तुम असल में कहाँ हो।",
     "next.reason.explain": "सीधे कदम लड़खड़ा रहे हैं — अभ्यास से पहले विचार फिर से बनाएँ।",
-    "next.reason.practisePre": "यहाँ आपकी दक्षता",
-    "next.reason.practisePost": "% है — अब पहचानें कि विधि कब लागू होती है।",
+    "next.reason.practisePre": "आप सीधे प्रश्न",
+    "next.reason.practisePost": "% पर हल करते हैं — अब पहचानें कि विधि कब लागू होती है।",
     "next.title.advance": "अगला विषय",
     "next.reason.advance": "आपने यहाँ तक सब कुछ सिद्ध कर दिया है — अगला है {next}।",
     "next.reason.prereqFirst": "{next} इसी पर टिका है, और यह अभी पक्का नहीं हुआ — यह पहले आएगा।",
     "next.reason.prereqNew": "{next} इसी पर टिका है, और यह आपने अभी पढ़ा नहीं — यह पहले आएगा।",
     "next.ev.prereqsMet": "आधार पूरे",
     "next.ev.demonstrated": "सिद्ध",
-    "next.haveDemonstrated": "आपने सिद्ध किया है:",
-    "next.notYetDemonstrated": "आपने अभी तक सिद्ध नहीं किया:",
     "next.title.prove": "इसे सिद्ध करो",
     "next.reason.proveNoHelp": "आपने ये सही किए, पर हर एक में मदद चाहिए थी — आगे बढ़ने से पहले एक बिना मदद के करें।",
     "next.ev.needsNoHelp": "अभी तक बिना मदद कुछ नहीं किया",
@@ -12909,9 +11898,6 @@ const hi = {
     "next.ev.kcapability": "ज्ञान → क्षमता",
     "q.workOut": "हल निकालें",
     "q.solve": "हल करें",
-    "answer.label": "तुम्हारा उत्तर",
-    "answer.needNumber": "अपना उत्तर जाँचने के लिए एक संख्या लिखो।",
-    "answer.unitHint": "{unit} में",
     "q.simplify": "सरल करें",
     "q.expand": "विस्तार करें",
     "q.evaluate": "मान निकालें",
@@ -13186,16 +12172,16 @@ const hi = {
     "home.heroTitle": "अभ्यास जो आपकी असली समझ के अनुसार बदलता है।",
     "home.heroSub": "OpenMind बताता है कि आपको क्या आता है, जो नहीं आता उसका अभ्यास कराता है, और याद रखता है कि आपने क्यों गलती की। आपके उत्तर इसी डिवाइस पर रहते हैं, इसलिए बिना इंटरनेट के भी चलता रहता है।",
     "home.cta": "मुफ़्त सीखना शुरू करें", "home.cta2": "ज्ञान जीनोम देखें",
-    "home.free": "100% मुफ़्त", "home.offline": "इसी डिवाइस पर जाँचा जाता है", "home.languages": "{languages} भाषाएँ", "home.openSource": "ओपन सोर्स",
+    "home.free": "100% मुफ़्त", "home.offline": "इसी डिवाइस पर जाँचा जाता है", "home.languages": "15 भाषाएँ", "home.openSource": "ओपन सोर्स",
     "how.title": "जाँचें। सीखें। सिद्ध करें।",
     "how.p1": "एक छोटा अनुकूली डायग्नोस्टिक बताता है आप वास्तव में क्या जानते हैं। हर अवधारणा पर कठिनाई-सीढ़ी चढ़ती है: तेज़ छात्र जल्दी निपटते हैं, और संघर्ष करते छात्र कभी परेशान नहीं होते।",
-    "how.p2": "हर पाठ विचार सिखाता है, केवल कदम नहीं। अभ्यास असीमित और नया है, और हर गलती की {misconceptions} ज्ञात भ्रांति-पैटर्न से तुलना होती है — आप सीखते हैं कि क्यों फिसले, सिर्फ़ यह नहीं कि फिसले।",
+    "how.p2": "हर पाठ विचार सिखाता है, केवल कदम नहीं। अभ्यास असीमित और नया है, और हर गलती की 43 ज्ञात भ्रांति-पैटर्न से तुलना होती है — आप सीखते हैं कि क्यों फिसले, सिर्फ़ यह नहीं कि फिसले।",
     "how.p3": "आपका प्रमाण: हर अवधारणा की महारत, कम होती भ्रांतियाँ, और निरंतरता दिखाती स्ट्रीक। शिक्षक और संस्थाएँ जिन पर बना सकें, ऐसा निर्यात-योग्य प्रगति।",
     "subj.title": "पाँच विषय, एक ज्ञान जीनोम",
     "onb.title": "अपनी शिक्षा-प्रोफ़ाइल बनाएँ",
     "onb.country": "देश", "onb.age": "आयु", "onb.language": "भाषा", "onb.goal": "आपका लक्ष्य", "onb.subjects": "आपके विषय",
     "onb.start": "सीखना शुरू करें", "onb.handle": "उपनाम चुनें", "onb.goalPh": "जैसे: मैं इंजीनियर बनना चाहता/चाहती हूँ",
-    "dash.hello": "नमस्ते", "dash.hi": "वापसी पर स्वागत", "dash.continue": "अपना पथ जारी रखें", "dash.diagnose": "डायग्नोस्टिक दें",
+    "dash.hi": "वापसी पर स्वागत", "dash.continue": "अपना पथ जारी रखें", "dash.diagnose": "डायग्नोस्टिक दें",
     "dash.recommended": "अगला सुझाव", "dash.mastery": "महारत", "dash.rooms": "अध्ययन कक्ष", "dash.genome": "जीनोम नक्शा",
     "dash.language": "भाषा", "dash.subjects": "विषय",
     "diag.title": "अनुकूली डायग्नोस्टिक",
@@ -13276,7 +12262,7 @@ const hi = {
     "common.subject": "विषय", "common.stage": "स्तर", "common.prereqs": "आधारित है", "common.you": "आप", "common.save": "सहेजें",
     "common.close": "बंद करें", "common.loading": "लोड हो रहा है…", "common.error": "कुछ ग़लत हुआ", "common.retry": "फिर कोशिश करें",
     "common.free": "मुफ़्त", "common.country": "देश", "common.anon": "डिज़ाइन से गुमनाम",
-    "home.tryCaption": "हर प्रश्न नया बनता है और ईमानदारी से जाँचा जाता है: ग़लतियाँ {misconceptions} ज्ञात भ्रांति-पैटर्न से तुलना होती हैं।",
+    "home.tryCaption": "हर प्रश्न नया बनता है और ईमानदारी से जाँचा जाता है: ग़लतियाँ 43 ज्ञात भ्रांति-पैटर्न से तुलना होती हैं।",
     "home.tryLink": "पूरा डायग्नोस्टिक आज़माएँ →",
     "diag.q1": "प्रश्न",
     "learn.misconceptions": "गलत धारणाएँ",
@@ -13866,7 +12852,6 @@ const id = {
     "curr.change": "Ubah mata pelajaran dan dukungan",
     "curr.specsNote": "kursus dari 20 negara dipetakan pada satu peta pengetahuan yang sama.",
     "curr.noProfile": "Buat profil dulu — kursusmu disimpan di sana.",
-    "curr.youAreHere": "Kamu di sini",
     "lvl.primary": "Dasar",
     "lvl.junior": "Menengah pertama",
     "lvl.foundation": "Jenjang dasar",
@@ -14282,7 +13267,7 @@ const id = {
     "next.reason.retrieve": "Kamu sudah membuktikannya — mengulang sekarang membuatnya melekat.",
     "next.reason.retrieveUnproved": "Sudah waktunya diulang dan belum pernah dikerjakan tanpa bantuan — mengingatnya sekarang yang menunjukkan posisimu sebenarnya.",
     "next.reason.explain": "Langkah langsung masih goyah — bangun ulang idenya sebelum latihan.",
-    "next.reason.practisePre": "Penguasaanmu di sini",
+    "next.reason.practisePre": "Kamu menyelesaikan soal langsung dengan",
     "next.reason.practisePost": "% — sekarang kenali kapan metode berlaku.",
     "next.title.advance": "Topik berikutnya",
     "next.reason.advance": "Kamu sudah membuktikan semua sampai di sini — berikutnya adalah {next}.",
@@ -14290,8 +13275,6 @@ const id = {
     "next.reason.prereqNew": "{next} dibangun di atas ini, dan ini belum kamu pelajari — ini yang harus didahulukan.",
     "next.ev.prereqsMet": "dasar sudah dikuasai",
     "next.ev.demonstrated": "terbukti",
-    "next.haveDemonstrated": "Kamu sudah menunjukkan:",
-    "next.notYetDemonstrated": "Kamu belum menunjukkan:",
     "next.title.prove": "Buktikan",
     "next.reason.proveNoHelp": "Kamu menjawab semuanya benar, tetapi setiap soal perlu bantuan — kerjakan satu tanpa bantuan sebelum lanjut.",
     "next.ev.needsNoHelp": "belum ada yang dikerjakan tanpa bantuan",
@@ -14317,9 +13300,6 @@ const id = {
     "next.ev.kcapability": "Pengetahuan → kemampuan",
     "q.workOut": "Hitung",
     "q.solve": "Selesaikan",
-    "answer.label": "Jawabanmu",
-    "answer.needNumber": "Tuliskan angka untuk memeriksa jawabanmu.",
-    "answer.unitHint": "dalam {unit}",
     "q.simplify": "Sederhanakan",
     "q.expand": "Uraikan",
     "q.evaluate": "Nilai",
@@ -14594,16 +13574,16 @@ const id = {
     "home.heroTitle": "Latihan yang menyesuaikan dengan apa yang benar-benar Anda kuasai.",
     "home.heroSub": "OpenMind menemukan yang sudah Anda kuasai, melatih yang belum, dan mengingat mengapa Anda salah. Jawaban Anda tetap ada di perangkat ini, jadi tetap berjalan tanpa koneksi.",
     "home.cta": "Mulai belajar gratis", "home.cta2": "Jelajahi Genom Pengetahuan",
-    "home.free": "100% gratis", "home.offline": "Dinilai di perangkat ini", "home.languages": "{languages} bahasa", "home.openSource": "Sumber terbuka",
+    "home.free": "100% gratis", "home.offline": "Dinilai di perangkat ini", "home.languages": "15 bahasa", "home.openSource": "Sumber terbuka",
     "how.title": "Diagnosis. Belajar. Buktikan.",
     "how.p1": "Diagnosis adaptif singkat memetakan apa yang benar-benar Anda tahu. Ia menaiki tangga kesulitan per konsep: yang kuat selesai cepat, yang berjuang tak pernah merasa tertinggal jauh.",
-    "how.p2": "Setiap pelajaran mengajarkan idenya, bukan hanya langkahnya. Latihan tanpa batas dan selalu baru, dan setiap jawaban salah diperiksa terhadap {misconceptions} pola miskonsepsi — Anda tahu mengapa terpeleset.",
+    "how.p2": "Setiap pelajaran mengajarkan idenya, bukan hanya langkahnya. Latihan tanpa batas dan selalu baru, dan setiap jawaban salah diperiksa terhadap 43 pola miskonsepsi — Anda tahu mengapa terpeleset.",
     "how.p3": "Bukti Anda: penguasaan per konsep, miskonsepsi yang memudar, rentetan yang menunjukkan konsistensi. Kemajuan yang bisa diekspor untuk guru dan komunitas.",
     "subj.title": "Lima mata pelajaran, satu Genom Pengetahuan",
     "onb.title": "Buat profil belajar Anda",
     "onb.country": "Negara", "onb.age": "Usia", "onb.language": "Bahasa", "onb.goal": "Tujuan Anda", "onb.subjects": "Mata pelajaran pilihan",
     "onb.start": "Mulai belajar", "onb.handle": "Pilih nama panggilan", "onb.goalPh": "mis. saya ingin jadi insinyur",
-    "dash.hello": "Halo", "dash.hi": "Selamat datang kembali", "dash.continue": "Lanjutkan jalur Anda", "dash.diagnose": "Ikuti diagnosis",
+    "dash.hi": "Selamat datang kembali", "dash.continue": "Lanjutkan jalur Anda", "dash.diagnose": "Ikuti diagnosis",
     "dash.recommended": "Rekomendasi berikutnya", "dash.mastery": "Penguasaan", "dash.rooms": "Ruang belajar", "dash.genome": "Peta genom",
     "dash.language": "Bahasa", "dash.subjects": "Mata pelajaran",
     "diag.title": "Diagnosis adaptif",
@@ -14684,7 +13664,7 @@ const id = {
     "common.subject": "Mata pelajaran", "common.stage": "Tahap", "common.prereqs": "Dibangun di atas", "common.you": "Anda", "common.save": "Simpan",
     "common.close": "Tutup", "common.loading": "Memuat…", "common.error": "Terjadi kesalahan", "common.retry": "Coba lagi",
     "common.free": "Gratis", "common.country": "Negara", "common.anon": "Anonim sejak desain",
-    "home.tryCaption": "Setiap soal dibuat baru dan dikoreksi dengan jujur: kesalahan diperiksa terhadap {misconceptions} pola miskonsepsi.",
+    "home.tryCaption": "Setiap soal dibuat baru dan dikoreksi dengan jujur: kesalahan diperiksa terhadap 43 pola miskonsepsi.",
     "home.tryLink": "Coba diagnosis lengkap →",
     "diag.q1": "pertanyaan",
     "learn.misconceptions": "Miskonsepsi",
@@ -15273,7 +14253,6 @@ const tl = {
     "curr.change": "Palitan ang mga asignatura at suporta",
     "curr.specsNote": "mga kurso mula sa 20 bansa ang naka-map sa isang mapa ng kaalaman.",
     "curr.noProfile": "Gumawa muna ng profile — doon naka-save ang kurso mo.",
-    "curr.youAreHere": "Nandito ka",
     "lvl.primary": "Elementarya",
     "lvl.junior": "Mababang sekondarya",
     "lvl.foundation": "Batayang antas",
@@ -15689,7 +14668,7 @@ const tl = {
     "next.reason.retrieve": "Nap Patunayan mo na ito noon — mabilis na pagbabalik ngayon ay nagpapatibay.",
     "next.reason.retrieveUnproved": "Panahon na para balikan ito at hindi pa ito nagagawa nang walang tulong — ang maalala ito ngayon ang nagsasabi kung nasaan ka talaga.",
     "next.reason.explain": "Nanginginig ang mga direktang hakbang — itayo muli ang ideya bago magsanay.",
-    "next.reason.practisePre": "Ang kasanayan mo dito ay",
+    "next.reason.practisePre": "Nalulutas mo ang direkta sa",
     "next.reason.practisePost": "% — ngayon, kilalanin kailan gagana ang paraan.",
     "next.title.advance": "Susunod na paksa",
     "next.reason.advance": "Napatunayan mo na ang lahat hanggang dito — susunod ay {next}.",
@@ -15697,8 +14676,6 @@ const tl = {
     "next.reason.prereqNew": "{next} ay nakabatay dito, at hindi mo pa ito napag-aralan — ito muna ang unahin.",
     "next.ev.prereqsMet": "matibay na ang pundasyon",
     "next.ev.demonstrated": "napatunayan",
-    "next.haveDemonstrated": "Naipakita mo na:",
-    "next.notYetDemonstrated": "Hindi mo pa naipakita:",
     "next.title.prove": "Patunayan mo",
     "next.reason.proveNoHelp": "Nakuha mo lahat, pero lahat kailangan ng tulong — gawin ang isa nang walang tulong bago magpatuloy.",
     "next.ev.needsNoHelp": "wala pa ring nagawa nang walang tulong",
@@ -15724,9 +14701,6 @@ const tl = {
     "next.ev.kcapability": "Kaalaman → kakayahan",
     "q.workOut": "Kalkulahin",
     "q.solve": "Lutasin",
-    "answer.label": "Sagot mo",
-    "answer.needNumber": "Maglagay ng numero para masuri ang sagot mo.",
-    "answer.unitHint": "sa {unit}",
     "q.simplify": "Pangepayain",
     "q.expand": "Palawakin",
     "q.evaluate": "Tayain",
@@ -16001,16 +14975,16 @@ const tl = {
     "home.heroTitle": "Pagsasanay na umaangkop sa aktuwal mong alam.",
     "home.heroSub": "Kinukukula ng OpenMind ang alam mo na, nag drills sa hindi mo alam, at naaalala kung bakit ka nagkamali. Nasa device na ito ang iyong mga sagot, kaya gumagana pa rin kahit walang koneksyon.",
     "home.cta": "Simulang matuto nang libre", "home.cta2": "Tuklasin ang Knowledge Genome",
-    "home.free": "100% libre", "home.offline": "Sinusuri sa device na ito", "home.languages": "{languages} wika", "home.openSource": "Open source",
+    "home.free": "100% libre", "home.offline": "Sinusuri sa device na ito", "home.languages": "15 wika", "home.openSource": "Open source",
     "how.title": "Suriin. Matuto. Patunayan.",
     "how.p1": "Maikling diagnostic na umaangkop sa sagot mo ang nagmamapa ng talagang alam mo. Umaaakyat ito sa hagdan ng hirap bawat konsepto: ang malalakas, mabilis matapos; ang nahihirapan, hindi nawawalan ng pag-asa.",
-    "how.p2": "Bawat aralin ay nagtuturo ng ideya, hindi lang mga hakbang. Walang-hanggang pagsasanay at laging bago, at bawat maling sagot ay tinitingnan laban sa {misconceptions} kilalang misconception — malalaman mo kung bakit ka nadulas.",
+    "how.p2": "Bawat aralin ay nagtuturo ng ideya, hindi lang mga hakbang. Walang-hanggang pagsasanay at laging bago, at bawat maling sagot ay tinitingnan laban sa 43 kilalang misconception — malalaman mo kung bakit ka nadulas.",
     "how.p3": "Ang ebidensya mo: mastery bawat konsepto, misconception na lumiliit, streak na nagpapakita ng consistency. Progress na madaling i-export para sa mga guro at chapters.",
     "subj.title": "Limang asignatura, iisang Knowledge Genome",
     "onb.title": "I-set up ang profile mo",
     "onb.country": "Bansa", "onb.age": "Edad", "onb.language": "Wika", "onb.goal": "Ang layunin mo", "onb.subjects": "Mga piling asignatura",
     "onb.start": "Simulang matuto", "onb.handle": "Pumili ng palayaw", "onb.goalPh": "hal. gusto kong maging engineer",
-    "dash.hello": "Kumusta", "dash.hi": "Maligayang pagbabalik", "dash.continue": "Ituloy ang landas mo", "dash.diagnose": "Kunin ang diagnostic",
+    "dash.hi": "Maligayang pagbabalik", "dash.continue": "Ituloy ang landas mo", "dash.diagnose": "Kunin ang diagnostic",
     "dash.recommended": "Susunod na mungkahi", "dash.mastery": "Mastery", "dash.rooms": "Silid-aralan", "dash.genome": "Mapa ng genome",
     "dash.language": "Wika", "dash.subjects": "Mga asignatura",
     "diag.title": "Adaptive diagnostic",
@@ -16091,7 +15065,7 @@ const tl = {
     "common.subject": "Asignatura", "common.stage": "Yugto", "common.prereqs": "Nakabatay sa", "common.you": "Ikaw", "common.save": "I-save",
     "common.close": "Isara", "common.loading": "Naglo-load…", "common.error": "May naganap na error", "common.retry": "Subukan muli",
     "common.free": "Libre", "common.country": "Bansa", "common.anon": "Anonymous by design",
-    "home.tryCaption": "Bawat tanong ay bagong gawa at tapat na itinatama — ang mga mali ay tinitingnan laban sa {misconceptions} kilalang misconception.",
+    "home.tryCaption": "Bawat tanong ay bagong gawa at tapat na itinatama — ang mga mali ay tinitingnan laban sa 43 kilalang misconception.",
     "home.tryLink": "Subukan ang buong diagnostic →",
     "diag.q1": "mga tanong",
     "learn.misconceptions": "Maling pagkaunawa",
@@ -16681,7 +15655,6 @@ const de = {
     "curr.change": "Fächer und Unterstützung ändern",
     "curr.specsNote": "Kurse aus 20 Ländern sind auf dieselbe Wissenskarte abgebildet.",
     "curr.noProfile": "Lege zuerst ein Profil an — dort wird dein Kurs gespeichert.",
-    "curr.youAreHere": "Du bist hier",
     "lvl.primary": "Grundschule",
     "lvl.junior": "Unterstufe",
     "lvl.foundation": "Grundniveau",
@@ -17097,7 +16070,7 @@ const de = {
     "next.reason.retrieve": "Das hattest du schon bewiesen — eine schnelle Wiederholung festigt es jetzt.",
     "next.reason.retrieveUnproved": "Es ist zur Wiederholung fällig und wurde noch nie ohne Hilfe gemacht — es jetzt abzurufen zeigt, wo du wirklich stehst.",
     "next.reason.explain": "Die einfachen Schritte wackeln — baue die Idee auf, bevor du übst.",
-    "next.reason.practisePre": "Deine Beherrschung hier liegt bei",
+    "next.reason.practisePre": "Einfache Aufgaben löst du zu",
     "next.reason.practisePost": "% — jetzt erkenne, wann die Methode passt.",
     "next.title.advance": "Nächstes Thema",
     "next.reason.advance": "Du hast alles bis hierher nachgewiesen — als Nächstes kommt {next}.",
@@ -17105,8 +16078,6 @@ const de = {
     "next.reason.prereqNew": "{next} baut darauf auf, und das hast du noch nicht behandelt — das kommt zuerst.",
     "next.ev.prereqsMet": "Grundlagen sitzen",
     "next.ev.demonstrated": "nachgewiesen",
-    "next.haveDemonstrated": "Du hast bewiesen:",
-    "next.notYetDemonstrated": "Du hast noch nicht bewiesen:",
     "next.title.prove": "Beweise es",
     "next.reason.proveNoHelp": "Du hast sie richtig gelöst, aber bei jeder brauchtest du Hilfe — löse eine ohne Hilfe, bevor du weitermachst.",
     "next.ev.needsNoHelp": "bisher nichts ohne Hilfe geschafft",
@@ -17132,9 +16103,6 @@ const de = {
     "next.ev.kcapability": "Wissen → Können",
     "q.workOut": "Berechne",
     "q.solve": "Löse",
-    "answer.label": "Deine Antwort",
-    "answer.needNumber": "Gib eine Zahl ein, um deine Antwort zu prüfen.",
-    "answer.unitHint": "in {unit}",
     "q.simplify": "Vereinfache",
     "q.expand": "Multipliziere aus",
     "q.evaluate": "Berechne den Wert",
@@ -17416,11 +16384,11 @@ const de = {
     "home.cta2": "Das Knowledge Genome entdecken",
     "home.free": "100% kostenlos",
     "home.offline": "Auf diesem Gerät ausgewertet",
-    "home.languages": "{languages} Sprachen",
+    "home.languages": "15 Sprachen",
     "home.openSource": "Open Source",
     "how.title": "Diagnostizieren. Lernen. Beweisen.",
     "how.p1": "Ein kurzer adaptiver Test erfasst, was du wirklich kannst — nicht was ein Lehrplan annimmt. Er steigt pro Konzept die Schwierigkeitsleiter hinauf: Schnelle sind schnell fertig, und niemand wird je überfordert.",
-    "how.p2": "Jede Lektion erklärt die Idee, nicht nur die Schritte. Übungsaufgaben sind unbegrenzt und jedes Mal neu, und jede falsche Antwort wird gegen {misconceptions} bekannte Missverständnismuster geprüft — du lernst, warum du gestolpert bist, nicht nur, dass du es warst.",
+    "how.p2": "Jede Lektion erklärt die Idee, nicht nur die Schritte. Übungsaufgaben sind unbegrenzt und jedes Mal neu, und jede falsche Antwort wird gegen 43 bekannte Missverständnismuster geprüft — du lernst, warum du gestolpert bist, nicht nur, dass du es warst.",
     "how.p3": "Deine Nachweise: Beherrschung pro Konzept, Missverständnisse, die mit der Zeit verschwinden, Serien, die Beständigkeit zeigen. Exportierbare Fortschritte, auf denen Lehrkräfte und Chapter aufbauen können.",
     "subj.title": "Fünf Fächer, ein Knowledge Genome",
     "onb.title": "Richte dein Lernprofil ein",
@@ -17432,7 +16400,7 @@ const de = {
     "onb.start": "Lernen starten",
     "onb.handle": "Wähle einen Spitznamen",
     "onb.goalPh": "z. B. Ich möchte Ingenieur werden",
-    "dash.hello": "Hallo", "dash.hi": "Willkommen zurück",
+    "dash.hi": "Willkommen zurück",
     "dash.continue": "Deinen Pfad fortsetzen",
     "dash.diagnose": "Diagnostik starten",
     "dash.recommended": "Empfohlen als Nächstes",
@@ -17562,7 +16530,7 @@ const de = {
     "common.free": "Kostenlos",
     "common.country": "Land",
     "common.anon": "Anonym von Grund auf",
-    "home.tryCaption": "Jede Aufgabe auf OpenMind wird frisch generiert und ehrlich bewertet — falsche Antworten werden gegen {misconceptions} bekannte Missverständnismuster geprüft.",
+    "home.tryCaption": "Jede Aufgabe auf OpenMind wird frisch generiert und ehrlich bewertet — falsche Antworten werden gegen 43 bekannte Missverständnismuster geprüft.",
     "home.tryLink": "Ganze Diagnostik ausprobieren →",
     "tutor.title": "Tutor",
     "tutor.sub": "Frag alles zu diesem Konzept — der Tutor führt mit Fragen, nie mit Antworten.",
@@ -18147,7 +17115,6 @@ const ja = {
     "curr.change": "科目とサポートを変更",
     "curr.specsNote": "か国のコースが同じ知識マップに対応づけられています。",
     "curr.noProfile": "まずプロフィールを作成してください — コースはそこに保存されます。",
-    "curr.youAreHere": "現在地",
     "lvl.primary": "初等",
     "lvl.junior": "中等前期",
     "lvl.foundation": "基礎レベル",
@@ -18563,16 +17530,14 @@ const ja = {
     "next.reason.retrieve": "前に証明済み — 今の復習で定着します。",
     "next.reason.retrieveUnproved": "そろそろ復習の時期ですが、まだ自力では解いていません。今思い出せることが、本当の定着を教えてくれます。",
     "next.reason.explain": "基本の手順がぐらついています — 練習の前に考え方を作り直しましょう。",
-    "next.reason.practisePre": "ここでの習熟は",
-    "next.reason.practisePost": "% — 次は手法の見分けを。",
+    "next.reason.practisePre": "基本問題は",
+    "next.reason.practisePost": "% で解けています — 次は手法の見分けを。",
     "next.title.advance": "次の単元",
     "next.reason.advance": "ここまではすべて実証できました — 次は {next} です。",
     "next.reason.prereqFirst": "{next} はこれを土台にしていますが、まだ定着していません — まずこちらを。",
     "next.reason.prereqNew": "{next} はこれを土台にしていますが、まだ学習していません — まずこちらを。",
     "next.ev.prereqsMet": "土台は定着済み",
     "next.ev.demonstrated": "実証済み",
-    "next.haveDemonstrated": "実証できたこと:",
-    "next.notYetDemonstrated": "まだ実証できていないこと:",
     "next.title.prove": "自力で解く",
     "next.reason.proveNoHelp": "すべて正解ですが、毎回ヒントが必要でした — 次に進む前に、ヒントなしで1問解きましょう。",
     "next.ev.needsNoHelp": "まだ自力で解けたものはありません",
@@ -18598,9 +17563,6 @@ const ja = {
     "next.ev.kcapability": "知識 → 力",
     "q.workOut": "計算しなさい",
     "q.solve": "解きなさい",
-    "answer.label": "あなたの答え",
-    "answer.needNumber": "答えを確かめるには数値を入力してください。",
-    "answer.unitHint": "単位は {unit}",
     "q.simplify": "簡約しなさい",
     "q.expand": "展開しなさい",
     "q.evaluate": "求めなさい",
@@ -18882,11 +17844,11 @@ const ja = {
     "home.cta2": "ナレッジゲノムを見る",
     "home.free": "完全無料",
     "home.offline": "この端末で採点されます",
-    "home.languages": "{languages}の言語",
+    "home.languages": "15の言語",
     "home.openSource": "オープンソース",
     "how.title": "診断。学習。証明。",
     "how.p1": "短いアダプティブ診断が、教科書の前提ではなく、あなたの実際の理解を測ります。概念ごとに難易度の階段を上がるので、得意な人は速く終わり、苦手な人も限界を超える要求はされません。",
-    "how.p2": "どのレッスンも、手順だけでなく考え方を教えます。練習問題は無限に新しく生成され、間違えた答えは{misconceptions}の既知の誤解パターンと照合されます — 間違えた事実だけでなく、なぜ滑ったのかが分かります。",
+    "how.p2": "どのレッスンも、手順だけでなく考え方を教えます。練習問題は無限に新しく生成され、間違えた答えは43の既知の誤解パターンと照合されます — 間違えた事実だけでなく、なぜ滑ったのかが分かります。",
     "how.p3": "あなたの証明：概念ごとの習得度、時間とともに消えていく誤解、継続を示す連続記録。先生やチャプターが活かせる、書き出し可能な学習記録です。",
     "subj.title": "5つの教科、1つのナレッジゲノム",
     "onb.title": "学習プロフィールを作成",
@@ -18898,7 +17860,7 @@ const ja = {
     "onb.start": "学習を始める",
     "onb.handle": "ニックネームを決める",
     "onb.goalPh": "例：エンジニアになりたい",
-    "dash.hello": "こんにちは", "dash.hi": "おかえりなさい",
+    "dash.hi": "おかえりなさい",
     "dash.continue": "パスを続ける",
     "dash.diagnose": "診断を始める",
     "dash.recommended": "次のおすすめ",
@@ -19028,7 +17990,7 @@ const ja = {
     "common.free": "無料",
     "common.country": "国",
     "common.anon": "設計上、匿名",
-    "home.tryCaption": "OpenMindの問題はすべて新しく生成され、正直に採点されます — 間違えた答えは{misconceptions}の既知の誤解パターンと照合されます。",
+    "home.tryCaption": "OpenMindの問題はすべて新しく生成され、正直に採点されます — 間違えた答えは43の既知の誤解パターンと照合されます。",
     "home.tryLink": "完全な診断を試す →",
     "tutor.title": "家庭教師",
     "tutor.sub": "この概念について何でも聞いてください — 家庭教師は質問で導き、答えは言いません。",
@@ -19613,7 +18575,6 @@ const zh = {
     "curr.change": "更改科目与支持选项",
     "curr.specsNote": "个国家的课程映射在同一张知识图上。",
     "curr.noProfile": "请先创建个人档案——课程会保存在那里。",
-    "curr.youAreHere": "你在这里",
     "lvl.primary": "小学",
     "lvl.junior": "初中",
     "lvl.foundation": "基础层次",
@@ -20029,7 +18990,7 @@ const zh = {
     "next.reason.retrieve": "之前证明过——现在快速回顾会巩固它。",
     "next.reason.retrieveUnproved": "这一项到了复习时间，但还没有独立完成过 — 现在回忆一次，才能看出真正掌握到什么程度。",
     "next.reason.explain": "直接步骤还不稳——先重建概念再练习。",
-    "next.reason.practisePre": "这里的掌握度是",
+    "next.reason.practisePre": "直接题的正确率",
     "next.reason.practisePost": "%——现在学会判断何时用这个方法。",
     "next.title.advance": "下一个主题",
     "next.reason.advance": "到这里的内容你都已经证明了 — 接下来是{next}。",
@@ -20037,8 +18998,6 @@ const zh = {
     "next.reason.prereqNew": "{next}建立在这上面，而你还没学过这一点 — 先补这个。",
     "next.ev.prereqsMet": "基础已打牢",
     "next.ev.demonstrated": "已证明",
-    "next.haveDemonstrated": "你已证明:",
-    "next.notYetDemonstrated": "你尚未证明:",
     "next.title.prove": "独立完成",
     "next.reason.proveNoHelp": "这些都答对了，但每一题都需要提示 — 先独立完成一题再继续。",
     "next.ev.needsNoHelp": "尚未独立完成任何一题",
@@ -20064,9 +19023,6 @@ const zh = {
     "next.ev.kcapability": "知识 → 能力",
     "q.workOut": "计算",
     "q.solve": "求解",
-    "answer.label": "你的答案",
-    "answer.needNumber": "输入一个数字来核对你的答案。",
-    "answer.unitHint": "以{unit}为单位",
     "q.simplify": "化简",
     "q.expand": "展开",
     "q.evaluate": "求值",
@@ -20341,16 +19297,16 @@ const zh = {
     "home.heroTitle": "根据你真正掌握的内容调整的练习。",
     "home.heroSub": "OpenMind 找出你已经掌握的内容，练习你还没掌握的部分，并记住你为什么答错。你的作答留在这台设备上，因此没有网络也能继续使用。",
     "home.cta": "免费开始学习", "home.cta2": "探索知识图谱",
-    "home.free": "100% 免费", "home.offline": "在本设备上判分", "home.languages": "{languages} 种语言", "home.openSource": "开源",
+    "home.free": "100% 免费", "home.offline": "在本设备上判分", "home.languages": "15 种语言", "home.openSource": "开源",
     "how.title": "诊断。学习。证明。",
     "how.p1": "一个简短的自适应诊断描绘你真正的知识水平——而不是大纲的假设。它按概念逐级提升难度：强的学生很快完成，吃力的学生永远不会觉得够不着。",
-    "how.p2": "每节课教的是思想，而不只是步骤。练习无限量、即时生成，每个错误答案都会对照 {misconceptions} 种已知的误解模式——让你学会为什么会错，而不只是知道错了。",
+    "how.p2": "每节课教的是思想，而不只是步骤。练习无限量、即时生成，每个错误答案都会对照 43 种已知的误解模式——让你学会为什么会错，而不只是知道错了。",
     "how.p3": "你的证据：每个概念的掌握度、逐渐消失的误解、体现稳定性的连击。可导出的进度，教师和分部都能在此基础上建设。",
     "subj.title": "五个学科，一张知识图谱",
     "onb.title": "设置你的学习档案",
     "onb.country": "国家", "onb.age": "年龄", "onb.language": "语言", "onb.goal": "你的目标", "onb.subjects": "你想要的学科",
     "onb.start": "开始学习", "onb.handle": "选择一个昵称", "onb.goalPh": "例如：我想成为工程师",
-    "dash.hello": "你好", "dash.hi": "欢迎回来", "dash.continue": "继续你的路径", "dash.diagnose": "开始诊断",
+    "dash.hi": "欢迎回来", "dash.continue": "继续你的路径", "dash.diagnose": "开始诊断",
     "dash.recommended": "下一步推荐", "dash.mastery": "掌握度", "dash.rooms": "自习室", "dash.genome": "知识图谱",
     "dash.language": "语言", "dash.subjects": "学科",
     "diag.title": "自适应诊断",
@@ -20441,7 +19397,7 @@ const zh = {
     "common.subject": "学科", "common.stage": "阶段", "common.prereqs": "建立在…之上", "common.you": "你", "common.save": "保存",
     "common.close": "关闭", "common.loading": "加载中…", "common.error": "出了点问题", "common.retry": "重试",
     "common.free": "免费", "common.country": "国家", "common.anon": "设计上完全匿名",
-    "home.tryCaption": "OpenMind 的每个问题都是即时生成、诚实批改的——错误答案会对照 {misconceptions} 种已知的误解模式。",
+    "home.tryCaption": "OpenMind 的每个问题都是即时生成、诚实批改的——错误答案会对照 43 种已知的误解模式。",
     "home.tryLink": "试试完整诊断 →",
     "home.chaptersTitle": "分部", "home.chaptersLine": "5 名学生 + 1 位导师 + 一部手机。",
     "how.diagnose": "诊断", "how.learn": "学习", "how.prove": "证明",
@@ -20989,7 +19945,6 @@ const fa = {
     "curr.change": "تغییر درس‌ها و پشتیبانی",
     "curr.specsNote": "دوره از ۲۰ کشور روی یک نقشهٔ دانش نگاشت شده است.",
     "curr.noProfile": "نخست یک نمایه بسازید — دورهٔ شما همان‌جا ذخیره می‌شود.",
-    "curr.youAreHere": "اینجا هستی",
     "lvl.primary": "ابتدایی",
     "lvl.junior": "دورهٔ اول متوسطه",
     "lvl.foundation": "سطح پایه",
@@ -21405,16 +20360,14 @@ const fa = {
     "next.reason.retrieve": "پیش‌تر ثابتش کرده‌ای — مرور سریع حالا آن را ماندگار می‌کند.",
     "next.reason.retrieveUnproved": "وقت مرورش رسیده و هنوز بدون کمک انجامش نداده‌ای — یادآوری همین حالا نشان می‌دهد واقعاً کجا ایستاده‌ای.",
     "next.reason.explain": "مراحل ساده هنوز لرزان است — قبل از تمرین، ایده را از نو بساز.",
-    "next.reason.practisePre": "تسلط تو در اینجا",
-    "next.reason.practisePost": "% است — حالا تشخیص بده روش کِی به کار می‌آید.",
+    "next.reason.practisePre": "سؤال‌های ساده را با",
+    "next.reason.practisePost": "% حل می‌کنی — حالا تشخیص بده روش کِی به کار می‌آید.",
     "next.title.advance": "موضوع بعدی",
     "next.reason.advance": "همه‌چیز تا اینجا را اثبات کرده‌ای — مورد بعدی {next} است.",
     "next.reason.prereqFirst": "{next} بر پایهٔ این بنا شده و هنوز تثبیت نشده است — اول این.",
     "next.reason.prereqNew": "{next} بر پایهٔ این بنا شده و هنوز آن را نخوانده‌ای — اول این.",
     "next.ev.prereqsMet": "پایه‌ها تثبیت شده",
     "next.ev.demonstrated": "اثبات‌شده",
-    "next.haveDemonstrated": "اثبات کرده‌ای:",
-    "next.notYetDemonstrated": "هنوز اثبات نکرده‌ای:",
     "next.title.prove": "اثباتش کن",
     "next.reason.proveNoHelp": "همه را درست پاسخ دادی، اما در هر کدام به کمک نیاز داشتی — پیش از ادامه یکی را بدون کمک انجام بده.",
     "next.ev.needsNoHelp": "هنوز هیچ کاری بدون کمک انجام نشده",
@@ -21440,9 +20393,6 @@ const fa = {
     "next.ev.kcapability": "دانش → توانایی",
     "q.workOut": "حساب کن",
     "q.solve": "حل کن",
-    "answer.label": "پاسخ تو",
-    "answer.needNumber": "برای بررسی پاسخ، یک عدد بنویس.",
-    "answer.unitHint": "بر حسب {unit}",
     "q.simplify": "ساده کن",
     "q.expand": "بسط بده",
     "q.evaluate": "ارزیابی کن",
@@ -21717,16 +20667,16 @@ const fa = {
     "home.heroTitle": "تمرینی که با آنچه واقعاً می‌دانید سازگار می‌شود.",
     "home.heroSub": "‏OpenMind آنچه را می‌یابد که می‌دانید، برای آنچه که نمی‌دانید تمرین می‌دهد، و به یاد می‌آورد چرا اشتباه کردید. پاسخ‌های شما روی همین دستگاه می‌ماند، بنابراین بدون اتصال هم کار می‌کند.",
     "home.cta": "رایگان شروع کن", "home.cta2": "کاوش در ژنوم دانش",
-    "home.free": "۱۰۰٪ رایگان", "home.offline": "تصحیح روی همین دستگاه", "home.languages": "{languages} زبان", "home.openSource": "متن‌باز",
+    "home.free": "۱۰۰٪ رایگان", "home.offline": "تصحیح روی همین دستگاه", "home.languages": "15 زبان", "home.openSource": "متن‌باز",
     "how.title": "تشخیص. یادگیری. اثبات.",
     "how.p1": "یک سنجش تطبیقی کوتاه نقشهٔ دانش واقعی تو را ترسیم می‌کند — نه آنچه سرفصل‌ها فرض می‌کنند. در هر مفهوم پله‌پله سخت‌تر می‌شود: قوی‌ها زود تمام می‌کنند و آن‌که سختی دارد هرگز احساس نمی‌کند از دسترس خارج است.",
-    "how.p2": "هر درس ایده را می‌آموزد، نه فقط مراحل را. تمرین بی‌پایان و تازه‌تولید است و هر پاسخ نادرست با {misconceptions} الگوی شناخته‌شدهٔ سوءبرداشت مقایسه می‌شود — می‌فهمی چرا اشتباه کردی، نه فقط اینکه اشتباه کردی.",
+    "how.p2": "هر درس ایده را می‌آموزد، نه فقط مراحل را. تمرین بی‌پایان و تازه‌تولید است و هر پاسخ نادرست با ۴۳ الگوی شناخته‌شدهٔ سوءبرداشت مقایسه می‌شود — می‌فهمی چرا اشتباه کردی، نه فقط اینکه اشتباه کردی.",
     "how.p3": "شواهد تو: تسلط بر هر مفهوم، سوءبرداشت‌هایی که کم‌رنگ می‌شوند، و رکوردهایی که پایداری را نشان می‌دهند. پیشرفتِ قابل صدور که معلمان و شعبه‌ها می‌توانند رویش بسازند.",
     "subj.title": "پنج درس، یک ژنوم دانش",
     "onb.title": "پروفایل یادگیری‌ات را بساز",
     "onb.country": "کشور", "onb.age": "سن", "onb.language": "زبان", "onb.goal": "هدفت", "onb.subjects": "درس‌هایی که می‌خواهی",
     "onb.start": "شروع یادگیری", "onb.handle": "یک نام مستعار انتخاب کن", "onb.goalPh": "مثلاً می‌خواهم مهندس شوم",
-    "dash.hello": "سلام", "dash.hi": "خوش برگشتی", "dash.continue": "مسیرت را ادامه بده", "dash.diagnose": "سنجش را شروع کن",
+    "dash.hi": "خوش برگشتی", "dash.continue": "مسیرت را ادامه بده", "dash.diagnose": "سنجش را شروع کن",
     "dash.recommended": "پیشنهاد بعدی", "dash.mastery": "تسلط", "dash.rooms": "اتاق‌های مطالعه", "dash.genome": "نقشهٔ ژنوم",
     "dash.language": "زبان", "dash.subjects": "درس‌ها",
     "diag.title": "سنجش تطبیقی",
@@ -21817,7 +20767,7 @@ const fa = {
     "common.subject": "درس", "common.stage": "مرحله", "common.prereqs": "بر پایهٔ", "common.you": "تو", "common.save": "ذخیره",
     "common.close": "بستن", "common.loading": "در حال بارگذاری…", "common.error": "چیزی پیش آمد", "common.retry": "دوباره",
     "common.free": "رایگان", "common.country": "کشور", "common.anon": "از پایه ناشناس",
-    "home.tryCaption": "هر پرسش در OpenMind تازه تولید و صادقانه تصحیح می‌شود — پاسخ‌های نادرست با {misconceptions} الگوی شناخته‌شدهٔ سوءبرداشت مقایسه می‌شوند.",
+    "home.tryCaption": "هر پرسش در OpenMind تازه تولید و صادقانه تصحیح می‌شود — پاسخ‌های نادرست با ۴۳ الگوی شناخته‌شدهٔ سوءبرداشت مقایسه می‌شوند.",
     "home.tryLink": "سنجش کامل را امتحان کن ←",
     "home.chaptersTitle": "شعبه‌ها", "home.chaptersLine": "۵ دانش‌آموز + ۱ مربی + یک گوشی.",
     "how.diagnose": "تشخیص", "how.learn": "یادگیری", "how.prove": "اثبات",
@@ -22365,7 +21315,6 @@ const ur = {
     "curr.change": "مضامین اور معاونت تبدیل کریں",
     "curr.specsNote": "ممالک کے کورس ایک ہی علمی نقشے پر لگے ہیں۔",
     "curr.noProfile": "پہلے پروفائل بنائیں — آپ کا کورس وہیں محفوظ ہوتا ہے۔",
-    "curr.youAreHere": "آپ یہاں ہیں",
     "lvl.primary": "ابتدائی",
     "lvl.junior": "نچلا ثانوی",
     "lvl.foundation": "بنیادی سطح",
@@ -22781,16 +21730,14 @@ const ur = {
     "next.reason.retrieve": "پہلے ثابت کیا تھا — اب دہرانا اسے مضبوط کرے گا۔",
     "next.reason.retrieveUnproved": "یہ دہرانے کا وقت ہے اور ابھی تک مدد کے بغیر کیا نہیں گیا — اب یاد کرنا ہی بتاتا ہے کہ تم واقعی کہاں ہو۔",
     "next.reason.explain": "سیدھے قدم لرز رہے ہیں — مشق سے پہلے تصور دوبارہ بنائیں۔",
-    "next.reason.practisePre": "یہاں آپ کی مہارت",
-    "next.reason.practisePost": "% ہے — اب پہچانیں کہ طریقہ کب لگتا ہے۔",
+    "next.reason.practisePre": "سیدھے سوالات آپ",
+    "next.reason.practisePost": "% پر حل کرتے ہیں — اب پہچانیں کہ طریقہ کب لگتا ہے۔",
     "next.title.advance": "اگلا موضوع",
     "next.reason.advance": "آپ نے یہاں تک سب کچھ ثابت کر دیا ہے — اگلا {next} ہے۔",
     "next.reason.prereqFirst": "{next} اسی پر بنیاد رکھتا ہے، اور یہ ابھی پختہ نہیں ہوا — یہ پہلے آئے گا۔",
     "next.reason.prereqNew": "{next} اسی پر بنیاد رکھتا ہے، اور یہ آپ نے ابھی پڑھا نہیں — یہ پہلے آئے گا۔",
     "next.ev.prereqsMet": "بنیادیں مکمل",
     "next.ev.demonstrated": "ثابت شدہ",
-    "next.haveDemonstrated": "آپ نے ثابت کیا ہے:",
-    "next.notYetDemonstrated": "آپ نے ابھی تک ثابت نہیں کیا:",
     "next.title.prove": "اسے ثابت کریں",
     "next.reason.proveNoHelp": "آپ نے یہ سب درست کیے، مگر ہر ایک میں مدد درکار تھی — آگے بڑھنے سے پہلے ایک بغیر مدد کے کیجیے۔",
     "next.ev.needsNoHelp": "ابھی تک بغیر مدد کچھ نہیں کیا",
@@ -22816,9 +21763,6 @@ const ur = {
     "next.ev.kcapability": "علم → صلاحیت",
     "q.workOut": "حل نکالیں",
     "q.solve": "حل کریں",
-    "answer.label": "آپ کا جواب",
-    "answer.needNumber": "اپنے جواب کی جانچ کے لیے ایک عدد لکھیں۔",
-    "answer.unitHint": "{unit} میں",
     "q.simplify": "آسان کریں",
     "q.expand": "کھولیں",
     "q.evaluate": "مقدار نکالیں",
@@ -23093,16 +22037,16 @@ const ur = {
     "home.heroTitle": "مشق جو آپ کے اصلی علم کے مطابق بدلتا ہے۔",
     "home.heroSub": "OpenMind بتا دیتا ہے کہ آپ کو کیا آتا ہے، جو نہیں آتا اس کا مشق کراتا ہے، اور یاد رکھتا ہے کہ آپ نے کیوں غلطی کی۔ آپ کے جوابات اسی ڈیوائس پر رہتے ہیں، اس لیے بغیر انٹرنیٹ کے بھی کام کرتا رہتا ہے۔",
     "home.cta": "مفت سیکھنا شروع کریں", "home.cta2": "علم کے جینوم کو دریافت کریں",
-    "home.free": "۱۰۰٪ مفت", "home.offline": "اسی ڈیوائس پر درجہ بندی ہوتی ہے", "home.languages": "{languages} زبانیں", "home.openSource": "اوپن سورس",
+    "home.free": "۱۰۰٪ مفت", "home.offline": "اسی ڈیوائس پر درجہ بندی ہوتی ہے", "home.languages": "15 زبانیں", "home.openSource": "اوپن سورس",
     "how.title": "جانچیں۔ سیکھیں۔ ثابت کریں۔",
     "how.p1": "ایک مختصر موافق جانچ آپ کی اصل معلومات کا نقشہ بناتی ہے — نصاب کے مفروضے نہیں۔ ہر تصور میں مشکل قدم بہ قدم بڑھتی ہے: مضبوط طلبہ جلدی ختم کرتے ہیں اور کمزور طلبہ کبھی محسوس نہیں کرتے کہ بات پہنچ سے باہر ہے۔",
-    "how.p2": "ہر سبق خیال سکھاتا ہے، صرف طریقے نہیں۔ مشق بے انتہا اور تازہ پیدا شدہ ہے، اور ہر غلط جواب {misconceptions} معلوم غالب فہمی کے نمونوں سے ملا کر دیکھا جاتا ہے — آپ سیکھتے ہیں کہ کیوں چوکے، نہ صرف اِتنے کہ چوکے۔",
+    "how.p2": "ہر سبق خیال سکھاتا ہے، صرف طریقے نہیں۔ مشق بے انتہا اور تازہ پیدا شدہ ہے، اور ہر غلط جواب ۴۳ معلوم غالب فہمی کے نمونوں سے ملا کر دیکھا جاتا ہے — آپ سیکھتے ہیں کہ کیوں چوکے، نہ صرف اِتنے کہ چوکے۔",
     "how.p3": "آپ کا ثبوت: ہر تصور کی مہارت، وقت کے ساتھ کم ہوتی غالب فہمیاں، اور تسلسل دکھانے والے سلسلے۔ برآمد ہونے والی پیش رفت جس پر اساتذہ اور شعبے تعمیر کر سکتے ہیں۔",
     "subj.title": "پانچ مضامین، ایک علمی جینوم",
     "onb.title": "اپنا سیکھنے کا پروفائل بنائیں",
     "onb.country": "ملک", "onb.age": "عمر", "onb.language": "زبان", "onb.goal": "آپ کا ہدف", "onb.subjects": "مضامین جو آپ چاہتے ہیں",
     "onb.start": "سیکھنا شروع کریں", "onb.handle": "ایک نام چنیں", "onb.goalPh": "مثلاً میں انجینئر بننا چاہتا ہوں",
-    "dash.hello": "سلام", "dash.hi": "خوش آمدید", "dash.continue": "اپنا راستہ جاری رکھیں", "dash.diagnose": "جانچ شروع کریں",
+    "dash.hi": "خوش آمدید", "dash.continue": "اپنا راستہ جاری رکھیں", "dash.diagnose": "جانچ شروع کریں",
     "dash.recommended": "اگلا مشورہ", "dash.mastery": "مہارت", "dash.rooms": "مطالعہ کمرے", "dash.genome": "جینوم کا نقشہ",
     "dash.language": "زبان", "dash.subjects": "مضامین",
     "diag.title": "موافق جانچ",
@@ -23193,7 +22137,7 @@ const ur = {
     "common.subject": "مضمون", "common.stage": "مرحلہ", "common.prereqs": "ان پر مبنی", "common.you": "آپ", "common.save": "محفوظ کریں",
     "common.close": "بند کریں", "common.loading": "لوڈ ہو رہا ہے…", "common.error": "کچھ غلط ہو گیا", "common.retry": "دوبارہ",
     "common.free": "مفت", "common.country": "ملک", "common.anon": "ڈیزائن سے گمنام",
-    "home.tryCaption": "OpenMind کا ہر سوال تازہ بنتا ہے اور ایمانداری سے جانچا جاتا ہے — غلط جواب {misconceptions} معلوم غالب فہمی کے نمونوں سے ملتے ہیں۔",
+    "home.tryCaption": "OpenMind کا ہر سوال تازہ بنتا ہے اور ایمانداری سے جانچا جاتا ہے — غلط جواب ۴۳ معلوم غالب فہمی کے نمونوں سے ملتے ہیں۔",
     "home.tryLink": "مکمل جانچ آزمائیں ←",
     "home.chaptersTitle": "شعبے", "home.chaptersLine": "۵ طالب علم + ۱ رہنما + ایک فون۔",
     "how.diagnose": "جانچیں", "how.learn": "سیکھیں", "how.prove": "ثابت کریں",
@@ -23758,7 +22702,6 @@ exports.bn = {
     "curr.change": "বিষয় ও সহায়তা পরিবর্তন করুন",
     "curr.specsNote": "টি দেশের কোর্স একই জ্ঞান-মানচিত্রে যুক্ত।",
     "curr.noProfile": "আগে একটি প্রোফাইল তৈরি করুন — আপনার কোর্স সেখানে সংরক্ষিত হয়।",
-    "curr.youAreHere": "আপনি এখানে",
     "lvl.primary": "প্রাথমিক",
     "lvl.junior": "নিম্ন মাধ্যমিক",
     "lvl.foundation": "ভিত্তি স্তর",
@@ -24184,16 +23127,14 @@ exports.bn = {
     "next.reason.retrieve": "আগে প্রমাণ করেছেন — এখন দ্রুত পুনরালোচনায় স্থায়ী হবে।",
     "next.reason.retrieveUnproved": "এটি দোহরানোর সময় হয়েছে আর এখনো সহায়তা ছাড়া করা হয়নি — এখন মনে করা আমাদের বলে দেয় আপনি সত্যিই কোথায় আছেন।",
     "next.reason.explain": "সরাসরি ধাপগুলো টলমল — অনুশীলনের আগে ধারণাটি নতুন করে গড়ুন।",
-    "next.reason.practisePre": "এখানে আপনার দখল",
-    "next.reason.practisePost": "% — এবার চিনুন পদ্ধতি কখন লাগে।",
+    "next.reason.practisePre": "সরাসরি প্রশ্ন আপনি",
+    "next.reason.practisePost": "% এ সমাধান করেন — এবার চিনুন পদ্ধতি কখন লাগে।",
     "next.title.advance": "পরবর্তী বিষয়",
     "next.reason.advance": "এখন পর্যন্ত সবকিছুই আপনি প্রমাণ করেছেন — পরবর্তী হলো {next}।",
     "next.reason.prereqFirst": "{next} এর উপরেই দাঁড়িয়ে আছে, আর এটি এখনো পাকা নয় — আগে এটিই।",
     "next.reason.prereqNew": "{next} এর উপরেই দাঁড়িয়ে আছে, আর এটি আপনি এখনো পড়েননি — আগে এটিই।",
     "next.ev.prereqsMet": "ভিত্তি তৈরি",
     "next.ev.demonstrated": "প্রমাণিত",
-    "next.haveDemonstrated": "আপনি প্রমাণ করেছেন:",
-    "next.notYetDemonstrated": "আপনি এখনও প্রমাণ করেননি:",
     "next.title.prove": "এটি প্রমাণ করুন",
     "next.reason.proveNoHelp": "সবগুলোই সঠিক, কিন্তু প্রতিটিতে সহায়তা লেগেছে — এগিয়ে যাওয়ার আগে একটি সহায়তা ছাড়া করুন।",
     "next.ev.needsNoHelp": "এখনো সহায়তা ছাড়া কিছু করা হয়নি",
@@ -24219,9 +23160,6 @@ exports.bn = {
     "next.ev.kcapability": "জ্ঞান → সক্ষমতা",
     "q.workOut": "গণনা করুন",
     "q.solve": "সমাধান করুন",
-    "answer.label": "তোমার উত্তর",
-    "answer.needNumber": "তোমার উত্তর যাচাই করতে একটি সংখ্যা লেখো।",
-    "answer.unitHint": "{unit} এককে",
     "q.simplify": "সরল করুন",
     "q.expand": "বিস্তার করুন",
     "q.evaluate": "মান নির্ণয়",
@@ -24346,7 +23284,7 @@ exports.bn = {
     "onb.title": "সেটআপ", "onb.start": "শেখা শুরু করুন",
     "onb.handle": "আপনার নাম", "onb.country": "আপনি কোথায়", "onb.language": "ভাষা",
     "nav.learn": "শিখুন", "nav.solve": "সমাধান", "nav.teach": "শিক্ষক", "nav.about": "বর্ণনা",
-    "dash.hello": "হ্যালো", "dash.hi": "হ্যালো", "dash.subjects": "বিষয়", "dash.mastery": "মহারত",
+    "dash.hi": "হ্যালো,", "dash.subjects": "বিষয়", "dash.mastery": "মহারত",
     "learn.mastered": "মিস্টার্ড", "learn.practice": "অভ্যাস",
     "intent.exams": "পরীক্ষার জন্য", "intent.understand": "বোঝার জন্য", "intent.project": "প্রকল্প",
     "subj.title": "বিষয়", "subj.maths": "গণিত", "subj.physics": "পদার্থবিদ্যা",
@@ -24490,15 +23428,15 @@ exports.bn = {
     "home.cta2": "নলেজ জিনোম ঘুরে দেখুন",
     "home.free": "১০০% বিনামূল্যে",
     "home.offline": "এই ডিভাইসেই যাচাই হয়",
-    "home.languages": "{languages}টি ভাষা",
+    "home.languages": "১৫টি ভাষা",
     "home.openSource": "ওপেন সোর্স",
-    "home.tryCaption": "OpenMind-এর প্রতিটি প্রশ্ন নতুন করে তৈরি ও সৎভাবে মূল্যায়িত — ভুল উত্তর {misconceptions}টি পরিচিত ভুল-ধারণার নমুনার সঙ্গে মেলানো হয়।",
+    "home.tryCaption": "OpenMind-এর প্রতিটি প্রশ্ন নতুন করে তৈরি ও সৎভাবে মূল্যায়িত — ভুল উত্তর ৪৩টি পরিচিত ভুল-ধারণার নমুনার সঙ্গে মেলানো হয়।",
     "home.tryLink": "সম্পূর্ণ রোগনির্ণয় করুন →",
     "home.chaptersTitle": "চ্যাপ্টার",
     "home.chaptersLine": "৫ জন শিক্ষার্থী + ১ জন পরামর্শদাতা + একটি ফোন।",
     "how.title": "রোগনির্ণয়। শেখা। প্রমাণ।",
     "how.p1": "একটি সংক্ষিপ্ত অভিযোজিত রোগনির্ণয় আপনার প্রকৃত জ্ঞান মাপে — সিলেবাস যা ধরে নেয় তা নয়। এটি প্রতিটি ধারণায় কঠিনতার সিঁড়ি বেয়ে ওঠে, তাই দক্ষ শিক্ষার্থীরা দ্রুত শেষ করে আর দুর্বলরা কখনো সাধ্যের বাইরে পরীক্ষিত বোধ করে না।",
-    "how.p2": "প্রতিটি পাঠ শুধু ধাপ নয়, ধারণাটি শেখায়। অনুশীলন অসীম ও নতুন করে তৈরি, আর প্রতিটি ভুল উত্তর {misconceptions}টি পরিচিত ভুল-ধারণার নমুনার সঙ্গে মেলানো হয় — তাই কেন ভুল হলো তাও জানতে পারেন, শুধু ভুল হয়েছে তা নয়।",
+    "how.p2": "প্রতিটি পাঠ শুধু ধাপ নয়, ধারণাটি শেখায়। অনুশীলন অসীম ও নতুন করে তৈরি, আর প্রতিটি ভুল উত্তর ৪৩টি পরিচিত ভুল-ধারণার নমুনার সঙ্গে মেলানো হয় — তাই কেন ভুল হলো তাও জানতে পারেন, শুধু ভুল হয়েছে তা নয়।",
     "how.p3": "আপনার প্রমাণ: প্রতি ধারণায় দক্ষতা, সময়ের সঙ্গে কমতে থাকা ভুল ধারণা, আর ধারাবাহিকতা দেখানো স্ট্রিক। শিক্ষক ও চ্যাপ্টাররা যার উপর গড়ে তুলতে পারে এমন রপ্তানিযোগ্য অগ্রগতি।",
     "how.diagnose": "রোগনির্ণয়",
     "how.learn": "শিখুন",
@@ -25240,7 +24178,7 @@ exports.COUNTRIES = [
 __def("learner-model.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEMONSTRATED_ORDER = exports.CONCEPT_STAGES = exports.ESTABLISHED_MASTERY = exports.REPAIR_STREAK = void 0;
+exports.CONCEPT_STAGES = exports.ESTABLISHED_MASTERY = exports.REPAIR_STREAK = void 0;
 exports.currentSlip = currentSlip;
 exports.statusOf = statusOf;
 exports.stageOf = stageOf;
@@ -25252,16 +24190,11 @@ exports.stuckOn = stuckOn;
 exports.unmetPrerequisites = unmetPrerequisites;
 exports.evidenceFor = evidenceFor;
 exports.buildSnapshot = buildSnapshot;
-exports.demonstratedLabelKey = demonstratedLabelKey;
-exports.demonstrationSplit = demonstrationSplit;
-exports.conceptStanding = conceptStanding;
 // Learner model snapshot (§1): every interaction becomes structured evidence.
 // Pure functions of ProfileState — the single source the Mind Map, Review
 // Queue, Next Step and Offline Pack all read. No estimates, no simulation.
 const genome_1 = require("./genome");
-const proof_1 = require("./proof");
 const retention_1 = require("./retention");
-const transfer_1 = require("./transfer");
 /**
  * How many answers in a row retire a recurring slip.
  *
@@ -25482,54 +24415,6 @@ function buildSnapshot(state) {
             .map(([id, hits]) => ({ id, hits }))
             .sort((a, b) => b.hits - a.hits)
             .slice(0, 5),
-    };
-}
-exports.DEMONSTRATED_ORDER = [
-    "recalled", "applied", "transferred", "retained",
-];
-/** The label for one rung. The three that name a dimension borrow the words the
- *  rest of the product already uses for it; retention's key is spelled
- *  `evv.dim.retention` because that is the key its own row in the evidence
- *  record uses — one word, one key, wherever it is said. */
-function demonstratedLabelKey(d) {
-    return d === "retained" ? "evv.dim.retention" : `evv.dim.${d}`;
-}
-/** What this learner has demonstrated about one concept, and what remains. */
-function demonstrationSplit(state, conceptId) {
-    const e = evidenceFor(state, conceptId);
-    const earned = {
-        recalled: !!e && e.attempts > 0 && e.correct > 0,
-        applied: !!e && provedUnaided(e),
-        transferred: !!e && e.transferCorrect > 0,
-        retained: (0, proof_1.retentionState)(state.progress[conceptId]?.retention) === "retained",
-    };
-    const demonstrated = exports.DEMONSTRATED_ORDER.filter((d) => earned[d]);
-    const pending = exports.DEMONSTRATED_ORDER.filter((d) => !earned[d]);
-    return { demonstrated, pending, next: pending[0] ?? null };
-}
-function conceptStanding(state, conceptId) {
-    const split = demonstrationSplit(state, conceptId);
-    const e = evidenceFor(state, conceptId);
-    const unmeasured = !e || e.attempts === 0;
-    const done = !!e && conceptDone(e, transfer_1.canTransfer);
-    return {
-        conceptId,
-        stage: e ? stageOf(e) : "unmeasured",
-        demonstrated: split.demonstrated,
-        pending: split.pending,
-        next: split.next,
-        unmeasured,
-        blockedBy: unmetPrerequisites(conceptId, state),
-        done,
-        proved: e
-            ? (0, proof_1.strongestProof)({
-                correct: e.correct,
-                independentCorrect: e.independentCorrect,
-                transferCorrect: e.transferCorrect,
-                retentionCorrect: state.progress[conceptId]?.retention?.correct ?? 0,
-            })
-            : null,
-        mark: done ? "done" : unmeasured ? "unstarted" : "underway",
     };
 }
 
@@ -26846,8 +25731,7 @@ __def("misconceptions.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MISCONCEPTIONS_BY_ID = exports.MISCONCEPTIONS = void 0;
-exports.beliefName = beliefName;
-// The misconception catalogues. Each is a *pattern of thinking*, not a topic:
+// 43 misconception catalogues. Each is a *pattern of thinking*, not a topic:
 // the diagnostic engine fires them from wrong-answer signatures across many
 // questions, then coaches the underlying belief rather than the symptom.
 exports.MISCONCEPTIONS = [
@@ -26905,27 +25789,6 @@ exports.MISCONCEPTIONS = [
     { id: "mass-balance", name: "Unbalanced equations", pattern: "Changes formulas (H₂ → H) to balance instead of adding coefficients.", coaching: "You may ONLY change the big numbers (coefficients), never the small ones (subscripts) — changing H₂O to H₂O₂ makes it a different substance! Balance by counting each element on both sides and adjusting coefficients, starting with the rarest element. Atoms are conserved; the equation must show it.", concepts: ["equations-stoich"] },
     { id: "strong-conc", name: "Strong acid = concentrated acid", pattern: "Uses 'strong' and 'concentrated' interchangeably.", coaching: "Strength = degree of ionisation (strong: every molecule releases H⁺); concentration = moles per litre (how much is dissolved). Dilute sulfuric acid is still STRONG (fully ionised) but low concentration. Two independent dials — describe both separately.", concepts: ["acids-bases"] },
 ];
-/**
- * A belief's name, in the learner's language, that can never be a raw key.
- *
- * A sentence is composed from a fragment and a name, so a missing `mc.<id>` key
- * does not degrade gracefully — it ships `You can do the steps, but "mc.sf-sig"
- * keeps recurring` to the learner. That is not hypothetical: English was once
- * missing all 53 `mc.*` names while every other dictionary had them, so the
- * SOURCE language was the one showing keys.
- *
- * A translator renders an undefined key as its own name, which is detectable,
- * and the catalogue's authored English is the right fallback for it: the belief
- * being named is a fact about arithmetic, not prose to be localized. ONE owner,
- * asked by the decision engine and by every surface that names a belief.
- */
-function beliefName(t, id) {
-    const key = `mc.${id}`;
-    const v = t(key);
-    if (v !== key)
-        return v;
-    return exports.MISCONCEPTIONS_BY_ID[id]?.name ?? id;
-}
 exports.MISCONCEPTIONS_BY_ID = Object.fromEntries(exports.MISCONCEPTIONS.map((m) => [m.id, m]));
 
 });
@@ -26953,6 +25816,27 @@ const evidence_1 = require("./evidence");
 const transfer_1 = require("./transfer");
 const EN = (k) => exports.EN_NEXT[k] ?? k;
 function nextT(t) { return t ?? EN; }
+/**
+ * A belief's name, in the learner's language, that can never be a raw key.
+ *
+ * The engine composes the remediation sentence from a fragment and a name, so
+ * a missing `mc.<id>` key does not degrade gracefully — it ships
+ * `You can do the steps, but “mc.sf-sig” keeps recurring` to the learner. That
+ * is not hypothetical: English was missing all 53 `mc.*` names while every
+ * other dictionary had them (see scripts/i18n-misconception-names.mjs), so the
+ * SOURCE language was the one showing keys.
+ *
+ * A translator renders an undefined key as its own name, which is detectable,
+ * and the catalogue's authored English is the right fallback for it: the belief
+ * being named is a fact about arithmetic, not prose to be localized.
+ */
+function beliefName(t, id) {
+    const key = `mc.${id}`;
+    const v = t(key);
+    if (v !== key)
+        return v;
+    return misconceptions_1.MISCONCEPTIONS_BY_ID[id]?.name ?? id;
+}
 /** Runtime list of the kinds — the one place a caller (an API route, a page
  *  reading `?intent=`, a script) can validate an untrusted action name. */
 exports.NEXT_KINDS = [
@@ -27327,18 +26211,14 @@ function decideNext(state, max = 4, tt, title, now = Date.now(), evidence) {
     // its own.
     for (const e of snap.evidence) {
         if (e.misconceptionHits >= 2 && e.topMisconception && out.length < max && !out.some((a) => a.conceptId === e.conceptId)) {
-            // The sentence names the belief only when the CATALOGUE knows it: a
-            // ledger id with no catalogue entry has no name to show, and
-            // "…but “mc.xyz” keeps recurring" is exactly what the unnamed fallback
-            // exists to prevent. How a KNOWN id is worded is
-            // lib/misconceptions#beliefName's rule — the one owner now, not a copy.
-            const known = !!e.topMisconception && !!misconceptions_1.MISCONCEPTIONS_BY_ID[e.topMisconception];
+            const m = misconceptions_1.MISCONCEPTIONS_BY_ID[e.topMisconception];
+            const mName = m ? beliefName(t, m.id) : "";
             const recent = recentFor(ledger, e.conceptId, 4);
             push({
                 kind: "REMEDIATE", conceptId: e.conceptId,
                 title: `${t("next.title.fix")}: ${name(e.conceptId)}`,
-                reason: known && e.topMisconception
-                    ? `${t("next.reason.remediatePre")}${(0, misconceptions_1.beliefName)(t, e.topMisconception)}${t("next.reason.remediatePost")}`
+                reason: m
+                    ? `${t("next.reason.remediatePre")}${mName}${t("next.reason.remediatePost")}`
                     : t("next.reason.remediateNoName"),
                 evidence: `${e.attempts} ${t(e.attempts === 1 ? "next.ev.attemptsOne" : "next.ev.attempts")} · ${t("next.ev.mastery")} ${Math.round(e.mastery * 100)}% · ${t("next.ev.sameSlip")} ${e.misconceptionHits}×`,
                 minutes: 10,
@@ -27541,17 +26421,7 @@ exports.EN_NEXT = {
     // verifier pins this table to the `en` dictionary key-by-key, which is why a
     // one-character difference here went unnoticed while the text was still
     // English in both.
-    //
-    // THE SENTENCE NAMES THE MEASUREMENT IT PRINTS, and it did not always. It used
-    // to read "You solve straightforward ones at 64%" over `e.mastery` — a
-    // projected, evidence-integrated number (lib/mastery.ts), not the share of
-    // answers that were right. A learner who had just read the diagnostic
-    // report's demand row ("Straightforward steps — 3 of 3") therefore saw the
-    // same words carrying two different quantities, on consecutive screens, with
-    // nothing to say which was which. The label is now the one the evidence line
-    // below already uses (`next.ev.mastery`), so the number cannot be read as a
-    // score it was never computed to be.
-    "next.reason.practisePre": "Your mastery here is", "next.reason.practisePost": "% — now recognise when the method applies.",
+    "next.reason.practisePre": "You solve straightforward ones at", "next.reason.practisePost": "% — now recognise when the method applies.",
     "next.reason.proveNoHelp": "You have got these right, but every one needed help — do one unaided before moving on.",
     "next.reason.transfer": "Straightforward questions are solid — now the same idea in unfamiliar wording.",
     "next.reason.project": " concepts strong — apply them in a project.",
@@ -29833,209 +28703,6 @@ exports.NUMERIC_GENS = {
 exports.NUMERIC_CONCEPT_IDS = Object.keys(exports.NUMERIC_GENS);
 
 });
-__def("operations.js", function (module, exports, require) {
-"use strict";
-// ─────────────────────────────────────────────────────────────────────────────
-// THE DOOR'S DECISIONS, WITHOUT A TRANSPORT AND WITHOUT A DISK.
-//
-// OpenMind answers a serve in two places: the Next route handler (a server, an
-// fs store, an HTTP response) and the published static build (a browser, a
-// localStorage ledger, no server at all). Both must make the SAME educational
-// decision, because the decision is the product: which item, at which depth,
-// why. The route used to hold it and the static page used to hold a copy, and
-// the copy had already drifted — the page derived the tier from the concept's
-// own subject while the route used the profile's first subject, so a learner
-// sitting two courses could be served the wrong depth depending on which of the
-// two products answered them.
-//
-// So the decision lives here: pure functions over a `ProfileState`, with the
-// staging written into the state the caller already holds. Nothing here reads a
-// file, opens a socket or decides an HTTP status. `lib/ledger.ts` did this for
-// the WRITE path (append and project, storage injected); this does it for the
-// serve.
-//
-// TWO CALLERS, AND THE GATE HOLDS THEM TOGETHER:
-//   · app/api/progress/route.ts — the server, wrapping this in auth + JSON;
-//   · docs/app.js — the static build, calling it through the engine bundle.
-// `scripts/verify-engines.mjs` asserts that neither one re-derives the aim, and
-// that both reach the draw through `servePractice`.
-//
-// WHY THE DRAW NEEDS ITS OWN BOOKKEEPING: `generateQuestionNear` picks the draw
-// NEAREST an aim, deterministically. For a concept whose generator makes only a
-// handful of items that means the same item again and again — measured at 44
-// concepts — so a serve must know what it has already handed out. That ledger
-// (`servedPractice`) is part of THIS decision, which is exactly why it cannot
-// live in one caller and be forgotten by the other.
-// ─────────────────────────────────────────────────────────────────────────────
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SERVED_KEEP = exports.PRACTICE_DRAW_ATTEMPTS = void 0;
-exports.practiceAim = practiceAim;
-exports.noteHint = noteHint;
-exports.answerDisposition = answerDisposition;
-exports.servePractice = servePractice;
-const answer_1 = require("./answer");
-const genome_1 = require("./genome");
-const question_bank_1 = require("./question-bank");
-const questions_1 = require("./questions");
-const retention_1 = require("./retention");
-const specifications_1 = require("./specifications");
-const transfer_1 = require("./transfer");
-/** How many draws a practice serve searches for an item in the aimed band.
- *  Band-first selection makes the tier decide which band the learner is served;
- *  the budget is what turns that from "usually" into "for any band the bank can
- *  produce at all". The draws are pure generator calls — microseconds — and the
- *  search is only spent in full when a band is genuinely unreachable, where no
- *  number of draws could find one and the honest nearest fallback takes over. */
-exports.PRACTICE_DRAW_ATTEMPTS = 40;
-/** How many served item keys a concept remembers. Bounded because a session's
- *  practice on one concept must not grow the stored state without limit — and
- *  after this many the learner has long since seen everything the generator
- *  makes. The list is OLDEST FIRST, so a repeat still rotates to the back. */
-exports.SERVED_KEEP = 12;
-/**
- * The aim for one concept, from the learner's own record.
- *
- * `band` is read from the concept's OWN subject course, not the profile's first
- * one. A learner sitting GCSE maths and A-level physics was served physics at
- * the maths band when the door answered, and at the physics band when the
- * static build answered — one learner, two difficulties, depending on which
- * product they happened to use. A course is chosen per subject (`one course per
- * subject`), so the depth has to be read per subject too.
- */
-function practiceAim(state, conceptId) {
-    const subject = (0, genome_1.getConcept)(conceptId)?.subject;
-    const band = (0, specifications_1.difficultyFor)((0, specifications_1.specForProfile)(state.profile, subject));
-    const due = (0, retention_1.isRetentionDue)(state, conceptId);
-    const record = state.progress[conceptId];
-    const target = (0, question_bank_1.practiceTarget)({
-        tier: band,
-        attempts: record?.attempts ?? 0,
-        correct: record?.correct ?? 0,
-        streak: record?.streak ?? 0,
-        misconceptionHits: record?.misconceptions
-            ? Object.values(record.misconceptions).reduce((s, n) => s + n, 0)
-            : 0,
-    });
-    // ── THE TWO EXEMPTIONS, AND WHY THEY ARE EXEMPT ────────────────────────
-    // A delayed-recall check is served at the concept's own band: "I remembered
-    // it" must not be able to mean "I was asked an easier question". A transfer
-    // request carries its own deliberate floor BELOW (`max(0.5, band)`) — it has
-    // to be harder by construction or it is not transfer.
-    return { band, due, target, aim: due ? band : target.difficulty };
-}
-/**
- * The hint ledger's one rule: asking for help on a served question counts once
- * more than it did, and never more than the ladder has rungs.
- *
- * WHY THIS IS AN OPERATION AND NOT A LINE IN EACH CALLER. Independence is
- * deduced from what was actually handed out, so the count has to be written by
- * whoever hands it out — and read by whoever grades the answer. Two callers
- * writing it two ways is two different answers to "did this learner need
- * help?". The static page used to keep a counter in the practice view (a
- * number the surface itself owned) while the server kept this ledger; the
- * learner-visible consequence is that one product could report work it helped
- * with as independent.
- */
-function noteHint(state, questionId) {
-    state.hintsByQ ?? (state.hintsByQ = {});
-    state.hintsByQ[questionId] = Math.min(4, (state.hintsByQ[questionId] ?? 0) + 1);
-    return state.hintsByQ[questionId];
-}
-/**
- * Attribute one answer from the staged state.
- *
- * HINTS ARE CHECKED FIRST, AND THAT ORDER IS THE WHOLE RULE. Written the other
- * way round (`isTransfer ? "independent" : hints > 0 ? …`), a transfer request
- * whose concept has no re-framed surface returned `mode: "independent"` for an
- * answer that had taken a hint: the ledger declined to credit independence
- * while the disposition the learner is SHOWN said "independent". The deep suite
- * found it on the hinted-transfer case, which is why the rule lives here once
- * rather than in each caller where one of them can get the order wrong.
- */
-function answerDisposition(state, conceptId, questionId) {
-    const hints = state.hintsByQ?.[questionId] ?? 0;
-    const wasTransfer = state.transferStage?.[conceptId]?.questionId === questionId;
-    const wasRetrieval = state.retrievalStage?.[conceptId]?.questionId === questionId;
-    const surface = state.transferSurface?.[questionId];
-    // Only a genuinely different surface earns transfer: a direct re-draw is
-    // deeper work on the same form, and is recorded as what it is.
-    const mode = hints > 0 ? "guided" : wasTransfer && surface ? "transfer" : "independent";
-    const source = wasRetrieval ? "retrieval" : mode === "transfer" ? "transfer" : "practice";
-    return { mode, source, hints, wasTransfer, wasRetrieval, surface };
-}
-/**
- * Serve one practice question and STAGE it.
- *
- * The order matters and is the reason this is one function rather than three
- * helpers: the draw is made from the keys already served, the drawn item's key
- * is recorded, the item is staged for grading, and — for the two special
- * serves — the stage that will decide the ANSWER's attribution is written. A
- * caller that did these in a different order would stage an item whose key was
- * never recorded (served twice) or record a key whose item was never staged
- * (unanswerable).
- */
-function servePractice(input) {
-    const { state, conceptId } = input;
-    const subject = (0, genome_1.getConcept)(conceptId)?.subject;
-    if (!subject)
-        return { ok: false, error: "unsupported_concept" };
-    const isTransfer = input.intent === "transfer";
-    const seed = input.seed ?? `p${Date.now()}:${conceptId}:${Math.floor(Math.random() * 1e9)}`;
-    const aim = practiceAim(state, conceptId);
-    let question;
-    let surface = "direct";
-    if (isTransfer) {
-        // Genuine transfer is a re-framing the serve can really deliver, and what
-        // counts as one — plus which draw delivers it — is decided in
-        // lib/transfer.ts#serveTransfer, not here. A transfer with no second
-        // surface available is a promise the product cannot keep, so it is an
-        // error rather than a silent easier item.
-        const served = (0, transfer_1.serveTransfer)(conceptId, seed, Math.max(0.5, aim.band), input.lang ?? "en");
-        if (!served)
-            return { ok: false, error: "no_question" };
-        question = served.question;
-        surface = served.surface;
-    }
-    else {
-        const drawn = (0, questions_1.generateQuestionNear)(conceptId, seed, aim.aim, exports.PRACTICE_DRAW_ATTEMPTS, state.servedPractice?.[conceptId] ?? []);
-        if (!drawn)
-            return { ok: false, error: "no_question" };
-        question = drawn;
-    }
-    // Record the served item so the NEXT serve on this concept skips it. Always
-    // appended, even a repeat: the list rotates, so the most recently served key
-    // must move to the back.
-    state.servedPractice ?? (state.servedPractice = {});
-    const list = state.servedPractice[conceptId] ?? [];
-    list.push((0, answer_1.answerKey)(question));
-    state.servedPractice[conceptId] = list.slice(-exports.SERVED_KEEP);
-    state.practice ?? (state.practice = {});
-    state.practice[conceptId] = { q: question };
-    if (isTransfer) {
-        state.transferStage ?? (state.transferStage = {});
-        state.transferStage[conceptId] = { questionId: question.id };
-        if (surface !== "direct") {
-            state.transferSurface ?? (state.transferSurface = {});
-            state.transferSurface[question.id] = surface;
-        }
-    }
-    if (aim.due) {
-        state.retrievalStage ?? (state.retrievalStage = {});
-        state.retrievalStage[conceptId] = { questionId: question.id };
-    }
-    return {
-        ok: true,
-        served: {
-            question,
-            aim,
-            reframed: isTransfer ? surface !== "direct" : false,
-            transferable: (0, transfer_1.canTransfer)(conceptId),
-            isTransfer,
-        },
-    };
-}
-
-});
 __def("papers.js", function (module, exports, require) {
 "use strict";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -30852,16 +29519,8 @@ function localizeStem(prompt, lang) {
     const hit = stemKeyOf(prompt);
     if (!hit)
         return prompt;
-    // `hit.len` is the length of the stem INCLUDING the space that separated it
-    // from the body (`/^Solve /`), and the dictionary holds the verb alone
-    // ("Resuelve", "احسب", "计算"). Joining them without re-inserting that
-    // separator glued the two together on every localized question — the first
-    // line a learner reads looked like "Resuelvey = x² and y = 3x − 2",
-    // "احسب79 + 43", "计算12 × 8" — measured on 18 of the 135 concepts in every
-    // non-English language. The space is the one character the match consumed, so
-    // the join has to put it back.
     const rest = prompt.slice(hit.len);
-    return `${(0, i18n_1.translator)(lang)(hit.key)} ${rest}`;
+    return `${(0, i18n_1.translator)(lang)(hit.key)}${rest}`;
 }
 // ── Genuine transfer (audit P0-D) ───────────────────────────────────────────
 // Re-framing a question onto a SECOND SURFACE is a transfer decision, and it
@@ -30922,7 +29581,6 @@ exports.bandDemonstrated = bandDemonstrated;
 exports.makeItemId = makeItemId;
 exports.candidateSeeds = candidateSeeds;
 exports.itemFor = itemFor;
-exports.declareQuestion = declareQuestion;
 exports.exposureOf = exposureOf;
 exports.hasSeen = hasSeen;
 exports.markSpent = markSpent;
@@ -31100,19 +29758,6 @@ function itemFor(conceptId, seed, difficulty, active, pool, tags = []) {
             specId: active.spec.id,
             qualification: `${active.spec.name}${active.level.name ? ` ${active.level.name}` : ""}`,
         },
-    };
-}
-function declareQuestion(q) {
-    const c = (0, genome_1.getConcept)(q.conceptId);
-    return {
-        conceptId: q.conceptId,
-        subject: c?.subject ?? "maths",
-        skill: (0, skills_1.skillForDifficulty)(q.difficulty),
-        difficulty: q.difficulty,
-        marking: q.responseKind ?? "choice",
-        marks: exports.AUTHORED_MARKS,
-        misconceptions: q.misconceptionTags ?? [],
-        explanation: q.explanation ?? "",
     };
 }
 function exposureOf(state) {
@@ -31429,1295 +30074,6 @@ depth) {
     }
     return top.length >= Math.min(3, total) ? top : fallback;
 }
-
-});
-__def("questions-biology.js", function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BIOLOGY_DEEP = void 0;
-function distinct(correct, candidates, n = 3) {
-    const out = [];
-    for (const cand of candidates) {
-        const s = String(cand);
-        if (s !== correct && !out.includes(s) && out.length < n)
-            out.push(s);
-    }
-    return out;
-}
-/** A number a student would write: at most three decimals, no float tail. */
-function num(x, dp = 3) {
-    return x.toFixed(dp).replace(/\.?0+$/, "");
-}
-/** The band every family here earns. Written as a helper so no family can
- *  quietly drop back into the recall band while being described as deep. */
-function hardest(r) {
-    return 0.9 + r.next() * 0.06;
-}
-exports.BIOLOGY_DEEP = {
-    /** Magnification rearranged for the ACTUAL size, with mm converted to µm —
-     *  the conversion is half the question. */
-    microscopy: (r) => {
-        const imageMm = r.pick([20, 40, 50, 80, 100, 120]);
-        const mag = r.pick([500, 1000, 2000, 2500, 4000]);
-        const actualMm = imageMm / mag;
-        const actualUm = actualMm * 1000;
-        const correct = `${num(actualUm)} µm`;
-        return {
-            // ONE LINE WHERE THE PROMPT IS PROSE. `readableOption` (lib/transfer.ts)
-            // refuses a multi-part stem in a choice list, so a two-sentence question
-            // that needs no break must not carry one — with a break, this concept
-            // loses its inverse (transfer) surface at that band. Prompts that really
-            // print a table or a list keep their breaks and fall back to `direct`.
-            prompt: `A cell measures ${imageMm} mm across on a micrograph taken at a magnification of ×${mag}. What is the ACTUAL length of the cell?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The millimetre value left unconverted (0.02 "µm").
-                `${num(actualMm)} µm`,
-                // Multiplied instead of divided.
-                `${num(imageMm * mag)} µm`,
-                // The conversion applied twice.
-                `${num(actualUm * 1000)} µm`,
-                // The micrograph size quoted as the real one.
-                `${num(imageMm)} µm`,
-                // Half, for the collapse case.
-                `${num(actualUm / 2)} µm`,
-            ]),
-            tags: [],
-            explanation: `Magnification = image size ÷ actual size, so actual size = image size ÷ magnification = ${imageMm} mm ÷ ${mag} = ${num(actualMm)} mm. A cell is measured in micrometres, and there are 1000 µm in a millimetre, so that is ${num(actualMm)} × 1000 = ${correct}. Reporting ${num(actualMm)} µm is the answer in the wrong unit and it is 1000 times too small — the conversion is not decoration, it is the difference between a cell and a tenth of one.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** A monohybrid cross ENUMERATED: the phenotype percentage comes out of the
-     *  square, not out of a remembered ratio. */
-    genetics: (r) => {
-        const crosses = [["Bb", "Bb"], ["Bb", "bb"], ["BB", "Bb"], ["BB", "bb"], ["bb", "bb"], ["Bb", "BB"]];
-        const [mum, dad] = r.pick(crosses);
-        const gametes = (g) => [g[0], g[1]];
-        const offspring = [];
-        for (const a of gametes(mum))
-            for (const b of gametes(dad))
-                offspring.push([a, b].sort().join(""));
-        const dominant = offspring.filter((g) => /[A-Z]/.test(g)).length;
-        const pct = (dominant / offspring.length) * 100;
-        const correct = `${num(pct)}%`;
-        const recessivePct = 100 - pct;
-        return {
-            prompt: `In a species of plant, the allele for purple flowers (B) is dominant to the allele for white flowers (b).\n\nTwo plants are crossed:\n\n· parent 1: ${mum}\n· parent 2: ${dad}\n\nWhat percentage of the offspring are expected to have PURPLE flowers?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The genotype ratio given as the phenotype one.
-                `${num(pct / 2)}%`,
-                // The recessive percentage.
-                `${num(recessivePct)}%`,
-                // One quarter, for every cross.
-                "25%",
-                // One half, for every cross.
-                "50%",
-                // Three quarters, for every cross.
-                "75%",
-                // The percentage of the tail, so a 100% or 0% cross still has options.
-                `${num(pct === 100 ? 0 : 100)}%`,
-                `${num(pct + 25 > 100 ? pct - 25 : pct + 25)}%`,
-            ]),
-            tags: [],
-            explanation: `Work the cross out rather than quoting a ratio. ${mum} gives gametes ${gametes(mum).join(" or ")}, ${dad} gives ${gametes(dad).join(" or ")}, and the four combinations are ${offspring.join(", ")}. ${dominant} of the 4 contain at least one B, so ${num(pct)}% show the dominant phenotype. The 3 : 1 ratio only applies to a cross of two heterozygotes — with ${mum} × ${dad} the answer is ${correct}, and a ratio remembered rather than derived gets this question wrong.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Cardiac output: stroke volume × heart rate, converted to dm³/min. */
-    circulation: (r) => {
-        const stroke = r.pick([60, 70, 80, 90, 100]);
-        const rate = r.pick([50, 60, 72, 75, 80, 90, 100]);
-        const output = (stroke * rate) / 1000;
-        const correct = `${num(output)} dm³/min`;
-        return {
-            prompt: `A student's stroke volume is ${stroke} cm³ and their heart rate is ${rate} beats per minute. What is their cardiac output?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Left in cm³.
-                `${num(stroke * rate)} dm³/min`,
-                // Rate converted per second instead of per minute.
-                `${num((stroke * rate) / 60)} dm³/min`,
-                // Divided instead of multiplied.
-                `${num(stroke / rate)} dm³/min`,
-                // The stroke volume alone.
-                `${num(stroke)} dm³/min`,
-                // Half, for the collapse case.
-                `${num(output / 2)} dm³/min`,
-            ]),
-            tags: [],
-            explanation: `Cardiac output = stroke volume × heart rate = ${stroke} cm³ × ${rate} = ${num(stroke * rate)} cm³ per minute. There are 1000 cm³ in a dm³ (a litre), so that is ${num(stroke * rate)} ÷ 1000 = ${correct}. Quoting ${num(stroke * rate)} dm³/min means five litres a beat rather than five litres a minute — the unit is what makes the number mean anything, and a resting adult's whole output is about 5 dm³/min.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Impulse speed along a neurone: millimetres over milliseconds, in m/s —
-     *  two conversions, in opposite directions. */
-    "nervous-system": (r) => {
-        const distanceMm = r.pick([300, 600, 900, 1200, 1500]);
-        const timeMs = r.pick([1, 2, 3, 4, 5]);
-        const speed = distanceMm / timeMs;
-        const correct = `${num(speed)} m/s`;
-        return {
-            prompt: `A nerve impulse travels ${distanceMm} mm along a neurone in ${num(timeMs)} ms. What is its speed?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Both units left as they are and read as SI.
-                `${num((distanceMm / 1000) / timeMs)} m/s`,
-                // The conversions applied the wrong way round.
-                `${num(distanceMm * timeMs)} m/s`,
-                // Multiplied instead of divided.
-                `${num(distanceMm * 1000 / timeMs)} m/s`,
-                // The distance quoted as a speed.
-                `${num(distanceMm)} m/s`,
-                // Half, for the collapse case.
-                `${num(speed / 2)} m/s`,
-            ]),
-            tags: [],
-            explanation: `Convert BOTH: ${distanceMm} mm = ${num(distanceMm / 1000)} m, and ${num(timeMs)} ms = ${num(timeMs / 1000)} s. Dividing those gives ${num(distanceMm / 1000)} ÷ ${num(timeMs / 1000)} = ${correct} — and the two conversions cancel, which is why the answer is simply ${distanceMm} ÷ ${timeMs}. Leaving the distance in millimetres (${num((distanceMm / 1000) / timeMs)} m/s) is a thousand times too slow: a myelinated neurone manages around 100 m/s, so a two-figure answer is the sanity check that catches it.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Hardy–Weinberg applied to one allele: q² is the proportion showing the
-     *  recessive phenotype. */
-    evolution: (r) => {
-        const q = r.pick([0.1, 0.2, 0.3, 0.4, 0.5]);
-        const p = Number((1 - q).toFixed(2));
-        const recessive = q * q * 100;
-        const correct = `${num(recessive)}%`;
-        return {
-            prompt: `In a population in Hardy–Weinberg equilibrium, the frequency of a recessive allele (q) is ${num(q)}. What percentage of the population shows the recessive PHENOTYPE?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The allele frequency itself.
-                `${num(q * 100)}%`,
-                // Double the allele frequency (the heterozygote term misused).
-                `${num(2 * q * 100)}%`,
-                // The homozygous dominant term.
-                `${num(p * p * 100)}%`,
-                // The dominant phenotype.
-                `${num((1 - q * q) * 100)}%`,
-                // The heterozygote term.
-                `${num(2 * p * q * 100)}%`,
-            ]),
-            tags: [],
-            explanation: `Only the homozygous recessive genotype shows the recessive phenotype, and its frequency is q²: ${num(q)}² = ${num(q * q)}, so ${correct} of the population. The frequency of the ALLELE (${num(q * 100)}%) is not the frequency of the PHENOTYPE — recessive alleles hide in heterozygotes, which is why a rare recessive allele affects far fewer people than its frequency suggests.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Energy through a food chain: the transfer is applied at every step, not
-     *  once. */
-    ecosystems: (r) => {
-        const producers = r.pick([20000, 50000, 80000, 100000, 250000]);
-        const efficiency = r.pick([5, 10, 12, 15, 20]);
-        const primary = (producers * efficiency) / 100;
-        const secondary = (primary * efficiency) / 100;
-        const correct = `${num(secondary)} kJ`;
-        return {
-            prompt: `A food chain starts with producers holding ${producers} kJ of energy, and only ${efficiency}% of the energy at each level passes to the next. How much energy reaches the SECONDARY consumers (the third trophic level)?`,
-            correct,
-            wrongs: distinct(correct, [
-                // One transfer applied instead of two.
-                `${num(primary)} kJ`,
-                // Both percentages applied but a division missed.
-                `${num((producers * efficiency * efficiency) / 100)} kJ`,
-                // The percentage applied twice as a division.
-                `${num(producers / efficiency / efficiency)} kJ`,
-                // The producers' energy, three times the correction.
-                `${num(producers * efficiency * efficiency)} kJ`,
-                // Half, for the collapse case.
-                `${num(secondary / 2)} kJ`,
-            ]),
-            tags: [],
-            explanation: `Apply the loss at EVERY step. Producers → primary consumers: ${producers} × ${efficiency}% = ${num(primary)} kJ. Primary → secondary consumers: ${num(primary)} × ${efficiency}% = ${correct}. Applying the ${efficiency}% once (${num(primary)} kJ) stops a step short, and that shortfall is the reason food chains are short: after three transfers only about a thousandth of the original energy is left.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Quadrat sampling: the mean per quadrat scaled to the whole area. */
-    biodiversity: (r) => {
-        const counts = [r.int(1, 9), r.int(2, 10), r.int(1, 8), r.int(2, 12), r.int(1, 7), r.int(2, 11)];
-        const n = counts.length;
-        const total = counts.reduce((s, x) => s + x, 0);
-        const mean = total / n;
-        const quadratArea = r.pick([0.25, 0.5, 1]);
-        const fieldArea = r.pick([100, 200, 400, 500]);
-        const estimate = mean * (fieldArea / quadratArea);
-        const correct = num(estimate, 0);
-        return {
-            prompt: `A student counts a plant in ${n} quadrats of ${num(quadratArea)} m² each:\n\n${counts.map((c, i) => `· quadrat ${i + 1}: ${c}`).join("\n")}\n\nThe field has an area of ${fieldArea} m².\n\nWhat is the best estimate of the population in the field?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The mean per quadrat quoted as the population.
-                num(mean, 2),
-                // The counts added.
-                String(total),
-                // Scaled by the field area with the quadrat area ignored.
-                num(mean * fieldArea, 0),
-                // The quadrats counted as if they were the whole field.
-                num(total * (fieldArea / quadratArea) / n / n, 0),
-                // Half, for the collapse case.
-                num(estimate / 2, 0),
-            ]),
-            tags: [],
-            explanation: `Find the mean per quadrat first: (${counts.join(" + ")}) ÷ ${n} = ${num(mean, 2)} plants per ${num(quadratArea)} m². Then scale to the whole field by asking how many quadrats fit in it: ${fieldArea} ÷ ${num(quadratArea)} = ${num(fieldArea / quadratArea)} quadrats, so the estimate is ${num(mean, 2)} × ${num(fieldArea / quadratArea)} = ${correct}. Quoting the mean (${num(mean, 2)}) is the estimate for ONE quadrat — sampling only lets you scale up because the quadrats are meant to be representative, which is why they are placed randomly.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Herd immunity: the shortfall against a threshold, not the number
-     *  unprotected today. */
-    "immune-health": (r) => {
-        const population = r.pick([200, 400, 500, 800, 1000, 2000]);
-        const vaccinated = Math.round(population * r.pick([0.5, 0.6, 0.7, 0.75, 0.8, 0.85]));
-        const threshold = r.pick([90, 92, 95]);
-        const target = (population * threshold) / 100;
-        const shortfall = target - vaccinated;
-        const correct = shortfall <= 0 ? "0" : String(Math.ceil(shortfall));
-        return {
-            prompt: `A school has ${population} learners, of whom ${vaccinated} are vaccinated against measles. Public health advice is that ${threshold}% must be vaccinated to stop measles spreading through the school. How many MORE learners would need to be vaccinated to reach ${threshold}%?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The unvaccinated count.
-                String(population - vaccinated),
-                // The target number, quoted as the shortfall.
-                String(Math.round(target)),
-                // Already vaccinated.
-                String(vaccinated),
-                // The unprotected percentage, quoted as a count.
-                String(100 - threshold),
-                // The shortfall per hundred.
-                String(Math.max(1, Math.round(shortfall / 100))),
-            ]),
-            tags: [],
-            explanation: `${threshold}% of ${population} is ${num(target, 0)} learners, and ${vaccinated} are already vaccinated, so the shortfall is ${num(target, 0)} − ${vaccinated} = ${correct}. The number unprotected TODAY is ${population - vaccinated} — that is a different, larger number, and it is larger precisely because the shortfall has to be closed to stop the vulnerable learners being exposed. Herd immunity protects the people who cannot be vaccinated, which is what the threshold is for.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Aerobic against anaerobic yield, worked the other way round: how many
-     *  glucoses an anaerobic pathway needs to match one aerobic one. */
-    respiration: (r) => {
-        const anaerobicYield = 2;
-        const aerobicYield = 32;
-        const glucoses = r.pick([16, 32, 48, 64, 80]);
-        const anaerobicAtp = glucoses * anaerobicYield;
-        const aerobicNeeded = anaerobicAtp / aerobicYield;
-        const correct = num(aerobicNeeded, 0);
-        return {
-            prompt: `Anaerobic respiration releases ${anaerobicYield} ATP per glucose molecule and aerobic respiration releases ${aerobicYield}. A muscle respires ${glucoses} glucose molecules anaerobically. How many glucose molecules would aerobic respiration have needed to release THE SAME amount of ATP?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The same number of glucose molecules.
-                String(glucoses),
-                // The ratio the wrong way round.
-                String(glucoses * (aerobicYield / anaerobicYield)),
-                // Half the anaerobic count.
-                String(glucoses / 2),
-                // The ATP total quoted as a glucose count.
-                String(anaerobicAtp),
-                // The two yields added.
-                String(glucoses / (aerobicYield + anaerobicYield)),
-            ]),
-            tags: [],
-            explanation: `Anaerobic respiration of ${glucoses} glucose molecules gives ${glucoses} × ${anaerobicYield} = ${anaerobicAtp} ATP. Aerobic respiration gives ${aerobicYield} ATP from each glucose, so reaching ${anaerobicAtp} ATP aerobically takes ${anaerobicAtp} ÷ ${aerobicYield} = ${correct} glucose molecules. That is the ${aerobicYield / anaerobicYield}-fold difference anaerobiosis costs you — the reason a sprinter can keep going and a marathon runner cannot.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** A limiting factor: the mean change in rate per unit of the factor, read
-     *  out of a results table. */
-    photosynthesis: (r) => {
-        const rows = [
-            { light: 10, rate: 5 }, { light: 20, rate: 10 }, { light: 30, rate: 15 }, { light: 40, rate: 18 },
-        ];
-        const from = 0;
-        const to = r.pick([1, 2]);
-        const dRate = rows[to].rate - rows[from].rate;
-        const dLight = rows[to].light - rows[from].light;
-        const gradient = dRate / dLight;
-        const correct = `${num(gradient)} per unit of light intensity`;
-        return {
-            prompt: `An experiment measures the rate of photosynthesis at different light intensities:\n\n${rows.map((x) => `· light intensity ${x.light} → rate ${x.rate}`).join("\n")}\n\nWhat is the mean INCREASE in rate for each extra unit of light between ${rows[from].light} and ${rows[to].light}?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The rate at the end of the range.
-                `${num(rows[to].rate)} per unit of light intensity`,
-                // The total increase, with the range forgotten.
-                `${num(dRate)} per unit of light intensity`,
-                // The gradient over the whole table.
-                `${num((rows[rows.length - 1].rate - rows[0].rate) / (rows[rows.length - 1].light - rows[0].light))} per unit of light intensity`,
-                // The gradient inverted.
-                `${num(dLight / dRate)} per unit of light intensity`,
-                // The rate at the start.
-                `${num(rows[from].rate)} per unit of light intensity`,
-            ]),
-            tags: [],
-            explanation: `A mean increase is a gradient: change in rate ÷ change in the thing that changed it. From ${rows[from].light} to ${rows[to].light} the rate rises ${rows[to].rate} − ${rows[from].rate} = ${num(dRate)}, over ${dLight} units of light, so the mean increase is ${num(dRate)} ÷ ${dLight} = ${correct}. The rate is NOT rising at the same rate everywhere — between ${rows[2].light} and ${rows[3].light} it only rises ${num(rows[3].rate - rows[2].rate)}, because light has stopped being the limiting factor, and that flattening is the point of measuring the gradient rather than the totals.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** An insulin dose: two rules added, which is how a real correction dose is
-     *  worked out. */
-    hormones: (r) => {
-        const carbs = r.pick([30, 40, 50, 60, 75, 90]);
-        const carbRatio = r.pick([5, 10, 15]);
-        const blood = r.pick([9, 10, 12, 14]);
-        const target = r.pick([5, 6, 7]);
-        const correctionPerUnit = r.pick([1, 2, 3]);
-        const carbUnits = carbs / carbRatio;
-        const correctionUnits = (blood - target) / correctionPerUnit;
-        const total = carbUnits + correctionUnits;
-        const correct = `${num(total)} units`;
-        return {
-            prompt: `A learner works out a mealtime insulin dose with two rules:\n\n· 1 unit for every ${carbRatio} g of carbohydrate\n· 1 unit for every ${num(correctionPerUnit)} mmol/L their blood glucose is ABOVE the target of ${num(target)} mmol/L\n\nA meal contains ${carbs} g of carbohydrate and their blood glucose is ${num(blood)} mmol/L.\n\nWhat dose should they take?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The carbohydrate rule alone.
-                `${num(carbUnits)} units`,
-                // The correction alone.
-                `${num(correctionUnits)} units`,
-                // The rules multiplied instead of added.
-                `${num(carbUnits * correctionUnits)} units`,
-                // The blood glucose used instead of the difference from target.
-                `${num(carbUnits + blood / correctionPerUnit)} units`,
-                // The difference from target ignored altogether.
-                `${num(carbRatio)} units`,
-            ]),
-            tags: [],
-            explanation: `Two doses, added. For the meal: ${carbs} ÷ ${carbRatio} = ${num(carbUnits)} units. For the correction: (${num(blood)} − ${num(target)}) ÷ ${num(correctionPerUnit)} = ${num(correctionUnits)} units — note it is the amount ABOVE the target, not the reading itself. Together: ${num(carbUnits)} + ${num(correctionUnits)} = ${correct}. Taking one rule and not the other is the mistake this question is built to catch, and it is why a correction is worked out separately from the meal dose.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Bile emulsifies fat: the radius of each new droplet follows from volume
-     *  conservation, and the surface lipase can act on goes UP by the same
-     *  factor — which is the whole reason bile exists. */
-    digestion: (r) => {
-        // The shrink factor and the droplet count are ONE choice, not two: volume is
-        // conserved, so splitting one droplet into k³ equal droplets makes each of
-        // them R/k across. Drawing the two independently would ask for a radius that
-        // no real splitting produces.
-        const k = r.pick([2, 3, 4]);
-        const droplets = k * k * k;
-        const radius = r.pick([12, 24, 36, 48]);
-        const correct = `${num(radius / k)} µm`;
-        return {
-            prompt: `Bile splits a fat droplet of radius ${radius} µm into ${droplets} droplets of equal size. What is the radius of each?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Splitting treated as leaving every piece the size it was.
-                `${num(radius)} µm`,
-                // Divided by the NUMBER of droplets instead of by its cube root.
-                `${num(radius / droplets)} µm`,
-                // Multiplied by the factor instead of divided.
-                `${num(radius * k)} µm`,
-                // The factor itself, quoted as a radius.
-                `${num(k)} µm`,
-                // The factor applied twice.
-                `${num(radius / k / k)} µm`,
-            ]),
-            tags: [],
-            explanation: `Emulsifying conserves the fat: ${droplets} droplets of radius r hold the same volume as one of radius ${radius} µm, so ${droplets} × r³ = ${radius}³ and r = ${radius} ÷ ∛${droplets} = ${radius} ÷ ${k} = ${correct}. The point of it is the SURFACE, and that is why bile is worth secreting at all: one droplet's surface is proportional to ${radius}² = ${num(radius * radius)}, while the ${droplets} small ones come to ${droplets} × ${num(radius / k)}² = ${num(droplets * (radius / k) ** 2)}, which is ${k} times as much. Lipase can only work at a surface, so bile multiplies the fat lipase can reach without changing a single molecule of it. Dividing by ${droplets} instead of by ∛${droplets} is the slip to watch: the number of droplets is the VOLUME split, not the length.`,
-            difficulty: hardest(r),
-        };
-    },
-};
-
-});
-__def("questions-chemistry.js", function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CHEMISTRY_DEEP = void 0;
-/** The first `n` candidates genuinely different from the answer and each other.
- *  A family that returns fewer than three distinct wrong answers makes the
- *  assembler fall back to a near-miss padder, which the suite treats as a weak
- *  item — so every family below passes more candidates than it needs. */
-function distinct(correct, candidates, n = 3) {
-    const out = [];
-    for (const cand of candidates) {
-        const s = String(cand);
-        if (s !== correct && !out.includes(s) && out.length < n)
-            out.push(s);
-    }
-    return out;
-}
-/** A number a student would write: at most three decimals, no float tail. */
-function num(x, dp = 3) {
-    return x.toFixed(dp).replace(/\.?0+$/, "");
-}
-/** The band every family here earns: the answer is not in the question, it has
- *  to be built from a table or a chain of steps. Written as a helper so no
- *  family can quietly drop back into the recall band while being described as
- *  deep. */
-function hardest(r) {
-    return 0.9 + r.next() * 0.06;
-}
-exports.CHEMISTRY_DEEP = {
-    /** Mr summed from an atomic-mass table, then multiplied by the moles. The
-     *  subscripts are the whole trap: O₃ is three oxygens, not one. */
-    "moles-calcs": (r) => {
-        const compounds = [
-            { formula: "CaCO₃", ar: [[40, "Ca", 1], [12, "C", 1], [16, "O", 3]] },
-            { formula: "H₂SO₄", ar: [[1, "H", 2], [32, "S", 1], [16, "O", 4]] },
-            { formula: "Na₂CO₃", ar: [[23, "Na", 2], [12, "C", 1], [16, "O", 3]] },
-            { formula: "KNO₃", ar: [[39, "K", 1], [14, "N", 1], [16, "O", 3]] },
-            { formula: "CuSO₄", ar: [[64, "Cu", 1], [32, "S", 1], [16, "O", 4]] },
-            { formula: "Mg(OH)₂", ar: [[24, "Mg", 1], [16, "O", 2], [1, "H", 2]] },
-        ];
-        const c = r.pick(compounds);
-        const mr = c.ar.reduce((s, [a, , k]) => s + a * k, 0);
-        const biggest = c.ar.slice().sort((x, y) => y[0] * y[2] - x[0] * x[2])[0];
-        const n = r.pick([0.25, 0.4, 0.5, 1.5, 2, 2.5, 3]);
-        const mass = n * mr;
-        const correct = `${num(mass)} g`;
-        return {
-            prompt: `Relative atomic masses:\n${c.ar.map(([a, s]) => `· ${s} = ${a}`).join("\n")}\n\nA sample contains ${num(n)} mol of ${c.formula}.\nWhat is the mass of the sample?`,
-            correct,
-            wrongs: distinct(correct, [
-                // One element's Ar used as the whole formula mass.
-                `${num(n * biggest[0])} g`,
-                // The Mr itself, not multiplied by the moles.
-                `${num(mr)} g`,
-                // Subscripts read as 1 for everything.
-                `${num(n * c.ar.reduce((s, [a]) => s + a, 0))} g`,
-                // The moles added to the mass instead of multiplied.
-                `${num(mr + n)} g`,
-            ]),
-            tags: [],
-            explanation: `Work out the formula mass first, multiplying each Ar by its subscript: ${c.ar.map(([a, s, k]) => `${a}${k > 1 ? ` × ${k}` : ""} (${s})`).join(" + ")} = ${num(mr)}. Then mass = moles × formula mass = ${num(n)} × ${num(mr)} = ${correct}. Using one element's Ar as if it were the whole formula (${num(biggest[0])}) is the commonest version of this slip — a formula is a sum, and the subscript is how many times each atom appears.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Mass → moles → mole ratio → mass, on a real balanced equation whose formula
-     *  masses come from an atomic-mass table. */
-    "equations-stoich": (r) => {
-        const reactions = [
-            { eq: "2Mg + O₂ → 2MgO", left: "Mg", right: "MgO", ar: [[24, "Mg"], [16, "O"]] },
-            { eq: "2Na + Cl₂ → 2NaCl", left: "Na", right: "NaCl", ar: [[23, "Na"], [35.5, "Cl"]] },
-            { eq: "CaCO₃ → CaO + CO₂", left: "CaCO₃", right: "CaO", ar: [[40, "Ca"], [12, "C"], [16, "O"]] },
-            { eq: "2H₂O₂ → 2H₂O + O₂", left: "H₂O₂", right: "H₂O", ar: [[1, "H"], [16, "O"]] },
-            { eq: "CH₄ + 2O₂ → CO₂ + 2H₂O", left: "CH₄", right: "CO₂", ar: [[12, "C"], [1, "H"], [16, "O"]] },
-        ];
-        const rx = r.pick(reactions);
-        const mrOf = {
-            Mg: 24, "MgO": 40, Na: 23, NaCl: 58.5, "CaCO₃": 100, CaO: 56, "H₂O₂": 34, "H₂O": 18, "CH₄": 16, "CO₂": 44,
-        };
-        const mrL = mrOf[rx.left];
-        const mrR = mrOf[rx.right];
-        const molesL = r.pick([0.25, 0.5, 1, 1.5, 2, 2.5, 3]);
-        const massL = molesL * mrL;
-        const massR = molesL * mrR;
-        const correct = `${num(massR)} g`;
-        return {
-            prompt: `Relative atomic masses:\n${rx.ar.map(([a, s]) => `· ${s} = ${a}`).join("\n")}\n\n${massL} g of ${rx.left} reacts completely:\n\n${rx.eq}\n\nWhat mass of ${rx.right} is formed?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Equal masses assumed.
-                `${num(massL)} g`,
-                // The product's formula mass on its own.
-                `${num(mrR)} g`,
-                // The ratio inverted.
-                `${num(molesL * mrR * (mrL / mrR) ** 2)} g`,
-                // The two formula masses added.
-                `${num(massL + mrR)} g`,
-                // Moles of product equal to the reactant's MASS.
-                `${num(massL * mrR)} g`,
-            ]),
-            tags: [],
-            explanation: `Convert what you are given into MOLES before using the equation: ${massL} ÷ ${num(mrL)} = ${num(molesL)} mol of ${rx.left}. The equation's coefficients give the ratio, so ${num(molesL)} mol of ${rx.right} forms, weighing ${num(molesL)} × ${num(mrR)} = ${correct}. The equation balances ATOMS, not masses: the product mass is different from the reactant mass because a different substance is being weighed.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** A titration: concentration × volume for the known solution, the ratio from
-     *  the equation, then the unknown concentration. */
-    "acids-bases": (r) => {
-        const baseConc = r.pick([0.05, 0.1, 0.2, 0.25]);
-        const baseVol = r.pick([20, 25, 30, 40]);
-        const acidVol = r.pick([20, 25, 50]);
-        const [aCoef, bCoef] = r.pick([[1, 1], [1, 2], [2, 1]]);
-        const molesBase = (baseConc * baseVol) / 1000;
-        const molesAcid = (molesBase * aCoef) / bCoef;
-        const acidConc = molesAcid / (acidVol / 1000);
-        const correct = `${num(acidConc)} mol/dm³`;
-        return {
-            prompt: `A student titrates ${acidVol}.0 cm³ of a hydrochloric acid solution against sodium hydroxide.\n\nThe equation is:\n${aCoef === 1 && bCoef === 1 ? "HCl + NaOH → NaCl + H₂O" : `${aCoef}HCl + ${bCoef}NaOH → ${aCoef}NaCl + ${bCoef}H₂O`}\n\n· Volume of NaOH used: ${baseVol}.0 cm³\n· Concentration of NaOH: ${num(baseConc)} mol/dm³\n\nWhat is the concentration of the acid?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The base's own concentration — "equal volumes, equal strength".
-                `${num(baseConc)} mol/dm³`,
-                // cm³ used as dm³: the 1000 dropped.
-                `${num((molesBase * aCoef * 1000) / (bCoef * acidVol))} mol/dm³`,
-                // The ratio inverted.
-                `${num((molesBase * bCoef) / aCoef / (acidVol / 1000))} mol/dm³`,
-                // The volumes used raw, as if cm³ could be divided directly.
-                `${num((baseConc * baseVol) / acidVol)} mol/dm³`,
-                // THE SAFETY TAIL. When the equation is 1:1 AND the two volumes are
-                // equal, three of the slips above become the CORRECT answer and collapse
-                // (measured: `0.25 mol/dm³` alone). These three cannot: one reports the
-                // moles as a concentration, and the other two misapply the ratio.
-                `${num(molesAcid)} mol/dm³`,
-                `${num(acidConc * 2)} mol/dm³`,
-                // A decimal-place slip (0.25 read as 2.5). Deliberately ×10 rather than
-                // another doubling: when the acid IS the base's own concentration, ×2
-                // coincides with the doubling above and the list thins to two.
-                `${num(acidConc * 10)} mol/dm³`,
-            ]),
-            tags: [],
-            explanation: `Moles of NaOH = concentration × volume in dm³ = ${num(baseConc)} × ${num(baseVol / 1000)} = ${num(molesBase)} mol. The equation fixes the ratio (${aCoef} : ${bCoef}), so moles of acid = ${num(molesAcid)} mol. Concentration = moles ÷ volume = ${num(molesAcid)} ÷ ${num(acidVol / 1000)} = ${correct}. Two slips live here: dividing by a volume in cm³ instead of dm³ (a factor of 1000), and assuming equal volumes of acid and alkali mean equal concentrations — the equation's ratio says otherwise.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** The formula of an ionic compound, from the charges in the table: the
-     *  crossover rule, applied rather than remembered. */
-    "ionic-bonding": (r) => {
-        const cations = [["Na", 1], ["K", 1], ["Mg", 2], ["Ca", 2], ["Al", 3], ["Fe", 3]];
-        const anions = [["Cl", 1], ["O", 2], ["SO₄", 2], ["NO₃", 1], ["OH", 1]];
-        const [cat, cp] = r.pick(cations);
-        const [an, ap] = r.pick(anions);
-        const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
-        const g = gcd(cp, ap) || 1;
-        const nCat = ap / g;
-        const nAn = cp / g;
-        const sub = (n) => (n === 1 ? "" : String(n));
-        const formula = `${cat}${sub(nCat)}${an}${sub(nAn)}`;
-        const swap = `${cat}${sub(nAn)}${an}${sub(nCat)}`;
-        const bare = `${cat}${an}`;
-        return {
-            prompt: `Two ions combine to form a neutral compound:\n\n· ${cat} ion: charge ${cp > 1 ? `${cp}+` : "+"}\n· ${an} ion: charge ${ap > 1 ? `${ap}−` : "−"}\n\nWhat is the formula of the compound?`,
-            correct: formula,
-            // Every candidate is a real way to get this wrong, and they are listed so
-            // that a 1:1 pair with NO subscripts (KCl) still has three: on that draw
-            // `swap` and `bare` both collapse onto the answer.
-            wrongs: distinct(formula, [
-                // The two numbers crossed the wrong way round.
-                swap,
-                // Anion subscript dropped.
-                `${cat}${sub(nCat)}${an}`,
-                // Cation subscript dropped.
-                `${cat}${an}${sub(nAn)}`,
-                // One ion too many on each side.
-                `${cat}${sub(nCat + 1)}${an}${sub(nAn)}`,
-                `${cat}${sub(nCat)}${an}${sub(nAn + 1)}`,
-                // The "always write 2 and 2" habit.
-                `${cat}2${an}2`,
-                // No subscripts at all.
-                bare,
-            ]),
-            tags: [],
-            explanation: `The compound is neutral, so the total positive charge must equal the total negative charge. A ${cp}${cp > 1 ? "+" : "+"} ion needs ${ap} of the ${an} ion (charge ${ap}−) to balance, and ${cp} of the ${cat} ion balances ${ap} copies of the ${an} ion — reduced to lowest terms that is ${nCat} : ${nAn}, giving ${formula}. Writing ${swap} swaps the numbers instead of crossing them over, which balances only when the two charges happen to be equal.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Shared pairs counted from a displayed formula — where a double bond is TWO
-     *  pairs and a triple bond is three. */
-    "covalent-bonding": (r) => {
-        const molecules = [
-            { name: "methane", formula: "CH₄", bonds: [["C", "H", 1, 4]] },
-            { name: "water", formula: "H₂O", bonds: [["O", "H", 1, 2]] },
-            { name: "ammonia", formula: "NH₃", bonds: [["N", "H", 1, 3]] },
-            { name: "carbon dioxide", formula: "CO₂", bonds: [["C", "O", 2, 2]] },
-            { name: "nitrogen", formula: "N₂", bonds: [["N", "N", 3, 1]] },
-            { name: "ethene", formula: "C₂H₄", bonds: [["C", "H", 1, 4], ["C", "C", 2, 1]] },
-            { name: "hydrogen cyanide", formula: "HCN", bonds: [["H", "C", 1, 1], ["C", "N", 3, 1]] },
-        ];
-        const m = r.pick(molecules);
-        const pairs = m.bonds.reduce((s, [, , order, count]) => s + order * count, 0);
-        const bondCount = m.bonds.reduce((s, [, , , count]) => s + count, 0);
-        const atoms = m.bonds.reduce((s, [, , , count]) => s + count, 0) + 1;
-        const correct = String(pairs);
-        return {
-            prompt: `A molecule of ${m.name} (${m.formula}) contains:\n${m.bonds.map(([a, b, order, count]) => `· ${count} × ${a}${order === 1 ? "–" : order === 2 ? "=" : "≡"}${b}`).join("\n")}\n\nHow many SHARED PAIRS of electrons hold the molecule together?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Bonds counted instead of pairs: a double bond missed.
-                String(bondCount),
-                // Atoms in the molecule.
-                String(atoms),
-                // Everything doubled: electrons rather than pairs.
-                String(pairs * 2),
-                // THE SAFETY TAIL: for CH₄ the atom count IS the pair count, so the two
-                // above collapse together (measured: "6 | 5 | 12" for ethene). A pair
-                // over, a pair short and the doubled total cannot all coincide.
-                String(pairs - 1),
-                String(pairs + 1),
-            ]),
-            tags: [],
-            explanation: `Count the pairs, not the lines: a single line is one shared pair, a double line is two and a triple line is three. ${m.bonds.map(([a, b, order, count]) => `${count} × ${order} (${a}${order === 1 ? "–" : order === 2 ? "=" : "≡"}${b})`).join(" + ")} = ${correct} shared pairs. Counting the lines (${bondCount}) treats a double bond as one shared pair, which would leave carbon with too few electrons — that is exactly why the double bond is drawn as two lines.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** ΔH from bond energies: broken minus made, with the sign. */
-    "energy-changes": (r) => {
-        const reactions = [
-            { eq: "H₂ + Cl₂ → 2HCl", broken: [["H–H", 436], ["Cl–Cl", 243]], made: [["H–Cl", 432 * 2]] },
-            { eq: "H₂ + Br₂ → 2HBr", broken: [["H–H", 436], ["Br–Br", 193]], made: [["H–Br", 366 * 2]] },
-            { eq: "N₂ + 3H₂ → 2NH₃", broken: [["N≡N", 945], ["H–H", 436 * 3]], made: [["N–H", 391 * 6]] },
-            { eq: "2H₂ + O₂ → 2H₂O", broken: [["H–H", 436 * 2], ["O=O", 498]], made: [["O–H", 464 * 4]] },
-            { eq: "CH₄ + Cl₂ → CH₃Cl + HCl", broken: [["C–H", 413], ["Cl–Cl", 243]], made: [["C–Cl", 346], ["H–Cl", 432]] },
-        ];
-        const rx = r.pick(reactions);
-        const inTotal = rx.broken.reduce((s, [, v]) => s + v, 0);
-        const outTotal = rx.made.reduce((s, [, v]) => s + v, 0);
-        const dh = inTotal - outTotal;
-        const correct = `${num(dh)} kJ/mol (${dh < 0 ? "exothermic" : "endothermic"})`;
-        return {
-            prompt: `Bond energies (kJ/mol):\n${[...rx.broken, ...rx.made].map(([b, v]) => `· ${b} = ${v}`).join("\n")}\n\nFor the reaction:\n\n${rx.eq}\n\nWhat is the overall energy change, and is it exothermic or endothermic?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The sign reversed.
-                `${num(-dh)} kJ/mol (${-dh < 0 ? "exothermic" : "endothermic"})`,
-                // Bonds made minus bonds broken, sign flipped again.
-                `${num(outTotal)} kJ/mol (endothermic)`,
-                // Only the bonds broken counted.
-                `${num(inTotal)} kJ/mol (endothermic)`,
-                // The totals added instead of compared.
-                `${num(inTotal + outTotal)} kJ/mol (endothermic)`,
-            ]),
-            tags: [],
-            explanation: `Energy is put IN to break bonds (${rx.broken.map(([b, v]) => `${v} (${b})`).join(" + ")} = ${inTotal}) and released when new ones form (${outTotal}). The overall change is in − out = ${inTotal} − ${outTotal} = ${correct}. Breaking bonds alone (${inTotal}) is not the reaction's energy change — the bonds made pay some of it back, and when they pay back more than was spent the reaction is exothermic.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** The mean rate between two readings in a results table — not the overall
-     *  rate and not the initial one. */
-    "rates-reaction": (r) => {
-        const k = r.pick([0.5, 1, 1.5, 2, 2.5]);
-        const step = 10;
-        const rates = [k, 0.8 * k, 0.6 * k, 0.5 * k];
-        const vols = [0];
-        for (const rate of rates)
-            vols.push(vols[vols.length - 1] + rate * step);
-        const times = [0, 10, 20, 30, 40];
-        const from = r.pick([0, 1, 2]);
-        const to = from + 1;
-        const rateBetween = (vols[to] - vols[from]) / (times[to] - times[from]);
-        const correct = `${num(rateBetween)} cm³/s`;
-        return {
-            prompt: `A student measures the gas given off when marble chips react with acid:\n\n${times.map((t, i) => `· ${t} s → ${num(vols[i])} cm³`).join("\n")}\n\nWhat is the mean rate of reaction between ${times[from]} s and ${times[to]} s?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The overall rate for the whole experiment.
-                `${num(vols[vols.length - 1] / times[times.length - 1])} cm³/s`,
-                // The initial rate.
-                `${num(rates[0])} cm³/s`,
-                // The volume at the end, taken as a rate.
-                `${num(vols[vols.length - 1])} cm³/s`,
-                // The gas produced in the interval, with the time forgotten.
-                `${num(vols[to] - vols[from])} cm³/s`,
-            ]),
-            tags: [],
-            explanation: `A mean rate is a gradient: the change in the measured quantity ÷ the time it took. Between ${times[from]} s and ${times[to]} s the volume goes from ${num(vols[from])} to ${num(vols[to])} cm³, so the rate is (${num(vols[to])} − ${num(vols[from])}) ÷ ${times[to] - times[from]} = ${correct}. The rate is falling as the acid is used up, so quoting the overall rate (total volume ÷ total time) UNDERSTATES the start and overstates the end — which is why the interval has to be named.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Kc evaluated from a table of equilibrium concentrations, with the
-     *  stoichiometry applied as powers. */
-    equilibria: (r) => {
-        const h2 = r.pick([0.2, 0.25, 0.5]);
-        const i2 = r.pick([0.2, 0.5, 1]);
-        const hi = r.pick([0.2, 0.5, 1, 2]);
-        const kc = (hi * hi) / (h2 * i2);
-        const correct = num(kc);
-        return {
-            prompt: `An equilibrium mixture at a fixed temperature contains:\n\n· H₂: ${num(h2)} mol/dm³\n· I₂: ${num(i2)} mol/dm³\n· HI: ${num(hi)} mol/dm³\n\nfor the reaction\n\nH₂ + I₂ ⇌ 2HI\n\nWhat is the value of the equilibrium constant Kc?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The expression inverted.
-                num((h2 * i2) / (hi * hi)),
-                // The square forgotten on HI.
-                num(hi / (h2 * i2)),
-                // The concentrations added rather than multiplied.
-                num(hi + hi - h2 - i2),
-                // The product's coefficient used as a multiplier instead of a power —
-                // which for [HI] = 2 lands exactly on the right answer (hi² = 2 × hi).
-                num((2 * hi) / (h2 * i2)),
-                // THE SAFETY TAIL: the reciprocal's own neighbours, so the question
-                // always offers three wrong values even when the slips coincide.
-                num(kc * 2),
-                num(kc / 2),
-                num(kc + 1),
-            ]),
-            tags: [],
-            explanation: `Kc is the products over the reactants, each raised to the power of its coefficient: Kc = [HI]² ÷ ([H₂] × [I₂]) = ${num(hi)}² ÷ (${num(h2)} × ${num(i2)}) = ${num(hi * hi)} ÷ ${num(h2 * i2)} = ${correct}. The 2 in front of HI makes the concentration SQUARED, not doubled — and inverting the expression gives the reciprocal, which is a different number that happens to look plausible.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** The formula mass of an alkane from its general formula — with the Ar table,
-     *  so it is computed rather than recalled. */
-    "organic-intro": (r) => {
-        const n = r.int(3, 9);
-        const hydrogens = 2 * n + 2;
-        const mr = 12 * n + hydrogens;
-        const correct = String(mr);
-        return {
-            prompt: `Relative atomic masses: C = 12, H = 1. An alkane has the general formula CₙH₂ₙ₊₂ and one of its molecules contains ${n} carbon atoms. What is its relative molecular mass?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Hydrogen count one short: 2n.
-                String(12 * n + 2 * n),
-                // Hydrogen count one over: 2n + 3.
-                String(12 * n + 2 * n + 3),
-                // n hydrogens instead of 2n + 2.
-                String(12 * n + n),
-                // Carbons and hydrogens added without the 12.
-                String(n + hydrogens),
-            ]),
-            tags: [],
-            explanation: `${n} carbons carry ${n * 2} + 2 = ${hydrogens} hydrogens, so the formula is C${n}H${hydrogens} and the relative molecular mass is (${n} × 12) + (${hydrogens} × 1) = ${correct}. Using 2n hydrogens forgets the two extra hydrogens that cap the ends of the chain — which is exactly what 2n + 2 is there to say.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Identify an ion from two reported test results, matched against the table. */
-    "analysis-tests": (r) => {
-        const ions = [
-            { ion: "Li⁺", flame: "red", naoh: "no precipitate" },
-            { ion: "Na⁺", flame: "yellow", naoh: "no precipitate" },
-            { ion: "K⁺", flame: "lilac", naoh: "no precipitate" },
-            { ion: "Ca²⁺", flame: "brick-red", naoh: "white precipitate" },
-            { ion: "Cu²⁺", flame: "green", naoh: "blue precipitate" },
-            { ion: "Fe²⁺", flame: "no colour", naoh: "green precipitate" },
-            { ion: "Fe³⁺", flame: "no colour", naoh: "brown precipitate" },
-        ];
-        const picked = r.shuffle(ions.slice()).slice(0, 4);
-        const target = picked[r.int(0, 3)];
-        const others = picked.filter((x) => x.ion !== target.ion);
-        const correct = target.ion;
-        return {
-            prompt: `A solution is tested in two ways.\n\nThe flame test gives a ${target.flame} flame.\nAdding sodium hydroxide solution gives a ${target.naoh}.\n\nWhich ion does the solution contain?\n\n${picked.map((x) => `· ${x.ion}`).join("\n")}`,
-            correct,
-            wrongs: distinct(correct, others.map((x) => x.ion)),
-            tags: [],
-            explanation: `Both tests have to fit. The flame identifies the metal ion, and the hydroxide precipitate confirms it — a ${target.ion} solution gives a ${target.flame} flame and a ${target.naoh} with sodium hydroxide. The other ions in the list fail one of the two tests, which is why a single test is not enough to identify an ion: two different ions can give the same precipitate colour, and the flame test is what separates them.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Mass deposited in electrolysis: Q = It, moles of electrons = Q/F, then the
-     *  ion's charge converts electrons to atoms. */
-    electrolysis: (r) => {
-        const metals = [
-            { name: "copper", ion: "Cu²⁺", ar: 63.5, charge: 2 },
-            { name: "silver", ion: "Ag⁺", ar: 108, charge: 1 },
-            { name: "aluminium", ion: "Al³⁺", ar: 27, charge: 3 },
-            { name: "zinc", ion: "Zn²⁺", ar: 65, charge: 2 },
-            { name: "lead", ion: "Pb²⁺", ar: 207, charge: 2 },
-        ];
-        const m = r.pick(metals);
-        const current = r.pick([2, 5, 10]);
-        const seconds = r.pick([482.5, 965, 1930, 4825]);
-        const charge = current * seconds;
-        const electrons = charge / 96500;
-        const moles = electrons / m.charge;
-        const mass = moles * m.ar;
-        const correct = `${num(mass)} g`;
-        return {
-            prompt: `A current of ${num(current)} A flows for ${num(seconds)} s through a solution of ${m.name} ions (${m.ion}).\n\nThe Faraday constant is 96500 C/mol and Ar(${m.name}) = ${m.ar}.\n\nWhat mass of ${m.name} is deposited at the cathode?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Electrons used as atoms: the charge of the ion ignored.
-                `${num(electrons * m.ar)} g`,
-                // The charge used as the moles of metal directly.
-                `${num(charge * m.ar)} g`,
-                // Moles of metal found but Ar forgotten.
-                `${num(moles)} g`,
-                // The ion's charge MULTIPLIED instead of divided.
-                `${num(electrons * m.charge * m.ar)} g`,
-                // THE SAFETY TAIL. For a 1+ metal (silver) the moles of electrons ARE
-                // the moles of metal, so two of the slips above collapse onto the answer
-                // (measured: "5.4 g | 521100 g | 0.05 g"). These cannot: the Ar added
-                // instead of multiplied, and a doubled total.
-                `${num(mass + m.ar)} g`,
-                `${num(mass * 2)} g`,
-            ]),
-            tags: [],
-            explanation: `Charge = current × time = ${num(current)} × ${num(seconds)} = ${num(charge)} C. Moles of electrons = charge ÷ Faraday constant = ${num(charge)} ÷ 96500 = ${num(electrons)} mol. Each ${m.ion} ion needs ${m.charge} electron${m.charge === 1 ? "" : "s"}, so the moles of metal are ${num(electrons)} ÷ ${m.charge} = ${num(moles)}, weighing ${num(moles)} × ${m.ar} = ${correct}. Using the moles of ELECTRONS as the moles of metal is the classic slip — it deposits ${m.charge} times too much, which is a factor you cannot afford in electroplating.`,
-            difficulty: hardest(r),
-        };
-    },
-};
-
-});
-__def("questions-computing.js", function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.COMPUTING_DEEP = void 0;
-/** The first `n` candidates genuinely different from the answer and each other.
- *
- *  A family that returns fewer than three distinct wrong answers makes the
- *  assembler fall back to filler ("None of these"), which the suite treats as a
- *  broken item — so every family below passes more candidates than it needs. */
-function distinct(correct, candidates, n = 3) {
-    const out = [];
-    for (const cand of candidates) {
-        const s = String(cand);
-        if (s !== correct && !out.includes(s) && out.length < n)
-            out.push(s);
-    }
-    return out;
-}
-/**
- * The band these items earn: the answer is NOT in the question — it has to be
- * read out of a trace, a table or a model — and it carries a declared band of
- * 0.88–0.96, which is what the courses that teach computing at advanced level
- * ask for.
- *
- * THE BAND WAS RAISED BY MEASUREMENT, and the measurement is worth recording.
- * These families first declared 0.76–0.88, which cleared every 0.70–0.85 course
- * and left TWO rows failing `npm run gate:ceiling`: A-Level A2 and IB HL both
- * declare 0.90 (the same band their maths and science courses declare), and a
- * subject whose layer tops out at 0.88 cannot serve them however it is sampled.
- * The choice was between an honest 0.90 band and a lowered declaration, and a
- * course that asks for 0.90 work is a claim about the learner, not about the
- * content — so the content moved. The concepts' OTHER families are untouched, so
- * the shallower draws a lower tier needs are all still there; only the ceiling
- * of this layer moved.
- *
- * Written as a helper so no family can quietly drop back into the recall band
- * while still being described as deep.
- */
-function reading(r) {
-    return 0.88 + r.next() * 0.08;
-}
-const joinList = (xs) => xs.join(", ");
-/** A number a student would write: at most three decimals, no float tail. */
-function num(x, dp = 3) {
-    return x.toFixed(dp).replace(/\.?0+$/, "");
-}
-exports.COMPUTING_DEEP = {
-    /** A trace down three assignment lines, where the last one is the answer. */
-    variables: (r) => {
-        const a = r.int(3, 20);
-        const m = r.int(2, 5);
-        const k = r.int(1, 9);
-        const b = a * m + k;
-        const c = b - a;
-        const correct = String(c);
-        return {
-            prompt: `Trace this code.\n\nx = ${a}\ny = x * ${m} + ${k}\nz = y - x\n\nWhat is the value of z?`,
-            correct,
-            wrongs: distinct(correct, [b, a, b - 1, c + a, k]),
-            tags: [],
-            explanation: `Follow the lines in order and keep each value: x = ${a}. Then y = ${a} × ${m} + ${k} = ${b}. Then z = ${b} − ${a} = ${c}. Reporting ${b} answers y, not z — a trace is only right if you keep the value of the line you were asked about.`,
-            difficulty: reading(r),
-        };
-    },
-    /** An if / else-if chain plus a later mutation of the same variable. */
-    conditionals: (r) => {
-        const score = r.int(45, 95);
-        const late = r.next() < 0.5;
-        const started = score >= 80 ? 4 : score >= 70 ? 3 : score >= 60 ? 2 : 1;
-        const correct = String(late ? started - 1 : started);
-        return {
-            prompt: `Trace this code.\n\nscore = ${score}\nlate = ${late ? "true" : "false"}\n\nif score >= 80: grade = 4\nelse if score >= 70: grade = 3\nelse if score >= 60: grade = 2\nelse: grade = 1\n\nif late: grade = grade - 1\n\nWhat is grade?`,
-            correct,
-            wrongs: distinct(correct, [started, started + 1, started - 1, started + 2, 0]),
-            tags: [],
-            explanation: `Only the FIRST true branch runs, so with score = ${score} the grade starts at ${started}. Then ${late ? `late is true, so grade becomes ${started} − 1 = ${started - 1}` : `late is false, so the last line is skipped and grade stays ${started}`}. Reading an if / else-if chain as a checklist — where every true test also fires — is how a trace passes a test the program fails.`,
-            difficulty: reading(r),
-        };
-    },
-    /** Counting the iterations of a loop with a step, including the off-by-one. */
-    loops: (r) => {
-        const step = r.pick([1, 2, 3]);
-        // A step of 1 makes the SURVIVING distractors collapse: the last value of i
-        // IS `to`, and `to − from` is the count minus one, so when the counter also
-        // starts at 0 or 1 every candidate coincides with something already offered.
-        // Starting a step-1 loop at 3 or more keeps `to` clear of the count and its
-        // neighbours, so the three wrong answers below are all real errors rather
-        // than padders. (Found by the sweep: 305 draws with only two distinct
-        // distractors, every one of them a step-1 loop starting at 0 or 1.)
-        const from = step === 1 ? r.int(3, 7) : r.int(0, 4);
-        const to = from + r.int(6, 14);
-        let count = 0;
-        let last = from;
-        for (let i = from; i <= to; i += step) {
-            count++;
-            last = i;
-        }
-        const correct = String(count);
-        return {
-            prompt: `Trace this loop.\n\ncount = 0\nfor i = ${from} to ${to} step ${step}:\n    count = count + 1\n\nHow many times does the loop body run?`,
-            correct,
-            wrongs: distinct(correct, [count + 1, count - 1, last, to - from, Math.round((to - from) / step), to]),
-            tags: [],
-            explanation: `The counter starts at ${from} and the body runs while i ≤ ${to}, stepping by ${step}: ${from}, ${from + step}, ${from + 2 * step}, … up to ${last}. That is ${count} runs. The final value of i (${last}) is NOT the number of runs, and the runs are not ${to} − ${from} — the step changes how many there are.`,
-            difficulty: reading(r),
-        };
-    },
-    /** Removing at an index and reading the SAME index back: the shift. */
-    "lists-arrays": (r) => {
-        // FIVE items, each from its own value range, so nothing hinges on two random
-        // draws happening to differ. The first design used four: `after[last]` and
-        // `base[last]` are then ALWAYS the same item (removing from before the end
-        // never changes the end), so two of the five candidates were one answer — and
-        // once either of the surviving pair coincided with the key the item was left
-        // with two distractors (measured: 34 | 23 | 3). A five-item list also makes
-        // `at + 2` a real position, which is the "shifted by two" error.
-        const base = [r.int(2, 9), r.int(10, 19), r.int(20, 29), r.int(30, 39), r.int(40, 49)];
-        const at = r.int(0, 2);
-        const after = base.slice(0, at).concat(base.slice(at + 1));
-        const correct = String(after[at]);
-        return {
-            prompt: `Trace this code.\n\nlist = [${joinList(base)}]\nremove the item at index ${at}\n\nWhat is now at index ${at}?`,
-            correct,
-            wrongs: distinct(correct, [base[at], base[at + 2], base[0], after[after.length - 1], after.length]),
-            tags: [],
-            explanation: `Everything after index ${at} shifts down by one, so the item now at index ${at} is the one that was at index ${at + 1} — ${correct}. Reporting ${base[at]} says what USED to be there: removing at an index does not leave a hole, and reading the index straight back is the commonest way a list question goes wrong.`,
-            difficulty: reading(r),
-        };
-    },
-    /** A function definition, called: the body is evaluated, not guessed. */
-    "functions-code": (r) => {
-        const n = r.int(3, 12);
-        const mk = r.int(2, 6);
-        const sub = r.int(1, 20);
-        const f = (x) => x * mk - sub;
-        const correct = String(f(n));
-        return {
-            prompt: `Trace this code.\n\nfunction f(x):\n    return x * ${mk} - ${sub}\n\nanswer = f(${n})\n\nWhat is the value of answer?`,
-            correct,
-            wrongs: distinct(correct, [n * mk, n * (mk - sub), f(n) + sub, n - sub * mk, f(n) + mk, sub - n * mk]),
-            tags: [],
-            explanation: `Substitute x = ${n} into the body: ${n} × ${mk} = ${n * mk}, then − ${sub} gives ${correct}. The argument goes INTO x wherever x appears, so the subtraction happens after the multiplication — ${n * mk} is the answer to the multiplication, not to the function.`,
-            difficulty: reading(r),
-        };
-    },
-    /** A registry written five times: what a repeated key does to the COUNT. */
-    dictionaries: (r) => {
-        const names = ["ana", "bo", "cy"];
-        const entries = [];
-        const order = [];
-        for (let i = 0; i < 6; i++)
-            order.push(i % 3);
-        const seen = new Set();
-        let writes = 0;
-        for (const idx of order) {
-            writes++;
-            seen.add(names[idx]);
-            entries.push([names[idx], writes]);
-        }
-        const correct = String(seen.size);
-        return {
-            prompt: `Trace this code.\n\n${entries.map(([k, v]) => `register["${k}"] = ${v}`).join("\n")}\n\nHow many ENTRIES does register hold?`,
-            correct,
-            wrongs: distinct(correct, [writes, 1, 2, entries.length - 1, names.length + 1]),
-            tags: [],
-            explanation: `A dictionary is keyed, so writing to a key that already exists REPLACES its value and adds nothing: ${writes} assignments but only ${seen.size} distinct keys (${names.join(", ")}). Counting the assignments (${writes}) is the mistake this question is for — it is the difference between how much was written and how much is stored.`,
-            difficulty: reading(r),
-        };
-    },
-    /** Filtering a real table with two conditions: count the rows that match. */
-    "databases-sql": (r) => {
-        // THE TABLE IS BUILT, NOT SAMPLED, and that is the whole design. Drawing six
-        // random rows let the four counts coincide (a subject count equal to the row
-        // count, an OR count equal to the table size), and a family whose distractors
-        // collapse hands the assembler two options and a padder — measured at
-        // "0 | 1 | 6". Here every cell of the 2×2 (matches both, only the subject,
-        // only the mark, neither) is populated by construction, so the AND answer,
-        // the two one-condition answers and the whole-table answer stay distinct on
-        // EVERY draw, and the two ways of getting OR wrong stay distinct too.
-        const subjects = ["computing", "maths"];
-        const want = r.pick(subjects);
-        const other = want === "computing" ? "maths" : "computing";
-        const cutoff = r.pick([50, 60, 70]);
-        const rows = [];
-        const push = (subject, mark) => rows.push({ id: rows.length + 1, subject, mark });
-        const both = r.int(1, 4);
-        const bySubjectOnly = r.int(1, 2);
-        const byMarkOnly = r.int(1, 3);
-        const neither = r.int(0, 2);
-        for (let i = 0; i < both; i++)
-            push(want, cutoff + r.int(0, 20));
-        for (let i = 0; i < bySubjectOnly; i++)
-            push(want, cutoff - r.int(5, 20));
-        for (let i = 0; i < byMarkOnly; i++)
-            push(other, cutoff + r.int(0, 20));
-        for (let i = 0; i < neither; i++)
-            push(other, cutoff - r.int(5, 20));
-        // Shuffled from the seeded RNG so the matching rows are not always the first
-        // ones read: the learner has to apply the condition, not count the top rows.
-        for (let i = rows.length - 1; i > 0; i--) {
-            const j = r.int(0, i);
-            [rows[i], rows[j]] = [rows[j], rows[i]];
-        }
-        rows.forEach((x, i) => { x.id = i + 1; });
-        const bySubject = both + bySubjectOnly;
-        const byMark = both + byMarkOnly;
-        const correct = String(both);
-        return {
-            prompt: `The table results has these rows:\n\n${rows.map((x) => `· id ${x.id}: subject = ${x.subject}, mark = ${x.mark}`).join("\n")}\n\nSELECT * FROM results WHERE subject = '${want}' AND mark >= ${cutoff}\n\nHow many rows does the query return?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Dropped the mark condition.
-                bySubject,
-                // Dropped the subject condition.
-                byMark,
-                // No WHERE clause at all.
-                rows.length,
-                // AND read as OR.
-                bySubject + byMark,
-                // AND read as OR, then the overlap counted twice.
-                bySubject + byMark - both,
-                // The whole table minus the matches.
-                rows.length - both,
-            ]),
-            tags: [],
-            explanation: `Both conditions must hold at once — that is what AND means. ${both} row${both === 1 ? " has" : "s have"} subject = ${want} AND mark >= ${cutoff}. ${bySubject} rows have subject = ${want} (ignoring the mark), ${byMark} have mark >= ${cutoff} (ignoring the subject), and ${rows.length} is the whole table: each of those answers dropped a condition. Adding them (${bySubject} + ${byMark}) reads AND as OR, counting rows that satisfy only one of the two.`,
-            difficulty: reading(r),
-        };
-    },
-    /** One pass of selection sort, simulated: the swap, not the sort. */
-    "algorithms-sort": (r) => {
-        const vals = [r.int(30, 49), r.int(10, 19), r.int(20, 29), r.int(2, 9)];
-        const first = vals.slice();
-        let minIdx = 0;
-        for (let i = 1; i < first.length; i++)
-            if (first[i] < first[minIdx])
-                minIdx = i;
-        const after = first.slice();
-        [after[0], after[minIdx]] = [after[minIdx], after[0]];
-        const sorted = first.slice().sort((a, b) => a - b);
-        const correct = joinList(after);
-        const moved = [Math.min(...first), ...first.filter((v) => v !== Math.min(...first))];
-        return {
-            prompt: `One pass of selection sort:\n\n1. find the SMALLEST item\n2. SWAP it with the item at the front\n\nThe list starts as [${joinList(first)}].\n\nWhat is the list after this pass?`,
-            correct,
-            wrongs: distinct(correct, [
-                joinList(first),
-                joinList(sorted),
-                joinList(moved),
-                joinList(first.slice().reverse()),
-                joinList([...after.slice(1), after[0]]),
-            ]),
-            tags: [],
-            explanation: `The smallest item is ${first[minIdx]}, at index ${minIdx}, and selection sort SWAPS it with the front: ${first[0]} takes its place. Everything between the two positions stays where it was, so the result is [${correct}]. Moving the smallest item to the front without swapping (${joinList(moved)}) loses ${first[0]} — and one pass is not a sort, so [${joinList(sorted)}] is the whole algorithm, not one pass of it.`,
-            difficulty: reading(r),
-        };
-    },
-    /** Binary search over a real sorted list: the comparison count is simulated. */
-    "algorithms-search": (r) => {
-        const sorted = [];
-        let v = r.int(2, 9);
-        for (let i = 0; i < 8; i++) {
-            sorted.push(v);
-            v += r.int(3, 12);
-        }
-        const target = sorted[r.int(0, 7)];
-        let lo = 0, hi = sorted.length - 1, steps = 0;
-        while (lo <= hi) {
-            const mid = Math.floor((lo + hi) / 2);
-            steps++;
-            if (sorted[mid] === target)
-                break;
-            if (sorted[mid] < target)
-                lo = mid + 1;
-            else
-                hi = mid - 1;
-        }
-        const linear = sorted.indexOf(target) + 1;
-        const correct = String(steps);
-        return {
-            prompt: `A binary search runs on this sorted list:\n\n[${joinList(sorted)}]\n\nIt looks for ${target}. Each step compares the middle item and throws away half the list.\n\nHow many comparisons does it need before it finds ${target}?`,
-            correct,
-            wrongs: distinct(correct, [linear, steps + 1, steps - 1, 3, sorted.length]),
-            tags: [],
-            explanation: `Halving ${sorted.length} items takes ${steps} comparisons: the middle of the whole list first, then the middle of the surviving half, and so on until ${target} is the middle. Checking from the left instead (linear search) would take ${linear}, which is why the list has to be sorted for binary search to work at all.`,
-            difficulty: reading(r),
-        };
-    },
-    /** A recurrence evaluated for one value, computed iteratively. */
-    recursion: (r) => {
-        const base = r.int(2, 5);
-        const add = r.int(2, 6);
-        const k = r.int(3, 7);
-        const f = (n) => base + n * add;
-        const correct = String(f(k));
-        return {
-            prompt: `A function is defined as:\n\nf(0) = ${base}\nf(n) = f(n - 1) + ${add}\n\nWhat is f(${k})?`,
-            correct,
-            wrongs: distinct(correct, [f(k - 1), f(k) + add, k * add, base * add * k, base + add]),
-            tags: [],
-            explanation: `f(${k}) unwinds to f(0) with ${k} additions of ${add} on the way back: ${base} + ${k} × ${add} = ${correct}. ${f(k - 1)} is f(${k - 1}) — one step short — and ${k * add} counts the additions but forgets the base case.`,
-            difficulty: reading(r),
-        };
-    },
-    /** A nested loop counted for a given n: n(n+1)/2, simulated rather than quoted. */
-    complexity: (r) => {
-        const n = r.int(6, 14);
-        let count = 0;
-        for (let i = 1; i <= n; i++)
-            for (let j = i; j <= n; j++)
-                count++;
-        const correct = String(count);
-        return {
-            prompt: `Trace this code.\n\ncount = 0\nfor i = 1 to ${n}:\n    for j = i to ${n}:\n        count = count + 1\n\nHow many times does count increase?`,
-            correct,
-            wrongs: distinct(correct, [n * n, (n * (n - 1)) / 2, n, count - n, count + n]),
-            tags: [],
-            explanation: `The inner loop runs ${n} times when i = 1, ${n - 1} when i = 2, and so on down to 1 — that is ${n} + ${n - 1} + … + 1 = ${correct}. ${n * n} assumes the inner loop always runs ${n} times, which would be a full square rather than a triangle.`,
-            difficulty: reading(r),
-        };
-    },
-    /** A median read out of an unsorted table: the middle in ORDER, not on the page. */
-    "statistics-data": (r) => {
-        const data = [];
-        while (data.length < 7) {
-            const v = r.int(8, 60);
-            if (!data.includes(v))
-                data.push(v);
-        }
-        const sorted = data.slice().sort((a, b) => a - b);
-        const median = sorted[3];
-        const mean = Math.round(data.reduce((a, b) => a + b, 0) / data.length);
-        const correct = String(median);
-        return {
-            prompt: `A sensor takes seven readings, logged in this order: ${joinList(data)} min. What is the MEDIAN reading?`,
-            correct,
-            wrongs: distinct(correct, [data[3], mean, sorted[sorted.length - 1], sorted[0], median + 1]),
-            tags: [],
-            explanation: `The median is the middle value once the readings are put IN ORDER: ${joinList(sorted)}. The middle of that is ${median}. ${data[3]} is the middle of the LOGGED order, which is a different number whenever the readings are not already sorted — the order they arrived in says nothing about their size.`,
-            difficulty: reading(r),
-        };
-    },
-    /** A subnet size, where the two reserved addresses are the whole point. */
-    networks: (r) => {
-        const prefix = r.pick([24, 25, 26, 27, 28, 29, 30]);
-        const total = Math.pow(2, 32 - prefix);
-        const usable = total - 2;
-        const correct = String(usable);
-        return {
-            // ONE LINE ON PURPOSE. A prompt carrying a line break cannot become an
-            // option in the inverse (transfer) surface — `readableOption` in
-            // lib/transfer.ts excludes multi-part stems, because four paragraphs in a
-            // choice list is a wall of text — so a two-sentence question that needs no
-            // break should not have one. This family's answers ARE values, and joining
-            // it restored the transfer coverage the deeper bank had cost (measured:
-            // 99 inverse items against a floor of more than 100). Prompts that really
-            // are a trace, a table or a list keep their line breaks: for those the
-            // exclusion is honest, and the stage falls back to `direct`.
-            prompt: `A school network is written as 10.0.4.0/${prefix}. How many USABLE host addresses does it have?`,
-            correct,
-            wrongs: distinct(correct, [total, total - 1, total / 2, total + 2, Math.floor(usable / 2)]),
-            tags: [],
-            explanation: `A /${prefix} leaves ${32 - prefix} bits for hosts, so the block holds 2^${32 - prefix} = ${total} addresses. The first address names the network and the last is the broadcast address, and neither can be given to a device: ${total} − 2 = ${correct}. Answering ${total} ignores those two reserved addresses.`,
-            difficulty: reading(r),
-        };
-    },
-    /** A search space, computed: why length beats alphabet, and by how much. */
-    cybersecurity: (r) => {
-        const alphabet = r.pick([26, 36, 52, 62]);
-        const len = r.pick([3, 4, 5]);
-        const space = Math.pow(alphabet, len);
-        const correct = String(space);
-        return {
-            prompt: `A website allows passwords of any ${len} characters from an alphabet of ${alphabet} symbols. How many different passwords are possible?`,
-            correct,
-            wrongs: distinct(correct, [alphabet * len, Math.pow(alphabet, len - 1), alphabet + len, Math.pow(alphabet + 10, len), Math.pow(alphabet, len) + alphabet]),
-            tags: [],
-            explanation: `Each of the ${len} positions can be any of ${alphabet} symbols, and the choices multiply: ${Array.from({ length: len }, () => alphabet).join(" × ")} = ${correct}. ${alphabet * len} adds the possibilities instead of multiplying them — which is why one extra character usually buys far more than one extra symbol in the alphabet.`,
-            difficulty: reading(r),
-        };
-    },
-    /** Four hex digits read as one 16-bit value: the weights are the question. */
-    "binary-data": (r) => {
-        const nib = [r.int(0, 15), r.int(0, 15), r.int(0, 15), r.int(0, 15)];
-        const value = (nib[0] << 12) | (nib[1] << 8) | (nib[2] << 4) | nib[3];
-        const reversed = (nib[3] << 12) | (nib[2] << 8) | (nib[1] << 4) | nib[0];
-        const correct = String(value);
-        const hex = nib.map((x) => x.toString(16).toUpperCase());
-        return {
-            prompt: `A device stores a 16-bit number as four hex digits, MOST significant first:\n\n${hex.map((h, i) => `· position ${i + 1}: ${h}`).join("\n")}\n\nWhat is the number in decimal?`,
-            correct,
-            wrongs: distinct(correct, [reversed, nib.reduce((a, b) => a + b, 0), value + 1, value - 1, (nib[0] << 8) | (nib[1] << 4) | nib[2]]),
-            tags: [],
-            explanation: `Each position is worth 16 times the one to its right: ${nib[0]} × 4096 + ${nib[1]} × 256 + ${nib[2]} × 16 + ${nib[3]} = ${correct}. Reading the digits least-significant first gives ${reversed}, and adding them (${nib.reduce((a, b) => a + b, 0)}) weights every position the same — which is the mistake place value exists to prevent.`,
-            difficulty: reading(r),
-        };
-    },
-    /** A program traced line by line, where the answer is a VALUE rather than a
-     *  number: `word = word + word` acts on the WHOLE value built so far, which is
-     *  the difference between reading code as a description and executing it. */
-    "what-is-code": (r) => {
-        const words = ["ab", "go", "it", "no", "so", "up"];
-        const first = r.pick(words);
-        const second = r.pick(words.filter((w) => w !== first));
-        const once = first + second;
-        const correct = once + once;
-        return {
-            prompt: `A program runs its lines in order:\n\nword = "${first}"\nword = word + "${second}"\nword = word + word\nprint(word)\n\nWhat does it print?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The doubling line skipped: the word printed after one join.
-                once,
-                // The doubling line read as "print the first word twice".
-                first + first,
-                // The two joins swapped.
-                second + first + second + first,
-                // The doubling line applied twice.
-                once + once + once + once,
-                // Printed before the join.
-                first,
-            ]),
-            tags: [],
-            explanation: `Every line uses the value the line above it left behind. Line 1 gives "${first}"; line 2 joins the two parts to give "${once}"; line 3 adds the WHOLE current value to itself, so "${once}" + "${once}" = "${correct}". Printing "${once}" stops one line short, and "${first}${first}" is what you get by reading line 3 as "print ${first} twice" — which is what the line means to a person and not what it does. A computer executes exactly the lines written, in order, which is why precision is the whole discipline of writing code.`,
-            difficulty: reading(r),
-        };
-    },
-    /** CSS specificity read out of a real stylesheet: the winning colour is
-     *  COMPUTED from the selectors, and every distractor is the colour a named
-     *  mis-ordering would actually produce. */
-    "web-stack": (r) => {
-        // Five distinct colours, so neither branch below can offer a word twice. The
-        // declaration ORDER is deliberate: the id rule sits in the middle, so "the
-        // first rule wins" and "the last rule wins" are BOTH wrong answers rather
-        // than shortcuts to the right one.
-        const [lead, idC, pC, note, inline] = r
-            .shuffle(["navy", "teal", "olive", "maroon", "purple", "crimson", "indigo", "sienna"])
-            .slice(0, 5);
-        const hasInline = r.next() < 0.5;
-        const correct = hasInline ? inline : idC;
-        return {
-            prompt: `A page loads this stylesheet, in source order:\n\n.lead { color: ${lead}; }\n#intro { color: ${idC}; }\np { color: ${pC}; }\np.note { color: ${note}; }\n\nThe markup is\n\n<p id="intro" class="lead note"${hasInline ? ` style="color: ${inline};"` : ""}>Hello</p>\n\nWhich colour is the paragraph's text?`,
-            correct,
-            // With an inline style the id rule is no longer the winner but is still
-            // the tempting answer; without one it IS the winner, and the tempting
-            // answers become the first and last rules in the file.
-            wrongs: distinct(correct, hasInline ? [note, idC, pC] : [note, lead, pC]),
-            tags: [],
-            explanation: `CSS scores a selector as three counts — ids, then classes, then elements — and the id count is decided FIRST: #intro is (1,0,0) and beats every selector built only from classes and elements, so .lead (0,1,0), p.note (0,1,1) and p (0,0,1) all lose to it whatever order they are written in. ${hasInline ? `An inline style attribute (${inline}) outranks every selector in every stylesheet, so it wins here.` : `Source order only breaks a TIE, and there is no tie here — so neither the first nor the last rule in the file wins.`} ${note} is what you get by counting how MANY parts a selector has rather than what they are worth: "p.note" looks more specific than "#intro" and one id is worth more than ten classes.`,
-            difficulty: reading(r),
-        };
-    },
-    /** A confusion matrix read as data. Accuracy is defined over the WHOLE test
-     *  set, and the distractors are the other metrics — precision, recall, the
-     *  error rate — each of which answers a different question. */
-    "ai-basics": (r) => {
-        const tp = r.int(30, 90);
-        const fp = r.int(5, 25);
-        const fn = r.int(3, 20);
-        const tn = r.int(40, 120);
-        const total = tp + fp + fn + tn;
-        const accuracy = ((tp + tn) / total) * 100;
-        const precision = (tp / (tp + fp)) * 100;
-        const recall = (tp / (tp + fn)) * 100;
-        const correct = `${num(accuracy, 1)}%`;
-        return {
-            prompt: `A classifier is tested on ${total} labelled emails and its results are recorded:\n\n· predicted spam, actually spam: ${tp}\n· predicted spam, actually not spam: ${fp}\n· predicted not spam, actually spam: ${fn}\n· predicted not spam, actually not spam: ${tn}\n\nWhat percentage of the test set did it label correctly?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Precision: the false positives left out of the denominator.
-                `${num(precision, 1)}%`,
-                // Recall: the ones it missed left out.
-                `${num(recall, 1)}%`,
-                // The error rate, quoted as the success rate.
-                `${num(100 - accuracy, 1)}%`,
-                // Only the true positives counted.
-                `${num((tp / total) * 100, 1)}%`,
-                // Only the positive predictions counted.
-                `${num(((tp + fp) / total) * 100, 1)}%`,
-                // The size of the test set quoted as a percentage.
-                String(total),
-            ]),
-            tags: [],
-            explanation: `Accuracy counts every example it got right, over every example there is: (${tp} + ${tn}) ÷ ${total} = ${correct}. The neighbouring numbers answer DIFFERENT questions rather than being wrong: precision (${num(precision, 1)}%) asks what share of the spam PREDICTIONS were right, recall (${num(recall, 1)}%) asks what share of the real spam was CAUGHT, and ${num(100 - accuracy, 1)}% is the error rate. Which one matters depends on what a mistake costs — missing real spam and binning a real email are not equally bad — which is why accuracy is a summary of a model and never the whole story about it.`,
-            difficulty: reading(r),
-        };
-    },
-};
 
 });
 __def("questions-deep.js", function (module, exports, require) {
@@ -38149,433 +35505,6 @@ exports.DEEP_GENS = {
 };
 
 });
-__def("questions-physics.js", function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.PHYSICS_DEEP = void 0;
-function distinct(correct, candidates, n = 3) {
-    const out = [];
-    for (const cand of candidates) {
-        const s = String(cand);
-        if (s !== correct && !out.includes(s) && out.length < n)
-            out.push(s);
-    }
-    return out;
-}
-/** A number a student would write: at most three decimals, no float tail. */
-function num(x, dp = 3) {
-    return x.toFixed(dp).replace(/\.?0+$/, "");
-}
-/** The band every family here earns. Written as a helper so no family can
- *  quietly drop back into the recall band while being described as deep. */
-function hardest(r) {
-    return 0.9 + r.next() * 0.06;
-}
-exports.PHYSICS_DEEP = {
-    /** Electrons in an ION: the atomic number has to be found and then adjusted
-     *  for the charge, in the right direction. */
-    "atoms-nucleus": (r) => {
-        const nuclides = [
-            { name: "sodium", a: 23, z: 11 },
-            { name: "magnesium", a: 24, z: 12 },
-            { name: "chlorine", a: 35, z: 17 },
-            { name: "calcium", a: 40, z: 20 },
-            { name: "iron", a: 56, z: 26 },
-            { name: "potassium", a: 39, z: 19 },
-        ];
-        const n = r.pick(nuclides);
-        const charge = r.pick([1, 2, 3]);
-        const sign = r.next() < 0.5 ? "lost" : "gained";
-        const electrons = sign === "lost" ? n.z - charge : n.z + charge;
-        const correct = String(electrons);
-        return {
-            // ONE LINE ON PURPOSE, wherever the prompt is prose rather than a trace, a
-            // table or a list. `readableOption` (lib/transfer.ts) will not put a
-            // multi-part stem into a choice list — correctly — so a two-sentence
-            // question that needs no break must not carry one: a line break here costs
-            // the concept its inverse (transfer) surface for that whole band. Prompts
-            // that really do print data keep their breaks and fall back to `direct`.
-            prompt: `An atom of ${n.name} has mass number ${n.a} and atomic number ${n.z}. It forms an ion that has ${sign} ${charge} electron${charge === 1 ? "" : "s"}. How many electrons does the ion have?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The charge ignored: the neutral atom's electron count.
-                String(n.z),
-                // The charge applied the wrong way round.
-                String(sign === "lost" ? n.z + charge : n.z - charge),
-                // Neutrons, not electrons.
-                String(n.a - n.z),
-                // Mass number less the charge.
-                String(n.a - charge),
-                // One electron too many / too few.
-                String(electrons + 1),
-                String(electrons - 1),
-            ]),
-            tags: [],
-            explanation: `The atomic number IS the number of protons, and a neutral atom has the same number of electrons — ${n.z} here. An ion that has ${sign} ${charge} electron${charge === 1 ? "" : "s"} is ${charge} away from neutral, so it has ${sign === "lost" ? `${n.z} − ${charge}` : `${n.z} + ${charge}`} = ${correct} electrons. The mass number (${n.a}) is never the electron count: it counts protons AND neutrons, and neutrons carry no charge, so ${n.a} − ${n.z} = ${n.a - n.z} is the number of NEUTRONS.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Momentum conservation through a collision, with both objects' momenta
-     *  summed before the shared velocity. */
-    momentum: (r) => {
-        const m1 = r.pick([2, 3, 4, 5]);
-        const u1 = r.pick([2, 3, 4, 5, 6]);
-        const m2 = r.pick([1, 2, 3, 4]);
-        const u2 = r.pick([0, 1, 2, 3]);
-        const total = m1 * u1 + m2 * u2;
-        const v = total / (m1 + m2);
-        const correct = `${num(v)} m/s`;
-        return {
-            prompt: `A ${m1} kg trolley moving at ${u1} m/s collides with a ${m2} kg trolley moving at ${u2} m/s in the SAME direction. They stick together. What is their common velocity?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Only the first trolley's momentum used.
-                `${num((m1 * u1) / (m1 + m2))} m/s`,
-                // The two speeds averaged, as if mass did not matter.
-                `${num((u1 + u2) / 2)} m/s`,
-                // Momentum quoted as a velocity.
-                `${num(total)} m/s`,
-                // The speeds added.
-                `${num(u1 + u2)} m/s`,
-                // The first trolley's speed, as though the collision did not slow it.
-                `${num(u1)} m/s`,
-                // A half of the answer, for the collapse case.
-                `${num(v / 2)} m/s`,
-            ]),
-            tags: [],
-            explanation: `Momentum is conserved: total before = total after. Before: (${m1} × ${u1}) + (${m2} × ${u2}) = ${num(total)} kg·m/s. After: (${m1} + ${m2}) × v = ${m1 + m2}v, so v = ${num(total)} ÷ ${m1 + m2} = ${correct}. The masses ADD because the trolleys now move as one object — leaving the mass out gives the average of the speeds, which is only right when the two masses are equal.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** A resultant force read out of a table of forces, then Newton's second law
-     *  applied to it. Two stages, and the sign of the resultant matters. */
-    "newton-laws": (r) => {
-        const m = r.pick([2, 4, 5, 8, 10]);
-        const fwd = [r.int(20, 40), r.int(20, 40)];
-        const back = [r.int(10, 30), r.int(10, 30)];
-        const net = fwd[0] + fwd[1] - back[0] - back[1];
-        const a = net / m;
-        const correct = `${num(a)} m/s²`;
-        return {
-            prompt: `The table records the horizontal forces on a ${m} kg sledge:\n\n· forward: ${fwd[0]} N\n· forward: ${fwd[1]} N\n· backward: ${back[0]} N\n· backward: ${back[1]} N\n\nWhat is the sledge's acceleration?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Every force added, direction ignored.
-                `${num((fwd[0] + fwd[1] + back[0] + back[1]) / m)} m/s²`,
-                // The resultant given as the acceleration (the ÷m step dropped).
-                `${num(net)} m/s²`,
-                // Newton's second law inverted.
-                `${num(m / net)} m/s²`,
-                // Only the first forward force used.
-                `${num((fwd[0] - back[0] - back[1]) / m)} m/s²`,
-                // Half, for the collapse case.
-                `${num(a / 2)} m/s²`,
-            ]),
-            tags: [],
-            explanation: `Forces in opposite directions subtract: forward ${fwd[0]} + ${fwd[1]} = ${fwd[0] + fwd[1]} N, backward ${back[0]} + ${back[1]} = ${back[0] + back[1]} N, so the resultant is ${fwd[0] + fwd[1]} − ${back[0] + back[1]} = ${net} N forwards. Then a = F ÷ m = ${net} ÷ ${m} = ${correct}. Adding every force as if it pulled the same way (${fwd[0] + fwd[1] + back[0] + back[1]} N) is the trap: a force is a vector, and the table gives you two directions on purpose.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** An echo: the sound travels there AND back, so the time is halved. */
-    "sound-acoustics": (r) => {
-        const speed = r.pick([340, 1500, 3000]);
-        const time = r.pick([0.4, 0.6, 0.8, 1.2, 1.6, 2.0]);
-        const distance = (speed * time) / 2;
-        const correct = `${num(distance)} m`;
-        const medium = speed === 340 ? "air" : speed === 1500 ? "water" : "steel";
-        return {
-            prompt: `A pulse of sound is sent through ${medium} and its echo returns after ${num(time)} s. Sound travels at ${speed} m/s in ${medium}. How far away is the reflecting surface?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The round trip taken as the distance.
-                `${num(speed * time)} m`,
-                // The division inverted.
-                `${num(speed / time)} m`,
-                // The time divided instead of the distance.
-                `${num((speed * time) / 4)} m`,
-                // A multiplication instead of a division.
-                `${num(speed * time * 2)} m`,
-                // The speed quoted as the distance.
-                `${num(speed)} m`,
-            ]),
-            tags: [],
-            explanation: `The sound has to travel to the surface AND back, so the ${num(time)} s covers twice the distance: total path = ${speed} × ${num(time)} = ${num(speed * time)} m, and the surface is half of that, ${correct}. Quoting ${num(speed * time)} m is the classic echo error — it puts the wall twice as far away as it is, which is why an echo test has to be worked out as a round trip.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** F = BIL — a three-factor product where every factor has to be found in the
-     *  stem and left in its SI unit. */
-    magnetism: (r) => {
-        const b = r.pick([0.2, 0.5, 1.5, 2.0]);
-        const current = r.pick([2, 3, 4, 5, 8]);
-        const length = r.pick([0.1, 0.2, 0.4, 0.5]);
-        const force = b * current * length;
-        const correct = `${num(force)} N`;
-        return {
-            prompt: `A straight wire of length ${num(length * 100)} cm carries a current of ${current} A and lies at right angles to a magnetic field of flux density ${num(b)} T. What is the force on the wire?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The length left in cm.
-                `${num(b * current * length * 100)} N`,
-                // Only two factors multiplied.
-                `${num(b * current)} N`,
-                `${num(b * length)} N`,
-                `${num(current * length)} N`,
-                // The three added.
-                `${num(b + current + length)} N`,
-            ]),
-            tags: [],
-            explanation: `F = BIL, and every factor must be in its SI unit: B = ${num(b)} T, I = ${current} A, L = ${num(length)} m (the stem gives ${num(length * 100)} cm, so divide by 100 first). That gives ${num(b)} × ${current} × ${num(length)} = ${correct}. Leaving the length in centimetres multiplies the force by 100 — a unit error, not a physics one, and the commonest way this question is lost.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** E = mcΔT, with ΔT read out of a before/after pair — the temperature CHANGE
-     *  is the step that gets skipped. */
-    "thermal-physics": (r) => {
-        const mass = r.pick([0.5, 1, 1.5, 2, 2.5, 4]);
-        const c = r.pick([4200, 900, 385, 2100]);
-        const t1 = r.int(10, 25);
-        const t2 = t1 + r.pick([20, 25, 30, 40, 50]);
-        const dT = t2 - t1;
-        const energy = mass * c * dT;
-        const material = c === 4200 ? "water" : c === 900 ? "aluminium" : c === 385 ? "copper" : "ice";
-        const correct = `${num(energy)} J`;
-        return {
-            prompt: `A ${num(mass)} kg block of ${material} is heated from ${t1} °C to ${t2} °C. Its specific heat capacity is ${c} J/kg°C. How much energy is transferred to the block?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The final temperature used instead of the change.
-                `${num(mass * c * t2)} J`,
-                // ΔT left out entirely.
-                `${num(mass * c)} J`,
-                // The change added rather than multiplied.
-                `${num(mass + c + dT)} J`,
-                // The temperature change quoted as the energy.
-                `${num(dT)} J`,
-                // Half the answer, for the collapse case.
-                `${num(energy / 2)} J`,
-            ]),
-            tags: [],
-            explanation: `E = m × c × ΔT, and ΔT is the CHANGE in temperature: ${t2} − ${t1} = ${dT} °C. So E = ${num(mass)} × ${c} × ${dT} = ${correct}. Using the final temperature (${num(mass * c * t2)} J) charges the block for heating from absolute zero rather than from ${t1} °C — the formula wants how much the temperature ROSE, not where it finished.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Work, then power: mgh to get the energy, ÷ t to get the rate. */
-    "work-power": (r) => {
-        const mass = r.pick([50, 60, 75, 100, 120, 150]);
-        const height = r.pick([2, 3, 4, 5, 6, 8, 10]);
-        const time = r.pick([2, 4, 5, 8, 10, 20]);
-        const g = 10;
-        const work = mass * g * height;
-        const power = work / time;
-        const correct = `${num(power)} W`;
-        return {
-            prompt: `A load of ${mass} kg is lifted ${height} m in ${time} s. Take g = ${g} N/kg. What is the average power of the motor doing the lifting?`,
-            correct,
-            wrongs: distinct(correct, [
-                // Work, not power: the division by time skipped.
-                `${num(work)} W`,
-                // Weight instead of work.
-                `${num(mass * g)} W`,
-                // Height ÷ time, with the mass dropped.
-                `${num((height * g) / time)} W`,
-                // Multiplied by time instead of divided.
-                `${num(work * time)} W`,
-                // Half, for the collapse case.
-                `${num(power / 2)} W`,
-            ]),
-            tags: [],
-            explanation: `Power is the RATE of energy transfer, so find the energy first: work = mgh = ${mass} × ${g} × ${height} = ${num(work)} J. Then power = work ÷ time = ${num(work)} ÷ ${time} = ${correct}. ${num(work)} W is the work done, not the power — it is what the motor transfers in total, and the motor that does it in ${time} s has to be ${time} times more powerful than one that takes a minute.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Snell's law from a results table: the SINE of each angle, not the angle. */
-    "light-optics": (r) => {
-        const rows = [
-            [20, 0.342, 13, 0.225],
-            [30, 0.5, 19, 0.326],
-            [40, 0.643, 25, 0.423],
-            [50, 0.766, 31, 0.515],
-            [60, 0.866, 35, 0.574],
-        ];
-        const row = r.pick([...rows]);
-        const [iDeg, sinI, rDeg, sinR] = row;
-        const n = sinI / sinR;
-        const correct = num(n, 2);
-        return {
-            prompt: `A student shines a ray into a glass block and records the angles:\n\n· angle of incidence: ${iDeg}°\n· angle of refraction: ${rDeg}°\n\nTheir data book gives sin ${iDeg}° = ${sinI} and sin ${rDeg}° = ${sinR}.\n\nWhat is the refractive index of the glass?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The ratio inverted.
-                num(sinR / sinI, 2),
-                // The ANGLES divided, with the sines left out — the whole point of the
-                // data book being there.
-                num(iDeg / rDeg, 2),
-                // The two angles subtracted.
-                num(iDeg - rDeg, 2),
-                // The sines added.
-                num(sinI + sinR, 2),
-            ]),
-            tags: [],
-            explanation: `Snell's law uses the SINES: n = sin i ÷ sin r = ${sinI} ÷ ${sinR} = ${correct}. The data book is in the question because the angles themselves are useless here — dividing ${iDeg} by ${rDeg} gives ${num(iDeg / rDeg, 2)}, a number that changes if you measure the same glass from a different angle, which a refractive index must not.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** A transformer: the ratio of turns sets the ratio of voltages. */
-    "em-induction": (r) => {
-        const np = r.pick([200, 250, 400, 500, 1000]);
-        const ns = r.pick([50, 100, 500, 2000, 4000]);
-        const vp = r.pick([6, 12, 230, 240]);
-        const vs = (vp * ns) / np;
-        const correct = `${num(vs)} V`;
-        const stepUp = ns > np;
-        return {
-            prompt: `An ideal transformer has ${np} turns on the primary coil and ${ns} turns on the secondary coil. The primary is connected to a ${vp} V supply. What is the secondary voltage?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The turns ratio inverted.
-                `${num((vp * np) / ns)} V`,
-                // The primary voltage, unchanged.
-                `${num(vp)} V`,
-                // The turns ratio quoted as a voltage.
-                `${num(ns / np)} V`,
-                // Primary plus the turns difference.
-                `${num(vp + (ns - np))} V`,
-                // Half, for the collapse case.
-                `${num(vs / 2)} V`,
-                // THE SAFETY TAIL. When the two coils have the SAME number of turns the
-                // ratio is 1, so the inverted ratio, the unchanged primary voltage and
-                // the turns difference all collapse onto the answer at once (measured:
-                // "12 V | 1 V | 6 V"). A doubled voltage cannot.
-                `${num(vs * 2)} V`,
-            ]),
-            tags: [],
-            explanation: `${vp} × (${ns} ÷ ${np}) = ${num(vs)} V. Each turn carries the same voltage, so the coil with ${ns > np ? "more" : "fewer"} turns has ${ns > np ? "more" : "less"} voltage, and this is a ${stepUp ? "step-up" : "step-down"} transformer. Inverting the ratio gives ${num((vp * np) / ns)} V, which is the voltage you would expect running the same transformer BACKWARDS — the one thing a transformer will not do is work on a d.c. supply, and it is the ratio, not the size, that sets this.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Kepler's third law as a ratio: period scales as the 3/2 power of the
-     *  orbital radius. */
-    astrophysics: (r) => {
-        const factor = r.pick([4, 9, 16, 25]);
-        const basePeriod = r.pick([1, 2, 4, 5]);
-        const root = Math.sqrt(factor);
-        const period = basePeriod * Math.pow(root, 3);
-        const correct = `${num(period)} years`;
-        return {
-            prompt: `Two bodies orbit the same star.\n\n· Body A orbits at 1.0 AU with a period of ${num(basePeriod)} years.\n· Body B orbits at ${factor}.0 AU.\n\nFor orbits around one star, T² is proportional to r³.\n\nWhat is the period of body B?`,
-            correct,
-            wrongs: distinct(correct, [
-                // A linear guess: period ∝ radius.
-                `${num(basePeriod * factor)} years`,
-                // The ratio squared instead of taken to the 3/2 power.
-                `${num(basePeriod * factor * factor)} years`,
-                // The period left unchanged, as if the orbit did not matter.
-                `${num(basePeriod)} years`,
-                // The ratio itself quoted as the answer.
-                `${num(factor)} years`,
-                // The two numbers added.
-                `${num(basePeriod + factor)} years`,
-            ]),
-            tags: [],
-            explanation: `T² ∝ r³, so multiplying r by ${factor} multiplies T² by ${factor}³ = ${factor * factor * factor}, and T by its square root: ${num(basePeriod)} × ${num(root)}³ = ${num(period)} years. The tempting answer is the linear one (${num(basePeriod * factor)}) — a planet ${factor} times further out does NOT take ${factor} times as long, and that difference is why Neptune's 165-year orbit was found by prediction rather than by watching.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Surface gravity as a ratio, then a weight: two stages, and the radius is
-     *  SQUARED while the mass is not. */
-    "gravity-fields": (r) => {
-        const cases = [
-            [4, 2, "Mars-like"], [9, 3, "Venus-like"], [2, 1, "super-Earth"], [3, 1, "heavy world"],
-            [1, 2, "small moon"], [6, 2, "dense world"], [16, 4, "Earth-size giant"],
-        ];
-        const [mFactor, rFactor, label] = r.pick(cases);
-        const gEarth = 9.8;
-        const gFactor = mFactor / (rFactor * rFactor);
-        const mass = r.pick([40, 50, 60, 70, 80]);
-        const weight = mass * gEarth * gFactor;
-        const correct = `${num(weight, 2)} N`;
-        return {
-            prompt: `A planet has ${mFactor} times the mass of Earth and ${rFactor} times its radius. On Earth g = ${gEarth} N/kg, and a learner of mass ${mass} kg stands on the planet. What is the learner's weight there?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The radius used linearly instead of squared.
-                `${num((mass * gEarth * mFactor) / rFactor, 2)} N`,
-                // The radius never used at all.
-                `${num(mass * gEarth * mFactor, 2)} N`,
-                // The learner's Earth weight.
-                `${num(mass * gEarth, 2)} N`,
-                // The ratio inverted.
-                `${num((mass * gEarth * rFactor * rFactor) / mFactor, 2)} N`,
-                // Only the mass, quoted as a weight.
-                `${num(mass, 2)} N`,
-            ]),
-            tags: [],
-            explanation: `g depends on mass AND on the square of the radius: here it scales by ${mFactor} ÷ ${rFactor}² = ${mFactor} ÷ ${rFactor * rFactor} = ${num(gFactor)} times Earth's. So weight = ${mass} × ${gEarth} × ${num(gFactor)} = ${correct}. Using the radius linearly (${num((mass * gEarth * mFactor) / rFactor, 2)} N) is the mistake the square exists to catch: standing ${rFactor}× further from a point mass weakens gravity ${rFactor * rFactor}×, because the same force is spread over a sphere ${rFactor}² times larger.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Two resistors in parallel, then the supply current: the combined resistance
-     *  is the step that cannot be skipped. */
-    "electricity-circuits": (r) => {
-        const pairs = [[2, 6], [3, 6], [4, 12], [5, 20], [2, 3], [6, 3], [10, 15], [4, 4]];
-        const [r1, r2] = r.pick(pairs);
-        const v = r.pick([6, 12, 24]);
-        const combined = (r1 * r2) / (r1 + r2);
-        const current = v / combined;
-        const correct = `${num(current)} A`;
-        return {
-            prompt: `Two resistors, ${r1} Ω and ${r2} Ω, are connected in PARALLEL across a ${v} V supply. What is the current drawn from the supply?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The parallel pair treated as a series one.
-                `${num(v / (r1 + r2))} A`,
-                // Only the first branch counted.
-                `${num(v / r1)} A`,
-                // The combined resistance quoted as the current.
-                `${num(combined)} A`,
-                // The total resistance as the current.
-                `${num(r1 + r2)} A`,
-                // Half, for the collapse case.
-                `${num(current / 2)} A`,
-            ]),
-            tags: [],
-            explanation: `First combine the resistors: 1/R = 1/${r1} + 1/${r2}, so R = (${r1} × ${r2}) ÷ (${r1} + ${r2}) = ${num(combined)} Ω — LOWER than either resistor, which is what adding a parallel path means. Then I = V ÷ R = ${v} ÷ ${num(combined)} = ${correct}. Adding the resistances (${r1 + r2} Ω) gives the answer for a SERIES circuit; here each resistor is across the full ${v} V, so the currents add up instead of the resistances.`,
-            difficulty: hardest(r),
-        };
-    },
-    /** Pressure at a depth, then the force on an area at that depth. */
-    "pressure-fluids": (r) => {
-        const depth = r.pick([2, 3, 4, 5, 8, 10]);
-        const area = r.pick([0.01, 0.02, 0.05, 0.1, 0.25]);
-        const density = 1000;
-        const g = 10;
-        const pressure = density * g * depth;
-        const force = pressure * area;
-        const correct = `${num(force)} N`;
-        return {
-            prompt: `A tank contains water to a depth of ${depth} m (density ${density} kg/m³, g = ${g} N/kg). A flat plate of area ${num(area)} m² lies on the bottom of the tank. What is the force of the water on the plate?`,
-            correct,
-            wrongs: distinct(correct, [
-                // The pressure quoted instead of the force: the second stage skipped.
-                `${num(pressure)} N`,
-                // Area multiplied twice.
-                `${num(pressure * area * area)} N`,
-                // The depth used where the area belongs.
-                `${num(pressure * depth)} N`,
-                // The area alone, quoted as a force.
-                `${num(area)} N`,
-                // Half, for the collapse case.
-                `${num(force / 2)} N`,
-            ]),
-            tags: [],
-            explanation: `Two stages. First the pressure at that depth: p = ρgh = ${density} × ${g} × ${depth} = ${num(pressure)} Pa. Then the force that pressure exerts over the plate: F = p × A = ${num(pressure)} × ${num(area)} = ${correct}. Stopping at ${num(pressure)} N reports a pressure as a force — they are different quantities, and the area is in the question precisely because the same pressure on a bigger plate pushes harder.`,
-            difficulty: hardest(r),
-        };
-    },
-};
-
-});
 __def("questions-senior.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -39989,7 +36918,7 @@ exports.SENIOR_GENS = {
 __def("questions.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GENERATED_CONCEPT_IDS = exports.SUBJECT_DEPTH_IDS = exports.DEPTH_CONCEPT_IDS = exports.SENIOR_CONCEPT_IDS = exports.NUMERIC_CONCEPTS = exports.Rng = void 0;
+exports.GENERATED_CONCEPT_IDS = exports.DEPTH_CONCEPT_IDS = exports.SENIOR_CONCEPT_IDS = exports.NUMERIC_CONCEPTS = exports.Rng = void 0;
 exports.difficultyBandFor = difficultyBandFor;
 exports.hashSeed = hashSeed;
 exports.fmtNum = fmtNum;
@@ -40014,18 +36943,6 @@ const qterms_1 = require("./qterms");
 const skills_1 = require("./skills");
 const specifications_1 = require("./specifications");
 const questions_deep_1 = require("./questions-deep");
-// The per-SUBJECT depth layers live in their own modules because each is a set
-// of whole families whose answers are COMPUTED (a trace simulated, a Punnett
-// square enumerated, a subnet sized) rather than worked out by hand — and
-// because a subject that has no depth layer at all is a reviewable fact, not a
-// scattering of edits through a 5,500-line file. Every one of these exists for
-// the same measured reason: `npm run gate:ceiling` found that subject's advanced
-// courses declaring a depth it could not serve (computing 0.58, chemistry and
-// biology 0.75, physics 0.78 against declarations of 0.70 to 0.90).
-const questions_computing_1 = require("./questions-computing");
-const questions_chemistry_1 = require("./questions-chemistry");
-const questions_physics_1 = require("./questions-physics");
-const questions_biology_1 = require("./questions-biology");
 const questions_senior_1 = require("./questions-senior");
 // The numeric layer (§6): the concepts whose questions could only ever be four
 // printed options, given an answer box. Composed like the deep and senior
@@ -42428,24 +39345,6 @@ const DATA_DEEP_PRIMARY = new Set([
     "place-value", "addition", "subtraction", "multiplication", "division",
     "order-ops", "rounding", "negatives",
 ]);
-/**
- * THE PER-SUBJECT DEPTH LAYERS, IN THE ORDER THEY ARE COMPOSED.
- *
- * Each is an ADDITIONAL `withDepth` draw rather than keys in `DEEP_GENS`, for
- * the reason recorded at the composition site below: a family added to that
- * literal by spread is silently overridden by the literal's own same-named key,
- * and most of these concepts already own a deep family that has to be KEPT.
- *
- * Exported so the content sweep in `npm run verify` and the ceiling gate read
- * ONE list: a subject that gains a layer is measured by adding an entry here,
- * and a layer that nobody measured is not something this file can express.
- */
-const SUBJECT_DEEP = {
-    computing: questions_computing_1.COMPUTING_DEEP,
-    chemistry: questions_chemistry_1.CHEMISTRY_DEEP,
-    physics: questions_physics_1.PHYSICS_DEEP,
-    biology: questions_biology_1.BIOLOGY_DEEP,
-};
 const ALL_GENS = Object.fromEntries(Object.entries(BASE_GENS).map(([id, base]) => {
     let gen = base;
     // The senior and deep layers are composed here so a concept carries a
@@ -42475,23 +39374,6 @@ const ALL_GENS = Object.fromEntries(Object.entries(BASE_GENS).map(([id, base]) =
     // spread). Raising a concept's ceiling cannot strand anyone at a lower band.
     if (questions_deep_1.DATA_DEEP[id] && !DATA_DEEP_PRIMARY.has(id))
         gen = withDepth(gen, questions_deep_1.DATA_DEEP[id]);
-    // THE PER-SUBJECT DEPTH LAYERS — the same remedy as the data layer above,
-    // for the four subjects the remedy had never been applied to. Each was
-    // measured by `npm run gate:ceiling` as declaring an advanced depth it could
-    // not serve, and the cause was the same every time: the ceiling of the
-    // subject, not the sampling.
-    //
-    // Composed as an ADDITIONAL draw and NOT as keys in `DEEP_GENS`, for the
-    // reason recorded above: a family added to that literal by spread is
-    // silently overridden by the literal's own same-named key, and most of these
-    // concepts already own a deep family that must be KEPT, not replaced.
-    // Nesting this OUTSIDE the existing chain means the whole chain underneath
-    // still runs on the other side of the coin, while the deeper band becomes
-    // reachable in half the draws rather than a fraction of them.
-    for (const layer of Object.values(SUBJECT_DEEP)) {
-        if (layer[id])
-            gen = withDepth(gen, layer[id]);
-    }
     return [id, gen];
 }));
 /**
@@ -42531,11 +39413,6 @@ exports.SENIOR_CONCEPT_IDS = Object.keys(questions_senior_1.SENIOR_GENS).filter(
 /** Concepts whose practice range now reaches the deep bands — exported so a
  *  test can assert the depth is where it claims to be, per concept. */
 exports.DEPTH_CONCEPT_IDS = Object.keys(questions_deep_1.DEEP_GENS).filter((id) => id in BASE_GENS);
-/** Concepts carrying a per-subject depth layer, by subject — exported for the
- *  same reason as the senior and depth lists: the gate and `npm run verify` must
- *  be able to assert that the families are WIRED (a composed family that never
- *  runs measures as absent), not merely that they are written. */
-exports.SUBJECT_DEPTH_IDS = Object.fromEntries(Object.entries(SUBJECT_DEEP).map(([subject, layer]) => [subject, Object.keys(layer).filter((id) => id in BASE_GENS)]));
 /**
  * Generator classes:
  * - "variable": parameters are drawn per seed → fresh questions forever.
@@ -44877,307 +41754,6 @@ function subjectFromParam(raw) {
 }
 
 });
-__def("sync-queue.js", function (module, exports, require) {
-"use strict";
-// ─────────────────────────────────────────────────────────────────────────────
-// OFFLINE ANSWERS: held on the device, replayed through the ONLINE answer route
-// when the connection comes back.
-//
-// A learner who loses signal mid-session must not lose the work, and must not be
-// graded twice for it. Four rules live here, and each one is asserted in
-// scripts/verify-engines.mjs:
-//
-//   * NOTHING SILENTLY DISAPPEARS. An answer the server cannot take is held in
-//     localStorage, and a refusal that retrying cannot fix is recorded as a
-//     refusal rather than dropped.
-//   * NOTHING COUNTS TWICE. Every held answer names its own submission
-//     (`submissionId`). The server derives the ledger event's id from that
-//     token, so a replay — after a dropped response, a double flush, two tabs —
-//     is the SAME event and the ledger records it once.
-//   * THE ORDER IS THE LEARNER'S. Held answers flush oldest-first, and a
-//     retryable failure STOPS the flush: nothing may overtake an older answer,
-//     because the server stamps each replay with its own arrival time and that
-//     stamp is the learner's timeline.
-//   * THE DEVICE'S CLOCK IS A CLAIM, NOT A FACT. `deviceAt` says when the
-//     learner says they answered. It travels with the answer and is recorded on
-//     the event, disclosed as the device's own claim — but the server stamps
-//     the event with ITS clock and schedules from that, so a backdated device
-//     can never manufacture retention, due dates or ordering.
-//
-// The only dependency is `fetch` and localStorage; both are read at call time,
-// so the module is testable in Node with a fake window.
-//
-// ── AND THE `fetch` IS SWAPPABLE, WHICH IT WAS NOT ──────────────────────────
-// An answer is the one call a learner's work depends on, and it did not go
-// through the seam the rest of the product uses
-// (lib/api/transport.ts#setApiSender): this module called `fetch` itself. So a
-// build that installed its own wire — a static export with no server, an
-// offline PWA, a test with no port — would have every call answered locally
-// EXCEPT the answer, which would reach for a URL that is not there, fail, and
-// queue itself for ever. That is the worst possible place for a hole: the
-// learner's work would look recorded and never arrive.
-//
-// `setAnswerWire` is that hole closed. The transport swaps it whenever the
-// sender changes, so the two halves of the seam move together, and the queue's
-// replay goes out the same way the original attempt did — which is what makes
-// "write it offline, sync later" mean the same thing on every build.
-// ─────────────────────────────────────────────────────────────────────────────
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.setAnswerWire = setAnswerWire;
-exports.readQueue = readQueue;
-exports.refusedAnswers = refusedAnswers;
-exports.queueSummary = queueSummary;
-exports.queueLength = queueLength;
-exports.newSubmissionId = newSubmissionId;
-exports.enqueueAnswer = enqueueAnswer;
-exports.isRetryable = isRetryable;
-exports.postAnswer = postAnswer;
-exports.flushQueue = flushQueue;
-exports.clearRefused = clearRefused;
-exports.clearQueue = clearQueue;
-const httpWire = (url, init) => fetch(url, init);
-let wire = httpWire;
-/** Install a different wire for answers — and for the queue's replay of them.
- *  `null` restores HTTP. Called by the transport, not by pages. */
-function setAnswerWire(next) {
-    wire = next ?? httpWire;
-}
-const KEY = "openmind:sync-queue";
-const REFUSED_KEY = "openmind:sync-refused";
-/** How many answers one device may hold. Reaching it REFUSES the new answer
- *  (visibly) instead of evicting an older one: dropping a learner's work to make
- *  room for newer work is the one thing a queue must never do. */
-const MAX_HELD = 200;
-/** How many refusals are kept for disclosure, newest last. */
-const MAX_REFUSED = 20;
-// ── Storage: defensive. Corrupt JSON must never brick a lesson. ─────────────
-function store() {
-    if (typeof window === "undefined")
-        return null;
-    try {
-        return window.localStorage ?? null;
-    }
-    catch {
-        return null; // private mode / disabled storage
-    }
-}
-function readJson(key) {
-    const s = store();
-    if (!s)
-        return [];
-    try {
-        const raw = s.getItem(key);
-        if (!raw)
-            return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-    }
-    catch {
-        return [];
-    }
-}
-function writeJson(key, value) {
-    const s = store();
-    if (!s)
-        return;
-    try {
-        s.setItem(key, JSON.stringify(value));
-    }
-    catch {
-        /* storage full — the caller still has the answer in memory for this turn */
-    }
-}
-/** Held answers, in the order the learner answered them. Malformed rows are
- *  skipped rather than thrown on: one bad row must not hide the others. */
-function readQueue() {
-    const rows = readJson(KEY).filter((r) => r && typeof r.submissionId === "string" && r.submissionId.length > 0 &&
-        typeof r.url === "string" && r.url.length > 0 &&
-        typeof r.seq === "number" && Number.isFinite(r.seq) &&
-        r.body !== null && typeof r.body === "object");
-    for (const r of rows) {
-        if (typeof r.deviceAt !== "number" || !Number.isFinite(r.deviceAt))
-            r.deviceAt = r.queuedAt ?? 0;
-        if (typeof r.tries !== "number" || !Number.isFinite(r.tries))
-            r.tries = 0;
-        if (typeof r.queuedAt !== "number" || !Number.isFinite(r.queuedAt))
-            r.queuedAt = r.deviceAt;
-    }
-    return rows.sort((a, b) => a.seq - b.seq);
-}
-function refusedAnswers() {
-    return readJson(REFUSED_KEY);
-}
-function queueSummary() {
-    const held = readQueue();
-    return {
-        pending: held.length,
-        refused: refusedAnswers().length,
-        oldest: held.length ? held[0].queuedAt : null,
-    };
-}
-function queueLength() {
-    return readQueue().length;
-}
-/** A token that names one submission of one answer. Random, not derived from
- *  the content: two genuine attempts at the same question must not collide. */
-function newSubmissionId() {
-    const rnd = globalThis.crypto?.randomUUID?.().replace(/-/g, "") ??
-        `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
-    return `sub_${rnd.replace(/[^A-Za-z0-9_-]/g, "")}`;
-}
-function refuse(entry) {
-    const list = refusedAnswers();
-    list.push(entry);
-    writeJson(REFUSED_KEY, list.slice(-MAX_REFUSED));
-}
-/**
- * Hold one answer for replay. Idempotent in `submissionId`: holding the same
- * submission twice — a retry racing a flush, a double-click, two tabs — leaves
- * ONE entry, because the second copy would only ever be a duplicate event.
- * Returns what happened, so a surface can tell the learner the truth.
- */
-function enqueueAnswer(op) {
-    const list = readQueue();
-    if (list.some((r) => r.submissionId === op.submissionId)) {
-        return { accepted: false, reason: "duplicate", pending: list.length };
-    }
-    if (list.length >= MAX_HELD) {
-        // Refuse the NEW answer, never evict an older one: the older answer is work
-        // the learner already did, and it is not this module's to throw away.
-        refuse({ submissionId: op.submissionId, reason: "full", status: null, at: Date.now() });
-        return { accepted: false, reason: "full", pending: list.length };
-    }
-    const queuedAt = op.queuedAt ?? Date.now();
-    const seq = list.reduce((n, r) => Math.max(n, r.seq), 0) + 1;
-    const deviceAt = typeof op.deviceAt === "number" && Number.isFinite(op.deviceAt) ? op.deviceAt : queuedAt;
-    list.push({
-        url: op.url,
-        submissionId: op.submissionId,
-        deviceAt,
-        // The held body is the body that will be REPLAYED, so the token and the
-        // claim are written INTO it here rather than kept beside it. A held answer
-        // whose body lacks its submission id would replay as a fresh answer every
-        // time — the exact double-count this module exists to prevent.
-        body: { ...op.body, submissionId: op.submissionId, deviceAt },
-        seq,
-        tries: 0,
-        queuedAt,
-    });
-    writeJson(KEY, list);
-    return { accepted: true, pending: list.length };
-}
-/** A status a LATER attempt could still succeed on: the network, the server, or
- *  a capability that can be re-established. Everything else is a refusal the
- *  server would repeat, and holding it forever would be a lie about a queue
- *  that is draining. */
-function isRetryable(status) {
-    return status >= 500 || status === 408 || status === 425 || status === 429 || status === 401 || status === 403;
-}
-/**
- * POST one answer through the ONLINE route. On a connection failure, or on a
- * server failure a later attempt can fix, the answer is HELD instead of lost —
- * the same body, the same route, the same server-decided meaning. A refusal the
- * server would repeat is returned to the caller AND recorded, so nothing is
- * dropped in silence.
- */
-async function postAnswer(url, req) {
-    const deviceAt = typeof req.deviceAt === "number" && Number.isFinite(req.deviceAt) ? req.deviceAt : Date.now();
-    const body = { ...req.body, submissionId: req.submissionId, deviceAt };
-    let res;
-    try {
-        res = await wire(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-        });
-    }
-    catch {
-        enqueueAnswer({ url, submissionId: req.submissionId, body, deviceAt });
-        return { kind: "held", pending: queueLength() };
-    }
-    if (!res.ok && isRetryable(res.status)) {
-        enqueueAnswer({ url, submissionId: req.submissionId, body, deviceAt });
-        return { kind: "held", pending: queueLength() };
-    }
-    if (!res.ok) {
-        refuse({ submissionId: req.submissionId, reason: "rejected", status: res.status, at: Date.now() });
-        return { kind: "refused", status: res.status, res };
-    }
-    return { kind: "sent", res };
-}
-let flushing = null;
-/**
- * Drain the queue, oldest first. Single-flight: two callers (a reconnect event
- * and a page mount) share one flush rather than racing two copies of the same
- * answer — and the server would dedupe them anyway, which is the second line of
- * defence, not the first.
- */
-function flushQueue() {
-    flushing ?? (flushing = runFlush().finally(() => {
-        flushing = null;
-    }));
-    return flushing;
-}
-async function runFlush() {
-    const list = readQueue();
-    if (!list.length)
-        return { synced: 0, pending: 0, refused: refusedAnswers().length };
-    let synced = 0;
-    const stillHeld = [];
-    let stopped = false;
-    for (const op of list) {
-        if (stopped) {
-            stillHeld.push(op);
-            continue;
-        }
-        let res;
-        try {
-            // The SAME wire the original attempt used: a replay must go out the way
-            // the answer went out, or a build whose wire is local would replay into a
-            // server that never received the first attempt.
-            res = await wire(op.url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(op.body),
-            });
-        }
-        catch {
-            // Still unreachable. Keep this answer AND everything after it: recording a
-            // later answer first would put it earlier in the learner's timeline than
-            // the answer they actually gave before it.
-            stillHeld.push({ ...op, tries: op.tries + 1 });
-            stopped = true;
-            continue;
-        }
-        if (res.ok) {
-            synced += 1;
-            continue;
-        }
-        if (isRetryable(res.status)) {
-            stillHeld.push({ ...op, tries: op.tries + 1 });
-            stopped = true;
-            continue;
-        }
-        // The server will keep saying no (a question that is no longer staged, a
-        // malformed body). Record the refusal and move on rather than blocking the
-        // queue behind something that can never succeed.
-        refuse({ submissionId: op.submissionId, reason: "rejected", status: res.status, at: Date.now() });
-    }
-    writeJson(KEY, stillHeld);
-    return { synced, pending: stillHeld.length, refused: refusedAnswers().length };
-}
-/** Forget the refusal record once it has been shown. Held answers are NOT
- *  cleared here: only the server may retire those, by accepting them. */
-function clearRefused() {
-    writeJson(REFUSED_KEY, []);
-}
-/** Test/teardown seam: drop everything this device is holding. */
-function clearQueue() {
-    writeJson(KEY, []);
-    writeJson(REFUSED_KEY, []);
-}
-
-});
 __def("transfer.js", function (module, exports, require) {
 "use strict";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -45228,21 +41804,8 @@ const questions_1 = require("./questions");
  * the target's — so a concept with a narrow range can take a few draws to find
  * them. Bounded so a concept with no second surface costs a handful of draws,
  * not a loop, and exported so the behaviour can be asserted.
- *
- * RAISED FROM 6 TO 12 BY MEASUREMENT, when the per-subject depth layers landed
- * (lib/questions-{computing,chemistry,physics,biology}.ts). Those layers added
- * TABLE items — a results table, a set of recorded forces, a Punnett square —
- * and `readableOption` above excludes any prompt carrying a newline from an
- * option list, which is right: four three-line tables as choices is a wall of
- * text, not a question. The effect was that a share of the draws at each band
- * can no longer BECOME an option, and at 6 attempts the serve ran out of draws
- * before it found its three - the suite measured 99 inverse items where it had
- * insisted on more than 100, i.e. transfer coverage really did shrink. The
- * answer is to look further, not to loosen the rule: the exclusion is what keeps
- * "exactly one option is correct" true, and a deeper bank legitimately needs a
- * few more draws to put the same idea on a second surface.
  */
-exports.TRANSFER_SURFACE_ATTEMPTS = 12;
+exports.TRANSFER_SURFACE_ATTEMPTS = 6;
 /** Draws the inverse may look at while collecting its three distractors. */
 exports.INVERSE_DISTRACTOR_ATTEMPTS = 24;
 /** Linear-equation pattern: [coef]x ± k = n, optionally inside $...$. */
@@ -45566,9 +42129,6 @@ function canTransfer(conceptId) {
     subjects: require("./subjects.js"),
     evidence: require("./evidence.js"),
     replay: require("./replay.js"),
-    api: require("./api/client.js"),
-    apiTransport: require("./api/transport.js"),
-    operations: require("./operations.js"),
     ledger: require("./ledger.js"),
     learnerProfile: require("./learner-profile.js"),
     decision: require("./decision.js"),
@@ -45579,7 +42139,6 @@ function canTransfer(conceptId) {
     answer: require("./answer.js"),
     i18n: require("./i18n.js"),
     contentI18n: require("./content-i18n.js"),
-    claims: require("./claims.js"),
     deadline: require("./deadline.js"),
     hints: require("./hints.js"),
     socratic: require("./socratic.js"),
@@ -45593,7 +42152,7 @@ function canTransfer(conceptId) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 52 },
+      meta: { modules: 42 },
     };
   });
   return __req("__entry__.js");

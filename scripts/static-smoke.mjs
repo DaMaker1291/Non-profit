@@ -47,14 +47,17 @@ const MIRROR = path.join(ROOT, ".verify");
 // The engine is published under a CONTENT-HASHED name (see
 // scripts/build-static-app.mjs: a fixed URL let the browser's HTTP cache serve
 // yesterday's engine after a deploy, which no service-worker cache key could
-// fix). So the file to load is discovered, not hardcoded — and the discovery
-// itself is asserted below, because "the hashed file is what index.html names"
-// is the whole mechanism.
+// fix). The stylesheet is hashed for the same reason, and it was the one that
+// was still fixed — observed live — so it is asserted here beside the engine.
+// So the files to load are discovered, not hardcoded — and the discovery itself
+// is asserted below, because "the hashed file is what index.html names" is the
+// whole mechanism.
 const DOCS = path.join(ROOT, "docs");
 const engineFile = fs
   .readdirSync(DOCS)
   .find((f) => /^openmind\.engine\.[a-f0-9]{12}\.js$/.test(f));
 const appFile = fs.readdirSync(DOCS).find((f) => /^app\.[a-f0-9]{12}\.js$/.test(f));
+const cssFile = fs.readdirSync(DOCS).find((f) => /^app\.[a-f0-9]{12}\.css$/.test(f));
 const BUNDLE = path.join(ROOT, "docs", engineFile || "openmind.engine.js");
 
 let pass = 0;
@@ -394,16 +397,23 @@ async function main() {
   const shippedSw = fs.readFileSync(path.join(ROOT, "docs", "sw.js"), "utf8");
   ok(!!engineFile, `the engine is published under a hashed name (docs/${engineFile || "MISSING"})`);
   ok(!!appFile, `the app script is published under a hashed name (docs/${appFile || "MISSING"})`);
+  ok(!!cssFile, `the stylesheet is published under a hashed name (docs/${cssFile || "MISSING"})`);
   ok(shippedHtml.includes(`src="${engineFile}"`), "index.html names the hashed engine, so a new build is a new URL");
   ok(shippedHtml.includes(`src="${appFile}"`), "index.html names the hashed app script");
+  ok(shippedHtml.includes(`href="${cssFile}"`), "index.html names the hashed stylesheet");
   ok(!/src="(?:app|openmind\.engine)\.js"/.test(shippedHtml),
     "index.html references no fixed (unversioned) asset URL");
+  ok(!/href="app\.css"/.test(shippedHtml),
+    "index.html references no fixed stylesheet URL — the one that survived the fix and rendered the previous design on the first visit after a deploy");
   ok(!fs.existsSync(path.join(ROOT, "docs", "openmind.engine.js")),
     "the legacy fixed-name engine is gone, so nothing can fetch yesterday's bytes by that URL");
   ok(shippedSw.includes(`./${engineFile}`) && shippedSw.includes(`./${appFile}`),
     "the worker caches the hashed assets by their real names");
+  ok(shippedSw.includes(`./${cssFile}`), "the worker caches the hashed stylesheet by its real name");
   ok(!shippedSw.includes('"./app.js"') && !shippedSw.includes('"./openmind.engine.js"'),
-    "the worker caches no fixed-name asset");
+    "the worker caches no fixed-name script");
+  ok(!shippedSw.includes('"./app.css"'),
+    "the worker caches no fixed-name stylesheet — cache-first plus a fixed URL is how a returning learner kept the old design");
   // index.html is the only file whose URL never changes, so it is the only one
   // that must not be cache-first, or a returning learner never discovers the
   // new build at all.
@@ -505,7 +515,7 @@ async function main() {
   // shipped: a sw.js that was not regenerated after a change to the engine (or
   // the page, or the styles) fails the gate instead of silently serving
   // yesterday's grader from every returning learner's disk.
-  const SHELL = ["index.html", "app.css", engineFile || "openmind.engine.js", appFile || "app.js"];
+  const SHELL = ["index.html", engineFile || "openmind.engine.js", appFile || "app.js", cssFile || "app.css"];
   const hash = crypto.createHash("sha256");
   for (const f of SHELL) {
     hash.update(f);

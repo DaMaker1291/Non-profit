@@ -283,7 +283,7 @@ function singleFile(engineCode) {
     return html.replace(needle, () => `<${tag}>\n${body}\n</${tag}>`);
   };
   let html = shell;
-  html = swap('<link rel="stylesheet" href="app.css">', css, "style")(html);
+  html = swap(`<link rel="stylesheet" href="${HASHED.css}">`, css, "style")(html);
   // index.html was rewritten to the content-hashed names by emitHashedAssets
   // before singleFile reads it, so the needles are the hashed ones.
   html = swap(`<script src="${HASHED.engine}"></script>`, engineCode, "script")(html);
@@ -308,7 +308,7 @@ function singleFile(engineCode) {
 //
 // scripts/static-smoke.mjs recomputes the same hash from the same files and
 // fails if the shipped sw.js disagrees, so a stale worker cannot be committed.
-const SHELL_FILES = ["index.html", "app.css"];
+const SHELL_FILES = ["index.html"];
 
 /**
  * THE ASSETS THAT CARRY CONTENT ARE NAMED BY THEIR OWN HASH.
@@ -338,8 +338,22 @@ const SHELL_FILES = ["index.html", "app.css"];
  * `index.html` stays UNHASHED on purpose: it is the one file that has to be
  * re-read to discover the new names, so the worker serves it network-first and
  * falls back to the cache only when there is no network.
+ *
+ * THE STYLESHEET WAS THE HOLE, AND IT WAS OBSERVED, NOT FEARED. The paragraphs
+ * above were written for the engine and the app script; `app.css` kept a fixed
+ * URL AND stayed on the worker's cache-first list, which is the one combination
+ * this fix is supposed to make impossible. Measured on the published site
+ * minutes after a deploy that changed only styles: the first visit rendered the
+ * PREVIOUS stylesheet — the head read `--accent: #82a5ff` and `--serif:
+ * ui-serif, "Iowan Old Style", Georgia, "Times New Roman", serif`, two values
+ * that exist nowhere in the file being served — and a reload applied the new
+ * one. A returning learner therefore meets the old design on the visit that
+ * matters (the first one), while this comment claimed otherwise. `app.css` is
+ * content-hashed below for the same reason the other two are: a new build's
+ * stylesheet must be a URL no cache has ever held. The unhashed `app.css` stays
+ * on disk as the SOURCE.
  */
-const HASHED = { engine: null, app: null };
+const HASHED = { engine: null, app: null, css: null };
 
 function sha12(s) {
   return crypto.createHash("sha256").update(s).digest("hex").slice(0, 12);
@@ -349,22 +363,33 @@ function sha12(s) {
  *  index.html at them. Returns the names the worker must cache. */
 function emitHashedAssets(engineCode) {
   const appSrc = fs.readFileSync(path.join("docs", "app.js"), "utf8");
+  const cssSrc = fs.readFileSync(path.join("docs", "app.css"), "utf8");
   const engineName = `openmind.engine.${sha12(engineCode)}.js`;
   const appName = `app.${sha12(appSrc)}.js`;
+  const cssName = `app.${sha12(cssSrc)}.css`;
   HASHED.engine = engineName;
   HASHED.app = appName;
+  HASHED.css = cssName;
 
   // Sweep the PREVIOUS build's assets FIRST. Done before the write, because a
   // sweep afterwards deletes the file this build just emitted — and done at all
   // because an old engine left on disk under its hashed name can still be
   // fetched by an index.html sitting in someone's HTTP cache.
   for (const f of fs.readdirSync("docs")) {
-    if (/^openmind\.engine\.[a-f0-9]{12}\.js$/.test(f) || /^app\.[a-f0-9]{12}\.js$/.test(f) || f === "openmind.engine.js") {
+    if (
+      /^openmind\.engine\.[a-f0-9]{12}\.js$/.test(f) ||
+      /^app\.[a-f0-9]{12}\.js$/.test(f) ||
+      // `docs/app.css` is the SOURCE and cannot match this: twelve hex digits
+      // after `app.` is what a build emits, never what a human writes.
+      /^app\.[a-f0-9]{12}\.css$/.test(f) ||
+      f === "openmind.engine.js"
+    ) {
       fs.rmSync(path.join("docs", f), { force: true });
     }
   }
   fs.writeFileSync(path.join("docs", engineName), engineCode);
   fs.writeFileSync(path.join("docs", appName), appSrc);
+  fs.writeFileSync(path.join("docs", cssName), cssSrc);
 
   // The replacements are PATTERNS, not literals, because this build rewrites a
   // file that the PREVIOUS build already rewrote: docs/ is both the source and
@@ -375,15 +400,20 @@ function emitHashedAssets(engineCode) {
   const html = fs.readFileSync(path.join("docs", "index.html"), "utf8");
   const swapped = html
     .replace(/<script src="openmind\.engine(?:\.[a-f0-9]{12})?\.js"><\/script>/, `<script src="${engineName}"></script>`)
-    .replace(/<script src="app(?:\.[a-f0-9]{12})?\.js"><\/script>/, `<script src="${appName}"></script>`);
-  if (!swapped.includes(`src="${engineName}"`) || !swapped.includes(`src="${appName}"`)) {
-    throw new Error("index.html does not name the engine/app scripts — cannot version them");
+    .replace(/<script src="app(?:\.[a-f0-9]{12})?\.js"><\/script>/, `<script src="${appName}"></script>`)
+    .replace(/<link rel="stylesheet" href="app(?:\.[a-f0-9]{12})?\.css">/, `<link rel="stylesheet" href="${cssName}">`);
+  if (
+    !swapped.includes(`src="${engineName}"`) ||
+    !swapped.includes(`src="${appName}"`) ||
+    !swapped.includes(`href="${cssName}"`)
+  ) {
+    throw new Error("index.html does not name the engine/app scripts/styles — cannot version them");
   }
-  if (/src="(?:app|openmind\.engine)\.js"/.test(swapped)) {
+  if (/src="(?:app|openmind\.engine)\.js"/.test(swapped) || /href="app\.css"/.test(swapped)) {
     throw new Error("index.html still references a fixed (unversioned) asset URL");
   }
   fs.writeFileSync(path.join("docs", "index.html"), swapped);
-  return [engineName, appName];
+  return [engineName, appName, cssName];
 }
 
 // ── NO TIMESTAMP IN THE ARTIFACT ─────────────────────────────────────────────
@@ -410,7 +440,10 @@ const SHELL_URLS_LAZY = () => ["./", ...shellFileList().map((f) => `./${f}`)];
  *  content-hashed assets as this build emitted them. Read lazily, because the
  *  hashed names do not exist until emitHashedAssets has run. */
 function shellFileList() {
-  return [...SHELL_FILES, ...(HASHED.engine ? [HASHED.engine, HASHED.app] : ["app.js", "openmind.engine.js"])];
+  return [
+    ...SHELL_FILES,
+    ...(HASHED.engine ? [HASHED.engine, HASHED.app, HASHED.css] : ["openmind.engine.js", "app.js", "app.css"]),
+  ];
 }
 
 function shellVersion() {
