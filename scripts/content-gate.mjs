@@ -102,14 +102,19 @@ const SPECTRUM = new Map();
 function bandsOf(conceptId) {
   if (SPECTRUM.has(conceptId)) return SPECTRUM.get(conceptId);
   const bands = new Set();
+  // The draws themselves are kept as well as the bands they fall in: assertion
+  // 6 needs to know WHERE inside a band the items sit, and re-drawing for that
+  //  would be a second measurement of the same thing that could disagree.
+  const draws = [];
   let max = 0;
   for (let i = 0; i < SPECTRUM_DRAWS; i++) {
     const q = Q.generateQuestion(conceptId, `gate:${conceptId}:n${i}`);
     if (!q) continue;
     bands.add(Q.difficultyBandFor(q.difficulty));
+    draws.push(q.difficulty);
     if (q.difficulty > max) max = q.difficulty;
   }
-  const out = { bands, max };
+  const out = { bands, max, draws };
   SPECTRUM.set(conceptId, out);
   return out;
 }
@@ -225,6 +230,43 @@ console.log("▸ The exemption is a named decision, not a silent omission");
     "every exempt concept is a maths concept of the bank (the exemption set is arithmetic, not arbitrary)",
   );
   note.push(`exempt and reported: ${shortIds.join(", ") || "none"} — below the data band on purpose (primary arithmetic), so the gap is named here rather than closed with an item that would overstate the course`);
+}
+
+console.log("▸ Band membership is not depth: no concept is stuck at band 4's floor");
+{
+  // 6. THE REFINEMENT THAT FOLLOWED THE BAND FIX, and the reason this assertion
+  //    exists. Assertion 1 asks whether an item lands in the target's BAND, and
+  //    `generateQuestionNear` prefers any in-band item over a nearer out-of-band
+  //    one — so a concept whose band-4 draws all sit at 0.60 answers a target of
+  //    0.77 with a 0.60 item, and every count says the course was served
+  //    correctly. Measured, that was thirteen concepts (nine of them maths):
+  //    `inequalities` and `mixture-problems` had NO band-4 draw at all, jumping
+  //    from ~0.55 straight to 0.85, and the rest produced 0.60–0.65. A band is
+  //    0.20 wide, so being "in the band" is not the same as being at the depth
+  //    the band's name promises.
+  //
+  //    The rule: every concept a course can serve must have at least one item in
+  //    the UPPER half of band 4 (0.65 and above, below 0.80). Concepts are
+  //    exempted exactly as in assertion 1, and for the same reason.
+  const UPPER4 = 0.65;
+  const empty = [];
+  let measured = 0;
+  for (const c of genome.CONCEPTS) {
+    if (!Q.hasGenerator(c.id)) continue;
+    if (EXEMPT.includes(c.id)) continue;
+    const { draws } = bandsOf(c.id);
+    if (!draws.length) continue;
+    measured++;
+    if (!draws.some((d) => d >= UPPER4 && d < 0.8)) empty.push(c.id);
+  }
+  ok(
+    empty.length === 0,
+    `every non-exempt concept can produce an item in the upper half of band 4 (${measured} concepts, ${SPECTRUM_DRAWS} draws each)`,
+    empty.slice(0, 8).join(", "),
+  );
+  if (empty.length) {
+    note.push(`stuck at band 4's floor: ${empty.join(", ")} — these answer a band-4 target with an item at 0.60, which reads as correct in every band-level count`);
+  }
 }
 
 console.log("▸ The declared demand ladder is producible by the bank");

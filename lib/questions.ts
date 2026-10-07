@@ -29,10 +29,10 @@ import { BIOLOGY_DEEP } from "./questions-biology";
 // the budget was raised from 40 to 400 draws to prove it. So the fix is
 // content, composed as ONE ADDITIONAL draw exactly like the data and subject
 // layers below.
-import { MID_MATHS } from "./questions-mid-maths";
-import { MID_COMPUTING } from "./questions-mid-computing";
+import { MID_MATHS, MID_UPPER_MATHS } from "./questions-mid-maths";
+import { MID_COMPUTING, MID_UPPER_COMPUTING } from "./questions-mid-computing";
 import { MID_PHYSICS } from "./questions-mid-physics";
-import { MID_CHEMISTRY } from "./questions-mid-chemistry";
+import { MID_CHEMISTRY, MID_UPPER_CHEMISTRY } from "./questions-mid-chemistry";
 import { MID_BIOLOGY } from "./questions-mid-biology";
 import { SENIOR_GENS } from "./questions-senior";
 // The numeric layer (§6): the concepts whose questions could only ever be four
@@ -2493,9 +2493,33 @@ const MID_GENS: Record<string, DeepGen> = {
   ...MID_BIOLOGY,
 };
 
+/**
+ * THE UPPER HALF OF BAND 4 (0.66–0.80), composed INNERMOST.
+ *
+ * `withDepth` consumes a draw from the shared RNG and hands the new family half
+ * of everything beneath it, so a layer added anywhere ABOVE the deep families
+ * halves their share of the draws. Thirteen concepts had band-4 draws at nothing
+ * but 0.60–0.65 (`inequalities` and `mixture-problems` had none at all), and
+ * filling that hole from the position `MID_GENS` sits in cost `circle-area-arc`
+ * its ceiling — 0.92 down to 0.788 — with `gate:ceiling` holding it at 0.88.
+ * Composed onto the BASE family instead, the new layer takes its share from the
+ * one family the ceiling does not depend on, and every deep family keeps exactly
+ * the share it had: a gap-filler that lowers a ceiling has made the bank worse,
+ * and these thirteen needed the middle of the ladder filled, not the top lowered.
+ */
+const MID_UPPER: Record<string, DeepGen> = {
+  ...MID_UPPER_MATHS,
+  ...MID_UPPER_COMPUTING,
+  ...MID_UPPER_CHEMISTRY,
+};
+
 const ALL_GENS: Record<string, RawGen> = Object.fromEntries(
   Object.entries(BASE_GENS).map(([id, base]) => {
     let gen = base;
+    // THE INNERMOST LAYER — the upper half of band 4 for the thirteen concepts
+    // that had nothing there. Deliberately FIRST, so it takes its share from
+    // `base` rather than halving the deep families above it (see MID_UPPER).
+    if (MID_UPPER[id]) gen = withDepth(gen, MID_UPPER[id]);
     // The senior and deep layers are composed here so a concept carries a
     // harder draw family as soon as the bank has one. Composing them is what
     // makes a generator able to move at all: a base family alone is often one

@@ -11,7 +11,7 @@ npm run verify          # compiles the .verify mirror this reads
 npm run content-audit -- --json --report
 ```
 
-**At:** 2026-10-07T20:59:58.997Z
+**At:** 2026-10-07T21:44:00.336Z
 **Search budget:** 40 draws per serve (production is `PRACTICE_DRAW_ATTEMPTS`)
 **Serves per concept:** 5
 
@@ -193,101 +193,101 @@ reaches the target · `A/B/C` shortfall causes · `recall` share of served items
 | in-icse | Class 10 | chemistry | 0.6 | 0.6 | 0.82 | 0.926 | 0.878 | 16/16 | 0/0/0 | 0% |
 | in-icse | Class 10 | biology | 0.6 | 0.6 | 0.82 | 0.931 | 0.885 | 16/16 | 0/0/0 | 0% |
 | in-icse | Class 10 | computing | 0.6 | 0.6 | 0.82 | 0.951 | 0.887 | 18/18 | 0/0/0 | 0% |
-| in-cbse | Class 10 | maths | 0.55 | 0.55 | 0.77 | 0.811 | 0.679 | 47/55 | 0/8/0 | 4% |
+| in-cbse | Class 10 | maths | 0.55 | 0.55 | 0.77 | 0.811 | 0.692 | 47/55 | 0/8/0 | 4% |
 | in-cbse | Class 10 | physics | 0.55 | 0.55 | 0.77 | 0.922 | 0.741 | 18/18 | 0/0/0 | 0% |
-| in-cbse | Class 10 | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.718 | 15/15 | 0/0/0 | 0% |
+| in-cbse | Class 10 | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.726 | 15/15 | 0/0/0 | 0% |
 | in-cbse | Class 10 | biology | 0.55 | 0.55 | 0.77 | 0.931 | 0.74 | 16/16 | 0/0/0 | 0% |
-| in-cbse | Class 10 | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.705 | 18/18 | 0/0/0 | 0% |
-| pk-matric | Class 9–10 (Matric) | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.679 | 48/56 | 0/8/0 | 4% |
+| in-cbse | Class 10 | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.729 | 18/18 | 0/0/0 | 0% |
+| pk-matric | Class 9–10 (Matric) | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.692 | 48/56 | 0/8/0 | 4% |
 | pk-matric | Class 9–10 (Matric) | physics | 0.55 | 0.55 | 0.77 | 0.922 | 0.741 | 18/18 | 0/0/0 | 0% |
-| pk-matric | Class 9–10 (Matric) | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.722 | 15/15 | 0/0/0 | 0% |
+| pk-matric | Class 9–10 (Matric) | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.724 | 15/15 | 0/0/0 | 0% |
 | pk-matric | Class 9–10 (Matric) | biology | 0.55 | 0.55 | 0.77 | 0.931 | 0.728 | 16/16 | 0/0/0 | 0% |
-| pk-matric | Class 9–10 (Matric) | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.714 | 18/18 | 0/0/0 | 0% |
-| bd-ssc | Class 9–10 (SSC) | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.678 | 48/56 | 0/8/0 | 4% |
+| pk-matric | Class 9–10 (Matric) | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.735 | 18/18 | 0/0/0 | 0% |
+| bd-ssc | Class 9–10 (SSC) | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.692 | 48/56 | 0/8/0 | 4% |
 | bd-ssc | Class 9–10 (SSC) | physics | 0.55 | 0.55 | 0.77 | 0.922 | 0.742 | 18/18 | 0/0/0 | 0% |
-| bd-ssc | Class 9–10 (SSC) | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.735 | 15/15 | 0/0/0 | 0% |
+| bd-ssc | Class 9–10 (SSC) | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.734 | 15/15 | 0/0/0 | 0% |
 | bd-ssc | Class 9–10 (SSC) | biology | 0.55 | 0.55 | 0.77 | 0.931 | 0.74 | 16/16 | 0/0/0 | 0% |
-| bd-ssc | Class 9–10 (SSC) | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.719 | 18/18 | 0/0/0 | 0% |
-| ke-kcse | Form 3 | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.677 | 48/56 | 0/8/0 | 4% |
+| bd-ssc | Class 9–10 (SSC) | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.734 | 18/18 | 0/0/0 | 0% |
+| ke-kcse | Form 3 | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.69 | 48/56 | 0/8/0 | 4% |
 | ke-kcse | Form 3 | physics | 0.55 | 0.55 | 0.77 | 0.922 | 0.736 | 18/18 | 0/0/0 | 0% |
-| ke-kcse | Form 3 | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.738 | 15/15 | 0/0/0 | 0% |
+| ke-kcse | Form 3 | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.745 | 15/15 | 0/0/0 | 0% |
 | ke-kcse | Form 3 | biology | 0.55 | 0.55 | 0.77 | 0.931 | 0.736 | 16/16 | 0/0/0 | 0% |
-| ke-kcse | Form 3 | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.71 | 18/18 | 0/0/0 | 0% |
-| any-independent | Core | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.679 | 48/56 | 0/8/0 | 4% |
+| ke-kcse | Form 3 | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.728 | 18/18 | 0/0/0 | 0% |
+| any-independent | Core | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.692 | 48/56 | 0/8/0 | 4% |
 | any-independent | Core | physics | 0.55 | 0.55 | 0.77 | 0.922 | 0.734 | 18/18 | 0/0/0 | 0% |
-| any-independent | Core | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.74 | 15/15 | 0/0/0 | 0% |
+| any-independent | Core | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.749 | 15/15 | 0/0/0 | 0% |
 | any-independent | Core | biology | 0.55 | 0.55 | 0.77 | 0.931 | 0.731 | 16/16 | 0/0/0 | 0% |
-| any-independent | Core | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.714 | 18/18 | 0/0/0 | 0% |
-| au-acara | Years 7–10 | maths | 0.5 | 0.5 | 0.72 | 0.813 | 0.666 | 48/56 | 0/8/0 | 4% |
+| any-independent | Core | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.731 | 18/18 | 0/0/0 | 0% |
+| au-acara | Years 7–10 | maths | 0.5 | 0.5 | 0.72 | 0.813 | 0.676 | 48/56 | 0/8/0 | 4% |
 | au-acara | Years 7–10 | physics | 0.5 | 0.5 | 0.72 | 0.922 | 0.73 | 18/18 | 0/0/0 | 0% |
-| au-acara | Years 7–10 | chemistry | 0.5 | 0.5 | 0.72 | 0.923 | 0.716 | 15/15 | 0/0/0 | 0% |
+| au-acara | Years 7–10 | chemistry | 0.5 | 0.5 | 0.72 | 0.923 | 0.72 | 15/15 | 0/0/0 | 0% |
 | au-acara | Years 7–10 | biology | 0.5 | 0.5 | 0.72 | 0.931 | 0.732 | 16/16 | 0/0/0 | 0% |
-| au-acara | Years 7–10 | computing | 0.5 | 0.5 | 0.72 | 0.951 | 0.697 | 18/18 | 0/0/0 | 0% |
-| uk-gcse | Foundation tier | maths | 0.45 | 0.45 | 0.67 | 0.811 | 0.636 | 47/55 | 0/8/0 | 4% |
+| au-acara | Years 7–10 | computing | 0.5 | 0.5 | 0.72 | 0.951 | 0.716 | 18/18 | 0/0/0 | 0% |
+| uk-gcse | Foundation tier | maths | 0.45 | 0.45 | 0.67 | 0.811 | 0.641 | 47/55 | 0/8/0 | 4% |
 | uk-gcse | Foundation tier | physics | 0.45 | 0.45 | 0.67 | 0.922 | 0.663 | 18/18 | 0/0/0 | 0% |
-| uk-gcse | Foundation tier | chemistry | 0.45 | 0.45 | 0.67 | 0.923 | 0.656 | 15/15 | 0/0/0 | 0% |
+| uk-gcse | Foundation tier | chemistry | 0.45 | 0.45 | 0.67 | 0.923 | 0.662 | 15/15 | 0/0/0 | 0% |
 | uk-gcse | Foundation tier | biology | 0.45 | 0.45 | 0.67 | 0.931 | 0.667 | 16/16 | 0/0/0 | 0% |
-| uk-gcse | Foundation tier | computing | 0.45 | 0.45 | 0.67 | 0.951 | 0.662 | 18/18 | 0/0/0 | 0% |
-| int-ib | MYP | maths | 0.45 | 0.45 | 0.67 | 0.776 | 0.623 | 34/42 | 0/8/0 | 5% |
+| uk-gcse | Foundation tier | computing | 0.45 | 0.45 | 0.67 | 0.951 | 0.673 | 18/18 | 0/0/0 | 0% |
+| int-ib | MYP | maths | 0.45 | 0.45 | 0.67 | 0.776 | 0.629 | 34/42 | 0/8/0 | 5% |
 | int-ib | MYP | physics | 0.45 | 0.45 | 0.67 | 0.924 | 0.661 | 14/14 | 0/0/0 | 0% |
 | int-ib | MYP | chemistry | 0.45 | 0.45 | 0.67 | 0.911 | 0.665 | 11/11 | 0/0/0 | 0% |
 | int-ib | MYP | biology | 0.45 | 0.45 | 0.67 | 0.924 | 0.656 | 13/13 | 0/0/0 | 0% |
-| int-ib | MYP | computing | 0.45 | 0.45 | 0.67 | 0.954 | 0.671 | 14/14 | 0/0/0 | 0% |
-| ie-junior | Junior Cycle | maths | 0.45 | 0.45 | 0.67 | 0.776 | 0.624 | 34/42 | 0/8/0 | 5% |
+| int-ib | MYP | computing | 0.45 | 0.45 | 0.67 | 0.954 | 0.681 | 14/14 | 0/0/0 | 0% |
+| ie-junior | Junior Cycle | maths | 0.45 | 0.45 | 0.67 | 0.776 | 0.63 | 34/42 | 0/8/0 | 5% |
 | ie-junior | Junior Cycle | physics | 0.45 | 0.45 | 0.67 | 0.924 | 0.667 | 14/14 | 0/0/0 | 0% |
 | ie-junior | Junior Cycle | chemistry | 0.45 | 0.45 | 0.67 | 0.911 | 0.672 | 11/11 | 0/0/0 | 0% |
 | ie-junior | Junior Cycle | biology | 0.45 | 0.45 | 0.67 | 0.924 | 0.664 | 13/13 | 0/0/0 | 0% |
-| ie-junior | Junior Cycle | computing | 0.45 | 0.45 | 0.67 | 0.954 | 0.664 | 14/14 | 0/0/0 | 0% |
-| in-icse | Class 8–9 | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.612 | 34/42 | 0/8/0 | 5% |
+| ie-junior | Junior Cycle | computing | 0.45 | 0.45 | 0.67 | 0.954 | 0.674 | 14/14 | 0/0/0 | 0% |
+| in-icse | Class 8–9 | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.614 | 34/42 | 0/8/0 | 5% |
 | in-icse | Class 8–9 | physics | 0.42 | 0.42 | 0.64 | 0.924 | 0.645 | 14/14 | 0/0/0 | 0% |
 | in-icse | Class 8–9 | chemistry | 0.42 | 0.42 | 0.64 | 0.911 | 0.638 | 11/11 | 0/0/0 | 0% |
 | in-icse | Class 8–9 | biology | 0.42 | 0.42 | 0.64 | 0.924 | 0.65 | 13/13 | 0/0/0 | 0% |
-| in-icse | Class 8–9 | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.643 | 14/14 | 0/0/0 | 0% |
-| ng-waec | JSS 1–3 (BECE) | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.611 | 34/42 | 0/8/0 | 5% |
+| in-icse | Class 8–9 | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.645 | 14/14 | 0/0/0 | 0% |
+| ng-waec | JSS 1–3 (BECE) | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.612 | 34/42 | 0/8/0 | 5% |
 | ng-waec | JSS 1–3 (BECE) | physics | 0.42 | 0.42 | 0.64 | 0.924 | 0.632 | 14/14 | 0/0/0 | 0% |
 | ng-waec | JSS 1–3 (BECE) | chemistry | 0.42 | 0.42 | 0.64 | 0.911 | 0.641 | 11/11 | 0/0/0 | 0% |
 | ng-waec | JSS 1–3 (BECE) | biology | 0.42 | 0.42 | 0.64 | 0.924 | 0.644 | 13/13 | 0/0/0 | 0% |
-| ng-waec | JSS 1–3 (BECE) | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.645 | 14/14 | 0/0/0 | 0% |
-| gh-wassce | JHS 1–3 (BECE) | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.613 | 34/42 | 0/8/0 | 5% |
+| ng-waec | JSS 1–3 (BECE) | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.65 | 14/14 | 0/0/0 | 0% |
+| gh-wassce | JHS 1–3 (BECE) | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.615 | 34/42 | 0/8/0 | 5% |
 | gh-wassce | JHS 1–3 (BECE) | physics | 0.42 | 0.42 | 0.64 | 0.924 | 0.632 | 14/14 | 0/0/0 | 0% |
 | gh-wassce | JHS 1–3 (BECE) | chemistry | 0.42 | 0.42 | 0.64 | 0.911 | 0.646 | 11/11 | 0/0/0 | 0% |
 | gh-wassce | JHS 1–3 (BECE) | biology | 0.42 | 0.42 | 0.64 | 0.924 | 0.653 | 13/13 | 0/0/0 | 0% |
-| gh-wassce | JHS 1–3 (BECE) | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.635 | 14/14 | 0/0/0 | 0% |
-| ph-deped | Junior High | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.611 | 34/42 | 0/8/0 | 5% |
+| gh-wassce | JHS 1–3 (BECE) | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.642 | 14/14 | 0/0/0 | 0% |
+| ph-deped | Junior High | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.613 | 34/42 | 0/8/0 | 5% |
 | ph-deped | Junior High | physics | 0.42 | 0.42 | 0.64 | 0.924 | 0.623 | 14/14 | 0/0/0 | 0% |
 | ph-deped | Junior High | chemistry | 0.42 | 0.42 | 0.64 | 0.911 | 0.657 | 11/11 | 0/0/0 | 0% |
 | ph-deped | Junior High | biology | 0.42 | 0.42 | 0.64 | 0.924 | 0.652 | 13/13 | 0/0/0 | 0% |
-| ph-deped | Junior High | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.645 | 14/14 | 0/0/0 | 0% |
-| id-merdeka | SMP 7–9 | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.61 | 34/42 | 0/8/0 | 5% |
+| ph-deped | Junior High | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.649 | 14/14 | 0/0/0 | 0% |
+| id-merdeka | SMP 7–9 | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.612 | 34/42 | 0/8/0 | 5% |
 | id-merdeka | SMP 7–9 | physics | 0.42 | 0.42 | 0.64 | 0.924 | 0.643 | 14/14 | 0/0/0 | 0% |
 | id-merdeka | SMP 7–9 | chemistry | 0.42 | 0.42 | 0.64 | 0.911 | 0.632 | 11/11 | 0/0/0 | 0% |
 | id-merdeka | SMP 7–9 | biology | 0.42 | 0.42 | 0.64 | 0.924 | 0.655 | 13/13 | 0/0/0 | 0% |
-| id-merdeka | SMP 7–9 | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.64 | 14/14 | 0/0/0 | 0% |
-| br-enem | Fundamental II | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.613 | 34/42 | 0/8/0 | 5% |
+| id-merdeka | SMP 7–9 | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.647 | 14/14 | 0/0/0 | 0% |
+| br-enem | Fundamental II | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.615 | 34/42 | 0/8/0 | 5% |
 | br-enem | Fundamental II | physics | 0.42 | 0.42 | 0.64 | 0.924 | 0.64 | 14/14 | 0/0/0 | 0% |
 | br-enem | Fundamental II | chemistry | 0.42 | 0.42 | 0.64 | 0.911 | 0.645 | 11/11 | 0/0/0 | 0% |
 | br-enem | Fundamental II | biology | 0.42 | 0.42 | 0.64 | 0.924 | 0.636 | 13/13 | 0/0/0 | 0% |
-| br-enem | Fundamental II | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.65 | 14/14 | 0/0/0 | 0% |
-| mx-sep | Secundaria | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.613 | 34/42 | 0/8/0 | 5% |
+| br-enem | Fundamental II | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.654 | 14/14 | 0/0/0 | 0% |
+| mx-sep | Secundaria | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.615 | 34/42 | 0/8/0 | 5% |
 | mx-sep | Secundaria | physics | 0.42 | 0.42 | 0.64 | 0.924 | 0.642 | 14/14 | 0/0/0 | 0% |
 | mx-sep | Secundaria | chemistry | 0.42 | 0.42 | 0.64 | 0.911 | 0.654 | 11/11 | 0/0/0 | 0% |
 | mx-sep | Secundaria | biology | 0.42 | 0.42 | 0.64 | 0.924 | 0.649 | 13/13 | 0/0/0 | 0% |
-| mx-sep | Secundaria | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.648 | 14/14 | 0/0/0 | 0% |
+| mx-sep | Secundaria | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.654 | 14/14 | 0/0/0 | 0% |
 | int-igcse | Core | maths | 0.4 | 0.4 | 0.62 | 0.776 | 0.605 | 34/42 | 0/8/0 | 5% |
 | int-igcse | Core | physics | 0.4 | 0.4 | 0.62 | 0.924 | 0.637 | 14/14 | 0/0/0 | 0% |
 | int-igcse | Core | chemistry | 0.4 | 0.4 | 0.62 | 0.911 | 0.638 | 11/11 | 0/0/0 | 0% |
 | int-igcse | Core | biology | 0.4 | 0.4 | 0.62 | 0.924 | 0.639 | 13/13 | 0/0/0 | 0% |
 | int-igcse | Core | computing | 0.4 | 0.4 | 0.62 | 0.954 | 0.642 | 14/14 | 0/0/0 | 0% |
-| us-core | Grades 6–8 | maths | 0.4 | 0.4 | 0.62 | 0.776 | 0.604 | 34/42 | 0/8/0 | 5% |
+| us-core | Grades 6–8 | maths | 0.4 | 0.4 | 0.62 | 0.776 | 0.605 | 34/42 | 0/8/0 | 5% |
 | us-core | Grades 6–8 | physics | 0.4 | 0.4 | 0.62 | 0.924 | 0.625 | 14/14 | 0/0/0 | 0% |
 | us-core | Grades 6–8 | chemistry | 0.4 | 0.4 | 0.62 | 0.911 | 0.65 | 11/11 | 0/0/0 | 0% |
 | us-core | Grades 6–8 | biology | 0.4 | 0.4 | 0.62 | 0.924 | 0.656 | 13/13 | 0/0/0 | 0% |
-| us-core | Grades 6–8 | computing | 0.4 | 0.4 | 0.62 | 0.954 | 0.645 | 14/14 | 0/0/0 | 0% |
-| ca-provincial | Grades 7–8 | maths | 0.4 | 0.4 | 0.62 | 0.776 | 0.608 | 34/42 | 0/8/0 | 5% |
+| us-core | Grades 6–8 | computing | 0.4 | 0.4 | 0.62 | 0.954 | 0.648 | 14/14 | 0/0/0 | 0% |
+| ca-provincial | Grades 7–8 | maths | 0.4 | 0.4 | 0.62 | 0.776 | 0.609 | 34/42 | 0/8/0 | 5% |
 | ca-provincial | Grades 7–8 | physics | 0.4 | 0.4 | 0.62 | 0.924 | 0.64 | 14/14 | 0/0/0 | 0% |
 | ca-provincial | Grades 7–8 | chemistry | 0.4 | 0.4 | 0.62 | 0.911 | 0.65 | 11/11 | 0/0/0 | 0% |
 | ca-provincial | Grades 7–8 | biology | 0.4 | 0.4 | 0.62 | 0.924 | 0.642 | 13/13 | 0/0/0 | 0% |
-| ca-provincial | Grades 7–8 | computing | 0.4 | 0.4 | 0.62 | 0.954 | 0.649 | 14/14 | 0/0/0 | 0% |
+| ca-provincial | Grades 7–8 | computing | 0.4 | 0.4 | 0.62 | 0.954 | 0.651 | 14/14 | 0/0/0 | 0% |
 | za-nsc | Grades 8–9 | maths | 0.4 | 0.4 | 0.62 | 0.776 | 0.602 | 34/42 | 0/8/0 | 5% |
 | za-nsc | Grades 8–9 | physics | 0.4 | 0.4 | 0.62 | 0.924 | 0.638 | 14/14 | 0/0/0 | 0% |
 | za-nsc | Grades 8–9 | chemistry | 0.4 | 0.4 | 0.62 | 0.911 | 0.642 | 11/11 | 0/0/0 | 0% |
@@ -297,18 +297,18 @@ reaches the target · `A/B/C` shortfall causes · `recall` share of served items
 | in-cbse | Class 8–9 | physics | 0.4 | 0.4 | 0.62 | 0.924 | 0.626 | 14/14 | 0/0/0 | 0% |
 | in-cbse | Class 8–9 | chemistry | 0.4 | 0.4 | 0.62 | 0.911 | 0.644 | 11/11 | 0/0/0 | 0% |
 | in-cbse | Class 8–9 | biology | 0.4 | 0.4 | 0.62 | 0.924 | 0.645 | 13/13 | 0/0/0 | 0% |
-| in-cbse | Class 8–9 | computing | 0.4 | 0.4 | 0.62 | 0.954 | 0.636 | 14/14 | 0/0/0 | 0% |
+| in-cbse | Class 8–9 | computing | 0.4 | 0.4 | 0.62 | 0.954 | 0.64 | 14/14 | 0/0/0 | 0% |
 | bd-ssc | Class 6–8 (JSC) | maths | 0.4 | 0.4 | 0.62 | 0.776 | 0.604 | 34/42 | 0/8/0 | 5% |
 | bd-ssc | Class 6–8 (JSC) | physics | 0.4 | 0.4 | 0.62 | 0.924 | 0.634 | 14/14 | 0/0/0 | 0% |
 | bd-ssc | Class 6–8 (JSC) | chemistry | 0.4 | 0.4 | 0.62 | 0.911 | 0.648 | 11/11 | 0/0/0 | 0% |
 | bd-ssc | Class 6–8 (JSC) | biology | 0.4 | 0.4 | 0.62 | 0.924 | 0.646 | 13/13 | 0/0/0 | 0% |
-| bd-ssc | Class 6–8 (JSC) | computing | 0.4 | 0.4 | 0.62 | 0.954 | 0.641 | 14/14 | 0/0/0 | 0% |
+| bd-ssc | Class 6–8 (JSC) | computing | 0.4 | 0.4 | 0.62 | 0.954 | 0.645 | 14/14 | 0/0/0 | 0% |
 | ke-kcse | Grade 7–9 | maths | 0.4 | 0.4 | 0.62 | 0.776 | 0.61 | 34/42 | 0/8/0 | 5% |
 | ke-kcse | Grade 7–9 | physics | 0.4 | 0.4 | 0.62 | 0.924 | 0.643 | 14/14 | 0/0/0 | 0% |
 | ke-kcse | Grade 7–9 | chemistry | 0.4 | 0.4 | 0.62 | 0.911 | 0.645 | 11/11 | 0/0/0 | 0% |
 | ke-kcse | Grade 7–9 | biology | 0.4 | 0.4 | 0.62 | 0.924 | 0.648 | 13/13 | 0/0/0 | 0% |
 | ke-kcse | Grade 7–9 | computing | 0.4 | 0.4 | 0.62 | 0.954 | 0.639 | 14/14 | 0/0/0 | 0% |
-| tz-csee | Form 1–2 | maths | 0.4 | 0.4 | 0.62 | 0.776 | 0.607 | 34/42 | 0/8/0 | 5% |
+| tz-csee | Form 1–2 | maths | 0.4 | 0.4 | 0.62 | 0.776 | 0.608 | 34/42 | 0/8/0 | 5% |
 | tz-csee | Form 1–2 | physics | 0.4 | 0.4 | 0.62 | 0.924 | 0.636 | 14/14 | 0/0/0 | 0% |
 | tz-csee | Form 1–2 | chemistry | 0.4 | 0.4 | 0.62 | 0.911 | 0.649 | 11/11 | 0/0/0 | 0% |
 | tz-csee | Form 1–2 | biology | 0.4 | 0.4 | 0.62 | 0.924 | 0.646 | 13/13 | 0/0/0 | 0% |
@@ -461,7 +461,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | ca-provincial · Grades 7–8 · physics | 14 | 14 | application, multi_step, data_interpretation | choice, numeric | none |
 | ca-provincial · Grades 7–8 · chemistry | 11 | 11 | multi_step, data_interpretation | choice, numeric | none |
 | ca-provincial · Grades 7–8 · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
-| ca-provincial · Grades 7–8 · computing | 14 | 14 | application, multi_step | choice, numeric | none |
+| ca-provincial · Grades 7–8 · computing | 14 | 14 | multi_step | choice, numeric | none |
 | ca-provincial · Grades 9–12 · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
 | ca-provincial · Grades 9–12 · physics | 18 | 18 | data_interpretation | choice | none |
 | ca-provincial · Grades 9–12 · chemistry | 15 | 15 | data_interpretation | choice | none |
@@ -546,7 +546,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | bd-ssc · Class 6–8 (JSC) · physics | 14 | 14 | application, multi_step, data_interpretation | choice, numeric | none |
 | bd-ssc · Class 6–8 (JSC) · chemistry | 11 | 11 | multi_step, data_interpretation | choice, numeric | none |
 | bd-ssc · Class 6–8 (JSC) · biology | 13 | 13 | multi_step, data_interpretation | choice, numeric | none |
-| bd-ssc · Class 6–8 (JSC) · computing | 14 | 14 | application, multi_step | choice, numeric | none |
+| bd-ssc · Class 6–8 (JSC) · computing | 14 | 14 | multi_step | choice, numeric | none |
 | bd-ssc · Class 9–10 (SSC) · maths | 56 | 56 | recall, application, multi_step, data_interpretation | numeric, choice | none |
 | bd-ssc · Class 9–10 (SSC) · physics | 18 | 18 | multi_step, data_interpretation | choice, numeric | none |
 | bd-ssc · Class 9–10 (SSC) · chemistry | 15 | 15 | multi_step, data_interpretation | choice, numeric | none |

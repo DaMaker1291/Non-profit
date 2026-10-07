@@ -108,6 +108,27 @@ function mid4(r: DeepRng): number {
   return 0.63 + r.next() * 0.14;
 }
 
+/** Band 4's UPPER half (0.66–0.79) — three linked steps placed near the TOP of
+ *  the band rather than at its floor.
+ *
+ *  Why `mid4` was not enough, measured rather than assumed. `mid4` fixed the
+ *  concepts that had NO band-4 item at all. A second audit pass — "what is the
+ *  best item IN the band the course asked for?" — found thirteen more whose
+ *  band-4 draws all sat at 0.60–0.65: `inequalities` and `mixture-problems` had
+ *  none at all, jumping from ~0.55 straight to 0.85, while `quadratics`,
+ *  `pythagoras` and `trig-ratios` managed a handful at 0.60. A course whose
+ *  climbed target lands at 0.77 (declared 0.55) is therefore served a 0.60
+ *  item — in the right BAND, at the wrong depth, and the band-preference in
+ *  `generateQuestionNear` keeps it there because an in-band item beats any
+ *  nearer out-of-band one. This raises the floor of the band those concepts can
+ *  reach. */
+function upper4(r: DeepRng): number {
+  return 0.66 + r.next() * 0.13;
+}
+
+/** A signed term as it is written in a bracket: `+ 4` or `− 4`. */
+const plus = (n: number): string => (n < 0 ? `− ${-n}` : `+ ${n}`);
+
 /** Band 5 (0.80–0.90), held under 0.90 on purpose: three linked steps AND the
  *  value read out of a table. Never above 0.90, so a mid family can never be
  *  mistaken for the bank's deepest work. */
@@ -782,6 +803,477 @@ Work out the total length of the three pipes in metres.`,
       tags: [],
       explanation: `Dividing powers of the same base SUBTRACTS the indices: ${p2} − ${s2} = ${p2 - s2}. A NEGATIVE index means a reciprocal, not a negative number: ${base}${sup(p2 - s2)} = 1 ÷ ${base}${sup(s2 - p2)} = ${correct}. Answering ${denom} turns the reciprocal the wrong way up, and −${denom} treats an index of ${p2 - s2} as "minus ${denom}" — a negative index never makes a negative value.`,
       difficulty: deep5(r),
+    };
+  },
+
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THE UPPER HALF OF BAND 4, AND WHY IT IS A SEPARATE RECORD.
+//
+// Band 4 spans 0.60–0.80. Mission "the middle of the ladder" filled the band
+// for 42 concepts; a second pass asked a sharper question — not "is there an
+// item in the band?" but "what is the nearest item IN the band?" — and found
+// thirteen more whose band-4 draws all sat at 0.60–0.65. `inequalities` and
+// `mixture-problems` had none at all, jumping from ~0.55 straight to 0.85, so a
+// course whose climbed target lands at 0.77 (declared 0.55) was served a 0.60
+// item: right band, wrong depth, and the band-preference in
+// `generateQuestionNear` holds it there because an in-band item beats any
+// nearer out-of-band one. Every family below places its items at 0.66 and
+// above, and each is three LINKED steps rather than a bigger number in the same
+// step — which is what the demand ladder means by band 4 (lib/skills.ts puts
+// multi-step at 0.5).
+//
+// WHY IT CANNOT LIVE IN `MID_MATHS`. `withDepth` consumes one draw from the
+// shared RNG and gives the new family 50% of everything beneath it, so every
+// layer added ABOVE the deep families halves their share of the draws. Composed
+// where MID_MATHS is (inside the subject layers) that took `circle-area-arc`'s
+// ceiling from 0.92 to 0.788 and `trig-identity`'s to 0.876 — caught by
+// `npm run gate:ceiling`, which holds both at 0.88, and caught before it shipped
+// because that gate is absolute for its named concepts. Composed INNERMOST
+// instead — directly onto the BASE family, in lib/questions.ts — the new layer
+// takes its share from the base family and every deep family keeps exactly the
+// share it had. Which is the whole point: this layer exists to fill a gap in
+// the middle, and a gap-filler that lowers a ceiling has made the bank worse.
+export const MID_UPPER_MATHS: Record<string, DeepGen> = {
+  // ── THE THIRTEEN CONCEPTS WITH NO UPPER BAND 4 ─────────────────────────────
+
+  // ── INEQUALITIES ──────────────────────────────────────────────────────────
+  /** Band 4: solve a DOUBLE inequality and then act on the solution set — count
+   *  the integers inside it, or pick the largest one. Both are a stage beyond
+   *  solving: the solve gives a set, and the question is about the set. */
+  "inequalities": (r) => {
+    if (r.next() < 0.5) {
+      const m = r.pick([2, 3, 4, 5]);
+      const lo = r.int(-6, 4);
+      const count = r.int(3, 6);
+      const hi = lo + count;
+      // Non-zero, so the prompt never prints "+ 0"; and both ends stay exact
+      // integers, so the solution set is counted rather than estimated.
+      const c = r.pick([-9, -7, -5, -3, -2, 2, 3, 4, 5, 7, 8, 9]);
+      const a = m * lo + c;
+      const b = m * hi + c;
+      const correct = String(count);
+      return {
+        prompt: `Solve the inequality ${a} ≤ ${m}x ${plus(c)} < ${b}.\n\nHow many integer values of x satisfy it?`,
+        correct,
+        wrongs: distinct(correct, [
+          // The upper endpoint counted as a solution, which the strict half of
+          // the inequality excludes.
+          count + 1,
+          count - 1,
+          // The endpoints quoted as counts.
+          hi,
+          lo,
+          hi - lo + 1,
+        ]),
+        tags: [],
+        explanation: `Every part moves together. Subtract ${c}: ${m * lo} ≤ ${m}x < ${m * hi}. Divide each part by ${m}: ${lo} ≤ x < ${hi}. The integers from ${lo} up to but NOT INCLUDING ${hi} are ${Array.from({ length: Math.max(0, Math.min(count, 5)) }, (_, i) => lo + i).join(", ")}${count > 5 ? ", …" : ""} — that is ${count} values. Counting ${hi} as well (${count + 1} values) reads the second inequality as “≤”, and ${hi} does not satisfy it.`,
+        difficulty: upper4(r),
+      };
+    }
+    // The answer A is chosen first, and the boundary is placed strictly between
+    // A and A+1, so "largest integer" is unambiguous: A satisfies and A+1 does not.
+    const d = r.pick([2, 3, 4, 5]);
+    const A = r.int(3, 8);
+    const j = r.int(1, d - 1);
+    const k = d * A + j;
+    const t = r.int(1, 9);
+    const q = k - t;
+    // k = q + t needs q positive for a prompt without a double sign.
+    if (q <= 0) return MID_UPPER_MATHS["inequalities"](r);
+    const s = r.int(1, 6);
+    const p = s + d;
+    const correct = String(A);
+    return {
+      prompt: `Find the largest integer value of x for which ${p}x − ${q} < ${s}x + ${t}.`,
+      correct,
+      wrongs: distinct(correct, [
+        //  x < k/d read as x ≤ k/d.
+        A + 1,
+        A - 1,
+        // The boundary quoted as an answer, and the coefficient that survives.
+        Math.ceil(k / d),
+        Math.floor(k / d),
+        d,
+      ]),
+      tags: [],
+      explanation: `Collect the x-terms on one side first: subtracting ${s}x from both sides gives ${d}x − ${q} < ${t}, and adding ${q} gives ${d}x < ${q + t} = ${k}. Dividing by ${d}: x < ${k}/${d}. Since ${k}/${d} lies strictly between ${A} and ${A + 1}, x can be at most ${A} — and ${A + 1} does NOT satisfy the inequality, because the sign is < and not ≤. That slip is the whole trap: dividing by ${d} when the answer should stay a whole number gives ${Math.ceil(k / d)}, which is one too big.`,
+      difficulty: upper4(r),
+    };
+  },
+
+  // ── MIXTURE PROBLEMS ──────────────────────────────────────────────────────
+  /** Band 4: conservation of the SOLUTE as well as of the volume. The two
+   *  equations are the whole item — get one and the answer is wrong in a way
+   *  that still adds up to the right total, which is why this reads as three
+   *  linked steps rather than a percentage calculation. */
+  "mixture-problems": (r) => {
+    // Every combination gives an INTEGER result, so the answer is exact. The
+    // list is checked by the content sweep rather than trusted.
+    const [p, q, x, y] = r.pick([
+      [20, 50, 10, 20], [20, 50, 20, 10], [10, 30, 20, 20], [30, 60, 20, 20],
+      [40, 70, 20, 20], [10, 50, 30, 10], [5, 25, 20, 20], [20, 60, 30, 10],
+      [25, 55, 20, 20], [15, 35, 30, 10], [20, 40, 25, 25], [10, 40, 30, 10],
+    ]);
+    const total = x + y;
+    const mix = (p * x + q * y) / total;
+    // A non-integer mixture would make the prompt a rounding exercise; the
+    // combination is bad, not the family.
+    if (!Number.isInteger(mix)) return MID_UPPER_MATHS["mixture-problems"](r);
+    const correct = String(y);
+    return {
+      prompt: `A chemist mixes a ${p}% solution with a ${q}% solution to make ${total} litres of a ${mix}% solution.\n\nHow many litres of the ${q}% solution are used?`,
+      correct,
+      wrongs: distinct(correct, [
+        // The other volume: right total, wrong question.
+        x,
+        // Half the mixture, and the whole mixture.
+        Math.round(total / 2),
+        total,
+        y + 2,
+        Math.abs(x - y),
+        Math.round((total * (mix - p)) / (q - p)) + 1,
+      ]),
+      tags: [],
+      explanation: `Two things are conserved, and using only one of them is how this goes wrong. The volumes add up: (${p}% litres) + (${q}% litres) = ${total}. The SOLUTE does not appear or vanish: ${p}% of the first plus ${q}% of the second must equal ${mix}% of the total, so ${p}x + ${q}y = ${mix} × ${total} = ${(mix * total).toFixed(0)} per 100 — which is what makes x = ${x} and y = ${y} the only solution. Answering ${x} gives the OTHER volume: it still adds to ${total} litres, so the total looks right even though the mixture is not ${mix}%.`,
+      difficulty: upper4(r),
+    };
+  },
+
+  // ── GROWTH & DECAY ────────────────────────────────────────────────────────
+  /** Band 4: the percentage applies to a value that has ALREADY changed, which
+   *  is what separates compound from simple, plus the subtraction that turns the
+   *  new value into the change asked for. */
+  "growth-decay": (r) => {
+    if (r.next() < 0.5) {
+      const P = r.pick([2000, 2500, 4000, 5000, 8000, 10000, 12000, 15000, 20000, 40000, 50000]);
+      const n = r.pick([2, 3]);
+      const rate = r.pick([2, 3, 4, 5, 6, 8, 10, 12]);
+      const after = Math.round(P * Math.pow(1 + rate / 100, n));
+      const grown = after - P;
+      const simple = Math.round((P * rate * n) / 100);
+      const correct = String(grown);
+      return {
+        prompt: `The population of a town is ${P}. It grows by ${rate}% each year.\n\nBy how many people will the population have grown after ${n} years? (Give your answer to the nearest whole number.)`,
+        correct,
+        wrongs: distinct(correct, [
+          // SIMPLE interest: the same amount each year, off the original figure.
+          simple,
+          // The new total, and the growth of the last year alone.
+          after,
+          after - Math.round(P * Math.pow(1 + rate / 100, n - 1)),
+          Math.round((P * rate) / 100),
+          after + P,
+        ]),
+        tags: [],
+        explanation: `“${rate}% each year” compounds: each year's increase is taken on the value at the START of that year, not on the original ${P}. So the population is ${P} × ${num(1 + rate / 100, 2)}${sup(n)} = ${after} after ${n} years, and the GROWTH is ${after} − ${P} = ${grown}. The tempting error is ${simple}, which is ${rate}% of the original ${P} counted ${n} times — simple interest. It is wrong from the second year onwards, when the increase is ${rate}% of a bigger number.`,
+        difficulty: upper4(r),
+      };
+    }
+    const V = r.pick([12000, 15000, 16000, 18000, 20000, 24000, 25000, 30000, 45000, 50000]);
+    const n = r.pick([2, 3]);
+    const rate = r.pick([5, 8, 10, 12, 15, 20, 25]);
+    const factor = 1 - rate / 100;
+    const worth = Math.round(V * Math.pow(factor, n));
+    const straight = Math.round(V - (V * rate * n) / 100);
+    const correct = `£${worth}`;
+    return {
+      prompt: `A car is bought new for £${V}. Its value falls by ${rate}% each year.\n\nWhat is the car worth after ${n} years? (Give your answer to the nearest pound.)`,
+      correct,
+      wrongs: distinct(correct, [
+        // Straight-line: ${rate}% of the PRICE PAID, once per year.
+        `£${straight}`,
+        // One year's depreciation, and the last year's fall on its own.
+        `£${Math.round(V * factor)}`,
+        `£${V - worth}`,
+        `£${Math.round(V * Math.pow(factor, n + 1))}`,
+        `£${Math.round(V * (1 - rate / 100 / n))}`,
+      ]),
+      tags: [],
+      explanation: `“Falls by ${rate}% each year” is compound DECAY: multiply by ${num(factor, 2)} once for every year, so £${V} × ${num(factor, 2)}${sup(n)} = £${worth}. The percentage applies to the value at the start of each year, not to the price first paid — taking ${rate}% of the ORIGINAL £${V} every year gives £${straight}, which is straight-line depreciation and a different model. Answering £${V - worth} gives the total LOSS, not what the car is worth.`,
+      difficulty: upper4(r),
+    };
+  },
+
+  // ── ALGEBRA: EXPANDING ────────────────────────────────────────────────────
+  /** Band 4: pick ONE coefficient out of the expansion (the two x-terms must be
+   *  collected) or expand and then substitute. Both are harder than "expand",
+   *  because the answer is not the whole expression. */
+  "algebra-expand": (r) => {
+    const A = r.int(1, 5);
+    const C = r.int(1, 5);
+    const B = r.pick([-7, -6, -5, -4, -3, -2, 2, 3, 4, 5, 6, 7]);
+    const D = r.pick([-7, -6, -5, -4, -3, -2, 2, 3, 4, 5, 6, 7]);
+    if (r.next() < 0.5) {
+      const coeff = A * D + B * C;
+      // A vanishing x-term makes "the coefficient of x" a trick answer.
+      if (coeff === 0) return MID_UPPER_MATHS["algebra-expand"](r);
+      const correct = String(coeff);
+      return {
+        prompt: `Expand and simplify (${A}x ${plus(B)})(${C}x ${plus(D)}).\n\nWhat is the coefficient of x in the expansion?`,
+        correct,
+        wrongs: distinct(correct, [
+          // One pair only: the outer product or the inner one.
+          A * D,
+          B * C,
+          // The neighbouring coefficients, and the sign flip.
+          A * C,
+          B * D,
+          -coeff,
+          A * D - B * C,
+        ]),
+        tags: [],
+        explanation: `The x-term is the sum of the two CROSS products: the outer pair ${A}x × ${D} = ${A * D}x, and the inner pair ${B} × ${C}x = ${B * C}x. Adding them: ${A * D} ${plus(B * C)} → the coefficient is ${coeff}. Stopping at ${A * D} forgets the inner pair, and ${B * C} forgets the outer one — the two halves of the same step. ${A * C} is the coefficient of x², and ${B * D} is the constant.`,
+        difficulty: upper4(r),
+      };
+    }
+    const k = r.int(-4, 4);
+    const L = A * k + B;
+    const R = C * k + D;
+    const value = L * R;
+    const correct = String(value);
+    return {
+      prompt: `Given (${A}x ${plus(B)})(${C}x ${plus(D)}), work out the value of the expression when x = ${k}.`,
+      correct,
+      wrongs: distinct(correct, [
+        // Substituting with the signs dropped.
+        (A * k - B) * (C * k - D),
+        // Expanding but substituting into only the squared term.
+        A * C * k * k + B * D,
+        // One bracket evaluated, the other used raw.
+        L * (C * k + D) + 0,
+        L + R,
+        -value,
+        A * C * k * k + B + D,
+      ]),
+      tags: [],
+      explanation: `Substitute into each bracket and multiply — there is no need to expand first. ${A}(${k}) ${plus(B)} = ${L}, and ${C}(${k}) ${plus(D)} = ${R}, so the value is ${L} × ${R} = ${value}. (Expanding and then substituting gives the same number by a longer route — the point is that both routes agree, and ${L + R} adds the brackets instead of multiplying them.)`,
+      difficulty: upper4(r),
+    };
+  },
+
+  // ── CIRCLE AREA & ARC ─────────────────────────────────────────────────────
+  /** Band 4: the arc or the sector, and then the step that turns it into the
+   *  quantity actually asked for — the perimeter (which adds two radii) or the
+   *  major sector (which subtracts from the whole circle). */
+  "circle-area-arc": (r) => {
+    // The prompt states π = 3.142, so the generator uses 3.142 too: a family
+    // that computed with Math.PI and told the learner to use 3.142 would mark a
+    // correct answer wrong at the first decimal place.
+    const PI = 3.142;
+    if (r.next() < 0.5) {
+      const rad = r.pick([4, 5, 6, 7, 8, 9, 10, 12, 15]);
+      const ang = r.pick([30, 36, 45, 60, 72, 90, 120, 135, 144, 210, 240, 300]);
+      const arc = (ang / 360) * 2 * PI * rad;
+      const perim = arc + 2 * rad;
+      const area = (ang / 360) * PI * rad * rad;
+      const correct = `${num(perim, 1)} cm`;
+      return {
+        prompt: `A sector of a circle has radius ${rad} cm and an angle of ${ang}° at the centre.\n\nWork out the PERIMETER of the sector, in cm. (Use π = 3.142 and give your answer to 1 decimal place.)`,
+        correct,
+        wrongs: distinct(correct, [
+          // The curved edge only: the two straight radii are missing.
+          `${num(arc, 1)} cm`,
+          // The two radii only, the sector AREA, and one radius added.
+          `${num(2 * rad, 1)} cm`,
+          `${num(area, 1)} cm`,
+          `${num(arc + rad, 1)} cm`,
+          `${num(2 * PI * rad, 1)} cm`,
+        ]),
+        tags: [],
+        explanation: `A sector's boundary is the ARC plus the TWO radii, and skipping the radii is the usual error. Arc: ${ang}⁄360 × 2 × 3.142 × ${rad} = ${num(arc, 2)} cm. Add the straight edges: ${num(arc, 2)} + 2 × ${rad} = ${num(arc, 2)} + ${2 * rad} = ${num(perim, 1)} cm. Answering ${num(arc, 1)} cm measures only the curved part, and ${num(area, 1)} is the AREA of the sector — a different quantity with the same units' shape.`,
+        difficulty: upper4(r),
+      };
+    }
+    // Under 180°, so the major sector is genuinely the larger piece.
+    const rad = r.pick([5, 6, 7, 8, 9, 10, 12]);
+    const ang = r.pick([30, 36, 45, 60, 72, 90, 120, 135, 144]);
+    const minor = (ang / 360) * PI * rad * rad;
+    const whole = PI * rad * rad;
+    const major = whole - minor;
+    const correct = `${num(major, 1)} cm²`;
+    return {
+      prompt: `A sector of a circle has radius ${rad} cm and an angle of ${ang}° at the centre.\n\nWork out the area of the MAJOR sector, in cm². (Use π = 3.142 and give your answer to 1 decimal place.)`,
+      correct,
+      wrongs: distinct(correct, [
+        // The MINOR sector: the smaller piece, not the bigger one.
+        `${num(minor, 1)} cm²`,
+        // The whole circle, the sum instead of the difference, and a doubling.
+        `${num(whole, 1)} cm²`,
+        `${num(whole + minor, 1)} cm²`,
+        `${num(2 * minor, 1)} cm²`,
+        `${num(2 * PI * rad, 1)} cm²`,
+      ]),
+      tags: [],
+      explanation: `The two sectors together ARE the whole circle, so the major sector is the circle MINUS the minor one — that subtraction is the step this item is testing. Whole circle: 3.142 × ${rad}² = ${num(whole, 2)} cm². Minor sector: ${ang}⁄360 × ${num(whole, 2)} = ${num(minor, 2)} cm². Major sector: ${num(whole, 2)} − ${num(minor, 2)} = ${num(major, 1)} cm². Answering ${num(minor, 1)} cm² gives the sector named in the question, not the one it asked for, and ${num(2 * PI * rad, 1)} is a CIRCUMFERENCE, whose units are cm, not cm².`,
+      difficulty: upper4(r),
+    };
+  },
+
+  // ── STRAIGHT LINES ────────────────────────────────────────────────────────
+  /** Band 4: gradient from two points, then the intercept, then the ROOT — the
+   *  coordinate asked for is not either point given. */
+  "straight-lines": (r) => {
+    const m = r.pick([1, 2, 3, 4, -1, -2, -3]);
+    // The x-intercept is −k, chosen first so it is a whole number: c = m·k makes
+    // −c/m = −k exact, and no answer is a rounded gradient.
+    const k = r.pick([-6, -5, -4, -3, -2, 2, 3, 4, 5, 6]);
+    const x1 = r.int(1, 4);
+    const c = m * k;
+    const y1 = m * x1 + c;
+    const x2 = x1 + 1;
+    const y2 = m * x2 + c;
+    const correct = `(${-k}, 0)`;
+    return {
+      prompt: `A straight line passes through (${x1}, ${y1}) and (${x2}, ${y2}).\n\nWork out the coordinates of the point where the line crosses the x-axis.`,
+      correct,
+      wrongs: distinct(correct, [
+        // The Y-intercept: the same question asked of the other axis.
+        `(0, ${c})`,
+        // The sign dropped off the root.
+        `(${k}, 0)`,
+        // The y-intercept with the axes swapped, and the two mixed up.
+        `(0, ${-k})`,
+        `(${-k}, ${c})`,
+        `(${c}, 0)`,
+      ]),
+      tags: [],
+      explanation: `Three steps, and the third is the one asked for. Gradient: (${y2} − ${y1}) ÷ (${x2} − ${x1}) = ${y2 - y1} ÷ ${x2 - x1} = ${m}. Intercept: at (${x1}, ${y1}), ${y1} = ${m} × ${x1} + c, so c = ${c}. Root: the line crosses the x-axis where y = 0, so 0 = ${m}x ${plus(c)}, giving x = ${-k}. The point is (${-k}, 0). Answering (0, ${c}) is where the line crosses the Y-axis — the same shape of question about the other axis.`,
+      difficulty: upper4(r),
+    };
+  },
+
+  // ── MATRICES ──────────────────────────────────────────────────────────────
+  /** Band 4: one entry of a product (the row-by-column rule), or the determinant
+   *  of a product through det(AB) = det(A)det(B) — a transfer step, since the
+   *  matrices are never multiplied. */
+  "matrices-intro": (r) => {
+    const A = r.int(1, 6);
+    const B = r.int(-5, 5);
+    const C = r.int(-5, 5);
+    const D = r.int(1, 6);
+    const E = r.int(1, 6);
+    const F = r.int(-5, 5);
+    const G = r.int(-5, 5);
+    const H = r.int(1, 6);
+    const detA = A * D - B * C;
+    const detB = E * H - F * G;
+    if (r.next() < 0.5) {
+      const correct = String(A * E + B * G);
+      return {
+        prompt: `A = [[${A}, ${B}], [${C}, ${D}]] and B = [[${E}, ${F}], [${G}, ${H}]].\n\nWork out the TOP-LEFT entry of the product AB.`,
+        correct,
+        wrongs: distinct(correct, [
+          // One of the two products, and the difference instead of the sum.
+          A * E,
+          B * G,
+          A * E - B * G,
+          // The other column of B, and the pairings crossed over.
+          A * F + B * H,
+          A * G + B * E,
+          A + E,
+        ]),
+        tags: [],
+        explanation: `An entry of a product is a ROW of the first matrix against a COLUMN of the second. The top-left entry uses row 1 of A — (${A}, ${B}) — and column 1 of B — (${E}, ${G}). Multiply position by position and add: (${A} × ${E}) + (${B} × ${G}) = ${A * E} + ${B * G} = ${A * E + B * G}. Using column 2 instead (${A} × ${F} + ${B} × ${H} = ${A * F + B * H}) gives the top-RIGHT entry, and crossing the pairings (${A * G + B * E}) is the same numbers in the wrong positions.`,
+        difficulty: upper4(r),
+      };
+    }
+    const correct = String(detA * detB);
+    return {
+      prompt: `A = [[${A}, ${B}], [${C}, ${D}]] and B = [[${E}, ${F}], [${G}, ${H}]].\n\nWork out the determinant of the matrix product AB.`,
+      correct,
+      wrongs: distinct(correct, [
+        // The determinants combined with the wrong operation.
+        detA + detB,
+        detA - detB,
+        // The determinant of A + B, which is not the product's.
+        (A + E) * (D + H) - (B + F) * (C + G),
+        // One determinant only.
+        detA,
+        -detA * detB,
+      ]),
+      tags: [],
+      explanation: `det(AB) = det(A) × det(B) is an identity, so the matrices never have to be multiplied: det A = (${A} × ${D}) − (${B} × ${C}) = ${A * D} − ${B * C} = ${detA}; det B = (${E} × ${H}) − (${F} × ${G}) = ${E * H} − ${F * G} = ${detB}; and the product's determinant is ${detA} × ${detB} = ${correct}. Adding them (${detA + detB}) is the wrong operation — determinants MULTIPLY when the matrices multiply.`,
+      difficulty: upper4(r),
+    };
+  },
+
+  // ── KINEMATICS ────────────────────────────────────────────────────────────
+  /** Band 4: two suvat equations in sequence — the acceleration is not given, so
+   *  the distance needs a stage before it. */
+  "kinematics": (r) => {
+    // t even keeps ½at² whole; every answer is exact rather than rounded.
+    const t = r.pick([4, 6, 8, 10]);
+    const accel = r.pick([1, 2, 3, 4, 5]);
+    const u = r.pick([0, 2, 4, 5, 10, 12, 15, 20]);
+    const v = u + accel * t;
+    const half = 0.5 * accel * t * t;
+    const s = u * t + half;
+    const correct = `${num(s, 0)} m`;
+    return {
+      prompt: `A cyclist accelerates uniformly from ${u} m/s to ${v} m/s in ${t} seconds.\n\nHow far does she travel while accelerating?`,
+      correct,
+      wrongs: distinct(correct, [
+        // The speed held constant: the starting one, and the final one.
+        `${num(u * t, 0)} m`,
+        `${num(v * t, 0)} m`,
+        // Average speed applied without halving it.
+        `${num((u + v) * t, 0)} m`,
+        // The acceleration quoted as a distance.
+        `${num(accel, 0)} m`,
+        `${num(half, 0)} m`,
+      ]),
+      tags: [],
+      explanation: `The distance is not asked for directly, so one stage comes first. Acceleration: a = (v − u) ÷ t = (${v} − ${u}) ÷ ${t} = ${accel} m/s². Distance: s = ut + ½at² = ${u} × ${t} + ½ × ${accel} × ${t}² = ${num(u * t, 0)} + ${num(half, 0)} = ${num(s, 0)} m. The average-speed route agrees — (${u} + ${v}) ÷ 2 × ${t} = ${num((u + v) / 2, 1)} × ${t} = ${num(s, 0)} m — which is why ${num(v * t, 0)} m (assuming she travelled the whole time at her FINAL speed) overshoots, and ${num(u * t, 0)} m (all of it at the starting speed) undershoots.`,
+      difficulty: upper4(r),
+    };
+  },
+
+  // ── TRIGONOMETRIC IDENTITIES ──────────────────────────────────────────────
+  /** Band 4: an identity plus a QUADRANT, in either direction — build the third
+   *  side from a ratio and read tan off it, or use sin² + cos² = 1 and get the
+   *  sign right. */
+  "trig-identity": (r) => {
+    if (r.next() < 0.5) {
+      const [opp, adj, hyp] = r.pick([[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25], [20, 21, 29], [9, 40, 41]]);
+      const correct = `${opp}/${adj}`;
+      return {
+        prompt: `θ is an acute angle and sin θ = ${opp}/${hyp}.\n\nWork out the exact value of tan θ.`,
+        correct,
+        wrongs: distinct(correct, [
+          // The reciprocal, and the other two ratios of the same triangle.
+          `${adj}/${opp}`,
+          `${hyp}/${opp}`,
+          `${adj}/${hyp}`,
+          `${opp}/${hyp}`,
+          `${hyp}/${adj}`,
+        ]),
+        tags: [],
+        explanation: `sin θ = opposite ÷ hypotenuse, so draw the right-angled triangle with opposite ${opp} and hypotenuse ${hyp}. The third side comes from Pythagoras: √(${hyp}² − ${opp}²) = √${hyp * hyp - opp * opp} = ${adj}. Then tan θ = opposite ÷ adjacent = ${opp}/${adj}. Turning the fraction over (${adj}/${opp}) gives cot θ, and ${adj}/${hyp} is cos θ — the ratio that shares its adjacent side but has the hypotenuse underneath.`,
+        difficulty: upper4(r),
+      };
+    }
+    // cos is given NEGATIVE (the angle is obtuse), so the sign of the answer is
+    // the whole second step: in the second quadrant sin is positive.
+    const [cosAbs, sinVal] = r.pick([[0.8, 0.6], [0.6, 0.8], [0.28, 0.96], [0.96, 0.28]]);
+    const correct = num(sinVal, 2);
+    return {
+      prompt: `θ is an obtuse angle and cos θ = −${num(cosAbs, 2)}.\n\nWork out the value of sin θ.`,
+      correct,
+      wrongs: distinct(correct, [
+        // The negative root, which belongs to the third quadrant.
+        num(-sinVal, 2),
+        // 1 − cos (instead of 1 − cos²), and cos itself.
+        num(1 - cosAbs, 2),
+        num(cosAbs, 2),
+        // cos², left before the square root.
+        num(cosAbs * cosAbs, 2),
+        num(1 + cosAbs, 2),
+      ]),
+      tags: [],
+      explanation: `Use sin²θ + cos²θ = 1: sin²θ = 1 − (−${num(cosAbs, 2)})² = 1 − ${num(cosAbs * cosAbs, 2)} = ${num(sinVal * sinVal, 2)}. Squaring loses the sign, so both roots are possible — and the QUADRANT decides. An obtuse angle lies between 90° and 180°, where sin is POSITIVE and cos is negative, so sin θ = +${correct}. Answering −${correct} is not a slip in the algebra: it is the reflex angle's root, and the second step of this question is knowing which of the two it is.`,
+      difficulty: upper4(r),
     };
   },
 };

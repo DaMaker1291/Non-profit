@@ -70,6 +70,16 @@ function bin(n: number, width = 8): string {
   return n.toString(2).padStart(width, "0");
 }
 
+/** Band 4's UPPER half (0.66–0.79) — the same three linked steps as `mid4`,
+ *  placed near the top of the band. See lib/questions-mid-maths.ts#upper4 for
+ *  the measurement that showed why band membership alone is not enough: a
+ *  concept whose band-4 draws all sit at 0.60 answers a target of 0.77 with a
+ *  0.60 item, because `generateQuestionNear` prefers any in-band item over a
+ *  nearer out-of-band one. */
+function upper4(r: DeepRng): number {
+  return 0.66 + r.next() * 0.13;
+}
+
 export const MID_COMPUTING: Record<string, DeepGen> = {
   // ── VARIABLES ─────────────────────────────────────────────────────────────
   /** Band 3: a swap through a temporary — four lines, two live values. Band 4:
@@ -489,6 +499,197 @@ export const MID_COMPUTING: Record<string, DeepGen> = {
       tags: [],
       explanation: `Statement 1 adds ${bump} to the mark of every row whose subject is ${want} — and to those rows only. Statement 2 then counts the rows of that subject whose UPDATED mark is at least ${cutoff}: ${correct}. Counting before the update (${beforeMatch}) ignores statement 1; counting every row of the subject (${afterAll}) throws the mark condition away; and ${rows.length} is the whole table, which two WHERE clauses have both been dropped from.`,
       difficulty: mid4(r),
+    };
+  },
+
+};
+
+/**
+ * THE UPPER HALF OF BAND 4 for computing — composed INNERMOST in
+ * lib/questions.ts, not inside the subject layers, so filling this gap cannot
+ * lower a ceiling. See lib/questions-mid-maths.ts#MID_UPPER_MATHS for the full
+ * reasoning and the measurement (gate:ceiling caught the ceiling this cost when
+ * it was composed as an ordinary mid layer).
+ */
+export const MID_UPPER_COMPUTING: Record<string, DeepGen> = {
+  // ── RECURSION ─────────────────────────────────────────────────────────────
+  /** Band 4: trace a recursion that calls ITSELF TWICE — the answer is the
+   *  number of calls, which is not the value returned and grows exponentially,
+   *  or a linear recursion across several unwinding steps. The count is
+   *  simulated here rather than tabled, so the key cannot drift from the code
+   *  the question prints. */
+  "recursion": (r) => {
+    if (r.next() < 0.5) {
+      const n = r.int(4, 6);
+      // The naive double-call recursion: calls(n) = 1 + calls(n-1) + calls(n-2),
+      // with the two base cases counted. Both the calls and the value are
+      // computed by running it, so the printed code and the key cannot drift.
+      const calls: number[] = [];
+      const value: number[] = [];
+      for (let i = 0; i <= n; i++) {
+        if (i < 2) { calls[i] = 1; value[i] = i; }
+        else { calls[i] = 1 + calls[i - 1] + calls[i - 2]; value[i] = value[i - 1] + value[i - 2]; }
+      }
+      const total = calls[n];
+      const result = value[n];
+      const correct = String(total);
+      return {
+        prompt: `Here is a function:\n\n  function f(n) {\n    if (n < 2) return n;\n    return f(n - 1) + f(n - 2);\n  }\n\nHow many times is f called in TOTAL while evaluating f(${n})?`,
+        correct,
+        wrongs: distinct(correct, [
+          // The VALUE returned, which is the question the prompt did not ask.
+          result,
+          total - 1,
+          total + 1,
+          // The line count of the code, and the value doubled.
+          4,
+          result * 2,
+          Math.pow(2, n),
+        ]),
+        tags: [],
+        explanation: `f(${n}) calls itself TWICE, so the calls form a tree, not a chain. Write c(n) for the number of calls: c(0) = c(1) = 1 (a base case is still a call), and c(n) = 1 + c(n−1) + c(n−2) — one for the call being made, plus both branches. Working up: ${Array.from({ length: n - 1 }, (_, i) => `c(${i + 2}) = ${calls[i + 2]}`).join(", ")}, so c(${n}) = ${total}. Note that f(${n}) RETURNS ${result} — the number of calls is not the answer the function gives, and that is the point: this recursion is exponential in n while the value it computes is tiny.`,
+        difficulty: upper4(r),
+      };
+    }
+    const b = r.int(1, 9);
+    const step = r.pick([2, 3, 4, 5, 7]);
+    const n = r.int(3, 6);
+    const correct = String(b + n * step);
+    return {
+      prompt: `Here is a function:\n\n  function g(n) {\n    if (n === 0) return ${b};\n    return g(n - 1) + ${step};\n  }\n\nWhat does g(${n}) return?`,
+      correct,
+      wrongs: distinct(correct, [
+        // The base value and the step multiplied as if neither were added.
+        b * step * n,
+        // One unwinding step short or long.
+        b + (n - 1) * step,
+        b + (n + 1) * step,
+        // Only one of the two contributions.
+        n * step,
+        b * step,
+      ]),
+      tags: [],
+      explanation: `Follow the chain down, then add on the way back up. g(${n}) → g(${n - 1}) → … → g(0), and g(0) returns the base value ${b}. There are ${n} unwinding steps, and EVERY one of them adds ${step} to what the call below returned: ${b} + ${n} × ${step} = ${b + n * step}. Multiplying instead of adding (${b * step * n}) loses the base value's role, and ${n * step} drops it entirely — the base case is the only reason there is anything to add to.`,
+      difficulty: upper4(r),
+    };
+  },
+
+  // ── SEARCHING ALGORITHMS ──────────────────────────────────────────────────
+  /** Band 4: run binary search on a printed array and report how much of it was
+   *  examined, or reason about its bound. The trace is SIMULATED, so the key is
+   *  the algorithm's own output rather than a hand-derived count. */
+  "algorithms-search": (r) => {
+    if (r.next() < 0.5) {
+      const arrays = [
+        [2, 5, 8, 12, 16, 23, 38, 44, 56, 61, 72, 78, 85, 90, 97],
+        [3, 7, 11, 14, 19, 22, 27, 31, 36, 41, 48, 52, 59, 64, 70, 77, 83],
+        [4, 9, 13, 18, 24, 29, 33, 38, 45, 50, 57, 62, 68, 73, 79, 84, 88, 93],
+      ];
+      const arr = r.pick(arrays);
+      // Away from the ends, so the trace is a real halving rather than a lucky
+      // first guess.
+      const at = r.int(3, arr.length - 4);
+      const target = arr[at];
+      let lo = 0;
+      let hi = arr.length - 1;
+      const seen: number[] = [];
+      while (lo <= hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        seen.push(arr[mid]);
+        if (arr[mid] === target) break;
+        if (arr[mid] < target) lo = mid + 1;
+        else hi = mid - 1;
+      }
+      const correct = String(seen.length);
+      return {
+        prompt: `A sorted array holds:\n\n[${joinList(arr)}]\n\nBINARY search is used to find ${target}. How many array elements are examined (how many times does it look at a value)?`,
+        correct,
+        wrongs: distinct(correct, [
+          // The LINEAR search count, which is the position in the array.
+          at + 1,
+          seen.length - 1,
+          seen.length + 1,
+          // The point of halving: the theoretical bound, and the plain count.
+          Math.ceil(Math.log2(arr.length)),
+          arr.length,
+        ]),
+        tags: [],
+        explanation: `Binary search looks at the MIDDLE element and throws half the array away each time. The middle of the whole array is ${seen[0]}, so ${seen[0] < target ? `${seen[0]} is too small and everything up to it goes` : `${seen[0]} is too big and everything from it goes`}; then the middle of what remains is ${seen[1]}, and so on. It examines ${seen.join(", then ")} — ${seen.length} element${seen.length === 1 ? "" : "s"} in all. A LINEAR search would have had to check ${at + 1} (${target} is at position ${at + 1}), which is what makes the halving worth the requirement that the data be sorted.`,
+        difficulty: upper4(r),
+      };
+    }
+    // The bound is exact for any balanced binary search: k comparisons can
+    // distinguish at most 2^k − 1 elements, so k must reach ceil(log2(n + 1)).
+    const N = r.pick([7, 15, 31, 63, 100, 255, 1000, 1023, 4095, 10000, 1000000]);
+    const bound = Math.ceil(Math.log2(N + 1));
+    const correct = String(bound);
+    return {
+      prompt: `A sorted array holds ${N.toLocaleString("en-GB")} elements and is searched with BINARY search.\n\nWhat is the MAXIMUM number of comparisons needed to find any element?`,
+      correct,
+      wrongs: distinct(correct, [
+        // Halving the array is not the number of comparisons.
+        Math.round(N / 2),
+        // The linear-search worst case, and the off-by-one pair.
+        N,
+        bound - 1,
+        bound + 1,
+        // The comparisons needed for HALF the elements.
+        Math.ceil(Math.log2(N + 1) / 2),
+      ]),
+      tags: [],
+      explanation: `Each comparison halves the candidates, so k comparisons can tell apart at most 2^k − 1 elements: after 1 comparison, 1 element; after 2, 3; after 3, 7; and so on. We need 2^k − 1 ≥ ${N.toLocaleString("en-GB")}, which is k ≥ log₂(${(N + 1).toLocaleString("en-GB")}) ≈ ${Math.log2(N + 1).toFixed(2)}, so the maximum is ${bound} comparisons. That is why binary search is worth it: ${N.toLocaleString("en-GB")} is about two to the power of ${Math.log2(N + 1).toFixed(1)}, while a linear search must be prepared to examine all ${N.toLocaleString("en-GB")}.`,
+      difficulty: upper4(r),
+    };
+  },
+
+  // ── THE WEB STACK ─────────────────────────────────────────────────────────
+  /** Band 4: count the round trips a page costs — the handshakes happen ONCE,
+   *  the requests happen per resource, and telling those two apart is the whole
+   *  item. The model is stated in the prompt so the count is unambiguous. */
+  "web-stack": (r) => {
+    const N = r.pick([3, 4, 6, 8, 10, 12]);
+    if (r.next() < 0.5) {
+      // DNS 1 + TCP 1 + TLS 2 = 4 before any byte, then one request per
+      // resource, the HTML included.
+      const correct = String(N + 5);
+      return {
+        prompt: `A browser visits a site for the FIRST time, over HTTPS. Loading the page requires: a DNS lookup (1 round trip), a TCP connection (1), a TLS handshake (2), and then one HTTP request each for the HTML page and the ${N} images it uses — sent one after another over that same connection.\n\nHow many round trips happen in total?`,
+        correct,
+        wrongs: distinct(correct, [
+          // The requests only: the handshakes forgotten.
+          N + 1,
+          // The HTML request forgotten.
+          N + 4,
+          // The handshakes paid PER resource.
+          4 * (N + 1),
+          // TLS treated as one round trip, or the images only.
+          N + 4,
+          N,
+          N * 2 + 4,
+        ]),
+        tags: [],
+        explanation: `Separate what happens ONCE from what happens PER FILE — that is the whole skill. Once: DNS (1) + TCP (1) + TLS (2) = 4 round trips before a single byte of the page arrives. Per file: the HTML page and the ${N} images = ${N + 1} requests, ${N + 1} round trips on the connection that is already open. Total 4 + ${N + 1} = ${N + 5}. Answering ${N + 1} forgets that the name still has to be resolved and the connection still has to be opened, and ${4 * (N + 1)} pays that cost again for every single file.`,
+        difficulty: upper4(r),
+      };
+    }
+    // The keep-alive case: the handshakes are already paid for, so only the
+    // requests are left. This is what "the connection is reused" buys.
+    const correct = String(N + 1);
+    return {
+      prompt: `A browser loads a page over HTTPS, then loads a second page on the SAME site. The connection is kept alive, and the name is already resolved, so no DNS, TCP or TLS round trips are needed the second time. The second page's HTML and its ${N} images are ${N + 1} HTTP requests, sent one after another.\n\nHow many round trips does the SECOND page cost?`,
+      correct,
+      wrongs: distinct(correct, [
+        // The handshakes paid again, as on a fresh visit.
+        N + 5,
+        N + 4,
+        // Only the images, and only one request.
+        N,
+        1,
+        4 + N,
+      ]),
+      tags: [],
+      explanation: `A kept-alive connection is the handshake work already finished: the name is resolved (no DNS round trip), the socket is open (no TCP), and TLS is already negotiated. All that is left is the requests themselves — the HTML page plus the ${N} images = ${N + 1} round trips. A fresh connection to the same site would cost the 4 handshake round trips again, which is exactly why servers keep connections open: the ${N + 1} requests are unavoidable, the 4 are not.`,
+      difficulty: upper4(r),
     };
   },
 };

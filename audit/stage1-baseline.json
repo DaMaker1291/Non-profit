@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-07T21:00:22.669Z",
+  "generatedAt": "2026-10-07T21:50:07.279Z",
   "productionAttempts": 40,
   "drawsPerConcept": 5,
   "note": "Current-code measurements, not a transcription of the audit. Where current code differs from the audit, F1 and F3 carry the explanation.",
@@ -28,8 +28,8 @@
       "method": "generateQuestionNear(id, seed, level.difficulty, 40) — the call app/api/progress/route.ts makes, not the library default.",
       "tiersMeasured": 55,
       "advancedTiers": 16,
-      "advancedMedianReachingTarget": 11,
-      "advancedMeanServed": 0.753,
+      "advancedMedianReachingTarget": 13,
+      "advancedMeanServed": 0.757,
       "servedRange": [
         0.351,
         0.899
@@ -312,7 +312,7 @@
           "target": 0.78,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.712,
+          "meanServed": 0.719,
           "medianServed": 0.75,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
@@ -356,8 +356,8 @@
           "target": 0.75,
           "concepts": 83,
           "items": 415,
-          "meanServed": 0.717,
-          "medianServed": 0.737,
+          "meanServed": 0.729,
+          "medianServed": 0.746,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": true,
           "bySubject": {
@@ -400,9 +400,9 @@
           "target": 0.75,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.708,
-          "medianServed": 0.749,
-          "reachesTargetByMedian": false,
+          "meanServed": 0.715,
+          "medianServed": 0.75,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
@@ -444,7 +444,7 @@
           "target": 0.7,
           "concepts": 131,
           "items": 655,
-          "meanServed": 0.684,
+          "meanServed": 0.688,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
@@ -488,7 +488,7 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.681,
+          "meanServed": 0.685,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
@@ -532,7 +532,7 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.681,
+          "meanServed": 0.685,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
@@ -576,7 +576,7 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.683,
+          "meanServed": 0.686,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
@@ -620,7 +620,7 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.681,
+          "meanServed": 0.685,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
@@ -664,7 +664,7 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.68,
+          "meanServed": 0.684,
           "medianServed": 0.7,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
@@ -708,9 +708,9 @@
           "target": 0.7,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.678,
+          "meanServed": 0.682,
           "medianServed": 0.7,
-          "reachesTargetByMedian": false,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
@@ -752,8 +752,8 @@
           "target": 0.68,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.669,
-          "medianServed": 0.68,
+          "meanServed": 0.671,
+          "medianServed": 0.681,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
@@ -796,8 +796,8 @@
           "target": 0.68,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.67,
-          "medianServed": 0.68,
+          "meanServed": 0.672,
+          "medianServed": 0.683,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
@@ -840,9 +840,9 @@
           "target": 0.68,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.667,
-          "medianServed": 0.679,
-          "reachesTargetByMedian": false,
+          "meanServed": 0.669,
+          "medianServed": 0.68,
+          "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
             "maths": {
@@ -884,8 +884,8 @@
           "target": 0.65,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.634,
-          "medianServed": 0.645,
+          "meanServed": 0.638,
+          "medianServed": 0.648,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
@@ -928,8 +928,8 @@
           "target": 0.65,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.633,
-          "medianServed": 0.644,
+          "meanServed": 0.638,
+          "medianServed": 0.647,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
@@ -972,8 +972,8 @@
           "target": 0.65,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.629,
-          "medianServed": 0.642,
+          "meanServed": 0.634,
+          "medianServed": 0.646,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
@@ -1016,8 +1016,8 @@
           "target": 0.65,
           "concepts": 130,
           "items": 650,
-          "meanServed": 0.636,
-          "medianServed": 0.645,
+          "meanServed": 0.641,
+          "medianServed": 0.648,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
@@ -1060,8 +1060,8 @@
           "target": 0.65,
           "concepts": 126,
           "items": 630,
-          "meanServed": 0.632,
-          "medianServed": 0.644,
+          "meanServed": 0.636,
+          "medianServed": 0.647,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
@@ -1104,8 +1104,8 @@
           "target": 0.65,
           "concepts": 126,
           "items": 630,
-          "meanServed": 0.633,
-          "medianServed": 0.646,
+          "meanServed": 0.639,
+          "medianServed": 0.648,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
@@ -1148,8 +1148,8 @@
           "target": 0.65,
           "concepts": 126,
           "items": 630,
-          "meanServed": 0.634,
-          "medianServed": 0.647,
+          "meanServed": 0.639,
+          "medianServed": 0.65,
           "reachesTargetByMedian": false,
           "allConceptsCeilingAtTarget": false,
           "bySubject": {
@@ -1192,7 +1192,7 @@
           "target": 0.6,
           "concepts": 53,
           "items": 265,
-          "meanServed": 0.607,
+          "meanServed": 0.608,
           "medianServed": 0.611,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
@@ -1212,7 +1212,7 @@
           "target": 0.6,
           "concepts": 131,
           "items": 655,
-          "meanServed": 0.624,
+          "meanServed": 0.628,
           "medianServed": 0.62,
           "reachesTargetByMedian": true,
           "allConceptsCeilingAtTarget": false,
@@ -2449,12 +2449,12 @@
           "target": 0.9,
           "byAttempts": {
             "4": {
-              "meanServed": 0.821,
-              "p25": 0.724,
+              "meanServed": 0.825,
+              "p25": 0.75,
               "median": 0.9,
               "p75": 0.919,
-              "pctAtOrAbove075": 74,
-              "pctMoreThanOneBandOut": 9
+              "pctAtOrAbove075": 75,
+              "pctMoreThanOneBandOut": 8
             },
             "12": {
               "meanServed": 0.897,
@@ -2480,11 +2480,11 @@
           "target": 0.9,
           "byAttempts": {
             "4": {
-              "meanServed": 0.784,
+              "meanServed": 0.786,
               "p25": 0.7,
               "median": 0.867,
               "p75": 0.912,
-              "pctAtOrAbove075": 70,
+              "pctAtOrAbove075": 71,
               "pctMoreThanOneBandOut": 15
             },
             "12": {
@@ -2511,7 +2511,7 @@
           "target": 0.85,
           "byAttempts": {
             "4": {
-              "meanServed": 0.823,
+              "meanServed": 0.826,
               "p25": 0.75,
               "median": 0.893,
               "p75": 0.916,
@@ -2542,27 +2542,27 @@
           "target": 0.65,
           "byAttempts": {
             "4": {
-              "meanServed": 0.58,
+              "meanServed": 0.584,
               "p25": 0.5,
-              "median": 0.59,
-              "p75": 0.654,
+              "median": 0.6,
+              "p75": 0.672,
               "pctAtOrAbove075": 15,
               "pctMoreThanOneBandOut": 10
             },
             "12": {
-              "meanServed": 0.618,
-              "p25": 0.55,
-              "median": 0.62,
-              "p75": 0.695,
+              "meanServed": 0.623,
+              "p25": 0.585,
+              "median": 0.634,
+              "p75": 0.7,
               "pctAtOrAbove075": 15,
               "pctMoreThanOneBandOut": 6
             },
             "40": {
-              "meanServed": 0.634,
+              "meanServed": 0.638,
               "p25": 0.6,
-              "median": 0.645,
-              "p75": 0.669,
-              "pctAtOrAbove075": 14,
+              "median": 0.648,
+              "p75": 0.679,
+              "pctAtOrAbove075": 13,
               "pctMoreThanOneBandOut": 5
             }
           }
@@ -2768,7 +2768,7 @@
       "producible": {
         "recall": 7,
         "application": 46,
-        "multi_step": 21,
+        "multi_step": 22,
         "data_interpretation": 25,
         "extended_response": 0
       },

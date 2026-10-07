@@ -56,6 +56,16 @@ function midband(r: DeepRng): number {
   return 0.8 + r.next() * 0.06;
 }
 
+/** Band 4's UPPER half (0.66–0.79) — the same three linked steps as `mid4`,
+ *  placed near the top of the band. See lib/questions-mid-maths.ts#upper4 for
+ *  the measurement that showed why band membership alone is not enough: a
+ *  concept whose band-4 draws all sit at 0.60 answers a target of 0.77 with a
+ *  0.60 item, because `generateQuestionNear` prefers any in-band item over a
+ *  nearer out-of-band one. */
+function upper4(r: DeepRng): number {
+  return 0.66 + r.next() * 0.13;
+}
+
 /** A four-row table rendered the way the questions present it. */
 function table(rows: Array<[string, string]>): string {
   return rows.map(([a, b]) => `· ${a}: ${b}`).join("\n");
@@ -241,6 +251,63 @@ export const MID_CHEMISTRY: Record<string, DeepGen> = {
       tags: [],
       explanation: `Metallic bonding is the attraction between the positive ions and the sea of delocalised electrons, so it gets stronger when each atom contributes MORE electrons and when the ions are closer together — which is what a higher melting point measures. Reading both columns: ${picked.map(([name, e, melt]) => `${name} contributes ${e} electron${e === 1 ? "" : "s"} and melts at ${melt} °C`).join("; ")}. ${correct} contributes the most electrons, and its melting point confirms it. Reading the melting point alone gives the same answer here, but the number of delocalised electrons is the CAUSE and the melting point is the evidence — confusing the two is how the wrong metal gets chosen on a table where they disagree.`,
       difficulty: midband(r),
+    };
+  },
+
+};
+
+/**
+ * THE UPPER HALF OF BAND 4 for chemistry — composed INNERMOST in
+ * lib/questions.ts, not inside the subject layers, so filling this gap cannot
+ * lower a ceiling. See lib/questions-mid-maths.ts#MID_UPPER_MATHS for the full
+ * reasoning and the measurement (gate:ceiling caught the ceiling this cost when
+ * it was composed as an ordinary mid layer).
+ */
+export const MID_UPPER_CHEMISTRY: Record<string, DeepGen> = {
+  // ── ELECTROLYSIS ──────────────────────────────────────────────────────────
+  /** Band 4: charge → electrons → atoms → mass. FOUR links, and the third one —
+   *  the charge on the ion — is the step the question exists to test, because it
+   *  is the one the mole-of-electrons answer skips.
+   *
+   *  Every combination is exact (no rounding in the key), so the item cannot be
+   *  got right by estimating: the numbers are chosen so moles of electrons land
+   *  on 0.1, 0.2, 0.3, 0.4 or 0.6, which is what makes the mass a clean figure. */
+  "electrolysis": (r) => {
+    const F = 96500;
+    const [metal, electrolyte, Ar, z, I, t] = r.pick([
+      ["silver", "a solution of silver nitrate", 108, 1, 5, 1930],
+      ["silver", "a solution of silver nitrate", 108, 1, 2, 4825],
+      ["silver", "a solution of silver nitrate", 108, 1, 10, 1930],
+      ["silver", "a solution of silver nitrate", 108, 1, 4, 4825],
+      ["copper", "a solution of copper(II) sulfate", 64, 2, 4, 4825],
+      ["copper", "a solution of copper(II) sulfate", 64, 2, 10, 965],
+      ["copper", "a solution of copper(II) sulfate", 64, 2, 5, 3860],
+      ["copper", "a solution of copper(II) sulfate", 64, 2, 2, 9650],
+      ["aluminium", "molten aluminium oxide", 27, 3, 10, 5790],
+      ["aluminium", "molten aluminium oxide", 27, 3, 5, 5790],
+      ["aluminium", "molten aluminium oxide", 27, 3, 6, 9650],
+    ]);
+    const charge = I * t;
+    const molElectrons = charge / F;
+    const molMetal = molElectrons / z;
+    const mass = molMetal * Ar;
+    const correct = `${num(mass, 2)} g`;
+    return {
+      prompt: `A current of ${I} A is passed through ${electrolyte} for ${t} seconds.\n\nWhat mass of ${metal} is deposited at the cathode? (A_r(${metal}) = ${Ar}; the Faraday constant is 96 500 C mol⁻¹.)`,
+      correct,
+      wrongs: distinct(correct, [
+        // The step this question exists to test: the electrons per ion.
+        `${num(molElectrons * Ar, 2)} g`,
+        `${num(mass * z, 2)} g`,
+        `${num(mass / z, 2)} g`,
+        // Moles of electrons quoted as a mass.
+        `${num(molElectrons, 2)} g`,
+        // The charge left in kC, which is what "C mol⁻¹" is meant to prevent.
+        `${num((charge / 1000 / F) * Ar, 2)} g`,
+      ]),
+      tags: [],
+      explanation: `Four links, each needing the one before it. Charge: Q = I × t = ${I} × ${t} = ${charge} C. Moles of ELECTRONS: Q ÷ 96 500 = ${charge} ÷ 96 500 = ${num(molElectrons, 2)} mol. The ion needs ${z} electron${z === 1 ? "" : "s"} per atom (${metal}${z === 1 ? "⁺" : z === 2 ? "²⁺" : "³⁺"} + ${z}e⁻ → ${metal}), so moles of ${metal} = ${num(molElectrons, 2)} ÷ ${z} = ${num(molMetal, 3)} mol. Mass: ${num(molMetal, 3)} × ${Ar} = ${num(mass, 2)} g. ${num(molElectrons * Ar, 2)} g is that third step skipped — it treats electrons and atoms as one for one, which is only true for a 1+ ion.`,
+      difficulty: upper4(r),
     };
   },
 };
