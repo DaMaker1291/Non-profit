@@ -260,13 +260,20 @@ export function Topbar() {
           “did OpenMind lose my account?” betrayal — the one thing this slot
           must never do. Silence for one paint is honest; contradiction is
           not. */}
+      {/* The label is its own span, and the arrow its own span, because a phone
+          has to be able to treat them differently: the label may be TRUNCATED
+          (a learner's name is not ours to shorten) and the arrow may be DROPPED
+          (it is decoration). Without the wrap the whole button refused to
+          shrink and wrapped onto three lines at 390px. */}
       {!ready ? null : session.account ? (
         <Link href="/account" className="btn small" title={session.account.email}>
-          {session.account.name || session.account.email} →
+          <span className="btn-label">{session.account.name || session.account.email}</span>
+          <span className="btn-arrow" aria-hidden="true">→</span>
         </Link>
       ) : (
         <Link href="/onboarding" className="btn small">
-          {t("onb.createAcct")} →
+          <span className="btn-label">{t("onb.createAcct")}</span>
+          <span className="btn-arrow" aria-hidden="true">→</span>
         </Link>
       )}
     </header>

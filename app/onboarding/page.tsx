@@ -191,7 +191,13 @@ function OnboardingFlow() {
   // once, for the reason line below — `finish` reads it again to keep the
   // promise it makes.
   const pending = returnTarget(params, "");
-  const route = curriculumFor(country) ?? (country === "XX" ? INDEPENDENT_ROUTE : null);
+  // The same fallback `courseGaps` applies, for the same reason: a country this
+  // product does not model still has the independent pathway, and it still has
+  // real grades to choose from. Left as `?? (country === "XX" ? … : null)` this
+  // matched the gate's old dead end — the step required a grade from
+  // `route.grades` while offering an empty list, so the control that fixed the
+  // gap could not be used.
+  const route = curriculumFor(country) ?? INDEPENDENT_ROUTE;
   const boards = route?.boards ?? [];
   // Captured ONCE, before any sign-in can overwrite localStorage. Reading it at
   // submit time would name the account's fresh profile and claim nothing.
@@ -462,6 +468,27 @@ function OnboardingFlow() {
     return true;
   };
 
+  /** WHAT `Next` IS WAITING FOR, said where the button is.
+   *
+   *  A disabled `Next` with no sentence beside it is the wall a first run dies
+   *  on — and the course step had exactly that. Its only signal was a `muted`
+   *  line above the form reading "needs: Your grade level · Qualification",
+   *  which the eye takes for a label rather than an instruction, in the
+   *  product's own vocabulary rather than the learner's. This says the same
+   *  thing in the imperative, next to the control it is about, and it is DERIVED
+   *  from the one gate `canAdvance` reads — so the sentence and the button
+   *  cannot disagree, and the requirement is never invented here. */
+  const needText = (): string | null => {
+    if (current !== "course" || canAdvance()) return null;
+    const fields = [...new Set(courseMissing.flatMap((m) => m.missing))];
+    if (fields.length === 0) return null;
+    return fill(t("onb.needFields"), {
+      fields: fields
+        .map((f) => (FIELD_LABEL[f] ? t(FIELD_LABEL[f] as Parameters<typeof t>[0]) : f))
+        .join(" · "),
+    });
+  };
+
   if (!ready) {
     // A skeleton, not a claim: while the session probe is in flight we do not
     // know whether this is a new learner, a returning one, or somebody who
@@ -567,6 +594,8 @@ function OnboardingFlow() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="amina@example.org"
+                    required
+                    aria-required="true"
                     aria-invalid={invalid("email")}
                   />
                 </label>
@@ -578,6 +607,8 @@ function OnboardingFlow() {
                     autoComplete={mode === "signup" ? "new-password" : "current-password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    required
+                    aria-required="true"
                     aria-invalid={invalid("password")}
                   />
                 </label>
@@ -595,6 +626,8 @@ function OnboardingFlow() {
                       onChange={(e) => setHandle(e.target.value)}
                       placeholder="amina_k"
                       maxLength={24}
+                      required
+                      aria-required="true"
                       aria-invalid={invalid("name")}
                     />
                   </label>
@@ -713,19 +746,32 @@ function OnboardingFlow() {
                 independently" is not a year group, so offering it would keep the
                 learner in the same loop.
 
-                The COUNTRY gap is deliberately not covered here, and is still a
-                Back-only exit: `courseGaps` reports it whenever the learner's
-                country has no mapped route (52 of the 70 offered), while this
-                step offers them international qualifications — so a French
-                learner is asked for a country on a screen that cannot change
-                one. Measured live, left as it is: the honest fix is that an
-                international route IS a course, which is the gate's rule and not
-                this screen's. */}
+                THE COUNTRY GAP IS GONE, and the wall it made with it. This
+                comment used to record a Back-only exit: `courseGaps` reported
+                `country` missing for every country with no national route — 53
+                of the 70 the picker offers — so on this screen `Next` could
+                never enable and a learner who picked France, Germany, Japan or
+                any of the other unmodelled countries was stuck on step 4 of 6
+                for ever, with an account already created. That read as "sign-
+                up is broken". The fix belongs to the gate and now lives in
+                `courseGaps` (see the note there): an independent route IS a
+                course, so an unmodelled country falls back to it instead of
+                being refused, and the step offers that route's real grades and
+                tiers. */}
             {courseMissing.some((m) => m.missing.includes("grade")) && (
               <label className="field">
                 <span>{t("onb.grade")}</span>
-                <select value={grade} onChange={(e) => setGrade(e.target.value)}>
-                  <option value="" disabled>{t("onb.grade")}</option>
+                <select
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                  required
+                  aria-required="true"
+                >
+                  {/* The prompt, not the label. This select's placeholder text
+                      used to be `onb.grade` — the very words of its own <span>
+                      — so a learner read the same phrase twice and concluded
+                      there was nothing left to answer. */}
+                  <option value="" disabled>{t("onb.pickGrade")}</option>
                   {(route?.grades ?? []).map((g) => <option key={g} value={g}>{g}</option>)}
                 </select>
               </label>
@@ -763,6 +809,8 @@ function OnboardingFlow() {
                       <span>{t("onb.spec")}</span>
                       <select
                         value={chosen}
+                        required
+                        aria-required="true"
                         onChange={(e) => {
                           const pick = options.find((x) => x.id === e.target.value);
                           // THE TIER IS THE LEARNER'S OWN CHOICE. It used to be
@@ -791,7 +839,7 @@ function OnboardingFlow() {
                           }
                         }}
                       >
-                        <option value="">{t("onb.independent")}</option>
+                        <option value="" disabled>{t("onb.pickSpec")}</option>
                         {options.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
                       </select>
                     </label>
@@ -805,6 +853,8 @@ function OnboardingFlow() {
                         <span>{t("onb.level")}</span>
                         <select
                           value={courses[s]?.specLevel ?? ""}
+                          required
+                          aria-required="true"
                           onChange={(e) => {
                             setCourses((prev) => ({ ...prev, [s]: { ...prev[s], specLevel: e.target.value } }));
                             if (s === subjects[0]) setSpecLevel(e.target.value);
@@ -942,6 +992,12 @@ function OnboardingFlow() {
 
       {err && <p className="marking bad" style={{ padding: "10px 14px" }}><span className="mark" aria-hidden="true">✗</span> {err}</p>}
       {notice && <p className="marking" style={{ padding: "10px 14px" }}>{notice}</p>}
+
+      {/* The dead button, explained — beside it, in the learner's words, and
+          read from the same gate that disabled it. */}
+      {needText() && (
+        <p className="field-error wizard-need" role="status">⚠ {needText()}</p>
+      )}
 
       <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
         {step > 0 && (

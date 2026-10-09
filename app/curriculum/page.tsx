@@ -16,7 +16,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { loadLocalProfileId, useI18n, useProfile } from "@/lib/client";
 import * as api from "@/lib/api/client";
-import { curriculumFor } from "@/lib/curriculum";
+import { curriculumFor, INDEPENDENT_ROUTE } from "@/lib/curriculum";
 import { COUNTRIES } from "@/lib/i18n";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
 import { ctitle, levelLabel } from "@/lib/content-i18n";
@@ -73,7 +73,11 @@ export default function CurriculumPage() {
   const gaps = useMemo(() => incompleteSubjects(profile ?? {}), [profile]);
 
   const report = useMemo(() => coverageReport(active), [active]);
-  const route = curriculumFor(country);
+  // The same fallback the course gate uses: a country this product does not
+  // model still has the independent pathway, and it still has grades to choose
+  // from. Without it the grade control here was a placeholder with an empty
+  // list — a course that could never be completed for 53 of the 70 countries.
+  const route = curriculumFor(country) ?? INDEPENDENT_ROUTE;
   const terms = termsFor(active.spec.board);
   const inSpec = report.covered;
 
