@@ -359,6 +359,13 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    fact to glance at, not a control to reach for. */
 .context-strip { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-spacer { flex: 1; }
+/* A control, not a paragraph. At 390px the sign-up button shrank and wrapped
+   its own label onto THREE lines, which made the whole header 92px tall and
+   left the bar looking broken on every phone. It may truncate a long learner
+   name; it may never wrap. Measured after: one line, header back to its own
+   height. */
+.topbar > .btn { flex: 0 1 auto; min-width: 0; white-space: nowrap; }
+.topbar > .btn > .btn-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── The theme switch ──────────────────────────────────────────────────────
    WHICH icon is visible is decided entirely in CSS, from the very same
@@ -385,6 +392,13 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
   width: 1.05rem; height: 1.05rem;
   fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round;
 }
+/* The switch is a TOUCH TARGET and must not be the item that gives way when the
+   row is tight — it was the FIRST to, because it declares a width and the flex
+   algorithm shrinks those. Measured on a 390px phone: this control was squeezed
+   to 20px wide while the context strip beside it kept its full width, so the
+   one thing built to truncate was the one thing that refused to. The strip
+   ellipsises by design; the switch does not. */
+.topbar > .theme-btn { flex: none; }
 .theme-btn .i-sun { display: block; }
 .theme-btn .i-moon { display: none; }
 :root[data-theme="dark"] .theme-btn .i-sun { display: none; }
@@ -713,12 +727,47 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: 16px; margin: 0 0 6px; line
 .numeric-input:disabled { color: var(--text-muted); }
 .numeric-unit { font-family: var(--mono); font-size: 15px; color: var(--text-muted); white-space: nowrap; }
 .numeric-empty { color: var(--mark-wrong); margin: 0; }
-/* Free-text answer field: big enough to read your own working in. */
-.answer-input {
-  width: 100%; font-size: 19px; padding: 14px 16px;
-  border: 2px solid var(--ui-strong); border-radius: var(--radius-input);
-  background: var(--surface);
+/* ── The scratch sheet: ruled paper to do the working on ──────────────────
+   This REPLACES a rule that was never rendered. `.answer-input` announced
+   itself as "Free-text answer field: big enough to read your own working in"
+   and no surface in the product ever used it — which is exactly why the
+   question experience had no working area at all (components/work-sheet.tsx).
+
+   Ruled with the same repeating-gradient technique the mastery bar uses for
+   pencil hatching, because the point is that this reads as PAPER rather than
+   as one more form field: a learner asked for their steps should see somewhere
+   that looks like the place steps go. The line box and the rule spacing are
+   the SAME 28px, so typed working sits ON the lines instead of between them,
+   and `background-attachment: local` keeps the rules scrolling with the text
+   rather than sliding underneath it. The focus ring is deliberately NOT
+   overridden — the shared `textarea:focus` rule owns it, so this field is
+   reachable by keyboard exactly like every other one. */
+.work-sheet { margin: 16px 0 12px; }
+.work-sheet-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 6px;
 }
+.work-sheet-label {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.work-sheet-note { text-align: end; }
+.work-paper {
+  --rule: 28px;
+  display: block; width: 100%; min-height: 140px; resize: vertical;
+  margin: 0; padding: 4px 14px 12px;
+  background-color: var(--surface);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--rule) - 1px),
+    var(--line-soft) calc(var(--rule) - 1px) var(--rule)
+  );
+  background-attachment: local;
+  font-family: var(--mono); font-size: 15px; line-height: var(--rule);
+  tab-size: 4;
+}
+.work-paper::placeholder { color: var(--text-muted); opacity: 0.7; }
+@media (max-width: 560px) { .work-paper { min-height: 120px; } }
 
 /* ── The exercise sheet: the diagnostic's and the session's workings box ── */
 .exercise {
@@ -971,6 +1020,20 @@ input[type="text"], input[type="email"], input[type="password"], input[type="num
 input:focus, select:focus, textarea:focus { outline: 2.5px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--mark-wrong); }
 .field-error { display: block; margin-top: 6px; font-size: 13px; color: var(--mark-wrong); }
+/* The wizard's own "what Next is waiting for" line. A disabled button with no
+   sentence beside it is a wall; this sits immediately above the button row so
+   it is read at the moment the button is pressed and found dead. It reads the
+   same gate that disabled the button, so the two can never disagree. */
+.wizard-need {
+  margin: var(--s2) 0 0;
+  padding: 10px 13px;
+  font-size: 14px; font-weight: 600;
+  color: var(--text);
+  background: var(--surface-sunken);
+  border: 1.5px solid var(--line-soft);
+  border-inline-start: 4px solid var(--mark-caution);
+  border-radius: var(--radius-card);
+}
 .checks { display: flex; gap: 9px; flex-wrap: wrap; }
 .checks label {
   display: inline-flex; gap: 8px; align-items: center; cursor: pointer;
@@ -1405,6 +1468,11 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
   .shell-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   .container { padding: 0 18px; }
   .topbar { padding: 0 18px; gap: 12px; }
+  /* The ♿ control is fixed into the very corner the phone bar occupies, so it
+     sat ON TOP of the bar's last destination — measured at 390px, the button
+     spanned y 780–826 over a bar occupying 786–844, which is why "More" looked
+     cut off. Lifted clear of the bar instead of hidden behind it. */
+  .access-btn { bottom: calc(70px + env(safe-area-inset-bottom)); }
   .topbar-logo { display: inline-flex; }
   .topbar-search input { width: 140px; }
   .search-results { width: min(320px, calc(100vw - 36px)); }
@@ -1423,6 +1491,16 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
   .concept-row { align-items: flex-start; flex-direction: column; gap: 6px; }
   .concept-row .state { justify-content: flex-start; }
   .wizard-progress .dots i { height: 3px; }
+  /* The phone's header, sized to fit ONE line. Measured at 390px before this:
+     brand 87 + language picker 97 + theme 42 + a button that would not shrink
+     = a 92px bar with a three-line label in it. The language select is capped
+     rather than allowed to take its natural width, and the button drops the
+     arrow glyph it does not need on a phone. */
+  .topbar { gap: 8px; padding: 0 14px; }
+  .topbar-logo { font-size: 16px; }
+  .topbar select { max-width: 5.75rem; padding: 6px; }
+  .topbar > .btn { padding: 9px 12px; font-size: 13px; min-height: 40px; }
+  .topbar > .btn .btn-arrow { display: none; }
 }
 
 /* Print: the exercise sheet, without the chrome. */

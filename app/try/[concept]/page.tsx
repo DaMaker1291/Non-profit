@@ -20,6 +20,9 @@ import MicroDiagnostic from "@/components/micro-diagnostic";
 import SpeakButton from "@/components/speak-button";
 import PromptText from "@/components/prompt-text";
 import NumericAnswer from "@/components/numeric-answer";
+import MarkedPanel from "@/components/marked-panel";
+import WorkSheet from "@/components/work-sheet";
+import { verdictForGrade } from "@/lib/proof";
 import type { FlarePayload } from "@/lib/microdiag";
 
 export default function TryConceptPage() {
@@ -31,6 +34,15 @@ export default function TryConceptPage() {
   const [picked, setPicked] = useState<number | null>(null);
   const [answerIndex, setAnswerIndex] = useState<number | null>(null);
   const [correct, setCorrect] = useState<boolean | null>(null);
+  // The teaching the server sent WITH the verdict. This page used to receive
+  // both and drop both, so a stranger's first answer was answered with a bare
+  // "Not yet". Held here and handed to MarkedPanel.
+  const [explanation, setExplanation] = useState("");
+  const [misconceptionId, setMisconceptionId] = useState<string | null>(null);
+  // The server's attribution of WHAT this answer demonstrated. Dropped here
+  // until now, which is why a visitor was never told their work was
+  // independent while the same answer on /learn said so.
+  const [demonstrated, setDemonstrated] = useState<{ mode?: string; hints?: number; source?: string; retained?: boolean } | null>(null);
   const [flare, setFlare] = useState<FlarePayload | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -47,6 +59,9 @@ export default function TryConceptPage() {
       setPicked(null);
       setAnswerIndex(null);
       setCorrect(null);
+      setExplanation("");
+      setMisconceptionId(null);
+      setDemonstrated(null);
       setFlare(null);
       setSaved(false);
     } finally {
@@ -69,6 +84,9 @@ export default function TryConceptPage() {
       if (o.kind === "error") { setErr(t("common.error")); return; }
       setCorrect(o.grade.correct);
       setAnswerIndex(o.grade.answerIndex);
+      setExplanation(o.grade.explanation);
+      setMisconceptionId(o.grade.misconceptionId);
+      setDemonstrated(o.grade.demonstrated);
       setFlare(o.grade.flare);
     } finally {
       setBusy(false);
@@ -96,6 +114,14 @@ export default function TryConceptPage() {
             <PromptText text={q.prompt} />
             <SpeakButton text={q.prompt} />
           </div>
+          {/* Somewhere to work, before the place to answer. It never leaves the
+              browser (components/work-sheet.tsx) and the sheet says so. */}
+          <WorkSheet
+            questionId={q.id}
+            label={t("work.label")}
+            placeholder={t("work.ph")}
+            note={t("work.note")}
+          />
           {q.responseKind === "numeric" ? (
             <NumericAnswer
               unit={q.tolerance?.unit}
@@ -122,9 +148,23 @@ export default function TryConceptPage() {
             </div>
           )}
           {correct !== null && (
-            <div className={`feedback ${correct ? "ok" : "no"}`}>
-              <span className="verdict">{correct ? "✓ " + t("solve.nailed") : "✗ " + t("solve.notYet")}</span>
-            </div>
+            // Keyed by question: a re-serve remounts the panel, so the previous
+            // answer's working can never sit under a fresh verdict.
+            <MarkedPanel
+              key={q.id}
+              correct={correct}
+              choices={q.choices}
+              answerIndex={answerIndex}
+              explanation={explanation}
+              misconceptionId={misconceptionId}
+              lang={lang}
+              proof={verdictForGrade(demonstrated, correct)}
+              t={t}
+              correctLabel={t("learn.correct")}
+              wrongLabel={t("learn.wrong")}
+              answerLabel={t("fb.answerIs")}
+              explainLabel={t("learn.explain")}
+            />
           )}
           {flare && <MicroDiagnostic flare={flare} lang={lang} />}
           {saved && <p className="small muted">{t("offline.answerSaved")}</p>}

@@ -13,7 +13,7 @@ import { decideOne, decisionContextFrom } from "@/lib/decision";
 import { loadLedger, conceptKnowledge, type LedgerFetch } from "@/lib/evidence-view";
 import type { QuestionView } from "@/lib/questions";
 import { SESSION_TARGET, type SessionResult } from "@/lib/session";
-import { proofLabelKey, proofSentenceKey, proofVerdict } from "@/lib/proof";
+import { proofLabelKey, proofSentenceKey, verdictForGrade } from "@/lib/proof";
 import { declareQuestion } from "@/lib/question-bank";
 import { evidenceFor } from "@/lib/learner-model";
 import SessionResultPanel from "@/components/session-result";
@@ -26,6 +26,7 @@ import MicroDiagnostic from "@/components/micro-diagnostic";
 import SpeakButton from "@/components/speak-button";
 import PromptText from "@/components/prompt-text";
 import NumericAnswer from "@/components/numeric-answer";
+import WorkSheet from "@/components/work-sheet";
 import ListenFirst from "@/components/listen-first";
 import PeerTeach from "@/components/peer-teach";
 import { exampleFor } from "@/lib/culture";
@@ -45,18 +46,6 @@ type Graded = { correct: boolean; explanation: string; misconceptionId?: string 
  *  §14). Absent on an older response: the note is then simply not drawn, and
  *  no verdict is invented. */
 type AnswerEvidence = { mode: "guided" | "independent" | "transfer"; hints: number; source: string; retained: boolean };
-
-/** The one verdict that follows the mark.
- *
- *  The PRIORITY RULE is not here: it lives in lib/proof.ts, beside the two
- *  other layers that ask it (the server's assignment monitor and the session
- *  headline), because a rule with three copies is a rule with three answers.
- *  This page decides nothing about what the answer proved — it renders the
- *  word the shared rule gives the facts the SERVER attributed. */
-function verdictFor(e: AnswerEvidence | null | undefined, correct: boolean) {
-  if (!e) return null;
-  return proofVerdict({ correct, mode: e.mode, source: e.source, hints: e.hints, retained: e.retained });
-}
 
 /** What the SERVE decided about difficulty, in the server's own words: which
  *  rule fired, the band the item actually falls in, and whether the learner
@@ -745,6 +734,20 @@ export default function ConceptPage() {
                 about its own trap measures nothing — they appear with the
                 verdict, where they can teach instead of pre-empt. */}
             <QuestionDeclaration q={q} t={t} />
+            {/* ── WHERE THE WORKING GOES ────────────────────────────────────
+                The question asks for an answer; this is the paper it is worked
+                out on. It is deliberately placed BEFORE the options and before
+                the answer box, because that is the order the work happens in,
+                and it survives a wrong answer so a retry is the same sheet
+                rather than a blank one. Nothing reads it (the sheet says so
+                itself) — see components/work-sheet.tsx for why that is a rule
+                rather than a gap. */}
+            <WorkSheet
+              questionId={q.id}
+              label={t("work.label")}
+              placeholder={t("work.ph")}
+              note={t("work.note")}
+            />
             {/* ── HOW THIS QUESTION IS ANSWERED ────────────────────────────
                 A numeric item asks the learner to PRODUCE the answer, so it
                 gets a box; everything else keeps the four options. The switch
@@ -853,7 +856,11 @@ export default function ConceptPage() {
                     "independently correct" is the whole basis of the learner
                     model, and until recently only the model knew it. */}
                 {(() => {
-                  const v = verdictFor(graded.evidence, graded.correct);
+                  // The ONE verdict rule (lib/proof.ts#verdictForGrade): this
+                  // page decides nothing about what an answer proved — it
+                  // renders the word the shared rule gives the facts the SERVER
+                  // attributed, exactly as /try and /solve now do.
+                  const v = verdictForGrade(graded.evidence, graded.correct);
                   return v ? (
                     <p className="proof-line">
                       <span className="proof-k">{t("ev.eyebrow")}</span>

@@ -198,6 +198,38 @@ export function strongestProof(t: {
   return null;
 }
 
+/**
+ * THE VERDICT FOR ONE GRADED ANSWER, from the block the server attributed.
+ *
+ * `AnswerVerdict.demonstrated` is the wire shape — `mode`, `source`, `hints`,
+ * `retained` — and it is deliberately LOOSE (`mode` arrives as a plain string),
+ * because it crosses a JSON boundary the type system does not police. Narrowing
+ * it belongs here, beside the rule that consumes it, for the same reason the
+ * priority order does: three call sites each casting `mode` is how the same
+ * answer comes to be described two different ways on two screens.
+ *
+ * Null when the grade carried no attribution at all (a replayed offline answer
+ * has no fresh verdict to explain) — and null for a WRONG answer, because
+ * `proofVerdict` refuses to name an achievement for a miss.
+ */
+export function verdictForGrade(
+  demonstrated: { mode?: string | null; source?: string | null; hints?: number; retained?: boolean } | null | undefined,
+  correct: boolean,
+): ProofVerdict | null {
+  if (!demonstrated) return null;
+  const mode =
+    demonstrated.mode === "guided" || demonstrated.mode === "independent" || demonstrated.mode === "transfer"
+      ? demonstrated.mode
+      : null;
+  return proofVerdict({
+    correct,
+    mode,
+    source: demonstrated.source ?? null,
+    hints: demonstrated.hints ?? 0,
+    retained: demonstrated.retained,
+  });
+}
+
 /** The sentence a learner reads under the mark, in their own language (§10).
  *  One key per verdict, authored in all fifteen dictionaries. */
 export function proofSentenceKey(v: ProofVerdict): string {

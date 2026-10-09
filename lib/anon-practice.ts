@@ -43,6 +43,13 @@ export interface AnonGrade {
   answerIndex: number | null;
   explanation: string;
   misconceptionId: string | null;
+  /** WHAT THE ANSWER DEMONSTRATED, in the server's own attribution: the mode
+   *  it was done under, the server's hint count, the evidence source and whether
+   *  a delayed recall held. The server has always sent this with the grade; the
+   *  anonymous path dropped it, so a stranger's answer was never told what it
+   *  proved while the same answer on /learn was. `verdictForGrade`
+   *  (lib/proof.ts) turns it into the one verdict word every surface uses. */
+  demonstrated: { mode?: string; hints?: number; source?: string; retained?: boolean } | null;
   /** Present when the misconception ledger flared (§4–5): the named pattern,
    *  coaching line, and — when due — a one-question micro-diagnostic. */
   flare: FlarePayload | null;
@@ -152,7 +159,12 @@ export async function anonAnswer(
     // nothing it did not: a replayed answer has no fresh explanation to give.
     return {
       kind: "graded",
-      grade: { correct: v.correct, answerIndex: null, explanation: "", misconceptionId: null, flare: null, duplicate: true },
+      grade: {
+        correct: v.correct, answerIndex: null, explanation: "", misconceptionId: null,
+        // No fresh attribution either: this submission was already on the
+        // ledger, and the record's verdict is not this answer's to re-make.
+        demonstrated: null, flare: null, duplicate: true,
+      },
     };
   }
   return {
@@ -162,6 +174,7 @@ export async function anonAnswer(
       answerIndex: v.answerIndex,
       explanation: v.explanation,
       misconceptionId: v.misconceptionId,
+      demonstrated: v.demonstrated ?? null,
       flare: v.flare ?? null,
     },
   };

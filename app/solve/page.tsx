@@ -22,6 +22,9 @@ import SpeakButton from "@/components/speak-button";
 import VoiceInput from "@/components/voice-input";
 import StarterMode from "@/components/starter-mode";
 import NumericAnswer from "@/components/numeric-answer";
+import MarkedPanel from "@/components/marked-panel";
+import WorkSheet from "@/components/work-sheet";
+import { verdictForGrade } from "@/lib/proof";
 import type { FlarePayload } from "@/lib/microdiag";
 
 type Stage = "ask" | "matched" | "proving" | "transfer" | "mastered";
@@ -40,6 +43,16 @@ export default function SolvePage() {
   const [picked, setPicked] = useState<number | null>(null);
   const [answerIndex, setAnswerIndex] = useState<number | null>(null);
   const [correct, setCorrect] = useState<boolean | null>(null);
+  // The teaching that arrives WITH the verdict — the worked reasoning and the
+  // named belief a wrong answer sat on. The wedge used to keep only the verdict
+  // and discard these, which is what made "prove you understand it" end in a
+  // bare "Not yet".
+  const [explanation, setExplanation] = useState("");
+  const [misconceptionId, setMisconceptionId] = useState<string | null>(null);
+  // The server's attribution of WHAT this answer demonstrated — "prove you
+  // understand it" is a claim about autonomy, so it is the one thing this stage
+  // must be able to say, and it was being discarded.
+  const [demonstrated, setDemonstrated] = useState<{ mode?: string; hints?: number; source?: string; retained?: boolean } | null>(null);
   const [flare, setFlare] = useState<FlarePayload | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -137,6 +150,9 @@ export default function SolvePage() {
       setPicked(null);
       setAnswerIndex(null);
       setCorrect(null);
+      setExplanation("");
+      setMisconceptionId(null);
+      setDemonstrated(null);
       setFlare(null);
       setTransferOk(null);
       setSaved(false);
@@ -161,6 +177,9 @@ export default function SolvePage() {
       setPicked(null);
       setAnswerIndex(null);
       setCorrect(null);
+      setExplanation("");
+      setMisconceptionId(null);
+      setDemonstrated(null);
       setFlare(null);
       setTransferOk(null);
       setSaved(false);
@@ -189,6 +208,9 @@ export default function SolvePage() {
       if (o.kind === "error") { setErr(t("common.error")); return; }
       setCorrect(o.grade.correct);
       setAnswerIndex(o.grade.answerIndex);
+      setExplanation(o.grade.explanation);
+      setMisconceptionId(o.grade.misconceptionId);
+      setDemonstrated(o.grade.demonstrated);
       setFlare(o.grade.flare);
       if (stage === "transfer") setTransferOk(o.grade.correct);
     } finally {
@@ -296,6 +318,14 @@ export default function SolvePage() {
             <PromptText text={q.prompt} />
             <SpeakButton text={q.prompt} />
           </div>
+          {/* Working first, answer second — and "prove you understand it" is a
+              poor place to ask for steps with nowhere to put them. */}
+          <WorkSheet
+            questionId={q.id}
+            label={t("work.label")}
+            placeholder={t("work.ph")}
+            note={t("work.note")}
+          />
           {q.responseKind === "numeric" ? (
             <NumericAnswer
               unit={q.tolerance?.unit}
@@ -323,9 +353,23 @@ export default function SolvePage() {
           )}
           {picked === null && <StarterMode conceptId={q.conceptId} questionId={q.id} lang={lang} />}
           {correct !== null && (
-            <div className={`feedback ${correct ? "ok" : "no"}`}>
-              <span className="verdict">{correct ? "✓ " + t("solve.nailed") : "✗ " + t("solve.notYet")}</span>
-            </div>
+            // Keyed by question, so the previous answer's working cannot sit
+            // under a fresh verdict (see MarkedPanel).
+            <MarkedPanel
+              key={q.id}
+              correct={correct}
+              choices={q.choices}
+              answerIndex={answerIndex}
+              explanation={explanation}
+              misconceptionId={misconceptionId}
+              lang={lang}
+              proof={verdictForGrade(demonstrated, correct)}
+              t={t}
+              correctLabel={t("learn.correct")}
+              wrongLabel={t("learn.wrong")}
+              answerLabel={t("fb.answerIs")}
+              explainLabel={t("learn.explain")}
+            />
           )}
           {flare && <MicroDiagnostic flare={flare} lang={lang} />}
           {saved && <p className="small muted">{t("offline.answerSaved")}</p>}
@@ -350,6 +394,12 @@ export default function SolvePage() {
             <PromptText text={q.prompt} />
             <SpeakButton text={q.prompt} />
           </div>
+          <WorkSheet
+            questionId={q.id}
+            label={t("work.label")}
+            placeholder={t("work.ph")}
+            note={t("work.note")}
+          />
           {q.responseKind === "numeric" ? (
             <NumericAnswer
               unit={q.tolerance?.unit}
@@ -376,9 +426,21 @@ export default function SolvePage() {
             </div>
           )}
           {correct !== null && (
-            <div className={`feedback ${correct ? "ok" : "no"}`}>
-              <span className="verdict">{correct ? "✓ " + t("solve.transferOk") : "✗ " + t("solve.transferNo")}</span>
-            </div>
+            <MarkedPanel
+              key={q.id}
+              correct={correct}
+              choices={q.choices}
+              answerIndex={answerIndex}
+              explanation={explanation}
+              misconceptionId={misconceptionId}
+              lang={lang}
+              proof={verdictForGrade(demonstrated, correct)}
+              t={t}
+              correctLabel={t("learn.correct")}
+              wrongLabel={t("learn.wrong")}
+              answerLabel={t("fb.answerIs")}
+              explainLabel={t("learn.explain")}
+            />
           )}
           {saved && <p className="small muted">{t("offline.answerSaved")}</p>}
           {err && <p className="small">{err}</p>}
