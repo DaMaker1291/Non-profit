@@ -176,6 +176,40 @@ school laptop and wrong in a container. `lib/env.ts` reports this as a note, and
 **PROPOSED** — a shared cache/queue for multi-instance deployments. Next.js's
 self-hosting guidance calls this out; this repo is single-instance today.
 
+### 6.1 Proving the store is durable, not just writable
+
+`/api/ready` answers "is the store writable", and a writable store inside a
+container's ephemeral layer answers **yes** — right up to the redeploy that
+discards it. So the durability claim is tested by the one fact that separates
+the two products: **does the record outlive the process?**
+
+```text
+npm run verify:persistence                 # complete test, locally, automatically
+
+# against a deployment (a restart cannot be triggered from here, so it is two phases)
+OPENMIND_BASE=https://… npm run verify:persistence -- --write
+#   … now restart or redeploy the instance …
+OPENMIND_BASE=https://… npm run verify:persistence -- --verify
+```
+
+Local mode builds the artefact, boots it on a temp store, creates a learner with
+a real diagnostic sitting, a practice answer and a class, then **stops the
+process, boots a second one over the same store** and requires every fact back:
+the profile, the evidence ledger (byte-identical), the answers, the concept's
+whole dimension row, the projection version, the class and its join code. It
+also asserts the write landed in the directory it was *pointed at* and nowhere
+else, because a deployment that ignored `OPENMIND_DATA_DIR` would pass every
+other assertion while writing a classroom into its own image.
+
+The remote half refuses to pass unless a restart genuinely happened. The witness
+is `/api/health`'s own `uptimeSeconds`: if the process start time is unchanged
+from the write phase, the same process answered, nothing restarted, and a green
+result would be a lie.
+
+Set `OPENMIND_DATA_DIR` to a mounted volume (Fly's `/data`, a Render disk, a
+Docker volume) and keep `OPENMIND_SESSION_SECRET` beside that mount's backup —
+the secret signs every session cookie, so losing it signs every learner out.
+
 ## 7. Configuration and secrets
 
 Everything OpenMind reads is listed in `.env.example` and validated by
@@ -216,6 +250,8 @@ Rules:
 6. GET /api/ready    → 200 (storage writable, config well-formed, content loaded)
 7. npm run smoke     → public pages, assets, health, 404 handling
 8. npm run verify:permissions + verify:sync against the deployed base URL
+9. npm run verify:persistence -- --write → restart the instance → --verify
+   (the record must survive it; a redeploy may never wipe a learner)
 ```
 
 ## 9. CI (what runs, and where)

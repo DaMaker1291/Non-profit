@@ -1,0 +1,115 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Fly.io — the host this repository's own artefact is built for.
+#
+# WHY THIS FILE EXISTS. Nothing was wrong with the artefact: `image.yml` already
+# builds the repository's Dockerfile and publishes it to
+# ghcr.io/damaker1291/non-profit on every push to main, and that package is
+# public (an anonymous pull resolves, HTTP 200). What was never chosen was a
+# HOST — `deploy-staging.yml` says so in its own annotation: "staging is not
+# configured (STAGING_DEPLOY_HOOK secret and STAGING_URL variable). Skipping the
+# deploy step — this is a template, not a live environment."
+#
+# Fly is the smallest host that satisfies the three things the app actually
+# needs, and each of them is a hard constraint from the code, not a preference:
+#
+#   1. A PERSISTENT DISK. The store is a directory of JSON/JSONL files
+#      (`OPENMIND_DATA_DIR`), not a database. `lib/env.ts` reports a data
+#      directory inside the app directory as a PROBLEM, because a redeploy would
+#      discard a classroom. So the volume below is mounted at /data and
+#      OPENMIND_DATA_DIR points at it.
+#
+#   2. EXACTLY ONE MACHINE. The volume holds the only copy of every learner's
+#      ledger, and a Fly volume attaches to one machine at a time. Autoscaling,
+#      a rolling deploy that boots a second machine, or a second region would
+#      FORK that record silently — the worst failure this product can have.
+#      Hence `min_machines_running = 1`, no autoscaling, and
+#      `strategy = "immediate"` (stop, then start) rather than rolling.
+#
+#   3. HTTPS TERMINATED IN FRONT. The session cookie sets `Secure` only when the
+#      request arrives over HTTPS or carries `x-forwarded-proto: https`
+#      (`lib/server/auth.ts#cookieAttributes`). Fly terminates TLS and sets that
+#      header, so a learner on a phone gets the flag with no code change. A
+#      plain-HTTP deployment would silently lose it.
+#
+# FIRST DEPLOY (once, from a machine with flyctl):
+#   fly launch --no-deploy --copy-config --name openmind
+#   fly volumes create openmind_data --size 1 --region lhr
+#   fly secrets set OPENMIND_SESSION_SECRET="$(openssl rand -hex 32)"
+#   fly deploy
+#
+# THEN, the sequence docs/DEPLOYMENT.md §8 already prescribes — because a build
+# that starts is not a deployment that works:
+#   curl -fsS https://<app>.fly.dev/api/health     # liveness
+#   curl -fsS https://<app>.fly.dev/api/ready      # storage writable, config OK
+#   OPENMIND_BASE=https://<app>.fly.dev npm run smoke
+#   OPENMIND_BASE=https://<app>.fly.dev npm run verify:permissions
+#   OPENMIND_BASE=https://<app>.fly.dev npm run verify:sync
+#
+# IN CI, once a FLY_API_TOKEN repository secret exists, the same deploy runs from
+# the workflow instead of a laptop (`flyctl deploy --remote-only`).
+# ─────────────────────────────────────────────────────────────────────────────
+
+app = "openmind"
+
+# ONE REGION, deliberately. A second region is a second machine, and a second
+# machine cannot attach the volume that holds the record. Pick the region nearest
+# the learners — lhr (London) is a placeholder, not a recommendation.
+primary_region = "lhr"
+
+[build]
+  # THE ARTEFACT IS BUILT AND PUBLISHED BY CI, NOT HERE. `image.yml` runs the
+  # repository's own Dockerfile and pushes to GHCR on every push to main, so a
+  # deploy never rebuilds from someone's working tree: production is an artefact,
+  # and the artefact already exists. Swap this for `dockerfile = "Dockerfile"`
+  # only if you would rather Fly build it.
+  image = "ghcr.io/damaker1291/non-profit:latest"
+
+[env]
+  # The Dockerfile sets these too; repeated so this deployment's shape is
+  # readable from one file. `PORT` must match `internal_port` below.
+  OPENMIND_DATA_DIR = "/data"
+  PORT = "4173"
+  # OPENMIND_DEPLOYMENT_ID is what `/api/health` reports, so you can tell which
+  # artefact a learner was on. Set it per release — the commit SHA is the obvious
+  # value (docs/DEPLOYMENT.md §11).
+  # OPENMIND_DEPLOYMENT_ID = ""
+  #
+  # Everything else is optional and NOTHING is required: a deployment with no AI
+  # key serves the deterministic offline tutor and says which of the two
+  # answered. Worth setting before this is public, though:
+  #   OPENMIND_IMPACT_KEY      gates the funder-facing aggregate report
+  #   OPENMIND_AI_BASE_URL     your own OpenAI-compatible endpoint
+  #   OPENMIND_AI_KEY
+  #   OPENMIND_AI_MODEL
+
+[[mounts]]
+  source = "openmind_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 4173
+  force_https = true
+  # Never scale to zero and never run two: this machine holds the only replica of
+  # the store. `auto_start_machines` stays true so a stopped machine comes back on
+  # the first request.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    # `/api/ready` is the readiness probe this repository documents for a load
+    # balancer — "an instance that is not ready is never sent traffic". It checks
+    # storage writable, config well-formed and content loaded, which is exactly
+    # what must be true before a learner is handed a question.
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/api/ready"
+
+[deploy]
+  # STOP, THEN START — deliberately not "rolling". A rolling deploy boots the new
+  # machine before stopping the old one, and the new machine cannot attach a
+  # volume the old one still holds. A few seconds of downtime is the honest trade
+  # for never running two writers over one learner's ledger.
+  strategy = "immediate"

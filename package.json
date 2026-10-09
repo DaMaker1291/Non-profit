@@ -27,6 +27,7 @@
     "verify:permissions": "node scripts/verify-permissions.mjs",
     "verify:sync": "node scripts/verify-offline-sync.mjs",
     "verify:content-release": "node scripts/verify-content-release.mjs",
+    "verify:persistence": "node scripts/verify-persistence.mjs",
     "db:migrate": "node scripts/migrate.mjs up",
     "db:status": "node scripts/migrate.mjs status",
     "db:down": "node scripts/migrate.mjs down",
