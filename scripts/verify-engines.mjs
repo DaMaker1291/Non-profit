@@ -2135,7 +2135,22 @@ console.log("▸ Curriculum specifications");
     `GCSE Foundation is a proper subset of the genome (${found.covered}/${genome.CONCEPTS.length})`);
   const ind = S.specById("any-independent");
   const indAdv = S.coverageReport({ spec: ind, level: ind.levels[ind.levels.length - 1] });
-  ok(indAdv.covered === genome.CONCEPTS.length, "the independent pathway can reach the whole genome");
+  // THE PATHWAY, not one level of it.
+  //
+  // This used to require `any-independent·advanced` to cover all 135 on its own.
+  // It could only do that by claiming the stage-0 arithmetic concepts, and
+  // claiming them at an advanced tier is precisely the defect `npm run
+  // content-audit` measured: a cohort targeting 0.8 asked for `addition`, whose
+  // generator ceiling is 0.30, so the concept could never be served at its own
+  // course's level. What the invariant actually needs is that NO CONCEPT IS
+  // UNREACHABLE — and the pathway's own lower levels still teach them — so the
+  // claim is now made about the union of its levels. Nothing became unreachable;
+  // the deepest level simply stopped pretending to be every level at once.
+  const indReachable = new Set(ind.levels.flatMap((l) => S.coverageOf({ spec: ind, level: l }).map((c) => c.id)));
+  ok(indReachable.size === genome.CONCEPTS.length,
+    `every concept is reachable through the independent pathway (${indReachable.size}/${genome.CONCEPTS.length} across its levels)`);
+  ok(indAdv.covered < genome.CONCEPTS.length,
+    `and its deepest level no longer claims the stage-0 arithmetic (${indAdv.covered} of ${genome.CONCEPTS.length})`);
 
   // Terminology: a mapping that never matches real content is decoration, and
   // one that maps a word to itself is a no-op pretending to be a decision.
@@ -2289,7 +2304,16 @@ console.log("▸ Paper analysis");
   const uk = spec.specById("uk-gcse");
   ok(Boolean(uk), "the UK GCSE specification resolves for the paper test");
   const active = { spec: uk, level: uk.levels[uk.levels.length - 1] };
-  const built = papers.buildPaper({ active, subject: "maths", seed: "analysis-1" });
+  // The seed is part of the FIXTURE, and this fixture needs an idea tested twice:
+  // `recurring` (an idea that cost marks more than once) is the input the
+  // assertions below exist to exercise, and a paper of 24 questions over 55
+  // concepts can legitimately draw 24 distinct ones. Measured on the current
+  // bank: seed "analysis-1" now yields 24 distinct concepts and NO repeat, while
+  // "analysis-2" yields 3 repeats, "analysis-3" 2, "x" 3 and "y" 3. Pick a seed
+  // that shows the behaviour rather than weakening the assertion — and note the
+  // paper is still 24 questions and the repeats are a property of the draw, not
+  // a guarantee, so this stays a real assertion rather than a tautology.
+  const built = papers.buildPaper({ active, subject: "maths", seed: "analysis-2" });
   ok(built.key.questions.length > 10, `a real paper is built to analyse (${built.key.questions.length} questions)`);
 
   // Every question wrong: the diagnosis must account for every mark, name the
@@ -4241,6 +4265,48 @@ console.log("▸ The question bank");
       ok(deepCarriers.length > 0,
         `and the interpreting band through ${deepCarriers.length} (${deepCarriers.join(", ")})`);
     }
+
+    // ── THE LADDER'S BAND WINDOW IS A FUNCTION OF THE TIER ────────────────
+    // Pinned after a measurement that reading the code would not have told you:
+    // the set of demand bands a cohort's PRACTICE can ever serve is fixed by its
+    // tier, not by its content. `practiceTarget` moves only within
+    // [tier - 0.12, min(0.9, tier + 0.22)], and `skillForDifficulty` labels by
+    // difficulty threshold — so a top-tier course cannot reach the two lowest
+    // bands at all. Measured:
+    //
+    //   declared 0.35–0.45 → recall, application, multi_step
+    //   declared 0.70–0.90 → multi_step, data_interpretation ONLY
+    //
+    // This is not a fault in the ladder: an A-level learner practising at their
+    // own level IS doing multi-step work, and forcing an artificial recall drill
+    // would be the easier question this project refuses to serve. But it has a
+    // consequence no surface may paper over, and it is why this is asserted
+    // rather than left as a comment: for every course declared ≥ 0.70, a
+    // learner's `recall` and `application` evidence can be established once and
+    // then NEVER REFRESHED by practice. Pinned so the limit is visible in CI,
+    // and so widening or narrowing that window is a deliberate, reviewed change
+    // rather than a silent side effect of tuning a constant.
+    {
+      const bandsForTier = (tier) => {
+        const rungs = [
+          bank.practiceTarget({ tier, attempts: 0, correct: 0, streak: 0 }),
+          bank.practiceTarget({ tier, attempts: 10, correct: 3, streak: 0 }),
+          bank.practiceTarget({ tier, attempts: 10, correct: 1, streak: 0, misconceptionHits: 3 }),
+          bank.practiceTarget({ tier, attempts: 40, correct: 38, streak: 6, misconceptionHits: 0 }),
+        ];
+        return bank.SKILL_LADDER.filter((s) => rungs.some((r) => bank.skillForDifficulty(r.difficulty) === s));
+      };
+      const top = bandsForTier(0.9);
+      ok(JSON.stringify(top) === JSON.stringify(["multi_step", "data_interpretation"]),
+        `a degree-tier course's practice can only ever serve ${top.join(" + ")} — so recall and application are structurally unreachable for it`);
+      const low = bandsForTier(0.35);
+      ok(low[0] === "recall" && low.length === 3,
+        `while a primary-tier course still reaches ${low.join(" + ")}`);
+      const levels = specs.SPECIFICATIONS.flatMap((s) => s.levels);
+      const noRecall = levels.filter((l) => !bandsForTier(l.difficulty).includes("recall")).length;
+      ok(noRecall > 0 && noRecall < levels.length,
+        `${noRecall} of ${levels.length} declared levels cannot reach the recall band in practice — reported, not hidden, and NOT attributed to the learner`);
+    }
   }
   {
     // A narrow qualification must report a shortfall rather than pad itself.
@@ -4440,6 +4506,117 @@ console.log("▸ The question bank");
     ok(staticQuestion.includes("E.questionBank.declareQuestion(q)"),
       "the published question screen declares the same item from the same rule");
     ok(staticQuestion.includes('t("ask.whatTesting")'), "in the same words");
+  }
+
+  // ── A marked answer TEACHES, and every surface teaches the same way ──────
+  // The server has always sent the teaching WITH the verdict — the worked
+  // `explanation`, and the `misconceptionId` a wrong answer sat on. The signed-in
+  // concept page rendered both. The two ANONYMOUS surfaces stored only `correct`
+  // and threw the rest away, so the first answer a stranger ever gave came back
+  // as a bare "✗ Not yet" with nothing else on the screen: a verdict with no
+  // teaching measures nothing and teaches nothing, and it is the one thing a
+  // learner must never be shown.
+  //
+  // These are source tripwires on purpose. The defect is invisible to every
+  // other check — the API answers exactly as documented, the ledger records the
+  // answer correctly, and only the learner sees the missing half — so the shape
+  // of the surface is the only cheap place to catch it coming back.
+  {
+    const panel = fs.readFileSync("components/marked-panel.tsx", "utf8");
+    ok(panel.includes("{explanation}"),
+      "the marked panel renders the worked explanation it was handed");
+    ok(panel.includes("MISCONCEPTIONS_BY_ID") && panel.includes("mcName(") && panel.includes("mcCoaching("),
+      "and names the belief a wrong answer sat on, in the learner's own language");
+    ok(panel.includes("choices[answerIndex]"),
+      "and tells a wrong answer which one was right — typed or picked alike");
+    for (const surface of ["app/try/[concept]/page.tsx", "app/solve/page.tsx"]) {
+      const src = fs.readFileSync(surface, "utf8");
+      ok(src.includes("<MarkedPanel"), `${surface} marks an answer with the shared panel`);
+      ok(src.includes("setExplanation(o.grade.explanation)") && src.includes("setMisconceptionId(o.grade.misconceptionId)"),
+        "…and keeps the teaching the server sent with the verdict");
+      ok(!src.includes('className={`feedback ${correct ? "ok" : "no"}`}'),
+        "…and no longer renders a verdict on its own");
+    }
+  }
+
+  // ── The working area exists, and it is PAPER ─────────────────────────────
+  // The question experience asked for an ANSWER and gave nowhere to work: the
+  // stylesheet had declared `.answer-input` — "big enough to read your own
+  // working in" — and no surface in the product ever rendered it. A learner
+  // doing long division, rearranging a formula or balancing an equation had to
+  // hold the whole thing in their head.
+  //
+  // The claim this feature makes is a PRIVACY one, so it is asserted at the
+  // source and not only rendered: the sheet must never transmit or store what
+  // the learner writes. A future change that wants to MARK the working — name
+  // the step that slipped, as the brief's feedback example does — has to go
+  // through the evidence path like every other claim here, and this assertion is
+  // what makes that a decision instead of an accident.
+  {
+    const sheet = fs.readFileSync("components/work-sheet.tsx", "utf8");
+    ok(sheet.includes("<textarea"), "the scratch sheet renders a field to write in");
+    ok(!/\bfetch\(|localStorage|sessionStorage|navigator\.sendBeacon/.test(sheet),
+      "and never uploads or stores the working — it is the learner's own paper");
+    ok(sheet.includes("[questionId]"),
+      "and is kept per QUESTION, so a retry is the same sheet rather than a blank one");
+    for (const [surface, stages] of [
+      ["app/learn/[subject]/[concept]/page.tsx", 1],
+      ["app/try/[concept]/page.tsx", 1],
+      ["app/solve/page.tsx", 2],
+    ]) {
+      const src = fs.readFileSync(surface, "utf8");
+      const found = (src.match(/<WorkSheet/g) ?? []).length;
+      ok(found === stages,
+        `${surface} gives the learner somewhere to work (${found}/${stages} question stages)`);
+      ok(src.includes('t("work.label")') && src.includes('t("work.ph")') && src.includes('t("work.note")'),
+        "…labelled from the dictionary, including the sentence about who can see it");
+    }
+    // The stylesheet and the component cannot drift apart AGAIN: the field the
+    // CSS declares is the field the product actually renders.
+    const css = fs.readFileSync("app/globals.css", "utf8");
+    ok(css.includes(".work-paper"), "the stylesheet styles the sheet itself");
+    // The SELECTOR, not the string: the stylesheet's comment above `.work-sheet`
+    // explains which dead rule it replaced and names it, so a substring test
+    // here would fire on the explanation rather than on a rule.
+    ok(!/^\.answer-input\s*\{/m.test(css),
+      "and no rule declares a working field that nothing renders");
+    // An added class that resets `outline` is the classic way a field ends up
+    // unreachable by keyboard. This one must not be: the shared `textarea:focus`
+    // ring is the affordance, and the sheet leaves it as the owner. Asserted
+    // here because the regression is invisible except to somebody pressing Tab.
+    const paperBlock = css.match(/\.work-paper\s*\{([^}]*)\}/)?.[1] ?? "";
+    ok(paperBlock.length > 0 && !/outline/.test(paperBlock),
+      "and leaves the keyboard focus ring to the shared rule instead of switching it off");
+  }
+
+  // ── WHAT AN ANSWER PROVED, said the same way on every surface (§10) ──────
+  // The server has always attributed every answer — the mode it was done under,
+  // its own hint count, the evidence source, whether a delayed recall held —
+  // and the signed-in concept page turned that into one word. The two ANONYMOUS
+  // surfaces stored only `correct` and dropped the attribution, so the same
+  // answer was "independent work" on one screen and nothing at all on another —
+  // including on /solve's PROVE stage, whose entire point is autonomy.
+  //
+  // `verdictForGrade` is the ONE place the loose wire shape is narrowed into the
+  // rule's input. This block asserts the wiring, because the defect is invisible
+  // to the API suite: the grade is right, and only the learner is told less.
+  {
+    const proof = fs.readFileSync("lib/proof.ts", "utf8");
+    ok(proof.includes("export function verdictForGrade("),
+      "one rule narrows the wire attribution into a verdict (lib/proof#verdictForGrade)");
+    const panel = fs.readFileSync("components/marked-panel.tsx", "utf8");
+    ok(panel.includes("proofLabelKey(") && panel.includes("proofSentenceKey("),
+      "and the marked panel names the proof through that vocabulary, never a literal");
+    const learn = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+    ok(learn.includes("verdictForGrade(graded.evidence, graded.correct)"),
+      "the signed-in question screen asks the shared rule instead of keeping its own copy");
+    for (const surface of ["app/try/[concept]/page.tsx", "app/solve/page.tsx"]) {
+      const src = fs.readFileSync(surface, "utf8");
+      ok(src.includes("setDemonstrated(o.grade.demonstrated)"),
+        `${surface} keeps the attribution the server sent with the verdict`);
+      ok(src.includes("proof={verdictForGrade(demonstrated, correct)}"),
+        "…and hands it to the panel, so one answer is never described two ways");
+    }
   }
 }
 
@@ -7995,8 +8172,16 @@ console.log("▸ AI explains, never records");
   // route with grades, "I'm learning independently" is not one.
   ok(onb.includes('courseMissing.some((m) => m.missing.includes("grade"))'),
     "the course step can set the year group it is missing, instead of sending the learner back a step");
-  ok(onb.includes('<option value="" disabled>{t("onb.grade")}</option>'),
-    "and the year group it asks for cannot be answered with the placeholder");
+  // The placeholder must be a PROMPT, and it must not be selectable. It used to
+  // be `t("onb.grade")` — the very words of that field's own <span> label — so
+  // a learner read the same phrase twice: once as the label and once as the
+  // value already sitting in the box, and concluded there was nothing left to
+  // answer. Pinning the identical string was pinning the defect, so the check
+  // now asserts the two things that make it a prompt rather than a claim.
+  ok(onb.includes('<option value="" disabled>{t("onb.pickGrade")}</option>'),
+    "the year group's placeholder says what to do and cannot be picked");
+  ok(!/<option value=""[^>]*>\{t\("onb\.grade"\)\}<\/option>/.test(onb),
+    "and it is never the field's own label printed back as if it were an answer");
 
   // ── A step change is a page change ─────────────────────────────────────
   // Measured on a phone: advancing left the new step wherever the last one was
@@ -8045,6 +8230,30 @@ console.log("▸ AI explains, never records");
     "choosing a qualification does not enrol the learner at the qualification's first tier");
   ok(onb.includes('<option value="" disabled>{t("onb.pickLevel")}</option>'),
     "and an unchosen tier says so, rather than painting the first tier as the learner's own answer");
+  // The SAME trap on the qualification select, where it was worse. Its empty
+  // option read "I'm learning independently" — an ANSWER, in a box the gate then
+  // refuses, because `courseGaps` reports `spec` missing whenever no
+  // qualification is set. Measured live: a learner saw the qualification filled
+  // in, chose a tier, and found `Next` dead with every visible field apparently
+  // answered. A prompt says what to do; a claim with nothing behind it is the
+  // form lying to the person filling it in.
+  ok(onb.includes('<option value="" disabled>{t("onb.pickSpec")}</option>'),
+    "an unchosen qualification is a prompt, not an answer the gate will refuse");
+  ok(!/<option value="">\{t\("onb\.independent"\)\}<\/option>[\s\S]{0,220}options\.map/.test(onb),
+    "and the qualification select no longer offers a selectable empty answer");
+  // ── A DEAD BUTTON IS EXPLAINED WHERE IT IS ─────────────────────────────
+  // The course step disabled `Next` with its only explanation in a `muted`
+  // line above the form, phrased in the product's own vocabulary. This asserts
+  // the sentence exists AND that it is derived from the same gate the button
+  // reads — so the two cannot drift into disagreeing about what is missing.
+  ok(onb.includes("const needText = ") && onb.includes('fill(t("onb.needFields")'),
+    "the course step says, in the imperative, what Next is waiting for");
+  // ...and reads the SAME gate the button does, so the sentence and the disabled
+  // state cannot drift apart into disagreeing about what is still missing.
+  ok(/const needText = [\s\S]{0,400}?canAdvance\(\)/.test(onb),
+    "and derives what is missing from the gate that disabled the button");
+  ok(onb.includes('className="field-error wizard-need"'),
+    "and prints it beside the button rather than above the form");
 
   // ── Said once, where it is true ────────────────────────────────────────
   const noteUses = (onb.match(/t\("onb\.subjectsNote"\)/g) ?? []).length;
@@ -8953,6 +9162,61 @@ console.log("▸ The years a learner can declare");
   ).includes("grade"), "while a year the system does not have is still refused");
 }
 
+// ── EVERY COUNTRY THE PICKER OFFERS CAN FINISH A COURSE ─────────────────────
+// The other half of the same requirement, and the one that was a WALL rather
+// than a wrong list. The enrolment wizard's course step disables `Next` on
+// `courseGaps(profile, subject).length === 0`, so any field this function
+// reports as missing is a field the learner must be able to fix ON THAT SCREEN.
+// `country` was reported whenever `curriculumFor(country)` was null — and 53 of
+// the 70 countries the picker offers have no national route, so a learner who
+// honestly chose France, Germany, Italy, Spain, Japan, China, Vietnam or any of
+// the other unmodelled countries could create an account and then never leave
+// step 4 of 6: `Next` was disabled for ever, and Back could only reach a screen
+// that offered no way to satisfy it either. Measured live, and it is why this
+// reads as "sign-up does not work".
+//
+// The rule asserted here is the one the learner experiences: choose a country,
+// a year from that country's own list, a qualification that country offers for
+// the subject, and a tier — and NOTHING is left missing. It is checked for every
+// offered country rather than a sample, because the defect was a long tail.
+console.log("▸ Every offered country can complete a course");
+{
+  const C = require("../.verify/curriculum.js");
+  const S = require("../.verify/specifications.js");
+  const { COUNTRIES } = require("../.verify/i18n.js");
+  const problems = [];
+  for (const { code } of COUNTRIES) {
+    // What the wizard itself offers for this country: `curriculumFor(country)
+    // ?? INDEPENDENT_ROUTE` is the fallback both the step and the gate apply.
+    const route = C.curriculumFor(code) ?? C.INDEPENDENT_ROUTE;
+    if (route.grades.length === 0) problems.push(`${code}: offers no years to choose`);
+    const options = S.specOptionsFor(code, "maths");
+    if (options.length === 0) { problems.push(`${code}: offers no qualification for maths`); continue; }
+    const spec = options[0];
+    const gaps = S.courseGaps(
+      {
+        country: code,
+        grade: route.grades[0],
+        subjects: ["maths"],
+        subjectCourses: { maths: { spec: spec.id, specLevel: spec.levels[0].id } },
+      },
+      "maths",
+    );
+    if (gaps.length > 0) problems.push(`${code}: still missing ${gaps.join("+")}`);
+  }
+  ok(COUNTRIES.length >= 60, `the picker's own country list was read (${COUNTRIES.length} countries)`);
+  ok(problems.length === 0,
+    `and every one of them can finish a course (${problems.slice(0, 5).join("; ") || "none blocked"})`);
+  // The direction that keeps the rule honest: an unmodelled country is answered
+  // with a REAL pathway, not with silence. France gets the independent route's
+  // years, and a learner there is asked for a qualification rather than refused.
+  const fr = C.curriculumFor("FR");
+  ok(fr === null, "a country with no national entry still has none (the fallback is the step's, not a fabricated route)");
+  const frGaps = S.courseGaps({ country: "FR", grade: "Core", subjects: ["maths"] }, "maths");
+  ok(!frGaps.includes("country"), "but such a country is never reported as a missing course field");
+  ok(frGaps.includes("spec"), "while the qualification itself is still required, so the choice stays the learner's");
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // HOME = ONE DAY (what to do, why, and the deadline)
 // ════════════════════════════════════════════════════════════════════════════
@@ -9578,9 +9842,14 @@ console.log("▸ Specification isolation: an advanced learner is not routed to e
     level: SPECIFICATIONS.find((s) => s.id === "int-ib").levels.find((l) => l.id === "hl"),
   }).filter((c) => c.subject === "maths");
   const juniorInHl = hlMaths.filter((c) => conceptDepth(c.id) < 0.5);
+  // This assertion used to pin the KNOWN declaration gap (`> 0`). The gap is now
+  // CLOSED by lib/specifications.ts#PRIMARY_ARITHMETIC, so it pins the fix:
+  // a stage-0 concept reappearing inside an advanced tier fails the suite rather
+  // than being reported as a number nobody acts on. The count is still printed,
+  // because "0 of 55" is the evidence and "0" alone is not.
   ok(
-    juniorInHl.length > 0,
-    `int-ib/hl still declares junior maths inside an advanced tier (${juniorInHl.length} of ${hlMaths.length}) — this assertion pins the KNOWN declaration gap so it is reported, not silently grown`,
+    juniorInHl.length === 0,
+    `int-ib/hl declares no junior maths inside an advanced tier (${juniorInHl.length} of ${hlMaths.length})`,
   );
 }
 
@@ -9641,8 +9910,13 @@ console.log("▸ One declared course drives every layer");
     `the declared course resolves to its specification and tier (${activeH.spec.id}/${activeH.level.id})`);
   ok(coveredH.has("quadratics") && !coveredH.has("logs") && !coveredH.has("calculus-diff"),
     "and the Higher tier's own exclusions are honoured (no logs, no calculus)");
-  ok(coveredF.has("fractions") && !coveredF.has("completing-square") && coveredF.size !== coveredH.size,
-    "and a different tier is a DIFFERENT curriculum — Foundation excludes completing-square and is not Higher's set");
+  // The claim is about the SET, and size was only ever a proxy for it — and a
+  // wrong one once Higher stopped examining stage-0 arithmetic while Foundation
+  // still does: the two sets differ in content while landing on the same count.
+  // Assert the difference itself, which is what the sentence has always said.
+  const setsDiffer = [...coveredF].some((id) => !coveredH.has(id)) || [...coveredH].some((id) => !coveredF.has(id));
+  ok(coveredF.has("fractions") && !coveredF.has("completing-square") && setsDiffer,
+    `and a different tier is a DIFFERENT curriculum — Foundation excludes completing-square and is not Higher's set (F ${coveredF.size} vs H ${coveredH.size}, differing)`);
 
   // 2. DIFFICULTY — the tier's band is what the serve aims at, and it moves
   //    what is actually served.

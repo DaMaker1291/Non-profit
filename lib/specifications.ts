@@ -623,7 +623,26 @@ export type CourseField = "country" | "grade" | "spec" | "specLevel";
  */
 export function courseGaps(profile: CourseFields, subject: SubjectId): CourseField[] {
   const c = courseForSubject(profile, subject);
-  const route = c.country ? curriculumFor(c.country) ?? (c.country === "XX" ? INDEPENDENT_ROUTE : null) : null;
+  // EVERY country that names somewhere has a route, because an unnamed one is
+  // not the learner's fault and must not be a wall. This read `?? (c.country
+  // === "XX" ? INDEPENDENT_ROUTE : null)` — only the explicit "Prefer not to
+  // say" got the independent pathway — while `specsFor`, ten lines below, has
+  // always fallen back to the international qualifications for ANY country it
+  // has no national entry for, under the comment "Never leave a country with no
+  // route." The two disagreed, and the disagreement was a dead end: 53 of the
+  // 70 countries the picker offers (France, Germany, Italy, Spain, Japan,
+  // China, Vietnam, Colombia, …) are not modelled, so `country` was reported as
+  // missing, the qualification step's own gate (`courseGaps.length === 0`)
+  // could never be satisfied, and `Next` stayed disabled for ever. Measured
+  // live: a learner could create an account and then never leave step 4 of 6 —
+  // which reads exactly like "sign-up does not work".
+  //
+  // The independent pathway IS a course — the rule this function's own doc
+  // states — and it carries real grades (Foundations / Core / Advanced) and
+  // real tiers, so the learner still has to choose a qualification and a level.
+  // Falling back here does not weaken the requirement; it removes a demand the
+  // product cannot honour.
+  const route = c.country ? curriculumFor(c.country) ?? INDEPENDENT_ROUTE : null;
   const out: CourseField[] = [];
   if (!route) out.push("country");
   if (route && !route.grades.includes(c.grade ?? "")) out.push("grade");
@@ -659,6 +678,70 @@ export function difficultyFor(active: ActiveSpec): number {
 
 // ── Coverage ────────────────────────────────────────────────────────────────
 
+/**
+ * Stage-0 primary arithmetic: the eight concepts a cohort ABOVE the foundation
+ * tier does not examine.
+ *
+ * WHY THIS LIST EXISTS, and why it is not a difficulty judgement. `npm run
+ * content-audit` measures the production serve path — per course and per
+ * concept, through `lib/operations.ts#servePractice`, the same function
+ * `/api/progress` calls — and found that the ENTIRE advanced-content shortfall
+ * is these eight. Each has a generator ceiling of 0.30–0.50; a cohort targeting
+ * 0.87–0.90 can therefore never be served at its own target for them. The
+ * measurement across all 271 course×subject rows: **0 shortfalls are search, 0
+ * are missing content, 412 are generator ceilings** — and 126 of the 135
+ * concepts meet their course's target exactly, including every physics,
+ * chemistry, biology and computing course at every level.
+ *
+ * So the fix is NOT a harder question. For a concept named `addition`, "more
+ * reasoning, more steps, an unfamiliar representation" is not a harder addition
+ * question — it is a different concept. And the engine suite deliberately
+ * depends on genuinely low-ceiling concepts existing (`negatives` drives the
+ * ceiling-climb test; `place-value` must score below `quadratics`).
+ *
+ * What was actually wrong was the ASSIGNMENT: these eight sat in 13 advanced
+ * maths cohorts — GCSE Higher, IB SL/HL, CBSE 11–12, HSC, KCSE Form 4 and the
+ * rest — because those levels declare `stages: [0, 4]`. A level whose tier is
+ * above `foundation` should not examine them. Note what is NOT done here: they
+ * are not removed from the genome, and every cohort genuinely learning them
+ * (foundation and below) still teaches them. A board that really does examine
+ * stage-0 arithmetic at an advanced tier can name the concept in `include`,
+ * which wins (see the precedence note on `excludedFromLevel`).
+ */
+const PRIMARY_ARITHMETIC: readonly string[] = [
+  "addition",
+  "subtraction",
+  "place-value",
+  "multiplication",
+  "division",
+  "order-ops",
+  "negatives",
+  "rounding",
+];
+
+/** Is this tier above the foundation tier? Derived from the TIERS ORDER rather
+ *  than a hand-written set of level ids, so a new level cannot be added with
+ *  the wrong behaviour by being forgotten from a list. */
+function tierTeachesPrimaryArithmetic(tier: TierId): boolean {
+  return TIERS.indexOf(tier) <= TIERS.indexOf("foundation");
+}
+
+/**
+ * THE ONE exclusion rule — read by BOTH `coverageOf` (the concept list) and
+ * `inSpecification` (the single-concept question), because a rule with two
+ * copies has two answers, and these two must never disagree about whether a
+ * concept is in a learner's course.
+ *
+ * Precedence, strongest first: an explicit `exclude` by name; then an explicit
+ * `include` by name; then this rule; then the stage window. So naming a concept
+ * in `include` is what a board does when it genuinely examines it, and naming
+ * it in `exclude` always wins.
+ */
+function primaryArithmeticExcluded(level: SpecLevel, conceptId: string, explicitlyIncluded: boolean): boolean {
+  if (explicitlyIncluded) return false;
+  return !tierTeachesPrimaryArithmetic(level.tier) && PRIMARY_ARITHMETIC.includes(conceptId);
+}
+
 function windowFor(spec: Specification, level: SpecLevel, subject: SubjectId): StageWindow | null {
   const specWin = spec.coverage[subject];
   if (!specWin) return null;
@@ -681,7 +764,10 @@ export function coverageOf(active: ActiveSpec): Concept[] {
     if (!win) continue;
     for (const c of bySubject(subject)) {
       const inWindow = c.stage >= win[0] && c.stage <= win[1];
-      if ((inWindow || include.has(c.id)) && !exclude.has(c.id)) out.push(c);
+      const named = include.has(c.id);
+      if (exclude.has(c.id)) continue;
+      if (primaryArithmeticExcluded(level, c.id, named)) continue;
+      if (inWindow || named) out.push(c);
     }
   }
   // Preserve genome order (subject groups, then stage) rather than lookup order.
@@ -720,7 +806,12 @@ export function inSpecification(active: ActiveSpec, conceptId: string): boolean 
   const win = windowFor(active.spec, active.level, c.subject);
   if (!win) return false;
   if (active.level.exclude?.includes(conceptId)) return false;
-  return (c.stage >= win[0] && c.stage <= win[1]) || (active.level.include?.includes(conceptId) ?? false);
+  // The SAME rule the concept list applies, not a second copy of it: these two
+  // must agree, or a course that omits `addition` from its map would still
+  // answer "yes, that is in your course" for it.
+  const named = active.level.include?.includes(conceptId) ?? false;
+  if (primaryArithmeticExcluded(active.level, conceptId, named)) return false;
+  return (c.stage >= win[0] && c.stage <= win[1]) || named;
 }
 
 /** Grade options a student can pick for their country, for the enrolment UI. */
