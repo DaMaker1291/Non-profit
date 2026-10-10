@@ -46,7 +46,13 @@ const sweepRecent = (name) => {
   console.log(`${name}: ${beforeN} -> ${kept.length}`);
 };
 sweepRecent("classes.json");
-sweepRecent("rooms.json");
+// NOT rooms. Recency is the WRONG test for a room, in BOTH directions: it
+// missed every room older than the window (the 164 that had to be quarantined
+// by hand) AND it deleted the real learner's own room if they happened to make
+// one within three hours of a cleanup run. Ownership is the right test, and it
+// is applied below once the profiles are gone — measured on the live store, an
+// e2e run forks rooms under handles that no surviving profile answers to, so
+// `liveHandles` already identifies them without a clock.
 sweepRecent("papers.json");
 sweepRecent("personal-papers.json");
 
@@ -65,10 +71,23 @@ sweepRecent("personal-papers.json");
 // profile id: that array is profile ids (`membersById` and `students` are
 // HANDLE-keyed, so they prove nothing either way, and `teacher` is the literal
 // role string, not an id). A PAPER is dead when its `owner` is gone — papers
-// are read owner-scoped too. A ROOM has no profile id anywhere in it
-// (`createdBy` and `members` are handles), so rooms are left to the recency
-// sweep rather than judged by a field that cannot carry the answer.
+// are read owner-scoped too.
+//
+// A ROOM carries NO profile id — `createdBy` and `members` are handles — so it
+// is judged on the handle instead, and the recency sweep stays in front of that
+// judgement. That is sound because of where the handle comes from:
+// `app/rooms/page.tsx` sends `state?.profile.handle ?? "guest"`, so a room a
+// real learner created carries THEIR handle, and a profile whose handle is
+// unset falls back to "guest" and is protected by name. This rule is what the
+// live store needed: it held 164 demo rooms (every one `subject: "physics"`
+// with an empty `conceptIds`) that the recency sweep alone never removed,
+// because it only ever looked at rooms from the CURRENT run. They were
+// quarantined by hand — see scripts/quarantine-fixture-rooms.mjs — and this is
+// the rule that stops the next 164 accumulating.
 const live = new Set(Object.keys(profiles));
+const liveHandles = new Set(
+  Object.values(profiles).map((v) => v.profile?.handle).filter((h) => typeof h === "string" && h),
+);
 
 const sweepWhere = (name, isGone, why) => {
   backup(name);
@@ -95,6 +114,19 @@ sweepWhere(
   "papers.json",
   (v) => typeof v.owner === "string" && v.owner && !live.has(v.owner),
   "whose owner is gone",
+);
+// Rooms: no surviving profile answers to any handle the room names. Age is
+// deliberately NOT part of this — a room made by the real learner minutes ago
+// is theirs and must survive, and a demo room made weeks ago must not.
+// "guest" is protected by name because that is the handle the rooms page sends
+// for a profile that never chose one, so it can be a real learner.
+sweepWhere(
+  "rooms.json",
+  (v) =>
+    !liveHandles.has(v.createdBy) &&
+    v.createdBy !== "guest" &&
+    !(v.members ?? []).some((m) => liveHandles.has(m) || m === "guest"),
+  "nobody owns",
 );
 
 // ── INTERVENTIONS (§8), the same proof as classes ─────────────────────────

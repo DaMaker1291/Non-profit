@@ -8171,6 +8171,58 @@ console.log("▸ AI explains, never records");
     "a message naming an idea in the room's own subject resolves to it");
   ok(roomMod.roomFocus(PHYSICS_ROOM, "I am stuck on fractions and denominators") === null,
     "and an idea from ANOTHER subject is not read as this room's focus — the room stays Physics");
+
+  // ── 3d-i. THE SWEEP, because one example pins the report and only a sweep
+  // pins the RULE. The line that shipped was `room.conceptIds[0] ??
+  // "linear-equations"` — a MATHS concept as the universal default — so EVERY
+  // non-maths room was taught algebra at once, and an example test would have
+  // caught exactly one of them. Two halves are asserted across all five
+  // subjects of the real genome: a room that declares nothing and is told
+  // nothing resolves to NOTHING, and a room told the title of an idea from its
+  // OWN subject resolves back into that subject and never into another.
+  {
+    const conceptSubject = new Map(genome.CONCEPTS.map((c) => [c.id, c.subject]));
+    const roomSubjects = [...new Set(genome.CONCEPTS.map((c) => c.subject))];
+    const defaulted = [];
+    const crossed = [];
+    let named = 0;
+    for (const subject of roomSubjects) {
+      const room = { subject, conceptIds: [], language: "en" };
+      const silent = roomMod.roomFocus(room, "zzz qqq");
+      if (silent !== null) defaulted.push(`${subject} → ${silent.conceptId}`);
+      for (const c of genome.bySubject(subject)) {
+        const got = roomMod.roomFocus(room, c.title);
+        if (!got) continue;
+        named++;
+        if (conceptSubject.get(got.conceptId) !== subject) {
+          crossed.push(`${subject} + "${c.title}" → ${got.conceptId} (${conceptSubject.get(got.conceptId)})`);
+        }
+      }
+    }
+    ok(roomSubjects.length >= 5,
+      `every subject in the genome is swept, not just physics (${roomSubjects.length}: ${roomSubjects.join(", ")})`);
+    ok(defaulted.length === 0,
+      `no room with no declared concept resolves a focus — nothing is defaulted, in any subject (${defaulted.join("; ") || `${roomSubjects.length} swept, all resolved to null`})`);
+    ok(crossed.length === 0,
+      `an idea named in a room resolves only within that room's OWN subject (${crossed.slice(0, 3).join("; ") || `${named} titles across ${roomSubjects.length} subjects resolved inside their own subject`})`);
+    // The shipped artefact, asserted BY NAME so a regression reads as itself.
+    const algebraRooms = roomSubjects
+      .filter((s) => s !== "maths")
+      .filter((s) => roomMod.roomFocus({ subject: s, conceptIds: [], language: "en" }, "why does the ball accelerate?")?.conceptId === "linear-equations");
+    ok(algebraRooms.length === 0,
+      "and no non-maths room is ever grounded in linear-equations — the default that shipped");
+  }
+  // And the SHAPE that produced it cannot come back: no hard-coded concept id
+  // in this module at all, and no `conceptIds[0] ?? …` fallback of any kind.
+  {
+    const roomSrc = fs.readFileSync("lib/server/room-tutor.ts", "utf8");
+    const code = roomSrc.replace(/^\s*\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    ok(!/conceptIds\s*\[\s*0\s*\]/.test(code),
+      "the room tutor never indexes conceptIds[0] — the expression the maths default was attached to");
+    ok(!/linear-equations/.test(code),
+      "and names no concept id at all, so no subject can be defaulted to by hand");
+  }
+
   const ask = roomMod.noFocusReply("physics", "en");
   ok(/\?/.test(ask) && /Physics/.test(ask),
     `the no-focus reply names the subject and still ends in a question (${ask.slice(0, 60)}…)`);
@@ -10383,6 +10435,77 @@ console.log("▸ The deployment reports its own configuration, and invents no re
     "an operator-declared deployment id is reported verbatim");
   ok(versionMod.deploymentDeclared({}) === false && versionMod.deploymentDeclared({ OPENMIND_DEPLOYMENT_ID: "x" }) === true,
     "and the report distinguishes a declared release from the local fallback");
+}
+
+// ▸ TWO WRITERS, TWO DIRECTORIES — and a production build that did not move
+// This is the regression test for a REAL outage, not a tidiness rule. `next dev`
+// and `next build` both rewrite their dist directory; while they shared `.next`,
+// starting the dev server deleted the running production server's BUILD_ID,
+// `standalone/server.js` and hashed `static/` tree. The live process kept
+// answering HTTP 200 with every asset it pointed at gone — a bare, unstyled page
+// and nothing in the response saying so. The fix moved DEVELOPMENT aside and
+// left production where every deployment path already looks, which is why it
+// cost no deploy-time change; the assertions below pin BOTH halves.
+console.log("▸ Two writers, two directories — and the deployment still finds production");
+{
+  const constants = require("next/constants");
+  const config = (await import("../next.config.mjs")).default;
+  const dev = config(constants.PHASE_DEVELOPMENT_SERVER, { defaultConfig: {} });
+  const prod = config(constants.PHASE_PRODUCTION_BUILD, { defaultConfig: {} });
+
+  ok(dev.distDir !== prod.distDir,
+    `\`next dev\` and \`next build\` write DIFFERENT directories (${dev.distDir} vs ${prod.distDir}) — a dev server can no longer delete the bundle a live production server is serving from`);
+  ok(prod.distDir === ".next",
+    `production keeps \`${prod.distDir}\`, the ONE directory every deployment path already names`);
+  ok(dev.distDir !== ".next" && dev.distDir.startsWith(".next"),
+    `and development is redirected to its own (${dev.distDir}), so the disposable build is the one that is disposable`);
+
+  // The override must still win, for BOTH phases: `npm run production-check`
+  // builds production into a scratch dir and starts its dev server that way, so
+  // the deploy checklist can never disturb an instance that is already serving.
+  const saved = process.env.NEXT_DIST_DIR;
+  process.env.NEXT_DIST_DIR = ".next-scratch";
+  const devOverride = config(constants.PHASE_DEVELOPMENT_SERVER, { defaultConfig: {} }).distDir;
+  const prodOverride = config(constants.PHASE_PRODUCTION_BUILD, { defaultConfig: {} }).distDir;
+  if (saved === undefined) delete process.env.NEXT_DIST_DIR;
+  else process.env.NEXT_DIST_DIR = saved;
+  ok(devOverride === ".next-scratch" && prodOverride === ".next-scratch",
+    `NEXT_DIST_DIR still overrides both phases (${devOverride}/${prodOverride}), so a gate can build somewhere harmless`);
+  ok(config(constants.PHASE_DEVELOPMENT_SERVER, { defaultConfig: {} }).distDir === dev.distDir,
+    "and the override leaves no residue — the next call decides from the phase again");
+
+  const ignored = fs.readFileSync(".gitignore", "utf8");
+  ok(new RegExp(`^${dev.distDir.replace(".", "\\.")}/?$`, "m").test(ignored),
+    `${dev.distDir} is gitignored, so a build directory is never committed`);
+
+  // ── THE CONTRACT, pinned at the source ─────────────────────────────────
+  // Isolating development is only safe BECAUSE production stayed at `.next`.
+  // These are the readers of that fact — an image build, the CI serve step, the
+  // launcher, the shared production-server primitives and the serve gate. A
+  // change that moves the production dist dir without updating every one of
+  // them ships a page that returns 200 and renders as bare HTML, which is the
+  // failure this whole section exists to prevent. Each is checked against the
+  // file's OWN expression for it, not against a comment.
+  const consumers = [
+    ["Dockerfile", /\/app\/\.next\//, "copies the standalone bundle and static tree out of /app/.next"],
+    [".github/workflows/gates.yml", /\.next\/standalone/, "assembles and serves .next/standalone in CI"],
+    ["start-openmind.sh", /DIST="\$\{NEXT_DIST_DIR:-\.next\}"/, "derives its dist dir from NEXT_DIST_DIR, defaulting to .next"],
+    ["scripts/production-server.mjs", /path\.join\(ROOT, "\.next", "standalone"\)/, "boots the artefact from .next/standalone"],
+    ["scripts/verify-build-assets.mjs", /arg\("dist", "\.next"\)/, "defaults its dist dir to .next"],
+  ];
+  for (const [file, pattern, what] of consumers) {
+    ok(pattern.test(fs.readFileSync(file, "utf8")),
+      `${file} ${what} — so production must stay at \`${prod.distDir}\``);
+  }
+
+  // And the npm scripts must not reintroduce the collision by hand: neither
+  // `dev` nor `build` may pin a dist dir of its own, or the config's phase rule
+  // would be silently bypassed.
+  const pkgScripts = JSON.parse(fs.readFileSync("package.json", "utf8")).scripts ?? {};
+  ok(dev.distDir !== prod.distDir && !/NEXT_DIST_DIR/.test(pkgScripts.dev ?? ""),
+    `\`npm run dev\` does NOT hard-code a dist dir (${pkgScripts.dev}) — the phase rule is the single source of truth`);
+  ok(!/NEXT_DIST_DIR/.test(pkgScripts.build ?? ""),
+    `and neither does \`npm run build\` (${pkgScripts.build})`);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
