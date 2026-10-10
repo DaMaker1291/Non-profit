@@ -89,19 +89,9 @@ export default function NeedsPanel({ me, clsId, onLaunch }: { me: string; clsId:
     setBusy(true);
     setErr("");
     try {
-  async function readOutcome(needId: string) {
-    setBusy(true);
-    setErr("");
-    try {
       const j = await needAction({ action: "read", id: me, clsId, needId });
       setOutcome(j.outcome as OutcomeView | null ?? null);
       setReadingId(needId);
-    } catch (e) {
-      setErr(e instanceof ApiError ? e.code || `HTTP ${e.status}` : "HTTP ?");
-    } finally {
-      setBusy(false);
-    }
-  }
     } catch (e) {
       setErr(e instanceof ApiError ? e.code || `HTTP ${e.status}` : "HTTP ?");
     } finally {
