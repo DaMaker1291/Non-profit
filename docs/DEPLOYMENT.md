@@ -90,6 +90,17 @@ returned HTTP 200. `scripts/verify-build-assets.mjs` and
 `scripts/verify-render.mjs` are the gates that make it impossible to serve that
 silently.
 
+**Why development builds somewhere else.** `next.config.mjs` keys the build
+directory on the Next PHASE: `next build`/`next start` write `.next` (what the
+Dockerfile, CI, the launcher above and `scripts/production-server.mjs` all name),
+and `next dev` writes `.next-dev`. That is not tidiness. While both shared
+`.next`, running `npm run dev` next to a served app **deleted the running
+server's bundle** — `BUILD_ID`, `standalone/server.js` and the hashed `static/`
+tree — and the live process carried on answering HTTP 200 with every asset it
+pointed at gone, which is precisely the unstyled page above. A dev server must
+never be able to touch a servable artefact, and `NEXT_DIST_DIR` overrides both
+phases for a gate that needs to build somewhere harmless.
+
 After **any** rebuild:
 
 1. restart the server (`./start-openmind.sh --stop; ./start-openmind.sh`),
