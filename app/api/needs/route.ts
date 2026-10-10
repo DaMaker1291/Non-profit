@@ -91,8 +91,17 @@ async function deriveNeeds(
  *  can never be looking for a name the derivation does not use. (`weak_rate`
  *  derives as `weak:<concept>` and `hint_dependent` as `hint:<concept>`; a
  *  composer that echoed the kind verbatim made both unreviewable, which is how
- *  a teacher's "prepare targeted work" silently 404'd.) */
-export function needIdFor(kind: FindingKind, conceptId: string, misconceptionId?: string): string {
+ *  a teacher's "prepare targeted work" silently 404'd.)
+ *
+ *  DELIBERATELY NOT EXPORTED. A `route.ts` is a Next entry point, and Next
+ *  generates a validator that requires the module to export HANDLERS and the
+ *  documented config keys — nothing else (`Diff<Base, TEntry>` must reduce to
+ *  `{ [x: string]: never }`). Exporting this one helper alongside `GET`/`POST`
+ *  fails that validator, so `npm run typecheck` went red for anyone who ran it
+ *  after a build. Nothing outside this file used either export, so they are
+ *  module-local now: the id is still composed in exactly one place, which is
+ *  what the comment above is about, and the module is a valid route again. */
+function needIdFor(kind: FindingKind, conceptId: string, misconceptionId?: string): string {
   switch (kind) {
     case "misconception": return `mis:${misconceptionId ?? ""}:${conceptId}`;
     case "weak_rate": return `weak:${conceptId}`;
@@ -159,8 +168,9 @@ interface Body {
 /** The next-step choices a teacher reads after the outcome. THE LIST IS THIS
  *  FUNCTION'S RETURN so the UI cannot diverge from the door about what is
  *  selectable — and it is exactly the options the mission names, no more:
- *  each one is an action the product can actually take. */
-export const DECISION_KINDS: readonly DecisionKind[] = [
+ *  each one is an action the product can actually take. Not exported, for the
+ *  route-contract reason stated above `needIdFor`. */
+const DECISION_KINDS: readonly DecisionKind[] = [
   "continue_concept",
   "repeat_practice",
   "address_prerequisite",

@@ -10437,6 +10437,46 @@ console.log("▸ The deployment reports its own configuration, and invents no re
     "and the report distinguishes a declared release from the local fallback");
 }
 
+// ▸ A route module exports handlers, and nothing else
+// `route.ts` is a Next entry point, and Next generates a validator per route
+// requiring the module to export the HTTP handlers plus the documented config
+// keys and nothing more (`Diff<Base, TEntry>` must reduce to `{ [x: string]:
+// never }`). One helper exported alongside `GET`/`POST` fails it — which is how
+// `npm run typecheck` went red for anyone who ran it after a build had generated
+// those validators, and green in CI, where typecheck runs before any build. That
+// environment-dependence is the real defect, so this asks the SOURCE, where the
+// answer is the same whether or not a build has run.
+console.log("▸ A route module exports handlers, and nothing else");
+{
+  // Exactly the keys Next's own generated validator allows. Kept as a list here
+  // for the same reason the validator has one: exporting anything else is not a
+  // style opinion, it is a contract violation.
+  const ROUTE_EXPORTS = new Set([
+    "GET", "HEAD", "OPTIONS", "POST", "PUT", "DELETE", "PATCH",
+    "config", "generateStaticParams", "revalidate", "dynamic", "dynamicParams",
+    "fetchCache", "preferredRegion", "runtime", "maxDuration", "experimental_ppr",
+  ]);
+  const routes = [];
+  (function walk(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = nodePath.join(dir, entry.name);
+      if (entry.isDirectory()) walk(p);
+      else if (entry.name === "route.ts" || entry.name === "route.tsx") routes.push(p);
+    }
+  })("app");
+  const offenders = [];
+  for (const r of routes) {
+    const names = [...fs.readFileSync(r, "utf8").matchAll(
+      /^export\s+(?:async\s+)?(?:function|const|let|class|interface|type|enum)\s+([A-Za-z0-9_$]+)/gm,
+    )].map((m) => m[1]);
+    const extra = names.filter((n) => !ROUTE_EXPORTS.has(n));
+    if (extra.length) offenders.push(`${r} exports ${extra.join(", ")}`);
+  }
+  ok(routes.length > 20, `every route module under app/ is scanned (${routes.length} found)`);
+  ok(offenders.length === 0,
+    `no route module exports a non-handler — a helper belongs in lib/, not beside GET/POST (${offenders.join("; ") || `${routes.length} routes checked, handlers only`})`);
+}
+
 // ▸ TWO WRITERS, TWO DIRECTORIES — and a production build that did not move
 // This is the regression test for a REAL outage, not a tidiness rule. `next dev`
 // and `next build` both rewrite their dist directory; while they shared `.next`,
