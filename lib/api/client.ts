@@ -828,9 +828,9 @@ export function assignmentAction(input: { action: "create" | "remove"; id: strin
 }
 
 // §8 · THE EVIDENCE-TO-INTERVENTION LOOP. A teacher's door: the findings are
-// derived SERVER-SIDE from the members' own ledgers, and every action任免s the
-// class's own teacher only. The shapes here are the DOOR's — local interfaces,
-// because lib/types.ts stays free of anything a surface cannot read.
+// derived SERVER-SIDE from the members' own ledgers, and every action answers
+// the class's own teacher only. The shapes here are the DOOR's — local
+// interfaces, because lib/types.ts stays free of anything a surface cannot read.
 
 /** One finding, as the door derives it (lib/server/needs.ts). */
 export interface ClassNeedView {
@@ -856,12 +856,18 @@ export interface InterventionView {
   conceptId: string;
   kind: ClassNeedView["kind"];
   status: "proposed" | "assigned" | "declined" | "resolved" | "superseded";
+  /** The intervention definition version the record was proposed under. */
+  version: number;
   ownerId: string;
   createdAt: number;
   assignedAt?: number;
   baseAt?: number;
   assignmentId?: string;
   targetHandles?: string[];
+  /** What the assignment actually covered, stamped at assign. */
+  assignedConceptIds?: string[];
+  /** The idea the outcome is read against, stamped at assign. */
+  objectiveId?: string;
   finding: ClassNeedView;
 }
 
@@ -882,6 +888,8 @@ export function needs(me: string, clsId?: string): Promise<NeedsBundle & { class
 
 export interface OutcomeView {
   verdict: "no_baseline" | "incomplete_followup" | "improved" | "no_change" | "still_difficult" | "not_enough_evidence";
+  /** The idea the before/after comparison was made on. */
+  objectiveId: string;
   members: Array<{
     handle: string;
     learnerId: string;

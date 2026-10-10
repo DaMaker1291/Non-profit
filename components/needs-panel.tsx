@@ -57,12 +57,18 @@ const ACTIONABLE: ReadonlySet<ClassNeedView["kind"]> = new Set(["misconception",
  *  is the editor — these are starting values a teacher changes before the
  *  review step, never a bypass of it. */
 export interface NeedLaunch {
+  /** The PROPOSED record this work is being set under. The builder's submit
+   *  goes through the needs door's own `assign`, which creates the assignment
+   *  AND stamps the record's baseline — the instant its outcome will be split
+   *  at. Launched without a record, an assignment would have no review behind
+   *  it and no outcome to read. */
+  needId: string;
   conceptId: string;
   targetHandles: string[];
   title: string;
 }
 
-export default function NeedsPanel({ me, clsId, onLaunch }: { me: string; clsId: string; onLaunch?: (n: NeedLaunch) => void }) {
+export default function NeedsPanel({ me, clsId, tick = 0, onLaunch }: { me: string; clsId: string; tick?: number; onLaunch?: (n: NeedLaunch) => void }) {
   const { t, lang } = useI18n();
   const [bundle, setBundle] = useState<NeedsBundle | null>(null);
   const [failed, setFailed] = useState("");
@@ -82,7 +88,9 @@ export default function NeedsPanel({ me, clsId, onLaunch }: { me: string; clsId:
     } catch (e) {
       setFailed(e instanceof ApiError ? e.code || `HTTP ${e.status}` : "HTTP ?");
     }
-  }, [me, clsId]);
+    // `tick` is the parent's word that something this panel reads has moved
+    // (work was just set from a review), so the records re-derive now.
+  }, [me, clsId, tick]);
   useEffect(() => { void load(); }, [load]);
 
   async function readOutcome(needId: string) {
@@ -114,13 +122,38 @@ export default function NeedsPanel({ me, clsId, onLaunch }: { me: string; clsId:
     }
   }
 
+  /** PROPOSE — the teacher reviewed the finding and wants a plan for it. The
+   *  RECORD is created first: the door re-derives the finding from the class's
+   *  own ledgers (a client cannot mint one from nothing), answers with the open
+   *  record when this was already proposed, and only then is a builder opened
+   *  on it. That ordering is what makes the loop measurable — the assignment
+   *  is stamped against THIS record's baseline. */
+  async function propose(need: ClassNeedView): Promise<InterventionView | null> {
+    setBusy(true);
+    setErr("");
+    try {
+      const j = await needAction({
+        action: "propose", id: me, clsId, kind: need.kind, conceptId: need.conceptId,
+        ...(need.misconceptionId ? { misconceptionId: need.misconceptionId } : {}),
+      });
+      await load();
+      return (j.record as InterventionView | undefined) ?? null;
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.code || `HTTP ${e.status}` : "HTTP ?");
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const actionable = (bundle?.needs ?? []).filter((n) => ACTIONABLE.has(n.kind));
   const info = (bundle?.needs ?? []).filter((n) => !ACTIONABLE.has(n.kind));
   const records = bundle?.records ?? [];
   const open = bundle?.needs.find((n) => n.id === openNeed) ?? null;
-  // The open record that matches the open need, for its status line.
+  // The open record for the open finding, at whichever stage of review it is
+  // — proposed (awaiting the work), assigned (outcome to read) or resolved.
   const openRecord = open
-    ? records.find((r) => r.conceptId === open.conceptId && (r.status === "assigned" || r.status === "resolved"))
+    ? records.find((r) => r.conceptId === open.conceptId && (r.status === "proposed" || r.status === "assigned" || r.status === "resolved"))
     : null;
 
   if (failed) {
@@ -175,7 +208,7 @@ export default function NeedsPanel({ me, clsId, onLaunch }: { me: string; clsId:
           {open.thin && <p className="small" style={{ margin: "0 0 6px" }}>⚠ {t("need.thin")}</p>}
           {openRecord && (
             <p className="small" style={{ margin: "0 0 6px" }}>
-              {t(openRecord.status === "assigned" ? "need.alreadyAssigned" : "need.alreadyRead")}
+              {t(openRecord.status === "proposed" ? "need.status.proposed" : openRecord.status === "assigned" ? "need.alreadyAssigned" : "need.alreadyRead")}
               {openRecord.status === "assigned" && openRecord.targetHandles && openRecord.targetHandles.length > 0
                 ? ` · ${openRecord.targetHandles.join(", ")}`
                 : ""}
@@ -193,24 +226,41 @@ export default function NeedsPanel({ me, clsId, onLaunch }: { me: string; clsId:
                 className="btn small"
                 disabled={busy}
                 onClick={() => {
-                  // Hand the finding to the work panel: it pre-fills the
-                  // concept, the learners and (on misconception findings)
-                  // a title naming the RULE being reviewed.
-                  onLaunch?.({
-                    conceptId: open.conceptId,
-                    targetHandles: open.handles,
-                    title: open.kind === "misconception" && open.misconceptionId
-                      ? `${MISCONCEPTIONS_BY_ID[open.misconceptionId]?.name ?? open.misconceptionId} — ${t("need.reviewTitleSuffix")}`
-                      : ctitle(lang, open.conceptId),
-                  });
-                  setOpenNeed(null);
+                  void (async () => {
+                    // PROPOSE, then open the builder ON the record. The order is
+                    // the point: the work is set through the needs door's own
+                    // `assign` (one creation path, one authorisation rule), and
+                    // the record carries the baseline the outcome is read at.
+                    const rec = await propose(open);
+                    if (!rec) return;   // the refusal is on screen; do not launch
+                    onLaunch?.({
+                      needId: rec.id,
+                      conceptId: open.conceptId,
+                      targetHandles: open.handles,
+                      title: open.kind === "misconception" && open.misconceptionId
+                        ? `${MISCONCEPTIONS_BY_ID[open.misconceptionId]?.name ?? open.misconceptionId} — ${t("need.reviewTitleSuffix")}`
+                        : ctitle(lang, open.conceptId),
+                    });
+                    setOpenNeed(null);
+                  })();
                 }}
               >{t("need.proposeWork")}</button>
               <button
                 type="button"
                 className="btn ghost small"
                 disabled={busy}
-                onClick={() => void act({ action: "decline", needId: undefined, kind: open.kind, conceptId: open.conceptId })}
+                onClick={() => {
+                  // DECLINED IS A RECORDED DECISION, not a dismissed dialog: the
+                  // proposal is recorded first (the review happened), then
+                  // declined — so "the teacher looked and chose not to act" is
+                  // traceable rather than invisible.
+                  void (async () => {
+                    const rec = await propose(open);
+                    if (!rec) return;
+                    await act({ action: "decline", needId: rec.id });
+                    setOpenNeed(null);
+                  })();
+                }}
               >{t("need.decline")}</button>
               <button type="button" className="btn ghost small" onClick={() => setOpenNeed(null)}>{t("common.close")}</button>
             </div>

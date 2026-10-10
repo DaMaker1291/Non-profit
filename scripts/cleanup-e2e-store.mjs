@@ -96,4 +96,37 @@ sweepWhere(
   (v) => typeof v.owner === "string" && v.owner && !live.has(v.owner),
   "whose owner is gone",
 );
+
+// ── INTERVENTIONS (§8), the same proof as classes ─────────────────────────
+// An intervention record is class state beside the roster: it is read only
+// through `withNeed(id, clsId, …)` and listed only for a class the caller
+// owns, so a record whose class is gone is unreachable exactly the way a dead
+// class is — and one whose owner is gone has no teacher who could ever read
+// it. Judged on the class it names (the file's own key: `clsId`) and the
+// teacher's profile id, both of which are real ids rather than handles.
+//
+// NOT `sweepWhere`: that helper treats a file as a map or a list, and this
+// file is neither — it is `{ records: [...], version }`. Read through the
+// wrapper, its two keys looked like the two "entries" and the sweep reported
+// "2 -> 2 dropped 0" while every record stayed (measured: 8 left behind).
+// The class set is read from the file the sweep above just rewrote, so the
+// answer is the SURVIVING set, not the pre-sweep one.
+// Only a store that has ever recorded one HAS this file — a fresh deployment's
+// does not — so a missing file is SKIPPED, not crashed into. `backup` copies
+// and would throw on the absent source, which would abort the cleanup halfway
+// (profiles and ledgers already swept) on a store that never used the loop.
+const ivPath = `${DIR}/interventions.json`;
+if (!fs.existsSync(ivPath)) {
+  console.log("interventions.json: none on this store");
+} else {
+  backup("interventions.json");
+  const ivFile = JSON.parse(fs.readFileSync(ivPath, "utf8"));
+  const liveClasses = new Set(
+    (JSON.parse(fs.readFileSync(`${DIR}/classes.json`, "utf8")) ?? []).map((c) => c.id),
+  );
+  const ivBefore = (ivFile.records ?? []).length;
+  const ivKept = (ivFile.records ?? []).filter((r) => live.has(r.ownerId) && liveClasses.has(r.clsId));
+  fs.writeFileSync(ivPath, JSON.stringify({ ...ivFile, records: ivKept }, null, 2));
+  console.log(`interventions.json: ${ivBefore} -> ${ivKept.length} (dropped ${ivBefore - ivKept.length} whose class or teacher is gone)`);
+}
 console.log("done");

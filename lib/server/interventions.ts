@@ -25,9 +25,12 @@
 // Status flow, every transition teacher-only and single-threaded through
 // `withNeed`, so a double race cannot mint two records:
 //   proposed → assigned → (read stays open until the teacher resolves it)
-// plus "declined" and marking superseded: a new proposal at the same
-// (class, concept, kind) keeps ONE record open — the newest — and records the
-// older one as superseded rather than silently stacking duplicates.
+// plus "declined". A repeat proposal at the same (class, concept, kind) reuses
+// the OPEN record it finds rather than stacking a duplicate — the teacher
+// already started reviewing this, so the second request answers with the same
+// record and `existing: true` (mission test 14). A declined/resolved record is
+// not "open", so a finding that persists can be reviewed again against a later
+// window, which is a fresh review and earns a fresh record.
 import { readJson, writeJson, withLock } from "./store";
 import type { FindingKind, InterventionRecord, InterventionStatus } from "../types";
 
@@ -88,9 +91,10 @@ export async function withNeed<T>(
 }
 
 /** The UNIQUE OPEN record (proposed or assigned) for a (class, concept, kind) —
- *  what `propose` is idempotent against. A declined/resolved one does not
- *  block a better-informed repeat: the teacher looked, the finding persisted,
- *  and a new review against a later window is a fresh review. */
+ *  what `propose` is idempotent against: a repeat returns THIS record rather
+ *  than minting a duplicate. A declined/resolved one does not block a
+ *  better-informed repeat: the teacher looked, the finding persisted, and a
+ *  new review against a later window is a fresh review. */
 export async function findOpen(
   clsId: string,
   conceptId: string,

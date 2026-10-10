@@ -23,6 +23,7 @@
     "e2e:fresh": "node scripts/run-production-e2e.mjs",
     "e2e:fresh:only": "node scripts/e2e-fresh-learner.mjs",
     "verify:ui": "node scripts/ui-walk.mjs",
+    "verify:ui:teacher": "node scripts/ui-walk-teacher.mjs",
     "verify:live": "node scripts/static-page-walk.mjs",
     "verify:permissions": "node scripts/verify-permissions.mjs",
     "verify:sync": "node scripts/verify-offline-sync.mjs",

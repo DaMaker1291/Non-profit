@@ -87,6 +87,10 @@ export default function TeacherPage() {
   // assignment-creation path and it stays one: the intervention changes what
   // the teacher STARTS with, never how the work is set.
   const [launch, setLaunch] = useState<Record<string, NeedLaunch | null>>({});
+  // A REVIEW WAS SET WORK FROM (§8): the panel that showed the finding is told
+  // to re-read, so its status line moves from "proposed" to "work set" without
+  // a full page reload.
+  const [needsTick, setNeedsTick] = useState<Record<string, number>>({});
 
   // Every class read and write is about the CALLER: a class carries its
   // learners' handles, their mastery and its join code, so the class door
@@ -178,14 +182,26 @@ export default function TeacherPage() {
 
   /** SET WORK: a real state transition on the class, drawn only from the
    *  curriculum the class declared. The concept list comes from the server's
-   *  own candidate list, so the picker cannot offer what the door refuses. */
-  async function setWork(clsId: string, body: { conceptIds: string[]; dueAt: number; title: string; subject?: SubjectId; targetHandles?: string[] }) {
+   *  own candidate list, so the picker cannot offer what the door refuses.
+   *
+   *  ONE CREATION PATH, TWO DOORS. Work born from a review goes through the
+   *  needs door's `assign`: it creates the assignment by the same rules (the
+   *  same curriculum check, the same target validation, the same record shape)
+   *  AND stamps the record's baseline — the instant the outcome is later split
+   *  at. Ordinary work, with no review behind it, still goes to the assignment
+   *  door exactly as before. */
+  async function setWork(clsId: string, body: { conceptIds: string[]; dueAt: number; title: string; subject?: SubjectId; targetHandles?: string[]; needId?: string }) {
+    const { needId, ...plan } = body;
     try {
-      await api.assignmentAction({ action: "create", id: meId(), clsId, ...body });
+      if (needId) await api.needAction({ action: "assign", id: meId(), clsId, needId, ...plan });
+      else await api.assignmentAction({ action: "create", id: meId(), clsId, ...plan });
     } catch (e) {
       throw new Error(failureText(e));
     }
     await refreshWork();
+    // The review the work was set under now has a record with a baseline, so
+    // the panel that showed the finding re-reads itself.
+    if (needId) setNeedsTick((n) => ({ ...n, [clsId]: (n[clsId] ?? 0) + 1 }));
   }
 
   async function removeWork(clsId: string, assignmentId: string) {
@@ -546,6 +562,7 @@ export default function TeacherPage() {
             <NeedsPanel
               me={meId()}
               clsId={cls.id}
+              tick={needsTick[cls.id] ?? 0}
               onLaunch={(n) => {
                 // One launch at a time per class; the panel itself opens below.
                 setLaunch((l) => ({ ...l, [cls.id]: n }));
@@ -729,7 +746,7 @@ function WorkPanel({
   cls: ClassRoster;
   owned?: OwnedClass;
   monitors: AssignmentMonitor[];
-  onSet: (body: { conceptIds: string[]; dueAt: number; title: string; subject?: SubjectId; targetHandles?: string[] }) => Promise<void>;
+  onSet: (body: { conceptIds: string[]; dueAt: number; title: string; subject?: SubjectId; targetHandles?: string[]; needId?: string }) => Promise<void>;
   onRemove: (assignmentId: string) => Promise<void>;
   /** A finding handed over by the NeedsPanel (§8): pre-populates the four
    *  steps with the concept, learners and title it names. Everything stays
@@ -750,6 +767,10 @@ function WorkPanel({
   const [whole, setWhole] = useState(true);
   const [targets, setTargets] = useState<string[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
+  // The record a launched review is being assigned under. Kept in state beside
+  // the launch's other values: the launch itself is consumed once (so it cannot
+  // re-apply on every render), and the record id must outlive that.
+  const [needId, setNeedId] = useState("");
   const [q, setQ] = useState("");
   const [due, setDue] = useState("");
   const [label, setLabel] = useState("");
@@ -764,7 +785,7 @@ function WorkPanel({
   // learners and title over, the builder OPENS on them as starting values:
   // whole-class off (the finding names the learners), the concept pre-picked,
   // the label pre-filled. Still every teacher's edit at every step.
-  const launchKey = launch ? `${launch.conceptId}|${launch.targetHandles.join(",")}|${launch.title}` : "";
+  const launchKey = launch ? `${launch.needId}|${launch.conceptId}|${launch.targetHandles.join(",")}|${launch.title}` : "";
   const consumedRef = useRef("");
   useEffect(() => {
     if (!launch || launchKey === consumedRef.current) return;
@@ -775,6 +796,7 @@ function WorkPanel({
     setTargets(launch.targetHandles);
     setPicked((p) => (p.includes(launch.conceptId) ? p : [...p, launch.conceptId]));
     setLabel((l) => (l ? l : launch.title));
+    setNeedId(launch.needId);
     onLaunchConsumed?.();
   }, [launch, launchKey, onLaunchConsumed]);
 
@@ -802,6 +824,7 @@ function WorkPanel({
     setQ("");
     setDue("");
     setLabel("");
+    setNeedId("");
     setErr("");
     consumedRef.current = "";
   }
@@ -819,6 +842,9 @@ function WorkPanel({
         conceptIds: picked,
         dueAt,
         title: label.trim(),
+        // A review behind this work: the needs door's `assign` stamps the
+        // record's baseline with the instant the work was set.
+        ...(needId ? { needId } : {}),
         ...(declared ? {} : { subject: declare as SubjectId }),
         // Absent for the whole class, so the record keeps its ordinary shape:
         // an empty list would say something the teacher did not.
@@ -857,7 +883,7 @@ function WorkPanel({
       {done && <p className="note" style={{ margin: "8px 0 0" }}>{done}</p>}
 
       {open && (
-        <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 10 }} data-work-builder data-work-step={step}>
           {/* THE FOUR QUESTIONS, with where you are marked. Read as a sequence,
               not scrolled as a form. */}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>

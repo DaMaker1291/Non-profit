@@ -15,6 +15,7 @@ import {
 import {
   findOpen,
   getRecord,
+  INTERVENTION_VERSION,
   listForClass,
   saveRecord,
   withNeed,
@@ -85,14 +86,22 @@ async function deriveNeeds(
   return { needs: [...main, ...gaps], curriculum };
 }
 
-/** The finding id a (kind, concept, misconception) describes — the one key a
- *  client must present for a proposal to be accepted. */
+/** The finding id a (kind, concept, misconception) describes — the ONE place
+ *  the id a proposal must present is composed, so the door's own re-derivation
+ *  can never be looking for a name the derivation does not use. (`weak_rate`
+ *  derives as `weak:<concept>` and `hint_dependent` as `hint:<concept>`; a
+ *  composer that echoed the kind verbatim made both unreviewable, which is how
+ *  a teacher's "prepare targeted work" silently 404'd.) */
 export function needIdFor(kind: FindingKind, conceptId: string, misconceptionId?: string): string {
-  return kind === "misconception"
-    ? `mis:${misconceptionId ?? ""}:${conceptId}`
-    : kind === "prereq_gap"
-      ? conceptId.startsWith("prereq:") ? conceptId : `prereq:?${conceptId}`
-      : `${kind}:${conceptId}`;
+  switch (kind) {
+    case "misconception": return `mis:${misconceptionId ?? ""}:${conceptId}`;
+    case "weak_rate": return `weak:${conceptId}`;
+    case "hint_dependent": return `hint:${conceptId}`;
+    // A prerequisite finding's id is the compound `prereq:<pre>:<target>` the
+    // derivation mints; the concept it acts on is the PREREQUISITE.
+    case "prereq_gap": return conceptId.startsWith("prereq:") ? conceptId : `prereq:?${conceptId}`;
+    case "unmeasured": return `unmeasured:${conceptId}`;
+  }
 }
 
 export async function GET(req: Request): Promise<NextResponse> {
@@ -138,6 +147,9 @@ interface Body {
   kind?: string;
   misconceptionId?: string;
   targetHandles?: string[];
+  /** assign: the concepts the teacher actually chose — the proposal
+   *  pre-populates one, and the builder may edit it before anything is set. */
+  conceptIds?: string[];
   title?: string;
   dueAt?: number;
   decision?: string;
@@ -187,17 +199,12 @@ export async function POST(req: Request): Promise<NextResponse> {
         }
         // The described finding MUST re-derive from the class's own ledgers —
         // a client cannot mint an intervention from nothing. The id is
-        // composed here, not fetched from the Network
-        const id = body.kind === "misconception"
-          ? `mis:${body.misconceptionId ?? ""}:${conceptId}`
-          : body.kind === "prereq_gap"
-            // prereq findings arrive as their full id (prereq:<pre>:<target>);
-            // <conceptId> on the body is the PREREQUISITE concept the record
-            // will act on.
-            ? null
-            : `${kind}:${conceptId}`;
+        // composed by the ONE composer, and a prerequisite finding is matched
+        // on the concept it acts on (its own id is the compound
+        // `prereq:<pre>:<target>`).
+        const id = needIdFor(kind, conceptId, body.misconceptionId);
         const { needs } = await deriveNeeds(cls, null);
-        const derived = body.kind === "prereq_gap"
+        const derived = kind === "prereq_gap"
           ? needs.find((n) => n.kind === "prereq_gap" && n.conceptId === conceptId)
           : needs.find((n) => n.id === id);
         if (!derived) {
@@ -220,6 +227,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           ...(derived.misconceptionId ? { misconceptionId: derived.misconceptionId } : {}),
           finding: derived,
           status: "proposed",
+          version: INTERVENTION_VERSION,
           ownerId: caller.profile.id,
           createdAt: Date.now(),
           // Targets stay open for the teacher to edit at assign time; the
@@ -259,9 +267,19 @@ export async function POST(req: Request): Promise<NextResponse> {
         // quietly widen it.
         if (!cls.subject) return NextResponse.json({ error: "declare this class's subject first" }, { status: 400 });
         const allowed = assignableConcepts(cls.subject, cls.specificationId ?? null);
-        if (!allowed.includes(rec0.conceptId)) {
-          return NextResponse.json({ error: "not in this class's curriculum" }, { status: 400 });
+        // THE TEACHER'S EDIT IS HONOURED. The proposal pre-populates the
+        // finding's concept and the builder may change it (or add practice
+        // beside it) before anything is set — so the assignment carries what
+        // the teacher chose, and the outcome is read against the finding's own
+        // idea when it is still among the choices (else the first chosen one).
+        const chosen = Array.isArray(body.conceptIds) && body.conceptIds.length > 0
+          ? [...new Set(body.conceptIds.filter((c): c is string => typeof c === "string" && c.length > 0))].slice(0, 12)
+          : [rec0.conceptId];
+        const outside = chosen.filter((c) => !allowed.includes(c));
+        if (outside.length > 0) {
+          return NextResponse.json({ error: `not in this class's curriculum: ${outside.join(", ")}` }, { status: 400 });
         }
+        const objective = chosen.includes(rec0.conceptId) ? rec0.conceptId : chosen[0];
 
         // THE ASSIGNMENT IS CREATED BY THE ONE CREATION PATH'S OWN RULES:
         // the same updateClassById transaction, the same curriculum check
@@ -282,7 +300,7 @@ export async function POST(req: Request): Promise<NextResponse> {
             title: title.slice(0, 80),
             subject: cls.subject as SubjectId,
             specificationId: c.specificationId ?? null,
-            conceptIds: [rec0.conceptId],
+            conceptIds: chosen,
             ...(targets.length > 0 ? { targetHandles: targets } : {}),
             createdAt: stamp,
             dueAt,
@@ -301,7 +319,16 @@ export async function POST(req: Request): Promise<NextResponse> {
           n.assignedAt = stamp;
           n.baseAt = stamp;               // the baseline instant
           n.assignmentId = r.assignment!.id;
-          if (n.targetHandles === undefined && targets.length > 0) n.targetHandles = targets;
+          // STAMPED, not assumed: what the teacher actually set (the edited
+          // concept list and the edited learners), and the idea the outcome is
+          // read against. `conceptId` is deliberately NOT touched: it is the
+          // record's stable identity, and the panel matches a review to a
+          // finding by it — re-stamping it would make a review whose concept
+          // the teacher replaced invisible on the very finding it came from.
+          n.assignedConceptIds = chosen;
+          n.objectiveId = objective;
+          if (targets.length > 0) n.targetHandles = targets;
+          else delete n.targetHandles;
           return n;
         });
         return NextResponse.json({ record: rec, assignment: r.assignment });
@@ -378,10 +405,14 @@ async function outcomeFor(
 ) {
   const targets = rec.targetHandles ?? [];
   const memberRows = (await resolveMembers(cls)).filter((m) => targets.length === 0 || targets.includes(m.handle));
+  // The idea the comparison is made on: the objective stamped at assign, else
+  // the finding's own concept (records written before that field existed).
+  const objective = rec.objectiveId ?? rec.conceptId;
   const outcomes: MemberOutcome[] = memberRows.map((m) =>
-    memberOutcome(readEvidence(m.state.profile.id), rec.conceptId, rec.baseAt ?? 0, m.handle, m.state.profile.id));
+    memberOutcome(readEvidence(m.state.profile.id), objective, rec.baseAt ?? 0, m.handle, m.state.profile.id));
   return {
     verdict: outcomeVerdict(outcomes),
+    objectiveId: objective,
     members: outcomes.map((o) => ({
       handle: o.handle,
       learnerId: o.learnerId,

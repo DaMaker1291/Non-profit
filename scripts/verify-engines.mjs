@@ -7816,6 +7816,47 @@ console.log("▸ Evidence→intervention: findings are honest, the outcome is me
     ], "fractions", baseAt, "h1", "lv_1"),
   ]);
   ok(thinAfter === "not_enough_evidence", `a tiny follow-up says NOT ENOUGH, not improved/no-change (${thinAfter})`);
+
+  // 5b · AN INTERVENTION CAN END WITHOUT IMPROVEMENT, AND THE PRODUCT SAYS SO.
+  // The pressure on a feature like this is always toward a happy ending — a
+  // verdict vocabulary that only has "improved" is a vocabulary that cannot
+  // report a lesson that did not work. Both directions are asserted, and the
+  // worsening one is asserted with enough evidence to be a claim rather than
+  // noise, so "still difficult" means what it says.
+  const declined = needs.outcomeVerdict([
+    // 2 of 2 unaided right before; 0 of 3 after — a real drop, not a slip.
+    needs.memberOutcome([
+      mk({ learnerId: "lv_1", at: T0 - 2 * DAY, questionId: "h1", correct: true }),
+      mk({ learnerId: "lv_1", at: T0 - 1 * DAY, questionId: "h2", correct: true }),
+      mk({ learnerId: "lv_1", at: T0 + 1 * DAY, questionId: "h3", correct: false }),
+      mk({ learnerId: "lv_1", at: T0 + 2 * DAY, questionId: "h4", correct: false }),
+      mk({ learnerId: "lv_1", at: T0 + 3 * DAY, questionId: "h5", correct: false }),
+    ], "fractions", baseAt, "h1", "lv_1"),
+  ]);
+  ok(declined === "still_difficult", `work that did not help reads as STILL DIFFICULT, not as progress (${declined})`);
+  const flat = needs.outcomeVerdict([
+    // Enough unaided evidence on both sides, and the SAME count of unaided
+    // right answers: no shift. (The first version of this fixture gave 1 right
+    // before and 2 after and was asserted to read "no change" — the rule
+    // returned `improved`, which is what it should do with 1 → 2, and the
+    // fixture was the thing that was wrong.)
+    needs.memberOutcome([
+      mk({ learnerId: "lv_1", at: T0 - 2 * DAY, questionId: "i1", correct: true }),
+      mk({ learnerId: "lv_1", at: T0 - 1 * DAY, questionId: "i2", correct: false }),
+      mk({ learnerId: "lv_1", at: T0 + 1 * DAY, questionId: "i3", correct: true }),
+      mk({ learnerId: "lv_1", at: T0 + 2 * DAY, questionId: "i4", correct: false }),
+      mk({ learnerId: "lv_1", at: T0 + 3 * DAY, questionId: "i5", correct: false }),
+      mk({ learnerId: "lv_1", at: T0 + 4 * DAY, questionId: "i6", correct: false }),
+      mk({ learnerId: "lv_1", at: T0 + 5 * DAY, questionId: "i7", correct: false }),
+      mk({ learnerId: "lv_1", at: T0 + 6 * DAY, questionId: "i8", correct: false }),
+    ], "fractions", baseAt, "h1", "lv_1"),
+  ]);
+  ok(flat === "no_change", `and a follow-up that demonstrated exactly as much says NO CLEAR CHANGE (${flat})`);
+  // The verdict vocabulary is closed: a caller cannot render a word the rule
+  // never returns, and every word the rule CAN return is one of these.
+  const VERDICTS = ["no_baseline", "incomplete_followup", "improved", "no_change", "still_difficult", "not_enough_evidence"];
+  ok([improved, declined, flat, noFollowUp, thinAfter].every((v) => VERDICTS.includes(v)),
+    `every verdict the rule produces is one of the six named states (${[improved, declined, flat, noFollowUp, thinAfter].join(", ")})`);
   // Wrong concept? It simply does not move: the outcome is the TARGET concept's
   // evidence only (test 10 of the mission — incompatible measures never silently compared).
   const other = needs.memberOutcome(split, "ratio", baseAt, "h1", "lv_1");

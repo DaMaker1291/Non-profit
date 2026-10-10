@@ -843,6 +843,10 @@ export interface InterventionRecord {
    *  must not move when the ledgers move. */
   finding: ClassNeed;
   status: InterventionStatus;
+  /** The INTERVENTION DEFINITION version this record was proposed under
+   *  (lib/server/interventions#INTERVENTION_VERSION). Stamped, never inferred:
+   *  a flow that changes later leaves old records legible as what they were. */
+  version: number;
   /** The teacher who proposed/acted. Every transition is theirs alone. */
   ownerId: string;
   createdAt: number;
@@ -852,8 +856,19 @@ export interface InterventionRecord {
   resolvedAt?: number;
   /** The target population: handles, as the assignment will carry them.
    *  Empty (undefined) means the whole class — the same semantics as an
-   *  assignment's absent `targetHandles`. */
+   *  assignment's absent `targetHandles`. Stamped at assign, so a teacher who
+   *  edits the proposal's learners is what the outcome is read over. */
   targetHandles?: string[];
+  /** The concepts the assignment ACTUALLY covered, stamped at assign — a
+   *  teacher may edit the proposal's idea or add practice beside it, and the
+   *  change is recorded rather than inferred back out of the assignment. */
+  assignedConceptIds?: string[];
+  /** The idea the OUTCOME is read against, stamped at assign. Normally the
+   *  finding's own concept (`conceptId`, which stays the record's stable
+   *  identity whatever the teacher edits); it differs only when the teacher
+   *  replaced the proposal's idea outright, and then the comparison is made on
+   *  what was actually set rather than on an idea nobody was given work on. */
+  objectiveId?: string;
   /** The assignment the review produced (one, not several: the record IS the
    *  link, and the door refuses a second create). */
   assignmentId?: string;

@@ -272,6 +272,128 @@ async function writeCanary(base, mode) {
   const cls = { id: made.body?.cls?.id ?? null, joinCode: made.body?.cls?.joinCode ?? null };
   ok(typeof cls.joinCode === "string" && cls.joinCode.length >= 4, "with a join code, which is the thing a restart most easily loses");
 
+  // ── A STUDENT IN THAT CLASS, so the class has a population and a ledger ──
+  // A stamp of its own: the learner's own stamp lives inside `createLearner`,
+  // and reaching for it here is how this line first died with a ReferenceError.
+  const stamp = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const pupilSecret = `persist-pupil-${stamp}-${Math.random().toString(36).slice(2)}`;
+  const pupil = await post(base, "/api/profile", {
+    handle: `persist_pupil_${stamp}`, country: "GB", language: "en", subjects: ["maths"], secret: pupilSecret,
+  });
+  const pupilId = pupil.body?.profile?.id ?? "";
+  ok(!!pupilId, "a student is created, to give the class something to measure");
+  const joined = await post(base, "/api/classes", { action: "join", id: pupilId, secret: pupilSecret, joinCode: cls.joinCode, handle: `persist_pupil_${stamp}` });
+  ok(joined.status === 200, `and joins the class (HTTP ${joined.status})`);
+  // Real evidence on the concept the review will be about. `negatives` is used
+  // because every one of its shapes carries the same named slip, so the
+  // recurring-pattern fixture is deterministic rather than a lucky draw.
+  // ── HOW A PRODUCTION BUILD IS ANSWERED, WITHOUT THE KEY ───────────────────
+  // This test runs against the STANDALONE PRODUCTION artefact, where the
+  // `reveal` test hook does not exist (asserted elsewhere, on purpose) — a
+  // fixture that sent `answerValue` sent `"NaN"` and recorded nothing at all.
+  // The first draft answered by TRIAL — try an option, trust the grade — and it
+  // was unrepeatable in BOTH directions: an incidental correct guess in the
+  // "miss" phase lands on the BEFORE side of the baseline, and a "correct"
+  // phase whose guesses all land wrong records no correct answer at all (seen
+  // live as `still_difficult` with after.correct = 0 < before.correct = 1 — a
+  // verdict about the fixture wearing the costume of a fact about the class).
+  // So the fixture COMPUTES the item instead. `negatives` serves exactly two
+  // families at this level — the numeric "Work out …" shapes
+  // (lib/numeric-items-core.ts) and the deep temperature-table item
+  // (lib/questions-deep.ts) — and the solver below covers both. Anything else
+  // is PRINTED and fails loudly, so a bank change cannot flake silently.
+  const serveQuestion = async (who, secret, conceptId) => {
+    const s = await post(base, "/api/progress", { action: "serve", id: who, secret, conceptId });
+    return s.status === 200 ? s.body?.question ?? null : null;
+  };
+  /** The item's own arithmetic. The bank writes minus as U+2212 and times as
+   *  U+00D7, so both are matched rather than assumed to be ASCII. */
+  const negativeValue = (prompt) => {
+    const p = String(prompt ?? "");
+    const calc = /Work out\s+\(?(-?\d+)\)?\s*([+\u2212\u00d7])\s*\(?(-?\d+)\)?/.exec(p);
+    if (calc) {
+      const a = Number(calc[1]), b = Number(calc[3]);
+      return calc[2] === "+" ? a + b : calc[2] === "\u2212" ? a - b : a * b;
+    }
+    const from = /06:00:\s*(-?\d+)/.exec(p);
+    const to = /14:00:\s*(-?\d+)/.exec(p);
+    if (from && to) return Number(to[1]) - Number(from[1]);
+    return null;
+  };
+  const optionNumber = (choice) => {
+    const m = /^-?\d+(?:\.\d+)?/.exec(String(choice ?? ""));
+    return m ? Number(m[0]) : null;
+  };
+  /** One answer, chosen by the arithmetic: the option that IS the computed
+   *  value (correct), or one that is not (wrong). Exactly one event per call,
+   *  so both slices of the comparison are the fixture's decision, not luck. */
+  const answerNegatives = async (who, secret, wantCorrect) => {
+    const q = await serveQuestion(who, secret, "negatives");
+    const value = negativeValue(q?.prompt);
+    if (!q?.id || value == null) {
+      console.log(`      [fixture] unrecognised negatives shape: ${JSON.stringify(q?.prompt ?? null)}`);
+      return null;
+    }
+    const nums = (q.choices ?? []).map(optionNumber);
+    const idx = wantCorrect ? nums.findIndex((n) => n === value) : nums.findIndex((n) => n !== value);
+    if (idx < 0) return null;
+    const r = await post(base, "/api/progress", {
+      action: "answer", id: who, secret, conceptId: "negatives", questionId: q.id, choiceIndex: idx,
+    });
+    if (r.status !== 200 || r.body?.correct !== wantCorrect) return null;
+    return r.body;
+  };
+  // Two misses carrying the slip, and one other student with a miss of their
+  // own, so the class-wide finding has a population behind it.
+  const missA = await answerNegatives(pupilId, pupilSecret, false);
+  const missB = await answerNegatives(pupilId, pupilSecret, false);
+  const mateSecret = `persist-mate-${stamp}-${Math.random().toString(36).slice(2)}`;
+  const mate = await post(base, "/api/profile", {
+    handle: `persist_mate_${stamp}`, country: "GB", language: "en", subjects: ["maths"], secret: mateSecret,
+  });
+  const mateId = mate.body?.profile?.id ?? "";
+  await post(base, "/api/classes", { action: "join", id: mateId, secret: mateSecret, joinCode: cls.joinCode, handle: `persist_mate_${stamp}` });
+  const missC = await answerNegatives(mateId, mateSecret, false);
+  // Guarded so the finding below cannot pass VACUOUSLY: the pattern has to
+  // exist in the ledgers before the derivation is asked about it.
+  ok(!!missA && !!missB && !!missC, "two students each record a real miss on the concept (the fixture the finding needs)");
+  const needsRead = await authedMe(base, "/api/needs", learner.id, learner.secret, { cls: cls.id });
+  const finding = (needsRead.body?.needs ?? []).find((n) => n.kind === "misconception" && n.conceptId === "negatives");
+  ok(!!finding, `the class's own answers produce a recurring-slip finding (${finding?.kind}:${finding?.misconceptionId ?? "none"})`);
+
+  // ── AN INTERVENTION: proposed, assigned, and its outcome read ────────────
+  // The loop's own record is written to a FILE beside the class, and it holds
+  // the one number the whole comparison rests on: `baseAt`, the instant the
+  // baseline was frozen. A redeploy that lost it would leave every review
+  // unable to say what happened — so it is part of what a restart must keep.
+  const proposed = finding
+    ? await post(base, "/api/needs", {
+      action: "propose", id: learner.id, secret: learner.secret, clsId: cls.id,
+      kind: finding.kind, conceptId: finding.conceptId, misconceptionId: finding.misconceptionId,
+    })
+    : { status: 0, body: null };
+  const rec = proposed.body?.record ?? null;
+  ok(proposed.status === 200 && !!rec?.id, `a finding is proposed for review (HTTP ${proposed.status})`);
+  const dueAt = Date.now() + 3 * 24 * 60 * 60 * 1000;
+  const assigned = rec
+    ? await post(base, "/api/needs", {
+      action: "assign", id: learner.id, secret: learner.secret, clsId: cls.id, needId: rec.id, dueAt,
+      targetHandles: ["persist_pupil_" + stamp], conceptIds: ["negatives"], title: "Persistence review",
+    })
+    : { status: 0, body: null };
+  const assignedRec = assigned.body?.record ?? null;
+  ok(assigned.status === 200 && assignedRec?.status === "assigned" && typeof assignedRec?.baseAt === "number",
+    `the approved proposal becomes work with a baseline instant (HTTP ${assigned.status}, baseAt=${assignedRec?.baseAt})`);
+  // One more answer AFTER the baseline: the follow-up slice, which is what
+  // makes the outcome a comparison rather than a zero.
+  const followUp = await answerNegatives(pupilId, pupilSecret, true);
+  ok(!!followUp, "and the targeted student records a correct answer after the baseline");
+  const outcomeRead = rec
+    ? await post(base, "/api/needs", { action: "read", id: learner.id, secret: learner.secret, clsId: cls.id, needId: rec.id })
+    : { status: 0, body: null };
+  ok(outcomeRead.status === 200 && outcomeRead.body?.outcome?.verdict === "improved",
+    `and the outcome is a measured comparison (${outcomeRead.body?.outcome?.verdict})`);
+
   // ── WHAT MUST SURVIVE, recorded field by field ────────────────────────────
   const summary = await authed(base, "/api/evidence-summary", learner.id, learner.secret);
   ok(summary.status === 200, `the learner's own record is readable (HTTP ${summary.status})`);
@@ -324,6 +446,20 @@ async function writeCanary(base, mode) {
     projection,
     cls,
     groundedEvents,
+    intervention: {
+      id: rec?.id ?? null,
+      status: assignedRec?.status ?? null,
+      baseAt: assignedRec?.baseAt ?? null,
+      assignmentId: assignedRec?.assignmentId ?? null,
+      targetHandles: assignedRec?.targetHandles ?? null,
+      assignedConceptIds: assignedRec?.assignedConceptIds ?? null,
+      version: assignedRec?.version ?? null,
+      verdict: outcomeRead.body?.outcome?.verdict ?? null,
+      memberBefore: outcomeRead.body?.outcome?.members?.[0]?.before ?? null,
+      memberAfter: outcomeRead.body?.outcome?.members?.[0]?.after ?? null,
+    },
+    pupil: { id: pupilId, secret: pupilSecret },
+    mate: { id: mateId, secret: mateSecret },
     canaryEvidence: { answers, events, projection, spec, onboardedAt, mastery: graded.body?.mastery ?? null, classJoinCode: cls.joinCode, conceptId },
   };
 }
@@ -386,6 +522,36 @@ async function verifyCanary(base, canary, { expectRestart = true } = {}) {
   const found = (classRead.body?.classes ?? []).find((c) => c.id === canary.cls.id) ?? null;
   ok(found != null, "the class the learner created is still there");
   okSame(found?.joinCode ?? null, canary.cls.joinCode, "with the same join code — the thing a learner has written on the board");
+
+  // ── THE INTERVENTION (§8): the review, its frozen baseline, its outcome ───
+  // The strongest claim of the whole loop is that a review can still say what
+  // happened to the class it was set for. That needs the record AND the pupils'
+  // ledgers, so both are re-read here and compared field by field.
+  const needsAfter = await authedMe(base, "/api/needs", l.id, l.secret, { cls: canary.cls.id });
+  ok(needsAfter.status === 200, `the class's learning needs still read (HTTP ${needsAfter.status})`);
+  const recAfter = (needsAfter.body?.records ?? []).find((r) => r.id === canary.intervention.id) ?? null;
+  ok(recAfter != null, "the intervention review the teacher started is still there");
+  okSame(recAfter?.status ?? null, canary.intervention.status, "with the same status");
+  okSame(recAfter?.baseAt ?? null, canary.intervention.baseAt,
+    "and the SAME baseline instant — the moment the comparison is split at, which a redeploy must never move");
+  okSame(recAfter?.assignmentId ?? null, canary.intervention.assignmentId, "still naming the work it set");
+  okSame(recAfter?.targetHandles ?? null, canary.intervention.targetHandles, "the learners it was set for");
+  okSame(recAfter?.assignedConceptIds ?? null, canary.intervention.assignedConceptIds, "and the concepts it actually covered");
+  okSame(recAfter?.version ?? null, canary.intervention.version, "under the same intervention definition version");
+  const outcomeAfter = await post(base, "/api/needs", {
+    action: "read", id: l.id, secret: l.secret, clsId: canary.cls.id, needId: canary.intervention.id,
+  });
+  ok(outcomeAfter.status === 200, `and its outcome still reads (HTTP ${outcomeAfter.status})`);
+  okSame(outcomeAfter.body?.outcome?.verdict ?? null, canary.intervention.verdict,
+    "with the same verdict — the comparison is a function of the ledgers, and they survived");
+  okSame(outcomeAfter.body?.outcome?.members?.[0]?.before ?? null, canary.intervention.memberBefore,
+    "and the baseline slice is byte-identical: the same unaided history, on the same side of the instant");
+  okSame(outcomeAfter.body?.outcome?.members?.[0]?.after ?? null, canary.intervention.memberAfter,
+    "as is the follow-up slice");
+  // The targeted pupil's own ledger, which the outcome is derived from.
+  const pupilLedger = await authed(base, "/api/evidence", canary.pupil.id, canary.pupil.secret);
+  ok(pupilLedger.status === 200 && (pupilLedger.body?.events ?? []).length >= 3,
+    `the targeted student's own record survived too (${(pupilLedger.body?.events ?? []).length} events)`);
 
   // ── The decision, still derived from that evidence ────────────────────────
   const next = await authed(base, "/api/next", l.id, l.secret);
@@ -530,6 +696,14 @@ async function runRemoteVerify() {
     step("Cleanup");
     const gone = await eraseRemote(base, canary.learner);
     ok(gone, "the test learner's record is erased from the deployment (profile, ledger and class membership)");
+    // …and the two students the class fixture created, which remote mode would
+    // otherwise leave on a real host forever: erasure takes each profile, its
+    // ledger and its class membership in one act.
+    for (const who of [canary.pupil, canary.mate]) {
+      if (!who?.id) continue;
+      const pGone = await eraseRemote(base, who);
+      ok(pGone, `the fixture student ${who.id.slice(0, 12)}… is erased as well`);
+    }
     if (gone) fs.rmSync(CANARY, { force: true });
     if (canary.learner.email == null) {
       console.log("  · this learner was created with a capability secret, not a sign-up account — nothing was left behind");

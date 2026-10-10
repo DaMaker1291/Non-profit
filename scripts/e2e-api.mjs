@@ -2908,6 +2908,219 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
   ok(peek.status === 401, `the course record is behind the same capability rule (${peek.status})`);
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// 22. THE EVIDENCE-TO-INTERVENTION LOOP (§8)
+// ════════════════════════════════════════════════════════════════════════════
+// The teacher journey, over the real doors: a class's own ledgers produce a
+// finding; the teacher opens it, proposes, EDITS it and assigns; the students'
+// new answers are split at the baseline instant; and the teacher records the
+// next decision. The RULES are pinned in the engines suite (§8 there); this is
+// the DOOR — who may read it, what a repeat does, who is targeted, and what a
+// learner who was not targeted can see. `negatives` is used because every one
+// of its question shapes carries the same named slip (`neg-slip`), so the
+// recurring-pattern fixture is deterministic rather than a lucky draw.
+console.log("▸ Evidence→intervention: the loop, over its own doors");
+{
+  const IV_DAY = 24 * 60 * 60 * 1000;
+  const ivT = await newProfile({ handle: "iv_teacher_e2e", country: "GB", language: "en", subjects: ["maths"] });
+  const ivTid = ivT.body?.profile?.id;
+  const ivC = await post("/api/classes", {
+    id: ivTid, action: "create", name: "Intervention E2E", subject: "maths", specificationId: "uk-gcse",
+  });
+  const ivCid = ivC.body?.cls?.id;
+  const ivCode = ivC.body?.cls?.joinCode;
+  ok(ivT.status === 200 && !!ivTid && !!ivCid, "a teacher declares a class with its course (so its curriculum is known)");
+  const ivStudent = async (handle) => {
+    const p = await newProfile({ handle, country: "GB", language: "en", subjects: ["maths"] });
+    const id = p.body?.profile?.id;
+    await post("/api/classes", { id, action: "join", joinCode: ivCode, handle });
+    return id;
+  };
+  const s1 = await ivStudent("iv_s1");   // shows the pattern
+  const s2 = await ivStudent("iv_s2");   // shows the pattern too
+  const s3 = await ivStudent("iv_s3");   // has evidence; does not show it
+  const s4 = await ivStudent("iv_s4");   // never answered — UNMEASURED
+  const IV = "negatives";
+  for (let i = 0; i < 2; i++) { await gradeOne(s1, IV, false); await gradeOne(s2, IV, false); }
+  await gradeOne(s3, IV, true);
+
+  // ── WHO MAY ASK ──────────────────────────────────────────────────────────
+  const noCap = await call(`/api/needs?me=${ivTid}`);
+  ok(noCap.status === 401, `the needs door answers nothing without the capability (${noCap.status})`);
+  const asMember = await getAuthed(`/api/needs?me=${s1}&cls=${ivCid}`, s1);
+  ok(asMember.status === 403, `a member who is not the teacher cannot read the class's needs (${asMember.status})`);
+  const otherT = await newProfile({ handle: "iv_other_e2e", country: "GB", language: "en", subjects: ["maths"] });
+  const otherTid = otherT.body?.profile?.id;
+  const asOther = await getAuthed(`/api/needs?me=${otherTid}&cls=${ivCid}`, otherTid);
+  ok(asOther.status === 403, `nor can another teacher inspect a class they do not own (${asOther.status})`);
+  const otherPropose = await post("/api/needs", {
+    action: "propose", id: otherTid, clsId: ivCid, kind: "misconception", conceptId: IV, misconceptionId: "neg-slip",
+  });
+  ok(otherPropose.status === 403, `and cannot propose against it either (${otherPropose.status})`);
+
+  // ── THE FINDING, AND ITS POPULATION ──────────────────────────────────────
+  const found = await getAuthed(`/api/needs?me=${ivTid}&cls=${ivCid}`, ivTid);
+  ok(found.status === 200 && Array.isArray(found.body.needs), `the teacher reads the class's derived needs (${found.status})`);
+  const ivNeeds = found.body.needs ?? [];
+  const mis = ivNeeds.find((n) => n.kind === "misconception" && n.conceptId === IV);
+  ok(!!mis && mis.misconceptionId === "neg-slip",
+    `the recurring slip on the class's own answers surfaces as a finding (${ivNeeds.filter((n) => n.conceptId === IV).map((n) => `${n.kind}:${n.misconceptionId ?? ""}`).join(", ") || "none"})`);
+  ok(mis && mis.eligible === 4 && mis.withEvidence === 3 && mis.unmeasured === 1,
+    `with the whole population named — measured, unevidenced and unmeasured stay distinct (${mis && JSON.stringify({ eligible: mis.eligible, withEvidence: mis.withEvidence, unmeasured: mis.unmeasured })})`);
+  ok(mis && mis.showing === 2 && ["iv_s1", "iv_s2"].every((h) => mis.handles.includes(h)),
+    `and the learners the pattern was observed on, by their roster handles (${mis?.showing}: ${mis?.handles?.join(", ")})`);
+  ok(ivNeeds.some((n) => n.kind === "unmeasured" && n.withEvidence === 0),
+    "concepts nobody has answered are named as not-yet-measured findings, not scored zero");
+
+  // ── PROPOSE: recorded, idempotent, and never from nothing ────────────────
+  const ghost = await post("/api/needs", {
+    action: "propose", id: ivTid, clsId: ivCid, kind: "misconception", conceptId: "quadratics", misconceptionId: "neg-slip",
+  });
+  ok(ghost.status === 404,
+    `a finding that does not re-derive from this class's own ledgers is refused (${ghost.status}: ${ghost.body?.error})`);
+  const proposed = await post("/api/needs", {
+    action: "propose", id: ivTid, clsId: ivCid, kind: "misconception", conceptId: IV, misconceptionId: "neg-slip",
+  });
+  const ivRec = proposed.body?.record;
+  ok(proposed.status === 200 && !!ivRec?.id && ivRec.status === "proposed",
+    `the teacher proposes the finding and reviews the recorded proposal (${proposed.status}, ${ivRec?.id})`);
+  ok(typeof ivRec?.version === "number" && ivRec.version >= 1,
+    `the record carries the intervention definition version it was reviewed under (v${ivRec?.version})`);
+  ok(!("progress" in (ivRec ?? {})) && !("correct" in (ivRec ?? {})),
+    "and stores no progress number of its own — the outcome is a projection of the ledgers");
+  const repeated = await post("/api/needs", {
+    action: "propose", id: ivTid, clsId: ivCid, kind: "misconception", conceptId: IV, misconceptionId: "neg-slip",
+  });
+  ok(repeated.status === 200 && repeated.body?.existing === true && repeated.body?.record?.id === ivRec?.id,
+    `asking again returns the SAME open review rather than stacking a duplicate (existing=${repeated.body?.existing})`);
+  const listed = await getAuthed(`/api/needs?me=${ivTid}&cls=${ivCid}`, ivTid);
+  ok((listed.body.records ?? []).filter((r) => r.id === ivRec.id).length === 1,
+    "and the class's review list holds exactly one record for it");
+
+  // ── DECLINE IS A RECORDED DECISION ───────────────────────────────────────
+  const weak = ivNeeds.find((n) => n.kind === "weak_rate" && n.conceptId === IV);
+  const weakProposed = await post("/api/needs", {
+    action: "propose", id: ivTid, clsId: ivCid, kind: "weak_rate", conceptId: IV,
+  });
+  ok(weakProposed.status === 200 && !!weakProposed.body?.record?.id,
+    `a second finding (${weak ? "observed difficulty" : "the same class's difficulty"}) is proposed for review (${weakProposed.status})`);
+  const declined = await post("/api/needs", { action: "decline", id: ivTid, clsId: ivCid, needId: weakProposed.body.record.id, note: "covered next term" });
+  ok(declined.status === 200 && declined.body?.record?.status === "declined",
+    `the teacher can decline a proposal, and the review is recorded as declined (${declined.body?.record?.status})`);
+  const declinedAgain = await post("/api/needs", { action: "decline", id: ivTid, clsId: ivCid, needId: weakProposed.body.record.id });
+  ok(declinedAgain.status === 409, `declining it twice is refused rather than re-decided (${declinedAgain.status})`);
+
+  // ── ASSIGN: the teacher's EDITS are what gets set ────────────────────────
+  const badTarget = await post("/api/needs", {
+    action: "assign", id: ivTid, clsId: ivCid, needId: ivRec.id, dueAt: Date.now() + 3 * IV_DAY,
+    targetHandles: ["nobody_in_this_class"],
+  });
+  ok(badTarget.status === 400 && /not a learner in this class/.test(badTarget.body?.error ?? ""),
+    `a target who is nobody in the class is refused by name (${badTarget.status}: ${badTarget.body?.error})`);
+  const badConcept = await post("/api/needs", {
+    action: "assign", id: ivTid, clsId: ivCid, needId: ivRec.id, dueAt: Date.now() + 3 * IV_DAY, conceptIds: ["not-a-concept"],
+  });
+  ok(badConcept.status === 400 && /not in this class's curriculum/.test(badConcept.body?.error ?? ""),
+    `and a concept beyond the class's curriculum is refused rather than smuggled in (${badConcept.status}: ${badConcept.body?.error})`);
+  const due = Date.now() + 3 * IV_DAY;
+  const assigned = await post("/api/needs", {
+    action: "assign", id: ivTid, clsId: ivCid, needId: ivRec.id, dueAt: due,
+    // EDITED ON PURPOSE: the finding named two learners; the teacher sets it for
+    // one, and adds a second idea beside the finding's own.
+    targetHandles: ["iv_s1"], conceptIds: [IV, "fractions"], title: "Negative-number repair",
+  });
+  const ivAssigned = assigned.body?.record;
+  ok(assigned.status === 200 && ivAssigned?.status === "assigned" && !!ivAssigned?.baseAt,
+    `the approved proposal becomes work, with the baseline instant stamped (${assigned.status}, baseAt=${ivAssigned?.baseAt})`);
+  ok((ivAssigned?.targetHandles ?? []).join(",") === "iv_s1",
+    `the EDITED learner population is what the record keeps (${JSON.stringify(ivAssigned?.targetHandles)})`);
+  ok((ivAssigned?.assignedConceptIds ?? []).join(",") === `${IV},fractions`,
+    `and the concepts the assignment actually covered are recorded (${JSON.stringify(ivAssigned?.assignedConceptIds)})`);
+  ok(ivAssigned?.conceptId === IV && ivAssigned?.objectiveId === IV,
+    `while the finding's own idea stays the record's identity AND the objective read against (concept=${ivAssigned?.conceptId}, objective=${ivAssigned?.objectiveId})`);
+  const ivAid = assigned.body?.assignment?.id;
+  ok(!!ivAid && (assigned.body.assignment.targetHandles ?? []).join(",") === "iv_s1",
+    `and the assignment carries the targets the teacher chose (${ivAid})`);
+  const assignedAgain = await post("/api/needs", {
+    action: "assign", id: ivTid, clsId: ivCid, needId: ivRec.id, dueAt: Date.now() + 4 * IV_DAY,
+  });
+  ok(assignedAgain.status === 409, `assigning the same review twice is refused — one review, one piece of work (${assignedAgain.status})`);
+
+  // ── WHO RECEIVES IT, AND WHO CANNOT ──────────────────────────────────────
+  const s1Work = (await getAuthed(`/api/assignments?me=${s1}`, s1)).body.assigned ?? [];
+  ok(s1Work.some((w) => w.assignment.id === ivAid), "the targeted learner can open the work");
+  for (const [who, id] of [["s2", s2], ["s4", s4]]) {
+    const theirs = (await getAuthed(`/api/assignments?me=${id}`, id)).body.assigned ?? [];
+    ok(!theirs.some((w) => w.assignment.id === ivAid),
+      `and ${who}, who was NOT targeted, cannot — a finding about the class is not homework for the class`);
+  }
+  const ivMon = ((await getAuthed(`/api/assignments?me=${ivTid}`, ivTid)).body.monitor ?? [])
+    .find((m) => m.assignment.id === ivAid);
+  ok((ivMon?.members ?? []).length === 1 && ivMon.members[0].handle === "iv_s1",
+    `the teacher's monitor holds only the targeted member's row (${(ivMon?.members ?? []).map((r) => r.handle).join(", ") || "none"})`);
+
+  // ── THE OUTCOME: split at the baseline, honest before any follow-up ──────
+  const read0 = await post("/api/needs", { action: "read", id: ivTid, clsId: ivCid, needId: ivRec.id });
+  ok(read0.status === 200 && read0.body?.outcome?.verdict === "no_baseline",
+    `with no follow-up work the outcome says exactly that, not "no improvement" (${read0.body?.outcome?.verdict})`);
+  ok(read0.body?.outcome?.objectiveId === IV,
+    `and names the idea the comparison was made on (${read0.body?.outcome?.objectiveId})`);
+  const before0 = JSON.stringify(read0.body.outcome.members.find((m) => m.handle === "iv_s1")?.before);
+  ok(read0.body.outcome.unmeasured.join(",") === "iv_s1",
+    `and the learner yet to start is named as unmeasured (${read0.body.outcome.unmeasured.join(", ") || "none"})`);
+
+  // ── THE STUDENT DOES THE WORK; THE BASELINE MUST NOT MOVE ────────────────
+  ok((await gradeOne(s1, IV, true))?.correct === true, "the targeted learner records an unaided answer on the concept");
+  const read1 = await post("/api/needs", { action: "read", id: ivTid, clsId: ivCid, needId: ivRec.id });
+  const m1 = read1.body.outcome.members.find((m) => m.handle === "iv_s1");
+  ok(JSON.stringify(m1?.before) === before0,
+    `the baseline slice is UNCHANGED by the new answer — it is the ledger's own history, frozen at the instant (${JSON.stringify(m1?.before)} vs ${before0})`);
+  ok(m1?.after.unaided.correct === 1 && m1?.untouchedAfter === false,
+    `while the follow-up slice counts it (${m1?.after.unaided.correct} unaided correct after)`);
+  // A hint is support, never an unaided demonstration.
+  const sv = await post("/api/progress", { action: "serve", id: s1, conceptId: IV, reveal: true });
+  await post("/api/progress", { action: "hint", id: s1, conceptId: IV, questionId: sv.body.question.id, level: 2 });
+  await post("/api/progress", { action: "answer", id: s1, conceptId: IV, questionId: sv.body.question.id, choiceIndex: sv.body.question.answer });
+  ok((await gradeOne(s1, IV, true))?.correct === true, "a second unaided answer, then another");
+  const read2 = await post("/api/needs", { action: "read", id: ivTid, clsId: ivCid, needId: ivRec.id });
+  const m2 = read2.body.outcome.members.find((m) => m.handle === "iv_s1");
+  ok(m2?.after.hinted.asked === 1 && m2?.after.unaided.correct === 2,
+    `the supported answer is counted as supported, never as independent (${JSON.stringify({ hinted: m2?.after.hinted, unaided: m2?.after.unaided })})`);
+  ok(read2.body.outcome.verdict === "improved",
+    `and the verdict says more was DEMONSTRATED unaided than before (${read2.body.outcome.verdict})`);
+  ok(!/caused|because of the (work|intervention)/i.test(JSON.stringify(read2.body.outcome)),
+    "with no causal claim anywhere in the payload — demonstration is the strongest true sentence");
+  // Evidence on another concept, and evidence from a learner who was not
+  // targeted, both stay OUT of this outcome.
+  await gradeOne(s2, IV, false);
+  await gradeOne(s1, "fractions", false);
+  const read3 = await post("/api/needs", { action: "read", id: ivTid, clsId: ivCid, needId: ivRec.id });
+  const m3 = read3.body.outcome.members.find((m) => m.handle === "iv_s1");
+  ok(read3.body.outcome.members.length === 1 && m3.after.unaided.correct === m2.after.unaided.correct
+    && m3.after.hinted.asked === m2.after.hinted.asked,
+    "incompatible evidence is never silently compared: a non-targeted learner's miss and another idea's work do not move it");
+
+  // ── THE DECISION: recorded, and only once ────────────────────────────────
+  const decided = await post("/api/needs", {
+    action: "decide", id: ivTid, clsId: ivCid, needId: ivRec.id, decision: "repeat_practice", note: "one more round next lesson",
+  });
+  ok(decided.status === 200 && decided.body?.record?.status === "resolved" && decided.body.record.decision?.kind === "repeat_practice",
+    `the teacher records the next step and the review closes as resolved (${decided.body?.record?.decision?.kind})`);
+  const decideAgain = await post("/api/needs", { action: "decide", id: ivTid, clsId: ivCid, needId: ivRec.id, decision: "continue_concept" });
+  ok(decideAgain.status === 409, `deciding twice is refused — the next step is a decision, not a setting (${decideAgain.status})`);
+  const unknownDecision = await post("/api/needs", {
+    action: "decide", id: ivTid, clsId: ivCid, needId: ivRec.id, decision: "invent_a_step",
+  });
+  ok(unknownDecision.status === 400 && /unknown decision/.test(unknownDecision.body?.error ?? ""),
+    `and a next step the product cannot take is refused by name (${unknownDecision.status}: ${unknownDecision.body?.error})`);
+  // REPLAY: the derivation is a function of the ledgers, so re-reading cannot
+  // disagree with itself.
+  const replay = await getAuthed(`/api/needs?me=${ivTid}&cls=${ivCid}`, ivTid);
+  const replayed = (replay.body.records ?? []).find((r) => r.id === ivRec.id);
+  ok(replayed?.status === "resolved" && replayed?.baseAt === ivAssigned.baseAt && replayed?.decision?.kind === "repeat_practice",
+    `re-reading derives the same review, the same baseline instant and the same decision (v${replayed?.version}, ${replayed?.status})`);
+}
+
 // ── Privacy doors (§23): the learner can take their data, and can end it ──
 console.log("▸ Privacy: export and erasure");
 {
