@@ -718,7 +718,7 @@ export default function ConceptPage() {
               </p>
             )}
             <div className="qprompt">
-              <PromptText text={q.prompt} />
+              <PromptText text={q.prompt} figure={q.figure} />
               <SpeakButton text={q.prompt} />
             </div>
             {/* WHAT THIS QUESTION IS TESTING, said BEFORE it is answered.

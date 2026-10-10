@@ -4137,6 +4137,38 @@ console.log("▸ Evidence drives the experience");
     ok(src.includes("!ready") || src.includes('status === "loading"') || src.includes('status === "failed"'),
       `${f}: and claims NOTHING about knowledge until the record is in hand`);
   }
+
+  // ── A figure is DRAWN, not described ──────────────────────────────────────
+  // Two failure modes are worth pinning at the source, because both render
+  // perfectly and are still wrong on screen.
+  //
+  // First, its ink. The SVG is `aria-hidden`, so every word inside it is a
+  // number or a word the stem already states — and it must be drawn in the
+  // PAGE's own ink, never an ON-FILL token, which is only legible where a fill
+  // actually is. The pie's labels were once drawn in `--text-on-strong` at the
+  // middle of the circle, which a 30° wedge never reaches: white on pale in
+  // light mode, dark on dark in the dark theme, on the one label carrying the
+  // number the question turns on. That is invisible, and no build catches it.
+  //
+  // Second, the unknown. A side the question does not give is labelled `?` and
+  // never with its value: a diagram that answers its own question is a broken
+  // instrument, however nice it looks.
+  {
+    const f = "components/question-figure.tsx";
+    const src = fs.readFileSync(f, "utf8");
+    // Comments are stripped: this file EXPLAINS the on-fill token it no longer
+    // uses, and a check that cannot tell the explanation from the code would
+    // forbid the very comment that stops the bug coming back.
+    const code = src.split("\n")
+      .filter((l) => !l.trim().startsWith("//") && !l.trim().startsWith("*"))
+      .join("\n");
+    ok(!code.includes("--text-on-strong"),
+      `${f}: figure text is drawn in the page's own ink, never an ON-FILL token`);
+    ok(code.includes('aria-hidden="true"'),
+      `${f}: the diagram is decorative for assistive tech — the stem says everything it says`);
+    ok(code.includes(': "?"'),
+      `${f}: a side the question does not give is labelled "?"; the diagram never gives away the answer`);
+  }
   const mindConcept = fs.readFileSync("app/mind/[conceptId]/page.tsx", "utf8");
   ok(mindConcept.includes("decideOne(") && mindConcept.includes("decisionContextFrom("),
     "the concept page asks the ONE door for the next step — the same action Home shows, not a second opinion");
@@ -7219,6 +7251,112 @@ console.log("▸ The teacher sees the ledger, not a claim");
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// ONE STUDENT'S EVIDENCE — DERIVED, TEACHER-GATED, HONEST ABOUT ABSENCE
+// ────────────────────────────────────────────────────────────────────────────
+// The individual learner report answers what the roster's one-line row cannot:
+// what can this child demonstrate, how was it done, what did it prove, and what
+// has never been asked at all. Four claims are pinned on the REAL derivation
+// with a real ledger on disk rather than on its source text:
+//
+//   1. The rate reported for a concept is EXACTLY the roster's own number — one
+//      learner cannot have two rates on two screens.
+//   2. A concept with no independent work is not a 0%: every unmeasured
+//      dimension reads `null`, and the ideas nobody has asked yet are named
+//      from the class's DECLARED course — a class that declared none is given
+//      no curriculum to be judged against.
+//   3. What the work PROVED and the state of delayed recall come from
+//      lib/proof.ts, so a hinted right answer is never independence and a due
+//      review that held is retention.
+//   4. A misconception is a HYPOTHESIS with the wrong answers that support it,
+//      and it can only ever come from a WRONG answer.
+console.log("▸ One student's evidence is derived from their own ledger");
+{
+  const cv = require("../.verify/server/class-view.js");
+  const DAY = 24 * 60 * 60 * 1000;
+  const BASE = 1_700_000_000_000;
+  const TID = "pin_ev_teacher", LID = "pin_ev_child";
+  await store.saveProfile(store.newProfileState(TID, { handle: "Ravi_pin" }));
+  await store.saveProfile(store.newProfileState(LID, { handle: "Mira_pin" }));
+  const rosterEv = {
+    id: "cls_ev_pin", name: "Year 9 Maths", teacher: "teacher", joinCode: "EV1234", language: "en",
+    conceptIds: [], students: { Mira_pin: {} }, createdAt: 0, subject: "maths", specificationId: null,
+    members: [LID], membersById: { Mira_pin: LID }, ownerId: TID,
+  };
+
+  // ── NOTHING RECORDED IS NOT 0% ───────────────────────────────────────────
+  const emptyMember = cv.memberEvidence(rosterEv, "Mira_pin", await store.getProfile(LID));
+  ok(emptyMember.answers === 0 && emptyMember.concepts.length === 0 && emptyMember.recent.length === 0,
+    "a member who has answered nothing reads as nothing recorded");
+  ok(Object.values(emptyMember.dimensions).every((d) => d === null),
+    "and every dimension is null — unknown, never a 0% nobody earned");
+  ok(emptyMember.curriculumDeclared === true && emptyMember.unmeasured.length > 0,
+    `while the ideas nobody has asked yet are named from the class's own course (${emptyMember.unmeasured.length} of them)`);
+  const noCourse = cv.memberEvidence({ ...rosterEv, subject: undefined }, "Mira_pin", await store.getProfile(LID));
+  ok(noCourse.curriculumDeclared === false && noCourse.unmeasured.length === 0,
+    "a class that declared no course names no unmeasured ideas rather than being given a default one to fail");
+
+  // ── REAL WORK ON THE REAL LEDGER ON DISK ─────────────────────────────────
+  await evidenceStore.appendEvidence(LID, [
+    evidence.answerEvidence({ learnerId: LID, at: BASE, source: "practice", subject: "maths", conceptId: "fractions", specificationId: null, questionId: "evq1", correct: true, chosen: 0, mode: "independent", hints: 0, ms: 4000, tags: [] }),
+    // A delayed, unaided recall that HELD — the only kind of answer that earns
+    // retention evidence, decided by the shared rule and not by a gap written
+    // here.
+    evidence.answerEvidence({ learnerId: LID, at: BASE + 2 * DAY, source: "retrieval", subject: "maths", conceptId: "fractions", specificationId: null, questionId: "evq2", correct: true, chosen: 0, mode: "independent", hints: 0, ms: 4000, tags: [] }),
+    // A miss the SERVER tagged: the only thing a hypothesis may rest on.
+    evidence.answerEvidence({ learnerId: LID, at: BASE + 1000, source: "practice", subject: "maths", conceptId: "quadratics", specificationId: null, questionId: "evq3", correct: false, chosen: 1, mode: "independent", hints: 0, ms: 9000, tags: ["sign-error"] }),
+    // Right, but help was used: supported, never independence — and recorded
+    // offline, which the teacher is told rather than shown as observed.
+    evidence.answerEvidence({ learnerId: LID, at: BASE + 2000, source: "practice", subject: "maths", conceptId: "linear-equations", specificationId: null, questionId: "evq4", correct: true, chosen: 0, mode: "independent", hints: 2, ms: 12000, tags: [], deviceAt: BASE + 2000 }),
+  ]);
+
+  const stateEv = await store.getProfile(LID);
+  const ev = cv.memberEvidence(rosterEv, "Mira_pin", stateEv);
+  const liveEv = (await cv.liveRoster(rosterEv)).live.Mira_pin;
+  const frac = ev.concepts.find((c) => c.conceptId === "fractions");
+  ok(ev.answers === 4 && ev.concepts.length === 3,
+    `the detail is that member's ledger and nothing else (${ev.answers} answers, ${ev.concepts.length} concepts)`);
+  ok(frac !== undefined && frac.independent.rate === liveEv.concepts.fractions.rate && frac.independent.asked === liveEv.concepts.fractions.asked,
+    `and the concept's rate IS the roster's rate (${frac && frac.independent.rate}) — one learner, one number, whichever screen is read`);
+  ok(frac.proof === "retained" && frac.retention === "retained",
+    `a delayed unaided recall that held reads as retention evidence (proof ${frac.proof}, state ${frac.retention})`);
+  const le = ev.concepts.find((c) => c.conceptId === "linear-equations");
+  ok(le !== undefined && le.proof === "supported",
+    "while a right answer that needed hints is SUPPORTED — helped work is never reported as independence");
+  ok(ev.concepts.find((c) => c.conceptId === "quadratics").proof === null,
+    "and a concept whose every answer was wrong proves nothing at all");
+  ok(ev.recent.length === 4 && ev.recent[0].at === BASE + 2 * DAY,
+    `the recent answers are newest first (${ev.recent.map((r) => r.at - BASE).join(", ")} ms after the first)`);
+  // `!r.correct ||` — a hypothesis may only ride on a MISS. Written the other
+  // way round this assertion passes for the wrong reason and fails for the
+  // right one, which is how it caught itself.
+  ok(ev.recent.every((r) => !r.correct || r.hypothesisIds.length === 0)
+    && ev.recent.some((r) => !r.correct && r.hypothesisIds.includes("sign-error")),
+    "a hypothesis rides only on the wrong answer the server tagged — a correct one carries none");
+  ok(ev.recent.filter((r) => r.offline).length === 1,
+    "and an answer a device reported offline is disclosed rather than passed off as observed");
+  ok(ev.hypotheses.length === 1 && ev.hypotheses[0].id === "sign-error" && ev.hypotheses[0].hits === 1
+    && ev.hypotheses[0].conceptIds.includes("quadratics"),
+    `the hypothesis carries the support behind it (${JSON.stringify(ev.hypotheses)})`);
+  ok(!ev.unmeasured.includes("fractions") && !ev.unmeasured.includes("quadratics") && !ev.unmeasured.includes("linear-equations"),
+    "the ideas named as never-asked exclude every concept this member has answered on");
+  const mathsCourse = require("../.verify/server/assignment-view.js").assignableConcepts("maths", null);
+  ok(ev.unmeasured.every((id) => mathsCourse.includes(id)),
+    "and every one of them comes from the class's declared course, not from the genome at large");
+
+  // ── WHOSE EVIDENCE IS IT ─────────────────────────────────────────────────
+  // The door, read as source: the learner branch of the roster route must be
+  // gated by the class's TEACHER. A member of the class reading a peer's record
+  // is the failure this branch exists to make impossible, and it cannot be
+  // pinned from a module — the gate is in the route.
+  const classesSrc2 = fs.readFileSync("app/api/classes/route.ts", "utf8");
+  const learnerBranch = classesSrc2.slice(classesSrc2.indexOf('searchParams.get("learner")'));
+  ok(/isTeacherOf\(cls, me\)/.test(learnerBranch),
+    "the learner branch of the roster door is gated by the class's TEACHER, not by membership");
+  ok(learnerBranch.includes("memberEvidence(cls,"),
+    "and it answers with the one derivation rather than a second copy of it");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // ASSIGNED WORK IS DERIVED, NOT COUNTED
 // ────────────────────────────────────────────────────────────────────────────
 // A teacher's assignment stores concepts and a deadline, and nothing else. The
@@ -7328,6 +7466,30 @@ console.log("▸ Assigned work is derived, not counted");
   const fields = iface.split("\n").filter((l) => !/^\s*(\/\/|\/\*|\*)/.test(l)).join("\n");
   ok(!/\b(progress|complete|accuracy|rate|correct|score)\s*[?:]/.test(fields),
     "the STORED assignment is concepts and a deadline: there is no progress field for the monitor to drift from");
+
+  // ── 5b · WHO THE WORK WAS SET FOR ────────────────────────────────────────
+  // Aiming work at named learners is a real field on the record, and it is
+  // enforced on BOTH sides of the door: the teacher's monitor holds the targeted
+  // members' rows, and a member the work was not aimed at does not receive it at
+  // all. The BEHAVIOUR lives in the route over a real roster, a lock and two
+  // ledgers, so it is driven over HTTP in the e2e suite; what is pinned here is
+  // the rule as written — that it is validated before it is stored, that a name
+  // nobody answers to is refused rather than kept, that whole-class work keeps
+  // its ordinary shape, and that a target list is names rather than a tally.
+  const getSrc = src.slice(src.indexOf("export async function GET"));
+  const postSrc = src.slice(src.indexOf("export async function POST")).replace(/\s+/g, " ");
+  ok(/new Set\(\(await resolveMembers\(cls\)\)\.map\(\(m\) => m\.handle\)\)/.test(postSrc),
+    "targets are checked against the SAME member resolver the monitor uses — which is also what keeps the class's own teacher out of the list");
+  ok(/not a learner in this class/.test(postSrc),
+    "and a name that is nobody in the class is refused BY NAME rather than stored");
+  ok(/requested\.length > 0 \? \{ targetHandles: requested \} : \{\}/.test(postSrc),
+    "whole-class work is stored WITHOUT a target list, so the ordinary record keeps its ordinary shape");
+  ok(/const scoped = targets\.length === 0 \? memberStates : memberStates\.filter/.test(getSrc.replace(/\s+/g, " ")),
+    "the monitor holds the targeted members' rows and nobody else's");
+  ok(getSrc.includes("targets.includes(handle)) continue;"),
+    "and a member the work was not aimed at never receives it on their own read");
+  ok(iface.includes("targetHandles?: string[]"),
+    "the target list sits on the stored record as NAMES — and the interface pin above still holds: still no progress field");
 
   // 6. WHAT THE WORK PROVED (§10, §18), by the rule the learner reads under
   // their own mark. A teacher's question is not only "did they finish, and how
@@ -7512,6 +7674,153 @@ console.log("▸ Assigned work is derived, not counted");
       `the read-failure sentence is authored in ${code}`);
   }
 
+}
+
+// ── §8 · THE EVIDENCE-TO-INTERVENTION LOOP ───────────────────────────────────
+// A class finding → the teacher's review → a targeted assignment → the
+// outcome read against the baseline instant → the decision recorded. The
+// BEHAVIOURAL pins live here; the ROUTE pins (authorisation, one creation
+// path) are driven over HTTP in the e2e suite.
+console.log("▸ Evidence→intervention: findings are honest, the outcome is measured");
+{
+  const needs = require("../.verify/server/needs.js");
+  const DAY = 24 * 60 * 60 * 1000;
+  // A fixed clock: every derivation below is frozen at T0, so the test can
+  // (and does) re-derive the same findings from the same events.
+  const T0 = new Date(2027, 5, 1, 9, 0, 0).getTime();
+  const from = T0 - needs.NEED_WINDOW_MS;
+
+  const mk = (over) => evidence.answerEvidence({
+    learnerId: "lv_1", at: T0 - 6 * DAY, source: "practice", subject: "maths",
+    conceptId: "fractions", specificationId: null, questionId: "q",
+    correct: true, chosen: 0, mode: "independent", hints: 0, ...over,
+  });
+  const members = (ls) => ls.map((events, i) => ({ handle: "h" + i, learnerId: "lv_" + i, events }));
+
+  // 1 · THE FIVE KINDS, AND WHAT EACH MAY CLAIM.
+  // Recurring misconception: two+ learners carry the SAME named slip on one
+  // concept. Built from real answer events, so the tags are the ledger's.
+  // Ledger 1: two unaided misses carrying the slip; ledger 2: one miss inside
+  // the window and one tag event OUTSIDE it (the finding is about the period
+  // the review covers, so the old miss must NOT count). Ledger 3: empty — a
+  // third learner with NO evidence on the concept, who must stay in the
+  // denominator and be NAMED as unmeasured, never excluded and never 0.
+  const misEvents1 = [
+    mk({ learnerId: "lv_1", questionId: "a1", correct: false, hints: 0, tags: ["common-denominator"] }),
+    mk({ learnerId: "lv_1", questionId: "a2", correct: false, hints: 0, tags: ["common-denominator"] }),
+  ];
+  const misEvents2 = [
+    mk({ learnerId: "lv_2", at: from - 2 * DAY, questionId: "a3", correct: false, tags: ["common-denominator"] }),
+    mk({ learnerId: "lv_2", questionId: "a4", correct: false, hints: 0, tags: ["common-denominator"] }),
+  ];
+  const m1 = members([[], misEvents1, misEvents2]).map((m, i) => (i === 1 ? { ...m, learnerId: "lv_1" } : { ...m, learnerId: "lv_" + i }));
+  const found = needs.deriveClassNeeds({ members: m1, curriculum: ["fractions"], nowMs: T0 });
+  const mis = found.find((n) => n.kind === "misconception");
+  ok(!!mis, `a genuinely recurring slip surfaces as a misconception finding (${!!mis})`);
+  ok(mis && mis.eligible === 3 && mis.withEvidence === 2 && mis.unmeasured === 1,
+    `the whole population is named, silence included (3 eligible, 2 with evidence, 1 unmeasured — vs ${JSON.stringify(mis && { e: mis.eligible, w: mis.withEvidence, u: mis.unmeasured })})`);
+  ok(mis && mis.showing === 2,
+    `and the two learners the window actually holds are the two counted (${mis && mis.showing})`);
+
+  // 2 · SPARSE EVIDENCE DOES NOT BECOME CLASS-WIDE CERTAINTY.
+  const sparse = needs.deriveClassNeeds({
+    members: members([[], [mk({ learnerId: "lv_1", questionId: "b1", correct: false, tags: ["common-denominator"] })], []]),
+    curriculum: ["fractions"], nowMs: T0,
+  });
+  ok(sparse.find((n) => n.kind === "misconception") === undefined,
+    "one learner showing a slip is NOT a class-wide finding — the floor holds");
+  // A moderate group with a small evidence base is marked thin, not inflated:
+  const thinEvents = [
+    mk({ learnerId: "lv_1", questionId: "c1", correct: false, tags: ["common-denominator"] }),
+    mk({ learnerId: "lv_1", questionId: "c2", correct: false, tags: ["common-denominator"] }),
+  ];
+  const thin = needs.deriveClassNeeds({
+    members: members([thinEvents, [], []]),
+    curriculum: ["fractions"], nowMs: T0,
+  });
+  const thinMis = thin.find((n) => n.kind === "misconception");
+  // One learner with two hits does not even clear the floor (see above); a
+  // TWO-learner group on a one-evidence class does surface, marked thin.
+  const thin2 = needs.deriveClassNeeds({
+    members: members([
+      [mk({ learnerId: "lv_0", questionId: "c1", correct: false, tags: ["sign-error"] }), mk({ learnerId: "lv_0", questionId: "c2", correct: false, tags: ["sign-error"] })],
+      [mk({ learnerId: "lv_1", questionId: "c3", correct: false, tags: ["sign-error"] })],
+      [],
+    ]),
+    curriculum: ["fractions"], nowMs: T0,
+  });
+  const thinMis2 = thin2.find((n) => n.kind === "misconception" && n.misconceptionId === "sign-error");
+  ok(!!thinMis2 && thinMis2.thin === true,
+    `a pattern on a lightly-measured class is marked THIN, not inflated (${!!thinMis2 && thinMis2.thin})`);
+  // And a well-measured class is NOT thin, so the flag means something:
+  const solid = needs.deriveClassNeeds({
+    members: members([
+      [mk({ learnerId: "lv_0", questionId: "d1", correct: false, tags: ["sign-error"] }), mk({ learnerId: "lv_0", questionId: "d2", correct: false, tags: ["sign-error"] })],
+      [mk({ learnerId: "lv_1", questionId: "d3", correct: false, tags: ["sign-error"] })],
+      // A third member with real (correct) evidence on the concept — the
+      // population is genuinely measured now.
+      [mk({ learnerId: "lv_2", questionId: "d4", correct: true })],
+    ]),
+    curriculum: ["fractions"], nowMs: T0,
+  });
+  const solidMis = solid.find((n) => n.kind === "misconception" && n.misconceptionId === "sign-error");
+  ok(!!solidMis && solidMis.thin === false && solidMis.withEvidence === 3,
+    `while the same pattern on a measured class is full-strength (${!!solidMis && solidMis.thin}, withEvidence=${solidMis && solidMis.withEvidence})`);
+
+  // 3 · UNMEASURED IS NAMED, NEVER SCORED.
+  const silence = needs.deriveClassNeeds({
+    members: members([[], [], []]),
+    curriculum: ["fractions", "ratio"], nowMs: T0,
+  });
+  const sil = silence.filter((n) => n.kind === "unmeasured");
+  ok(sil.length === 2 && sil.every((n) => n.withEvidence === 0 && n.unmeasured === n.eligible),
+    `a concept NOBODY answered is a named absence — every member counted unmeasured (${JSON.stringify(sil.map((n) => [n.conceptId, n.unmeasured]))})`);
+
+  // 4 · THE OUTCOME SPLIT: THE BASELINE IS THE LEDGER'S OWN HISTORY.
+  const baseAt = T0;   // the approval instant
+  const split = [
+    // Before: two unaided answers, one right — the "before" slice.
+    mk({ learnerId: "lv_1", at: T0 - 3 * DAY, questionId: "e1", correct: true }),
+    mk({ learnerId: "lv_1", at: T0 - 2 * DAY, questionId: "e2", correct: false }),
+    // After: three unaided answers, two right — demonstrated more.
+    mk({ learnerId: "lv_1", at: T0 + 1 * DAY, questionId: "e3", correct: true }),
+    mk({ learnerId: "lv_1", at: T0 + 2 * DAY, questionId: "e4", correct: true }),
+    mk({ learnerId: "lv_1", at: T0 + 3 * DAY, questionId: "e5", correct: false }),
+  ];
+  const o = needs.memberOutcome(split, "fractions", baseAt, "h1", "lv_1");
+  ok(o.before.unaided.asked === 2 && o.before.unaided.correct === 1,
+    `the "before" slice is exactly the pre-approval, unaided answers (${o.before.unaided.asked}/${o.before.unaided.correct})`);
+  ok(o.after.unaided.asked === 3 && o.after.unaided.correct === 2,
+    `and "after" is the unaided slice on the other side of the instant (${o.after.unaided.asked}/${o.after.unaided.correct})`);
+  ok(o.after.hinted.asked === 0,
+    "hinted work is kept separate — a helped answer never inflates the unaided demonstration");
+
+  // 5 · THE VERDICT SAYS ONLY WHAT THE EVIDENCE SUPPORTS.
+  const improved = needs.outcomeVerdict([
+    needs.memberOutcome(split, "fractions", baseAt, "h1", "lv_1"),
+    // A second learner who moved from 0 → 1 unaided: two improvers, no decliners.
+    needs.memberOutcome([mk({ learnerId: "lv_2", at: T0 + 1 * DAY, questionId: "f1", correct: true })], "fractions", baseAt, "h2", "lv_2"),
+  ]);
+  ok(improved === "improved", `more students demonstrated unaided than before (${improved})`);
+  // Their demo claims are worded as DEMONSTRATION, never causation — that
+  // wording is authored in the dictionaries (need.verdict.*) and pinned by
+  // the i18n sweep elsewhere; here the RULE is pinned: the verdict buckets
+  // are exactly these, and nothing may claim cause.
+  const noFollowUp = needs.outcomeVerdict([needs.memberOutcome(split, "fractions", baseAt + 100 * DAY, "h1", "lv_1")]);
+  ok(noFollowUp === "no_baseline", `an intervention with NO follow-up work says exactly that (${noFollowUp})`);
+  const thinAfter = needs.outcomeVerdict([
+    // One unaided answer after, one before: the split is real but tiny.
+    needs.memberOutcome([
+      mk({ learnerId: "lv_1", at: T0 - 1 * DAY, questionId: "g1", correct: true }),
+      mk({ learnerId: "lv_1", at: T0 + 1 * DAY, questionId: "g2", correct: true }),
+    ], "fractions", baseAt, "h1", "lv_1"),
+  ]);
+  ok(thinAfter === "not_enough_evidence", `a tiny follow-up says NOT ENOUGH, not improved/no-change (${thinAfter})`);
+  // Wrong concept? It simply does not move: the outcome is the TARGET concept's
+  // evidence only (test 10 of the mission — incompatible measures never silently compared).
+  const other = needs.memberOutcome(split, "ratio", baseAt, "h1", "lv_1");
+  ok(other.before.answered === 0 && other.after.answered === 0,
+    "evidence on another concept never enters this intervention's outcome");
 }
 
 console.log("▸ AI explains, never records");

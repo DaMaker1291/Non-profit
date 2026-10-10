@@ -30,9 +30,9 @@ import { ApiError, buildUrl, capabilityFor, postAnswer, probe, send, type Probe,
 import { newSubmissionId } from "../sync-queue";
 import { ensureSecret, writeProfileId, writeSecret } from "./identity";
 import type {
-  Assignment, AssignmentMemberProgress, AssignmentMonitor, ClassRoster,
-  ConceptProgress, DiagnosticResult, PathStep, ProfileState, PublicAccount,
-  Question, StudyPack, StudyRoom, SubjectCourse, SubjectId,
+  Assignment, AssignmentMemberProgress, AssignmentMonitor, ClassMemberEvidence,
+  ClassRoster, ConceptProgress, DiagnosticResult, PathStep, ProfileState,
+  PublicAccount, Question, StudyPack, StudyRoom, SubjectCourse, SubjectId,
 } from "../types";
 import type { MatchResult } from "../matcher";
 import type { QuestionView } from "../questions";
@@ -779,6 +779,15 @@ export function classById(id: string, me: string): Promise<{ cls: ClassRoster }>
   return send("/api/classes", { query: { id, me } });
 }
 
+/** ONE member's evidence in detail — the "what can this student demonstrate?"
+ *  read. The door answers the class's TEACHER only (a member who is not the
+ *  teacher is a 403), which is the server's rule, not this call's: a surface
+ *  cannot widen it by asking. `learnerId` is identity — never a handle, since a
+ *  class can hold two learners under one name. */
+export function classMember(me: string, clsId: string, learnerId: string): Promise<{ member: ClassMemberEvidence }> {
+  return send("/api/classes", { query: { me, id: clsId, learner: learnerId } });
+}
+
 export function classAction(input: { action: "create" | "join" | "report" | "update"; id: string; [k: string]: unknown }): Promise<Record<string, unknown>> {
   return send("/api/classes", { method: "POST", body: { ...input } });
 }
@@ -816,6 +825,81 @@ export function assignments(me: string): Promise<AssignmentBundle> {
 
 export function assignmentAction(input: { action: "create" | "remove"; id: string; clsId?: string; [k: string]: unknown }): Promise<Record<string, unknown>> {
   return send("/api/assignments", { method: "POST", body: { ...input } });
+}
+
+// §8 · THE EVIDENCE-TO-INTERVENTION LOOP. A teacher's door: the findings are
+// derived SERVER-SIDE from the members' own ledgers, and every action任免s the
+// class's own teacher only. The shapes here are the DOOR's — local interfaces,
+// because lib/types.ts stays free of anything a surface cannot read.
+
+/** One finding, as the door derives it (lib/server/needs.ts). */
+export interface ClassNeedView {
+  id: string;
+  conceptId: string;
+  kind: "misconception" | "weak_rate" | "hint_dependent" | "prereq_gap" | "unmeasured";
+  misconceptionId?: string;
+  eligible: number;
+  withEvidence: number;
+  unmeasured: number;
+  showing: number;
+  unaidedRate: number | null;
+  handles: string[];
+  evIds: string[];
+  thin: boolean;
+  from: number;
+  nowMs: number;
+}
+
+/** The record behind an open intervention, as the door stores it. */
+export interface InterventionView {
+  id: string;
+  conceptId: string;
+  kind: ClassNeedView["kind"];
+  status: "proposed" | "assigned" | "declined" | "resolved" | "superseded";
+  ownerId: string;
+  createdAt: number;
+  assignedAt?: number;
+  baseAt?: number;
+  assignmentId?: string;
+  targetHandles?: string[];
+  finding: ClassNeedView;
+}
+
+/** Who needs what, across the classes the caller owns, for Teacher Home. */
+export interface CrossClassNeed extends ClassNeedView {
+  className: string;
+  clsId: string;
+}
+
+export interface NeedsBundle {
+  needs: ClassNeedView[];
+  records: InterventionView[];
+}
+
+export function needs(me: string, clsId?: string): Promise<NeedsBundle & { className?: string }> {
+  return send("/api/needs", { query: clsId ? { me, cls: clsId } : { me } });
+}
+
+export interface OutcomeView {
+  verdict: "no_baseline" | "incomplete_followup" | "improved" | "no_change" | "still_difficult" | "not_enough_evidence";
+  members: Array<{
+    handle: string;
+    learnerId: string;
+    before: { asked: number; correct: number };
+    after: { asked: number; correct: number; unaided: { asked: number; correct: number }; hinted: { asked: number; correct: number } };
+    untouchedAfter: boolean;
+  }>;
+  unmeasured: string[];
+  baseAt: number;
+}
+
+export function needAction(input: {
+  action: "propose" | "assign" | "decline" | "read" | "decide";
+  id: string;
+  clsId: string;
+  [k: string]: unknown;
+}): Promise<Record<string, unknown>> {
+  return send("/api/needs", { method: "POST", body: { ...input } });
 }
 
 export function rooms(): Promise<{ rooms: StudyRoom[] }> {

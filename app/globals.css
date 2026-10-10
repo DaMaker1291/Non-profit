@@ -352,7 +352,7 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    one element that has to move, because on a phone there is no sidebar. */
 .topbar-logo { display: none; font-weight: 800; font-size: 18px; letter-spacing: -0.02em; text-decoration: none; }
 .topbar-where { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
-.topbar-where b { font-size: 15px; font-weight: 700; }
+.topbar-where b { font-size: 15px; font-weight: 700; white-space: nowrap; }
 .topbar-where span { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
 /* The learner's course context (country · course · board · year · subject tier).
    It truncates rather than pushing the search box off the bar, because it is a
@@ -700,6 +700,20 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: 16px; margin: 0 0 6px; line
 }
 .qcode + span { display: inline; }
 .qprompt > span + .qcode, .qtext > span + .qcode { margin-top: 12px; }
+/* A DIAGRAM inside a question (components/question-figure.tsx). It sits ABOVE
+   the words, the way a textbook plate does, and it is drawn on the question's
+   own surface rather than in a card of its own: the picture is part of the
+   question, not a panel beside it. `max-width` keeps a coordinate grid from
+   stretching to the width of a desktop page, where equal axis scales are what
+   make the picture readable. */
+.qfigure {
+  margin: 4px 0 14px; padding: 8px 10px;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  border-radius: var(--radius-input);
+}
+.qfigure svg { display: block; width: 100%; height: auto; overflow: visible; }
+.qfigure[data-figure="axes"], .qfigure[data-figure="pie"] { max-width: 356px; }
+.qfigure[data-figure="right-triangle"] { max-width: 380px; }
 /* ── THE ANSWER BOX (§6) ──────────────────────────────────────────────────
    The control for a question that is NOT multiple choice. It is deliberately
    the same visual weight as the four options it replaces: a learner must not
@@ -1485,8 +1499,25 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
   .msg { max-width: 94%; }
   .card { padding: 18px; }
   .card.primary { padding: var(--s3); }
-  .exercise { padding: 18px 18px 18px 56px; }
-  [dir="rtl"] .exercise { padding: 18px 56px 18px 18px; }
+  /* THE RULED MARGIN MUST NOT EAT THE PHONE. Desktop gives the exercise a 72px
+     left gutter for the ruled-paper margin. The phone rule kept 56px of it
+     against 18px on the right — a 38px asymmetry spent on the very screens
+     where the reading column is scarcest. 34px keeps the margin visible and
+     returns 22px to the text; the RTL rule mirrors it, so the margin is still on
+     the side the script starts from. Scope is the ≤640px block only: desktop
+     sizing is deliberately untouched. */
+  .exercise { padding: 18px 18px 18px 40px; }
+  [dir="rtl"] .exercise { padding: 18px 40px 18px 18px; }
+  /* The run-in number is ABSOLUTE, so it does not push the text: it has to END
+     before the text column BEGINS, or it prints through the first line. It is
+     MONOSPACE and always three glyphs (`String(n).padStart(2, "0")` + "." —
+     app/diagnostic/[subject]/page.tsx), so at the desktop 15px it is ~27px wide
+     (≈ 0.6em per glyph). At the old 22px inset that reached 49px, which is why
+     the mobile gutter could be 56px and still look deliberate; against a 40px
+     gutter it would overlap by 9px. 8px inset at 13px sets it ~31px wide, ending
+     at ~39px — clear of the text, and scaled to the narrower margin. Only the
+     ≤640px block is touched. */
+  .exercise .qnum { inset-inline-start: 8px; font-size: 13px; }
   .topbar-search { display: none; }
   .concept-row { align-items: flex-start; flex-direction: column; gap: 6px; }
   .concept-row .state { justify-content: flex-start; }
@@ -1501,6 +1532,47 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
   .topbar select { max-width: 5.75rem; padding: 6px; }
   .topbar > .btn { padding: 9px 12px; font-size: 13px; min-height: 40px; }
   .topbar > .btn .btn-arrow { display: none; }
+
+  /* ── THREE MEASURED DEFECTS, ALL OF THEM SPACING ──────────────────────
+
+     1. THE BAR WAS TWO LINES. "Exam papers" — the page's own name, already
+        printed as the page's own heading DIRECTLY below the bar — wrapped onto
+        two lines at 390px, and the course strip, which is the thing the bar is
+        actually for, was squeezed to "Unit…". On a phone the duplicate goes:
+        every page states its title in its own heading, and the strip is the one
+        fact the bar can give a learner that the page cannot.
+
+     2. THE STRIP COULD NOT SHRINK. It truncates with an ellipsis by design
+        (`.context-strip`), but a flex item only truncates when it is ALLOWED to
+        give room up, and the title beside it refused to yield a pixel.
+
+     3. A LONG CODE LINE WAS CUT OFF. `.qcode` scrolls sideways, which is right
+        on a desktop page with room beside it; on a phone a 60-character
+        dictionary literal simply disappears past the edge with nothing to say
+        so. `pre-wrap` keeps the author's indentation AND shows the whole line,
+        which is the only honest option at this width — the indentation IS the
+        example in a code question (components/prompt-text.tsx). */
+  .topbar-where { flex: 0 1 auto; }
+  .topbar-where b { display: none; }
+  /* AND THE COURSE STRIP GOES TOO. Measured at 390px it was left with about
+     sixty pixels between the wordmark and the language picker, so "Prefer not
+     to say · Independent · skills pathway · State board · 11 · Computing
+     Foundations" reached the learner as "Prefer not t…". A truncated fragment
+     of a fact is not the fact, and on a phone the course is named in full by
+     the page they are on (and by Home, and by the curriculum page). The strip
+     is a desktop affordance and stays one. */
+  .context-strip { display: none; }
+  .qcode { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13.5px; padding: 10px 12px; }
+
+  /* THE STICKY EXAM HEADER IS CHROME THAT STAYS. Over a 14-question paper it is
+     on screen the whole time, so every line it takes is a line of the question
+     it hides — and the board/qualification line wrapped to two of them, taking
+     the header to roughly a sixth of a 390px screen. It still says all of it;
+     it just says it on one line, and truncates the tail rather than the paper. */
+  [data-exam-head] .eyebrow {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: block; max-width: 100%;
+  }
 }
 
 /* Print: the exercise sheet, without the chrome. */

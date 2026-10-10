@@ -19,6 +19,7 @@
 import { loadProfileId, writeProfileId } from "@/lib/api/identity";
 import * as api from "@/lib/api/client";
 import type { FlarePayload, MicroDiagStatus } from "@/lib/microdiag";
+import type { FigureSpec } from "@/lib/types";
 import type { StarterReveal, StarterView } from "@/lib/starter";
 
 export type { FlarePayload };
@@ -28,6 +29,10 @@ export interface AnonPracticeQ {
   conceptId: string;
   prompt: string;
   choices: string[];
+  /** The diagram this item needs, when it needs one — the anonymous wedge shows
+   *  the same questions as the signed-in practice surface, so it draws the same
+   *  figures (components/question-figure.tsx). */
+  figure?: FigureSpec;
   /** "numeric" = the learner TYPED. The box is keyed off this, so the surface
    *  never has to infer the response kind from what happens to be in the
    *  payload. */

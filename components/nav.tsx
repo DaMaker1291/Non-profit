@@ -175,6 +175,10 @@ export function Nav() {
 export function Topbar() {
   const { t, lang } = useI18n();
   const { session, ready } = useAccount();
+  // A guest's learner: a profile with no account behind it. The account control
+  // distinguishes the two, because "Create account" has to lead somewhere that
+  // makes one (see the comment on that link below).
+  const { state } = useProfile();
   const path = usePathname();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -271,7 +275,16 @@ export function Topbar() {
           <span className="btn-arrow" aria-hidden="true">→</span>
         </Link>
       ) : (
-        <Link href="/onboarding" className="btn small">
+        // A GUEST ALREADY HAS A PROFILE, and "Create account" has to lead
+        // somewhere that MAKES one. It went to /onboarding, which reads this
+        // device's remembered account choice — "continue without an account" —
+        // and opened on the guest step: a learner pressing "Create account" was
+        // handed the screen that declines one, and pressing it twice did the
+        // same thing twice. The account page is where an existing device's work
+        // is shown and attached in one step (components/attach-account.tsx), so
+        // that is where a guest is sent; a visitor with nothing here yet still
+        // gets the enrolment page, which is what they need.
+        <Link href={state ? "/account" : "/onboarding"} className="btn small">
           <span className="btn-label">{t("onb.createAcct")}</span>
           <span className="btn-arrow" aria-hidden="true">→</span>
         </Link>

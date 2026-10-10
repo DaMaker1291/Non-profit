@@ -859,6 +859,26 @@ ok((planJson.bank ?? []).every((d) => d.questions.every((q) => typeof q.prompt =
   const scaff = physPack.plan.scaffolds ?? [];
   ok(scaff.every((s) => measuredCids.includes(s.conceptId)),
     `no scaffold names a concept this member has no evidence on (scaffolded ${scaff.map((s) => s.conceptId).join(", ") || "none"}, measured ${measuredCids.join(", ")})`);
+
+  // ── ONE STUDENT'S EVIDENCE IS THE TEACHER'S TO READ, AND NOBODY ELSE'S.
+  // The individual report is the only surface in the product where one
+  // learner's answers are read by somebody else, so the same door is asked
+  // twice: the class's teacher gets the detail, and the student — a MEMBER of
+  // that very class — is refused it. Asked over HTTP because the gate lives in
+  // the route, and driven on the real ledger rather than on a fixture.
+  const mine = await getAuthed(`/api/classes?me=${tid}&id=${physId}&learner=${kidId}`, tid);
+  const detail = mine.body?.member;
+  ok(mine.status === 200 && detail?.handle === "phys_kid_e2e" && detail?.answers === 6,
+    `the class's teacher reads one member's evidence in detail (HTTP ${mine.status}, ${detail?.answers} answers)`);
+  ok(detail?.concepts?.some((c) => c.conceptId === "momentum" && c.independent.rate === 0)
+    && !(detail?.unmeasured ?? []).includes("momentum"),
+    "with the concept the live view calls weak, and not named as unmeasured");
+  const peer = await getAuthed(`/api/classes?me=${kidId}&id=${physId}&learner=${kidId}`, kidId);
+  ok(peer.status === 403 && peer.body?.error === "not the teacher",
+    `while a student who IS a member of the class is refused it (HTTP ${peer.status}: ${peer.body?.error}) — their own record has its own doors`);
+  const stranger = await getAuthed(`/api/classes?me=${tid}&id=${physId}&learner=no_such_member_e2e`, tid);
+  ok(stranger.status === 404,
+    `as is a learner who is in no such class (HTTP ${stranger.status})`);
   // A student with NO work at all: unmeasured, not failing — in no group, on no
   // scaffold, and counted as unmeasured by the class rather than as a zero.
   const quiet = await newProfile({ handle: "phys_quiet_e2e", country: "GB", language: "en", subjects: ["physics"] });
@@ -871,6 +891,40 @@ ok((planJson.bank ?? []).every((d) => d.questions.every((q) => typeof q.prompt =
   ok(!(quietPack.plan.scaffolds ?? []).some((s) => s.who === "phys_quiet_e2e") &&
      !(quietPack.plan.groups ?? []).flatMap((g) => g.members).includes("phys_quiet_e2e"),
     `and attracts neither remediation nor an ability group (scaffolds ${(quietPack.plan.scaffolds ?? []).length}, groups ${JSON.stringify((quietPack.plan.groups ?? []).map((g) => g.members))})`);
+
+  // ── WORK AIMED AT NAMED LEARNERS (§assignment builder).
+  // Setting work for a small group used to be inexpressible: the record was
+  // concepts + a deadline on the class, so every assignment went to everyone.
+  // The target list is real now, and it is enforced on both sides — the
+  // teacher's monitor holds only the targeted rows, and the learner it was not
+  // aimed at never sees it. Driven here because the rule lives in the route, on
+  // a real roster with two students and two real ledgers.
+  const dueSoon = Date.now() + 3 * 24 * 60 * 60 * 1000;
+  const aimed = await post("/api/assignments", {
+    id: tid, action: "create", clsId: physId, conceptIds: ["momentum"], dueAt: dueSoon,
+    title: "Small group: momentum", targetHandles: ["phys_kid_e2e"],
+  });
+  ok(aimed.status === 200 && (aimed.body.assignment?.targetHandles ?? []).join(",") === "phys_kid_e2e",
+    `work can be aimed at named learners (HTTP ${aimed.status}, targets ${JSON.stringify(aimed.body?.assignment?.targetHandles)})`);
+  const aimedId = aimed.body?.assignment?.id;
+  const aimedMonitor = ((await getAuthed(`/api/assignments?me=${tid}`, tid)).body.monitor ?? [])
+    .find((m) => m.assignment.id === aimedId);
+  ok(aimedMonitor?.members?.length === 1 && aimedMonitor.members[0].handle === "phys_kid_e2e",
+    `and the teacher's monitor holds only the targeted member's row (${(aimedMonitor?.members ?? []).map((r) => r.handle).join(", ") || "none"})`);
+  const kidWork = ((await getAuthed(`/api/assignments?me=${kidId}`, kidId)).body.assigned ?? [])
+    .filter((w) => w.assignment.id === aimedId);
+  ok(kidWork.length === 1,
+    "the learner it was aimed at receives it");
+  const quietWork = ((await getAuthed(`/api/assignments?me=${quietId}`, quietId)).body.assigned ?? [])
+    .filter((w) => w.assignment.id === aimedId);
+  ok(quietWork.length === 0,
+    "and the learner it was NOT aimed at never does — work for somebody else is not their homework");
+  const ghostTarget = await post("/api/assignments", {
+    id: tid, action: "create", clsId: physId, conceptIds: ["momentum"], dueAt: dueSoon,
+    title: "Ghost", targetHandles: ["nobody_in_this_class_e2e"],
+  });
+  ok(ghostTarget.status === 400 && /not a learner in this class/.test(ghostTarget.body?.error ?? ""),
+    `a target who is nobody in the class is refused by name rather than stored (HTTP ${ghostTarget.status}: ${ghostTarget.body?.error})`);
   // The declaration, not a concept: a class is what it says it is.
   const flip = await post("/api/classes", { id: tid, action: "create", name: "Declared physics", subject: "physics", conceptIds: ["fractions"] });
   ok((await getAuthed(`/api/pack-export?id=${flip.body.cls.id}&me=${tid}&format=json`, tid)).body.plan?.subject === "physics",

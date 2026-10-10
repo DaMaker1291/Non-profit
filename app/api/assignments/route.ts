@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listClasses, newId, updateClassById } from "@/lib/server/store";
+import { getClass, listClasses, newId, updateClassById } from "@/lib/server/store";
 import { authorizeLearner } from "@/lib/server/capability";
 import { handleOf, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
 import { resolveMembers } from "@/lib/server/class-view";
@@ -93,17 +93,31 @@ export async function GET(req: Request): Promise<NextResponse> {
     const ledgers = new Map<string, ReturnType<typeof readEvidence>>();
     if (teacher) for (const m of memberStates) ledgers.set(m.handle, readEvidence(m.state.profile.id));
     for (const a of work) {
+      // WHO THE WORK WAS SET FOR, and it is enforced on BOTH sides of this
+      // door. An empty (or absent) list is the whole class — the ordinary case.
+      const targets = a.targetHandles ?? [];
       if (teacher) {
-        const memberRows = memberStates.map((m) =>
+        // The monitor holds the targeted members' rows and nobody else's: a
+        // teacher who aimed work at three learners is not shown a table of
+        // thirty, and the completion/accuracy figures are not diluted by
+        // students the work was never for.
+        const scoped = targets.length === 0
+          ? memberStates
+          : memberStates.filter((m) => targets.includes(m.handle));
+        const memberRows = scoped.map((m) =>
           deriveAssignmentProgress(a, m.handle, m.state.profile.id, ledgers.get(m.handle) ?? []),
         );
         monitor.push(monitorFor(a, cls.name, memberRows));
       } else {
-        ownLedger ??= readEvidence(me.profile.id);
         // The row the ROSTER bound to this learner — by identity, so a member
         // whose handle was disambiguated on join (two learners, one name) is
         // named here exactly as the teacher's table names them.
         const handle = handleOf(cls, me.profile.id) ?? me.profile.handle ?? "student";
+        // Work aimed at somebody else is not this learner's homework, and it
+        // never reaches their list. Stated as a skip rather than a filter so
+        // the rule sits beside the read it guards.
+        if (targets.length > 0 && !targets.includes(handle)) continue;
+        ownLedger ??= readEvidence(me.profile.id);
         assigned.push({
           assignment: a,
           className: cls.name,
@@ -136,6 +150,11 @@ interface Body {
   /** create: the subject to declare for a class that has not declared one.
    *  Ignored when the class already declares its own curriculum. */
   subject?: string;
+  /** create: WHO the work is for, by roster row label. Omit (or send an empty
+   *  list) for the whole class. Every name must be a current STUDENT of the
+   *  class — an unknown one is refused by name rather than stored, because a
+   *  target list that names nobody in the class is work aimed at nobody. */
+  targetHandles?: string[];
   /** remove: which piece of work. */
   assignmentId?: string;
 }
@@ -169,6 +188,28 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (body.subject !== undefined && !(SUBJECT_IDS as string[]).includes(body.subject)) {
         return NextResponse.json({ error: "unknown subject" }, { status: 400 });
       }
+      // ── WHO IT IS FOR, CHECKED AGAINST THE SAME RESOLVER THE MONITOR USES ──
+      // The members are resolved here (before the class lock) by the shared
+      // rule, which also leaves the teacher OUT of the student list — so the
+      // class's teacher cannot be named as a target by accident, and a name
+      // that matches nobody in the class is refused rather than stored. A
+      // target list is data about learners, so an unknown one is an error and
+      // never a silent drop.
+      const requested = Array.isArray(body.targetHandles)
+        ? [...new Set(body.targetHandles.filter((h): h is string => typeof h === "string" && h.length > 0).map((h) => h.slice(0, 24)))]
+        : [];
+      if (requested.length > 200) {
+        return NextResponse.json({ error: "too many learners" }, { status: 400 });
+      }
+      if (requested.length > 0) {
+        const cls = await getClass(body.clsId);
+        if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
+        const known = new Set((await resolveMembers(cls)).map((m) => m.handle));
+        const unknown = requested.filter((h) => !known.has(h));
+        if (unknown.length > 0) {
+          return NextResponse.json({ error: `not a learner in this class: ${unknown.join(", ")}` }, { status: 400 });
+        }
+      }
 
       const upd = await updateClassById(body.clsId, (cls) => {
         if (!isTeacherOf(cls, caller)) return { error: "not the teacher" as const, status: 403 as const };
@@ -193,6 +234,9 @@ export async function POST(req: Request): Promise<NextResponse> {
           subject,
           specificationId: cls.specificationId ?? null,
           conceptIds: [...new Set(conceptIds)],
+          // Absent for the whole class, which is what an empty list means — the
+          // record stays the shape it always was for ordinary work.
+          ...(requested.length > 0 ? { targetHandles: requested } : {}),
           createdAt: Date.now(),
           dueAt: body.dueAt as number,
         };

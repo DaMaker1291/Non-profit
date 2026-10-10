@@ -112,7 +112,7 @@ export type ApiSender = (req: ResolvedRequest) => Promise<SenderResponse>;
 const LEARNER_DOORS = new Set([
   "next", "my-pack", "path", "classes", "assignments", "profile",
   "session", "progress", "evidence", "evidence-summary", "my-paper",
-  "diagnostic", "paper", "tutor", "packs", "pack-export",
+  "diagnostic", "paper", "tutor", "packs", "pack-export", "needs",
 ]);
 
 function doorOf(path: string): string {

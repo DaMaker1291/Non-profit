@@ -184,6 +184,14 @@ export const ENGINE_SOURCES = [
   // a string — which is what it had to do while they lived outside the mirror.
   "lib/server/class-membership.ts",
   "lib/server/class-view.ts",
+  // §8 · The evidence-to-intervention loop's two server modules: the PURE
+  // findings derivation (needs.ts — the suite asserts its population rules
+  // behaviourally: unmeasured members counted, never excluded; thin findings
+  // marked, never inflated) and the record store (interventions.ts), so the
+  // suite can drive propose→assign→read→decide against the REAL modules
+  // rather than reading their source for a string.
+  "lib/server/needs.ts",
+  "lib/server/interventions.ts",
   // The offline answer queue. It is a client module too, and it belongs here for
   // the same reason as the two above: the suite drives its dedupe, ordering and
   // retry behaviour directly, on the REAL module the browser loads, rather than

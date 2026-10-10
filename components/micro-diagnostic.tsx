@@ -54,7 +54,7 @@ export default function MicroDiagnostic({ flare, lang }: { flare: FlarePayload; 
       {flare.check && !result && (
         <div style={{ marginTop: 12 }}>
           <p className="small" style={{ fontWeight: 600, margin: "0 0 8px" }}>{t("micro.question")}</p>
-          <div className="qprompt"><PromptText text={flare.check.question.prompt} /></div>
+          <div className="qprompt"><PromptText text={flare.check.question.prompt} figure={flare.check.question.figure} /></div>
           <div className="choices">
             {flare.check.question.choices.map((ch, i) => (
               <button

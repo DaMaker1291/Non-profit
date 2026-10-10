@@ -315,7 +315,7 @@ export default function SolvePage() {
         <h1 className="visually-small">{t("solve.proveTitle")}</h1>
         <div className="card" style={{ marginTop: 16 }}>
           <div className="qprompt">
-            <PromptText text={q.prompt} />
+            <PromptText text={q.prompt} figure={q.figure} />
             <SpeakButton text={q.prompt} />
           </div>
           {/* Working first, answer second — and "prove you understand it" is a
@@ -391,7 +391,7 @@ export default function SolvePage() {
         <h1 className="visually-small">{t("solve.transferTitle")}</h1>
         <div className="card" style={{ marginTop: 16 }}>
           <div className="qprompt">
-            <PromptText text={q.prompt} />
+            <PromptText text={q.prompt} figure={q.figure} />
             <SpeakButton text={q.prompt} />
           </div>
           <WorkSheet

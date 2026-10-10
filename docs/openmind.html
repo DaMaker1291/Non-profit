@@ -1468,6 +1468,7 @@ exports.tutorTurn = tutorTurn;
 exports.concepts = concepts;
 exports.classes = classes;
 exports.classById = classById;
+exports.classMember = classMember;
 exports.classAction = classAction;
 exports.assignments = assignments;
 exports.assignmentAction = assignmentAction;
@@ -1802,6 +1803,14 @@ function classes(me) {
 }
 function classById(id, me) {
     return (0, transport_1.send)("/api/classes", { query: { id, me } });
+}
+/** ONE member's evidence in detail — the "what can this student demonstrate?"
+ *  read. The door answers the class's TEACHER only (a member who is not the
+ *  teacher is a 403), which is the server's rule, not this call's: a surface
+ *  cannot widen it by asking. `learnerId` is identity — never a handle, since a
+ *  class can hold two learners under one name. */
+function classMember(me, clsId, learnerId) {
+    return (0, transport_1.send)("/api/classes", { query: { me, id: clsId, learner: learnerId } });
 }
 function classAction(input) {
     return (0, transport_1.send)("/api/classes", { method: "POST", body: { ...input } });
@@ -6417,6 +6426,20 @@ const en = {
     "asg.cont": "Continue",
     "asg.todo": "{n} of {m} ideas to do",
     "asg.setBy": "Set by your teacher",
+    "asgb.title": "Create an assignment",
+    "asgb.back": "Back",
+    "asgb.stepWho": "Who is this for?",
+    "asgb.whoAll": "The whole class",
+    "asgb.whoSome": "Selected learners",
+    "asgb.stepWhat": "What should they learn?",
+    "asgb.search": "Search this course",
+    "asgb.cap": "Up to {n} ideas",
+    "asgb.stepWhen": "When is it due?",
+    "asgb.adapted": "Each learner is taught the idea and practises it at the level their own evidence calls for — the engine differentiates, so there is nothing to configure here. Exam conditions belong to a paper, not to assigned practice.",
+    "asgb.created": "Assignment created. Your class can now start.",
+    "asgb.createdSome": "Assignment created. The learners you selected can now start.",
+    "asgb.needPick": "Choose at least one idea, one learner and a deadline.",
+    "asgb.wholeClass": "Whole class",
     "teach.setWork": "Set work",
     "teach.setWorkHint": "Choose ideas from this class's curriculum, then give them a deadline.",
     "teach.needSubject": "This class has not declared a subject yet.",
@@ -6433,12 +6456,37 @@ const en = {
     "teach.pickLabel": "Label (optional)",
     "teach.setSubmit": "Set this work",
     "teach.noAssignments": "No work set yet.",
+    "tl.open": "View evidence",
+    "tl.close": "Close",
+    "tl.profile": "Learning profile",
+    "tl.picture": "What this student can demonstrate",
+    "tl.independentOnly": "From independent work only — guided practice measures the teaching, not the learner.",
+    "tl.hypotheses": "Possible misunderstandings",
+    "tl.hypothesisNote": "A hypothesis from recorded wrong answers, not a diagnosis. Check it against the answers below, then decide.",
+    "tl.hypothesisSupport": "{n} wrong answer(s) on {concept}",
+    "tl.recent": "Recent recorded answers",
+    "tl.recordOnly": "The record keeps the concept, the outcome and what it proved — never the question or the student's working.",
+    "tl.noWork": "This student has not answered anything yet.",
+    "tl.notMeasuredHere": "Not yet measured in this course",
+    "tl.nextStep": "Where to start",
+    "tl.nextWeakest": "Weakest measured idea — open it to see what this student will be taught.",
+    "tl.nextNone": "Nothing measured yet. The first idea from the course is below.",
+    "teach.today": "Today",
+    "teach.needsYou": "Needs your attention",
+    "teach.attentionLead": "Raised by students' own recorded work — open a class to read the evidence behind each.",
+    "teach.nothingWaiting": "Nothing is waiting on you: every learner with work set is up to date.",
+    "teach.startHere": "Start here — create your first class below.",
+    "teach.totals": "Learners: {learners} · Recorded answers: {marked} · Work set: {assignments}",
     "teach.monitor": "Assigned work",
     "teach.dueOn": "Due {date}",
     "teach.remove": "Remove",
     "teach.progress": "Progress",
     "teach.accuracy": "Accuracy",
     "teach.proved": "Proved",
+    "teach.entryStudent": "Here to learn instead?",
+    "teach.entryCreate": "Create a teacher account",
+    "teach.entryBody": "A teacher account holds your classes, not your learning. You are not put through a learner's setup or a baseline diagnostic — create a class, share its join code, and see what the class has actually done.",
+    "teach.entryTitle": "Start with a teacher account",
     "teach.needsAttention": "Needs attention",
     "teach.doneOf": "{done}/{total} ideas done",
     "teach.notStarted": "Not started",
@@ -6446,6 +6494,8 @@ const en = {
     "teach.reasonMisconception": "misconception",
     "acct.joined": "Joined — your teacher can now see your measured work.",
     "acct.classNote": "Enter the code your teacher gave you. Your measured work (answers, accuracy, misconceptions) then appears on their roster — identified by your handle, never your private key.",
+    "acct.attach": "Add an account",
+    "acct.guestLead": "Your work is saved on this device and held by OpenMind. Add an account and it comes with you — the same progress, the same record, and you can sign in on any device.",
     "acct.class": "Join a class",
 };
 const es = {
@@ -7832,6 +7882,20 @@ const es = {
     "asg.cont": "Continuar",
     "asg.todo": "{n} de {m} ideas por hacer",
     "asg.setBy": "Asignado por tu profesor",
+    "asgb.title": "Crear una tarea",
+    "asgb.back": "Atrás",
+    "asgb.stepWho": "¿Para quién es?",
+    "asgb.whoAll": "Toda la clase",
+    "asgb.whoSome": "Estudiantes seleccionados",
+    "asgb.stepWhat": "¿Qué deben aprender?",
+    "asgb.search": "Buscar en este curso",
+    "asgb.cap": "Hasta {n} ideas",
+    "asgb.stepWhen": "¿Cuándo vence?",
+    "asgb.adapted": "Cada estudiante aprende la idea y la practica al nivel que indica su propia evidencia: el motor diferencia, así que aquí no hay nada que configurar. Las condiciones de examen son cosa de un examen, no del trabajo asignado.",
+    "asgb.created": "Tarea creada. Tu clase ya puede empezar.",
+    "asgb.createdSome": "Tarea creada. Los estudiantes que elegiste ya pueden empezar.",
+    "asgb.needPick": "Elige al menos una idea, un estudiante y una fecha límite.",
+    "asgb.wholeClass": "Toda la clase",
     "teach.setWork": "Asignar trabajo",
     "teach.setWorkHint": "Elige ideas del temario de esta clase y ponles una fecha límite.",
     "teach.needSubject": "Esta clase aún no ha declarado una asignatura.",
@@ -7848,12 +7912,37 @@ const es = {
     "teach.pickLabel": "Etiqueta (opcional)",
     "teach.setSubmit": "Asignar este trabajo",
     "teach.noAssignments": "Aún no hay trabajo asignado.",
+    "tl.open": "Ver evidencia",
+    "tl.close": "Cerrar",
+    "tl.profile": "Perfil de aprendizaje",
+    "tl.picture": "Lo que este estudiante puede demostrar",
+    "tl.independentOnly": "Solo del trabajo independiente: la práctica guiada mide la enseñanza, no al estudiante.",
+    "tl.hypotheses": "Posibles malentendidos",
+    "tl.hypothesisNote": "Una hipótesis a partir de respuestas incorrectas registradas, no un diagnóstico. Compruébala con las respuestas de abajo y luego decide.",
+    "tl.hypothesisSupport": "{n} respuestas incorrectas en {concept}",
+    "tl.recent": "Respuestas recientes registradas",
+    "tl.recordOnly": "El registro guarda el concepto, el resultado y lo que demostró, nunca la pregunta ni el trabajo del estudiante.",
+    "tl.noWork": "Este estudiante aún no ha respondido nada.",
+    "tl.notMeasuredHere": "Aún sin medir en este curso",
+    "tl.nextStep": "Por dónde empezar",
+    "tl.nextWeakest": "La idea medida más débil: ábrela para ver qué se le enseñará a este estudiante.",
+    "tl.nextNone": "Nada medido todavía. La primera idea del curso está abajo.",
+    "teach.today": "Hoy",
+    "teach.needsYou": "Necesita tu atención",
+    "teach.attentionLead": "Proviene del trabajo registrado de los propios estudiantes: abre una clase para ver la evidencia de cada caso.",
+    "teach.nothingWaiting": "Nada te está esperando: todos los estudiantes con trabajo asignado están al día.",
+    "teach.startHere": "Empieza aquí: crea tu primera clase abajo.",
+    "teach.totals": "Estudiantes: {learners} · Respuestas registradas: {marked} · Trabajo asignado: {assignments}",
     "teach.monitor": "Trabajo asignado",
     "teach.dueOn": "Entrega: {date}",
     "teach.remove": "Quitar",
     "teach.progress": "Progreso",
     "teach.accuracy": "Precisión",
     "teach.proved": "Demostrado",
+    "teach.entryStudent": "¿Vienes a aprender?",
+    "teach.entryCreate": "Crear una cuenta de docente",
+    "teach.entryBody": "Una cuenta de docente contiene tus clases, no tu aprendizaje. No pasas por la configuración del alumnado ni por un diagnóstico inicial: crea una clase, comparte su código y mira lo que la clase ha hecho de verdad.",
+    "teach.entryTitle": "Empieza con una cuenta de docente",
     "teach.needsAttention": "Necesita atención",
     "teach.doneOf": "{done}/{total} ideas hechas",
     "teach.notStarted": "Sin empezar",
@@ -7861,6 +7950,8 @@ const es = {
     "teach.reasonMisconception": "concepto erróneo",
     "acct.joined": "Te uniste — tu profesor ya puede ver tu trabajo medido.",
     "acct.classNote": "Introduce el código que te dio tu profesor. Tu trabajo medido (respuestas, precisión, concepciones erróneas) aparecerá en su lista — identificado por tu alias, nunca por tu clave privada.",
+    "acct.attach": "Añadir una cuenta",
+    "acct.guestLead": "Tu trabajo está guardado en este dispositivo y lo conserva OpenMind. Añade una cuenta y se va contigo: el mismo progreso, el mismo historial, y podrás entrar desde cualquier dispositivo.",
     "acct.class": "Unirse a una clase",
 };
 const fr = {
@@ -9247,6 +9338,20 @@ const fr = {
     "asg.cont": "Continuer",
     "asg.todo": "{n} idées sur {m} à faire",
     "asg.setBy": "Assigné par ton professeur",
+    "asgb.title": "Créer un devoir",
+    "asgb.back": "Retour",
+    "asgb.stepWho": "Pour qui ?",
+    "asgb.whoAll": "Toute la classe",
+    "asgb.whoSome": "Élèves sélectionnés",
+    "asgb.stepWhat": "Que doivent-ils apprendre ?",
+    "asgb.search": "Rechercher dans ce cours",
+    "asgb.cap": "Jusqu'à {n} idées",
+    "asgb.stepWhen": "Pour quand ?",
+    "asgb.adapted": "Chaque élève apprend l'idée et la travaille au niveau que ses propres preuves appellent — le moteur différencie, il n'y a donc rien à configurer ici. Les conditions d'examen relèvent d'un sujet, pas d'un devoir.",
+    "asgb.created": "Devoir créé. Votre classe peut commencer.",
+    "asgb.createdSome": "Devoir créé. Les élèves que vous avez choisis peuvent commencer.",
+    "asgb.needPick": "Choisissez au moins une idée, un élève et une date limite.",
+    "asgb.wholeClass": "Toute la classe",
     "teach.setWork": "Assigner du travail",
     "teach.setWorkHint": "Choisis des notions du programme de cette classe, puis fixe une échéance.",
     "teach.needSubject": "Cette classe n'a pas encore déclaré de matière.",
@@ -9263,12 +9368,37 @@ const fr = {
     "teach.pickLabel": "Libellé (facultatif)",
     "teach.setSubmit": "Assigner ce travail",
     "teach.noAssignments": "Aucun travail assigné pour l'instant.",
+    "tl.open": "Voir les preuves",
+    "tl.close": "Fermer",
+    "tl.profile": "Profil d'apprentissage",
+    "tl.picture": "Ce que cet élève peut démontrer",
+    "tl.independentOnly": "Uniquement le travail autonome : la pratique guidée mesure l'enseignement, pas l'élève.",
+    "tl.hypotheses": "Malentendus possibles",
+    "tl.hypothesisNote": "Une hypothèse issue des mauvaises réponses enregistrées, pas un diagnostic. Vérifiez-la avec les réponses ci-dessous, puis décidez.",
+    "tl.hypothesisSupport": "{n} mauvaises réponses sur {concept}",
+    "tl.recent": "Réponses récentes enregistrées",
+    "tl.recordOnly": "L'enregistrement garde le concept, le résultat et ce qu'il a prouvé — jamais l'énoncé ni la copie de l'élève.",
+    "tl.noWork": "Cet élève n'a encore rien répondu.",
+    "tl.notMeasuredHere": "Pas encore mesuré dans ce cours",
+    "tl.nextStep": "Par où commencer",
+    "tl.nextWeakest": "L'idée mesurée la plus faible — ouvrez-la pour voir ce qui sera enseigné à cet élève.",
+    "tl.nextNone": "Rien de mesuré pour l'instant. La première idée du cours est ci-dessous.",
+    "teach.today": "Aujourd'hui",
+    "teach.needsYou": "Demande votre attention",
+    "teach.attentionLead": "Issu du travail enregistré des élèves eux-mêmes — ouvrez une classe pour voir les preuves de chaque cas.",
+    "teach.nothingWaiting": "Rien ne vous attend : tous les élèves ayant du travail assigné sont à jour.",
+    "teach.startHere": "Commencez ici — créez votre première classe ci-dessous.",
+    "teach.totals": "Élèves : {learners} · Réponses enregistrées : {marked} · Travail assigné : {assignments}",
     "teach.monitor": "Travail assigné",
     "teach.dueOn": "À rendre le {date}",
     "teach.remove": "Retirer",
     "teach.progress": "Progression",
     "teach.accuracy": "Précision",
     "teach.proved": "Prouvé",
+    "teach.entryStudent": "Vous venez plutôt pour apprendre ?",
+    "teach.entryCreate": "Créer un compte enseignant",
+    "teach.entryBody": "Un compte enseignant contient vos classes, pas votre propre apprentissage. Vous ne passez ni par la configuration d'un élève ni par un diagnostic initial : créez une classe, partagez son code et voyez ce que la classe a réellement fait.",
+    "teach.entryTitle": "Commencez par un compte enseignant",
     "teach.needsAttention": "Nécessite une attention",
     "teach.doneOf": "{done}/{total} notions faites",
     "teach.notStarted": "Pas commencé",
@@ -9276,6 +9406,8 @@ const fr = {
     "teach.reasonMisconception": "idée fausse",
     "acct.joined": "Vous avez rejoint la classe — votre professeur peut maintenant voir votre travail mesuré.",
     "acct.classNote": "Saisissez le code que votre professeur vous a donné. Votre travail mesuré (réponses, précision, idées fausses) apparaîtra sur sa liste — identifié par votre pseudo, jamais par votre clé privée.",
+    "acct.attach": "Ajouter un compte",
+    "acct.guestLead": "Votre travail est enregistré sur cet appareil et conservé par OpenMind. Ajoutez un compte et il vous suit : la même progression, le même historique, et vous pourrez vous connecter depuis n'importe quel appareil.",
     "acct.class": "Rejoindre une classe",
 };
 const pt = {
@@ -10662,6 +10794,20 @@ const pt = {
     "asg.cont": "Continuar",
     "asg.todo": "{n} de {m} ideias por fazer",
     "asg.setBy": "Atribuído pelo teu professor",
+    "asgb.title": "Criar uma tarefa",
+    "asgb.back": "Voltar",
+    "asgb.stepWho": "Para quem é?",
+    "asgb.whoAll": "A turma inteira",
+    "asgb.whoSome": "Alunos selecionados",
+    "asgb.stepWhat": "O que devem aprender?",
+    "asgb.search": "Procurar neste curso",
+    "asgb.cap": "Até {n} ideias",
+    "asgb.stepWhen": "Quando é a entrega?",
+    "asgb.adapted": "Cada aluno aprende a ideia e pratica-a ao nível que as suas próprias evidências exigem — o motor diferencia, por isso não há nada a configurar aqui. As condições de exame pertencem a um exame, não ao trabalho atribuído.",
+    "asgb.created": "Tarefa criada. A tua turma já pode começar.",
+    "asgb.createdSome": "Tarefa criada. Os alunos que escolheste já podem começar.",
+    "asgb.needPick": "Escolhe pelo menos uma ideia, um aluno e um prazo.",
+    "asgb.wholeClass": "Toda a turma",
     "teach.setWork": "Atribuir trabalho",
     "teach.setWorkHint": "Escolhe ideias do currículo desta turma e define um prazo.",
     "teach.needSubject": "Esta turma ainda não declarou uma disciplina.",
@@ -10678,12 +10824,37 @@ const pt = {
     "teach.pickLabel": "Etiqueta (opcional)",
     "teach.setSubmit": "Atribuir este trabalho",
     "teach.noAssignments": "Ainda não há trabalho atribuído.",
+    "tl.open": "Ver evidências",
+    "tl.close": "Fechar",
+    "tl.profile": "Perfil de aprendizagem",
+    "tl.picture": "O que este aluno consegue demonstrar",
+    "tl.independentOnly": "Apenas do trabalho independente — a prática guiada mede o ensino, não o aluno.",
+    "tl.hypotheses": "Possíveis mal-entendidos",
+    "tl.hypothesisNote": "Uma hipótese a partir de respostas erradas registadas, não um diagnóstico. Confirma-a com as respostas abaixo e depois decide.",
+    "tl.hypothesisSupport": "{n} respostas erradas em {concept}",
+    "tl.recent": "Respostas recentes registadas",
+    "tl.recordOnly": "O registo guarda o conceito, o resultado e o que provou — nunca a pergunta nem o trabalho do aluno.",
+    "tl.noWork": "Este aluno ainda não respondeu a nada.",
+    "tl.notMeasuredHere": "Ainda não medido neste curso",
+    "tl.nextStep": "Por onde começar",
+    "tl.nextWeakest": "A ideia medida mais fraca — abre-a para ver o que este aluno vai aprender.",
+    "tl.nextNone": "Nada medido ainda. A primeira ideia do curso está abaixo.",
+    "teach.today": "Hoje",
+    "teach.needsYou": "Precisa da tua atenção",
+    "teach.attentionLead": "Vem do trabalho registado dos próprios alunos — abre uma turma para ver as evidências de cada caso.",
+    "teach.nothingWaiting": "Nada está à tua espera: todos os alunos com trabalho atribuído estão em dia.",
+    "teach.startHere": "Começa aqui — cria a tua primeira turma em baixo.",
+    "teach.totals": "Alunos: {learners} · Respostas registadas: {marked} · Trabalho atribuído: {assignments}",
     "teach.monitor": "Trabalho atribuído",
     "teach.dueOn": "Entrega: {date}",
     "teach.remove": "Remover",
     "teach.progress": "Progresso",
     "teach.accuracy": "Precisão",
     "teach.proved": "Provado",
+    "teach.entryStudent": "Veio antes para aprender?",
+    "teach.entryCreate": "Criar uma conta de professor",
+    "teach.entryBody": "Uma conta de professor guarda as suas turmas, não a sua aprendizagem. Não passa pela configuração de um aluno nem por um diagnóstico inicial: crie uma turma, partilhe o código e veja o que a turma fez de facto.",
+    "teach.entryTitle": "Comece com uma conta de professor",
     "teach.needsAttention": "Precisa de atenção",
     "teach.doneOf": "{done}/{total} ideias feitas",
     "teach.notStarted": "Não começado",
@@ -10691,6 +10862,8 @@ const pt = {
     "teach.reasonMisconception": "equívoco",
     "acct.joined": "Entrou — o seu professor já pode ver o seu trabalho medido.",
     "acct.classNote": "Introduza o código que o seu professor lhe deu. O seu trabalho medido (respostas, precisão, conceções erradas) aparecerá na sua lista — identificado pelo seu pseudónimo, nunca pela sua chave privada.",
+    "acct.attach": "Adicionar uma conta",
+    "acct.guestLead": "O seu trabalho está guardado neste aparelho e fica com o OpenMind. Adicione uma conta e ele vai consigo — o mesmo progresso, o mesmo registo, e pode entrar em qualquer aparelho.",
     "acct.class": "Entrar numa turma",
 };
 const ar = {
@@ -12077,6 +12250,20 @@ const ar = {
     "asg.cont": "تابع",
     "asg.todo": "بقيت {n} من {m} أفكار",
     "asg.setBy": "كلّفك به معلّمك",
+    "asgb.title": "إنشاء تكليف",
+    "asgb.back": "رجوع",
+    "asgb.stepWho": "لمن هذا العمل؟",
+    "asgb.whoAll": "الصف بأكمله",
+    "asgb.whoSome": "طلاب مختارون",
+    "asgb.stepWhat": "ماذا ينبغي أن يتعلموا؟",
+    "asgb.search": "ابحث في هذا المقرر",
+    "asgb.cap": "حتى {n} أفكار",
+    "asgb.stepWhen": "ما موعد التسليم؟",
+    "asgb.adapted": "يتعلّم كل طالب الفكرة ويتدرّب عليها بالمستوى الذي يستدعيه دليله الخاص — المحرّك يفرّق بنفسه، فلا شيء لضبطه هنا. أما ظروف الامتحان فمكانها ورقة الامتحان لا العمل المُكلَّف.",
+    "asgb.created": "أُنشئ التكليف. صفك يمكنه البدء الآن.",
+    "asgb.createdSome": "أُنشئ التكليف. الطلاب الذين اخترتهم يمكنهم البدء الآن.",
+    "asgb.needPick": "اختر فكرة واحدة وطالبًا واحدًا وموعدًا للتسليم على الأقل.",
+    "asgb.wholeClass": "الصف بأكمله",
     "teach.setWork": "إسناد عمل",
     "teach.setWorkHint": "اختر أفكارًا من منهج هذا الصف ثم حدّد موعدًا للتسليم.",
     "teach.needSubject": "لم يُعلن هذا الصف عن مادة بعد.",
@@ -12093,12 +12280,37 @@ const ar = {
     "teach.pickLabel": "تسمية (اختياري)",
     "teach.setSubmit": "إسناد هذا العمل",
     "teach.noAssignments": "لم يُسنَد أي عمل بعد.",
+    "tl.open": "عرض الأدلة",
+    "tl.close": "إغلاق",
+    "tl.profile": "ملف التعلّم",
+    "tl.picture": "ما يستطيع هذا الطالب إثباته",
+    "tl.independentOnly": "من العمل المستقل فقط — التدريب الموجَّه يقيس التعليم لا الطالب.",
+    "tl.hypotheses": "احتمالات فهم خاطئ",
+    "tl.hypothesisNote": "فرضية مستخلصة من إجابات خاطئة مسجَّلة، وليست تشخيصًا. تحقّق منها مع الإجابات أدناه ثم قرّر.",
+    "tl.hypothesisSupport": "{n} إجابات خاطئة في {concept}",
+    "tl.recent": "أحدث الإجابات المسجَّلة",
+    "tl.recordOnly": "يحتفظ السجل بالمفهوم والنتيجة وما أثبتته — لا نصَّ السؤال ولا ورقة الطالب.",
+    "tl.noWork": "لم يُجب هذا الطالب عن أي سؤال بعد.",
+    "tl.notMeasuredHere": "لم يُقَس بعد في هذا المقرر",
+    "tl.nextStep": "من أين تبدأ",
+    "tl.nextWeakest": "أضعف فكرة مقيسة — افتحها لترى ما سيُدرَّس لهذا الطالب.",
+    "tl.nextNone": "لم يُقَس شيء بعد. أول فكرة من المقرر بالأسفل.",
+    "teach.today": "اليوم",
+    "teach.needsYou": "يحتاج إلى انتباهك",
+    "teach.attentionLead": "مستخلص من عمل الطلاب المسجَّل — افتح الصف لرؤية الدليل وراء كل حالة.",
+    "teach.nothingWaiting": "لا شيء ينتظرك: كل طالب لديه عمل مُكلَّف به مُحدَّث.",
+    "teach.startHere": "ابدأ من هنا — أنشئ صفك الأول بالأسفل.",
+    "teach.totals": "الطلاب: {learners} · الإجابات المسجَّلة: {marked} · الأعمال المُكلَّفة: {assignments}",
     "teach.monitor": "العمل المُكلَّف به",
     "teach.dueOn": "التسليم: {date}",
     "teach.remove": "إزالة",
     "teach.progress": "التقدّم",
     "teach.accuracy": "الدقة",
     "teach.proved": "مُثبَت",
+    "teach.entryStudent": "هل جئت للتعلّم بدلًا من ذلك؟",
+    "teach.entryCreate": "أنشئ حساب معلّم",
+    "teach.entryBody": "حساب المعلّم يحمل صفوفك، لا تعلّمك. لن تمرّ بإعداد المتعلّم ولا بتشخيص أوّلي — أنشئ صفًّا، وشارك رمز الانضمام، وانظر ما أنجزه الصف فعليًّا.",
+    "teach.entryTitle": "ابدأ بحساب معلّم",
     "teach.needsAttention": "يحتاج إلى اهتمام",
     "teach.doneOf": "أُنجزت {done}/{total} من الأفكار",
     "teach.notStarted": "لم يبدأ",
@@ -12106,6 +12318,8 @@ const ar = {
     "teach.reasonMisconception": "مفهوم خاطئ",
     "acct.joined": "لقد انضممت — يستطيع معلمك الآن رؤية عملك المُقاس.",
     "acct.classNote": "أدخل الرمز الذي أعطك إياه معلمك. سيظهر عملك المُقاس (الإجابات، الدقة، المفاهيم الخاطئة) في قائمته — معرّفاً باسمك المستعار، وليس بمفتاحك الخاص أبداً.",
+    "acct.attach": "أضف حسابًا",
+    "acct.guestLead": "عملك محفوظ على هذا الجهاز ويحتفظ به OpenMind. أضف حسابًا لينتقل معك — التقدّم نفسه، والسجل نفسه، ويمكنك تسجيل الدخول من أي جهاز.",
     "acct.class": "الانضمام إلى صف",
 };
 const sw = {
@@ -13492,6 +13706,20 @@ const sw = {
     "asg.cont": "Endelea",
     "asg.todo": "{n} kati ya {m} mawazo yaliyobaki",
     "asg.setBy": "Umepewa na mwalimu wako",
+    "asgb.title": "Unda kazi",
+    "asgb.back": "Rudi",
+    "asgb.stepWho": "Hii ni ya nani?",
+    "asgb.whoAll": "Darasa lote",
+    "asgb.whoSome": "Wanafunzi waliochaguliwa",
+    "asgb.stepWhat": "Wanapaswa kujifunza nini?",
+    "asgb.search": "Tafuta katika kozi hii",
+    "asgb.cap": "Hadi mawazo {n}",
+    "asgb.stepWhen": "Inakamilika lini?",
+    "asgb.adapted": "Kila mwanafunzi hujifunza wazo na hufanya mazoezi kwa kiwango ambacho ushahidi wake mwenyewe unahitaji — injini hufanya upambanuzi, kwa hivyo hakuna cha kuweka hapa. Masharti ya mtihani ni ya karatasi ya mtihani, si ya kazi iliyopangwa.",
+    "asgb.created": "Kazi imeundwa. Darasa lako linaweza kuanza.",
+    "asgb.createdSome": "Kazi imeundwa. Wanafunzi uliowachagua wanaweza kuanza.",
+    "asgb.needPick": "Chagua angalau wazo moja, mwanafunzi mmoja na tarehe ya mwisho.",
+    "asgb.wholeClass": "Darasa lote",
     "teach.setWork": "Toa kazi",
     "teach.setWorkHint": "Chagua mawazo kutoka mtaala wa darasa hili, kisha weka tarehe ya mwisho.",
     "teach.needSubject": "Darasa hili halijatangaza somo bado.",
@@ -13508,12 +13736,37 @@ const sw = {
     "teach.pickLabel": "Lebo (si lazima)",
     "teach.setSubmit": "Toa kazi hii",
     "teach.noAssignments": "Hakuna kazi iliyotolewa bado.",
+    "tl.open": "Ona ushahidi",
+    "tl.close": "Funga",
+    "tl.profile": "Wasifu wa kujifunza",
+    "tl.picture": "Anachoweza kuthibitisha mwanafunzi huyu",
+    "tl.independentOnly": "Kutoka kazi ya kujitegemea pekee — mazoezi yanayoongozwa hupima ufundishaji, si mwanafunzi.",
+    "tl.hypotheses": "Uwezekano wa kukosea",
+    "tl.hypothesisNote": "Dhana inayotokana na majibu mabaya yaliyorekodiwa, si utambuzi. Ithibitishe kwa majibu yaliyo hapa chini, kisha amua.",
+    "tl.hypothesisSupport": "{n} majibu mabaya kwenye {concept}",
+    "tl.recent": "Majibu ya hivi karibuni yaliyorekodiwa",
+    "tl.recordOnly": "Rekodi huhifadhi dhana, matokeo na kile ilichothibitisha — si swali wala kazi ya mwanafunzi.",
+    "tl.noWork": "Mwanafunzi huyu hajajibu chochote bado.",
+    "tl.notMeasuredHere": "Haijapimwa bado katika kozi hii",
+    "tl.nextStep": "Wapi pa kuanzia",
+    "tl.nextWeakest": "Wazo dhaifu lililopimwa — lifungue kuona atakachofundishwa mwanafunzi huyu.",
+    "tl.nextNone": "Hakuna kilichopimwa bado. Wazo la kwanza la kozi liko hapa chini.",
+    "teach.today": "Leo",
+    "teach.needsYou": "Inahitaji uangalifu wako",
+    "teach.attentionLead": "Inatokana na kazi iliyorekodiwa ya wanafunzi wenyewe — fungua darasa kuona ushahidi wa kila kesi.",
+    "teach.nothingWaiting": "Hakuna kinachokusubiri: kila mwanafunzi aliyepewa kazi amemaliza.",
+    "teach.startHere": "Anza hapa — tengeneza darasa lako la kwanza hapa chini.",
+    "teach.totals": "Wanafunzi: {learners} · Majibu yaliyorekodiwa: {marked} · Kazi zilizopangwa: {assignments}",
     "teach.monitor": "Kazi iliyotolewa",
     "teach.dueOn": "Inakusanywa {date}",
     "teach.remove": "Ondoa",
     "teach.progress": "Maendeleo",
     "teach.accuracy": "Usahihi",
     "teach.proved": "Iliyothibitishwa",
+    "teach.entryStudent": "Umekuja kujifunza badala yake?",
+    "teach.entryCreate": "Fungua akaunti ya mwalimu",
+    "teach.entryBody": "Akaunti ya mwalimu hubeba madarasa yako, si masomo yako. Hupitii usanidi wa mwanafunzi wala uchunguzi wa awali — tengeneza darasa, shiriki msimbo wake, na uone kile darasa limefanya.",
+    "teach.entryTitle": "Anza na akaunti ya mwalimu",
     "teach.needsAttention": "Inahitaji uangalizi",
     "teach.doneOf": "Mawazo {done}/{total} yamekamilika",
     "teach.notStarted": "Haijaanza",
@@ -13521,6 +13774,8 @@ const sw = {
     "teach.reasonMisconception": "dhana potofu",
     "acct.joined": "Umejiunga — mwalimu wako sasa anaweza kuona kazi yako iliyopimwa.",
     "acct.classNote": "Weka msimbo walokupa mwalimu wako. Kazi yako iliyopimwa (majibu, usahihi, dhana zisizo sahihi) itaonekana kwenye orodha yao — kwa jina lako la utambulisho, si kwa funguo yako ya faragha.",
+    "acct.attach": "Ongeza akaunti",
+    "acct.guestLead": "Kazi yako imehifadhiwa kwenye kifaa hiki na OpenMind anaitunza. Ongeza akaunti ikufuate — maendeleo yale yale, kumbukumbu ile ile, na unaweza kuingia kwenye kifaa chochote.",
     "acct.class": "Jiunge na darasa",
 };
 const hi = {
@@ -14907,6 +15162,20 @@ const hi = {
     "asg.cont": "जारी रखें",
     "asg.todo": "{m} में से {n} विचार बाकी",
     "asg.setBy": "तुम्हारे शिक्षक द्वारा दिया गया",
+    "asgb.title": "असाइनमेंट बनाएँ",
+    "asgb.back": "वापस",
+    "asgb.stepWho": "यह किसके लिए है?",
+    "asgb.whoAll": "पूरी कक्षा",
+    "asgb.whoSome": "चुने हुए छात्र",
+    "asgb.stepWhat": "उन्हें क्या सीखना चाहिए?",
+    "asgb.search": "इस पाठ्यक्रम में खोजें",
+    "asgb.cap": "अधिकतम {n} अवधारणाएँ",
+    "asgb.stepWhen": "इसकी समय-सीमा क्या है?",
+    "asgb.adapted": "हर छात्र अवधारणा सीखता है और उस स्तर पर अभ्यास करता है जो उसके अपने प्रमाण माँगते हैं — इंजन स्वयं अंतर करता है, इसलिए यहाँ कुछ सेट करने को नहीं है। परीक्षा की शर्तें पेपर की बात हैं, दिए गए अभ्यास की नहीं।",
+    "asgb.created": "असाइनमेंट बन गया। आपकी कक्षा अब शुरू कर सकती है।",
+    "asgb.createdSome": "असाइनमेंट बन गया। आपने जिन छात्रों को चुना, वे अब शुरू कर सकते हैं।",
+    "asgb.needPick": "कम से कम एक अवधारणा, एक छात्र और एक समय-सीमा चुनें।",
+    "asgb.wholeClass": "पूरी कक्षा",
     "teach.setWork": "काम दें",
     "teach.setWorkHint": "इस कक्षा के पाठ्यक्रम से विचार चुनें, फिर अंतिम तिथि तय करें।",
     "teach.needSubject": "इस कक्षा ने अभी कोई विषय घोषित नहीं किया है।",
@@ -14923,12 +15192,37 @@ const hi = {
     "teach.pickLabel": "लेबल (वैकल्पिक)",
     "teach.setSubmit": "यह काम दें",
     "teach.noAssignments": "अभी कोई काम नहीं दिया गया।",
+    "tl.open": "प्रमाण देखें",
+    "tl.close": "बंद करें",
+    "tl.profile": "सीखने की प्रोफ़ाइल",
+    "tl.picture": "यह छात्र क्या सिद्ध कर सकता है",
+    "tl.independentOnly": "केवल स्वतंत्र काम से — निर्देशित अभ्यास शिक्षण मापता है, छात्र को नहीं।",
+    "tl.hypotheses": "संभावित भ्रांतियाँ",
+    "tl.hypothesisNote": "दर्ज गलत उत्तरों से बनी परिकल्पना, निदान नहीं। नीचे दिए उत्तरों से इसे जाँचें, फिर निर्णय लें।",
+    "tl.hypothesisSupport": "{concept} पर {n} गलत उत्तर",
+    "tl.recent": "हाल के दर्ज उत्तर",
+    "tl.recordOnly": "रिकॉर्ड में अवधारणा, परिणाम और जो सिद्ध हुआ वही रहता है — प्रश्न या छात्र का काम नहीं।",
+    "tl.noWork": "इस छात्र ने अभी तक कुछ भी उत्तर नहीं दिया है।",
+    "tl.notMeasuredHere": "इस पाठ्यक्रम में अभी मापा नहीं गया",
+    "tl.nextStep": "कहाँ से शुरू करें",
+    "tl.nextWeakest": "सबसे कमज़ोर मापी गई अवधारणा — इसे खोलकर देखें कि इस छात्र को क्या पढ़ाया जाएगा।",
+    "tl.nextNone": "अभी कुछ मापा नहीं गया। पाठ्यक्रम की पहली अवधारणा नीचे है।",
+    "teach.today": "आज",
+    "teach.needsYou": "आपके ध्यान की ज़रूरत है",
+    "teach.attentionLead": "यह छात्रों के अपने दर्ज किए काम से आया है — हर मामले के पीछे का प्रमाण देखने के लिए कक्षा खोलें।",
+    "teach.nothingWaiting": "आपका इंतज़ार कुछ नहीं कर रहा: काम दिए गए हर छात्र का काम पूरा है।",
+    "teach.startHere": "यहाँ से शुरू करें — नीचे अपनी पहली कक्षा बनाएँ।",
+    "teach.totals": "छात्र: {learners} · दर्ज उत्तर: {marked} · दिया गया काम: {assignments}",
     "teach.monitor": "दिया गया काम",
     "teach.dueOn": "{date} तक जमा करें",
     "teach.remove": "हटाएँ",
     "teach.progress": "प्रगति",
     "teach.accuracy": "सटीकता",
     "teach.proved": "सिद्ध",
+    "teach.entryStudent": "क्या आप सीखने के लिए आए हैं?",
+    "teach.entryCreate": "शिक्षक खाता बनाएँ",
+    "teach.entryBody": "शिक्षक खाते में आपकी कक्षाएँ रहती हैं, आपकी पढ़ाई नहीं। आपको शिक्षार्थी की सेटअप प्रक्रिया या आरंभिक निदान से नहीं गुज़रना पड़ेगा — कक्षा बनाएँ, उसका जॉइन कोड साझा करें, और देखें कि कक्षा ने वास्तव में क्या किया।",
+    "teach.entryTitle": "शिक्षक खाते से शुरू करें",
     "teach.needsAttention": "ध्यान चाहिए",
     "teach.doneOf": "{total} में से {done} विचार पूरे",
     "teach.notStarted": "शुरू नहीं हुआ",
@@ -14936,6 +15230,8 @@ const hi = {
     "teach.reasonMisconception": "भ्रांति",
     "acct.joined": "शामिल हो गए — आपका शिक्षक अब आपका मापा गया काम देख सकता है।",
     "acct.classNote": "अपने शिक्षक द्वारा दिया गया कोड दर्ज करें। आपका मापा गया काम (उत्तर, सटीकता, गलत धारणाएँ) उनकी सूची में दिखेगा — आपके हैंडल से पहचाना गया, कभी भी आपकी निजी कुंजी से नही।",
+    "acct.attach": "खाता जोड़ें",
+    "acct.guestLead": "आपका काम इस डिवाइस पर सहेजा गया है और OpenMind इसे रखता है। खाता जोड़िए और यह आपके साथ चला जाएगा — वही प्रगति, वही रिकॉर्ड, और आप किसी भी डिवाइस से साइन इन कर सकेंगे।",
     "acct.class": "कक्षा में शामिल हों",
 };
 const id = {
@@ -16322,6 +16618,20 @@ const id = {
     "asg.cont": "Lanjutkan",
     "asg.todo": "{n} dari {m} ide belum dikerjakan",
     "asg.setBy": "Diberikan oleh gurumu",
+    "asgb.title": "Buat tugas",
+    "asgb.back": "Kembali",
+    "asgb.stepWho": "Untuk siapa ini?",
+    "asgb.whoAll": "Seluruh kelas",
+    "asgb.whoSome": "Siswa terpilih",
+    "asgb.stepWhat": "Apa yang harus mereka pelajari?",
+    "asgb.search": "Cari di kursus ini",
+    "asgb.cap": "Hingga {n} ide",
+    "asgb.stepWhen": "Kapan tenggatnya?",
+    "asgb.adapted": "Setiap siswa mempelajari ide dan berlatih pada tingkat yang dituntut oleh buktinya sendiri — mesin yang membedakan, jadi tidak ada yang perlu diatur di sini. Kondisi ujian tempatnya di kertas ujian, bukan di tugas.",
+    "asgb.created": "Tugas dibuat. Kelasmu bisa mulai.",
+    "asgb.createdSome": "Tugas dibuat. Siswa yang kamu pilih bisa mulai.",
+    "asgb.needPick": "Pilih minimal satu ide, satu siswa dan satu tenggat.",
+    "asgb.wholeClass": "Seluruh kelas",
     "teach.setWork": "Beri tugas",
     "teach.setWorkHint": "Pilih ide dari kurikulum kelas ini, lalu tentukan tenggatnya.",
     "teach.needSubject": "Kelas ini belum menyatakan mata pelajarannya.",
@@ -16338,12 +16648,37 @@ const id = {
     "teach.pickLabel": "Label (opsional)",
     "teach.setSubmit": "Berikan tugas ini",
     "teach.noAssignments": "Belum ada tugas yang diberikan.",
+    "tl.open": "Lihat bukti",
+    "tl.close": "Tutup",
+    "tl.profile": "Profil belajar",
+    "tl.picture": "Yang dapat ditunjukkan siswa ini",
+    "tl.independentOnly": "Hanya dari kerja mandiri — latihan terpandu mengukur pengajaran, bukan siswa.",
+    "tl.hypotheses": "Kemungkinan salah paham",
+    "tl.hypothesisNote": "Hipotesis dari jawaban salah yang tercatat, bukan diagnosis. Periksa dengan jawaban di bawah, lalu putuskan.",
+    "tl.hypothesisSupport": "{n} jawaban salah pada {concept}",
+    "tl.recent": "Jawaban terbaru yang tercatat",
+    "tl.recordOnly": "Catatan menyimpan konsep, hasil, dan apa yang dibuktikan — bukan soalnya atau pekerjaan siswa.",
+    "tl.noWork": "Siswa ini belum menjawab apa pun.",
+    "tl.notMeasuredHere": "Belum diukur dalam kursus ini",
+    "tl.nextStep": "Mulai dari mana",
+    "tl.nextWeakest": "Ide terukur yang paling lemah — buka untuk melihat apa yang akan diajarkan kepada siswa ini.",
+    "tl.nextNone": "Belum ada yang diukur. Ide pertama dari kursus ada di bawah.",
+    "teach.today": "Hari ini",
+    "teach.needsYou": "Perlu perhatian Anda",
+    "teach.attentionLead": "Berasal dari pekerjaan siswa yang tercatat — buka kelas untuk melihat bukti di baliknya.",
+    "teach.nothingWaiting": "Tidak ada yang menunggu Anda: semua siswa dengan tugas sudah tuntas.",
+    "teach.startHere": "Mulai di sini — buat kelas pertama Anda di bawah.",
+    "teach.totals": "Siswa: {learners} · Jawaban tercatat: {marked} · Tugas diberikan: {assignments}",
     "teach.monitor": "Tugas yang diberikan",
     "teach.dueOn": "Batas {date}",
     "teach.remove": "Hapus",
     "teach.progress": "Kemajuan",
     "teach.accuracy": "Ketepatan",
     "teach.proved": "Terbukti",
+    "teach.entryStudent": "Ingin belajar sebagai gantinya?",
+    "teach.entryCreate": "Buat akun guru",
+    "teach.entryBody": "Akun guru menyimpan kelas Anda, bukan pembelajaran Anda. Anda tidak melewati penyiapan pelajar atau diagnosis awal — buat kelas, bagikan kodenya, dan lihat apa yang benar-benar dikerjakan kelas.",
+    "teach.entryTitle": "Mulai dengan akun guru",
     "teach.needsAttention": "Perlu perhatian",
     "teach.doneOf": "{done}/{total} ide selesai",
     "teach.notStarted": "Belum dimulai",
@@ -16351,6 +16686,8 @@ const id = {
     "teach.reasonMisconception": "miskonsepsi",
     "acct.joined": "Berhasil bergabung — guru Anda kini dapat melihat pekerjaan terukur Anda.",
     "acct.classNote": "Masukkan kode yang diberikan guru Anda. Pekerjaan terukur Anda (jawaban, akurasi, miskonsepsi) akan muncul di daftar mereka — diidentifikasi dengan nama panggilan Anda, bukan kunci pribadi Anda.",
+    "acct.attach": "Tambahkan akun",
+    "acct.guestLead": "Pekerjaanmu tersimpan di perangkat ini dan disimpan oleh OpenMind. Tambahkan akun dan semuanya ikut berpindah — kemajuan yang sama, catatan yang sama, dan kamu bisa masuk dari perangkat mana pun.",
     "acct.class": "Gabung kelas",
 };
 const tl = {
@@ -17737,6 +18074,20 @@ const tl = {
     "asg.cont": "Ituloy",
     "asg.todo": "{n} sa {m} ideya ang natitira",
     "asg.setBy": "Ipinagkatiwala ng guro mo",
+    "asgb.title": "Gumawa ng takdang gawain",
+    "asgb.back": "Bumalik",
+    "asgb.stepWho": "Para kanino ito?",
+    "asgb.whoAll": "Buong klase",
+    "asgb.whoSome": "Mga piling mag-aaral",
+    "asgb.stepWhat": "Ano ang dapat nilang matutunan?",
+    "asgb.search": "Maghanap sa kursong ito",
+    "asgb.cap": "Hanggang {n} ideya",
+    "asgb.stepWhen": "Kailan ang takda?",
+    "asgb.adapted": "Ang bawat mag-aaral ay nag-aaral ng ideya at nagpapraktis sa antas na hinihingi ng sarili nilang ebidensiya — ang makina ang nag-iiba-iba, kaya wala nang ise-set dito. Ang mga kondisyon ng pagsusulit ay para sa papel, hindi sa takdang gawain.",
+    "asgb.created": "Nagawa ang takdang gawain. Maaari nang magsimula ang klase mo.",
+    "asgb.createdSome": "Nagawa ang takdang gawain. Maaari nang magsimula ang mga pinili mong mag-aaral.",
+    "asgb.needPick": "Pumili ng hindi bababa sa isang ideya, isang mag-aaral at isang takda.",
+    "asgb.wholeClass": "Buong klase",
     "teach.setWork": "Magtakda ng gawain",
     "teach.setWorkHint": "Pumili ng ideya mula sa kurikulum ng klase, tapos magtakda ng petsa.",
     "teach.needSubject": "Wala pang naideklarang asignatura ang klase.",
@@ -17753,12 +18104,37 @@ const tl = {
     "teach.pickLabel": "Tatak (opsyonal)",
     "teach.setSubmit": "Itakda ang gawaing ito",
     "teach.noAssignments": "Wala pang gawaing nakatakda.",
+    "tl.open": "Tingnan ang ebidensiya",
+    "tl.close": "Isara",
+    "tl.profile": "Profile ng pag-aaral",
+    "tl.picture": "Ang kayang patunayan ng mag-aaral na ito",
+    "tl.independentOnly": "Mula sa malayang gawain lamang — ang ginagabayang pagsasanay ay sumusukat sa pagtuturo, hindi sa mag-aaral.",
+    "tl.hypotheses": "Mga posibleng maling pagkaunawa",
+    "tl.hypothesisNote": "Isang hinuha mula sa naitalang maling sagot, hindi diagnosis. Suriin ito sa mga sagot sa ibaba, saka magpasya.",
+    "tl.hypothesisSupport": "{n} maling sagot sa {concept}",
+    "tl.recent": "Mga kamakailang naitalang sagot",
+    "tl.recordOnly": "Itinatago ng rekord ang konsepto, resulta at ang napatunayan — hindi ang tanong o ang gawa ng mag-aaral.",
+    "tl.noWork": "Wala pang sinagot ang mag-aaral na ito.",
+    "tl.notMeasuredHere": "Hindi pa nasusukat sa kursong ito",
+    "tl.nextStep": "Saan magsisimula",
+    "tl.nextWeakest": "Pinakamahinang nasukat na ideya — buksan ito upang makita ang ituturo sa mag-aaral na ito.",
+    "tl.nextNone": "Wala pang nasusukat. Nasa ibaba ang unang ideya mula sa kurso.",
+    "teach.today": "Ngayon",
+    "teach.needsYou": "Kailangan ng iyong pansin",
+    "teach.attentionLead": "Galing sa naitalang gawain ng mga mag-aaral — buksan ang klase upang makita ang ebidensiya sa likod ng bawat isa.",
+    "teach.nothingWaiting": "Wala kang hinihintay: lahat ng mag-aaral na may takdang gawain ay tapos na.",
+    "teach.startHere": "Magsimula rito — gumawa ng iyong unang klase sa ibaba.",
+    "teach.totals": "Mga mag-aaral: {learners} · Naitalang sagot: {marked} · Takdang gawain: {assignments}",
     "teach.monitor": "Takdang gawain",
     "teach.dueOn": "Takda: {date}",
     "teach.remove": "Alisin",
     "teach.progress": "Pag-usad",
     "teach.accuracy": "Kawastuhan",
     "teach.proved": "Napatunayan",
+    "teach.entryStudent": "Narito ka ba para mag-aral?",
+    "teach.entryCreate": "Gumawa ng account ng guro",
+    "teach.entryBody": "Ang account ng guro ay may hawak ng iyong mga klase, hindi ng iyong pag-aaral. Hindi ka dadaan sa setup ng mag-aaral o paunang diagnostic — gumawa ng klase, ibahagi ang code nito, at tingnan ang tunay na nagawa ng klase.",
+    "teach.entryTitle": "Magsimula sa account ng guro",
     "teach.needsAttention": "Kailangan ng pansin",
     "teach.doneOf": "{done}/{total} ideya ang tapos",
     "teach.notStarted": "Hindi pa nasimulan",
@@ -17766,6 +18142,8 @@ const tl = {
     "teach.reasonMisconception": "maling kaisipan",
     "acct.joined": "Sumali ka na — makikita na ng iyong guro ang iyong nasukat na gawain.",
     "acct.classNote": "Ilagay ang code na ibinigay ng iyong guro. Ang iyong nasukat na gawain (mga sagot, kawastuhan, maling pagkaunawa) ay lalabas sa kanilang listahan — kinikilala sa iyong handle, hindi kailanman sa iyong pribadong susi.",
+    "acct.attach": "Magdagdag ng account",
+    "acct.guestLead": "Naka-save ang gawain mo sa device na ito at iniingatan ito ng OpenMind. Magdagdag ng account at sasama ito sa iyo — parehong progreso, parehong rekord, at makakapasok ka sa anumang device.",
     "acct.class": "Sumali sa klase",
 };
 // ── Draft languages: core learning loop translated; English fills the rest. ─
@@ -19212,6 +19590,20 @@ const de = {
     "asg.cont": "Fortsetzen",
     "asg.todo": "{n} von {m} Ideen offen",
     "asg.setBy": "Von deiner Lehrkraft aufgegeben",
+    "asgb.title": "Aufgabe anlegen",
+    "asgb.back": "Zurück",
+    "asgb.stepWho": "Für wen ist das?",
+    "asgb.whoAll": "Die ganze Klasse",
+    "asgb.whoSome": "Ausgewählte Lernende",
+    "asgb.stepWhat": "Was sollen sie lernen?",
+    "asgb.search": "Diesen Kurs durchsuchen",
+    "asgb.cap": "Bis zu {n} Ideen",
+    "asgb.stepWhen": "Bis wann?",
+    "asgb.adapted": "Jede Lernende lernt die Idee und übt sie auf dem Niveau, das ihre eigenen Belege verlangen — die Engine differenziert selbst, hier gibt es also nichts einzustellen. Prüfungsbedingungen gehören in eine Klausur, nicht in eine Aufgabe.",
+    "asgb.created": "Aufgabe angelegt. Deine Klasse kann beginnen.",
+    "asgb.createdSome": "Aufgabe angelegt. Die von dir gewählten Lernenden können beginnen.",
+    "asgb.needPick": "Wähle mindestens eine Idee, eine Lernende und einen Termin.",
+    "asgb.wholeClass": "Die ganze Klasse",
     "teach.setWork": "Arbeit aufgeben",
     "teach.setWorkHint": "Wähle Ideen aus dem Lehrplan dieser Klasse und setze eine Frist.",
     "teach.needSubject": "Diese Klasse hat noch kein Fach angegeben.",
@@ -19228,12 +19620,37 @@ const de = {
     "teach.pickLabel": "Bezeichnung (optional)",
     "teach.setSubmit": "Diese Arbeit aufgeben",
     "teach.noAssignments": "Noch keine Arbeit aufgegeben.",
+    "tl.open": "Belege ansehen",
+    "tl.close": "Schließen",
+    "tl.profile": "Lernprofil",
+    "tl.picture": "Was diese Lernende nachweisen kann",
+    "tl.independentOnly": "Nur aus selbstständiger Arbeit — geführtes Üben misst den Unterricht, nicht die Lernende.",
+    "tl.hypotheses": "Mögliche Missverständnisse",
+    "tl.hypothesisNote": "Eine Hypothese aus erfassten falschen Antworten, keine Diagnose. Prüfen Sie sie an den Antworten unten und entscheiden Sie dann.",
+    "tl.hypothesisSupport": "{n} falsche Antworten zu {concept}",
+    "tl.recent": "Zuletzt erfasste Antworten",
+    "tl.recordOnly": "Der Datensatz hält Konzept, Ergebnis und was es belegt hat fest — nie die Aufgabe oder die Arbeit der Lernenden.",
+    "tl.noWork": "Diese Lernende hat noch nichts beantwortet.",
+    "tl.notMeasuredHere": "In diesem Kurs noch nicht gemessen",
+    "tl.nextStep": "Wo anfangen",
+    "tl.nextWeakest": "Schwächste gemessene Idee — öffnen Sie sie, um zu sehen, was dieser Lernende gelehrt wird.",
+    "tl.nextNone": "Noch nichts gemessen. Die erste Idee aus dem Kurs steht unten.",
+    "teach.today": "Heute",
+    "teach.needsYou": "Braucht Ihre Aufmerksamkeit",
+    "teach.attentionLead": "Stammt aus der aufgezeichneten Arbeit der Lernenden — öffnen Sie eine Klasse, um die Belege zu sehen.",
+    "teach.nothingWaiting": "Nichts wartet auf Sie: Alle Lernenden mit Aufgaben sind auf dem aktuellen Stand.",
+    "teach.startHere": "Hier beginnen — legen Sie unten Ihre erste Klasse an.",
+    "teach.totals": "Lernende: {learners} · Erfasste Antworten: {marked} · Aufgaben: {assignments}",
     "teach.monitor": "Aufgegebene Arbeit",
     "teach.dueOn": "Fällig am {date}",
     "teach.remove": "Entfernen",
     "teach.progress": "Fortschritt",
     "teach.accuracy": "Treffsicherheit",
     "teach.proved": "Belegt",
+    "teach.entryStudent": "Möchtest du stattdessen lernen?",
+    "teach.entryCreate": "Lehrkonto erstellen",
+    "teach.entryBody": "Ein Lehrkonto enthält Ihre Klassen, nicht Ihr eigenes Lernen. Sie durchlaufen weder die Einrichtung für Lernende noch eine Eingangsdiagnose — legen Sie eine Klasse an, teilen Sie ihren Beitrittscode und sehen Sie, was die Klasse tatsächlich geleistet hat.",
+    "teach.entryTitle": "Beginne mit einem Lehrkonto",
     "teach.needsAttention": "Braucht Aufmerksamkeit",
     "teach.doneOf": "{done}/{total} Ideen erledigt",
     "teach.notStarted": "Nicht begonnen",
@@ -19241,6 +19658,8 @@ const de = {
     "teach.reasonMisconception": "Fehlvorstellung",
     "acct.joined": "Beigetreten — Ihre Lehrkraft kann jetzt Ihre gemessene Arbeit sehen.",
     "acct.classNote": "Geben Sie den Code ein, den Ihre Lehrkraft Ihnen gegeben hat. Ihre gemessene Arbeit (Antworten, Genauigkeit, Missverständnisse) erscheint auf deren Liste — identifiziert über Ihren Namen, niemals über Ihren privaten Schlüssel.",
+    "acct.attach": "Konto hinzufügen",
+    "acct.guestLead": "Deine Arbeit ist auf diesem Gerät gespeichert und wird von OpenMind geführt. Füge ein Konto hinzu und sie kommt mit — derselbe Fortschritt, dieselbe Aufzeichnung, und du kannst dich auf jedem Gerät anmelden.",
     "acct.class": "Einer Klasse beitreten",
 };
 const ja = {
@@ -20686,6 +21105,20 @@ const ja = {
     "asg.cont": "続ける",
     "asg.todo": "残り {m} 件中 {n} 件",
     "asg.setBy": "先生からの課題",
+    "asgb.title": "課題を作成",
+    "asgb.back": "戻る",
+    "asgb.stepWho": "誰のための課題ですか？",
+    "asgb.whoAll": "クラス全員",
+    "asgb.whoSome": "選んだ学習者",
+    "asgb.stepWhat": "何を学ばせますか？",
+    "asgb.search": "このコースを検索",
+    "asgb.cap": "最大 {n} 個",
+    "asgb.stepWhen": "締め切りはいつですか？",
+    "asgb.adapted": "学習者ごとに、自分の根拠が求める水準でその概念を学び練習します — エンジンが自動で調整するので、ここで設定することはありません。試験の条件は試験問題のもので、課題のものではありません。",
+    "asgb.created": "課題を作成しました。クラスが始められます。",
+    "asgb.createdSome": "課題を作成しました。選んだ学習者が始められます。",
+    "asgb.needPick": "少なくとも 1 つの概念、1 人の学習者、締め切りを選んでください。",
+    "asgb.wholeClass": "クラス全員",
     "teach.setWork": "課題を出す",
     "teach.setWorkHint": "このクラスのカリキュラムから項目を選び、期限を設定します。",
     "teach.needSubject": "このクラスはまだ教科を設定していません。",
@@ -20702,12 +21135,37 @@ const ja = {
     "teach.pickLabel": "ラベル（任意）",
     "teach.setSubmit": "この課題を出す",
     "teach.noAssignments": "まだ課題はありません。",
+    "tl.open": "根拠を見る",
+    "tl.close": "閉じる",
+    "tl.profile": "学習プロフィール",
+    "tl.picture": "この学習者が示せること",
+    "tl.independentOnly": "自立した学習のみ — ガイド付きの練習は指導を測るもので、学習者を測るものではありません。",
+    "tl.hypotheses": "考えられる誤解",
+    "tl.hypothesisNote": "記録された誤答から導いた仮説であり、診断ではありません。下の解答で確かめてから判断してください。",
+    "tl.hypothesisSupport": "{concept} の誤答 {n} 件",
+    "tl.recent": "最近の記録された解答",
+    "tl.recordOnly": "記録に残るのは概念・結果・何を証明したかだけで、問題文や学習者の解答そのものは残りません。",
+    "tl.noWork": "この学習者はまだ何も解答していません。",
+    "tl.notMeasuredHere": "このコースでは未測定",
+    "tl.nextStep": "どこから始めるか",
+    "tl.nextWeakest": "最も弱い測定済みの概念 — 開くとこの学習者に何を教えるかが分かります。",
+    "tl.nextNone": "まだ何も測定されていません。コースの最初の概念は下にあります。",
+    "teach.today": "今日",
+    "teach.needsYou": "対応が必要です",
+    "teach.attentionLead": "学習者自身の記録から検出されました — 各項目の根拠を見るにはクラスを開いてください。",
+    "teach.nothingWaiting": "対応待ちはありません。課題のある学習者は全員完了しています。",
+    "teach.startHere": "ここから始めましょう — 下で最初のクラスを作成します。",
+    "teach.totals": "学習者: {learners} · 記録された解答: {marked} · 課題: {assignments}",
     "teach.monitor": "課題",
     "teach.dueOn": "提出期限 {date}",
     "teach.remove": "削除",
     "teach.progress": "進捗",
     "teach.accuracy": "正答率",
     "teach.proved": "証明済み",
+    "teach.entryStudent": "むしろ学習したいですか？",
+    "teach.entryCreate": "教師アカウントを作成",
+    "teach.entryBody": "教師アカウントには授業が入ります。ご自身の学習は入りません。学習者向けの設定や初回診断は不要です。クラスを作成し、参加コードを共有して、クラスが実際に何をしたかを見てください。",
+    "teach.entryTitle": "教師アカウントから始める",
     "teach.needsAttention": "要支援",
     "teach.doneOf": "{total} 件中 {done} 件完了",
     "teach.notStarted": "未着手",
@@ -20715,6 +21173,8 @@ const ja = {
     "teach.reasonMisconception": "つまずき",
     "acct.joined": "参加しました — 先生があなたの測定された学習を見られるようになりました。",
     "acct.classNote": "先生から渡されたコードを入力してください。あなたの測定された学習（回答・正確さ・つまずき）が先生の名簿に表示されます — ハンドル名で識別され、秘密の鍵が共有されることはありません。",
+    "acct.attach": "アカウントを追加",
+    "acct.guestLead": "あなたの学習はこの端末に保存され、OpenMind が保管しています。アカウントを追加すればそのまま引き継げます。進み具合も記録も同じで、どの端末からでもサインインできます。",
     "acct.class": "クラスに参加",
 };
 const zh = {
@@ -22070,6 +22530,20 @@ const zh = {
     "asg.cont": "继续",
     "asg.todo": "还剩 {n}/{m} 个知识点",
     "asg.setBy": "老师布置",
+    "asgb.title": "创建作业",
+    "asgb.back": "返回",
+    "asgb.stepWho": "这是给谁的？",
+    "asgb.whoAll": "全班",
+    "asgb.whoSome": "选定的学生",
+    "asgb.stepWhat": "他们应该学什么？",
+    "asgb.search": "在本课程中搜索",
+    "asgb.cap": "最多 {n} 个概念",
+    "asgb.stepWhen": "截止日期是什么时候？",
+    "asgb.adapted": "每位学生会按自身证据所要求的水准学习并练习该概念——引擎会自动分级，因此这里无需配置。考试条件属于试卷，而不是布置的练习。",
+    "asgb.created": "作业已创建。你的班级可以开始了。",
+    "asgb.createdSome": "作业已创建。你选定的学生可以开始了。",
+    "asgb.needPick": "请至少选择一个概念、一名学生和一个截止日期。",
+    "asgb.wholeClass": "全班",
     "teach.setWork": "布置作业",
     "teach.setWorkHint": "从本班课程内容中选择知识点，然后设定截止日期。",
     "teach.needSubject": "本班尚未声明学科。",
@@ -22086,12 +22560,37 @@ const zh = {
     "teach.pickLabel": "标签（可选）",
     "teach.setSubmit": "布置此作业",
     "teach.noAssignments": "尚未布置作业。",
+    "tl.open": "查看证据",
+    "tl.close": "关闭",
+    "tl.profile": "学习档案",
+    "tl.picture": "该学生能证明什么",
+    "tl.independentOnly": "仅来自独立完成的作业 —— 引导练习衡量的是教学，而不是学生。",
+    "tl.hypotheses": "可能的误解",
+    "tl.hypothesisNote": "这是从已记录的错题得出的假设，不是诊断。请用下方的答案核实后再决定。",
+    "tl.hypothesisSupport": "{concept} 上有 {n} 个错误答案",
+    "tl.recent": "最近记录的答题",
+    "tl.recordOnly": "记录保存的是概念、结果和它证明了什么——不包括题目或学生的作答。",
+    "tl.noWork": "该学生还没有作答。",
+    "tl.notMeasuredHere": "本课程尚未测量",
+    "tl.nextStep": "从哪里开始",
+    "tl.nextWeakest": "最薄弱的已测量概念——打开即可看到将教给该学生的内容。",
+    "tl.nextNone": "尚未测量。课程中的第一个概念见下方。",
+    "teach.today": "今天",
+    "teach.needsYou": "需要你关注",
+    "teach.attentionLead": "来自学生自己的记录 — 打开班级查看每一条背后的证据。",
+    "teach.nothingWaiting": "没有需要你处理的事项：已布置任务的学生都已完成。",
+    "teach.startHere": "从这里开始 — 在下方创建你的第一个班级。",
+    "teach.totals": "学生：{learners} · 已记录答题：{marked} · 已布置任务：{assignments}",
     "teach.monitor": "已布置作业",
     "teach.dueOn": "{date} 截止",
     "teach.remove": "移除",
     "teach.progress": "进度",
     "teach.accuracy": "正确率",
     "teach.proved": "已证明",
+    "teach.entryStudent": "更想学习吗？",
+    "teach.entryCreate": "创建教师账户",
+    "teach.entryBody": "教师账户保存的是你的班级，而不是你的学习。你不会经过学生设置或基础诊断——创建班级、分享加入码，查看班级实际完成了什么。",
+    "teach.entryTitle": "从教师账户开始",
     "teach.needsAttention": "需要关注",
     "teach.doneOf": "已完成 {done}/{total} 个知识点",
     "teach.notStarted": "未开始",
@@ -22099,6 +22598,8 @@ const zh = {
     "teach.reasonMisconception": "误区",
     "acct.joined": "已加入 — 你的老师现在可以看到你的学习测量结果。",
     "acct.classNote": "输入老师给你的代码。你的学习测量结果（答案、准确率、易错点）会显示在他们的名册上 — 仅以你的昵称标识，绝不会泄露你的私人密钥。",
+    "acct.attach": "添加账户",
+    "acct.guestLead": "你的学习记录保存在这台设备上，并由 OpenMind 保管。添加账户后它会随你而去——同样的进度、同样的记录，而且你可以在任何设备上登录。",
     "acct.class": "加入班级",
 };
 const fa = {
@@ -23454,6 +23955,20 @@ const fa = {
     "asg.cont": "ادامه",
     "asg.todo": "{n} از {m} ایده باقی مانده",
     "asg.setBy": "توسط آموزگارت تعیین شده",
+    "asgb.title": "ساخت تکلیف",
+    "asgb.back": "بازگشت",
+    "asgb.stepWho": "این برای کیست؟",
+    "asgb.whoAll": "کل کلاس",
+    "asgb.whoSome": "دانش‌آموزان انتخاب‌شده",
+    "asgb.stepWhat": "چه چیزی باید بیاموزند؟",
+    "asgb.search": "جست‌وجو در این دوره",
+    "asgb.cap": "حداکثر {n} مفهوم",
+    "asgb.stepWhen": "مهلت آن کِی است؟",
+    "asgb.adapted": "هر دانش‌آموز مفهوم را می‌آموزد و در سطحی تمرین می‌کند که شواهد خودش می‌طلبد — موتور خودش تفکیک می‌کند، پس چیزی برای تنظیم نیست. شرایط امتحان جای خود را در برگهٔ امتحان دارد، نه در تکلیف.",
+    "asgb.created": "تکلیف ساخته شد. کلاس شما می‌تواند شروع کند.",
+    "asgb.createdSome": "تکلیف ساخته شد. دانش‌آموزانی که انتخاب کردید می‌توانند شروع کنند.",
+    "asgb.needPick": "حداقل یک مفهوم، یک دانش‌آموز و یک مهلت انتخاب کنید.",
+    "asgb.wholeClass": "کل کلاس",
     "teach.setWork": "تعیین کار",
     "teach.setWorkHint": "از برنامهٔ درسی این کلاس ایدهها را برگزین و مهلتی بگذار.",
     "teach.needSubject": "این کلاس هنوز درسی اعلام نکرده است.",
@@ -23470,12 +23985,37 @@ const fa = {
     "teach.pickLabel": "برچسب (اختیاری)",
     "teach.setSubmit": "این کار را تعیین کن",
     "teach.noAssignments": "هنوز کاری تعیین نشده است.",
+    "tl.open": "دیدن شواهد",
+    "tl.close": "بستن",
+    "tl.profile": "نمایهٔ یادگیری",
+    "tl.picture": "آنچه این دانش‌آموز می‌تواند نشان دهد",
+    "tl.independentOnly": "فقط از کار مستقل — تمرین هدایت‌شده آموزش را می‌سنجد، نه دانش‌آموز را.",
+    "tl.hypotheses": "برداشت‌های نادرست احتمالی",
+    "tl.hypothesisNote": "فرضیه‌ای از پاسخ‌های نادرست ثبت‌شده، نه تشخیص. آن را با پاسخ‌های زیر بسنجید و سپس تصمیم بگیرید.",
+    "tl.hypothesisSupport": "{n} پاسخ نادرست در {concept}",
+    "tl.recent": "پاسخ‌های اخیر ثبت‌شده",
+    "tl.recordOnly": "سابقه فقط مفهوم، نتیجه و آنچه اثبات شده را نگه می‌دارد — نه صورت سؤال و نه نوشتهٔ دانش‌آموز.",
+    "tl.noWork": "این دانش‌آموز هنوز به چیزی پاسخ نداده است.",
+    "tl.notMeasuredHere": "در این دوره هنوز سنجیده نشده",
+    "tl.nextStep": "از کجا شروع کنید",
+    "tl.nextWeakest": "ضعیف‌ترین مفهوم سنجیده‌شده — بازش کنید تا ببینید به این دانش‌آموز چه آموزش داده می‌شود.",
+    "tl.nextNone": "هنوز چیزی سنجیده نشده است. نخستین مفهوم دوره در پایین است.",
+    "teach.today": "امروز",
+    "teach.needsYou": "نیاز به توجه شما دارد",
+    "teach.attentionLead": "از کار ثبت‌شدهٔ خود دانش‌آموزان به دست آمده — برای دیدن شواهد هر مورد یک کلاس را باز کنید.",
+    "teach.nothingWaiting": "چیزی در انتظار شما نیست: هر دانش‌آموزی که کار گرفته، به‌روز است.",
+    "teach.startHere": "از اینجا شروع کنید — نخستین کلاس خود را در پایین بسازید.",
+    "teach.totals": "دانش‌آموزان: {learners} · پاسخ‌های ثبت‌شده: {marked} · کارهای تعیین‌شده: {assignments}",
     "teach.monitor": "کار تعیینشده",
     "teach.dueOn": "مهلت: {date}",
     "teach.remove": "حذف",
     "teach.progress": "پیشرفت",
     "teach.accuracy": "دقت",
     "teach.proved": "اثبات‌شده",
+    "teach.entryStudent": "به‌جای آن آمده‌اید یاد بگیرید؟",
+    "teach.entryCreate": "ساخت حساب معلم",
+    "teach.entryBody": "حساب معلم کلاس‌های شما را نگه می‌دارد، نه یادگیری شما را. از راه‌اندازی مخصوص دانش‌آموز یا سنجش اولیه نمی‌گذرید — یک کلاس بسازید، کد عضویت آن را به اشتراک بگذارید و ببینید کلاس واقعاً چه کرده است.",
+    "teach.entryTitle": "با حساب معلم شروع کنید",
     "teach.needsAttention": "نیازمند توجه",
     "teach.doneOf": "{done} از {total} ایده انجام شد",
     "teach.notStarted": "شروع نشده",
@@ -23483,6 +24023,8 @@ const fa = {
     "teach.reasonMisconception": "برداشت نادرست",
     "acct.joined": "ملحق شدید — معلم شما اکنون می‌تواند کار اندازه‌گیری‌شدهٔ شما را ببیند.",
     "acct.classNote": "کدی را که معلمتان به شما داده وارد کنید. کار اندازه‌گیری‌شدهٔ شما (پاسخ‌ها، دقت، برداشت‌های نادرست) در فهرست او ظاهر می‌شود — با نام کاربری شما شناسایی می‌شود، نه کلید خصوصی‌تان.",
+    "acct.attach": "افزودن حساب",
+    "acct.guestLead": "کار شما روی همین دستگاه ذخیره شده و OpenMind آن را نگه می‌دارد. یک حساب اضافه کنید تا با شما بیاید — همان پیشرفت، همان سابقه، و می‌توانید از هر دستگاهی وارد شوید.",
     "acct.class": "به یک کلاس بپیوندید",
 };
 const ur = {
@@ -24838,6 +25380,20 @@ const ur = {
     "asg.cont": "جاری رکھیں",
     "asg.todo": "{m} میں سے {n} خیالات باقی",
     "asg.setBy": "آپ کے استاد نے دیا",
+    "asgb.title": "اسائنمنٹ بنائیں",
+    "asgb.back": "واپس",
+    "asgb.stepWho": "یہ کس کے لیے ہے؟",
+    "asgb.whoAll": "پوری کلاس",
+    "asgb.whoSome": "منتخب طلبہ",
+    "asgb.stepWhat": "انہیں کیا سیکھنا چاہیے؟",
+    "asgb.search": "اس کورس میں تلاش کریں",
+    "asgb.cap": "زیادہ سے زیادہ {n} تصورات",
+    "asgb.stepWhen": "آخری تاریخ کیا ہے؟",
+    "asgb.adapted": "ہر طالبِ علم تصور سیکھتا ہے اور اُس سطح پر مشق کرتا ہے جو اُس کے اپنے ثبوت مانگتے ہیں — انجن خود تفریق کرتا ہے، اس لیے یہاں کچھ مقرر کرنے کو نہیں۔ امتحان کی شرائط پرچے کی بات ہیں، دیے گئے کام کی نہیں۔",
+    "asgb.created": "اسائنمنٹ بن گئی۔ آپ کی کلاس اب شروع کر سکتی ہے۔",
+    "asgb.createdSome": "اسائنمنٹ بن گئی۔ جن طلبہ کو آپ نے منتخب کیا وہ اب شروع کر سکتے ہیں۔",
+    "asgb.needPick": "کم از کم ایک تصور، ایک طالبِ علم اور ایک آخری تاریخ منتخب کریں۔",
+    "asgb.wholeClass": "پوری کلاس",
     "teach.setWork": "کام دیں",
     "teach.setWorkHint": "اس کلاس کے نصاب سے خیالات چنیں، پھر تاریخ مقرر کریں۔",
     "teach.needSubject": "اس کلاس نے ابھی کوئی مضمون قرار نہیں دیا۔",
@@ -24854,12 +25410,37 @@ const ur = {
     "teach.pickLabel": "لیبل (اختیاری)",
     "teach.setSubmit": "یہ کام دیں",
     "teach.noAssignments": "ابھی کوئی کام نہیں دیا گیا۔",
+    "tl.open": "ثبوت دیکھیں",
+    "tl.close": "بند کریں",
+    "tl.profile": "سیکھنے کا پروفائل",
+    "tl.picture": "یہ طالبِ علم کیا ثابت کر سکتا ہے",
+    "tl.independentOnly": "صرف خودمختار کام سے — رہنمائی والی مشق تدریس کو ناپتی ہے، طالبِ علم کو نہیں۔",
+    "tl.hypotheses": "ممکنہ غلط فہمیاں",
+    "tl.hypothesisNote": "یہ ریکارڈ شدہ غلط جوابات سے بنائی گئی مفروضہ ہے، تشخیص نہیں۔ نیچے دیے جوابات سے جانچیں، پھر فیصلہ کریں۔",
+    "tl.hypothesisSupport": "{concept} پر {n} غلط جوابات",
+    "tl.recent": "حالیہ ریکارڈ شدہ جوابات",
+    "tl.recordOnly": "ریکارڈ میں تصور، نتیجہ اور جو ثابت ہوا وہی رہتا ہے — نہ سوال اور نہ طالبِ علم کا حل۔",
+    "tl.noWork": "اس طالبِ علم نے ابھی کچھ جواب نہیں دیا۔",
+    "tl.notMeasuredHere": "اس کورس میں ابھی ناپا نہیں گیا",
+    "tl.nextStep": "کہاں سے شروع کریں",
+    "tl.nextWeakest": "سب سے کمزور ناپا گیا تصور — اسے کھولیں تاکہ دیکھیں اس طالبِ علم کو کیا پڑھایا جائے گا۔",
+    "tl.nextNone": "ابھی کچھ ناپا نہیں گیا۔ کورس کا پہلا تصور نیچے ہے۔",
+    "teach.today": "آج",
+    "teach.needsYou": "آپ کی توجہ درکار ہے",
+    "teach.attentionLead": "یہ طلبہ کے اپنے ریکارڈ شدہ کام سے ہے — ہر کیس کے پیچھے ثبوت دیکھنے کے لیے کلاس کھولیں۔",
+    "teach.nothingWaiting": "کوئی چیز آپ کا انتظار نہیں کر رہی: کام دیے گئے ہر طالبِ علم کا کام مکمل ہے۔",
+    "teach.startHere": "یہاں سے شروع کریں — نیچے اپنی پہلی کلاس بنائیں۔",
+    "teach.totals": "طلبہ: {learners} · ریکارڈ شدہ جوابات: {marked} · دیا گیا کام: {assignments}",
     "teach.monitor": "دیا گیا کام",
     "teach.dueOn": "جمع کرنے کی تاریخ: {date}",
     "teach.remove": "ہٹائیں",
     "teach.progress": "پیش رفت",
     "teach.accuracy": "درستگی",
     "teach.proved": "ثابت شدہ",
+    "teach.entryStudent": "کیا آپ سیکھنے آئے ہیں؟",
+    "teach.entryCreate": "استاد اکاؤنٹ بنائیں",
+    "teach.entryBody": "استاد اکاؤنٹ آپ کی کلاسوں کا ہوتا ہے، آپ کی پڑھائی کا نہیں۔ آپ کو سیکھنے والے کی ترتیب یا ابتدائی جانچ سے نہیں گزارا جائے گا — کلاس بنائیں، اس کا شمولیتی کوڈ شیئر کریں، اور دیکھیں کہ کلاس نے واقعی کیا کیا۔",
+    "teach.entryTitle": "استاد اکاؤنٹ سے شروع کریں",
     "teach.needsAttention": "توجہ درکار",
     "teach.doneOf": "{total} میں سے {done} خیالات مکمل",
     "teach.notStarted": "شروع نہیں ہوا",
@@ -24867,6 +25448,8 @@ const ur = {
     "teach.reasonMisconception": "غلط فہمی",
     "acct.joined": "شامل ہو گئے — آپ کا استاد اب آپ کا ناپا گیا کام دیکھ سکتا ہے۔",
     "acct.classNote": "اپنے استاد کا دیا ہوا کوڈ درج کریں۔ آپ کا ناپا گیا کام (جوابات، درستگی، غلط فہمیاں) ان کی فہرست میں نظر آئے گا — آپ کے ہینڈل سے شناخت، کبھی بھی آپ کی نجی کی سے نہیں۔",
+    "acct.attach": "اکاؤنٹ شامل کریں",
+    "acct.guestLead": "آپ کا کام اسی آلے پر محفوظ ہے اور OpenMind اسے سنبھالے ہوئے ہے۔ اکاؤنٹ شامل کریں تو یہ آپ کے ساتھ چلا جائے گا — وہی پیش رفت، وہی ریکارڈ، اور آپ کسی بھی آلے سے سائن اِن کر سکیں گے۔",
     "acct.class": "کلاس میں شامل ہوں",
 };
 exports.LANGS = [
@@ -26304,6 +26887,20 @@ exports.bn = {
     "asg.cont": "চালিয়ে যাও",
     "asg.todo": "{m}টির মধ্যে {n}টি ধারণা বাকি",
     "asg.setBy": "তোমার শিক্ষক দিয়েছেন",
+    "asgb.title": "অ্যাসাইনমেন্ট তৈরি করুন",
+    "asgb.back": "ফিরে যান",
+    "asgb.stepWho": "এটি কার জন্য?",
+    "asgb.whoAll": "পুরো ক্লাস",
+    "asgb.whoSome": "নির্বাচিত শিক্ষার্থী",
+    "asgb.stepWhat": "তাদের কী শেখা উচিত?",
+    "asgb.search": "এই কোর্সে খুঁজুন",
+    "asgb.cap": "সর্বোচ্চ {n}টি ধারণা",
+    "asgb.stepWhen": "সময়সীমা কখন?",
+    "asgb.adapted": "প্রতিটি শিক্ষার্থী ধারণাটি শেখে এবং নিজের প্রমাণ যে স্তরের দাবি করে সেই স্তরে অনুশীলন করে — ইঞ্জিন নিজেই স্তর ভাগ করে, তাই এখানে কিছু সেট করার নেই। পরীক্ষার শর্ত পরীক্ষার প্রশ্নপত্রের, অ্যাসাইনমেন্টের নয়।",
+    "asgb.created": "অ্যাসাইনমেন্ট তৈরি হয়েছে। আপনার ক্লাস শুরু করতে পারে।",
+    "asgb.createdSome": "অ্যাসাইনমেন্ট তৈরি হয়েছে। আপনি যাদের বেছে নিয়েছেন তারা শুরু করতে পারে।",
+    "asgb.needPick": "কমপক্ষে একটি ধারণা, একজন শিক্ষার্থী ও একটি সময়সীমা বেছে নিন।",
+    "asgb.wholeClass": "পুরো ক্লাস",
     "teach.setWork": "কাজ দাও",
     "teach.setWorkHint": "এই শ্রেণির পাঠ্যক্রম থেকে ধারণা বেছে নাও, তারপর একটি সময়সীমা দাও।",
     "teach.needSubject": "এই শ্রেণি এখনো কোনো বিষয় ঘোষণা করেনি।",
@@ -26320,12 +26917,37 @@ exports.bn = {
     "teach.pickLabel": "লেবেল (ঐচ্ছিক)",
     "teach.setSubmit": "এই কাজ দাও",
     "teach.noAssignments": "এখনো কোনো কাজ দেওয়া হয়নি।",
+    "tl.open": "প্রমাণ দেখুন",
+    "tl.close": "বন্ধ করুন",
+    "tl.profile": "শেখার প্রোফাইল",
+    "tl.picture": "এই শিক্ষার্থী কী প্রমাণ করতে পারে",
+    "tl.independentOnly": "শুধু স্বাধীন কাজ থেকে — নির্দেশিত অনুশীলন শিক্ষণ মাপে, শিক্ষার্থীকে নয়।",
+    "tl.hypotheses": "সম্ভাব্য ভুল ধারণা",
+    "tl.hypothesisNote": "রেকর্ড করা ভুল উত্তরের ভিত্তিতে একটি অনুমান, রোগনির্ণয় নয়। নিচের উত্তর দিয়ে এটি যাচাই করে তারপর সিদ্ধান্ত নিন।",
+    "tl.hypothesisSupport": "{concept}-এ {n}টি ভুল উত্তর",
+    "tl.recent": "সাম্প্রতিক রেকর্ড করা উত্তর",
+    "tl.recordOnly": "রেকর্ডে থাকে ধারণা, ফলাফল ও যা প্রমাণিত হয়েছে — প্রশ্ন বা শিক্ষার্থীর উত্তরপত্র নয়।",
+    "tl.noWork": "এই শিক্ষার্থী এখনো কিছু উত্তর দেয়নি।",
+    "tl.notMeasuredHere": "এই কোর্সে এখনো মাপা হয়নি",
+    "tl.nextStep": "কোথা থেকে শুরু করবেন",
+    "tl.nextWeakest": "সবচেয়ে দুর্বল মাপা ধারণা — খুলে দেখুন এই শিক্ষার্থীকে কী শেখানো হবে।",
+    "tl.nextNone": "এখনো কিছু মাপা হয়নি। কোর্সের প্রথম ধারণা নিচে।",
+    "teach.today": "আজ",
+    "teach.needsYou": "আপনার মনোযোগ দরকার",
+    "teach.attentionLead": "শিক্ষার্থীদের নিজেদের রেকর্ড করা কাজ থেকে এসেছে — প্রতিটির পেছনের প্রমাণ দেখতে একটি ক্লাস খুলুন।",
+    "teach.nothingWaiting": "কিছুই আপনার অপেক্ষায় নেই: কাজ দেওয়া প্রতিটি শিক্ষার্থী হালনাগাদ আছে।",
+    "teach.startHere": "এখান থেকে শুরু করুন — নিচে আপনার প্রথম ক্লাস তৈরি করুন।",
+    "teach.totals": "শিক্ষার্থী: {learners} · রেকর্ড করা উত্তর: {marked} · দেওয়া কাজ: {assignments}",
     "teach.monitor": "বরাদ্দ করা কাজ",
     "teach.dueOn": "জমার তারিখ {date}",
     "teach.remove": "সরাও",
     "teach.progress": "অগ্রগতি",
     "teach.accuracy": "নির্ভুলতা",
     "teach.proved": "প্রমাণিত",
+    "teach.entryStudent": "বরং শিখতে এসেছেন?",
+    "teach.entryCreate": "শিক্ষক অ্যাকাউন্ট খুলুন",
+    "teach.entryBody": "শিক্ষক অ্যাকাউন্টে থাকে আপনার ক্লাস, আপনার শেখা নয়। শিক্ষার্থীর সেটআপ বা প্রাথমিক নির্ণয়ের মধ্য দিয়ে যেতে হবে না — একটি ক্লাস খুলুন, তার জয়েন কোড শেয়ার করুন, আর দেখুন ক্লাসটি সত্যিই কী করেছে।",
+    "teach.entryTitle": "শিক্ষক অ্যাকাউন্ট দিয়ে শুরু করুন",
     "teach.needsAttention": "মনোযোগ দরকার",
     "teach.doneOf": "{total}টির মধ্যে {done}টি ধারণা সম্পন্ন",
     "teach.notStarted": "শুরু হয়নি",
@@ -26333,6 +26955,8 @@ exports.bn = {
     "teach.reasonMisconception": "ভুল ধারণা",
     "acct.joined": "যোগ দিয়েছেন — আপনার শিক্ষক এখন আপনার পরিমাপ করা কাজ দেখতে পাবেন।",
     "acct.classNote": "আপনার শিক্ষক প্রদত্ত কোডটি লিখুন। আপনার পরিমাপ করা কাজ (উত্তর, নির্ভুলতা, ভুল ধারণা) তাঁর তালিকায় দেখা যাবে — আপনার হ্যান্ডেল দিয়ে চিহ্নিত, কখনও আপনার ব্যক্তিগত কী দিয়ে নয়।",
+    "acct.attach": "অ্যাকাউন্ট যোগ করুন",
+    "acct.guestLead": "আপনার কাজ এই ডিভাইসে সংরক্ষিত আছে এবং OpenMind তা রেখে দেয়। অ্যাকাউন্ট যোগ করুন, তা আপনার সঙ্গে যাবে — একই অগ্রগতি, একই রেকর্ড, আর আপনি যেকোনো ডিভাইস থেকে সাইন ইন করতে পারবেন।",
     "acct.class": "একটি শ্রেণিতে যোগ দিন",
 };
 exports.DICTS = {
@@ -29297,6 +29921,9 @@ exports.CORE_NUMERIC_GENS = {
             prompt: `A right-angled triangle has legs ${a} cm and ${b} cm. How long is the hypotenuse, in cm?`,
             value: c, tolerance: { unit: "cm" },
             wrongs: [a + b, c + 1, c - 1],
+            // Same plate the composed family draws, from the same two legs: the slide
+            // shows both given sides and a `?` for the side being asked for.
+            figure: { kind: "right-triangle", legA: a, legB: b, unit: " cm", labelA: true, labelB: true },
             tags: ["hyp-leg"], difficulty: 0.45,
             explanation: `a² + b² = c²: ${a}² + ${b}² = ${a * a} + ${b * b} = ${c * c}, so c = √${c * c} = ${c} cm.`,
         };
@@ -30165,6 +30792,15 @@ exports.CORE_NUMERIC_GENS = {
         const x1 = r.int(-8, 8), y1 = r.int(-8, 8), x2 = r.int(-8, 8), y2 = r.int(-8, 8);
         return {
             prompt: `What is the x-coordinate of the midpoint of (${x1}, ${y1}) and (${x2}, ${y2})?`,
+            // THE TWO MARKERS ARE PLOTTED, because this is a coordinate-geometry item
+            // and a learner should be able to SEE where the pair sits before averaging
+            // it. The range is the full tick grid the coordinates are drawn from, so
+            // the points are always inside the frame and always in the stem's units.
+            //
+            // The MIDPOINT is deliberately not marked — it is the answer — which is the
+            // rule in lib/types.ts#FigureSpec: a figure may restate the question, never
+            // mark the answer.
+            figure: { kind: "axes", xMin: -9, xMax: 9, yMin: -9, yMax: 9, points: [{ at: [x1, y1] }, { at: [x2, y2] }] },
             value: (x1 + x2) / 2, tolerance: { abs: 0.01 },
             wrongs: [(y1 + y2) / 2, x1 + x2, x2 - x1],
             tags: [], difficulty: 0.5,
@@ -34306,13 +34942,25 @@ exports.DATA_DEEP = {
             difficulty: 0.78 + r.next() * 0.05,
         };
     },
-    /** The midpoint of two plotted points, read from the plot's data table. */
+    /** The midpoint of two plotted points, read off the plot itself. */
     coordinates: (r) => {
         const x1 = r.int(1, 9) * 2, y1 = r.int(1, 9) * 2;
         const x2 = x1 + r.int(1, 6) * 2, y2 = y1 + r.int(1, 6) * 2;
         const correct = `(${(x1 + x2) / 2}, ${(y1 + y2) / 2})`;
+        // THE PLOT IS DRAWN, because this item is about a data plot and the two
+        // markers are its data. It was described as "recorded in the table" with no
+        // table and no plot, so the learner had to build the picture from a list
+        // before the question could start.
+        //
+        // The figure follows the rule in lib/types.ts#FigureSpec: the two points are
+        // given by the stem and are drawn as POSITIONS, unlabelled, and the MIDPOINT
+        // — the thing being asked for — is deliberately not marked. A plot that
+        // plotted the answer would be a broken instrument. The axis range covers
+        // both markers with room to read them, in the same units as the stem.
+        const hi = Math.max(x1, x2, y1, y2) + 4;
         return {
-            prompt: `A data plot has two markers, recorded in the table as\n· (${x1}, ${y1})\n· (${x2}, ${y2})\nWhat is the midpoint of the two markers?`,
+            prompt: `A data plot has two markers:\n· (${x1}, ${y1})\n· (${x2}, ${y2})\nWhat is the midpoint of the two markers?`,
+            figure: { kind: "axes", xMin: 0, xMax: hi, yMin: 0, yMax: hi, points: [{ at: [x1, y1] }, { at: [x2, y2] }] },
             correct,
             wrongs: pickDistinct(correct, [`(${x2 - x1}, ${y2 - y1})`, `(${x1 + x2}, ${y1 + y2})`, `(${(x1 + x2) / 2 + 1}, ${(y1 + y2) / 2})`, `(${x1}, ${y2})`]),
             tags: [],
@@ -36955,7 +37603,10 @@ exports.DEEP_GENS = {
         ];
         const [obs, answer, wrong] = rows[r.int(0, rows.length - 1)];
         return {
-            prompt: `The table shows a trend: ${obs}. Which explanation accounts for the data?`,
+            // No table is drawn and none is described as being shown: the pattern IS
+            // the data (`obs` states every value), so the stem says what it has rather
+            // than promising a figure that does not exist.
+            prompt: `A pattern in the data: ${obs}. Which explanation accounts for it?`,
             correct: answer,
             wrongs: pickDistinct(answer, wrong),
             tags: [],
@@ -37276,20 +37927,25 @@ exports.DEEP_GENS = {
         }
         if (variant < 0.67) {
             const profiles = [
-                ["an energy diagram where the products sit LOWER than the reactants and the curve must climb before it descends",
+                ["the products sit LOWER than the reactants, and the curve must climb before it descends",
                     "Exothermic overall, and the climb is the activation energy",
                     ["Endothermic overall — the climb shows energy being absorbed",
                         "Exothermic, and the climb is the energy released",
                         "No net change — the climb and descent cancel"]],
-                ["an energy diagram where the products sit HIGHER than the reactants",
+                ["the products sit HIGHER than the reactants",
                     "Endothermic — the products absorbed the difference from the surroundings",
                     ["Exothermic — higher means more energy released",
                         "Either — the diagram alone cannot decide the direction",
                         "Neither — the reaction must be at equilibrium"]],
             ];
             const [obs, answer, wrong] = profiles[r.int(0, profiles.length - 1)];
+            // THE PROFILE IS STATED, NOT PROMISED. This stem said "You are shown an
+            // energy diagram … What does the diagram show?" and drew nothing — the one
+            // false promise the figure gate found in the whole bank. The relative
+            // heights ARE the data, so the stem states them and asks for the reading.
+            // What it must not do is describe a picture the learner cannot see.
             return {
-                prompt: `You are shown ${obs}. What does the diagram show?`,
+                prompt: `In a reaction, ${obs}. What does that tell you about the energy change?`,
                 correct: answer,
                 wrongs: pickDistinct(answer, wrong),
                 tags: [],
@@ -44046,6 +44702,7 @@ function numericRaw(num, r) {
             tags: item.tags,
             explanation: item.explanation,
             difficulty: item.difficulty,
+            figure: item.figure,
             numeric: { value: item.value, tolerance },
         };
     }
@@ -44626,6 +45283,10 @@ const MATHS_GENS = {
             correct: String(c),
             wrongs: [String(a + b), String(c + 1), String(Math.abs(b - a))],
             tags: ["hyp-leg"], explanation: `a² + b² = c²: ${a}² + ${b}² = ${a * a} + ${b * b} = ${c * c}, so c = ${c}. The hypotenuse is opposite the right angle — always the longest side.`,
+            // The canonical Pythagoras plate, drawn to scale from the legs the item
+            // itself names. Both legs are labelled because the prompt gives them; the
+            // hypotenuse is `?`, because finding it is the question.
+            figure: { kind: "right-triangle", legA: a, legB: b, labelA: true, labelB: true },
             difficulty: 0.35,
         };
     },
@@ -44734,13 +45395,25 @@ const MATHS_GENS = {
             correct: `1/${share}`,
             wrongs: [`${deg}/360`, `${deg}/180`, `1/${share - 1}`, `1/${share + 1}`],
             tags: [], explanation: `A whole pie is 360°: ${deg}/360 = 1/${share}. Divide the sector angle by 360 and cancel — not by 180 (that is half a circle).`,
+            // The item says "A pie chart shows 30° for walk" and drew no chart at all.
+            // The sector's ANGLE is drawn (the prompt states it); the FRACTION it
+            // equals is not, because dividing 30 by 360 is the whole question.
+            figure: { kind: "pie", sectorDegrees: deg, label: "walk" },
             difficulty: 0.2,
         };
     },
     "scatter-correlation": (r) => {
+        // The element type is written out rather than inferred: three object
+        // literals with a `kind: "axes"` figure would otherwise widen that literal
+        // to `string`, and the narrowed union in FigureSpec is what stops a typo in
+        // a figure kind from compiling.
         const scenes = [
             {
                 prompt: `Ice-cream sales and drowning deaths rise together every summer. What does this show?`,
+                // The scenario the item describes, drawn: two quantities rising
+                // together, with no cause between them. A correlation is the one thing
+                // this question is about and the one thing a sentence cannot show.
+                figure: { kind: "axes", xMin: 0, xMax: 8, yMin: 0, yMax: 9, points: SCATTER_RISING },
                 correct: "A third factor (heat) causes both",
                 wrongs: ["Ice cream causes drowning", "Drowning causes ice-cream buying", "Nothing — the data must be wrong"],
                 tags: ["corr-cause"],
@@ -44748,6 +45421,7 @@ const MATHS_GENS = {
             },
             {
                 prompt: `Students who eat breakfast get better grades. What can you conclude?`,
+                figure: { kind: "axes", xMin: 0, xMax: 8, yMin: 0, yMax: 9, points: SCATTER_FLAT },
                 correct: "Breakfast may not cause it — other factors differ too",
                 wrongs: ["Breakfast causes better grades", "Grades cause breakfast", "The study proves nothing about either"],
                 tags: ["corr-cause"],
@@ -44755,6 +45429,7 @@ const MATHS_GENS = {
             },
             {
                 prompt: `Regions with more storks also record more births. What is the best explanation?`,
+                figure: { kind: "axes", xMin: 0, xMax: 8, yMin: 0, yMax: 9, points: SCATTER_STEEP },
                 correct: "A third factor (population size) drives both",
                 wrongs: ["Storks deliver babies", "More babies attract storks", "The data must be fabricated"],
                 tags: ["corr-cause"],
@@ -46009,6 +46684,17 @@ const SCI_GENS = {
 };
 const fmt = (n) => (n < 0 ? `−${-n}` : `${n}`);
 const sup = (n) => String(n).split("").map((d) => ("⁰¹²³⁴⁵⁶⁷⁸⁹"[Number(d)] ?? d)).join("");
+// ── THE SHAPE OF A CORRELATION, AS DATA ─────────────────────────────────────
+// Three point clouds for the three correlation items in `scatter-correlation`,
+// so the three scenes are visibly different samples rather than one picture
+// pasted three times. FIXED arrays, not generated: `npm run verify` requires a
+// generator's output to be a function of its seed, and a figure is part of the
+// output — a `Math.random()` cloud here would make the same question look
+// different on two draws and the picture unauditable. Plain [x, y] pairs in the
+// same units as the axes they are drawn on.
+const SCATTER_RISING = [{ at: [1, 2] }, { at: [2, 3] }, { at: [3, 3] }, { at: [4, 5] }, { at: [5, 6] }, { at: [6, 6] }, { at: [7, 8] }];
+const SCATTER_FLAT = [{ at: [1, 4] }, { at: [2, 3] }, { at: [3, 5] }, { at: [4, 6] }, { at: [5, 5] }, { at: [6, 8] }, { at: [7, 8] }];
+const SCATTER_STEEP = [{ at: [1, 1] }, { at: [2, 2] }, { at: [3, 4] }, { at: [4, 3] }, { at: [5, 6] }, { at: [6, 7] }, { at: [7, 8] }];
 const LATE_GENS = {
     "coordinates": (r) => {
         const v = r.int(0, 2);
@@ -46019,6 +46705,9 @@ const LATE_GENS = {
                 correct: `(${fmt(p.x)}, ${fmt(p.y)})`,
                 wrongs: [`(${fmt(p.y)}, ${fmt(p.x)})`, `(${fmt(-p.x)}, ${fmt(p.y)})`, `(${fmt(p.x)}, ${fmt(-p.y)})`, `(${fmt(-p.x)}, ${fmt(-p.y)})`],
                 tags: [], explanation: `Order is alphabetical: (x, y). The x-coordinate counts steps right (positive) or left (negative); the y-coordinate counts steps up or down. Swapping the pair walks to a different point.`,
+                // The point is PLOTTED but not labelled: where it sits is what the
+                // prompt describes, and the pair that names it is the answer.
+                figure: { kind: "axes", xMin: -6, xMax: 6, yMin: -6, yMax: 6, points: [{ at: [p.x, p.y] }] },
                 difficulty: 0.15,
             };
         }
@@ -46036,6 +46725,14 @@ const LATE_GENS = {
                 // three distinct wrongs.
                 wrongs: [String(Math.abs(p.x) + Math.abs(p.y)), String(d2), String(Math.abs(Math.abs(p.x) - Math.abs(p.y))), String(Math.abs(p.x * p.y))],
                 tags: [], explanation: `Distance from the origin is Pythagoras: d = √(x² + y²) = √(${p.x}² + ${p.y}²)${whole ? ` = ${d}` : ` = √${d2}`}. Adding |x| + |y| measures the staircase walk, not the straight line.`,
+                // The point and the origin it is measured FROM. The origin is the one
+                // thing the prompt names, so it is the one thing the plate labels; no
+                // connecting segment is drawn, because drawing the triangle would be
+                // drawing the method the item is testing.
+                figure: {
+                    kind: "axes", xMin: -6, xMax: 6, yMin: -6, yMax: 6,
+                    points: [{ at: [0, 0], label: "(0, 0)" }, { at: [p.x, p.y] }],
+                },
                 difficulty: 0.45,
             };
         }
@@ -46591,6 +47288,10 @@ function generateQuestion(conceptId, seed) {
         answer: answer >= 0 ? answer : 0,
         explanation: q.explanation,
         misconceptionTags: q.tags,
+        // Carried straight through: `serveView` strips the grader's fields and lets
+        // this one travel, so the paper, the diagnostic, the practice surface and
+        // the offline pack all draw the same figure from the same numbers.
+        figure: q.figure,
         // A numeric draw says so, and carries the number the typed answer is marked
         // against plus the tolerance the ITEM declares. `choiceValues` reads the
         // same four display strings back through the shared parser, so the option
@@ -48607,6 +49308,68 @@ function difficultyFor(active) {
     return active.level.difficulty;
 }
 // ── Coverage ────────────────────────────────────────────────────────────────
+/**
+ * Stage-0 primary arithmetic: the eight concepts a cohort ABOVE the foundation
+ * tier does not examine.
+ *
+ * WHY THIS LIST EXISTS, and why it is not a difficulty judgement. `npm run
+ * content-audit` measures the production serve path — per course and per
+ * concept, through `lib/operations.ts#servePractice`, the same function
+ * `/api/progress` calls — and found that the ENTIRE advanced-content shortfall
+ * is these eight. Each has a generator ceiling of 0.30–0.50; a cohort targeting
+ * 0.87–0.90 can therefore never be served at its own target for them. The
+ * measurement across all 271 course×subject rows: **0 shortfalls are search, 0
+ * are missing content, 412 are generator ceilings** — and 126 of the 135
+ * concepts meet their course's target exactly, including every physics,
+ * chemistry, biology and computing course at every level.
+ *
+ * So the fix is NOT a harder question. For a concept named `addition`, "more
+ * reasoning, more steps, an unfamiliar representation" is not a harder addition
+ * question — it is a different concept. And the engine suite deliberately
+ * depends on genuinely low-ceiling concepts existing (`negatives` drives the
+ * ceiling-climb test; `place-value` must score below `quadratics`).
+ *
+ * What was actually wrong was the ASSIGNMENT: these eight sat in 13 advanced
+ * maths cohorts — GCSE Higher, IB SL/HL, CBSE 11–12, HSC, KCSE Form 4 and the
+ * rest — because those levels declare `stages: [0, 4]`. A level whose tier is
+ * above `foundation` should not examine them. Note what is NOT done here: they
+ * are not removed from the genome, and every cohort genuinely learning them
+ * (foundation and below) still teaches them. A board that really does examine
+ * stage-0 arithmetic at an advanced tier can name the concept in `include`,
+ * which wins (see the precedence note on `excludedFromLevel`).
+ */
+const PRIMARY_ARITHMETIC = [
+    "addition",
+    "subtraction",
+    "place-value",
+    "multiplication",
+    "division",
+    "order-ops",
+    "negatives",
+    "rounding",
+];
+/** Is this tier above the foundation tier? Derived from the TIERS ORDER rather
+ *  than a hand-written set of level ids, so a new level cannot be added with
+ *  the wrong behaviour by being forgotten from a list. */
+function tierTeachesPrimaryArithmetic(tier) {
+    return exports.TIERS.indexOf(tier) <= exports.TIERS.indexOf("foundation");
+}
+/**
+ * THE ONE exclusion rule — read by BOTH `coverageOf` (the concept list) and
+ * `inSpecification` (the single-concept question), because a rule with two
+ * copies has two answers, and these two must never disagree about whether a
+ * concept is in a learner's course.
+ *
+ * Precedence, strongest first: an explicit `exclude` by name; then an explicit
+ * `include` by name; then this rule; then the stage window. So naming a concept
+ * in `include` is what a board does when it genuinely examines it, and naming
+ * it in `exclude` always wins.
+ */
+function primaryArithmeticExcluded(level, conceptId, explicitlyIncluded) {
+    if (explicitlyIncluded)
+        return false;
+    return !tierTeachesPrimaryArithmetic(level.tier) && PRIMARY_ARITHMETIC.includes(conceptId);
+}
 function windowFor(spec, level, subject) {
     const specWin = spec.coverage[subject];
     if (!specWin)
@@ -48631,7 +49394,12 @@ function coverageOf(active) {
             continue;
         for (const c of (0, genome_1.bySubject)(subject)) {
             const inWindow = c.stage >= win[0] && c.stage <= win[1];
-            if ((inWindow || include.has(c.id)) && !exclude.has(c.id))
+            const named = include.has(c.id);
+            if (exclude.has(c.id))
+                continue;
+            if (primaryArithmeticExcluded(level, c.id, named))
+                continue;
+            if (inWindow || named)
                 out.push(c);
         }
     }
@@ -48664,7 +49432,13 @@ function inSpecification(active, conceptId) {
         return false;
     if (active.level.exclude?.includes(conceptId))
         return false;
-    return (c.stage >= win[0] && c.stage <= win[1]) || (active.level.include?.includes(conceptId) ?? false);
+    // The SAME rule the concept list applies, not a second copy of it: these two
+    // must agree, or a course that omits `addition` from its map would still
+    // answer "yes, that is in your course" for it.
+    const named = active.level.include?.includes(conceptId) ?? false;
+    if (primaryArithmeticExcluded(active.level, conceptId, named))
+        return false;
+    return (c.stage >= win[0] && c.stage <= win[1]) || named;
 }
 /** Grade options a student can pick for their country, for the enrolment UI. */
 function levelsOf(spec) {

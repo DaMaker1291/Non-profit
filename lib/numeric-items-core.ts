@@ -575,6 +575,9 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `A right-angled triangle has legs ${a} cm and ${b} cm. How long is the hypotenuse, in cm?`,
       value: c, tolerance: { unit: "cm" },
       wrongs: [a + b, c + 1, c - 1],
+      // Same plate the composed family draws, from the same two legs: the slide
+      // shows both given sides and a `?` for the side being asked for.
+      figure: { kind: "right-triangle", legA: a, legB: b, unit: " cm", labelA: true, labelB: true },
       tags: ["hyp-leg"], difficulty: 0.45,
       explanation: `a² + b² = c²: ${a}² + ${b}² = ${a * a} + ${b * b} = ${c * c}, so c = √${c * c} = ${c} cm.`,
     };
@@ -1505,6 +1508,15 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
     const x1 = r.int(-8, 8), y1 = r.int(-8, 8), x2 = r.int(-8, 8), y2 = r.int(-8, 8);
     return {
       prompt: `What is the x-coordinate of the midpoint of (${x1}, ${y1}) and (${x2}, ${y2})?`,
+      // THE TWO MARKERS ARE PLOTTED, because this is a coordinate-geometry item
+      // and a learner should be able to SEE where the pair sits before averaging
+      // it. The range is the full tick grid the coordinates are drawn from, so
+      // the points are always inside the frame and always in the stem's units.
+      //
+      // The MIDPOINT is deliberately not marked — it is the answer — which is the
+      // rule in lib/types.ts#FigureSpec: a figure may restate the question, never
+      // mark the answer.
+      figure: { kind: "axes", xMin: -9, xMax: 9, yMin: -9, yMax: 9, points: [{ at: [x1, y1] }, { at: [x2, y2] }] },
       value: (x1 + x2) / 2, tolerance: { abs: 0.01 },
       wrongs: [(y1 + y2) / 2, x1 + x2, x2 - x1],
       tags: [], difficulty: 0.5,

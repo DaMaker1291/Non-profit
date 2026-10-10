@@ -21,7 +21,7 @@
 // box without any surface, gate or diagnostic learning a second code path.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { NumericTolerance } from "./types";
+import type { FigureSpec, NumericTolerance } from "./types";
 // Type-only: the bank imports THIS module at runtime, so importing the RNG as a
 // value here would be a cycle. Only the shape is needed.
 import type { Rng } from "./questions";
@@ -41,6 +41,10 @@ export interface NumericItem {
   tags: string[];
   explanation: string;
   difficulty: number;
+  /** The diagram this item needs, when it needs one — carried through
+   *  `numericRaw` unchanged, so an answer-box item draws the same figure its
+   *  four-option twin does (lib/types.ts#FigureSpec). */
+  figure?: FigureSpec;
 }
 
 export type NumericGen = (r: Rng) => NumericItem;

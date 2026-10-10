@@ -107,6 +107,60 @@ export interface NumericTolerance {
   display?: string;
 }
 
+/** ── A DIAGRAM, AS DATA ─────────────────────────────────────────────────────
+ *
+ *  Some questions cannot be asked in prose. "A pie chart shows 30° for walk"
+ *  named a chart that was never drawn; "a point has x-coordinate −4 and
+ *  y-coordinate 3" describes a picture; a number line is the whole method in a
+ *  "5 − 18" item. Until this existed the generator could only DESCRIBE the
+ *  figure, and a learner had to build it in their head before they could start.
+ *
+ *  The spec is deliberately DATA, not markup: a generator returns plain numbers
+ *  and labels, the renderer (components/question-figure.tsx) turns them into an
+ *  SVG, and the same spec survives JSON to the client, the static build and the
+ *  printed pack. A generator cannot hand-write SVG, so it cannot drift from the
+ *  numbers its own prompt states.
+ *
+ *  THE ONE RULE A GENERATOR MUST KEEP: a figure may restate the question, and
+ *  it may show the tool the question is about — it may NEVER mark, label or
+ *  imply the ANSWER. An item whose answer can be read off its own diagram is a
+ *  broken instrument, whatever its declared difficulty says.
+ *
+ *  A mark's `at`, a tick or an axis value are all in the SAME units as the
+ *  question's own numbers, so the figure and the stem cannot disagree. */
+export type FigureSpec =
+  | {
+      kind: "axes"; xMin: number; xMax: number; yMin: number; yMax: number;
+      /** Plotted points. A point is drawn as a POSITION, and only carries a
+       *  label when the label is something the prompt already says (the
+       *  origin). A point labelled with its own coordinates would BE the
+       *  answer to "which coordinate pair is this?". */
+      points?: AxisPoint[];
+      lines?: AxisLine[];
+    }
+  | { kind: "pie"; /** The sector that is marked, in degrees of the 360°. */ sectorDegrees: number; label?: string }
+  | {
+      /** A right-angled triangle, right angle at the bottom-left, drawn to
+       *  SCALE from its two legs — so the picture and the numbers cannot
+       *  disagree. A side whose label is `false` is the UNKNOWN and is drawn
+       *  with a `?`: the figure never states what the question asks for. */
+      kind: "right-triangle"; legA: number; legB: number; unit?: string;
+      labelA?: boolean; labelB?: boolean; labelC?: boolean;
+    };
+
+export interface AxisPoint {
+  at: [number, number];
+  label?: string;
+  open?: boolean;
+}
+
+export interface AxisLine {
+  from: [number, number];
+  to: [number, number];
+  label?: string;
+  dashed?: boolean;
+}
+
 /** One generated practice question. */
 export interface Question {
   id: string;
@@ -136,6 +190,11 @@ export interface Question {
    *  option "0.75" and a learner who types 0.75 are the same answer, and the
    *  ledger should record them the same way. */
   choiceValues?: number[];
+  /** The diagram this item needs, when it needs one — drawn above the prompt by
+   *  every surface that renders a question. Absent on the majority of items (a
+   *  figure the question does not use is noise, not decoration). See FigureSpec
+   *  for the rule a generator must keep. */
+  figure?: FigureSpec;
 }
 
 export interface Misconception {
@@ -633,6 +692,20 @@ export interface Assignment {
   subject: SubjectId;
   specificationId: string | null;
   conceptIds: string[];
+  /** WHO the work is for, by the class's own row labels. Absent or empty means
+   *  the WHOLE CLASS — the ordinary case, and the only shape the first version
+   *  of this record had.
+   *
+   *  The labels are the roster's handles, and they are safe as keys because a
+   *  handle is unique inside one class (lib/server/class-membership#freeHandle
+   *  never rebinds one that is taken): two learners sharing a display name get
+   *  two rows, and this list names the row, not the child's chosen name.
+   *
+   *  It is a TARGET, never a progress record — the same rule as the rest of
+   *  this interface. What a targeted member did about the work is still derived
+   *  from their own evidence ledger over the window (lib/server/assignment-view),
+   *  and a member this list does not name does not receive the row at all. */
+  targetHandles?: string[];
   /** Server clock the work was set — the window's start. An answer counts
    *  towards the assignment only if it reached the ledger at or after this. */
   createdAt: number;
@@ -696,6 +769,115 @@ export interface AssignmentMonitor {
   interventions: AssignmentIntervention[];
 }
 
+// ── THE EVIDENCE-TO-INTERVENTION LOOP (§8) ──────────────────────────────────
+//
+// One record connects a CLASS finding to the teacher's review of it, the
+// work it was turned into, and the outcome the teacher later reads. It lives
+// beside the class (the store's interventions.json), it stores NO progress
+// number (everything measured is a projection of the members' own ledgers),
+// and its baseline is the ledger's own append-only history split at an
+// instant — never a copied snapshot that could drift.
+
+/** The five claims a finding may make, and only these. Each names what it is
+ *  and is not — the wording on every surface must follow the kind's own
+ *  licence (lib/server/needs.ts's header carries the full contract). */
+export type FindingKind =
+  | "misconception"     // a wrong RULE the ledger recorded, shared by several
+  | "weak_rate"         // observed difficulty: low unaided accuracy, no why
+  | "hint_dependent"    // right with help every time — scaffolding demand
+  | "prereq_gap"        // LIKELY prerequisite lever, inferred from the genome
+  | "unmeasured";       // not yet measured — an absence, never a failure
+
+export type InterventionStatus =
+  | "proposed"      // awaiting the teacher's review
+  | "assigned"      // the work was set; outcome still to be read
+  | "declined"      // the teacher reviewed it and chose not to act — recorded
+  | "resolved"      // outcome read, teacher chose the next step
+  | "superseded";   // a newer proposal at the same compound key kept open
+
+/** ONE open learning need, as derived from the class's own ledgers. Pure
+ *  output of lib/server/needs.ts — never stored as a truth, only as the
+ *  description of what was reviewed. */
+export interface ClassNeed {
+  id: string;
+  clsId: string;
+  conceptId: string;
+  kind: FindingKind;
+  misconceptionId?: string;
+  /** The population, named in full. `eligible` is every student of the class;
+   *  `withEvidence` have any answer on the concept inside the window;
+   *  `unmeasured` have none — COUNTED, never excluded and never 0-modelled;
+   *  `showing` are the learners the pattern is observed on. Every proportion
+   *  a surface shows states its own denominator. */
+  eligible: number;
+  withEvidence: number;
+  unmeasured: number;
+  showing: number;
+  /** The class's combined UNAIDED rate on the concept in the window, or null
+   *  when nobody answered without help (which is not 0%). */
+  unaidedRate: number | null;
+  /** The roster handles the pattern was observed on — teacher-visible, since
+   *  the finding door is teacher-only. */
+  handles: string[];
+  /** The event ids that produced the claim, so the review links to the ledger
+   *  itself (§2) — a linkable audit, not a trust-me number. */
+  evIds: string[];
+  /** Too sparse to justify a class-wide conclusion at full strength. A thin
+   *  finding is still inspectable; the UI says what it is rather than
+   *  inflating it into a diagnosis. */
+  thin: boolean;
+  from: number;
+  nowMs: number;
+}
+
+/** One intervention: finding → review → proposal → assignment → baseline →
+ *  outcome → decision. Fields beyond the finding keys are stamped at each
+ *  teacher-only transition and are never edited after. */
+export interface InterventionRecord {
+  id: string;
+  clsId: string;
+  conceptId: string;
+  kind: FindingKind;
+  misconceptionId?: string;
+  /** The finding this review came from, frozen at proposal time — the record
+   *  must not move when the ledgers move. */
+  finding: ClassNeed;
+  status: InterventionStatus;
+  /** The teacher who proposed/acted. Every transition is theirs alone. */
+  ownerId: string;
+  createdAt: number;
+  /** The server instant of each transition; absent until it happens. */
+  assignedAt?: number;
+  declinedAt?: number;
+  resolvedAt?: number;
+  /** The target population: handles, as the assignment will carry them.
+   *  Empty (undefined) means the whole class — the same semantics as an
+   *  assignment's absent `targetHandles`. */
+  targetHandles?: string[];
+  /** The assignment the review produced (one, not several: the record IS the
+   *  link, and the door refuses a second create). */
+  assignmentId?: string;
+  /** WHERE THE LEDGERS WERE at approval: the baseline instant. Nothing is
+   *  copied; the outcome splits each member's own append-only ledger here. */
+  baseAt?: number;
+  /** The teacher's next decision recorded after the outcome was read. */
+  /** A short teacher own-word on a decline or a decision, capped. */
+  note?: string;
+  /** The teacher's next decision recorded after the outcome was read. */
+  decision?: { kind: DecisionKind; at: number; note?: string };
+}
+
+/** What a teacher may choose after reading the outcome — and this list is the
+ *  UI's, not a free-form dump: each option is an action the product can
+ *  actually take. */
+export type DecisionKind =
+  | "continue_concept"    // move the class forward
+  | "repeat_practice"     // more of the same targeted work
+  | "address_prerequisite"// the finding suggested a lever — work it first
+  | "individual_support"  // one or a few: helping closers, not class work
+  | "another_diagnostic"  // measure before measuring again
+  | "collect_more_evidence"; // the verdict said not enough; keep watching
+
 /** What the teacher's roster shows about one member, derived SERVER-SIDE from
  *  that member's own evidence ledger. Nothing here is accepted from the
  *  client: the numbers are the projection's, and what the ledger has never
@@ -716,5 +898,101 @@ export interface ClassMemberLive {
   answers: number;
   /** The projection algorithm version the numbers were computed with, so a
    *  teacher (and a test) can tell which model produced the view. */
+  projectionVersion: number;
+}
+
+/**
+ * ONE member's evidence IN DETAIL, for the teacher who owns the class they are
+ * in — the "what can this student actually demonstrate?" screen.
+ *
+ * Everything here is a projection of that member's own ledger: no number is
+ * stored anywhere, none is accepted from a client, and what the record has
+ * never measured is ABSENT (or named in `unmeasured`) rather than scored 0.
+ *
+ * Deliberately NO question text and no chosen option: the ledger keeps the
+ * concept, how the answer was done and what it proved — never the item. A
+ * surface that showed the item would have to read the question bank, and a
+ * teacher would then be reading an item this child may never have been served.
+ * A suspected misconception is therefore always labelled a HYPOTHESIS: the tag
+ * says which wrong answer sat on a question BUILT to probe that rule, which is
+ * evidence about a possibility, not a diagnosis of a child.
+ *
+ * This is the draw-order shape of the read (`GET /api/classes?learner=`), and
+ * it answers a question the roster's one-line row cannot: the row says a rate,
+ * this says what the work proved, how it was done, and what has never been
+ * asked at all. */
+export interface ClassMemberEvidence {
+  handle: string;
+  learnerId: string;
+  /** False when the class has declared no subject: there is then no course to
+   *  say what this learner was EXPECTED to be measured on, so `unmeasured` is
+   *  empty rather than invented from a default curriculum. */
+  curriculumDeclared: boolean;
+  /** The four dimensions over the member's WHOLE record, straight from the
+   *  projection's own counters — the same four the learner's own evidence view
+   *  bands per concept, so both surfaces are reading one fact. `null` is never
+   *  measured, never 0. */
+  dimensions: {
+    recalled: { asked: number; correct: number } | null;
+    applied: { asked: number; correct: number } | null;
+    transferred: { asked: number; correct: number } | null;
+    retained: { asked: number; correct: number } | null;
+  };
+  /** One row per concept the record holds ANY answer on, weakest first. The
+   *  INDEPENDENT slice is separated from the whole count on purpose: the
+   *  roster's mastery column is the independent slice, and a drawer that
+   *  reported a different number for the same learner would be the one thing
+   *  this view must never do. */
+  concepts: Array<{
+    conceptId: string;
+    /** Every recorded answer on the concept, any mode, any source. */
+    answers: number;
+    correct: number;
+    /** The independent-work slice — the roster's number. `asked: 0` means no
+     *  independent work has happened, which is not the same as 0%. */
+    independent: { asked: number; correct: number; rate: number };
+    /** The strongest claim the concept's work earned (lib/proof.ts#
+     *  strongestProof): retained > transfer > independent > supported, or null
+     *  when nothing on it was right. */
+    proof: import("./proof").ProofVerdict | null;
+    /** The state of delayed recall for this concept (lib/proof.ts#
+     *  retentionState) — a state, not a ratio, and `unmeasured` until a due
+     *  review actually happened. */
+    retention: import("./proof").RetentionState;
+    /** Server clock of the most recent recorded answer on it. */
+    lastAt: number;
+  }>;
+  /** Concepts of the class's OWN curriculum with no recorded answer at all.
+   *  Named, so a gap in the record is not read as a gap in the learner. */
+  unmeasured: string[];
+  /** The member's most recent recorded answers, newest first — the evidence a
+   *  teacher inspects. `hypothesisIds` are the misconception tags the SERVER
+   *  put on a wrong answer, which is the only way a teacher can see what
+   *  triggered a signal about this student. */
+  recent: Array<{
+    conceptId: string;
+    at: number;
+    correct: boolean;
+    mode: import("./evidence").AnswerMode;
+    /** The evidence source the server attributed ("practice", "retrieval", a
+     *  paper, the diagnostic) — a plain string, as it crosses JSON. */
+    source: string;
+    hints: number;
+    /** What this ONE answer proved; null for a miss, which is evidence but not
+     *  an achievement. */
+    proof: import("./proof").ProofVerdict | null;
+    hypothesisIds: string[];
+    /** A device-reported answer (lib/evidence.ts#isDeviceReported): the server
+     *  did not watch it happen, and the teacher is told rather than shown an
+     *  unverifiable answer as an observed one. */
+    offline: boolean;
+  }>;
+  /** Misconception patterns the record holds, with how many wrong answers
+   *  support each and the concepts it was seen on. A HYPOTHESIS, and each one
+   *  is checkable against `recent` rather than taken on trust. */
+  hypotheses: Array<{ id: string; hits: number; conceptIds: string[] }>;
+  /** Graded answers the member's ledger holds. */
+  answers: number;
+  /** The projection algorithm version the detail was computed with. */
   projectionVersion: number;
 }

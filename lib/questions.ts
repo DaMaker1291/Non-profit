@@ -42,7 +42,7 @@ import { NUMERIC_GENS, type NumericGen } from "./numeric-items";
 // The one answer-identity and grading rule, shared with the server so a typed
 // answer and its equivalent option cannot be graded by two different rules.
 import { answerKey, formatNumeric, parseNumericInput } from "./answer";
-import type { NumericTolerance } from "./types";
+import type { AxisPoint, FigureSpec, NumericTolerance } from "./types";
 
 /** The demand band a difficulty falls in (1–5).
  *
@@ -188,14 +188,14 @@ function numericRaw(num: NumericGen, r: Rng): ReturnType<RawGen> {
     const rounding = shown === null ? 0 : Math.abs(shown - item.value);
     const declared = item.tolerance ?? {};
     const floor = Math.max(rounding * 2, 1e-9);
-    const tolerance = { ...declared, abs: Math.max(declared.abs ?? 0, floor) };
-    return {
+    const tolerance = { ...declared, abs: Math.max(declared.abs ?? 0, floor) };     return {
       prompt: item.prompt,
       correct,
       wrongs: item.wrongs.map((w) => String(w)),
       tags: item.tags,
       explanation: item.explanation,
       difficulty: item.difficulty,
+      figure: item.figure,
       numeric: { value: item.value, tolerance },
     };
   };
@@ -227,6 +227,11 @@ export function withDepth(base: RawGen, deep: DeepGen, share = 0.5): RawGen {
 type RawGen = (r: Rng) => {
   prompt: string; correct: string; wrongs: string[]; tags: string[]; explanation: string; difficulty: number;
   numeric?: { value: number; tolerance?: NumericTolerance };
+  /** The diagram this draw needs, derived from the SAME numbers the prompt is
+   *  built from — so the figure and the question cannot disagree. See
+   *  lib/types.ts#FigureSpec for the rule: restate the question, never mark the
+   *  answer. */
+  figure?: FigureSpec;
 };
 
 // ── MATHS generators ────────────────────────────────────────────────────────
@@ -792,6 +797,10 @@ const MATHS_GENS: Record<string, RawGen> = {
       correct: String(c),
       wrongs: [String(a + b), String(c + 1), String(Math.abs(b - a))] as [string, string, string],
       tags: ["hyp-leg"], explanation: `a² + b² = c²: ${a}² + ${b}² = ${a * a} + ${b * b} = ${c * c}, so c = ${c}. The hypotenuse is opposite the right angle — always the longest side.`,
+      // The canonical Pythagoras plate, drawn to scale from the legs the item
+      // itself names. Both legs are labelled because the prompt gives them; the
+      // hypotenuse is `?`, because finding it is the question.
+      figure: { kind: "right-triangle", legA: a, legB: b, labelA: true, labelB: true },
       difficulty: 0.35,
     };
   },
@@ -900,13 +909,27 @@ const MATHS_GENS: Record<string, RawGen> = {
       correct: `1/${share}`,
       wrongs: [`${deg}/360`, `${deg}/180`, `1/${share - 1}`, `1/${share + 1}`],
       tags: [], explanation: `A whole pie is 360°: ${deg}/360 = 1/${share}. Divide the sector angle by 360 and cancel — not by 180 (that is half a circle).`,
+      // The item says "A pie chart shows 30° for walk" and drew no chart at all.
+      // The sector's ANGLE is drawn (the prompt states it); the FRACTION it
+      // equals is not, because dividing 30 by 360 is the whole question.
+      figure: { kind: "pie", sectorDegrees: deg, label: "walk" },
       difficulty: 0.2,
     };
   },
   "scatter-correlation": (r) => {
-    const scenes = [
+    // The element type is written out rather than inferred: three object
+    // literals with a `kind: "axes"` figure would otherwise widen that literal
+    // to `string`, and the narrowed union in FigureSpec is what stops a typo in
+    // a figure kind from compiling.
+    const scenes: Array<{
+      prompt: string; correct: string; wrongs: string[]; tags: string[]; explanation: string; figure: FigureSpec;
+    }> = [
       {
         prompt: `Ice-cream sales and drowning deaths rise together every summer. What does this show?`,
+        // The scenario the item describes, drawn: two quantities rising
+        // together, with no cause between them. A correlation is the one thing
+        // this question is about and the one thing a sentence cannot show.
+        figure: { kind: "axes", xMin: 0, xMax: 8, yMin: 0, yMax: 9, points: SCATTER_RISING },
         correct: "A third factor (heat) causes both",
         wrongs: ["Ice cream causes drowning", "Drowning causes ice-cream buying", "Nothing — the data must be wrong"],
         tags: ["corr-cause"],
@@ -914,6 +937,7 @@ const MATHS_GENS: Record<string, RawGen> = {
       },
       {
         prompt: `Students who eat breakfast get better grades. What can you conclude?`,
+        figure: { kind: "axes", xMin: 0, xMax: 8, yMin: 0, yMax: 9, points: SCATTER_FLAT },
         correct: "Breakfast may not cause it — other factors differ too",
         wrongs: ["Breakfast causes better grades", "Grades cause breakfast", "The study proves nothing about either"],
         tags: ["corr-cause"],
@@ -921,6 +945,7 @@ const MATHS_GENS: Record<string, RawGen> = {
       },
       {
         prompt: `Regions with more storks also record more births. What is the best explanation?`,
+        figure: { kind: "axes", xMin: 0, xMax: 8, yMin: 0, yMax: 9, points: SCATTER_STEEP },
         correct: "A third factor (population size) drives both",
         wrongs: ["Storks deliver babies", "More babies attract storks", "The data must be fabricated"],
         tags: ["corr-cause"],
@@ -2169,6 +2194,18 @@ type XY = { x: number; y: number };
 const fmt = (n: number) => (n < 0 ? `−${-n}` : `${n}`);
 const sup = (n: number) => String(n).split("").map((d) => ("⁰¹²³⁴⁵⁶⁷⁸⁹"[Number(d)] ?? d)).join("");
 
+// ── THE SHAPE OF A CORRELATION, AS DATA ─────────────────────────────────────
+// Three point clouds for the three correlation items in `scatter-correlation`,
+// so the three scenes are visibly different samples rather than one picture
+// pasted three times. FIXED arrays, not generated: `npm run verify` requires a
+// generator's output to be a function of its seed, and a figure is part of the
+// output — a `Math.random()` cloud here would make the same question look
+// different on two draws and the picture unauditable. Plain [x, y] pairs in the
+// same units as the axes they are drawn on.
+const SCATTER_RISING: AxisPoint[] = [{ at: [1, 2] }, { at: [2, 3] }, { at: [3, 3] }, { at: [4, 5] }, { at: [5, 6] }, { at: [6, 6] }, { at: [7, 8] }];
+const SCATTER_FLAT: AxisPoint[] = [{ at: [1, 4] }, { at: [2, 3] }, { at: [3, 5] }, { at: [4, 6] }, { at: [5, 5] }, { at: [6, 8] }, { at: [7, 8] }];
+const SCATTER_STEEP: AxisPoint[] = [{ at: [1, 1] }, { at: [2, 2] }, { at: [3, 4] }, { at: [4, 3] }, { at: [5, 6] }, { at: [6, 7] }, { at: [7, 8] }];
+
 const LATE_GENS: Record<string, RawGen> = {
   "coordinates": (r) => {
     const v = r.int(0, 2);
@@ -2179,6 +2216,9 @@ const LATE_GENS: Record<string, RawGen> = {
         correct: `(${fmt(p.x)}, ${fmt(p.y)})`,
         wrongs: [`(${fmt(p.y)}, ${fmt(p.x)})`, `(${fmt(-p.x)}, ${fmt(p.y)})`, `(${fmt(p.x)}, ${fmt(-p.y)})`, `(${fmt(-p.x)}, ${fmt(-p.y)})`],
         tags: [], explanation: `Order is alphabetical: (x, y). The x-coordinate counts steps right (positive) or left (negative); the y-coordinate counts steps up or down. Swapping the pair walks to a different point.`,
+        // The point is PLOTTED but not labelled: where it sits is what the
+        // prompt describes, and the pair that names it is the answer.
+        figure: { kind: "axes", xMin: -6, xMax: 6, yMin: -6, yMax: 6, points: [{ at: [p.x, p.y] }] },
         difficulty: 0.15,
       };
     }
@@ -2196,6 +2236,14 @@ const LATE_GENS: Record<string, RawGen> = {
         // three distinct wrongs.
         wrongs: [String(Math.abs(p.x) + Math.abs(p.y)), String(d2), String(Math.abs(Math.abs(p.x) - Math.abs(p.y))), String(Math.abs(p.x * p.y))],
         tags: [], explanation: `Distance from the origin is Pythagoras: d = √(x² + y²) = √(${p.x}² + ${p.y}²)${whole ? ` = ${d}` : ` = √${d2}`}. Adding |x| + |y| measures the staircase walk, not the straight line.`,
+        // The point and the origin it is measured FROM. The origin is the one
+        // thing the prompt names, so it is the one thing the plate labels; no
+        // connecting segment is drawn, because drawing the triangle would be
+        // drawing the method the item is testing.
+        figure: {
+          kind: "axes", xMin: -6, xMax: 6, yMin: -6, yMax: 6,
+          points: [{ at: [0, 0], label: "(0, 0)" }, { at: [p.x, p.y] }],
+        },
         difficulty: 0.45,
       };
     }
@@ -2748,6 +2796,10 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
     answer: answer >= 0 ? answer : 0,
     explanation: q.explanation,
     misconceptionTags: q.tags,
+    // Carried straight through: `serveView` strips the grader's fields and lets
+    // this one travel, so the paper, the diagnostic, the practice surface and
+    // the offline pack all draw the same figure from the same numbers.
+    figure: q.figure,
     // A numeric draw says so, and carries the number the typed answer is marked
     // against plus the tolerance the ITEM declares. `choiceValues` reads the
     // same four display strings back through the shared parser, so the option

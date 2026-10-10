@@ -10,7 +10,7 @@ import {
 } from "@/lib/server/store";
 import { authorizeLearner } from "@/lib/server/capability";
 import { freeHandle, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
-import { liveRoster } from "@/lib/server/class-view";
+import { liveRoster, memberEvidence, resolveMembers } from "@/lib/server/class-view";
 import { SUBJECT_IDS } from "@/lib/subjects";
 import { courseRefusal } from "@/lib/specifications";
 import type { ClassRoster, SubjectId } from "@/lib/types";
@@ -32,6 +32,28 @@ export async function GET(req: Request): Promise<NextResponse> {
     const cls = await getClass(id);
     if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
     if (!isMemberOf(cls, me)) return NextResponse.json({ error: "not a member" }, { status: 403 });
+    // ── ONE MEMBER'S EVIDENCE IS THE TEACHER'S TO READ, AND ONLY THEIRS ──────
+    //
+    // The roster is the class's own material: a member reads it, which is how
+    // a learner sees where they stand. The DETAIL behind another named learner
+    // is a different question, and it is the one the analysis's individual
+    // report needs — so it is asked separately and answered only to the class's
+    // teacher (`isTeacherOf`, the same authority that sets its work and reads
+    // its monitor). Two 403s with distinct codes: not a member, and a member
+    // who is not the teacher. A student's own membership is deliberately not
+    // enough to read a peer's answers, and the learner is named by ID — never
+    // by handle, which a class can hold two of.
+    const learner = searchParams.get("learner");
+    if (learner) {
+      if (!isTeacherOf(cls, me)) return NextResponse.json({ error: "not the teacher" }, { status: 403 });
+      // Membership through the ONE resolver, which is also what excludes the
+      // teacher from their own class's student list — so a teacher cannot ask
+      // for a row that is not a student's.
+      const members = await resolveMembers(cls);
+      const m = members.find((x) => x.state.profile.id === learner);
+      if (!m) return NextResponse.json({ error: "not a member" }, { status: 404 });
+      return NextResponse.json({ member: memberEvidence(cls, m.handle, m.state) });
+    }
     return NextResponse.json({ cls: await liveRoster(cls) });
   }
   // The listing shows only classes the caller belongs to.

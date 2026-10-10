@@ -111,7 +111,7 @@ export default function TryConceptPage() {
       {q && (
         <div className="card" style={{ marginTop: 16 }}>
           <div className="qprompt">
-            <PromptText text={q.prompt} />
+            <PromptText text={q.prompt} figure={q.figure} />
             <SpeakButton text={q.prompt} />
           </div>
           {/* Somewhere to work, before the place to answer. It never leaves the

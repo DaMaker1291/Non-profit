@@ -9,9 +9,10 @@ import * as api from "@/lib/api/client";
 import { fill } from "@/lib/i18n";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import PaperAnalysisPanel, { type PaperAnalysisShape } from "@/components/paper-analysis";
+import PromptText from "@/components/prompt-text";
 import OwnPaper, { type OwnPaperConcept } from "@/components/own-paper";
 import { coverageOf, specForProfile } from "@/lib/specifications";
-import type { BoardId, ProfileState, SubjectId } from "@/lib/types";
+import type { BoardId, FigureSpec, ProfileState, SubjectId } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Exam papers. Pick the paper your board actually sets, sit it under its own
@@ -30,7 +31,7 @@ interface PaperQuestionView {
   seed: string;
   marks: number;
   difficulty: number;
-  view: { prompt: string; choices: string[] };
+  view: { prompt: string; choices: string[]; figure?: FigureSpec };
 }
 
 interface PaperSection {
@@ -321,7 +322,12 @@ export default function PapersPage() {
             <header
               data-exam-head
               style={{
-                position: "sticky", top: 0, zIndex: 3,
+                // `top: var(--topbar-h)`, like the practice surface's question
+                // bar: the topbar is sticky at 0 with a HIGHER z-index, so a
+                // header pinned to 0 slides UNDERNEATH it and its first line —
+                // the board and qualification — is hidden the moment the
+                // learner scrolls. Pinned below the bar, the two never overlap.
+                position: "sticky", top: "var(--topbar-h)", zIndex: 3,
                 background: "var(--surface, #fff)",
                 borderBottom: "1px solid var(--rule, #e5e7eb)",
                 padding: "12px 0 10px", marginBottom: 4,
@@ -386,7 +392,16 @@ export default function PapersPage() {
                   {isFlagged ? `⚑ ${t("pp.flagged")}` : `⚐ ${t("pp.flag")}`}
                 </button>
               </div>
-              <p style={{ fontSize: 17, lineHeight: 1.5, marginTop: 10 }}>{q.view.prompt}</p>
+              {/* THE QUESTION, DRAWN AS WHAT IT IS — through the SAME component
+                  every other surface uses (components/prompt-text.tsx). It was
+                  a bare `<p>{q.view.prompt}</p>` here and only here, so a
+                  computing question authored as a program arrived as ONE LINE:
+                  `x = 8 y = 6 x = x + y print(x)` — the newlines collapsed and
+                  the indentation, which IS the example, was gone. On a paper,
+                  which is the surface a learner reads most carefully. */}
+              <div className="qtext" style={{ marginTop: 10 }}>
+                <PromptText text={q.view.prompt} figure={q.view.figure} />
+              </div>
               <div style={{ display: "grid", gap: 8 }}>
                 {q.view.choices.map((c, ci) => (
                   <label

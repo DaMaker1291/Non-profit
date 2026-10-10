@@ -446,7 +446,7 @@ export default function DiagnosticPage() {
       {q && (
         <div className="exercise">
           <p className="qnum mono">{String(n).padStart(2, "0")}.</p>
-          <div className="qtext"><PromptText text={q.prompt} /></div>
+          <div className="qtext"><PromptText text={q.prompt} figure={q.figure} /></div>
           {/* HOW SURE ARE YOU — asked FIRST, before the choices are revealed and
               before anything is marked, so the grade cannot contaminate the
               self-report. "I don't know" runs the existing skip action: a

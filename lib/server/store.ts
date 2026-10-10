@@ -36,7 +36,7 @@ async function ensureDir(): Promise<void> {
   await fs.mkdir(DATA_DIR, { recursive: true });
 }
 
-async function readJson<T>(file: string, fallback: T): Promise<T> {
+export async function readJson<T>(file: string, fallback: T): Promise<T> {
   try {
     const raw = await fs.readFile(path.join(DATA_DIR, file), "utf8");
     return JSON.parse(raw) as T;
@@ -46,7 +46,7 @@ async function readJson<T>(file: string, fallback: T): Promise<T> {
   }
 }
 
-async function writeJson(file: string, data: unknown): Promise<void> {
+export async function writeJson(file: string, data: unknown): Promise<void> {
   await ensureDir();
   // Unique temp name per write: two writers must never share one tmp file.
   const tmp = path.join(DATA_DIR, `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`);

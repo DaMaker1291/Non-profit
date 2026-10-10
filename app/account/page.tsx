@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { fetchProfile, loadLocalProfileId, loadLocalProfileSecret, saveProfilePatch, signOut, updateAccount, useAccount, useI18n } from "@/lib/client";
 import * as api from "@/lib/api/client";
 import { ApiError } from "@/lib/api/client";
+import AttachAccount from "@/components/attach-account";
 import type { ProfileState } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -142,6 +143,10 @@ export default function AccountPage() {
     ? Object.values(profile.progress).reduce((s, p) => s + (p.attempts ?? 0), 0)
     : 0;
   const touched = profile ? Object.keys(profile.progress).length : 0;
+  /** THIS DEVICE ALREADY HAS A LEARNER ON IT. It is not an account — there is
+   *  nothing to sign out of — but it is not nothing either, and the screen a
+   *  learner sees here has to know the difference (see the two branches below). */
+  const hasGuest = profile !== null;
 
   return (
     <main className="container narrow" style={{ paddingTop: 32, maxWidth: 720 }}>
@@ -149,14 +154,50 @@ export default function AccountPage() {
 
       {!ready && <p className="lead">{t("common.loading")}</p>}
 
+      {/* ── NO ACCOUNT: TWO DIFFERENT PEOPLE, TWO DIFFERENT SCREENS ───────────
+          A device with a learner on it is a GUEST, not a stranger. Telling them
+          "you are not signed in" and offering a link to enrolment answered a
+          question they had not asked and hid the one they had: their work is
+          real, it is on this device, and an account takes it with them. The two
+          cases read differently because they ARE different — one has something
+          to lose and something to attach, the other has not started. */}
       {ready && !session.account && (
-        <>
-          <h1>{t("acct.title")}</h1>
-          <p className="lead">{t("acct.noAccount")}</p>
-          <p>
-            <Link className="btn" href="/onboarding">{t("onb.createAcct")} →</Link>
-          </p>
-        </>
+        hasGuest ? (
+          <>
+            <h1>{t("acct.title")}</h1>
+            <p className="lead">{t("acct.guestLead")}</p>
+            {/* What is on this device, counted from the profile itself — read
+                only once it has actually loaded, because "0 answers" while the
+                fetch is in flight would be a claim about the learner rather
+                than a fact about the request. */}
+            {profile && (
+              <div className="exercise" style={{ marginTop: 20 }}>
+                <div style={{ display: "flex", gap: 24 }}>
+                  <div>
+                    <div className="stat">{attempts}</div>
+                    <div className="stat-label">{t("prog.attempts")}</div>
+                  </div>
+                  <div>
+                    <div className="stat">{touched}</div>
+                    <div className="stat-label">{t("map.concepts")}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <AttachAccount />
+            <p style={{ marginTop: 16 }}>
+              <Link href="/onboarding?mode=signin">{t("onb.signIn")} →</Link>
+            </p>
+          </>
+        ) : (
+          <>
+            <h1>{t("acct.title")}</h1>
+            <p className="lead">{t("acct.noAccount")}</p>
+            <p>
+              <Link className="btn" href="/onboarding">{t("onb.createAcct")} →</Link>
+            </p>
+          </>
+        )
       )}
 
       {ready && session.account && (

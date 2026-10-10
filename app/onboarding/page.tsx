@@ -115,6 +115,13 @@ function OnboardingFlow() {
   // sign-in form rather than showing the create-account form first; otherwise
   // the form opens on whatever this device last chose.
   useEffect(() => {
+    // WHO IS THIS is a real parameter, not only a radio on the first screen:
+    // /teacher sends somebody here as a TEACHER (`?role=teacher`), and the
+    // answer steers the whole wizard — the role is chosen by the door they came
+    // through rather than re-asked, and the steps below follow it. An explicit
+    // value wins over the default either way.
+    const forcedRole = params.get("role");
+    if (forcedRole === "teacher" || forcedRole === "student") setRole(forcedRole);
     const forced = params.get("mode");
     if (forced === "signin" || forced === "signup" || forced === "guest") { setMode(forced); return; }
     try {
@@ -206,9 +213,20 @@ function OnboardingFlow() {
   const signedIn = Boolean(session.account);
 
   // Signed-in learners skip the account step entirely: they are already here.
-  const steps = signedIn
+  const learnerSteps = signedIn
     ? ["about", "subjects", "course", "goals", "teach"]
     : ["account", "about", "subjects", "course", "goals", "teach"];
+  // A TEACHER'S SETUP IS NOT A LEARNER'S (see app/teacher/page.tsx, which sends
+  // them here). "What are you studying?", "which tier do you sit?" and "what is
+  // your goal?" are questions about the person being TAUGHT — and the course
+  // step's gate then holds `Next` until a paper has been chosen, so a teacher
+  // had to enrol themselves in a qualification they would never sit before they
+  // were allowed to make a class. Their setup is the account, who they are, and
+  // the languages their school works in; the curriculum is declared per CLASS,
+  // where one teacher can teach Year 10 Maths and Year 12 Physics at once.
+  const steps = isTeacherAccount
+    ? (signedIn ? ["about", "teach"] : ["account", "about", "teach"])
+    : learnerSteps;
   const current = steps[Math.min(step, steps.length - 1)];
 
   /** A STEP CHANGE IS A PAGE CHANGE, and it behaved like neither.
@@ -305,7 +323,14 @@ function OnboardingFlow() {
       subjectCourses: courses,
       exam: exam || undefined,
       examDate: examDate || undefined,
-      subjects,
+      // A teacher's own subject list is not a course they sit, and the step that
+      // would have collected it is not shown to them — sending the form's
+      // DEFAULT here (["maths"]) would enrol a physics teacher in mathematics.
+      // An EMPTY list is the true statement and the server reads it that way:
+      // `if (Array.isArray(body.subjects) && body.subjects.length)` leaves the
+      // stored list alone, so "I did not say" cannot be mistaken for "I study
+      // nothing", and a sign-up falls back to the same default as before.
+      subjects: isTeacherAccount ? [] : subjects,
       termsMode,
       timePerDay,
       intent: intent || "",

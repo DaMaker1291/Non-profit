@@ -14,9 +14,22 @@ import { listProfileStates } from "./store";
 import { isTeacherOf, teacherHandle } from "./class-membership";
 // Relative specifiers: this module is in the compile mirror, which is built
 // with `tsc <files> ...` and no tsconfig, where `@/...` does not resolve.
-import { projectLearner } from "../evidence";
+import { isDeviceReported, orderEvents, projectLearner } from "../evidence";
+// The proof vocabulary, asked for rather than restated: what one answer
+// PROVED, what a concept's work proved, and the state of its delayed recall
+// are one rule each (lib/proof.ts), shared with the learner's own screens and
+// with the assignment monitor.
+import { isRetentionEvidence, proofVerdict, retentionState, strongestProof } from "../proof";
+// WHICH answers are "the recent ones" is a rule too, and it already exists
+// (lib/evidence-view.ts) — the same one the learner's own timeline reads, so a
+// teacher and a child cannot be shown different "last answers".
+import { recentAnswers } from "../evidence-view";
+// What a class may be measured against: the curriculum it DECLARED, narrowed to
+// concepts the bank can serve. Never a default subject, and never a curriculum
+// the class never named.
+import { assignableConcepts } from "./assignment-view";
 import { readEvidence } from "./evidence";
-import type { ClassRoster, ClassMemberLive, ProfileState } from "../types";
+import type { ClassRoster, ClassMemberLive, ClassMemberEvidence, ProfileState } from "../types";
 
 /**
  * The STUDENTS of a class with their profile states resolved: identity first
@@ -116,4 +129,162 @@ export async function liveRoster(cls: ClassRoster): Promise<ClassRoster> {
     students[handle] = report;
   }
   return { ...cls, students, live };
+}
+
+/** How many answers the detail lists, and how many curriculum concepts it is
+ *  willing to NAME as unmeasured. The cap is a cap on DISPLAY, not on the
+ *  derivation: a teacher reading "24 of them" knows the record holds more, and
+ *  nothing is claimed about the ones left off the end. */
+const RECENT_CAP = 15;
+const UNMEASURED_CAP = 24;
+
+/**
+ * ONE member's evidence in detail — the answer to "what can this student
+ * actually demonstrate?", derived from their ledger the same way every other
+ * number about them is (nothing stored, nothing accepted from a client).
+ *
+ * WHAT IT ADDS OVER THE ROSTER'S ROW. The row is a rate. This says what the
+ * work PROVED (a hint-free transfer and a hinted right answer are not the same
+ * outcome), HOW each recent answer was done, and — the part a teacher cannot
+ * get anywhere else — which concepts of the class's own curriculum have never
+ * been asked at all, so a gap in the record is not read as a gap in the child.
+ *
+ * TWO RULES IT DOES NOT INVENT:
+ *   · the INDEPENDENT slice is reported separately and is exactly what the
+ *     roster's mastery column shows, so the drawer and the table cannot
+ *     disagree about one learner;
+ *   · retention is a STATE, asked of lib/proof.ts#retentionState, and it is
+ *     `unmeasured` until a due review happened. A ratio cannot say whether a
+ *     learner who once held something still holds it, and absence is never
+ *     read as forgetting.
+ *
+ * A misconception is never presented as a fact about the learner: the tags on
+ * a wrong answer say the item was BUILT to probe that rule. They are returned
+ * as hypotheses, with the count that supports each and the concepts they were
+ * seen on, so a teacher can check the claim instead of being told to believe
+ * it.
+ */
+export function memberEvidence(cls: ClassRoster, handle: string, state: ProfileState): ClassMemberEvidence {
+  const events = readEvidence(state.profile.id);
+  const p = projectLearner(events);
+
+  // When each answer happened relative to the previous evidence on the SAME
+  // concept — the third condition `isRetentionEvidence` asks for, and the one
+  // fact a single answer does not carry. Built from the ledger's own order on
+  // the SERVER's clock (`at`); a device's claim about when it answered
+  // (`deviceAt`) is never read here, so a backdated batch cannot manufacture
+  // memory evidence.
+  const sinceLast = new Map<string, number | null>();
+  const seenAt = new Map<string, number>();
+  for (const e of orderEvents(events)) {
+    if (e.type !== "answer_submitted" || !e.conceptId) continue;
+    const prev = seenAt.get(e.conceptId);
+    sinceLast.set(e.id, prev === undefined ? null : e.at - prev);
+    seenAt.set(e.conceptId, e.at);
+  }
+
+  // The curriculum the CLASS declared. An entry can exist in `byConcept` with
+  // no answer on it (a hint action alone creates one), so "measured" is
+  // `attempts > 0` — never the mere presence of an entry.
+  const curriculum = cls.subject ? assignableConcepts(cls.subject, cls.specificationId) : [];
+
+  const concepts: ClassMemberEvidence["concepts"] = [];
+  for (const [conceptId, c] of Object.entries(p.byConcept)) {
+    if (c.attempts === 0) continue;
+    concepts.push({
+      conceptId,
+      answers: c.attempts,
+      correct: c.correct,
+      independent: {
+        asked: c.independent.asked,
+        correct: c.independent.correct,
+        rate: c.independent.asked > 0
+          ? Math.round((c.independent.correct / c.independent.asked) * 100) / 100
+          : 0,
+      },
+      // The same four counts the assignment monitor feeds this rule, so one
+      // concept cannot "prove independence" on one screen and "support" on
+      // another.
+      proof: strongestProof({
+        correct: c.correct,
+        independentCorrect: c.independent.correct,
+        transferCorrect: c.transfer.correct,
+        retentionCorrect: c.retention.correct,
+      }),
+      retention: retentionState(c.retention),
+      lastAt: c.lastAt,
+    });
+  }
+  // Weakest measured first — what a teacher opens the drawer to find — and the
+  // concepts with no INDEPENDENT work at all after them (Infinity sorts last
+  // and is never shown as a rate).
+  concepts.sort((x, y) => {
+    const xr = x.independent.asked > 0 ? x.independent.rate : Infinity;
+    const yr = y.independent.asked > 0 ? y.independent.rate : Infinity;
+    return xr - yr || (x.conceptId < y.conceptId ? -1 : 1);
+  });
+
+  const asked = new Set(concepts.map((c) => c.conceptId));
+  const unmeasured = curriculum.filter((id) => !asked.has(id)).slice(0, UNMEASURED_CAP);
+
+  const recent = recentAnswers(events, RECENT_CAP).map((e) => {
+    // The rule, asked for: a delayed unaided recall is what makes an answer
+    // retention EVIDENCE, and `proofVerdict` refuses to name it on a miss.
+    const retained = isRetentionEvidence({
+      source: e.source,
+      hints: e.hints,
+      sinceLast: sinceLast.get(e.id) ?? null,
+    });
+    return {
+      conceptId: e.conceptId ?? "",
+      at: e.at,
+      correct: e.correct,
+      mode: e.mode,
+      source: e.source,
+      hints: e.hints,
+      proof: proofVerdict({ correct: e.correct, mode: e.mode, source: e.source, hints: e.hints, retained }),
+      // Tags ride on a WRONG answer only, which is also the only place the
+      // ledger records them — a right answer cannot confirm a misconception.
+      hypothesisIds: e.correct ? [] : [...(e.tags ?? [])],
+      offline: isDeviceReported(e),
+    };
+  });
+
+  // The support behind each hypothesis, aggregated over the whole record rather
+  // than only the recent window: a signal that rests on an older answer is
+  // still a signal, and a teacher checking it needs the count that exists.
+  const hyp = new Map<string, { hits: number; conceptIds: Set<string> }>();
+  for (const [conceptId, c] of Object.entries(p.byConcept)) {
+    for (const [id, hits] of Object.entries(c.misconceptions)) {
+      const a = hyp.get(id) ?? { hits: 0, conceptIds: new Set<string>() };
+      a.hits += hits;
+      a.conceptIds.add(conceptId);
+      hyp.set(id, a);
+    }
+  }
+  const hypotheses = [...hyp.entries()]
+    .map(([id, a]) => ({ id, hits: a.hits, conceptIds: [...a.conceptIds].sort() }))
+    .sort((x, y) => y.hits - x.hits || (x.id < y.id ? -1 : 1));
+
+  return {
+    handle,
+    learnerId: state.profile.id,
+    curriculumDeclared: Boolean(cls.subject),
+    // The projection's own counters, not a second sum: the learner's evidence
+    // view bands these same four per concept with one shared rule.
+    dimensions: {
+      recalled: p.totals.answers > 0 ? { asked: p.totals.answers, correct: p.totals.correct } : null,
+      applied: p.totals.independent.asked > 0 ? { ...p.totals.independent } : null,
+      transferred: p.totals.transfer.asked > 0 ? { ...p.totals.transfer } : null,
+      retained: p.totals.retention.asked > 0
+        ? { asked: p.totals.retention.asked, correct: p.totals.retention.correct }
+        : null,
+    },
+    concepts,
+    unmeasured,
+    recent,
+    hypotheses,
+    answers: p.totals.answers,
+    projectionVersion: p.projectionVersion,
+  };
 }
