@@ -5435,6 +5435,56 @@ console.log("\n▸ Where the learner is allowed to be");
   ok(appState.resolveRoute(L.fresh, "/dashboard").action === "redirect",
     "while an unmeasured LEARNER is still sent to be measured");
 
+  // ── AND ENROLMENT'S OWN DESTINATION, WHICH IS NOT THE GUARD'S ─────────────
+  // `resolveRoute` decides whether a page MAY OPEN; enrolment decides where
+  // finishing setup PUTS you — and it has to, because a client-side push does not
+  // refresh the shell's profile, so the guard is still holding the pre-enrolment
+  // learner for a beat afterwards. The reported bug lived in this second
+  // decision: it required the return ticket to be ABSENT, and `?return=` is
+  // almost never absent (the guard attaches it, and the landing page's "Go to
+  // your dashboard" is itself a ticket into a diagnosed-gated page). So a
+  // signed-in teacher fell through to the learner path, whose only outcomes are
+  // `/dashboard` or a BASELINE DIAGNOSTIC, and arrived at question 01 of a maths
+  // sitting in a subject they may not teach.
+  //
+  // It is pure, so it is swept here over the WHOLE table rather than over the
+  // two examples that were reported.
+  const settle = appState.settlementTarget;
+  const teacherTicket = settle({ isTeacher: true, guest: false, wanted: "/dashboard", already: false, subject: "maths" });
+  ok(!teacherTicket.startsWith("/diagnostic/"),
+    `a signed-in TEACHER with a learner ticket is NOT sent to be measured (got ${teacherTicket})`);
+  ok(teacherTicket === "/dashboard",
+    `and the ticket they CAN open is honoured (got ${teacherTicket})`);
+  ok(settle({ isTeacher: true, guest: false, wanted: "", already: false, subject: "maths" }) === "/teacher",
+    "a teacher arriving with no ticket at all still lands on their own platform");
+  ok(settle({ isTeacher: true, guest: false, wanted: "/teacher", already: true, subject: "maths" }) === "/teacher",
+    "and so does a teacher whose ticket names it");
+  const teacherSettled = appState.ACCESS_RULES
+    .filter((r) => !r.path.startsWith("/teacher"))
+    .map((r) => ({ path: r.path, to: settle({ isTeacher: true, guest: false, wanted: r.path, already: false, subject: "maths" }) }))
+    .filter((x) => x.to.startsWith("/diagnostic/"));
+  ok(teacherSettled.length === 0,
+    `NO ticket of any kind settles a teacher on a diagnostic (${teacherSettled.slice(0, 4).map((x) => `${x.path}→${x.to}`).join(", ") || "none"})`);
+  // A ticket to a page the guard refuses must not be pushed: it would bounce and
+  // re-attach itself, which is the redirect loop this branch was already fixed
+  // for once. Checked across every classified route, not just Home.
+  const learnerSettled = appState.ACCESS_RULES
+    .map((r) => ({ path: r.path, to: settle({ isTeacher: false, guest: false, wanted: r.path, already: false, subject: "maths" }) }))
+    .filter((x) => appState.accessFor(x.to) === "diagnosed");
+  ok(learnerSettled.length === 0,
+    `nor is any learner settled onto a page the guard will refuse (${learnerSettled.slice(0, 4).map((x) => `${x.path}→${x.to}`).join(", ") || "none"})`);
+  // The learner rules are untouched by the teacher case being subtracted.
+  ok(settle({ isTeacher: false, guest: false, wanted: "/dashboard", already: false, subject: "maths" }) === "/diagnostic/maths?return=%2Fdashboard",
+    "a never-measured learner is still sent to the baseline diagnostic, then back to what they asked for");
+  ok(settle({ isTeacher: false, guest: false, wanted: "/dashboard", already: true, subject: "maths" }) === "/dashboard",
+    "and one who already has a diagnostic goes straight to their ticket");
+  ok(settle({ isTeacher: false, guest: true, wanted: "", already: false, subject: "physics" }) === "/diagnostic/physics",
+    "a guest enrolling with no ticket is measured in their OWN first subject");
+  ok(settle({ isTeacher: true, guest: true, wanted: "", already: false, subject: "maths" }) === "/diagnostic/maths",
+    "a guest has no account to read a role from, so the guest path stays a learner's");
+  ok(settle({ isTeacher: false, guest: false, wanted: "/learn/maths/quadratics", already: true, subject: "maths" }) === "/learn/maths/quadratics",
+    "and a ticket to ordinary work is honoured verbatim");
+
   // LOOP FREEDOM, over the whole table × every lifecycle state. A redirect we
   // perform must land somewhere that itself allows — otherwise one bad rule
   // traps a learner in a navigation loop the moment the guard is mounted.
@@ -7613,9 +7663,18 @@ console.log("▸ Assigned work is derived, not counted");
   ok(onbSrc.includes("const accountRole = session.account?.role") &&
      onbSrc.includes('const isTeacherAccount = accountRole ? accountRole !== "student" : role === "teacher"'),
     "a returning teacher's destination comes from the ACCOUNT's role, with the form's value only for the account being created");
-  ok(onbSrc.includes("const teacherHome = isTeacherAccount && mode !== \"guest\"") &&
-     onbSrc.includes("if (teacherHome && !(wanted && !wanted.startsWith(\"/teacher\")))"),
+  // The rule itself now has ONE OWNER — `settlementTarget` in lib/app-state.ts,
+  // pure and swept over the cases in "▸ Where the learner is allowed to be".
+  // What is pinned here is the WIRING: the page hands that owner the ACCOUNT's
+  // role (never the wizard's radio) and does not re-derive the branch itself.
+  const appStateSrcForTeacher = fs.readFileSync("lib/app-state.ts", "utf8");
+  ok(onbSrc.includes('import { settlementTarget } from "@/lib/app-state";') &&
+     onbSrc.includes("isTeacher: isTeacherAccount") &&
+     onbSrc.includes('guest: mode === "guest"'),
     "and the redirect reads that one answer rather than the wizard's radio");
+  ok(appStateSrcForTeacher.includes("const teacherHome = isTeacher && !guest") &&
+     appStateSrcForTeacher.includes("if (teacherHome && !(wanted && !wanted.startsWith(\"/teacher\")))"),
+    "and the default that makes a teacher's own platform the destination has one owner, not a copy per caller");
   ok(!onbSrc.includes("if (!wanted && isTeacherAccount"),
     "while a stale learner ticket can no longer route a teacher into a baseline diagnostic");
   // An org account sets work too, so it must not be filed with the students —
@@ -9433,19 +9492,27 @@ console.log("▸ Enrolment hands over a learner the guard will actually admit");
 
   // The destination is asked of the route contract rather than restated, so a
   // new `diagnosed`-gated page cannot reintroduce the bounce by being added.
-  ok(onb.includes('import { accessFor, withReturn } from "@/lib/app-state";'),
-    "the destination is decided by the one owner of the access contract");
-  const reach = /const unreachable = wanted && !teacherHome \? accessFor\(wanted\) === "diagnosed" : false;/.exec(onb)?.[0] ?? "";
+  // The destination has ONE owner: `settlementTarget` (lib/app-state.ts), which
+  // the page calls and does not restate. The RULES below were pinned in the page
+  // when they lived there; they are pinned in the owner now, and the pure sweep
+  // in "▸ Where the learner is allowed to be" exercises them behaviourally.
+  ok(onb.includes('import { settlementTarget } from "@/lib/app-state";') &&
+     /router\.push\(settlementTarget\(\{/.test(onb),
+    "the destination is decided by the one owner of the access contract, not restated in the page");
+  ok(!onb.includes("accessFor(wanted)") && !onb.includes("diagnostic/${subject}"),
+    "and the page no longer derives that destination itself");
+  const owner = fs.readFileSync("lib/app-state.ts", "utf8");
+  const reach = /const unreachable = wanted && !teacherHome \? accessFor\(wanted\) === "diagnosed" : false;/.exec(owner)?.[0] ?? "";
   ok(reach.length > 0, "and it treats a diagnosed-gated ticket as not yet reachable for a LEARNER, while a teacher may open it");
-  ok(onb.includes("if (teacherHome && !(wanted && !wanted.startsWith(\"/teacher\")))"),
+  ok(owner.includes("if (teacherHome && !(wanted && !wanted.startsWith(\"/teacher\")))"),
     "a teacher's own platform is the default destination for them");
-  ok(!/if \(!wanted && isTeacherAccount/.test(onb),
+  ok(!/if \(!wanted && isTeacherAccount/.test(owner + onb),
     "and a `?return=` ticket can no longer carry a teacher past that default into the learner path");
-  ok(/if \(wanted && \(already \|\| !unreachable\)\) \{\s*router\.push\(wanted\);/.test(onb),
+  ok(/if \(wanted && \(already \|\| !unreachable\)\) return wanted;/.test(owner),
     "so an unmeasured learner is sent to the diagnostic instead, carrying the ticket forward");
-  ok(onb.includes("withReturn(`/diagnostic/${subject}`, wanted)"),
+  ok(owner.includes("withReturn(`/diagnostic/${subject}`, wanted)"),
     "and the ticket survives, so the learner still arrives where they originally asked to go");
-  ok(onb.includes('withReturn("/dashboard", wanted)'),
+  ok(owner.includes('withReturn("/dashboard", wanted)'),
     "an already-measured learner keeps their ticket through Home too");
 
   // The loop is a property of the CONTRACT, so it is asserted as one: for every

@@ -365,6 +365,59 @@ const MET: Record<AccessRequirement, (l: Lifecycle) => boolean> = {
  *   2. a PUBLIC path is never redirected, whatever the lifecycle says — which
  *      is what makes the wedge and the landing page immune to this system.
  */
+/**
+ * WHERE ENROLMENT SENDS THE LEARNER — the second half of the guard, and the
+ * branch that used to hand a TEACHER a baseline diagnostic.
+ *
+ * `resolveRoute` answers "may you open this page"; this answers "where does
+ * finishing setup put you". They are separate decisions because enrolment
+ * happens BEFORE the shell has re-read the profile, so the guard cannot be
+ * asked — the page has to know its own destination.
+ *
+ * It was inline in `finish()`, and it had grown three jobs: a teacher's own
+ * platform, a ticket that points at a page the guard will REFUSE (a new learner
+ * is `onboarded`, never `diagnosed`, so pushing `/dashboard` guarantees a bounce
+ * that re-attaches the ticket — the redirect loop), and the baseline diagnostic
+ * a never-measured learner is actually for. The teacher case was wrong in the
+ * way that is hardest to notice: it required the ticket to be ABSENT, and the
+ * ticket is almost never absent (the guard attaches `?return=`, and the landing
+ * page's "Go to your dashboard" is itself a ticket into a diagnosed-gated
+ * page). So a signed-in teacher who followed either fell through to the learner
+ * path, whose only outcomes are `/dashboard` or a baseline diagnostic, and
+ * arrived at question 01 of a maths sitting in a subject they may not teach.
+ *
+ * Pure, and therefore sweepable over the cases that matter — a teacher with a
+ * ticket, a teacher without one, a teacher asking for their own learner Home,
+ * and a learner at both ends of `already`. A teacher is never SENT to be
+ * measured; a learner the system has not measured is.
+ */
+export interface SettlementInput {
+  /** The SESSION's account is a teacher/school, not this form's role picker. */
+  isTeacher: boolean;
+  /** Enrolling without an account: there is no role to read, never a teacher. */
+  guest: boolean;
+  /** The sanitised `?return=` ticket, or `""` when there is none. */
+  wanted: string;
+  /** The learner's fresh profile already carries a diagnostic. */
+  already: boolean;
+  /** Subject the baseline diagnostic should be sat in. */
+  subject: string;
+}
+
+export function settlementTarget({ isTeacher, guest, wanted, already, subject }: SettlementInput): string {
+  // A teacher's platform is the default, and a ticket to it is honoured.
+  const teacherHome = isTeacher && !guest;
+  if (teacherHome && !(wanted && !wanted.startsWith("/teacher"))) return "/teacher";
+  // A destination the guard would immediately refuse is not a destination.
+  // `accessFor` is a static contract and cannot see the account's role, so the
+  // teacher case is subtracted here exactly as `MET.diagnosed` subtracts it.
+  const unreachable = wanted && !teacherHome ? accessFor(wanted) === "diagnosed" : false;
+  if (wanted && (already || !unreachable)) return wanted;
+  // Carry the ticket forward, so the diagnostic returns the learner to what they
+  // actually asked for instead of stranding them at a default.
+  return already ? withReturn("/dashboard", wanted) : withReturn(`/diagnostic/${subject}`, wanted);
+}
+
 export function resolveRoute(lifecycle: Lifecycle, path: string): RouteDecision {
   const requirement = accessFor(path);
   // Public content renders immediately — it never waits on the probe, because

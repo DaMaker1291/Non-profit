@@ -6,7 +6,7 @@ import {
   claimGuestProfile, createProfile, currentGuestClaim, loadLocalProfileId, returnTarget, saveProfilePatch,
   signIn, signOut, signUp, useAccount, useI18n, useProfile,
 } from "@/lib/client";
-import { accessFor, withReturn } from "@/lib/app-state";
+import { settlementTarget } from "@/lib/app-state";
 import { COUNTRIES, fill, LANGS } from "@/lib/i18n";
 import { levelLabel } from "@/lib/content-i18n";
 import { FIELD_LABEL } from "@/components/course-first";
@@ -433,33 +433,17 @@ function OnboardingFlow() {
       // is honoured too, by falling through to the learner path with the
       // measurement requirement subtracted below. A teacher is never sent to be
       // measured; they may still choose to be.
-      const teacherHome = isTeacherAccount && mode !== "guest";
-      if (teacherHome && !(wanted && !wanted.startsWith("/teacher"))) {
-        router.push("/teacher");
-        return;
-      }
-      // A DESTINATION THE GUARD WILL IMMEDIATELY REFUSE IS NOT A DESTINATION.
-      //
-      // Enrolment makes a learner `onboarded`, never `diagnosed`, so a return
-      // ticket pointing at a `diagnosed`-gated page cannot be honoured yet —
-      // and `/dashboard` is the most ordinary thing a new learner asks for
-      // (the nav's Home, the landing page's "Go to your dashboard"). Pushing it
-      // anyway guarantees a bounce, and the bounce re-attaches the same ticket,
-      // so every attempt starts the loop over. `accessFor` is the one owner of
-      // that vocabulary, so this asks the contract rather than restating it.
-      // `accessFor` is a STATIC contract and cannot see the account's role, so
-      // the teacher case is subtracted here exactly as `MET.diagnosed` subtracts
-      // it in the guard: a diagnosed-gated page is reachable for a teacher.
-      const unreachable = wanted && !teacherHome ? accessFor(wanted) === "diagnosed" : false;
-      if (wanted && (already || !unreachable)) {
-        router.push(wanted);
-      } else {
-        // Carry the ticket forward, so the diagnostic returns the learner to
-        // what they actually asked for instead of stranding them at a default.
-        router.push(
-          already ? withReturn("/dashboard", wanted) : withReturn(`/diagnostic/${subject}`, wanted),
-        );
-      }
+      // ONE OWNER FOR WHERE THIS ENDS: `settlementTarget` is pure and swept in
+      // `npm run verify` over the cases that broke — a teacher with a learner
+      // ticket and a teacher without one. Re-deriving the branch here by hand is
+      // exactly how a teacher got a maths diagnostic.
+      router.push(settlementTarget({
+        isTeacher: isTeacherAccount,
+        guest: mode === "guest",
+        wanted,
+        already,
+        subject,
+      }));
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
       setErr(t(ERROR_KEYS[code] ?? "onb.errCreate"));
