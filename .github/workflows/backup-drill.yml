@@ -1,0 +1,82 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# BACKUP & RESTORE DRILL — periodically, because `OPERATIONS.md` §4 says so.
+#
+# "A backup you have never restored is only a hope." The procedure is now two
+# commands (`npm run backup`, `npm run restore-drill`), and a command nobody runs
+# is the same hope in a different font — so this job runs it on a schedule:
+#
+#   1. seed a scratch store with REAL learner records (the e2e suite writes 50+
+#      profiles with evidence ledgers, through the real routes, on a temp store);
+#   2. back that store up, then restore the archive into a fresh directory, boot
+#      the production artefact against it, require /api/ready → 200, and require
+#      every restored learner's model to reconcile with the restored ledger
+#      (`deepReconcile.differences == []`, `unprojectable == null`).
+#
+# It is the one check that cannot be replaced by reading the code: it says the
+# ledger is ENOUGH. It also re-runs whenever a file it depends on changes, so a
+# change to the store, the backup tool or the drill is drilled before it ships.
+#
+# The scratch store lives in $RUNNER_TEMP, never in the workspace: nothing in
+# this job may look like a classroom committed to the repository.
+# ─────────────────────────────────────────────────────────────────────────────
+name: backup-drill
+
+on:
+  schedule:
+    # Weekly, Monday 03:17 UTC. Off the hour on purpose: every scheduled job on
+    # the platform wants 03:00.
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/backup-store.mjs"
+      - "scripts/restore-drill.mjs"
+      - "scripts/generated-files.mjs"
+      - "scripts/production-server.mjs"
+      - "lib/server/store.ts"
+      - "lib/server/evidence.ts"
+      - "lib/ledger.ts"
+      - ".github/workflows/backup-drill.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OPENMIND_DATA_DIR: ${{ runner.temp }}/om-drill-data
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+
+      # A store with something in it. The e2e suite is the honest way to get one:
+      # it creates learners, sits diagnostics and answers questions through the
+      # real routes, so the ledger it leaves behind is a real ledger — and it is
+      # the same suite CI already trusts.
+      - name: Seed a scratch store (e2e, against a development server)
+        run: |
+          set -euo pipefail
+          mkdir -p "$OPENMIND_DATA_DIR"
+          npm run dev > /tmp/om-drill-dev.log 2>&1 &
+          DEV_PID=$!
+          for i in $(seq 1 90); do
+            if curl -sf http://localhost:4173/api/health > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -sf http://localhost:4173/api/health > /dev/null
+          OPENMIND_BASE=http://localhost:4173 npm run e2e
+          kill "$DEV_PID" 2>/dev/null || true
+          echo "seeded profiles: $(node -e 'console.log(Object.keys(JSON.parse(require("fs").readFileSync(process.env.OPENMIND_DATA_DIR+"/profiles.json","utf8"))).length)')"
+
+      - name: Back up, restore, and re-derive every learner
+        run: npm run restore-drill
+
+      - name: Dev server log on failure
+        if: failure()
+        run: tail -60 /tmp/om-drill-dev.log || true

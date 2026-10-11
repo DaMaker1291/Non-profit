@@ -41,6 +41,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { GENERATED, snapshotGenerated, restoreGenerated } from "./generated-files.mjs";
 
 const require = createRequire(import.meta.url);
 const ROOT = process.cwd();
@@ -63,15 +64,13 @@ const section = (n) => console.log(`\n▶ ${n}`);
 
 // ── Generated files this run will rewrite ───────────────────────────────────
 // `next dev` and `next build` each rewrite `next-env.d.ts` to name their OWN
-// dist types (`.next-dev/types/routes.d.ts` vs `.next/types/routes.d.ts`), and
-// the file is TRACKED. So the release checklist used to flip a tracked file and
-// leave the working tree dirty — at exactly the moment the release inspects its
-// own diff, which is when a clean diff matters most. The snapshot is taken here,
-// before the first build, and restored (and asserted) in the closing section.
-const GENERATED = ["next-env.d.ts"];
-const generatedBefore = new Map(
-  GENERATED.map((f) => [f, fs.existsSync(path.join(ROOT, f)) ? fs.readFileSync(path.join(ROOT, f)) : null]),
-);
+// dist types, and the file is TRACKED — so a build that is left alone dirties the
+// working tree at exactly the moment a release inspects its own diff. The
+// snapshot is taken here, before the first build, and restored (and asserted) in
+// the closing section. The rule itself lives in scripts/generated-files.mjs:
+// `npm run restore-drill` builds too, and two copies of this would be two
+// opinions about what the tree should contain.
+const generatedBefore = snapshotGenerated(ROOT);
 
 // ── Server lifecycle ────────────────────────────────────────────────────────
 const children = [];
@@ -300,18 +299,12 @@ console.log("  · these become real steps only when the store moves to a databas
 section("8 · the tree this run leaves behind");
 shutdown();
 await new Promise((r) => setTimeout(r, 300));
-let restoredAll = true;
-for (const f of GENERATED) {
-  const was = generatedBefore.get(f);
-  const full = path.join(ROOT, f);
-  const now = fs.existsSync(full) ? fs.readFileSync(full) : null;
-  if (was && now && now.equals(was)) continue;
-  if (was) fs.writeFileSync(full, was);
-  else fs.rmSync(full, { force: true });
-  const after = fs.existsSync(full) ? fs.readFileSync(full) : null;
-  if (!after || !was || !after.equals(was)) restoredAll = false;
-}
-record("generated files restored", restoredAll, `${GENERATED.join(", ")} — the gate leaves the tree as it found it`);
+const restored = restoreGenerated(generatedBefore, ROOT);
+record(
+  "generated files restored",
+  restored.restoredAll,
+  `${GENERATED.join(", ")} — the gate leaves the tree as it found it`,
+);
 const porcelain = spawnSync("git", ["status", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).stdout ?? "";
 const dirty = porcelain.split("\n").filter((l) => l.trim() !== "" && !l.startsWith("?? "));
 console.log(

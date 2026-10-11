@@ -37,6 +37,9 @@ npm run verify:permissions  # the authorization matrix (needs a server)
 npm run verify:sync         # the offline sync protocol (needs a server)
 npm run smoke               # external-style uptime smoke (needs a server)
 npm run production-check    # ALL of the above, end to end, on a scratch store
+npm run backup              # take a verified backup of the store (§4)
+npm run backup:verify       # re-check a backup's recorded hashes (§4)
+npm run restore-drill       # restore a backup and prove a learner survives it (§4)
 ```
 
 `npm run production-check` is the one command that answers "is this deployment
@@ -77,32 +80,68 @@ state.
 ### Backup
 
 ```bash
-# Stop writes, or take a filesystem snapshot — JSON files are written via a
-# temp-file rename, so an individual file is never half-written, but a copy taken
-# across many files can still catch different moments.
-tar czf openmind-$(date +%Y%m%d-%H%M).tgz "$OPENMIND_DATA_DIR"
+npm run backup                      # → ~/openmind-backups/openmind-data-<UTC stamp>
+npm run backup -- --data /var/openmind --dest /mnt/backups --keep 14
+npm run backup:verify               # re-check the latest archive's hashes
+npm run backup:verify -- ~/openmind-backups/openmind-data-20261011T113000Z
 ```
+
+`scripts/backup-store.mjs` copies the directory, hashes every file, compares each
+copy against its **source** hash, and writes two records: `manifest.json` (the
+hashes, which is what `--verify` re-checks months later) and `BACKUP-MANIFEST.txt`
+(what an operator needs — the counts, the git HEAD, and whether `session-secret`
+is present, **never its value**). It refuses to write inside the repository, or
+inside the store it is copying.
 
 Keep daily copies off-site (another machine, object storage, an encrypted USB).
 The `session-secret` belongs **in** the backup: restoring without it signs every
-learner out.
+learner out. `--keep N` prunes only archives this tool made, oldest first, so a
+hand-made `tar` sitting beside them is never touched.
 
-### The restore drill (run it, on staging, before you need it)
+Two things it will not pretend about. It does not stop writes — each JSON file is
+written by temp-file rename, so no single file is ever half-written, while a copy
+across many files can still catch different moments; **any file that changed
+mid-copy is reported**, so a blurred archive is visible rather than discovered
+during a restore. And it does not schedule itself: a cron job or systemd timer has
+to call `npm run backup` (§7).
+
+### The restore drill — one command, six steps
+
+```bash
+npm run restore-drill                 # back up the live store, then drill that archive
+npm run restore-drill -- --backup ~/openmind-backups/openmind-data-20261011T113000Z
+npm run restore-drill -- --data /var/openmind --learners 5
+OPENMIND_SKIP_BUILD=1 npm run restore-drill -- --backup …   # drill an existing artefact
+```
+
+`scripts/restore-drill.mjs` runs the procedure below, in order:
 
 ```text
-1. take a backup of staging
-2. stop staging and move its data directory aside
-3. restore the backup into a FRESH directory
-4. point staging at it and start
-5. GET /api/ready → 200
-6. for one known learner: GET /api/evidence?id=…&secret=…
-   → expect deepReconcile.differences == []  and  unprojectable == null
+1. take a backup of staging (or accept one with --backup)
+2. verify its recorded hashes — restoring a corrupt archive proves nothing
+3. restore into a FRESH temporary directory, compared byte for byte
+4. boot the artefact pointed at the restored store
+5. GET /api/ready → 200 (storage, config and content all green)
+6. per learner with a ledger: GET /api/evidence?id=…&secret=…
+   → deepReconcile.differences == []  and  unprojectable == null
 ```
 
 Step 6 is the OpenMind-specific proof. It says the restored ledger is sufficient
-to reconstruct that learner's model. If `unprojectable` is non-null, some of that
+to reconstruct that learner's model. If `differences` is non-empty the model is not
+a projection of its own evidence; if `unprojectable` is non-null, some of that
 learner's history predates the ledger and cannot be rebuilt from events — see
-`DATA_GOVERNANCE.md`.
+`DATA_GOVERNANCE.md`. Everything it creates is deleted on every exit path,
+including a failure, and it restores the working tree's generated files, so
+drilling a release cannot be the thing that dirties the tree.
+
+Three limits, stated rather than discovered at 2am:
+
+- it drills **the artefact in this checkout** — a restore onto different hardware
+  still has to be rehearsed there once;
+- if the archive holds **no ledger**, step 6 reports `UNTESTED`. Storage, the
+  restore and readiness were proven; the projection was not, and the drill says
+  which;
+- it is a **test of an archive**, not a substitute for off-site copies.
 
 ### Migrations are part of a restore, not separate from it
 
@@ -131,10 +170,12 @@ it belongs on staging and in CI, never on production.
 
 ### **PROPOSED**
 
-Automated backups, retention schedules and point-in-time recovery — and, once the
-store is a database, the equivalent of the drill above for the tables rather than
-for the directory. Today the backup is a command an operator runs, and the restore
-drill in this section is one they have to run by hand.
+What is still missing is *the schedule*, not the tooling: `npm run backup` and
+`npm run restore-drill` both work and are verified, but nothing in this repository
+calls them on a timer — a cron job or a systemd timer has to, and that is a
+property of the deployment (§7). Also PROPOSED: off-site replication,
+point-in-time recovery, and — once the store is a database — the equivalent of the
+drill above for tables rather than for a directory (`DATA_GOVERNANCE.md` §5).
 
 ## 5. Runbooks
 
@@ -221,6 +262,6 @@ it is in the store.
 | Cadence | Check |
 |---|---|
 | every deploy | `npm run production-check` (or the CI job) |
-| daily | `/api/health` and `/api/ready` answered; backup completed |
-| weekly | one restore drill on staging (§4); review `/api/impact` limitations |
+| daily | `/api/health` and `/api/ready` answered; `npm run backup` completed and its copy kept off-site |
+| weekly | `npm run restore-drill` against the latest archive; review `/api/impact` limitations |
 | monthly | dependencies reviewed; `audit/content-release.json` reviewed; access to secrets reviewed |

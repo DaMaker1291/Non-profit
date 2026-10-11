@@ -54,14 +54,20 @@ should treat a growing `unprojectable` count as a migration backlog.
 ```text
 evidence events
       ↓
-database / directory backup
+database / directory backup        npm run backup          (hashed, off the repo)
       ↓
-restore
+restore                            npm run restore-drill    (fresh dir, byte for byte)
       ↓
 replayModel()  →  learner state reconstructed
       ↓
 GET /api/evidence → deepReconcile.differences == []
 ```
+
+The two commands are `OPERATIONS.md` §4's procedure rather than a description of
+it: the drill takes the archive, restores it into a fresh directory, boots the
+artefact against it and asserts the last two lines above for every learner it
+restores. It is the one test that says the ledger is enough — so a deployment that
+skips it is asserting this diagram, not measuring it.
 
 This is the advantage the ledger buys. Do not lose it by treating the UI's
 current view as the source of truth.
