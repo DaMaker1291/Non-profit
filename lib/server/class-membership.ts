@@ -49,6 +49,31 @@ export function handleOf(cls: ClassRoster, learnerId: string): string | null {
   return null;
 }
 
+/**
+ * REMOVE THIS LEARNER FROM A ROSTER, IN PLACE. Returns whether anything changed,
+ * so a caller writes the file only when it did.
+ *
+ * The id goes, and so does the HANDLE that was bound to it, together with the
+ * self-report rows hanging off that handle — a teacher's table must stop listing
+ * a member who has left, and must not keep showing their name beside somebody
+ * else's numbers. It is deliberately pure (a roster in, a boolean out): the live
+ * erase path writes DATA_DIR, and the erasure a RESTORE re-applies writes a copy
+ * of it elsewhere, and both must remove the same way. Two implementations here
+ * would mean an erased learner could come back on the path nobody tested.
+ */
+export function removeMember(cls: ClassRoster, learnerId: string): boolean {
+  const handle = handleOf(cls, learnerId);
+  const members = cls.members ?? [];
+  if (!members.includes(learnerId) && !handle) return false;
+  cls.members = members.filter((m) => m !== learnerId);
+  if (handle) {
+    if (cls.membersById) delete cls.membersById[handle];
+    delete cls.students[handle];
+    if (cls.misconceptions) delete cls.misconceptions[handle];
+  }
+  return true;
+}
+
 /** Does the roster hold a row for this learner? The identity answer, asked by
  *  the reconciliation and by nothing else: a member with no row is still a
  *  member (their id was recorded), it is only the teacher's table that cannot

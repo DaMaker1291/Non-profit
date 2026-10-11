@@ -10624,5 +10624,107 @@ console.log("▸ Two writers, two directories — and the deployment still finds
     `and neither does \`npm run build\` (${pkgScripts.build})`);
 }
 
+// ── An erasure outlives the archive it was taken from ───────────────────────
+// `docs/PRIVACY.md` §7 promises an erase takes the profile, the evidence ledger
+// and every class membership — and then admits the hole underneath it in one
+// sentence: "deletion in the live store is not deletion in an old backup". A
+// backup taken BEFORE the erase still holds that learner, and restoring it is the
+// one thing a backup is FOR. So the erase leaves an INTENT behind
+// (`erasures.json`) and a restore re-applies it.
+//
+// These drive the REAL module over a temp directory — its argument, never
+// DATA_DIR — because the caller that matters most is a RESTORED COPY that is not
+// the live store. The last block is the whole claim, end to end: an archive taken
+// before the erase brings the learner back, and re-applying the log takes them
+// away again.
+console.log("▸ An erasure outlives the archive it was taken from");
+{
+  const erasures = require("../.verify/server/erasures.js");
+  const dir = fs.mkdtempSync(nodePath.join(os.tmpdir(), "om-erase-verify-"));
+  const put = (name, value) => fs.writeFileSync(nodePath.join(dir, name), JSON.stringify(value));
+  const get = (name) => JSON.parse(fs.readFileSync(nodePath.join(dir, name), "utf8"));
+  const ledgerPath = (id) => nodePath.join(dir, "evidence", `${id}.jsonl`);
+  const profile = (id) => ({ profile: { id, handle: id }, progress: { "place-value": { attempts: 3 } } });
+  const T = 1_760_000_000_000;
+
+  fs.mkdirSync(nodePath.join(dir, "evidence"), { recursive: true });
+  put("profiles.json", { alice: profile("alice"), bob: profile("bob") });
+  fs.writeFileSync(ledgerPath("alice"), '{"id":"e1"}\n');
+  fs.writeFileSync(ledgerPath("bob"), '{"id":"e2"}\n');
+  put("personal-papers.json", { pp1: { id: "pp1", owner: "alice" }, pp2: { id: "pp2", owner: "bob" } });
+  put("classes.json", [{
+    id: "cls1", joinCode: "ABC123", subject: "maths", members: ["alice", "bob"],
+    membersById: { A: "alice", B: "bob" },
+    students: { A: { answers: 3 }, B: { answers: 4 } },
+    misconceptions: { A: ["m1"], B: ["m2"] },
+  }]);
+
+  // A copy of the store as it stands — an archive taken BEFORE the erase.
+  const archive = fs.mkdtempSync(nodePath.join(os.tmpdir(), "om-erase-archive-"));
+  fs.cpSync(dir, archive, { recursive: true });
+
+  // 1. The log: recorded once, idempotent, and never a path traversal.
+  ok((await erasures.appendErasure(dir, "alice", T)) === true, "the erase records the INTENT (`erasures.json`)");
+  ok((await erasures.appendErasure(dir, "alice", T + 1)) === false,
+    "recording it twice is a no-op — a retry cannot grow the log or move the moment it names");
+  const log = await erasures.readErasures(dir);
+  ok(log.length === 1 && log[0].learnerId === "alice" && log[0].at === T,
+    `and the log holds one entry, with the clock it was given (${log.length})`);
+  ok((await erasures.appendErasure(dir, "../etc/passwd", T)) === false && (await erasures.readErasures(dir)).length === 1,
+    "an id that is not a plain id is REFUSED — a log that travelled through a backup must not be able to name a path");
+  ok(erasures.isErased(log, "alice") && !erasures.isErased(log, "bob"),
+    "and `isErased` answers by identity, never by prefix");
+
+  // 2. Applying it is TOTAL: profile, ledger, personal papers and class
+  //    membership. A partial erase is exactly what makes "we deleted it" false.
+  const outcome = await erasures.applyErasures(dir, log);
+  ok(outcome.profiles === 1 && outcome.ledgers === 1 && outcome.personalPapers === 1 && outcome.rosters === 1,
+    `applying it removes the profile, the ledger, their personal papers and their roster row (${JSON.stringify(outcome)})`);
+  const live = get("profiles.json");
+  ok(!live.alice && !!live.bob, "the erased learner is gone and the classmate is untouched");
+  ok(!fs.existsSync(ledgerPath("alice")) && fs.existsSync(ledgerPath("bob")),
+    "their ledger file is removed and the other learner's is not");
+  ok(!get("personal-papers.json").pp1 && !!get("personal-papers.json").pp2,
+    "their personal paper is gone, the other learner's remains");
+  const roster = get("classes.json")[0];
+  ok(!roster.members.includes("alice") && roster.members.includes("bob") && !("A" in roster.membersById)
+    && !("A" in roster.students) && !("A" in roster.misconceptions),
+    "and the roster keeps no row, no binding and no self-report of theirs — the teacher's table stops listing them");
+
+  // 3. Idempotent, and honest on a store that never had them.
+  const twice = await erasures.applyErasures(dir, log);
+  ok(twice.profiles === 0 && twice.ledgers === 0 && twice.personalPapers === 0 && twice.rosters === 0,
+    "applying the same log again changes nothing, so a restore can be re-drilled");
+  const empty = fs.mkdtempSync(nodePath.join(os.tmpdir(), "om-erase-empty-"));
+  const nothing = await erasures.applyErasures(empty, log);
+  ok(nothing.profiles === 0 && nothing.ledgers === 0 && nothing.personalPapers === 0 && nothing.rosters === 0,
+    "and applying it to a store with none of those files is a no-op, not a crash");
+
+  // 4. THE CLAIM. The archive was taken BEFORE the erase, so it still holds the
+  //    learner — that is the risk, stated rather than implied. The log is what
+  //    takes them back out of it, which is what makes the privacy page's promise
+  //    true on the day somebody actually restores a backup.
+  const archived = JSON.parse(fs.readFileSync(nodePath.join(archive, "profiles.json"), "utf8"));
+  ok(!!archived.alice,
+    "an archive taken before the erase still CONTAINS the learner — restoring it as-is would resurrect somebody who asked to be forgotten");
+  const repaired = await erasures.applyErasures(archive, await erasures.readErasures(dir));
+  const archivedAfter = JSON.parse(fs.readFileSync(nodePath.join(archive, "profiles.json"), "utf8"));
+  ok(!archivedAfter.alice && !!archivedAfter.bob && repaired.profiles === 1 && repaired.ledgers === 1,
+    "and re-applying the log removes them from the RESTORED copy — the erasure outlives the archive");
+  ok(!fs.existsSync(nodePath.join(archive, "evidence", "alice.jsonl")),
+    "their ledger is not in the restored store either, so nothing can be re-derived about them");
+
+  // 5. The store's OWN erase path records it. `deleteProfile` is the one door the
+  //    erase route uses, so no route can delete a learner without leaving the
+  //    intent behind — asserted by driving it, not by grepping for a call.
+  await store.saveProfile(store.newProfileState("erase-me-01", { handle: "erase-me" }));
+  const removed = await store.deleteProfile("erase-me-01");
+  const storeLog = JSON.parse(fs.readFileSync(nodePath.join(tmpData, "erasures.json"), "utf8"));
+  ok(removed && storeLog.entries.some((e) => e.learnerId === "erase-me-01"),
+    "and the store's own `deleteProfile` records the intent, so the erase route cannot forget to");
+
+  for (const d of [dir, archive, empty]) fs.rmSync(d, { recursive: true, force: true });
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

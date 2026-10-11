@@ -10,6 +10,8 @@
 //   1. take a backup (or accept one with `--backup`)
 //   2. verify its recorded hashes — restoring a corrupted archive proves nothing
 //   3. restore into a FRESH directory and compare BYTE FOR BYTE with the archive
+//  3b. re-apply every ERASURE recorded since that archive was taken, so a learner
+//      who asked to be forgotten is not resurrected by the restore
 //   4. boot the artefact that would be deployed, pointed at the restored store
 //   5. GET /api/ready → this instance can serve a learner
 //   6. for each learner with a ledger: GET /api/evidence →
@@ -29,10 +31,14 @@
 //     the projection was not.
 //   · it does not stop writes during the backup. `npm run backup` reports any
 //     file that changed mid-copy, so this is visible rather than assumed.
+//   · step 3b can only re-apply erasures it can SEE. They come from
+//     --erasure-source (the live store by default), so an operator recovering on
+//     hardware with no live store must carry that one small file beside the
+//     archives — which is why the drill says so instead of assuming it.
 //
 // Usage:
 //   node scripts/restore-drill.mjs [--backup DIR] [--data DIR] [--learners N]
-//                                  [--port N] [--keep-temp]
+//                                  [--port N] [--erasure-source DIR] [--keep-temp]
 //   OPENMIND_SKIP_BUILD=1 skips the production build (drills an artefact that
 //   already exists — the same escape hatch verify:persistence has).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -41,8 +47,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { prepareStandalone, startStandalone, waitForReady } from "./production-server.mjs";
 import { snapshotGenerated, restoreGenerated } from "./generated-files.mjs";
+
+const require = createRequire(import.meta.url);
 
 const ROOT = process.cwd();
 const argv = process.argv.slice(2);
@@ -65,6 +74,36 @@ const note = (what) => console.log(`  · ${what}`);
 const sha256 = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 const linesOf = (file) =>
   fs.existsSync(file) ? fs.readFileSync(file, "utf8").split("\n").filter((s) => s.trim() !== "").length : 0;
+
+/**
+ * Load the APP'S OWN erasure module (`lib/server/erasures.ts`), by transpiling it
+ * and its one relative import with the repository's typescript into a temp
+ * directory — the same trick `verify-questions.mjs` uses for the question bank.
+ *
+ * Borrowing the app's module rather than reimplementing the surgery here is the
+ * point: an erased learner must disappear from a restored store the SAME way they
+ * disappear from the live one, and a second implementation is a second answer.
+ */
+function loadErasures() {
+  const ts = require("typescript");
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "om-drill-ts-"));
+  for (const rel of ["lib/server/class-membership.ts", "lib/server/erasures.ts"]) {
+    const js = ts.transpileModule(fs.readFileSync(path.join(ROOT, rel), "utf8"), {
+      // esModuleInterop is NOT a default here, and without it `import path from
+      // "path"` compiles to `path_1.default` — which is undefined for a CommonJS
+      // builtin, so the module loads and then throws on first use. That is exactly
+      // how this loader failed the first time it ran.
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2020,
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+      },
+    }).outputText;
+    fs.writeFileSync(path.join(outDir, path.basename(rel).replace(/\.ts$/, ".js")), js);
+  }
+  return { mod: require(path.join(outDir, "erasures.js")), outDir };
+}
 
 /** Run one of this repository's own scripts, so the drill exercises the real
  *  CLI (and its refusals) rather than a private copy of its logic. */
@@ -141,6 +180,52 @@ async function main() {
     for (const doc of ["manifest.json", "BACKUP-MANIFEST.txt"]) fs.rmSync(path.join(scratch, doc), { force: true });
     note(`restored into ${scratch} (the manifest's own files are not part of a store)`);
 
+    // ── 3b. The erasures that outlive this archive ─────────────────────────
+    // The one thing a file-copy test cannot check, and the reason a restore is
+    // not just "put the bytes back". An archive taken BEFORE a learner erased
+    // their record still contains them; restoring it would resurrect somebody
+    // who asked to be forgotten. The erase therefore records an intent
+    // (`erasures.json`, lib/server/erasures.ts) and the restore RE-APPLIES it to
+    // the copy it just materialised — from the source named by --erasure-source,
+    // which defaults to the live store.
+    step("3b · the erasures that outlive this archive are re-applied");
+    const source = path.resolve(
+      String(value("--erasure-source", process.env.OPENMIND_DATA_DIR ?? path.join(ROOT, ".openmind-data"))),
+    );
+    let erasures = null;
+    try {
+      erasures = loadErasures();
+      temps.push(erasures.outDir);
+    } catch (e) {
+      note(`could not load the erasure applier (${e.message}) — the re-apply step is UNTESTED`);
+    }
+    if (erasures) {
+      const log = await erasures.mod.readErasures(source);
+      if (log.length === 0) {
+        note(
+          `no erasure is recorded in ${source}, so there is nothing to re-apply. That is NOT a pass for this ` +
+            "step: a deployment that has never erased anyone has never tested it.",
+        );
+      } else {
+        const restoredProfiles = JSON.parse(fs.readFileSync(path.join(scratch, "profiles.json"), "utf8"));
+        const cameBack = log.filter((e) => e.learnerId in restoredProfiles).map((e) => e.learnerId);
+        const applied = await erasures.mod.applyErasures(scratch, log);
+        const after = JSON.parse(fs.readFileSync(path.join(scratch, "profiles.json"), "utf8"));
+        const stillThere = log.filter((e) => e.learnerId in after).map((e) => e.learnerId);
+        if (cameBack.length) {
+          note(
+            `${cameBack.length} of ${log.length} erased learner(s) were STILL INSIDE this archive (it was taken before they ` +
+              "erased) — this is the case the step exists for",
+          );
+        }
+        ok(
+          stillThere.length === 0,
+          `${log.length} recorded erasure(s) re-applied to the restored store — not one of them is back`,
+          `${applied.profiles} profile(s), ${applied.ledgers} ledger(s), ${applied.personalPapers} paper(s), ${applied.rosters} roster row(s)`,
+        );
+      }
+    }
+
     // ── 4. Boot the artefact, pointed at the restored store ─────────────────
     step("4 · boot the artefact against the restored store");
     await prepareStandalone({ build: !process.env.OPENMIND_SKIP_BUILD });
@@ -213,4 +298,12 @@ async function main() {
   }
 }
 
-main().then((code) => process.exit(code === 0 ? 0 : 1));
+main().then(
+  (code) => process.exit(code === 0 ? 0 : 1),
+  (e) => {
+    // A drill that cannot be run must never look like one that passed: the
+    // failure is named, and the exit code stays non-zero.
+    console.error(`\nRESTORE DRILL: FAIL — ${e?.message ?? e}`);
+    process.exit(1);
+  },
+);

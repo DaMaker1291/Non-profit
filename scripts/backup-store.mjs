@@ -29,8 +29,17 @@
 // checked rather than assumed, and the drill (`npm run restore-drill`) is what
 // proves the restored store still reconstructs a learner.
 //
+// `--max-age-days N` is the other half of a deletion policy, and the reason it
+// exists here: `docs/DATA_GOVERNANCE.md` §7 answers "what about the copies?" with
+// "a backup is not exempt from deletion forever, but it cannot be edited, so
+// deletion is satisfied by expiry" — which is only true once something expires.
+// An archive older than N days is destroyed, whatever `--keep` would have kept,
+// and the erase-a-learner case is handled the other way round: the intent is
+// re-applied on RESTORE (`lib/server/erasures.ts`), so a learner who asked to be
+// forgotten does not come back out of an archive that predates them.
+//
 // Usage:
-//   node scripts/backup-store.mjs [--data DIR] [--dest DIR] [--keep N]
+//   node scripts/backup-store.mjs [--data DIR] [--dest DIR] [--keep N] [--max-age-days N]
 //   node scripts/backup-store.mjs --verify [DIR]     # no DIR → the latest here
 //
 // Exit: 0 ok · 1 verification failed · 2 refused (usage, unsafe destination)
@@ -165,6 +174,10 @@ function run() {
     );
   }
   if (!Number.isFinite(keep) || keep < 1) die(`--keep must be a positive number, got ${value("--keep")}.`);
+  const maxAgeDays = Number(value("--max-age-days", 0));
+  if (!Number.isFinite(maxAgeDays) || maxAgeDays < 0) {
+    die(`--max-age-days must be zero (expiry off) or a positive number of days, got ${value("--max-age-days")}.`);
+  }
 
   const stamp = `${new Date().toISOString().slice(0, 19).replace(/[-:]/g, "")}Z`;
   const out = path.join(destRoot, `openmind-data-${stamp}`);
@@ -260,15 +273,29 @@ function run() {
   }
 
   // ── Retention: prune only archives this tool made ─────────────────────────
-  // A hand-made directory has no manifest and is left alone, whatever its name.
+  // A hand-made directory has no manifest and is left alone, whatever its name —
+  // it is somebody's archive, and this tool did not put it there.
   const ours = fs
     .readdirSync(destRoot, { withFileTypes: true })
     .filter((e) => e.isDirectory() && STAMP_RE.test(e.name))
     .map((e) => e.name)
     .filter((name) => fs.existsSync(path.join(destRoot, name, "manifest.json")))
     .sort();
-  const doomed = ours.slice(0, Math.max(0, ours.length - keep));
-  for (const name of doomed) {
+  // The timestamp is IN the name, so expiry needs no metadata and cannot be
+  // fooled by a file's mtime (which a copy rewrites).
+  const stampedAt = (name) => {
+    const m = /^openmind-data-(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(name);
+    return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : null;
+  };
+  const cutoff = maxAgeDays > 0 ? Date.now() - maxAgeDays * 86_400_000 : null;
+  const aged = cutoff === null ? [] : ours.filter((n) => (stampedAt(n) ?? Date.now()) < cutoff);
+  const unexpired = ours.filter((n) => !aged.includes(n));
+  const overCount = unexpired.slice(0, Math.max(0, unexpired.length - keep));
+  for (const name of aged) {
+    fs.rmSync(path.join(destRoot, name), { recursive: true, force: true });
+    console.log(`  · expired ${name} (older than --max-age-days ${maxAgeDays})`);
+  }
+  for (const name of overCount) {
     fs.rmSync(path.join(destRoot, name), { recursive: true, force: true });
     console.log(`  · pruned ${name} (--keep ${keep})`);
   }

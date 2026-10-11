@@ -140,6 +140,12 @@ export const ENGINE_SOURCES = [
   "lib/replay.ts",
   "lib/decision.ts",
   "lib/server/store.ts",
+  // The erasure log. An erase records the INTENT as well as removing the data,
+  // because a backup taken earlier still holds the learner and restoring it is
+  // the one thing a backup is for. The suite drives the real applier over temp
+  // directories — including the archive-taken-before-the-erase case — so it is
+  // compiled with the rest rather than described in prose.
+  "lib/server/erasures.ts",
   // Real accounts: scrypt hashing, the signed session token, and the cookie
   // attributes. Compiled with the rest so the suite can assert the SESSION
   // FLAGS BEHAVIOURALLY (Secure follows the scheme, never blanket-on or

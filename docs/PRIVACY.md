@@ -95,17 +95,29 @@ is no automatic expiry. The recommended schedule to adopt:
 | Class roster | while the class exists; members are removed on leaving |
 | AI result cache | bounded by count (already capped at 4000 entries) |
 | Papers / personal papers | capped by count; prune on a schedule |
-| Backups | 90 days, then destroyed |
+| Backups | 90 days, then destroyed — `npm run backup -- --max-age-days 90` (the schedule itself is the host's, §8) |
 
 ## 7. Deletion and export
 
 - **Erasure is implemented.** A learner-initiated delete removes the profile,
   its ledger and its personal papers, and removes the learner from every class
   roster (`deleteProfile`, `deleteEvidence`, `removeMemberEverywhere`).
-- **Export: PROPOSED in full.** The learner can read their own evidence and data
-  via the API; a single "download everything" bundle is not yet built.
-- A backup containing deleted data must also be purged on its retention schedule
-  (§6) — deletion in the live store is not deletion in an old backup.
+- **A backup cannot undo an erasure.** A backup taken *before* the erase still
+  contains that learner, and restoring it is the one thing a backup is for — so
+  the erase also records the INTENT (`erasures.json`, `lib/server/erasures.ts`),
+  and a restore re-applies that log to the store it materialises before it serves
+  anybody (`npm run restore-drill` step 3b). An erased learner does not come back
+  out of an archive. The log is small, append-only, and is the one file an
+  operator should carry beside the archives — a recovery on hardware with no live
+  store has nothing else to read it from.
+- **Copies still expire.** `npm run backup -- --max-age-days 90` destroys archives
+  older than that window, whatever the `--keep` count would have retained, so
+  "deletion is satisfied by expiry" (§6) is a property of the tool rather than a
+  promise about somebody's filing.
+- **Export: implemented over the API** (`GET /api/my-data`: profile, evidence
+  ledger, diagnostic sittings, personal papers), capability-gated like every other
+  learner-scoped read. A single packaged "download everything" bundle for a
+  non-technical user is **PROPOSED**.
 
 ## 8. Children's Code — the operational checklist
 

@@ -6,7 +6,11 @@ import path from "path";
 import { newProfileState, publicProfileState } from "../learner-profile";
 // The membership rule, in one place: the store is only the caller that makes a
 // legacy roster's identities durable.
-import { bindLegacyHandles, handleOf, hasRow } from "./class-membership";
+import { bindLegacyHandles, hasRow, removeMember } from "./class-membership";
+// The erasure log. An erase records an INTENT here as well as removing the data,
+// because a backup taken earlier still holds the learner and a restore would put
+// them back — see lib/server/erasures.ts, and `npm run restore-drill`.
+import { ERASURES_FILE, appendErasure } from "./erasures";
 export { newProfileState, publicProfileState };
 import type { ClassRoster, ProfileState, StudentProfile, StudyPack, StudyRoom } from "../types";
 import type { BuiltPaperAnswerKey } from "../papers";
@@ -80,13 +84,22 @@ export async function saveProfile(state: ProfileState): Promise<void> {
  * store's other whole-record operations rather than on any route.
  */
 export async function deleteProfile(id: string): Promise<boolean> {
-  return withLock("profiles.json", async () => {
+  const removed = await withLock("profiles.json", async () => {
     const all = await readJson<Record<string, ProfileState>>("profiles.json", {});
     if (!all[id]) return false;
     delete all[id];
     await writeJson("profiles.json", all);
     return true;
   });
+  // The record of the INTENT, written only once the profile is really gone (a
+  // failed erase must not leave a tombstone claiming a learner was deleted).
+  // Held under the same lock table as every other write to this store, so two
+  // concurrent erases cannot lose each other's entry — and named beside the lock
+  // so the file is the same one `lib/server/erasures.ts` reads from a restore.
+  if (removed) {
+    await withLock(ERASURES_FILE, () => appendErasure(DATA_DIR, id, Date.now()));
+  }
+  return removed;
 }
 
 /** Remove one learner's membership from every class roster, in place. Used by
@@ -98,23 +111,13 @@ export async function removeMemberEverywhere(profileId: string): Promise<number>
   return withLock("classes.json", async () => {
     const rosters = await readJson<ClassRoster[]>("classes.json", []);
     let changed = 0;
-    for (const cls of rosters) {
-      // The row is named by IDENTITY, the way every other membership decision
-      // names it: `membersById` maps handle -> learner, so looking the learner
-      // up in it by their own id found nothing and left the erased learner's row
-      // (and its binding) in the roster for good — a member the teacher's table
-      // still listed, and one `isMemberOf` still answered true for.
-      const handle = handleOf(cls, profileId);
-      const members = cls.members ?? [];
-      if (!members.includes(profileId) && !handle) continue;
-      cls.members = members.filter((m) => m !== profileId);
-      if (handle) {
-        if (cls.membersById) delete cls.membersById[handle];
-        delete cls.students[handle];
-        if (cls.misconceptions) delete cls.misconceptions[handle];
-      }
-      changed++;
-    }
+    // The row is named by IDENTITY, the way every other membership decision names
+    // it: `membersById` maps handle -> learner, so looking the learner up in it by
+    // their own id would find nothing and leave the erased learner's row (and its
+    // binding) in the roster for good. The removal itself lives in
+    // class-membership.ts#removeMember, because the erasure a RESTORE re-applies
+    // to a restored copy has to remove identically.
+    for (const cls of rosters) if (removeMember(cls, profileId)) changed++;
     if (changed > 0) await writeJson("classes.json", rosters);
     return changed;
   });

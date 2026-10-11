@@ -127,10 +127,20 @@ the published version, and names which section moved. Publishing a new version i
 - Deletion: implemented (`deleteProfile`, `deleteEvidence`,
   `removeMemberEverywhere`) — profile, ledger, personal papers and every class
   membership go together.
+- **An erasure is an INSTRUCTION, not only a deletion** (`lib/server/erasures.ts`).
+  The erase writes `erasures.json` (learner id + when) beside the data it removes,
+  because a backup taken earlier still holds that learner and a restore would
+  put them back. `npm run restore-drill` re-applies the log to the restored copy
+  (step 3b), so an archive cannot resurrect somebody who asked to be forgotten.
+  The file is append-only, one line per learner, and is the one artefact worth
+  carrying beside the archives: recovering on hardware with no live store has
+  nothing else to re-apply from.
 - Export: the learner can read their own evidence and data over the API;
   a one-click bundle is **PROPOSED**.
-- Backups age out on their own schedule; a backup is not exempt from deletion
-  forever, but it cannot be edited, so deletion is satisfied by expiry.
+- Backups expire: `npm run backup -- --max-age-days 90` destroys archives older
+  than the window regardless of `--keep`. An archive cannot be edited — that is
+  why erasure is handled by re-applying the log at restore time, and deletion is
+  satisfied by expiry for everything the log does not name.
 
 ## 8. Auditing the record
 

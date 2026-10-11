@@ -3152,6 +3152,23 @@ console.log("▸ Privacy: export and erasure");
   ok(gone.status === 404, "the profile no longer resolves after erasure");
   const dataGone = await getAuthed(`/api/my-data?id=${vid}`, vid);
   ok(dataGone.status === 404, "nor does the export door answer for a learner who no longer exists");
+
+  // AND IT LEAVES AN INTENT BEHIND, which is the half a deletion alone cannot
+  // promise: a backup taken BEFORE this moment still contains this learner, and a
+  // restore would put them back. So the erase also records the learner in
+  // `erasures.json`, and the restored copy is repaired from it
+  // (`npm run restore-drill`, lib/server/erasures.ts). The store on disk is where
+  // that can be proved rather than asserted.
+  const logFile = path.join(DATA_DIR, "erasures.json");
+  const entries = fs.existsSync(logFile) ? (JSON.parse(fs.readFileSync(logFile, "utf8")).entries ?? []) : [];
+  ok(entries.some((e) => e.learnerId === vid && typeof e.at === "number"),
+    "the erasure is recorded on disk as an intent, not only as a deletion");
+  ok(!fs.existsSync(path.join(DATA_DIR, "evidence", `${vid}.jsonl`)),
+    "and the learner's evidence ledger file is really gone from the store");
+  const again = await call(`/api/profile?id=${vid}&secret=${encodeURIComponent(SECRETS.get(vid))}&confirm=ERASE`, { method: "DELETE" });
+  const entriesAfter = JSON.parse(fs.readFileSync(logFile, "utf8")).entries ?? [];
+  ok(again.status === 404 && entriesAfter.filter((e) => e.learnerId === vid).length === 1,
+    "a second erase finds nothing and cannot enter them in the log twice");
 }
 
 

@@ -82,6 +82,7 @@ state.
 ```bash
 npm run backup                      # → ~/openmind-backups/openmind-data-<UTC stamp>
 npm run backup -- --data /var/openmind --dest /mnt/backups --keep 14
+npm run backup -- --max-age-days 90 # destroy archives older than the window (§6)
 npm run backup:verify               # re-check the latest archive's hashes
 npm run backup:verify -- ~/openmind-backups/openmind-data-20261011T113000Z
 ```
@@ -117,14 +118,24 @@ OPENMIND_SKIP_BUILD=1 npm run restore-drill -- --backup …   # drill an existin
 `scripts/restore-drill.mjs` runs the procedure below, in order:
 
 ```text
-1. take a backup of staging (or accept one with --backup)
-2. verify its recorded hashes — restoring a corrupt archive proves nothing
-3. restore into a FRESH temporary directory, compared byte for byte
-4. boot the artefact pointed at the restored store
-5. GET /api/ready → 200 (storage, config and content all green)
-6. per learner with a ledger: GET /api/evidence?id=…&secret=…
-   → deepReconcile.differences == []  and  unprojectable == null
+1.  take a backup of staging (or accept one with --backup)
+2.  verify its recorded hashes — restoring a corrupt archive proves nothing
+3.  restore into a FRESH temporary directory, compared byte for byte
+3b. re-apply every ERASURE recorded since that archive was taken
+4.  boot the artefact pointed at the restored store
+5.  GET /api/ready → 200 (storage, config and content all green)
+6.  per learner with a ledger: GET /api/evidence?id=…&secret=…
+    → deepReconcile.differences == []  and  unprojectable == null
 ```
+
+**Step 3b is the one a file-copy test cannot do.** An archive taken *before* a
+learner erased their record still contains them, and a restore would put them
+back — so the erase writes an intent (`erasures.json`, `lib/server/erasures.ts`)
+and the drill re-applies that log to the restored copy before the artefact boots.
+The log comes from `--erasure-source` (the live store by default), which is why
+that one small file is worth carrying beside the archives: a recovery on hardware
+with no live store has nothing else to read it from. With nothing recorded, the
+drill says the step is UNTESTED rather than passing it.
 
 Step 6 is the OpenMind-specific proof. It says the restored ledger is sufficient
 to reconstruct that learner's model. If `differences` is non-empty the model is not
@@ -263,5 +274,6 @@ it is in the store.
 |---|---|
 | every deploy | `npm run production-check` (or the CI job) |
 | daily | `/api/health` and `/api/ready` answered; `npm run backup` completed and its copy kept off-site |
-| weekly | `npm run restore-drill` against the latest archive; review `/api/impact` limitations |
+| weekly | `npm run restore-drill` against the latest archive (step 3b included); review `/api/impact` limitations |
+| per retention window | `npm run backup -- --max-age-days 90` so copies expire (`PRIVACY.md` §6) |
 | monthly | dependencies reviewed; `audit/content-release.json` reviewed; access to secrets reviewed |
