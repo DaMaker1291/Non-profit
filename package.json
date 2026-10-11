@@ -19,6 +19,7 @@
     "gate:ceiling": "node scripts/ceiling-gate.mjs",
     "content-audit": "node scripts/content-audit.mjs",
     "content-gate": "node scripts/content-gate.mjs",
+    "audit:options": "node scripts/option-bias-audit.mjs",
     "e2e": "node scripts/e2e-api.mjs",
     "e2e:fresh": "node scripts/run-production-e2e.mjs",
     "e2e:fresh:only": "node scripts/e2e-fresh-learner.mjs",

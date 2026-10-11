@@ -1,0 +1,1425 @@
+{
+  "generatedAt": "2026-10-11T18:15:22.359Z",
+  "seeds": 120,
+  "concepts": 135,
+  "chance": 0.25,
+  "surfaces": {
+    "catalogue": {
+      "n": 16200,
+      "strict": 2138,
+      "longestTied": 8853,
+      "pick": 4388.916666666667,
+      "reverse": 5247
+    },
+    "served@0.50": {
+      "n": 16200,
+      "strict": 3311,
+      "longestTied": 8967,
+      "pick": 5224.583333333334,
+      "reverse": 4963
+    },
+    "served@0.75": {
+      "n": 16200,
+      "strict": 4085,
+      "longestTied": 9922,
+      "pick": 6052.333333333331,
+      "reverse": 4391
+    }
+  },
+  "bySubject": {
+    "biology": {
+      "n": 5400,
+      "strict": 2700,
+      "longestTied": 3777,
+      "pick": 3066.7499999999995,
+      "reverse": 1007
+    },
+    "chemistry": {
+      "n": 5400,
+      "strict": 1436,
+      "longestTied": 2913,
+      "pick": 1900.3333333333335,
+      "reverse": 1519
+    },
+    "computing": {
+      "n": 6480,
+      "strict": 1213,
+      "longestTied": 3831,
+      "pick": 2061.75,
+      "reverse": 1913
+    },
+    "maths": {
+      "n": 21960,
+      "strict": 2107,
+      "longestTied": 12539,
+      "pick": 5564.583333333334,
+      "reverse": 7155
+    },
+    "other": {
+      "n": 3240,
+      "strict": 708,
+      "longestTied": 1731,
+      "pick": 1088.333333333333,
+      "reverse": 1110
+    },
+    "physics": {
+      "n": 6120,
+      "strict": 1370,
+      "longestTied": 2951,
+      "pick": 1984.0833333333337,
+      "reverse": 1897
+    }
+  },
+  "perConcept": [
+    {
+      "conceptId": "respiration",
+      "subject": "biology",
+      "n": 360,
+      "strict": 296,
+      "longestTied": 296,
+      "pick": 296,
+      "reverse": 55,
+      "achievable": 0.8222222222222223
+    },
+    {
+      "conceptId": "astrophysics",
+      "subject": "physics",
+      "n": 360,
+      "strict": 276,
+      "longestTied": 313,
+      "pick": 290.83333333333337,
+      "reverse": 16,
+      "achievable": 0.8078703703703703
+    },
+    {
+      "conceptId": "gravity-fields",
+      "subject": "physics",
+      "n": 360,
+      "strict": 269,
+      "longestTied": 308,
+      "pick": 285.1666666666667,
+      "reverse": 9,
+      "achievable": 0.7921296296296296
+    },
+    {
+      "conceptId": "hormones",
+      "subject": "biology",
+      "n": 360,
+      "strict": 273,
+      "longestTied": 299,
+      "pick": 282.6666666666667,
+      "reverse": 55,
+      "achievable": 0.7851851851851852
+    },
+    {
+      "conceptId": "evolution",
+      "subject": "biology",
+      "n": 360,
+      "strict": 270,
+      "longestTied": 303,
+      "pick": 281.5,
+      "reverse": 36,
+      "achievable": 0.7819444444444444
+    },
+    {
+      "conceptId": "breathing-gas",
+      "subject": "biology",
+      "n": 360,
+      "strict": 258,
+      "longestTied": 296,
+      "pick": 277,
+      "reverse": 48,
+      "achievable": 0.7694444444444444
+    },
+    {
+      "conceptId": "covalent-bonding",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 262,
+      "longestTied": 308,
+      "pick": 273.5,
+      "reverse": 49,
+      "achievable": 0.7597222222222223
+    },
+    {
+      "conceptId": "em-induction",
+      "subject": "other",
+      "n": 360,
+      "strict": 248,
+      "longestTied": 276,
+      "pick": 259.5833333333333,
+      "reverse": 60,
+      "achievable": 0.7210648148148148
+    },
+    {
+      "conceptId": "ai-basics",
+      "subject": "computing",
+      "n": 360,
+      "strict": 250,
+      "longestTied": 280,
+      "pick": 258.8333333333333,
+      "reverse": 71,
+      "achievable": 0.7189814814814813
+    },
+    {
+      "conceptId": "bounds",
+      "subject": "maths",
+      "n": 360,
+      "strict": 132,
+      "longestTied": 358,
+      "pick": 237.08333333333337,
+      "reverse": 2,
+      "achievable": 0.658564814814815
+    },
+    {
+      "conceptId": "immune-health",
+      "subject": "biology",
+      "n": 360,
+      "strict": 227,
+      "longestTied": 250,
+      "pick": 233.08333333333331,
+      "reverse": 106,
+      "achievable": 0.6474537037037037
+    },
+    {
+      "conceptId": "cells",
+      "subject": "biology",
+      "n": 360,
+      "strict": 199,
+      "longestTied": 285,
+      "pick": 229,
+      "reverse": 31,
+      "achievable": 0.6361111111111112
+    },
+    {
+      "conceptId": "equilibria",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 209,
+      "longestTied": 251,
+      "pick": 220,
+      "reverse": 54,
+      "achievable": 0.6111111111111112
+    },
+    {
+      "conceptId": "proof",
+      "subject": "maths",
+      "n": 360,
+      "strict": 172,
+      "longestTied": 317,
+      "pick": 216.33333333333331,
+      "reverse": 35,
+      "achievable": 0.6009259259259259
+    },
+    {
+      "conceptId": "logic-maths",
+      "subject": "maths",
+      "n": 360,
+      "strict": 211,
+      "longestTied": 211,
+      "pick": 211,
+      "reverse": 85,
+      "achievable": 0.5861111111111111
+    },
+    {
+      "conceptId": "cybersecurity",
+      "subject": "computing",
+      "n": 360,
+      "strict": 209,
+      "longestTied": 209,
+      "pick": 209,
+      "reverse": 29,
+      "achievable": 0.5805555555555556
+    },
+    {
+      "conceptId": "circle-geometry-adv",
+      "subject": "maths",
+      "n": 360,
+      "strict": 194,
+      "longestTied": 228,
+      "pick": 205.33333333333334,
+      "reverse": 88,
+      "achievable": 0.5703703703703704
+    },
+    {
+      "conceptId": "digestion",
+      "subject": "biology",
+      "n": 360,
+      "strict": 162,
+      "longestTied": 290,
+      "pick": 204.66666666666674,
+      "reverse": 44,
+      "achievable": 0.5685185185185188
+    },
+    {
+      "conceptId": "nervous-system",
+      "subject": "biology",
+      "n": 360,
+      "strict": 166,
+      "longestTied": 246,
+      "pick": 203,
+      "reverse": 34,
+      "achievable": 0.5638888888888889
+    },
+    {
+      "conceptId": "biodiversity",
+      "subject": "biology",
+      "n": 360,
+      "strict": 165,
+      "longestTied": 232,
+      "pick": 197.16666666666669,
+      "reverse": 48,
+      "achievable": 0.5476851851851852
+    },
+    {
+      "conceptId": "completing-square",
+      "subject": "maths",
+      "n": 360,
+      "strict": 150,
+      "longestTied": 227,
+      "pick": 187,
+      "reverse": 67,
+      "achievable": 0.5194444444444444
+    },
+    {
+      "conceptId": "iteration",
+      "subject": "maths",
+      "n": 360,
+      "strict": 155,
+      "longestTied": 218,
+      "pick": 181.33333333333334,
+      "reverse": 131,
+      "achievable": 0.5037037037037038
+    },
+    {
+      "conceptId": "analysis-tests",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 153,
+      "longestTied": 257,
+      "pick": 180.58333333333334,
+      "reverse": 41,
+      "achievable": 0.5016203703703704
+    },
+    {
+      "conceptId": "diffusion",
+      "subject": "biology",
+      "n": 360,
+      "strict": 166,
+      "longestTied": 214,
+      "pick": 178.75,
+      "reverse": 146,
+      "achievable": 0.4965277777777778
+    },
+    {
+      "conceptId": "what-is-code",
+      "subject": "computing",
+      "n": 360,
+      "strict": 115,
+      "longestTied": 322,
+      "pick": 176.5,
+      "reverse": 38,
+      "achievable": 0.4902777777777778
+    },
+    {
+      "conceptId": "transformations",
+      "subject": "other",
+      "n": 360,
+      "strict": 90,
+      "longestTied": 285,
+      "pick": 173.58333333333337,
+      "reverse": 64,
+      "achievable": 0.482175925925926
+    },
+    {
+      "conceptId": "metallic-bonding",
+      "subject": "other",
+      "n": 360,
+      "strict": 158,
+      "longestTied": 182,
+      "pick": 167.5,
+      "reverse": 171,
+      "achievable": 0.4652777777777778
+    },
+    {
+      "conceptId": "organic-intro",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 97,
+      "longestTied": 315,
+      "pick": 166.25000000000003,
+      "reverse": 45,
+      "achievable": 0.46180555555555564
+    },
+    {
+      "conceptId": "scatter-correlation",
+      "subject": "maths",
+      "n": 360,
+      "strict": 81,
+      "longestTied": 329,
+      "pick": 165.25,
+      "reverse": 31,
+      "achievable": 0.4590277777777778
+    },
+    {
+      "conceptId": "periodic-table",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 133,
+      "longestTied": 256,
+      "pick": 163.75,
+      "reverse": 88,
+      "achievable": 0.45486111111111116
+    },
+    {
+      "conceptId": "electrolysis",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 143,
+      "longestTied": 207,
+      "pick": 163.33333333333334,
+      "reverse": 96,
+      "achievable": 0.4537037037037037
+    },
+    {
+      "conceptId": "databases-sql",
+      "subject": "computing",
+      "n": 360,
+      "strict": 124,
+      "longestTied": 279,
+      "pick": 162.75,
+      "reverse": 79,
+      "achievable": 0.45208333333333334
+    },
+    {
+      "conceptId": "enzymes",
+      "subject": "biology",
+      "n": 360,
+      "strict": 144,
+      "longestTied": 209,
+      "pick": 162.5,
+      "reverse": 69,
+      "achievable": 0.45138888888888884
+    },
+    {
+      "conceptId": "recursion",
+      "subject": "computing",
+      "n": 360,
+      "strict": 110,
+      "longestTied": 278,
+      "pick": 162.08333333333334,
+      "reverse": 56,
+      "achievable": 0.4502314814814815
+    },
+    {
+      "conceptId": "rates-reaction",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 158,
+      "longestTied": 166,
+      "pick": 162,
+      "reverse": 83,
+      "achievable": 0.45
+    },
+    {
+      "conceptId": "light-optics",
+      "subject": "physics",
+      "n": 360,
+      "strict": 144,
+      "longestTied": 190,
+      "pick": 161.5,
+      "reverse": 43,
+      "achievable": 0.4486111111111111
+    },
+    {
+      "conceptId": "pressure-fluids",
+      "subject": "physics",
+      "n": 360,
+      "strict": 119,
+      "longestTied": 206,
+      "pick": 160.75,
+      "reverse": 106,
+      "achievable": 0.4465277777777778
+    },
+    {
+      "conceptId": "compounds-mixtures",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 106,
+      "longestTied": 257,
+      "pick": 160,
+      "reverse": 43,
+      "achievable": 0.4444444444444444
+    },
+    {
+      "conceptId": "algebraic-fractions",
+      "subject": "maths",
+      "n": 360,
+      "strict": 29,
+      "longestTied": 341,
+      "pick": 157.83333333333337,
+      "reverse": 19,
+      "achievable": 0.438425925925926
+    },
+    {
+      "conceptId": "dictionaries",
+      "subject": "computing",
+      "n": 360,
+      "strict": 77,
+      "longestTied": 313,
+      "pick": 156,
+      "reverse": 47,
+      "achievable": 0.43333333333333335
+    },
+    {
+      "conceptId": "indices-intro",
+      "subject": "maths",
+      "n": 360,
+      "strict": 53,
+      "longestTied": 312,
+      "pick": 154.83333333333331,
+      "reverse": 27,
+      "achievable": 0.4300925925925925
+    },
+    {
+      "conceptId": "circle-theorems",
+      "subject": "maths",
+      "n": 360,
+      "strict": 144,
+      "longestTied": 163,
+      "pick": 153.5,
+      "reverse": 197,
+      "achievable": 0.4263888888888889
+    },
+    {
+      "conceptId": "ecosystems",
+      "subject": "biology",
+      "n": 360,
+      "strict": 107,
+      "longestTied": 246,
+      "pick": 153.33333333333331,
+      "reverse": 78,
+      "achievable": 0.4259259259259259
+    },
+    {
+      "conceptId": "photosynthesis",
+      "subject": "biology",
+      "n": 360,
+      "strict": 153,
+      "longestTied": 153,
+      "pick": 153,
+      "reverse": 180,
+      "achievable": 0.425
+    },
+    {
+      "conceptId": "algebra-expand",
+      "subject": "maths",
+      "n": 360,
+      "strict": 52,
+      "longestTied": 280,
+      "pick": 146.41666666666663,
+      "reverse": 69,
+      "achievable": 0.40671296296296283
+    },
+    {
+      "conceptId": "calculus-int",
+      "subject": "maths",
+      "n": 360,
+      "strict": 112,
+      "longestTied": 165,
+      "pick": 130.41666666666666,
+      "reverse": 175,
+      "achievable": 0.3622685185185185
+    },
+    {
+      "conceptId": "electron-shells",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 86,
+      "longestTied": 213,
+      "pick": 126.74999999999997,
+      "reverse": 99,
+      "achievable": 0.3520833333333332
+    },
+    {
+      "conceptId": "forces-basics",
+      "subject": "physics",
+      "n": 360,
+      "strict": 75,
+      "longestTied": 214,
+      "pick": 126.58333333333331,
+      "reverse": 76,
+      "achievable": 0.3516203703703703
+    },
+    {
+      "conceptId": "matrices-intro",
+      "subject": "maths",
+      "n": 360,
+      "strict": 59,
+      "longestTied": 233,
+      "pick": 126.49999999999997,
+      "reverse": 107,
+      "achievable": 0.3513888888888888
+    },
+    {
+      "conceptId": "volume",
+      "subject": "maths",
+      "n": 360,
+      "strict": 54,
+      "longestTied": 277,
+      "pick": 126.33333333333337,
+      "reverse": 63,
+      "achievable": 0.35092592592592603
+    },
+    {
+      "conceptId": "fraction-ops",
+      "subject": "maths",
+      "n": 360,
+      "strict": 85,
+      "longestTied": 213,
+      "pick": 123.91666666666667,
+      "reverse": 138,
+      "achievable": 0.344212962962963
+    },
+    {
+      "conceptId": "circulation",
+      "subject": "biology",
+      "n": 360,
+      "strict": 102,
+      "longestTied": 175,
+      "pick": 122.91666666666666,
+      "reverse": 14,
+      "achievable": 0.3414351851851852
+    },
+    {
+      "conceptId": "averages",
+      "subject": "maths",
+      "n": 360,
+      "strict": 84,
+      "longestTied": 194,
+      "pick": 122.33333333333333,
+      "reverse": 126,
+      "achievable": 0.3398148148148148
+    },
+    {
+      "conceptId": "functions-code",
+      "subject": "computing",
+      "n": 360,
+      "strict": 13,
+      "longestTied": 308,
+      "pick": 121.66666666666669,
+      "reverse": 51,
+      "achievable": 0.33796296296296297
+    },
+    {
+      "conceptId": "magnetism",
+      "subject": "physics",
+      "n": 360,
+      "strict": 80,
+      "longestTied": 170,
+      "pick": 121.41666666666666,
+      "reverse": 73,
+      "achievable": 0.33726851851851847
+    },
+    {
+      "conceptId": "conditionals",
+      "subject": "computing",
+      "n": 360,
+      "strict": 79,
+      "longestTied": 243,
+      "pick": 120,
+      "reverse": 81,
+      "achievable": 0.33333333333333337
+    },
+    {
+      "conceptId": "data-charts",
+      "subject": "maths",
+      "n": 360,
+      "strict": 16,
+      "longestTied": 299,
+      "pick": 117.66666666666667,
+      "reverse": 55,
+      "achievable": 0.3268518518518519
+    },
+    {
+      "conceptId": "momentum",
+      "subject": "physics",
+      "n": 360,
+      "strict": 70,
+      "longestTied": 189,
+      "pick": 117.33333333333336,
+      "reverse": 104,
+      "achievable": 0.325925925925926
+    },
+    {
+      "conceptId": "energy-conservation",
+      "subject": "physics",
+      "n": 360,
+      "strict": 51,
+      "longestTied": 214,
+      "pick": 116.1666666666667,
+      "reverse": 132,
+      "achievable": 0.32268518518518524
+    },
+    {
+      "conceptId": "mixture-problems",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 302,
+      "pick": 115.41666666666666,
+      "reverse": 53,
+      "achievable": 0.32060185185185186
+    },
+    {
+      "conceptId": "motion-graphs",
+      "subject": "physics",
+      "n": 360,
+      "strict": 69,
+      "longestTied": 204,
+      "pick": 114.24999999999999,
+      "reverse": 146,
+      "achievable": 0.3173611111111111
+    },
+    {
+      "conceptId": "statistics-data",
+      "subject": "computing",
+      "n": 360,
+      "strict": 78,
+      "longestTied": 167,
+      "pick": 111,
+      "reverse": 60,
+      "achievable": 0.30833333333333335
+    },
+    {
+      "conceptId": "trig-rule",
+      "subject": "maths",
+      "n": 360,
+      "strict": 70,
+      "longestTied": 200,
+      "pick": 111,
+      "reverse": 50,
+      "achievable": 0.30833333333333335
+    },
+    {
+      "conceptId": "loci-constructions",
+      "subject": "other",
+      "n": 360,
+      "strict": 92,
+      "longestTied": 137,
+      "pick": 109.75,
+      "reverse": 167,
+      "achievable": 0.3048611111111111
+    },
+    {
+      "conceptId": "decimals",
+      "subject": "maths",
+      "n": 360,
+      "strict": 6,
+      "longestTied": 298,
+      "pick": 108.8333333333333,
+      "reverse": 25,
+      "achievable": 0.30231481481481476
+    },
+    {
+      "conceptId": "coordinates",
+      "subject": "other",
+      "n": 360,
+      "strict": 62,
+      "longestTied": 193,
+      "pick": 107.99999999999999,
+      "reverse": 116,
+      "achievable": 0.3
+    },
+    {
+      "conceptId": "algebra-expressions",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 315,
+      "pick": 104.75000000000001,
+      "reverse": 41,
+      "achievable": 0.2909722222222223
+    },
+    {
+      "conceptId": "multiplication",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 330,
+      "pick": 104.08333333333329,
+      "reverse": 30,
+      "achievable": 0.28912037037037025
+    },
+    {
+      "conceptId": "binary-data",
+      "subject": "computing",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 208,
+      "pick": 101.16666666666667,
+      "reverse": 9,
+      "achievable": 0.28101851851851856
+    },
+    {
+      "conceptId": "kinematics",
+      "subject": "maths",
+      "n": 360,
+      "strict": 4,
+      "longestTied": 300,
+      "pick": 99.99999999999999,
+      "reverse": 56,
+      "achievable": 0.27777777777777773
+    },
+    {
+      "conceptId": "calculus-diff",
+      "subject": "maths",
+      "n": 360,
+      "strict": 6,
+      "longestTied": 266,
+      "pick": 99.74999999999997,
+      "reverse": 38,
+      "achievable": 0.27708333333333324
+    },
+    {
+      "conceptId": "number-bases",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 325,
+      "pick": 99.24999999999997,
+      "reverse": 25,
+      "achievable": 0.27569444444444435
+    },
+    {
+      "conceptId": "networks",
+      "subject": "computing",
+      "n": 360,
+      "strict": 42,
+      "longestTied": 219,
+      "pick": 99.16666666666669,
+      "reverse": 68,
+      "achievable": 0.275462962962963
+    },
+    {
+      "conceptId": "waves-basics",
+      "subject": "physics",
+      "n": 360,
+      "strict": 68,
+      "longestTied": 143,
+      "pick": 99,
+      "reverse": 169,
+      "achievable": 0.275
+    },
+    {
+      "conceptId": "lists-arrays",
+      "subject": "computing",
+      "n": 360,
+      "strict": 46,
+      "longestTied": 178,
+      "pick": 96.66666666666667,
+      "reverse": 179,
+      "achievable": 0.26851851851851855
+    },
+    {
+      "conceptId": "atoms-nucleus",
+      "subject": "physics",
+      "n": 360,
+      "strict": 25,
+      "longestTied": 203,
+      "pick": 92.83333333333337,
+      "reverse": 154,
+      "achievable": 0.25787037037037047
+    },
+    {
+      "conceptId": "genetics",
+      "subject": "biology",
+      "n": 360,
+      "strict": 12,
+      "longestTied": 283,
+      "pick": 92.16666666666664,
+      "reverse": 63,
+      "achievable": 0.2560185185185184
+    },
+    {
+      "conceptId": "quadratic-graphs",
+      "subject": "maths",
+      "n": 360,
+      "strict": 35,
+      "longestTied": 148,
+      "pick": 90.33333333333333,
+      "reverse": 172,
+      "achievable": 0.2509259259259259
+    },
+    {
+      "conceptId": "variables",
+      "subject": "computing",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 275,
+      "pick": 88.91666666666666,
+      "reverse": 85,
+      "achievable": 0.24699074074074073
+    },
+    {
+      "conceptId": "area-perimeter",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 245,
+      "pick": 88.5,
+      "reverse": 108,
+      "achievable": 0.24583333333333332
+    },
+    {
+      "conceptId": "bearings",
+      "subject": "other",
+      "n": 360,
+      "strict": 1,
+      "longestTied": 260,
+      "pick": 87.74999999999997,
+      "reverse": 5,
+      "achievable": 0.24374999999999988
+    },
+    {
+      "conceptId": "addition",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 334,
+      "pick": 84.25,
+      "reverse": 26,
+      "achievable": 0.23402777777777778
+    },
+    {
+      "conceptId": "rounding",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 332,
+      "pick": 83.5,
+      "reverse": 15,
+      "achievable": 0.23194444444444443
+    },
+    {
+      "conceptId": "equations-stoich",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 31,
+      "longestTied": 234,
+      "pick": 82.5,
+      "reverse": 113,
+      "achievable": 0.22916666666666669
+    },
+    {
+      "conceptId": "probability-basics",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 297,
+      "pick": 82.33333333333331,
+      "reverse": 54,
+      "achievable": 0.22870370370370366
+    },
+    {
+      "conceptId": "fractions",
+      "subject": "maths",
+      "n": 360,
+      "strict": 35,
+      "longestTied": 173,
+      "pick": 80.41666666666666,
+      "reverse": 146,
+      "achievable": 0.22337962962962962
+    },
+    {
+      "conceptId": "order-ops",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 312,
+      "pick": 79.5,
+      "reverse": 48,
+      "achievable": 0.22083333333333333
+    },
+    {
+      "conceptId": "growth-decay",
+      "subject": "maths",
+      "n": 360,
+      "strict": 44,
+      "longestTied": 169,
+      "pick": 79.16666666666669,
+      "reverse": 181,
+      "achievable": 0.21990740740740747
+    },
+    {
+      "conceptId": "ionic-bonding",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 22,
+      "longestTied": 143,
+      "pick": 78.91666666666666,
+      "reverse": 203,
+      "achievable": 0.21921296296296294
+    },
+    {
+      "conceptId": "straight-lines",
+      "subject": "maths",
+      "n": 360,
+      "strict": 7,
+      "longestTied": 202,
+      "pick": 77.16666666666666,
+      "reverse": 138,
+      "achievable": 0.21435185185185182
+    },
+    {
+      "conceptId": "radioactivity",
+      "subject": "physics",
+      "n": 360,
+      "strict": 4,
+      "longestTied": 195,
+      "pick": 74.33333333333333,
+      "reverse": 98,
+      "achievable": 0.2064814814814815
+    },
+    {
+      "conceptId": "circle-area-arc",
+      "subject": "maths",
+      "n": 360,
+      "strict": 10,
+      "longestTied": 173,
+      "pick": 71.91666666666666,
+      "reverse": 107,
+      "achievable": 0.1997685185185185
+    },
+    {
+      "conceptId": "polynomials",
+      "subject": "maths",
+      "n": 360,
+      "strict": 1,
+      "longestTied": 224,
+      "pick": 70.99999999999999,
+      "reverse": 124,
+      "achievable": 0.1972222222222222
+    },
+    {
+      "conceptId": "pythagoras",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 245,
+      "pick": 68.91666666666664,
+      "reverse": 55,
+      "achievable": 0.19143518518518512
+    },
+    {
+      "conceptId": "proportion",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 197,
+      "pick": 68.66666666666667,
+      "reverse": 93,
+      "achievable": 0.19074074074074077
+    },
+    {
+      "conceptId": "logs",
+      "subject": "other",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 162,
+      "pick": 68.25000000000001,
+      "reverse": 192,
+      "achievable": 0.18958333333333338
+    },
+    {
+      "conceptId": "sequences",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 244,
+      "pick": 62.83333333333333,
+      "reverse": 112,
+      "achievable": 0.17453703703703702
+    },
+    {
+      "conceptId": "standard-form",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 196,
+      "pick": 62.249999999999986,
+      "reverse": 92,
+      "achievable": 0.1729166666666666
+    },
+    {
+      "conceptId": "inequalities",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 234,
+      "pick": 61.5,
+      "reverse": 126,
+      "achievable": 0.1708333333333333
+    },
+    {
+      "conceptId": "sets-venn",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 209,
+      "pick": 61.16666666666664,
+      "reverse": 151,
+      "achievable": 0.16990740740740734
+    },
+    {
+      "conceptId": "microscopy",
+      "subject": "other",
+      "n": 360,
+      "strict": 54,
+      "longestTied": 68,
+      "pick": 61,
+      "reverse": 143,
+      "achievable": 0.16944444444444443
+    },
+    {
+      "conceptId": "proportional-graphs",
+      "subject": "maths",
+      "n": 360,
+      "strict": 15,
+      "longestTied": 172,
+      "pick": 59.416666666666664,
+      "reverse": 125,
+      "achievable": 0.16504629629629627
+    },
+    {
+      "conceptId": "division",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 198,
+      "pick": 58.83333333333333,
+      "reverse": 162,
+      "achievable": 0.16342592592592592
+    },
+    {
+      "conceptId": "angles-lines",
+      "subject": "maths",
+      "n": 360,
+      "strict": 20,
+      "longestTied": 104,
+      "pick": 57.583333333333336,
+      "reverse": 249,
+      "achievable": 0.1599537037037037
+    },
+    {
+      "conceptId": "ratio",
+      "subject": "maths",
+      "n": 360,
+      "strict": 2,
+      "longestTied": 190,
+      "pick": 56.41666666666666,
+      "reverse": 138,
+      "achievable": 0.15671296296296294
+    },
+    {
+      "conceptId": "web-stack",
+      "subject": "computing",
+      "n": 360,
+      "strict": 31,
+      "longestTied": 112,
+      "pick": 54.41666666666666,
+      "reverse": 239,
+      "achievable": 0.15115740740740738
+    },
+    {
+      "conceptId": "sim-equations-quad",
+      "subject": "other",
+      "n": 360,
+      "strict": 3,
+      "longestTied": 168,
+      "pick": 52.91666666666667,
+      "reverse": 192,
+      "achievable": 0.14699074074074076
+    },
+    {
+      "conceptId": "thermal-physics",
+      "subject": "physics",
+      "n": 360,
+      "strict": 40,
+      "longestTied": 69,
+      "pick": 52.74999999999999,
+      "reverse": 106,
+      "achievable": 0.14652777777777776
+    },
+    {
+      "conceptId": "work-power",
+      "subject": "physics",
+      "n": 360,
+      "strict": 38,
+      "longestTied": 69,
+      "pick": 52.50000000000001,
+      "reverse": 134,
+      "achievable": 0.14583333333333337
+    },
+    {
+      "conceptId": "binomial",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 142,
+      "pick": 51.999999999999986,
+      "reverse": 59,
+      "achievable": 0.1444444444444444
+    },
+    {
+      "conceptId": "quadratics",
+      "subject": "maths",
+      "n": 360,
+      "strict": 28,
+      "longestTied": 88,
+      "pick": 50.75,
+      "reverse": 181,
+      "achievable": 0.14097222222222222
+    },
+    {
+      "conceptId": "sound-acoustics",
+      "subject": "physics",
+      "n": 360,
+      "strict": 10,
+      "longestTied": 124,
+      "pick": 50.74999999999998,
+      "reverse": 106,
+      "achievable": 0.14097222222222217
+    },
+    {
+      "conceptId": "atoms-elements",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 160,
+      "pick": 50.66666666666667,
+      "reverse": 31,
+      "achievable": 0.14074074074074075
+    },
+    {
+      "conceptId": "complexity",
+      "subject": "computing",
+      "n": 360,
+      "strict": 23,
+      "longestTied": 118,
+      "pick": 50.416666666666664,
+      "reverse": 75,
+      "achievable": 0.14004629629629628
+    },
+    {
+      "conceptId": "algorithms-sort",
+      "subject": "computing",
+      "n": 360,
+      "strict": 13,
+      "longestTied": 148,
+      "pick": 46.75,
+      "reverse": 212,
+      "achievable": 0.1298611111111111
+    },
+    {
+      "conceptId": "trig-ratios",
+      "subject": "maths",
+      "n": 360,
+      "strict": 17,
+      "longestTied": 81,
+      "pick": 44.66666666666666,
+      "reverse": 128,
+      "achievable": 0.12407407407407406
+    },
+    {
+      "conceptId": "percentages",
+      "subject": "maths",
+      "n": 360,
+      "strict": 2,
+      "longestTied": 125,
+      "pick": 44.333333333333314,
+      "reverse": 234,
+      "achievable": 0.12314814814814809
+    },
+    {
+      "conceptId": "electricity-circuits",
+      "subject": "physics",
+      "n": 360,
+      "strict": 32,
+      "longestTied": 57,
+      "pick": 42.75,
+      "reverse": 253,
+      "achievable": 0.11875
+    },
+    {
+      "conceptId": "vectors",
+      "subject": "maths",
+      "n": 360,
+      "strict": 13,
+      "longestTied": 87,
+      "pick": 42.083333333333336,
+      "reverse": 139,
+      "achievable": 0.11689814814814817
+    },
+    {
+      "conceptId": "financial-maths",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 154,
+      "pick": 38.5,
+      "reverse": 125,
+      "achievable": 0.10694444444444445
+    },
+    {
+      "conceptId": "simultaneous",
+      "subject": "maths",
+      "n": 360,
+      "strict": 1,
+      "longestTied": 110,
+      "pick": 37.25,
+      "reverse": 228,
+      "achievable": 0.10347222222222222
+    },
+    {
+      "conceptId": "functions",
+      "subject": "maths",
+      "n": 360,
+      "strict": 4,
+      "longestTied": 105,
+      "pick": 35.41666666666666,
+      "reverse": 167,
+      "achievable": 0.0983796296296296
+    },
+    {
+      "conceptId": "linear-equations",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 122,
+      "pick": 35.25000000000001,
+      "reverse": 178,
+      "achievable": 0.0979166666666667
+    },
+    {
+      "conceptId": "energy-changes",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 23,
+      "longestTied": 50,
+      "pick": 29.75,
+      "reverse": 126,
+      "achievable": 0.08263888888888889
+    },
+    {
+      "conceptId": "newton-laws",
+      "subject": "physics",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 83,
+      "pick": 25.166666666666664,
+      "reverse": 172,
+      "achievable": 0.0699074074074074
+    },
+    {
+      "conceptId": "trig-identity",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 74,
+      "pick": 24.5,
+      "reverse": 273,
+      "achievable": 0.06805555555555555
+    },
+    {
+      "conceptId": "loops",
+      "subject": "computing",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 95,
+      "pick": 24.333333333333332,
+      "reverse": 265,
+      "achievable": 0.06759259259259259
+    },
+    {
+      "conceptId": "moles-calcs",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 67,
+      "pick": 23.250000000000004,
+      "reverse": 150,
+      "achievable": 0.06458333333333335
+    },
+    {
+      "conceptId": "algorithms-search",
+      "subject": "computing",
+      "n": 360,
+      "strict": 3,
+      "longestTied": 79,
+      "pick": 22.083333333333336,
+      "reverse": 269,
+      "achievable": 0.061342592592592594
+    },
+    {
+      "conceptId": "tree-diagrams",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 71,
+      "pick": 21.5,
+      "reverse": 262,
+      "achievable": 0.059722222222222225
+    },
+    {
+      "conceptId": "acids-bases",
+      "subject": "chemistry",
+      "n": 360,
+      "strict": 13,
+      "longestTied": 29,
+      "pick": 19.083333333333336,
+      "reverse": 298,
+      "achievable": 0.05300925925925926
+    },
+    {
+      "conceptId": "subtraction",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 59,
+      "pick": 14.75,
+      "reverse": 296,
+      "achievable": 0.04097222222222222
+    },
+    {
+      "conceptId": "negatives",
+      "subject": "maths",
+      "n": 360,
+      "strict": 4,
+      "longestTied": 14,
+      "pick": 9,
+      "reverse": 266,
+      "achievable": 0.025
+    },
+    {
+      "conceptId": "surds",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 8,
+      "pick": 2.75,
+      "reverse": 337,
+      "achievable": 0.007638888888888889
+    },
+    {
+      "conceptId": "place-value",
+      "subject": "maths",
+      "n": 360,
+      "strict": 0,
+      "longestTied": 0,
+      "pick": 0,
+      "reverse": 127,
+      "achievable": 0
+    }
+  ]
+}
