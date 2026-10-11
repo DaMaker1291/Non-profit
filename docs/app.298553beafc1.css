@@ -69,6 +69,43 @@
   --s5: 40px;
   --s6: 56px;
 
+  /* ── THE TYPE STEPS ──────────────────────────────────────────────────────
+     Every fixed font-size this stylesheet renders, as a token whose value is
+     EXACTLY what the product renders today. This is a VOCABULARY, not yet a
+     scale, and that is deliberate: the steps below sit as little as 0.5px apart
+     (13px beside 13.5px, 14 beside 14.5), which is a real inconsistency — but
+     collapsing them changes what a learner sees, so it is a separate change
+     with its own before/after, never a silent tidy-up inside a refactor. Named
+     by their own value, so how close the steps are is legible from this list
+     alone. The fluid `clamp()` display sizes are NOT tokenised: each is used
+     once, by one heading, and a token with a single caller is a rename, not a
+     system. */
+  --t0-68: 0.68rem;
+  --t0-7: 0.7rem;
+  --t0-72: 0.72rem;
+  --t0-78: 0.78rem;
+  --t0-8: 0.8rem;
+  --t0-82: 0.82rem;
+  --t0-83: 0.83rem;
+  --t0-84: 0.84rem;
+  --t0-85: 0.85rem;
+  --t0-87: 0.87rem;
+  --t0-88: 0.88rem;
+  --t0-9: 0.9rem;
+  --t0-91: 0.91rem;
+  --t0-93: 0.93rem;
+  --t0-95: 0.95rem;
+  --t0-97: 0.97rem;
+  --t1: 1rem;
+  --t1-02: 1.02rem;
+  --t1-05: 1.05rem;
+  --t1-08: 1.08rem;
+  --t1-12: 1.12rem;
+  --t1-35: 1.35rem;
+  --t1-42: 1.42rem;
+  --t2: 2rem;
+  --t16: 16px;
+
   /* Radii by ROLE: a card is a surface, a button is a control, an input is a
      field. One radius for everything is what makes an interface look templated. */
   --radius-card: 14px;
@@ -190,7 +227,7 @@ body {
   background: var(--paper);
   color: var(--text);
   font-family: var(--sans);
-  font-size: 16px;
+  font-size: var(--t16);
   line-height: 1.6;
   min-height: 100vh;
   min-height: 100dvh;
@@ -235,7 +272,7 @@ h1, h2, h3 {
 }
 h1 { font-size: clamp(1.7rem, 3.2vw, 2.05rem); line-height: 1.15; margin-bottom: var(--s2); }
 h2 { font-size: clamp(1.2rem, 2.2vw, 1.35rem); margin-bottom: 0.4rem; }
-h3 { font-size: 1.05rem; }
+h3 { font-size: var(--t1-05); }
 p { margin: 0 0 0.8rem; }
 
 /* ── Chrome: the header ─────────────────────────────────────────────────── */
@@ -275,7 +312,7 @@ p { margin: 0 0 0.8rem; }
      120x29 — the whole wordmark was a 29px-tall target. */
   min-height: 2.25rem;
   font-family: var(--serif);
-  font-size: 1.12rem;
+  font-size: var(--t1-12);
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text);
@@ -295,7 +332,7 @@ p { margin: 0 0 0.8rem; }
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--sans);
-  font-size: 0.78rem;
+  font-size: var(--t0-78);
   font-weight: 450;
   color: var(--text-muted);
 }
@@ -308,7 +345,7 @@ p { margin: 0 0 0.8rem; }
   border-radius: var(--radius-chip);
   color: var(--text-soft);
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: var(--t0-9);
   font-weight: 550;
   white-space: nowrap;
   transition: background-color 0.14s ease, color 0.14s ease;
@@ -336,7 +373,7 @@ select.lang {
   border-radius: var(--radius-btn);
   background: var(--surface);
   color: var(--text-soft);
-  font-size: 0.84rem;
+  font-size: var(--t0-84);
 }
 .theme-btn {
   display: grid;
@@ -440,7 +477,7 @@ select.lang {
     align-items: center;
     justify-content: center;
     gap: 0.12rem;
-    font-size: 0.68rem;
+    font-size: var(--t0-68);
     font-weight: 600;
     color: var(--text-muted);
     text-decoration: none;
@@ -468,13 +505,13 @@ footer {
   padding: 1.5rem 1.15rem 3rem;
   border-top: 1px solid var(--line);
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: var(--t0-82);
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
   align-items: center;
 }
-footer button { font-size: 0.8rem; }
+footer button { font-size: var(--t0-8); }
 /* A footer link is still a control, so it gets a control's minimum height.
    Measured: the source link was 79x21 — under the 24px WCAG 2.2 floor and
    awkward to hit with a thumb. */
@@ -514,7 +551,7 @@ p > a:only-child, a.progress-line { display: inline-flex; align-items: center; m
   gap: 0.6rem;
   margin: 0 0 0.55rem;
   font-family: var(--mono);
-  font-size: 0.68rem;
+  font-size: var(--t0-68);
   font-weight: 600;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -527,7 +564,7 @@ p > a:only-child, a.progress-line { display: inline-flex; align-items: center; m
    rather than the reading voice, and the sentence beside it stays muted. */
 .why-label {
   font-family: var(--mono);
-  font-size: 0.68rem;
+  font-size: var(--t0-68);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -536,14 +573,14 @@ p > a:only-child, a.progress-line { display: inline-flex; align-items: center; m
 
 .rule { border: 0; border-top: 1px solid var(--line); margin: 1.7rem 0; }
 .muted { color: var(--text-muted); }
-.small { font-size: 0.85rem; }
+.small { font-size: var(--t0-85); }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .section { margin: 0 0 2rem; }
 .stack > * + * { margin-top: 0.55rem; }
 .row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
 .spread { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
 .center { text-align: center; }
-.big { font-family: var(--serif); font-size: 2rem; line-height: 1.15; }
+.big { font-family: var(--serif); font-size: var(--t2); line-height: 1.15; }
 
 /* ── Buttons: one purpose, one look ─────────────────────────────────────────
    Primary carries the accent so it is the first thing the eye lands on; a quiet
@@ -558,7 +595,7 @@ button, .btn {
   min-height: 42px;
   padding: 0.55rem 1rem;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--t0-95);
   cursor: pointer;
   border: 1.5px solid var(--line);
   border-radius: var(--radius-btn);
@@ -587,7 +624,7 @@ button.quiet:hover { background: var(--surface-sunken); color: var(--text); }
 button.danger { border-color: var(--mark-wrong); color: var(--mark-wrong); background: transparent; }
 button.danger:hover { background: color-mix(in srgb, var(--mark-wrong) 8%, var(--surface)); }
 
-button.chip { min-height: 32px; padding: 0.3rem 0.75rem; border-radius: var(--radius-chip); font-family: var(--mono); font-size: 0.83rem; }
+button.chip { min-height: 32px; padding: 0.3rem 0.75rem; border-radius: var(--radius-chip); font-family: var(--mono); font-size: var(--t0-83); }
 button.chip[aria-current="true"] { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-deep); font-weight: 650; }
 
 /* A chip that is NOT a control: what the record has demonstrated (`.good`) and
@@ -601,7 +638,7 @@ span.chip {
   background: var(--surface);
   color: var(--text-soft);
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--t0-78);
   white-space: nowrap;
 }
 span.chip.good { color: var(--mark-correct); border-color: var(--mark-correct); background: color-mix(in srgb, var(--mark-correct) 8%, var(--surface)); font-weight: 600; }
@@ -609,7 +646,7 @@ span.chip.on { color: var(--accent-deep); border-color: var(--accent-line); back
 
 /* ── Forms ──────────────────────────────────────────────────────────────── */
 
-label { display: block; margin-bottom: 0.3rem; font-size: 0.87rem; font-weight: 600; color: var(--text-soft); }
+label { display: block; margin-bottom: 0.3rem; font-size: var(--t0-87); font-weight: 600; color: var(--text-soft); }
 input, select, textarea {
   width: 100%;
   min-height: 44px;
@@ -640,20 +677,20 @@ input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--ma
   background: linear-gradient(180deg, var(--accent-soft) 0%, var(--surface) 150px);
   box-shadow: var(--shadow-1);
 }
-.next h2 { font-size: 1.42rem; margin-bottom: 0.35rem; }
-.next .why { margin: 0.45rem 0 0.7rem; font-size: 0.95rem; color: var(--text-soft); }
+.next h2 { font-size: var(--t1-42); margin-bottom: 0.35rem; }
+.next .why { margin: 0.45rem 0 0.7rem; font-size: var(--t0-95); color: var(--text-soft); }
 .next .why b { color: var(--text); }
-.next .meta { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.84rem; color: var(--text-muted); }
+.next .meta { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: var(--t0-84); color: var(--text-muted); }
 .next .meta .minutes { font-family: var(--mono); color: var(--text-soft); }
 
-.plan { list-style: none; margin: 0.8rem 0 0; padding: 0; font-size: 0.88rem; color: var(--text-soft); }
+.plan { list-style: none; margin: 0.8rem 0 0; padding: 0; font-size: var(--t0-88); color: var(--text-soft); }
 .plan li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.4rem 0; border-top: 1px solid var(--line-soft); }
 .plan li:first-child { border-top: 0; }
 .plan b { font-family: var(--mono); font-weight: 600; color: var(--text); }
 
 /* The receipts behind the decision: closed by default, so the card leads with the
    decision rather than with its evidence. */
-details.evidence { margin-top: 0.8rem; padding-top: 0.6rem; border-top: 1px solid var(--line-soft); font-size: 0.87rem; }
+details.evidence { margin-top: 0.8rem; padding-top: 0.6rem; border-top: 1px solid var(--line-soft); font-size: var(--t0-87); }
 /* min-height, NOT `display: flex`: the disclosure marker comes from
    `display: list-item` and switching it would delete the triangle that says
    this line opens. 22px tall as measured; 24 is the floor. */
@@ -687,7 +724,7 @@ details.evidence li { margin-bottom: 0.25rem; }
   color: var(--text);
   font-family: var(--mono);
   font-weight: 400;
-  font-size: 0.9rem;
+  font-size: var(--t0-9);
   line-height: 1.6;
   white-space: pre;
 }
@@ -701,7 +738,7 @@ details.evidence li { margin-bottom: 0.25rem; }
 .numeric-field { display: grid; gap: 0.35rem; }
 .numeric-label {
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: var(--t0-7);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -725,12 +762,12 @@ details.evidence li { margin-bottom: 0.25rem; }
   background: transparent;
   color: var(--text);
   font-family: var(--mono);
-  font-size: 1.35rem;
+  font-size: var(--t1-35);
   line-height: 1.4;
 }
 .numeric-input:focus { outline: none; }
 .numeric-input:disabled { color: var(--text-muted); }
-.numeric-unit { font-family: var(--mono); font-size: 0.95rem; color: var(--text-muted); white-space: nowrap; }
+.numeric-unit { font-family: var(--mono); font-size: var(--t0-95); color: var(--text-muted); white-space: nowrap; }
 /* The one thing on this form that IS wrong when it appears: nothing typed. */
 .numeric-empty { margin: 0; color: var(--mark-wrong); }
 
@@ -750,7 +787,7 @@ details.evidence li { margin-bottom: 0.25rem; }
   border-radius: var(--radius-input);
   background: var(--surface);
   font-family: var(--mono);
-  font-size: 0.97rem;
+  font-size: var(--t0-97);
   transition: border-color 0.12s ease, background-color 0.14s ease;
 }
 .choice > span:last-child { flex: 1; }
@@ -765,7 +802,7 @@ details.evidence li { margin-bottom: 0.25rem; }
   border-radius: 6px;
   color: var(--text-muted);
   font-family: var(--sans);
-  font-size: 0.72rem;
+  font-size: var(--t0-72);
   font-weight: 700;
 }
 .choice:hover:not([disabled]) { border-color: var(--ui-muted); background: var(--surface-sunken); }
@@ -787,7 +824,7 @@ details.evidence li { margin-bottom: 0.25rem; }
   border-inline-start: 4px solid var(--ui-muted);
   background: var(--surface);
   box-shadow: var(--shadow-1);
-  font-size: 0.97rem;
+  font-size: var(--t0-97);
 }
 .verdict > *:last-child { margin-bottom: 0; }
 .verdict.good { border-inline-start-color: var(--mark-correct); }
@@ -798,16 +835,16 @@ details.evidence li { margin-bottom: 0.25rem; }
   gap: 0.4rem;
   margin-bottom: 0.25rem;
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: var(--t0-72);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 .verdict.good .head { color: var(--mark-correct); }
 .verdict.bad .head { color: var(--mark-wrong); }
-.verdict .head::before { content: "✓"; font-size: 1rem; }
+.verdict .head::before { content: "✓"; font-size: var(--t1); }
 .verdict.bad .head::before { content: "✕"; }
-.verdict .expl { font-family: var(--serif); font-size: 1.02rem; }
+.verdict .expl { font-family: var(--serif); font-size: var(--t1-02); }
 
 @media (prefers-reduced-motion: no-preference) {
   .verdict { animation: pop-in 0.2s ease both; }
@@ -820,7 +857,7 @@ details.evidence li { margin-bottom: 0.25rem; }
   border: 1px solid var(--mark-caution);
   border-radius: var(--radius-card);
   background: color-mix(in srgb, var(--mark-caution) 9%, var(--surface));
-  font-size: 0.93rem;
+  font-size: var(--t0-93);
 }
 
 .note {
@@ -829,16 +866,16 @@ details.evidence li { margin-bottom: 0.25rem; }
   border-radius: var(--radius-card);
   background: var(--surface-sunken);
   color: var(--text-soft);
-  font-size: 0.88rem;
+  font-size: var(--t0-88);
 }
 
 /* ── Tables and lists ───────────────────────────────────────────────────── */
 
-table { width: 100%; border-collapse: collapse; font-size: 0.91rem; }
+table { width: 100%; border-collapse: collapse; font-size: var(--t0-91); }
 th {
   text-align: start;
   font-family: var(--mono);
-  font-size: 0.68rem;
+  font-size: var(--t0-68);
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -887,7 +924,7 @@ ul.items li > a {
   border-radius: var(--radius-btn);
 }
 ul.items li > a:hover span:first-child { color: var(--accent-deep); }
-ul.items .meta { font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }
+ul.items .meta { font-size: var(--t0-82); color: var(--text-muted); white-space: nowrap; }
 
 .bar { height: 6px; margin-top: 0.35rem; overflow: hidden; border-radius: var(--radius-chip); background: var(--paper-deep); }
 .bar > i { display: block; height: 100%; border-radius: var(--radius-chip); background: var(--accent); transition: width 0.5s cubic-bezier(0.22, 0.9, 0.32, 1); }
@@ -900,14 +937,14 @@ ul.items .meta { font-size: 0.82rem; color: var(--text-muted); white-space: nowr
   background: var(--paper-deep);
   color: var(--text-soft);
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: var(--t0-72);
   font-weight: 600;
 }
 .tag.due { color: var(--mark-caution); border-color: var(--mark-caution); background: color-mix(in srgb, var(--mark-caution) 9%, var(--surface)); }
 .tag.weak { color: var(--mark-wrong); border-color: var(--mark-wrong); background: color-mix(in srgb, var(--mark-wrong) 8%, var(--surface)); }
 .tag.good { color: var(--mark-correct); border-color: var(--mark-correct); background: color-mix(in srgb, var(--mark-correct) 8%, var(--surface)); }
 
-.progress-line { font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); }
+.progress-line { font-family: var(--mono); font-size: var(--t0-8); color: var(--text-muted); }
 .lang-list { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0 0 0.6rem; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -917,9 +954,9 @@ ul.items .meta { font-size: 0.82rem; color: var(--text-muted); white-space: nowr
 /* ── The landing page ───────────────────────────────────────────────────── */
 
 .hero-title { font-size: clamp(1.95rem, 5vw, 2.85rem); line-height: 1.1; letter-spacing: -0.025em; margin-bottom: 0.8rem; }
-.hero-sub { max-width: 34rem; font-size: 1.08rem; line-height: 1.6; color: var(--text-soft); }
+.hero-sub { max-width: 34rem; font-size: var(--t1-08); line-height: 1.6; color: var(--text-soft); }
 .hero-cta { display: flex; gap: 0.7rem; flex-wrap: wrap; align-items: center; margin: 1.4rem 0 1.1rem; }
-.hero-cta .btn.primary { min-height: 50px; padding: 0.7rem 1.35rem; font-size: 1.02rem; border-radius: var(--radius-card); }
+.hero-cta .btn.primary { min-height: 50px; padding: 0.7rem 1.35rem; font-size: var(--t1-02); border-radius: var(--radius-card); }
 
 /* ── The diagnostic's progress ──────────────────────────────────────────────
    One dot per concept in the sitting: filled when it is done, ringed when it is
@@ -946,7 +983,7 @@ ul.items .meta { font-size: 0.82rem; color: var(--text-muted); white-space: nowr
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow-2);
-  font-size: 0.93rem;
+  font-size: var(--t0-93);
 }
 @media (max-width: 720px) { .toast { bottom: calc(5rem + env(safe-area-inset-bottom)); } }
 @media (prefers-reduced-motion: no-preference) {
@@ -974,7 +1011,7 @@ ul.items .meta { font-size: 0.82rem; color: var(--text-muted); white-space: nowr
   main { padding: 1.5rem 1rem 5rem; }
   main.landing { padding-top: 2.2rem; }
   footer { padding-inline: 1rem; }
-  table { font-size: 0.85rem; }
+  table { font-size: var(--t0-85); }
   th, td { padding: 0.5rem 0.35rem; }
   .next { padding: 1.15rem; }
 }

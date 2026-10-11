@@ -46,9 +46,9 @@ export function EmptyState({
 }) {
   return (
     <div className="state">
-      <p className="state-title" style={{ margin: 0 }}>{title}</p>
-      {body && <p className="state-body" style={{ margin: 0 }}>{body}</p>}
-      {action && <div className="actions" style={{ marginTop: 4 }}>{action}</div>}
+      <p className="state-title">{title}</p>
+      {body && <p className="state-body">{body}</p>}
+      {action && <div className="actions tight">{action}</div>}
     </div>
   );
 }
@@ -66,10 +66,10 @@ export function ErrorState({
   const { t } = useI18n();
   return (
     <div className="state error" role="alert">
-      <p className="state-title" style={{ margin: 0 }}>{title ?? t("common.error")}</p>
-      {body && <p className="state-body" style={{ margin: 0 }}>{body}</p>}
+      <p className="state-title">{title ?? t("common.error")}</p>
+      {body && <p className="state-body">{body}</p>}
       {onRetry && (
-        <div className="actions" style={{ marginTop: 4 }}>
+        <div className="actions tight">
           <button type="button" className="btn ghost small" onClick={onRetry}>{t("common.retry")}</button>
         </div>
       )}

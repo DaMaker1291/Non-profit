@@ -49,7 +49,7 @@ export default function RecentAnswers({
   return (
     <>
       {recents.length === 0 ? (
-        <p className="small muted" style={{ margin: 0 }}>{t("prog.empty")}</p>
+        <p className="small muted recent-empty">{t("prog.empty")}</p>
       ) : (
         cites.map((c, i) => {
           const conceptId = recents[i]?.conceptId ?? null;
@@ -66,7 +66,7 @@ export default function RecentAnswers({
                 {c.offline && <span className="muted"> · {t("evv.offline")}</span>}
               </span>
               {c.score && <span className="mono small">{`${c.score.awarded}/${c.score.max}`}</span>}
-              <span className="mono small muted" style={{ width: 52, textAlign: "end" }}>{c.when}</span>
+              <span className="mono small muted recent-when">{c.when}</span>
             </div>
           );
         })

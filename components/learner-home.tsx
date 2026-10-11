@@ -204,10 +204,10 @@ export default function LearnerHome() {
           teacher writes a record, not a dashboard of tiles. Each number is a
           fold of recorded answers, and none of them is a percentage of a
           hundred concepts the learner has never opened. */}
-      <section className="card soft" style={{ padding: 18, margin: "0 0 16px" }}>
-        <p className="eyebrow" style={{ margin: 0 }}><span className="no">▦</span> {t("prog.title")}</p>
+      <section className="card soft home-panel">
+        <p className="eyebrow flush"><span className="no">▦</span> {t("prog.title")}</p>
         {progressRows.length > 0 && (
-          <div style={{ margin: "10px 0 2px" }}>
+          <div className="home-rows">
             {progressRows.map((r) => (
               <div className="rowline" key={r.cid}>
                 <span className="grow small">
@@ -223,30 +223,30 @@ export default function LearnerHome() {
             ))}
           </div>
         )}
-        <div style={{ marginTop: 8 }}>
+        <div className="home-metrics">
           <Metric label={t("evv.dim.recalled")} value={`${measured}/${curriculumSize}`} />
           <Metric label={t("prog.independent")} value={String(independent)} />
           <Metric label={t("prog.transfer")} value={String(transfer)} />
           <Metric label={t("learn.mastered")} value={String(mastered)} />
         </div>
-        <p className="small muted" style={{ margin: "10px 0 0" }}>
+        <p className="small muted home-foot">
           {t("map.concepts")} · <Link href="/progress">{t("prog.title")} →</Link>
         </p>
       </section>
 
       {/* The goal, and how far the record says the learner is toward it. */}
       {p.goal && goalConcepts.length > 0 && (
-        <section className="card soft" style={{ padding: 18, margin: "0 0 16px" }}>
-          <p className="eyebrow" style={{ margin: 0 }}><span className="no">→</span> {t("goal.title")}</p>
-          <p style={{ margin: "8px 0 10px", fontSize: 17, fontWeight: 600 }}>“{p.goal}”</p>
-          <p className="small muted" style={{ margin: "0 0 8px" }}>
+        <section className="card soft home-panel">
+          <p className="eyebrow flush"><span className="no">→</span> {t("goal.title")}</p>
+          <p className="home-goal-line">“{p.goal}”</p>
+          <p className="small muted home-goal-counts">
             <span className="mono">{goalDone}/{goalConcepts.length}</span> · {t("dash.mastery")}
           </p>
           {remaining.length === 0 ? (
-            <p className="small muted" style={{ margin: 0 }}>✓ {t("goal.done")}</p>
+            <p className="small muted flush">✓ {t("goal.done")}</p>
           ) : (
-            <p className="small" style={{ margin: 0 }}>
-              <span className="chip" style={{ marginRight: 8 }}>{t("goal.now")}</span>
+            <p className="small flush">
+              <span className="chip home-goal-now">{t("goal.now")}</span>
               <Link href={`/learn/${goalSubject}/${nextStep.id}`}>{ctitle(lang, nextStep.id)}</Link>
               {afterStep && (
                 <span className="muted">
@@ -264,7 +264,7 @@ export default function LearnerHome() {
           thing actually adapting to me?" without asking the learner to
           remember the previous screen. */}
       {state.lastSession && (
-        <p className="small muted" style={{ margin: "0 0 16px" }}>
+        <p className="small muted home-since">
           <span className="no" aria-hidden="true">↻</span> {t("dash.since")}:{" "}
           <Link href={`/learn/${getConcept(state.lastSession.conceptId)?.subject ?? "maths"}/${state.lastSession.conceptId}`}>
             {ctitle(lang, state.lastSession.conceptId)}
@@ -280,14 +280,14 @@ export default function LearnerHome() {
 
       {/* 5: the record itself — real answers, newest first. Absent while the
           ledger is unread, and it says so rather than claiming emptiness. */}
-      <section className="ruled" style={{ borderTop: "1.5px solid var(--ink)", paddingTop: 18, marginBottom: 26 }}>
-        <p className="eyebrow" style={{ margin: 0 }}><span className="no">·</span> {t("prog.recent")}</p>
+      <section className="ruled home-record">
+        <p className="eyebrow flush"><span className="no">·</span> {t("prog.recent")}</p>
         {ledger === null ? (
           <Loading lines={3} />
         ) : (
           <RecentAnswers ledger={ledger} limit={4} />
         )}
-        <p className="small" style={{ margin: "12px 0 0" }}>
+        <p className="small home-links">
           <Link href="/progress">{t("prog.title")} →</Link>
           {" · "}<Link href="/mind">{t("mm.yourKnowledge")} →</Link>
         </p>
@@ -296,14 +296,14 @@ export default function LearnerHome() {
       {/* 6: what is coming — the learner's own exam, work a teacher set, and
           work already in progress. Each of these renders nothing at all when
           there is nothing to say, rather than an empty box. */}
-      <section style={{ marginBottom: 40 }}>
+      <section className="home-coming">
         {/* No heading here on purpose: the countdown and the assignment panel
             each carry their own label and render nothing when they have
             nothing to say, so a section title would be the only thing left
             standing on an empty day. */}
         <ExamCountdown exam={p.exam} examDate={p.examDate} />
         {openSession && (
-          <p style={{ margin: "0 0 14px" }}>
+          <p className="home-resume">
             <Link href={`/learn/${getConcept(openSession.conceptId)?.subject ?? "maths"}/${openSession.conceptId}`} className="chip">
               ↻ {fill(t("sess.resume"), { n: openSession.asked, m: openSession.target })} · {ctitle(lang, openSession.conceptId)}
             </Link>
@@ -367,9 +367,9 @@ function TodayPlan({
   if (!diagnosed && steps.length === 0 && due.length === 0) return null;
 
   return (
-    <section className="card soft" style={{ padding: 18, margin: "0 0 16px" }}>
-      <p className="eyebrow" style={{ margin: 0 }}><span className="no">✓</span> {t("sb.today")}</p>
-      <ul className="today" style={{ margin: "10px 0 0" }}>
+    <section className="card soft home-panel">
+      <p className="eyebrow flush"><span className="no">✓</span> {t("sb.today")}</p>
+      <ul className="today spaced">
         {diagnosed && (
           <li>
             <span className="tick done" aria-hidden="true">✓</span>

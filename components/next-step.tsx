@@ -63,9 +63,9 @@ export default function NextStep({
 
   if (top.kind === "REST") {
     return (
-      <section className="card" style={{ borderLeft: "4px solid var(--tick-green)" }}>
-        <p className="eyebrow" style={{ margin: 0 }}><span className="no">✓</span> {t("next.title.caughtUp")}</p>
-        <p className="small muted" style={{ margin: "8px 0 0" }}>{top.reason}</p>
+      <section className="card next-rest">
+        <p className="eyebrow flush"><span className="no">✓</span> {t("next.title.caughtUp")}</p>
+        <p className="small muted next-rest-reason">{top.reason}</p>
       </section>
     );
   }
@@ -81,28 +81,28 @@ export default function NextStep({
   const split = top.conceptId ? demonstrationSplit(state, top.conceptId) : null;
   const showSplit = !!split && split.demonstrated.length > 0;
   return (
-    <section className="card primary" style={{ borderLeft: "4px solid var(--margin-red)" }} aria-label={t("next.aria")}>
+    <section className="card primary next-head" aria-label={t("next.aria")}>
       {/* No raw `kind` badge: it is an English enum (EXPLAIN, REMEDIATE) that no
           dictionary can translate, and the title already opens with the
           translated verb — "Learn:", "Practise:", "Fix:". */}
-      <p className="eyebrow" style={{ margin: 0 }}><span className="no">→</span> {t("next.eyebrow")}</p>
+      <p className="eyebrow flush"><span className="no">→</span> {t("next.eyebrow")}</p>
       {showSplit && split && (
-        <div style={{ margin: "10px 0 2px" }}>
-          <p className="small" style={{ margin: 0 }}>
+        <div className="next-split">
+          <p className="small flush">
             <span className="muted">{t("next.haveDemonstrated")}</span>{" "}
             {split.demonstrated.map((d) => (
-              <span className="chip good" key={d} style={{ marginLeft: 6 }}>✓ {t(demonstratedLabelKey(d))}</span>
+              <span className="chip good next-chip" key={d}>✓ {t(demonstratedLabelKey(d))}</span>
             ))}
           </p>
           {split.pending.length > 0 && (
-            <p className="small" style={{ margin: "6px 0 0" }}>
+            <p className="small next-pending">
               <span className="muted">{t("next.notYetDemonstrated")}</span>{" "}
               {split.pending.map((d, i) => (
                 // The FIRST pending rung is what this card's own action is for,
                 // so it is marked as current (`.chip.on`) — the learner can see
                 // which missing dimension today's work is aimed at without a
                 // second sentence saying so.
-                <span className={`chip${i === 0 ? " on" : ""}`} key={d} style={{ marginLeft: 6 }}>
+                <span className={`chip next-chip${i === 0 ? " on" : ""}`} key={d}>
                   △ {t(demonstratedLabelKey(d))}
                 </span>
               ))}
@@ -110,27 +110,26 @@ export default function NextStep({
           )}
         </div>
       )}
-      <p style={{ margin: "10px 0 6px", fontSize: 22, fontWeight: 700, letterSpacing: "-0.01em" }}>
+      <p className="next-title">
         <Link href={top.href}>{top.title}</Link>
       </p>
-      <p className="small" style={{ margin: "0 0 14px" }}>{top.reason}</p>
+      <p className="small next-reason">{top.reason}</p>
 
       {/* The single primary action. `next.ctaStart` names the verb AND its
           object — "Start this session" — because the card sits inside a page
           of links, and a CTA that could belong to any card belongs to none. */}
-      <Link href={top.href} className="btn" style={{ fontSize: 17, padding: "13px 26px" }}>
+      <Link href={top.href} className="btn next-cta">
         {t("next.ctaStart")} →
       </Link>
 
       {/* Evidence, subordinate by default. The drawer opens on demand: it
           answers questions a learner asks occasionally, not every visit. */}
-      <p className="small muted" style={{ margin: "12px 0 0" }}>
+      <p className="small muted next-whycue">
         <button
           type="button"
           className="chip"
           aria-expanded={open}
           onClick={() => setOpen(!open)}
-          style={{ cursor: "pointer" }}
         >
           {t("next.why")} {open ? "▴" : "▾"}
         </button>
@@ -145,12 +144,12 @@ export default function NextStep({
         // learner with a full ledger and an unattributed action still gets the
         // drawer below.
         top.basis === "no_evidence" || top.basis === "unrecorded" ? (
-          <div style={{ marginTop: 8, borderTop: "1px dashed var(--line)", paddingTop: 8 }}>
-            <p className="small muted" style={{ margin: "0 0 4px" }}>{top.evidence}</p>
-            {top.why && <p className="small muted" style={{ margin: "0 0 4px" }}>{top.why}</p>}
+          <div className="next-note">
+            <p className="small muted next-note-line">{top.evidence}</p>
+            {top.why && <p className="small muted next-note-line">{top.why}</p>}
           </div>
         ) : ledger ? (
-          <div style={{ marginTop: 8 }}>
+          <div className="next-drawer">
             <EvidenceDrawer
               reason={top.reason}
               why={top.why}
@@ -163,11 +162,11 @@ export default function NextStep({
             />
           </div>
         ) : (
-          <div style={{ marginTop: 8, borderTop: "1px dashed var(--line)", paddingTop: 8 }}>
-            <p className="small muted" style={{ margin: "0 0 4px" }}>{top.evidence}</p>
-            {top.why && <p className="small muted" style={{ margin: "0 0 4px" }}>{top.why}</p>}
+          <div className="next-note">
+            <p className="small muted next-note-line">{top.evidence}</p>
+            {top.why && <p className="small muted next-note-line">{top.why}</p>}
             {top.plan.length > 0 && (
-              <p className="small muted" style={{ margin: 0 }}>
+              <p className="small muted flush">
                 <strong className="mono">{t("next.howTitle")}</strong>{" "}
                 {top.plan.map((p) => `${p.count} ${t(`plan.${p.kind}`)}`).join(" → ")}
                 {" · "}{t("next.oneThing")}

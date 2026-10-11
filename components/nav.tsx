@@ -239,7 +239,7 @@ export function Topbar() {
         {open && q.trim().length >= 2 && (
           <div className="search-results">
             {results.length === 0 ? (
-              <p className="empty" style={{ margin: 0 }}>{t("learn.notFound")}</p>
+              <p className="empty">{t("learn.notFound")}</p>
             ) : (
               results.map((c) => (
                 <Link key={c.id} href={`/learn/${c.subject}/${c.id}`} onClick={() => { setOpen(false); setQ(""); }}>
