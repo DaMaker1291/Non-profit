@@ -45,8 +45,21 @@ jobs:
   drill:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # A LITERAL, not `${{ runner.temp }}` — the same trap `ci.yml` documents on
+    # its UI job, and this file shipped it: the `runner` context is NOT available
+    # to a job-level `env`, and GitHub does not degrade gracefully. It rejects the
+    # ENTIRE workflow file, so the run is named after its own path, and it has no
+    # jobs, no log and no check run — which is why `backup-drill` reported failure
+    # on every push while the procedure here was never actually executed. The only
+    # visible clue is GitHub's own annotation on the run's page:
+    #
+    #   Invalid workflow file: .github/workflows/backup-drill.yml#L1
+    #   (Line: 49, Col: 26): Unrecognized named-value: 'runner' … runner.temp
+    #
+    # /tmp IS what runner.temp resolves to on these runners, so this changes
+    # nothing about where the data lives.
     env:
-      OPENMIND_DATA_DIR: ${{ runner.temp }}/om-drill-data
+      OPENMIND_DATA_DIR: /tmp/om-drill-data
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
