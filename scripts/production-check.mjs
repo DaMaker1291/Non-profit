@@ -61,6 +61,18 @@ const skip = (name, why) => {
 };
 const section = (n) => console.log(`\n▶ ${n}`);
 
+// ── Generated files this run will rewrite ───────────────────────────────────
+// `next dev` and `next build` each rewrite `next-env.d.ts` to name their OWN
+// dist types (`.next-dev/types/routes.d.ts` vs `.next/types/routes.d.ts`), and
+// the file is TRACKED. So the release checklist used to flip a tracked file and
+// leave the working tree dirty — at exactly the moment the release inspects its
+// own diff, which is when a clean diff matters most. The snapshot is taken here,
+// before the first build, and restored (and asserted) in the closing section.
+const GENERATED = ["next-env.d.ts"];
+const generatedBefore = new Map(
+  GENERATED.map((f) => [f, fs.existsSync(path.join(ROOT, f)) ? fs.readFileSync(path.join(ROOT, f)) : null]),
+);
+
 // ── Server lifecycle ────────────────────────────────────────────────────────
 const children = [];
 function startServer(cmd, args, env, logFile, cwd = ROOT) {
@@ -281,6 +293,32 @@ if (!process.env.DATABASE_URL) {
 }
 console.log("  · object storage:     N/A — large files are packs served from the app, not a bucket");
 console.log("  · these become real steps only when the store moves to a database (see docs/DEPLOYMENT.md §5)");
+
+// ── 8. What this run left on disk ───────────────────────────────────────────
+// The servers go down first: a build that is still running could rewrite a
+// snapshotted file after the restore and make the assertion below a lie.
+section("8 · the tree this run leaves behind");
+shutdown();
+await new Promise((r) => setTimeout(r, 300));
+let restoredAll = true;
+for (const f of GENERATED) {
+  const was = generatedBefore.get(f);
+  const full = path.join(ROOT, f);
+  const now = fs.existsSync(full) ? fs.readFileSync(full) : null;
+  if (was && now && now.equals(was)) continue;
+  if (was) fs.writeFileSync(full, was);
+  else fs.rmSync(full, { force: true });
+  const after = fs.existsSync(full) ? fs.readFileSync(full) : null;
+  if (!after || !was || !after.equals(was)) restoredAll = false;
+}
+record("generated files restored", restoredAll, `${GENERATED.join(", ")} — the gate leaves the tree as it found it`);
+const porcelain = spawnSync("git", ["status", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).stdout ?? "";
+const dirty = porcelain.split("\n").filter((l) => l.trim() !== "" && !l.startsWith("?? "));
+console.log(
+  dirty.length
+    ? `  · note: tracked files still differ from HEAD — ${dirty.map((l) => l.trim().split(/\s+/).pop()).join(", ")} (this run did not write them)`
+    : "  · note: no tracked file differs from HEAD after this run",
+);
 
 // ── Summary ─────────────────────────────────────────────────────────────────
 const ran = results.filter((r) => !r.skipped);
