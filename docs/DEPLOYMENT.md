@@ -194,6 +194,28 @@ container's ephemeral layer answers **yes** — right up to the redeploy that
 discards it. So the durability claim is tested by the one fact that separates
 the two products: **does the record outlive the process?**
 
+**AND THE PRODUCTION ARTEFACT NO LONGER REPORTS READY WITHOUT A DECLARED
+STORE.** Writability on its own is the claim that survives the redeploy which
+discards everything, so the readiness report gained the missing half: when the
+process is the production build (`NODE_ENV=production`) and
+`OPENMIND_DATA_DIR` is not declared, that is a **problem**, not a note —
+`ready: false`, HTTP 503, problem code `data_dir_undeclared` — because the store
+it just proved writable lives inside the directory the next deploy replaces.
+Two ways out, and both are deliberate acts: declare `OPENMIND_DATA_DIR` on a
+durable volume, or state in the environment that this deployment accepts an
+ephemeral store (`OPENMIND_ALLOW_EPHEMERAL_STORE=1`, which turns it back into a
+note for a throwaway instance). A laptop is unaffected —
+`./start-openmind.sh` declares its data directory and the Dockerfile sets
+`/data` — because the case this catches is the host that starts the image with
+an empty environment and no operator watching it.
+
+> **Before pointing a host's health check at `/api/ready`:** it answers 503 for
+a misconfigured deployment by design, which is what a *load balancer's*
+readiness probe is for. A host that **restarts** the service on a failed check
+will restart it in a loop rather than let anyone read the reason. Point
+liveness at `/api/health`, and readiness (if it is used at all) at
+`/api/ready`.
+
 ```text
 npm run verify:persistence                 # complete test, locally, automatically
 

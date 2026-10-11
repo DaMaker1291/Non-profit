@@ -10516,6 +10516,29 @@ console.log("▸ The deployment reports its own configuration, and invents no re
   ok(bare.notes.some((n) => n.code === "session_secret_generated"), "a generated session secret is a NOTE, never a problem");
   ok(bare.notes.some((n) => n.code === "no_model_configured"), "so is having no model configured");
 
+  // 1b. DURABILITY IS PART OF BEING READY ON THE PRODUCTION ARTEFACT.
+  //
+  // The storage check proves the directory is WRITABLE, which a container's
+  // ephemeral layer is — right up to the redeploy that discards it. A host that
+  // starts the image with an empty environment therefore reported ready:true
+  // while being one deploy away from losing every learner. On the production
+  // build, an undeclared data directory is a problem; the two escapes are to
+  // declare a durable directory, or to accept ephemerality in so many words.
+  const prodUndeclared = envMod.envReport({ NODE_ENV: "production" });
+  ok(prodUndeclared.ok === false && prodUndeclared.problems.some((p) => p.code === "data_dir_undeclared"),
+    "the production artefact with no declared data directory is NOT ready (the store would die with the image)");
+  ok(bare.notes.some((n) => n.code === "data_dir_default"),
+    "while the same empty environment on a development checkout is only a note");
+  const prodDeclared = envMod.envReport({ NODE_ENV: "production", OPENMIND_DATA_DIR: "/data" });
+  ok(prodDeclared.ok === true, "declaring the directory on a mounted volume is ready");
+  ok(!prodDeclared.notes.some((n) => n.code === "data_dir_default"),
+    "and says nothing about a default it is not using");
+  const prodAccepted = envMod.envReport({ NODE_ENV: "production", OPENMIND_ALLOW_EPHEMERAL_STORE: "1" });
+  ok(prodAccepted.ok === true && prodAccepted.notes.some((n) => n.code === "data_dir_default"),
+    "and a deployment may accept an ephemeral store explicitly, which is a note rather than a silent pass");
+  ok(envMod.envReport({ NODE_ENV: "production", OPENMIND_ALLOW_EPHEMERAL_STORE: "maybe" }).ok === false,
+    "but only an explicit yes counts — any other value still fails readiness");
+
   // 2. A refused deployment profile is a PROBLEM and the default is reported —
   //    never the profile that was asked for.
   const refused = envMod.envReport({ OPENMIND_DEPLOYMENT: "not_a_real_profile" });

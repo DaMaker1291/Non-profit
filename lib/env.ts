@@ -173,16 +173,39 @@ export function envReport(env: Record<string, string | undefined> = {}): EnvRepo
     });
   }
 
-  // 6. Where the learning data lives. A note, not an error: this product is
-  //    designed to run with data in the application directory. But a real
-  //    deployment should point it at a durable volume, and saying so is the
-  //    difference between a backup plan and a hope.
+  // 6. Where the learning data lives, AND WHETHER IT CAN SURVIVE A REDEPLOY.
+  //
+  //    Data in the application directory is fine on a school laptop and wrong in
+  //    a container: the next deploy replaces the image, and a classroom goes with
+  //    it. `/api/ready`'s storage check cannot see the difference — a writable
+  //    store in a container's ephemeral layer answers "writable" right up to the
+  //    redeploy that discards it, which is how a host can report ready:true and
+  //    still lose every learner on the next push.
+  //
+  //    So on the PRODUCTION artefact an undeclared data directory is a READINESS
+  //    PROBLEM, not a note. Two ways out, and both are deliberate acts: declare
+  //    the directory on a durable volume, or say in so many words that this
+  //    deployment accepts an ephemeral store (OPENMIND_ALLOW_EPHEMERAL_STORE),
+  //    which turns it back into a note for a throwaway demo instance. A laptop is
+  //    unaffected — `./start-openmind.sh` declares its data directory and the
+  //    Dockerfile sets /data — because the case this catches is the host that
+  //    starts the image with an empty environment and no operator watching.
   const dataDir = (env.OPENMIND_DATA_DIR ?? "").trim();
+  const production = (env.NODE_ENV ?? "").trim() === "production";
+  const acceptsEphemeral = /^(1|true|yes)$/i.test((env.OPENMIND_ALLOW_EPHEMERAL_STORE ?? "").trim());
   if (!dataDir) {
+    const detail =
+      "learning data lives in ./.openmind-data inside the application directory, and a redeploy replaces that directory — point OPENMIND_DATA_DIR at a durable volume, or set OPENMIND_ALLOW_EPHEMERAL_STORE=1 to accept that this deployment's learner records are lost on every deploy";
+    if (production && !acceptsEphemeral) {
+      problems.push({ key: "OPENMIND_DATA_DIR", code: "data_dir_undeclared", detail });
+    } else {
+      notes.push({ key: "OPENMIND_DATA_DIR", code: "data_dir_default", detail });
+    }
+  } else if (acceptsEphemeral) {
     notes.push({
-      key: "OPENMIND_DATA_DIR",
-      code: "data_dir_default",
-      detail: "learning data lives in ./.openmind-data inside the application directory; point OPENMIND_DATA_DIR at a durable volume so a redeploy cannot discard a classroom",
+      key: "OPENMIND_ALLOW_EPHEMERAL_STORE",
+      code: "ephemeral_store_accepted",
+      detail: `this deployment declares ${dataDir} AND says it accepts an ephemeral store, so losing it on a deploy is a known state rather than a surprise`,
     });
   }
 
