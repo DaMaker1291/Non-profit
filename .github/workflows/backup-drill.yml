@@ -72,7 +72,10 @@ jobs:
           curl -sf http://localhost:4173/api/health > /dev/null
           OPENMIND_BASE=http://localhost:4173 npm run e2e
           kill "$DEV_PID" 2>/dev/null || true
-          echo "seeded profiles: $(node -e 'console.log(Object.keys(JSON.parse(require("fs").readFileSync(process.env.OPENMIND_DATA_DIR+"/profiles.json","utf8"))).length)')"
+          # What the drill is about to restore, so a failure is readable: a store with
+          # no ledger would report step 6 as UNTESTED and pass for the wrong reason.
+          node -e "const p=require(process.env.OPENMIND_DATA_DIR+'/profiles.json');console.log('seeded profiles:',Object.keys(p).length)"
+          ls "$OPENMIND_DATA_DIR/evidence" | wc -l | xargs echo "seeded ledgers:"
 
       - name: Back up, restore, and re-derive every learner
         run: npm run restore-drill
