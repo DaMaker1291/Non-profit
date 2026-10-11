@@ -284,10 +284,13 @@ HTTPS or carries `x-forwarded-proto: https` (`lib/server/auth.ts#cookieAttribute
 — so a real HTTPS deployment gets the flag, and a plain-HTTP school install still
 works.
 
-**Rate limiting: PROPOSED.** There is no rate limiter in this repository. The
-right place is the reverse proxy (signup, signin, AI, answer submission, sync,
-upload, teacher invitations) because it also protects the process before a
-request costs anything. This is listed as a launch blocker in `SECURITY.md`.
+**Rate limiting: PROPOSED — still absent, and still a launch blocker.** There is
+no rate limiter in this repository. The right place is the reverse proxy (signup,
+signin, AI, answer submission, sync, upload, teacher invitations) because it also
+protects the process before a request costs anything. `SECURITY.md` §9 states the
+exposure concretely: signin has no attempt counter, no lockout and no delay, so
+the number of password guesses is unbounded — only scrypt's own cost per attempt
+bounds an attacker.
 
 **Security headers: PROPOSED.** No `Content-Security-Policy`,
 `Strict-Transport-Security`, `X-Content-Type-Options`, `Referrer-Policy` or
@@ -320,8 +323,13 @@ Ordered by risk, and each is honest:
 3. **No security headers.** §10 above.
 4. **No external error/uptime monitoring.** `/api/health` and `/api/ready` exist
    to be polled; nothing polls them and nothing aggregates errors. `OPERATIONS.md`.
-5. **No backup automation.** There is a documented copy-the-directory procedure
-   and a restore drill (`OPERATIONS.md` §4); nothing runs on a schedule.
+5. **No backup *schedule*.** The tooling exists and is verified — `npm run backup`
+   copies the store and hashes every file against its source, `npm run backup:verify`
+   re-checks an archive later, and `npm run restore-drill` restores one into a fresh
+   directory, boots the artefact against it and re-derives each learner from the
+   restored ledger (`OPERATIONS.md` §4) — but **nothing calls them on a timer**:
+   a cron job or systemd timer is a property of the host, not of this repository.
+   The same section also lacks off-site replication and point-in-time recovery.
 6. **SEO for public pages only** — no `robots.txt`, `sitemap.xml`, canonical URLs
    or Open Graph metadata yet. **PROPOSED.**
 7. **Accessibility is gated, not audited** — `npm run verify:ui` drives a real

@@ -137,6 +137,15 @@ front of the public:
 1. **Rate limiting.** Signup, signin, password-reset, AI, answer submission,
    diagnostic submission, sync, uploads and teacher invitations must be limited
    at the proxy. One abusive client can otherwise exhaust the process.
+
+   Concretely, for signin: there is **no attempt counter, no lockout and no delay**
+   anywhere in `lib/server/auth.ts`. Password verification is scrypt with a
+   per-account salt, compared in constant time (`timingSafeEqual`), so each guess
+   costs an attacker a real derivation — but the *number* of guesses is unlimited,
+   and each one also costs this server a derivation. That is the whole exposure:
+   the cost per attempt is high, the attempt count is unbounded. A reverse proxy
+   must bound it, per account and per source address, before this deployment is
+   reachable by the public.
 2. **Security headers.** The set in §8, tested rather than copied.
 3. **HTTPS everywhere in production**, with `Secure` cookies confirmed on a real
    HTTPS host.
