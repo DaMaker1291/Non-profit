@@ -2,7 +2,7 @@
 // THE ROOM'S TUTOR.
 //
 // A study room is a tiny class: one focus, a few members, and a Socratic tutor
-// in the corner. Two defects lived in that corner, both reproduced live:
+// in the corner. Three defects lived in that corner, all reproduced live:
 //
 //   1. A room with no declared concept was taught `linear-equations`, always.
 //      The line was `room.conceptIds[0] ?? "linear-equations"` — a MATHS concept
@@ -15,12 +15,23 @@
 //      still gave every room the same canned reply, and nothing on screen said
 //      who had answered.
 //
+//   3. Fixing (1) left a defect of the same shape one level down: a match that
+//      stayed INSIDE the room's own subject was accepted whatever it was made
+//      of. The word filter held twenty-six hand-picked words and its comment
+//      claimed "the" and "and" were excluded — they were not, and "the" alone is
+//      a token. Three titles contain it, so "the and for are was were" resolved
+//      a focus in maths, chemistry AND computing, and a chemistry room taught the
+//      mole to a learner who had asked about a ball. Subject-crossing was never
+//      the whole rule; a word that names no idea is not evidence in ANY subject.
+//      See `GENERIC` and the two sweeps in verify-engines § 3d-ii.
+//
 // What replaces them:
 //
-//   · Focus is RESOLVED, never defaulted. The room's declared concept wins; a
-//     concept the message names from the room's OWN subject comes next; and if
-//     neither exists the tutor says it does not know which idea they are on and
-//     asks — instead of guessing a concept from another subject.
+//   · Focus is RESOLVED, never defaulted, and only from vocabulary that carries
+//     meaning. The room's declared concept wins; a concept the message names
+//     from the room's OWN subject comes next; and if neither exists the tutor
+//     says it does not know which idea they are on and asks — instead of guessing
+//     a concept from another subject, or from an article.
 //   · The turn goes through the one tutor door (lib/server/tutor.ts), so a
 //     configured model answers in rooms too, and the disclosure key travels
 //     with the reply to the surface. The offline engine remains a supported
@@ -48,18 +59,71 @@ import type { StudyRoom } from "../types";
  *  concept the learner's own message names. */
 type RoomFocus = { conceptId: string; because: "declared" | "named" };
 
-/** Words that carry no subject meaning, so a message containing only these can
- *  never be read as naming a concept. */
+/** Function words: articles, pronouns, auxiliaries, prepositions, conjunctions
+ *  and the vocabulary of asking a question. They carry no subject meaning, so a
+ *  message containing only these can never be read as naming a concept.
+ *
+ *  This set is COLLABORATIVE evidence, not a nicety, and it has to be complete.
+ *  It shipped as twenty-six hand-picked words while its own comment claimed
+ *  "the"/"and" were excluded — they were not, and because three titles contain
+ *  the article "the" ("Completing the square", "The mole & calculations",
+ *  "Networks & the internet") a room was grounded on one of them by a message
+ *  like "why does the ball accelerate?", or by no content at all: the words
+ *  "the and for are was were" resolved a focus in three subjects. The room's own
+ *  subject was respected, which is why a same-subject sweep could not see it,
+ *  but the learner had named no idea and was taught one anyway.
+ *
+ *  So: the commonest words of English, grouped by grammatical class. Words
+ *  shorter than three characters ("a", "of", "to") need no entry — the length
+ *  floor in `tokens` already excludes them. */
 const GENERIC = new Set([
-  "what", "why", "how", "when", "does", "this", "that", "with", "from", "into",
+  // Articles, determiners, quantifiers.
+  "the", "this", "that", "these", "those", "some", "any", "all", "both", "each",
+  "every", "none", "other", "another", "such", "same", "own", "more", "most",
+  "less", "least", "few", "several", "enough", "much", "many", "either",
+  "neither", "whole", "entire",
+  // Pronouns and possessives.
+  "you", "your", "yours", "she", "her", "hers", "him", "his", "its", "they",
+  "them", "their", "theirs", "our", "ours", "who", "whom", "whose", "which",
+  "what", "whatever", "whoever", "mine", "myself", "yourself", "himself",
+  "herself", "itself", "ourselves", "themselves", "someone", "somebody",
+  "something", "anyone", "anybody", "anything", "everyone", "everybody",
+  "everything", "nobody", "nothing",
+  // Auxiliaries, modals, copulas.
+  "was", "were", "been", "being", "does", "did", "done", "doing", "has", "had",
+  "having", "will", "would", "shall", "should", "could", "might", "must",
+  "may", "can", "are", "not", "dont", "doesnt", "didnt", "cant", "couldnt",
+  "wouldnt", "shouldnt", "isnt", "arent", "wasnt", "werent", "havent", "hasnt",
+  "wont", "ive", "ill", "youre", "youve", "let", "lets",
+  // Prepositions and particles.
+  "with", "without", "from", "into", "onto", "upon", "over", "under", "above",
+  "below", "between", "among", "through", "during", "before", "after", "about",
+  "against", "along", "across", "behind", "beyond", "near", "off", "out", "down",
+  "than", "like", "per", "via", "toward", "towards", "within", "around", "inside",
+  "outside",
+  // Conjunctions and adverbs of discourse.
+  "and", "but", "nor", "yet", "because", "since", "while", "when", "where",
+  "whether", "although", "though", "unless", "until", "then", "also", "too",
+  "very", "just", "only", "even", "still", "again", "always", "never", "often",
+  "sometimes", "already", "almost", "really", "quite", "here", "there", "now",
+  "why", "how", "wherever", "whenever",
+  // The vocabulary of asking for help — a question about nothing in particular.
   "stuck", "help", "please", "question", "answer", "problem", "work", "workout",
-  "understand", "explain", "again", "still", "dont", "doesnt", "cant", "about",
+  "understand", "explain", "okay", "hello", "thanks", "thank", "sorry", "need",
+  "want", "know", "getting", "going", "give", "take", "tell", "told", "think",
+  "thing", "things", "stuff", "lot", "lots", "bit", "kind", "sort", "part",
+  "parts", "place", "point", "idea", "ideas", "mean", "means", "meant", "right",
+  "wrong", "good", "bad",
 ]);
 
-/** Normalise a message into comparison tokens: lower-case words of four or more
- *  characters, punctuation stripped. Short words are excluded because they match
- *  everything ("law", "set", "gas" are fine at three, but "the", "and" are not —
- *  the length floor is the crude part, the GENERIC set is the careful part). */
+/** Normalise a message into comparison tokens: lower-case words of three or more
+ *  characters, punctuation stripped, function words removed.
+ *
+ *  The length floor is deliberately three, not four: a subject's own vocabulary
+ *  lives at three ("law", "set", "gas", "ohm"), and dropping those would blind
+ *  the resolver to real questions. That makes the function-word set the only
+ *  thing standing between a question and a coincidence — which is why it is a
+ *  full list and why the suite sweeps it. */
 function tokens(text: string): string[] {
   return text
     .toLowerCase()

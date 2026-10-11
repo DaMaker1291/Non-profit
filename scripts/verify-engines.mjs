@@ -8185,6 +8185,7 @@ console.log("▸ AI explains, never records");
     const roomSubjects = [...new Set(genome.CONCEPTS.map((c) => c.subject))];
     const defaulted = [];
     const crossed = [];
+    const unnameable = [];
     let named = 0;
     for (const subject of roomSubjects) {
       const room = { subject, conceptIds: [], language: "en" };
@@ -8192,7 +8193,12 @@ console.log("▸ AI explains, never records");
       if (silent !== null) defaulted.push(`${subject} → ${silent.conceptId}`);
       for (const c of genome.bySubject(subject)) {
         const got = roomMod.roomFocus(room, c.title);
-        if (!got) continue;
+        // Every concept must still be NAMEABLE. The filter can be widened into
+        // silence — a word list that also swallowed a subject's own vocabulary
+        // would make a learner's real question resolve to nothing — so a concept
+        // the resolver can no longer find by its own title is a failure here,
+        // not a line to skip.
+        if (!got) { unnameable.push(`${subject}/${c.id} "${c.title}"`); continue; }
         named++;
         if (conceptSubject.get(got.conceptId) !== subject) {
           crossed.push(`${subject} + "${c.title}" → ${got.conceptId} (${conceptSubject.get(got.conceptId)})`);
@@ -8211,6 +8217,76 @@ console.log("▸ AI explains, never records");
       .filter((s) => roomMod.roomFocus({ subject: s, conceptIds: [], language: "en" }, "why does the ball accelerate?")?.conceptId === "linear-equations");
     ok(algebraRooms.length === 0,
       "and no non-maths room is ever grounded in linear-equations — the default that shipped");
+    ok(unnameable.length === 0,
+      `every concept is still nameable by its own title — the word filter has not been widened into silence (${unnameable.slice(0, 3).join("; ") || `${named}/${genome.CONCEPTS.length} resolved inside their own subject`})`);
+
+    // ── 3d-ii. A FUNCTION WORD IS NOT EVIDENCE OF AN IDEA.
+    //
+    // 3d-i stopped a MATHS default being handed to every other subject, and swept
+    // for matches that CROSSED a subject. But it accepted any match that stayed
+    // inside the room's own subject, and that is precisely where the second
+    // defect lived. The filter excluded twenty-six hand-picked words while its
+    // own comment claimed "the" and "and" were among them; they were not. Since
+    // three titles contain the article — "Completing the square", "The mole &
+    // calculations", "Networks & the internet" — the bare words
+    //
+    //     "the and for are was were"
+    //
+    // resolved a focus in maths, chemistry AND computing, and a learner asking
+    // "why does the ball accelerate?" in a chemistry room was taught the mole.
+    // The room's subject was respected, so no same-subject sweep could see it.
+    //
+    // Two sweeps pin the rule, and the shipped code failed both.
+    {
+      const FUNCTION_ONLY = [
+        "why does the ball accelerate?",
+        "the and for are was were",
+        "where is the one that was on the left",
+        "how do i know if it is right",
+        "what is this thing about",
+        "i do not understand it at all",
+        "can you tell me more about that",
+        "it is not working for me what should i do",
+        "there are two of them and one of us",
+        "you should have been doing this yesterday",
+        "is this one going to be on the test",
+      ];
+      const leaked = [];
+      for (const subject of roomSubjects) {
+        const room = { subject, conceptIds: [], language: "en" };
+        for (const m of FUNCTION_ONLY) {
+          const got = roomMod.roomFocus(room, m);
+          if (got) leaked.push(`${subject} + "${m}" → ${got.conceptId}`);
+        }
+      }
+      ok(leaked.length === 0,
+        `a message that names no idea resolves NO focus in any subject (${leaked.slice(0, 4).join("; ") || `${FUNCTION_ONLY.length} such messages × ${roomSubjects.length} subjects, none resolved`})`);
+
+      // And the same rule at its finest grain, with a list written HERE rather
+      // than read from the module: a single word from the commonest vocabulary
+      // of English is never a concept's name. Independent of the resolver's own
+      // list on purpose — a future edit that quietly removes an entry from it
+      // gets caught by this, not by the edit's own shadow.
+      const COMMON_WORDS = (
+        "the and for are was were you your not but its his her our all can had has have they them then " +
+        "than there their where which who will would should could more most some any one two out off over " +
+        "under between just like very much did done been being about into from with that this what when why " +
+        "how also too only even still again always never often sometimes already almost really quite here now " +
+        "does no yes if or so because while whether although though unless until once"
+      ).split(/\s+/).filter((w) => w.length >= 3);
+      const singleWordLeaks = [];
+      let singleWordChecks = 0;
+      for (const subject of roomSubjects) {
+        const room = { subject, conceptIds: [], language: "en" };
+        for (const w of COMMON_WORDS) {
+          singleWordChecks++;
+          const got = roomMod.roomFocus(room, w);
+          if (got) singleWordLeaks.push(`${subject} + "${w}" → ${got.conceptId} (${conceptSubject.get(got.conceptId)})`);
+        }
+      }
+      ok(singleWordLeaks.length === 0,
+        `no common English word, alone, is ever read as naming a concept (${singleWordLeaks.slice(0, 4).join("; ") || `${singleWordChecks} word×subject combinations, none resolved`})`);
+    }
   }
   // And the SHAPE that produced it cannot come back: no hard-coded concept id
   // in this module at all, and no `conceptIds[0] ?? …` fallback of any kind.
