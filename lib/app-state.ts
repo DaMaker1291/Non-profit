@@ -156,6 +156,15 @@ export interface LifecycleInput {
   auth: AuthStatus;
   profileStatus: ProfileStatus;
   profile: ProfileState | null;
+  /**
+   * Is the SESSION's account a teacher (or a school)? A teacher account owns a
+   * learner profile like everybody else, but it is not a learner to be measured
+   * — `teach.entryBody` says so in all 15 languages: "You are not put through a
+   * learner's setup or a baseline diagnostic". The guard did not know, so a
+   * teacher who clicked Home was refused `/dashboard` and moved to
+   * `/diagnostic/maths?return=/dashboard`, in a subject they may not teach.
+   */
+  isTeacher?: boolean;
 }
 
 /** The learner's position, with no null that carries two meanings. */
@@ -170,6 +179,8 @@ export interface Lifecycle extends Omit<AppState, "stage"> {
   profileId: string | null;
   /** Set only when the learner exists but the diagnostic has not been sat. */
   diagnosticSubject: string;
+  /** The session's account is a teacher/school: never sent to be measured. */
+  isTeacher: boolean;
 }
 
 export function profileStatusOf(profile: ProfileState | null): ProfileStatus {
@@ -182,13 +193,15 @@ export function profileStatusOf(profile: ProfileState | null): ProfileStatus {
  * decision function — this only makes its two unknowable inputs explicit, so a
  * caller can tell "we do not know yet" apart from "we know: no learner".
  */
-export function deriveLifecycle({ auth, profileStatus, profile }: LifecycleInput): Lifecycle {
+export function deriveLifecycle({ auth, profileStatus, profile, isTeacher }: LifecycleInput): Lifecycle {
+  const teacher = isTeacher === true;
   const booting = auth === "booting" || profileStatus === "loading";
   if (booting) {
     return {
       booting: true,
       auth,
       profileStatus,
+      isTeacher: teacher,
       stage: "welcome",
       route: "",
       reasonKey: "state.booting",
@@ -206,6 +219,7 @@ export function deriveLifecycle({ auth, profileStatus, profile }: LifecycleInput
     auth,
     profileStatus: profileStatusOf(profile),
     profileId: profile?.profile.id ?? null,
+    isTeacher: teacher,
   };
 }
 
@@ -333,7 +347,12 @@ const MET: Record<AccessRequirement, (l: Lifecycle) => boolean> = {
   public: () => true,
   authenticated: (l) => l.auth === "signed_in" || l.profileStatus === "complete" || l.profileStatus === "incomplete",
   onboarded: (l) => l.onboarded,
-  diagnosed: (l) => l.diagnosed,
+  // A teacher is not a learner waiting to be measured. `/dashboard` was gated on
+  // evidence so that nobody is shown a mastery board of zeros for work they have
+  // never been asked to do — which is exactly the argument for NOT sending a
+  // teacher to the diagnostic the gate redirects to. Their own platform is
+  // `/teacher`, and their learner Home is theirs to open if they want it.
+  diagnosed: (l) => l.diagnosed || l.isTeacher,
 };
 
 /**

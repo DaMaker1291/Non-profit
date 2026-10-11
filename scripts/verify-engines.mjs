@@ -58,6 +58,18 @@ const tmpData = fs.mkdtempSync(nodePath.join(os.tmpdir(), "om-evidence-verify-")
 process.env.OPENMIND_DATA_DIR = tmpData;
 const evidenceStore = require("../.verify/server/evidence.js");
 const store = require("../.verify/server/store.js");
+
+/**
+ * How many PRIMARY call-to-action buttons a source file renders.
+ *
+ * Counted by ROLE — a `btn` with or without modifier classes — rather than by
+ * an exact `className="btn"` string. The exact match had two problems: it
+ * silently ignored any button carrying a modifier, so a SECOND CTA written
+ * `className="btn ghost"` counted as no CTA at all; and adding a modifier (for
+ * example the next-step card's larger `btn next-cta`) made the only CTA in the
+ * file count as zero. A quiet/ghost button is not a primary one and is excluded.
+ */
+const primaryCta = (src) => (src.match(/className="btn(?![^"\n]*\bghost\b)/g) ?? []).length;
 const evidence = require("../.verify/evidence.js");
 const localAi = require("../.verify/local-ai.js");
 const localModel = require("../.verify/local-model.js");
@@ -5343,6 +5355,13 @@ console.log("\n▸ Where the learner is allowed to be");
       auth: "signed_in", profileStatus: "complete",
       profile: { profile: { id: "p1", onboardedAt: 1, subjects: ["maths"] }, progress: {}, diagnostics: { maths: {} } },
     },
+    // A teacher account owns a learner profile like everybody else, and the
+    // session says so. It is the case that used to be routed into a baseline
+    // diagnostic (see `MET.diagnosed`).
+    teacher: {
+      auth: "signed_in", profileStatus: "complete", isTeacher: true,
+      profile: { profile: { id: "p1", onboardedAt: 1, subjects: ["maths"] }, progress: {}, diagnostics: {} },
+    },
   };
   const L = Object.fromEntries(Object.entries(CASES).map(([k, v]) => [k, appState.deriveLifecycle(v)]));
 
@@ -5393,6 +5412,28 @@ console.log("\n▸ Where the learner is allowed to be");
     `a never-measured learner is sent to be measured, then back to Home (got ${freshDashboard.to})`);
   ok(appState.resolveRoute(L.measured, "/dashboard").action === "allow",
     "and a measured learner is simply allowed into Home");
+
+  // ── A TEACHER IS NOT A LEARNER WAITING TO BE MEASURED ─────────────────────
+  // `teach.entryBody` promises it in all 15 languages. The guard did not know
+  // the account's role, so a teacher who clicked Home was refused `/dashboard`
+  // and moved to `/diagnostic/maths?return=/dashboard` — a baseline diagnostic,
+  // in a subject they may not teach, for somebody who came here to teach it.
+  ok(L.teacher.isTeacher === true, "the session's role reaches the lifecycle");
+  const teacherGated = [];
+  for (const rule of appState.ACCESS_RULES) {
+    const d = appState.resolveRoute(L.teacher, rule.path);
+    if (d.action === "redirect" && (d.to ?? "").startsWith("/diagnostic/")) {
+      teacherGated.push(`${rule.path}→${d.to}`);
+    }
+  }
+  ok(teacherGated.length === 0,
+    `NOTHING routes a teacher into a diagnostic, whichever page they ask for (${teacherGated.join(", ") || "none"})`);
+  ok(appState.resolveRoute(L.teacher, "/dashboard").action === "allow",
+    "and their own Home is simply allowed, because it is theirs to open");
+  // The learner rule is untouched: subtracting the teacher must not have widened
+  // the gate for anybody else.
+  ok(appState.resolveRoute(L.fresh, "/dashboard").action === "redirect",
+    "while an unmeasured LEARNER is still sent to be measured");
 
   // LOOP FREEDOM, over the whole table × every lifecycle state. A redirect we
   // perform must land somewhere that itself allows — otherwise one bad rule
@@ -7572,8 +7613,11 @@ console.log("▸ Assigned work is derived, not counted");
   ok(onbSrc.includes("const accountRole = session.account?.role") &&
      onbSrc.includes('const isTeacherAccount = accountRole ? accountRole !== "student" : role === "teacher"'),
     "a returning teacher's destination comes from the ACCOUNT's role, with the form's value only for the account being created");
-  ok(onbSrc.includes("if (!wanted && isTeacherAccount && mode !== \"guest\")"),
+  ok(onbSrc.includes("const teacherHome = isTeacherAccount && mode !== \"guest\"") &&
+     onbSrc.includes("if (teacherHome && !(wanted && !wanted.startsWith(\"/teacher\")))"),
     "and the redirect reads that one answer rather than the wizard's radio");
+  ok(!onbSrc.includes("if (!wanted && isTeacherAccount"),
+    "while a stale learner ticket can no longer route a teacher into a baseline diagnostic");
   // An org account sets work too, so it must not be filed with the students —
   // §2's school path is the gap, not a reason to send a school to /dashboard.
   ok(/accountRole !== "student"/.test(onbSrc),
@@ -8435,8 +8479,12 @@ console.log("▸ AI explains, never records");
   // ONE decision, ONE primary CTA: the next-step card renders the single
   // ranked action and its CTA; nothing else on Home may render a second
   // `btn` from the engine's ranked list — the queue renders quiet links.
-  ok((nextStep.match(/className="btn"/g) ?? []).length === 1,
-    "the next-step card renders exactly one primary CTA");
+  // ONE primary CTA, counted by the ROLE and not by an exact string. The old
+  // `/className="btn"/` missed every button carrying a modifier — a second
+  // action written `className="btn ghost"` counted as no action at all — so
+  // this matcher tolerates modifiers and still refuses a second primary button.
+  ok(primaryCta(nextStep) === 1,
+    `the next-step card renders exactly one primary CTA (${primaryCta(nextStep)})`);
   ok(nextStep.includes("decideOne(") && nextStep.includes("decisionContextFrom(state, ledger)"),
     "the next-step card asks the ONE door for exactly the top of the ranking, over the ledger it actually has");
   ok(dash.includes("decide(") && dash.includes("max: 4") && dash.includes(".slice(1)"),
@@ -9387,8 +9435,12 @@ console.log("▸ Enrolment hands over a learner the guard will actually admit");
   // new `diagnosed`-gated page cannot reintroduce the bounce by being added.
   ok(onb.includes('import { accessFor, withReturn } from "@/lib/app-state";'),
     "the destination is decided by the one owner of the access contract");
-  const reach = /const unreachable = wanted \? accessFor\(wanted\) === "diagnosed" : false;/.exec(onb)?.[0] ?? "";
-  ok(reach.length > 0, "and it treats a diagnosed-gated ticket as not yet reachable");
+  const reach = /const unreachable = wanted && !teacherHome \? accessFor\(wanted\) === "diagnosed" : false;/.exec(onb)?.[0] ?? "";
+  ok(reach.length > 0, "and it treats a diagnosed-gated ticket as not yet reachable for a LEARNER, while a teacher may open it");
+  ok(onb.includes("if (teacherHome && !(wanted && !wanted.startsWith(\"/teacher\")))"),
+    "a teacher's own platform is the default destination for them");
+  ok(!/if \(!wanted && isTeacherAccount/.test(onb),
+    "and a `?return=` ticket can no longer carry a teacher past that default into the learner path");
   ok(/if \(wanted && \(already \|\| !unreachable\)\) \{\s*router\.push\(wanted\);/.test(onb),
     "so an unmeasured learner is sent to the diagnostic instead, carrying the ticket forward");
   ok(onb.includes("withReturn(`/diagnostic/${subject}`, wanted)"),
@@ -9569,9 +9621,9 @@ console.log("▸ One course per subject");
   const courseCard = fs.readFileSync("components/course-first.tsx", "utf8");
   ok(/incompleteSubjects\(state\.profile\)/.test(nextStepSrc) && /<CourseFirst /.test(nextStepSrc),
     "Home asks the same gap rule before presenting a recommendation");
-  ok((nextStepSrc.match(/className="btn"/g) ?? []).length === 1,
-    "and the decision card still renders exactly one primary CTA (the course card is a branch, not a second button)");
-  ok((courseCard.match(/className="btn"/g) ?? []).length === 1 && /\/curriculum/.test(courseCard),
+  ok(primaryCta(nextStepSrc) === 1,
+    `and the decision card still renders exactly one primary CTA (the course card is a branch, not a second button) — ${primaryCta(nextStepSrc)}`);
+  ok(primaryCta(courseCard) === 1 && /\/curriculum/.test(courseCard),
     "while the course card it shows instead has one CTA, pointing at the page that fixes it");
 }
 

@@ -278,9 +278,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // The ACCOUNT's role reaches the lifecycle, so the guard can tell a teacher
+  // from a learner: a teacher is never moved into a baseline diagnostic (see
+  // `MET.diagnosed` in lib/app-state.ts). An `org` (school) account sets work
+  // too, so it is on the same side of the line.
+  const isTeacher = !!session.account && session.account.role !== "student";
   const lifecycle = useMemo(
-    () => deriveLifecycle({ auth, profileStatus, profile }),
-    [auth, profileStatus, profile],
+    () => deriveLifecycle({ auth, profileStatus, profile, isTeacher }),
+    [auth, profileStatus, profile, isTeacher],
   );
   const value = useMemo<AppCtxValue>(() => ({
     auth, session, profile, profileStatus, lifecycle,
@@ -542,11 +547,15 @@ export function useActiveProfile(): ProfileState | null {
  */
 export function useLifecycle(): { lifecycle: Lifecycle; booting: boolean } {
   const ctx = useContext(AppCtx);
-  const { status } = useAccount();
+  const { status, session } = useAccount();
   const { state: profile, status: profileStatus } = useProfile();
+  // Same rule as the provider's own derivation — the standalone fallback (a
+  // component rendered outside the shell) must not disagree with it about who
+  // the learner is.
+  const isTeacher = !!session.account && session.account.role !== "student";
   const lifecycle = useMemo(
-    () => ctx ? ctx.lifecycle : deriveLifecycle({ auth: status, profileStatus, profile }),
-    [ctx, status, profileStatus, profile],
+    () => ctx ? ctx.lifecycle : deriveLifecycle({ auth: status, profileStatus, profile, isTeacher }),
+    [ctx, status, profileStatus, profile, isTeacher],
   );
   return { lifecycle, booting: lifecycle.booting };
 }

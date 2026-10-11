@@ -418,7 +418,23 @@ function OnboardingFlow() {
       // sets work too, so it belongs on the same platform; its own path is not
       // built yet. The form's value is the fallback, and there it is right: an
       // account being created this second has no role to read.
-      if (!wanted && isTeacherAccount && mode !== "guest") {
+      // WHAT THIS CONDITION USED TO BE, AND WHY IT WAS THE BUG. It required
+      // `!wanted` — and the ticket is almost never absent: the guard attaches
+      // `?return=`, and the landing page's "Go to your dashboard" is a ticket
+      // into a diagnosed-gated page. So a signed-in teacher who followed either
+      // fell through to the learner path below, whose only outcomes are
+      // `/dashboard` or a BASELINE DIAGNOSTIC, and arrived at question 01 of a
+      // maths diagnostic they never asked for, in a subject they may not teach.
+      // That is precisely the measurement the comment above refuses to take.
+      //
+      // A teacher's own platform is therefore the default, and a ticket to it is
+      // honoured. A ticket to a page they can genuinely open (their own learner
+      // Home — the guard now lets a teacher in there, see lib/app-state.ts#MET)
+      // is honoured too, by falling through to the learner path with the
+      // measurement requirement subtracted below. A teacher is never sent to be
+      // measured; they may still choose to be.
+      const teacherHome = isTeacherAccount && mode !== "guest";
+      if (teacherHome && !(wanted && !wanted.startsWith("/teacher"))) {
         router.push("/teacher");
         return;
       }
@@ -431,7 +447,10 @@ function OnboardingFlow() {
       // anyway guarantees a bounce, and the bounce re-attaches the same ticket,
       // so every attempt starts the loop over. `accessFor` is the one owner of
       // that vocabulary, so this asks the contract rather than restating it.
-      const unreachable = wanted ? accessFor(wanted) === "diagnosed" : false;
+      // `accessFor` is a STATIC contract and cannot see the account's role, so
+      // the teacher case is subtracted here exactly as `MET.diagnosed` subtracts
+      // it in the guard: a diagnosed-gated page is reachable for a teacher.
+      const unreachable = wanted && !teacherHome ? accessFor(wanted) === "diagnosed" : false;
       if (wanted && (already || !unreachable)) {
         router.push(wanted);
       } else {
