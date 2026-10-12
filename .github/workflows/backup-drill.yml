@@ -76,22 +76,60 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$OPENMIND_DATA_DIR"
+          # 127.0.0.1, not `localhost`: a fresh runner may resolve localhost to
+          # ::1 first, and a health check that fails for a name-resolution reason
+          # is indistinguishable from a server that never started.
+          BASE=http://127.0.0.1:4173
           npm run dev > /tmp/om-drill-dev.log 2>&1 &
           DEV_PID=$!
+          # 90 × 2s, the same budget `ci.yml`'s accessibility job gives its own
+          # development server: a cold `next dev` on a 2-core runner compiles the
+          # app on the FIRST request, and a poll that gives up early reports a
+          # working server as broken.
           for i in $(seq 1 90); do
-            if curl -sf http://localhost:4173/api/health > /dev/null; then break; fi
-            sleep 1
+            if curl -sf -o /dev/null "$BASE/"; then break; fi
+            sleep 2
           done
-          curl -sf http://localhost:4173/api/health > /dev/null
-          OPENMIND_BASE=http://localhost:4173 npm run e2e
+          if ! curl -sf -o /dev/null "$BASE/"; then
+            echo "::error::the development server never answered $BASE — nothing was seeded, so this run says nothing about the drill"
+            tail -40 /tmp/om-drill-dev.log || true
+            kill "$DEV_PID" 2>/dev/null || true
+            exit 1
+          fi
+          # A step that dies with only "exit code 1" costs a maintainer a job log
+          # they may not even be able to open (this repository's logs need admin
+          # rights). Every failure below therefore says WHY on the run page — the
+          # annotations are the diagnosis, not a courtesy.
+          if ! OPENMIND_BASE="$BASE" npm run e2e > /tmp/om-drill-e2e.log 2>&1; then
+            echo "::error::the e2e suite failed, so there is no store to drill"
+            tail -25 /tmp/om-drill-e2e.log || true
+            tail -20 /tmp/om-drill-dev.log || true
+            kill "$DEV_PID" 2>/dev/null || true
+            exit 1
+          fi
           kill "$DEV_PID" 2>/dev/null || true
-          # What the drill is about to restore, so a failure is readable: a store with
-          # no ledger would report step 6 as UNTESTED and pass for the wrong reason.
-          node -e "const p=require(process.env.OPENMIND_DATA_DIR+'/profiles.json');console.log('seeded profiles:',Object.keys(p).length)"
-          ls "$OPENMIND_DATA_DIR/evidence" | wc -l | xargs echo "seeded ledgers:"
+          # What the drill is about to restore, so a failure is readable: a store
+          # with no ledger would report step 6 as UNTESTED and PASS for the wrong
+          # reason. A missing ledger directory is that failure, named — it used to
+          # be an `ls` into `wc -l`, which failed the whole step under pipefail
+          # with no sentence saying what was actually wrong.
+          node -e "const p=require(process.env.OPENMIND_DATA_DIR+'/profiles.json');console.log('::notice::seeded profiles: '+Object.keys(p).length)"
+          if [ ! -d "$OPENMIND_DATA_DIR/evidence" ]; then
+            echo "::error::the seeded store has no evidence ledger, so the restore would prove nothing about the projection"
+            ls "$OPENMIND_DATA_DIR" || true
+            exit 1
+          fi
+          echo "::notice::seeded ledgers: $(ls "$OPENMIND_DATA_DIR/evidence" | wc -l | tr -d ' ')"
 
       - name: Back up, restore, and re-derive every learner
-        run: npm run restore-drill
+        run: |
+          set -euo pipefail
+          if ! npm run restore-drill > /tmp/om-drill.log 2>&1; then
+            echo "::error::the restore drill failed — the archive could not be restored, or a restored learner's model does not reconcile with their ledger"
+            tail -45 /tmp/om-drill.log || true
+            exit 1
+          fi
+          tail -20 /tmp/om-drill.log
 
       - name: Dev server log on failure
         if: failure()
