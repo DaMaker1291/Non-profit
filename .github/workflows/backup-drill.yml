@@ -68,6 +68,21 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
 
+      # THE MIRROR THE E2E SUITE IMPORTS, and the reason this job failed on its
+      # first real run while the suite passed everywhere else.
+      #
+      # `scripts/e2e-api.mjs` opens with `require("../.verify/genome.js")`. That
+      # mirror is a build artefact: `npm run verify` compiles it (`compileEngines`
+      # in scripts/compile-engines.mjs) and nothing else does. A fresh runner has
+      # no `.verify/`, so the suite dies on its FIRST import — and a checkout that
+      # has run `npm run verify` before, which is every developer's and this
+      # repository's CI checklist (it compiles the mirror earlier in the same run),
+      # never sees it. Local green, CI red, for a reason with nothing to do with
+      # backups: the drill then reports "the e2e suite failed, so there is no store
+      # to drill".
+      - name: Compile the engine mirror (the e2e suite imports it)
+        run: npm run verify
+
       # A store with something in it. The e2e suite is the honest way to get one:
       # it creates learners, sits diagnostics and answers questions through the
       # real routes, so the ledger it leaves behind is a real ledger — and it is
@@ -101,7 +116,12 @@ jobs:
           # rights). Every failure below therefore says WHY on the run page — the
           # annotations are the diagnosis, not a courtesy.
           if ! OPENMIND_BASE="$BASE" npm run e2e > /tmp/om-drill-e2e.log 2>&1; then
-            echo "::error::the e2e suite failed, so there is no store to drill"
+            # The failing assertion goes IN the annotation, not only in the log:
+            # this repository's job logs need admin rights, so an annotation that
+            # merely names the step costs another round of guessing. `%0A` is how a
+            # workflow command carries a newline.
+            TAIL=$(tail -18 /tmp/om-drill-e2e.log | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error::the e2e suite failed, so there is no store to drill — ${TAIL}"
             tail -25 /tmp/om-drill-e2e.log || true
             tail -20 /tmp/om-drill-dev.log || true
             kill "$DEV_PID" 2>/dev/null || true
@@ -125,7 +145,8 @@ jobs:
         run: |
           set -euo pipefail
           if ! npm run restore-drill > /tmp/om-drill.log 2>&1; then
-            echo "::error::the restore drill failed — the archive could not be restored, or a restored learner's model does not reconcile with their ledger"
+            TAIL=$(tail -20 /tmp/om-drill.log | sed -e 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error::the restore drill failed — the archive could not be restored, or a restored learner's model does not reconcile with their ledger — ${TAIL}"
             tail -45 /tmp/om-drill.log || true
             exit 1
           fi
