@@ -20,6 +20,16 @@ export interface AppStateInput {
   signedIn: boolean;
   /** The learner profile, or null when there is none yet. */
   profile: ProfileState | null;
+  /**
+   * Is the SESSION's account a teacher (or a school)? A teacher account owns a
+   * learner profile like everybody else — but that profile is not who they came
+   * here as. Without this input an enrolled teacher with no diagnostic resolved
+   * to `stage: "diagnostic"`, `route: "/diagnostic/maths"`: the landing page's
+   * resume card offered them a baseline sitting in a subject they may not teach,
+   * and every surface that reads the stage treated them as a learner waiting to
+   * be measured. See the teacher branch in `deriveAppState`.
+   */
+  isTeacher?: boolean;
 }
 
 export interface AppState {
@@ -73,7 +83,7 @@ export function diagnosedSubjects(state: ProfileState | null | undefined): strin
  * by the wedge) is *not* enrolled, so it is sent through onboarding once —
  * which is what makes the course, tier and board real for the paper engine.
  */
-export function deriveAppState({ signedIn, profile }: AppStateInput): AppState {
+export function deriveAppState({ signedIn, profile, isTeacher }: AppStateInput): AppState {
   const attempts = profile
     ? Object.values(profile.progress).reduce((s, p) => s + (p.attempts ?? 0), 0)
     : 0;
@@ -105,6 +115,28 @@ export function deriveAppState({ signedIn, profile }: AppStateInput): AppState {
   }
 
   const diagnosed = Object.keys(profile.diagnostics ?? {}).length > 0;
+  // A TEACHER'S HOME IS THE WORK THEY SET, AND THEY ARE NOT WAITING TO BE
+  // MEASURED. An account that teaches is enrolled and holds a profile; it may
+  // never carry a diagnostic, and that is not a step it skipped — it is a
+  // measurement it was never for (`teach.entryBody`, in all 15 languages: "You
+  // are not put through a learner's setup or a baseline diagnostic").
+  //
+  // Read AFTER the enrolment check (a teacher still finishes the wizard) and
+  // BEFORE the diagnostic check, which is the branch that used to hand them a
+  // maths sitting, in a subject they may not teach, for somebody who came here
+  // to teach it. "home" then means the same thing for both people: you are where
+  // you belong.
+  if (isTeacher) {
+    return {
+      stage: "home",
+      route: TEACHER_HOME,
+      reasonKey: "state.ready",
+      onboarded,
+      diagnosed,
+      diagnosticSubject: subject,
+      attempts,
+    };
+  }
   if (!diagnosed) {
     return {
       stage: "diagnostic",
@@ -126,6 +158,23 @@ export function deriveAppState({ signedIn, profile }: AppStateInput): AppState {
     diagnosticSubject: subject,
     attempts,
   };
+}
+
+/** A teacher's own platform — the class list they set work from. */
+export const TEACHER_HOME = "/teacher";
+
+/**
+ * WHERE THIS PERSON'S OWN HOME IS — one question, one owner.
+ *
+ * `deriveAppState` already answers it for both (the teacher branch above puts an
+ * account that teaches on `TEACHER_HOME`, a learner on `/dashboard`). This names
+ * the same rule as a function because the NAVIGATION has to ask it as well, and a
+ * nav that re-derived it would be the second implementation of a one-line rule —
+ * exactly the shape that lets a teacher's Home item point at a learner's
+ * dashboard while the lifecycle says otherwise.
+ */
+export function homeRouteFor(lifecycle: Pick<Lifecycle, "isTeacher">): string {
+  return lifecycle.isTeacher ? TEACHER_HOME : "/dashboard";
 }
 
 /** Is a stage one we should actively move the learner out of? */
@@ -212,7 +261,7 @@ export function deriveLifecycle({ auth, profileStatus, profile, isTeacher }: Lif
       profileId: null,
     };
   }
-  const base = deriveAppState({ signedIn: auth === "signed_in", profile });
+  const base = deriveAppState({ signedIn: auth === "signed_in", profile, isTeacher: teacher });
   return {
     ...base,
     booting: false,

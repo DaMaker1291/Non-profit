@@ -531,7 +531,7 @@ function OnboardingFlow() {
   return (
     <main className="container narrow page">
       <p className="eyebrow">
-        <span className="no">◉</span> {t("onb.title")}
+        <span className="no">◉</span> {t(isTeacherAccount ? "teach.entryTitle" : "onb.title")}
       </p>
       {/* Where am I, and how much is left. A learner part-way through setup
           needs both, and needs them before they start reading the form —
@@ -720,7 +720,13 @@ function OnboardingFlow() {
       {current === "about" && (
         <>
           <h1>{t("onb.about")}</h1>
-          <p className="lead">{t("onb.lead")}</p>
+          {/* A TEACHER'S LEAD IS THE TEACHER'S (teach.entryBody, authored in all
+              15 dictionaries): "a teacher account holds your classes, not your
+              learning … you are not put through a learner's setup or a baseline
+              diagnostic". The learner's lead promised the opposite — that
+              OpenMind would adapt "teaching language, examples, difficulty and
+              your learning path" — to somebody who is here to teach. */}
+          <p className="lead">{isTeacherAccount ? t("teach.entryBody") : t("onb.lead")}</p>
           <div className="exercise" style={{ marginTop: 20 }}>
             <label className="field">
               <span>{t("onb.name")}</span>
@@ -733,22 +739,33 @@ function OnboardingFlow() {
                   {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
                 </select>
               </label>
+              {/* A TEACHER IS NOT ASKED WHICH YEAR THEY SIT. The year group feeds
+                  the course step, which a teacher's wizard does not have, and the
+                  culture examples pick the setting a worked example is set in —
+                  questions about the person being TAUGHT. Asking them of the
+                  teacher is "treated like a student" in its most literal form.
+                  Their country stays: it decides which qualifications the
+                  CLASSES they declare can sit. */}
+              {!isTeacherAccount && (
+                <label className="field">
+                  <span>{t("onb.grade")}</span>
+                  <select value={grade} onChange={(e) => setGrade(e.target.value)}>
+                    <option value="">{t("onb.independent")}</option>
+                    {(route?.grades ?? []).map((g) => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </label>
+              )}
+            </div>
+            {!isTeacherAccount && (
               <label className="field">
-                <span>{t("onb.grade")}</span>
-                <select value={grade} onChange={(e) => setGrade(e.target.value)}>
-                  <option value="">{t("onb.independent")}</option>
-                  {(route?.grades ?? []).map((g) => <option key={g} value={g}>{g}</option>)}
+                <span>{t("onb.examples")}</span>
+                <select value={examples} onChange={(e) => setExamples(e.target.value)}>
+                  {CULTURES.map((c) => (
+                    <option key={c.id} value={c.id}>{t(cultureLabel(c.id))}</option>
+                  ))}
                 </select>
               </label>
-            </div>
-            <label className="field">
-              <span>{t("onb.examples")}</span>
-              <select value={examples} onChange={(e) => setExamples(e.target.value)}>
-                {CULTURES.map((c) => (
-                  <option key={c.id} value={c.id}>{t(cultureLabel(c.id))}</option>
-                ))}
-              </select>
-            </label>
+            )}
           </div>
         </>
       )}
@@ -1039,7 +1056,12 @@ function OnboardingFlow() {
           </button>
         ) : (
           <button className="btn" onClick={finish} disabled={busy} style={{ flex: 1 }}>
-            {busy ? t("onb.settingUp") : `${t("onb.start")} →`}
+            {/* The button names where it goes. "Start learning" over a teacher's
+                last step is the learner's word for it, and it was the last thing
+                a teacher read before arriving somewhere they had not been
+                promised — their class list. The destination is the same one the
+                eyebrow and the landing page name (`teach.title`). */}
+            {busy ? t("onb.settingUp") : `${isTeacherAccount ? t("teach.title") : t("onb.start")} →`}
           </button>
         )}
       </div>

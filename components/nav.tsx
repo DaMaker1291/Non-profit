@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LanguagePicker, useAccount, useI18n, useProfile } from "@/lib/client";
+import { LanguagePicker, useAccount, useAppState, useI18n, useProfile } from "@/lib/client";
 import { ContextStrip } from "@/components/context-strip";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ctitle } from "@/lib/content-i18n";
@@ -29,8 +29,31 @@ const PRIMARY = [
   { href: "/projects", key: "proj.eyebrow", glyph: "❖" },
 ];
 
+/**
+ * A TEACHER'S NAVIGATION IS A TEACHER'S NAVIGATION.
+ *
+ * The product's two halves hang off the account's role, and this is the half a
+ * teacher could not see: their platform was one item inside the "⋯ More"
+ * overflow, under a sidebar that named Home, Learn, Papers, Progress, Mind and
+ * Projects — a learner's list. A teacher who signed up read the same chrome as a
+ * child, opened Home onto a learner's dashboard offering them a baseline
+ * diagnostic, and had no visible way to reach the work they came here to set.
+ * Nothing was different for them because nothing here asked who they were.
+ *
+ * So their list is their own: Teacher tools is where their classes are, it is the
+ * FIRST item, and the learner's Home is not in it at all — a teacher's Home is
+ * their class list (lib/app-state.ts#homeRouteFor), and offering a second "Home"
+ * that means somebody else's dashboard is the confusion, not the fix. The
+ * learning surfaces stay below it: a teacher is allowed to practise, and
+ * subtracting them would be its own kind of wrong.
+ */
+const TEACHER_PRIMARY = [
+  { href: "/teacher", key: "teach.title", glyph: "◆" },
+  ...PRIMARY.filter((i) => i.href !== "/dashboard"),
+];
+
 /** The four the phone shows without opening anything, plus More. */
-const PHONE = PRIMARY.slice(0, 4);
+const phoneOf = (list: typeof PRIMARY) => list.slice(0, 4);
 
 /** Everything that is a place, but not a daily destination. Help and Account
  *  are NOT here: §shell puts them at the foot of the sidebar, in the same
@@ -74,6 +97,16 @@ export function Nav() {
   // platform teaches rather than claiming courses this person never chose.
   const courses = state?.profile.subjects ?? [];
   const board = state?.profile.board;
+  // WHOSE APP THIS IS. The role is the account's, so it is read from the
+  // session-shaped lifecycle rather than from the profile — a profile cannot
+  // know it teaches, and `deriveLifecycle` already carries the answer.
+  const { lifecycle } = useAppState();
+  const isTeacher = lifecycle.isTeacher;
+  const primary = isTeacher ? TEACHER_PRIMARY : PRIMARY;
+  const phone = phoneOf(primary);
+  // `/teacher` is already the first item of a teacher's own list; leaving it in
+  // the overflow as well would offer the same door twice under two names.
+  const utility = isTeacher ? UTILITY.filter((i) => i.href !== "/teacher") : UTILITY;
 
   return (
     <>
@@ -87,7 +120,7 @@ export function Nav() {
         </Link>
 
         <nav className="sidebar-nav" aria-label={t("nav.mainAria")}>
-          {PRIMARY.map((item) => (
+          {primary.map((item) => (
             <Link key={item.href} href={item.href} className={`sidebar-link ${active(item.href)}`}>
               <span className="glyph" aria-hidden="true">{item.glyph}</span>
               {t(item.key)}
@@ -95,7 +128,13 @@ export function Nav() {
           ))}
         </nav>
 
-        <div>
+        {/* A teacher with nothing recorded of their own has no course to name,
+            and "Subjects · Set up" under "YOUR CURRICULUM" would be the
+            learner's setup prompt handed to the person who teaches. Their
+            curricula are declared per CLASS, on the class itself. Absence is the
+            true statement; a teacher who also studies gets their own courses
+            named below like anybody else. */}
+        <div style={isTeacher && courses.length === 0 ? { display: "none" } : undefined}>
           <p className="sidebar-group">{t("nav.currTitle")}</p>
           {courses.length > 0 ? (
             courses.map((s: SubjectId) => (
@@ -125,7 +164,7 @@ export function Nav() {
           <details className="nav-overflow">
             <summary aria-label={t("nav.moreAria")}>⋯ {t("nav.more")}</summary>
             <div className="nav-overflow-menu">
-              {UTILITY.map((item) => (
+              {utility.map((item) => (
                 <Link key={item.href} href={item.href} className={active(item.href)}>{t(item.key)}</Link>
               ))}
             </div>
@@ -142,7 +181,7 @@ export function Nav() {
           stylesheet. Two landmarks called "Main menu" are two places the user
           cannot tell apart. `nav.bottomAria` names this one for what it is. */}
       <nav className="bottomnav" aria-label={t("nav.bottomAria")}>
-        {PHONE.map((item) => (
+        {phone.map((item) => (
           <Link key={item.href} href={item.href} className={active(item.href)}>
             <span className="glyph" aria-hidden="true">{item.glyph}</span>
             {t(item.key)}
@@ -154,7 +193,7 @@ export function Nav() {
             {t("nav.more")}
           </summary>
           <div className="nav-overflow-menu">
-            {[...PRIMARY.slice(4), ...FOOT, ...UTILITY].map((item) => (
+            {[...primary.slice(4), ...FOOT, ...utility].map((item) => (
               <Link key={item.href} href={item.href} className={active(item.href)}>{t(item.key)}</Link>
             ))}
           </div>

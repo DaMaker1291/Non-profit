@@ -87,14 +87,20 @@ export default function Home() {
   const router = useRouter();
   // State-derived, not page-derived: someone who is part-way through setup gets
   // "continue where you left off", never the first-time pitch again.
-  const { appState, ready } = useAppState();
+  const { appState, ready, lifecycle } = useAppState();
   const resuming = ready && appState !== null && appState.stage !== "welcome";
 
-  // A learner the system has already measured belongs on Home, not on the
+  // Somebody the system has already placed belongs on their Home, not on the
   // marketing page — a state transition, never a conclusion drawn while the
   // session is still being probed (`ready` is false until then).
+  //
+  // `appState.route`, NOT a hardcoded "/dashboard": that address is the LEARNER's
+  // home, and a teacher's is their class list (lib/app-state.ts#homeRouteFor).
+  // Hardcoding it here sent a signed-in teacher to the learner dashboard, where
+  // the first thing they read was "your next step: find your starting point — a
+  // 3-minute diagnostic", in a subject they may not teach.
   useEffect(() => {
-    if (ready && appState?.stage === "home") router.replace("/dashboard");
+    if (ready && appState?.stage === "home") router.replace(appState.route);
   }, [ready, appState, router]);
 
   // The loop the whole product implements, named with the product's own surface
@@ -127,7 +133,10 @@ export default function Home() {
           <p className="eyebrow" style={{ marginBottom: 6 }}>{t("state.resume")}</p>
           <p style={{ margin: "0 0 var(--s2)" }}>{t(appState.reasonKey)}</p>
           <Link href={appState.route} className="btn">
-            {appState.stage === "home" ? t("nav.home") : t("common.next")} →
+            {/* The button names where it goes. "Home" is a learner's word for a
+                mastery dashboard; a teacher's home is their class list, and that
+                is what their platform is called everywhere else in the app. */}
+            {appState.stage === "home" ? (lifecycle.isTeacher ? t("teach.title") : t("nav.home")) : t("common.next")} →
           </Link>
         </div>
       ) : (

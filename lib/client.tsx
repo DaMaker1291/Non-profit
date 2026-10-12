@@ -166,11 +166,20 @@ export async function claimGuestProfile(
   }
 }
 
+/**
+ * Change the account itself (display name, role, password). The door answers with
+ * the session it just changed — account, profile AND capability — so the change
+ * is adopted here rather than left in a response body nobody reads: a teacher who
+ * declares themselves a teacher on `/account` must not have to reload to stop
+ * being shown a learner's Home. The shell re-probes on the next identity change;
+ * `useAccount().refresh` is what re-asks when nothing about the identity moved
+ * (the role is not a stored credential, so nothing would announce it).
+ */
 export async function updateAccount(patch: {
   name?: string; role?: string; currentPassword?: string; newPassword?: string;
 }): Promise<void> {
   try {
-    await api.updateAccount(patch);
+    adoptSession(await api.updateAccount(patch));
   } catch (e) {
     throw new Error(reasonOf(e, "update_failed"));
   }
@@ -299,10 +308,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 /** The signed-in account for the current page. `ready` is false until the
  *  session probe answers, so guards never bounce a signed-in learner out
  *  during the first render. */
-export function useAccount(): { session: AccountSession; status: AuthStatus; ready: boolean } {
+export function useAccount(): { session: AccountSession; status: AuthStatus; ready: boolean; refresh: () => void } {
   const ctx = useContext(AppCtx);
   const [own, setOwn] = useState<AccountSession>(EMPTY_SESSION);
   const [ownStatus, setOwnStatus] = useState<AuthStatus>("booting");
+  // Standalone only: a re-probe asked for by a caller (the account page, after a
+  // change the probe is the only thing that can see).
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     // Standalone fallback for a component rendered outside the shell.
     if (ctx) return;
@@ -313,9 +325,10 @@ export function useAccount(): { session: AccountSession; status: AuthStatus; rea
       setOwnStatus(s.account ? "signed_in" : "signed_out");
     });
     return () => { alive = false; };
-  }, [ctx]);
-  if (ctx) return { session: ctx.session, status: ctx.auth, ready: ctx.auth !== "booting" };
-  return { session: own, status: ownStatus, ready: ownStatus !== "booting" };
+  }, [ctx, tick]);
+  const refresh = () => (ctx ? ctx.refresh() : setTick((t) => t + 1));
+  if (ctx) return { session: ctx.session, status: ctx.auth, ready: ctx.auth !== "booting", refresh };
+  return { session: own, status: ownStatus, ready: ownStatus !== "booting", refresh };
 }
 
 export async function createProfile(init: {

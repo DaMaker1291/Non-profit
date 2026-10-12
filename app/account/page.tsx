@@ -18,9 +18,13 @@ import type { ProfileState } from "@/lib/types";
 
 export default function AccountPage() {
   const { t } = useI18n();
-  const { session, ready } = useAccount();
+  const { session, ready, refresh } = useAccount();
   const [profile, setProfile] = useState<ProfileState | null>(null);
   const [name, setName] = useState("");
+  // WHO USES THIS ACCOUNT. Mirrored from the session rather than held as an
+  // independent opinion, so the control cannot show a choice the server has not
+  // recorded (see `saveRole`).
+  const [role, setRole] = useState<"student" | "teacher">("student");
   // ── The school a teacher teaches at ──
   // It lives on the PROFILE, not on each class: a teacher with five classes in
   // one school has one school, and five copies would drift. Optional in both
@@ -52,6 +56,13 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (session.account) setName(session.account.name);
+  }, [session.account]);
+
+  useEffect(() => {
+    // `org` (a school) sits on the same side of the line as a teacher — it sets
+    // work too — so the control reads both as "I teach", which is what those
+    // surfaces need to know. lib/client.tsx#isTeacher draws the same line.
+    if (session.account) setRole(session.account.role === "student" ? "student" : "teacher");
   }, [session.account]);
 
   useEffect(() => {
@@ -117,6 +128,43 @@ export default function AccountPage() {
       setMsg(t("acc.saved"));
     } catch {
       setErr(t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Declare who uses this account — the one answer the whole app is shaped by
+   * (the navigation, Home, what a class door will let you do).
+   *
+   * IT COULD ONLY BE GIVEN ONCE. The wizard asks it on its account step, and most
+   * people never reach that step with the teacher card selected: they arrive
+   * through the ordinary form, whose default is "student". A teacher who signed
+   * up the obvious way was therefore a student for ever — the door has always
+   * accepted a role (`POST /api/auth/me`), and no screen ever sent one, so
+   * `/account` had nothing to click. Reported as "nothing is different for the
+   * teacher and they are treated like a student", which is exactly what the
+   * server had been told.
+   *
+   * It is not a privilege: a class's authority comes from OWNING it
+   * (`lib/server/class-membership#isTeacherOf`), and creating a class was never
+   * gated on the role. It is which app you are looking at.
+   */
+  async function saveRole(next: "student" | "teacher") {
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await updateAccount({ role: next });
+      // AND THE SHELL HAS TO RE-READ IT. The role is not a stored credential, so
+      // nothing about this device's identity moves and the session probe would
+      // never be prompted — every surface would keep rendering the old answer
+      // until a reload. `refresh` is the provider's own re-probe.
+      refresh();
+      setMsg(t("acc.saved"));
+    } catch {
+      setErr(t("common.error"));
+      setRole(next === "teacher" ? "student" : "teacher");
     } finally {
       setBusy(false);
     }
@@ -223,6 +271,28 @@ export default function AccountPage() {
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} />
             </label>
             <button className="btn small" onClick={saveName} disabled={busy}>{t("common.save")}</button>
+
+            {/* WHO USES THIS ACCOUNT — asked here, where somebody who got it
+                wrong can change it. The hint is the teacher door's own promise
+                (`teach.entryBody`, authored in all 15 dictionaries): a teacher
+                account holds classes, and is not put through a learner's setup
+                or a baseline diagnostic. That is now true of this control. */}
+            <h3 style={{ marginTop: 24 }}>{t("acct.role")}</h3>
+            <p className="small muted" style={{ marginTop: 4 }}>{t("teach.entryBody")}</p>
+            <div className="checks" role="radiogroup" aria-label={t("acct.role")} style={{ flexWrap: "wrap", marginTop: 8 }}>
+              {([["student", "onb.roleStudent"], ["teacher", "onb.roleTeacher"]] as Array<["student" | "teacher", string]>).map(([r, key]) => (
+                <label key={r} className={role === r ? "on" : ""} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <input
+                    type="radio"
+                    name="role"
+                    checked={role === r}
+                    disabled={busy}
+                    onChange={() => { setRole(r); void saveRole(r); }}
+                  />
+                  {t(key)}
+                </label>
+              ))}
+            </div>
 
             {/* A learner has no school to record; a teacher (or a school
                 account) does, and it is what the class panels show beside the

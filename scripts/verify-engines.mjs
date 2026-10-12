@@ -5435,6 +5435,74 @@ console.log("\n▸ Where the learner is allowed to be");
   ok(appState.resolveRoute(L.fresh, "/dashboard").action === "redirect",
     "while an unmeasured LEARNER is still sent to be measured");
 
+  // ── A TEACHER'S HALF OF THE PRODUCT IS NOT THE LEARNER'S ──────────────────
+  // The role reached the GUARD (asserted above) and stopped there. Everything
+  // that decides what a person SEES still derived from the learner's lifecycle,
+  // so a teacher who signed up read the learner's navigation — Teacher tools
+  // buried in the "⋯ More" overflow — opened Home onto "YOUR NEXT STEP: find your
+  // starting point. A 3-minute diagnostic maps what you actually know", and had
+  // no visible way to reach the work they came here to set. Reported as "nothing
+  // is different for the teacher and they are treated like a student", which is
+  // exactly what the server had been told: the role was only asked on the
+  // wizard's account step, where the default is "student".
+  //
+  // WHY NOTHING CAUGHT IT. Every teacher test drove teacher-ness through a
+  // PROFILE or a class roster: `scripts/ui-walk-teacher.mjs` writes a profile id
+  // into localStorage and opens /teacher, `verify-permissions.mjs` creates a
+  // class owned by a profile, and `acceptance.mjs` checks the account's role
+  // FIELD and nothing that reads it. The surfaces that decide "what does this
+  // person see" were never asked as a teacher ACCOUNT, which is the only thing
+  // the role rides on.
+  const teacherAcct = (extra = {}) => appState.deriveAppState({
+    signedIn: true,
+    isTeacher: true,
+    profile: { profile: { id: "p1", onboardedAt: 1, subjects: [], ...extra.profile }, progress: {}, ...extra },
+  });
+  const teacherNoDiag = teacherAcct();
+  ok(teacherNoDiag.stage === "home" && teacherNoDiag.route === appState.TEACHER_HOME,
+    `an enrolled teacher with NO diagnostic is HOME, on their own platform — not a learner waiting to be measured (stage ${teacherNoDiag.stage}, route ${teacherNoDiag.route})`);
+  ok(appState.homeRouteFor({ isTeacher: true }) === appState.TEACHER_HOME &&
+    appState.homeRouteFor({ isTeacher: false }) === "/dashboard",
+    "one owner for where each person's home is, read by the navigation and by /dashboard alike");
+  // The role decides, not the record: a teacher who has answered questions is on
+  // the same page (they may still practise — the learning surfaces stay open —
+  // but their Home does not move because they sat a diagnostic).
+  ok(teacherAcct({ diagnostics: { "maths:1": {} } }).route === appState.TEACHER_HOME,
+    "and a teacher who sat a sitting is still on their class list");
+  // Enrolment still comes first: an unfinished teacher finishes the wizard.
+  ok(appState.deriveAppState({
+    signedIn: true, isTeacher: true,
+    profile: { profile: { id: "p1", subjects: [] }, progress: {} },
+  }).stage === "onboarding",
+    "an un-enrolled teacher still finishes the wizard before being sent anywhere");
+  const learnerState = appState.deriveAppState({
+    signedIn: true,
+    profile: { profile: { id: "p2", onboardedAt: 1, subjects: ["maths"] }, progress: {}, diagnostics: {} },
+  });
+  ok(learnerState.stage === "diagnostic" && learnerState.route === "/diagnostic/maths",
+    `while a learner who has never been measured is still sent to be measured (${learnerState.stage} ${learnerState.route})`);
+
+  // AND THE SOURCE TRIPWIRES, because every one of these is a one-line rule a
+  // later refactor can quietly undo without failing a behavioural test.
+  const navSrc = fs.readFileSync("components/nav.tsx", "utf8");
+  ok(navSrc.includes("TEACHER_PRIMARY") &&
+    navSrc.includes('{ href: "/teacher", key: "teach.title"') &&
+    navSrc.includes('i.href !== "/dashboard"'),
+    "the navigation has a teacher's own list — Teacher tools first, the learner's Home filtered out — and selects it from the role");
+  const dashSrc = fs.readFileSync("app/dashboard/page.tsx", "utf8");
+  ok(dashSrc.includes("homeRouteFor") && !/router\.replace\("\/dashboard"\)/.test(dashSrc),
+    "and /dashboard hands a teacher to their own home instead of rendering the learner's dashboard for them");
+  const landingSrc = fs.readFileSync("app/page.tsx", "utf8");
+  ok(/router\.replace\(appState\.route\)/.test(landingSrc),
+    "as does the landing page, which used to send a teacher to the learner's dashboard by name");
+  const accountSrc = fs.readFileSync("app/account/page.tsx", "utf8");
+  ok(/updateAccount\(\{ role: next \}\)/.test(accountSrc) && accountSrc.includes('t("acct.role")'),
+    "and the account screen can declare the role the wizard only asks once, so a teacher who signed up as a student is not stuck there");
+  const onboardSrc = fs.readFileSync("app/onboarding/page.tsx", "utf8");
+  ok(/isTeacherAccount \? t\("teach\.title"\) : t\("onb\.start"\)/.test(onboardSrc) &&
+    /\{!isTeacherAccount && \(/.test(onboardSrc),
+    "while a teacher's wizard ends by naming their platform and does not ask them which year they sit");
+
   // ── AND ENROLMENT'S OWN DESTINATION, WHICH IS NOT THE GUARD'S ─────────────
   // `resolveRoute` decides whether a page MAY OPEN; enrolment decides where
   // finishing setup PUTS you — and it has to, because a client-side push does not
@@ -10019,8 +10087,16 @@ console.log("▸ Home: one day, one decision");
   for (const href of ["/dashboard", "/learn", "/papers", "/progress", "/mind", "/projects"]) {
     ok(nav.includes(`href: "${href}"`), `the sidebar carries ${href} as a primary destination`);
   }
-  ok(/const PHONE = PRIMARY\.slice\(0, 4\)/.test(nav),
-    "the phone bar renders the same list, not a second one that can drift");
+  // The phone bar is a SLICE OF THE LIST THE SIDEBAR RESOLVED, not a second
+  // hand-maintained one. It used to be pinned as `PRIMARY.slice(0, 4)`; now that
+  // an account that teaches gets its own primary list (see the teacher section
+  // above), the derivation is the property worth pinning — a teacher's phone must
+  // show the teacher's destinations, or the two bars disagree about whose app
+  // this is on the device the product is actually built for.
+  ok(nav.includes("const primary = isTeacher ? TEACHER_PRIMARY : PRIMARY") &&
+    nav.includes("const phone = phoneOf(primary)") &&
+    nav.includes("const phoneOf = (list: typeof PRIMARY) => list.slice(0, 4)"),
+    "the phone bar renders the same list as the sidebar (the teacher's own when the account teaches), not a second one that can drift");
 
   // ── Every destination the shell offers must GO somewhere ────────────────
   // The loop above proves each href is DECLARED. It cannot prove the page

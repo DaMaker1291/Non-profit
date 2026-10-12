@@ -137,10 +137,15 @@ export function claimProfile(claim: { profileId: string; secret: string }): Prom
   return send<AccountSession>("/api/auth/claim", { method: "POST", body: { ...claim } });
 }
 
+/** Change the account itself. The door answers with the SESSION it just changed
+ *  — account, profile and capability — rather than an acknowledgement, so the
+ *  caller can adopt it instead of reloading. Typed as the session for that
+ *  reason: a shape nobody reads is how "we saved your role" and "the app still
+ *  thinks you are a student" shipped at the same time. */
 export function updateAccount(patch: {
   name?: string; role?: string; currentPassword?: string; newPassword?: string;
-}): Promise<Record<string, unknown>> {
-  return send<Record<string, unknown>>("/api/auth/me", { method: "POST", body: { ...patch } });
+}): Promise<AccountSession> {
+  return send<AccountSession>("/api/auth/me", { method: "POST", body: { ...patch } });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
