@@ -17,6 +17,7 @@
     "content-check": "node scripts/content-check.mjs",
     "verify:q": "node scripts/verify-questions.mjs",
     "gate:ceiling": "node scripts/ceiling-gate.mjs",
+    "gate:options": "node scripts/gate-options.mjs",
     "content-audit": "node scripts/content-audit.mjs",
     "content-gate": "node scripts/content-gate.mjs",
     "audit:options": "node scripts/option-bias-audit.mjs",

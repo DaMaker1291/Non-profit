@@ -128,7 +128,14 @@ const OPENING_GENS: Record<string, NumericGen> = {
   "algebra-expand": (r) => {
     const v = r.int(0, 2);
     if (v === 0) {
-      const p = r.int(2, 7), q = r.int(2, 7);
+      // p and q are drawn from 5–9 so that the ANSWER (the sum), the product
+      // (the classic "multiplied instead of added" error) and the sum-plus-one
+      // slip are all two-digit numbers, and only the difference — a genuine
+      // confusion with which coefficient is which — is one digit. Before this,
+      // p + q was a one-digit number on most draws while the product was two, so
+      // the key's printed LENGTH was a signal on the MCQ twin
+      // (`npm run audit:options`, numeric form).
+      const p = r.int(5, 9), q = r.int(5, 9);
       return {
         prompt: `Expand (x + ${p})(x + ${q}). The result is x² + bx + c. What is the value of b?`,
         value: p + q, wrongs: [String(p * q), String(p + q + 1), String(Math.abs(p - q))],

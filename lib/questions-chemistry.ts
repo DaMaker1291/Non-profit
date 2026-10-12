@@ -87,8 +87,22 @@ export const CHEMISTRY_DEEP: Record<string, DeepGen> = {
         `${num(mr)} g`,
         // Subscripts read as 1 for everything.
         `${num(n * c.ar.reduce((s, [a]) => s + a, 0))} g`,
-        // The moles added to the mass instead of multiplied.
-        `${num(mr + n)} g`,
+        // THE SPARE, AND WHY IT REPLACED "the moles added to the mass". Adding
+        // moles to grams is dimensionally absurd (mol + g), and its VALUE sat
+        // within a few per cent of the formula-mass candidate just above, so
+        // the family carried two copies of one distracter as its only spare.
+        // Dividing by the moles instead of multiplying is the slip this
+        // question really produces, and its magnitude moves with the DRAW —
+        // larger than the answer when n < 1, smaller when n > 1 — so it is not
+        // one more value on the same side of the key. `distinct` drops it on
+        // the n = 1 draw, where dividing and multiplying agree.
+        //
+        // The length picture: with n >= 1 the key is the longest option on
+        // screen, because every genuine slip here under-estimates moles × Mr.
+        // That is a property of the arithmetic, not of these distracters —
+        // there is no natural over-estimate to add — so the remedy is the
+        // draw mix (more small-n samples) rather than another wrong answer.
+        `${num(mr / n)} g`,
       ]),
       tags: [],
       explanation: `Work out the formula mass first, multiplying each Ar by its subscript: ${c.ar.map(([a, s, k]) => `${a}${k > 1 ? ` × ${k}` : ""} (${s})`).join(" + ")} = ${num(mr)}. Then mass = moles × formula mass = ${num(n)} × ${num(mr)} = ${correct}. Using one element's Ar as if it were the whole formula (${num(biggest[0])}) is the commonest version of this slip — a formula is a sum, and the subscript is how many times each atom appears.`,

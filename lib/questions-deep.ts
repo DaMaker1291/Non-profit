@@ -2800,7 +2800,12 @@ export const DEEP_GENS: Record<string, DeepGen> = {
    *  and a classification trace. */
   "ai-basics": (r) => {
     const variant = r.next();
-    if (variant < 0.34) {
+    // FOUR VARIANTS, FOUR LENGTH RANKS — see the note on `gravity-fields`. Every
+    // variant here used to put the key in the longest option, so a learner who
+    // never read the question and simply picked the longest string scored 100%
+    // on this concept against a 25% chance line. Each variant below is written
+    // to its own rank: 1, 3, 4 and 2, in order.
+    if (variant < 0.25) {
       return {
         prompt: `A spam filter was TRAINED on a million labelled emails. During use, it receives a new email. What does the model actually do with it?`,
         correct: "Applies the patterns it learned in training to decide spam or not — it does not keep learning from this email",
@@ -2813,32 +2818,47 @@ export const DEEP_GENS: Record<string, DeepGen> = {
         explanation: `Training and running are separate phases. After training, the model is FROZEN: its parameters encode the patterns of the million examples, and each new email is only classified against them. Learning from new emails is a deliberate retraining step, never a side effect of use.`,
         difficulty: 0.55,
       };
-    }
-    if (variant < 0.67) {
+    }    if (variant < 0.5) {
       return {
+        // key = third-longest (rank 3)
         prompt: `A face-recognition model was trained only on photos taken in daylight. At night it fails badly. What is the lesson?`,
-        correct: "A model only learns the distribution of its training data — conditions outside it are unpredictable",
-        wrongs: pickDistinct("A model only learns the distribution of its training data — conditions outside it are unpredictable", [
-          "The model needs a brighter camera, not better data",
-          "The training data was too large, which causes overfitting to light",
-          "Face recognition is impossible in principle at night",
+        correct: "A model learns only the distribution of its training data",
+        wrongs: pickDistinct("A model learns only the distribution of its training data", [
+          "The camera needs to be brighter, not the data richer",
+          "The training data was far too large, so it overfit to daylight",
+          "Face recognition is impossible in principle once the light drops",
         ]),
-        tags: [],
-        explanation: `The model never saw night photos, so it learned only daylight statistics — no amount of cleverness at run time recovers what the data never showed. Bias and brittleness in AI are usually data problems first.`,
+        tags: [], explanation: `The model never saw night photos, so it learned only daylight statistics — no amount of cleverness at run time recovers what the data never showed. Bias and brittleness in AI are usually data problems first.`,
         difficulty: 0.6,
       };
     }
-    const spam = r.int(2, 8), ham = r.int(8, 20);
+    if (variant < 0.75) {
+      const spam = r.int(2, 8), ham = r.int(8, 20);
+      return {
+        // key = shortest (rank 4)
+        prompt: `A classifier was tested on ${spam + ham} emails: it flagged ${spam} correctly as spam but also flagged ${Math.min(2, ham)} genuine emails. Which measure does the ${Math.min(2, ham)} false alarms damage most?`,
+        correct: "Precision — how many spam flags were correct",
+        wrongs: pickDistinct("Precision — how many spam flags were correct", [
+          "Recall — how much of the spam it actually found",
+          "Speed — it ran too slowly on the genuine emails",
+          "Training size — the test set was too small to matter",
+        ]),
+        tags: [],
+        explanation: `Precision is flagged-and-correct ÷ all flagged: ${spam} of ${spam + Math.min(2, ham)}, hurt directly by every false alarm. Recall (${spam} of ${spam + ham} spam emails) is about the spam it MISSED, which these false alarms do not change. Two different questions, two different measures — a false alarm is a precision problem.`,
+        difficulty: 0.72,
+      };
+    }
     return {
-      prompt: `A classifier was tested on ${spam + ham} emails: it flagged ${spam} correctly as spam but also flagged ${Math.min(2, ham)} genuine emails. Which measure does the ${Math.min(2, ham)} false alarms damage most?`,
-      correct: "Precision — how many of its spam flags were actually spam",
-      wrongs: pickDistinct("Precision — how many of its spam flags were actually spam", [
-        "Recall — how much spam it found",
-        "Speed — it ran too slowly on the genuine ones",
-        "Training size — the test set was too small to matter",
+      // key = second-longest (rank 2)
+      prompt: `A model scores 99% on the data it was trained on and 62% on new data. What does that mean?`,
+      correct: "It has overfitted — it memorised the training set instead of generalising",
+      wrongs: pickDistinct("It has overfitted — it memorised the training set instead of generalising", [
+        "The model has UNDERFITTED, so it needs many more epochs of training before it can generalise to unseen data",
+        "The training data was too small for the model to learn anything from",
+        "The new data must be wrong, or the training score would not be 99%",
       ]),
       tags: [],
-      explanation: `Precision is flagged-and-correct ÷ all flagged: ${spam} of ${spam + Math.min(2, ham)}, hurt directly by every false alarm. Recall (${spam} of ${spam + ham} spam emails) is about the spam it MISSED, which these false alarms do not change. Two different questions, two different measures — a false alarm is a precision problem.`,
+      explanation: `Training accuracy measures memory, not learning. This model reproduces its own examples almost perfectly and then fails on data it has not seen — the signature of OVERFITTING, where it has fitted the noise in the training set instead of the pattern behind it. The cure is not more epochs (that deepens the overfit) but more or better data, or a simpler model.`,
       difficulty: 0.72,
     };
   },
@@ -3971,13 +3991,31 @@ export const DEEP_GENS: Record<string, DeepGen> = {
   "gravity-fields": (r) => {
     const variant = r.next();
     if (variant < 0.34) {
+      // ── THE LENGTH RANK IS PART OF THE ITEM ────────────────────────────────
+      // The four stored items in this table are written so that the correct
+      // option is the LONGEST on one row, the second-longest on another, the
+      // third on another and the SHORTEST on the last. That is not decoration:
+      // when every row's key was the longest, a learner who never read the
+      // question and simply picked the longest option scored ~90% on this
+      // concept against a 25% chance line (`npm run audit:options`), and a
+      // diagnostic a guesser can pass certifies nothing. Each row below was
+      // written to its own rank, and the distractors were made FULLER
+      // statements of the misconception rather than stubs — a misconception
+      // written out in full both reads as a real alternative and stops the key
+      // being the only long option.
       const cases: Array<[string, string, string[]]> = [
+        // key = longest (rank 1)
         ["A satellite orbits Earth at constant speed.", "The resultant force is NOT zero — it points toward Earth, bending the path into a circle",
-          ["The resultant force is zero — constant speed means no force", "The resultant force points along the satellite's direction of travel", "The resultant force points away from Earth — that is why it does not fall"]],
-        ["A skydiver has reached terminal velocity.", "Weight and drag are balanced — the resultant force is zero, so the speed stays constant",
-          ["Gravity has stopped acting at terminal velocity", "The resultant force still points down but is shrinking", "Drag exceeds weight — that is what slows the fall to constant speed"]],
-        ["A ball is thrown straight up and is at the very top of its flight.", "Its speed is momentarily zero but the resultant force is NOT zero — gravity still acts fully",
-          ["Both speed and force are zero at the top", "The force reverses to point upward, ready to bring it down", "The force is zero because the motion is momentarily balanced"]],
+          ["The resultant force points along the satellite's direction of travel", "The resultant force is zero — constant speed means no force acts", "The resultant force points away from Earth, so the orbit must widen"]],
+        // key = second-longest (rank 2)
+        ["A skydiver has reached terminal velocity.", "Weight and drag balance, so the resultant force on the skydiver is zero",
+          ["Gravity has stopped acting at terminal velocity, so nothing pulls the skydiver down", "The resultant force still points downward but is steadily shrinking", "Drag exceeds weight, so the fall slows to a constant speed"]],
+        // key = third-longest (rank 3)
+        ["A ball is thrown straight up and is at the very top of its flight.", "The speed is momentarily zero, but gravity still acts fully",
+          ["Both the speed and the resultant force are zero at the very top", "The resultant force reverses to point upward, ready to bring it down", "The forces are balanced — the motion has stopped"]],
+        // key = shortest (rank 4)
+        ["A car goes round a roundabout at a steady speed.", "A resultant force toward the centre is still needed",
+          ["The resultant force is zero because the speed is constant", "The resultant force points forward, keeping the car at a steady speed", "The resultant force points outward, pushing the car away from the centre"]],
       ];
       const [setting, answer, wrong] = cases[r.int(0, cases.length - 1)];
       return {
@@ -3990,17 +4028,23 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       };
     }
     if (variant < 0.67) {
+      // Ranks 3, 1, 4 on these three rows — see the comment on the first table.
       const cases: Array<[string, string, string[]]> = [
-        ["An astronaut travels from Earth to the Moon.", "Mass is unchanged — it is the amount of matter; weight drops, because the Moon's field is weaker",
-          ["Both mass and weight fall — the astronaut is lighter out there",
-            "Mass falls and weight is unchanged — weight is the fundamental quantity",
-            "Neither changes — both are fixed properties of the body"]],
-        ["A parachutist jumps: at the instant of leaving the plane, and again at terminal velocity.", "Initially only weight acts — acceleration is g; at terminal velocity the forces balance and acceleration is zero",
+        // key = third-longest (rank 3)
+        ["An astronaut travels from Earth to the Moon.", "Mass stays 70 kg; weight falls on the Moon, because the Moon's field is weaker",
+          ["Both mass and weight fall — the astronaut is genuinely lighter out there",
+            "Mass falls and weight is unchanged, because weight is the fundamental quantity",
+            "Neither changes — mass and weight are both fixed properties of the body"]],
+        // key = longest (rank 1)
+        ["A parachutist jumps: at the instant of leaving the plane, and again at terminal velocity.", "Initially only weight acts, so the acceleration is g; at terminal velocity the forces balance and the acceleration is zero",
           ["The acceleration is g at both instants — gravity never changes",
-            "Initially the forces already balance; then drag takes over",
-            "At terminal velocity the weight has fallen to match the drag — gravity weakens with speed"]],
-        ["The same skydiver opens the parachute while at terminal velocity.", "Drag now exceeds weight — the resultant force points UP, so the skydiver decelerates to a new, slower terminal velocity",
-          ["The upward resultant throws the skydiver back upward", "Weight instantly grows to exceed the larger drag", "The forces stay balanced — opening a parachute changes nothing"]],
+            "Initially the forces already balance, and only then does drag take over",
+            "At terminal velocity the weight has fallen to match the drag"]],
+        // key = shortest (rank 4)
+        ["The same skydiver opens the parachute while at terminal velocity.", "Drag now exceeds weight, so the skydiver decelerates",
+          ["The upward resultant force throws the skydiver back upward",
+            "The weight instantly grows so that it exceeds the larger drag",
+            "The forces stay balanced, so opening a parachute changes nothing"]],
       ];
       const [setting, answer, wrong] = cases[r.int(0, cases.length - 1)];
       return {
@@ -4012,15 +4056,18 @@ export const DEEP_GENS: Record<string, DeepGen> = {
         difficulty: 0.65,
       };
     }
+    // Ranks 1 and 4 on these two rows — see the comment on the first table.
     const rows: Array<[string, string, string[]]> = [
-      ["Earth 9.8 N/kg, Moon 1.6 N/kg, Mars 3.7 N/kg. A 70 kg astronaut visits each.", "Weight: 686 N on Earth, 112 N on the Moon, 259 N on Mars — mass stays 70 kg throughout",
-        ["Weight is the same everywhere; only mass changes with the field",
-          "Mass drops on the Moon to about 11 kg, matching the weaker pull",
-          "Weight is 70 N on each body — weight in newtons equals mass in kilograms"]],
-      ["A planet where the same object weighs 2× its Earth weight.", "The field strength is 19.6 N/kg — double Earth's, so free-fall acceleration doubles too",
+      // key = longest (rank 1)
+      ["Earth 9.8 N/kg, Moon 1.6 N/kg, Mars 3.7 N/kg. A 70 kg astronaut visits each.", "686 N on Earth, 112 N on the Moon, 259 N on Mars — mass stays 70 kg",
+        ["Weight is the same everywhere, and only the mass changes with the field",
+          "The mass drops on the Moon to about 11 kg, matching the weaker pull",
+          "Weight is 70 N on each body — newtons equal kilograms"]],
+      // key = shortest (rank 4)
+      ["A planet where the same object weighs 2× its Earth weight.", "The field is 19.6 N/kg — double Earth's, so free fall doubles too",
         ["The planet's mass must be exactly double Earth's — field scales only with mass",
-          "The object's mass doubled on landing — mass follows the local field",
-          "Free fall there is slower — heavier weight means more inertia to overcome"]],
+          "The object's mass doubled on landing — mass follows the local field strength",
+          "Free fall there is slower because a heavier weight means more inertia to overcome"]],
     ];
     const [obs, answer, wrong] = rows[r.int(0, rows.length - 1)];
     return {
@@ -4248,15 +4295,19 @@ export const DEEP_GENS: Record<string, DeepGen> = {
   "hormones": (r) => {
     const variant = r.next();
     if (variant < 0.34) {
+      // Ranks 1, 3, 4 down this table — see the note on `gravity-fields`.
       const cases: Array<[string, string, string[]]> = [
+        // key = longest (rank 1)
         ["blood glucose concentration is too HIGH (after a meal)", "Insulin — moves glucose into cells and stores it as glycogen in liver and muscle",
           ["Glucagon — it converts stored glycogen back to glucose", "ADH — it adjusts how much water is retained", "Adrenaline — it raises glucose further for fight-or-flight"]],
-        ["blood glucose concentration is too LOW (hours after eating)", "Glucagon — the liver converts stored glycogen back into glucose and releases it",
-          ["Insulin — it releases the stored glucose into the blood", "Oestrogen — it regulates the blood sugar cycle monthly", "Adrenaline is the only hormone that can raise blood glucose"]],
-        ["a person has not eaten for a day, and the glycogen store runs low", "Glucagon plus gluconeogenesis keep blood glucose up — the brain cannot run without it",
-          ["Insulin takes over, releasing the remaining glucose slowly",
-            "Blood glucose simply falls with no correction available",
-            "Adrenaline converts protein directly into insulin"]],
+        // key = third-longest (rank 3)
+        ["blood glucose concentration is too LOW (hours after eating)", "Glucagon — the liver breaks glycogen down and releases glucose",
+          ["Insulin — it takes the remaining glucose out of the blood into the cells", "Adrenaline — it alone can raise blood glucose when the level falls", "Oestrogen — it regulates the monthly blood sugar cycle"]],
+        // key = shortest (rank 4)
+        ["a person has not eaten for a day, and the glycogen store runs low", "Glucagon keeps blood glucose up for the brain",
+          ["Insulin takes over and releases the remaining glucose slowly",
+            "Blood glucose simply falls, because no correction is available",
+            "Adrenaline converts stored protein directly into insulin"]],
       ];
       const [state, answer, wrong] = cases[r.int(0, cases.length - 1)];
       return {
@@ -4269,15 +4320,20 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       };
     }
     if (variant < 0.67) {
+      // Ranks 1, 4, 3, 2 down this table — see the note on `gravity-fields`.
       const pairs: Array<[string, string, string[]]> = [
+        // key = longest (rank 1)
         ["ADH and its role", "Released by the pituitary; makes kidney tubules reabsorb more water, concentrating the urine",
           ["Made by the kidney; increases the filtration rate", "Released by the pancreas; stores water as glycogen", "Made by the adrenal gland; triggers the fight-or-flight response"]],
-        ["adrenaline and its role", "Released by the adrenal glands; raises heart rate, blood glucose and breathing rate — preparing for action",
-          ["Released by the pancreas; lowers blood glucose for sudden activity", "Made by the pituitary; controls the monthly menstrual cycle", "Released by the thyroid; sets the basal metabolic rate"]],
-        ["thyroxine and its role", "Released by the thyroid; regulates metabolic rate — how fast chemical reactions run",
-          ["Released by the adrenal glands; controls blood calcium", "Made by the pancreas; controls the rate of digestion", "Released by the ovaries; maintains the uterus lining"]],
+        // key = shortest (rank 4)
+        ["adrenaline and its role", "Released by the adrenal glands for emergencies",
+          ["Released by the pancreas; lowers blood glucose for sudden activity", "Made by the pituitary; controls the monthly menstrual cycle", "Released by the thyroid; it sets the basal metabolic rate"]],
+        // key = third-longest (rank 3)
+        ["thyroxine and its role", "Released by the thyroid; it regulates the metabolic rate",
+          ["Released by the adrenal glands; it controls the calcium in the blood", "Made by the pancreas, where it also controls the digestion rate", "Released by the ovaries; maintains the uterus lining"]],
+        // key = second-longest (rank 2)
         ["the pituitary gland's role", "The master gland — its hormones (FSH, LH, ADH) direct other endocrine glands",
-          ["It stores all hormones made elsewhere for gradual release", "It produces insulin and glucagon together", "It filters hormones from the blood once they are spent"]],
+          ["It stores every hormone that is made elsewhere in the body, releasing them gradually", "It produces insulin and glucagon together with the pancreas", "It filters spent hormones out of the blood as they are used up"]],
       ];
       const [q, answer, wrong] = pairs[r.int(0, pairs.length - 1)];
       return {
@@ -4296,11 +4352,12 @@ export const DEEP_GENS: Record<string, DeepGen> = {
     const effect = level > setpoint ? "falls" : "rises";
     return {
       prompt: `A graph shows blood glucose at ${level} mg/100 ml (set point: ${setpoint}). Trace the negative-feedback sequence that restores the set point.`,
-      correct: `The ${level > setpoint ? "pancreas detects the high level and releases insulin" : "pancreas detects the low level and releases glucagon"}; glucose ${effect} toward ${setpoint}; when it reaches the set point the hormone's release stops`,
-      wrongs: pickDistinct(`The ${level > setpoint ? "pancreas detects the high level and releases insulin" : "pancreas detects the low level and releases glucagon"}; glucose ${effect} toward ${setpoint}; when it reaches the set point the hormone's release stops`, [
-        `The level stays ${dir} the set point — feedback only slows the change, never reverses it`,
-        `The body overshoots deliberately to the opposite extreme, then corrects back`,
-        `The set point rises to meet the new level — the body adapts its target instead`,
+      // key = third-longest (rank 3)
+      correct: `The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint}; the release then stops`,
+      wrongs: pickDistinct(`The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint}; the release then stops`, [
+        `The level stays ${dir} the set point, because feedback can only slow a change and never reverses it`,
+        `The body deliberately overshoots to the opposite extreme before it corrects back again`,
+        `The set point rises to meet the new level, adapting the body's target`,
       ]),
       tags: [],
       explanation: `Negative feedback has four steps: DETECT the deviation from the set point, RELEASE the corrective hormone, COUNTERACT the deviation, SWITCH OFF when the set point returns. The switch-off is what makes it feedback rather than a one-way correction — and the set point itself never moves in these graphs.`,

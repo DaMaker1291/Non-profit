@@ -144,6 +144,13 @@ record("question coverage", contentOk, "npm run verify:q — every generated que
 const releaseOk = runScript("verify:content-release");
 record("content release version", releaseOk, "the served content matches the published version");
 
+// The assessment-validity gate. `verify:q` proves every generated item is
+// ANSWERABLE; this proves it is not answerable from the OPTION LENGTHS alone, on
+// the surface a learner meets. Both are content claims and they fail for
+// different reasons, so both are steps.
+const optionsOk = runScript("gate:options");
+record("option-length gate", optionsOk, "npm run gate:options — no concept may be beaten by a length-only strategy");
+
 // ── 2. The database, when there is one ──────────────────────────────────────
 // The store is a directory of JSON/JSONL files by default, so this section has
 // three honest states rather than one:

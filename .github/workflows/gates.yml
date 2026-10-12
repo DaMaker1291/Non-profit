@@ -42,6 +42,19 @@ jobs:
       - name: Question audit
         run: npm run verify:q
 
+      # The option-length gate: `verify:q` proves every item is ANSWERABLE, this
+      # proves it is not answerable from the option set alone. Eight fixed
+      # strategies (longest/shortest text, extremes, middles, digit count,
+      # numeric magnitude, first and last position) are scored per concept on the
+      # production serve at a 0.75 target, because a learner who never reads the
+      # question should not beat the 25% chance line. Repaired concepts are
+      # asserted absolutely; every other concept is held at its recorded floor in
+      # audit/option-bias-baseline.json, and the concepts still above the line are
+      # listed by name on every run. It is a `gate:` rather than a report because
+      # this fault arrived quietly and only a failing build can keep it out.
+      - name: Option-length gate
+        run: npm run gate:options
+
       # The content ceiling: the level each advanced tier PROMISES versus the
       # level its practice can actually serve (measured through the production
       # serve path, reported as a distribution). This is the gate for the fault

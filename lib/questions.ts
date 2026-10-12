@@ -938,8 +938,8 @@ const MATHS_GENS: Record<string, RawGen> = {
       {
         prompt: `Students who eat breakfast get better grades. What can you conclude?`,
         figure: { kind: "axes", xMin: 0, xMax: 8, yMin: 0, yMax: 9, points: SCATTER_FLAT },
-        correct: "Breakfast may not cause it — other factors differ too",
-        wrongs: ["Breakfast causes better grades", "Grades cause breakfast", "The study proves nothing about either"],
+        correct: "Other factors differ between the groups",
+        wrongs: ["Breakfast causes better grades, so it is causal", "Better grades make students eat breakfast", "The study proves nothing about either one"],
         tags: ["corr-cause"],
         explanation: `A correlation without a controlled comparison. Sleep, routine and home circumstances all differ between the groups, and each could drive the grades.`,
       },
@@ -947,7 +947,7 @@ const MATHS_GENS: Record<string, RawGen> = {
         prompt: `Regions with more storks also record more births. What is the best explanation?`,
         figure: { kind: "axes", xMin: 0, xMax: 8, yMin: 0, yMax: 9, points: SCATTER_STEEP },
         correct: "A third factor (population size) drives both",
-        wrongs: ["Storks deliver babies", "More babies attract storks", "The data must be fabricated"],
+        wrongs: ["Storks deliver the babies, as the saying goes", "More babies attract storks to the region", "The data must be fabricated"],
         tags: ["corr-cause"],
         explanation: `Bigger regions have both more people and more roofs to nest on. When two counts scale with population, they rise together without causing each other.`,
       },
@@ -1164,8 +1164,16 @@ const MATHS_GENS: Record<string, RawGen> = {
       difficulty: 0.45,
     };
   },
+  // The correct option's LENGTH RANK is written into these rows on purpose: it
+  // is the longest on row 1, second-longest on row 2, third on row 4 and
+  // SHORTEST on row 3. A bank whose key is always the longest option can be
+  // beaten by a learner who never reads the question (`npm run audit:options`
+  // measures exactly that, at 37% against a 25% chance line), so the rank is
+  // part of the item. Full rationale lives in `explanation`; the option states
+  // the answer.
   "proof": (r) => {
     const scenes = [
+      // key = longest (rank 1)
       {
         prompt: `Claim: "n² + n + 41 is prime for every whole number n." Best response?`,
         correct: "Disprove: n = 41 gives 41² + 41 + 41 = 41 × 43, not prime",
@@ -1173,6 +1181,7 @@ const MATHS_GENS: Record<string, RawGen> = {
         tags: [],
         explanation: `One counterexample kills a universal claim. At n = 41: 41² + 41 + 41 = 41 × 43 — composite. Checking finitely many cases never proves "for all".`,
       },
+      // key = second-longest (rank 2)
       {
         prompt: `Claim: "Every odd number squared leaves remainder 1 when divided by 8." Which method proves it?`,
         correct: "Write the odd number as 2k + 1 and expand",
@@ -1180,12 +1189,21 @@ const MATHS_GENS: Record<string, RawGen> = {
         tags: [],
         explanation: `(2k + 1)² = 4k² + 4k + 1 = 4k(k + 1) + 1, and k(k + 1) is always even — so 4k(k + 1) is a multiple of 8. Algebra covers every odd number at once.`,
       },
+      // key = shortest (rank 4)
       {
         prompt: `Claim: "√2 cannot be written as a fraction." Which approach proves it?`,
-        correct: "Assume √2 = a/b in lowest terms, then derive a contradiction",
-        wrongs: ["Show its decimal never repeats", "Find a fraction very close to √2", "State that no one has found one"],
+        correct: "Assume √2 = a/b in lowest terms",
+        wrongs: ["Show that its decimal never repeats, however far you carry it", "Find a fraction that is very close to √2", "State that nobody has ever found such a fraction"],
         tags: [],
-        explanation: `Proof by contradiction: from √2 = a/b in lowest terms you get a² = 2b², so a is even, then b is even too — contradicting "lowest terms". A long decimal is never proof.`,
+        explanation: `Proof by contradiction: from √2 = a/b in lowest terms you get a² = 2b², so a is even, then b is even too — contradicting "lowest terms", which is the contradiction the assumption sets up. A long decimal is never proof.`,
+      },
+      // key = third-longest (rank 3)
+      {
+        prompt: `Claim: "Every even number squared is a multiple of 4." Which method proves it?`,
+        correct: "Write the even number as 2k, so (2k)² = 4k²",
+        wrongs: ["Check 2, 4, 6, 8 and 10, then extrapolate the pattern you see", "Assume that some even square is not a multiple of 4 and hunt for one", "Prove it for 2 and say the rest follow"],
+        tags: [],
+        explanation: `Algebra covers every case at once: (2k)² = 4k², which is 4 × k² — a multiple of 4 by construction. Checking examples can only ever find a counterexample; it can never establish "every".`,
       },
     ];
     const s = r.pick(scenes);
@@ -1206,17 +1224,19 @@ const MATHS_GENS: Record<string, RawGen> = {
     // One valid inference and two classic fallacies — the same skill (can this
     // conclusion actually be drawn?) in three different wordings.
     const scenes = [
+      // key = shortest (rank 4)
       {
         prompt: `"If it rains, the match is cancelled." It did NOT rain. What follows?`,
-        correct: "Nothing — the match may or may not be cancelled",
-        wrongs: ["The match was cancelled", "The match was not cancelled", "The statement is false"],
+        correct: "Nothing follows about the match",
+        wrongs: ["The match was cancelled because of the rain", "The match was not cancelled, since it did not rain", "The statement itself must be false"],
         tags: [],
         explanation: `A → B says only what happens WHEN A holds. Without rain (¬A) it is silent — the 'denying the antecedent' fallacy.`,
       },
+      // key = second-longest (rank 2)
       {
         prompt: `"If a shape is a square, it has 4 sides." This shape has 4 sides. What follows?`,
         correct: "Nothing — a rectangle or rhombus also has 4 sides",
-        wrongs: ["It is a square", "It is not a square", "The statement is false"],
+        wrongs: ["It is a square, because four sides is what a square has", "It is not a square", "The statement is false"],
         tags: [],
         explanation: `B does not give you A ('affirming the consequent'): squares are a SUBSET of 4-sided shapes. Only the reverse implication would hold.`,
       },
@@ -1292,8 +1312,13 @@ const MATHS_GENS: Record<string, RawGen> = {
   "iteration": (r) => {
     return {
       prompt: `x₀ = 2, x_{n+1} = (x_n + 5/x_n)/2. x₁ = ?`,
+      // Every option is written to the SAME two decimal places. The answer is
+      // 2.25, and printing the distractors as 2.5 / 3.5 / 2.2 made the correct
+      // option the only four-character string on screen — a learner could pick
+      // it without evaluating the iteration at all. Consistent precision is also
+      // simply how a numerical answer is written down.
       correct: "2.25",
-      wrongs: ["2.5", "3.5", "2.2"] as [string, string, string],
+      wrongs: ["2.50", "3.50", "2.20"] as [string, string, string],
       tags: [], explanation: `x₁ = (2 + 5/2)/2 = (2 + 2.5)/2 = 2.25. This iteration converges to √5 — Newton's method for square roots.`,
       difficulty: 0.5,
     };
@@ -1302,15 +1327,15 @@ const MATHS_GENS: Record<string, RawGen> = {
     const scenes = [
       {
         prompt: `Two tangents are drawn from the same external point to a circle. Their lengths are…?`,
-        correct: "Equal",
+        correct: "Equal — both tangents are the same length",
         wrongs: ["In the ratio 1 : 2", "Perpendicular to each other", "Always chords of the circle"],
         tags: [],
         explanation: `Tangents from the same external point are equal: each forms a right angle with its radius, and the two right-angled triangles share the hypotenuse to the centre (RHS congruent).`,
       },
       {
         prompt: `An angle is subtended by a diameter at the circumference. Its size is…?`,
-        correct: "90°",
-        wrongs: ["45°", "60°", "It depends on the radius"],
+        correct: "90° — always a right angle",
+        wrongs: ["45° — half the angle at the centre", "60° — an equilateral triangle follows", "It depends on the radius"],
         tags: ["same-seg"],
         explanation: `The diameter subtends 180° at the centre, and the circumference angle is always half the centre angle: 180 ÷ 2 = 90°. This is Thales' theorem.`,
       },
@@ -1515,12 +1540,13 @@ const SCI_GENS: Record<string, RawGen> = {
       difficulty: 0.4,
     };
   },
+  // key = third-longest (rank 3)
   "gravity-fields": (r) => {
     return {
       prompt: `A satellite orbits Earth at constant speed. The resultant force on it…?`,
-      correct: "Is nonzero, pointing toward Earth (centripetal)",
-      wrongs: ["Is zero — it moves at constant speed", "Points along its direction of travel", "Points away from Earth"] as [string, string, string],
-      tags: ["bal-motion"], explanation: `Constant SPEED but changing DIRECTION = acceleration. Gravity provides the centripetal force, bending the path into an orbit — the satellite is 'falling around' Earth.`,
+      correct: "Is nonzero, pointing toward Earth",
+      wrongs: ["Is zero — it moves at a constant speed, so no force can act", "Points along its direction of travel, keeping it moving", "Points away from Earth"] as [string, string, string],
+      tags: ["bal-motion"], explanation: `Constant SPEED but changing DIRECTION = acceleration. Gravity provides the CENTRIPETAL force, bending the path into an orbit — the satellite is 'falling around' Earth.`,
       difficulty: 0.5,
     };
   },
@@ -1539,7 +1565,7 @@ const SCI_GENS: Record<string, RawGen> = {
     return {
       prompt: `Light from distant galaxies is redshifted. What does this tell us?`,
       correct: "The galaxies are moving away — the universe is expanding",
-      wrongs: ["The galaxies are approaching us", "The light is losing energy in space", "Galaxies are stationary"] as [string, string, string],
+      wrongs: ["The galaxies are approaching us, blue-shifted as they come", "The light loses energy crossing space, with no motion involved", "Galaxies are stationary"] as [string, string, string],
       tags: [], explanation: `Redshift = wavelengths stretched = recession. The further the galaxy, the bigger the redshift (Hubble's law) → space itself is expanding → Big Bang.`,
       difficulty: 0.45,
     };
@@ -1562,11 +1588,12 @@ const SCI_GENS: Record<string, RawGen> = {
       difficulty: 0.25,
     };
   },
+  // key = third-longest (rank 3)
   "periodic-table": (r) => {
     return {
       prompt: `Going DOWN group 1 (Li → Na → K), reactivity…`,
       correct: "Increases — the outer electron is lost more easily",
-      wrongs: ["Decreases — atoms get heavier", "Stays the same", "Increases then decreases"] as [string, string, string],
+      wrongs: ["Decreases, because the atoms get heavier down the group", "Decreases, since heavier atoms attract electrons more", "Stays the same"] as [string, string, string],
       tags: ["group-trend"], explanation: `Bigger atoms hold the outer electron more weakly (further from the nucleus, shielded) → easier to lose → MORE reactive down group 1. (Group 7 runs the OPPOSITE way.)`,
       difficulty: 0.45,
     };
@@ -1596,12 +1623,13 @@ const SCI_GENS: Record<string, RawGen> = {
       difficulty: 0.45,
     };
   },
+  // key = third-longest (rank 3)
   "covalent-bonding": (r) => {
     return {
       prompt: `Why does water (H₂O) have a low boiling point for its formula mass?`,
-      correct: "Simple molecules: weak forces BETWEEN molecules break, not strong bonds",
-      wrongs: ["Its covalent bonds are weak", "It is ionic", "Hydrogen is light"] as [string, string, string],
-      tags: [], explanation: `Boiling overcomes intermolecular forces, NOT covalent bonds — the H–O bonds stay intact in steam. Small molecules have weak intermolecular forces → low boiling points.`,
+      correct: "Simple molecules: the weak forces BETWEEN them break",
+      wrongs: ["The covalent bonds inside each molecule are weak, so boiling breaks them", "Water is really an ionic compound, so boiling splits its lattice", "Hydrogen is light"] as [string, string, string],
+      tags: [], explanation: `Boiling overcomes the intermolecular forces, NOT the strong covalent bonds — the H–O bonds stay intact in steam. Small molecules have weak forces between them → low boiling points.`,
       difficulty: 0.5,
     };
   },
@@ -1625,11 +1653,12 @@ const SCI_GENS: Record<string, RawGen> = {
       difficulty: 0.4,
     };
   },
+  // key = second-longest (rank 2)
   "rates-reaction": (r) => {
     return {
       prompt: `Powdered marble reacts FASTER than lumps with acid because…`,
       correct: "Larger surface area → more collision sites per second",
-      wrongs: ["Powder has more energy", "Powder lowers the temperature", "Powder changes the acid's concentration"] as [string, string, string],
+      wrongs: ["Powder has far more energy stored inside it than lumps do", "Powder lowers the temperature of the acid", "Powder changes the acid's concentration"] as [string, string, string],
       tags: [], explanation: `Rate = collision frequency × energy success. Powder exposes far more surface → more collisions per second → faster reaction. Same particles, same energy — just more contact.`,
       difficulty: 0.4,
     };
@@ -1670,29 +1699,32 @@ const SCI_GENS: Record<string, RawGen> = {
       difficulty: 0.4,
     };
   },
+  // key = shortest (rank 4)
   "equilibria": (r) => {
     return {
       prompt: `N₂ + 3H₂ ⇌ 2NH₃ (forward reaction exothermic). Raising the temperature shifts equilibrium…`,
-      correct: "Left — toward the endothermic direction",
-      wrongs: ["Right — more ammonia forms", "No shift — catalysts cancel it", "Left then right"] as [string, string, string],
+      correct: "Left, toward the endothermic direction",
+      wrongs: ["Right, so more ammonia forms as the mixture cools", "No shift at all — the catalyst cancels the change", "Left, then right, ending where it started"] as [string, string, string],
       tags: [], explanation: `Le Chatelier: the system opposes the change. Extra heat is 'used up' by the endothermic (reverse) direction → less NH₃. This is why Haber runs a compromise temperature.`,
       difficulty: 0.55,
     };
   },
+  // key = shortest (rank 4)
   "analysis-tests": (r) => {
     return {
       prompt: `Limewater turns cloudy/milky. Which gas?`,
       correct: "Carbon dioxide (CO₂)",
-      wrongs: ["Hydrogen", "Oxygen", "Chlorine"] as [string, string, string],
+      wrongs: ["Hydrogen — a lighted splint gives a squeaky pop", "Oxygen — it relights a glowing splint", "Chlorine — it bleaches damp litmus paper"] as [string, string, string],
       tags: [], explanation: `CO₂ + Ca(OH)₂ → CaCO₃ (insoluble white precipitate) + H₂O — the cloudiness. (H₂: squeaky pop. O₂: relights splint. Cl₂: bleaches litmus.)`,
       difficulty: 0.35,
     };
   },
+  // key = shortest (rank 4)
   "cells": (r) => {
     return {
       prompt: `Which structure is found in PLANT cells but NOT animal cells?`,
       correct: "Cellulose cell wall",
-      wrongs: ["Mitochondria", "Cell membrane", "Nucleus"] as [string, string, string],
+      wrongs: ["Mitochondria, where aerobic respiration happens", "A cell membrane, controlling what enters and leaves", "A nucleus, holding the genetic material"] as [string, string, string],
       tags: [], explanation: `Plant-only: cellulose wall, chloroplasts, permanent vacuole. Mitochondria, membrane and nucleus are in both.`,
       difficulty: 0.2,
     };
@@ -1721,20 +1753,22 @@ const SCI_GENS: Record<string, RawGen> = {
         difficulty: 0.3,
       };
     }
+    // key = shortest (rank 4)
     if (angle === 1) {
       return {
         prompt: `Which enzyme breaks FATS into fatty acids and glycerol?`,
         correct: "Lipase",
-        wrongs: ["Amylase", "Protease", "Bile"] as [string, string, string],
+        wrongs: ["Amylase — it breaks down starch", "Protease — it breaks down protein", "Bile — it is not an enzyme at all"] as [string, string, string],
         tags: [], explanation: `Lipase → fats → fatty acids + glycerol. Amylase handles carbohydrate, protease handles protein, and bile is not an enzyme — it emulsifies fat so lipase can reach more of it.`,
         difficulty: 0.3,
       };
     }
+    // key = third-longest (rank 3)
     if (angle === 2) {
       return {
         prompt: `Protease breaks down which food group?`,
         correct: "Protein → amino acids",
-        wrongs: ["Starch → sugars", "Fats → fatty acids", "Fibre → glucose"] as [string, string, string],
+        wrongs: ["Starch → sugars, broken down by amylase", "Fats → fatty acids and glycerol", "Fibre → glucose"] as [string, string, string],
         tags: [], explanation: `Protease → protein → amino acids. Starch is amylase's job, fats are lipase's, and fibre is largely indigestible in humans.`,
         difficulty: 0.35,
       };
@@ -1756,12 +1790,13 @@ const SCI_GENS: Record<string, RawGen> = {
       difficulty: 0.45,
     };
   },
+  // key = third-longest (rank 3)
   "breathing-gas": (r) => {
     return {
       prompt: `When you breathe IN, the diaphragm…`,
-      correct: "Contracts and flattens — volume up, pressure down",
-      wrongs: ["Relaxes and domes up", "Stays still — ribs do everything", "Contracts into a dome"] as [string, string, string],
-      tags: [], explanation: `Contraction flattens the diaphragm, enlarging the chest. Bigger volume → lower pressure → air flows IN. Expiration is mostly relaxation.`,
+      correct: "Contracts and flattens; chest volume rises",
+      wrongs: ["Relaxes and domes up, squeezing the air inward", "Stays still — the ribs do all the work on their own", "Contracts into a dome"] as [string, string, string],
+      tags: [], explanation: `Contraction flattens the diaphragm, enlarging the chest. Bigger volume → lower pressure → air flows IN (pressure down). Expiration is mostly relaxation.`,
       difficulty: 0.4,
     };
   },
@@ -1776,56 +1811,65 @@ const SCI_GENS: Record<string, RawGen> = {
         difficulty: 0.45,
       };
     }
+    // key = third-longest (rank 3)
     if (kind === 2) {
       return {
         prompt: `A plant cell is placed in CONCENTRATED salt solution. What happens?`,
-        correct: "Water leaves by osmosis — the cell becomes flaccid (plasmolysed)",
-        wrongs: ["Water enters — the cell bursts", "Nothing changes", "Salt enters by osmosis"] as [string, string, string],
+        correct: "Water leaves the cell; it becomes flaccid",
+        wrongs: ["Water enters — the cell bursts under the pressure", "Nothing changes — the wall protects the cell", "Salt enters the cell by osmosis"] as [string, string, string],
         tags: [], explanation: `Concentrated outside = lower water potential → water LEAVES. The membrane pulls from the wall: plasmolysis. (Animal cells would crenate.)`,
         difficulty: 0.5,
       };
     }
+    // key = shortest (rank 4)
     return {
       prompt: `Oxygen enters the blood from the lungs because…`,
-      correct: "Blood has lower O₂ concentration — diffusion down the gradient",
-      wrongs: ["Blood actively pumps O₂ in", "Oxygen is pushed by pressure alone", "The heart sucks it in"] as [string, string, string],
+      correct: "Blood's O₂ is lower, so it diffuses in",
+      wrongs: ["Blood actively pumps O₂ in through the capillary wall", "Oxygen is pushed in by pressure alone, not diffusion", "The heart sucks the oxygen in with each beat"] as [string, string, string],
       tags: [], explanation: `Diffusion needs NO energy: particles net-migrate from high → low concentration. Alveoli keep blood O₂ low so the gradient never flattens.`,
       difficulty: 0.35,
     };
   },
+  // key = shortest (rank 4): the three wrong pairs now say what they are, which
+  // is also a fuller statement of the misconception.
   "photosynthesis": (r) => {
     return {
       prompt: `Which are the two raw materials of photosynthesis?`,
       correct: "Carbon dioxide and water",
-      wrongs: ["Oxygen and glucose", "Glucose and water", "Nitrogen and water"] as [string, string, string],
+      wrongs: ["Oxygen and glucose, made by the plant", "Glucose and water stored in the leaf", "Nitrogen and water from the soil"] as [string, string, string],
       tags: [], explanation: `6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂ (light energy). CO₂ and water IN; glucose and oxygen OUT. Oxygen is a by-product, not an input.`,
       difficulty: 0.3,
     };
   },
+  // key = third-longest (rank 3)
   "respiration": (r) => {
     return {
       prompt: `Anaerobic respiration in human muscle produces…`,
       correct: "Lactic acid (and much less energy)",
-      wrongs: ["Ethanol and CO₂", "More energy than aerobic", "Oxygen debt repaid instantly"] as [string, string, string],
+      wrongs: ["Ethanol and CO₂ — the yeast pathway, releasing more", "More energy than aerobic respiration releases", "Oxygen debt, repaid straight away"] as [string, string, string],
       tags: [], explanation: `Human muscle: glucose → lactic acid (the 'oxygen debt' repaid later). Yeast: glucose → ethanol + CO₂. Both release FAR less energy than aerobic respiration.`,
       difficulty: 0.4,
     };
   },
+  // key = third-longest (rank 3)
   "nervous-system": (r) => {
     return {
       prompt: `The reflex arc bypasses the brain to…`,
-      correct: "Save time — automatic, faster responses",
-      wrongs: ["Use hormones instead of nerves", "Store the memory permanently", "Increase sensation"] as [string, string, string],
+      correct: "Save time, so the response is faster",
+      wrongs: ["Use hormones instead of nerve impulses", "Store the memory of the stimulus permanently", "Increase sensation at the receptor"] as [string, string, string],
       tags: [], explanation: `Receptor → sensory → relay (spine) → motor → effector. Fewer synapses, no conscious decision → milliseconds. You feel the heat AFTER your hand has moved.`,
       difficulty: 0.4,
     };
   },
+  // key = third-longest (rank 3): the storage product (glycogen) moved into the
+  // explanation, and the three wrong hormones now state their own action in full
+  // rather than as a stub.
   "hormones": (r) => {
     return {
       prompt: `Blood glucose is too HIGH. Which hormone, and what does it do?`,
-      correct: "Insulin — moves glucose into cells, stored as glycogen",
-      wrongs: ["Glucagon — releases stored glucose", "ADH — retains water", "Adrenaline — raises it further"] as [string, string, string],
-      tags: [], explanation: `Insulin LOWERS glucose (storage as glycogen); glucagon RAISES it (glycogen → glucose). Negative feedback keeps ~90 mg/100 ml.`,
+      correct: "Insulin — moves glucose into cells",
+      wrongs: ["Glucagon — the liver converts stored glycogen back into glucose", "ADH — makes the kidney tubules reabsorb more water", "Adrenaline — raises it further"] as [string, string, string],
+      tags: [], explanation: `Insulin LOWERS blood glucose, moving it into cells and storing it as glycogen; glucagon RAISES it (glycogen → glucose). A pair with opposite effects on the same variable is what makes negative feedback possible, holding ~90 mg/100 ml.`,
       difficulty: 0.45,
     };
   },
@@ -1864,38 +1908,42 @@ const SCI_GENS: Record<string, RawGen> = {
       difficulty: 0.5,
     };
   },
+  // key = shortest (rank 4)
   "ecosystems": (r) => {
     return {
       prompt: `Why are food chains rarely longer than 5 levels?`,
       correct: "~90% of energy is lost at each transfer",
-      wrongs: ["Predators stop hunting each other", "Plants run out of sunlight", "Larger animals need fewer calories"] as [string, string, string],
+      wrongs: ["Predators stop hunting each other after a few levels", "Plants run out of sunlight at the deepest levels", "Larger animals need far fewer calories to survive"] as [string, string, string],
       tags: [], explanation: `Each level: respiration, movement, heat, excretion consume ~90%. 10 000 J of grass ≈ 10 J at the 4th level — not enough to support another level.`,
       difficulty: 0.45,
     };
   },
+  // key = shortest (rank 4)
   "biodiversity": (r) => {
     return {
       prompt: `Which is the LARGEST direct driver of current species loss?`,
       correct: "Habitat destruction (land-use change)",
-      wrongs: ["Natural predators", "Species migrating", "Volcanic activity"] as [string, string, string],
+      wrongs: ["Volcanic activity and natural climate shifts", "Natural predators spreading into new areas", "Species migrating into entirely new habitats"] as [string, string, string],
       tags: [], explanation: `Converting habitats to farmland/urban use removes the home and food of species — the top driver globally, ahead of overexploitation, pollution, invasives and climate change.`,
       difficulty: 0.4,
     };
   },
+  // key = third-longest (rank 3)
   "immune-health": (r) => {
     return {
       prompt: `Why don't antibiotics work on colds?`,
-      correct: "Colds are viral — antibiotics target bacterial machinery only",
-      wrongs: ["Colds are too strong for antibiotics", "Antibiotics only prevent illness", "Viruses hide from everything"] as [string, string, string],
+      correct: "Antibiotics only work on bacteria",
+      wrongs: ["Colds are viral, and viruses are far stronger than antibiotics", "Antibiotics prevent illness rather than curing anything", "Viruses hide from everything"] as [string, string, string],
       tags: [], explanation: `Antibiotics attack bacterial walls/ribosomes — things viruses lack (they hijack YOUR cells). Misuse breeds resistant bacteria. Vaccines and hygiene fight viruses.`,
       difficulty: 0.4,
     };
   },
+  // key = shortest (rank 4)
   "what-is-code": (r) => {
     return {
       prompt: `A program prints the wrong total. What is the FIRST thing to check?`,
-      correct: "Trace the logic step by step with a small example",
-      wrongs: ["Rewrite the whole program", "Reinstall the computer", "Add more features"] as [string, string, string],
+      correct: "Trace the logic with a small example",
+      wrongs: ["Rewrite the whole program from the beginning", "Reinstall the operating system on the computer", "Add more features and hope the bug goes away"] as [string, string, string],
       tags: [], explanation: `Debugging = tracing state through the code by hand (or with prints) on the smallest input that fails. Computers do exactly what you said — find what you actually said.`,
       difficulty: 0.3,
     };
@@ -2127,48 +2175,54 @@ const SCI_GENS: Record<string, RawGen> = {
       difficulty: 0.4,
     };
   },
+  // key = third-longest (rank 3)
   "networks": (r) => {
     return {
       prompt: `What does DNS do?`,
       correct: "Translates domain names into IP addresses",
-      wrongs: ["Encrypts your traffic", "Compresses web pages", "Stores your passwords"] as [string, string, string],
+      wrongs: ["Encrypts all of your internet traffic end to end", "Compresses web pages before sending them", "Stores your passwords securely"] as [string, string, string],
       tags: [], explanation: `DNS is the internet's phonebook: example.com → 93.184.216.34. Without it you'd memorise numbers; HTTPS then encrypts what DNS helps you reach.`,
       difficulty: 0.35,
     };
   },
+  // key = shortest (rank 4) — the reasoning this item used to carry inline is in
+  // `explanation`, which is where a learner reads it anyway.
   "cybersecurity": (r) => {
     return {
       prompt: `Why store passwords HASHED, not encrypted?`,
-      correct: "Hashing is one-way — even a stolen database can't reveal passwords",
-      wrongs: ["Hashing is faster to type", "Encryption is illegal", "Hashes are shorter"] as [string, string, string],
-      tags: [], explanation: `Encryption is reversible with the key — steal the key, read every password. A hash can't be reversed: on login, hash the attempt and compare. (Plus a salt, always.)`,
+      correct: "Hashing is one-way",
+      wrongs: ["Hashing is faster to type than encrypting a password is", "Encryption is illegal for stored passwords", "Hashes are much shorter, so they save space"] as [string, string, string],
+      tags: [], explanation: `Hashing is ONE-WAY — even a stolen database cannot reveal a password. Encryption is reversible with the key, so steal the key and you read every password. On login OpenMind hashes the attempt and compares. (Plus a salt, always.)`,
       difficulty: 0.5,
     };
   },
+  // key = second-longest (rank 2)
   "databases-sql": (r) => {
     return {
       prompt: `Which SQL fetches names of students with grade above 80?`,
       correct: "SELECT name FROM students WHERE grade > 80",
-      wrongs: ["GET name FROM students IF grade > 80", "SELECT * WHERE grade > 80 FROM students", "SELECT name WHERE students.grade = 80"] as [string, string, string],
+      wrongs: ["GET name FROM students IF grade > 80", "SELECT * WHERE grade > 80 FROM students", "SELECT name WHERE students.grade = 80 FROM students"] as [string, string, string],
       tags: [], explanation: `SQL grammar: SELECT columns FROM table WHERE condition. SELECT * returns ALL columns — rarely what you want in production.`,
       difficulty: 0.4,
     };
   },
+  // key = third-longest (rank 3)
   "web-stack": (r) => {
     return {
       prompt: `Which technology controls the LAYOUT and colours of a web page?`,
-      correct: "CSS",
-      wrongs: ["HTML", "JavaScript", "SQL"] as [string, string, string],
+      correct: "CSS (Cascading Style Sheets)",
+      wrongs: ["HTML, which defines the page structure", "JavaScript, which adds interactivity", "SQL"] as [string, string, string],
       tags: [], explanation: `HTML = structure (what it is), CSS = presentation (how it looks), JavaScript = behaviour (what it does). SQL lives on the server with the database.`,
       difficulty: 0.25,
     };
   },
+  // key = shortest (rank 4)
   "ai-basics": (r) => {
     return {
       prompt: `Machine learning differs from classical programming because…`,
-      correct: "Rules are LEARNED from data, not hand-written",
-      wrongs: ["It needs no data", "It always uses neural networks", "It cannot make mistakes"] as [string, string, string],
-      tags: [], explanation: `Classical: rules + data → answers. ML: data + answers → rules. The model infers the pattern — which is why data quality caps everything.`,
+      correct: "Rules are LEARNED from the data",
+      wrongs: ["It needs no data at all, only a cleverer algorithm", "It always means a deep neural network is used", "It cannot make mistakes once it is trained"] as [string, string, string],
+      tags: [], explanation: `Classical: rules + data → answers. ML: data + answers → RULES, learned rather than hand-written by a programmer. The model infers the pattern — which is why data quality caps everything.`,
       difficulty: 0.4,
     };
   },
@@ -2180,7 +2234,7 @@ const SCI_GENS: Record<string, RawGen> = {
     return {
       prompt: `Data: ${data.join(", ")}. Which average best represents it?`,
       correct: `The median (${median})`,
-      wrongs: [`The mean (${mean})`, "The mode", "The range"] as [string, string, string],
+      wrongs: ["The mean, which the outlier drags upward", "The mode, which simply ignores the outlier", "The range, which the outlier stretches"] as [string, string, string],
       tags: ["outlier-mean"], explanation: `The outlier (${sorted[sorted.length - 1]}) drags the mean to ${mean}, above every value but one. The median (${median}) resists outliers — skew demands median.`,
       difficulty: 0.45,
     };
@@ -2395,17 +2449,19 @@ const LATE_GENS: Record<string, RawGen> = {
       tags: ["motor-gen"], explanation: `Induced voltage grows with the RATE of change of flux: faster motion, stronger magnet, more turns. A still magnet has unchanging flux — nothing is induced, however close it sits.`,
       difficulty: 0.4,
     };
+    // key = shortest (rank 4)
     if (v === 1) return {
       prompt: `Why will a transformer not work with a steady DC supply on the primary coil?`,
-      correct: "The magnetic flux is unchanging, so nothing is induced in the secondary",
-      wrongs: ["DC carries too little energy for a transformer", "The primary coil would overheat instantly", "DC reverses direction too often"] as [string, string, string],
+      correct: "The flux never changes, so nothing is induced",
+      wrongs: ["DC carries far too little energy to work a transformer", "The primary coil would overheat almost instantly", "DC reverses direction far too often to be useful"] as [string, string, string],
       tags: ["motor-gen"], explanation: `Transformers need a CHANGING flux in the core. Steady DC gives constant flux — no change, no induced voltage in the secondary. AC constantly changes, which is why mains is AC.`,
       difficulty: 0.5,
     };
+    // key = third-longest (rank 3)
     return {
       prompt: `A wire is moved downwards through a magnetic field between two poles. What happens in the wire?`,
       correct: "A voltage is induced, which can drive a current",
-      wrongs: ["The wire becomes permanently magnetised", "Nothing — fields only act on magnets", "The poles reverse their polarity"] as [string, string, string],
+      wrongs: ["The wire becomes permanently magnetised by the field", "Nothing at all — magnetic fields only act on other magnets", "The poles reverse their polarity"] as [string, string, string],
       tags: ["motor-gen"], explanation: `Movement + field = the generator effect: cutting field lines induces a voltage across the wire (Fleming's RIGHT-hand rule predicts its direction). Close the circuit and current flows.`,
       difficulty: 0.45,
     };
@@ -2419,17 +2475,19 @@ const LATE_GENS: Record<string, RawGen> = {
       tags: [], explanation: `Metal atoms release outer electrons into a shared 'sea' that spans the crystal. These mobile charges drift when a voltage is applied — that current IS conduction. Ions stay fixed in place.`,
       difficulty: 0.35,
     };
+    // key = shortest (rank 4)
     if (v === 1) return {
       prompt: `Why are alloys harder than the pure metals they contain?`,
-      correct: "Different-sized atoms disrupt the layers, so they cannot slide easily",
-      wrongs: ["Alloys contain fewer free electrons", "Covalent bonds replace the metallic bonds", "Alloy atoms are always heavier"] as [string, string, string],
+      correct: "Different-sized atoms jam the layers",
+      wrongs: ["Alloys contain far fewer free electrons than pure metals", "Covalent bonds replace the metallic bonds in an alloy", "Alloy atoms are always much heavier than the metal's"] as [string, string, string],
       tags: [], explanation: `Pure metals bend because neat layers of same-sized ions slide over each other. Mixing in different-sized atoms jams the layers — that is why bronze and steel outperform pure copper and iron.`,
       difficulty: 0.45,
     };
+    // key = third-longest (rank 3)
     return {
       prompt: `Metals can be hammered into shape without shattering because...`,
-      correct: "layers of positive ions can slide over each other while the electron sea holds the structure together",
-      wrongs: ["the ionic bonds break and instantly reform", "the electrons push the layers apart", "metals have very low melting points"] as [string, string, string],
+      correct: "the layers of positive ions can slide over each other",
+      wrongs: ["the ionic bonds between the layers break and instantly reform", "the negative electrons push the layers apart when they move", "metals have very low melting points"] as [string, string, string],
       tags: [], explanation: `The non-directional metallic bond is the key: after layers slide, the delocalised electrons still surround the shifted ions and bonding is restored. Ionic crystals shatter instead — like charges meet.`,
       difficulty: 0.4,
     };
@@ -2445,10 +2503,11 @@ const LATE_GENS: Record<string, RawGen> = {
         difficulty: 0.4,
       };
     }
+    // key = third-longest (rank 3)
     return {
       prompt: `A microscope's RESOLUTION is its ability to...`,
       correct: "show two close points as two separate points",
-      wrongs: ["make an image look bigger", "keep a moving specimen in focus", "show only surface detail"] as [string, string, string],
+      wrongs: ["make the image look bigger than the object really is", "keep a moving specimen sharp while it swims about", "show only the surface detail of the specimen"] as [string, string, string],
       tags: [], explanation: `Resolution is distinguishing detail: the minimum separation at which two points still look like two. Electron microscopes win because their wavelength is far shorter than light's — more resolution, not just more magnification.`,
       difficulty: 0.35,
     };

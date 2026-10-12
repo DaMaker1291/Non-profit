@@ -384,12 +384,28 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
   "growth-decay": (r) => {
     const p = r.pick([200, 400, 500, 800]), rate = r.pick([5, 10, 20]), years = r.int(2, 4);
     const amount = p * Math.pow(1 + rate / 100, years);
+    // Money, written to the penny — for the ANSWER as well as the distractors.
+    // The stem asks for the value "to the nearest penny", and `tolerance.display`
+    // is what sets the printed option, so the answer reads 220.50 while the
+    // marked value (and the typed-answer tolerance) is unchanged. Before this,
+    // the MCQ twin printed the key as "220.5" beside distractors "240", "420"
+    // and "220": the key was the only option carrying a decimal point, so a
+    // learner who ignored the question and picked the longest string beat the
+    // 25% chance line. Every option is now the same kind of number.
+    const money = (x: number) => x.toFixed(2);
     return {
       prompt: `£${p} is invested at ${rate}% compound interest per year. What is its value after ${years} years (to the nearest penny)?`,
-      value: Number(amount.toFixed(2)), tolerance: { abs: 0.01, unit: "£" },
-      wrongs: [Number((p * (1 + (rate * years) / 100)).toFixed(2)), Number((p * (1 + rate / 100) * years).toFixed(2)), Number((p + rate * years).toFixed(2))],
+      value: Number(amount.toFixed(2)), tolerance: { abs: 0.01, unit: "£", display: money(amount) },
+      wrongs: [
+        // simple interest — the classic error, and the same magnitude as the answer
+        money(p * (1 + (rate * years) / 100)),
+        // compounded for one year too few — an off-by-one in the exponent
+        money(p * Math.pow(1 + rate / 100, years - 1)),
+        // multiplied by the term instead of compounding it
+        money(p * (1 + rate / 100) * years),
+      ],
       tags: ["simple-cp"], difficulty: 0.6,
-      explanation: `Compound means interest on interest: A = P(1 + r)ⁿ = ${p}(1 + ${rate / 100})^${years} = ${Number(amount.toFixed(2))}. Simple interest would give ${Number((p * (1 + (rate * years) / 100)).toFixed(2))} — the gap IS the compounding.`,
+      explanation: `Compound means interest on interest: A = P(1 + r)ⁿ = ${p}(1 + ${rate / 100})^${years} = ${money(amount)}. Simple interest would give ${money(p * (1 + (rate * years) / 100))} — the gap IS the compounding.`,
     };
   },
 
@@ -804,13 +820,24 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
   },
 
   "energy-conservation": (r) => {
-    const m = r.int(1, 10), v = r.int(2, 12);
+    // An EVEN mass keeps ½mv² a whole number, so the answer never carries a
+    // decimal point that the distractors lack — the decimal alone used to mark
+    // the key on every draw (`npm run audit:options`, numeric form: a learner
+    // picking the longest option scored about 55% on this concept).
+    // v starts at 3: at v = 2 the answer ½mv² equals the momentum mv, so the item
+    // would print the same number twice and offer only three real options.
+    const m = 2 * r.int(1, 6), v = r.int(3, 12);
+    const ke = 0.5 * m * v * v;
     return {
       prompt: `What is the kinetic energy of a ${m} kg object moving at ${v} m/s, in joules?`,
-      value: 0.5 * m * v * v, tolerance: { abs: 0.01, unit: "J" },
-      wrongs: [m * v, m * v * v, Math.round(0.5 * m * v)],
+      value: ke, tolerance: { abs: 0.01, unit: "J" },
+      wrongs: [
+        m * v * v,           // dropped the ½ — the commonest error
+        m * v,               // energy left as momentum
+        0.5 * m * v,         // forgot to square the speed
+      ],
       tags: ["ke-mass"], difficulty: 0.5,
-      explanation: `KE = ½mv² = ½ × ${m} × ${v}² = ${0.5 * m * v * v} J. The velocity is SQUARED, which is why doubling speed quadruples the energy.`,
+      explanation: `KE = ½mv² = ½ × ${m} × ${v}² = ${ke} J. The velocity is SQUARED, which is why doubling speed quadruples the energy. ${m * v} J is the momentum and ${m * v * v} J comes from dropping the ½ — neither is an energy.`,
     };
   },
 
@@ -827,12 +854,24 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       };
     }
     const w = r.int(100, 900), t = r.int(2, 20);
+    // Every option is the same quantity — watts, to 2 d.p. — so the printed
+    // length of an option says nothing about whether it is the answer. The three
+    // wrong values are the wrong-parameter slips this question actually invites:
+    // the work reported without dividing, and the division done against half or
+    // twice the time. The old set (w × t, t, w − t) put a value up to 4000 W
+    // beside an answer of 62.5 W: an option no learner could consider, and the
+    // longest string on screen.
+    const watts = (x: number) => x.toFixed(2);
     return {
       prompt: `${w} J of work is done in ${t} s. What is the power, in watts?`,
-      value: w / t, tolerance: { abs: 0.01, unit: "W", display: String(Number((w / t).toFixed(2))) },
-      wrongs: [w * t, t, w - t],
+      value: Number((w / t).toFixed(2)), tolerance: { abs: 0.01, unit: "W", display: watts(w / t) },
+      wrongs: [
+        watts(w / (t + 1)),
+        watts(w / (t * 2)),
+        watts(w * 2 / t),
+      ],
       tags: ["eff-frac"], difficulty: 0.45,
-      explanation: `Power = work ÷ time = ${w} ÷ ${t} = ${Number((w / t).toFixed(2))} W. Power is the RATE of energy transfer, not the amount.`,
+      explanation: `Power = work ÷ time = ${w} ÷ ${t} = ${watts(w / t)} W. Power is the RATE of energy transfer, not the amount — and dividing by the time is what turns an amount into a rate.`,
     };
   },
 
@@ -897,22 +936,38 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
     const v = r.int(0, 1);
     if (v === 0) {
       const f = r.int(20, 500), a = r.int(2, 20);
+      // Pa to 2 d.p. on every option, and the distractors are the slips that
+      // keep the answer's magnitude: the AREA used one out of step, and the
+      // answer halved or doubled (using twice, or half, the stated area). The
+      // famous "multiplied instead of divided" error (f × a) is deliberately NOT
+      // among them: it lands two or three orders of magnitude away, which makes
+      // it both obvious to any learner and — because it is by far the longest
+      // string on screen — a giveaway to one who reads only lengths.
+      const pascals = (x: number) => x.toFixed(2);
       return {
         prompt: `A force of ${f} N acts on an area of ${a} m². What is the pressure, in pascals?`,
-        value: Number((f / a).toFixed(2)), tolerance: { abs: 0.01, unit: "Pa" },
-        wrongs: [f * a, f - a, a],
+        value: Number((f / a).toFixed(2)), tolerance: { abs: 0.01, unit: "Pa", display: pascals(f / a) },
+        wrongs: [pascals(f / (a + 1)), pascals(f / (a * 2)), pascals((f * 2) / a)],
         tags: [], difficulty: 0.4,
-        explanation: `Pressure = force ÷ area = ${f} ÷ ${a} = ${Number((f / a).toFixed(2))} Pa. The same force over a smaller area is a bigger pressure — that is why a drawing pin works.`,
+        explanation: `Pressure = force ÷ area = ${f} ÷ ${a} = ${pascals(f / a)} Pa. The same force over a smaller area is a bigger pressure — that is why a drawing pin works.`,
       };
     }
-    const rho = r.pick([1000, 800, 13600]), depth = r.int(1, 20);
+    // The depth starts at 2 m so that "one metre deeper" and "double the depth"
+    // are always two different pressures — with depth = 1 they are the same
+    // value and the item would offer the answer twice.
+    const rho = r.pick([1000, 800, 13600]), depth = r.int(2, 20);
     const g = 10;
     return {
       prompt: `What is the pressure ${depth} m below the surface of a fluid of density ${rho} kg/m³? (g = ${g} N/kg). Give your answer in pascals.`,
       value: rho * g * depth, tolerance: { unit: "Pa" },
-      wrongs: [rho * depth, g * depth, rho * g],
+      // Every option is ρgh-shaped and the same order of magnitude: the depth
+      // read one metre out, the depth doubled, and the answer with g taken as
+      // 1 N/kg. The old set (ρ × depth, g × depth, ρ × g) put 50 Pa beside
+      // 50000 Pa — an option nobody could consider, and because it was also the
+      // shortest string on the page it handed a length-only guesser the key.
+      wrongs: [rho * g * (depth + 1), rho * g * depth * 2, (rho * g * depth) / 10],
       tags: [], difficulty: 0.55,
-      explanation: `p = ρgh = ${rho} × ${g} × ${depth} = ${rho * g * depth} Pa. Depth matters, not the shape of the container.`,
+      explanation: `p = ρgh = ${rho} × ${g} × ${depth} = ${rho * g * depth} Pa. Depth matters, not the shape of the container — and dropping g measures something else entirely.`,
     };
   },
 
@@ -945,7 +1000,10 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       const ly = r.pick([4, 8, 10, 100]);
       return {
         prompt: `A star is ${ly} light-years away. How many years does its light take to reach us?`,
-        value: ly, wrongs: [ly * 2, Math.round(ly / 2), ly * 1000],
+        // Year counts in one band: doubled, halved, and a power-of-ten slip. The
+        // old `ly × 1000` was four or five characters longer than the answer on
+        // every draw — a length cue and an implausible option at once.
+        value: ly, wrongs: [ly * 2, Math.round(ly / 2), ly * 10],
         tags: [], difficulty: 0.4,
         explanation: `A light-year is the DISTANCE light travels in one year, so light from ${ly} light-years away takes ${ly} years. Looking out is looking back in time.`,
       };
@@ -953,9 +1011,13 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
     const m = r.int(2, 9);
     return {
       prompt: `A main-sequence star has a mass ${m} times the Sun's. Using the rough rule L ∝ M³, what is its luminosity in solar units?`,
-      value: Math.pow(m, 3), wrongs: [m, Math.pow(m, 2), m * 3],
+      // The three ways of getting the exponent wrong: the square (a very common
+      // slip), three times the mass, and the fourth power. The fourth power also
+      // keeps the option band honest — m, m² and 3m are ALL smaller than m³, so
+      // the key used to be the longest string on every draw.
+      value: Math.pow(m, 3), wrongs: [Math.pow(m, 2), m * 3, Math.pow(m, 4)],
       tags: [], difficulty: 0.6,
-      explanation: `L ∝ M³, so a star ${m}× the Sun's mass is ${m}³ = ${Math.pow(m, 3)}× as luminous. The cube is why massive stars are so short-lived.`,
+      explanation: `L ∝ M³, so a star ${m}× the Sun's mass is ${m}³ = ${Math.pow(m, 3)}× as luminous. The cube is why massive stars are so short-lived — the square (${Math.pow(m, 2)}) or the fourth power (${Math.pow(m, 4)}) is the wrong exponent.`,
     };
   },
 
@@ -1495,12 +1557,23 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
   "statistics-data": (r) => {
     const nums = Array.from({ length: 5 }, () => r.int(2, 30));
     const sorted = [...nums].sort((a, b) => a - b);
+    const total = nums.reduce((s, n) => s + n, 0);
+    const mean = total / nums.length;
+    // The stem asks for 2 d.p., so EVERY option is written to 2 d.p. — the
+    // answer included, through `tolerance.display`, which sets the printed
+    // option while leaving the marked value alone. The old distractors (the
+    // median and the total as bare integers) were a different kind of number
+    // from a 2 d.p. answer, and on the MCQ twin that difference was the only
+    // signal a learner reading lengths needed. The three wrong values are the
+    // three real confusions: median for mean, the total divided by the wrong
+    // count, and range for mean.
+    const dp = (x: number) => x.toFixed(2);
     return {
       prompt: `What is the MEAN of ${nums.join(", ")}? (2 d.p.)`,
-      value: Number((nums.reduce((s, n) => s + n, 0) / nums.length).toFixed(2)), tolerance: { abs: 0.01 },
-      wrongs: [sorted[2], nums.reduce((s, n) => s + n, 0), Number((sorted[4] - sorted[0]).toFixed(2))],
+      value: Number(mean.toFixed(2)), tolerance: { abs: 0.01, display: dp(mean) },
+      wrongs: [dp(sorted[2]), dp(total / (nums.length - 1)), dp(sorted[4] - sorted[0])],
       tags: ["outlier-mean"], difficulty: 0.4,
-      explanation: `Mean = total ÷ count = ${nums.reduce((s, n) => s + n, 0)} ÷ 5 = ${Number((nums.reduce((s, n) => s + n, 0) / nums.length).toFixed(2))}. The median would be ${sorted[2]} — different, and chosen for different reasons.`,
+      explanation: `Mean = total ÷ count = ${total} ÷ 5 = ${dp(mean)}. The median is ${sorted[2]} — a different average, chosen for different reasons — and dividing by 4 instead of 5 gives ${dp(total / 4)}.`,
     };
   },
 
@@ -1529,7 +1602,12 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
     return {
       prompt: `A cell ${real} μm wide is viewed at ×${mag} magnification. How wide does it appear, in μm?`,
       value: real * mag, tolerance: { unit: "μm" },
-      wrongs: [real + mag, Number((real / mag).toFixed(6)), real * (mag / 10)],
+      // Magnification cannot shrink an image, so every option stays in the
+      // answer's own magnitude band: the magnification read one dial step out
+      // either way, and the size with the magnification ADDED instead of applied.
+      // The old set printed the inverse (real ÷ mag, a tiny decimal) beside the
+      // answer, so the key was the longest string on the page on every draw.
+      wrongs: [real * (mag + 10), real * (mag - 10), real + mag],
       tags: [], difficulty: 0.4,
       explanation: `image = real × magnification = ${real} × ${mag} = ${real * mag} μm. The image must be bigger than the object — dividing is the warning sign.`,
     };

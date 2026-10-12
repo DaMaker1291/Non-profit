@@ -116,11 +116,25 @@ export const MID_CHEMISTRY: Record<string, DeepGen> = {
     // tie, and a table with two right answers is not a question — so the sets
     // below are picked because each has one clear winner, and the generator
     // never has to hope that a random draw produced one.
+    //
+    // AND THE LENGTH RANK IS CHOSEN WITH THEM. The four options here are element
+    // NAMES, so an option's length is a property of the element chosen rather
+    // than of anything the learner reads — which makes the cue unusually sharp:
+    // the earlier sets had the winning element's name the SHORTEST (iron, 4
+    // letters) on two of the four draws and the LONGEST (aluminium, 9) on
+    // another, so "pick the shortest" was right on half of all draws without any
+    // chemistry at all (`npm run audit:options` measured the concept at 78%).
+    // Set A's winner has the longest name, B's the second-longest, C's the
+    // third and D's the shortest, so no length strategy works on more than a
+    // quarter of the draws. Every mass number is the commonest isotope's, and
+    // every set still has exactly one neutron maximum:
+    //   A potassium 20 (9 letters, longest)   B chlorine 18 (8, second)
+    //   C calcium 20 (7, third)               D iron 30 (4, shortest)
     const sets: Array<Array<[string, number, number]>> = [
-      [["carbon", 6, 12], ["sodium", 11, 23], ["chlorine", 17, 35], ["iron", 26, 56]],
-      [["oxygen", 8, 16], ["aluminium", 13, 27], ["chlorine", 17, 35], ["calcium", 20, 40]],
-      [["carbon", 6, 12], ["oxygen", 8, 16], ["sodium", 11, 23], ["aluminium", 13, 27]],
-      [["sodium", 11, 23], ["chlorine", 17, 35], ["potassium", 19, 39], ["iron", 26, 56]],
+      [["potassium", 19, 39], ["lithium", 3, 7], ["carbon", 6, 12], ["oxygen", 8, 16]],
+      [["aluminium", 13, 27], ["chlorine", 17, 35], ["sodium", 11, 23], ["carbon", 6, 12]],
+      [["aluminium", 13, 27], ["chlorine", 17, 35], ["calcium", 20, 40], ["carbon", 6, 12]],
+      [["iron", 26, 56], ["chlorine", 17, 35], ["aluminium", 13, 27], ["calcium", 20, 40]],
     ];
     const chosen = r.pick(sets);
     const neutrons = chosen.map(([, z, a]) => a - z);

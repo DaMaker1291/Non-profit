@@ -310,6 +310,16 @@ export const BIOLOGY_DEEP: Record<string, DeepGen> = {
       prompt: `Anaerobic respiration releases ${anaerobicYield} ATP per glucose molecule and aerobic respiration releases ${aerobicYield}. A muscle respires ${glucoses} glucose molecules anaerobically. How many glucose molecules would aerobic respiration have needed to release THE SAME amount of ATP?`,
       correct,
       wrongs: distinct(correct, [
+        // WHY THIS CANDIDATE IS FIRST. The answer is the glucose count divided
+        // by 16, so it is the SHORTEST option on screen on nearly every draw
+        // while every other candidate here is larger — the mirror of the
+        // "pick the longest" defect, and `npm run audit:options` reports this
+        // direction too (its shortest-direction control). The anaerobic yield
+        // quoted as a count of molecules is a real unit slip — this family
+        // already offers the ATP total as a count — and it renders as a single
+        // character, so the key stops being the UNIQUE shortest option.
+        // `distinct` drops it on the draw where it would equal the answer.
+        String(anaerobicYield),
         // The same number of glucose molecules.
         String(glucoses),
         // The ratio the wrong way round.
@@ -318,8 +328,10 @@ export const BIOLOGY_DEEP: Record<string, DeepGen> = {
         String(glucoses / 2),
         // The ATP total quoted as a glucose count.
         String(anaerobicAtp),
-        // The two yields added.
-        String(glucoses / (aerobicYield + anaerobicYield)),
+        // The two yields added. Rounded, because this division does not
+        // terminate: `String(x / y)` is how a wrong option ends up reading
+        // "2.3529411764705883".
+        num(glucoses / (aerobicYield + anaerobicYield), 2),
       ]),
       tags: [],
       explanation: `Anaerobic respiration of ${glucoses} glucose molecules gives ${glucoses} × ${anaerobicYield} = ${anaerobicAtp} ATP. Aerobic respiration gives ${aerobicYield} ATP from each glucose, so reaching ${anaerobicAtp} ATP aerobically takes ${anaerobicAtp} ÷ ${aerobicYield} = ${correct} glucose molecules. That is the ${aerobicYield / anaerobicYield}-fold difference anaerobiosis costs you — the reason a sprinter can keep going and a marathon runner cannot.`,

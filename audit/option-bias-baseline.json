@@ -1,0 +1,562 @@
+{
+  "note": "Option-length-bias baseline. Regenerated ONLY with `npm run gate:options -- --write-baseline`; the diff is the review.",
+  "seeds": 60,
+  "target": 0.75,
+  "attempts": 40,
+  "chance": 0.25,
+  "reportLine": 0.35,
+  "bank": {
+    "best": 0.34011316872427994,
+    "n": 8100,
+    "longest": 0.34011316872427994,
+    "shortest": 0.15407407407407406,
+    "extremes": 0.28616255144032926,
+    "middles": 0.08462962962962962,
+    "digits": 0.23260288065843615,
+    "magnitude": 0.07435185185185184,
+    "first": 0.25160493827160496,
+    "last": 0.24567901234567902
+  },
+  "perConcept": {
+    "bounds": {
+      "best": 1,
+      "n": 60
+    },
+    "enzymes": {
+      "best": 1,
+      "n": 60
+    },
+    "evolution": {
+      "best": 1,
+      "n": 60
+    },
+    "indices-intro": {
+      "best": 1,
+      "n": 60
+    },
+    "proof": {
+      "best": 1,
+      "n": 60
+    },
+    "trig-rule": {
+      "best": 1,
+      "n": 60
+    },
+    "circle-geometry-adv": {
+      "best": 0.9888888888888889,
+      "n": 60
+    },
+    "light-optics": {
+      "best": 0.9833333333333333,
+      "n": 60
+    },
+    "photosynthesis": {
+      "best": 0.9833333333333333,
+      "n": 60
+    },
+    "volume": {
+      "best": 0.9833333333333333,
+      "n": 60
+    },
+    "diffusion": {
+      "best": 0.975,
+      "n": 60
+    },
+    "biodiversity": {
+      "best": 0.9666666666666667,
+      "n": 60
+    },
+    "breathing-gas": {
+      "best": 0.9666666666666667,
+      "n": 60
+    },
+    "rates-reaction": {
+      "best": 0.9666666666666667,
+      "n": 60
+    },
+    "cells": {
+      "best": 0.95,
+      "n": 60
+    },
+    "covalent-bonding": {
+      "best": 0.95,
+      "n": 60
+    },
+    "functions-code": {
+      "best": 0.95,
+      "n": 60
+    },
+    "metallic-bonding": {
+      "best": 0.95,
+      "n": 60
+    },
+    "cybersecurity": {
+      "best": 0.9375,
+      "n": 60
+    },
+    "digestion": {
+      "best": 0.9333333333333333,
+      "n": 60
+    },
+    "respiration": {
+      "best": 0.9333333333333333,
+      "n": 60
+    },
+    "iteration": {
+      "best": 0.925,
+      "n": 60
+    },
+    "complexity": {
+      "best": 0.9208333333333333,
+      "n": 60
+    },
+    "fraction-ops": {
+      "best": 0.9166666666666666,
+      "n": 60
+    },
+    "nervous-system": {
+      "best": 0.9166666666666666,
+      "n": 60
+    },
+    "thermal-physics": {
+      "best": 0.9166666666666666,
+      "n": 60
+    },
+    "vectors": {
+      "best": 0.9166666666666666,
+      "n": 60
+    },
+    "immune-health": {
+      "best": 0.9069444444444444,
+      "n": 60
+    },
+    "em-induction": {
+      "best": 0.8916666666666667,
+      "n": 60
+    },
+    "sound-acoustics": {
+      "best": 0.8875,
+      "n": 60
+    },
+    "gravity-fields": {
+      "best": 0.8833333333333333,
+      "n": 60
+    },
+    "energy-changes": {
+      "best": 0.8666666666666667,
+      "n": 60
+    },
+    "circulation": {
+      "best": 0.8583333333333333,
+      "n": 60
+    },
+    "acids-bases": {
+      "best": 0.8388888888888889,
+      "n": 60
+    },
+    "analysis-tests": {
+      "best": 0.8375,
+      "n": 60
+    },
+    "hormones": {
+      "best": 0.825,
+      "n": 60
+    },
+    "microscopy": {
+      "best": 0.825,
+      "n": 60
+    },
+    "ionic-bonding": {
+      "best": 0.8125,
+      "n": 60
+    },
+    "astrophysics": {
+      "best": 0.8,
+      "n": 60
+    },
+    "equations-stoich": {
+      "best": 0.7944444444444444,
+      "n": 60
+    },
+    "energy-conservation": {
+      "best": 0.7833333333333333,
+      "n": 60
+    },
+    "surds": {
+      "best": 0.7694444444444444,
+      "n": 60
+    },
+    "periodic-table": {
+      "best": 0.7666666666666667,
+      "n": 60
+    },
+    "logic-maths": {
+      "best": 0.7333333333333333,
+      "n": 60
+    },
+    "data-charts": {
+      "best": 0.7166666666666667,
+      "n": 60
+    },
+    "electron-shells": {
+      "best": 0.7138888888888889,
+      "n": 60
+    },
+    "averages": {
+      "best": 0.7055555555555556,
+      "n": 60
+    },
+    "probability-basics": {
+      "best": 0.6,
+      "n": 60
+    },
+    "binary-data": {
+      "best": 0.5916666666666667,
+      "n": 60
+    },
+    "bearings": {
+      "best": 0.5833333333333334,
+      "n": 60
+    },
+    "magnetism": {
+      "best": 0.5805555555555556,
+      "n": 60
+    },
+    "equilibria": {
+      "best": 0.5666666666666667,
+      "n": 60
+    },
+    "organic-intro": {
+      "best": 0.5166666666666667,
+      "n": 60
+    },
+    "simultaneous": {
+      "best": 0.5166666666666666,
+      "n": 60
+    },
+    "motion-graphs": {
+      "best": 0.5027777777777777,
+      "n": 60
+    },
+    "loops": {
+      "best": 0.5,
+      "n": 60
+    },
+    "matrices-intro": {
+      "best": 0.5,
+      "n": 60
+    },
+    "lists-arrays": {
+      "best": 0.49166666666666664,
+      "n": 60
+    },
+    "ecosystems": {
+      "best": 0.48333333333333334,
+      "n": 60
+    },
+    "trig-ratios": {
+      "best": 0.4666666666666667,
+      "n": 60
+    },
+    "scatter-correlation": {
+      "best": 0.45,
+      "n": 60
+    },
+    "fractions": {
+      "best": 0.4444444444444444,
+      "n": 60
+    },
+    "compounds-mixtures": {
+      "best": 0.44166666666666665,
+      "n": 60
+    },
+    "logs": {
+      "best": 0.44166666666666665,
+      "n": 60
+    },
+    "area-perimeter": {
+      "best": 0.4375,
+      "n": 60
+    },
+    "atoms-elements": {
+      "best": 0.4166666666666667,
+      "n": 60
+    },
+    "completing-square": {
+      "best": 0.4166666666666667,
+      "n": 60
+    },
+    "calculus-diff": {
+      "best": 0.41666666666666663,
+      "n": 60
+    },
+    "calculus-int": {
+      "best": 0.4166666666666666,
+      "n": 60
+    },
+    "quadratic-graphs": {
+      "best": 0.4152777777777778,
+      "n": 60
+    },
+    "networks": {
+      "best": 0.4069444444444444,
+      "n": 60
+    },
+    "transformations": {
+      "best": 0.39722222222222214,
+      "n": 60
+    },
+    "functions": {
+      "best": 0.39166666666666666,
+      "n": 60
+    },
+    "atoms-nucleus": {
+      "best": 0.38333333333333336,
+      "n": 60
+    },
+    "quadratics": {
+      "best": 0.38333333333333336,
+      "n": 60
+    },
+    "radioactivity": {
+      "best": 0.38333333333333336,
+      "n": 60
+    },
+    "pressure-fluids": {
+      "best": 0.375,
+      "n": 60
+    },
+    "percentages": {
+      "best": 0.36944444444444424,
+      "n": 60
+    },
+    "ai-basics": {
+      "best": 0.36666666666666664,
+      "n": 60
+    },
+    "algorithms-sort": {
+      "best": 0.36666666666666664,
+      "n": 60
+    },
+    "circle-theorems": {
+      "best": 0.36666666666666664,
+      "n": 60
+    },
+    "forces-basics": {
+      "best": 0.36666666666666664,
+      "n": 60
+    },
+    "mixture-problems": {
+      "best": 0.36666666666666664,
+      "n": 60
+    },
+    "ratio": {
+      "best": 0.36666666666666664,
+      "n": 60
+    },
+    "angles-lines": {
+      "best": 0.3541666666666667,
+      "n": 60
+    },
+    "moles-calcs": {
+      "best": 0.35,
+      "n": 60
+    },
+    "rounding": {
+      "best": 0.35,
+      "n": 60
+    },
+    "straight-lines": {
+      "best": 0.35,
+      "n": 60
+    },
+    "waves-basics": {
+      "best": 0.3472222222222221,
+      "n": 60
+    },
+    "subtraction": {
+      "best": 0.3388888888888888,
+      "n": 60
+    },
+    "circle-area-arc": {
+      "best": 0.33749999999999997,
+      "n": 60
+    },
+    "algebra-expressions": {
+      "best": 0.3333333333333333,
+      "n": 60
+    },
+    "binomial": {
+      "best": 0.3333333333333333,
+      "n": 60
+    },
+    "growth-decay": {
+      "best": 0.3333333333333333,
+      "n": 60
+    },
+    "linear-equations": {
+      "best": 0.3333333333333333,
+      "n": 60
+    },
+    "number-bases": {
+      "best": 0.3333333333333333,
+      "n": 60
+    },
+    "web-stack": {
+      "best": 0.3333333333333333,
+      "n": 60
+    },
+    "algebra-expand": {
+      "best": 0.3277777777777778,
+      "n": 60
+    },
+    "multiplication": {
+      "best": 0.3263888888888889,
+      "n": 60
+    },
+    "negatives": {
+      "best": 0.325,
+      "n": 60
+    },
+    "work-power": {
+      "best": 0.3222222222222222,
+      "n": 60
+    },
+    "loci-constructions": {
+      "best": 0.3194444444444445,
+      "n": 60
+    },
+    "statistics-data": {
+      "best": 0.31666666666666665,
+      "n": 60
+    },
+    "electricity-circuits": {
+      "best": 0.3055555555555555,
+      "n": 60
+    },
+    "decimals": {
+      "best": 0.30277777777777776,
+      "n": 60
+    },
+    "division": {
+      "best": 0.3,
+      "n": 60
+    },
+    "newton-laws": {
+      "best": 0.3,
+      "n": 60
+    },
+    "recursion": {
+      "best": 0.3,
+      "n": 60
+    },
+    "standard-form": {
+      "best": 0.3,
+      "n": 60
+    },
+    "trig-identity": {
+      "best": 0.2944444444444444,
+      "n": 60
+    },
+    "sets-venn": {
+      "best": 0.29166666666666674,
+      "n": 60
+    },
+    "place-value": {
+      "best": 0.2916666666666667,
+      "n": 60
+    },
+    "algebraic-fractions": {
+      "best": 0.2902777777777778,
+      "n": 60
+    },
+    "algorithms-search": {
+      "best": 0.2833333333333333,
+      "n": 60
+    },
+    "conditionals": {
+      "best": 0.2833333333333333,
+      "n": 60
+    },
+    "financial-maths": {
+      "best": 0.2833333333333333,
+      "n": 60
+    },
+    "inequalities": {
+      "best": 0.2833333333333333,
+      "n": 60
+    },
+    "order-ops": {
+      "best": 0.2833333333333333,
+      "n": 60
+    },
+    "sequences": {
+      "best": 0.2833333333333333,
+      "n": 60
+    },
+    "dictionaries": {
+      "best": 0.27222222222222225,
+      "n": 60
+    },
+    "variables": {
+      "best": 0.27083333333333337,
+      "n": 60
+    },
+    "coordinates": {
+      "best": 0.26666666666666666,
+      "n": 60
+    },
+    "momentum": {
+      "best": 0.26666666666666666,
+      "n": 60
+    },
+    "proportion": {
+      "best": 0.26666666666666666,
+      "n": 60
+    },
+    "genetics": {
+      "best": 0.2569444444444446,
+      "n": 60
+    },
+    "proportional-graphs": {
+      "best": 0.25416666666666665,
+      "n": 60
+    },
+    "addition": {
+      "best": 0.25,
+      "n": 60
+    },
+    "databases-sql": {
+      "best": 0.25,
+      "n": 60
+    },
+    "electrolysis": {
+      "best": 0.25,
+      "n": 60
+    },
+    "kinematics": {
+      "best": 0.25,
+      "n": 60
+    },
+    "polynomials": {
+      "best": 0.25,
+      "n": 60
+    },
+    "sim-equations-quad": {
+      "best": 0.25,
+      "n": 60
+    },
+    "what-is-code": {
+      "best": 0.25,
+      "n": 60
+    },
+    "pythagoras": {
+      "best": 0.23333333333333334,
+      "n": 60
+    },
+    "tree-diagrams": {
+      "best": 0.22083333333333333,
+      "n": 60
+    }
+  }
+}

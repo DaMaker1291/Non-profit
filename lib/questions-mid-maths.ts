@@ -603,8 +603,26 @@ export const MID_MATHS: Record<string, DeepGen> = {
    *  so BOTH triangles on it are right-angled, and the answer is the sum of the
    *  two angles that are left. */
   "circle-theorems": (r) => {
-    const p = r.pick([20, 25, 30, 35, 40]);
-    const q = r.pick([15, 20, 25, 30, 35]);
+    // ── THE LENGTH RANK IS PART OF THE ITEM ──────────────────────────────────
+    // Why the ranges are wide and one distractor is a 90 + q error: the answer
+    // is angle BCD = 180 − (p + q), so its DIGIT COUNT is decided by the numbers
+    // drawn. With the narrow old ranges (p ≤ 40, q ≤ 35) every draw gave a
+    // three-digit answer beside two-digit distractors, so the correct option was
+    // the unique LONGEST string on 100% of draws — and a learner who never read
+    // the question could pick the longest one and be right every time
+    // (`npm run audit:options`; the concept measured 86.7%). Widening p and q
+    // makes the answer two digits about half the time, and `${90 + q}°` — the
+    // semicircle's 90 ADDED to the given angle instead of subtracted from it —
+    // is a genuine mis-application of the same theorem that happens to be three
+    // digits, so the key is no longer the only long option on any draw.
+    // The two draws are parity-disjoint on purpose (p ends in 5, q in 0), and
+    // that is what keeps the item's four options guaranteed rather than likely:
+    // p ≠ q means the two single-triangle answers cannot collide, and p + q ≡ 5
+    // (mod 10) means the answer can never be 90 — which the candidate list also
+    // offers literally, so a collision there would leave the item a distractor
+    // short and the assembler would pad it with filler.
+    const p = r.pick([25, 35, 45, 55, 65]);
+    const q = r.pick([20, 30, 40, 50, 60]);
     const acb = 90 - p; // angle in a semicircle, then the angle sum of ABC
     const acd = 90 - q; // the same two theorems again in ACD
     const bcd = acb + acd;
@@ -616,6 +634,10 @@ export const MID_MATHS: Record<string, DeepGen> = {
         // Only one of the two triangles used.
         `${acb}°`,
         `${acd}°`,
+        // The sign slip on the same theorem: 180 − 90 − q written as 90 + q.
+        // Three digits, so it stands beside a three-digit answer as an
+        // alternative a learner could actually be choosing between.
+        `${90 + q}°`,
         // The angles at A added and then subtracted from 180 — the same sum
         // only if the two semicircle facts are both used, which is the point.
         `${180 - p - q}°`,
@@ -624,7 +646,7 @@ export const MID_MATHS: Record<string, DeepGen> = {
         "90°",
       ]),
       tags: [],
-      explanation: `AC is a diameter, so the angle in a semicircle makes both triangles right-angled: angle ABC = ${90}° and angle ADC = ${90}°. Two steps follow, one per triangle. In ABC, angle ACB = 180 − 90 − ${p} = ${acb}. In ACD, angle ACD = 180 − 90 − ${q} = ${acd}. Angle BCD is those two together — ${acb} + ${acd} = ${bcd}. Using only one triangle gives ${acb}°, and ${p + q}° is the angle at A, which is the angle the two interior angles are measured from, not the answer.`,
+      explanation: `AC is a diameter, so the angle in a semicircle makes both triangles right-angled: angle ABC = ${90}° and angle ADC = ${90}°. Two steps follow, one per triangle. In ABC, angle ACB = 180 − 90 − ${p} = ${acb}. In ACD, angle ACD = 180 − 90 − ${q} = ${acd}. Angle BCD is those two together — ${acb} + ${acd} = ${bcd}. Using only one triangle gives ${acb}°, and ${90 + q}° adds the semicircle's 90° to the given angle instead of taking it away, which is the same theorem with the subtraction backwards. ${p + q}° is the angle at A, which is the angle the two interior angles are measured from, not the answer.`,
       difficulty: mid4(r),
     };
   },

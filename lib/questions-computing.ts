@@ -77,6 +77,40 @@ function num(x: number, dp = 3): string {
   return x.toFixed(dp).replace(/\.?0+$/, "");
 }
 
+const SUP_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+
+/**
+ * A value in standard form to four significant figures: `1.478 × 10⁷`.
+ *
+ * WHY THE OPTION SET IS WRITTEN THIS WAY. `npm run audit:options` measures how
+ * far a learner gets by never reading the question and picking an option by its
+ * LENGTH, and `cybersecurity` was one of the two worst concepts in the bank
+ * (98.6% against a 25% chance line). The cause is arithmetic rather than
+ * careless authoring: the password space is the biggest number any option can
+ * hold, so the KEY was the longest string on screen on essentially every draw.
+ * Standard form at a fixed precision removes the cue BY CONSTRUCTION (the
+ * mantissa is always five characters and a single-digit exponent is one more),
+ * and it changes no value and no misconception — 1.478 × 10⁷ is the same number
+ * as 14776336, written the way a number that size is normally written.
+ *
+ * Four significant figures because the space is an EXACT count: four figures is
+ * the most that keeps every option exact while keeping every option the same
+ * width. A learner who reads the maths still has to multiply, and now has to
+ * compare magnitudes rather than count characters.
+ */
+function sci(x: number): string {
+  const sup = (n: number) =>
+    (n < 0 ? "⁻" : "") + String(Math.abs(n)).split("").map((c) => SUP_DIGITS[Number(c)]).join("");
+  if (!Number.isFinite(x) || x === 0) return "0.000 × 10⁰";
+  let e = Math.floor(Math.log10(Math.abs(x)));
+  let m = Number((x / Math.pow(10, e)).toFixed(3));
+  // 9.9995 rounds to 10.000 at four figures, which would carry into the
+  // exponent and change the mantissa's width — the one thing this helper exists
+  // to keep constant.
+  if (Math.abs(m) >= 10) { m = Number((m / 10).toFixed(3)); e += 1; }
+  return `${m.toFixed(3)} × 10${sup(e)}`;
+}
+
 export const COMPUTING_DEEP: Record<string, DeepGen> = {
   /** A trace down three assignment lines, where the last one is the answer. */
   variables: (r) => {
@@ -395,13 +429,29 @@ export const COMPUTING_DEEP: Record<string, DeepGen> = {
     const alphabet = r.pick([26, 36, 52, 62]);
     const len = r.pick([3, 4, 5]);
     const space = Math.pow(alphabet, len);
-    const correct = String(space);
+    const correct = sci(space);
     return {
       prompt: `A website allows passwords of any ${len} characters from an alphabet of ${alphabet} symbols. How many different passwords are possible?`,
       correct,
-      wrongs: distinct(correct, [alphabet * len, Math.pow(alphabet, len - 1), alphabet + len, Math.pow(alphabet + 10, len), Math.pow(alphabet, len) + alphabet]),
+      wrongs: distinct(correct, [
+        // The positions ADDED rather than multiplied — the classic error, and
+        // the option that stays in a different magnitude on purpose: a learner
+        // who adds the choices is not one step out, they are orders of
+        // magnitude out, and the item should show them that.
+        sci(alphabet * len),
+        // One position fewer.
+        sci(Math.pow(alphabet, len - 1)),
+        // One symbol fewer in the alphabet.
+        sci(Math.pow(alphabet - 10, len)),
+        // One symbol more.
+        sci(Math.pow(alphabet + 10, len)),
+        // One position more.
+        sci(Math.pow(alphabet, len + 1)),
+        // The alphabet plus the length.
+        sci(alphabet + len),
+      ]),
       tags: [],
-      explanation: `Each of the ${len} positions can be any of ${alphabet} symbols, and the choices multiply: ${Array.from({ length: len }, () => alphabet).join(" × ")} = ${correct}. ${alphabet * len} adds the possibilities instead of multiplying them — which is why one extra character usually buys far more than one extra symbol in the alphabet.`,
+      explanation: `Each of the ${len} positions can be any of ${alphabet} symbols, and the choices multiply: ${Array.from({ length: len }, () => alphabet).join(" × ")} = ${space} = ${correct}. ${sci(alphabet * len)} adds the possibilities instead of multiplying them, which is orders of magnitude out rather than one step — and it is why one extra CHARACTER usually buys far more than one extra symbol in the alphabet.`,
       difficulty: reading(r),
     };
   },
@@ -432,23 +482,32 @@ export const COMPUTING_DEEP: Record<string, DeepGen> = {
     const second = r.pick(words.filter((w) => w !== first));
     const once = first + second;
     const correct = once + once;
+    // EVERY OPTION IS THE SAME EIGHT CHARACTERS, regrouped. Line 3 doubles the
+    // WHOLE value, so the answer is the two parts in the order they were built,
+    // twice — and a learner who misreads which half is repeated, or which part
+    // comes first, produces one of the other three groupings. Writing the
+    // distractors as regroupings of the same letters rather than as shorter
+    // fragments is what stops the correct option from being the longest string
+    // on screen (`npm run audit:options` measured exactly that: the key was the
+    // longest in 100% of draws before this, because a fragment can only be
+    // shorter than the value it is a fragment of). It also makes the item a
+    // sharper test: the four options differ ONLY in how the line was read.
     return {
       prompt: `A program runs its lines in order:\n\nword = "${first}"\nword = word + "${second}"\nword = word + word\nprint(word)\n\nWhat does it print?`,
       correct,
       wrongs: distinct(correct, [
-        // The doubling line skipped: the word printed after one join.
-        once,
-        // The doubling line read as "print the first word twice".
-        first + first,
-        // The two joins swapped.
+        // Each part printed twice, but in the order the parts were built.
+        first + first + second + second,
+        // The same, starting with the second part.
+        second + second + first + first,
+        // The two joins swapped: the last part printed first.
         second + first + second + first,
-        // The doubling line applied twice.
-        once + once + once + once,
-        // Printed before the join.
-        first,
+        // The whole eight-character value printed, but with the first part
+        // after the second within each half.
+        first + second + second + first,
       ]),
       tags: [],
-      explanation: `Every line uses the value the line above it left behind. Line 1 gives "${first}"; line 2 joins the two parts to give "${once}"; line 3 adds the WHOLE current value to itself, so "${once}" + "${once}" = "${correct}". Printing "${once}" stops one line short, and "${first}${first}" is what you get by reading line 3 as "print ${first} twice" — which is what the line means to a person and not what it does. A computer executes exactly the lines written, in order, which is why precision is the whole discipline of writing code.`,
+      explanation: `Every line uses the value the line above it left behind. Line 1 gives "${first}"; line 2 joins the two parts to give "${once}"; line 3 adds the WHOLE current value to itself, so "${once}" + "${once}" = "${correct}". Every other option is those same eight characters grouped differently: "${first}${first}${second}${second}" reads line 3 as "print each part twice in the order they were built", and "${second}${first}${second}${first}" repeats the parts the other way round. The line acts on the whole value already in word — which is what a person skimming the three lines tends not to notice, and what a computer cannot help doing.`,
       difficulty: reading(r),
     };
   },
