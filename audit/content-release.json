@@ -1,6 +1,6 @@
 {
   "note": "Published content version. Regenerate with `node scripts/verify-content-release.mjs --write` AFTER reviewing what changed — never merely to make the gate pass.",
-  "fingerprint": "da9be5949461f631",
+  "fingerprint": "1ffb41adc7b473c6",
   "curriculum": {
     "concepts": 135,
     "specifications": 25,
@@ -13,11 +13,11 @@
     "depth": 93,
     "drawsPerConcept": 3,
     "officialItems": 0,
-    "sample": "3c49f0e14b5a376b"
+    "sample": "440f33a5414a8959"
   },
   "evidence": {
     "schemaVersion": 1,
     "projectionVersion": 2
   },
-  "reviewedAt": "2026-10-10T23:19:49.914Z"
+  "reviewedAt": "2026-10-12T22:43:30.239Z"
 }
