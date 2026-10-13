@@ -199,6 +199,14 @@ record("option-length gate", optionsOk, "npm run gate:options — no concept may
 // because the summary is regenerated from the repository. Two of these numbers
 // had already drifted before it existed (the README said "25 specifications
 // across 20 countries" while the registry held 30 over 19).
+// The review pack (docs/REVIEW_PACK.md + audit/pilot-pack.json) is generated
+// from the bank, so it describes the items a reviewer would actually read. It is
+// checked BEFORE the published numbers because the status report quotes the size
+// of the review burden, and a stale pack would make that number describe a bank
+// that no longer exists.
+const pilotOk = runNode(["scripts/pilot-pack.mjs", "--check"]);
+record("pilot review pack", pilotOk, "npm run pilot-pack --check — the pack a teacher reads matches the bank");
+
 const statusOk = runScript("status:check");
 record("published numbers", statusOk, "npm run status:check — audit/status.json and the README table match the content");
 

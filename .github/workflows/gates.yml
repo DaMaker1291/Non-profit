@@ -101,6 +101,14 @@ jobs:
       - name: Content coverage (report)
         run: npm run content-audit
 
+      # The pack a teacher reads when reviewing the pilot cluster (UK GCSE
+      # maths): every item, at a seed they can reproduce, with the key and the
+      # explanation. Generated from the bank, never hand-written, and checked
+      # BEFORE the published numbers because the status report quotes how much
+      # content that review costs.
+      - name: Review pack
+        run: npm run pilot-pack -- --check
+
       # ── WHAT DOES THIS REPOSITORY CLAIM ABOUT ITSELF? ──────────────────────
       # Every published number — concepts, misconceptions, specifications, how
       # many concepts are verified, how many are still beaten by an option-length

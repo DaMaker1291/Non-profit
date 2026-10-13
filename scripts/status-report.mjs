@@ -58,7 +58,7 @@ const vcov = readJson("audit/verification-coverage.json");
 const reviews = readJson("audit/item-reviews.json")?.reviews ?? [];
 const optionsGate = readJson("audit/options-gate.json");
 const contentCoverage = readJson("audit/content-coverage.json");
-const curriculumAudit = readJson("audit/curriculum-coverage.json");
+const pilotPack = readJson("audit/pilot-pack.json");
 
 const bySubject = {};
 for (const c of G.CONCEPTS) bySubject[c.subject] = (bySubject[c.subject] ?? 0) + 1;
@@ -80,6 +80,14 @@ const rows = [
   { section: "Assessment validity", label: "Concepts with an option-length tell above the line", value: optionsGate ? `${optionsGate.offenders} of ${optionsGate.concepts}` : "MISSING", source: "audit/options-gate.json", note: "a learner who never reads the question should not beat chance" },
   { section: "Assessment validity", label: "Best bank-wide length strategy", value: optionsGate ? `${(optionsGate.bank.best * 100).toFixed(1)}%` : "MISSING", source: "audit/options-gate.json", note: "chance is 25%" },
   { section: "Assessment validity", label: "Course × subject rows audited for depth", value: contentCoverage?.totals?.courses ?? "MISSING", source: "audit/content-coverage.json", note: !contentCoverage?.totals ? "" : contentCoverage.totals.short === 0 ? "every subject's target depth is reachable, by some generator in its course" : `${contentCoverage.totals.short} fall short of their course's target` },
+
+  // The pilot's own burden, on the front page: how much content a teacher is
+  // being asked to read. It is generated with the pack (scripts/pilot-pack.mjs),
+  // so it moves when the bank moves rather than when somebody remembers to edit
+  // a document.
+  { section: "Pilot (UK GCSE maths)", label: "Concepts in the review cluster", value: pilotPack?.totals?.concepts ?? "MISSING", source: "audit/pilot-pack.json", note: "computed from the genome's prerequisite graph, not hand-picked" },
+  { section: "Pilot (UK GCSE maths)", label: "Items awaiting human review", value: pilotPack?.totals?.items ?? "MISSING", source: "audit/pilot-pack.json", note: "every item a learner in the cluster meets, at a seed the reviewer can reproduce" },
+  { section: "Pilot (UK GCSE maths)", label: "Cluster concepts with no named misconception to probe", value: pilotPack ? pilotPack.totals.concepts - pilotPack.totals.withMisconceptions : "MISSING", source: "audit/pilot-pack.json", note: "a distractor here is not yet tied to a pattern anyone has written down" },
 
   { section: "Curriculum", label: "Country codes offered in enrolment", value: I.COUNTRIES.length, source: "lib/i18n.ts" },
   { section: "Curriculum", label: "Countries with a recorded national route", value: R.nationalRouteCodes().length, source: "lib/curricula/registry.ts", note: "asserted equal to the published count by `npm run curriculum-gate`" },

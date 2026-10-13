@@ -1,0 +1,2075 @@
+{
+  "generatedBy": "scripts/pilot-pack.mjs",
+  "course": {
+    "id": "uk-gcse",
+    "country": "GB",
+    "board": "aqa",
+    "name": "GCSE",
+    "tiers": [
+      {
+        "id": "foundation",
+        "name": "Foundation tier",
+        "difficulty": 0.45
+      },
+      {
+        "id": "higher",
+        "name": "Higher tier",
+        "difficulty": 0.65
+      }
+    ]
+  },
+  "anchors": [
+    "surds",
+    "completing-square"
+  ],
+  "method": "cluster = anchors + their prerequisites, filtered to uk-gcse; items drawn with generateQuestionNear(id, seed, tier.difficulty, 40) — the production serve",
+  "reviewState": {
+    "reviewedConcepts": 0,
+    "note": "No concept is marked reviewed by this pack. Records go in audit/item-reviews.json with a reviewer, a date and a scope, and `npm run verify:q` refuses an entry without them."
+  },
+  "totals": {
+    "concepts": 11,
+    "items": 110,
+    "promptDerived": 2,
+    "withMisconceptions": 10,
+    "foundationTier": 10,
+    "higherTier": 9
+  },
+  "concepts": [
+    {
+      "id": "negatives",
+      "title": "Negative numbers",
+      "subject": "maths",
+      "stage": 0,
+      "lesson": "A negative is an amount below zero — temperatures, debt, depths. The rules that matter: subtracting a negative adds (5 − (−3) = 8), multiplying two negatives makes a positive ((−2) × (−3) = 6), and one negative makes a negative. Picture a number line: adding moves right, subtracting moves left.",
+      "prereqs": [],
+      "tiers": [
+        "foundation"
+      ],
+      "depth": 0.45,
+      "promptDerived": false,
+      "misconceptions": [
+        {
+          "id": "neg-slip",
+          "name": "Sign slip with negatives",
+          "pattern": "Treats minus signs as decoration: 5 − (−3) becomes 2, and (−2) × (−3) becomes −6."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:negatives:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out (-4) × (-5).",
+          "choices": [
+            "-20",
+            "-9",
+            "20",
+            "21"
+          ],
+          "answer": 2,
+          "explanation": "Two negatives multiply to a POSITIVE: (-4) × (-5) = 20. The opposite of the opposite is the original direction.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:negatives:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 7 − (-8).",
+          "choices": [
+            "-1",
+            "15",
+            "16",
+            "-15"
+          ],
+          "answer": 1,
+          "explanation": "Subtracting a negative is ADDING: 7 − (-8) = 7 + 8 = 15. Taking away a debt leaves you richer.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:negatives:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out (-4) × (-2).",
+          "choices": [
+            "9",
+            "8",
+            "-6",
+            "-8"
+          ],
+          "answer": 1,
+          "explanation": "Two negatives multiply to a POSITIVE: (-4) × (-2) = 8. The opposite of the opposite is the original direction.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:negatives:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 3 − (-6).",
+          "choices": [
+            "9",
+            "10",
+            "-9",
+            "-3"
+          ],
+          "answer": 0,
+          "explanation": "Subtracting a negative is ADDING: 3 − (-6) = 3 + 6 = 9. Taking away a debt leaves you richer.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:negatives:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 4 − (-3).",
+          "choices": [
+            "1",
+            "-7",
+            "8",
+            "7"
+          ],
+          "answer": 3,
+          "explanation": "Subtracting a negative is ADDING: 4 − (-3) = 4 + 3 = 7. Taking away a debt leaves you richer.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:negatives:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 6 − (-9).",
+          "choices": [
+            "-3",
+            "15",
+            "-15",
+            "16"
+          ],
+          "answer": 1,
+          "explanation": "Subtracting a negative is ADDING: 6 − (-9) = 6 + 9 = 15. Taking away a debt leaves you richer.",
+          "difficulty": 0.45,
+          "numeric": true
+        }
+      ]
+    },
+    {
+      "id": "order-ops",
+      "title": "Order of operations",
+      "subject": "maths",
+      "stage": 0,
+      "lesson": "Brackets, then Indices/Exponents, then Division and Multiplication left to right, then Addition and Subtraction left to right (BIDMAS/PEMDAS). 3 + 4 × 2 = 3 + 8 = 11, not 14 — multiplication always acts first. The convention exists so everyone in the world reads one expression the same way.",
+      "prereqs": [],
+      "tiers": [
+        "foundation"
+      ],
+      "depth": 0.4,
+      "promptDerived": false,
+      "misconceptions": [
+        {
+          "id": "order-ops",
+          "name": "Left-to-right evaluation",
+          "pattern": "Ignores operator priority: 3 + 4 × 2 becomes 14."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:order-ops:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 5 + 2 × 2.",
+          "choices": [
+            "9",
+            "12",
+            "10",
+            "14"
+          ],
+          "answer": 0,
+          "explanation": "Multiplication binds tighter than addition: 2 × 2 = 4 first, then 5 + 4 = 9. Working left to right gives 14, which is wrong.",
+          "difficulty": 0.4,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:order-ops:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 7 + 9 × 7.",
+          "choices": [
+            "23",
+            "112",
+            "70",
+            "71"
+          ],
+          "answer": 2,
+          "explanation": "Multiplication binds tighter than addition: 9 × 7 = 63 first, then 7 + 63 = 70. Working left to right gives 112, which is wrong.",
+          "difficulty": 0.4,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:order-ops:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 2 + 9 × 4.",
+          "choices": [
+            "38",
+            "44",
+            "22",
+            "15"
+          ],
+          "answer": 0,
+          "explanation": "Multiplication binds tighter than addition: 9 × 4 = 36 first, then 2 + 36 = 38. Working left to right gives 44, which is wrong.",
+          "difficulty": 0.4,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:order-ops:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 3 + 5 × 6.",
+          "choices": [
+            "33",
+            "14",
+            "48",
+            "21"
+          ],
+          "answer": 0,
+          "explanation": "Multiplication binds tighter than addition: 5 × 6 = 30 first, then 3 + 30 = 33. Working left to right gives 48, which is wrong.",
+          "difficulty": 0.4,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:order-ops:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 9 + 6 × 9.",
+          "choices": [
+            "64",
+            "135",
+            "24",
+            "63"
+          ],
+          "answer": 3,
+          "explanation": "Multiplication binds tighter than addition: 6 × 9 = 54 first, then 9 + 54 = 63. Working left to right gives 135, which is wrong.",
+          "difficulty": 0.4,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:order-ops:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 5 + 5 × 6.",
+          "choices": [
+            "16",
+            "60",
+            "35",
+            "31"
+          ],
+          "answer": 2,
+          "explanation": "Multiplication binds tighter than addition: 5 × 6 = 30 first, then 5 + 30 = 35. Working left to right gives 60, which is wrong.",
+          "difficulty": 0.4,
+          "numeric": true
+        }
+      ]
+    },
+    {
+      "id": "algebra-expressions",
+      "title": "Algebraic expressions",
+      "subject": "maths",
+      "stage": 1,
+      "lesson": "A letter holds a place for a number: 3x + 2 means 'three of something, plus two'. Collecting like terms simplifies: 3x + 2x = 5x, but 3x + 2y stays put. Expanding brackets multiplies every term inside: 3(x + 4) = 3x + 12. Substitution replaces letters with values: if x = −2, then 3x + 2 = −4.",
+      "prereqs": [
+        "order-ops"
+      ],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.8283620257815346,
+      "promptDerived": false,
+      "misconceptions": [
+        {
+          "id": "like-terms",
+          "name": "Collects unlike terms",
+          "pattern": "Writes 3x + 2y = 5xy or 3x + 2x² = 5x³."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:algebra-expressions:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Evaluate 5x² − 2x when x = 6.",
+          "choices": [
+            "784",
+            "48",
+            "168",
+            "178"
+          ],
+          "answer": 2,
+          "explanation": "Square first, then multiply: 5(6²) = 180, minus 2(6) = 12. So 180 − 12 = 168.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:algebra-expressions:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Evaluate 5x² − 4x when x = 2.",
+          "choices": [
+            "36",
+            "13",
+            "16",
+            "12"
+          ],
+          "answer": 3,
+          "explanation": "Square first, then multiply: 5(2²) = 20, minus 4(2) = 8. So 20 − 8 = 12.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:algebra-expressions:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Evaluate 2x² − 2x when x = 3.",
+          "choices": [
+            "16",
+            "12",
+            "13",
+            "6"
+          ],
+          "answer": 1,
+          "explanation": "Square first, then multiply: 2(3²) = 18, minus 2(3) = 6. So 18 − 6 = 12.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:algebra-expressions:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Evaluate 6x² − 3x when x = 4.",
+          "choices": [
+            "84",
+            "93",
+            "36",
+            "441"
+          ],
+          "answer": 0,
+          "explanation": "Square first, then multiply: 6(4²) = 96, minus 3(4) = 12. So 96 − 12 = 84.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:algebra-expressions:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Evaluate 5x² − 3x when x = 6.",
+          "choices": [
+            "729",
+            "162",
+            "177",
+            "42"
+          ],
+          "answer": 1,
+          "explanation": "Square first, then multiply: 5(6²) = 180, minus 3(6) = 18. So 180 − 18 = 162.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:algebra-expressions:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Evaluate 6x² − 4x when x = 4.",
+          "choices": [
+            "400",
+            "92",
+            "32",
+            "80"
+          ],
+          "answer": 3,
+          "explanation": "Square first, then multiply: 6(4²) = 96, minus 4(4) = 16. So 96 − 16 = 80.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:algebra-expressions:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A taxi fare is shown in the table.\n· 5 miles costs £25\n· 9 miles costs £41\nWhat is the fare for 12 miles?",
+          "choices": [
+            "£57",
+            "£48",
+            "£25",
+            "£53"
+          ],
+          "answer": 3,
+          "explanation": "The fare rises £16 over 4 miles, so the rate is £4 per mile and the fixed charge is £5. For 12 miles: £5 + 4 × 12 = £53. Ignoring the fixed charge gives £48.",
+          "difficulty": 0.7838170183775947,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expressions:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A taxi fare is shown in the table.\n· 4 miles costs £32\n· 6 miles costs £44\nWhat is the fare for 11 miles?",
+          "choices": [
+            "£66",
+            "£74",
+            "£32",
+            "£80"
+          ],
+          "answer": 1,
+          "explanation": "The fare rises £12 over 2 miles, so the rate is £6 per mile and the fixed charge is £8. For 11 miles: £8 + 6 × 11 = £74. Ignoring the fixed charge gives £66.",
+          "difficulty": 0.7847322437399998,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expressions:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A taxi fare is shown in the table.\n· 6 miles costs £42\n· 10 miles costs £66\nWhat is the fare for 14 miles?",
+          "choices": [
+            "£90",
+            "£96",
+            "£42",
+            "£84"
+          ],
+          "answer": 0,
+          "explanation": "The fare rises £24 over 4 miles, so the rate is £6 per mile and the fixed charge is £6. For 14 miles: £6 + 6 × 14 = £90. Ignoring the fixed charge gives £84.",
+          "difficulty": 0.7811307723121718,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expressions:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A taxi fare is shown in the table.\n· 5 miles costs £31\n· 9 miles costs £51\nWhat is the fare for 15 miles?",
+          "choices": [
+            "£81",
+            "£31",
+            "£86",
+            "£75"
+          ],
+          "answer": 0,
+          "explanation": "The fare rises £20 over 4 miles, so the rate is £5 per mile and the fixed charge is £6. For 15 miles: £6 + 5 × 15 = £81. Ignoring the fixed charge gives £75.",
+          "difficulty": 0.7803084162832238,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expressions:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A taxi fare is shown in the table.\n· 5 miles costs £28\n· 7 miles costs £36\nWhat is the fare for 11 miles?",
+          "choices": [
+            "£28",
+            "£52",
+            "£56",
+            "£44"
+          ],
+          "answer": 1,
+          "explanation": "The fare rises £8 over 2 miles, so the rate is £4 per mile and the fixed charge is £8. For 11 miles: £8 + 4 × 11 = £52. Ignoring the fixed charge gives £44.",
+          "difficulty": 0.7839889170904644,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expressions:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A taxi fare is shown in the table.\n· 5 miles costs £27\n· 8 miles costs £42\nWhat is the fare for 11 miles?",
+          "choices": [
+            "£55",
+            "£62",
+            "£57",
+            "£27"
+          ],
+          "answer": 2,
+          "explanation": "The fare rises £15 over 3 miles, so the rate is £5 per mile and the fixed charge is £2. For 11 miles: £2 + 5 × 11 = £57. Ignoring the fixed charge gives £55.",
+          "difficulty": 0.7811531642638148,
+          "numeric": false
+        }
+      ]
+    },
+    {
+      "id": "coordinates",
+      "title": "Coordinates & graphs",
+      "subject": "maths",
+      "stage": 1,
+      "lesson": "A coordinate pair (3, −2) pinpoints a location: 3 right, 2 down from the origin. The x-axis runs horizontally, y vertically. Plotting an equation's points and joining them reveals its shape — lines for linear, parabolas for quadratics. Graphs turn algebra into geometry you can see.",
+      "prereqs": [
+        "negatives"
+      ],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.804897187652532,
+      "promptDerived": false,
+      "misconceptions": [],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:coordinates:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "How far is the point (−4, 2) from the origin (0, 0)?",
+          "choices": [
+            "2",
+            "20",
+            "√20",
+            "6"
+          ],
+          "answer": 2,
+          "explanation": "Distance from the origin is Pythagoras: d = √(x² + y²) = √(-4² + 2²) = √20. Adding |x| + |y| measures the staircase walk, not the straight line.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:coordinates:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "How far is the point (−1, 4) from the origin (0, 0)?",
+          "choices": [
+            "5",
+            "3",
+            "√17",
+            "17"
+          ],
+          "answer": 2,
+          "explanation": "Distance from the origin is Pythagoras: d = √(x² + y²) = √(-1² + 4²) = √17. Adding |x| + |y| measures the staircase walk, not the straight line.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:coordinates:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "How far is the point (−1, 3) from the origin (0, 0)?",
+          "choices": [
+            "√10",
+            "10",
+            "4",
+            "2"
+          ],
+          "answer": 0,
+          "explanation": "Distance from the origin is Pythagoras: d = √(x² + y²) = √(-1² + 3²) = √10. Adding |x| + |y| measures the staircase walk, not the straight line.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:coordinates:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "How far is the point (5, 2) from the origin (0, 0)?",
+          "choices": [
+            "29",
+            "7",
+            "√29",
+            "3"
+          ],
+          "answer": 2,
+          "explanation": "Distance from the origin is Pythagoras: d = √(x² + y²) = √(5² + 2²) = √29. Adding |x| + |y| measures the staircase walk, not the straight line.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:coordinates:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "How far is the point (5, −4) from the origin (0, 0)?",
+          "choices": [
+            "9",
+            "41",
+            "1",
+            "√41"
+          ],
+          "answer": 3,
+          "explanation": "Distance from the origin is Pythagoras: d = √(x² + y²) = √(5² + -4²) = √41. Adding |x| + |y| measures the staircase walk, not the straight line.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:coordinates:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "How far is the point (3, −4) from the origin (0, 0)?",
+          "choices": [
+            "25",
+            "1",
+            "7",
+            "5"
+          ],
+          "answer": 3,
+          "explanation": "Distance from the origin is Pythagoras: d = √(x² + y²) = √(3² + -4²) = 5. Adding |x| + |y| measures the staircase walk, not the straight line.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:coordinates:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A data plot has two markers, recorded in the table as\n· (16, 2)\n· (20, 10)\nWhat is the midpoint of the two markers?",
+          "choices": [
+            "(18, 6)",
+            "(19, 6)",
+            "(36, 12)",
+            "(4, 8)"
+          ],
+          "answer": 0,
+          "explanation": "The midpoint averages each coordinate: x is (16 + 20) ÷ 2 = 18 and y is (2 + 10) ÷ 2 = 6, giving (18, 6). Adding the coordinates instead of averaging gives (36, 12).",
+          "difficulty": 0.7633135442761705,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:coordinates:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A data plot has two markers, recorded in the table as\n· (18, 12)\n· (24, 22)\nWhat is the midpoint of the two markers?",
+          "choices": [
+            "(22, 17)",
+            "(42, 34)",
+            "(21, 17)",
+            "(6, 10)"
+          ],
+          "answer": 2,
+          "explanation": "The midpoint averages each coordinate: x is (18 + 24) ÷ 2 = 21 and y is (12 + 22) ÷ 2 = 17, giving (21, 17). Adding the coordinates instead of averaging gives (42, 34).",
+          "difficulty": 0.7606875145016239,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:coordinates:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A data plot has two markers, recorded in the table as\n· (2, 4)\n· (4, 16)\nWhat is the midpoint of the two markers?",
+          "choices": [
+            "(2, 12)",
+            "(4, 10)",
+            "(6, 20)",
+            "(3, 10)"
+          ],
+          "answer": 3,
+          "explanation": "The midpoint averages each coordinate: x is (2 + 4) ÷ 2 = 3 and y is (4 + 16) ÷ 2 = 10, giving (3, 10). Adding the coordinates instead of averaging gives (6, 20).",
+          "difficulty": 0.7611154689243995,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:coordinates:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A data plot has two markers, recorded in the table as\n· (16, 10)\n· (20, 16)\nWhat is the midpoint of the two markers?",
+          "choices": [
+            "(19, 13)",
+            "(4, 6)",
+            "(36, 26)",
+            "(18, 13)"
+          ],
+          "answer": 3,
+          "explanation": "The midpoint averages each coordinate: x is (16 + 20) ÷ 2 = 18 and y is (10 + 16) ÷ 2 = 13, giving (18, 13). Adding the coordinates instead of averaging gives (36, 26).",
+          "difficulty": 0.765199541838374,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:coordinates:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A data plot has two markers, recorded in the table as\n· (8, 8)\n· (16, 12)\nWhat is the midpoint of the two markers?",
+          "choices": [
+            "(12, 10)",
+            "(13, 10)",
+            "(8, 4)",
+            "(24, 20)"
+          ],
+          "answer": 0,
+          "explanation": "The midpoint averages each coordinate: x is (8 + 16) ÷ 2 = 12 and y is (8 + 12) ÷ 2 = 10, giving (12, 10). Adding the coordinates instead of averaging gives (24, 20).",
+          "difficulty": 0.7674375148280523,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:coordinates:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A data plot has two markers, recorded in the table as\n· (10, 18)\n· (16, 30)\nWhat is the midpoint of the two markers?",
+          "choices": [
+            "(14, 24)",
+            "(6, 12)",
+            "(13, 24)",
+            "(26, 48)"
+          ],
+          "answer": 2,
+          "explanation": "The midpoint averages each coordinate: x is (10 + 16) ÷ 2 = 13 and y is (18 + 30) ÷ 2 = 24, giving (13, 24). Adding the coordinates instead of averaging gives (26, 48).",
+          "difficulty": 0.7654918277077377,
+          "numeric": false
+        }
+      ]
+    },
+    {
+      "id": "indices-intro",
+      "title": "Index laws",
+      "subject": "maths",
+      "stage": 1,
+      "lesson": "a³ means a × a × a. Multiplying powers with the same base adds the indices: a² × a³ = a⁵. Dividing subtracts them: a⁵ ÷ a² = a³. A power of zero gives 1 (a⁰ = 1) because dividing aⁿ by aⁿ must give 1. Negative indices flip into a fraction: a⁻² = 1/a². Fractional indices are roots: a^(1/2) = √a.",
+      "prereqs": [
+        "order-ops"
+      ],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.8438407922489569,
+      "promptDerived": false,
+      "misconceptions": [
+        {
+          "id": "neg-exp",
+          "name": "Misreads negative indices",
+          "pattern": "Treats a⁻² as a negative number instead of 1/a²."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:indices-intro:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out (4^2)².",
+          "choices": [
+            "64",
+            "257",
+            "32",
+            "256"
+          ],
+          "answer": 3,
+          "explanation": "A power of a power MULTIPLIES the indices: (4^2)² = 4^4 = 256.",
+          "difficulty": 0.5,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:indices-intro:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out (3^3)².",
+          "choices": [
+            "729",
+            "243",
+            "216",
+            "54"
+          ],
+          "answer": 0,
+          "explanation": "A power of a power MULTIPLIES the indices: (3^3)² = 3^6 = 729.",
+          "difficulty": 0.5,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:indices-intro:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out (3^2)².",
+          "choices": [
+            "36",
+            "82",
+            "81",
+            "18"
+          ],
+          "answer": 2,
+          "explanation": "A power of a power MULTIPLIES the indices: (3^2)² = 3^4 = 81.",
+          "difficulty": 0.5,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:indices-intro:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out (2^3)².",
+          "choices": [
+            "32",
+            "64",
+            "16",
+            "65"
+          ],
+          "answer": 1,
+          "explanation": "A power of a power MULTIPLIES the indices: (2^3)² = 2^6 = 64.",
+          "difficulty": 0.5,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:indices-intro:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Folding a sheet of paper in half doubles its thickness each time.\n· 0 folds: 0.2 mm\n· 1 fold: 0.4 mm\n· 2 folds: 0.8 mm\nAfter 10 folds, the thickness is how many times the thickness with no folds?",
+          "choices": [
+            "100",
+            "512",
+            "20",
+            "1024"
+          ],
+          "answer": 3,
+          "explanation": "Each fold DOUBLES the thickness, so after 10 folds it has doubled 10 times: 2^10 = 1024 times. That is exponential: 10 lots of 2 (20) is a straight line and 10² (100) is a square, and both grow far more slowly than doubling.",
+          "difficulty": 0.761248565686401,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:indices-intro:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Folding a sheet of paper in half doubles its thickness each time.\n· 0 folds: 0.2 mm\n· 1 fold: 0.4 mm\n· 2 folds: 0.8 mm\nAfter 7 folds, the thickness is how many times the thickness with no folds?",
+          "choices": [
+            "64",
+            "128",
+            "14",
+            "49"
+          ],
+          "answer": 1,
+          "explanation": "Each fold DOUBLES the thickness, so after 7 folds it has doubled 7 times: 2^7 = 128 times. That is exponential: 7 lots of 2 (14) is a straight line and 7² (49) is a square, and both grow far more slowly than doubling.",
+          "difficulty": 0.7511271802242845,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:indices-intro:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Folding a sheet of paper in half doubles its thickness each time.\n· 0 folds: 0.5 mm\n· 1 fold: 1 mm\n· 2 folds: 2 mm\nAfter 10 folds, the thickness is how many times the thickness with no folds?",
+          "choices": [
+            "20",
+            "1024",
+            "100",
+            "512"
+          ],
+          "answer": 1,
+          "explanation": "Each fold DOUBLES the thickness, so after 10 folds it has doubled 10 times: 2^10 = 1024 times. That is exponential: 10 lots of 2 (20) is a straight line and 10² (100) is a square, and both grow far more slowly than doubling.",
+          "difficulty": 0.7513906317879446,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:indices-intro:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Folding a sheet of paper in half doubles its thickness each time.\n· 0 folds: 0.1 mm\n· 1 fold: 0.2 mm\n· 2 folds: 0.4 mm\nAfter 9 folds, the thickness is how many times the thickness with no folds?",
+          "choices": [
+            "256",
+            "81",
+            "512",
+            "18"
+          ],
+          "answer": 2,
+          "explanation": "Each fold DOUBLES the thickness, so after 9 folds it has doubled 9 times: 2^9 = 512 times. That is exponential: 9 lots of 2 (18) is a straight line and 9² (81) is a square, and both grow far more slowly than doubling.",
+          "difficulty": 0.7814521451364271,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:indices-intro:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Folding a sheet of paper in half doubles its thickness each time.\n· 0 folds: 0.2 mm\n· 1 fold: 0.4 mm\n· 2 folds: 0.8 mm\nAfter 8 folds, the thickness is how many times the thickness with no folds?",
+          "choices": [
+            "256",
+            "128",
+            "16",
+            "64"
+          ],
+          "answer": 0,
+          "explanation": "Each fold DOUBLES the thickness, so after 8 folds it has doubled 8 times: 2^8 = 256 times. That is exponential: 8 lots of 2 (16) is a straight line and 8² (64) is a square, and both grow far more slowly than doubling.",
+          "difficulty": 0.7549343080841936,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:indices-intro:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Folding a sheet of paper in half doubles its thickness each time.\n· 0 folds: 0.2 mm\n· 1 fold: 0.4 mm\n· 2 folds: 0.8 mm\nAfter 6 folds, the thickness is how many times the thickness with no folds?",
+          "choices": [
+            "64",
+            "36",
+            "32",
+            "12"
+          ],
+          "answer": 0,
+          "explanation": "Each fold DOUBLES the thickness, so after 6 folds it has doubled 6 times: 2^6 = 64 times. That is exponential: 6 lots of 2 (12) is a straight line and 6² (36) is a square, and both grow far more slowly than doubling.",
+          "difficulty": 0.7520129857002757,
+          "numeric": false
+        }
+      ]
+    },
+    {
+      "id": "linear-equations",
+      "title": "Linear equations",
+      "subject": "maths",
+      "stage": 1,
+      "lesson": "Solve 3x + 5 = 20 by undoing operations in reverse order: subtract 5 (3x = 15), divide by 3 (x = 5). Whatever you do to one side, do to the other — the equation is a balance. Two-step, brackets, unknowns on both sides (5x = 2x + 9) all reduce to the same discipline.",
+      "prereqs": [
+        "algebra-expressions"
+      ],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.8175673143542372,
+      "promptDerived": false,
+      "misconceptions": [
+        {
+          "id": "bal-slip",
+          "name": "Breaks the balance when solving",
+          "pattern": "Adds to one side only: 3x + 5 = 20 becomes 3x = 25."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:linear-equations:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Solve 3(x + 2) = 30.",
+          "choices": [
+            "9",
+            "8",
+            "6",
+            "10"
+          ],
+          "answer": 1,
+          "explanation": "Divide both sides by 3: x + 2 = 10, so x = 8. (Expanding first works too: 3x + 6 = 30.)",
+          "difficulty": 0.5,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:linear-equations:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Solve 6(x + 5) = 60.",
+          "choices": [
+            "10",
+            "5",
+            "0",
+            "6"
+          ],
+          "answer": 1,
+          "explanation": "Divide both sides by 6: x + 5 = 10, so x = 5. (Expanding first works too: 6x + 30 = 60.)",
+          "difficulty": 0.5,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:linear-equations:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Solve 3(x + 1) = 9.",
+          "choices": [
+            "3",
+            "12",
+            "2",
+            "1"
+          ],
+          "answer": 2,
+          "explanation": "Divide both sides by 3: x + 1 = 3, so x = 2. (Expanding first works too: 3x + 3 = 9.)",
+          "difficulty": 0.5,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:linear-equations:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Solve 4(x + 1) = 12.",
+          "choices": [
+            "12",
+            "3",
+            "2",
+            "1"
+          ],
+          "answer": 2,
+          "explanation": "Divide both sides by 4: x + 1 = 3, so x = 2. (Expanding first works too: 4x + 4 = 12.)",
+          "difficulty": 0.5,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:linear-equations:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Solve 3(x + 2) = 18.",
+          "choices": [
+            "5",
+            "6",
+            "4",
+            "2"
+          ],
+          "answer": 2,
+          "explanation": "Divide both sides by 3: x + 2 = 6, so x = 4. (Expanding first works too: 3x + 6 = 18.)",
+          "difficulty": 0.5,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:linear-equations:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Solve 3(x + 5) = 27.",
+          "choices": [
+            "4",
+            "9",
+            "3",
+            "-1"
+          ],
+          "answer": 0,
+          "explanation": "Divide both sides by 3: x + 5 = 9, so x = 4. (Expanding first works too: 3x + 15 = 27.)",
+          "difficulty": 0.5,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:linear-equations:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Solve 2(x − 3) = x + 0.",
+          "choices": [
+            "x = 12",
+            "x = 6",
+            "x = 5",
+            "x = 7"
+          ],
+          "answer": 1,
+          "explanation": "Expand the bracket first: 2x − 6 = x + 0. Collect the x-terms on both sides — subtracting 1x and adding 6 to BOTH sides — gives 1x = 6, so x = 6 ÷ 1 = 6. Doing any of that to one side only is the balance error: an equation is a scale, so every move happens twice.",
+          "difficulty": 0.6074203794822096,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:linear-equations:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Solve 5(x − 7) = 4x − 24.",
+          "choices": [
+            "x = 12",
+            "x = 10",
+            "x = 22",
+            "x = 11"
+          ],
+          "answer": 3,
+          "explanation": "Expand the bracket first: 5x − 35 = 4x − 24. Collect the x-terms on both sides — subtracting 4x and adding 35 to BOTH sides — gives 1x = 11, so x = 11 ÷ 1 = 11. Doing any of that to one side only is the balance error: an equation is a scale, so every move happens twice.",
+          "difficulty": 0.6500958942435682,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:linear-equations:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Solve 4(x − 2) = x + 28.",
+          "choices": [
+            "x = 24",
+            "x = 11",
+            "x = 12",
+            "x = 13"
+          ],
+          "answer": 2,
+          "explanation": "Expand the bracket first: 4x − 8 = x + 28. Collect the x-terms on both sides — subtracting 1x and adding 8 to BOTH sides — gives 3x = 36, so x = 36 ÷ 3 = 12. Doing any of that to one side only is the balance error: an equation is a scale, so every move happens twice.",
+          "difficulty": 0.6507116986066103,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:linear-equations:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Solve 2(x − 2) = x − 1.",
+          "choices": [
+            "x = 6",
+            "x = 2",
+            "x = 4",
+            "x = 3"
+          ],
+          "answer": 3,
+          "explanation": "Expand the bracket first: 2x − 4 = x − 1. Collect the x-terms on both sides — subtracting 1x and adding 4 to BOTH sides — gives 1x = 3, so x = 3 ÷ 1 = 3. Doing any of that to one side only is the balance error: an equation is a scale, so every move happens twice.",
+          "difficulty": 0.6486997360177338,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:linear-equations:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Solve 4(x − 5) = x + 7.",
+          "choices": [
+            "x = 18",
+            "x = 9",
+            "x = 10",
+            "x = 8"
+          ],
+          "answer": 1,
+          "explanation": "Expand the bracket first: 4x − 20 = x + 7. Collect the x-terms on both sides — subtracting 1x and adding 20 to BOTH sides — gives 3x = 27, so x = 27 ÷ 3 = 9. Doing any of that to one side only is the balance error: an equation is a scale, so every move happens twice.",
+          "difficulty": 0.6581656490452588,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:linear-equations:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Solve 3(x − 2) = 2x + 6.",
+          "choices": [
+            "x = 13",
+            "x = 24",
+            "x = 11",
+            "x = 12"
+          ],
+          "answer": 3,
+          "explanation": "Expand the bracket first: 3x − 6 = 2x + 6. Collect the x-terms on both sides — subtracting 2x and adding 6 to BOTH sides — gives 1x = 12, so x = 12 ÷ 1 = 12. Doing any of that to one side only is the balance error: an equation is a scale, so every move happens twice.",
+          "difficulty": 0.6457974338345229,
+          "numeric": false
+        }
+      ]
+    },
+    {
+      "id": "algebra-expand",
+      "title": "Expanding & factorising",
+      "subject": "maths",
+      "stage": 2,
+      "lesson": "Expand: (x + 3)(x + 2) = x² + 5x + 6 — every term meets every term. Factorising reverses it: x² + 5x + 6 seeks two numbers that multiply to 6 and add to 5: (x + 2)(x + 3). The difference of two squares is a shortcut: x² − 9 = (x + 3)(x − 3). These skills are the grammar of every later algebra topic.",
+      "prereqs": [
+        "algebra-expressions"
+      ],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.9149373397463932,
+      "promptDerived": false,
+      "misconceptions": [
+        {
+          "id": "sign-slip",
+          "name": "Sign error when expanding",
+          "pattern": "(x − 3)(x + 2) becomes x² + 5x − 6 — the minus doesn't distribute."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:algebra-expand:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Expand (x + 5)(x + 8). The result is x² + bx + c. What is the value of b?",
+          "choices": [
+            "14",
+            "13",
+            "40",
+            "3"
+          ],
+          "answer": 1,
+          "explanation": "The x-terms are 5x + 8x = 13x, so b = 13. (And c = 5 × 8 = 40.)",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:algebra-expand:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Expand and simplify (x + 4)(x + 2).",
+          "choices": [
+            "x² + 6x − 8",
+            "x² + 6x + 8",
+            "x² − 6x + 8",
+            "x² + 8"
+          ],
+          "answer": 1,
+          "explanation": "x² + 2x + 4x + 8 = x² + 6x + 8. Every term carries its sign.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expand:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Expand (x + 9)(x + 8). The result is x² + bx + c. What is the value of b?",
+          "choices": [
+            "18",
+            "17",
+            "72",
+            "1"
+          ],
+          "answer": 1,
+          "explanation": "The x-terms are 9x + 8x = 17x, so b = 17. (And c = 9 × 8 = 72.)",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:algebra-expand:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Expand and simplify (x + -5)(x + 1).",
+          "choices": [
+            "x² − 4x + 5",
+            "x² − 5",
+            "x² − 4x − 5",
+            "x² + 4x − 5"
+          ],
+          "answer": 2,
+          "explanation": "x² + 1x + -5x + -5 = x² − 4x − 5. Every term carries its sign.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expand:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Expand and simplify (x + 5)(x + 1).",
+          "choices": [
+            "x² + 5",
+            "x² + 6x + 5",
+            "x² − 6x + 5",
+            "x² + 6x − 5"
+          ],
+          "answer": 1,
+          "explanation": "x² + 1x + 5x + 5 = x² + 6x + 5. Every term carries its sign.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expand:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Expand (x + 8)(x + 9). The result is x² + bx + c. What is the value of b?",
+          "choices": [
+            "17",
+            "1",
+            "18",
+            "72"
+          ],
+          "answer": 0,
+          "explanation": "The x-terms are 8x + 9x = 17x, so b = 17. (And c = 8 × 9 = 72.)",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:algebra-expand:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Expand (2x + 6)(x + 4). The result is 2x² + bx + c. What is the value of b?",
+          "choices": [
+            "24",
+            "2",
+            "14",
+            "16"
+          ],
+          "answer": 2,
+          "explanation": "The x-terms come from 2x × 4 and 6 × x: 8x + 6x = 14x, so b = 14.",
+          "difficulty": 0.6,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:algebra-expand:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The area of a rectangle is (x² + 13x + 42) cm² and its width is (x + 6) cm. What is its length, in terms of x?",
+          "choices": [
+            "(x + 42) cm",
+            "(x + 6) cm",
+            "(x + 7) cm",
+            "(x + 13) cm"
+          ],
+          "answer": 2,
+          "explanation": "Area = width × length, so length = area ÷ width. Factorise first: x² + 13x + 42 = (x + 6)(x + 7), because 6 × 7 = 42 and 6 + 7 = 13. Dividing by the width (x + 6) leaves (x + 7) cm. The two numbers must MULTIPLY to the constant and ADD to the coefficient of x — a sign slip breaks one of those conditions, and the wrong factors are what the distractors are made of.",
+          "difficulty": 0.6185021750885061,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expand:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The area of a rectangle is (x² + 8x + 15) cm² and its width is (x + 5) cm. What is its length, in terms of x?",
+          "choices": [
+            "(x + 15) cm",
+            "(x + 3) cm",
+            "(x + 8) cm",
+            "(x + 5) cm"
+          ],
+          "answer": 1,
+          "explanation": "Area = width × length, so length = area ÷ width. Factorise first: x² + 8x + 15 = (x + 5)(x + 3), because 5 × 3 = 15 and 5 + 3 = 8. Dividing by the width (x + 5) leaves (x + 3) cm. The two numbers must MULTIPLY to the constant and ADD to the coefficient of x — a sign slip breaks one of those conditions, and the wrong factors are what the distractors are made of.",
+          "difficulty": 0.6476056915498338,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expand:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The area of a rectangle is (x² + 9x + 18) cm² and its width is (x + 6) cm. What is its length, in terms of x?",
+          "choices": [
+            "(x + 6) cm",
+            "(x + 3) cm",
+            "(x + 9) cm",
+            "(x + 18) cm"
+          ],
+          "answer": 1,
+          "explanation": "Area = width × length, so length = area ÷ width. Factorise first: x² + 9x + 18 = (x + 6)(x + 3), because 6 × 3 = 18 and 6 + 3 = 9. Dividing by the width (x + 6) leaves (x + 3) cm. The two numbers must MULTIPLY to the constant and ADD to the coefficient of x — a sign slip breaks one of those conditions, and the wrong factors are what the distractors are made of.",
+          "difficulty": 0.647254472929053,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expand:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Expand and simplify (2x + 7)(4x − 4).\n\nWhat is the coefficient of x in the expansion?",
+          "choices": [
+            "28",
+            "-8",
+            "20",
+            "8"
+          ],
+          "answer": 2,
+          "explanation": "The x-term is the sum of the two CROSS products: the outer pair 2x × -4 = -8x, and the inner pair 7 × 4x = 28x. Adding them: -8 + 28 → the coefficient is 20. Stopping at -8 forgets the inner pair, and 28 forgets the outer one — the two halves of the same step. 8 is the coefficient of x², and -28 is the constant.",
+          "difficulty": 0.6705686440435239,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:algebra-expand:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The area of a rectangle is (x² + 7x + 12) cm² and its width is (x + 3) cm. What is its length, in terms of x?",
+          "choices": [
+            "(x + 12) cm",
+            "(x + 4) cm",
+            "(x + 7) cm",
+            "(x + 3) cm"
+          ],
+          "answer": 1,
+          "explanation": "Area = width × length, so length = area ÷ width. Factorise first: x² + 7x + 12 = (x + 3)(x + 4), because 3 × 4 = 12 and 3 + 4 = 7. Dividing by the width (x + 3) leaves (x + 4) cm. The two numbers must MULTIPLY to the constant and ADD to the coefficient of x — a sign slip breaks one of those conditions, and the wrong factors are what the distractors are made of.",
+          "difficulty": 0.6450657559302635,
+          "numeric": false
+        }
+      ]
+    },
+    {
+      "id": "straight-lines",
+      "title": "Straight line graphs",
+      "subject": "maths",
+      "stage": 2,
+      "lesson": "In y = mx + c, m is the gradient (rise over run — how much y grows per unit of x) and c is where the line crosses the y-axis. Parallel lines share m; perpendicular lines multiply to −1. From two points, m = (y₂ − y₁)/(x₂ − x₁). Every real-world rate — speed, cost per item, fuel use — is a gradient.",
+      "prereqs": [
+        "coordinates",
+        "linear-equations"
+      ],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.9199134878348559,
+      "promptDerived": false,
+      "misconceptions": [
+        {
+          "id": "grad-run",
+          "name": "Gradient upside-down or sign-flipped",
+          "pattern": "Computes run over rise, or drops the minus on a downhill line."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:straight-lines:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "A line has equation y = 4x + 5. What is y when x = 6?",
+          "choices": [
+            "24",
+            "19",
+            "29",
+            "54"
+          ],
+          "answer": 2,
+          "explanation": "Substitute: y = 4(6) + 5 = 24 + 5 = 29.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:straight-lines:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "A line has equation y = 3x + 1. What is y when x = 1?",
+          "choices": [
+            "4",
+            "5",
+            "2",
+            "3"
+          ],
+          "answer": 0,
+          "explanation": "Substitute: y = 3(1) + 1 = 3 + 1 = 4.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:straight-lines:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "A line has equation y = 4x − 3. What is y when x = 3?",
+          "choices": [
+            "3",
+            "12",
+            "9",
+            "15"
+          ],
+          "answer": 2,
+          "explanation": "Substitute: y = 4(3) − 3 = 12 − 3 = 9.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:straight-lines:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "A line has equation y = 5x − 5. What is y when x = 3?",
+          "choices": [
+            "0",
+            "10",
+            "15",
+            "20"
+          ],
+          "answer": 1,
+          "explanation": "Substitute: y = 5(3) − 5 = 15 − 5 = 10.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:straight-lines:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "A line has equation y = 1x + 0. What is y when x = 4?",
+          "choices": [
+            "4",
+            "5",
+            "3",
+            "14"
+          ],
+          "answer": 0,
+          "explanation": "Substitute: y = 1(4) + 0 = 4 + 0 = 4.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:straight-lines:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "A line has equation y = 1x + 6. What is y when x = 6?",
+          "choices": [
+            "6",
+            "42",
+            "12",
+            "0"
+          ],
+          "answer": 2,
+          "explanation": "Substitute: y = 1(6) + 6 = 6 + 6 = 12.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:straight-lines:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A straight line passes through (4, -30) and (5, -33).\n\nWork out the coordinates of the point where the line crosses the x-axis.",
+          "choices": [
+            "(0, -18)",
+            "(-6, 0)",
+            "(6, 0)",
+            "(0, -6)"
+          ],
+          "answer": 1,
+          "explanation": "Three steps, and the third is the one asked for. Gradient: (-33 − -30) ÷ (5 − 4) = -3 ÷ 1 = -3. Intercept: at (4, -30), -30 = -3 × 4 + c, so c = -18. Root: the line crosses the x-axis where y = 0, so 0 = -3x − 18, giving x = -6. The point is (-6, 0). Answering (0, -18) is where the line crosses the Y-axis — the same shape of question about the other axis.",
+          "difficulty": 0.6727832368458622,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:straight-lines:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A straight line passes through (4, 0) and (5, -3).\n\nWork out the coordinates of the point where the line crosses the x-axis.",
+          "choices": [
+            "(-4, 0)",
+            "(0, 4)",
+            "(0, 12)",
+            "(4, 0)"
+          ],
+          "answer": 3,
+          "explanation": "Three steps, and the third is the one asked for. Gradient: (-3 − 0) ÷ (5 − 4) = -3 ÷ 1 = -3. Intercept: at (4, 0), 0 = -3 × 4 + c, so c = 12. Root: the line crosses the x-axis where y = 0, so 0 = -3x + 12, giving x = 4. The point is (4, 0). Answering (0, 12) is where the line crosses the Y-axis — the same shape of question about the other axis.",
+          "difficulty": 0.6650197680247948,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:straight-lines:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A water tank holds 60 litres. Water is added at a steady 2 litres per minute. A graph of volume (y litres) against time (x minutes) is a straight line. How much water is in the tank after 14 minutes?",
+          "choices": [
+            "120 litres",
+            "88 litres",
+            "28 litres",
+            "62 litres"
+          ],
+          "answer": 1,
+          "explanation": "The line is y = 2x + 60: the gradient 2 is the change per minute and 60 is the volume at x = 0, the intercept. After 14 minutes: 2 × 14 + 60 = 88 litres. Answering 28 reports the water ADDED rather than the water in the tank — the intercept dropped because it was never written down.",
+          "difficulty": 0.6325788129400461,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:straight-lines:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A water tank holds 32 litres. Water is added at a steady 5 litres per minute. A graph of volume (y litres) against time (x minutes) is a straight line. How much water is in the tank after 7 minutes?",
+          "choices": [
+            "160 litres",
+            "67 litres",
+            "37 litres",
+            "35 litres"
+          ],
+          "answer": 1,
+          "explanation": "The line is y = 5x + 32: the gradient 5 is the change per minute and 32 is the volume at x = 0, the intercept. After 7 minutes: 5 × 7 + 32 = 67 litres. Answering 35 reports the water ADDED rather than the water in the tank — the intercept dropped because it was never written down.",
+          "difficulty": 0.6439759782119654,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:straight-lines:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A water tank holds 34 litres. Water is added at a steady 4 litres per minute. A graph of volume (y litres) against time (x minutes) is a straight line. How much water is in the tank after 10 minutes?",
+          "choices": [
+            "74 litres",
+            "38 litres",
+            "136 litres",
+            "40 litres"
+          ],
+          "answer": 0,
+          "explanation": "The line is y = 4x + 34: the gradient 4 is the change per minute and 34 is the volume at x = 0, the intercept. After 10 minutes: 4 × 10 + 34 = 74 litres. Answering 40 reports the water ADDED rather than the water in the tank — the intercept dropped because it was never written down.",
+          "difficulty": 0.6438317819219083,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:straight-lines:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A water tank holds 57 litres. Water is added at a steady 6 litres per minute. A graph of volume (y litres) against time (x minutes) is a straight line. How much water is in the tank after 5 minutes?",
+          "choices": [
+            "342 litres",
+            "87 litres",
+            "63 litres",
+            "30 litres"
+          ],
+          "answer": 1,
+          "explanation": "The line is y = 6x + 57: the gradient 6 is the change per minute and 57 is the volume at x = 0, the intercept. After 5 minutes: 6 × 5 + 57 = 87 litres. Answering 30 reports the water ADDED rather than the water in the tank — the intercept dropped because it was never written down.",
+          "difficulty": 0.6423883739951998,
+          "numeric": false
+        }
+      ]
+    },
+    {
+      "id": "completing-square",
+      "title": "Completing the square",
+      "subject": "maths",
+      "stage": 3,
+      "lesson": "x² + 6x + 5 = (x + 3)² − 4: halve the x coefficient, square it, adjust. This form exposes the vertex (−3, −4) instantly, shows the minimum/maximum value, and solves equations by isolating a perfect square. It is also how the quadratic formula is derived — completing the square on the general equation.",
+      "prereqs": [
+        "quadratics"
+      ],
+      "tiers": [
+        "higher"
+      ],
+      "depth": 0.9274779488053173,
+      "promptDerived": true,
+      "misconceptions": [
+        {
+          "id": "b-half",
+          "name": "Completing the square: forgets the constant",
+          "pattern": "x² + 6x + 5 becomes (x + 3)² without subtracting the added 9."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:completing-square:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Express x² + 10x + 21 in the form (x + p)² + q, and hence state the minimum value of the expression and the value of x at which it occurs.",
+          "choices": [
+            "Minimum 4 when x = -5",
+            "Minimum -4 when x = 5",
+            "Minimum 21 when x = -5",
+            "Minimum -4 when x = -5"
+          ],
+          "answer": 3,
+          "explanation": "Half the coefficient of x is 5, so the square is (x + 5)² = x² + 10x + 25; the expression has 21 there instead, so it is (x + 5)² − 4 = (x + 5)² − 4. A square is never negative, so the SMALLEST the expression gets is when (x + 5)² = 0 — that is x = -5, and the minimum value is -4. The sign of p is the slip: it is −h in the bracket, so the minimum sits at the opposite sign, -5.",
+          "difficulty": 0.6505008961260319,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:completing-square:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Write x² + 2x + 6 in the form (x + p)² + q. What is q?",
+          "choices": [
+            "5",
+            "1",
+            "6",
+            "-1"
+          ],
+          "answer": 0,
+          "explanation": "Halve the x coefficient: p = 1, so (x + 1)² = x² + 2x + 1. The constant was 6, so q = 6 − 1 = 5. Forgetting to subtract the added 1 is the classic error.",
+          "difficulty": 0.6,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:completing-square:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Express x² + 14x + 57 in the form (x + p)² + q, and hence state the minimum value of the expression and the value of x at which it occurs.",
+          "choices": [
+            "Minimum 8 when x = 7",
+            "Minimum -8 when x = -7",
+            "Minimum 8 when x = -7",
+            "Minimum 57 when x = -7"
+          ],
+          "answer": 2,
+          "explanation": "Half the coefficient of x is 7, so the square is (x + 7)² = x² + 14x + 49; the expression has 57 there instead, so it is (x + 7)² + 8 = (x + 7)² + 8. A square is never negative, so the SMALLEST the expression gets is when (x + 7)² = 0 — that is x = -7, and the minimum value is 8. The sign of p is the slip: it is −h in the bracket, so the minimum sits at the opposite sign, -7.",
+          "difficulty": 0.6969234707206488,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:completing-square:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Express x² + 16x + 58 in the form (x + p)² + q, and hence state the minimum value of the expression and the value of x at which it occurs.",
+          "choices": [
+            "Minimum 58 when x = -8",
+            "Minimum -6 when x = 8",
+            "Minimum 6 when x = -8",
+            "Minimum -6 when x = -8"
+          ],
+          "answer": 3,
+          "explanation": "Half the coefficient of x is 8, so the square is (x + 8)² = x² + 16x + 64; the expression has 58 there instead, so it is (x + 8)² − 6 = (x + 8)² − 6. A square is never negative, so the SMALLEST the expression gets is when (x + 8)² = 0 — that is x = -8, and the minimum value is -6. The sign of p is the slip: it is −h in the bracket, so the minimum sits at the opposite sign, -8.",
+          "difficulty": 0.6689559763111175,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:completing-square:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Express x² + 6x + 3 in the form (x + p)² + q, and hence state the minimum value of the expression and the value of x at which it occurs.",
+          "choices": [
+            "Minimum -6 when x = 3",
+            "Minimum 6 when x = -3",
+            "Minimum 3 when x = -3",
+            "Minimum -6 when x = -3"
+          ],
+          "answer": 3,
+          "explanation": "Half the coefficient of x is 3, so the square is (x + 3)² = x² + 6x + 9; the expression has 3 there instead, so it is (x + 3)² − 6 = (x + 3)² − 6. A square is never negative, so the SMALLEST the expression gets is when (x + 3)² = 0 — that is x = -3, and the minimum value is -6. The sign of p is the slip: it is −h in the bracket, so the minimum sits at the opposite sign, -3.",
+          "difficulty": 0.6525891503877937,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:completing-square:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Express x² + 6x + 1 in the form (x + p)² + q, and hence state the minimum value of the expression and the value of x at which it occurs.",
+          "choices": [
+            "Minimum -8 when x = -3",
+            "Minimum -8 when x = 3",
+            "Minimum 1 when x = -3",
+            "Minimum 8 when x = -3"
+          ],
+          "answer": 0,
+          "explanation": "Half the coefficient of x is 3, so the square is (x + 3)² = x² + 6x + 9; the expression has 1 there instead, so it is (x + 3)² − 8 = (x + 3)² − 8. A square is never negative, so the SMALLEST the expression gets is when (x + 3)² = 0 — that is x = -3, and the minimum value is -8. The sign of p is the slip: it is −h in the bracket, so the minimum sits at the opposite sign, -3.",
+          "difficulty": 0.6548238616064191,
+          "numeric": false
+        }
+      ]
+    },
+    {
+      "id": "quadratics",
+      "title": "Quadratic equations",
+      "subject": "maths",
+      "stage": 3,
+      "lesson": "Quadratics can have two, one, or no real solutions — visible as where the parabola cuts the x-axis. Solve by factorising (x² − 5x + 6 = 0 → (x−2)(x−3) = 0 → x = 2 or 3), by completing the square, or by the quadratic formula x = (−b ± √(b² − 4ac)) / 2a. The discriminant b² − 4ac tells you how many solutions exist before you solve.",
+      "prereqs": [
+        "algebra-expand",
+        "straight-lines"
+      ],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.920160884486977,
+      "promptDerived": false,
+      "misconceptions": [
+        {
+          "id": "lost-root",
+          "name": "Loses a root when solving quadratics",
+          "pattern": "Divides by x instead of factorising, or takes only one ± branch."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:quadratics:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Solve x² − 9x + 18 = 0. Give the smaller root.",
+          "choices": [
+            "3",
+            "6",
+            "-3",
+            "9"
+          ],
+          "answer": 0,
+          "explanation": "Factorise: (x − 3)(x − 6) = 0, so x = 3 or x = 6. The smaller root is 3.",
+          "difficulty": 0.5,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:quadratics:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Solve x² − 8x + 15 = 0. Give the smaller root.",
+          "choices": [
+            "8",
+            "-3",
+            "3",
+            "5"
+          ],
+          "answer": 2,
+          "explanation": "Factorise: (x − 5)(x − 3) = 0, so x = 5 or x = 3. The smaller root is 3.",
+          "difficulty": 0.5,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:quadratics:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Solve x² − 6x + 5 = 0. Give the smaller root.",
+          "choices": [
+            "5",
+            "-1",
+            "1",
+            "6"
+          ],
+          "answer": 2,
+          "explanation": "Factorise: (x − 5)(x − 1) = 0, so x = 5 or x = 1. The smaller root is 1.",
+          "difficulty": 0.5,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:quadratics:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Solve x² − 9x + 20 = 0. Give the smaller root.",
+          "choices": [
+            "5",
+            "4",
+            "-4",
+            "9"
+          ],
+          "answer": 1,
+          "explanation": "Factorise: (x − 4)(x − 5) = 0, so x = 4 or x = 5. The smaller root is 4.",
+          "difficulty": 0.5,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:quadratics:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Solve x² − 6x + 8 = 0. Give the smaller root.",
+          "choices": [
+            "6",
+            "4",
+            "2",
+            "-2"
+          ],
+          "answer": 2,
+          "explanation": "Factorise: (x − 2)(x − 4) = 0, so x = 2 or x = 4. The smaller root is 2.",
+          "difficulty": 0.5,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:quadratics:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The graph of y = x² − 5x + 6 crosses the x-axis at two points. What are the x-coordinates of those points?",
+          "choices": [
+            "x = 3 only",
+            "x = -5 and x = 6",
+            "x = 2 and x = 3",
+            "x = -3 and x = -2"
+          ],
+          "answer": 2,
+          "explanation": "The crossings are where y = 0, so solve x² − 5x + 6 = 0 by factorising: two numbers that multiply to 6 and add to -5 are 3 and 2, giving (x − 3)(x − 2) = 0. A product is zero when either factor is zero, so x = 2 OR x = 3 — reporting one root throws away half the answer.",
+          "difficulty": 0.6531992593035102,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:quadratics:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The graph of y = x² + x − 30 crosses the x-axis at two points. What are the x-coordinates of those points?",
+          "choices": [
+            "x = -6 and x = 5",
+            "x = -5 and x = 6",
+            "x = 1 and x = -30",
+            "x = 5 only"
+          ],
+          "answer": 0,
+          "explanation": "The crossings are where y = 0, so solve x² + 1x − 30 = 0 by factorising: two numbers that multiply to -30 and add to 1 are 5 and -6, giving (x − 5)(x + 6) = 0. A product is zero when either factor is zero, so x = -6 OR x = 5 — reporting one root throws away half the answer.",
+          "difficulty": 0.6541433541476727,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:quadratics:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The graph of y = x² − 2x − 24 crosses the x-axis at two points. What are the x-coordinates of those points?",
+          "choices": [
+            "x = -2 and x = -24",
+            "x = 6 only",
+            "x = -4 and x = 6",
+            "x = -6 and x = 4"
+          ],
+          "answer": 2,
+          "explanation": "The crossings are where y = 0, so solve x² − 2x − 24 = 0 by factorising: two numbers that multiply to -24 and add to -2 are 6 and -4, giving (x − 6)(x + 4) = 0. A product is zero when either factor is zero, so x = -4 OR x = 6 — reporting one root throws away half the answer.",
+          "difficulty": 0.6254800139926373,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:quadratics:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The graph of y = x² − x − 20 crosses the x-axis at two points. What are the x-coordinates of those points?",
+          "choices": [
+            "x = 5 only",
+            "x = -5 and x = 4",
+            "x = -4 and x = 5",
+            "x = -1 and x = -20"
+          ],
+          "answer": 2,
+          "explanation": "The crossings are where y = 0, so solve x² − 1x − 20 = 0 by factorising: two numbers that multiply to -20 and add to -1 are -4 and 5, giving (x + 4)(x − 5) = 0. A product is zero when either factor is zero, so x = -4 OR x = 5 — reporting one root throws away half the answer.",
+          "difficulty": 0.6460804815031588,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:quadratics:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The graph of y = x² − 6x + 8 crosses the x-axis at two points. What are the x-coordinates of those points?",
+          "choices": [
+            "x = 2 and x = 4",
+            "x = -6 and x = 8",
+            "x = 4 only",
+            "x = -4 and x = -2"
+          ],
+          "answer": 0,
+          "explanation": "The crossings are where y = 0, so solve x² − 6x + 8 = 0 by factorising: two numbers that multiply to 8 and add to -6 are 4 and 2, giving (x − 4)(x − 2) = 0. A product is zero when either factor is zero, so x = 2 OR x = 4 — reporting one root throws away half the answer.",
+          "difficulty": 0.6498231989517808,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:quadratics:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The graph of y = x² + x − 2 crosses the x-axis at two points. What are the x-coordinates of those points?",
+          "choices": [
+            "x = -2 and x = 1",
+            "None of these",
+            "x = 1 only",
+            "x = -1 and x = 2"
+          ],
+          "answer": 0,
+          "explanation": "The crossings are where y = 0, so solve x² + 1x − 2 = 0 by factorising: two numbers that multiply to -2 and add to 1 are 1 and -2, giving (x − 1)(x + 2) = 0. A product is zero when either factor is zero, so x = -2 OR x = 1 — reporting one root throws away half the answer.",
+          "difficulty": 0.6564389933273196,
+          "numeric": false
+        }
+      ]
+    },
+    {
+      "id": "surds",
+      "title": "Surds",
+      "subject": "maths",
+      "stage": 3,
+      "lesson": "√2 cannot be written exactly as a fraction — its decimal never repeats. A surd is an exact root like √2, √3, √5. Simplify using √(ab) = √a × √b: √50 = √25 × √2 = 5√2. Rationalise denominators by multiplying top and bottom by the surd (or its conjugate for expressions like 1/(1+√2)). Surds keep answers exact where decimals only approximate.",
+      "prereqs": [
+        "indices-intro"
+      ],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.934242613192182,
+      "promptDerived": true,
+      "misconceptions": [
+        {
+          "id": "sqrt-prod",
+          "name": "Splits roots across addition",
+          "pattern": "Writes √(a + b) = √a + √b."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:surds:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Simplify √50.",
+          "choices": [
+            "25√2",
+            "7.07",
+            "10√2",
+            "5√2"
+          ],
+          "answer": 3,
+          "explanation": "√50 = √(25 × 2) = √25 × √2 = 5√2. Take the largest perfect-square factor first.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:surds:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Simplify √48.",
+          "choices": [
+            "16√3",
+            "4√3",
+            "12√3",
+            "6.93"
+          ],
+          "answer": 1,
+          "explanation": "√48 = √(16 × 3) = √16 × √3 = 4√3. Take the largest perfect-square factor first.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:surds:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Simplify √32.",
+          "choices": [
+            "8√2",
+            "4√2",
+            "5.66",
+            "16√2"
+          ],
+          "answer": 1,
+          "explanation": "√32 = √(16 × 2) = √16 × √2 = 4√2. Take the largest perfect-square factor first.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:surds:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Simplify √20.",
+          "choices": [
+            "4√5",
+            "2√5",
+            "4.47",
+            "10√5"
+          ],
+          "answer": 1,
+          "explanation": "√20 = √(4 × 5) = √4 × √5 = 2√5. Take the largest perfect-square factor first.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:surds:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Simplify √8.",
+          "choices": [
+            "2√2",
+            "4√2",
+            "4",
+            "2.83"
+          ],
+          "answer": 0,
+          "explanation": "√8 = √(4 × 2) = √4 × √2 = 2√2. Take the largest perfect-square factor first.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:surds:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Expand and simplify: (4√3 + 2)(4√3 − 2).",
+          "choices": [
+            "46",
+            "52",
+            "44",
+            "8"
+          ],
+          "answer": 2,
+          "explanation": "This is the difference of two squares: (A + B)(A − B) = A² − B². Here A = 4√3 and B = 2, so A² = 16×3 = 48 and B² = 4, giving 48 − 4 = 44. Note the √3 does NOT survive: squaring the surd term is what removes it, and that is why this expansion is the standard way to rationalise a surd denominator.",
+          "difficulty": 0.6500984444096685,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:surds:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Expand and simplify: (2√6 + 4)(2√6 − 4).",
+          "choices": [
+            "-4",
+            "40",
+            "20",
+            "8"
+          ],
+          "answer": 3,
+          "explanation": "This is the difference of two squares: (A + B)(A − B) = A² − B². Here A = 2√6 and B = 4, so A² = 4×6 = 24 and B² = 16, giving 24 − 16 = 8. Note the √6 does NOT survive: squaring the surd term is what removes it, and that is why this expansion is the standard way to rationalise a surd denominator.",
+          "difficulty": 0.6345380938239396,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:surds:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Expand and simplify: (2√2 + 5)(2√2 − 5).",
+          "choices": [
+            "-21",
+            "33",
+            "-17",
+            "3"
+          ],
+          "answer": 2,
+          "explanation": "This is the difference of two squares: (A + B)(A − B) = A² − B². Here A = 2√2 and B = 5, so A² = 4×2 = 8 and B² = 25, giving 8 − 25 = -17. Note the √2 does NOT survive: squaring the surd term is what removes it, and that is why this expansion is the standard way to rationalise a surd denominator.",
+          "difficulty": 0.6231125475279987,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:surds:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Expand and simplify: (5√3 + 3)(5√3 − 3).",
+          "choices": [
+            "6",
+            "72",
+            "66",
+            "84"
+          ],
+          "answer": 2,
+          "explanation": "This is the difference of two squares: (A + B)(A − B) = A² − B². Here A = 5√3 and B = 3, so A² = 25×3 = 75 and B² = 9, giving 75 − 9 = 66. Note the √3 does NOT survive: squaring the surd term is what removes it, and that is why this expansion is the standard way to rationalise a surd denominator.",
+          "difficulty": 0.6441348151303827,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:surds:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Expand and simplify: (4√6 + 6)(4√6 − 6).",
+          "choices": [
+            "-12",
+            "90",
+            "132",
+            "60"
+          ],
+          "answer": 3,
+          "explanation": "This is the difference of two squares: (A + B)(A − B) = A² − B². Here A = 4√6 and B = 6, so A² = 16×6 = 96 and B² = 36, giving 96 − 36 = 60. Note the √6 does NOT survive: squaring the surd term is what removes it, and that is why this expansion is the standard way to rationalise a surd denominator.",
+          "difficulty": 0.6239816470444203,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:surds:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Simplify fully: (√45 + √20) ÷ √5.",
+          "choices": [
+            "√13",
+            "6",
+            "5",
+            "(3 + 2)√5"
+          ],
+          "answer": 2,
+          "explanation": "No surd here is in its simplest form, and none can be combined until it is: √45 = √(3²×5) = 3√5 and √20 = √(2²×5) = 2√5. Now they are like surds: (3√5 + 2√5) ÷ √5 = 5√5 ÷ √5, and the √5 cancels, leaving 5. Adding 45 + 20 under one root is the slip this question is built to catch — √a + √b is not √(a + b).",
+          "difficulty": 0.692834390886128,
+          "numeric": false
+        }
+      ]
+    }
+  ]
+}

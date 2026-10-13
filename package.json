@@ -20,6 +20,7 @@
     "gate:ceiling": "node scripts/ceiling-gate.mjs",
     "gate:options": "node scripts/gate-options.mjs",
     "content-audit": "node scripts/content-audit.mjs",
+    "pilot-pack": "node scripts/pilot-pack.mjs",
     "status": "node scripts/status-report.mjs",
     "status:check": "node scripts/status-report.mjs --check",
     "content-gate": "node scripts/content-gate.mjs",

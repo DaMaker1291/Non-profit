@@ -1,10 +1,24 @@
-# A pilot scope, proposed (needs an owner's decision)
+# A pilot scope — decided, not started
 
-Status: **PROPOSED — not started, not authorised.** Nobody has reviewed content,
-no learner has been enrolled, and no measurement has been taken. This page exists
-so that the first real evaluation is bounded, reviewable and honest about what it
-can prove. Everything here is a decision for the project owner; nothing here has
-been executed.
+Status: **DECIDED by the owner, NOT STARTED.** The course, the tier and the
+learner group are chosen (below); no reviewer has been recruited, nobody has been
+enrolled, and no measurement has been taken. The review pack that decision
+produces is generated, not written: [REVIEW_PACK.md](REVIEW_PACK.md).
+
+## The owner's decisions (October 2026)
+
+| Question | Decision |
+|---|---|
+| Which pathway | **UK GCSE Mathematics**, both tiers — the most reviewable route: a published specification and reviewers who are easy to find |
+| Which reviewer | **To be recruited.** The pack exists so that the first teacher who says yes can start in one sitting, with no setup and no repository to read |
+| Which learners | **One Year 10 class, mixed tier** — a mixed class is why the pack draws every item at BOTH tier targets |
+| Sign-off | The project owner |
+| The ceiling baseline's stale floors | **Left as they are.** A floor below reality still catches a regression, and the absolute checks on reached tiers are live |
+
+What that decision changes for the reviewer: 11 concepts and 110 items, computed
+from the prerequisite graph, every item at a seed they can reproduce. What it
+does not change: nothing about the mapping has been reviewed, and this page still
+proposes rather than measures.
 
 ## Why a pilot rather than more verification
 
@@ -20,7 +34,7 @@ the only question that decides whether any of it matters.
 | Decision | Proposed | Why |
 |---|---|---|
 | Subject | **Maths** | The concepts with independent verification (fractions, surds, completing-square, mixture-problems, circle-area-arc) are maths, so the reviewed set and the verified set overlap. |
-| Course | **UK GCSE Higher** (19 national routes exist, and `npm run curriculum-gate` asserts the picker offers every one of them; this route has a full grade ladder and a tier) | A single declared course drives all six layers, so the pilot measures one coherent thing. |
+| Course | **UK GCSE Mathematics, Foundation AND Higher** (19 national routes exist, and `npm run curriculum-gate` asserts the picker offers every one of them; this route has a full grade ladder and two tiers) | A single declared course drives all six layers, so the pilot measures one coherent thing. A mixed-tier class sits both tiers, so the pack draws items at both targets. |
 | Concepts | **11**, chosen from the genome's own prerequisite graph rather than by taste — see below | Small enough for a teacher to read every item; large enough for a before/after. |
 | Items | Every item a student meets in those concepts, **reviewed by a teacher before use** | Review is the layer that does not exist; this is how it comes into existence. |
 | Duration | 3–4 weeks, two sessions a week | Long enough to include a delayed retention check. |
@@ -28,9 +42,11 @@ the only question that decides whether any of it matters.
 
 ## The cluster, measured (not hand-picked)
 
-Computed from `lib/genome.ts` plus `coverageOf(uk-gcse, Higher)` — the numbers are
-what the data says today, and the command that reproduces them is
-`node /tmp/cluster-probe.mjs`-style reading of `.verify/genome.js`:
+Computed from `lib/genome.ts` plus `coverageOf({ spec: uk-gcse, level })` for both
+tiers — the numbers are what the data says today, and the command that
+reproduces them is `npm run pilot-pack` (it writes [REVIEW_PACK.md](REVIEW_PACK.md),
+the pack a reviewer reads, and `npm run pilot-pack -- --check` fails in CI when
+the pack stops describing the bank):
 
 ```
 C · quadratics / surd strand      completing-square surds + every prerequisite they need
@@ -116,9 +132,12 @@ or a date` and `review names a concept the bank does not generate`, exit 1.
   every student, and the write-up must state the size, the duration and what was
   not measured.
 
-## What the owner has to decide
+## What the owner still has to decide
 
-1. Which country/board the pilot uses, and whether a teacher is available.
-2. Whether the review workflow is built first (my recommendation: yes, it is
-   cheap, and without it the review leaves no trace).
-3. Who signs off on consent for the class.
+1. **Who the reviewer is.** The pack is ready; the person is not. The ask is one
+   sitting: read every item below, answer the seven questions, record it against
+   the concept with a name and a date.
+2. **Whether the review workflow is built first** (my recommendation: yes — the
+   record already works (`audit/item-reviews.json`, validated by `verify:q`), and
+   a review that leaves no trace changes no published figure).
+3. **Who signs off on consent** for the class, before any learner is enrolled.

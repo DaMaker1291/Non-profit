@@ -14,6 +14,9 @@
     "Assessment validity · Concepts with an option-length tell above the line": "84 of 135",
     "Assessment validity · Best bank-wide length strategy": "34.0%",
     "Assessment validity · Course × subject rows audited for depth": 311,
+    "Pilot (UK GCSE maths) · Concepts in the review cluster": 11,
+    "Pilot (UK GCSE maths) · Items awaiting human review": 110,
+    "Pilot (UK GCSE maths) · Cluster concepts with no named misconception to probe": 1,
     "Curriculum · Country codes offered in enrolment": 71,
     "Curriculum · Countries with a recorded national route": 19,
     "Curriculum · National pathways": 20,
@@ -104,6 +107,27 @@
       "value": 311,
       "source": "audit/content-coverage.json",
       "note": "every subject's target depth is reachable, by some generator in its course"
+    },
+    {
+      "section": "Pilot (UK GCSE maths)",
+      "label": "Concepts in the review cluster",
+      "value": 11,
+      "source": "audit/pilot-pack.json",
+      "note": "computed from the genome's prerequisite graph, not hand-picked"
+    },
+    {
+      "section": "Pilot (UK GCSE maths)",
+      "label": "Items awaiting human review",
+      "value": 110,
+      "source": "audit/pilot-pack.json",
+      "note": "every item a learner in the cluster meets, at a seed the reviewer can reproduce"
+    },
+    {
+      "section": "Pilot (UK GCSE maths)",
+      "label": "Cluster concepts with no named misconception to probe",
+      "value": 1,
+      "source": "audit/pilot-pack.json",
+      "note": "a distractor here is not yet tied to a pattern anyone has written down"
     },
     {
       "section": "Curriculum",

@@ -296,6 +296,9 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 | **Assessment validity** | Concepts with an option-length tell above the line | 84 of 135 | a learner who never reads the question should not beat chance | `audit/options-gate.json` |
 |  | Best bank-wide length strategy | 34.0% | chance is 25% | `audit/options-gate.json` |
 |  | Course × subject rows audited for depth | 311 | every subject's target depth is reachable, by some generator in its course | `audit/content-coverage.json` |
+| **Pilot (UK GCSE maths)** | Concepts in the review cluster | 11 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
+|  | Items awaiting human review | 110 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
+|  | Cluster concepts with no named misconception to probe | 1 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |
 | **Curriculum** | Country codes offered in enrolment | 71 |  | `lib/i18n.ts` |
 |  | Countries with a recorded national route | 19 | asserted equal to the published count by `npm run curriculum-gate` | `lib/curricula/registry.ts` |
 |  | National pathways | 20 | Cameroon runs two systems, so this exceeds the country count | `lib/curricula/registry.ts` |
