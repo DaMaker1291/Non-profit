@@ -1,0 +1,157 @@
+{
+  "generatedBy": "scripts/status-report.mjs",
+  "note": "Properties of the COMMITTED content, each derived from the artifact that makes it true. Runtime results (how many assertions a gate passed on the last run) are deliberately absent: they are true of a run and false of the repository. Regenerate with `npm run status`; `npm run status -- --check` fails when this file or the README table is stale.",
+  "counts": {
+    "Content · Teachable concepts": 135,
+    "Content · Concepts by stage": "0:16 1:32 2:46 3:29 4:8 5:4",
+    "Content · Concepts with a named misconception": 63,
+    "Content · Languages": 15,
+    "Content verification · Concepts with a structural check": 135,
+    "Content verification · Concepts whose explanation states its key": 135,
+    "Content verification · Concepts independently re-derived from the prompt": 5,
+    "Content verification · Concepts checked for structure only": 130,
+    "Content verification · Concepts reviewed by a qualified person": 0,
+    "Assessment validity · Concepts with an option-length tell above the line": "84 of 135",
+    "Assessment validity · Best bank-wide length strategy": "34.0%",
+    "Assessment validity · Course × subject rows audited for depth": 311,
+    "Curriculum · Country codes offered in enrolment": 71,
+    "Curriculum · Countries with a recorded national route": 19,
+    "Curriculum · National pathways": 20,
+    "Curriculum · Offerings without a national route": 52,
+    "Curriculum · Specifications": 30,
+    "Curriculum · Pathways with no structural source on file": 20,
+    "Curriculum · Pathways whose syllabus mapping has been reviewed": 0
+  },
+  "rows": [
+    {
+      "section": "Content",
+      "label": "Teachable concepts",
+      "value": 135,
+      "source": "lib/genome.ts",
+      "note": "maths 67 · physics 18 · chemistry 16 · biology 16 · computing 18"
+    },
+    {
+      "section": "Content",
+      "label": "Concepts by stage",
+      "value": "0:16 1:32 2:46 3:29 4:8 5:4",
+      "source": "lib/genome.ts",
+      "note": "stage 0 (primary) → 5"
+    },
+    {
+      "section": "Content",
+      "label": "Concepts with a named misconception",
+      "value": 63,
+      "source": "lib/genome.ts",
+      "note": "catalogue of 53 patterns"
+    },
+    {
+      "section": "Content",
+      "label": "Languages",
+      "value": 15,
+      "source": "lib/i18n.ts"
+    },
+    {
+      "section": "Content verification",
+      "label": "Concepts with a structural check",
+      "value": 135,
+      "source": "audit/verification-coverage.json",
+      "note": "four distinct options, no float noise, a non-empty explanation"
+    },
+    {
+      "section": "Content verification",
+      "label": "Concepts whose explanation states its key",
+      "value": 135,
+      "source": "audit/verification-coverage.json"
+    },
+    {
+      "section": "Content verification",
+      "label": "Concepts independently re-derived from the prompt",
+      "value": 5,
+      "source": "audit/verification-coverage.json",
+      "note": "circle-area-arc, completing-square, fractions, mixture-problems, surds"
+    },
+    {
+      "section": "Content verification",
+      "label": "Concepts checked for structure only",
+      "value": 130,
+      "source": "audit/verification-coverage.json",
+      "note": "an item no matcher recognises is an item nobody has verified"
+    },
+    {
+      "section": "Content verification",
+      "label": "Concepts reviewed by a qualified person",
+      "value": 0,
+      "source": "audit/item-reviews.json",
+      "note": "nobody has reviewed any item yet — the honest figure, and the one this project would most like to change"
+    },
+    {
+      "section": "Assessment validity",
+      "label": "Concepts with an option-length tell above the line",
+      "value": "84 of 135",
+      "source": "audit/options-gate.json",
+      "note": "a learner who never reads the question should not beat chance"
+    },
+    {
+      "section": "Assessment validity",
+      "label": "Best bank-wide length strategy",
+      "value": "34.0%",
+      "source": "audit/options-gate.json",
+      "note": "chance is 25%"
+    },
+    {
+      "section": "Assessment validity",
+      "label": "Course × subject rows audited for depth",
+      "value": 311,
+      "source": "audit/content-coverage.json",
+      "note": "every subject's target depth is reachable, by some generator in its course"
+    },
+    {
+      "section": "Curriculum",
+      "label": "Country codes offered in enrolment",
+      "value": 71,
+      "source": "lib/i18n.ts"
+    },
+    {
+      "section": "Curriculum",
+      "label": "Countries with a recorded national route",
+      "value": 19,
+      "source": "lib/curricula/registry.ts",
+      "note": "asserted equal to the published count by `npm run curriculum-gate`"
+    },
+    {
+      "section": "Curriculum",
+      "label": "National pathways",
+      "value": 20,
+      "source": "lib/curricula/registry.ts",
+      "note": "Cameroon runs two systems, so this exceeds the country count"
+    },
+    {
+      "section": "Curriculum",
+      "label": "Offerings without a national route",
+      "value": 52,
+      "source": "lib/curricula/registry.ts",
+      "note": "offered the international programmes and the skills pathway, explicitly"
+    },
+    {
+      "section": "Curriculum",
+      "label": "Specifications",
+      "value": 30,
+      "source": "lib/specifications.ts",
+      "note": "27 national · 2 international · 1 independent"
+    },
+    {
+      "section": "Curriculum",
+      "label": "Pathways with no structural source on file",
+      "value": 20,
+      "source": "lib/curricula/registry.ts",
+      "note": "named on every `curriculum-gate` run rather than hidden"
+    },
+    {
+      "section": "Curriculum",
+      "label": "Pathways whose syllabus mapping has been reviewed",
+      "value": 0,
+      "source": "lib/curricula/registry.ts",
+      "note": "every mapping is currently OpenMind's own"
+    }
+  ]
+}

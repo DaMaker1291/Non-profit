@@ -174,12 +174,33 @@ record("question coverage", contentOk, "npm run verify:q — every generated que
 const releaseOk = runScript("verify:content-release");
 record("content release version", releaseOk, "the served content matches the published version");
 
+// The curriculum-integrity gate (§7): the country → education-system → years →
+// qualifications registry. It fails when a pathway names a course nobody can be
+// enrolled in, when a year list has a hole, when a pathway claims research it
+// cannot cite, when two systems in one country overlap, or when a country is
+// handed another country's curriculum. `content-check` cannot see any of that —
+// it judges the graph; this judges the ROUTE, which is what the learner's
+// country actually selects.
+const curriculumOk = runScript("curriculum-gate");
+record("curriculum integrity", curriculumOk, "npm run curriculum-gate — every country gets its own curriculum, or is told there is none");
+
 // The assessment-validity gate. `verify:q` proves every generated item is
 // ANSWERABLE; this proves it is not answerable from the OPTION LENGTHS alone, on
 // the surface a learner meets. Both are content claims and they fail for
 // different reasons, so both are steps.
 const optionsOk = runScript("gate:options");
 record("option-length gate", optionsOk, "npm run gate:options — no concept may be beaten by a length-only strategy");
+
+// The published-numbers check (§30). Every figure OpenMind states about itself —
+// concepts, specifications, how many are verified, how many still carry an
+// option-length tell — is DERIVED by scripts/status-report.mjs into
+// audit/status.json and the README table. This step fails when either has gone
+// stale, which is the whole point: a summary and the repository cannot disagree,
+// because the summary is regenerated from the repository. Two of these numbers
+// had already drifted before it existed (the README said "25 specifications
+// across 20 countries" while the registry held 30 over 19).
+const statusOk = runScript("status:check");
+record("published numbers", statusOk, "npm run status:check — audit/status.json and the README table match the content");
 
 // ── 2. The database, when there is one ──────────────────────────────────────
 // The store is a directory of JSON/JSONL files by default, so this section has

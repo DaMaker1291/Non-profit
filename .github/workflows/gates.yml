@@ -39,6 +39,22 @@ jobs:
       - name: Content graph
         run: npm run content-check
 
+      # ── WHOSE CURRICULUM IS THIS? ───────────────────────────────────────────
+      # `content-check` proves the concept GRAPH hangs together. This proves the
+      # COURSE a learner is offered is their own country's. It fails when a
+      # pathway names a specification nobody can be enrolled in, when a year list
+      # has a hole or a phase skips a year, when a pathway claims to have been
+      # researched and cannot say what from, when two systems in one country
+      # overlap, or when a country's national route silently resolves to somebody
+      # else's curriculum — Cambridge IGCSE used to be the automatic answer for
+      # 52 of the 70 offered countries. Cameroon is the reference case: two
+      # systems, two disjoint sets of qualifications, and a choice the learner
+      # must make rather than one the code makes for them. It also writes
+      # audit/curriculum-coverage.json, which counts national, international and
+      # independent coverage separately instead of as one country count.
+      - name: Curriculum integrity
+        run: npm run curriculum-gate
+
       - name: Question audit
         run: npm run verify:q
 
@@ -84,6 +100,20 @@ jobs:
       # `npm run content-audit -- --report` rather than written by hand.
       - name: Content coverage (report)
         run: npm run content-audit
+
+      # ── WHAT DOES THIS REPOSITORY CLAIM ABOUT ITSELF? ──────────────────────
+      # Every published number — concepts, misconceptions, specifications, how
+      # many concepts are verified, how many are still beaten by an option-length
+      # strategy — is derived into audit/status.json and rendered into the README
+      # table by `npm run status`. This fails when either has gone stale, so a
+      # summary cannot quietly disagree with the content it describes. Two of
+      # these numbers had already drifted before the check existed: the README
+      # said "25 specifications across 20 countries" while the registry held 30
+      # over 19, and the concept count lived in four different files after two
+      # authoring campaigns. A number a reader is shown comes from the artifact
+      # that makes it true, and the diff that moves it is the review.
+      - name: Published numbers
+        run: npm run status:check
 
       - name: Production build
         run: npm run build
