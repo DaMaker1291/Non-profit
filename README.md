@@ -270,7 +270,7 @@ Next.js 15 (App Router, React 18, TypeScript strict, standalone output)
                            # rooms · teacher · genome · about
 ```
 
-**Storage**: flat JSON files under `OPENMIND_DATA_DIR` (default `.openmind-data/`) — zero setup, inspectable, trivially backed up. Every mutation runs inside a per-file lock so concurrent requests can never interleave; stale diagnostic answers are rejected server-side by question id. Swap `lib/server/store.ts` for Postgres when you outgrow it.
+**Storage**: flat JSON files under `OPENMIND_DATA_DIR` (default `.openmind-data/`) — zero setup, inspectable, trivially backed up. Every mutation runs inside a per-file lock so concurrent requests within one process can never interleave; stale diagnostic answers are rejected server-side by question id. That lock is an in-memory promise chain, so **the file store is single-process** — two servers over one directory lose each other's writes. A Postgres backend behind the same port is specified in [docs/STORAGE_SPEC.md](docs/STORAGE_SPEC.md) and **not built**: it is a mapping onto the 23 tables already rehearsed in `db/migrations`, and until then the database is a parallel artefact rather than the store.
 
 ---
 
@@ -296,6 +296,10 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 | **Assessment validity** | Concepts with an option-length tell above the line | 84 of 135 | a learner who never reads the question should not beat chance | `audit/options-gate.json` |
 |  | Best bank-wide length strategy | 34.0% | chance is 25% | `audit/options-gate.json` |
 |  | Course × subject rows audited for depth | 311 | every subject's target depth is reachable, by some generator in its course | `audit/content-coverage.json` |
+| **Storage** | Lock tables in lib/ and app/ | 1 | one, in lib/server/store.ts — two tables means two writers with no common serialisation point | `source scan` |
+|  | Owners of where learning data lives | 1 | one, in lib/server/store.ts; lib/env.ts reports the variable and resolves nothing, so it is exempt | `source scan` |
+|  | Route files importing the store | 20 | 33 export statements in a 382-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
+|  | JSON files the server modules own | 10 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "classes.json", "erasures.json", "interventions.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
 | **Pilot (UK GCSE maths)** | Concepts in the review cluster | 11 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
 |  | Items awaiting human review | 110 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
 |  | Cluster concepts with no named misconception to probe | 1 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |

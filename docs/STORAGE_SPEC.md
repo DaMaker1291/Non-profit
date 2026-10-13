@@ -14,10 +14,17 @@ learner data while the store is a single file rewritten per answer.
 
 ## 1 · What exists today, measured
 
+**Every number in this table is derived by `npm run status`** (see the Storage
+rows of `audit/status.json`), not typed here — the count of route files importing
+the store changed from 19 to 20 the day slice 0 gave `app/api/hub-status` an
+import, and a spec that owned its own copy of that number was wrong within the
+hour. The first draft of this table was, in fact, wrong in four places.
+
 | Thing | Where | Measured |
 |---|---|---|
-| The file store | `lib/server/store.ts` | 380 lines, **32 exported functions**, 12 data files |
-| Call sites | 19 files under `app/api/**` import from `@/lib/server/store` | `progress` alone calls `updateProfile` **8 times** |
+| The file store | `lib/server/store.ts` | 381 lines, **33 export statements** (27 async functions, 3 sync, `DATA_DIR` and `locks`, and one re-export) |
+| Call sites | **20** files under `app/api/**` import from `@/lib/server/store` | `progress` alone calls `updateProfile` **8 times** |
+| Data files | the store, the ledger, accounts, erasures, interventions | **10 JSON files**, plus `<data>/evidence/*.jsonl` (one ledger per learner) and `session-secret` |
 | The lock primitive | `lib/server/store.ts:31` **and** `lib/server/auth.ts:80` | **two independent lock tables** |
 | The data directory | `store.ts:22`, `auth.ts:20`, `app/api/hub-status/route.ts:6` | **three resolvers** of `OPENMIND_DATA_DIR` |
 | The ledger | `lib/server/evidence.ts` | one JSONL per learner under `<data>/evidence/`, sharing the **same** lock table as the store, on purpose |
@@ -26,8 +33,9 @@ learner data while the store is a single file rewritten per answer.
 | Concurrency evidence | `scripts/race-probe.mjs` | 8 racing answers against one served question → exactly one accepted — **within one process** |
 
 Two of those are already fixed by the first slice of this spec *(done)*: the lock
-table and the data-directory resolver are each single-owner now, with a source
-assertion in `npm run verify` that fails if a second copy reappears.
+table and the data-directory resolver are each single-owner now (**1** and **1**,
+both reported by `npm run status`), with a source assertion in `npm run verify`
+that fails if a second copy reappears.
 
 ## 2 · The limit, stated plainly
 

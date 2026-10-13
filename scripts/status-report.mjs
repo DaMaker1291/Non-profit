@@ -54,6 +54,47 @@ const readJson = (p) => {
 // whose artefact is missing is reported as MISSING rather than as zero: "we did
 // not measure" and "we measured none" are different claims, which is the same
 // rule the learner-facing surfaces follow.
+// ── Storage, derived from the source that implements it ─────────────────────
+// These are the inventory numbers docs/STORAGE_SPEC.md reasons from, and they
+// are exactly the kind that drift: the count of route files importing the store
+// changed the same day slice 0 gave app/api/hub-status an import (19 → 20), and
+// a spec that had typed "19" would have been wrong within the hour. So they are
+// measured here, the spec cites them rather than owning them, and `status:check`
+// fails if the two ever disagree.
+const stripComments = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+const sourceFilesUnder = (dir, out = []) => {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = `${dir}/${entry.name}`;
+    if (entry.isDirectory()) sourceFilesUnder(full, out);
+    else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
+  }
+  return out;
+};
+const STORE_FILE = "lib/server/store.ts";
+const storeSource = fs.readFileSync(STORE_FILE, "utf8");
+const storeExports = (storeSource.match(/^export /gm) ?? []).length;
+const storeLines = storeSource.split("\n").length;
+const appAndLib = [...sourceFilesUnder("lib"), ...sourceFilesUnder("app")];
+const routeImporters = sourceFilesUnder("app/api")
+  .filter((f) => /from "@\/lib\/server\/store"/.test(fs.readFileSync(f, "utf8"))).length;
+const lockTables = appAndLib.filter((f) =>
+  /new Map<string, Promise<unknown>>\s*\(\s*\)/.test(stripComments(fs.readFileSync(f, "utf8")))).length;
+// Counts OWNERS for both rows, so anything other than 1 is the regression — the
+// first cut of this counted only offenders and reported 0 for the data directory
+// beside a 1 for the lock table, which read as two different questions. `lib/env.ts`
+// is exempt: it REPORTS the variable's state to an operator and resolves nothing.
+const dataDirResolvers = appAndLib.filter((f) =>
+  f !== "lib/env.ts" && /OPENMIND_DATA_DIR/.test(stripComments(fs.readFileSync(f, "utf8")))).length;
+// The named files the server modules read and write. `evidence/` is a directory
+// of per-learner ledgers and `session-secret` is not JSON, so neither is here —
+// the note on the row says so rather than letting the count imply completeness.
+const storeDataFiles = new Set(
+  fs.readdirSync("lib/server")
+    .filter((f) => f.endsWith(".ts"))
+    .flatMap((f) => fs.readFileSync(`lib/server/${f}`, "utf8").match(/"[a-z-]+\.json"/g) ?? []),
+);
+
 const vcov = readJson("audit/verification-coverage.json");
 const reviews = readJson("audit/item-reviews.json")?.reviews ?? [];
 const optionsGate = readJson("audit/options-gate.json");
@@ -80,6 +121,11 @@ const rows = [
   { section: "Assessment validity", label: "Concepts with an option-length tell above the line", value: optionsGate ? `${optionsGate.offenders} of ${optionsGate.concepts}` : "MISSING", source: "audit/options-gate.json", note: "a learner who never reads the question should not beat chance" },
   { section: "Assessment validity", label: "Best bank-wide length strategy", value: optionsGate ? `${(optionsGate.bank.best * 100).toFixed(1)}%` : "MISSING", source: "audit/options-gate.json", note: "chance is 25%" },
   { section: "Assessment validity", label: "Course × subject rows audited for depth", value: contentCoverage?.totals?.courses ?? "MISSING", source: "audit/content-coverage.json", note: !contentCoverage?.totals ? "" : contentCoverage.totals.short === 0 ? "every subject's target depth is reachable, by some generator in its course" : `${contentCoverage.totals.short} fall short of their course's target` },
+
+  { section: "Storage", label: "Lock tables in lib/ and app/", value: lockTables, source: "source scan", note: "one, in lib/server/store.ts — two tables means two writers with no common serialisation point" },
+  { section: "Storage", label: "Owners of where learning data lives", value: dataDirResolvers, source: "source scan", note: "one, in lib/server/store.ts; lib/env.ts reports the variable and resolves nothing, so it is exempt" },
+  { section: "Storage", label: "Route files importing the store", value: routeImporters, source: "app/api", note: `${storeExports} export statements in a ${storeLines}-line store; this is the surface docs/STORAGE_SPEC.md has to port` },
+  { section: "Storage", label: "JSON files the server modules own", value: storeDataFiles.size, source: "lib/server/*.ts", note: `plus the per-learner evidence/*.jsonl ledgers and session-secret: ${[...storeDataFiles].sort().join(", ")}` },
 
   // The pilot's own burden, on the front page: how much content a teacher is
   // being asked to read. It is generated with the pack (scripts/pilot-pack.mjs),
