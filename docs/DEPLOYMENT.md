@@ -157,12 +157,15 @@ schema ready rather than a step this build depends on.
 
 That work is specified rather than pending: [STORAGE_SPEC.md](STORAGE_SPEC.md)
 fixes the port, the crash-consistency rule, the parity mechanism and the
-import/cutover/rollback plan. Two slices are done — the store's lock table and
-data-directory resolver are single-owner, and `lib/server/storage.ts` defines the
-port with the file store behind it (`lib/server/storage-file.ts`), asserted at
-runtime against the method list so nothing can implement the interface only in a
-type. The write path (`withLearner`, the learner transaction) is slice 2, and the
-Postgres backend is slice 3: **`OPENMIND_STORE=postgres` is refused at startup
+import/cutover/rollback plan. Three slices are done — the store's lock table and
+data-directory resolver are single-owner; `lib/server/storage.ts` defines the port
+with the file store behind it (`lib/server/storage-file.ts`), asserted at runtime
+against the method list so nothing can implement the interface only in a type; and
+`npm run storage-check` drives the port's own semantics against every configured
+backend, so a second backend cannot be introduced with a second test suite (it is
+wired into `npm run production-check` and into the CI gate). The write path
+(`withLearner`, the learner transaction) is slice 3, and the
+Postgres backend is slice 4: **`OPENMIND_STORE=postgres` is refused at startup
 until it exists**, deliberately, because a deployment that believes it is on a
 database while writing single-process files is worse than one that will not
 start. `lib/env.ts` reports the refusal as a configuration problem, so

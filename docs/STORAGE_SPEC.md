@@ -1,9 +1,11 @@
 # Storage layer — spec and test plan
 
-**Status: PROPOSED. Nothing in this document is implemented yet**, except the two
-facts marked *(done)* below. It is written so that implementation is mechanical:
-the interface is fixed, the schema already exists, and every acceptance criterion
-names the command that proves it.
+**Status: IN PROGRESS.** Slices 0, 1 and 2 are implemented and committed (the
+store's single lock table and data-directory resolver; the port with the file
+backend behind it; the conformance suite and the `storage-check` gate). Everything
+else below is still specified rather than built, and says so. Every acceptance
+criterion names the command that proves it, so "implemented" is a claim a reviewer
+can check instead of take on trust.
 
 Owner decisions this follows: the storage layer is the first item chosen from the
 "can be finished in software" list, because it is the one limit that invalidates
@@ -60,8 +62,17 @@ that fails if a second copy reappears.
 `profiles.json` is, and an interface that leaks the file layout produces a second
 backend that is a shim over the first.
 
+**`readEvents` says "oldest first", and that is a CLOCK-order promise, not append
+order.** The two are the same only until a device syncs work it did offline: then
+the ledger receives events that happened BEFORE ones already written, and a
+backend returning the file in the order it was written has broken the contract its
+consumer (`replayModel`) depends on. The file backend now applies `orderEvents`
+(the repository's one ordering rule) at the port edge. It reached that state
+because the conformance suite asserted the promise rather than the layout — which
+is the whole argument for one suite that every backend must pass.
+
 ```ts
-// lib/server/storage.ts  (proposed — types first, no behaviour change)
+// lib/server/storage.ts  (slices 1–3; this block is the target shape)
 export type StoreKind = "file" | "postgres";
 
 export interface Storage {
@@ -316,11 +327,24 @@ is claimed today):
 | Slice | Content | Estimate |
 |---|---|---|
 | 0 *(done)* | one lock table, one `DATA_DIR`, with a source assertion | — |
-| 1 | port + types + file backend behind it, no behaviour change, all gates green | 3–5 days |
-| 2 | conformance suite + `storage-check` gate + `verify` run twice | 3–4 days |
-| 3 | Postgres backend + advisory locks + the missing-table decisions | 4–6 days |
-| 4 | import / export / cutover / rollback drills | 3–4 days |
-| 5 | benchmarks, two-process probe, docs, `/api/ready` reporting | 2–3 days |
+| 1 *(done)* | port + types + file backend behind it, no behaviour change, all gates green | — |
+| 2 *(done)* | the conformance suite (`scripts/storage-conformance.mjs`), `npm run storage-check`, wired into `production-check` and CI | — |
+| 3 | **the write path**: `withLearner` on the port (§3 Q1), the answer / diagnostic / paper / sync routes migrated through it, and accounts moved off `auth.ts`'s private file | 4–6 days |
+| 4 | Postgres backend + advisory locks + the missing-table decisions (§5), and the *second* `verify` run with the failure-list compare | 4–6 days |
+| 5 | import / export / cutover / rollback drills | 3–4 days |
+| 6 | benchmarks, two-process probe, docs, `/api/ready` reporting | 2–3 days |
+
+**A gap this table had, found while starting slice 2 and now closed**: no slice
+delivered `withLearner`. §3 declares it and §3 Q1 argues the port should own the
+projection write, but the table went straight from "port, no behaviour change" to
+"conformance suite" — so the method the whole seam exists for had no owner, and
+slice 1's own header comment called that missing slice "slice 2" while this table
+called the conformance suite slice 2. Two documents, two answers, one of them
+wrong: the write path is slice 3, and the numbering now agrees across this file,
+`lib/server/storage.ts` and `docs/DEPLOYMENT.md`. The conformance suite went first
+anyway, and deliberately: it is what holds the port still WHILE the write path
+moves through it, and it found a real defect on its first run (the file backend
+did not honour the clock-order contract the port promises — see §3).
 
 Total ≈ 15–22 focused days. These are estimates from the inventory above (19 call
 sites, 32 functions, 23 existing tables), not measured — the project's own rule

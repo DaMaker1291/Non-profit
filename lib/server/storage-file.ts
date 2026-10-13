@@ -45,6 +45,13 @@ import {
   updateRoomById,
 } from "./store";
 import { deleteEvidence, hasEvidence, learnersWithEvidence, readEvidence } from "./evidence";
+// The repo's ONE ordering rule (stable by clock, tie-broken by id). The port
+// promises `readEvents` is "oldest first", and the file's append order is NOT
+// that the moment a device syncs offline work — it appends events that happened
+// before ones already written. Before this, the promise was kept by each
+// CONSUMER remembering to call `orderEvents` (lib/server/projection.ts does),
+// which is a contract no backend had to satisfy. The conformance suite found it.
+import { orderEvents } from "../evidence";
 import { resolveStoreKind, type Storage } from "./storage";
 
 /**
@@ -66,9 +73,10 @@ export const fileStorage: Storage = {
   eraseProfile: deleteProfile,
   removeMemberEverywhere,
 
-  // The ledger, read side. The write path (`withLearner`) is slice 2 of
+  // The ledger, read side — in CLOCK order, which is what the port promises and
+  // what `replayModel` folds. The write path (`withLearner`) is slice 3 of
   // docs/STORAGE_SPEC.md and deliberately absent until then.
-  readEvents: readEvidence,
+  readEvents: (learnerId) => orderEvents(readEvidence(learnerId)),
   learnersWithEvents: learnersWithEvidence,
   hasEvent: hasEvidence,
   deleteEvents: deleteEvidence,

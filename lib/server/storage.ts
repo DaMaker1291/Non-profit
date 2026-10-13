@@ -18,15 +18,15 @@
 //
 // WHAT IS DELIBERATELY NOT HERE YET: `withLearner` — the one method that opens a
 // learner's durable unit, stages events and stages the projection. That is the
-// method that CHANGES THE WRITE PATH, and slice 1's acceptance is "no behaviour
+// method that CHANGES THE WRITE PATH, and slice 1's acceptance was "no behaviour
 // change", so the answer path still runs exactly as it does today
-// (`updateProfile` → `commitAndProject` → `appendEvidence`). Slice 2 lands it,
+// (`updateProfile` → `commitAndProject` → `appendEvidence`). **Slice 3 lands it**,
 // with the read side already ported here. Claiming otherwise in a comment is how
 // a spec becomes decoration.
 //
 // WHAT ELSE IS NOT HERE: accounts. `lib/server/auth.ts` owns `accounts.json`
 // privately and already imports this store, so moving accounts onto the port
-// needs the two modules' dependency untangled first — slice 2, named rather than
+// needs the two modules' dependency untangled first — slice 3, named rather than
 // forgotten. Until then `accounts.json` is the one data file outside the port.
 // ─────────────────────────────────────────────────────────────────────────────
 import type { ClassRoster, ProfileState, StudyPack, StudyRoom } from "../types";
@@ -75,7 +75,12 @@ export interface Storage {
   /** Remove a learner from every class roster, in place. */
   removeMemberEverywhere(profileId: string): Promise<number>;
 
-  // ── The ledger, read side. The write path is slice 2 (`withLearner`). ────
+  // ── The ledger, read side. The write path is slice 3 (`withLearner`). ────
+  /** A learner's history, OLDEST FIRST — the input to `replayModel`. Clock
+   *  order, not append order: a device that was offline appends events that
+   *  happened before ones already written, so a backend that returns the file
+   *  in the order it was written breaks the promise its consumer depends on.
+   *  `scripts/storage-conformance.mjs` holds every backend to this. */
   readEvents(learnerId: string): EvidenceEvent[];
   learnersWithEvents(): string[];
   hasEvent(learnerId: string, eventId: string): boolean;

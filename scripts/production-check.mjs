@@ -122,6 +122,17 @@ record("typecheck", typecheckOk, "tsc --noEmit");
 const verifyOk = runScript("verify");
 record("engine + content-graph suite", verifyOk, "npm run verify (compiles .verify)");
 
+// The storage port's own semantics, driven against every backend this build can
+// serve (docs/STORAGE_SPEC.md §6). It belongs in the release checklist because
+// the failure it prevents is a second backend arriving with a second test suite
+// — a store that passes its own tests and not the product's — and because the
+// things it asserts (clock-ordered history, owner-scoped reads, the erase
+// tombstone) are the promises the routes already depend on. While no Postgres
+// backend exists the suite SKIPS that half with the reason stated, which is
+// reported here as passing-with-a-note rather than as parity it never measured.
+const storageOk = runScript("storage-check");
+record("storage conformance", storageOk, "npm run storage-check (the port, against every configured backend)");
+
 // ── Disk headroom ───────────────────────────────────────────────────────────
 // This checklist BUILDS things — two Next builds, a compiled mirror, a static
 // bundle — and the product stores a learner's progress as files. Both write to
