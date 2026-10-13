@@ -1,0 +1,22 @@
+{
+  "_schema": {
+    "why": "The single source of the 'human reviewed' claim. `npm run verify:q` reads this file and writes it into audit/verification-coverage.json, so the published coverage figure cannot be typed anywhere by hand. An entry naming a concept the bank does not generate, or lacking a reviewer and a date, FAILS the audit — a review claim without a name and a date is not evidence.",
+    "fields": {
+      "conceptId": "must be a concept the bank can generate (GENERATED_CONCEPT_IDS)",
+      "reviewer": "the person who read the items; a name or a stable handle, never 'the team'",
+      "reviewedOn": "YYYY-MM-DD",
+      "checklistVersion": "which version of the review checklist in docs/PILOT_SCOPE.md was used",
+      "scope": "what was actually read — e.g. 'all four option families at 60 draws each, and every explanation'",
+      "notes": "optional; what was found, and what was changed as a result"
+    },
+    "example": {
+      "conceptId": "fractions",
+      "reviewer": "A. Teacher",
+      "reviewedOn": "2026-11-02",
+      "checklistVersion": 1,
+      "scope": "12 draws covering both families, explanations read in full",
+      "notes": "one distractor read ambiguously; rewritten"
+    }
+  },
+  "reviews": []
+}

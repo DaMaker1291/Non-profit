@@ -397,6 +397,38 @@ for (const conceptId of GENERATED_CONCEPT_IDS) {
   }
 }
 
+// ── HUMAN REVIEW IS A CLAIM WITH A NAME AND A DATE ──────────────────────────
+// `humanReviewed` is READ from audit/item-reviews.json, never typed into a
+// report, so the published coverage figure has exactly one source. An entry that
+// names a concept the bank does not generate, or carries no reviewer and no
+// date, is a broken claim about the product and FAILS this audit: a review
+// nobody signed is indistinguishable from decoration, which is the failure mode
+// this whole file exists to prevent.
+const reviews = (() => {
+  try {
+    const raw = JSON.parse(fs.readFileSync("audit/item-reviews.json", "utf8"));
+    return Array.isArray(raw.reviews) ? raw.reviews : [];
+  } catch (e) {
+    add("item-reviews", "review registry unreadable", String(e && e.message ? e.message : e));
+    return [];
+  }
+})();
+const reviewedIds = new Set();
+for (const r of reviews) {
+  if (!r || typeof r.conceptId !== "string" || !GENERATED_CONCEPT_IDS.includes(r.conceptId)) {
+    add("item-reviews", "review names a concept the bank does not generate", JSON.stringify(r).slice(0, 120));
+    continue;
+  }
+  if (typeof r.reviewer !== "string" || !r.reviewer.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(r.reviewedOn ?? "")) {
+    add(r.conceptId, "review claim without a reviewer or a date", JSON.stringify(r).slice(0, 120));
+    continue;
+  }
+  reviewedIds.add(r.conceptId);
+}
+// ORDER MATTERS AND THE FIRST VERSION GOT IT WRONG: this block ran AFTER
+// the failure count below, so `add()` calls it made could never affect the
+// exit status — a planted nameless review passed the audit silently. Every
+// check must be evaluated before the thing that counts it.
 let bad = 0;
 for (const [conceptId, kinds] of [...problems].sort()) {
   bad++;
@@ -506,7 +538,7 @@ console.log(
 {
   const perConcept = {};
   for (const id of GENERATED_CONCEPT_IDS) {
-    perConcept[id] = { promptDerived: Boolean(SEMANTIC[id]), humanReviewed: false };
+    perConcept[id] = { promptDerived: Boolean(SEMANTIC[id]), humanReviewed: reviewedIds.has(id) };
   }
   const coverage = {
     note:
@@ -518,14 +550,16 @@ console.log(
       explanationKey: GENERATED_CONCEPT_IDS.length,
       promptDerived: Object.keys(SEMANTIC).sort(),
       structuralOnly: GENERATED_CONCEPT_IDS.filter((id) => !SEMANTIC[id]).sort(),
-      humanReviewed: [],
+      humanReviewed: [...reviewedIds].sort(),
+      humanReviewedFrom: "audit/item-reviews.json",
     },
     perConcept,
   };
   fs.writeFileSync("audit/verification-coverage.json", `${JSON.stringify(coverage, null, 2)}\n`);
   console.log(
     `\nCoverage ledger → audit/verification-coverage.json` +
-    `\n  ${Object.keys(SEMANTIC).length} concepts prompt-derived · ${GENERATED_CONCEPT_IDS.length - Object.keys(SEMANTIC).length} structural-only · 0 human-reviewed.`,
+    `\n  ${Object.keys(SEMANTIC).length} concepts prompt-derived · ${GENERATED_CONCEPT_IDS.length - Object.keys(SEMANTIC).length} structural-only · ${reviewedIds.size} human-reviewed` +
+    `${reviewedIds.size ? ` (${[...reviewedIds].join(", ")})` : " (audit/item-reviews.json is empty — nobody has reviewed any item)"}.`,
   );
 }
 

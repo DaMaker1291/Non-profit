@@ -21,10 +21,36 @@ the only question that decides whether any of it matters.
 |---|---|---|
 | Subject | **Maths** | The concepts with independent verification (fractions, surds, completing-square, mixture-problems, circle-area-arc) are maths, so the reviewed set and the verified set overlap. |
 | Course | **UK GCSE Higher** (18 national routes exist; this one has a full grade ladder and a tier) | A single declared course drives all six layers, so the pilot measures one coherent thing. |
-| Concepts | **8–12**, drawn from the verified five plus their immediate prerequisites | Small enough for a teacher to read every item; large enough for a before/after. |
+| Concepts | **11**, chosen from the genome's own prerequisite graph rather than by taste — see below | Small enough for a teacher to read every item; large enough for a before/after. |
 | Items | Every item a student meets in those concepts, **reviewed by a teacher before use** | Review is the layer that does not exist; this is how it comes into existence. |
 | Duration | 3–4 weeks, two sessions a week | Long enough to include a delayed retention check. |
 | Size | One class, one teacher | A pilot that finds problems is doing its job; a large one cannot be read. |
+
+## The cluster, measured (not hand-picked)
+
+Computed from `lib/genome.ts` plus `coverageOf(uk-gcse, Higher)` — the numbers are
+what the data says today, and the command that reproduces them is
+`node /tmp/cluster-probe.mjs`-style reading of `.verify/genome.js`:
+
+```
+C · quadratics / surd strand      completing-square surds + every prerequisite they need
+  concepts            11   (stages 0-3)
+  in GCSE Higher       9   · NOT in it: order-ops, negatives (stage-0 arithmetic,
+                            served as prerequisites rather than as course content)
+  prompt-derived       2   (completing-square, surds) — already re-derived from the prompt
+  misconception set   10/11 · WITHOUT: coordinates
+  to review            9 concepts of items, and one missing misconception
+```
+
+Why this one: it contains two of the five concepts whose answers are already
+independently verified, its prerequisites are all real edges in the graph (no
+invented ordering), 9 of 11 sit inside the course a teacher would recognise, and
+the review burden is 9 concepts rather than 135. A teacher can read every item a
+student meets in this strand in one sitting.
+
+The alternative — all five verified concepts and their prerequisites — is 16
+concepts and 3 subjects' worth of context for one reviewer; the strand above is
+the same evidence with a smaller surface.
 
 ## The three measurements, and what each needs
 
@@ -54,6 +80,29 @@ Does not exist: a **review workflow** (marking an item as teacher-reviewed, with
 a name and a date, and having the ledger record it), a **consent and permission
 flow**, and any **outcome instrument** beyond the product's own questions. Those
 three are prerequisites, and they are small compared with what is already built.
+
+## The review checklist a teacher uses
+
+Per concept, at 12–20 draws covering every family the generator can serve:
+
+1. **Is the key correct?** Work the item independently and compare with the key.
+2. **Is exactly one option defensible?** Two options that are the same answer in
+   different clothes is the defect class this bank has actually shipped once.
+3. **Does each distractor probe a real misconception** rather than being filler —
+   and is the named misconception the one that option would actually reveal?
+4. **Does the explanation arrive at the key**, state why the key is right, and
+   name what the wrong options represent?
+5. **Is the difficulty honest for the year group** it will be served to?
+6. **Is the reading level and vocabulary right** for that year, in the language
+   taught (the curriculum's own terminology, not the genome's English)?
+7. **Is the figure correct**, where there is one?
+
+A concept is `humanReviewed` only when every item type in it has been read. The
+records live in [audit/item-reviews.json](../audit/item-reviews.json) and
+`npm run verify:q` copies them into `audit/verification-coverage.json`, so the
+coverage figure has exactly one source. A claim without a reviewer and a date
+**fails the audit** — verified by planting one: `review claim without a reviewer
+or a date` and `review names a concept the bank does not generate`, exit 1.
 
 ## Privacy and honesty rails
 
