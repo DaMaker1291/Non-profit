@@ -57,9 +57,21 @@ const argv = process.argv.slice(2);
 const STORE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "om-conformance-"));
 process.env.OPENMIND_DATA_DIR = STORE_DIR;
 
-// The compiled mirror: the port, the file backend, the ledger, the profile shape.
+// The compiled mirror. `storage.js` is the port alone — it imports nothing from
+// the store — so it can be loaded and CONSULTED before anything that resolves the
+// backend. That order matters: `store.js` resolves the configured backend at
+// module load and throws for one this build cannot serve, so requiring the
+// backend first would turn an operator's misconfiguration into a stack trace in
+// the middle of a gate. This way the refusal is a sentence.
 compileEngines();
 const port = require("../.verify/server/storage.js");
+const configured = port.storeKindReport();
+if (configured.problem) {
+  console.log(`\n  This build cannot serve OPENMIND_STORE="${configured.configured}" (${configured.problem.code}).`);
+  console.log(`  ${configured.problem.detail}`);
+  console.log("  NOTHING WAS TESTED: unset it to run the file store, or see docs/STORAGE_SPEC.md slice 4.\n");
+  process.exit(2);
+}
 const { activeStorage, fileStorage } = require("../.verify/server/storage-file.js");
 const { appendEvidence } = require("../.verify/server/evidence.js");
 const { newProfileState } = require("../.verify/learner-profile.js");
