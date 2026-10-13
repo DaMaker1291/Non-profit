@@ -17,12 +17,12 @@ import Link from "next/link";
 import { loadLocalProfileId, useI18n, useProfile } from "@/lib/client";
 import * as api from "@/lib/api/client";
 import { curriculumFor, INDEPENDENT_ROUTE } from "@/lib/curriculum";
-import { COUNTRIES } from "@/lib/i18n";
+import { COUNTRIES, fill } from "@/lib/i18n";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
 import { ctitle, levelLabel } from "@/lib/content-i18n";
 import type { ProfileState, SubjectId } from "@/lib/types";
 import {
-  SPECIFICATIONS,
+  NATIONAL_ROUTE_COUNT,
   coverageReport,
   incompleteSubjects,
   levelForGrade,
@@ -290,8 +290,16 @@ export default function CurriculumPage() {
         <Link href="/learn" className="btn">{t("curr.start")} →</Link>
         <Link href="/access" className="btn ghost">{t("curr.change")}</Link>
       </div>
+      {/* The number comes FROM THE DATA, not from the sentence, and it counts
+          countries rather than courses. It used to be `SPECIFICATIONS.length`
+          — 25, which is a count of COURSES — printed in front of a dictionary
+          string that said "courses from 20 countries", so the line was wrong
+          twice: the sentence counted the international and independent
+          pseudo-countries as countries, and the prefix counted courses. Six of
+          the fifteen languages take their number from this prefix and read
+          "25 countries". */}
       <p className="small muted">
-        {SPECIFICATIONS.length} {t("curr.specsNote")}
+        {fill(t("curr.specsNote"), { n: NATIONAL_ROUTE_COUNT })}
       </p>
     </main>
   );

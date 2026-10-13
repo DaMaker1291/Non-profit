@@ -122,6 +122,36 @@ record("typecheck", typecheckOk, "tsc --noEmit");
 const verifyOk = runScript("verify");
 record("engine + content-graph suite", verifyOk, "npm run verify (compiles .verify)");
 
+// ── Disk headroom ───────────────────────────────────────────────────────────
+// This checklist BUILDS things — two Next builds, a compiled mirror, a static
+// bundle — and the product stores a learner's progress as files. Both write to
+// the same filesystem, so a full disk does not fail one step: it fails whatever
+// happens to be writing at the time, and the failure wears a costume. Measured:
+// a full volume surfaced as `ENOSPC` inside the dev server's webpack cache, and
+// the run reported it as `✗ end-to-end suite — TypeError: fetch failed`, which
+// reads like a broken product rather than a full disk. Hence a step that says
+// which it is. The LOW bar fails (writes are about to start failing); the WARN
+// bar reports, because a tight disk is a fact to fix, not a reason to refuse a
+// release that can still be built and served.
+{
+  const LOW_MB = 500;
+  const WARN_MB = 2048;
+  try {
+    const st = fs.statfsSync(ROOT);
+    const freeMb = Math.floor((Number(st.bavail) * Number(st.bsize)) / (1024 * 1024));
+    const freeGb = (freeMb / 1024).toFixed(1);
+    if (freeMb < LOW_MB) {
+      record("disk headroom", false, `${freeMb} MB free on the volume holding the store and the builds — below ${LOW_MB} MB, writes are about to fail (ENOSPC)`);
+    } else if (freeMb < WARN_MB) {
+      record("disk headroom", true, `${freeGb} GB free — enough to run, tight enough to watch; the store, two builds and the compiled mirror all write here`);
+    } else {
+      record("disk headroom", true, `${freeGb} GB free`);
+    }
+  } catch (e) {
+    skip("disk headroom", `statfs unavailable here (${e && e.message ? e.message : "unknown"})`);
+  }
+}
+
 // Environment validation uses the engine the readiness check uses, from the one
 // compiled mirror — no second list of "the variables that matter" here.
 let envOk = false;

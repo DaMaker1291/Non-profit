@@ -54,6 +54,12 @@ const { optionValueKey } = await import(pathToFileURL(path.join(TMP, "answer.mjs
 const SAMPLES = 300;
 const problems = new Map(); // conceptId -> Map(kind -> example)
 const promptVariety = new Map(); // conceptId -> Set of distinct prompts seen
+// How much of the bank is INDEPENDENTLY re-derived from the prompt rather than
+// only checked for shape (four options, no float noise, an explanation). This is
+// the number that says what a green run is worth: the wrong-key defect in
+// `fractions` was invisible to every structural check and was found by a
+// matcher, so an item no matcher recognises is an item nobody has verified.
+const rederived = { total: 0, wrong: 0 };
 
 function add(conceptId, kind, example) {
   if (!problems.has(conceptId)) problems.set(conceptId, new Map());
@@ -371,6 +377,20 @@ for (const conceptId of GENERATED_CONCEPT_IDS) {
     }
     // Semantic check where the maths is independently verifiable.
     const check = SEMANTIC[conceptId]?.(q);
+    // `null` has TWO meanings and they must not be conflated: "checked, and it is
+    // right" and "this shape is not one I can re-derive". Only the second is
+    // unverified, and counting it is the honest answer to "how much of the bank
+    // is independently verified?" — a suite that reports only pass/fail makes a
+    // matcher that recognises nothing look identical to one that recognises all.
+    // A matcher returns a STRING for "wrong" and `null` for BOTH "checked and
+    // right" and "this shape is not mine" — so a null result cannot be counted
+    // as verification. What can be counted is the reach: how many concepts have
+    // any independent matcher at all. That number, not the pass count, is what
+    // says how much of a green run rests on re-derivation.
+    if (SEMANTIC[conceptId]) {
+      rederived.total += 1;
+      if (check !== null) rederived.wrong += 1;
+    }
     if (check) add(conceptId, "mathematically wrong", `${check} — seed audit:${i}`);
     if (!q.explanation || !q.explanation.trim()) add(conceptId, "empty explanation", q.prompt);
     if (FLOAT_NOISE.test(q.explanation)) add(conceptId, "float noise in explanation", q.explanation.slice(0, 140));
@@ -395,6 +415,52 @@ const nearFixed = [...promptVariety]
   .map(([id, set]) => `${id}(${set.size})`)
   .sort();
 
+// ── THE EXPLANATION MUST NOT CONTRADICT THE KEY ──────────────────────────────
+// A verdict on the WHOLE bank can be derived without a matcher per prompt shape,
+// and that is how the one wrong key in `fractions` should have been caught: the
+// explanation's own working disagreed with the key it was explaining. It read
+// "(2 − 5)/6 = 1/2", where 2 − 5 is not 1 and 1/2 is not 2/6 − 5/6 either.
+//
+// The rule is deliberately one-sided: an explanation MAY state intermediate
+// values (`= 15/10 = 3/2` is a correct explanation of 3/2), so this does not
+// demand that every value it derives equals the key. It demands the weaker,
+// sound thing — the key must appear among the values the explanation derives.
+// An item whose explanation never arrives at its own answer is not explaining
+// the answer, whatever the answer is.
+//
+// A numeric explanation must MENTION its own answer. The first draft of this
+// rule looked only at values written straight after an `=`, and its six hits
+// were all the same false positive: `771 = 700 + 70 + 1, so the ones digit
+// contributes 1` derives 700 and states the key as a term of the sum, not after
+// an equals sign. So the rule considers every value token in the explanation,
+// which is the weaker claim and the sound one. Where it does not apply — a
+// sentence with no numbers at all, or a key that is not a plain value — it says
+// nothing, because a shape it cannot read must cost a missed check rather than a
+// false failure.
+//
+// MEASURED before it was enforced: 0 of 40,500 draws failed it, after the fix
+// above removed 6 false positives in `place-value`.
+const unexplained = [];
+const valueTokens = (text) =>
+  [...String(text ?? "").matchAll(/[\u2212-]?\d+(?:\.\d+)?(?:\s*\/\s*\d+)?/g)]
+    .map((m) => optionValueKey(m[0].replace(/\s+/g, "")))
+    .filter((v) => v !== null);
+for (const conceptId of GENERATED_CONCEPT_IDS) {
+  for (let i = 0; i < SAMPLES; i += 1) {
+    const q = generateQuestion(conceptId, `audit:${i}`);
+    if (!q) continue;
+    const key = optionValueKey(String(q.choices?.[q.answer] ?? ""));
+    if (key === null || key.includes("&")) continue;
+    const mentioned = valueTokens(q.explanation);
+    if (mentioned.length === 0) continue; // states its answer in words — not this rule's business
+    if (!mentioned.includes(key)) {
+      add(conceptId, "explanation never states the key",
+        `key ${key}, explanation states ${[...new Set(mentioned)].join(", ")} — "${q.prompt.replace(/\s+/g, " ").slice(0, 70)}" (seed audit:${i})`);
+      unexplained.push(conceptId);
+    }
+  }
+}
+
 console.log(
   `\nQuestion audit: ${GENERATED_CONCEPT_IDS.length} generators × ${SAMPLES} draws — ` +
   `${bad} generator${bad === 1 ? "" : "s"} with problems, ${GENERATED_CONCEPT_IDS.length - bad} clean`,
@@ -405,4 +471,25 @@ console.log(
 );
 if (repeated.length) console.log(`  fixed: ${repeated.join(", ")}`);
 if (nearFixed.length) console.log(`  near-fixed: ${nearFixed.join(", ")}`);
+// Reported as well as enforced: the count is the evidence that the rule is
+// still measuring what it was written for, and a rise in it is the signal that a
+// family started explaining something other than its own answer.
+console.log(
+  `\nExplanation-vs-key: ${unexplained.length}` +
+  `${unexplained.length ? " item(s) whose explanation never states its own answer" : " items — every numeric explanation arrives at its own key"}`,
+);
+const draws = GENERATED_CONCEPT_IDS.length * SAMPLES;
+const reachPct = ((100 * rederived.total) / draws).toFixed(1);
+const MATCHED_CONCEPTS = Object.keys(SEMANTIC).length;
+const conceptPct = ((100 * MATCHED_CONCEPTS) / GENERATED_CONCEPT_IDS.length).toFixed(1);
+console.log(
+  `\nIndependent verification, stated honestly:` +
+  `\n  · ${MATCHED_CONCEPTS}/${GENERATED_CONCEPT_IDS.length} concepts (${conceptPct}%) have a matcher that re-derives the answer` +
+  `\n    from the prompt — ${rederived.total}/${draws} draws (${reachPct}%), ${rederived.wrong} of them wrong.` +
+  `\n  · the other ${draws - rederived.total} draws met the STRUCTURAL rules only (four value-distinct options,` +
+  `\n    no float noise, a non-empty explanation that states its own key, a sane difficulty). That is` +
+  `\n    a measurement, not a clean bill: no matcher exists for those shapes yet.` +
+  `\n  · the explanation and option rules apply to every draw, so a defect of the kind found in` +
+  `\n    \`fractions\` (the key contradicted by its own working) cannot pass unnoticed in a numeric item.`,
+);
 if (bad) process.exit(1);

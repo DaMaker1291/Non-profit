@@ -9252,6 +9252,32 @@ console.log("▸ A missing course is named by field, and can be finished where w
   });
   ok(noTierLabel.length === 0,
     `the tier placeholder is authored in all ${LANG_CODES.length} languages${noTierLabel.length ? ` (missing: ${noTierLabel.join(", ")})` : ""}`);
+
+  // ── THE COVERAGE CLAIM CARRIES A PLACEHOLDER, NOT A NUMBER ────────────────
+  // The sentence a learner reads about how much of the world this product has
+  // mapped has been wrong twice over: it said "courses from 20 countries",
+  // counting the international and independent pseudo-countries as countries,
+  // and the curriculum page printed a COURSE count (25) in front of it — which
+  // some languages read as the country count. So the invariant is now a source
+  // one: every dictionary states the coverage with `{n}`, and the caller fills
+  // it from `NATIONAL_ROUTE_COUNT`, which is derived from the specification list
+  // itself. A dictionary that re-bakes a number cannot be filled, and this fails
+  // rather than shipping a claim no reading of the data supports.
+  const noCoverageSlot = LANG_CODES.filter((code) => {
+    const body = dictBody(code);
+    return body === null || !/"curr\.specsNote":\s*"[^"]*\{n\}[^"]*"/.test(body);
+  });
+  ok(noCoverageSlot.length === 0,
+    `the curriculum-coverage sentence takes its count from the data in all ${LANG_CODES.length} languages${noCoverageSlot.length ? ` (hard-coded or missing: ${noCoverageSlot.join(", ")})` : ""}`);
+  const specsMod = require("../.verify/specifications.js");
+  const nationalCount = specsMod.NATIONAL_ROUTE_COUNT;
+  ok(Number.isInteger(nationalCount) && nationalCount > 0 && nationalCount < specsMod.SPECIFICATIONS.length,
+    `NATIONAL_ROUTE_COUNT (${nationalCount}) is derived, real, and smaller than the course count (${specsMod.SPECIFICATIONS.length}) — the two numbers the wording must not conflate`);
+  const claim = i18n.fill(i18n.translator("en")("curr.specsNote"), { n: nationalCount });
+  ok(claim.includes(String(nationalCount)) && !/\{n\}/.test(claim),
+    `the English coverage sentence renders its real count ("${claim.slice(0, 60)}…")`);
+  ok(/international|independent/i.test(claim),
+    "and it names the pathways that are NOT a national system, so 18 national routes is never read as the whole of the coverage");
 }
 
 // ════════════════════════════════════════════════════════════════════════════

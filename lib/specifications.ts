@@ -315,6 +315,26 @@ export const SPECIFICATIONS: Specification[] = [
   UK, UK_ALEVEL, IGCSE, IB, US_CORE, SAT, US_AP, CA, ZA, AU, IE,
   IN_CBSE, IN_ICSE, PK, BD, KE, TZ, UG, NG, GH, PH, ID, BR, MX, INDEPENDENT,
 ];
+// ── The two counts, kept apart on purpose ────────────────
+//
+// `SPECIFICATIONS.length` counts COURSES (25); it is not a country count and
+// never was. The curriculum page printed it beside a dictionary string that said
+// "courses from 20 countries", so that line was wrong twice over: the sentence
+// counted the international (`INT`) and independent (`XX`) pseudo-countries as
+// countries, and the number in front of it was a course count. In the languages
+// whose sentence takes its number from the prefix, a learner read "25 countries",
+// which nothing in the data supports.
+//
+// The honest pair, for the record: **18 countries have a national route** (GB,
+// US, ZA, AU, CA, IE, IN, PK, BD, KE, TZ, UG, NG, GH, PH, ID, BR, MX); the
+// international and independent courses serve everyone else; and the onboarding
+// picker offers 70 countries, so 52 of them are offered a real course that is NOT
+// their national curriculum. That is what the wording has to say — and this
+// constant is the ONE owner of the number, so no dictionary may re-bake it.
+export const NATIONAL_ROUTE_COUNT: number = new Set(
+  SPECIFICATIONS.map((s) => s.country).filter((c) => c !== "INT" && c !== "XX"),
+).size;
+
 
 /** Teaching-language settings a specification can recommend (§4): the terms a
  *  student's own curriculum uses. Empty means "use the genome's English

@@ -1182,7 +1182,7 @@
       '<p class="lang-list">' + subjects.map(function (s) {
         return '<button class="chip" data-act="subject" data-s="' + esc(s) + '"' + (s === subject ? ' aria-current="true"' : "") + ">" + esc(s) + "</button>";
       }).join("") + "</p>" +
-      '<p class="small muted">' + esc(t("curr.specsNote")) + "</p>" +
+      '<p class="small muted">' + esc(fill(t("curr.specsNote"), { n: E.specifications.NATIONAL_ROUTE_COUNT })) + "</p>" +
       '<hr class="rule">' +
       '<ul class="items">' + list.map(function (c) {
         // EVERY FACT ABOUT A ROW COMES FROM ONE FUNCTION. This list used to
