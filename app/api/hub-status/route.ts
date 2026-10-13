@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { resolveDeployment } from "@/lib/deployment";
-
-const DATA_DIR = process.env.OPENMIND_DATA_DIR
-  ? path.resolve(process.env.OPENMIND_DATA_DIR)
-  : path.join(process.cwd(), ".openmind-data");
+// The store owns where the data is. This route resolved OPENMIND_DATA_DIR for
+// itself, which made a third answer to "where is the store" — see the
+// one-data-directory assertion in scripts/verify-engines.mjs.
+import { DATA_DIR } from "@/lib/server/store";
 
 async function countFile(file: string): Promise<number> {
   try {

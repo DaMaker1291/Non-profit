@@ -1,7 +1,14 @@
 import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "crypto";
 import { promises as fs } from "fs";
 import path from "path";
-import { getProfile, newId, publicProfileState, saveProfile } from "./store";
+// DATA_DIR and withLock come from the store rather than being re-derived here.
+// They used to be a SECOND copy of each (`const DATA_DIR = …` and its own
+// `locks` map), which is the shape that fails quietly: two lock tables means an
+// accounts write and a profile write can be in flight at the same time and
+// neither knows about the other, and three resolvers of OPENMIND_DATA_DIR means
+// a deployment can be pointed at two directories by editing one of them. `verify`
+// now fails if a second copy reappears (see "one data directory, one lock table").
+import { DATA_DIR, getProfile, newId, publicProfileState, saveProfile, withLock } from "./store";
 import type { ProfileState } from "../types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -16,10 +23,6 @@ import type { ProfileState } from "../types";
 // be *claimed* by a new account, which moves every recorded interaction over
 // rather than starting again.
 // ─────────────────────────────────────────────────────────────────────────────
-
-const DATA_DIR = process.env.OPENMIND_DATA_DIR
-  ? path.resolve(process.env.OPENMIND_DATA_DIR)
-  : path.join(process.cwd(), ".openmind-data");
 
 export type AccountRole = "student" | "teacher" | "org";
 
@@ -76,14 +79,6 @@ export function publicAccount(a: Account): PublicAccount {
 // ── Storage ─────────────────────────────────────────────────────────────────
 // Same one-directory-is-the-deployment model as the rest of the store: copy
 // .openmind-data and you have carried every account and every learner with it.
-
-const locks = new Map<string, Promise<unknown>>();
-function withLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  const prev = locks.get(key) ?? Promise.resolve();
-  const next = prev.then(fn, fn);
-  locks.set(key, next.then(() => undefined, () => undefined));
-  return next;
-}
 
 async function readAccounts(): Promise<Record<string, Account>> {
   try {

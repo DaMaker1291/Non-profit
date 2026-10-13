@@ -5632,6 +5632,62 @@ console.log("\n▸ Where the learner is allowed to be");
     `every page directory is classified in the access contract (unclassified: ${unclassified.join(", ") || "none"})`);
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ONE DATA DIRECTORY, ONE LOCK TABLE
+// ════════════════════════════════════════════════════════════════════════════
+// The store's two most important singletons were each duplicated, and both
+// duplicates failed the same quiet way. `lib/server/auth.ts` carried its OWN
+// `locks` map, so an accounts write and a profile write could be in flight at
+// the same time with neither table knowing about the other — the exact hazard
+// `withLock` exists to prevent, defeated by a second copy of it. Three files
+// resolved `OPENMIND_DATA_DIR` for themselves, so "where is the store" had
+// three answers and a deployment could be pointed at two directories by editing
+// one of them.
+//
+// Comments are stripped before this scan, deliberately. The files that DESCRIBE
+// the rule mention the variable (auth.ts now explains why it imports DATA_DIR
+// instead of deriving it), and a check that tripped over its own documentation
+// would be relaxed within a week. `lib/env.ts` is the one legitimate other
+// mention: it REPORTS the variable's state to an operator and resolves nothing.
+console.log("▸ One data directory, one lock table");
+{
+  const stripComments = (src) =>
+    src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) walk(full);
+      else if (/\.(ts|tsx)$/.test(entry.name)) files.push(full);
+    }
+  };
+  walk("lib");
+  walk("app");
+
+  const OWNER = "lib/server/store.ts";
+  const REPORTER = "lib/env.ts"; // reports the variable, resolves nothing
+  const dirResolvers = files.filter((f) =>
+    f !== OWNER && f !== REPORTER && /OPENMIND_DATA_DIR/.test(stripComments(fs.readFileSync(f, "utf8"))));
+  ok(dirResolvers.length === 0,
+    `only the store resolves where learning data lives (second copy in: ${dirResolvers.join(", ") || "none"})`);
+
+  // One lock table. A second one is not a style problem — it is two writers with
+  // no common serialisation point, which no amount of testing on one process can
+  // see.
+  const lockTables = files.filter((f) =>
+    /new Map<string, Promise<unknown>>\s*\(\s*\)/.test(stripComments(fs.readFileSync(f, "utf8"))));
+  ok(lockTables.length === 1 && lockTables[0] === OWNER,
+    `exactly one lock table exists, in the store (found: ${lockTables.join(", ") || "none"})`);
+
+  // And the ledger must still share it: a lock per module would let an evidence
+  // append and a profile write race on the same learner, which is the reason
+  // DATA_DIR and `locks` are exported from the store at all.
+  const ledger = fs.readFileSync("lib/server/evidence.ts", "utf8");
+  ok(/import\s*\{[^}]*\bwithLock\b[^}]*\}\s*from\s*"\.\/store"/.test(ledger) &&
+     /import\s*\{[^}]*\bDATA_DIR\b[^}]*\}\s*from\s*"\.\/store"/.test(ledger),
+    "and the evidence ledger takes both from the store rather than from a copy of its own");
+}
+
 // ── On-device AI (local tier) ──────────────────────────────────────────────
 // The feature here is not "we run a model". It is that the app can say, from
 // MEASUREMENTS, what a given phone can do — and that the rung it actually ships
