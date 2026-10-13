@@ -139,6 +139,53 @@ export function answerDisplay(q: Question): string {
 }
 
 /**
+ * A KEY for "are these two OPTIONS the same answer?" — or null when the text is
+ * not a plain value and must not be compared by value at all.
+ *
+ * A four-option question whose options include the right answer twice is not a
+ * hard question, it is a broken one: whichever of the two a learner picks, the
+ * other is recorded as one of their mistakes. The comparison cannot be textual —
+ * `45/360` and `1/8`, `11.00` and `11.0`, `2/3` and `4/6` are the same thing
+ * written differently, and the string check that has always existed here cannot
+ * see any of them. It cannot be numeric either: the bank asks for fractions,
+ * coordinate pairs and text.
+ *
+ * So the rule is small and stated once, in ONE place, because three callers must
+ * agree about it: the assembler (which drops a colliding distractor), the
+ * question audit (`npm run verify:q`, which fails the build when a served item
+ * still has two equal options) and any future authoring tool.
+ *
+ * The one asymmetry, and it is the whole subtlety: an UNORDERED pair of ROOTS is
+ * one answer — `x = 1 and x = -2` says the same thing as `x = -2 and x = 1`,
+ * because roots are a set — while a pair of bare numbers is an ORDERED tuple,
+ * because `Balance: __ Fe + O₂ → __ Fe₂O₃` with the options `4 and 3` and `3 and
+ * 4` is asking about 4 Fe + 3 O₂ versus 3 Fe + 4 O₂, which are different (and
+ * only one of them balances). Sorting every pair would delete a good distractor;
+ * sorting none would keep a correct option beside the key.
+ *
+ * Null means "not a value" (prose, a unit-bearing measurement, an expression)
+ * and the caller falls back to comparing the text itself. A miss here costs a
+ * missed check, never a false failure.
+ */
+export function optionValueKey(text: string): string | null {
+  if (typeof text !== "string") return null;
+  const parts = foldSigns(text).trim().split(/\s+and\s+/i);
+  const parse = (raw: string): number | null => {
+    let s = raw.trim().replace(/\s+only$/i, "");
+    const assign = s.match(/^[A-Za-z]\s*=\s*(.+)$/);
+    if (assign) s = assign[1].trim();
+    const fr = s.match(/^(-?\d+)\s*\/\s*(\d+)$/);
+    if (fr) return Number(fr[2]) === 0 ? null : Number(fr[1]) / Number(fr[2]);
+    return /^-?\d+(?:\.\d+)?$/.test(s) ? Number(s) : null;
+  };
+  const values = parts.map(parse);
+  if (values.some((v) => v === null)) return null;
+  const roots = parts.length > 1 && parts.every((p) => /^[A-Za-z]\s*=/.test(p.trim()));
+  const rendered = values.map((v) => String(v));
+  return (roots ? [...rendered].sort() : rendered).join("&");
+}
+
+/**
  * THE IDENTITY OF AN ITEM FOR ONE LEARNER: what "the same question again" means.
  *
  * The serve search (lib/questions.ts#generateQuestionNear) uses this to know

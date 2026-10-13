@@ -302,14 +302,36 @@ export const MID_MATHS: Record<string, DeepGen> = {
    *  Band 4: a fraction, then a fraction OF WHAT IS LEFT — three stages. */
   fractions: (r) => {
     if (r.next() < 0.5) {
-      const [d1, d2] = r.shuffle([3, 4, 5, 6, 8, 10]).slice(0, 2);
-      const n1 = r.int(1, d1 - 1);
-      const n2 = r.int(1, d2 - 1);
+      let [d1, d2] = r.shuffle([3, 4, 5, 6, 8, 10]).slice(0, 2);
+      // Each fraction is drawn in LOWEST TERMS. `Work out 4/6 + 2/3` was served
+      // as a stem, and the operand 4/6 then came back as a distractor beside the
+      // operand 2/3 — the same value twice, which is one answer offered twice.
+      const pickNum = (d: number) =>
+        r.pick(Array.from({ length: d - 1 }, (_, i) => i + 1).filter((n) => gcd(n, d) === 1));
+      let n1 = pickNum(d1);
+      let n2 = pickNum(d2);
+      // A SUBTRACTION IS ONLY ASKED WHEN IT COMES OUT POSITIVE. The key used to
+      // be `Math.abs(a1 − a2)` while the stem printed `−`: `1/3 − 5/6` was keyed
+      // `1/2`, no option was anywhere near −1/2, and the explanation asserted
+      // that 2 − 5 = 1 — a learner who did the mathematics correctly was marked
+      // wrong for being right, the one fault a question bank cannot have.
+      //
+      // THE WHOLE FRACTION IS SWAPPED, numerator AND denominator, and the
+      // comparison is made on the CROSS-PRODUCT (n1·d2 against n2·d1) BEFORE any
+      // common denominator is built. Doing it later, on the scaled numerators,
+      // is what a first attempt got wrong: it moved `n1` and `n2` while `d1` and
+      // `d2` stayed put, so the stem read `5/3 − 1/6` while the arithmetic still
+      // used the unscaled pair — a second wrong key, on a screen whose whole
+      // purpose was to print the sign honestly.
+      const adding = r.next() < 0.5 || n1 * d2 === n2 * d1;
+      if (!adding && n1 * d2 < n2 * d1) {
+        [n1, n2] = [n2, n1];
+        [d1, d2] = [d2, d1];
+      }
       const lcm = (d1 * d2) / gcd(d1, d2);
       const a1 = (n1 * lcm) / d1;
       const a2 = (n2 * lcm) / d2;
-      const adding = r.next() < 0.5 || a1 === a2;
-      const top = adding ? a1 + a2 : Math.abs(a1 - a2);
+      const top = adding ? a1 + a2 : a1 - a2;
       const correct = frac(top, lcm);
       const symbol = adding ? "+" : "−";
       return {

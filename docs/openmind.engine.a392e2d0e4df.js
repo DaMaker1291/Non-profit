@@ -216,6 +216,7 @@ exports.parseNumericInput = parseNumericInput;
 exports.gradeNumeric = gradeNumeric;
 exports.formatNumeric = formatNumeric;
 exports.answerDisplay = answerDisplay;
+exports.optionValueKey = optionValueKey;
 exports.answerKey = answerKey;
 exports.gradeChoice = gradeChoice;
 /** Is this item answered by typing a number? Absent `responseKind` = choice. */
@@ -320,6 +321,56 @@ function formatNumeric(n) {
 /** The display form of an answer — the item's stated form when it has one. */
 function answerDisplay(q) {
     return q.tolerance?.display ?? q.choices[q.answer] ?? "";
+}
+/**
+ * A KEY for "are these two OPTIONS the same answer?" — or null when the text is
+ * not a plain value and must not be compared by value at all.
+ *
+ * A four-option question whose options include the right answer twice is not a
+ * hard question, it is a broken one: whichever of the two a learner picks, the
+ * other is recorded as one of their mistakes. The comparison cannot be textual —
+ * `45/360` and `1/8`, `11.00` and `11.0`, `2/3` and `4/6` are the same thing
+ * written differently, and the string check that has always existed here cannot
+ * see any of them. It cannot be numeric either: the bank asks for fractions,
+ * coordinate pairs and text.
+ *
+ * So the rule is small and stated once, in ONE place, because three callers must
+ * agree about it: the assembler (which drops a colliding distractor), the
+ * question audit (`npm run verify:q`, which fails the build when a served item
+ * still has two equal options) and any future authoring tool.
+ *
+ * The one asymmetry, and it is the whole subtlety: an UNORDERED pair of ROOTS is
+ * one answer — `x = 1 and x = -2` says the same thing as `x = -2 and x = 1`,
+ * because roots are a set — while a pair of bare numbers is an ORDERED tuple,
+ * because `Balance: __ Fe + O₂ → __ Fe₂O₃` with the options `4 and 3` and `3 and
+ * 4` is asking about 4 Fe + 3 O₂ versus 3 Fe + 4 O₂, which are different (and
+ * only one of them balances). Sorting every pair would delete a good distractor;
+ * sorting none would keep a correct option beside the key.
+ *
+ * Null means "not a value" (prose, a unit-bearing measurement, an expression)
+ * and the caller falls back to comparing the text itself. A miss here costs a
+ * missed check, never a false failure.
+ */
+function optionValueKey(text) {
+    if (typeof text !== "string")
+        return null;
+    const parts = foldSigns(text).trim().split(/\s+and\s+/i);
+    const parse = (raw) => {
+        let s = raw.trim().replace(/\s+only$/i, "");
+        const assign = s.match(/^[A-Za-z]\s*=\s*(.+)$/);
+        if (assign)
+            s = assign[1].trim();
+        const fr = s.match(/^(-?\d+)\s*\/\s*(\d+)$/);
+        if (fr)
+            return Number(fr[2]) === 0 ? null : Number(fr[1]) / Number(fr[2]);
+        return /^-?\d+(?:\.\d+)?$/.test(s) ? Number(s) : null;
+    };
+    const values = parts.map(parse);
+    if (values.some((v) => v === null))
+        return null;
+    const roots = parts.length > 1 && parts.every((p) => /^[A-Za-z]\s*=/.test(p.trim()));
+    const rendered = values.map((v) => String(v));
+    return (roots ? [...rendered].sort() : rendered).join("&");
 }
 /**
  * THE IDENTITY OF AN ITEM FOR ONE LEARNER: what "the same question again" means.
@@ -470,6 +521,11 @@ async function session() {
 function claimProfile(claim) {
     return (0, transport_1.send)("/api/auth/claim", { method: "POST", body: { ...claim } });
 }
+/** Change the account itself. The door answers with the SESSION it just changed
+ *  — account, profile and capability — rather than an acknowledgement, so the
+ *  caller can adopt it instead of reloading. Typed as the session for that
+ *  reason: a shape nobody reads is how "we saved your role" and "the app still
+ *  thinks you are a student" shipped at the same time. */
 function updateAccount(patch) {
     return (0, transport_1.send)("/api/auth/me", { method: "POST", body: { ...patch } });
 }
@@ -5222,6 +5278,7 @@ const en = {
     "nav.papers": "Exam papers",
     "nav.home": "Home",
     "acct.title": "Your account",
+    "acct.role": "Who uses this account?",
     "acct.lead": "Everything OpenMind has recorded about your learning is saved on this account, not in this browser.",
     "acct.privacyTitle": "Your data",
     "acct.privacyNote": "Everything OpenMind has recorded about your learning belongs to you: download it, or erase it from this deployment entirely.",
@@ -6722,6 +6779,7 @@ const es = {
     "nav.papers": "Exámenes oficiales",
     "nav.home": "Inicio",
     "acct.title": "Tu cuenta",
+    "acct.role": "¿Quién usa esta cuenta?",
     "acct.lead": "Todo lo que OpenMind ha registrado sobre tu aprendizaje está en esta cuenta, no en este navegador.",
     "acct.privacyTitle": "Tus datos",
     "acct.privacyNote": "Todo lo que OpenMind ha registrado sobre tu aprendizaje es tuyo: descárgalo o bórralo por completo de este despliegue.",
@@ -8223,6 +8281,7 @@ const fr = {
     "nav.papers": "Sujets d'examen",
     "nav.home": "Accueil",
     "acct.title": "Votre compte",
+    "acct.role": "Qui utilise ce compte ?",
     "acct.lead": "Tout ce qu'OpenMind a enregistré sur votre apprentissage est sur ce compte, pas dans ce navigateur.",
     "acct.privacyTitle": "Vos données",
     "acct.privacyNote": "Tout ce qu'OpenMind a enregistré sur votre apprentissage vous appartient : téléchargez-le, ou effacez-le entièrement de ce déploiement.",
@@ -9724,6 +9783,7 @@ const pt = {
     "nav.papers": "Provas oficiais",
     "nav.home": "Início",
     "acct.title": "Sua conta",
+    "acct.role": "Quem usa esta conta?",
     "acct.lead": "Tudo o que o OpenMind registrou sobre o seu aprendizado fica nesta conta, não neste navegador.",
     "acct.privacyTitle": "Seus dados",
     "acct.privacyNote": "Tudo o que o OpenMind registrou sobre o seu aprendizado é seu: baixe-o ou apague-o por completo desta implantação.",
@@ -11225,6 +11285,7 @@ const ar = {
     "nav.papers": "أوراق الامتحانات",
     "nav.home": "الرئيسية",
     "acct.title": "حسابك",
+    "acct.role": "من يستخدم هذا الحساب؟",
     "acct.lead": "كل ما سجله OpenMind عن تعلمك محفوظ في هذا الحساب، لا في هذا المتصفح.",
     "acct.privacyTitle": "بياناتك",
     "acct.privacyNote": "كل ما سجّله OpenMind عن تعلّمك ملك لك: نزّله، أو امحُه تمامًا من هذا النشر.",
@@ -12726,6 +12787,7 @@ const sw = {
     "nav.papers": "Mitihani ya kitaifa",
     "nav.home": "Mwanzo",
     "acct.title": "Akaunti yako",
+    "acct.role": "Nani anatumia akaunti hii?",
     "acct.lead": "Kila kitu OpenMind imerekodi kuhusu kujifunza kwako kiko kwenye akaunti hii, si kwenye kivinjari hiki.",
     "acct.privacyTitle": "Data zako",
     "acct.privacyNote": "Kila kitu OpenMind imerekodi kuhusu kujifunza kwako ni chako: pakakiti, au kifute kabisa kutoka kwenye mfumo huu.",
@@ -14227,6 +14289,7 @@ const hi = {
     "nav.papers": "परीक्षा पत्र",
     "nav.home": "होम",
     "acct.title": "आपका खाता",
+    "acct.role": "इस खाते का उपयोग कौन करता है?",
     "acct.lead": "आपकी पढ़ाई से जुड़ा सब कुछ OpenMind ने इस खाते में सहेजा है, इस ब्राउज़र में नहीं।",
     "acct.privacyTitle": "आपका डेटा",
     "acct.privacyNote": "आपकी पढ़ाई से जुड़ा सब कुछ OpenMind ने आपके लिए दर्ज किया है: उसे डाउनलोड करें, या इस डिप्लॉयमेंट से पूरी तरह मिटा दें।",
@@ -15728,6 +15791,7 @@ const id = {
     "nav.papers": "Kertas ujian",
     "nav.home": "Beranda",
     "acct.title": "Akunmu",
+    "acct.role": "Siapa yang memakai akun ini?",
     "acct.lead": "Semua yang OpenMind catat tentang belajarmu tersimpan di akun ini, bukan di peramban ini.",
     "acct.privacyTitle": "Data Anda",
     "acct.privacyNote": "Semua yang OpenMind catat tentang belajarmu adalah milikmu: unduh, atau hapus seluruhnya dari penyebaran ini.",
@@ -17229,6 +17293,7 @@ const tl = {
     "nav.papers": "Mga exam paper",
     "nav.home": "Home",
     "acct.title": "Account mo",
+    "acct.role": "Sino ang gumagamit ng account na ito?",
     "acct.lead": "Lahat ng naitala ng OpenMind tungkol sa pag-aaral mo ay nasa account na ito, hindi sa browser na ito.",
     "acct.privacyTitle": "Ang data mo",
     "acct.privacyNote": "Lahat ng naitala ng OpenMind tungkol sa pag-aaral mo ay sa iyo: i-download ito, o burahin nang buo mula sa deployment na ito.",
@@ -18790,6 +18855,7 @@ const de = {
     "nav.papers": "Prüfungspapiere",
     "nav.home": "Start",
     "acct.title": "Dein Konto",
+    "acct.role": "Wer nutzt dieses Konto?",
     "acct.lead": "Alles, was OpenMind über dein Lernen erfasst hat, liegt in diesem Konto — nicht in diesem Browser.",
     "acct.privacyTitle": "Deine Daten",
     "acct.privacyNote": "Alles, was OpenMind über dein Lernen erfasst hat, gehört dir: lade es herunter oder lösche es aus dieser Installation vollständig.",
@@ -20350,6 +20416,7 @@ const ja = {
     "nav.papers": "過去問・模試",
     "nav.home": "ホーム",
     "acct.title": "アカウント",
+    "acct.role": "このアカウントを使うのは誰ですか？",
     "acct.lead": "OpenMind が記録した学習データはすべてこのアカウントに保存され、ブラウザには依存しません。",
     "acct.privacyTitle": "あなたのデータ",
     "acct.privacyNote": "OpenMind が記録した学習データはすべてあなたのものです。ダウンロードするか、この環境から完全に消去できます。",
@@ -21820,6 +21887,7 @@ const zh = {
     "nav.papers": "考试试卷",
     "nav.home": "首页",
     "acct.title": "你的账户",
+    "acct.role": "谁使用这个账户？",
     "acct.lead": "OpenMind 记录的你的学习数据都保存在这个账户里，而不是这台浏览器里。",
     "acct.privacyTitle": "你的数据",
     "acct.privacyNote": "OpenMind 记录的你的学习数据都归你所有：下载它，或从本部署中彻底删除。",
@@ -23290,6 +23358,7 @@ const fa = {
     "nav.papers": "آزمون‌های رسمی",
     "nav.home": "خانه",
     "acct.title": "حساب شما",
+    "acct.role": "چه کسی از این حساب استفاده می‌کند؟",
     "acct.lead": "هرچه OpenMind درباره یادگیری شما ثبت کرده در این حساب ذخیره است، نه در این مرورگر.",
     "acct.privacyTitle": "دادههای شما",
     "acct.privacyNote": "هرچه OpenMind درباره یادگیری شما ثبت کرده مال شماست: آن را بگیرید، یا از این استقرار کامل پاکش کنید.",
@@ -24760,6 +24829,7 @@ const ur = {
     "nav.papers": "امتحانی پرچے",
     "nav.home": "ہوم",
     "acct.title": "آپ کا اکاؤنٹ",
+    "acct.role": "یہ اکاؤنٹ کون استعمال کرتا ہے؟",
     "acct.lead": "OpenMind نے آپ کی تعلیم کے بارے میں جو کچھ محفوظ کیا، اسی اکاؤنٹ میں ہے، اس براؤزر میں نہیں۔",
     "acct.privacyTitle": "آپ کا ڈیٹا",
     "acct.privacyNote": "آپ کی تعلیم کے بارے میں OpenMind نے جو کچھ درج کیا وہ آپ کا اپنا ہے: اسے ڈاؤن لوڈ کریں، یا اس تعینات نسخے سے مکمل مٹا دیں۔",
@@ -26312,6 +26382,7 @@ exports.bn = {
     "nav.papers": "পরীক্ষার প্রশ্নপত্র",
     "nav.home": "হোম",
     "acct.title": "আপনার অ্যাকাউন্ট",
+    "acct.role": "এই অ্যাকাউন্টটি কে ব্যবহার করে?",
     "acct.lead": "OpenMind আপনার শেখার যা কিছু রেকর্ড করেছে তা এই অ্যাকাউন্টে সংরক্ষিত, এই ব্রাউজারে নয়।",
     "acct.privacyTitle": "তোমার ডেটা",
     "acct.privacyNote": "তোমার শেখা সম্পর্কে OpenMind যা রেকর্ড করেছে সবটাই তোমার: ডাউনলোড করো, বা এই ডেপ্লয়মেন্ট থেকে পুরোপুরি মুছে ফেলো।",
@@ -29383,12 +29454,28 @@ exports.CORE_NUMERIC_GENS = {
     "growth-decay": (r) => {
         const p = r.pick([200, 400, 500, 800]), rate = r.pick([5, 10, 20]), years = r.int(2, 4);
         const amount = p * Math.pow(1 + rate / 100, years);
+        // Money, written to the penny — for the ANSWER as well as the distractors.
+        // The stem asks for the value "to the nearest penny", and `tolerance.display`
+        // is what sets the printed option, so the answer reads 220.50 while the
+        // marked value (and the typed-answer tolerance) is unchanged. Before this,
+        // the MCQ twin printed the key as "220.5" beside distractors "240", "420"
+        // and "220": the key was the only option carrying a decimal point, so a
+        // learner who ignored the question and picked the longest string beat the
+        // 25% chance line. Every option is now the same kind of number.
+        const money = (x) => x.toFixed(2);
         return {
             prompt: `£${p} is invested at ${rate}% compound interest per year. What is its value after ${years} years (to the nearest penny)?`,
-            value: Number(amount.toFixed(2)), tolerance: { abs: 0.01, unit: "£" },
-            wrongs: [Number((p * (1 + (rate * years) / 100)).toFixed(2)), Number((p * (1 + rate / 100) * years).toFixed(2)), Number((p + rate * years).toFixed(2))],
+            value: Number(amount.toFixed(2)), tolerance: { abs: 0.01, unit: "£", display: money(amount) },
+            wrongs: [
+                // simple interest — the classic error, and the same magnitude as the answer
+                money(p * (1 + (rate * years) / 100)),
+                // compounded for one year too few — an off-by-one in the exponent
+                money(p * Math.pow(1 + rate / 100, years - 1)),
+                // multiplied by the term instead of compounding it
+                money(p * (1 + rate / 100) * years),
+            ],
             tags: ["simple-cp"], difficulty: 0.6,
-            explanation: `Compound means interest on interest: A = P(1 + r)ⁿ = ${p}(1 + ${rate / 100})^${years} = ${Number(amount.toFixed(2))}. Simple interest would give ${Number((p * (1 + (rate * years) / 100)).toFixed(2))} — the gap IS the compounding.`,
+            explanation: `Compound means interest on interest: A = P(1 + r)ⁿ = ${p}(1 + ${rate / 100})^${years} = ${money(amount)}. Simple interest would give ${money(p * (1 + (rate * years) / 100))} — the gap IS the compounding.`,
         };
     },
     "financial-maths": (r) => {
@@ -29773,13 +29860,24 @@ exports.CORE_NUMERIC_GENS = {
         };
     },
     "energy-conservation": (r) => {
-        const m = r.int(1, 10), v = r.int(2, 12);
+        // An EVEN mass keeps ½mv² a whole number, so the answer never carries a
+        // decimal point that the distractors lack — the decimal alone used to mark
+        // the key on every draw (`npm run audit:options`, numeric form: a learner
+        // picking the longest option scored about 55% on this concept).
+        // v starts at 3: at v = 2 the answer ½mv² equals the momentum mv, so the item
+        // would print the same number twice and offer only three real options.
+        const m = 2 * r.int(1, 6), v = r.int(3, 12);
+        const ke = 0.5 * m * v * v;
         return {
             prompt: `What is the kinetic energy of a ${m} kg object moving at ${v} m/s, in joules?`,
-            value: 0.5 * m * v * v, tolerance: { abs: 0.01, unit: "J" },
-            wrongs: [m * v, m * v * v, Math.round(0.5 * m * v)],
+            value: ke, tolerance: { abs: 0.01, unit: "J" },
+            wrongs: [
+                m * v * v, // dropped the ½ — the commonest error
+                m * v, // energy left as momentum
+                0.5 * m * v, // forgot to square the speed
+            ],
             tags: ["ke-mass"], difficulty: 0.5,
-            explanation: `KE = ½mv² = ½ × ${m} × ${v}² = ${0.5 * m * v * v} J. The velocity is SQUARED, which is why doubling speed quadruples the energy.`,
+            explanation: `KE = ½mv² = ½ × ${m} × ${v}² = ${ke} J. The velocity is SQUARED, which is why doubling speed quadruples the energy. ${m * v} J is the momentum and ${m * v * v} J comes from dropping the ½ — neither is an energy.`,
         };
     },
     "work-power": (r) => {
@@ -29795,12 +29893,24 @@ exports.CORE_NUMERIC_GENS = {
             };
         }
         const w = r.int(100, 900), t = r.int(2, 20);
+        // Every option is the same quantity — watts, to 2 d.p. — so the printed
+        // length of an option says nothing about whether it is the answer. The three
+        // wrong values are the wrong-parameter slips this question actually invites:
+        // the work reported without dividing, and the division done against half or
+        // twice the time. The old set (w × t, t, w − t) put a value up to 4000 W
+        // beside an answer of 62.5 W: an option no learner could consider, and the
+        // longest string on screen.
+        const watts = (x) => x.toFixed(2);
         return {
             prompt: `${w} J of work is done in ${t} s. What is the power, in watts?`,
-            value: w / t, tolerance: { abs: 0.01, unit: "W", display: String(Number((w / t).toFixed(2))) },
-            wrongs: [w * t, t, w - t],
+            value: Number((w / t).toFixed(2)), tolerance: { abs: 0.01, unit: "W", display: watts(w / t) },
+            wrongs: [
+                watts(w / (t + 1)),
+                watts(w / (t * 2)),
+                watts(w * 2 / t),
+            ],
             tags: ["eff-frac"], difficulty: 0.45,
-            explanation: `Power = work ÷ time = ${w} ÷ ${t} = ${Number((w / t).toFixed(2))} W. Power is the RATE of energy transfer, not the amount.`,
+            explanation: `Power = work ÷ time = ${w} ÷ ${t} = ${watts(w / t)} W. Power is the RATE of energy transfer, not the amount — and dividing by the time is what turns an amount into a rate.`,
         };
     },
     "waves-basics": (r) => {
@@ -29861,22 +29971,38 @@ exports.CORE_NUMERIC_GENS = {
         const v = r.int(0, 1);
         if (v === 0) {
             const f = r.int(20, 500), a = r.int(2, 20);
+            // Pa to 2 d.p. on every option, and the distractors are the slips that
+            // keep the answer's magnitude: the AREA used one out of step, and the
+            // answer halved or doubled (using twice, or half, the stated area). The
+            // famous "multiplied instead of divided" error (f × a) is deliberately NOT
+            // among them: it lands two or three orders of magnitude away, which makes
+            // it both obvious to any learner and — because it is by far the longest
+            // string on screen — a giveaway to one who reads only lengths.
+            const pascals = (x) => x.toFixed(2);
             return {
                 prompt: `A force of ${f} N acts on an area of ${a} m². What is the pressure, in pascals?`,
-                value: Number((f / a).toFixed(2)), tolerance: { abs: 0.01, unit: "Pa" },
-                wrongs: [f * a, f - a, a],
+                value: Number((f / a).toFixed(2)), tolerance: { abs: 0.01, unit: "Pa", display: pascals(f / a) },
+                wrongs: [pascals(f / (a + 1)), pascals(f / (a * 2)), pascals((f * 2) / a)],
                 tags: [], difficulty: 0.4,
-                explanation: `Pressure = force ÷ area = ${f} ÷ ${a} = ${Number((f / a).toFixed(2))} Pa. The same force over a smaller area is a bigger pressure — that is why a drawing pin works.`,
+                explanation: `Pressure = force ÷ area = ${f} ÷ ${a} = ${pascals(f / a)} Pa. The same force over a smaller area is a bigger pressure — that is why a drawing pin works.`,
             };
         }
-        const rho = r.pick([1000, 800, 13600]), depth = r.int(1, 20);
+        // The depth starts at 2 m so that "one metre deeper" and "double the depth"
+        // are always two different pressures — with depth = 1 they are the same
+        // value and the item would offer the answer twice.
+        const rho = r.pick([1000, 800, 13600]), depth = r.int(2, 20);
         const g = 10;
         return {
             prompt: `What is the pressure ${depth} m below the surface of a fluid of density ${rho} kg/m³? (g = ${g} N/kg). Give your answer in pascals.`,
             value: rho * g * depth, tolerance: { unit: "Pa" },
-            wrongs: [rho * depth, g * depth, rho * g],
+            // Every option is ρgh-shaped and the same order of magnitude: the depth
+            // read one metre out, the depth doubled, and the answer with g taken as
+            // 1 N/kg. The old set (ρ × depth, g × depth, ρ × g) put 50 Pa beside
+            // 50000 Pa — an option nobody could consider, and because it was also the
+            // shortest string on the page it handed a length-only guesser the key.
+            wrongs: [rho * g * (depth + 1), rho * g * depth * 2, (rho * g * depth) / 10],
             tags: [], difficulty: 0.55,
-            explanation: `p = ρgh = ${rho} × ${g} × ${depth} = ${rho * g * depth} Pa. Depth matters, not the shape of the container.`,
+            explanation: `p = ρgh = ${rho} × ${g} × ${depth} = ${rho * g * depth} Pa. Depth matters, not the shape of the container — and dropping g measures something else entirely.`,
         };
     },
     "atoms-nucleus": (r) => {
@@ -29909,7 +30035,10 @@ exports.CORE_NUMERIC_GENS = {
             const ly = r.pick([4, 8, 10, 100]);
             return {
                 prompt: `A star is ${ly} light-years away. How many years does its light take to reach us?`,
-                value: ly, wrongs: [ly * 2, Math.round(ly / 2), ly * 1000],
+                // Year counts in one band: doubled, halved, and a power-of-ten slip. The
+                // old `ly × 1000` was four or five characters longer than the answer on
+                // every draw — a length cue and an implausible option at once.
+                value: ly, wrongs: [ly * 2, Math.round(ly / 2), ly * 10],
                 tags: [], difficulty: 0.4,
                 explanation: `A light-year is the DISTANCE light travels in one year, so light from ${ly} light-years away takes ${ly} years. Looking out is looking back in time.`,
             };
@@ -29917,9 +30046,13 @@ exports.CORE_NUMERIC_GENS = {
         const m = r.int(2, 9);
         return {
             prompt: `A main-sequence star has a mass ${m} times the Sun's. Using the rough rule L ∝ M³, what is its luminosity in solar units?`,
-            value: Math.pow(m, 3), wrongs: [m, Math.pow(m, 2), m * 3],
+            // The three ways of getting the exponent wrong: the square (a very common
+            // slip), three times the mass, and the fourth power. The fourth power also
+            // keeps the option band honest — m, m² and 3m are ALL smaller than m³, so
+            // the key used to be the longest string on every draw.
+            value: Math.pow(m, 3), wrongs: [Math.pow(m, 2), m * 3, Math.pow(m, 4)],
             tags: [], difficulty: 0.6,
-            explanation: `L ∝ M³, so a star ${m}× the Sun's mass is ${m}³ = ${Math.pow(m, 3)}× as luminous. The cube is why massive stars are so short-lived.`,
+            explanation: `L ∝ M³, so a star ${m}× the Sun's mass is ${m}³ = ${Math.pow(m, 3)}× as luminous. The cube is why massive stars are so short-lived — the square (${Math.pow(m, 2)}) or the fourth power (${Math.pow(m, 4)}) is the wrong exponent.`,
         };
     },
     // ── CHEMISTRY ───────────────────────────────────────────────────────────
@@ -30421,12 +30554,30 @@ exports.CORE_NUMERIC_GENS = {
     "statistics-data": (r) => {
         const nums = Array.from({ length: 5 }, () => r.int(2, 30));
         const sorted = [...nums].sort((a, b) => a - b);
+        const total = nums.reduce((s, n) => s + n, 0);
+        const mean = total / nums.length;
+        // The stem asks for 2 d.p., so EVERY option is written to 2 d.p. — the
+        // answer included, through `tolerance.display`, which sets the printed
+        // option while leaving the marked value alone. The old distractors (the
+        // median and the total as bare integers) were a different kind of number
+        // from a 2 d.p. answer, and on the MCQ twin that difference was the only
+        // signal a learner reading lengths needed. The three wrong values are the
+        // three real confusions: median for mean, the total divided by the wrong
+        // count, and range for mean.
+        const dp = (x) => x.toFixed(2);
         return {
             prompt: `What is the MEAN of ${nums.join(", ")}? (2 d.p.)`,
-            value: Number((nums.reduce((s, n) => s + n, 0) / nums.length).toFixed(2)), tolerance: { abs: 0.01 },
-            wrongs: [sorted[2], nums.reduce((s, n) => s + n, 0), Number((sorted[4] - sorted[0]).toFixed(2))],
+            value: Number(mean.toFixed(2)), tolerance: { abs: 0.01, display: dp(mean) },
+            // The fourth candidate is the total itself. It is needed because the
+            // median distractor IS the mean whenever the median happens to be the
+            // mean's value (`29, 8, 17, 21, 30` → both 21), and the assembler drops a
+            // distractor that duplicates an option already taken — leaving two
+            // wrongs, which the numeric padder then filled with `22` beside the
+            // existing `22.00`. Offering the sum is a real confusion, and it means
+            // the option set never has to be padded.
+            wrongs: [dp(sorted[2]), dp(total / (nums.length - 1)), dp(sorted[4] - sorted[0]), dp(total)],
             tags: ["outlier-mean"], difficulty: 0.4,
-            explanation: `Mean = total ÷ count = ${nums.reduce((s, n) => s + n, 0)} ÷ 5 = ${Number((nums.reduce((s, n) => s + n, 0) / nums.length).toFixed(2))}. The median would be ${sorted[2]} — different, and chosen for different reasons.`,
+            explanation: `Mean = total ÷ count = ${total} ÷ 5 = ${dp(mean)}. The median is ${sorted[2]} — a different average, chosen for different reasons — and dividing by 4 instead of 5 gives ${dp(total / 4)}.`,
         };
     },
     coordinates: (r) => {
@@ -30453,7 +30604,12 @@ exports.CORE_NUMERIC_GENS = {
         return {
             prompt: `A cell ${real} μm wide is viewed at ×${mag} magnification. How wide does it appear, in μm?`,
             value: real * mag, tolerance: { unit: "μm" },
-            wrongs: [real + mag, Number((real / mag).toFixed(6)), real * (mag / 10)],
+            // Magnification cannot shrink an image, so every option stays in the
+            // answer's own magnitude band: the magnification read one dial step out
+            // either way, and the size with the magnification ADDED instead of applied.
+            // The old set printed the inverse (real ÷ mag, a tiny decimal) beside the
+            // answer, so the key was the longest string on the page on every draw.
+            wrongs: [real * (mag + 10), real * (mag - 10), real + mag],
             tags: [], difficulty: 0.4,
             explanation: `image = real × magnification = ${real} × ${mag} = ${real * mag} μm. The image must be bigger than the object — dividing is the warning sign.`,
         };
@@ -30616,7 +30772,14 @@ const OPENING_GENS = {
     "algebra-expand": (r) => {
         const v = r.int(0, 2);
         if (v === 0) {
-            const p = r.int(2, 7), q = r.int(2, 7);
+            // p and q are drawn from 5–9 so that the ANSWER (the sum), the product
+            // (the classic "multiplied instead of added" error) and the sum-plus-one
+            // slip are all two-digit numbers, and only the difference — a genuine
+            // confusion with which coefficient is which — is one digit. Before this,
+            // p + q was a one-digit number on most draws while the product was two, so
+            // the key's printed LENGTH was a signal on the MCQ twin
+            // (`npm run audit:options`, numeric form).
+            const p = r.int(5, 9), q = r.int(5, 9);
             return {
                 prompt: `Expand (x + ${p})(x + ${q}). The result is x² + bx + c. What is the value of b?`,
                 value: p + q, wrongs: [String(p * q), String(p + q + 1), String(Math.abs(p - q))],
@@ -33172,6 +33335,16 @@ exports.BIOLOGY_DEEP = {
             prompt: `Anaerobic respiration releases ${anaerobicYield} ATP per glucose molecule and aerobic respiration releases ${aerobicYield}. A muscle respires ${glucoses} glucose molecules anaerobically. How many glucose molecules would aerobic respiration have needed to release THE SAME amount of ATP?`,
             correct,
             wrongs: distinct(correct, [
+                // WHY THIS CANDIDATE IS FIRST. The answer is the glucose count divided
+                // by 16, so it is the SHORTEST option on screen on nearly every draw
+                // while every other candidate here is larger — the mirror of the
+                // "pick the longest" defect, and `npm run audit:options` reports this
+                // direction too (its shortest-direction control). The anaerobic yield
+                // quoted as a count of molecules is a real unit slip — this family
+                // already offers the ATP total as a count — and it renders as a single
+                // character, so the key stops being the UNIQUE shortest option.
+                // `distinct` drops it on the draw where it would equal the answer.
+                String(anaerobicYield),
                 // The same number of glucose molecules.
                 String(glucoses),
                 // The ratio the wrong way round.
@@ -33180,8 +33353,10 @@ exports.BIOLOGY_DEEP = {
                 String(glucoses / 2),
                 // The ATP total quoted as a glucose count.
                 String(anaerobicAtp),
-                // The two yields added.
-                String(glucoses / (aerobicYield + anaerobicYield)),
+                // The two yields added. Rounded, because this division does not
+                // terminate: `String(x / y)` is how a wrong option ends up reading
+                // "2.3529411764705883".
+                num(glucoses / (aerobicYield + anaerobicYield), 2),
             ]),
             tags: [],
             explanation: `Anaerobic respiration of ${glucoses} glucose molecules gives ${glucoses} × ${anaerobicYield} = ${anaerobicAtp} ATP. Aerobic respiration gives ${aerobicYield} ATP from each glucose, so reaching ${anaerobicAtp} ATP aerobically takes ${anaerobicAtp} ÷ ${aerobicYield} = ${correct} glucose molecules. That is the ${aerobicYield / anaerobicYield}-fold difference anaerobiosis costs you — the reason a sprinter can keep going and a marathon runner cannot.`,
@@ -33343,8 +33518,22 @@ exports.CHEMISTRY_DEEP = {
                 `${num(mr)} g`,
                 // Subscripts read as 1 for everything.
                 `${num(n * c.ar.reduce((s, [a]) => s + a, 0))} g`,
-                // The moles added to the mass instead of multiplied.
-                `${num(mr + n)} g`,
+                // THE SPARE, AND WHY IT REPLACED "the moles added to the mass". Adding
+                // moles to grams is dimensionally absurd (mol + g), and its VALUE sat
+                // within a few per cent of the formula-mass candidate just above, so
+                // the family carried two copies of one distracter as its only spare.
+                // Dividing by the moles instead of multiplying is the slip this
+                // question really produces, and its magnitude moves with the DRAW —
+                // larger than the answer when n < 1, smaller when n > 1 — so it is not
+                // one more value on the same side of the key. `distinct` drops it on
+                // the n = 1 draw, where dividing and multiplying agree.
+                //
+                // The length picture: with n >= 1 the key is the longest option on
+                // screen, because every genuine slip here under-estimates moles × Mr.
+                // That is a property of the arithmetic, not of these distracters —
+                // there is no natural over-estimate to add — so the remedy is the
+                // draw mix (more small-n samples) rather than another wrong answer.
+                `${num(mr / n)} g`,
             ]),
             tags: [],
             explanation: `Work out the formula mass first, multiplying each Ar by its subscript: ${c.ar.map(([a, s, k]) => `${a}${k > 1 ? ` × ${k}` : ""} (${s})`).join(" + ")} = ${num(mr)}. Then mass = moles × formula mass = ${num(n)} × ${num(mr)} = ${correct}. Using one element's Ar as if it were the whole formula (${num(biggest[0])}) is the commonest version of this slip — a formula is a sum, and the subscript is how many times each atom appears.`,
@@ -33745,6 +33934,41 @@ const joinList = (xs) => xs.join(", ");
 function num(x, dp = 3) {
     return x.toFixed(dp).replace(/\.?0+$/, "");
 }
+const SUP_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+/**
+ * A value in standard form to four significant figures: `1.478 × 10⁷`.
+ *
+ * WHY THE OPTION SET IS WRITTEN THIS WAY. `npm run audit:options` measures how
+ * far a learner gets by never reading the question and picking an option by its
+ * LENGTH, and `cybersecurity` was one of the two worst concepts in the bank
+ * (98.6% against a 25% chance line). The cause is arithmetic rather than
+ * careless authoring: the password space is the biggest number any option can
+ * hold, so the KEY was the longest string on screen on essentially every draw.
+ * Standard form at a fixed precision removes the cue BY CONSTRUCTION (the
+ * mantissa is always five characters and a single-digit exponent is one more),
+ * and it changes no value and no misconception — 1.478 × 10⁷ is the same number
+ * as 14776336, written the way a number that size is normally written.
+ *
+ * Four significant figures because the space is an EXACT count: four figures is
+ * the most that keeps every option exact while keeping every option the same
+ * width. A learner who reads the maths still has to multiply, and now has to
+ * compare magnitudes rather than count characters.
+ */
+function sci(x) {
+    const sup = (n) => (n < 0 ? "⁻" : "") + String(Math.abs(n)).split("").map((c) => SUP_DIGITS[Number(c)]).join("");
+    if (!Number.isFinite(x) || x === 0)
+        return "0.000 × 10⁰";
+    let e = Math.floor(Math.log10(Math.abs(x)));
+    let m = Number((x / Math.pow(10, e)).toFixed(3));
+    // 9.9995 rounds to 10.000 at four figures, which would carry into the
+    // exponent and change the mantissa's width — the one thing this helper exists
+    // to keep constant.
+    if (Math.abs(m) >= 10) {
+        m = Number((m / 10).toFixed(3));
+        e += 1;
+    }
+    return `${m.toFixed(3)} × 10${sup(e)}`;
+}
 exports.COMPUTING_DEEP = {
     /** A trace down three assignment lines, where the last one is the answer. */
     variables: (r) => {
@@ -34070,13 +34294,29 @@ exports.COMPUTING_DEEP = {
         const alphabet = r.pick([26, 36, 52, 62]);
         const len = r.pick([3, 4, 5]);
         const space = Math.pow(alphabet, len);
-        const correct = String(space);
+        const correct = sci(space);
         return {
             prompt: `A website allows passwords of any ${len} characters from an alphabet of ${alphabet} symbols. How many different passwords are possible?`,
             correct,
-            wrongs: distinct(correct, [alphabet * len, Math.pow(alphabet, len - 1), alphabet + len, Math.pow(alphabet + 10, len), Math.pow(alphabet, len) + alphabet]),
+            wrongs: distinct(correct, [
+                // The positions ADDED rather than multiplied — the classic error, and
+                // the option that stays in a different magnitude on purpose: a learner
+                // who adds the choices is not one step out, they are orders of
+                // magnitude out, and the item should show them that.
+                sci(alphabet * len),
+                // One position fewer.
+                sci(Math.pow(alphabet, len - 1)),
+                // One symbol fewer in the alphabet.
+                sci(Math.pow(alphabet - 10, len)),
+                // One symbol more.
+                sci(Math.pow(alphabet + 10, len)),
+                // One position more.
+                sci(Math.pow(alphabet, len + 1)),
+                // The alphabet plus the length.
+                sci(alphabet + len),
+            ]),
             tags: [],
-            explanation: `Each of the ${len} positions can be any of ${alphabet} symbols, and the choices multiply: ${Array.from({ length: len }, () => alphabet).join(" × ")} = ${correct}. ${alphabet * len} adds the possibilities instead of multiplying them — which is why one extra character usually buys far more than one extra symbol in the alphabet.`,
+            explanation: `Each of the ${len} positions can be any of ${alphabet} symbols, and the choices multiply: ${Array.from({ length: len }, () => alphabet).join(" × ")} = ${space} = ${correct}. ${sci(alphabet * len)} adds the possibilities instead of multiplying them, which is orders of magnitude out rather than one step — and it is why one extra CHARACTER usually buys far more than one extra symbol in the alphabet.`,
             difficulty: reading(r),
         };
     },
@@ -34105,23 +34345,32 @@ exports.COMPUTING_DEEP = {
         const second = r.pick(words.filter((w) => w !== first));
         const once = first + second;
         const correct = once + once;
+        // EVERY OPTION IS THE SAME EIGHT CHARACTERS, regrouped. Line 3 doubles the
+        // WHOLE value, so the answer is the two parts in the order they were built,
+        // twice — and a learner who misreads which half is repeated, or which part
+        // comes first, produces one of the other three groupings. Writing the
+        // distractors as regroupings of the same letters rather than as shorter
+        // fragments is what stops the correct option from being the longest string
+        // on screen (`npm run audit:options` measured exactly that: the key was the
+        // longest in 100% of draws before this, because a fragment can only be
+        // shorter than the value it is a fragment of). It also makes the item a
+        // sharper test: the four options differ ONLY in how the line was read.
         return {
             prompt: `A program runs its lines in order:\n\nword = "${first}"\nword = word + "${second}"\nword = word + word\nprint(word)\n\nWhat does it print?`,
             correct,
             wrongs: distinct(correct, [
-                // The doubling line skipped: the word printed after one join.
-                once,
-                // The doubling line read as "print the first word twice".
-                first + first,
-                // The two joins swapped.
+                // Each part printed twice, but in the order the parts were built.
+                first + first + second + second,
+                // The same, starting with the second part.
+                second + second + first + first,
+                // The two joins swapped: the last part printed first.
                 second + first + second + first,
-                // The doubling line applied twice.
-                once + once + once + once,
-                // Printed before the join.
-                first,
+                // The whole eight-character value printed, but with the first part
+                // after the second within each half.
+                first + second + second + first,
             ]),
             tags: [],
-            explanation: `Every line uses the value the line above it left behind. Line 1 gives "${first}"; line 2 joins the two parts to give "${once}"; line 3 adds the WHOLE current value to itself, so "${once}" + "${once}" = "${correct}". Printing "${once}" stops one line short, and "${first}${first}" is what you get by reading line 3 as "print ${first} twice" — which is what the line means to a person and not what it does. A computer executes exactly the lines written, in order, which is why precision is the whole discipline of writing code.`,
+            explanation: `Every line uses the value the line above it left behind. Line 1 gives "${first}"; line 2 joins the two parts to give "${once}"; line 3 adds the WHOLE current value to itself, so "${once}" + "${once}" = "${correct}". Every other option is those same eight characters grouped differently: "${first}${first}${second}${second}" reads line 3 as "print each part twice in the order they were built", and "${second}${first}${second}${first}" repeats the parts the other way round. The line acts on the whole value already in word — which is what a person skimming the three lines tends not to notice, and what a computer cannot help doing.`,
             difficulty: reading(r),
         };
     },
@@ -36905,7 +37154,12 @@ exports.DEEP_GENS = {
      *  and a classification trace. */
     "ai-basics": (r) => {
         const variant = r.next();
-        if (variant < 0.34) {
+        // FOUR VARIANTS, FOUR LENGTH RANKS — see the note on `gravity-fields`. Every
+        // variant here used to put the key in the longest option, so a learner who
+        // never read the question and simply picked the longest string scored 100%
+        // on this concept against a 25% chance line. Each variant below is written
+        // to its own rank: 1, 3, 4 and 2, in order.
+        if (variant < 0.25) {
             return {
                 prompt: `A spam filter was TRAINED on a million labelled emails. During use, it receives a new email. What does the model actually do with it?`,
                 correct: "Applies the patterns it learned in training to decide spam or not — it does not keep learning from this email",
@@ -36919,31 +37173,47 @@ exports.DEEP_GENS = {
                 difficulty: 0.55,
             };
         }
-        if (variant < 0.67) {
+        if (variant < 0.5) {
             return {
+                // key = third-longest (rank 3)
                 prompt: `A face-recognition model was trained only on photos taken in daylight. At night it fails badly. What is the lesson?`,
-                correct: "A model only learns the distribution of its training data — conditions outside it are unpredictable",
-                wrongs: pickDistinct("A model only learns the distribution of its training data — conditions outside it are unpredictable", [
-                    "The model needs a brighter camera, not better data",
-                    "The training data was too large, which causes overfitting to light",
-                    "Face recognition is impossible in principle at night",
+                correct: "A model learns only the distribution of its training data",
+                wrongs: pickDistinct("A model learns only the distribution of its training data", [
+                    "The camera needs to be brighter, not the data richer",
+                    "The training data was far too large, so it overfit to daylight",
+                    "Face recognition is impossible in principle once the light drops",
                 ]),
-                tags: [],
-                explanation: `The model never saw night photos, so it learned only daylight statistics — no amount of cleverness at run time recovers what the data never showed. Bias and brittleness in AI are usually data problems first.`,
+                tags: [], explanation: `The model never saw night photos, so it learned only daylight statistics — no amount of cleverness at run time recovers what the data never showed. Bias and brittleness in AI are usually data problems first.`,
                 difficulty: 0.6,
             };
         }
-        const spam = r.int(2, 8), ham = r.int(8, 20);
+        if (variant < 0.75) {
+            const spam = r.int(2, 8), ham = r.int(8, 20);
+            return {
+                // key = shortest (rank 4)
+                prompt: `A classifier was tested on ${spam + ham} emails: it flagged ${spam} correctly as spam but also flagged ${Math.min(2, ham)} genuine emails. Which measure does the ${Math.min(2, ham)} false alarms damage most?`,
+                correct: "Precision — how many spam flags were correct",
+                wrongs: pickDistinct("Precision — how many spam flags were correct", [
+                    "Recall — how much of the spam it actually found",
+                    "Speed — it ran too slowly on the genuine emails",
+                    "Training size — the test set was too small to matter",
+                ]),
+                tags: [],
+                explanation: `Precision is flagged-and-correct ÷ all flagged: ${spam} of ${spam + Math.min(2, ham)}, hurt directly by every false alarm. Recall (${spam} of ${spam + ham} spam emails) is about the spam it MISSED, which these false alarms do not change. Two different questions, two different measures — a false alarm is a precision problem.`,
+                difficulty: 0.72,
+            };
+        }
         return {
-            prompt: `A classifier was tested on ${spam + ham} emails: it flagged ${spam} correctly as spam but also flagged ${Math.min(2, ham)} genuine emails. Which measure does the ${Math.min(2, ham)} false alarms damage most?`,
-            correct: "Precision — how many of its spam flags were actually spam",
-            wrongs: pickDistinct("Precision — how many of its spam flags were actually spam", [
-                "Recall — how much spam it found",
-                "Speed — it ran too slowly on the genuine ones",
-                "Training size — the test set was too small to matter",
+            // key = second-longest (rank 2)
+            prompt: `A model scores 99% on the data it was trained on and 62% on new data. What does that mean?`,
+            correct: "It has overfitted — it memorised the training set instead of generalising",
+            wrongs: pickDistinct("It has overfitted — it memorised the training set instead of generalising", [
+                "The model has UNDERFITTED, so it needs many more epochs of training before it can generalise to unseen data",
+                "The training data was too small for the model to learn anything from",
+                "The new data must be wrong, or the training score would not be 99%",
             ]),
             tags: [],
-            explanation: `Precision is flagged-and-correct ÷ all flagged: ${spam} of ${spam + Math.min(2, ham)}, hurt directly by every false alarm. Recall (${spam} of ${spam + ham} spam emails) is about the spam it MISSED, which these false alarms do not change. Two different questions, two different measures — a false alarm is a precision problem.`,
+            explanation: `Training accuracy measures memory, not learning. This model reproduces its own examples almost perfectly and then fails on data it has not seen — the signature of OVERFITTING, where it has fitted the noise in the training set instead of the pattern behind it. The cure is not more epochs (that deepens the overfit) but more or better data, or a simpler model.`,
             difficulty: 0.72,
         };
     },
@@ -38056,13 +38326,31 @@ exports.DEEP_GENS = {
     "gravity-fields": (r) => {
         const variant = r.next();
         if (variant < 0.34) {
+            // ── THE LENGTH RANK IS PART OF THE ITEM ────────────────────────────────
+            // The four stored items in this table are written so that the correct
+            // option is the LONGEST on one row, the second-longest on another, the
+            // third on another and the SHORTEST on the last. That is not decoration:
+            // when every row's key was the longest, a learner who never read the
+            // question and simply picked the longest option scored ~90% on this
+            // concept against a 25% chance line (`npm run audit:options`), and a
+            // diagnostic a guesser can pass certifies nothing. Each row below was
+            // written to its own rank, and the distractors were made FULLER
+            // statements of the misconception rather than stubs — a misconception
+            // written out in full both reads as a real alternative and stops the key
+            // being the only long option.
             const cases = [
+                // key = longest (rank 1)
                 ["A satellite orbits Earth at constant speed.", "The resultant force is NOT zero — it points toward Earth, bending the path into a circle",
-                    ["The resultant force is zero — constant speed means no force", "The resultant force points along the satellite's direction of travel", "The resultant force points away from Earth — that is why it does not fall"]],
-                ["A skydiver has reached terminal velocity.", "Weight and drag are balanced — the resultant force is zero, so the speed stays constant",
-                    ["Gravity has stopped acting at terminal velocity", "The resultant force still points down but is shrinking", "Drag exceeds weight — that is what slows the fall to constant speed"]],
-                ["A ball is thrown straight up and is at the very top of its flight.", "Its speed is momentarily zero but the resultant force is NOT zero — gravity still acts fully",
-                    ["Both speed and force are zero at the top", "The force reverses to point upward, ready to bring it down", "The force is zero because the motion is momentarily balanced"]],
+                    ["The resultant force points along the satellite's direction of travel", "The resultant force is zero — constant speed means no force acts", "The resultant force points away from Earth, so the orbit must widen"]],
+                // key = second-longest (rank 2)
+                ["A skydiver has reached terminal velocity.", "Weight and drag balance, so the resultant force on the skydiver is zero",
+                    ["Gravity has stopped acting at terminal velocity, so nothing pulls the skydiver down", "The resultant force still points downward but is steadily shrinking", "Drag exceeds weight, so the fall slows to a constant speed"]],
+                // key = third-longest (rank 3)
+                ["A ball is thrown straight up and is at the very top of its flight.", "The speed is momentarily zero, but gravity still acts fully",
+                    ["Both the speed and the resultant force are zero at the very top", "The resultant force reverses to point upward, ready to bring it down", "The forces are balanced — the motion has stopped"]],
+                // key = shortest (rank 4)
+                ["A car goes round a roundabout at a steady speed.", "A resultant force toward the centre is still needed",
+                    ["The resultant force is zero because the speed is constant", "The resultant force points forward, keeping the car at a steady speed", "The resultant force points outward, pushing the car away from the centre"]],
             ];
             const [setting, answer, wrong] = cases[r.int(0, cases.length - 1)];
             return {
@@ -38075,17 +38363,23 @@ exports.DEEP_GENS = {
             };
         }
         if (variant < 0.67) {
+            // Ranks 3, 1, 4 on these three rows — see the comment on the first table.
             const cases = [
-                ["An astronaut travels from Earth to the Moon.", "Mass is unchanged — it is the amount of matter; weight drops, because the Moon's field is weaker",
-                    ["Both mass and weight fall — the astronaut is lighter out there",
-                        "Mass falls and weight is unchanged — weight is the fundamental quantity",
-                        "Neither changes — both are fixed properties of the body"]],
-                ["A parachutist jumps: at the instant of leaving the plane, and again at terminal velocity.", "Initially only weight acts — acceleration is g; at terminal velocity the forces balance and acceleration is zero",
+                // key = third-longest (rank 3)
+                ["An astronaut travels from Earth to the Moon.", "Mass stays 70 kg; weight falls on the Moon, because the Moon's field is weaker",
+                    ["Both mass and weight fall — the astronaut is genuinely lighter out there",
+                        "Mass falls and weight is unchanged, because weight is the fundamental quantity",
+                        "Neither changes — mass and weight are both fixed properties of the body"]],
+                // key = longest (rank 1)
+                ["A parachutist jumps: at the instant of leaving the plane, and again at terminal velocity.", "Initially only weight acts, so the acceleration is g; at terminal velocity the forces balance and the acceleration is zero",
                     ["The acceleration is g at both instants — gravity never changes",
-                        "Initially the forces already balance; then drag takes over",
-                        "At terminal velocity the weight has fallen to match the drag — gravity weakens with speed"]],
-                ["The same skydiver opens the parachute while at terminal velocity.", "Drag now exceeds weight — the resultant force points UP, so the skydiver decelerates to a new, slower terminal velocity",
-                    ["The upward resultant throws the skydiver back upward", "Weight instantly grows to exceed the larger drag", "The forces stay balanced — opening a parachute changes nothing"]],
+                        "Initially the forces already balance, and only then does drag take over",
+                        "At terminal velocity the weight has fallen to match the drag"]],
+                // key = shortest (rank 4)
+                ["The same skydiver opens the parachute while at terminal velocity.", "Drag now exceeds weight, so the skydiver decelerates",
+                    ["The upward resultant force throws the skydiver back upward",
+                        "The weight instantly grows so that it exceeds the larger drag",
+                        "The forces stay balanced, so opening a parachute changes nothing"]],
             ];
             const [setting, answer, wrong] = cases[r.int(0, cases.length - 1)];
             return {
@@ -38097,15 +38391,18 @@ exports.DEEP_GENS = {
                 difficulty: 0.65,
             };
         }
+        // Ranks 1 and 4 on these two rows — see the comment on the first table.
         const rows = [
-            ["Earth 9.8 N/kg, Moon 1.6 N/kg, Mars 3.7 N/kg. A 70 kg astronaut visits each.", "Weight: 686 N on Earth, 112 N on the Moon, 259 N on Mars — mass stays 70 kg throughout",
-                ["Weight is the same everywhere; only mass changes with the field",
-                    "Mass drops on the Moon to about 11 kg, matching the weaker pull",
-                    "Weight is 70 N on each body — weight in newtons equals mass in kilograms"]],
-            ["A planet where the same object weighs 2× its Earth weight.", "The field strength is 19.6 N/kg — double Earth's, so free-fall acceleration doubles too",
+            // key = longest (rank 1)
+            ["Earth 9.8 N/kg, Moon 1.6 N/kg, Mars 3.7 N/kg. A 70 kg astronaut visits each.", "686 N on Earth, 112 N on the Moon, 259 N on Mars — mass stays 70 kg",
+                ["Weight is the same everywhere, and only the mass changes with the field",
+                    "The mass drops on the Moon to about 11 kg, matching the weaker pull",
+                    "Weight is 70 N on each body — newtons equal kilograms"]],
+            // key = shortest (rank 4)
+            ["A planet where the same object weighs 2× its Earth weight.", "The field is 19.6 N/kg — double Earth's, so free fall doubles too",
                 ["The planet's mass must be exactly double Earth's — field scales only with mass",
-                    "The object's mass doubled on landing — mass follows the local field",
-                    "Free fall there is slower — heavier weight means more inertia to overcome"]],
+                    "The object's mass doubled on landing — mass follows the local field strength",
+                    "Free fall there is slower because a heavier weight means more inertia to overcome"]],
         ];
         const [obs, answer, wrong] = rows[r.int(0, rows.length - 1)];
         return {
@@ -38328,15 +38625,19 @@ exports.DEEP_GENS = {
     "hormones": (r) => {
         const variant = r.next();
         if (variant < 0.34) {
+            // Ranks 1, 3, 4 down this table — see the note on `gravity-fields`.
             const cases = [
+                // key = longest (rank 1)
                 ["blood glucose concentration is too HIGH (after a meal)", "Insulin — moves glucose into cells and stores it as glycogen in liver and muscle",
                     ["Glucagon — it converts stored glycogen back to glucose", "ADH — it adjusts how much water is retained", "Adrenaline — it raises glucose further for fight-or-flight"]],
-                ["blood glucose concentration is too LOW (hours after eating)", "Glucagon — the liver converts stored glycogen back into glucose and releases it",
-                    ["Insulin — it releases the stored glucose into the blood", "Oestrogen — it regulates the blood sugar cycle monthly", "Adrenaline is the only hormone that can raise blood glucose"]],
-                ["a person has not eaten for a day, and the glycogen store runs low", "Glucagon plus gluconeogenesis keep blood glucose up — the brain cannot run without it",
-                    ["Insulin takes over, releasing the remaining glucose slowly",
-                        "Blood glucose simply falls with no correction available",
-                        "Adrenaline converts protein directly into insulin"]],
+                // key = third-longest (rank 3)
+                ["blood glucose concentration is too LOW (hours after eating)", "Glucagon — the liver breaks glycogen down and releases glucose",
+                    ["Insulin — it takes the remaining glucose out of the blood into the cells", "Adrenaline — it alone can raise blood glucose when the level falls", "Oestrogen — it regulates the monthly blood sugar cycle"]],
+                // key = shortest (rank 4)
+                ["a person has not eaten for a day, and the glycogen store runs low", "Glucagon keeps blood glucose up for the brain",
+                    ["Insulin takes over and releases the remaining glucose slowly",
+                        "Blood glucose simply falls, because no correction is available",
+                        "Adrenaline converts stored protein directly into insulin"]],
             ];
             const [state, answer, wrong] = cases[r.int(0, cases.length - 1)];
             return {
@@ -38349,15 +38650,20 @@ exports.DEEP_GENS = {
             };
         }
         if (variant < 0.67) {
+            // Ranks 1, 4, 3, 2 down this table — see the note on `gravity-fields`.
             const pairs = [
+                // key = longest (rank 1)
                 ["ADH and its role", "Released by the pituitary; makes kidney tubules reabsorb more water, concentrating the urine",
                     ["Made by the kidney; increases the filtration rate", "Released by the pancreas; stores water as glycogen", "Made by the adrenal gland; triggers the fight-or-flight response"]],
-                ["adrenaline and its role", "Released by the adrenal glands; raises heart rate, blood glucose and breathing rate — preparing for action",
-                    ["Released by the pancreas; lowers blood glucose for sudden activity", "Made by the pituitary; controls the monthly menstrual cycle", "Released by the thyroid; sets the basal metabolic rate"]],
-                ["thyroxine and its role", "Released by the thyroid; regulates metabolic rate — how fast chemical reactions run",
-                    ["Released by the adrenal glands; controls blood calcium", "Made by the pancreas; controls the rate of digestion", "Released by the ovaries; maintains the uterus lining"]],
+                // key = shortest (rank 4)
+                ["adrenaline and its role", "Released by the adrenal glands for emergencies",
+                    ["Released by the pancreas; lowers blood glucose for sudden activity", "Made by the pituitary; controls the monthly menstrual cycle", "Released by the thyroid; it sets the basal metabolic rate"]],
+                // key = third-longest (rank 3)
+                ["thyroxine and its role", "Released by the thyroid; it regulates the metabolic rate",
+                    ["Released by the adrenal glands; it controls the calcium in the blood", "Made by the pancreas, where it also controls the digestion rate", "Released by the ovaries; maintains the uterus lining"]],
+                // key = second-longest (rank 2)
                 ["the pituitary gland's role", "The master gland — its hormones (FSH, LH, ADH) direct other endocrine glands",
-                    ["It stores all hormones made elsewhere for gradual release", "It produces insulin and glucagon together", "It filters hormones from the blood once they are spent"]],
+                    ["It stores every hormone that is made elsewhere in the body, releasing them gradually", "It produces insulin and glucagon together with the pancreas", "It filters spent hormones out of the blood as they are used up"]],
             ];
             const [q, answer, wrong] = pairs[r.int(0, pairs.length - 1)];
             return {
@@ -38376,11 +38682,12 @@ exports.DEEP_GENS = {
         const effect = level > setpoint ? "falls" : "rises";
         return {
             prompt: `A graph shows blood glucose at ${level} mg/100 ml (set point: ${setpoint}). Trace the negative-feedback sequence that restores the set point.`,
-            correct: `The ${level > setpoint ? "pancreas detects the high level and releases insulin" : "pancreas detects the low level and releases glucagon"}; glucose ${effect} toward ${setpoint}; when it reaches the set point the hormone's release stops`,
-            wrongs: pickDistinct(`The ${level > setpoint ? "pancreas detects the high level and releases insulin" : "pancreas detects the low level and releases glucagon"}; glucose ${effect} toward ${setpoint}; when it reaches the set point the hormone's release stops`, [
-                `The level stays ${dir} the set point — feedback only slows the change, never reverses it`,
-                `The body overshoots deliberately to the opposite extreme, then corrects back`,
-                `The set point rises to meet the new level — the body adapts its target instead`,
+            // key = third-longest (rank 3)
+            correct: `The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint}; the release then stops`,
+            wrongs: pickDistinct(`The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint}; the release then stops`, [
+                `The level stays ${dir} the set point, because feedback can only slow a change and never reverses it`,
+                `The body deliberately overshoots to the opposite extreme before it corrects back again`,
+                `The set point rises to meet the new level, adapting the body's target`,
             ]),
             tags: [],
             explanation: `Negative feedback has four steps: DETECT the deviation from the set point, RELEASE the corrective hormone, COUNTERACT the deviation, SWITCH OFF when the set point returns. The switch-off is what makes it feedback rather than a one-way correction — and the set point itself never moves in these graphs.`,
@@ -40007,11 +40314,25 @@ exports.MID_CHEMISTRY = {
         // tie, and a table with two right answers is not a question — so the sets
         // below are picked because each has one clear winner, and the generator
         // never has to hope that a random draw produced one.
+        //
+        // AND THE LENGTH RANK IS CHOSEN WITH THEM. The four options here are element
+        // NAMES, so an option's length is a property of the element chosen rather
+        // than of anything the learner reads — which makes the cue unusually sharp:
+        // the earlier sets had the winning element's name the SHORTEST (iron, 4
+        // letters) on two of the four draws and the LONGEST (aluminium, 9) on
+        // another, so "pick the shortest" was right on half of all draws without any
+        // chemistry at all (`npm run audit:options` measured the concept at 78%).
+        // Set A's winner has the longest name, B's the second-longest, C's the
+        // third and D's the shortest, so no length strategy works on more than a
+        // quarter of the draws. Every mass number is the commonest isotope's, and
+        // every set still has exactly one neutron maximum:
+        //   A potassium 20 (9 letters, longest)   B chlorine 18 (8, second)
+        //   C calcium 20 (7, third)               D iron 30 (4, shortest)
         const sets = [
-            [["carbon", 6, 12], ["sodium", 11, 23], ["chlorine", 17, 35], ["iron", 26, 56]],
-            [["oxygen", 8, 16], ["aluminium", 13, 27], ["chlorine", 17, 35], ["calcium", 20, 40]],
-            [["carbon", 6, 12], ["oxygen", 8, 16], ["sodium", 11, 23], ["aluminium", 13, 27]],
-            [["sodium", 11, 23], ["chlorine", 17, 35], ["potassium", 19, 39], ["iron", 26, 56]],
+            [["potassium", 19, 39], ["lithium", 3, 7], ["carbon", 6, 12], ["oxygen", 8, 16]],
+            [["aluminium", 13, 27], ["chlorine", 17, 35], ["sodium", 11, 23], ["carbon", 6, 12]],
+            [["aluminium", 13, 27], ["chlorine", 17, 35], ["calcium", 20, 40], ["carbon", 6, 12]],
+            [["iron", 26, 56], ["chlorine", 17, 35], ["aluminium", 13, 27], ["calcium", 20, 40]],
         ];
         const chosen = r.pick(sets);
         const neutrons = chosen.map(([, z, a]) => a - z);
@@ -41110,14 +41431,35 @@ exports.MID_MATHS = {
      *  Band 4: a fraction, then a fraction OF WHAT IS LEFT — three stages. */
     fractions: (r) => {
         if (r.next() < 0.5) {
-            const [d1, d2] = r.shuffle([3, 4, 5, 6, 8, 10]).slice(0, 2);
-            const n1 = r.int(1, d1 - 1);
-            const n2 = r.int(1, d2 - 1);
+            let [d1, d2] = r.shuffle([3, 4, 5, 6, 8, 10]).slice(0, 2);
+            // Each fraction is drawn in LOWEST TERMS. `Work out 4/6 + 2/3` was served
+            // as a stem, and the operand 4/6 then came back as a distractor beside the
+            // operand 2/3 — the same value twice, which is one answer offered twice.
+            const pickNum = (d) => r.pick(Array.from({ length: d - 1 }, (_, i) => i + 1).filter((n) => gcd(n, d) === 1));
+            let n1 = pickNum(d1);
+            let n2 = pickNum(d2);
+            // A SUBTRACTION IS ONLY ASKED WHEN IT COMES OUT POSITIVE. The key used to
+            // be `Math.abs(a1 − a2)` while the stem printed `−`: `1/3 − 5/6` was keyed
+            // `1/2`, no option was anywhere near −1/2, and the explanation asserted
+            // that 2 − 5 = 1 — a learner who did the mathematics correctly was marked
+            // wrong for being right, the one fault a question bank cannot have.
+            //
+            // THE WHOLE FRACTION IS SWAPPED, numerator AND denominator, and the
+            // comparison is made on the CROSS-PRODUCT (n1·d2 against n2·d1) BEFORE any
+            // common denominator is built. Doing it later, on the scaled numerators,
+            // is what a first attempt got wrong: it moved `n1` and `n2` while `d1` and
+            // `d2` stayed put, so the stem read `5/3 − 1/6` while the arithmetic still
+            // used the unscaled pair — a second wrong key, on a screen whose whole
+            // purpose was to print the sign honestly.
+            const adding = r.next() < 0.5 || n1 * d2 === n2 * d1;
+            if (!adding && n1 * d2 < n2 * d1) {
+                [n1, n2] = [n2, n1];
+                [d1, d2] = [d2, d1];
+            }
             const lcm = (d1 * d2) / gcd(d1, d2);
             const a1 = (n1 * lcm) / d1;
             const a2 = (n2 * lcm) / d2;
-            const adding = r.next() < 0.5 || a1 === a2;
-            const top = adding ? a1 + a2 : Math.abs(a1 - a2);
+            const top = adding ? a1 + a2 : a1 - a2;
             const correct = frac(top, lcm);
             const symbol = adding ? "+" : "−";
             return {
@@ -41402,8 +41744,26 @@ exports.MID_MATHS = {
      *  so BOTH triangles on it are right-angled, and the answer is the sum of the
      *  two angles that are left. */
     "circle-theorems": (r) => {
-        const p = r.pick([20, 25, 30, 35, 40]);
-        const q = r.pick([15, 20, 25, 30, 35]);
+        // ── THE LENGTH RANK IS PART OF THE ITEM ──────────────────────────────────
+        // Why the ranges are wide and one distractor is a 90 + q error: the answer
+        // is angle BCD = 180 − (p + q), so its DIGIT COUNT is decided by the numbers
+        // drawn. With the narrow old ranges (p ≤ 40, q ≤ 35) every draw gave a
+        // three-digit answer beside two-digit distractors, so the correct option was
+        // the unique LONGEST string on 100% of draws — and a learner who never read
+        // the question could pick the longest one and be right every time
+        // (`npm run audit:options`; the concept measured 86.7%). Widening p and q
+        // makes the answer two digits about half the time, and `${90 + q}°` — the
+        // semicircle's 90 ADDED to the given angle instead of subtracted from it —
+        // is a genuine mis-application of the same theorem that happens to be three
+        // digits, so the key is no longer the only long option on any draw.
+        // The two draws are parity-disjoint on purpose (p ends in 5, q in 0), and
+        // that is what keeps the item's four options guaranteed rather than likely:
+        // p ≠ q means the two single-triangle answers cannot collide, and p + q ≡ 5
+        // (mod 10) means the answer can never be 90 — which the candidate list also
+        // offers literally, so a collision there would leave the item a distractor
+        // short and the assembler would pad it with filler.
+        const p = r.pick([25, 35, 45, 55, 65]);
+        const q = r.pick([20, 30, 40, 50, 60]);
         const acb = 90 - p; // angle in a semicircle, then the angle sum of ABC
         const acd = 90 - q; // the same two theorems again in ACD
         const bcd = acb + acd;
@@ -41415,6 +41775,10 @@ exports.MID_MATHS = {
                 // Only one of the two triangles used.
                 `${acb}°`,
                 `${acd}°`,
+                // The sign slip on the same theorem: 180 − 90 − q written as 90 + q.
+                // Three digits, so it stands beside a three-digit answer as an
+                // alternative a learner could actually be choosing between.
+                `${90 + q}°`,
                 // The angles at A added and then subtracted from 180 — the same sum
                 // only if the two semicircle facts are both used, which is the point.
                 `${180 - p - q}°`,
@@ -41423,7 +41787,7 @@ exports.MID_MATHS = {
                 "90°",
             ]),
             tags: [],
-            explanation: `AC is a diameter, so the angle in a semicircle makes both triangles right-angled: angle ABC = ${90}° and angle ADC = ${90}°. Two steps follow, one per triangle. In ABC, angle ACB = 180 − 90 − ${p} = ${acb}. In ACD, angle ACD = 180 − 90 − ${q} = ${acd}. Angle BCD is those two together — ${acb} + ${acd} = ${bcd}. Using only one triangle gives ${acb}°, and ${p + q}° is the angle at A, which is the angle the two interior angles are measured from, not the answer.`,
+            explanation: `AC is a diameter, so the angle in a semicircle makes both triangles right-angled: angle ABC = ${90}° and angle ADC = ${90}°. Two steps follow, one per triangle. In ABC, angle ACB = 180 − 90 − ${p} = ${acb}. In ACD, angle ACD = 180 − 90 − ${q} = ${acd}. Angle BCD is those two together — ${acb} + ${acd} = ${bcd}. Using only one triangle gives ${acb}°, and ${90 + q}° adds the semicircle's 90° to the given angle instead of taking it away, which is the same theorem with the subtraction backwards. ${p + q}° is the angle at A, which is the angle the two interior angles are measured from, not the answer.`,
             difficulty: mid4(r),
         };
     },
@@ -42285,6 +42649,57 @@ function distinct(correct, candidates, n = 3) {
 function num(x, dp = 3) {
     return x.toFixed(dp).replace(/\.?0+$/, "");
 }
+const SUP_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+/**
+ * A value in standard form to four significant figures: `1.372 × 10³ N`.
+ *
+ * WHY EVERY OPTION IN A FAMILY IS WRITTEN THIS WAY. `npm run audit:options`
+ * measures how far a learner gets by never reading the question and picking an
+ * option by its LENGTH. These families were the worst offenders in the whole
+ * bank — gravity-fields 91%, astrophysics 89%, em-induction 86%, pressure-fluids
+ * 77%, against a 25% chance line — and the cause is arithmetic rather than
+ * careless authoring: the correct value here is a five-digit number while the
+ * misconceptions around it produce four-digit ones, so the key was the longest
+ * string on screen draw after draw. Standard form at a fixed precision removes
+ * the cue BY CONSTRUCTION: 9.800 × 10² N and 1.372 × 10³ N are the same eleven
+ * characters, so the only thing left to compare between two options is the
+ * VALUE — which is the whole exercise. (A value below one costs one extra
+ * character for the minus sign inside the exponent; every option that shares a
+ * sign is the same width, and a family whose key is above one can never be the
+ * longest option at all.) It changes no value, no misconception and no
+ * difficulty: the digits are the same digits, written the way an exam script is
+ * asked to give a large or small answer.
+ *
+ * Four significant figures rather than three, because these values are EXACT —
+ * they are computed from the stem's own numbers — and four figures keeps every
+ * one of them exact (a five-figure value would already have been rounded by the
+ * arithmetic that produced it). Working inside the explanation stays in ordinary
+ * numbers, which is how a real solution reads: work in whatever is easiest, give
+ * the answer in standard form.
+ */
+function sci(x, unit = "") {
+    const sup = (n) => (n < 0 ? "⁻" : "") + String(Math.abs(n)).split("").map((c) => SUP_DIGITS[Number(c)]).join("");
+    // A non-finite value is a CALLER BUG, and it must never masquerade as a
+    // number: when Infinity and a genuine 0 both rendered as `0.000 × 10⁰`, the
+    // two collapsed into one option and `newton-laws` could not fill four distinct
+    // ones (the engines sweep caught it: "only 3 options at seed 69"). An
+    // em-dash is unmistakably not a value, and the draws below are guarded so no
+    // family can reach this line.
+    if (!Number.isFinite(x))
+        return unit ? `— ${unit}` : "—";
+    if (x === 0)
+        return unit ? `0.000 × 10⁰ ${unit}` : "0.000 × 10⁰";
+    let e = Math.floor(Math.log10(Math.abs(x)));
+    let m = Number((x / Math.pow(10, e)).toFixed(3));
+    // 9.9995 rounds to 10.000 at four figures, which would carry into the
+    // exponent and change the mantissa's width — the one thing this helper exists
+    // to keep constant.
+    if (Math.abs(m) >= 10) {
+        m = Number((m / 10).toFixed(3));
+        e += 1;
+    }
+    return `${m.toFixed(3)} × 10${sup(e)}${unit ? " " + unit : ""}`;
+}
 /** The band every family here earns. Written as a helper so no family can
  *  quietly drop back into the recall band while being described as deep. */
 function hardest(r) {
@@ -42343,23 +42758,23 @@ exports.PHYSICS_DEEP = {
         const u2 = r.pick([0, 1, 2, 3]);
         const total = m1 * u1 + m2 * u2;
         const v = total / (m1 + m2);
-        const correct = `${num(v)} m/s`;
+        const correct = sci(v, "m/s");
         return {
             prompt: `A ${m1} kg trolley moving at ${u1} m/s collides with a ${m2} kg trolley moving at ${u2} m/s in the SAME direction. They stick together. What is their common velocity?`,
             correct,
             wrongs: distinct(correct, [
                 // Only the first trolley's momentum used.
-                `${num((m1 * u1) / (m1 + m2))} m/s`,
+                sci((m1 * u1) / (m1 + m2), "m/s"),
                 // The two speeds averaged, as if mass did not matter.
-                `${num((u1 + u2) / 2)} m/s`,
+                sci((u1 + u2) / 2, "m/s"),
                 // Momentum quoted as a velocity.
-                `${num(total)} m/s`,
+                sci(total, "m/s"),
                 // The speeds added.
-                `${num(u1 + u2)} m/s`,
+                sci(u1 + u2, "m/s"),
                 // The first trolley's speed, as though the collision did not slow it.
-                `${num(u1)} m/s`,
+                sci(u1, "m/s"),
                 // A half of the answer, for the collapse case.
-                `${num(v / 2)} m/s`,
+                sci(v / 2, "m/s"),
             ]),
             tags: [],
             explanation: `Momentum is conserved: total before = total after. Before: (${m1} × ${u1}) + (${m2} × ${u2}) = ${num(total)} kg·m/s. After: (${m1} + ${m2}) × v = ${m1 + m2}v, so v = ${num(total)} ÷ ${m1 + m2} = ${correct}. The masses ADD because the trolleys now move as one object — leaving the mass out gives the average of the speeds, which is only right when the two masses are equal.`,
@@ -42371,24 +42786,31 @@ exports.PHYSICS_DEEP = {
     "newton-laws": (r) => {
         const m = r.pick([2, 4, 5, 8, 10]);
         const fwd = [r.int(20, 40), r.int(20, 40)];
-        const back = [r.int(10, 30), r.int(10, 30)];
+        let back = [r.int(10, 30), r.int(10, 30)];
+        // A BALANCED TABLE IS A DEGENERATE ITEM HERE. When the forces cancelled, the
+        // answer was 0 and so was every slip that divides by the resultant (`m/net`
+        // is Infinity, `a/2` is 0), so the family could not produce three distinct
+        // wrongs at all. A sledge that genuinely accelerates keeps the item, and the
+        // trap it teaches — a force is a vector — is unchanged.
+        if (fwd[0] + fwd[1] === back[0] + back[1])
+            back = [back[0], back[1] + 5];
         const net = fwd[0] + fwd[1] - back[0] - back[1];
         const a = net / m;
-        const correct = `${num(a)} m/s²`;
+        const correct = sci(a, "m/s²");
         return {
             prompt: `The table records the horizontal forces on a ${m} kg sledge:\n\n· forward: ${fwd[0]} N\n· forward: ${fwd[1]} N\n· backward: ${back[0]} N\n· backward: ${back[1]} N\n\nWhat is the sledge's acceleration?`,
             correct,
             wrongs: distinct(correct, [
                 // Every force added, direction ignored.
-                `${num((fwd[0] + fwd[1] + back[0] + back[1]) / m)} m/s²`,
+                sci((fwd[0] + fwd[1] + back[0] + back[1]) / m, "m/s²"),
                 // The resultant given as the acceleration (the ÷m step dropped).
-                `${num(net)} m/s²`,
+                sci(net, "m/s²"),
                 // Newton's second law inverted.
-                `${num(m / net)} m/s²`,
+                sci(m / net, "m/s²"),
                 // Only the first forward force used.
-                `${num((fwd[0] - back[0] - back[1]) / m)} m/s²`,
+                sci((fwd[0] - back[0] - back[1]) / m, "m/s²"),
                 // Half, for the collapse case.
-                `${num(a / 2)} m/s²`,
+                sci(a / 2, "m/s²"),
             ]),
             tags: [],
             explanation: `Forces in opposite directions subtract: forward ${fwd[0]} + ${fwd[1]} = ${fwd[0] + fwd[1]} N, backward ${back[0]} + ${back[1]} = ${back[0] + back[1]} N, so the resultant is ${fwd[0] + fwd[1]} − ${back[0] + back[1]} = ${net} N forwards. Then a = F ÷ m = ${net} ÷ ${m} = ${correct}. Adding every force as if it pulled the same way (${fwd[0] + fwd[1] + back[0] + back[1]} N) is the trap: a force is a vector, and the table gives you two directions on purpose.`,
@@ -42400,25 +42822,25 @@ exports.PHYSICS_DEEP = {
         const speed = r.pick([340, 1500, 3000]);
         const time = r.pick([0.4, 0.6, 0.8, 1.2, 1.6, 2.0]);
         const distance = (speed * time) / 2;
-        const correct = `${num(distance)} m`;
+        const correct = sci(distance, "m");
         const medium = speed === 340 ? "air" : speed === 1500 ? "water" : "steel";
         return {
             prompt: `A pulse of sound is sent through ${medium} and its echo returns after ${num(time)} s. Sound travels at ${speed} m/s in ${medium}. How far away is the reflecting surface?`,
             correct,
             wrongs: distinct(correct, [
                 // The round trip taken as the distance.
-                `${num(speed * time)} m`,
+                sci(speed * time, "m"),
                 // The division inverted.
-                `${num(speed / time)} m`,
+                sci(speed / time, "m"),
                 // The time divided instead of the distance.
-                `${num((speed * time) / 4)} m`,
+                sci((speed * time) / 4, "m"),
                 // A multiplication instead of a division.
-                `${num(speed * time * 2)} m`,
+                sci(speed * time * 2, "m"),
                 // The speed quoted as the distance.
-                `${num(speed)} m`,
+                sci(speed, "m"),
             ]),
             tags: [],
-            explanation: `The sound has to travel to the surface AND back, so the ${num(time)} s covers twice the distance: total path = ${speed} × ${num(time)} = ${num(speed * time)} m, and the surface is half of that, ${correct}. Quoting ${num(speed * time)} m is the classic echo error — it puts the wall twice as far away as it is, which is why an echo test has to be worked out as a round trip.`,
+            explanation: `The sound has to travel to the surface AND back, so the ${num(time)} s covers twice the distance: total path = ${speed} × ${num(time)} = ${num(speed * time)} m, and the surface is half of that, ${correct}. Quoting ${sci(speed * time, "m")} is the classic echo error — it puts the wall twice as far away as it is, which is why an echo test has to be worked out as a round trip.`,
             difficulty: hardest(r),
         };
     },
@@ -42429,19 +42851,19 @@ exports.PHYSICS_DEEP = {
         const current = r.pick([2, 3, 4, 5, 8]);
         const length = r.pick([0.1, 0.2, 0.4, 0.5]);
         const force = b * current * length;
-        const correct = `${num(force)} N`;
+        const correct = sci(force, "N");
         return {
             prompt: `A straight wire of length ${num(length * 100)} cm carries a current of ${current} A and lies at right angles to a magnetic field of flux density ${num(b)} T. What is the force on the wire?`,
             correct,
             wrongs: distinct(correct, [
                 // The length left in cm.
-                `${num(b * current * length * 100)} N`,
+                sci(b * current * length * 100, "N"),
                 // Only two factors multiplied.
-                `${num(b * current)} N`,
-                `${num(b * length)} N`,
-                `${num(current * length)} N`,
+                sci(b * current, "N"),
+                sci(b * length, "N"),
+                sci(current * length, "N"),
                 // The three added.
-                `${num(b + current + length)} N`,
+                sci(b + current + length, "N"),
             ]),
             tags: [],
             explanation: `F = BIL, and every factor must be in its SI unit: B = ${num(b)} T, I = ${current} A, L = ${num(length)} m (the stem gives ${num(length * 100)} cm, so divide by 100 first). That gives ${num(b)} × ${current} × ${num(length)} = ${correct}. Leaving the length in centimetres multiplies the force by 100 — a unit error, not a physics one, and the commonest way this question is lost.`,
@@ -42458,24 +42880,24 @@ exports.PHYSICS_DEEP = {
         const dT = t2 - t1;
         const energy = mass * c * dT;
         const material = c === 4200 ? "water" : c === 900 ? "aluminium" : c === 385 ? "copper" : "ice";
-        const correct = `${num(energy)} J`;
+        const correct = sci(energy, "J");
         return {
             prompt: `A ${num(mass)} kg block of ${material} is heated from ${t1} °C to ${t2} °C. Its specific heat capacity is ${c} J/kg°C. How much energy is transferred to the block?`,
             correct,
             wrongs: distinct(correct, [
                 // The final temperature used instead of the change.
-                `${num(mass * c * t2)} J`,
+                sci(mass * c * t2, "J"),
                 // ΔT left out entirely.
-                `${num(mass * c)} J`,
+                sci(mass * c, "J"),
                 // The change added rather than multiplied.
-                `${num(mass + c + dT)} J`,
+                sci(mass + c + dT, "J"),
                 // The temperature change quoted as the energy.
-                `${num(dT)} J`,
+                sci(dT, "J"),
                 // Half the answer, for the collapse case.
-                `${num(energy / 2)} J`,
+                sci(energy / 2, "J"),
             ]),
             tags: [],
-            explanation: `E = m × c × ΔT, and ΔT is the CHANGE in temperature: ${t2} − ${t1} = ${dT} °C. So E = ${num(mass)} × ${c} × ${dT} = ${correct}. Using the final temperature (${num(mass * c * t2)} J) charges the block for heating from absolute zero rather than from ${t1} °C — the formula wants how much the temperature ROSE, not where it finished.`,
+            explanation: `E = m × c × ΔT, and ΔT is the CHANGE in temperature: ${t2} − ${t1} = ${dT} °C. So E = ${num(mass)} × ${c} × ${dT} = ${correct}. Using the final temperature (${sci(mass * c * t2, "J")}) charges the block for heating from absolute zero rather than from ${t1} °C — the formula wants how much the temperature ROSE, not where it finished.`,
             difficulty: hardest(r),
         };
     },
@@ -42487,24 +42909,24 @@ exports.PHYSICS_DEEP = {
         const g = 10;
         const work = mass * g * height;
         const power = work / time;
-        const correct = `${num(power)} W`;
+        const correct = sci(power, "W");
         return {
             prompt: `A load of ${mass} kg is lifted ${height} m in ${time} s. Take g = ${g} N/kg. What is the average power of the motor doing the lifting?`,
             correct,
             wrongs: distinct(correct, [
                 // Work, not power: the division by time skipped.
-                `${num(work)} W`,
+                sci(work, "W"),
                 // Weight instead of work.
-                `${num(mass * g)} W`,
+                sci(mass * g, "W"),
                 // Height ÷ time, with the mass dropped.
-                `${num((height * g) / time)} W`,
+                sci((height * g) / time, "W"),
                 // Multiplied by time instead of divided.
-                `${num(work * time)} W`,
+                sci(work * time, "W"),
                 // Half, for the collapse case.
-                `${num(power / 2)} W`,
+                sci(power / 2, "W"),
             ]),
             tags: [],
-            explanation: `Power is the RATE of energy transfer, so find the energy first: work = mgh = ${mass} × ${g} × ${height} = ${num(work)} J. Then power = work ÷ time = ${num(work)} ÷ ${time} = ${correct}. ${num(work)} W is the work done, not the power — it is what the motor transfers in total, and the motor that does it in ${time} s has to be ${time} times more powerful than one that takes a minute.`,
+            explanation: `Power is the RATE of energy transfer, so find the energy first: work = mgh = ${mass} × ${g} × ${height} = ${num(work)} J. Then power = work ÷ time = ${num(work)} ÷ ${time} = ${correct}. ${sci(work, "W")} is the work done, not the power — it is what the motor transfers in total, and the motor that does it in ${time} s has to be ${time} times more powerful than one that takes a minute.`,
             difficulty: hardest(r),
         };
     },
@@ -42546,30 +42968,30 @@ exports.PHYSICS_DEEP = {
         const ns = r.pick([50, 100, 500, 2000, 4000]);
         const vp = r.pick([6, 12, 230, 240]);
         const vs = (vp * ns) / np;
-        const correct = `${num(vs)} V`;
+        const correct = sci(vs, "V");
         const stepUp = ns > np;
         return {
             prompt: `An ideal transformer has ${np} turns on the primary coil and ${ns} turns on the secondary coil. The primary is connected to a ${vp} V supply. What is the secondary voltage?`,
             correct,
             wrongs: distinct(correct, [
                 // The turns ratio inverted.
-                `${num((vp * np) / ns)} V`,
+                sci((vp * np) / ns, "V"),
                 // The primary voltage, unchanged.
-                `${num(vp)} V`,
+                sci(vp, "V"),
                 // The turns ratio quoted as a voltage.
-                `${num(ns / np)} V`,
+                sci(ns / np, "V"),
                 // Primary plus the turns difference.
-                `${num(vp + (ns - np))} V`,
+                sci(vp + (ns - np), "V"),
                 // Half, for the collapse case.
-                `${num(vs / 2)} V`,
+                sci(vs / 2, "V"),
                 // THE SAFETY TAIL. When the two coils have the SAME number of turns the
                 // ratio is 1, so the inverted ratio, the unchanged primary voltage and
                 // the turns difference all collapse onto the answer at once (measured:
                 // "12 V | 1 V | 6 V"). A doubled voltage cannot.
-                `${num(vs * 2)} V`,
+                sci(vs * 2, "V"),
             ]),
             tags: [],
-            explanation: `${vp} × (${ns} ÷ ${np}) = ${num(vs)} V. Each turn carries the same voltage, so the coil with ${ns > np ? "more" : "fewer"} turns has ${ns > np ? "more" : "less"} voltage, and this is a ${stepUp ? "step-up" : "step-down"} transformer. Inverting the ratio gives ${num((vp * np) / ns)} V, which is the voltage you would expect running the same transformer BACKWARDS — the one thing a transformer will not do is work on a d.c. supply, and it is the ratio, not the size, that sets this.`,
+            explanation: `${vp} × (${ns} ÷ ${np}) = ${num(vs)} V. Each turn carries the same voltage, so the coil with ${ns > np ? "more" : "fewer"} turns has ${ns > np ? "more" : "less"} voltage, and this is a ${stepUp ? "step-up" : "step-down"} transformer. Inverting the ratio gives ${sci((vp * np) / ns, "V")}, which is the voltage you would expect running the same transformer BACKWARDS — the one thing a transformer will not do is work on a d.c. supply, and it is the ratio, not the size, that sets this.`,
             difficulty: hardest(r),
         };
     },
@@ -42580,24 +43002,24 @@ exports.PHYSICS_DEEP = {
         const basePeriod = r.pick([1, 2, 4, 5]);
         const root = Math.sqrt(factor);
         const period = basePeriod * Math.pow(root, 3);
-        const correct = `${num(period)} years`;
+        const correct = sci(period, "years");
         return {
             prompt: `Two bodies orbit the same star.\n\n· Body A orbits at 1.0 AU with a period of ${num(basePeriod)} years.\n· Body B orbits at ${factor}.0 AU.\n\nFor orbits around one star, T² is proportional to r³.\n\nWhat is the period of body B?`,
             correct,
             wrongs: distinct(correct, [
                 // A linear guess: period ∝ radius.
-                `${num(basePeriod * factor)} years`,
+                sci(basePeriod * factor, "years"),
                 // The ratio squared instead of taken to the 3/2 power.
-                `${num(basePeriod * factor * factor)} years`,
+                sci(basePeriod * factor * factor, "years"),
                 // The period left unchanged, as if the orbit did not matter.
-                `${num(basePeriod)} years`,
+                sci(basePeriod, "years"),
                 // The ratio itself quoted as the answer.
-                `${num(factor)} years`,
+                sci(factor, "years"),
                 // The two numbers added.
-                `${num(basePeriod + factor)} years`,
+                sci(basePeriod + factor, "years"),
             ]),
             tags: [],
-            explanation: `T² ∝ r³, so multiplying r by ${factor} multiplies T² by ${factor}³ = ${factor * factor * factor}, and T by its square root: ${num(basePeriod)} × ${num(root)}³ = ${num(period)} years. The tempting answer is the linear one (${num(basePeriod * factor)}) — a planet ${factor} times further out does NOT take ${factor} times as long, and that difference is why Neptune's 165-year orbit was found by prediction rather than by watching.`,
+            explanation: `T² ∝ r³, so multiplying r by ${factor} multiplies T² by ${factor}³ = ${factor * factor * factor}, and T by its square root: ${num(basePeriod)} × ${num(root)}³ = ${num(period)} years. The tempting answer is the linear one (${sci(basePeriod * factor, "years")}) — a planet ${factor} times further out does NOT take ${factor} times as long, and that difference is why Neptune's 165-year orbit was found by prediction rather than by watching.`,
             difficulty: hardest(r),
         };
     },
@@ -42613,24 +43035,24 @@ exports.PHYSICS_DEEP = {
         const gFactor = mFactor / (rFactor * rFactor);
         const mass = r.pick([40, 50, 60, 70, 80]);
         const weight = mass * gEarth * gFactor;
-        const correct = `${num(weight, 2)} N`;
+        const correct = sci(weight, "N");
         return {
             prompt: `A planet has ${mFactor} times the mass of Earth and ${rFactor} times its radius. On Earth g = ${gEarth} N/kg, and a learner of mass ${mass} kg stands on the planet. What is the learner's weight there?`,
             correct,
             wrongs: distinct(correct, [
                 // The radius used linearly instead of squared.
-                `${num((mass * gEarth * mFactor) / rFactor, 2)} N`,
+                sci((mass * gEarth * mFactor) / rFactor, "N"),
                 // The radius never used at all.
-                `${num(mass * gEarth * mFactor, 2)} N`,
+                sci(mass * gEarth * mFactor, "N"),
                 // The learner's Earth weight.
-                `${num(mass * gEarth, 2)} N`,
+                sci(mass * gEarth, "N"),
                 // The ratio inverted.
-                `${num((mass * gEarth * rFactor * rFactor) / mFactor, 2)} N`,
+                sci((mass * gEarth * rFactor * rFactor) / mFactor, "N"),
                 // Only the mass, quoted as a weight.
-                `${num(mass, 2)} N`,
+                sci(mass, "N"),
             ]),
             tags: [],
-            explanation: `g depends on mass AND on the square of the radius: here it scales by ${mFactor} ÷ ${rFactor}² = ${mFactor} ÷ ${rFactor * rFactor} = ${num(gFactor)} times Earth's. So weight = ${mass} × ${gEarth} × ${num(gFactor)} = ${correct}. Using the radius linearly (${num((mass * gEarth * mFactor) / rFactor, 2)} N) is the mistake the square exists to catch: standing ${rFactor}× further from a point mass weakens gravity ${rFactor * rFactor}×, because the same force is spread over a sphere ${rFactor}² times larger.`,
+            explanation: `g depends on mass AND on the square of the radius: here it scales by ${mFactor} ÷ ${rFactor}² = ${mFactor} ÷ ${rFactor * rFactor} = ${num(gFactor)} times Earth's. So weight = ${mass} × ${gEarth} × ${num(gFactor)} = ${correct}. Using the radius linearly (${sci((mass * gEarth * mFactor) / rFactor, "N")}) is the mistake the square exists to catch: standing ${rFactor}× further from a point mass weakens gravity ${rFactor * rFactor}×, because the same force is spread over a sphere ${rFactor}² times larger.`,
             difficulty: hardest(r),
         };
     },
@@ -42671,24 +43093,24 @@ exports.PHYSICS_DEEP = {
         const g = 10;
         const pressure = density * g * depth;
         const force = pressure * area;
-        const correct = `${num(force)} N`;
+        const correct = sci(force, "N");
         return {
             prompt: `A tank contains water to a depth of ${depth} m (density ${density} kg/m³, g = ${g} N/kg). A flat plate of area ${num(area)} m² lies on the bottom of the tank. What is the force of the water on the plate?`,
             correct,
             wrongs: distinct(correct, [
                 // The pressure quoted instead of the force: the second stage skipped.
-                `${num(pressure)} N`,
+                sci(pressure, "N"),
                 // Area multiplied twice.
-                `${num(pressure * area * area)} N`,
+                sci(pressure * area * area, "N"),
                 // The depth used where the area belongs.
-                `${num(pressure * depth)} N`,
+                sci(pressure * depth, "N"),
                 // The area alone, quoted as a force.
-                `${num(area)} N`,
+                sci(area, "N"),
                 // Half, for the collapse case.
-                `${num(force / 2)} N`,
+                sci(force / 2, "N"),
             ]),
             tags: [],
-            explanation: `Two stages. First the pressure at that depth: p = ρgh = ${density} × ${g} × ${depth} = ${num(pressure)} Pa. Then the force that pressure exerts over the plate: F = p × A = ${num(pressure)} × ${num(area)} = ${correct}. Stopping at ${num(pressure)} N reports a pressure as a force — they are different quantities, and the area is in the question precisely because the same pressure on a bigger plate pushes harder.`,
+            explanation: `Two stages. First the pressure at that depth: p = ρgh = ${density} × ${g} × ${depth} = ${num(pressure)} Pa. Then the force that pressure exerts over the plate: F = p × A = ${num(pressure)} × ${num(area)} = ${correct}. Stopping at ${sci(pressure, "N")} reports a pressure as a force — they are different quantities, and the area is in the question precisely because the same pressure on a bigger plate pushes harder.`,
             difficulty: hardest(r),
         };
     },
@@ -44570,7 +44992,14 @@ const MATHS_GENS = {
                 difficulty: 0.35,
             };
         }
-        const n1 = r.int(1, 4), d1 = r.int(2, 5), n2 = r.int(1, 5), d2 = r.int(2, 6);
+        const n1 = r.int(1, 4), d1 = r.int(2, 5);
+        // THE DIVISOR IS NEVER 1. Dividing by 5/5 makes the flip a no-op, so the
+        // "multiply straight across" slip lands on the answer itself (measured:
+        // `3/2 ÷ 5/5` served `3/2` beside `15/10`), and it is also a vacuous
+        // question — "divide by one" teaches nothing about dividing by a fraction.
+        let n2 = r.int(1, 5), d2 = r.int(2, 6);
+        if (n2 === d2)
+            d2 = n2 + 1;
         const num = n1 * d2, den = d1 * n2;
         const gg = (a, b) => (b ? gg(b, a % b) : a);
         const G = gg(num, den);
@@ -44590,8 +45019,12 @@ const MATHS_GENS = {
             return {
                 prompt: `Work out ${a} + ${b}.`,
                 correct: s,
-                wrongs: [(parseFloat(a) + parseFloat(b)).toFixed(2), (parseFloat(a) * 10 + parseFloat(b)).toFixed(1), (parseFloat(a) + parseFloat(b) + 1).toFixed(1)],
-                tags: [], explanation: `Line up the decimal points and add columns: ${a} + ${b} = ${s}.`,
+                // The first distractor was `(a + b).toFixed(2)` — the sum with an extra
+                // decimal place, which is the SAME NUMBER, so the item offered the
+                // answer twice (`11.00` beside `11.0`). Ignoring both decimal points is
+                // the slip this band actually produces, and it is ten times the answer.
+                wrongs: [((parseFloat(a) + parseFloat(b)) * 10).toFixed(1), (parseFloat(a) * 10 + parseFloat(b)).toFixed(1), (parseFloat(a) + parseFloat(b) + 1).toFixed(1)],
+                tags: [], explanation: `Line up the decimal points and add columns: ${a} + ${b} = ${s}. Reading each number as a whole number instead — ${(parseFloat(a) * 10).toFixed(0)} plus ${(parseFloat(b) * 10).toFixed(0)} — gives ${((parseFloat(a) + parseFloat(b)) * 10).toFixed(1)}, ten times too big, which is why the point has to be lined up.`,
                 difficulty: 0.2,
             };
         }
@@ -45014,8 +45447,12 @@ const MATHS_GENS = {
         return {
             prompt: `A pie chart shows ${deg}° for "walk". What fraction of the students walk?`,
             correct: `1/${share}`,
-            wrongs: [`${deg}/360`, `${deg}/180`, `1/${share - 1}`, `1/${share + 1}`],
-            tags: [], explanation: `A whole pie is 360°: ${deg}/360 = 1/${share}. Divide the sector angle by 360 and cancel — not by 180 (that is half a circle).`,
+            // NOT `${deg}/360`: that is the answer unsimplified, and once the assembler
+            // compares options by VALUE it is discarded as a second correct option
+            // (verified: the item served `45/360` beside `1/8`). The inverted division
+            // teaches the same thing without ever being right.
+            wrongs: [`${360}/${deg}`, `${deg}/180`, `1/${share - 1}`, `1/${share + 1}`],
+            tags: [], explanation: `A whole pie is 360°: ${deg}/360 = 1/${share}. Divide the sector angle by 360 and cancel — not by 180 (that is half a circle), and not the other way up (${360}/${deg} would say most of the students walk in a ${deg}° sector).`,
             // The item says "A pie chart shows 30° for walk" and drew no chart at all.
             // The sector's ANGLE is drawn (the prompt states it); the FRACTION it
             // equals is not, because dividing 30 by 360 is the whole question.
@@ -45043,8 +45480,8 @@ const MATHS_GENS = {
             {
                 prompt: `Students who eat breakfast get better grades. What can you conclude?`,
                 figure: { kind: "axes", xMin: 0, xMax: 8, yMin: 0, yMax: 9, points: SCATTER_FLAT },
-                correct: "Breakfast may not cause it — other factors differ too",
-                wrongs: ["Breakfast causes better grades", "Grades cause breakfast", "The study proves nothing about either"],
+                correct: "Other factors differ between the groups",
+                wrongs: ["Breakfast causes better grades, so it is causal", "Better grades make students eat breakfast", "The study proves nothing about either one"],
                 tags: ["corr-cause"],
                 explanation: `A correlation without a controlled comparison. Sleep, routine and home circumstances all differ between the groups, and each could drive the grades.`,
             },
@@ -45052,7 +45489,7 @@ const MATHS_GENS = {
                 prompt: `Regions with more storks also record more births. What is the best explanation?`,
                 figure: { kind: "axes", xMin: 0, xMax: 8, yMin: 0, yMax: 9, points: SCATTER_STEEP },
                 correct: "A third factor (population size) drives both",
-                wrongs: ["Storks deliver babies", "More babies attract storks", "The data must be fabricated"],
+                wrongs: ["Storks deliver the babies, as the saying goes", "More babies attract storks to the region", "The data must be fabricated"],
                 tags: ["corr-cause"],
                 explanation: `Bigger regions have both more people and more roofs to nest on. When two counts scale with population, they rise together without causing each other.`,
             },
@@ -45272,8 +45709,16 @@ const MATHS_GENS = {
             difficulty: 0.45,
         };
     },
+    // The correct option's LENGTH RANK is written into these rows on purpose: it
+    // is the longest on row 1, second-longest on row 2, third on row 4 and
+    // SHORTEST on row 3. A bank whose key is always the longest option can be
+    // beaten by a learner who never reads the question (`npm run audit:options`
+    // measures exactly that, at 37% against a 25% chance line), so the rank is
+    // part of the item. Full rationale lives in `explanation`; the option states
+    // the answer.
     "proof": (r) => {
         const scenes = [
+            // key = longest (rank 1)
             {
                 prompt: `Claim: "n² + n + 41 is prime for every whole number n." Best response?`,
                 correct: "Disprove: n = 41 gives 41² + 41 + 41 = 41 × 43, not prime",
@@ -45281,6 +45726,7 @@ const MATHS_GENS = {
                 tags: [],
                 explanation: `One counterexample kills a universal claim. At n = 41: 41² + 41 + 41 = 41 × 43 — composite. Checking finitely many cases never proves "for all".`,
             },
+            // key = second-longest (rank 2)
             {
                 prompt: `Claim: "Every odd number squared leaves remainder 1 when divided by 8." Which method proves it?`,
                 correct: "Write the odd number as 2k + 1 and expand",
@@ -45288,12 +45734,21 @@ const MATHS_GENS = {
                 tags: [],
                 explanation: `(2k + 1)² = 4k² + 4k + 1 = 4k(k + 1) + 1, and k(k + 1) is always even — so 4k(k + 1) is a multiple of 8. Algebra covers every odd number at once.`,
             },
+            // key = shortest (rank 4)
             {
                 prompt: `Claim: "√2 cannot be written as a fraction." Which approach proves it?`,
-                correct: "Assume √2 = a/b in lowest terms, then derive a contradiction",
-                wrongs: ["Show its decimal never repeats", "Find a fraction very close to √2", "State that no one has found one"],
+                correct: "Assume √2 = a/b in lowest terms",
+                wrongs: ["Show that its decimal never repeats, however far you carry it", "Find a fraction that is very close to √2", "State that nobody has ever found such a fraction"],
                 tags: [],
-                explanation: `Proof by contradiction: from √2 = a/b in lowest terms you get a² = 2b², so a is even, then b is even too — contradicting "lowest terms". A long decimal is never proof.`,
+                explanation: `Proof by contradiction: from √2 = a/b in lowest terms you get a² = 2b², so a is even, then b is even too — contradicting "lowest terms", which is the contradiction the assumption sets up. A long decimal is never proof.`,
+            },
+            // key = third-longest (rank 3)
+            {
+                prompt: `Claim: "Every even number squared is a multiple of 4." Which method proves it?`,
+                correct: "Write the even number as 2k, so (2k)² = 4k²",
+                wrongs: ["Check 2, 4, 6, 8 and 10, then extrapolate the pattern you see", "Assume that some even square is not a multiple of 4 and hunt for one", "Prove it for 2 and say the rest follow"],
+                tags: [],
+                explanation: `Algebra covers every case at once: (2k)² = 4k², which is 4 × k² — a multiple of 4 by construction. Checking examples can only ever find a counterexample; it can never establish "every".`,
             },
         ];
         const s = r.pick(scenes);
@@ -45314,17 +45769,19 @@ const MATHS_GENS = {
         // One valid inference and two classic fallacies — the same skill (can this
         // conclusion actually be drawn?) in three different wordings.
         const scenes = [
+            // key = shortest (rank 4)
             {
                 prompt: `"If it rains, the match is cancelled." It did NOT rain. What follows?`,
-                correct: "Nothing — the match may or may not be cancelled",
-                wrongs: ["The match was cancelled", "The match was not cancelled", "The statement is false"],
+                correct: "Nothing follows about the match",
+                wrongs: ["The match was cancelled because of the rain", "The match was not cancelled, since it did not rain", "The statement itself must be false"],
                 tags: [],
                 explanation: `A → B says only what happens WHEN A holds. Without rain (¬A) it is silent — the 'denying the antecedent' fallacy.`,
             },
+            // key = second-longest (rank 2)
             {
                 prompt: `"If a shape is a square, it has 4 sides." This shape has 4 sides. What follows?`,
                 correct: "Nothing — a rectangle or rhombus also has 4 sides",
-                wrongs: ["It is a square", "It is not a square", "The statement is false"],
+                wrongs: ["It is a square, because four sides is what a square has", "It is not a square", "The statement is false"],
                 tags: [],
                 explanation: `B does not give you A ('affirming the consequent'): squares are a SUBSET of 4-sided shapes. Only the reverse implication would hold.`,
             },
@@ -45401,8 +45858,13 @@ const MATHS_GENS = {
     "iteration": (r) => {
         return {
             prompt: `x₀ = 2, x_{n+1} = (x_n + 5/x_n)/2. x₁ = ?`,
+            // Every option is written to the SAME two decimal places. The answer is
+            // 2.25, and printing the distractors as 2.5 / 3.5 / 2.2 made the correct
+            // option the only four-character string on screen — a learner could pick
+            // it without evaluating the iteration at all. Consistent precision is also
+            // simply how a numerical answer is written down.
             correct: "2.25",
-            wrongs: ["2.5", "3.5", "2.2"],
+            wrongs: ["2.50", "3.50", "2.20"],
             tags: [], explanation: `x₁ = (2 + 5/2)/2 = (2 + 2.5)/2 = 2.25. This iteration converges to √5 — Newton's method for square roots.`,
             difficulty: 0.5,
         };
@@ -45411,15 +45873,15 @@ const MATHS_GENS = {
         const scenes = [
             {
                 prompt: `Two tangents are drawn from the same external point to a circle. Their lengths are…?`,
-                correct: "Equal",
+                correct: "Equal — both tangents are the same length",
                 wrongs: ["In the ratio 1 : 2", "Perpendicular to each other", "Always chords of the circle"],
                 tags: [],
                 explanation: `Tangents from the same external point are equal: each forms a right angle with its radius, and the two right-angled triangles share the hypotenuse to the centre (RHS congruent).`,
             },
             {
                 prompt: `An angle is subtended by a diameter at the circumference. Its size is…?`,
-                correct: "90°",
-                wrongs: ["45°", "60°", "It depends on the radius"],
+                correct: "90° — always a right angle",
+                wrongs: ["45° — half the angle at the centre", "60° — an equilateral triangle follows", "It depends on the radius"],
                 tags: ["same-seg"],
                 explanation: `The diameter subtends 180° at the centre, and the circumference angle is always half the centre angle: 180 ÷ 2 = 90°. This is Thales' theorem.`,
             },
@@ -45623,12 +46085,13 @@ const SCI_GENS = {
             difficulty: 0.4,
         };
     },
+    // key = third-longest (rank 3)
     "gravity-fields": (r) => {
         return {
             prompt: `A satellite orbits Earth at constant speed. The resultant force on it…?`,
-            correct: "Is nonzero, pointing toward Earth (centripetal)",
-            wrongs: ["Is zero — it moves at constant speed", "Points along its direction of travel", "Points away from Earth"],
-            tags: ["bal-motion"], explanation: `Constant SPEED but changing DIRECTION = acceleration. Gravity provides the centripetal force, bending the path into an orbit — the satellite is 'falling around' Earth.`,
+            correct: "Is nonzero, pointing toward Earth",
+            wrongs: ["Is zero — it moves at a constant speed, so no force can act", "Points along its direction of travel, keeping it moving", "Points away from Earth"],
+            tags: ["bal-motion"], explanation: `Constant SPEED but changing DIRECTION = acceleration. Gravity provides the CENTRIPETAL force, bending the path into an orbit — the satellite is 'falling around' Earth.`,
             difficulty: 0.5,
         };
     },
@@ -45647,7 +46110,7 @@ const SCI_GENS = {
         return {
             prompt: `Light from distant galaxies is redshifted. What does this tell us?`,
             correct: "The galaxies are moving away — the universe is expanding",
-            wrongs: ["The galaxies are approaching us", "The light is losing energy in space", "Galaxies are stationary"],
+            wrongs: ["The galaxies are approaching us, blue-shifted as they come", "The light loses energy crossing space, with no motion involved", "Galaxies are stationary"],
             tags: [], explanation: `Redshift = wavelengths stretched = recession. The further the galaxy, the bigger the redshift (Hubble's law) → space itself is expanding → Big Bang.`,
             difficulty: 0.45,
         };
@@ -45670,11 +46133,12 @@ const SCI_GENS = {
             difficulty: 0.25,
         };
     },
+    // key = third-longest (rank 3)
     "periodic-table": (r) => {
         return {
             prompt: `Going DOWN group 1 (Li → Na → K), reactivity…`,
             correct: "Increases — the outer electron is lost more easily",
-            wrongs: ["Decreases — atoms get heavier", "Stays the same", "Increases then decreases"],
+            wrongs: ["Decreases, because the atoms get heavier down the group", "Decreases, since heavier atoms attract electrons more", "Stays the same"],
             tags: ["group-trend"], explanation: `Bigger atoms hold the outer electron more weakly (further from the nucleus, shielded) → easier to lose → MORE reactive down group 1. (Group 7 runs the OPPOSITE way.)`,
             difficulty: 0.45,
         };
@@ -45704,12 +46168,13 @@ const SCI_GENS = {
             difficulty: 0.45,
         };
     },
+    // key = third-longest (rank 3)
     "covalent-bonding": (r) => {
         return {
             prompt: `Why does water (H₂O) have a low boiling point for its formula mass?`,
-            correct: "Simple molecules: weak forces BETWEEN molecules break, not strong bonds",
-            wrongs: ["Its covalent bonds are weak", "It is ionic", "Hydrogen is light"],
-            tags: [], explanation: `Boiling overcomes intermolecular forces, NOT covalent bonds — the H–O bonds stay intact in steam. Small molecules have weak intermolecular forces → low boiling points.`,
+            correct: "Simple molecules: the weak forces BETWEEN them break",
+            wrongs: ["The covalent bonds inside each molecule are weak, so boiling breaks them", "Water is really an ionic compound, so boiling splits its lattice", "Hydrogen is light"],
+            tags: [], explanation: `Boiling overcomes the intermolecular forces, NOT the strong covalent bonds — the H–O bonds stay intact in steam. Small molecules have weak forces between them → low boiling points.`,
             difficulty: 0.5,
         };
     },
@@ -45733,11 +46198,12 @@ const SCI_GENS = {
             difficulty: 0.4,
         };
     },
+    // key = second-longest (rank 2)
     "rates-reaction": (r) => {
         return {
             prompt: `Powdered marble reacts FASTER than lumps with acid because…`,
             correct: "Larger surface area → more collision sites per second",
-            wrongs: ["Powder has more energy", "Powder lowers the temperature", "Powder changes the acid's concentration"],
+            wrongs: ["Powder has far more energy stored inside it than lumps do", "Powder lowers the temperature of the acid", "Powder changes the acid's concentration"],
             tags: [], explanation: `Rate = collision frequency × energy success. Powder exposes far more surface → more collisions per second → faster reaction. Same particles, same energy — just more contact.`,
             difficulty: 0.4,
         };
@@ -45778,29 +46244,32 @@ const SCI_GENS = {
             difficulty: 0.4,
         };
     },
+    // key = shortest (rank 4)
     "equilibria": (r) => {
         return {
             prompt: `N₂ + 3H₂ ⇌ 2NH₃ (forward reaction exothermic). Raising the temperature shifts equilibrium…`,
-            correct: "Left — toward the endothermic direction",
-            wrongs: ["Right — more ammonia forms", "No shift — catalysts cancel it", "Left then right"],
+            correct: "Left, toward the endothermic direction",
+            wrongs: ["Right, so more ammonia forms as the mixture cools", "No shift at all — the catalyst cancels the change", "Left, then right, ending where it started"],
             tags: [], explanation: `Le Chatelier: the system opposes the change. Extra heat is 'used up' by the endothermic (reverse) direction → less NH₃. This is why Haber runs a compromise temperature.`,
             difficulty: 0.55,
         };
     },
+    // key = shortest (rank 4)
     "analysis-tests": (r) => {
         return {
             prompt: `Limewater turns cloudy/milky. Which gas?`,
             correct: "Carbon dioxide (CO₂)",
-            wrongs: ["Hydrogen", "Oxygen", "Chlorine"],
+            wrongs: ["Hydrogen — a lighted splint gives a squeaky pop", "Oxygen — it relights a glowing splint", "Chlorine — it bleaches damp litmus paper"],
             tags: [], explanation: `CO₂ + Ca(OH)₂ → CaCO₃ (insoluble white precipitate) + H₂O — the cloudiness. (H₂: squeaky pop. O₂: relights splint. Cl₂: bleaches litmus.)`,
             difficulty: 0.35,
         };
     },
+    // key = shortest (rank 4)
     "cells": (r) => {
         return {
             prompt: `Which structure is found in PLANT cells but NOT animal cells?`,
             correct: "Cellulose cell wall",
-            wrongs: ["Mitochondria", "Cell membrane", "Nucleus"],
+            wrongs: ["Mitochondria, where aerobic respiration happens", "A cell membrane, controlling what enters and leaves", "A nucleus, holding the genetic material"],
             tags: [], explanation: `Plant-only: cellulose wall, chloroplasts, permanent vacuole. Mitochondria, membrane and nucleus are in both.`,
             difficulty: 0.2,
         };
@@ -45829,20 +46298,22 @@ const SCI_GENS = {
                 difficulty: 0.3,
             };
         }
+        // key = shortest (rank 4)
         if (angle === 1) {
             return {
                 prompt: `Which enzyme breaks FATS into fatty acids and glycerol?`,
                 correct: "Lipase",
-                wrongs: ["Amylase", "Protease", "Bile"],
+                wrongs: ["Amylase — it breaks down starch", "Protease — it breaks down protein", "Bile — it is not an enzyme at all"],
                 tags: [], explanation: `Lipase → fats → fatty acids + glycerol. Amylase handles carbohydrate, protease handles protein, and bile is not an enzyme — it emulsifies fat so lipase can reach more of it.`,
                 difficulty: 0.3,
             };
         }
+        // key = third-longest (rank 3)
         if (angle === 2) {
             return {
                 prompt: `Protease breaks down which food group?`,
                 correct: "Protein → amino acids",
-                wrongs: ["Starch → sugars", "Fats → fatty acids", "Fibre → glucose"],
+                wrongs: ["Starch → sugars, broken down by amylase", "Fats → fatty acids and glycerol", "Fibre → glucose"],
                 tags: [], explanation: `Protease → protein → amino acids. Starch is amylase's job, fats are lipase's, and fibre is largely indigestible in humans.`,
                 difficulty: 0.35,
             };
@@ -45864,12 +46335,13 @@ const SCI_GENS = {
             difficulty: 0.45,
         };
     },
+    // key = third-longest (rank 3)
     "breathing-gas": (r) => {
         return {
             prompt: `When you breathe IN, the diaphragm…`,
-            correct: "Contracts and flattens — volume up, pressure down",
-            wrongs: ["Relaxes and domes up", "Stays still — ribs do everything", "Contracts into a dome"],
-            tags: [], explanation: `Contraction flattens the diaphragm, enlarging the chest. Bigger volume → lower pressure → air flows IN. Expiration is mostly relaxation.`,
+            correct: "Contracts and flattens; chest volume rises",
+            wrongs: ["Relaxes and domes up, squeezing the air inward", "Stays still — the ribs do all the work on their own", "Contracts into a dome"],
+            tags: [], explanation: `Contraction flattens the diaphragm, enlarging the chest. Bigger volume → lower pressure → air flows IN (pressure down). Expiration is mostly relaxation.`,
             difficulty: 0.4,
         };
     },
@@ -45884,56 +46356,65 @@ const SCI_GENS = {
                 difficulty: 0.45,
             };
         }
+        // key = third-longest (rank 3)
         if (kind === 2) {
             return {
                 prompt: `A plant cell is placed in CONCENTRATED salt solution. What happens?`,
-                correct: "Water leaves by osmosis — the cell becomes flaccid (plasmolysed)",
-                wrongs: ["Water enters — the cell bursts", "Nothing changes", "Salt enters by osmosis"],
+                correct: "Water leaves the cell; it becomes flaccid",
+                wrongs: ["Water enters — the cell bursts under the pressure", "Nothing changes — the wall protects the cell", "Salt enters the cell by osmosis"],
                 tags: [], explanation: `Concentrated outside = lower water potential → water LEAVES. The membrane pulls from the wall: plasmolysis. (Animal cells would crenate.)`,
                 difficulty: 0.5,
             };
         }
+        // key = shortest (rank 4)
         return {
             prompt: `Oxygen enters the blood from the lungs because…`,
-            correct: "Blood has lower O₂ concentration — diffusion down the gradient",
-            wrongs: ["Blood actively pumps O₂ in", "Oxygen is pushed by pressure alone", "The heart sucks it in"],
+            correct: "Blood's O₂ is lower, so it diffuses in",
+            wrongs: ["Blood actively pumps O₂ in through the capillary wall", "Oxygen is pushed in by pressure alone, not diffusion", "The heart sucks the oxygen in with each beat"],
             tags: [], explanation: `Diffusion needs NO energy: particles net-migrate from high → low concentration. Alveoli keep blood O₂ low so the gradient never flattens.`,
             difficulty: 0.35,
         };
     },
+    // key = shortest (rank 4): the three wrong pairs now say what they are, which
+    // is also a fuller statement of the misconception.
     "photosynthesis": (r) => {
         return {
             prompt: `Which are the two raw materials of photosynthesis?`,
             correct: "Carbon dioxide and water",
-            wrongs: ["Oxygen and glucose", "Glucose and water", "Nitrogen and water"],
+            wrongs: ["Oxygen and glucose, made by the plant", "Glucose and water stored in the leaf", "Nitrogen and water from the soil"],
             tags: [], explanation: `6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂ (light energy). CO₂ and water IN; glucose and oxygen OUT. Oxygen is a by-product, not an input.`,
             difficulty: 0.3,
         };
     },
+    // key = third-longest (rank 3)
     "respiration": (r) => {
         return {
             prompt: `Anaerobic respiration in human muscle produces…`,
             correct: "Lactic acid (and much less energy)",
-            wrongs: ["Ethanol and CO₂", "More energy than aerobic", "Oxygen debt repaid instantly"],
+            wrongs: ["Ethanol and CO₂ — the yeast pathway, releasing more", "More energy than aerobic respiration releases", "Oxygen debt, repaid straight away"],
             tags: [], explanation: `Human muscle: glucose → lactic acid (the 'oxygen debt' repaid later). Yeast: glucose → ethanol + CO₂. Both release FAR less energy than aerobic respiration.`,
             difficulty: 0.4,
         };
     },
+    // key = third-longest (rank 3)
     "nervous-system": (r) => {
         return {
             prompt: `The reflex arc bypasses the brain to…`,
-            correct: "Save time — automatic, faster responses",
-            wrongs: ["Use hormones instead of nerves", "Store the memory permanently", "Increase sensation"],
+            correct: "Save time, so the response is faster",
+            wrongs: ["Use hormones instead of nerve impulses", "Store the memory of the stimulus permanently", "Increase sensation at the receptor"],
             tags: [], explanation: `Receptor → sensory → relay (spine) → motor → effector. Fewer synapses, no conscious decision → milliseconds. You feel the heat AFTER your hand has moved.`,
             difficulty: 0.4,
         };
     },
+    // key = third-longest (rank 3): the storage product (glycogen) moved into the
+    // explanation, and the three wrong hormones now state their own action in full
+    // rather than as a stub.
     "hormones": (r) => {
         return {
             prompt: `Blood glucose is too HIGH. Which hormone, and what does it do?`,
-            correct: "Insulin — moves glucose into cells, stored as glycogen",
-            wrongs: ["Glucagon — releases stored glucose", "ADH — retains water", "Adrenaline — raises it further"],
-            tags: [], explanation: `Insulin LOWERS glucose (storage as glycogen); glucagon RAISES it (glycogen → glucose). Negative feedback keeps ~90 mg/100 ml.`,
+            correct: "Insulin — moves glucose into cells",
+            wrongs: ["Glucagon — the liver converts stored glycogen back into glucose", "ADH — makes the kidney tubules reabsorb more water", "Adrenaline — raises it further"],
+            tags: [], explanation: `Insulin LOWERS blood glucose, moving it into cells and storing it as glycogen; glucagon RAISES it (glycogen → glucose). A pair with opposite effects on the same variable is what makes negative feedback possible, holding ~90 mg/100 ml.`,
             difficulty: 0.45,
         };
     },
@@ -45977,38 +46458,42 @@ const SCI_GENS = {
             difficulty: 0.5,
         };
     },
+    // key = shortest (rank 4)
     "ecosystems": (r) => {
         return {
             prompt: `Why are food chains rarely longer than 5 levels?`,
             correct: "~90% of energy is lost at each transfer",
-            wrongs: ["Predators stop hunting each other", "Plants run out of sunlight", "Larger animals need fewer calories"],
+            wrongs: ["Predators stop hunting each other after a few levels", "Plants run out of sunlight at the deepest levels", "Larger animals need far fewer calories to survive"],
             tags: [], explanation: `Each level: respiration, movement, heat, excretion consume ~90%. 10 000 J of grass ≈ 10 J at the 4th level — not enough to support another level.`,
             difficulty: 0.45,
         };
     },
+    // key = shortest (rank 4)
     "biodiversity": (r) => {
         return {
             prompt: `Which is the LARGEST direct driver of current species loss?`,
             correct: "Habitat destruction (land-use change)",
-            wrongs: ["Natural predators", "Species migrating", "Volcanic activity"],
+            wrongs: ["Volcanic activity and natural climate shifts", "Natural predators spreading into new areas", "Species migrating into entirely new habitats"],
             tags: [], explanation: `Converting habitats to farmland/urban use removes the home and food of species — the top driver globally, ahead of overexploitation, pollution, invasives and climate change.`,
             difficulty: 0.4,
         };
     },
+    // key = third-longest (rank 3)
     "immune-health": (r) => {
         return {
             prompt: `Why don't antibiotics work on colds?`,
-            correct: "Colds are viral — antibiotics target bacterial machinery only",
-            wrongs: ["Colds are too strong for antibiotics", "Antibiotics only prevent illness", "Viruses hide from everything"],
+            correct: "Antibiotics only work on bacteria",
+            wrongs: ["Colds are viral, and viruses are far stronger than antibiotics", "Antibiotics prevent illness rather than curing anything", "Viruses hide from everything"],
             tags: [], explanation: `Antibiotics attack bacterial walls/ribosomes — things viruses lack (they hijack YOUR cells). Misuse breeds resistant bacteria. Vaccines and hygiene fight viruses.`,
             difficulty: 0.4,
         };
     },
+    // key = shortest (rank 4)
     "what-is-code": (r) => {
         return {
             prompt: `A program prints the wrong total. What is the FIRST thing to check?`,
-            correct: "Trace the logic step by step with a small example",
-            wrongs: ["Rewrite the whole program", "Reinstall the computer", "Add more features"],
+            correct: "Trace the logic with a small example",
+            wrongs: ["Rewrite the whole program from the beginning", "Reinstall the operating system on the computer", "Add more features and hope the bug goes away"],
             tags: [], explanation: `Debugging = tracing state through the code by hand (or with prints) on the smallest input that fails. Computers do exactly what you said — find what you actually said.`,
             difficulty: 0.3,
         };
@@ -46244,48 +46729,54 @@ const SCI_GENS = {
             difficulty: 0.4,
         };
     },
+    // key = third-longest (rank 3)
     "networks": (r) => {
         return {
             prompt: `What does DNS do?`,
             correct: "Translates domain names into IP addresses",
-            wrongs: ["Encrypts your traffic", "Compresses web pages", "Stores your passwords"],
+            wrongs: ["Encrypts all of your internet traffic end to end", "Compresses web pages before sending them", "Stores your passwords securely"],
             tags: [], explanation: `DNS is the internet's phonebook: example.com → 93.184.216.34. Without it you'd memorise numbers; HTTPS then encrypts what DNS helps you reach.`,
             difficulty: 0.35,
         };
     },
+    // key = shortest (rank 4) — the reasoning this item used to carry inline is in
+    // `explanation`, which is where a learner reads it anyway.
     "cybersecurity": (r) => {
         return {
             prompt: `Why store passwords HASHED, not encrypted?`,
-            correct: "Hashing is one-way — even a stolen database can't reveal passwords",
-            wrongs: ["Hashing is faster to type", "Encryption is illegal", "Hashes are shorter"],
-            tags: [], explanation: `Encryption is reversible with the key — steal the key, read every password. A hash can't be reversed: on login, hash the attempt and compare. (Plus a salt, always.)`,
+            correct: "Hashing is one-way",
+            wrongs: ["Hashing is faster to type than encrypting a password is", "Encryption is illegal for stored passwords", "Hashes are much shorter, so they save space"],
+            tags: [], explanation: `Hashing is ONE-WAY — even a stolen database cannot reveal a password. Encryption is reversible with the key, so steal the key and you read every password. On login OpenMind hashes the attempt and compares. (Plus a salt, always.)`,
             difficulty: 0.5,
         };
     },
+    // key = second-longest (rank 2)
     "databases-sql": (r) => {
         return {
             prompt: `Which SQL fetches names of students with grade above 80?`,
             correct: "SELECT name FROM students WHERE grade > 80",
-            wrongs: ["GET name FROM students IF grade > 80", "SELECT * WHERE grade > 80 FROM students", "SELECT name WHERE students.grade = 80"],
+            wrongs: ["GET name FROM students IF grade > 80", "SELECT * WHERE grade > 80 FROM students", "SELECT name WHERE students.grade = 80 FROM students"],
             tags: [], explanation: `SQL grammar: SELECT columns FROM table WHERE condition. SELECT * returns ALL columns — rarely what you want in production.`,
             difficulty: 0.4,
         };
     },
+    // key = third-longest (rank 3)
     "web-stack": (r) => {
         return {
             prompt: `Which technology controls the LAYOUT and colours of a web page?`,
-            correct: "CSS",
-            wrongs: ["HTML", "JavaScript", "SQL"],
+            correct: "CSS (Cascading Style Sheets)",
+            wrongs: ["HTML, which defines the page structure", "JavaScript, which adds interactivity", "SQL"],
             tags: [], explanation: `HTML = structure (what it is), CSS = presentation (how it looks), JavaScript = behaviour (what it does). SQL lives on the server with the database.`,
             difficulty: 0.25,
         };
     },
+    // key = shortest (rank 4)
     "ai-basics": (r) => {
         return {
             prompt: `Machine learning differs from classical programming because…`,
-            correct: "Rules are LEARNED from data, not hand-written",
-            wrongs: ["It needs no data", "It always uses neural networks", "It cannot make mistakes"],
-            tags: [], explanation: `Classical: rules + data → answers. ML: data + answers → rules. The model infers the pattern — which is why data quality caps everything.`,
+            correct: "Rules are LEARNED from the data",
+            wrongs: ["It needs no data at all, only a cleverer algorithm", "It always means a deep neural network is used", "It cannot make mistakes once it is trained"],
+            tags: [], explanation: `Classical: rules + data → answers. ML: data + answers → RULES, learned rather than hand-written by a programmer. The model infers the pattern — which is why data quality caps everything.`,
             difficulty: 0.4,
         };
     },
@@ -46297,7 +46788,7 @@ const SCI_GENS = {
         return {
             prompt: `Data: ${data.join(", ")}. Which average best represents it?`,
             correct: `The median (${median})`,
-            wrongs: [`The mean (${mean})`, "The mode", "The range"],
+            wrongs: ["The mean, which the outlier drags upward", "The mode, which simply ignores the outlier", "The range, which the outlier stretches"],
             tags: ["outlier-mean"], explanation: `The outlier (${sorted[sorted.length - 1]}) drags the mean to ${mean}, above every value but one. The median (${median}) resists outliers — skew demands median.`,
             difficulty: 0.45,
         };
@@ -46510,18 +47001,20 @@ const LATE_GENS = {
                 tags: ["motor-gen"], explanation: `Induced voltage grows with the RATE of change of flux: faster motion, stronger magnet, more turns. A still magnet has unchanging flux — nothing is induced, however close it sits.`,
                 difficulty: 0.4,
             };
+        // key = shortest (rank 4)
         if (v === 1)
             return {
                 prompt: `Why will a transformer not work with a steady DC supply on the primary coil?`,
-                correct: "The magnetic flux is unchanging, so nothing is induced in the secondary",
-                wrongs: ["DC carries too little energy for a transformer", "The primary coil would overheat instantly", "DC reverses direction too often"],
+                correct: "The flux never changes, so nothing is induced",
+                wrongs: ["DC carries far too little energy to work a transformer", "The primary coil would overheat almost instantly", "DC reverses direction far too often to be useful"],
                 tags: ["motor-gen"], explanation: `Transformers need a CHANGING flux in the core. Steady DC gives constant flux — no change, no induced voltage in the secondary. AC constantly changes, which is why mains is AC.`,
                 difficulty: 0.5,
             };
+        // key = third-longest (rank 3)
         return {
             prompt: `A wire is moved downwards through a magnetic field between two poles. What happens in the wire?`,
             correct: "A voltage is induced, which can drive a current",
-            wrongs: ["The wire becomes permanently magnetised", "Nothing — fields only act on magnets", "The poles reverse their polarity"],
+            wrongs: ["The wire becomes permanently magnetised by the field", "Nothing at all — magnetic fields only act on other magnets", "The poles reverse their polarity"],
             tags: ["motor-gen"], explanation: `Movement + field = the generator effect: cutting field lines induces a voltage across the wire (Fleming's RIGHT-hand rule predicts its direction). Close the circuit and current flows.`,
             difficulty: 0.45,
         };
@@ -46536,18 +47029,20 @@ const LATE_GENS = {
                 tags: [], explanation: `Metal atoms release outer electrons into a shared 'sea' that spans the crystal. These mobile charges drift when a voltage is applied — that current IS conduction. Ions stay fixed in place.`,
                 difficulty: 0.35,
             };
+        // key = shortest (rank 4)
         if (v === 1)
             return {
                 prompt: `Why are alloys harder than the pure metals they contain?`,
-                correct: "Different-sized atoms disrupt the layers, so they cannot slide easily",
-                wrongs: ["Alloys contain fewer free electrons", "Covalent bonds replace the metallic bonds", "Alloy atoms are always heavier"],
+                correct: "Different-sized atoms jam the layers",
+                wrongs: ["Alloys contain far fewer free electrons than pure metals", "Covalent bonds replace the metallic bonds in an alloy", "Alloy atoms are always much heavier than the metal's"],
                 tags: [], explanation: `Pure metals bend because neat layers of same-sized ions slide over each other. Mixing in different-sized atoms jams the layers — that is why bronze and steel outperform pure copper and iron.`,
                 difficulty: 0.45,
             };
+        // key = third-longest (rank 3)
         return {
             prompt: `Metals can be hammered into shape without shattering because...`,
-            correct: "layers of positive ions can slide over each other while the electron sea holds the structure together",
-            wrongs: ["the ionic bonds break and instantly reform", "the electrons push the layers apart", "metals have very low melting points"],
+            correct: "the layers of positive ions can slide over each other",
+            wrongs: ["the ionic bonds between the layers break and instantly reform", "the negative electrons push the layers apart when they move", "metals have very low melting points"],
             tags: [], explanation: `The non-directional metallic bond is the key: after layers slide, the delocalised electrons still surround the shifted ions and bonding is restored. Ionic crystals shatter instead — like charges meet.`,
             difficulty: 0.4,
         };
@@ -46563,10 +47058,11 @@ const LATE_GENS = {
                 difficulty: 0.4,
             };
         }
+        // key = third-longest (rank 3)
         return {
             prompt: `A microscope's RESOLUTION is its ability to...`,
             correct: "show two close points as two separate points",
-            wrongs: ["make an image look bigger", "keep a moving specimen in focus", "show only surface detail"],
+            wrongs: ["make the image look bigger than the object really is", "keep a moving specimen sharp while it swims about", "show only the surface detail of the specimen"],
             tags: [], explanation: `Resolution is distinguishing detail: the minimum separation at which two points still look like two. Electron microscopes win because their wavelength is far shorter than light's — more resolution, not just more magnification.`,
             difficulty: 0.35,
         };
@@ -46825,10 +47321,30 @@ function generateQuestion(conceptId, seed) {
     // — 43 of 135 generators did this, which reads as a broken question. Fill
     // from plausible near-misses instead, and keep the notational filler strictly
     // as a last resort for answers that are not numbers at all.
-    const uniq = [q.correct];
+    //
+    // UNIQUENESS IS BY VALUE, NOT BY TEXT, and that is the correction of a real
+    // fault rather than a tidy-up. `distinct()` inside a family compares strings,
+    // so a distractor that is the KEY written differently sailed straight through:
+    // the pie-chart item offered `45/360` beside the answer `1/8`, the decimal item
+    // offered `11.00` beside `11.0`, and the mean offered `22` beside `22.00` (the
+    // last one minted by the numeric padder below, which could not see that a
+    // formatted distractor already held that value). Each of those is a second
+    // CORRECT option, and every extra candidate the padder tries is checked the
+    // same way, so the eight strategies of `npm run gate:options` no longer have a
+    // free cue either — two equal-valued options differ in length by definition.
+    const uniq = [];
+    const seenValues = new Set();
+    const push = (opt) => {
+        const k = (0, answer_1.optionValueKey)(opt) ?? `raw:${opt}`;
+        if (seenValues.has(k))
+            return false;
+        seenValues.add(k);
+        uniq.push(opt);
+        return true;
+    };
+    push(q.correct);
     for (const w of q.wrongs)
-        if (!uniq.includes(w))
-            uniq.push(w);
+        push(w);
     const num = Number(q.correct);
     const numeric = Number.isFinite(num) && !/[√π^]/.test(q.correct);
     if (numeric) {
@@ -46838,9 +47354,8 @@ function generateQuestion(conceptId, seed) {
                 if (uniq.length >= 4)
                     break;
                 const rounded = Number(cand.toFixed(4));
-                const s = String(rounded);
-                if (!uniq.includes(s) && rounded >= 0 && rounded <= scale * 100)
-                    uniq.push(s);
+                if (rounded >= 0 && rounded <= scale * 100)
+                    push(String(rounded));
             }
         }
     }
@@ -46865,8 +47380,7 @@ function generateQuestion(conceptId, seed) {
             for (const cand of [`${a + 1}/${b}`, `${a + 2}/${b}`, `${a}/${b + 1}`, `${a + 1}/${b + 1}`]) {
                 if (uniq.length >= 4)
                     break;
-                if (!uniq.includes(cand))
-                    uniq.push(cand);
+                push(cand);
             }
         }
         const pair = plain.match(/^\((-?[\d.]+), (-?[\d.]+)\)$/);
@@ -46884,16 +47398,14 @@ function generateQuestion(conceptId, seed) {
             ]) {
                 if (uniq.length >= 4)
                     break;
-                if (!uniq.includes(cand))
-                    uniq.push(cand);
+                push(cand);
             }
         }
     }
     for (const f of FALLBACK_WRONGS) {
         if (uniq.length >= 4)
             break;
-        if (!uniq.includes(f))
-            uniq.push(f);
+        push(f);
     }
     while (uniq.length < 4)
         uniq.push(`Option ${uniq.length + 1}`);

@@ -44,6 +44,12 @@ for (const file of ["types.ts", "i18n.ts", "genome.ts", "curriculum.ts", "specif
 const { generateQuestion, GENERATED_CONCEPT_IDS } = await import(
   pathToFileURL(path.join(TMP, "questions.mjs")).href,
 );
+// The "is this option the same ANSWER as that one" rule has ONE owner, and this
+// harness imports it rather than keeping a copy: the assembler discards a
+// distractor it can see is the key, so a check with a different idea of
+// sameness would either miss a served duplicate or demand a repair the
+// assembler has already made. `answer.ts` is in the mirror list above.
+const { optionValueKey } = await import(pathToFileURL(path.join(TMP, "answer.mjs")).href);
 
 const SAMPLES = 300;
 const problems = new Map(); // conceptId -> Map(kind -> example)
@@ -82,6 +88,29 @@ const FILLER = [
 // ── Independent mathematical checks ────────────────────────────────────────
 // These re-derive the answer from the prompt instead of trusting the generator.
 const isPerfectSquare = (n) => n > 0 && Number.isInteger(Math.sqrt(n));
+
+// A fraction as a VALUE, whether it is written `13/30`, `-1/6` or `2`. Used to
+// check an answer against the number it claims to be rather than its shape.
+const fracValue = (text) => {
+  const s = String(text).trim().replace(/[\u2212\u2013]/g, "-");
+  const fr = s.match(/^(-?\d+)\s*\/\s*(\d+)$/);
+  if (fr) return Number(fr[2]) === 0 ? null : Number(fr[1]) / Number(fr[2]);
+  if (/^-?\d+(\.\d+)?$/.test(s)) return Number(s);
+  return null;
+};
+
+const gcdOf = (a, b) => (b === 0 ? Math.abs(a) : gcdOf(b, a % b));
+
+// ── OPTION INTEGRITY: two options that ARE the same answer ─────────────────
+// The character-for-character duplicate check below misses options that state
+// the same thing differently, and that is not hypothetical: this harness found
+// `45/360` served beside `1/8` (a pie-chart share), `11.00` beside `11.0` (a
+// decimal sum), `2/3` beside `4/6` (both operands of a fraction item) and `22`
+// beside `22.00` (a mean whose padder could not see an already-formatted
+// distractor). Each is a second CORRECT option on a four-option question: pick
+// either and the other is recorded as a mistake. `optionValueKey` is imported
+// from lib/answer.ts — see it for the rule, including why a pair of roots is
+// unordered while a pair of bare numbers is not.
 
 const SEMANTIC = {
   // "Simplify √N" — the answer must square back to N, be fully simplified, and
@@ -270,6 +299,31 @@ const SEMANTIC = {
     if (!(Math.abs(got - want) < 1e-9)) return `expected ${want}π, got ${q.choices[q.answer]}`;
     return null;
   },
+  // "Work out a/b ± c/d" — the answer is re-derived as a SIGNED value. This
+  // matcher exists because the family served `1/6 − 1/3` with the key `1/6`: the
+  // difference taken as a MAGNITUDE, an explanation asserting 1 − 2 = 1, and an
+  // option set (1/2, 2/9, 1/3, 1/6) that contained no correct answer at all.
+  // The maths is re-derived from the prompt's own numbers, and the key must
+  // also be in lowest terms, because that is what the prompt asks for.
+  fractions: (q) => {
+    const m = q.prompt.match(
+      /^Work out (-?\d+)\/(\d+) ([+\u2212-]) (-?\d+)\/(\d+)\. Give your answer as a fraction in its simplest form\.$/,
+    );
+    if (!m) return null; // the other families for this concept are word problems
+    const n1 = Number(m[1]), d1 = Number(m[2]), n2 = Number(m[4]), d2 = Number(m[5]);
+    const value = n1 / d1 + (m[3] === "+" ? 1 : -1) * (n2 / d2);
+    const key = String(q.choices[q.answer]).trim();
+    const got = fracValue(key);
+    if (got === null) return `unparseable choice: ${key}`;
+    if (Math.abs(got - value) > 1e-9) {
+      return `${n1}/${d1} ${m[3]} ${n2}/${d2} = ${value}, but the key is ${key}`;
+    }
+    const fr = key.replace(/^\+/, "").match(/^(-?\d+)\/(\d+)$/);
+    if (fr && gcdOf(Math.abs(Number(fr[1])), Number(fr[2])) !== 1) {
+      return `key not in lowest terms: ${key}`;
+    }
+    return null;
+  },
 };
 
 for (const conceptId of GENERATED_CONCEPT_IDS) {
@@ -291,6 +345,21 @@ for (const conceptId of GENERATED_CONCEPT_IDS) {
       continue;
     }
     if (new Set(opts).size !== opts.length) add(conceptId, "duplicate option", opts.join(" | "));
+    // The SAME ANSWER written two ways is the defect the string check cannot
+    // see, and it is a learner who suffers it: whichever of the two they pick,
+    // the other is scored as one of their mistakes.
+    const signatures = opts.map(optionValueKey);
+    for (let a = 0; a < signatures.length; a += 1) {
+      for (let b = a + 1; b < signatures.length; b += 1) {
+        if (signatures[a] !== null && signatures[a] === signatures[b]) {
+          add(
+            conceptId,
+            "two options are the same answer",
+            `${opts[a]} | ${opts[b]} — seed audit:${i} — ${q.prompt.replace(/\s+/g, " ").slice(0, 110)}`,
+          );
+        }
+      }
+    }
     if (opts.some((o) => FILLER.includes(o))) add(conceptId, "filler distractor", opts.join(" | "));
     if (opts.some((o) => typeof o !== "string" || !o.trim())) add(conceptId, "empty option", JSON.stringify(opts));
     if (opts.some((o) => FLOAT_NOISE.test(String(o)))) {
@@ -302,7 +371,7 @@ for (const conceptId of GENERATED_CONCEPT_IDS) {
     }
     // Semantic check where the maths is independently verifiable.
     const check = SEMANTIC[conceptId]?.(q);
-    if (check) add(conceptId, "mathematically wrong", check);
+    if (check) add(conceptId, "mathematically wrong", `${check} — seed audit:${i}`);
     if (!q.explanation || !q.explanation.trim()) add(conceptId, "empty explanation", q.prompt);
     if (FLOAT_NOISE.test(q.explanation)) add(conceptId, "float noise in explanation", q.explanation.slice(0, 140));
   }

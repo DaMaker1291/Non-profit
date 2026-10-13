@@ -1571,7 +1571,14 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
     return {
       prompt: `What is the MEAN of ${nums.join(", ")}? (2 d.p.)`,
       value: Number(mean.toFixed(2)), tolerance: { abs: 0.01, display: dp(mean) },
-      wrongs: [dp(sorted[2]), dp(total / (nums.length - 1)), dp(sorted[4] - sorted[0])],
+      // The fourth candidate is the total itself. It is needed because the
+      // median distractor IS the mean whenever the median happens to be the
+      // mean's value (`29, 8, 17, 21, 30` → both 21), and the assembler drops a
+      // distractor that duplicates an option already taken — leaving two
+      // wrongs, which the numeric padder then filled with `22` beside the
+      // existing `22.00`. Offering the sum is a real confusion, and it means
+      // the option set never has to be padded.
+      wrongs: [dp(sorted[2]), dp(total / (nums.length - 1)), dp(sorted[4] - sorted[0]), dp(total)],
       tags: ["outlier-mean"], difficulty: 0.4,
       explanation: `Mean = total ÷ count = ${total} ÷ 5 = ${dp(mean)}. The median is ${sorted[2]} — a different average, chosen for different reasons — and dividing by 4 instead of 5 gives ${dp(total / 4)}.`,
     };

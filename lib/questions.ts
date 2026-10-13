@@ -41,7 +41,7 @@ import { SENIOR_GENS } from "./questions-senior";
 import { NUMERIC_GENS, type NumericGen } from "./numeric-items";
 // The one answer-identity and grading rule, shared with the server so a typed
 // answer and its equivalent option cannot be graded by two different rules.
-import { answerKey, formatNumeric, parseNumericInput } from "./answer";
+import { answerKey, formatNumeric, optionValueKey, parseNumericInput } from "./answer";
 import type { AxisPoint, FigureSpec, NumericTolerance } from "./types";
 
 /** The demand band a difficulty falls in (1–5).
@@ -463,7 +463,13 @@ const MATHS_GENS: Record<string, RawGen> = {
         difficulty: 0.35,
       };
     }
-    const n1 = r.int(1, 4), d1 = r.int(2, 5), n2 = r.int(1, 5), d2 = r.int(2, 6);
+    const n1 = r.int(1, 4), d1 = r.int(2, 5);
+    // THE DIVISOR IS NEVER 1. Dividing by 5/5 makes the flip a no-op, so the
+    // "multiply straight across" slip lands on the answer itself (measured:
+    // `3/2 ÷ 5/5` served `3/2` beside `15/10`), and it is also a vacuous
+    // question — "divide by one" teaches nothing about dividing by a fraction.
+    let n2 = r.int(1, 5), d2 = r.int(2, 6);
+    if (n2 === d2) d2 = n2 + 1;
     const num = n1 * d2, den = d1 * n2;
     const gg = (a: number, b: number): number => (b ? gg(b, a % b) : a);
     const G = gg(num, den);
@@ -483,8 +489,12 @@ const MATHS_GENS: Record<string, RawGen> = {
       return {
         prompt: `Work out ${a} + ${b}.`,
         correct: s,
-        wrongs: [(parseFloat(a) + parseFloat(b)).toFixed(2), (parseFloat(a) * 10 + parseFloat(b)).toFixed(1), (parseFloat(a) + parseFloat(b) + 1).toFixed(1)] as [string, string, string],
-        tags: [], explanation: `Line up the decimal points and add columns: ${a} + ${b} = ${s}.`,
+        // The first distractor was `(a + b).toFixed(2)` — the sum with an extra
+        // decimal place, which is the SAME NUMBER, so the item offered the
+        // answer twice (`11.00` beside `11.0`). Ignoring both decimal points is
+        // the slip this band actually produces, and it is ten times the answer.
+        wrongs: [((parseFloat(a) + parseFloat(b)) * 10).toFixed(1), (parseFloat(a) * 10 + parseFloat(b)).toFixed(1), (parseFloat(a) + parseFloat(b) + 1).toFixed(1)] as [string, string, string],
+        tags: [], explanation: `Line up the decimal points and add columns: ${a} + ${b} = ${s}. Reading each number as a whole number instead — ${(parseFloat(a) * 10).toFixed(0)} plus ${(parseFloat(b) * 10).toFixed(0)} — gives ${((parseFloat(a) + parseFloat(b)) * 10).toFixed(1)}, ten times too big, which is why the point has to be lined up.`,
         difficulty: 0.2,
       };
     }
@@ -907,8 +917,12 @@ const MATHS_GENS: Record<string, RawGen> = {
     return {
       prompt: `A pie chart shows ${deg}° for "walk". What fraction of the students walk?`,
       correct: `1/${share}`,
-      wrongs: [`${deg}/360`, `${deg}/180`, `1/${share - 1}`, `1/${share + 1}`],
-      tags: [], explanation: `A whole pie is 360°: ${deg}/360 = 1/${share}. Divide the sector angle by 360 and cancel — not by 180 (that is half a circle).`,
+      // NOT `${deg}/360`: that is the answer unsimplified, and once the assembler
+      // compares options by VALUE it is discarded as a second correct option
+      // (verified: the item served `45/360` beside `1/8`). The inverted division
+      // teaches the same thing without ever being right.
+      wrongs: [`${360}/${deg}`, `${deg}/180`, `1/${share - 1}`, `1/${share + 1}`],
+      tags: [], explanation: `A whole pie is 360°: ${deg}/360 = 1/${share}. Divide the sector angle by 360 and cancel — not by 180 (that is half a circle), and not the other way up (${360}/${deg} would say most of the students walk in a ${deg}° sector).`,
       // The item says "A pie chart shows 30° for walk" and drew no chart at all.
       // The sector's ANGLE is drawn (the prompt states it); the FRACTION it
       // equals is not, because dividing 30 by 360 is the whole question.
@@ -2781,8 +2795,28 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
   // — 43 of 135 generators did this, which reads as a broken question. Fill
   // from plausible near-misses instead, and keep the notational filler strictly
   // as a last resort for answers that are not numbers at all.
-  const uniq: string[] = [q.correct];
-  for (const w of q.wrongs) if (!uniq.includes(w)) uniq.push(w);
+  //
+  // UNIQUENESS IS BY VALUE, NOT BY TEXT, and that is the correction of a real
+  // fault rather than a tidy-up. `distinct()` inside a family compares strings,
+  // so a distractor that is the KEY written differently sailed straight through:
+  // the pie-chart item offered `45/360` beside the answer `1/8`, the decimal item
+  // offered `11.00` beside `11.0`, and the mean offered `22` beside `22.00` (the
+  // last one minted by the numeric padder below, which could not see that a
+  // formatted distractor already held that value). Each of those is a second
+  // CORRECT option, and every extra candidate the padder tries is checked the
+  // same way, so the eight strategies of `npm run gate:options` no longer have a
+  // free cue either — two equal-valued options differ in length by definition.
+  const uniq: string[] = [];
+  const seenValues = new Set<string>();
+  const push = (opt: string): boolean => {
+    const k = optionValueKey(opt) ?? `raw:${opt}`;
+    if (seenValues.has(k)) return false;
+    seenValues.add(k);
+    uniq.push(opt);
+    return true;
+  };
+  push(q.correct);
+  for (const w of q.wrongs) push(w);
 
   const num = Number(q.correct);
   const numeric = Number.isFinite(num) && !/[√π^]/.test(q.correct);
@@ -2792,8 +2826,7 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
       for (const cand of [num + step, num - step, num + step * 10]) {
         if (uniq.length >= 4) break;
         const rounded = Number(cand.toFixed(4));
-        const s = String(rounded);
-        if (!uniq.includes(s) && rounded >= 0 && rounded <= scale * 100) uniq.push(s);
+        if (rounded >= 0 && rounded <= scale * 100) push(String(rounded));
       }
     }
   }
@@ -2817,7 +2850,7 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
       // wrongly); same numerator, denominator off by one (cancelled too much).
       for (const cand of [`${a + 1}/${b}`, `${a + 2}/${b}`, `${a}/${b + 1}`, `${a + 1}/${b + 1}`]) {
         if (uniq.length >= 4) break;
-        if (!uniq.includes(cand)) uniq.push(cand);
+        push(cand);
       }
     }
     const pair = plain.match(/^\((-?[\d.]+), (-?[\d.]+)\)$/);
@@ -2834,13 +2867,13 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
         fmtPair(-x, -y),
       ]) {
         if (uniq.length >= 4) break;
-        if (!uniq.includes(cand)) uniq.push(cand);
+        push(cand);
       }
     }
   }
   for (const f of FALLBACK_WRONGS) {
     if (uniq.length >= 4) break;
-    if (!uniq.includes(f)) uniq.push(f);
+    push(f);
   }
   while (uniq.length < 4) uniq.push(`Option ${uniq.length + 1}`);
   const choices = r.shuffle(uniq.slice(0, 4));
