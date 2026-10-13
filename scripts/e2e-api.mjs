@@ -38,8 +38,17 @@ const DATA_DIR = process.env.OPENMIND_DATA_DIR
 // disk, with 0 assertion failures reported. So the headroom is checked here,
 // against the same thresholds `npm run production-check` uses, and a run that
 // cannot fit stops immediately with the number and the fix.
-const LOW_MB = 500;
-const WARN_MB = 2048;
+//
+// The bar is OVERRIDABLE (`OPENMIND_MIN_FREE_MB=200 npm run e2e`) so that the
+// refusal is a testable behaviour rather than a comment: a deployment on a small
+// volume may genuinely want to run below the default, and the failure path can
+// be exercised on purpose instead of waiting for a full disk. A value that is
+// set but not a number falls back to the default rather than disabling the
+// check — `Number('x')` is NaN, and `freeMb < NaN` is false, which would have
+// silently turned a typo into no check at all.
+const rawLow = Number(process.env.OPENMIND_MIN_FREE_MB);
+const LOW_MB = Number.isFinite(rawLow) && rawLow >= 0 ? rawLow : 500;
+const WARN_MB = Math.max(LOW_MB, 2048);
 try {
   const st = fs.statfsSync(process.cwd());
   const freeMb = Math.floor((Number(st.bavail) * Number(st.bsize)) / (1024 * 1024));
