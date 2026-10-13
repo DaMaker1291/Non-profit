@@ -1,0 +1,691 @@
+{
+  "note": "Per-concept record of what has been verified, and how. structure = four value-distinct options, no float noise, a non-empty explanation, a sane difficulty. explanationKey = the explanation states its own key (every draw). promptDerived = a matcher re-derives the answer from the prompt for this concept (see scripts/verify-questions.mjs). humanReviewed = a qualified person has examined the items; empty, because none has.",
+  "samplesPerConcept": 300,
+  "draws": 40500,
+  "layers": {
+    "structure": 135,
+    "explanationKey": 135,
+    "promptDerived": [
+      "circle-area-arc",
+      "completing-square",
+      "fractions",
+      "mixture-problems",
+      "surds"
+    ],
+    "structuralOnly": [
+      "acids-bases",
+      "addition",
+      "ai-basics",
+      "algebra-expand",
+      "algebra-expressions",
+      "algebraic-fractions",
+      "algorithms-search",
+      "algorithms-sort",
+      "analysis-tests",
+      "angles-lines",
+      "area-perimeter",
+      "astrophysics",
+      "atoms-elements",
+      "atoms-nucleus",
+      "averages",
+      "bearings",
+      "binary-data",
+      "binomial",
+      "biodiversity",
+      "bounds",
+      "breathing-gas",
+      "calculus-diff",
+      "calculus-int",
+      "cells",
+      "circle-geometry-adv",
+      "circle-theorems",
+      "circulation",
+      "complexity",
+      "compounds-mixtures",
+      "conditionals",
+      "coordinates",
+      "covalent-bonding",
+      "cybersecurity",
+      "data-charts",
+      "databases-sql",
+      "decimals",
+      "dictionaries",
+      "diffusion",
+      "digestion",
+      "division",
+      "ecosystems",
+      "electricity-circuits",
+      "electrolysis",
+      "electron-shells",
+      "em-induction",
+      "energy-changes",
+      "energy-conservation",
+      "enzymes",
+      "equations-stoich",
+      "equilibria",
+      "evolution",
+      "financial-maths",
+      "forces-basics",
+      "fraction-ops",
+      "functions",
+      "functions-code",
+      "genetics",
+      "gravity-fields",
+      "growth-decay",
+      "hormones",
+      "immune-health",
+      "indices-intro",
+      "inequalities",
+      "ionic-bonding",
+      "iteration",
+      "kinematics",
+      "light-optics",
+      "linear-equations",
+      "lists-arrays",
+      "loci-constructions",
+      "logic-maths",
+      "logs",
+      "loops",
+      "magnetism",
+      "matrices-intro",
+      "metallic-bonding",
+      "microscopy",
+      "moles-calcs",
+      "momentum",
+      "motion-graphs",
+      "multiplication",
+      "negatives",
+      "nervous-system",
+      "networks",
+      "newton-laws",
+      "number-bases",
+      "order-ops",
+      "organic-intro",
+      "percentages",
+      "periodic-table",
+      "photosynthesis",
+      "place-value",
+      "polynomials",
+      "pressure-fluids",
+      "probability-basics",
+      "proof",
+      "proportion",
+      "proportional-graphs",
+      "pythagoras",
+      "quadratic-graphs",
+      "quadratics",
+      "radioactivity",
+      "rates-reaction",
+      "ratio",
+      "recursion",
+      "respiration",
+      "rounding",
+      "scatter-correlation",
+      "sequences",
+      "sets-venn",
+      "sim-equations-quad",
+      "simultaneous",
+      "sound-acoustics",
+      "standard-form",
+      "statistics-data",
+      "straight-lines",
+      "subtraction",
+      "thermal-physics",
+      "transformations",
+      "tree-diagrams",
+      "trig-identity",
+      "trig-ratios",
+      "trig-rule",
+      "variables",
+      "vectors",
+      "volume",
+      "waves-basics",
+      "web-stack",
+      "what-is-code",
+      "work-power"
+    ],
+    "humanReviewed": []
+  },
+  "perConcept": {
+    "place-value": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "addition": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "subtraction": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "multiplication": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "division": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "negatives": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "fractions": {
+      "promptDerived": true,
+      "humanReviewed": false
+    },
+    "fraction-ops": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "decimals": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "percentages": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "ratio": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "proportion": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "rounding": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "order-ops": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "indices-intro": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "standard-form": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "algebra-expressions": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "algebra-expand": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "linear-equations": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "inequalities": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "simultaneous": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "straight-lines": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "quadratics": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "sequences": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "functions": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "trig-ratios": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "pythagoras": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "angles-lines": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "area-perimeter": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "volume": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "vectors": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "probability-basics": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "tree-diagrams": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "averages": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "data-charts": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "scatter-correlation": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "surds": {
+      "promptDerived": true,
+      "humanReviewed": false
+    },
+    "completing-square": {
+      "promptDerived": true,
+      "humanReviewed": false
+    },
+    "circle-area-arc": {
+      "promptDerived": true,
+      "humanReviewed": false
+    },
+    "mixture-problems": {
+      "promptDerived": true,
+      "humanReviewed": false
+    },
+    "growth-decay": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "financial-maths": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "bounds": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "trig-rule": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "circle-theorems": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "proportional-graphs": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "quadratic-graphs": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "algebraic-fractions": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "sets-venn": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "proof": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "number-bases": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "logic-maths": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "matrices-intro": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "polynomials": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "binomial": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "trig-identity": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "iteration": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "circle-geometry-adv": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "kinematics": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "calculus-diff": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "calculus-int": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "forces-basics": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "motion-graphs": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "newton-laws": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "momentum": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "energy-conservation": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "work-power": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "waves-basics": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "light-optics": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "sound-acoustics": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "electricity-circuits": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "magnetism": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "thermal-physics": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "pressure-fluids": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "radioactivity": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "gravity-fields": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "atoms-nucleus": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "astrophysics": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "atoms-elements": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "compounds-mixtures": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "periodic-table": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "electron-shells": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "ionic-bonding": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "covalent-bonding": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "moles-calcs": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "equations-stoich": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "rates-reaction": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "energy-changes": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "acids-bases": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "electrolysis": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "organic-intro": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "equilibria": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "analysis-tests": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "cells": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "enzymes": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "digestion": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "circulation": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "breathing-gas": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "diffusion": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "photosynthesis": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "respiration": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "nervous-system": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "hormones": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "genetics": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "evolution": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "ecosystems": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "biodiversity": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "immune-health": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "what-is-code": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "variables": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "conditionals": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "loops": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "lists-arrays": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "functions-code": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "dictionaries": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "algorithms-search": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "algorithms-sort": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "recursion": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "complexity": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "binary-data": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "networks": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "cybersecurity": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "databases-sql": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "web-stack": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "ai-basics": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "statistics-data": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "coordinates": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "sim-equations-quad": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "transformations": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "logs": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "loci-constructions": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "bearings": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "em-induction": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "metallic-bonding": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "microscopy": {
+      "promptDerived": false,
+      "humanReviewed": false
+    }
+  }
+}

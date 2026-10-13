@@ -492,4 +492,41 @@ console.log(
   `\n  · the explanation and option rules apply to every draw, so a defect of the kind found in` +
   `\n    \`fractions\` (the key contradicted by its own working) cannot pass unnoticed in a numeric item.`,
 );
+// ── THE COVERAGE LEDGER ──────────────────────────────────────────────────────
+// A green run says "nothing the checks can see is wrong". This file says WHAT the
+// checks can see, per concept — because the honest weakness of this suite is not
+// a failing assertion, it is the 130 concepts no matcher reaches, and a single
+// pass count hides them. Written deterministically (no timestamp), so a diff in
+// `audit/verification-coverage.json` IS the review: a concept moving from
+// structural-only to prompt-derived is a real change in what has been verified.
+//
+// `humanReviewed` is a list, not a count, and it is empty. No qualified person
+// has examined any of this content yet; an empty list says that plainly, where a
+// number like "0" invites being read as "not applicable".
+{
+  const perConcept = {};
+  for (const id of GENERATED_CONCEPT_IDS) {
+    perConcept[id] = { promptDerived: Boolean(SEMANTIC[id]), humanReviewed: false };
+  }
+  const coverage = {
+    note:
+      "Per-concept record of what has been verified, and how. structure = four value-distinct options, no float noise, a non-empty explanation, a sane difficulty. explanationKey = the explanation states its own key (every draw). promptDerived = a matcher re-derives the answer from the prompt for this concept (see scripts/verify-questions.mjs). humanReviewed = a qualified person has examined the items; empty, because none has.",
+    samplesPerConcept: SAMPLES,
+    draws,
+    layers: {
+      structure: GENERATED_CONCEPT_IDS.length,
+      explanationKey: GENERATED_CONCEPT_IDS.length,
+      promptDerived: Object.keys(SEMANTIC).sort(),
+      structuralOnly: GENERATED_CONCEPT_IDS.filter((id) => !SEMANTIC[id]).sort(),
+      humanReviewed: [],
+    },
+    perConcept,
+  };
+  fs.writeFileSync("audit/verification-coverage.json", `${JSON.stringify(coverage, null, 2)}\n`);
+  console.log(
+    `\nCoverage ledger → audit/verification-coverage.json` +
+    `\n  ${Object.keys(SEMANTIC).length} concepts prompt-derived · ${GENERATED_CONCEPT_IDS.length - Object.keys(SEMANTIC).length} structural-only · 0 human-reviewed.`,
+  );
+}
+
 if (bad) process.exit(1);
