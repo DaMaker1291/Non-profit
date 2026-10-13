@@ -146,6 +146,13 @@ export const ENGINE_SOURCES = [
   "lib/evidence.ts",
   "lib/replay.ts",
   "lib/decision.ts",
+  // The storage port and the file backend behind it (docs/STORAGE_SPEC.md).
+  // Compiled — and required from .verify/ — so the suite can assert that the file
+  // backend really implements every method the port declares, and that a
+  // deployment asking for a backend this build cannot serve is REFUSED rather
+  // than quietly given a file store.
+  "lib/server/storage.ts",
+  "lib/server/storage-file.ts",
   "lib/server/store.ts",
   // The erasure log. An erase records the INTENT as well as removing the data,
   // because a backup taken earlier still holds the learner and restoring it is

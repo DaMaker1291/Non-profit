@@ -11,6 +11,10 @@ import { bindLegacyHandles, hasRow, removeMember } from "./class-membership";
 // because a backup taken earlier still holds the learner and a restore would put
 // them back — see lib/server/erasures.ts, and `npm run restore-drill`.
 import { ERASURES_FILE, appendErasure } from "./erasures";
+// The storage port. Imported for its REAL effect as well as its types: resolving
+// the configured backend at module load is what refuses a deployment that asked
+// for a backend this build cannot serve.
+import { resolveStoreKind } from "./storage";
 export { newProfileState, publicProfileState };
 import type { ClassRoster, ProfileState, StudentProfile, StudyPack, StudyRoom } from "../types";
 import type { BuiltPaperAnswerKey } from "../papers";
@@ -22,6 +26,21 @@ import type { PersonalPaper } from "../personal-paper";
 export const DATA_DIR = process.env.OPENMIND_DATA_DIR
   ? path.resolve(process.env.OPENMIND_DATA_DIR)
   : path.join(process.cwd(), ".openmind-data");
+
+// ── WHICH BACKEND, CHECKED AT THE DOOR EVERY ROUTE USES ─────────────────────
+// Every learner-scoped route imports this module, so resolving the configured
+// backend HERE is what makes a misconfiguration a refusal rather than a surprise.
+// `OPENMIND_STORE=postgres` is specified in docs/STORAGE_SPEC.md and not built:
+// serving the file store to an operator who asked for a database is the silent
+// failure the port exists to prevent (single-process writes, records in the wrong
+// place, a deployment that believes it is on Postgres). An unrecognised value is
+// refused too — a typo is not a choice. The file store is the default and needs
+// no configuration, which is this project's whole deployment story.
+//
+// `lib/server/storage.ts#storeKindReport` is the reporting half of the same fact,
+// used by /api/ready and the environment report so the reason reaches an operator
+// as a problem line rather than as a stack trace.
+resolveStoreKind();
 
 /** Per-file write locks: serialise read-modify-write cycles so concurrent
  *  requests (double-fired effects, parallel tabs) can never interleave and

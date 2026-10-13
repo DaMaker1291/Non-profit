@@ -298,7 +298,7 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Course × subject rows audited for depth | 311 | every subject's target depth is reachable, by some generator in its course | `audit/content-coverage.json` |
 | **Storage** | Lock tables in lib/ and app/ | 1 | one, in lib/server/store.ts — two tables means two writers with no common serialisation point | `source scan` |
 |  | Owners of where learning data lives | 1 | one, in lib/server/store.ts; lib/env.ts reports the variable and resolves nothing, so it is exempt | `source scan` |
-|  | Route files importing the store | 20 | 33 export statements in a 382-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
+|  | Route files importing the store | 20 | 33 export statements in a 401-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
 |  | JSON files the server modules own | 10 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "classes.json", "erasures.json", "interventions.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
 | **Pilot (UK GCSE maths)** | Concepts in the review cluster | 11 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
 |  | Items awaiting human review | 110 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |

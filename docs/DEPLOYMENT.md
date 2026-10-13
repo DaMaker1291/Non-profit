@@ -118,7 +118,8 @@ has already cost time once; the restart is part of the procedure, not optional.
 | Profiles, classes, papers, packs | `profiles.json`, `classes.json`, … in `OPENMIND_DATA_DIR` | PostgreSQL tables |
 | Evidence ledger | one append-only JSONL file per learner, `evidence/<id>.jsonl` | an append-only `evidence_events` table |
 | Large files | served from the app bundle | object storage (packs, exports, PDFs) |
-| Migrations | **none** — the shape is code | versioned SQL migrations |
+| Migrations | **3 paired SQL migrations** (`db/migrations`), checksummed and rehearsed by `db:rehearse` — applied to a schema this build does not read yet | the same files, serving the running application |
+| Backend selection | the file store, always (`OPENMIND_STORE` defaults to `file`) | `OPENMIND_STORE=postgres` behind the port in [STORAGE_SPEC.md](STORAGE_SPEC.md) |
 
 Why the ledger stays append-only conceptually even if the store changes: the
 event log *is* the record. Moving it into a table changes where the bytes live,
@@ -153,6 +154,19 @@ these tables yet. Moving the store is the remaining work, and it is the largest
 single piece between today and public multi-instance deployment. Until it is
 done, the deployment is single-instance and `db:migrate` is a step that keeps a
 schema ready rather than a step this build depends on.
+
+That work is specified rather than pending: [STORAGE_SPEC.md](STORAGE_SPEC.md)
+fixes the port, the crash-consistency rule, the parity mechanism and the
+import/cutover/rollback plan. Two slices are done — the store's lock table and
+data-directory resolver are single-owner, and `lib/server/storage.ts` defines the
+port with the file store behind it (`lib/server/storage-file.ts`), asserted at
+runtime against the method list so nothing can implement the interface only in a
+type. The write path (`withLearner`, the learner transaction) is slice 2, and the
+Postgres backend is slice 3: **`OPENMIND_STORE=postgres` is refused at startup
+until it exists**, deliberately, because a deployment that believes it is on a
+database while writing single-process files is worse than one that will not
+start. `lib/env.ts` reports the refusal as a configuration problem, so
+`/api/ready` explains it rather than leaving a stack trace.
 
 The deployment sequence this is built for is unchanged, and the migration step
 now exists to put in it:
@@ -254,6 +268,7 @@ Variables that matter:
 | Variable | Meaning |
 |---|---|
 | `OPENMIND_DATA_DIR` | where learning data lives |
+| `OPENMIND_STORE` | storage backend; `file` (default) is the only one built. `postgres` is specified and **refused** until it exists |
 | `OPENMIND_SESSION_SECRET` | session-cookie signing secret (else generated in the data dir) |
 | `OPENMIND_AI_BASE_URL` / `OPENMIND_AI_KEY` / `OPENMIND_AI_MODEL` / `OPENMIND_AI_TIMEOUT_MS` | your own model endpoint |
 | `GEMINI_API_KEY` / `OPENAI_API_KEY` / `GROQ_API_KEY` / `OPENROUTER_API_KEY` | vendor AI (any one) |

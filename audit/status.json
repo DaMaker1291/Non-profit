@@ -131,7 +131,7 @@
       "label": "Route files importing the store",
       "value": 20,
       "source": "app/api",
-      "note": "33 export statements in a 382-line store; this is the surface docs/STORAGE_SPEC.md has to port"
+      "note": "33 export statements in a 401-line store; this is the surface docs/STORAGE_SPEC.md has to port"
     },
     {
       "section": "Storage",

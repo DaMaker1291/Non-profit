@@ -2,6 +2,11 @@
 // Usage: npm run verify  (compiles lib/ to .verify/ then runs these assertions)
 import { createRequire } from "node:module";
 import fs from "node:fs";
+// Used by the storage section to prove the BACKEND REFUSAL at import time: a
+// deployment configured for a backend this build cannot serve must fail when the
+// store is loaded, and a claim like that is only worth making if a real process
+// is started and watched failing.
+import { spawnSync } from "node:child_process";
 // The AI block drives a stub PROVIDER over real HTTP: the timeout lives in the
 // transport, so the transport has to be real for the four failure outcomes to
 // mean anything.
@@ -5686,6 +5691,108 @@ console.log("▸ One data directory, one lock table");
   ok(/import\s*\{[^}]*\bwithLock\b[^}]*\}\s*from\s*"\.\/store"/.test(ledger) &&
      /import\s*\{[^}]*\bDATA_DIR\b[^}]*\}\s*from\s*"\.\/store"/.test(ledger),
     "and the evidence ledger takes both from the store rather than from a copy of its own");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// THE STORAGE PORT (docs/STORAGE_SPEC.md, slice 1)
+// ════════════════════════════════════════════════════════════════════════════
+// The port exists so a second backend can be interchangeable with the file store,
+// and it is worth nothing if it does not describe the store the product actually
+// runs. Three things are asserted: the file backend implements EVERY method the
+// port declares, the configuration is refused rather than defaulted when it names
+// something this build cannot serve, and no route reaches past the port to the
+// file helpers.
+console.log("▸ The storage port describes the store that runs");
+{
+  const storageMod = require("../.verify/server/storage.js");
+  const fileMod = require("../.verify/server/storage-file.js");
+  const { fileStorage, activeStorage } = fileMod;
+
+  ok(fileStorage.kind === "file", `the file backend reports its kind (${fileStorage.kind})`);
+  // The typed object already proves this at compile time; this walks it at RUNTIME
+  // because a cast would defeat the type, and a method answering `undefined` is
+  // the failure the port exists to prevent.
+  const missing = storageMod.STORAGE_METHODS.filter((m) => typeof fileStorage[m] !== "function");
+  ok(missing.length === 0,
+    `every one of the port's ${storageMod.STORAGE_METHODS.length} methods is implemented (missing: ${missing.join(", ") || "none"})`);
+  ok(activeStorage({}).kind === "file" && activeStorage({}).kind === fileStorage.kind,
+    "and an unconfigured deployment resolves to it");
+
+  // ── Selection: defaulted, or refused — never guessed ─────────────────────
+  ok(storageMod.resolveStoreKind({}) === "file" && storageMod.resolveStoreKind({ OPENMIND_STORE: "" }) === "file"
+    && storageMod.resolveStoreKind({ OPENMIND_STORE: "  FILE  " }) === "file",
+    "no declaration, an empty one, and a padded one all mean the file store");
+
+  const refused = (env, code) => {
+    try {
+      storageMod.resolveStoreKind(env);
+      return null;
+    } catch (e) {
+      return e instanceof storageMod.StoreConfigError && e.code === code ? e : null;
+    }
+  };
+  const pg = refused({ OPENMIND_STORE: "postgres" }, "store_not_implemented");
+  ok(Boolean(pg), "postgres is REFUSED rather than silently served as a file store");
+  ok(Boolean(pg) && /docs\/STORAGE_SPEC\.md/.test(pg.message) && /NOT IMPLEMENTED/.test(pg.message),
+    "and the refusal names the spec and says what is missing, so an operator can act on it");
+  const typo = refused({ OPENMIND_STORE: "sqlite" }, "unknown_store_kind");
+  ok(Boolean(typo) && /file, postgres/.test(typo.message),
+    "an unrecognised backend is refused too, listing what is accepted — a typo is not a choice");
+
+  // The REPORTING half: /api/ready and the environment report must be able to say
+  // it rather than only throwing on it.
+  const report = storageMod.storeKindReport({ OPENMIND_STORE: "postgres" });
+  ok(report.kind === null && report.problem?.code === "store_not_implemented",
+    "the same fact is reportable for a readiness screen, not only throwable");
+  ok(storageMod.storeKindReport({}).problem === null, "and a normal deployment reports no problem at all");
+
+  const envMod = require("../.verify/env.js");
+  const badEnv = envMod.envReport({ OPENMIND_STORE: "postgres" });
+  ok(badEnv.ok === false && badEnv.problems.some((p) => p.key === "OPENMIND_STORE"),
+    "the environment report carries it as a configuration problem (/api/ready fails on it)");
+  ok(envMod.envReport({}).problems.every((p) => p.key !== "OPENMIND_STORE"),
+    "while a file-backed deployment raises no such problem — the default must never be an error");
+
+  // ── The door check is REAL: a process configured this way must not boot ───
+  // Not "the function throws when called": the store resolves the backend at
+  // module load, and every learner-scoped route imports it. So a real child
+  // process is started three times — configured, misconfigured, and a typo — and
+  // the control matters as much as the refusals, because a check that fails to
+  // start a NORMAL deployment would be worse than no check.
+  const loadStore = (storeEnv) => spawnSync(process.execPath, ["-e", "require('./.verify/server/store.js')"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: { ...process.env, OPENMIND_DATA_DIR: fs.mkdtempSync(require("node:os").tmpdir() + "/om-port-"), ...storeEnv },
+  });
+  const control = loadStore({});
+  ok(control.status === 0, `a default deployment still loads the store (exit ${control.status})`);
+  const denied = loadStore({ OPENMIND_STORE: "postgres" });
+  ok(denied.status !== 0 && /NOT IMPLEMENTED/.test(`${denied.stdout}${denied.stderr}`),
+    "and a postgres-configured one REFUSES TO BOOT instead of writing files");
+  const typoLoad = loadStore({ OPENMIND_STORE: "sqlite" });
+  ok(typoLoad.status !== 0 && /unknown_store_kind|Accepted values/.test(`${typoLoad.stdout}${typoLoad.stderr}`),
+    "as does an unrecognised backend, naming what it accepts");
+
+  // ── No route reaches past the port ───────────────────────────────────────
+  // The file helpers are the file backend's private business. Scoped to app/ on
+  // purpose: lib/server/interventions.ts is a known remaining user (its data has
+  // no table yet — docs/STORAGE_SPEC.md §5), and this assertion is written so a
+  // SECOND one is a decision somebody has to make rather than a silent drift.
+  const collect = (dir, out = []) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) collect(full, out);
+      else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
+    }
+    return out;
+  };
+  const fileHelperUsers = collect("app").filter((f) => /\breadJson\b|\bwriteJson\b/.test(fs.readFileSync(f, "utf8")));
+  ok(fileHelperUsers.length === 0,
+    `no route reaches past the port to the file helpers (users: ${fileHelperUsers.join(", ") || "none"})`);
+  const libFileHelperUsers = collect("lib").filter((f) => /from\s*"\.\/store"/.test(fs.readFileSync(f, "utf8"))
+    && /\b(readJson|writeJson)\b/.test(fs.readFileSync(f, "utf8")));
+  ok(libFileHelperUsers.length === 1 && libFileHelperUsers[0] === "lib/server/interventions.ts",
+    `and exactly one lib module still uses them, the one whose data has no table yet (${libFileHelperUsers.join(", ") || "none"})`);
 }
 
 // ── On-device AI (local tier) ──────────────────────────────────────────────

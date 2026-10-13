@@ -28,6 +28,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolveDeployment, type ResolvedDeployment } from "./deployment";
+// The one owner of "which storage backend does this configuration ask for", so
+// this report and `lib/server/store.ts` cannot disagree about it.
+import { STORE_ENV, storeKindReport } from "./server/storage";
 
 export interface EnvProblem {
   /** The variable at fault, named so an operator can act on it. */
@@ -207,6 +210,18 @@ export function envReport(env: Record<string, string | undefined> = {}): EnvRepo
       code: "ephemeral_store_accepted",
       detail: `this deployment declares ${dataDir} AND says it accepts an ephemeral store, so losing it on a deploy is a known state rather than a surprise`,
     });
+  }
+
+  // 6b. WHICH STORE, and whether this build can serve it. A deployment that
+  //     names a backend the build does not implement must be told so as a
+  //     configuration PROBLEM rather than discovering it from a stack trace on
+  //     the first answer — and the file store must never be served to a site that
+  //     asked for a database. The refusal itself lives in the store (every
+  //     learner-scoped route imports it and fails at the door); this is the half
+  //     an operator can READ, including from /api/ready.
+  const store = storeKindReport(env);
+  if (store.problem) {
+    problems.push({ key: STORE_ENV, code: store.problem.code, detail: store.problem.detail });
   }
 
   // 7. The AI timeout must be a sane number of milliseconds, or a typo silently
