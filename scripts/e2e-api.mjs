@@ -39,6 +39,17 @@ const DATA_DIR = process.env.OPENMIND_DATA_DIR
 // against the same thresholds `npm run production-check` uses, and a run that
 // cannot fit stops immediately with the number and the fix.
 //
+// The bars are set from MEASUREMENT, and they are bracketed rather than chosen:
+// the ENOSPC above was reproduced on this checkout at 4.1 GB free (and ~4 GB
+// before it), both times while a stale `.next-dev` was being rewritten in place;
+// with that cache deleted, the FULL suite then ran green at 5.1 GB free. So LOW
+// sits above every observed failure and at or below every observed success — the
+// first cut of this check used 500 MB and 2048 MB, which would have waved through
+// the very run it was written for. A refusal here is cheap (re-run after freeing
+// a cache); a false pass costs five minutes and reports a broken route. If you
+// move these, move them because you measured a run that failed — and move both
+// files, which must stay in step.
+//
 // The bar is OVERRIDABLE (`OPENMIND_MIN_FREE_MB=200 npm run e2e`) so that the
 // refusal is a testable behaviour rather than a comment: a deployment on a small
 // volume may genuinely want to run below the default, and the failure path can
@@ -47,8 +58,8 @@ const DATA_DIR = process.env.OPENMIND_DATA_DIR
 // check — `Number('x')` is NaN, and `freeMb < NaN` is false, which would have
 // silently turned a typo into no check at all.
 const rawLow = Number(process.env.OPENMIND_MIN_FREE_MB);
-const LOW_MB = Number.isFinite(rawLow) && rawLow >= 0 ? rawLow : 500;
-const WARN_MB = Math.max(LOW_MB, 2048);
+const LOW_MB = Number.isFinite(rawLow) && rawLow >= 0 ? rawLow : 5120;
+const WARN_MB = Math.max(LOW_MB, 8192);
 try {
   const st = fs.statfsSync(process.cwd());
   const freeMb = Math.floor((Number(st.bavail) * Number(st.bsize)) / (1024 * 1024));

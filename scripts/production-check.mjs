@@ -132,10 +132,15 @@ record("engine + content-graph suite", verifyOk, "npm run verify (compiles .veri
 // reads like a broken product rather than a full disk. Hence a step that says
 // which it is. The LOW bar fails (writes are about to start failing); the WARN
 // bar reports, because a tight disk is a fact to fix, not a reason to refuse a
-// release that can still be built and served.
+// release that can still be built and served. The bars are bracketed by
+// measurement rather than chosen: ENOSPC at 4.1 GB and ~4 GB (both times while a
+// stale build cache was rewritten), the full suite green at 5.1 GB. A LOW bar
+// below that range refuses nothing — the first cut used 500 MB, which would have
+// passed the very run it existed for. Keep these in step with
+// `scripts/e2e-api.mjs`, which refuses the same way before line one.
 {
-  const LOW_MB = 500;
-  const WARN_MB = 2048;
+  const LOW_MB = 5120;
+  const WARN_MB = 8192;
   try {
     const st = fs.statfsSync(ROOT);
     const freeMb = Math.floor((Number(st.bavail) * Number(st.bsize)) / (1024 * 1024));
