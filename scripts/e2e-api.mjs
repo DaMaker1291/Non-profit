@@ -29,6 +29,36 @@ const BASE = process.env.OPENMIND_BASE ?? "http://localhost:4173";
 const DATA_DIR = process.env.OPENMIND_DATA_DIR
   ? path.resolve(process.env.OPENMIND_DATA_DIR)
   : path.join(process.cwd(), ".openmind-data");
+// ── FREE SPACE BEFORE LINE ONE, OR SAY SO ────────────────────────────────────
+// A run that cannot write is not a passing run, and it does not LOOK like a
+// space problem either. Measured: on a volume with ~4 GB free this suite reached
+// `/api/auth/login`, the dev server failed to write its webpack cache
+// (`ENOSPC`), the compile never answered, and the whole run died five minutes
+// later on `HeadersTimeoutError` — reading like a hung route rather than a full
+// disk, with 0 assertion failures reported. So the headroom is checked here,
+// against the same thresholds `npm run production-check` uses, and a run that
+// cannot fit stops immediately with the number and the fix.
+const LOW_MB = 500;
+const WARN_MB = 2048;
+try {
+  const st = fs.statfsSync(process.cwd());
+  const freeMb = Math.floor((Number(st.bavail) * Number(st.bsize)) / (1024 * 1024));
+  if (freeMb < LOW_MB) {
+    console.error(
+      `\n  Only ${freeMb} MB free on the volume holding the store and the dev server's build.\n` +
+      "  The suite would fail later as a timeout with no assertion reported, which reads like a\n" +
+      "  broken route. Free at least " + Math.ceil((WARN_MB - freeMb) / 1024) + " GB (a regenerable\n" +
+      "  build cache is the usual cause: `.next-dev`, `.next-prod`, `.verify`) and re-run.\n",
+    );
+    process.exit(3);
+  }
+  if (freeMb < WARN_MB) {
+    console.log(`  · ${freeMb} MB free — enough to run, tight enough that a build may fail (ENOSPC)`);
+  }
+} catch {
+  // statfs is not universal; a run with no measurement is still a run.
+}
+
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.error("  ✗", m); } };
 
@@ -3171,6 +3201,117 @@ console.log("▸ Privacy: export and erasure");
     "a second erase finds nothing and cannot enter them in the log twice");
 }
 
+
+// ── Curriculum pathways (§7): a country can run two education systems ────────
+// The country used to BE the curriculum. This is the journey the registry makes
+// possible, driven through the REAL route — a learner names their country, names
+// the system they actually follow, and the years and qualifications they are
+// offered follow from that choice. What is asserted is the selected pathway, the
+// years it implies and the qualifications it leads to, not merely that a POST
+// answered 200.
+console.log("▸ Curriculum pathways: two systems in one country");
+{
+  // CAMEROON → ANGLOPHONE → GCE.
+  const cm = await newProfile({
+    country: "CM", grade: "Form 5", subjects: ["maths"], onboarded: true,
+    pathway: "cm-anglophone-general-secondary",
+    subjectCourses: { maths: { spec: "cm-gce-o", specLevel: "form5" } },
+  });
+  const cmId = cm.body.profile.id;
+  ok(cm.status === 200 && cm.body.profile.pathway === "cm-anglophone-general-secondary",
+    `a Cameroonian learner's system is stored with their profile (${cm.body.profile?.pathway})`);
+  ok((cm.body.courseGaps ?? []).length === 0,
+    `and the GCE O Level completes their course (${JSON.stringify(cm.body.courseGaps)})`);
+
+  // WITHOUT the system, the course is INCOMPLETE and the answer says which field
+  // — the same gate the wizard enforces, so no client can skip the question.
+  const neither = await newProfile({ country: "CM", grade: "Form 5", subjects: ["maths"] });
+  ok((neither.body.courseGaps ?? []).some((g) => (g.missing ?? []).includes("pathway")),
+    `a Cameroonian profile with no system chosen is told what is missing (${JSON.stringify(neither.body.courseGaps)})`);
+  ok(!(neither.body.profile ?? {}).pathway,
+    "and nothing is chosen on their behalf — the field is absent, not defaulted");
+
+  // CAMEROON → FRANCOPHONE → BEPC: the other system, its years and its exams.
+  const francophone = await newProfile({
+    country: "CM", grade: "3e", subjects: ["maths"], onboarded: true,
+    pathway: "cm-francophone-general-secondary",
+    subjectCourses: { maths: { spec: "cm-bepc", specLevel: "bepc" } },
+  });
+  ok(francophone.status === 200 && (francophone.body.courseGaps ?? []).length === 0,
+    `and a Francophone learner's BEPC course is complete at 3e (${JSON.stringify(francophone.body.courseGaps)})`);
+
+  // THE YEARS ARE THE PATHWAY'S. A Francophone year on the Anglophone system is
+  // honest evidence of an unfinished course, not silently accepted.
+  const mixedYear = await post("/api/profile", { id: cmId, grade: "3e" });
+  ok((mixedYear.body.courseGaps ?? []).some((g) => (g.missing ?? []).includes("grade")),
+    "a year from the other system is reported as a course field still missing, not accepted");
+  await post("/api/profile", { id: cmId, grade: "Form 5" });
+
+  // A SYSTEM, OR A QUALIFICATION, FROM ANOTHER CURRICULUM IS REFUSED BY NAME.
+  const foreignSystem = await post("/api/profile", { id: cmId, pathway: "gb-national" });
+  ok(foreignSystem.status === 400 && foreignSystem.body.error === "unknown_pathway",
+    `a pathway of another country is refused, never stored (${foreignSystem.status}: ${foreignSystem.body.error})`);
+  const invented = await post("/api/profile", { id: cmId, pathway: "cm-invented-system" });
+  ok(invented.status === 400, `and so is a system that does not exist (${invented.status})`);
+  const crossSystem = await post("/api/profile", { id: cmId, subjectCourses: { maths: { spec: "cm-bac" } } });
+  ok(crossSystem.status === 400 && /pathway_does_not_offer/.test(crossSystem.body?.error ?? ""),
+    `a Francophone qualification on an Anglophone profile is refused by name (${crossSystem.status}: ${crossSystem.body?.error})`);
+
+  // CHANGING SYSTEM MOVES THE COURSE.
+  const switched = await post("/api/profile", {
+    id: cmId, pathway: "cm-francophone-general-secondary", grade: "3e",
+    subjectCourses: { maths: { spec: "cm-bepc", specLevel: "bepc" } },
+  });
+  ok(switched.status === 200 && switched.body.profile.pathway === "cm-francophone-general-secondary" && (switched.body.courseGaps ?? []).length === 0,
+    `changing system is recorded, with a course that belongs to the new one (${JSON.stringify(switched.body.courseGaps)})`);
+  const backAgain = await post("/api/profile", { id: cmId, pathway: "cm-anglophone-general-secondary" });
+  ok((backAgain.body.courseGaps ?? []).some((g) => (g.missing ?? []).includes("spec")),
+    `and switching back drops the qualification that belonged to the other system (${JSON.stringify(backAgain.body.courseGaps)})`);
+
+  // IGCSE IS A CHOICE, NOT A FALLBACK. A learner in a country with no mapped
+  // national route can choose the international programme and declare ITS years.
+  const intl = await newProfile({
+    country: "DE", subjects: ["maths"], onboarded: true,
+    pathway: "int-international", grade: "Year 11",
+    subjectCourses: { maths: { spec: "int-igcse", specLevel: "extended" } },
+  });
+  const intlId = intl.body.profile.id;
+  ok(intl.status === 200 && (intl.body.courseGaps ?? []).length === 0,
+    `a learner in an unmapped country can choose the international programme and declare its years (${JSON.stringify(intl.body.courseGaps)})`);
+  // AND IS NOT OFFERED SOMEBODY ELSE'S NATIONAL COURSE: the chosen system scopes
+  // the offer, so a UK qualification is refused on an international profile.
+  const otherNational = await post("/api/profile", { id: intlId, subjectCourses: { maths: { spec: "uk-gcse" } } });
+  ok(otherNational.status === 400 && /pathway_does_not_offer/.test(otherNational.body?.error ?? ""),
+    `and another country's national course is not selectable under it (${otherNational.status}: ${otherNational.body?.error})`);
+  // The SAME learner, now declaring no international programme, keeps the wider
+  // offer: the skills pathway and the international programmes together, which is
+  // what a country with no mapped national route is answered with.
+  const skills = await post("/api/profile", {
+    id: intlId, pathway: null, grade: "Core",
+    subjectCourses: { maths: { spec: "any-independent", specLevel: "core" } },
+  });
+  ok(skills.status === 200 && !(skills.body.profile ?? {}).pathway && (skills.body.courseGaps ?? []).length === 0,
+    `and the skills pathway is reachable when no programme has been declared (${JSON.stringify(skills.body.courseGaps)})`);
+  // A YEAR BELONGS TO THE PATHWAY THAT NAMED IT. Dropping the international
+  // programme leaves "Year 11" a year of nothing, and the honest answer is to say
+  // so rather than to keep a year no course in force contains — the same rule the
+  // Cameroon section asserts in the other direction. The first run of this suite
+  // is how the difference was found: the assertion above demanded a complete
+  // course while the request itself declared NO year the skills pathway has.
+  const staleYear = await post("/api/profile", { id: intlId, pathway: null, grade: "Year 11" });
+  ok((staleYear.body.courseGaps ?? []).some((g) => (g.missing ?? []).includes("grade")),
+    `and the abandoned programme's year is reported rather than silently kept (${JSON.stringify(staleYear.body.courseGaps)})`);
+  await post("/api/profile", { id: intlId, grade: "Core" });
+
+  // A COUNTRY WITH ONE SYSTEM ASKS NO QUESTION: the field is absent and the
+  // course still completes, which is what keeps every existing profile valid.
+  const gb = await newProfile({
+    country: "GB", grade: "Year 11", subjects: ["maths"], onboarded: true,
+    subjectCourses: { maths: { spec: "uk-gcse", specLevel: "higher" } },
+  });
+  ok(gb.status === 200 && !(gb.body.profile ?? {}).pathway && (gb.body.courseGaps ?? []).length === 0,
+    `a country with one recorded system never asks, and never blocks a course on the answer (${JSON.stringify(gb.body.courseGaps)})`);
+}
 
 console.log(`\nE2E: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

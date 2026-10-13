@@ -71,6 +71,13 @@ export const ENGINE_SOURCES = [
   "lib/starter.ts",
   "lib/access.ts",
   "lib/mastery.ts",
+  // The curriculum REGISTRY (§7): the country → education-system → years →
+  // qualifications data model, which lib/curriculum.ts now derives its routes
+  // from. Compiled with the rest because the suite asserts the pathway rules
+  // BEHAVIOURALLY (Cameroon's two systems offer two disjoint course sets; an
+  // unmapped country is never handed a national course of another country)
+  // rather than reading the data file for a string.
+  "lib/curricula/registry.ts",
   "lib/curriculum.ts",
   "lib/deadline.ts",
   "lib/specifications.ts",

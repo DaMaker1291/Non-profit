@@ -1,0 +1,1606 @@
+{
+  "generatedBy": "scripts/curriculum-gate.mjs",
+  "counts": {
+    "countriesOffered": 71,
+    "countriesWithNationalRoute": 19,
+    "countriesUnmapped": 52,
+    "nationalPathways": 20,
+    "specifications": 30,
+    "nationalSpecifications": 27,
+    "internationalSpecifications": 2,
+    "independentSpecifications": 1,
+    "pathsWithNoSource": 20,
+    "reviewedMappings": 0,
+    "verifiedPathways": 0
+  },
+  "countries": [
+    {
+      "countryCode": "US",
+      "countryName": "United States",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "us-national",
+          "name": "United States · Middle/High School",
+          "years": [
+            "Grade 6",
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "us-core",
+            "us-sat",
+            "us-ap"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "us-core",
+        "us-sat",
+        "us-ap"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GB",
+      "countryName": "United Kingdom",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "gb-national",
+          "name": "United Kingdom · Secondary",
+          "years": [
+            "Year 7",
+            "Year 8",
+            "Year 9",
+            "Year 10",
+            "Year 11",
+            "Year 12",
+            "Year 13"
+          ],
+          "specificationIds": [
+            "uk-gcse",
+            "uk-alevel"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "uk-gcse",
+        "uk-alevel"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "IE",
+      "countryName": "Ireland",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ie-national",
+          "name": "Ireland · Junior/Senior Cycle",
+          "years": [
+            "1st Year",
+            "2nd Year",
+            "3rd Year",
+            "4th Year",
+            "5th Year",
+            "6th Year"
+          ],
+          "specificationIds": [
+            "ie-junior"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "ie-junior"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "IN",
+      "countryName": "India",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "in-national",
+          "name": "India · Secondary",
+          "years": [
+            "Class 8",
+            "Class 9",
+            "Class 10",
+            "Class 11",
+            "Class 12"
+          ],
+          "specificationIds": [
+            "in-cbse",
+            "in-icse"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "in-cbse",
+        "in-icse"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "NG",
+      "countryName": "Nigeria",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ng-national",
+          "name": "Nigeria · JSS/SSS",
+          "years": [
+            "JSS 1",
+            "JSS 2",
+            "JSS 3",
+            "SSS 1",
+            "SSS 2",
+            "SSS 3"
+          ],
+          "specificationIds": [
+            "ng-waec"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "ng-waec"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "KE",
+      "countryName": "Kenya",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ke-national",
+          "name": "Kenya · Secondary",
+          "years": [
+            "Form 1",
+            "Form 2",
+            "Form 3",
+            "Form 4"
+          ],
+          "specificationIds": [
+            "ke-kcse"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "ke-kcse"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "ZA",
+      "countryName": "South Africa",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "za-national",
+          "name": "South Africa · Senior/FET",
+          "years": [
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "za-nsc"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "za-nsc"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GH",
+      "countryName": "Ghana",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "gh-national",
+          "name": "Ghana · JHS/SHS",
+          "years": [
+            "JHS 1",
+            "JHS 2",
+            "JHS 3",
+            "SHS 1",
+            "SHS 2",
+            "SHS 3"
+          ],
+          "specificationIds": [
+            "gh-wassce"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "gh-wassce"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TZ",
+      "countryName": "Tanzania",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "tz-national",
+          "name": "Tanzania · Secondary",
+          "years": [
+            "Form 1",
+            "Form 2",
+            "Form 3",
+            "Form 4"
+          ],
+          "specificationIds": [
+            "tz-csee"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "tz-csee"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "UG",
+      "countryName": "Uganda",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ug-national",
+          "name": "Uganda · Secondary",
+          "years": [
+            "S1",
+            "S2",
+            "S3",
+            "S4"
+          ],
+          "specificationIds": [
+            "ug-uce"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "ug-uce"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "ET",
+      "countryName": "Ethiopia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "EG",
+      "countryName": "Egypt",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MA",
+      "countryName": "Morocco",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PK",
+      "countryName": "Pakistan",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "pk-national",
+          "name": "Pakistan · Secondary",
+          "years": [
+            "Class 6",
+            "Class 7",
+            "Class 8",
+            "Class 9",
+            "Class 10"
+          ],
+          "specificationIds": [
+            "pk-matric"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "pk-matric"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BD",
+      "countryName": "Bangladesh",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "bd-national",
+          "name": "Bangladesh · Secondary",
+          "years": [
+            "Class 6",
+            "Class 7",
+            "Class 8",
+            "Class 9",
+            "Class 10"
+          ],
+          "specificationIds": [
+            "bd-ssc"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "bd-ssc"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "ID",
+      "countryName": "Indonesia",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "id-national",
+          "name": "Indonesia · SMP/SMA",
+          "years": [
+            "SMP 7",
+            "SMP 8",
+            "SMP 9",
+            "SMA 10",
+            "SMA 11",
+            "SMA 12"
+          ],
+          "specificationIds": [
+            "id-merdeka"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "id-merdeka"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PH",
+      "countryName": "Philippines",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ph-national",
+          "name": "Philippines · JHS/SHS",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "ph-deped"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "ph-deped"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "VN",
+      "countryName": "Vietnam",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BR",
+      "countryName": "Brazil",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "br-national",
+          "name": "Brazil · Fundamental/Médio",
+          "years": [
+            "6º ano",
+            "7º ano",
+            "8º ano",
+            "9º ano",
+            "1º médio",
+            "2º médio",
+            "3º médio"
+          ],
+          "specificationIds": [
+            "br-enem"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "br-enem"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MX",
+      "countryName": "Mexico",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "mx-national",
+          "name": "Mexico · Secundaria",
+          "years": [
+            "1º",
+            "2º",
+            "3º"
+          ],
+          "specificationIds": [
+            "mx-sep"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "mx-sep"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CO",
+      "countryName": "Colombia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AR",
+      "countryName": "Argentina",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PE",
+      "countryName": "Peru",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "ES",
+      "countryName": "Spain",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "FR",
+      "countryName": "France",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "DE",
+      "countryName": "Germany",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "IT",
+      "countryName": "Italy",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PL",
+      "countryName": "Poland",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TR",
+      "countryName": "Turkey",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "IR",
+      "countryName": "Iran",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AF",
+      "countryName": "Afghanistan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CN",
+      "countryName": "China",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "JP",
+      "countryName": "Japan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "KR",
+      "countryName": "South Korea",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AU",
+      "countryName": "Australia",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "au-national",
+          "name": "Australia · Secondary",
+          "years": [
+            "Year 7",
+            "Year 8",
+            "Year 9",
+            "Year 10",
+            "Year 11",
+            "Year 12"
+          ],
+          "specificationIds": [
+            "au-acara"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "au-acara"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CA",
+      "countryName": "Canada",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ca-national",
+          "name": "Canada · Secondary",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "ca-provincial"
+          ],
+          "recordReview": "mapped",
+          "mappingReview": "mapped",
+          "sourceUrls": []
+        }
+      ],
+      "offeredCourses": [
+        "ca-provincial"
+      ],
+      "recordReview": "mapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "UA",
+      "countryName": "Ukraine",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "RW",
+      "countryName": "Rwanda",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "ZM",
+      "countryName": "Zambia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "ZW",
+      "countryName": "Zimbabwe",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MW",
+      "countryName": "Malawi",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "ML",
+      "countryName": "Mali",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SN",
+      "countryName": "Senegal",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CI",
+      "countryName": "Côte d'Ivoire",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CM",
+      "countryName": "Cameroon",
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "cm-anglophone-general-secondary",
+          "name": "Cameroon · Anglophone system (GCE)",
+          "years": [
+            "Form 1",
+            "Form 2",
+            "Form 3",
+            "Form 4",
+            "Form 5",
+            "Lower Sixth",
+            "Upper Sixth"
+          ],
+          "specificationIds": [
+            "cm-gce-o",
+            "cm-gce-a"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.minesec.gov.cm/web/index.php/en/systeme-educatif-en/offre-de-formation-en/sous-systeme-anglophone-en"
+          ]
+        },
+        {
+          "id": "cm-francophone-general-secondary",
+          "name": "Cameroun · système francophone (BEPC · Probatoire · Baccalauréat)",
+          "years": [
+            "6e",
+            "5e",
+            "4e",
+            "3e",
+            "2nde",
+            "1re",
+            "Terminale"
+          ],
+          "specificationIds": [
+            "cm-bepc",
+            "cm-probatoire",
+            "cm-bac"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.minesec.gov.cm/web/index.php/fr/systeme-educatif/offre-de-formation/sous-systeme-francophone"
+          ]
+        }
+      ],
+      "offeredCourses": [
+        "cm-gce-o",
+        "cm-gce-a",
+        "cm-bepc",
+        "cm-probatoire",
+        "cm-bac"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 2
+    },
+    {
+      "countryCode": "NE",
+      "countryName": "Niger",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BF",
+      "countryName": "Burkina Faso",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SO",
+      "countryName": "Somalia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SD",
+      "countryName": "Sudan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "YE",
+      "countryName": "Yemen",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "IQ",
+      "countryName": "Iraq",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SY",
+      "countryName": "Syria",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "JO",
+      "countryName": "Jordan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "LB",
+      "countryName": "Lebanon",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "NP",
+      "countryName": "Nepal",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "LK",
+      "countryName": "Sri Lanka",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MM",
+      "countryName": "Myanmar",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "KH",
+      "countryName": "Cambodia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "LA",
+      "countryName": "Laos",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MN",
+      "countryName": "Mongolia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "KZ",
+      "countryName": "Kazakhstan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "UZ",
+      "countryName": "Uzbekistan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "HT",
+      "countryName": "Haiti",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BO",
+      "countryName": "Bolivia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "EC",
+      "countryName": "Ecuador",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GT",
+      "countryName": "Guatemala",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "HN",
+      "countryName": "Honduras",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "NI",
+      "countryName": "Nicaragua",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SV",
+      "countryName": "El Salvador",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "DO",
+      "countryName": "Dominican Republic",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "XX",
+      "countryName": "Prefer not to say",
+      "status": "independent",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    }
+  ],
+  "pathways": [
+    {
+      "id": "ke-national",
+      "countryCode": "KE",
+      "pathwayType": "national",
+      "years": 4,
+      "qualifications": [],
+      "specificationIds": [
+        "ke-kcse"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "in-national",
+      "countryCode": "IN",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [],
+      "specificationIds": [
+        "in-cbse",
+        "in-icse"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "ph-national",
+      "countryCode": "PH",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [],
+      "specificationIds": [
+        "ph-deped"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "bd-national",
+      "countryCode": "BD",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [],
+      "specificationIds": [
+        "bd-ssc"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "ng-national",
+      "countryCode": "NG",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [],
+      "specificationIds": [
+        "ng-waec"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "gh-national",
+      "countryCode": "GH",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [],
+      "specificationIds": [
+        "gh-wassce"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "tz-national",
+      "countryCode": "TZ",
+      "pathwayType": "national",
+      "years": 4,
+      "qualifications": [],
+      "specificationIds": [
+        "tz-csee"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "ug-national",
+      "countryCode": "UG",
+      "pathwayType": "national",
+      "years": 4,
+      "qualifications": [],
+      "specificationIds": [
+        "ug-uce"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "pk-national",
+      "countryCode": "PK",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [],
+      "specificationIds": [
+        "pk-matric"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "id-national",
+      "countryCode": "ID",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [],
+      "specificationIds": [
+        "id-merdeka"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "br-national",
+      "countryCode": "BR",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [],
+      "specificationIds": [
+        "br-enem"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "mx-national",
+      "countryCode": "MX",
+      "pathwayType": "national",
+      "years": 3,
+      "qualifications": [],
+      "specificationIds": [
+        "mx-sep"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "gb-national",
+      "countryCode": "GB",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [],
+      "specificationIds": [
+        "uk-gcse",
+        "uk-alevel"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "ie-national",
+      "countryCode": "IE",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [],
+      "specificationIds": [
+        "ie-junior"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "us-national",
+      "countryCode": "US",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [],
+      "specificationIds": [
+        "us-core",
+        "us-sat",
+        "us-ap"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "ca-national",
+      "countryCode": "CA",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [],
+      "specificationIds": [
+        "ca-provincial"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "au-national",
+      "countryCode": "AU",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [],
+      "specificationIds": [
+        "au-acara"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "za-national",
+      "countryCode": "ZA",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [],
+      "specificationIds": [
+        "za-nsc"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "cm-anglophone-general-secondary",
+      "countryCode": "CM",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "GCE Ordinary Level",
+        "GCE Advanced Level"
+      ],
+      "specificationIds": [
+        "cm-gce-o",
+        "cm-gce-a"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.minesec.gov.cm/web/index.php/en/systeme-educatif-en/offre-de-formation-en/sous-systeme-anglophone-en"
+      ]
+    },
+    {
+      "id": "cm-francophone-general-secondary",
+      "countryCode": "CM",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "BEPC",
+        "Probatoire",
+        "Baccalauréat"
+      ],
+      "specificationIds": [
+        "cm-bepc",
+        "cm-probatoire",
+        "cm-bac"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.minesec.gov.cm/web/index.php/fr/systeme-educatif/offre-de-formation/sous-systeme-francophone"
+      ]
+    },
+    {
+      "id": "int-international",
+      "countryCode": "INT",
+      "pathwayType": "international",
+      "years": 4,
+      "qualifications": [
+        "Cambridge IGCSE",
+        "International Baccalaureate"
+      ],
+      "specificationIds": [
+        "int-igcse",
+        "int-ib"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    },
+    {
+      "id": "int-independent",
+      "countryCode": "XX",
+      "pathwayType": "independent",
+      "years": 3,
+      "qualifications": [
+        "Independent skills pathway"
+      ],
+      "specificationIds": [
+        "any-independent"
+      ],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourceUrls": []
+    }
+  ],
+  "problems": []
+}

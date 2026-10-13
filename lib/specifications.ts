@@ -26,7 +26,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import type { BoardId, Concept, StageId, SubjectCourse, SubjectId } from "./types";
 import { CONCEPTS, bySubject } from "./genome";
-import { INDEPENDENT_ROUTE, curriculumFor } from "./curriculum";
+import { INDEPENDENT_ROUTE, curriculumFor, routeForPathwayId } from "./curriculum";
+import { nationalRouteCodes, pathwayChoiceRequired, pathwayForCountry } from "./curricula/registry";
 
 /** Generic tier name keys (lvl.*), translated in every dictionary. The
  *  country-specific name ("Form 4", "Class 10") is data, not translation. */
@@ -301,6 +302,67 @@ const MX: Specification = {
   ],
 };
 
+// ── Cameroon (§7): TWO SYSTEMS, TWO SETS OF QUALIFICATIONS ──────────────────
+//
+// Cameroon's Ministry of Secondary Education runs two general secondary systems
+// side by side (see lib/curricula/registry.ts#CM_FRANCOPHONE for the sources),
+// so the country needs TWO national course sets and neither may stand in for
+// the other: a Cameroonian learner sits GCE O/A Level or the BEPC/Probatoire/
+// Baccalauréat, not both, and a picker that offered the wrong one would pitch
+// their whole course at the wrong depth.
+//
+// WHAT THESE ARE AND ARE NOT. They are OpenMind's mapping of each qualification
+// onto the genome — the same claim every other specification here makes. They
+// are NOT an equivalence: a GCE grade is not converted into a GCSE grade, and
+// nothing states that two qualifications share a syllabus or a marking scheme.
+// The internal `tier` on each level is OpenMind's DEPTH BAND (it chooses the
+// difficulty target and whether stage-0 arithmetic is in scope); the name beside
+// it is the system's own year, which is what a learner should read. The mapping
+// is marked "mapped" and not "reviewed" in the registry until a subject
+// specialist has read it.
+const CM_GCE_O: Specification = {
+  id: "cm-gce-o", country: "CM", board: "gce", name: "GCE Ordinary Level",
+  coverage: { maths: [0, 3], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 2] },
+  levels: [
+    { id: "form4", tier: "junior", name: "Form 4", stages: [0, 2], difficulty: 0.45 },
+    { id: "form5", tier: "foundation", name: "Form 5 · GCE O Level", stages: [0, 3], difficulty: 0.6 },
+  ],
+};
+
+const CM_GCE_A: Specification = {
+  id: "cm-gce-a", country: "CM", board: "gce", name: "GCE Advanced Level",
+  coverage: { maths: [2, 5], physics: [2, 3], chemistry: [2, 4], biology: [1, 3], computing: [1, 3] },
+  levels: [
+    { id: "lower6", tier: "advanced", name: "Lower Sixth", stages: [2, 4], difficulty: 0.78 },
+    { id: "upper6", tier: "degree", name: "Upper Sixth · GCE A Level", stages: [2, 5], difficulty: 0.9 },
+  ],
+};
+
+const CM_BEPC: Specification = {
+  id: "cm-bepc", country: "CM", board: "minesec", name: "BEPC",
+  coverage: { maths: [0, 3], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 2] },
+  levels: [
+    { id: "cycle1", tier: "junior", name: "Cycle 1 · 6e–5e", stages: [0, 2], difficulty: 0.42 },
+    { id: "bepc", tier: "foundation", name: "3e · BEPC", stages: [0, 3], difficulty: 0.55 },
+  ],
+};
+
+const CM_PROBATOIRE: Specification = {
+  id: "cm-probatoire", country: "CM", board: "minesec", name: "Probatoire",
+  coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
+  levels: [
+    { id: "premiere", tier: "higher", name: "1re · Probatoire", stages: [0, 4], difficulty: 0.68 },
+  ],
+};
+
+const CM_BAC: Specification = {
+  id: "cm-bac", country: "CM", board: "minesec", name: "Baccalauréat",
+  coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
+  levels: [
+    { id: "terminale", tier: "advanced", name: "Terminale · Baccalauréat", stages: [0, 4], difficulty: 0.75 },
+  ],
+};
+
 const INDEPENDENT: Specification = {
   id: "any-independent", country: "XX", board: "state", name: "Independent · skills pathway",
   coverage: { maths: [0, 5], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
@@ -314,6 +376,10 @@ const INDEPENDENT: Specification = {
 export const SPECIFICATIONS: Specification[] = [
   UK, UK_ALEVEL, IGCSE, IB, US_CORE, SAT, US_AP, CA, ZA, AU, IE,
   IN_CBSE, IN_ICSE, PK, BD, KE, TZ, UG, NG, GH, PH, ID, BR, MX, INDEPENDENT,
+  // Cameroon's two systems (§7). Both are national courses; neither is a
+  // fallback for the other, and the learner's pathway (lib/curricula/registry)
+  // is what decides which set their qualification picker offers.
+  CM_GCE_O, CM_GCE_A, CM_BEPC, CM_PROBATOIRE, CM_BAC,
 ];
 // ── The two counts, kept apart on purpose ────────────────
 //
@@ -325,15 +391,20 @@ export const SPECIFICATIONS: Specification[] = [
 // whose sentence takes its number from the prefix, a learner read "25 countries",
 // which nothing in the data supports.
 //
-// The honest pair, for the record: **18 countries have a national route** (GB,
-// US, ZA, AU, CA, IE, IN, PK, BD, KE, TZ, UG, NG, GH, PH, ID, BR, MX); the
+// The honest pair, for the record: **every country the registry records a
+// national pathway for has one** (GB, US, ZA, AU, CA, IE, IN, PK, BD, KE, TZ,
+// UG, NG, GH, PH, ID, BR, MX, and now Cameroon, which has TWO); the
 // international and independent courses serve everyone else; and the onboarding
-// picker offers 70 countries, so 52 of them are offered a real course that is NOT
+// picker offers 70 countries, so most of them are offered a real course that is NOT
 // their national curriculum. That is what the wording has to say — and this
 // constant is the ONE owner of the number, so no dictionary may re-bake it.
-export const NATIONAL_ROUTE_COUNT: number = new Set(
-  SPECIFICATIONS.map((s) => s.country).filter((c) => c !== "INT" && c !== "XX"),
-).size;
+//
+// THE OWNER IS NOW THE REGISTRY, not a set built from the specification list.
+// Those two numbers used to agree by construction; they stopped being the same
+// question the moment a country could have two pathways (Cameroon contributes two
+// national courses and ONE national route), so the count is taken from the layer
+// that models countries rather than the layer that models courses.
+export const NATIONAL_ROUTE_COUNT: number = nationalRouteCodes().length;
 
 
 /** Teaching-language settings a specification can recommend (§4): the terms a
@@ -341,6 +412,17 @@ export const NATIONAL_ROUTE_COUNT: number = new Set(
  *  vocabulary", which is the honest default. */
 const BOARD_TERMS: Partial<Record<BoardId, TermProfile>> = {
   aqa: "uk", edexcel: "uk", ocr: "uk", wjec: "uk",
+  // Cameroon (lib/curricula/registry.ts). The Anglophone GCE system teaches in
+  // the same maths vocabulary the genome is authored in, so it maps to the `uk`
+  // profile — which is EMPTY, and empty is the honest answer: nothing needs
+  // substituting. Saying so explicitly matters because the alternative is the
+  // accidental default, and the curriculum page promises "questions and
+  // explanations use your curriculum's vocabulary, not another country's".
+  // The Francophone system is French-medium: this layer substitutes ENGLISH
+  // words only (see applyTerminology), so `common` — no substitution — is the
+  // truthful profile for it rather than a claim that it has no vocabulary of
+  // its own.
+  gce: "uk", minesec: "common",
   cambridge: "uk", igcse: "uk", ib: "uk",
   commoncore: "us", collegeboard: "us",
   cbse: "india", icse: "india", matric: "india", "state": "common",
@@ -446,8 +528,32 @@ export function specById(id: string | undefined): Specification | null {
   return SPECIFICATIONS.find((s) => s.id === id) ?? null;
 }
 
-export function specsFor(country: string): Specification[] {
-  const direct = SPECIFICATIONS.filter((s) => s.country === country);
+export function specsFor(country: string | undefined, pathwayId?: string): Specification[] {
+  // `country` is optional because a LEARNER MAY HOLD AN INTERNATIONAL PATHWAY
+  // WITHOUT HAVING NAMED A COUNTRY: "prefer not to say" plus "I sit Cambridge
+  // IGCSE" is a coherent state, and the registry offers the international and
+  // independent pathways in every country including that one. An unset country
+  // simply matches no national listing, which is exactly what it should do.
+  // A CHOSEN PATHWAY SCOPES THE OFFER. This is what makes one country able to
+  // run two systems: a Cameroon Anglophone learner is offered the GCE O and A
+  // Levels and NOT the BEPC, Probatoire or Baccalauréat, and the reverse. The
+  // pathway's own list is the authority — a course no pathway leads to is a
+  // course nobody can choose, which the gate asserts.
+  const pathway = pathwayForCountry(country, pathwayId);
+  if (pathway) {
+    const scoped = SPECIFICATIONS.filter((s) => pathway.specificationIds.includes(s.id));
+    if (scoped.length > 0) return scoped;
+  }
+  // "XX" IS NOT A COUNTRY, and it is not treated as one here. The independent
+  // specification carries `country: "XX"` so that it has a code, and a learner
+  // who declined to say where they study used to match it EXACTLY — so the only
+  // course a "prefer not to say" learner was ever offered was the skills
+  // pathway, while every unresearched country was offered the international
+  // programmes. Declining to name a country is not declining to sit an
+  // examination, so XX now falls through to the same list an unresearched
+  // country gets: Cambridge IGCSE and the IB, chosen explicitly, with the
+  // independent pathway beside them.
+  const direct = SPECIFICATIONS.filter((s) => s.country === country && country !== "XX");
   if (direct.length > 0) return direct;
   // No national entry: international qualifications are still available, and
   // the independent pathway always is. Never leave a country with no route.
@@ -492,6 +598,12 @@ export interface CourseFields {
   specLevel?: string;
   examDate?: string;
   subjectCourses?: Partial<Record<SubjectId, SubjectCourse>>;
+  /** The education system the learner follows (lib/curricula/registry.ts), when
+   *  their country runs more than one. It scopes which qualifications are
+   *  offered and which years they can declare, so it is part of the course
+   *  rather than a preference. Absent = the country's own default applies, which
+   *  is what every profile enrolled before pathways existed has. */
+  pathway?: string;
 }
 
 /**
@@ -544,8 +656,8 @@ export function coversSubject(spec: Specification, subject: SubjectId): boolean 
  *  the country lists them. Used by every picker, so a surface can never offer a
  *  course it would then have to refuse. The independent pathway covers every
  *  STEM subject, so this is never empty. */
-export function specOptionsFor(country: string, subject: SubjectId): Specification[] {
-  const eligible = specsFor(country).filter((s) => coversSubject(s, subject));
+export function specOptionsFor(country: string, subject: SubjectId, pathwayId?: string): Specification[] {
+  const eligible = specsFor(country, pathwayId).filter((s) => coversSubject(s, subject));
   return eligible.length > 0 ? eligible : [INDEPENDENT];
 }
 
@@ -555,7 +667,7 @@ export function specOptionsFor(country: string, subject: SubjectId): Specificati
  *  always yield the same path. */
 export function specForProfile(profile: CourseFields, subject?: SubjectId): ActiveSpec {
   const p = courseForSubject(profile, subject);
-  const candidates = specsFor(p.country ?? "XX");
+  const candidates = specsFor(p.country ?? "XX", p.pathway);
   const explicit = specById(p.spec);
   // An explicit choice is honoured only for a subject it actually contains. A
   // learner who named a maths-only qualification and also declared Biology has
@@ -624,7 +736,7 @@ export function courseSummaryFor(profile: CourseFields, subject?: SubjectId): Co
 }
 
 /** A course decision the engine genuinely cannot make without. */
-export type CourseField = "country" | "grade" | "spec" | "specLevel";
+export type CourseField = "country" | "pathway" | "grade" | "spec" | "specLevel";
 
 /**
  * What one subject's course still has NOT decided, named field by field.
@@ -662,9 +774,23 @@ export function courseGaps(profile: CourseFields, subject: SubjectId): CourseFie
   // real tiers, so the learner still has to choose a qualification and a level.
   // Falling back here does not weaken the requirement; it removes a demand the
   // product cannot honour.
-  const route = c.country ? curriculumFor(c.country) ?? INDEPENDENT_ROUTE : null;
+  const route = c.country
+    ? routeForPathwayId(c.country, c.pathway) ?? curriculumFor(c.country) ?? INDEPENDENT_ROUTE
+    : null;
   const out: CourseField[] = [];
   if (!route) out.push("country");
+  // WHICH EDUCATION SYSTEM — asked only where the answer is genuinely open.
+  //
+  // A country with one national system (or none) needs no question: its years and
+  // its qualifications are what they are, and asking a UK learner to confirm they
+  // follow the UK system would be a step with one real answer. Cameroon has two
+  // systems running side by side, and until the learner says which one they
+  // follow, NOTHING downstream is answerable: the years they can declare differ
+  // (Form 1–5 + Lower/Upper Sixth vs 6e–Terminale), the qualifications differ
+  // (GCE O/A Level vs BEPC/Probatoire/Baccalauréat) and the depth band differs.
+  // Guessing one of the two would be the country-as-curriculum defect this
+  // registry exists to remove, so the gap is named and the step asks.
+  if (pathwayChoiceRequired(c.country) && !pathwayForCountry(c.country, c.pathway)) out.push("pathway");
   if (route && !route.grades.includes(c.grade ?? "")) out.push("grade");
   const spec = specById(c.spec);
   if (!spec) out.push("spec");

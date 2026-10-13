@@ -32,14 +32,21 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "om-questions-"));
 //   specifications -> {genome, curriculum, types}, genome -> types
 //   numeric-items -> {types, numeric-items-core}, numeric-items-core -> numeric-items
 //   answer -> types
-for (const file of ["types.ts", "i18n.ts", "genome.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-computing.ts", "questions-chemistry.ts", "questions-physics.ts", "questions-biology.ts", "questions-mid-maths.ts", "questions-mid-computing.ts", "questions-mid-physics.ts", "questions-mid-chemistry.ts", "questions-mid-biology.ts", "questions-senior.ts", "numeric-items.ts", "numeric-items-core.ts", "answer.ts", "questions.ts"]) {
+for (const file of ["types.ts", "i18n.ts", "genome.ts", "curricula/registry.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-computing.ts", "questions-chemistry.ts", "questions-physics.ts", "questions-biology.ts", "questions-mid-maths.ts", "questions-mid-computing.ts", "questions-mid-physics.ts", "questions-mid-chemistry.ts", "questions-mid-biology.ts", "questions-senior.ts", "numeric-items.ts", "numeric-items-core.ts", "answer.ts", "questions.ts"]) {
   const src = fs.readFileSync(path.join(LIB, file), "utf8");
   const js = ts.transpileModule(src, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   // `./qterms` -> `./qterms.mjs`, so the emitted ESM actually resolves.
   const linked = js.replace(/(from\s*")(\.\/[^"]+)(")/g, "$1$2.mjs$3");
-  fs.writeFileSync(path.join(TMP, file.replace(/\.ts$/, ".mjs")), linked);
+  // The mirror keeps the SOURCE's relative shape, because the mirror is what
+  // resolves the imports: `curricula/registry.ts` becomes
+  // `<tmp>/curricula/registry.mjs` so that `./curricula/registry` in the
+  // compiled curriculum.ts still points at it. A flat mirror (the first version
+  // of this list) only worked while every file lived in lib/ root.
+  const dest = path.join(TMP, file.replace(/\.ts$/, ".mjs"));
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, linked);
 }
 const { generateQuestion, GENERATED_CONCEPT_IDS } = await import(
   pathToFileURL(path.join(TMP, "questions.mjs")).href,
@@ -404,14 +411,28 @@ for (const conceptId of GENERATED_CONCEPT_IDS) {
 // date, is a broken claim about the product and FAILS this audit: a review
 // nobody signed is indistinguishable from decoration, which is the failure mode
 // this whole file exists to prevent.
+const REVIEWS_PATH = "audit/item-reviews.json";
 const reviews = (() => {
+  // THREE STATES, THREE SEVERITIES. An ABSENT registry is not a fault: it says
+  // nobody has recorded a review, which the coverage line already reports as 0
+  // human-reviewed — failing here would make a deleted file look like broken
+  // content. An UNREADABLE one is corruption and fails loudly, and a file whose
+  // shape is wrong fails too, because silently reading it as "no reviews" would
+  // erase real review claims without a word. Measured: before this, removing the
+  // file turned the audit red with an ENOENT, which is the wrong severity.
+  if (!fs.existsSync(REVIEWS_PATH)) return [];
+  let raw;
   try {
-    const raw = JSON.parse(fs.readFileSync("audit/item-reviews.json", "utf8"));
-    return Array.isArray(raw.reviews) ? raw.reviews : [];
+    raw = JSON.parse(fs.readFileSync(REVIEWS_PATH, "utf8"));
   } catch (e) {
-    add("item-reviews", "review registry unreadable", String(e && e.message ? e.message : e));
+    add("item-reviews", "review registry unreadable (corrupt)", String(e && e.message ? e.message : e));
     return [];
   }
+  if (!raw || !Array.isArray(raw.reviews)) {
+    add("item-reviews", "review registry present but its `reviews` array is missing", typeof raw);
+    return [];
+  }
+  return raw.reviews;
 })();
 const reviewedIds = new Set();
 for (const r of reviews) {

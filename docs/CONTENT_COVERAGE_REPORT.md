@@ -11,7 +11,7 @@ npm run verify          # compiles the .verify mirror this reads
 npm run content-audit -- --json --report
 ```
 
-**At:** 2026-10-07T21:44:00.336Z
+**At:** 2026-10-13T21:31:15.861Z
 **Search budget:** 40 draws per serve (production is `PRACTICE_DRAW_ATTEMPTS`)
 **Serves per concept:** 5
 
@@ -49,7 +49,7 @@ More draws can only ever fix an A, and the audit measures that directly: the sam
 `--attempts=400` reports the A count for a 10× budget. If A does not fall, the shortfall was
 never a search problem, and raising the budget would have been a change that fixed nothing.
 
-## 1. Every course × subject (271 rows)
+## 1. Every course × subject (311 rows)
 
 `decl` declared · `tier` the ladder's own tier after its clamp · `ladder` target (stretch rung) ·
 `ceiling` mean concept ceiling · `served` mean served difficulty · `at tgt` concepts whose serve
@@ -62,162 +62,192 @@ reaches the target · `A/B/C` shortfall causes · `recall` share of served items
 | uk-alevel | A2 | chemistry | 0.9 | 0.7 | 0.9 | 0.949 | 0.902 | 12/12 | 0/0/0 | 0% |
 | uk-alevel | A2 | biology | 0.9 | 0.7 | 0.9 | 0.956 | 0.905 | 8/8 | 0/0/0 | 0% |
 | uk-alevel | A2 | computing | 0.9 | 0.7 | 0.9 | 0.951 | 0.901 | 10/10 | 0/0/0 | 0% |
-| int-ib | Diploma HL | maths | 0.9 | 0.7 | 0.9 | 0.825 | 0.812 | 55/63 | 0/8/0 | 3% |
+| int-ib | Diploma HL | maths | 0.9 | 0.7 | 0.9 | 0.89 | 0.875 | 55/55 | 0/0/0 | 0% |
 | int-ib | Diploma HL | physics | 0.9 | 0.7 | 0.9 | 0.922 | 0.885 | 18/18 | 0/0/0 | 0% |
 | int-ib | Diploma HL | chemistry | 0.9 | 0.7 | 0.9 | 0.926 | 0.889 | 16/16 | 0/0/0 | 0% |
 | int-ib | Diploma HL | biology | 0.9 | 0.7 | 0.9 | 0.931 | 0.891 | 16/16 | 0/0/0 | 0% |
 | int-ib | Diploma HL | computing | 0.9 | 0.7 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
+| cm-gce-a | Upper Sixth · GCE A Level | maths | 0.9 | 0.7 | 0.9 | 0.921 | 0.9 | 43/43 | 0/0/0 | 0% |
+| cm-gce-a | Upper Sixth · GCE A Level | physics | 0.9 | 0.7 | 0.9 | 0.944 | 0.894 | 14/14 | 0/0/0 | 0% |
+| cm-gce-a | Upper Sixth · GCE A Level | chemistry | 0.9 | 0.7 | 0.9 | 0.949 | 0.9 | 12/12 | 0/0/0 | 0% |
+| cm-gce-a | Upper Sixth · GCE A Level | biology | 0.9 | 0.7 | 0.9 | 0.956 | 0.907 | 8/8 | 0/0/0 | 0% |
+| cm-gce-a | Upper Sixth · GCE A Level | computing | 0.9 | 0.7 | 0.9 | 0.951 | 0.901 | 10/10 | 0/0/0 | 0% |
 | us-ap | AP | maths | 0.85 | 0.7 | 0.9 | 0.921 | 0.899 | 43/43 | 0/0/0 | 0% |
 | us-ap | AP | physics | 0.85 | 0.7 | 0.9 | 0.944 | 0.897 | 14/14 | 0/0/0 | 0% |
 | us-ap | AP | chemistry | 0.85 | 0.7 | 0.9 | 0.949 | 0.901 | 12/12 | 0/0/0 | 0% |
 | us-ap | AP | biology | 0.85 | 0.7 | 0.9 | 0.956 | 0.905 | 8/8 | 0/0/0 | 0% |
 | us-ap | AP | computing | 0.85 | 0.7 | 0.9 | 0.951 | 0.9 | 10/10 | 0/0/0 | 0% |
-| in-cbse | Class 11–12 | maths | 0.85 | 0.7 | 0.9 | 0.825 | 0.812 | 55/63 | 0/8/0 | 3% |
+| in-cbse | Class 11–12 | maths | 0.85 | 0.7 | 0.9 | 0.89 | 0.876 | 55/55 | 0/0/0 | 0% |
 | in-cbse | Class 11–12 | physics | 0.85 | 0.7 | 0.9 | 0.922 | 0.882 | 18/18 | 0/0/0 | 0% |
 | in-cbse | Class 11–12 | chemistry | 0.85 | 0.7 | 0.9 | 0.926 | 0.89 | 16/16 | 0/0/0 | 0% |
 | in-cbse | Class 11–12 | biology | 0.85 | 0.7 | 0.9 | 0.931 | 0.892 | 16/16 | 0/0/0 | 0% |
 | in-cbse | Class 11–12 | computing | 0.85 | 0.7 | 0.9 | 0.951 | 0.899 | 18/18 | 0/0/0 | 0% |
-| in-icse | ISC 11–12 | maths | 0.85 | 0.7 | 0.9 | 0.825 | 0.811 | 55/63 | 0/8/0 | 3% |
+| in-icse | ISC 11–12 | maths | 0.85 | 0.7 | 0.9 | 0.89 | 0.875 | 55/55 | 0/0/0 | 0% |
 | in-icse | ISC 11–12 | physics | 0.85 | 0.7 | 0.9 | 0.922 | 0.883 | 18/18 | 0/0/0 | 0% |
 | in-icse | ISC 11–12 | chemistry | 0.85 | 0.7 | 0.9 | 0.926 | 0.89 | 16/16 | 0/0/0 | 0% |
 | in-icse | ISC 11–12 | biology | 0.85 | 0.7 | 0.9 | 0.931 | 0.893 | 16/16 | 0/0/0 | 0% |
 | in-icse | ISC 11–12 | computing | 0.85 | 0.7 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
-| any-independent | Advanced | maths | 0.8 | 0.7 | 0.9 | 0.831 | 0.817 | 59/67 | 0/8/0 | 3% |
+| any-independent | Advanced | maths | 0.8 | 0.7 | 0.9 | 0.893 | 0.877 | 59/59 | 0/0/0 | 0% |
 | any-independent | Advanced | physics | 0.8 | 0.7 | 0.9 | 0.922 | 0.886 | 18/18 | 0/0/0 | 0% |
 | any-independent | Advanced | chemistry | 0.8 | 0.7 | 0.9 | 0.926 | 0.889 | 16/16 | 0/0/0 | 0% |
 | any-independent | Advanced | biology | 0.8 | 0.7 | 0.9 | 0.931 | 0.892 | 16/16 | 0/0/0 | 0% |
 | any-independent | Advanced | computing | 0.8 | 0.7 | 0.9 | 0.951 | 0.901 | 18/18 | 0/0/0 | 0% |
-| bd-ssc | Class 11–12 (HSC) | maths | 0.78 | 0.7 | 0.9 | 0.825 | 0.812 | 55/63 | 0/8/0 | 3% |
+| bd-ssc | Class 11–12 (HSC) | maths | 0.78 | 0.7 | 0.9 | 0.89 | 0.875 | 55/55 | 0/0/0 | 0% |
 | bd-ssc | Class 11–12 (HSC) | physics | 0.78 | 0.7 | 0.9 | 0.922 | 0.876 | 18/18 | 0/0/0 | 0% |
 | bd-ssc | Class 11–12 (HSC) | chemistry | 0.78 | 0.7 | 0.9 | 0.923 | 0.889 | 15/15 | 0/0/0 | 0% |
 | bd-ssc | Class 11–12 (HSC) | biology | 0.78 | 0.7 | 0.9 | 0.931 | 0.893 | 16/16 | 0/0/0 | 0% |
 | bd-ssc | Class 11–12 (HSC) | computing | 0.78 | 0.7 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
+| cm-gce-a | Lower Sixth | maths | 0.78 | 0.7 | 0.9 | 0.919 | 0.898 | 39/39 | 0/0/0 | 0% |
+| cm-gce-a | Lower Sixth | physics | 0.78 | 0.7 | 0.9 | 0.944 | 0.897 | 14/14 | 0/0/0 | 0% |
+| cm-gce-a | Lower Sixth | chemistry | 0.78 | 0.7 | 0.9 | 0.949 | 0.902 | 12/12 | 0/0/0 | 0% |
+| cm-gce-a | Lower Sixth | biology | 0.78 | 0.7 | 0.9 | 0.956 | 0.905 | 8/8 | 0/0/0 | 0% |
+| cm-gce-a | Lower Sixth | computing | 0.78 | 0.7 | 0.9 | 0.951 | 0.901 | 10/10 | 0/0/0 | 0% |
 | uk-alevel | AS | maths | 0.75 | 0.7 | 0.9 | 0.919 | 0.899 | 39/39 | 0/0/0 | 0% |
 | uk-alevel | AS | physics | 0.75 | 0.7 | 0.9 | 0.944 | 0.894 | 14/14 | 0/0/0 | 0% |
 | uk-alevel | AS | chemistry | 0.75 | 0.7 | 0.9 | 0.949 | 0.902 | 12/12 | 0/0/0 | 0% |
 | uk-alevel | AS | biology | 0.75 | 0.7 | 0.9 | 0.956 | 0.906 | 8/8 | 0/0/0 | 0% |
 | uk-alevel | AS | computing | 0.75 | 0.7 | 0.9 | 0.951 | 0.9 | 10/10 | 0/0/0 | 0% |
-| pk-matric | Class 11–12 (Inter) | maths | 0.75 | 0.7 | 0.9 | 0.825 | 0.812 | 55/63 | 0/8/0 | 3% |
+| pk-matric | Class 11–12 (Inter) | maths | 0.75 | 0.7 | 0.9 | 0.89 | 0.875 | 55/55 | 0/0/0 | 0% |
 | pk-matric | Class 11–12 (Inter) | physics | 0.75 | 0.7 | 0.9 | 0.922 | 0.883 | 18/18 | 0/0/0 | 0% |
 | pk-matric | Class 11–12 (Inter) | chemistry | 0.75 | 0.7 | 0.9 | 0.923 | 0.889 | 15/15 | 0/0/0 | 0% |
 | pk-matric | Class 11–12 (Inter) | biology | 0.75 | 0.7 | 0.9 | 0.931 | 0.893 | 16/16 | 0/0/0 | 0% |
 | pk-matric | Class 11–12 (Inter) | computing | 0.75 | 0.7 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
-| int-ib | Diploma SL | maths | 0.7 | 0.7 | 0.9 | 0.825 | 0.813 | 55/63 | 0/8/0 | 3% |
+| cm-bac | Terminale · Baccalauréat | maths | 0.75 | 0.7 | 0.9 | 0.89 | 0.875 | 55/55 | 0/0/0 | 0% |
+| cm-bac | Terminale · Baccalauréat | physics | 0.75 | 0.7 | 0.9 | 0.922 | 0.882 | 18/18 | 0/0/0 | 0% |
+| cm-bac | Terminale · Baccalauréat | chemistry | 0.75 | 0.7 | 0.9 | 0.926 | 0.889 | 16/16 | 0/0/0 | 0% |
+| cm-bac | Terminale · Baccalauréat | biology | 0.75 | 0.7 | 0.9 | 0.931 | 0.892 | 16/16 | 0/0/0 | 0% |
+| cm-bac | Terminale · Baccalauréat | computing | 0.75 | 0.7 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
+| int-ib | Diploma SL | maths | 0.7 | 0.7 | 0.9 | 0.89 | 0.876 | 55/55 | 0/0/0 | 0% |
 | int-ib | Diploma SL | physics | 0.7 | 0.7 | 0.9 | 0.922 | 0.882 | 18/18 | 0/0/0 | 0% |
 | int-ib | Diploma SL | chemistry | 0.7 | 0.7 | 0.9 | 0.926 | 0.89 | 16/16 | 0/0/0 | 0% |
 | int-ib | Diploma SL | biology | 0.7 | 0.7 | 0.9 | 0.931 | 0.892 | 16/16 | 0/0/0 | 0% |
 | int-ib | Diploma SL | computing | 0.7 | 0.7 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
-| au-acara | Senior secondary | maths | 0.7 | 0.7 | 0.9 | 0.825 | 0.812 | 55/63 | 0/8/0 | 3% |
+| au-acara | Senior secondary | maths | 0.7 | 0.7 | 0.9 | 0.89 | 0.876 | 55/55 | 0/0/0 | 0% |
 | au-acara | Senior secondary | physics | 0.7 | 0.7 | 0.9 | 0.922 | 0.885 | 18/18 | 0/0/0 | 0% |
 | au-acara | Senior secondary | chemistry | 0.7 | 0.7 | 0.9 | 0.923 | 0.888 | 15/15 | 0/0/0 | 0% |
 | au-acara | Senior secondary | biology | 0.7 | 0.7 | 0.9 | 0.931 | 0.893 | 16/16 | 0/0/0 | 0% |
 | au-acara | Senior secondary | computing | 0.7 | 0.7 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
-| ie-junior | Senior Cycle | maths | 0.7 | 0.7 | 0.9 | 0.825 | 0.811 | 55/63 | 0/8/0 | 3% |
+| ie-junior | Senior Cycle | maths | 0.7 | 0.7 | 0.9 | 0.89 | 0.874 | 55/55 | 0/0/0 | 0% |
 | ie-junior | Senior Cycle | physics | 0.7 | 0.7 | 0.9 | 0.922 | 0.883 | 18/18 | 0/0/0 | 0% |
 | ie-junior | Senior Cycle | chemistry | 0.7 | 0.7 | 0.9 | 0.923 | 0.889 | 15/15 | 0/0/0 | 0% |
 | ie-junior | Senior Cycle | biology | 0.7 | 0.7 | 0.9 | 0.931 | 0.892 | 16/16 | 0/0/0 | 0% |
 | ie-junior | Senior Cycle | computing | 0.7 | 0.7 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
-| ke-kcse | Form 4 (KCSE) | maths | 0.7 | 0.7 | 0.9 | 0.825 | 0.812 | 55/63 | 0/8/0 | 3% |
+| ke-kcse | Form 4 (KCSE) | maths | 0.7 | 0.7 | 0.9 | 0.89 | 0.876 | 55/55 | 0/0/0 | 0% |
 | ke-kcse | Form 4 (KCSE) | physics | 0.7 | 0.7 | 0.9 | 0.922 | 0.88 | 18/18 | 0/0/0 | 0% |
 | ke-kcse | Form 4 (KCSE) | chemistry | 0.7 | 0.7 | 0.9 | 0.923 | 0.889 | 15/15 | 0/0/0 | 0% |
 | ke-kcse | Form 4 (KCSE) | biology | 0.7 | 0.7 | 0.9 | 0.931 | 0.894 | 16/16 | 0/0/0 | 0% |
 | ke-kcse | Form 4 (KCSE) | computing | 0.7 | 0.7 | 0.9 | 0.951 | 0.901 | 18/18 | 0/0/0 | 0% |
-| ng-waec | SSS 1–3 (WAEC) | maths | 0.7 | 0.7 | 0.9 | 0.825 | 0.811 | 55/63 | 0/8/0 | 3% |
+| ng-waec | SSS 1–3 (WAEC) | maths | 0.7 | 0.7 | 0.9 | 0.89 | 0.875 | 55/55 | 0/0/0 | 0% |
 | ng-waec | SSS 1–3 (WAEC) | physics | 0.7 | 0.7 | 0.9 | 0.922 | 0.886 | 18/18 | 0/0/0 | 0% |
 | ng-waec | SSS 1–3 (WAEC) | chemistry | 0.7 | 0.7 | 0.9 | 0.923 | 0.888 | 15/15 | 0/0/0 | 0% |
 | ng-waec | SSS 1–3 (WAEC) | biology | 0.7 | 0.7 | 0.9 | 0.931 | 0.893 | 16/16 | 0/0/0 | 0% |
 | ng-waec | SSS 1–3 (WAEC) | computing | 0.7 | 0.7 | 0.9 | 0.951 | 0.901 | 18/18 | 0/0/0 | 0% |
-| br-enem | Médio (ENEM) | maths | 0.7 | 0.7 | 0.9 | 0.825 | 0.812 | 55/63 | 0/8/0 | 3% |
+| br-enem | Médio (ENEM) | maths | 0.7 | 0.7 | 0.9 | 0.89 | 0.876 | 55/55 | 0/0/0 | 0% |
 | br-enem | Médio (ENEM) | physics | 0.7 | 0.7 | 0.9 | 0.922 | 0.879 | 18/18 | 0/0/0 | 0% |
 | br-enem | Médio (ENEM) | chemistry | 0.7 | 0.7 | 0.9 | 0.923 | 0.888 | 15/15 | 0/0/0 | 0% |
 | br-enem | Médio (ENEM) | biology | 0.7 | 0.7 | 0.9 | 0.931 | 0.893 | 16/16 | 0/0/0 | 0% |
 | br-enem | Médio (ENEM) | computing | 0.7 | 0.7 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
-| mx-sep | Preparatoria | maths | 0.7 | 0.7 | 0.9 | 0.825 | 0.812 | 55/63 | 0/8/0 | 3% |
+| mx-sep | Preparatoria | maths | 0.7 | 0.7 | 0.9 | 0.89 | 0.876 | 55/55 | 0/0/0 | 0% |
 | mx-sep | Preparatoria | physics | 0.7 | 0.7 | 0.9 | 0.922 | 0.885 | 18/18 | 0/0/0 | 0% |
 | mx-sep | Preparatoria | chemistry | 0.7 | 0.7 | 0.9 | 0.923 | 0.889 | 15/15 | 0/0/0 | 0% |
 | mx-sep | Preparatoria | biology | 0.7 | 0.7 | 0.9 | 0.931 | 0.892 | 16/16 | 0/0/0 | 0% |
 | mx-sep | Preparatoria | computing | 0.7 | 0.7 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
-| gh-wassce | SHS 1–3 (WASSCE) | maths | 0.68 | 0.68 | 0.9 | 0.825 | 0.812 | 55/63 | 0/8/0 | 3% |
+| gh-wassce | SHS 1–3 (WASSCE) | maths | 0.68 | 0.68 | 0.9 | 0.89 | 0.876 | 55/55 | 0/0/0 | 0% |
 | gh-wassce | SHS 1–3 (WASSCE) | physics | 0.68 | 0.68 | 0.9 | 0.922 | 0.88 | 18/18 | 0/0/0 | 0% |
 | gh-wassce | SHS 1–3 (WASSCE) | chemistry | 0.68 | 0.68 | 0.9 | 0.923 | 0.888 | 15/15 | 0/0/0 | 0% |
 | gh-wassce | SHS 1–3 (WASSCE) | biology | 0.68 | 0.68 | 0.9 | 0.931 | 0.891 | 16/16 | 0/0/0 | 0% |
 | gh-wassce | SHS 1–3 (WASSCE) | computing | 0.68 | 0.68 | 0.9 | 0.951 | 0.901 | 18/18 | 0/0/0 | 0% |
-| ph-deped | Senior High | maths | 0.68 | 0.68 | 0.9 | 0.825 | 0.812 | 55/63 | 0/8/0 | 3% |
+| ph-deped | Senior High | maths | 0.68 | 0.68 | 0.9 | 0.89 | 0.875 | 55/55 | 0/0/0 | 0% |
 | ph-deped | Senior High | physics | 0.68 | 0.68 | 0.9 | 0.922 | 0.879 | 18/18 | 0/0/0 | 0% |
 | ph-deped | Senior High | chemistry | 0.68 | 0.68 | 0.9 | 0.923 | 0.888 | 15/15 | 0/0/0 | 0% |
 | ph-deped | Senior High | biology | 0.68 | 0.68 | 0.9 | 0.931 | 0.892 | 16/16 | 0/0/0 | 0% |
 | ph-deped | Senior High | computing | 0.68 | 0.68 | 0.9 | 0.951 | 0.901 | 18/18 | 0/0/0 | 0% |
-| id-merdeka | SMA 10–12 | maths | 0.68 | 0.68 | 0.9 | 0.825 | 0.812 | 55/63 | 0/8/0 | 3% |
+| id-merdeka | SMA 10–12 | maths | 0.68 | 0.68 | 0.9 | 0.89 | 0.876 | 55/55 | 0/0/0 | 0% |
 | id-merdeka | SMA 10–12 | physics | 0.68 | 0.68 | 0.9 | 0.922 | 0.883 | 18/18 | 0/0/0 | 0% |
 | id-merdeka | SMA 10–12 | chemistry | 0.68 | 0.68 | 0.9 | 0.923 | 0.889 | 15/15 | 0/0/0 | 0% |
 | id-merdeka | SMA 10–12 | biology | 0.68 | 0.68 | 0.9 | 0.931 | 0.892 | 16/16 | 0/0/0 | 0% |
 | id-merdeka | SMA 10–12 | computing | 0.68 | 0.68 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
-| uk-gcse | Higher tier | maths | 0.65 | 0.65 | 0.87 | 0.825 | 0.798 | 55/63 | 0/8/0 | 3% |
+| cm-probatoire | 1re · Probatoire | maths | 0.68 | 0.68 | 0.9 | 0.89 | 0.875 | 55/55 | 0/0/0 | 0% |
+| cm-probatoire | 1re · Probatoire | physics | 0.68 | 0.68 | 0.9 | 0.922 | 0.887 | 18/18 | 0/0/0 | 0% |
+| cm-probatoire | 1re · Probatoire | chemistry | 0.68 | 0.68 | 0.9 | 0.926 | 0.89 | 16/16 | 0/0/0 | 0% |
+| cm-probatoire | 1re · Probatoire | biology | 0.68 | 0.68 | 0.9 | 0.931 | 0.893 | 16/16 | 0/0/0 | 0% |
+| cm-probatoire | 1re · Probatoire | computing | 0.68 | 0.68 | 0.9 | 0.951 | 0.9 | 18/18 | 0/0/0 | 0% |
+| uk-gcse | Higher tier | maths | 0.65 | 0.65 | 0.87 | 0.89 | 0.859 | 55/55 | 0/0/0 | 0% |
 | uk-gcse | Higher tier | physics | 0.65 | 0.65 | 0.87 | 0.922 | 0.882 | 18/18 | 0/0/0 | 0% |
 | uk-gcse | Higher tier | chemistry | 0.65 | 0.65 | 0.87 | 0.923 | 0.889 | 15/15 | 0/0/0 | 0% |
 | uk-gcse | Higher tier | biology | 0.65 | 0.65 | 0.87 | 0.931 | 0.893 | 16/16 | 0/0/0 | 0% |
 | uk-gcse | Higher tier | computing | 0.65 | 0.65 | 0.87 | 0.951 | 0.889 | 18/18 | 0/0/0 | 0% |
-| int-igcse | Extended | maths | 0.65 | 0.65 | 0.87 | 0.825 | 0.797 | 55/63 | 0/8/0 | 3% |
+| int-igcse | Extended | maths | 0.65 | 0.65 | 0.87 | 0.89 | 0.858 | 55/55 | 0/0/0 | 0% |
 | int-igcse | Extended | physics | 0.65 | 0.65 | 0.87 | 0.922 | 0.883 | 18/18 | 0/0/0 | 0% |
 | int-igcse | Extended | chemistry | 0.65 | 0.65 | 0.87 | 0.923 | 0.888 | 15/15 | 0/0/0 | 0% |
 | int-igcse | Extended | biology | 0.65 | 0.65 | 0.87 | 0.931 | 0.892 | 16/16 | 0/0/0 | 0% |
 | int-igcse | Extended | computing | 0.65 | 0.65 | 0.87 | 0.951 | 0.887 | 18/18 | 0/0/0 | 0% |
-| us-core | Grades 9–12 | maths | 0.65 | 0.65 | 0.87 | 0.825 | 0.798 | 55/63 | 0/8/0 | 3% |
+| us-core | Grades 9–12 | maths | 0.65 | 0.65 | 0.87 | 0.89 | 0.859 | 55/55 | 0/0/0 | 0% |
 | us-core | Grades 9–12 | physics | 0.65 | 0.65 | 0.87 | 0.922 | 0.883 | 18/18 | 0/0/0 | 0% |
 | us-core | Grades 9–12 | chemistry | 0.65 | 0.65 | 0.87 | 0.923 | 0.888 | 15/15 | 0/0/0 | 0% |
 | us-core | Grades 9–12 | biology | 0.65 | 0.65 | 0.87 | 0.931 | 0.893 | 16/16 | 0/0/0 | 0% |
 | us-core | Grades 9–12 | computing | 0.65 | 0.65 | 0.87 | 0.951 | 0.887 | 18/18 | 0/0/0 | 0% |
-| ca-provincial | Grades 9–12 | maths | 0.65 | 0.65 | 0.87 | 0.825 | 0.798 | 55/63 | 0/8/0 | 3% |
+| ca-provincial | Grades 9–12 | maths | 0.65 | 0.65 | 0.87 | 0.89 | 0.86 | 55/55 | 0/0/0 | 0% |
 | ca-provincial | Grades 9–12 | physics | 0.65 | 0.65 | 0.87 | 0.922 | 0.886 | 18/18 | 0/0/0 | 0% |
 | ca-provincial | Grades 9–12 | chemistry | 0.65 | 0.65 | 0.87 | 0.923 | 0.888 | 15/15 | 0/0/0 | 0% |
 | ca-provincial | Grades 9–12 | biology | 0.65 | 0.65 | 0.87 | 0.931 | 0.891 | 16/16 | 0/0/0 | 0% |
 | ca-provincial | Grades 9–12 | computing | 0.65 | 0.65 | 0.87 | 0.951 | 0.887 | 18/18 | 0/0/0 | 0% |
-| za-nsc | Grades 10–12 | maths | 0.65 | 0.65 | 0.87 | 0.825 | 0.797 | 55/63 | 0/8/0 | 3% |
+| za-nsc | Grades 10–12 | maths | 0.65 | 0.65 | 0.87 | 0.89 | 0.859 | 55/55 | 0/0/0 | 0% |
 | za-nsc | Grades 10–12 | physics | 0.65 | 0.65 | 0.87 | 0.922 | 0.882 | 18/18 | 0/0/0 | 0% |
 | za-nsc | Grades 10–12 | chemistry | 0.65 | 0.65 | 0.87 | 0.923 | 0.889 | 15/15 | 0/0/0 | 0% |
 | za-nsc | Grades 10–12 | biology | 0.65 | 0.65 | 0.87 | 0.931 | 0.891 | 16/16 | 0/0/0 | 0% |
 | za-nsc | Grades 10–12 | computing | 0.65 | 0.65 | 0.87 | 0.954 | 0.887 | 14/14 | 0/0/0 | 0% |
-| tz-csee | Form 4 (CSEE) | maths | 0.65 | 0.65 | 0.87 | 0.825 | 0.797 | 55/63 | 0/8/0 | 3% |
+| tz-csee | Form 4 (CSEE) | maths | 0.65 | 0.65 | 0.87 | 0.89 | 0.859 | 55/55 | 0/0/0 | 0% |
 | tz-csee | Form 4 (CSEE) | physics | 0.65 | 0.65 | 0.87 | 0.922 | 0.885 | 18/18 | 0/0/0 | 0% |
 | tz-csee | Form 4 (CSEE) | chemistry | 0.65 | 0.65 | 0.87 | 0.923 | 0.888 | 15/15 | 0/0/0 | 0% |
 | tz-csee | Form 4 (CSEE) | biology | 0.65 | 0.65 | 0.87 | 0.931 | 0.893 | 16/16 | 0/0/0 | 0% |
 | tz-csee | Form 4 (CSEE) | computing | 0.65 | 0.65 | 0.87 | 0.954 | 0.888 | 14/14 | 0/0/0 | 0% |
-| ug-uce | S4 (UCE) | maths | 0.65 | 0.65 | 0.87 | 0.825 | 0.798 | 55/63 | 0/8/0 | 3% |
+| ug-uce | S4 (UCE) | maths | 0.65 | 0.65 | 0.87 | 0.89 | 0.86 | 55/55 | 0/0/0 | 0% |
 | ug-uce | S4 (UCE) | physics | 0.65 | 0.65 | 0.87 | 0.922 | 0.883 | 18/18 | 0/0/0 | 0% |
 | ug-uce | S4 (UCE) | chemistry | 0.65 | 0.65 | 0.87 | 0.923 | 0.888 | 15/15 | 0/0/0 | 0% |
 | ug-uce | S4 (UCE) | biology | 0.65 | 0.65 | 0.87 | 0.931 | 0.892 | 16/16 | 0/0/0 | 0% |
 | ug-uce | S4 (UCE) | computing | 0.65 | 0.65 | 0.87 | 0.954 | 0.886 | 14/14 | 0/0/0 | 0% |
-| us-sat | Digital SAT | maths | 0.6 | 0.6 | 0.82 | 0.807 | 0.771 | 45/53 | 0/8/0 | 4% |
+| us-sat | Digital SAT | maths | 0.6 | 0.6 | 0.82 | 0.883 | 0.841 | 45/45 | 0/0/0 | 0% |
 | in-icse | Class 10 | maths | 0.6 | 0.6 | 0.82 | 0.825 | 0.788 | 55/63 | 0/8/0 | 3% |
 | in-icse | Class 10 | physics | 0.6 | 0.6 | 0.82 | 0.922 | 0.865 | 18/18 | 0/0/0 | 0% |
 | in-icse | Class 10 | chemistry | 0.6 | 0.6 | 0.82 | 0.926 | 0.878 | 16/16 | 0/0/0 | 0% |
 | in-icse | Class 10 | biology | 0.6 | 0.6 | 0.82 | 0.931 | 0.885 | 16/16 | 0/0/0 | 0% |
 | in-icse | Class 10 | computing | 0.6 | 0.6 | 0.82 | 0.951 | 0.887 | 18/18 | 0/0/0 | 0% |
+| cm-gce-o | Form 5 · GCE O Level | maths | 0.6 | 0.6 | 0.82 | 0.813 | 0.779 | 48/56 | 0/8/0 | 4% |
+| cm-gce-o | Form 5 · GCE O Level | physics | 0.6 | 0.6 | 0.82 | 0.922 | 0.868 | 18/18 | 0/0/0 | 0% |
+| cm-gce-o | Form 5 · GCE O Level | chemistry | 0.6 | 0.6 | 0.82 | 0.923 | 0.877 | 15/15 | 0/0/0 | 0% |
+| cm-gce-o | Form 5 · GCE O Level | biology | 0.6 | 0.6 | 0.82 | 0.931 | 0.884 | 16/16 | 0/0/0 | 0% |
+| cm-gce-o | Form 5 · GCE O Level | computing | 0.6 | 0.6 | 0.82 | 0.954 | 0.888 | 14/14 | 0/0/0 | 0% |
 | in-cbse | Class 10 | maths | 0.55 | 0.55 | 0.77 | 0.811 | 0.692 | 47/55 | 0/8/0 | 4% |
 | in-cbse | Class 10 | physics | 0.55 | 0.55 | 0.77 | 0.922 | 0.741 | 18/18 | 0/0/0 | 0% |
 | in-cbse | Class 10 | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.726 | 15/15 | 0/0/0 | 0% |
 | in-cbse | Class 10 | biology | 0.55 | 0.55 | 0.77 | 0.931 | 0.74 | 16/16 | 0/0/0 | 0% |
-| in-cbse | Class 10 | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.729 | 18/18 | 0/0/0 | 0% |
+| in-cbse | Class 10 | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.73 | 18/18 | 0/0/0 | 0% |
 | pk-matric | Class 9–10 (Matric) | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.692 | 48/56 | 0/8/0 | 4% |
 | pk-matric | Class 9–10 (Matric) | physics | 0.55 | 0.55 | 0.77 | 0.922 | 0.741 | 18/18 | 0/0/0 | 0% |
 | pk-matric | Class 9–10 (Matric) | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.724 | 15/15 | 0/0/0 | 0% |
 | pk-matric | Class 9–10 (Matric) | biology | 0.55 | 0.55 | 0.77 | 0.931 | 0.728 | 16/16 | 0/0/0 | 0% |
-| pk-matric | Class 9–10 (Matric) | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.735 | 18/18 | 0/0/0 | 0% |
+| pk-matric | Class 9–10 (Matric) | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.736 | 18/18 | 0/0/0 | 0% |
 | bd-ssc | Class 9–10 (SSC) | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.692 | 48/56 | 0/8/0 | 4% |
 | bd-ssc | Class 9–10 (SSC) | physics | 0.55 | 0.55 | 0.77 | 0.922 | 0.742 | 18/18 | 0/0/0 | 0% |
 | bd-ssc | Class 9–10 (SSC) | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.734 | 15/15 | 0/0/0 | 0% |
 | bd-ssc | Class 9–10 (SSC) | biology | 0.55 | 0.55 | 0.77 | 0.931 | 0.74 | 16/16 | 0/0/0 | 0% |
-| bd-ssc | Class 9–10 (SSC) | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.734 | 18/18 | 0/0/0 | 0% |
+| bd-ssc | Class 9–10 (SSC) | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.735 | 18/18 | 0/0/0 | 0% |
 | ke-kcse | Form 3 | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.69 | 48/56 | 0/8/0 | 4% |
 | ke-kcse | Form 3 | physics | 0.55 | 0.55 | 0.77 | 0.922 | 0.736 | 18/18 | 0/0/0 | 0% |
 | ke-kcse | Form 3 | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.745 | 15/15 | 0/0/0 | 0% |
 | ke-kcse | Form 3 | biology | 0.55 | 0.55 | 0.77 | 0.931 | 0.736 | 16/16 | 0/0/0 | 0% |
-| ke-kcse | Form 3 | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.728 | 18/18 | 0/0/0 | 0% |
+| ke-kcse | Form 3 | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.729 | 18/18 | 0/0/0 | 0% |
 | any-independent | Core | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.692 | 48/56 | 0/8/0 | 4% |
 | any-independent | Core | physics | 0.55 | 0.55 | 0.77 | 0.922 | 0.734 | 18/18 | 0/0/0 | 0% |
 | any-independent | Core | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.749 | 15/15 | 0/0/0 | 0% |
 | any-independent | Core | biology | 0.55 | 0.55 | 0.77 | 0.931 | 0.731 | 16/16 | 0/0/0 | 0% |
 | any-independent | Core | computing | 0.55 | 0.55 | 0.77 | 0.951 | 0.731 | 18/18 | 0/0/0 | 0% |
+| cm-bepc | 3e · BEPC | maths | 0.55 | 0.55 | 0.77 | 0.813 | 0.691 | 48/56 | 0/8/0 | 4% |
+| cm-bepc | 3e · BEPC | physics | 0.55 | 0.55 | 0.77 | 0.922 | 0.739 | 18/18 | 0/0/0 | 0% |
+| cm-bepc | 3e · BEPC | chemistry | 0.55 | 0.55 | 0.77 | 0.923 | 0.745 | 15/15 | 0/0/0 | 0% |
+| cm-bepc | 3e · BEPC | biology | 0.55 | 0.55 | 0.77 | 0.931 | 0.734 | 16/16 | 0/0/0 | 0% |
+| cm-bepc | 3e · BEPC | computing | 0.55 | 0.55 | 0.77 | 0.954 | 0.741 | 14/14 | 0/0/0 | 0% |
 | au-acara | Years 7–10 | maths | 0.5 | 0.5 | 0.72 | 0.813 | 0.676 | 48/56 | 0/8/0 | 4% |
 | au-acara | Years 7–10 | physics | 0.5 | 0.5 | 0.72 | 0.922 | 0.73 | 18/18 | 0/0/0 | 0% |
 | au-acara | Years 7–10 | chemistry | 0.5 | 0.5 | 0.72 | 0.923 | 0.72 | 15/15 | 0/0/0 | 0% |
@@ -238,6 +268,11 @@ reaches the target · `A/B/C` shortfall causes · `recall` share of served items
 | ie-junior | Junior Cycle | chemistry | 0.45 | 0.45 | 0.67 | 0.911 | 0.672 | 11/11 | 0/0/0 | 0% |
 | ie-junior | Junior Cycle | biology | 0.45 | 0.45 | 0.67 | 0.924 | 0.664 | 13/13 | 0/0/0 | 0% |
 | ie-junior | Junior Cycle | computing | 0.45 | 0.45 | 0.67 | 0.954 | 0.674 | 14/14 | 0/0/0 | 0% |
+| cm-gce-o | Form 4 | maths | 0.45 | 0.45 | 0.67 | 0.776 | 0.628 | 34/42 | 0/8/0 | 5% |
+| cm-gce-o | Form 4 | physics | 0.45 | 0.45 | 0.67 | 0.924 | 0.648 | 14/14 | 0/0/0 | 0% |
+| cm-gce-o | Form 4 | chemistry | 0.45 | 0.45 | 0.67 | 0.911 | 0.666 | 11/11 | 0/0/0 | 0% |
+| cm-gce-o | Form 4 | biology | 0.45 | 0.45 | 0.67 | 0.924 | 0.654 | 13/13 | 0/0/0 | 0% |
+| cm-gce-o | Form 4 | computing | 0.45 | 0.45 | 0.67 | 0.954 | 0.673 | 14/14 | 0/0/0 | 0% |
 | in-icse | Class 8–9 | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.614 | 34/42 | 0/8/0 | 5% |
 | in-icse | Class 8–9 | physics | 0.42 | 0.42 | 0.64 | 0.924 | 0.645 | 14/14 | 0/0/0 | 0% |
 | in-icse | Class 8–9 | chemistry | 0.42 | 0.42 | 0.64 | 0.911 | 0.638 | 11/11 | 0/0/0 | 0% |
@@ -273,6 +308,11 @@ reaches the target · `A/B/C` shortfall causes · `recall` share of served items
 | mx-sep | Secundaria | chemistry | 0.42 | 0.42 | 0.64 | 0.911 | 0.654 | 11/11 | 0/0/0 | 0% |
 | mx-sep | Secundaria | biology | 0.42 | 0.42 | 0.64 | 0.924 | 0.649 | 13/13 | 0/0/0 | 0% |
 | mx-sep | Secundaria | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.654 | 14/14 | 0/0/0 | 0% |
+| cm-bepc | Cycle 1 · 6e–5e | maths | 0.42 | 0.42 | 0.64 | 0.776 | 0.612 | 34/42 | 0/8/0 | 5% |
+| cm-bepc | Cycle 1 · 6e–5e | physics | 0.42 | 0.42 | 0.64 | 0.924 | 0.634 | 14/14 | 0/0/0 | 0% |
+| cm-bepc | Cycle 1 · 6e–5e | chemistry | 0.42 | 0.42 | 0.64 | 0.911 | 0.651 | 11/11 | 0/0/0 | 0% |
+| cm-bepc | Cycle 1 · 6e–5e | biology | 0.42 | 0.42 | 0.64 | 0.924 | 0.652 | 13/13 | 0/0/0 | 0% |
+| cm-bepc | Cycle 1 · 6e–5e | computing | 0.42 | 0.42 | 0.64 | 0.954 | 0.649 | 14/14 | 0/0/0 | 0% |
 | int-igcse | Core | maths | 0.4 | 0.4 | 0.62 | 0.776 | 0.605 | 34/42 | 0/8/0 | 5% |
 | int-igcse | Core | physics | 0.4 | 0.4 | 0.62 | 0.924 | 0.637 | 14/14 | 0/0/0 | 0% |
 | int-igcse | Core | chemistry | 0.4 | 0.4 | 0.62 | 0.911 | 0.638 | 11/11 | 0/0/0 | 0% |
@@ -329,13 +369,13 @@ reaches the target · `A/B/C` shortfall causes · `recall` share of served items
 | any-independent | Foundations | biology | 0.35 | 0.35 | 0.57 | 0.906 | 0.527 | 8/8 | 0/0/0 | 0% |
 | any-independent | Foundations | computing | 0.35 | 0.35 | 0.57 | 0.952 | 0.508 | 8/8 | 0/0/0 | 0% |
 
-**0** shortfalls are search, **412** are generator ceilings, **0** are
+**0** shortfalls are search, **252** are generator ceilings, **0** are
 missing content.
 
 ## 2. The ladder's own tier cap
 
 `practiceTarget` clamps `tier` to **0.7** before the stretch uplift, so no course can aim above
-0.9 through practice however demanding its qualification is. **45** course×subject
+0.9 through practice however demanding its qualification is. **60** course×subject
 rows declare more than the ladder will ask for:
 
 | course | declared | ladder tier | shortfall by construction |
@@ -350,6 +390,11 @@ rows declare more than the ladder will ask for:
 | int-ib · Diploma HL (chemistry) | 0.9 | 0.7 | -0.2 |
 | int-ib · Diploma HL (biology) | 0.9 | 0.7 | -0.2 |
 | int-ib · Diploma HL (computing) | 0.9 | 0.7 | -0.2 |
+| cm-gce-a · Upper Sixth · GCE A Level (maths) | 0.9 | 0.7 | -0.2 |
+| cm-gce-a · Upper Sixth · GCE A Level (physics) | 0.9 | 0.7 | -0.2 |
+| cm-gce-a · Upper Sixth · GCE A Level (chemistry) | 0.9 | 0.7 | -0.2 |
+| cm-gce-a · Upper Sixth · GCE A Level (biology) | 0.9 | 0.7 | -0.2 |
+| cm-gce-a · Upper Sixth · GCE A Level (computing) | 0.9 | 0.7 | -0.2 |
 | us-ap · AP (maths) | 0.85 | 0.7 | -0.15 |
 | us-ap · AP (physics) | 0.85 | 0.7 | -0.15 |
 | us-ap · AP (chemistry) | 0.85 | 0.7 | -0.15 |
@@ -375,6 +420,11 @@ rows declare more than the ladder will ask for:
 | bd-ssc · Class 11–12 (HSC) (chemistry) | 0.78 | 0.7 | -0.08 |
 | bd-ssc · Class 11–12 (HSC) (biology) | 0.78 | 0.7 | -0.08 |
 | bd-ssc · Class 11–12 (HSC) (computing) | 0.78 | 0.7 | -0.08 |
+| cm-gce-a · Lower Sixth (maths) | 0.78 | 0.7 | -0.08 |
+| cm-gce-a · Lower Sixth (physics) | 0.78 | 0.7 | -0.08 |
+| cm-gce-a · Lower Sixth (chemistry) | 0.78 | 0.7 | -0.08 |
+| cm-gce-a · Lower Sixth (biology) | 0.78 | 0.7 | -0.08 |
+| cm-gce-a · Lower Sixth (computing) | 0.78 | 0.7 | -0.08 |
 | uk-alevel · AS (maths) | 0.75 | 0.7 | -0.05 |
 | uk-alevel · AS (physics) | 0.75 | 0.7 | -0.05 |
 | uk-alevel · AS (chemistry) | 0.75 | 0.7 | -0.05 |
@@ -385,6 +435,11 @@ rows declare more than the ladder will ask for:
 | pk-matric · Class 11–12 (Inter) (chemistry) | 0.75 | 0.7 | -0.05 |
 | pk-matric · Class 11–12 (Inter) (biology) | 0.75 | 0.7 | -0.05 |
 | pk-matric · Class 11–12 (Inter) (computing) | 0.75 | 0.7 | -0.05 |
+| cm-bac · Terminale · Baccalauréat (maths) | 0.75 | 0.7 | -0.05 |
+| cm-bac · Terminale · Baccalauréat (physics) | 0.75 | 0.7 | -0.05 |
+| cm-bac · Terminale · Baccalauréat (chemistry) | 0.75 | 0.7 | -0.05 |
+| cm-bac · Terminale · Baccalauréat (biology) | 0.75 | 0.7 | -0.05 |
+| cm-bac · Terminale · Baccalauréat (computing) | 0.75 | 0.7 | -0.05 |
 
 This is neither A nor B nor C: it is the serving policy, and raising the cap changes nothing
 until the content behind it exists, because the serve already falls back to the nearest
@@ -401,7 +456,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | uk-gcse · Foundation tier · chemistry | 15 | 15 | application, multi_step, data_interpretation | choice, numeric | none |
 | uk-gcse · Foundation tier · biology | 16 | 16 | application, multi_step, data_interpretation | choice, numeric | none |
 | uk-gcse · Foundation tier · computing | 18 | 18 | multi_step | choice, numeric | none |
-| uk-gcse · Higher tier · maths | 63 | 63 | recall, application, multi_step, data_interpretation | numeric, choice | none |
+| uk-gcse · Higher tier · maths | 55 | 55 | multi_step, data_interpretation | choice | none |
 | uk-gcse · Higher tier · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | uk-gcse · Higher tier · chemistry | 15 | 15 | data_interpretation | choice | none |
 | uk-gcse · Higher tier · biology | 16 | 16 | data_interpretation | choice | none |
@@ -421,7 +476,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | int-igcse · Core · chemistry | 11 | 11 | multi_step, data_interpretation | choice, numeric | none |
 | int-igcse · Core · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
 | int-igcse · Core · computing | 14 | 14 | multi_step | choice, numeric | none |
-| int-igcse · Extended · maths | 63 | 63 | recall, application, multi_step, data_interpretation | numeric, choice | none |
+| int-igcse · Extended · maths | 55 | 55 | multi_step, data_interpretation | choice | none |
 | int-igcse · Extended · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | int-igcse · Extended · chemistry | 15 | 15 | data_interpretation | choice | none |
 | int-igcse · Extended · biology | 16 | 16 | data_interpretation | choice | none |
@@ -431,12 +486,12 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | int-ib · MYP · chemistry | 11 | 11 | application, multi_step, data_interpretation | choice, numeric | none |
 | int-ib · MYP · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
 | int-ib · MYP · computing | 14 | 14 | application, multi_step, data_interpretation | choice, numeric | none |
-| int-ib · Diploma SL · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| int-ib · Diploma SL · maths | 55 | 55 | data_interpretation | choice | none |
 | int-ib · Diploma SL · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | int-ib · Diploma SL · chemistry | 16 | 16 | data_interpretation | choice | none |
 | int-ib · Diploma SL · biology | 16 | 16 | data_interpretation | choice | none |
 | int-ib · Diploma SL · computing | 18 | 18 | data_interpretation | choice | none |
-| int-ib · Diploma HL · maths | 63 | 63 | recall, application, multi_step, data_interpretation | numeric, choice | none |
+| int-ib · Diploma HL · maths | 55 | 55 | multi_step, data_interpretation | choice | none |
 | int-ib · Diploma HL · physics | 18 | 18 | data_interpretation | choice | none |
 | int-ib · Diploma HL · chemistry | 16 | 16 | data_interpretation | choice | none |
 | int-ib · Diploma HL · biology | 16 | 16 | data_interpretation | choice | none |
@@ -446,12 +501,12 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | us-core · Grades 6–8 · chemistry | 11 | 11 | multi_step, data_interpretation | choice, numeric | none |
 | us-core · Grades 6–8 · biology | 13 | 13 | multi_step, data_interpretation | choice, numeric | none |
 | us-core · Grades 6–8 · computing | 14 | 14 | application, multi_step | choice, numeric | none |
-| us-core · Grades 9–12 · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| us-core · Grades 9–12 · maths | 55 | 55 | data_interpretation | choice | none |
 | us-core · Grades 9–12 · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | us-core · Grades 9–12 · chemistry | 15 | 15 | data_interpretation | choice | none |
 | us-core · Grades 9–12 · biology | 16 | 16 | data_interpretation | choice | none |
 | us-core · Grades 9–12 · computing | 18 | 18 | data_interpretation | choice | none |
-| us-sat · Digital SAT · maths | 53 | 53 | recall, application, data_interpretation | numeric, choice | none |
+| us-sat · Digital SAT · maths | 45 | 45 | data_interpretation | choice | none |
 | us-ap · AP · maths | 43 | 43 | data_interpretation | choice | none |
 | us-ap · AP · physics | 14 | 14 | multi_step, data_interpretation | choice | none |
 | us-ap · AP · chemistry | 12 | 12 | data_interpretation | choice | none |
@@ -462,7 +517,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | ca-provincial · Grades 7–8 · chemistry | 11 | 11 | multi_step, data_interpretation | choice, numeric | none |
 | ca-provincial · Grades 7–8 · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
 | ca-provincial · Grades 7–8 · computing | 14 | 14 | multi_step | choice, numeric | none |
-| ca-provincial · Grades 9–12 · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| ca-provincial · Grades 9–12 · maths | 55 | 55 | data_interpretation | choice | none |
 | ca-provincial · Grades 9–12 · physics | 18 | 18 | data_interpretation | choice | none |
 | ca-provincial · Grades 9–12 · chemistry | 15 | 15 | data_interpretation | choice | none |
 | ca-provincial · Grades 9–12 · biology | 16 | 16 | data_interpretation | choice | none |
@@ -472,7 +527,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | za-nsc · Grades 8–9 · chemistry | 11 | 11 | multi_step, data_interpretation | choice, numeric | none |
 | za-nsc · Grades 8–9 · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
 | za-nsc · Grades 8–9 · computing | 14 | 14 | application, multi_step | choice, numeric | none |
-| za-nsc · Grades 10–12 · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| za-nsc · Grades 10–12 · maths | 55 | 55 | data_interpretation | choice | none |
 | za-nsc · Grades 10–12 · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | za-nsc · Grades 10–12 · chemistry | 15 | 15 | data_interpretation | choice | none |
 | za-nsc · Grades 10–12 · biology | 16 | 16 | multi_step, data_interpretation | choice | none |
@@ -482,7 +537,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | au-acara · Years 7–10 · chemistry | 15 | 15 | multi_step, data_interpretation | choice, numeric | none |
 | au-acara · Years 7–10 · biology | 16 | 16 | multi_step, data_interpretation | choice | none |
 | au-acara · Years 7–10 · computing | 18 | 18 | multi_step, data_interpretation | choice, numeric | none |
-| au-acara · Senior secondary · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| au-acara · Senior secondary · maths | 55 | 55 | data_interpretation | choice | none |
 | au-acara · Senior secondary · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | au-acara · Senior secondary · chemistry | 15 | 15 | data_interpretation | choice | none |
 | au-acara · Senior secondary · biology | 16 | 16 | data_interpretation | choice | none |
@@ -492,7 +547,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | ie-junior · Junior Cycle · chemistry | 11 | 11 | multi_step, data_interpretation | choice, numeric | none |
 | ie-junior · Junior Cycle · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
 | ie-junior · Junior Cycle · computing | 14 | 14 | multi_step | choice, numeric | none |
-| ie-junior · Senior Cycle · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| ie-junior · Senior Cycle · maths | 55 | 55 | data_interpretation | choice | none |
 | ie-junior · Senior Cycle · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | ie-junior · Senior Cycle · chemistry | 15 | 15 | data_interpretation | choice | none |
 | ie-junior · Senior Cycle · biology | 16 | 16 | data_interpretation | choice | none |
@@ -507,7 +562,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | in-cbse · Class 10 · chemistry | 15 | 15 | multi_step, data_interpretation | choice, numeric | none |
 | in-cbse · Class 10 · biology | 16 | 16 | multi_step, data_interpretation | choice | none |
 | in-cbse · Class 10 · computing | 18 | 18 | multi_step, data_interpretation | choice, numeric | none |
-| in-cbse · Class 11–12 · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| in-cbse · Class 11–12 · maths | 55 | 55 | data_interpretation | choice | none |
 | in-cbse · Class 11–12 · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | in-cbse · Class 11–12 · chemistry | 16 | 16 | data_interpretation | choice | none |
 | in-cbse · Class 11–12 · biology | 16 | 16 | data_interpretation | choice | none |
@@ -522,7 +577,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | in-icse · Class 10 · chemistry | 16 | 16 | data_interpretation | choice | none |
 | in-icse · Class 10 · biology | 16 | 16 | data_interpretation | choice | none |
 | in-icse · Class 10 · computing | 18 | 18 | data_interpretation | choice | none |
-| in-icse · ISC 11–12 · maths | 63 | 63 | recall, application, multi_step, data_interpretation | numeric, choice | none |
+| in-icse · ISC 11–12 · maths | 55 | 55 | multi_step, data_interpretation | choice | none |
 | in-icse · ISC 11–12 · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | in-icse · ISC 11–12 · chemistry | 16 | 16 | data_interpretation | choice | none |
 | in-icse · ISC 11–12 · biology | 16 | 16 | data_interpretation | choice | none |
@@ -537,7 +592,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | pk-matric · Class 9–10 (Matric) · chemistry | 15 | 15 | multi_step, data_interpretation | choice, numeric | none |
 | pk-matric · Class 9–10 (Matric) · biology | 16 | 16 | multi_step, data_interpretation | choice, numeric | none |
 | pk-matric · Class 9–10 (Matric) · computing | 18 | 18 | multi_step, data_interpretation | choice, numeric | none |
-| pk-matric · Class 11–12 (Inter) · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| pk-matric · Class 11–12 (Inter) · maths | 55 | 55 | data_interpretation | choice | none |
 | pk-matric · Class 11–12 (Inter) · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | pk-matric · Class 11–12 (Inter) · chemistry | 15 | 15 | data_interpretation | choice | none |
 | pk-matric · Class 11–12 (Inter) · biology | 16 | 16 | data_interpretation | choice | none |
@@ -552,7 +607,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | bd-ssc · Class 9–10 (SSC) · chemistry | 15 | 15 | multi_step, data_interpretation | choice, numeric | none |
 | bd-ssc · Class 9–10 (SSC) · biology | 16 | 16 | multi_step, data_interpretation | choice, numeric | none |
 | bd-ssc · Class 9–10 (SSC) · computing | 18 | 18 | multi_step, data_interpretation | choice, numeric | none |
-| bd-ssc · Class 11–12 (HSC) · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| bd-ssc · Class 11–12 (HSC) · maths | 55 | 55 | data_interpretation | choice | none |
 | bd-ssc · Class 11–12 (HSC) · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | bd-ssc · Class 11–12 (HSC) · chemistry | 15 | 15 | data_interpretation | choice | none |
 | bd-ssc · Class 11–12 (HSC) · biology | 16 | 16 | data_interpretation | choice | none |
@@ -567,7 +622,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | ke-kcse · Form 3 · chemistry | 15 | 15 | multi_step, data_interpretation | choice, numeric | none |
 | ke-kcse · Form 3 · biology | 16 | 16 | multi_step, data_interpretation | choice, numeric | none |
 | ke-kcse · Form 3 · computing | 18 | 18 | multi_step, data_interpretation | choice, numeric | none |
-| ke-kcse · Form 4 (KCSE) · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| ke-kcse · Form 4 (KCSE) · maths | 55 | 55 | data_interpretation | choice | none |
 | ke-kcse · Form 4 (KCSE) · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | ke-kcse · Form 4 (KCSE) · chemistry | 15 | 15 | data_interpretation | choice | none |
 | ke-kcse · Form 4 (KCSE) · biology | 16 | 16 | data_interpretation | choice | none |
@@ -577,7 +632,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | tz-csee · Form 1–2 · chemistry | 11 | 11 | application, multi_step, data_interpretation | choice, numeric | none |
 | tz-csee · Form 1–2 · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
 | tz-csee · Form 1–2 · computing | 14 | 14 | application, multi_step, data_interpretation | choice, numeric | none |
-| tz-csee · Form 4 (CSEE) · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| tz-csee · Form 4 (CSEE) · maths | 55 | 55 | data_interpretation | choice | none |
 | tz-csee · Form 4 (CSEE) · physics | 18 | 18 | data_interpretation | choice | none |
 | tz-csee · Form 4 (CSEE) · chemistry | 15 | 15 | data_interpretation | choice | none |
 | tz-csee · Form 4 (CSEE) · biology | 16 | 16 | data_interpretation | choice | none |
@@ -587,7 +642,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | ug-uce · S1–S2 · chemistry | 11 | 11 | application, multi_step, data_interpretation | choice, numeric | none |
 | ug-uce · S1–S2 · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
 | ug-uce · S1–S2 · computing | 14 | 14 | application, multi_step | choice, numeric | none |
-| ug-uce · S4 (UCE) · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| ug-uce · S4 (UCE) · maths | 55 | 55 | data_interpretation | choice | none |
 | ug-uce · S4 (UCE) · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | ug-uce · S4 (UCE) · chemistry | 15 | 15 | data_interpretation | choice | none |
 | ug-uce · S4 (UCE) · biology | 16 | 16 | data_interpretation | choice | none |
@@ -597,7 +652,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | ng-waec · JSS 1–3 (BECE) · chemistry | 11 | 11 | application, multi_step, data_interpretation | choice, numeric | none |
 | ng-waec · JSS 1–3 (BECE) · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
 | ng-waec · JSS 1–3 (BECE) · computing | 14 | 14 | application, multi_step | choice, numeric | none |
-| ng-waec · SSS 1–3 (WAEC) · maths | 63 | 63 | recall, application, multi_step, data_interpretation | numeric, choice | none |
+| ng-waec · SSS 1–3 (WAEC) · maths | 55 | 55 | multi_step, data_interpretation | choice | none |
 | ng-waec · SSS 1–3 (WAEC) · physics | 18 | 18 | data_interpretation | choice | none |
 | ng-waec · SSS 1–3 (WAEC) · chemistry | 15 | 15 | data_interpretation | choice | none |
 | ng-waec · SSS 1–3 (WAEC) · biology | 16 | 16 | data_interpretation | choice | none |
@@ -607,7 +662,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | gh-wassce · JHS 1–3 (BECE) · chemistry | 11 | 11 | application, multi_step, data_interpretation | choice, numeric | none |
 | gh-wassce · JHS 1–3 (BECE) · biology | 13 | 13 | multi_step, data_interpretation | choice, numeric | none |
 | gh-wassce · JHS 1–3 (BECE) · computing | 14 | 14 | application, multi_step, data_interpretation | choice, numeric | none |
-| gh-wassce · SHS 1–3 (WASSCE) · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| gh-wassce · SHS 1–3 (WASSCE) · maths | 55 | 55 | data_interpretation | choice | none |
 | gh-wassce · SHS 1–3 (WASSCE) · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | gh-wassce · SHS 1–3 (WASSCE) · chemistry | 15 | 15 | data_interpretation | choice | none |
 | gh-wassce · SHS 1–3 (WASSCE) · biology | 16 | 16 | data_interpretation | choice | none |
@@ -617,7 +672,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | ph-deped · Junior High · chemistry | 11 | 11 | multi_step, data_interpretation | choice, numeric | none |
 | ph-deped · Junior High · biology | 13 | 13 | multi_step, data_interpretation | choice, numeric | none |
 | ph-deped · Junior High · computing | 14 | 14 | application, multi_step, data_interpretation | choice, numeric | none |
-| ph-deped · Senior High · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| ph-deped · Senior High · maths | 55 | 55 | data_interpretation | choice | none |
 | ph-deped · Senior High · physics | 18 | 18 | application, multi_step, data_interpretation | choice, numeric | none |
 | ph-deped · Senior High · chemistry | 15 | 15 | data_interpretation | choice | none |
 | ph-deped · Senior High · biology | 16 | 16 | data_interpretation | choice | none |
@@ -627,7 +682,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | id-merdeka · SMP 7–9 · chemistry | 11 | 11 | application, multi_step, data_interpretation | choice, numeric | none |
 | id-merdeka · SMP 7–9 · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
 | id-merdeka · SMP 7–9 · computing | 14 | 14 | application, multi_step | choice, numeric | none |
-| id-merdeka · SMA 10–12 · maths | 63 | 63 | recall, application, multi_step, data_interpretation | numeric, choice | none |
+| id-merdeka · SMA 10–12 · maths | 55 | 55 | multi_step, data_interpretation | choice | none |
 | id-merdeka · SMA 10–12 · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | id-merdeka · SMA 10–12 · chemistry | 15 | 15 | data_interpretation | choice | none |
 | id-merdeka · SMA 10–12 · biology | 16 | 16 | data_interpretation | choice | none |
@@ -637,7 +692,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | br-enem · Fundamental II · chemistry | 11 | 11 | multi_step, data_interpretation | choice, numeric | none |
 | br-enem · Fundamental II · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
 | br-enem · Fundamental II · computing | 14 | 14 | application, multi_step | choice, numeric | none |
-| br-enem · Médio (ENEM) · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| br-enem · Médio (ENEM) · maths | 55 | 55 | data_interpretation | choice | none |
 | br-enem · Médio (ENEM) · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
 | br-enem · Médio (ENEM) · chemistry | 15 | 15 | data_interpretation | choice | none |
 | br-enem · Médio (ENEM) · biology | 16 | 16 | data_interpretation | choice | none |
@@ -647,7 +702,7 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | mx-sep · Secundaria · chemistry | 11 | 11 | multi_step, data_interpretation | choice, numeric | none |
 | mx-sep · Secundaria · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
 | mx-sep · Secundaria · computing | 14 | 14 | application, multi_step, data_interpretation | choice, numeric | none |
-| mx-sep · Preparatoria · maths | 63 | 63 | recall, application, data_interpretation | numeric, choice | none |
+| mx-sep · Preparatoria · maths | 55 | 55 | data_interpretation | choice | none |
 | mx-sep · Preparatoria · physics | 18 | 18 | data_interpretation | choice | none |
 | mx-sep · Preparatoria · chemistry | 15 | 15 | data_interpretation | choice | none |
 | mx-sep · Preparatoria · biology | 16 | 16 | data_interpretation | choice | none |
@@ -662,11 +717,51 @@ Per course: what a learner can be asked, which demand rungs are reachable, and w
 | any-independent · Core · chemistry | 15 | 15 | multi_step, data_interpretation | choice, numeric | none |
 | any-independent · Core · biology | 16 | 16 | multi_step, data_interpretation | choice | none |
 | any-independent · Core · computing | 18 | 18 | multi_step, data_interpretation | choice, numeric | none |
-| any-independent · Advanced · maths | 67 | 67 | recall, application, data_interpretation | numeric, choice | none |
+| any-independent · Advanced · maths | 59 | 59 | data_interpretation | choice | none |
 | any-independent · Advanced · physics | 18 | 18 | data_interpretation | choice | none |
 | any-independent · Advanced · chemistry | 16 | 16 | data_interpretation | choice | none |
 | any-independent · Advanced · biology | 16 | 16 | data_interpretation | choice | none |
 | any-independent · Advanced · computing | 18 | 18 | data_interpretation | choice | none |
+| cm-gce-o · Form 4 · maths | 42 | 42 | recall, application, multi_step, data_interpretation | numeric, choice | none |
+| cm-gce-o · Form 4 · physics | 14 | 14 | application, multi_step, data_interpretation | choice, numeric | none |
+| cm-gce-o · Form 4 · chemistry | 11 | 11 | application, multi_step, data_interpretation | choice, numeric | none |
+| cm-gce-o · Form 4 · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
+| cm-gce-o · Form 4 · computing | 14 | 14 | multi_step | choice, numeric | none |
+| cm-gce-o · Form 5 · GCE O Level · maths | 56 | 56 | recall, application, data_interpretation | numeric, choice | none |
+| cm-gce-o · Form 5 · GCE O Level · physics | 18 | 18 | data_interpretation | choice | none |
+| cm-gce-o · Form 5 · GCE O Level · chemistry | 15 | 15 | data_interpretation | choice | none |
+| cm-gce-o · Form 5 · GCE O Level · biology | 16 | 16 | data_interpretation | choice | none |
+| cm-gce-o · Form 5 · GCE O Level · computing | 14 | 14 | data_interpretation | choice | none |
+| cm-gce-a · Lower Sixth · maths | 39 | 39 | data_interpretation | choice | none |
+| cm-gce-a · Lower Sixth · physics | 14 | 14 | multi_step, data_interpretation | choice | none |
+| cm-gce-a · Lower Sixth · chemistry | 12 | 12 | data_interpretation | choice | none |
+| cm-gce-a · Lower Sixth · biology | 8 | 8 | data_interpretation | choice | none |
+| cm-gce-a · Lower Sixth · computing | 10 | 10 | data_interpretation | choice | none |
+| cm-gce-a · Upper Sixth · GCE A Level · maths | 43 | 43 | data_interpretation | choice | none |
+| cm-gce-a · Upper Sixth · GCE A Level · physics | 14 | 14 | multi_step, data_interpretation | choice | none |
+| cm-gce-a · Upper Sixth · GCE A Level · chemistry | 12 | 12 | data_interpretation | choice | none |
+| cm-gce-a · Upper Sixth · GCE A Level · biology | 8 | 8 | data_interpretation | choice | none |
+| cm-gce-a · Upper Sixth · GCE A Level · computing | 10 | 10 | data_interpretation | choice | none |
+| cm-bepc · Cycle 1 · 6e–5e · maths | 42 | 42 | recall, application, multi_step, data_interpretation | numeric, choice | none |
+| cm-bepc · Cycle 1 · 6e–5e · physics | 14 | 14 | application, multi_step, data_interpretation | choice, numeric | none |
+| cm-bepc · Cycle 1 · 6e–5e · chemistry | 11 | 11 | multi_step, data_interpretation | choice, numeric | none |
+| cm-bepc · Cycle 1 · 6e–5e · biology | 13 | 13 | application, multi_step, data_interpretation | choice, numeric | none |
+| cm-bepc · Cycle 1 · 6e–5e · computing | 14 | 14 | application, multi_step, data_interpretation | choice, numeric | none |
+| cm-bepc · 3e · BEPC · maths | 56 | 56 | recall, application, multi_step, data_interpretation | numeric, choice | none |
+| cm-bepc · 3e · BEPC · physics | 18 | 18 | multi_step, data_interpretation | choice, numeric | none |
+| cm-bepc · 3e · BEPC · chemistry | 15 | 15 | multi_step, data_interpretation | choice, numeric | none |
+| cm-bepc · 3e · BEPC · biology | 16 | 16 | multi_step, data_interpretation | choice | none |
+| cm-bepc · 3e · BEPC · computing | 14 | 14 | multi_step, data_interpretation | choice, numeric | none |
+| cm-probatoire · 1re · Probatoire · maths | 55 | 55 | data_interpretation | choice | none |
+| cm-probatoire · 1re · Probatoire · physics | 18 | 18 | data_interpretation | choice | none |
+| cm-probatoire · 1re · Probatoire · chemistry | 16 | 16 | data_interpretation | choice | none |
+| cm-probatoire · 1re · Probatoire · biology | 16 | 16 | data_interpretation | choice | none |
+| cm-probatoire · 1re · Probatoire · computing | 18 | 18 | data_interpretation | choice | none |
+| cm-bac · Terminale · Baccalauréat · maths | 55 | 55 | data_interpretation | choice | none |
+| cm-bac · Terminale · Baccalauréat · physics | 18 | 18 | multi_step, data_interpretation | choice | none |
+| cm-bac · Terminale · Baccalauréat · chemistry | 16 | 16 | data_interpretation | choice | none |
+| cm-bac · Terminale · Baccalauréat · biology | 16 | 16 | data_interpretation | choice | none |
+| cm-bac · Terminale · Baccalauréat · computing | 18 | 18 | data_interpretation | choice | none |
 
 **`extended_response` is 0 everywhere and that is deliberate** (`lib/skills.ts#SKILLS_IN_BANK`):
 no item in the bank declares a difficulty at its floor, so no course advertises it. The demand
@@ -677,46 +772,46 @@ a rung the instrument cannot produce — see `skillQuotaFor`.
 
 | course | concept | target (band) | ceiling | best in band | served | cause |
 |---|---|---|---|---|---|---|
-| int-ib · sl · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| int-ib · sl · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| int-ib · hl · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| int-ib · hl · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| au-acara · senior · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| au-acara · senior · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| ie-junior · senior · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| ie-junior · senior · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| in-cbse · class11-12 · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| in-cbse · class11-12 · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| in-icse · isc · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| in-icse · isc · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| pk-matric · inter · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| pk-matric · inter · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| bd-ssc · hsc · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| bd-ssc · hsc · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| ke-kcse · form4 · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| ke-kcse · form4 · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| ng-waec · sss · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| ng-waec · sss · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| gh-wassce · shs · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| gh-wassce · shs · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| ph-deped · shs · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| ph-deped · shs · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| id-merdeka · sma · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| id-merdeka · sma · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| br-enem · medio · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| br-enem · medio · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| mx-sep · prepa · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| mx-sep · prepa · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| any-independent · advanced · maths | addition | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| any-independent · advanced · maths | subtraction | 0.9 (b5) | 0.3 | none | 0.3 | B generator |
-| uk-gcse · higher · maths | addition | 0.87 (b5) | 0.3 | none | 0.3 | B generator |
-| uk-gcse · higher · maths | subtraction | 0.87 (b5) | 0.3 | none | 0.3 | B generator |
-| int-igcse · extended · maths | addition | 0.87 (b5) | 0.3 | none | 0.3 | B generator |
-| int-igcse · extended · maths | subtraction | 0.87 (b5) | 0.3 | none | 0.3 | B generator |
-| us-core · high · maths | addition | 0.87 (b5) | 0.3 | none | 0.3 | B generator |
-| us-core · high · maths | subtraction | 0.87 (b5) | 0.3 | none | 0.3 | B generator |
-| ca-provincial · senior · maths | addition | 0.87 (b5) | 0.3 | none | 0.3 | B generator |
-| ca-provincial · senior · maths | subtraction | 0.87 (b5) | 0.3 | none | 0.3 | B generator |
+| in-icse · class10 · maths | addition | 0.82 (b5) | 0.3 | none | 0.3 | B generator |
+| in-icse · class10 · maths | subtraction | 0.82 (b5) | 0.3 | none | 0.3 | B generator |
+| cm-gce-o · form5 · maths | addition | 0.82 (b5) | 0.3 | none | 0.3 | B generator |
+| cm-gce-o · form5 · maths | subtraction | 0.82 (b5) | 0.3 | none | 0.3 | B generator |
+| in-cbse · class10 · maths | addition | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| in-cbse · class10 · maths | subtraction | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| in-icse · class10 · maths | place-value | 0.82 (b5) | 0.35 | none | 0.35 | B generator |
+| in-icse · class10 · maths | multiplication | 0.82 (b5) | 0.35 | none | 0.35 | B generator |
+| in-icse · class10 · maths | division | 0.82 (b5) | 0.35 | none | 0.35 | B generator |
+| pk-matric · matric · maths | addition | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| pk-matric · matric · maths | subtraction | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| bd-ssc · ssc · maths | addition | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| bd-ssc · ssc · maths | subtraction | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| ke-kcse · form3 · maths | addition | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| ke-kcse · form3 · maths | subtraction | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| any-independent · core · maths | addition | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| any-independent · core · maths | subtraction | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| cm-gce-o · form5 · maths | place-value | 0.82 (b5) | 0.35 | none | 0.35 | B generator |
+| cm-gce-o · form5 · maths | multiplication | 0.82 (b5) | 0.35 | none | 0.35 | B generator |
+| cm-gce-o · form5 · maths | division | 0.82 (b5) | 0.35 | none | 0.35 | B generator |
+| cm-bepc · bepc · maths | addition | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| cm-bepc · bepc · maths | subtraction | 0.77 (b4) | 0.3 | none | 0.3 | B generator |
+| au-acara · years7-10 · maths | addition | 0.72 (b4) | 0.3 | none | 0.3 | B generator |
+| au-acara · years7-10 · maths | subtraction | 0.72 (b4) | 0.3 | none | 0.3 | B generator |
+| in-cbse · class10 · maths | place-value | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| in-cbse · class10 · maths | multiplication | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| in-cbse · class10 · maths | division | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| in-icse · class10 · maths | order-ops | 0.82 (b5) | 0.4 | none | 0.4 | B generator |
+| pk-matric · matric · maths | place-value | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| pk-matric · matric · maths | multiplication | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| pk-matric · matric · maths | division | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| bd-ssc · ssc · maths | place-value | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| bd-ssc · ssc · maths | multiplication | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| bd-ssc · ssc · maths | division | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| ke-kcse · form3 · maths | place-value | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| ke-kcse · form3 · maths | multiplication | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| ke-kcse · form3 · maths | division | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| any-independent · core · maths | place-value | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| any-independent · core · maths | multiplication | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
+| any-independent · core · maths | division | 0.77 (b4) | 0.35 | none | 0.35 | B generator |
 
 ## 5. Reproducing this
 

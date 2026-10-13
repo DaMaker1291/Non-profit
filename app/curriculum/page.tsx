@@ -16,7 +16,10 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { loadLocalProfileId, useI18n, useProfile } from "@/lib/client";
 import * as api from "@/lib/api/client";
-import { curriculumFor, INDEPENDENT_ROUTE } from "@/lib/curriculum";
+import { curriculumFor, routeForPathwayId, INDEPENDENT_ROUTE } from "@/lib/curriculum";
+import {
+  defaultPathwayFor, initialPathwayFor, mappingReviewKey, nationalPathwaysFor, pathwayChoices, pathwayForCountry,
+} from "@/lib/curricula/registry";
 import { COUNTRIES, fill } from "@/lib/i18n";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
 import { ctitle, levelLabel } from "@/lib/content-i18n";
@@ -49,6 +52,12 @@ export default function CurriculumPage() {
   // came back to the same card.
   const [countryId, setCountryId] = useState<string | null>(null);
   const [gradeId, setGradeId] = useState<string | null>(null);
+  // WHICH EDUCATION SYSTEM (§7). This is the screen whose job is CHANGING a
+  // course, so it is where the alternatives live: a UK learner at an
+  // international school reaches IGCSE or the IB from here, and a Cameroonian
+  // learner picks which of their country's two systems they follow. Null until
+  // touched, so the field shows what is actually in force.
+  const [pathwayId, setPathwayId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   // WHICH SUBJECT'S COURSE is being edited. A learner sits GCSE Maths (Higher)
   // and A-Level Physics at the same time, so "your course" is not one thing and
@@ -56,20 +65,43 @@ export default function CurriculumPage() {
   const [picked, setPicked] = useState<SubjectId | null>(null);
 
   const country = countryId ?? profile?.country ?? "XX";
+  // The pathway in force: the learner's own choice if they have one (and it is
+  // one this country offers — a stored pathway from another country is stale,
+  // not a choice), else the country's own system, else nothing at all, which is
+  // the state a country we have not researched is in.
+  const pathway = pathwayId ?? pathwayForCountry(country, profile?.pathway)?.id ?? initialPathwayFor(country);
   const grade = gradeId ?? profile?.grade ?? "";
   const declared = profile?.subjects?.length ? profile.subjects : SUBJECT_IDS;
   const subject: SubjectId = picked && declared.includes(picked) ? picked : declared[0];
+  const noNationalRoute = nationalPathwaysFor(country).length === 0;
+  const reviewKey = mappingReviewKey(pathwayForCountry(country, pathway) ?? defaultPathwayFor(country));
   // Only the qualifications that actually contain THIS subject — offering a
-  // maths-only paper as a Biology course would be a choice that cannot be saved.
-  const choices = useMemo(() => specOptionsFor(country, subject), [country, subject]);
+  // maths-only paper as a Biology course would be a choice that cannot be saved —
+  // AND only those the chosen education system leads to.
+  const baseChoices = useMemo(
+    () => specOptionsFor(country, subject, pathway || undefined),
+    [country, subject, pathway],
+  );
   const active: ActiveSpec = useMemo(() => {
     if (specId) {
-      const spec = specById(specId) ?? choices[0];
+      const spec = specById(specId) ?? baseChoices[0];
       const level = levelOf(spec, levelId ?? undefined) ?? levelForGrade(spec, profile?.grade) ?? spec.levels[0];
       return { spec, level };
     }
-    return specForProfile(profile ?? {}, subject);
-  }, [specId, levelId, choices, profile, subject]);
+    // The pathway the learner has picked in THIS session is part of the course
+    // it resolves: otherwise the page would keep resolving a course from the
+    // system they just moved away from.
+    return specForProfile({ ...(profile ?? {}), pathway: pathway || undefined }, subject);
+  }, [specId, levelId, baseChoices, profile, subject, pathway]);
+  // A PICKER MUST NEVER HIDE THE COURSE IN FORCE. A learner whose stored
+  // qualification belongs to a pathway the select is not scoping to — a UK
+  // learner on Cambridge IGCSE, which the live store holds — would otherwise see
+  // a list that does not contain their own course, and the control would display
+  // somebody else's. It stays at the top of the list until they change it.
+  const choices = useMemo(
+    () => (baseChoices.some((s) => s.id === active.spec.id) ? baseChoices : [active.spec, ...baseChoices]),
+    [baseChoices, active.spec],
+  );
   const gaps = useMemo(() => incompleteSubjects(profile ?? {}), [profile]);
 
   const report = useMemo(() => coverageReport(active), [active]);
@@ -77,7 +109,7 @@ export default function CurriculumPage() {
   // model still has the independent pathway, and it still has grades to choose
   // from. Without it the grade control here was a placeholder with an empty
   // list — a course that could never be completed for 53 of the 70 countries.
-  const route = curriculumFor(country) ?? INDEPENDENT_ROUTE;
+  const route = routeForPathwayId(country, pathway) ?? curriculumFor(country) ?? INDEPENDENT_ROUTE;
   const terms = termsFor(active.spec.board);
   const inSpec = report.covered;
 
@@ -102,6 +134,11 @@ export default function CurriculumPage() {
         // server-side (a blank one is simply ignored, never stored).
         ...(countryId ? { country: countryId } : {}),
         ...(grade ? { grade } : {}),
+        // The education system, when one is in force. Changing it server-side
+        // drops a course that belonged to the old system, which is why the
+        // course is saved in the SAME request: the learner ends this save with a
+        // course that belongs to the system they chose.
+        ...(pathway ? { pathway } : {}),
       }, id);
     } catch {
       // Refused writes leave the selection alone: clearing it would look like a
@@ -113,6 +150,7 @@ export default function CurriculumPage() {
     setLevelId(null);
     setCountryId(null);
     setGradeId(null);
+    setPathwayId(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -176,6 +214,33 @@ export default function CurriculumPage() {
               {(route?.grades ?? []).map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
           </label>
+        </div>
+        {/* WHICH EDUCATION SYSTEM. The years above and the qualifications below
+            are the pathway's, so this control is the one that explains why the
+            list changed. Changing it clears the qualification selection, because
+            a GCE O Level is not a Francophone course and an AQA GCSE is not an
+            IGCSE — the server drops the stale one on save. */}
+        <div className="rowline" style={{ marginTop: 12, display: "block" }}>
+          <label className="small muted" htmlFor="curr-pathway">{t("onb.pathway")}</label>
+          <select
+            id="curr-pathway"
+            className="mono"
+            style={{ width: "100%", marginTop: 6 }}
+            value={pathway}
+            onChange={(e) => { setPathwayId(e.target.value); setSpecId(null); setLevelId(null); setGradeId(null); }}
+          >
+            <option value="">{t("onb.pickPathway")}</option>
+            {pathwayChoices(country).map((pw) => (
+              <option key={pw.id} value={pw.id}>{pw.name}</option>
+            ))}
+          </select>
+          {noNationalRoute && <p className="small muted" style={{ marginBottom: 0 }}>{t("curr.unmapped")}</p>}
+          {/* HOW FAR THE MAPPING HAS BEEN CHECKED. The page states how much of
+              the genome the course contains and how deep practice will pitch;
+              this is the third fact of the same kind, and the one that used to
+              be missing — every course looked equally authoritative while none
+              of the mappings had been read by a specialist. */}
+          {reviewKey && <p className="small muted" style={{ marginBottom: 0 }}>{t(reviewKey as Parameters<typeof t>[0])}</p>}
         </div>
         {/* One course per subject. The chips say which subjects have one — a
             subject still missing its course is named, never silently defaulted. */}

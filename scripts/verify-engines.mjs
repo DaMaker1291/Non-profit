@@ -9278,6 +9278,60 @@ console.log("▸ A missing course is named by field, and can be finished where w
     `the English coverage sentence renders its real count ("${claim.slice(0, 60)}…")`);
   ok(/international|independent/i.test(claim),
     "and it names the pathways that are NOT a national system, so 18 national routes is never read as the whole of the coverage");
+
+  // ── THE MAPPING LABEL FOLLOWS THE RECORD, NOT THE ROUTE ──────────────────
+  // "There is a route for your country" and "a specialist has read our mapping
+  // of it" are different claims, and a learner cannot tell them apart unless a
+  // surface says which. So the sentence about how far a mapping has been checked
+  // is a KEY derived from `pathway.mappingReview`, never a literal in a page and
+  // never a side effect of the route existing. The failure this guards is the
+  // original defect one layer quieter: 52 countries silently answered with
+  // Cambridge IGCSE, and the same mistake in wording would show "nationally
+  // mapped" beside a mapping nobody has read — which is the state EVERY pathway
+  // is in today (0 reviewed mappings, 20 with no source on file).
+  const cur = require("../.verify/curricula/registry.js");
+  const LABEL_KEYS = ["course.mapPending", "course.mapReviewed", "course.mapVerified"];
+  const noLabel = LANG_CODES.filter((code) => {
+    const body = dictBody(code);
+    return body === null || LABEL_KEYS.some((k) => !new RegExp(`"${k.replace(/\./g, "\\.")}":\\s*"[^"]+"`).test(body));
+  });
+  ok(noLabel.length === 0,
+    `the mapping-review label is authored in all ${LANG_CODES.length} languages${noLabel.length ? ` (missing: ${noLabel.join(", ")})` : ""}`);
+
+  // A pending label must not READ as a completed review. The check is identity
+  // rather than vocabulary, so it holds in every language: no dictionary may give
+  // two different review states the same sentence.
+  const collapsed = [];
+  for (const code of LANG_CODES) {
+    const tr = i18n.translator(code);
+    if (new Set(LABEL_KEYS.map((k) => tr(k))).size !== LABEL_KEYS.length) collapsed.push(code);
+  }
+  ok(collapsed.length === 0,
+    `and no language labels two different review states identically${collapsed.length ? ` (${collapsed.join(", ")})` : ""}`);
+  const pendingEn = i18n.translator("en")("course.mapPending");
+  ok(/not yet reviewed/i.test(pendingEn) && !/verified/i.test(pendingEn),
+    `the pending sentence says what it is not ("${pendingEn}")`);
+
+  // The label is a FUNCTION of the record — asserted over every pathway, not
+  // over an example, so a new pathway cannot arrive with the wrong sentence.
+  const mislabelled = cur.allPathways().filter((pw) => cur.mappingReviewKey(pw) !== (
+    pw.mappingReview === "verified" ? "course.mapVerified"
+      : pw.mappingReview === "reviewed" ? "course.mapReviewed"
+        : "course.mapPending"));
+  ok(mislabelled.length === 0,
+    `every pathway's label states its own review state (${cur.allPathways().length} pathways${mislabelled.length ? `; wrong: ${mislabelled.slice(0, 4).map((p) => `${p.id}→${cur.mappingReviewKey(p)}`).join(", ")}` : ""})`);
+  // The honest state, asserted rather than assumed: until a specialist reads one,
+  // every surface says so — and this assertion is the thing that will FAIL the
+  // day a mapping is marked reviewed without the label moving with it.
+  ok(cur.allPathways().every((pw) => cur.mappingReviewKey(pw) === "course.mapPending"),
+    "and today that is the pending sentence on all of them, because no mapping has been reviewed");
+  ok(cur.mappingReviewKey(null) === "" && cur.mappingReviewKey(undefined) === "",
+    "a surface with no pathway makes no claim at all rather than defaulting to one");
+  // Both learner-facing surfaces must route through that one function.
+  const labelSites = ["app/onboarding/page.tsx", "app/curriculum/page.tsx"]
+    .filter((f) => !fs.readFileSync(f, "utf8").includes("mappingReviewKey("));
+  ok(labelSites.length === 0,
+    `and both surfaces that offer a pathway ask the registry for its label${labelSites.length ? ` (hard-coded or absent in: ${labelSites.join(", ")})` : ""}`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -9875,18 +9929,31 @@ console.log("▸ Every offered country can complete a course");
   const C = require("../.verify/curriculum.js");
   const S = require("../.verify/specifications.js");
   const { COUNTRIES } = require("../.verify/i18n.js");
+  const R = require("../.verify/curricula/registry.js");
   const problems = [];
   for (const { code } of COUNTRIES) {
-    // What the wizard itself offers for this country: `curriculumFor(country)
-    // ?? INDEPENDENT_ROUTE` is the fallback both the step and the gate apply.
-    const route = C.curriculumFor(code) ?? C.INDEPENDENT_ROUTE;
+    // A COUNTRY WITH TWO EDUCATION SYSTEMS HAS NO ROUTE UNTIL THE LEARNER SAYS
+    // WHICH ONE THEY FOLLOW, so this harness makes the same choice the wizard
+    // makes — from the registry, not from a list here. The direction that keeps
+    // the rule honest is asserted too: where the choice is required, a course
+    // with no pathway must still report it missing. A required question that the
+    // gate does not ask is a question the learner never gets.
+    const needsPathway = R.pathwayChoiceRequired(code);
+    const pathway = needsPathway ? R.pathwayChoices(code)[0].id : undefined;
+    if (needsPathway) {
+      const ungated = S.courseGaps({ country: code, grade: "Form 1", subjects: ["maths"] }, "maths");
+      if (!ungated.includes("pathway")) problems.push(`${code}: two systems, but the pathway is not required`);
+    }
+    // What the wizard itself offers for this country.
+    const route = C.routeForPathwayId(code, pathway) ?? C.curriculumFor(code) ?? C.INDEPENDENT_ROUTE;
     if (route.grades.length === 0) problems.push(`${code}: offers no years to choose`);
-    const options = S.specOptionsFor(code, "maths");
+    const options = S.specOptionsFor(code, "maths", pathway);
     if (options.length === 0) { problems.push(`${code}: offers no qualification for maths`); continue; }
     const spec = options[0];
     const gaps = S.courseGaps(
       {
         country: code,
+        pathway,
         grade: route.grades[0],
         subjects: ["maths"],
         subjectCourses: { maths: { spec: spec.id, specLevel: spec.levels[0].id } },
@@ -9906,6 +9973,167 @@ console.log("▸ Every offered country can complete a course");
   const frGaps = S.courseGaps({ country: "FR", grade: "Core", subjects: ["maths"] }, "maths");
   ok(!frGaps.includes("country"), "but such a country is never reported as a missing course field");
   ok(frGaps.includes("spec"), "while the qualification itself is still required, so the choice stays the learner's");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// A COUNTRY CAN RUN MORE THAN ONE EDUCATION SYSTEM
+// ════════════════════════════════════════════════════════════════════════════
+// The country used to BE the curriculum: one route per country code, one list of
+// qualifications per country code. That works until a country runs two systems,
+// and Cameroon does — a five-year Anglophone first cycle to the GCE Ordinary
+// Level then two years to the Advanced Level, beside a four-year Francophone
+// first cycle to the BEPC then the Probatoire and the Baccalauréat. A single
+// record cannot say which of those a learner follows, and the failure mode is
+// not cosmetic: the least-bad single answer is a wrong syllabus AND a wrong
+// depth band for half the country's learners.
+//
+// What is asserted here is the rule the data model exists to enforce — the
+// COUNTRY decides which pathways exist, the PATHWAY decides the years and the
+// qualifications — plus the four ways a registry like this one goes wrong:
+// a pathway with no source, a qualification no pathway reaches, a year list with
+// a hole, and a national system that quietly resolves to Cambridge IGCSE.
+console.log("▸ A country can run more than one education system");
+{
+  const C = require("../.verify/curriculum.js");
+  const R = require("../.verify/curricula/registry.js");
+  const S = require("../.verify/specifications.js");
+  const { COUNTRIES } = require("../.verify/i18n.js");
+
+  // ── Cameroon: two systems, neither chosen for the learner ──
+  const cm = R.countryRecord("CM");
+  ok(Boolean(cm) && cm.nationalPathways.length === 2,
+    `Cameroon is recorded as two national systems (${cm ? cm.nationalPathways.map((p) => p.id).join(", ") : "no record"})`);
+  ok(R.defaultPathwayFor("CM") === null,
+    "and neither is chosen for the learner: the default is explicitly NONE, not the first listing");
+  ok(R.pathwayChoiceRequired("CM") === true, "so the course gate asks which system they follow");
+  const anglo = R.pathwayById("cm-anglophone-general-secondary");
+  const franco = R.pathwayById("cm-francophone-general-secondary");
+  ok(anglo.schoolYears.map((y) => y.label).join(", ") === "Form 1, Form 2, Form 3, Form 4, Form 5, Lower Sixth, Upper Sixth",
+    "the Anglophone system offers every year of both its cycles (5 + 2)");
+  ok(franco.schoolYears.map((y) => y.label).join(", ") === "6e, 5e, 4e, 3e, 2nde, 1re, Terminale",
+    "and the Francophone system offers every year of its own (4 + 3)");
+  ok(anglo.sourceUrls.length > 0 && franco.sourceUrls.length > 0,
+    "each system carries the authoritative reference its structure was read from");
+  ok(anglo.language === "en" && franco.language === "fr", "and the language the system teaches in");
+  ok(anglo.boards[0].id === "gce" && franco.boards[0].id === "minesec", "each names its own awarding body");
+  ok(C.boardName("gce") === "Cameroon GCE Board (MINESEC)" && C.boardName("minesec").includes("MINESEC"),
+    "and both boards resolve to their real names");
+
+  // The pathway is what scopes the qualification list. This is the whole point,
+  // so it is checked in both directions and for overlap.
+  const angloMaths = S.specOptionsFor("CM", "maths", anglo.id).map((s) => s.id);
+  const francoMaths = S.specOptionsFor("CM", "maths", franco.id).map((s) => s.id);
+  ok(angloMaths.includes("cm-gce-o") && angloMaths.includes("cm-gce-a"),
+    `an Anglophone learner is offered the GCE O and A Levels (${angloMaths.join(", ")})`);
+  ok(francoMaths.includes("cm-bepc") && francoMaths.includes("cm-probatoire") && francoMaths.includes("cm-bac"),
+    `a Francophone learner is offered the BEPC, Probatoire and Baccalauréat (${francoMaths.join(", ")})`);
+  ok(angloMaths.every((id) => !francoMaths.includes(id)),
+    "the two systems share no qualification, so neither can stand in for the other");
+  ok(!angloMaths.includes("int-igcse") && !francoMaths.includes("int-igcse"),
+    "and neither is answered with Cambridge IGCSE — an alternative, offered as its own pathway and not as a national route");
+
+  // The years follow the pathway too, in both directions.
+  const cmGaps = (pathway, grade, spec, specLevel) => S.courseGaps(
+    { country: "CM", pathway, grade, subjects: ["maths"], subjectCourses: { maths: { spec, specLevel } } },
+    "maths",
+  );
+  ok(cmGaps(anglo.id, "Form 5", "cm-gce-o", "form5").length === 0,
+    "a Form 5 Anglophone learner with the GCE O Level has a complete course");
+  ok(cmGaps(franco.id, "3e", "cm-bepc", "bepc").length === 0,
+    "and a 3e Francophone learner with the BEPC does too");
+  ok(cmGaps(anglo.id, "3e", "cm-gce-o", "form5").includes("grade"),
+    "while a Francophone year is refused once the Anglophone system is chosen");
+  ok(cmGaps(franco.id, "Form 5", "cm-bepc", "bepc").includes("grade"),
+    "and an Anglophone year is refused once the Francophone system is chosen");
+  ok(cmGaps(undefined, "Form 5", "cm-gce-o", "form5").includes("pathway"),
+    "with no system chosen, the course is incomplete and the gateway says which field is missing");
+
+  // The international programmes are still there — as a choice.
+  const intl = R.pathwayById("int-international");
+  ok(R.pathwayChoices("CM").some((p) => p.id === intl.id), "Cambridge/IB remain offered in Cameroon, as their own pathway");
+  ok(S.specOptionsFor("CM", "maths", intl.id).some((s) => s.id === "int-igcse"),
+    "and choosing that pathway is what makes IGCSE available — chosen, never assumed");
+
+  // NO CONVERSION BETWEEN QUALIFICATIONS. A GCE tier is named for the GCE's own
+  // years, so a learner's class never silently places them in a tier, and a
+  // qualification the class does not belong to is not selected for them.
+  ok(S.levelForGrade(S.specById("cm-gce-a"), "Form 5") === null,
+    "a Form 5 learner is not placed in a GCE A-Level tier by their class");
+  ok(S.levelForGrade(S.specById("cm-gce-o"), "Form 5") !== null,
+    "while a year the qualification DOES name still resolves its own tier");
+  ok(S.specById("cm-gce-o").name !== S.specById("uk-gcse").name && S.specById("cm-bac").name !== "A-Level",
+    "and no Cameroon qualification is named or aliased as a UK one");
+
+  // ── The registry's own rules, asserted here as well as in the gate ──
+  const problems = [];
+  const seen = new Set();
+  for (const pw of R.allPathways()) {
+    if (seen.has(pw.id)) problems.push(`duplicate pathway id ${pw.id}`);
+    seen.add(pw.id);
+    if (pw.schoolYears.length === 0) problems.push(`${pw.id}: offers no years`);
+    if (pw.specificationIds.length === 0) problems.push(`${pw.id}: leads to no qualification`);
+    for (const id of pw.specificationIds) if (!S.specById(id)) problems.push(`${pw.id}: unknown specification ${id}`);
+    // A pathway that has been researched must NAME its examinations; one
+    // inherited from production carries specification ids instead, because the
+    // learner-facing name of a qualification is owned by the specification.
+    if (pw.pathwayType === "national" && R.reviewAtLeast(pw.recordReview, "researched") && pw.qualifications.length === 0) {
+      problems.push(`${pw.id}: a researched national system that names no examination`);
+    }
+    if (R.reviewAtLeast(pw.recordReview, "researched") && pw.sourceUrls.length === 0) problems.push(`${pw.id}: claims "${pw.recordReview}" with no source`);
+    if (pw.sourceUrls.some((u) => !/^https:\/\//.test(u))) problems.push(`${pw.id}: a source that is not an https reference`);
+    if (pw.recordReview === "verified" && !R.reviewAtLeast(pw.mappingReview, "reviewed")) problems.push(`${pw.id}: "verified" with an unreviewed mapping`);
+    pw.schoolYears.forEach((y, i) => {
+      if (y.sequence !== i + 1) problems.push(`${pw.id}: year ${y.label} carries sequence ${y.sequence} at position ${i}`);
+    });
+    // The years are the system's own sequence — checked PER PATHWAY, so a hole
+    // in one system cannot be hidden by the other's numbers.
+    const byPhase = new Map();
+    for (const y of pw.schoolYears) {
+      const n = Number((y.label.match(/\d+/) ?? [])[0]);
+      if (!Number.isFinite(n)) continue;
+      const phase = y.label.replace(/\d+/g, "").replace(/[º°]|st|nd|rd|th/gi, " ").replace(/\s+/g, " ").trim().toLowerCase();
+      if (!byPhase.has(phase)) byPhase.set(phase, []);
+      byPhase.get(phase).push(n);
+    }
+    for (const [phase, nums] of byPhase) {
+      const sorted = [...nums].sort((a, b) => a - b);
+      if (sorted[sorted.length - 1] - sorted[0] + 1 !== sorted.length) problems.push(`${pw.id}: the “${phase}” years skip one (${nums.join(", ")})`);
+    }
+  }
+  // Every specification must be reachable from a pathway, or it is a course
+  // nobody can be enrolled in.
+  const claimed = new Set(R.allPathways().flatMap((pw) => pw.specificationIds));
+  for (const spec of S.SPECIFICATIONS) {
+    if (!claimed.has(spec.id)) problems.push(`specification ${spec.id} is offered by no pathway`);
+  }
+  // Every country the picker offers is either recorded or explicitly
+  // unresearched: "we have not researched this" and "somebody forgot it" are
+  // different answers and the report has to be able to tell them apart.
+  const known = new Set([...R.RESEARCHED_CODES, ...R.UNRESEARCHED_CODES, "INT"]);
+  const unlisted = COUNTRIES.map((c) => c.code).filter((code) => !known.has(code));
+  if (unlisted.length > 0) problems.push(`offered but unlisted: ${unlisted.join(", ")}`);
+  ok(problems.length === 0, `no pathway breaks a registry rule (${problems.slice(0, 4).join("; ") || "none"})`);
+
+  // NO COUNTRY IS SILENTLY GIVEN ANOTHER COUNTRY'S CURRICULUM. Two directions,
+  // because both are defects: a recorded national system that resolves to no
+  // national course, and an unrecorded country that resolves to somebody else's.
+  const silent = [];
+  for (const { code } of COUNTRIES) {
+    const rec = R.countryRecord(code);
+    const hasNational = Boolean(rec && rec.nationalPathways.length > 0);
+    const offered = S.specsFor(code).map((s) => s.id);
+    const national = offered.filter((id) => id !== "int-igcse" && id !== "int-ib" && id !== "any-independent");
+    if (hasNational && national.length === 0) silent.push(`${code}: a national system is recorded but no national course is offered`);
+    if (!hasNational && national.length > 0) silent.push(`${code}: no national system recorded, yet ${national.join(", ")} is offered`);
+    if (!hasNational && !offered.includes("int-igcse")) silent.push(`${code}: the international alternative is not offered either`);
+  }
+  ok(silent.length === 0, `and no country is handed another's curriculum (${silent.slice(0, 3).join("; ") || "none"})`);
+
+  // The published count has one owner, and it counts COUNTRIES with a national
+  // route — so Cameroon, two systems, counts once.
+  ok(S.NATIONAL_ROUTE_COUNT === R.nationalRouteCodes().length,
+    `the published national-route count is derived from the registry (${S.NATIONAL_ROUTE_COUNT})`);
+  ok(R.nationalRouteCodes().includes("CM"), "and Cameroon is counted, once, as a country");
 }
 
 // ════════════════════════════════════════════════════════════════════════════

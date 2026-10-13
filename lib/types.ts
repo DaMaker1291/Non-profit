@@ -20,6 +20,11 @@ export type BoardId =
   | "aqa" | "edexcel" | "ocr" | "wjec"
   // Africa
   | "nigerian" | "kenyan" | "caps"
+  // Cameroon (lib/curricula/registry.ts): the GCE Board in the Anglophone
+  // system and MINESEC in the Francophone one. Two ids rather than one, because
+  // they are two awarding bodies with two examination structures, and the term
+  // profile and the paper's own header derive from this id.
+  | "gce" | "minesec"
   // Americas, Asia-Pacific
   | "philippine" | "bangladeshi" | "indonesian" | "brazilian" | "mexican"
   | "commoncore" | "collegeboard" | "acara" | "canadian";
@@ -33,6 +38,7 @@ export const BOARD_IDS: BoardId[] = [
   "igcse", "cambridge", "ib",
   "aqa", "edexcel", "ocr", "wjec",
   "nigerian", "kenyan", "caps",
+  "gce", "minesec",
   "philippine", "bangladeshi", "indonesian", "brazilian", "mexican",
   "commoncore", "collegeboard", "acara", "canadian",
 ];
@@ -344,6 +350,13 @@ export interface StudentProfile {
   /** Tier within that specification (e.g. "foundation", "class10", "form4").
    *  Chooses the stage window, the difficulty band and the terminology. */
   specLevel?: string;
+  /** The education system the learner follows (lib/curricula/registry.ts id,
+   *  e.g. "cm-anglophone-general-secondary"). Stored only when the learner
+   *  actually chose one — absent means the country's own default applies, which
+   *  is the state every profile enrolled before pathways existed is in. It
+   *  scopes the years and the qualification list, so it is part of the course
+   *  and not a preference. */
+  pathway?: string;
   /** Exam they're preparing for (e.g. "AISSCE Class 12", "KCSE Form 4"). */
   exam?: string;
   /** When that exam is sat (YYYY-MM-DD). Drives the countdown on Home and how

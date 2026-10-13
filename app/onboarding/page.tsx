@@ -10,7 +10,11 @@ import { settlementTarget } from "@/lib/app-state";
 import { COUNTRIES, fill, LANGS } from "@/lib/i18n";
 import { levelLabel } from "@/lib/content-i18n";
 import { FIELD_LABEL } from "@/components/course-first";
-import { curriculumFor, INDEPENDENT_ROUTE } from "@/lib/curriculum";
+import { curriculumFor, routeForPathwayId, INDEPENDENT_ROUTE } from "@/lib/curriculum";
+import {
+  defaultPathwayFor, initialPathwayFor, mappingReviewKey, nationalPathwaysFor, pathwayById,
+  pathwayChoiceRequired, pathwayChoices, pathwayQuestionNeeded,
+} from "@/lib/curricula/registry";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
 import { incompleteSubjects, levelForGrade, specOptionsFor } from "@/lib/specifications";
 // The culture vocabulary has ONE owner (lib/culture.ts) because the concept
@@ -138,6 +142,11 @@ function OnboardingFlow() {
   const [grade, setGrade] = useState("");
   const [examples, setExamples] = useState("neutral");
   const [board, setBoard] = useState("");
+  // WHICH EDUCATION SYSTEM (§7). Empty unless the learner actually chose one —
+  // a country with a single recorded system needs no question, and its route is
+  // what `curriculumFor` answers for. Where the question IS asked (no national
+  // route recorded, or two of them, as in Cameroon) this holds the answer.
+  const [pathway, setPathway] = useState("");
   const [spec, setSpec] = useState("");
   const [specLevel, setSpecLevel] = useState("");
   const [exam, setExam] = useState("");
@@ -204,8 +213,36 @@ function OnboardingFlow() {
   // matched the gate's old dead end — the step required a grade from
   // `route.grades` while offering an empty list, so the control that fixed the
   // gap could not be used.
-  const route = curriculumFor(country) ?? INDEPENDENT_ROUTE;
+  // The pathway is what decides the years and the boards, so it comes FIRST:
+  // `routeForPathwayId` answers for a choice already made, `curriculumFor` for a
+  // country with one system, and the independent route when neither applies —
+  // which is the same three-step fallback the course gate applies, so the form
+  // cannot offer a year the gate would then refuse.
+  const pathwayOptions = useMemo(() => pathwayChoices(country), [country]);
+  const askPathway = pathwayQuestionNeeded(country);
+  const needsPathway = pathwayChoiceRequired(country);
+  // A country with NO national route is not a silent gap any more: the step says
+  // so (curr.unmapped) and offers the international programmes and the skills
+  // pathway as explicit choices, rather than answering with Cambridge on the
+  // learner's behalf.
+  const noNationalRoute = nationalPathwaysFor(country).length === 0;
+  // HOW FAR THIS MAPPING HAS BEEN CHECKED, said on the screen that chooses the
+  // course. "We have a route for your country" and "a specialist has read our
+  // mapping of it" are different claims, and the learner is entitled to know
+  // which one they are being taught against.
+  const reviewKey = mappingReviewKey(pathwayById(pathway) ?? defaultPathwayFor(country));
+  const route = routeForPathwayId(country, pathway) ?? curriculumFor(country) ?? INDEPENDENT_ROUTE;
   const boards = route?.boards ?? [];
+  // Changing country re-asks the question and clears the years it implied: a
+  // Form 5 declaration is not a year of the German system, and a GCSE is not a
+  // course in Cameroon.
+  useEffect(() => {
+    setPathway((prev) => {
+      if (!pathwayQuestionNeeded(country)) return "";
+      if (prev && pathwayChoices(country).some((p) => p.id === prev)) return prev;
+      return initialPathwayFor(country);
+    });
+  }, [country]);
   // Captured ONCE, before any sign-in can overwrite localStorage. Reading it at
   // submit time would name the account's fresh profile and claim nothing.
   const guestClaim = useMemo(() => currentGuestClaim(), []);
@@ -293,6 +330,10 @@ function OnboardingFlow() {
   function courseDraft() {
     return {
       country,
+      // Sent only when the learner made the choice, so a country that settles it
+      // stores nothing: "no answer" and "the country's own system" stay
+      // distinguishable, and neither is written on the learner's behalf.
+      pathway: pathway || undefined,
       grade,
       board: isBoardId(board) ? board : undefined,
       spec: spec || undefined,
@@ -317,6 +358,7 @@ function OnboardingFlow() {
       schoolLang: school,
       grade: grade || undefined,
       examples,
+      pathway: pathway || undefined,
       board: board || undefined,
       spec: lead?.spec ?? (spec || undefined),
       specLevel: lead?.specLevel ?? (specLevel || undefined),
@@ -735,7 +777,7 @@ function OnboardingFlow() {
             <div className="grid cols2">
               <label className="field">
                 <span>{t("onb.where")}</span>
-                <select value={country} onChange={(e) => { setCountry(e.target.value); setBoard(""); setSpec(""); setSpecLevel(""); setGrade(""); }}>
+                <select value={country} onChange={(e) => { setCountry(e.target.value); setBoard(""); setSpec(""); setSpecLevel(""); setGrade(""); setPathway(""); setCourses({}); }}>
                   {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
                 </select>
               </label>
@@ -803,6 +845,42 @@ function OnboardingFlow() {
                 course, so an unmodelled country falls back to it instead of
                 being refused, and the step offers that route's real grades and
                 tiers. */}
+            {/* WHICH EDUCATION SYSTEM — asked where the country does not settle
+                it, and required only where a real choice is open (Cameroon's two
+                systems). The select is not a preference: it scopes the years and
+                the qualification list below it, so changing it clears the course
+                that belonged to the old system rather than leaving a GCE O Level
+                on a Francophone learner's record. */}
+            {askPathway && (
+              <label className="field">
+                <span>{t("onb.pathway")}</span>
+                <select
+                  value={pathway}
+                  onChange={(e) => {
+                    setPathway(e.target.value);
+                    setBoard("");
+                    setSpec("");
+                    setSpecLevel("");
+                    setCourses({});
+                  }}
+                  required={needsPathway}
+                  aria-required={needsPathway}
+                >
+                  <option value="" disabled={needsPathway}>{t("onb.pickPathway")}</option>
+                  {pathwayOptions.map((pw) => (
+                    <option key={pw.id} value={pw.id}>{pw.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {askPathway && noNationalRoute && (
+              <p className="small muted" style={{ marginTop: -6 }}>{t("curr.unmapped")}</p>
+            )}
+            {reviewKey && (
+              <p className="small muted" style={{ marginTop: -6 }}>
+                {t(reviewKey as Parameters<typeof t>[0])}
+              </p>
+            )}
             {courseMissing.some((m) => m.missing.includes("grade")) && (
               <label className="field">
                 <span>{t("onb.grade")}</span>

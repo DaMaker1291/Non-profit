@@ -3,7 +3,8 @@ import { deleteProfile, getProfile, newProfileState, publicProfileState, savePro
 import { deleteEvidence } from "@/lib/server/evidence";
 import { accountFromRequest, newProfileId } from "@/lib/server/auth";
 import { isBoardId, type ProfileState, type StudentProfile, type SubjectCourse, type SubjectId } from "@/lib/types";
-import { coversSubject, incompleteSubjects, specById } from "@/lib/specifications";
+import { coversSubject, incompleteSubjects, specById, specsFor } from "@/lib/specifications";
+import { pathwayForCountry } from "@/lib/curricula/registry";
 
 const SUBJECTS: SubjectId[] = ["maths", "physics", "chemistry", "biology", "computing"];
 
@@ -20,6 +21,7 @@ function courseEntry(
   subject: SubjectId,
   current: SubjectCourse | undefined,
   fallbackSpec: string | undefined,
+  system: { country?: string; pathway?: string },
 ): { entry: CoursePatch } | { error: string } {
   if (raw === null) return { entry: null };
   if (typeof raw !== "object" || Array.isArray(raw)) return { error: "bad_subject_course" };
@@ -35,6 +37,16 @@ function courseEntry(
     // is not part of (Biology under a maths-only paper). Both are refusals.
     if (!spec) return { error: "unknown_spec" };
     if (!coversSubject(spec, subject)) return { error: `spec_does_not_teach_${subject}` };
+    // AND IT MUST BELONG TO THE LEARNER'S OWN EDUCATION SYSTEM (§7). The picker
+    // is scoped by the pathway, so reaching this is a client bug — and a client
+    // bug must not end up serving another system's syllabus at another system's
+    // depth. Refused by name like every other invalid course choice, never
+    // dropped: a silent drop is how a learner believes they chose a course the
+    // engine never read.
+    if (system.pathway) {
+      const offered = new Set(specsFor(system.country, system.pathway).map((s) => s.id));
+      if (!offered.has(spec.id)) return { error: `pathway_does_not_offer_${spec.id}` };
+    }
     entry.spec = spec.id;
     const level = body.specLevel;
     // A tier that belongs to a DIFFERENT qualification is REFUSED, never
@@ -135,6 +147,54 @@ export async function POST(req: Request): Promise<NextResponse> {
     const p = state.profile;
     if (typeof body.handle === "string" && body.handle.trim()) p.handle = body.handle.trim().slice(0, 24);
     if (typeof body.country === "string" && /^[A-Z]{2}$/.test(body.country)) p.country = body.country;
+    // ── WHICH EDUCATION SYSTEM (§7) ─────────────────────────────────────────
+    // Optional, because most countries run one general secondary system and
+    // asking a UK learner to confirm they follow the UK system is a question
+    // with one answer. It is REQUIRED only where the country's record says the
+    // answer is genuinely open (Cameroon's Anglophone and Francophone systems),
+    // and that requirement lives in `courseGaps` — the same gate the form
+    // enforces — rather than as a rule here.
+    //
+    // Validated against the COUNTRY for the reason a tier is validated against
+    // its qualification: a national pathway of another country is refused by
+    // name, never quietly stored. Otherwise a learner could hold "the
+    // Francophone system of Cameroon" on a British profile and every course they
+    // were then offered would be scoped by a system they do not sit.
+    if (body.pathway === null) {
+      delete p.pathway;
+    } else if (typeof body.pathway === "string") {
+      const pathway = pathwayForCountry(p.country, body.pathway);
+      if (!pathway) return NextResponse.json({ error: "unknown_pathway" }, { status: 400 });
+      // CHANGING SYSTEM DROPS THE COURSES THAT BELONGED TO THE OLD ONE — but
+      // only when both the old and the new system are known.
+      //
+      // Both halves matter. A Cameroon learner moving from the Anglophone to the
+      // Francophone system must not keep a GCE O Level as their course: the
+      // syllabus, the depth band and the exam would all be the wrong system's,
+      // and every question they were served would be pitched at it. Equally, a
+      // profile that predates pathways (no `pathway` stored) may legitimately
+      // hold a course that no pathway lists — the live store holds one, a UK
+      // learner on Cambridge IGCSE — and clearing THAT on the first save would
+      // delete a real course to enforce a rule about a choice they never made.
+      // So the rule fires on a change between two declared systems, which is
+      // exactly the case it describes.
+      if (p.pathway && p.pathway !== pathway.id) {
+        const offered = new Set(specsFor(p.country, pathway.id).map((s) => s.id));
+        if (p.subjectCourses) {
+          for (const entry of Object.values(p.subjectCourses)) {
+            if (entry.spec && !offered.has(entry.spec)) {
+              delete entry.spec;
+              delete entry.specLevel;
+            }
+          }
+        }
+        if (p.spec && !offered.has(p.spec)) {
+          delete p.spec;
+          delete p.specLevel;
+        }
+      }
+      p.pathway = pathway.id;
+    }
     // The school a teacher teaches at. Free text and optional — a tutor working
     // alone has none and is never asked for one — but bounded, and CLEARABLE:
     // sending an empty string removes it rather than storing "" , so "no school"
@@ -198,6 +258,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     } else if (typeof body.spec === "string") {
       const spec = specById(body.spec);
       if (spec) {
+        if (p.pathway && !specsFor(p.country, p.pathway).some((s) => s.id === spec.id)) {
+          return NextResponse.json({ error: `pathway_does_not_offer_${spec.id}` }, { status: 400 });
+        }
         p.spec = spec.id;
         const level = body.specLevel;
         // Same rule as the per-subject path: a named tier the qualification does
@@ -253,7 +316,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         for (const [key, raw] of Object.entries(body.subjectCourses as Record<string, unknown>)) {
           const subject = SUBJECTS.find((s) => s === key);
           if (!subject) continue;
-          const parsed = courseEntry(raw, subject, next[subject], p.spec);
+          const parsed = courseEntry(raw, subject, next[subject], p.spec, { country: p.country, pathway: p.pathway });
           if ("error" in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 });
           if (parsed.entry) next[subject] = parsed.entry;
           else delete next[subject];

@@ -31,6 +31,10 @@ import type { SubjectId } from "@/lib/types";
  *  "how a missing course field is called". */
 export const FIELD_LABEL: Record<CourseField, string> = {
   country: "onb.country",
+  // The education system (§7). Named here as well as on the wizard, because the
+  // card Home shows sends the learner to /curriculum and must name the same field
+  // the wizard would have asked for.
+  pathway: "onb.pathway",
   grade: "onb.grade",
   spec: "onb.spec",
   specLevel: "onb.level",

@@ -159,6 +159,19 @@ async function main() {
     const specText = await p.pick(qual(0), gbSpec, "the first subject's qualification");
     check(await p.valueOf(qual(0)) === gbSpec, `the qualification is chosen by keystroke (${specText})`);
 
+    // ── HOW FAR HAS THIS COURSE'S SYLLABUS MAPPING BEEN CHECKED? ────────────
+    // The learner is told, in the same breath as the course, and the sentence
+    // follows the RECORD rather than the route's existence: 20 pathways have no
+    // structural source on file and none has a reviewed mapping, so the honest
+    // line is the pending one. The engines suite pins the registry half of this
+    // rule (the label is a function of `mappingReview`, and no language gives two
+    // states the same sentence); this is the half a learner can actually see.
+    const mapping = await p.evaluate(`return [...document.querySelectorAll("main p")].map((el) => el.textContent.trim()).filter((t) => /^Syllabus mapping/i.test(t));`);
+    check(mapping.length === 1,
+      `the course says how far its syllabus mapping has been checked (${mapping.length === 1 ? `one line` : `${mapping.length} lines`})`);
+    check(mapping.every((line) => /not yet reviewed/i.test(line)),
+      `and it states the UNREVIEWED state rather than claiming a review nobody has done ("${mapping[0] ?? "no line at all"}")`);
+
     // THE TIER IS THE LEARNER'S OWN CHOICE. Choosing a tiered qualification
     // must NOT quietly enrol them at the qualification's first tier. Measured
     // live, the select arrived with `levels[0]` (GCSE Foundation) already
@@ -166,7 +179,12 @@ async function main() {
     // depth without ever making that choice. The placeholder is the field
     // saying so, and the gap line names the tier it is waiting for.
     await p.waitFor(`return !!${level(0)};`, "the tier select to appear with the qualification");
+
     check(await p.valueOf(level(0)) === "", "choosing a tiered qualification leaves the tier UNCHOSEN rather than defaulting to its first one");
+    // The mapping sentence is about the COURSE, so it is still on screen once the
+    // tier question appears — it must not be a splash that the next field erases.
+    check(await p.evaluate(`return [...document.querySelectorAll("main p")].some((el) => /^Syllabus mapping/i.test(el.textContent.trim()));`),
+      "and the mapping line survives the fields that follow it");
     const missingTier = await p.evaluate(`return (document.querySelector("main").innerText.match(/Mathematics · needs: [^\\n]+/) || [null])[0];`);
     check(/Level/.test(missingTier ?? ""), `and the step names the tier it is waiting for (${missingTier})`);
 

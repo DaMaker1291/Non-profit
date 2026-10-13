@@ -562,6 +562,111 @@
       "median": 0.565,
       "belowTarget": 18,
       "servedMedian": 0.565
+    },
+    "cm-gce-a|lower6|maths": {
+      "declared": 0.78,
+      "concepts": 39,
+      "median": 0.9199134878348559,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "cm-gce-a|lower6|physics": {
+      "declared": 0.78,
+      "concepts": 14,
+      "median": 0.9546372331841849,
+      "belowTarget": 0,
+      "servedMedian": 0.735
+    },
+    "cm-gce-a|lower6|chemistry": {
+      "declared": 0.78,
+      "concepts": 12,
+      "median": 0.9574341877014376,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "cm-gce-a|lower6|biology": {
+      "declared": 0.78,
+      "concepts": 8,
+      "median": 0.958241487282794,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "cm-gce-a|lower6|computing": {
+      "declared": 0.78,
+      "concepts": 10,
+      "median": 0.9553247042372823,
+      "belowTarget": 0,
+      "servedMedian": 0.72
+    },
+    "cm-gce-a|upper6|maths": {
+      "declared": 0.9,
+      "concepts": 43,
+      "median": 0.920160884486977,
+      "belowTarget": 3,
+      "servedMedian": 0.9000932957837359
+    },
+    "cm-gce-a|upper6|physics": {
+      "declared": 0.9,
+      "concepts": 14,
+      "median": 0.9546372331841849,
+      "belowTarget": 1,
+      "servedMedian": 0.9059562707017176
+    },
+    "cm-gce-a|upper6|chemistry": {
+      "declared": 0.9,
+      "concepts": 12,
+      "median": 0.9574341877014376,
+      "belowTarget": 1,
+      "servedMedian": 0.9044052029494196
+    },
+    "cm-gce-a|upper6|biology": {
+      "declared": 0.9,
+      "concepts": 8,
+      "median": 0.958241487282794,
+      "belowTarget": 0,
+      "servedMedian": 0.9062316092778928
+    },
+    "cm-gce-a|upper6|computing": {
+      "declared": 0.9,
+      "concepts": 10,
+      "median": 0.9553247042372823,
+      "belowTarget": 0,
+      "servedMedian": 0.9012873706035316
+    },
+    "cm-bac|terminale|maths": {
+      "declared": 0.75,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7504842342063784
+    },
+    "cm-bac|terminale|physics": {
+      "declared": 0.75,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "cm-bac|terminale|chemistry": {
+      "declared": 0.75,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.7417741519026458
+    },
+    "cm-bac|terminale|biology": {
+      "declared": 0.75,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "cm-bac|terminale|computing": {
+      "declared": 0.75,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.738284586132504
     }
   }
 }
