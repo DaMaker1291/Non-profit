@@ -11099,6 +11099,48 @@ console.log("▸ The deployment reports its own configuration, and invents no re
   ok(envMod.envReport({ NODE_ENV: "production", OPENMIND_ALLOW_EPHEMERAL_STORE: "maybe" }).ok === false,
     "but only an explicit yes counts — any other value still fails readiness");
 
+  // 1c. A DECLARED DIRECTORY IS NOT AUTOMATICALLY A DURABLE ONE.
+  //
+  // The rule above catches an UNDECLARED store on the production artefact, and a
+  // real deployment got past it: a Render service with no disk attached
+  // answered `ready:true`, `data:{ok:true,code:"writable"}`, `problems:[]` — and
+  // a learner created 20 minutes earlier was HTTP 404 after the instance had
+  // slept and been replaced. The declaration was never the question: a PATH is
+  // not a filesystem. So on a host that is documented to discard its filesystem,
+  // the directory must be on a filesystem of its own, and the FACT is injected
+  // here so both branches are decidable on one machine.
+  const hosted = { NODE_ENV: "production", OPENMIND_DATA_DIR: "/data", RENDER: "true" };
+  const notDurable = envMod.envReport(hosted, { dataDirOnOwnFilesystem: false });
+  ok(notDurable.ok === false && notDurable.problems.some((p) => p.code === "data_dir_not_durable"),
+    "a declared store that is NOT on a filesystem of its own is not ready on a host that discards its filesystem");
+  ok(envMod.envReport(hosted, { dataDirOnOwnFilesystem: true }).ok === true,
+    "while the same host with the directory on a mounted volume is ready — which is the disk this exists to ask for");
+  ok(envMod.envReport(hosted, { dataDirOnOwnFilesystem: null }).ok === true
+    && envMod.envReport(hosted, { dataDirOnOwnFilesystem: null }).notes.some((n) => n.code === "durability_unknown"),
+    "and a filesystem that cannot be measured is reported as UNKNOWN, never as durable");
+  ok(envMod.envReport({ NODE_ENV: "production", OPENMIND_DATA_DIR: "/data" }).ok === true,
+    "the same declaration on a machine that is not such a host is untouched (a laptop's /data is that laptop's disk)");
+  ok(envMod.envReport({ ...hosted, OPENMIND_ALLOW_EPHEMERAL_STORE: "1" }, { dataDirOnOwnFilesystem: false }).ok === true,
+    "and accepting an ephemeral store in so many words still runs a throwaway instance as a note");
+  ok(envMod.ephemeralHost({}) === "" && envMod.ephemeralHost({ RENDER: "true" }) === "Render",
+    "the host is named from markers the platforms document, not guessed");
+  ok(envMod.envReport({ RENDER: "true" }).problems.some((p) => p.code === "data_dir_undeclared"),
+    "and an undeclared store on a recognised host is refused even when NODE_ENV says nothing (a Docker deploy need not set it)");
+  // The fact itself, from the filesystem this suite is running on. The root is
+  // never on a filesystem of its own, and a directory the store has not created
+  // yet is judged by the filesystem that WOULD hold it — the case that matters,
+  // because the first readiness call happens before the first write.
+  ok(envMod.dataDirOnOwnFilesystem("/") === false,
+    "the filesystem root is not a filesystem of its own");
+  ok(envMod.envReport({ NODE_ENV: "production", OPENMIND_DATA_DIR: "/", RENDER: "true" })
+      .problems.some((p) => p.code === "data_dir_not_durable"),
+    "and the rule fires through the REAL filesystem probe, not only through injected facts");
+  ok(envMod.dataDirOnOwnFilesystem("/definitely/not/here") === false,
+    "and a path outside anything mounted is judged by the root it belongs to");
+  ok(envMod.dataDirOnOwnFilesystem(nodePath.join(process.cwd(), "not-created-yet", "nested"))
+      === envMod.dataDirOnOwnFilesystem(process.cwd()),
+    "a directory that does not exist yet is judged by the filesystem that holds its nearest existing parent");
+
   // 2. A refused deployment profile is a PROBLEM and the default is reported —
   //    never the profile that was asked for.
   const refused = envMod.envReport({ OPENMIND_DEPLOYMENT: "not_a_real_profile" });
@@ -11146,6 +11188,19 @@ console.log("▸ The deployment reports its own configuration, and invents no re
     "an operator-declared deployment id is reported verbatim");
   ok(versionMod.deploymentDeclared({}) === false && versionMod.deploymentDeclared({ OPENMIND_DEPLOYMENT_ID: "x" }) === true,
     "and the report distinguishes a declared release from the local fallback");
+  // The HOST's own commit stamp counts as an identified artefact. Measured
+  // need: a live Render deployment answered `/api/health` with `local-1.0.0`
+  // while the host held the deployed commit in `RENDER_GIT_COMMIT` — so "which
+  // release is this learner on?", the one question a release must be able to
+  // ask, had no answer from outside the host. An operator's own id still wins.
+  ok(versionMod.deploymentId({ RENDER_GIT_COMMIT: "9f2c1ab" }) === "9f2c1ab",
+    "a host that stamps its own commit identifies the artefact being served");
+  ok(versionMod.deploymentDeclared({ RENDER_GIT_COMMIT: "9f2c1ab" }) === true,
+    "and that is a declared release rather than the local fallback");
+  ok(versionMod.deploymentId({ OPENMIND_DEPLOYMENT_ID: "v9", RENDER_GIT_COMMIT: "9f2c1ab" }) === "v9",
+    "while an operator's own deployment id still outranks the host's stamp");
+  ok(versionMod.deploymentId({ GITHUB_SHA: "abc123" }) === "abc123" && versionMod.deploymentId({}) === `local-${versionMod.APP_VERSION}`,
+    "GitHub Actions' own stamp is read too, and nothing declares one on a laptop");
 }
 
 // ▸ A route module exports handlers, and nothing else

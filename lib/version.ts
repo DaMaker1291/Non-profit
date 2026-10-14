@@ -16,6 +16,29 @@
 export const APP_VERSION = "1.0.0";
 
 /**
+ * The HOST's own commit stamp, when it declares one.
+ *
+ * Render sets `RENDER_GIT_COMMIT` ("the commit SHA for a service or deploy"),
+ * GitHub Actions sets `GITHUB_SHA`. Both name the artefact being served, which
+ * is exactly the question this module exists to answer — and the reason to read
+ * them is measured rather than imagined: a live deployment answered
+ * `/api/health` with `deployment: "local-1.0.0"` while the host itself held the
+ * commit in its own environment, so "which release is this learner on?" was
+ * unanswerable from outside the host — the one question a release needs to be
+ * able to ask. An operator's `OPENMIND_DEPLOYMENT_ID` still wins: it is the
+ * release's own name, and a host-stamped SHA is only what the host knows.
+ */
+const HOST_COMMIT_KEYS = ["RENDER_GIT_COMMIT", "GITHUB_SHA"] as const;
+
+export function hostDeploymentId(env: Record<string, string | undefined> = {}): string {
+  for (const key of HOST_COMMIT_KEYS) {
+    const value = (env[key] ?? "").trim();
+    if (value) return value.slice(0, 64);
+  }
+  return "";
+}
+
+/**
  * The DEPLOYMENT identity: a value an operator sets on every release so a
  * learner's session can be traced to one artefact. It is deliberately separate
  * from APP_VERSION — a hotfix deploy is a new deployment id and the same
@@ -23,19 +46,25 @@ export const APP_VERSION = "1.0.0";
  * build says so instead of inventing a commit hash.
  *
  * Read from, in order: OPENMIND_DEPLOYMENT_ID (server), NEXT_PUBLIC_APP_VERSION
- * (inlined into the client build), or `local-<APP_VERSION>` when neither is set.
+ * (inlined into the client build), the host's own commit stamp, or
+ * `local-<APP_VERSION>` when nothing declares one.
  */
 export function deploymentId(env: Record<string, string | undefined> = {}): string {
   const explicit = (env.OPENMIND_DEPLOYMENT_ID ?? "").trim();
   if (explicit) return explicit.slice(0, 64);
   const publicVersion = (env.NEXT_PUBLIC_APP_VERSION ?? "").trim();
   if (publicVersion) return publicVersion.slice(0, 64);
+  const hosted = hostDeploymentId(env);
+  if (hosted) return hosted;
   return `local-${APP_VERSION}`;
 }
 
-/** True when the deployment id was set by an operator (not the local fallback).
- *  A ready-check reports the difference rather than passing off `local-…` as a
- *  release identifier. */
+/** True when the deployment id names a real artefact — an operator's own id, the
+ *  client build's version, or the host's commit stamp — rather than the local
+ *  fallback. A ready-check reports the difference instead of passing off
+ *  `local-…` as a release identifier. */
 export function deploymentDeclared(env: Record<string, string | undefined> = {}): boolean {
-  return Boolean((env.OPENMIND_DEPLOYMENT_ID ?? env.NEXT_PUBLIC_APP_VERSION ?? "").trim());
+  return Boolean(
+    (env.OPENMIND_DEPLOYMENT_ID ?? env.NEXT_PUBLIC_APP_VERSION ?? "").trim() || hostDeploymentId(env),
+  );
 }

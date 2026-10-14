@@ -27,6 +27,8 @@
 // definition, two callers, no second opinion about what "configured" means.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import fs from "node:fs";
+import path from "node:path";
 import { resolveDeployment, type ResolvedDeployment } from "./deployment";
 // The one owner of "which storage backend does this configuration ask for", so
 // this report and `lib/server/store.ts` cannot disagree about it.
@@ -63,6 +65,86 @@ export interface EnvReport {
 const VENDOR_KEYS = ["GEMINI_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "OPENROUTER_API_KEY"] as const;
 
 /**
+ * The hosts that DISCARD their filesystem between releases.
+ *
+ * Each variable below is documented by the platform that sets it as an
+ * always-present runtime marker: Render's own docs say `RENDER` "is always
+ * true", Heroku sets `DYNO`, Fly sets `FLY_APP_NAME`, Cloud Run sets
+ * `K_SERVICE`, Azure App Service sets `WEBSITE_SITE_NAME`. Recognising the host
+ * matters because a declaration like `OPENMIND_DATA_DIR=/data` reads identically
+ * on a laptop and in a container — and means opposite things. On a laptop
+ * `/data` is that machine's disk; in a container platform with no volume
+ * attached it is a directory in the layer the next deploy throws away.
+ *
+ * Measured, on a real deployment: a host with no volume answered
+ * `/api/ready` with `ready:true`, `data:{ok:true,code:"writable"}` and **no
+ * problems** while every learner record was destroyed about fifteen minutes
+ * after their last click — the store was declared, writable, and gone. Nothing
+ * in this report could see it, because a declaration is not a promise.
+ */
+const EPHEMERAL_HOSTS = [
+  ["RENDER", "Render"],
+  ["DYNO", "Heroku"],
+  ["FLY_APP_NAME", "Fly.io"],
+  ["K_SERVICE", "Cloud Run"],
+  ["WEBSITE_SITE_NAME", "Azure App Service"],
+] as const;
+
+/** The host that discards its filesystem, or "" when this is not such a host (a
+ *  laptop, a CI runner, a self-hosted box). */
+export function ephemeralHost(env: Record<string, string | undefined> = {}): string {
+  for (const [key, name] of EPHEMERAL_HOSTS) {
+    if ((env[key] ?? "").trim()) return name;
+  }
+  return "";
+}
+
+/** The device a path lives on, walking up to the nearest EXISTING ancestor
+ *  (a directory the store will create on first write does not exist yet), or
+ *  `null` when nothing on the path can be stat-ed. */
+function deviceOf(target: string): number | null {
+  let current = path.resolve(target);
+  for (let i = 0; i < 64; i++) {
+    try {
+      return fs.statSync(current).dev;
+    } catch { /* keep climbing */ }
+    const up = path.dirname(current);
+    if (up === current) return null;
+    current = up;
+  }
+  return null;
+}
+
+/**
+ * Is the data directory on a filesystem of ITS OWN?
+ *
+ *   true  — a different device from the filesystem root, i.e. a mounted volume:
+ *           the deploy replaces the image and leaves this alone;
+ *   false — a directory on the same filesystem as everything else: in a
+ *           container that is the layer the next deploy (and, on a host that
+ *           sleeps, the next cold start) discards;
+ *   null  — could not be determined, which is reported as "unknown", never as
+ *           headroom, safety or a pass.
+ *
+ * This is the fact `OPENMIND_DATA_DIR` cannot state about itself, and the reason
+ * the check exists: a path is not a promise.
+ */
+export function dataDirOnOwnFilesystem(dir: string): boolean | null {
+  const target = path.resolve(dir);
+  const here = deviceOf(target);
+  const root = deviceOf(path.parse(target).root);
+  if (here === null || root === null) return null;
+  return here !== root;
+}
+
+/** Facts a caller can supply instead of measuring, so a test can drive both
+ *  branches of the durability rule on one machine (and so a caller that has
+ *  already stat-ed the directory does not have to do it twice). */
+export interface EnvFacts {
+  dataDirOnOwnFilesystem?: boolean | null;
+}
+
+/**
  * The provider `lib/llm.ts` would actually call, in its own precedence order.
  * Kept here as a REPORTER, not a decision: the tutor reads aiStatus() itself, and
  * this exists so /api/ready and the production gate can name the same answer
@@ -84,7 +166,7 @@ export function aiProviderOf(env: Record<string, string | undefined> = {}): stri
  * shapes what children are taught, and a refused profile is the only
  * misconfiguration here that changes the product rather than a credential.
  */
-export function envReport(env: Record<string, string | undefined> = {}): EnvReport {
+export function envReport(env: Record<string, string | undefined> = {}, facts: EnvFacts = {}): EnvReport {
   const problems: EnvProblem[] = [];
   const notes: EnvNote[] = [];
 
@@ -193,8 +275,21 @@ export function envReport(env: Record<string, string | undefined> = {}): EnvRepo
   //    unaffected — `./start-openmind.sh` declares its data directory and the
   //    Dockerfile sets /data — because the case this catches is the host that
   //    starts the image with an empty environment and no operator watching.
+  //
+  //    AND A DECLARED DIRECTORY IS NOT AUTOMATICALLY DURABLE, which is the half
+  //    that a real deployment slipped through: `OPENMIND_DATA_DIR=/data` is
+  //    silent on a host with no volume attached, because the declaration is
+  //    about a PATH and the question is about a FILESYSTEM. Measured on a live
+  //    Render service with no disk: /api/ready answered ready:true,
+  //    data:{ok:true,code:"writable"}, problems:[] — and a learner created 20
+  //    minutes earlier was HTTP 404 twenty minutes later, after the instance had
+  //    slept and been replaced. So when the environment says it is running on a
+  //    host that discards its filesystem, the data directory must be on a
+  //    filesystem of its own; if it is not, that is a problem, and the escapes
+  //    are the same two as above.
   const dataDir = (env.OPENMIND_DATA_DIR ?? "").trim();
-  const production = (env.NODE_ENV ?? "").trim() === "production";
+  const host = ephemeralHost(env);
+  const production = (env.NODE_ENV ?? "").trim() === "production" || Boolean(host);
   const acceptsEphemeral = /^(1|true|yes)$/i.test((env.OPENMIND_ALLOW_EPHEMERAL_STORE ?? "").trim());
   if (!dataDir) {
     const detail =
@@ -210,6 +305,26 @@ export function envReport(env: Record<string, string | undefined> = {}): EnvRepo
       code: "ephemeral_store_accepted",
       detail: `this deployment declares ${dataDir} AND says it accepts an ephemeral store, so losing it on a deploy is a known state rather than a surprise`,
     });
+  } else if (host) {
+    // `undefined` means "measure it"; an explicit `null` means "could not be
+    // measured" and must NOT be silently replaced by a measurement, or the
+    // unknown case would report a confident answer on the caller's behalf.
+    const own = facts.dataDirOnOwnFilesystem === undefined
+      ? dataDirOnOwnFilesystem(dataDir)
+      : facts.dataDirOnOwnFilesystem;
+    if (own === false) {
+      problems.push({
+        key: "OPENMIND_DATA_DIR",
+        code: "data_dir_not_durable",
+        detail: `this host (${host}) replaces its filesystem when it deploys or restarts, and ${dataDir} is not a mounted volume — it is a directory on the filesystem the host discards, so every learner record and evidence ledger is lost on the next sleep or deploy. Attach a disk and point OPENMIND_DATA_DIR at its mount path, or set OPENMIND_ALLOW_EPHEMERAL_STORE=1 to accept losing them`,
+      });
+    } else if (own === null) {
+      notes.push({
+        key: "OPENMIND_DATA_DIR",
+        code: "durability_unknown",
+        detail: `this host (${host}) discards its filesystem, and whether ${dataDir} is a mounted volume could NOT be determined — verify the volume is attached and mounted at that path before trusting the store`,
+      });
+    }
   }
 
   // 6b. WHICH STORE, and whether this build can serve it. A deployment that

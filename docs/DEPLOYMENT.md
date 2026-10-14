@@ -226,6 +226,60 @@ note for a throwaway instance). A laptop is unaffected —
 `/data` — because the case this catches is the host that starts the image with
 an empty environment and no operator watching it.
 
+### 6.2 A declared directory was not enough either — measured on a live host
+
+The rule above fires when `OPENMIND_DATA_DIR` is **undeclared**. A real
+deployment got past it by declaring one, and the failure looked like a healthy
+site:
+
+```text
+GET https://<host>/api/ready
+{"ready":true, … "checks":{"data":{"ok":true,"code":"writable"}, …}, "problems":[]}
+
+# 20 minutes and one instance sleep later, the learner created in between:
+GET https://<host>/api/profile?id=stu_…&secret=…   →   HTTP 404
+GET https://<host>/api/health                       →   uptimeSeconds: 20   (a NEW process)
+```
+
+A path is not a filesystem. `OPENMIND_DATA_DIR=/data` is silent on a host with
+no volume attached, because `/data` is then just a directory in the layer the
+host discards when the instance sleeps or a deploy lands. So `lib/env.ts` now
+also asks the FILESYSTEM, on hosts that are documented to discard theirs
+(`RENDER` on Render, `DYNO` on Heroku, `FLY_APP_NAME`, `K_SERVICE`,
+`WEBSITE_SITE_NAME`):
+
+| data directory | readiness | problem code |
+|---|---|---|
+| on a filesystem of its own (a mounted volume) | ready | — |
+| on the same filesystem as everything else | **503** | `data_dir_not_durable` |
+| could not be measured | ready, with a note | `durability_unknown` |
+| `OPENMIND_ALLOW_EPHEMERAL_STORE=1` | ready, with a note | `ephemeral_store_accepted` |
+
+The judgement is scoped to those hosts on purpose: on a laptop `/data` is that
+laptop's disk, and a test that flagged it would be a false alarm in the one
+place a developer reads the report. The three ways out are all deliberate acts —
+attach the volume, accept ephemerality in so many words, or run somewhere whose
+filesystem is yours.
+
+**The host itself is the other half of the fix, and it is a platform setting,
+not code.** For this deployment (a Render web service):
+
+1. a **paid instance type** — Free instances sleep after ~15 minutes idle, and
+the measured wake was **~4 minutes of no response at all** (4 attempts over
+100 seconds failed outright; the first success took a further 6 s). A learner
+who clicks a link in that window sees the edge's 503, which is what "the site
+is down" looked like before any of this was measured;
+2. a **persistent disk** mounted at `/data` (disks are not available on Free),
+with `OPENMIND_DATA_DIR=/data` — the mount is what makes step 3 true;
+3. `OPENMIND_SESSION_SECRET` (32+ random characters) **and a copy of it beside
+the disk's backup**: the secret signs every session cookie, so losing it signs
+every learner out on restore;
+4. `OPENMIND_IMPACT_KEY` before the site is public — without it
+`/api/impact` is open;
+5. `HEALTH_CHECK_PATH=/api/health` in the service settings, not `/api/ready`
+(see the note below): a host that restarts on a failed readiness check would
+restart in a loop instead of letting anyone read the reason.
+
 > **Before pointing a host's health check at `/api/ready`:** it answers 503 for
 a misconfigured deployment by design, which is what a *load balancer's*
 readiness probe is for. A host that **restarts** the service on a failed check
@@ -345,7 +399,14 @@ previous artefact and, after a check, the previous `/api/ready`.
 v17 serving → deploy v18 → problem found → redeploy v17 artefact
 ```
 
-`OPENMIND_DEPLOYMENT_ID` is how you know which artefact a learner was on. Where a
+`OPENMIND_DEPLOYMENT_ID` is how you know which artefact a learner was on, and it
+is no longer the ONLY way: when it is unset, `/api/health` and `/api/ready` fall
+back to the host's own commit stamp (`RENDER_GIT_COMMIT`, `GITHUB_SHA`), so
+"which release is this?" is answerable without a variable to set. That fallback
+exists because it was measured missing — a live deployment reported
+`deployment: "local-1.0.0"` while the host held its commit in its own
+environment, which made the release question unanswerable from outside the host.
+Where a
 release changed *content*, the previous content version stays published in
 `audit/content-release.json`'s git history and can be restored by reverting that
 file (see `verify-content-release.mjs`). Where a release changed the **evidence
