@@ -30,10 +30,23 @@
 //     typo into no check at all. It exists so the refusal is a testable
 //     behaviour, and so a small volume can deliberately run below the bar.
 //
-// The bars are BRACKETED by measurement, not chosen: above every observed
-// failure (4.1 GB) and at/below every observed success (5.1 GB). `--self-test`
-// asserts that bracket, and asserts it by planting the mis-calibration that
-// actually happened — the first cut used 500 MB, which classified the very run
+// The bars are BRACKETED by measurement, not chosen — but the bracket is NOT a
+// statement of how much space a run needs, and measuring that changed what this
+// file is for. A full `npm run e2e` was measured GREEN at **3.4 GB free** (861
+// passed, 0 failed) with a transient footprint of **~550 MB**, while the volume's
+// free space moved 2.7 → 3.2 → 3.6 → 4.7 → 3.5 → 1.0 GB during that one session
+// with no change to this repository at all. The run costs a rounding error; the
+// volume is shared with 414 GB of somebody else's data and churns by gigabytes.
+//
+// So the bar is a MARGIN, not a need: it exists so that other people's writes do
+// not land on this one mid-compile, which is the failure actually measured
+// (ENOSPC inside a webpack write, while a stale cache was being rewritten in
+// place). It therefore deliberately refuses runs that would pass — 3.4 GB is
+// refused and was green — and that is asserted rather than left to look like a
+// bug. `E2E_FOOTPRINT_MB` and `OBSERVED_CHURN_MB` carry the two measurements, and
+// `--self-test` asserts the relationship between them and the bar so a future
+// edit cannot move it inside the noise. It also plants the mis-calibration that
+// actually happened: the first cut used 500 MB, which classified the very run
 // this exists for as "ok".
 //
 // Usage:
@@ -55,6 +68,23 @@ export const LOW_MB_DEFAULT = 5120;
 export const WARN_MB_DEFAULT = 8192;
 /** The environment variable that moves the LOW bar. */
 export const MIN_FREE_ENV = "OPENMIND_MIN_FREE_MB";
+
+/**
+ * WHAT A RUN COSTS AND WHAT MOVES AROUND IT — the two measurements that decide
+ * whether the bar is defensible, exported so the self-test asserts the
+ * relationship instead of restating it in prose.
+ *
+ * `E2E_FOOTPRINT_MB` — measured 14 Oct 2026: a full `npm run e2e` ran green at
+ * 3.4 GB free and cost this volume 542 MB (`.next-dev`) + 3.7 MB (`.verify`) +
+ * 468 KB (the scratch store). That is the whole of it.
+ *
+ * `OBSERVED_CHURN_MB` — the LARGEST independent drop in free space seen during
+ * that same session, caused by processes outside this repository. The margin has
+ * to cover this, because a compile that runs out of space mid-write is the
+ * failure this whole file exists to make loud.
+ */
+export const E2E_FOOTPRINT_MB = 550;
+export const OBSERVED_CHURN_MB = 2662;
 
 /**
  * The two bars, resolved. `warn` is `max(low, WARN_DEFAULT)` so raising LOW above
@@ -168,6 +198,16 @@ function selfTest() {
     d.lowMb > 4.1 * 1024, `${d.lowMb} MB vs ${Math.round(4.1 * 1024)} MB`);
   check("and at or below the measured green run (5.1 GB free)",
     d.lowMb <= Math.floor(5.1 * 1024), `${d.lowMb} MB vs ${Math.floor(5.1 * 1024)} MB`);
+
+  // THE BAR IS A MARGIN, NOT A NEED. A full e2e costs ~550 MB and was measured
+  // GREEN at 3.4 GB free, so "the run would not fit" is not the argument — the
+  // argument is that the volume churns by gigabytes around it. This is the
+  // assertion that stops a later edit lowering the bar into that noise.
+  check("the bar exceeds the run's own measured footprint PLUS the churn observed around it",
+    d.lowMb > E2E_FOOTPRINT_MB + OBSERVED_CHURN_MB,
+    `${d.lowMb} MB vs ${E2E_FOOTPRINT_MB} + ${OBSERVED_CHURN_MB} = ${E2E_FOOTPRINT_MB + OBSERVED_CHURN_MB} MB`);
+  check("and it is deliberately conservative: the measured GREEN run at 3.4 GB is refused",
+    classify(3558, d) === "low", `3.4 GB free classified ${classify(3558, d)}`);
 
   // THE PLANTED LIE. The first cut of this guard used 500 MB, and it classified
   // the measured failure as fine. If a later edit reintroduces that, this fires.
