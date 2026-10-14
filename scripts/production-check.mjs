@@ -38,6 +38,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
+// The ONE owner of the disk-headroom rule (scripts/disk-headroom.mjs). This
+// checklist and `scripts/e2e-api.mjs` both used to carry their own thresholds and
+// a comment asking the other file to stay in step with them.
+import { headroomOneLine, measureHeadroom } from "./disk-headroom.mjs";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -147,24 +151,18 @@ record("storage conformance", storageOk, "npm run storage-check (the port, again
 // measurement rather than chosen: ENOSPC at 4.1 GB and ~4 GB (both times while a
 // stale build cache was rewritten), the full suite green at 5.1 GB. A LOW bar
 // below that range refuses nothing — the first cut used 500 MB, which would have
-// passed the very run it existed for. Keep these in step with
-// `scripts/e2e-api.mjs`, which refuses the same way before line one.
+// passed the very run it existed for. The bars are owned by
+// `scripts/disk-headroom.mjs` (with a self-test that asserts the bracket), and
+// `scripts/e2e-api.mjs` refuses through the same module before line one.
 {
-  const LOW_MB = 5120;
-  const WARN_MB = 8192;
-  try {
-    const st = fs.statfsSync(ROOT);
-    const freeMb = Math.floor((Number(st.bavail) * Number(st.bsize)) / (1024 * 1024));
-    const freeGb = (freeMb / 1024).toFixed(1);
-    if (freeMb < LOW_MB) {
-      record("disk headroom", false, `${freeMb} MB free on the volume holding the store and the builds — below ${LOW_MB} MB, writes are about to fail (ENOSPC)`);
-    } else if (freeMb < WARN_MB) {
-      record("disk headroom", true, `${freeGb} GB free — enough to run, tight enough to watch; the store, two builds and the compiled mirror all write here`);
-    } else {
-      record("disk headroom", true, `${freeGb} GB free`);
-    }
-  } catch (e) {
-    skip("disk headroom", `statfs unavailable here (${e && e.message ? e.message : "unknown"})`);
+  const headroom = measureHeadroom(ROOT);
+  if (headroom.state === "unknown") {
+    skip("disk headroom", headroomOneLine(headroom));
+  } else {
+    // `low` fails the release; `warn` is recorded as passing, because a tight disk
+    // is a fact to fix rather than a reason to withhold an artefact that can still
+    // be built and served.
+    record("disk headroom", headroom.state !== "low", headroomOneLine(headroom));
   }
 }
 

@@ -268,12 +268,46 @@ and server exceptions, and uptime monitoring of `/`, `/onboarding`,
 `/api/health`, `/api/ready`. Personal data in logs must be minimised the same way
 it is in the store.
 
+### The disk-headroom alarm
+
+The store, the compiled mirror and every build write to the same volume, and a
+full disk does not fail the thing that filled it — it fails whatever happens to be
+writing, **wearing a costume**. Measured on this checkout: at 4.1 GB free the dev
+server's webpack cache write failed with `ENOSPC`, the compile never answered, and
+the end-to-end suite died five minutes later on `HeadersTimeoutError` with **0
+assertions reported** — which reads like a hung route, not a full disk. The same
+source then ran green at 5.1 GB with that cache deleted.
+
+```bash
+npm run disk-headroom              # the alarm: exits 3 when the volume is too full
+npm run disk-headroom -- --json    # the same measurement, machine-readable
+npm run disk-headroom -- --strict  # also fail in the warning band
+npm run disk-headroom -- --self-test  # is the bar still above the failure it was measured from?
+```
+
+Schedule the alarm rather than waiting for it (daily, beside the backup):
+
+```cron
+17 4 * * *  cd /srv/openmind && npm run disk-headroom >> /var/log/openmind-headroom.log 2>&1
+```
+
+`scripts/disk-headroom.mjs` is the ONE owner of the rule — the two bars, the
+classification and the sentence — and `npm run production-check` and
+`npm run e2e` both read it, so a release checklist and a test suite cannot
+disagree about what "too full" means. The bars are **bracketed by measurement**,
+not chosen: they sit above every observed failure (4.1 GB) and at or below every
+observed success (5.1 GB). `OPENMIND_MIN_FREE_MB` moves the lower bar for a
+deliberately small volume, and a value that is set but not a number falls back to
+the default rather than disabling the check. A request that reports `state: "unknown"`
+means `statfs` was unavailable: nothing was measured, which is **not** the same
+as headroom.
+
 ## 7. Routine checks
 
 | Cadence | Check |
 |---|---|
-| every deploy | `npm run production-check` (or the CI job) |
-| daily | `/api/health` and `/api/ready` answered; `npm run backup` completed and its copy kept off-site |
+| every deploy | `npm run production-check` (or the CI job) — its disk-headroom step fails a release below 5 GB free |
+| daily | `/api/health` and `/api/ready` answered; `npm run backup` completed and its copy kept off-site; `npm run disk-headroom` (alarm) |
 | weekly | `npm run restore-drill` against the latest archive (step 3b included); review `/api/impact` limitations |
 | per retention window | `npm run backup -- --max-age-days 90` so copies expire (`PRIVACY.md` §6) |
 | monthly | dependencies reviewed; `audit/content-release.json` reviewed; access to secrets reviewed |

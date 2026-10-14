@@ -8,6 +8,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+// The ONE owner of the disk-headroom rule, the two bars, and the override. This
+// suite used to hold its own copy — and the two copies had already started
+// instructing each other across files to stay in step, which is the shape of a
+// rule that is about to drift.
+import { headroomSentence, measureHeadroom } from "./disk-headroom.mjs";
 
 // One compiled fact the pack assertions need: which subject a concept belongs
 // to. Read from the genome rather than listed here, so "this week is physics"
@@ -46,9 +51,9 @@ const DATA_DIR = process.env.OPENMIND_DATA_DIR
 // sits above every observed failure and at or below every observed success — the
 // first cut of this check used 500 MB and 2048 MB, which would have waved through
 // the very run it was written for. A refusal here is cheap (re-run after freeing
-// a cache); a false pass costs five minutes and reports a broken route. If you
-// move these, move them because you measured a run that failed — and move both
-// files, which must stay in step.
+// a cache); a false pass costs five minutes and reports a broken route. The bars
+// themselves live in ONE place — `scripts/disk-headroom.mjs`, where the self-test
+// asserts they still sit above the failure they were measured from.
 //
 // The bar is OVERRIDABLE (`OPENMIND_MIN_FREE_MB=200 npm run e2e`) so that the
 // refusal is a testable behaviour rather than a comment: a deployment on a small
@@ -57,27 +62,15 @@ const DATA_DIR = process.env.OPENMIND_DATA_DIR
 // set but not a number falls back to the default rather than disabling the
 // check — `Number('x')` is NaN, and `freeMb < NaN` is false, which would have
 // silently turned a typo into no check at all.
-const rawLow = Number(process.env.OPENMIND_MIN_FREE_MB);
-const LOW_MB = Number.isFinite(rawLow) && rawLow >= 0 ? rawLow : 5120;
-const WARN_MB = Math.max(LOW_MB, 8192);
-try {
-  const st = fs.statfsSync(process.cwd());
-  const freeMb = Math.floor((Number(st.bavail) * Number(st.bsize)) / (1024 * 1024));
-  if (freeMb < LOW_MB) {
-    console.error(
-      `\n  Only ${freeMb} MB free on the volume holding the store and the dev server's build.\n` +
-      "  The suite would fail later as a timeout with no assertion reported, which reads like a\n" +
-      "  broken route. Free at least " + Math.ceil((WARN_MB - freeMb) / 1024) + " GB (a regenerable\n" +
-      "  build cache is the usual cause: `.next-dev`, `.next-prod`, `.verify`) and re-run.\n",
-    );
-    process.exit(3);
-  }
-  if (freeMb < WARN_MB) {
-    console.log(`  · ${freeMb} MB free — enough to run, tight enough that a build may fail (ENOSPC)`);
-  }
-} catch {
-  // statfs is not universal; a run with no measurement is still a run.
+const headroom = measureHeadroom(process.cwd());
+if (headroom.state === "low") {
+  console.error(`\n  ${headroomSentence(headroom)}\n`);
+  process.exit(3);
 }
+if (headroom.state === "warn") console.log(`  · ${headroomSentence(headroom)}`);
+// `unknown` (no statfs) is a run without a measurement, which is still a run —
+// and is never reported as headroom. `npm run disk-headroom` is the same rule as
+// an alarm an operator can schedule.
 
 let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) pass++; else { fail++; console.error("  ✗", m); } };

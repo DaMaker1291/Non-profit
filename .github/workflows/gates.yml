@@ -47,6 +47,17 @@ jobs:
       - name: Storage conformance
         run: npm run storage-check
 
+      # ── THE GUARD'S OWN CALIBRATION ─────────────────────────────────────────
+      # A full disk on this project is disguised as a broken product: measured at
+      # 4.1 GB free, the dev server's webpack write failed with ENOSPC and the run
+      # died on a timeout with 0 assertions reported, reading like a hung route.
+      # The bars live in ONE place (scripts/disk-headroom.mjs) and this step runs
+      # that module's SELF-TEST, not the alarm: a runner's own free space is not
+      # this change's business, but whether the bar still sits ABOVE the failure
+      # it was measured from is exactly the half of a guard that rots silently.
+      - name: Disk-headroom guard calibration
+        run: npm run disk-headroom -- --self-test
+
       - name: Content graph
         run: npm run content-check
 
