@@ -20,8 +20,22 @@
 import fs from "node:fs";
 import path from "node:path";
 
-/** Tracked files a build rewrites. Add here — never at a call site. */
-export const GENERATED = ["next-env.d.ts"];
+/**
+ * Tracked files a BUILD OR A GATE rewrites. Add here — never at a call site.
+ *
+ * `next-env.d.ts` names the dist types of whichever server ran last, so a
+ * release's own tooling used to dirty the tree it was certifying.
+ *
+ * `audit/storage-conformance.json` is the same problem arriving from the other
+ * direction, and it was found by RUNNING the checklist rather than reading it:
+ * `npm run storage-check` writes the record of its run (docs/STORAGE_SPEC.md
+ * §9.5) with a fresh `generatedAt`, and `npm run production-check` runs that gate
+ * as one of its steps — so a passing release left a tracked file modified, which
+ * is precisely what §8 of the checklist reports on. The record still gets
+ * written (a reviewer can read it), and the tree it came from is handed back
+ * untouched.
+ */
+export const GENERATED = ["next-env.d.ts", "audit/storage-conformance.json"];
 
 /** Read the current contents of every generated file, before anything builds.
  *  `null` records "it did not exist", which a restore must reproduce. */
