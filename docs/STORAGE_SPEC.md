@@ -187,9 +187,21 @@ changed the code:
   object with no newline. Reading was already safe (a malformed line is skipped
   and never repaired), but the append after it was not: written straight onto the
   fragment it was spliced into the wreckage, the reader skipped the whole line,
-  and the answer was **lost while `appendEvidence` reported it as accepted** —
-  silent data loss that appears only after a crash, which is exactly the failure
-  a cheap phone produces. `lib/server/evidence.ts` now reads the file's last byte
+  and the answer was **lost while `appendEvidence` reported it as accepted**.
+  Worse, and this is the part the first commit message understated: **the file
+  never regains a line boundary**, so EVERY answer after the crash is appended
+  onto the same growing wreckage and lost the same way, each one reported
+  accepted — the learner's ledger goes permanently dead, silently, and the model
+  keeps rebuilding from a history that stopped growing. That is the failure a
+  cheap phone produces (a process killed mid-write), and it is unrecoverable
+  without the learner noticing answers vanishing.
+
+  **Blast radius, audited rather than assumed:** `appendFileSync` appears exactly
+  ONCE in the whole codebase (`lib/server/evidence.ts`) — every other store file
+  is written whole via temp-file rename, which cannot tear — and the live store
+  holds **0 evidence ledgers**, so no real record was ever exposed. The second
+  half matters: had this checkout carried a class, every answer written after the
+  first crash would have been unrecoverable and unnoticed. `lib/server/evidence.ts` now reads the file's last byte
   and writes one newline of **framing** when it ends mid-line, so the next event
   begins at a line boundary. The fragment's own bytes are never touched: this
   decides where a line starts, it does not edit history.
