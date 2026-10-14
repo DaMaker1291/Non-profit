@@ -166,10 +166,19 @@ async function waitForRestart(base, before, budgetMs) {
   const started = Date.now();
   let last = await processStart(base);
   for (;;) {
-    if (!last || last.start !== before) return last;
+    if (last && last.start !== before) return last;
     if (Date.now() - started > budgetMs) return last;
     await new Promise((r) => setTimeout(r, 5000));
-    last = await processStart(base);
+    const next = await processStart(base);
+    // A deployment that does not answer yet is NOT a verdict on the restart.
+    // This is the host class the drill exists for: a free instance that idles
+    // out takes minutes of silence to wake, and the first sample after a cold
+    // start can be nothing at all. Treating that as "the process never changed"
+    // would report a restart that happened as a failed one — the single most
+    // expensive kind of false alarm, because the fix reads as "the store lost
+    // the learner" when the truth is "the probe was five seconds early".
+    if (next === null) continue;
+    last = next;
   }
 }
 
@@ -550,7 +559,9 @@ async function verifyCanary(base, canary, { expectRestart = true } = {}) {
   // restarted, the process answered from memory", and a green run would be
   // worse than a red one.
   let nowAt = await processStart(base);
-  if (expectRestart && nowAt && nowAt.start === canary.processStart) {
+  // `!nowAt` counts as "not restarted yet" too: silence is a reason to keep
+  // waiting, never a licence to compare (see waitForRestart).
+  if (expectRestart && (!nowAt || nowAt.start === canary.processStart)) {
     console.log(
       `  · the same process is still serving — waiting for the replacement (up to ${Math.round(RESTART_WAIT_MS / 1000)}s)…`,
     );
