@@ -123,3 +123,33 @@ jobs:
             sleep 5
           done
           npm run smoke
+
+      # ── STAGING CARRIES THE RESTART-SURVIVAL DRILL TOO ─────────────────────
+      # Staging exists so a data change is tried where learners are not, and
+      # "the store the host keeps" is the largest data change there is: a
+      # deployment whose data directory lives on the container's writable layer
+      # loses every learner on the next restart while passing readiness and the
+      # smoke test above. Catching that here is the point of the environment.
+      # See deploy-production.yml for the same three steps, spelled out.
+      - name: Restart-survival drill — write a learner, and check the store is kept
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          OPENMIND_BASE: ${{ vars.STAGING_URL }}
+        run: npm run verify:persistence -- --write
+
+      - name: Restart the service (a second deploy of the same artefact)
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          DEPLOY_HOOK: ${{ secrets.STAGING_DEPLOY_HOOK }}
+          DEPLOYMENT_ID: ${{ github.sha }}
+        run: |
+          curl -fsS -X POST "$DEPLOY_HOOK" \
+            -H "content-type: application/json" \
+            -d "{\"deploymentId\": \"${DEPLOYMENT_ID}\"}"
+          echo "restart triggered — the drill waits for the new process to answer"
+
+      - name: Restart-survival drill — require every fact to have survived
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          OPENMIND_BASE: ${{ vars.STAGING_URL }}
+        run: npm run verify:persistence -- --verify

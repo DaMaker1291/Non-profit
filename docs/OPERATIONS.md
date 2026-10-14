@@ -306,8 +306,8 @@ as headroom.
 
 | Cadence | Check |
 |---|---|
-| every deploy | `npm run production-check` (or the CI job) — its disk-headroom step fails a release below 5 GB free |
-| daily | `/api/health` and `/api/ready` answered; `npm run backup` completed and its copy kept off-site; `npm run disk-headroom` (alarm) |
+| every deploy | `npm run production-check` (or the CI job) — its disk-headroom step fails a release below 5 GB free; and the **restart-survival drill** (`verify:persistence -- --write` → replace the process → `--verify`), which both deploy workflows now run — it fails a release whose store the host does not keep |
+| daily | `/api/health` and `/api/ready` answered; **`store.durability` is `"durable"` on `/api/ready`** — `"ephemeral"` means the host is discarding the learners, and it is the one condition that must page someone rather than wait for a weekly review; `npm run backup` completed and its copy kept off-site; `npm run disk-headroom` (alarm) |
 | weekly | `npm run restore-drill` against the latest archive (step 3b included); review `/api/impact` limitations |
 | per retention window | `npm run backup -- --max-age-days 90` so copies expire (`PRIVACY.md` §6) |
 | monthly | dependencies reviewed; `audit/content-release.json` reviewed; access to secrets reviewed |

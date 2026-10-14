@@ -118,7 +118,7 @@ has already cost time once; the restart is part of the procedure, not optional.
 | Profiles, classes, papers, packs | `profiles.json`, `classes.json`, … in `OPENMIND_DATA_DIR` | PostgreSQL tables |
 | Evidence ledger | one append-only JSONL file per learner, `evidence/<id>.jsonl` | an append-only `evidence_events` table |
 | Large files | served from the app bundle | object storage (packs, exports, PDFs) |
-| Migrations | **3 paired SQL migrations** (`db/migrations`), checksummed and rehearsed by `db:rehearse` — applied to a schema this build does not read yet | the same files, serving the running application |
+| Migrations | **5 paired SQL migrations** (`db/migrations`), checksummed and rehearsed by `db:rehearse` — applied to a schema this build does not read yet | the same files, serving the running application |
 | Backend selection | the file store, always (`OPENMIND_STORE` defaults to `file`) | `OPENMIND_STORE=postgres` behind the port in [STORAGE_SPEC.md](STORAGE_SPEC.md) |
 
 Why the ledger stays append-only conceptually even if the store changes: the
@@ -135,6 +135,8 @@ What exists, and is exercised on every run of the database gate:
 db/migrations/0001_initial.(up|down).sql            identity, cohorts, ledger, artefacts
              0002_evidence_indexes.(up|down).sql   indexes + the append-only guard
              0003_course_versions.(up|down).sql    content releases, evidence binding
+             0004_port_gaps.(up|down).sql          erasure log, AI cache, interventions
+             0005_profile_record.(up|down).sql     the learner's own record (profiles.payload)
 scripts/migrate.mjs                                 status | up | down | rehearse | verify
 ```
 
@@ -261,6 +263,24 @@ place a developer reads the report. The three ways out are all deliberate acts �
 attach the volume, accept ephemerality in so many words, or run somewhere whose
 filesystem is yours.
 
+**`/api/ready` publishes that judgement as one field, and it is not only for
+humans.** The response carries a `store` block — `kind` (the backend in force),
+`configured` (what the environment ASKED for, so a typo sits beside its
+refusal), `singleInstance` (true for exactly the backend that has the
+constraint), `durability` (`"durable" | "ephemeral" | "unknown"`, derived from
+the codes above by `lib/env.ts`, which stays the one owner of the judgement) and
+`codes` (those codes verbatim, for a log). Two consequences that matter more
+than the field itself:
+
+- a **monitor can alarm on it** — `store.durability != "durable"` is a
+  deployment that will lose its learners, stated as data rather than discovered
+  as an incident. The same response is what an external uptime pinger should
+  watch, because nothing in this repository can notice that a host is gone;
+- the **deploy drill reads it** and fails BEFORE creating anything
+  (`scripts/verify-persistence.mjs`), so a release cannot be certified against a
+  store the host discards. An artefact too old to report its store fails there
+  too — which is the correct answer for a build that predates the check.
+
 **The host itself is the other half of the fix, and it is a platform setting,
 not code.** For this deployment (a Render web service):
 
@@ -358,6 +378,22 @@ Rules:
 9. npm run verify:persistence -- --write → restart the instance → --verify
    (the record must survive it; a redeploy may never wipe a learner)
 ```
+
+**Step 9 is the only check here that can see the difference between a durable
+deployment and one that loses every learner, and it is now ENFORCED rather than
+listed.** `deploy-staging.yml` and `deploy-production.yml` run it on every
+deploy: write a learner with real evidence and a class → replace the process (a
+second deploy of the same artefact is a restart, so no extra credential is
+needed) → require every fact to be byte-identical. It fails unless the restart
+GENUINELY happened — the witness is `/api/health`'s own process start time,
+which the server reports about itself — and its `--write` phase fails at the
+first step if `/api/ready` reports a store the host does not keep. Its learner is
+erased again on success; on failure the record is left behind on purpose, because
+it is the evidence of the failure.
+
+The lesson that put it there is in the section above: every other gate in this
+repository passed while a host was losing records, because they all tested the
+code and none of them tested the DEPLOYMENT.
 
 ## 9. CI (what runs, and where)
 

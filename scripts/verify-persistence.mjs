@@ -29,6 +29,18 @@
 //   signup → profile → onboarding → diagnostic → answer → evidence
 //          → RESTART → evidence still exists → the class still exists
 //
+// ── ONE QUESTION IS ASKED BEFORE EITHER MODE ASSERTS ANYTHING ──────────────
+//
+// WHICH store does this artefact run, and does the HOST keep it? A deployment
+// whose data directory sits on the filesystem the host discards answers every
+// request perfectly and loses the classroom on the next restart — readiness is
+// 200, the smoke test passes, the learners vanish. Asking `/api/ready` first
+// turns that from a mystery into a cause: the response carries the store kind,
+// the single-instance constraint and the durability judgement (`lib/env.ts` is
+// the owner of that judgement, and this drill reads it rather than re-deciding
+// it). An artefact too old to report its store FAILS here instead of passing
+// quietly — a 27-commits-behind build is exactly the one that loses records.
+//
 // ── TWO MODES, ONE SET OF ASSERTIONS ────────────────────────────────────────
 //
 // LOCAL (default, no OPENMIND_BASE): build the artefact, boot it on a temp
@@ -133,6 +145,35 @@ const authedMe = (base, p, meId, secret, extra = {}) => call(base, query(p, { me
 const projectionOf = (body) => body?.projectionVersion ?? body?.projection?.version ?? body?.projection ?? null;
 
 /**
+ * How long to wait for a deploy to replace the process before calling it a
+ * failed restart. Configurable, because a host's cold start is not ours to
+ * guess — and an operator who restarted by hand never waits at all, since the
+ * process start time already differs when this phase begins.
+ */
+const RESTART_WAIT_MS = Number(process.env.OPENMIND_RESTART_WAIT_MS ?? 5 * 60 * 1000);
+
+/**
+ * Poll until the process serving this deployment is a DIFFERENT one, or the
+ * budget runs out. Returns the last observation either way, so the assertion
+ * reports what it actually saw rather than a null it invented.
+ *
+ * Why waiting is part of the check: a restart triggered from CI (or from a
+ * deploy hook) is still replacing the process when this phase starts, so a
+ * single sample would report a FALSE failure — and a drill that cries wolf is a
+ * drill that gets switched off, which is how a check stops protecting anything.
+ */
+async function waitForRestart(base, before, budgetMs) {
+  const started = Date.now();
+  let last = await processStart(base);
+  for (;;) {
+    if (!last || last.start !== before) return last;
+    if (Date.now() - started > budgetMs) return last;
+    await new Promise((r) => setTimeout(r, 5000));
+    last = await processStart(base);
+  }
+}
+
+/**
  * When did the process serving this request start?
  *
  * `/api/health` reports `uptimeSeconds` and its own `now`, so the answer is
@@ -184,6 +225,41 @@ async function writeCanary(base, mode) {
   const at = await processStart(base);
   ok(at !== null, "the deployment reports its own identity and process start time");
   ok(at?.deployment != null, `and names the artefact serving it${at?.deployment ? ` (${at.deployment})` : ""}`);
+
+  // ── WHICH STORE, AND DOES THE HOST KEEP IT? ────────────────────────────────
+  // Asked BEFORE a record is created, because the honest order is: find out
+  // whether this deployment can hold a learner at all, then create one. A
+  // deployment that discards its filesystem would otherwise be certified by
+  // every assertion below right up to the restart, where the failure finally
+  // shows up as "the data is gone" with no cause attached to it.
+  const readyNow = await call(base, "/api/ready");
+  const store = readyNow.body?.store ?? null;
+  ok(readyNow.status === 200, `the deployment is ready (HTTP ${readyNow.status})`);
+  ok(
+    store !== null,
+    "and reports WHICH store it runs and whether the host keeps it",
+    store === null
+      ? "no `store` block in the readiness report — this artefact predates it; deploy the current build before trusting anything below"
+      : `store ${store.kind}`, 
+  );
+  if (store) {
+    ok(
+      store.singleInstance === (store.kind === "file"),
+      "the single-instance constraint is stated for exactly the backend that has it",
+      `kind ${store.kind}, singleInstance ${store.singleInstance}`,
+    );
+    // The deployment's own answer to the question this whole file exists for.
+    // "ephemeral" here is not a warning to note and continue past: it is the
+    // verdict, and every later assertion would be measuring a store that is
+    // about to be deleted.
+    ok(
+      store.durability === "durable",
+      "the data directory is one the host KEEPS — not a directory on the filesystem it discards",
+      store.durability === "durable"
+        ? `durable${store.codes?.length ? ` (${store.codes.join(", ")})` : ""}`
+        : `${store.durability}${store.codes?.length ? ` — ${store.codes.join(", ")}` : ""}: attach a disk and point OPENMIND_DATA_DIR at its mount path. If this deployment is a deliberate throwaway demo, this drill is the wrong test for it and must not be run against one.`,
+    );
+  }
 
   const learner = await createLearner(base, mode);
   ok(learner.status === 200 && learner.id.length > 0, `a learner is created (HTTP ${learner.status})`);
@@ -473,14 +549,20 @@ async function verifyCanary(base, canary, { expectRestart = true } = {}) {
   // If this is not established, everything below is consistent with "nothing
   // restarted, the process answered from memory", and a green run would be
   // worse than a red one.
-  const nowAt = await processStart(base);
+  let nowAt = await processStart(base);
+  if (expectRestart && nowAt && nowAt.start === canary.processStart) {
+    console.log(
+      `  · the same process is still serving — waiting for the replacement (up to ${Math.round(RESTART_WAIT_MS / 1000)}s)…`,
+    );
+    nowAt = await waitForRestart(base, canary.processStart, RESTART_WAIT_MS);
+  }
   ok(nowAt !== null, "the deployment still reports its identity");
   if (expectRestart) {
     ok(
       canary.processStart != null && nowAt != null && nowAt.start !== canary.processStart,
       "a genuinely DIFFERENT process is serving this — the restart really happened",
       nowAt?.start === canary.processStart
-        ? "the process start time is unchanged, so nothing restarted and this check would prove nothing"
+        ? `the process start time is unchanged after waiting ${Math.round(RESTART_WAIT_MS / 1000)}s, so nothing restarted and this check would prove nothing (set OPENMIND_RESTART_WAIT_MS to wait longer, and check that the deploy actually replaced the process)`
         : `${new Date(canary.processStart ?? 0).toISOString()} → ${new Date(nowAt?.start ?? 0).toISOString()}`,
     );
   }

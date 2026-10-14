@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 import { DATA_DIR } from "@/lib/server/store";
+// The ONE owner of "which backend this configuration asks for". /api/ready must
+// not re-decide it, and an operator must be able to read it without a stack
+// trace (docs/STORAGE_SPEC.md acceptance 6).
+import { storeKindReport } from "@/lib/server/storage";
 import { envReport } from "@/lib/env";
 import { CONCEPTS } from "@/lib/genome";
 import { SPECIFICATIONS } from "@/lib/specifications";
@@ -64,6 +68,40 @@ export async function GET(): Promise<NextResponse> {
     code: CONCEPTS.length > 0 && SPECIFICATIONS.length > 0 ? "loaded" : "empty_graph",
   };
 
+  // 4. THE STORE: which backend, and — the part an incident taught us to say
+  //    out loud — whether the HOST keeps it.
+  //
+  // Why this belongs on a readiness probe and not only in a log: a deployment
+  // whose data directory lives on the filesystem the host discards answers
+  // every request perfectly and loses every learner record on the next restart.
+  // Its readiness is 200, its smoke test passes, and the loss is invisible
+  // until a class comes back. `durability` is `lib/env.ts`'s own judgement
+  // reported in one word, so a monitor can alarm on it and the deploy drill can
+  // refuse to certify persistence against it.
+  //
+  // The vocabulary is deliberately the report's, not a new one:
+  //   "durable"   — no configuration problem says this directory is discarded
+  //                 (a mounted volume on a host that discards filesystems, or a
+  //                 host where the question does not apply);
+  //   "ephemeral" — it IS discarded, whether that was accepted or not
+  //                 (`ephemeral_store_accepted`, `data_dir_undeclared`,
+  //                 `data_dir_not_durable`);
+  //   "unknown"   — could not be measured, reported as unknown and never as a
+  //                 pass.
+  const storage = storeKindReport(process.env);
+  const durabilityCodes = new Set([
+    "data_dir_not_durable",
+    "data_dir_undeclared",
+    "ephemeral_store_accepted",
+    "durability_unknown",
+  ]);
+  const storeNotes = [...report.problems, ...report.notes].filter((n) => durabilityCodes.has(n.code));
+  const durability: "durable" | "ephemeral" | "unknown" = storeNotes.some((n) => n.code !== "durability_unknown")
+    ? "ephemeral"
+    : storeNotes.length > 0
+      ? "unknown"
+      : "durable";
+
   const checks = { data, config, content };
   const ready = data.ok && config.ok && content.ok;
 
@@ -77,6 +115,25 @@ export async function GET(): Promise<NextResponse> {
       profile: report.deployment.profile.id,
       ai: report.ai,
       checks,
+      store: {
+        /** The backend in force. `null` means the configuration asks for one
+         *  this build cannot serve — which is also a `problems` entry, so
+         *  readiness is 503 rather than a file store wearing a Postgres name. */
+        kind: storage.kind,
+        /** What was ASKED for, so a typo is visible beside the refusal. */
+        configured: storage.configured,
+        /** The file backend is single-process: two servers over one directory
+         *  lose each other's writes. A second backend is what removes it. */
+        singleInstance: storage.kind === "file",
+        durability,
+        /** Whether losing the store was DECLARED (`OPENMIND_ALLOW_EPHEMERAL_STORE`)
+         *  rather than suffered. A release gate may pass an accepted throwaway
+         *  and may not pass an unaccepted one — the difference between a demo and
+         *  an incident is whether anyone said so. */
+        accepted: storeNotes.some((n) => n.code === "ephemeral_store_accepted"),
+        /** The codes behind `durability`, verbatim, for a log or a drill. */
+        codes: storeNotes.map((n) => n.code),
+      },
       // Which configuration problems exist, named but never valued: the operator
       // gets the code here and the sentence in their own log, and a stranger
       // gets nothing to map.

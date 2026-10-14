@@ -114,6 +114,40 @@ if (ready.ok) {
     ok(j?.checks?.data?.ok === true, "storage is writable");
     ok(j?.checks?.config?.ok === true, "configuration is well-formed");
     ok(j?.checks?.content?.ok === true, "the content graph is loaded");
+
+    // ── WHICH STORE, AND DOES THE HOST KEEP IT? ───────────────────────────
+    // Readiness answers "is this instance serving?". It does NOT answer "will
+    // this instance remember anyone tomorrow", and the two have been different
+    // products: a deployment whose data directory sits on the filesystem the
+    // host discards writes every answer, passes every check above, and loses
+    // the classroom on the next restart. `store` is where the deployment says
+    // which backend it runs and whether its directory survives, so a release
+    // gate can refuse to certify one that will not.
+    const store = j?.store ?? null;
+    ok(store !== null && typeof store.kind === "string",
+      "and names the store backend it runs",
+      store === null
+        ? "no `store` block — this artefact predates it, so deploy the current build before trusting this release"
+        : `store ${store.kind}`);
+    if (store) {
+      ok(store.singleInstance === (store.kind === "file"),
+        "with the single-instance constraint stated for exactly the backend that has it",
+        `kind ${store.kind}, singleInstance ${store.singleInstance}`);
+      // The rule, and the split it rests on: ACCEPTED ephemerality is a declared
+      // choice (`OPENMIND_ALLOW_EPHEMERAL_STORE=1`) and is reported rather than
+      // failed. Unaccepted ephemerality, and a durability that could not be
+      // MEASURED, fail — `/api/ready` stays 200 for the second one (a running
+      // instance should not be pulled from rotation for it), while the RELEASE
+      // is not certified. A gate that passes what it could not measure is
+      // exactly the gate that let this happen.
+      const durability = store.durability ?? null;
+      const kept = durability === "durable" || (durability === "ephemeral" && store.accepted === true);
+      ok(kept,
+        durability === "unknown"
+          ? "the store's durability could NOT be measured — verify the volume is attached and mounted before releasing"
+          : "the store is one this host KEEPS, or ephemerality was declared in so many words",
+        `${durability}${store.codes?.length ? ` (${store.codes.join(", ")})` : ""}`);
+    }
   }
 }
 

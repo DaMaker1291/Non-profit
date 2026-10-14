@@ -154,6 +154,47 @@ jobs:
           fi
           npm run smoke
 
+      # ── THE RESTART-SURVIVAL DRILL, ON EVERY DEPLOY ────────────────────────
+      # Readiness and a smoke test both PASS on a deployment whose store is the
+      # container's writable layer: the learner exists, the API answers, and the
+      # process is about to be replaced. Neither of them can see the difference,
+      # which is how a host lost every learner record and every gate stayed
+      # green. This is the only check that asks the product's central promise
+      # directly — does a learner SURVIVE a restart?
+      #
+      # Shape: write a real learner with real evidence → replace the process →
+      # require every fact to be byte-identical. The drill refuses to pass
+      # unless the restart GENUINELY happened (the witness is /api/health's own
+      # process start time, which the server reports about itself) and it fails
+      # here, before creating anything, if /api/ready reports a store the host
+      # does not keep. Its learner is erased again on success; on failure the
+      # record is left as the evidence.
+      - name: Restart-survival drill — write a learner, and check the store is kept
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          OPENMIND_BASE: ${{ vars.PRODUCTION_URL }}
+        run: npm run verify:persistence -- --write
+
+      - name: Restart the service (a second deploy of the same artefact)
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          DEPLOY_HOOK: ${{ secrets.PRODUCTION_DEPLOY_HOOK }}
+          DEPLOYMENT_ID: ${{ github.sha }}
+        run: |
+          # A redeploy of the same artefact IS a restart, and it needs no extra
+          # credential: whatever replaces the process is what the drill measures.
+          # (If your host has a restart-only hook, use it here instead.)
+          curl -fsS -X POST "$DEPLOY_HOOK" \
+            -H "content-type: application/json" \
+            -d "{\"deploymentId\": \"${DEPLOYMENT_ID}\"}"
+          echo "restart triggered — the drill waits for the new process to answer"
+
+      - name: Restart-survival drill — require every fact to have survived
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          OPENMIND_BASE: ${{ vars.PRODUCTION_URL }}
+        run: npm run verify:persistence -- --verify
+
       - name: Rollback instructions
         if: failure() && steps.gate.outputs.configured == 'true'
         run: |
