@@ -339,6 +339,34 @@ export function envReport(env: Record<string, string | undefined> = {}, facts: E
     problems.push({ key: STORE_ENV, code: store.problem.code, detail: store.problem.detail });
   }
 
+  // 6c. A DATABASE THAT IS PROVISIONED AND NOT READ.
+  //
+  //     This is reported because it is the easiest way for an operator to be
+  //     wrong about where a learner's record lives: hand the deployment a
+  //     connection string, tick the box mentally, and the store is still a
+  //     directory of JSON files that the next deploy replaces. The schema and
+  //     its migrations exist and are exercised by `npm run db:verify`; what does
+  //     not exist is the code that reads them — docs/STORAGE_SPEC.md slice 3 (the
+  //     learner write path) and slice 4 (the backend). So while the store is
+  //     file-backed, a configured database is a NOTE naming what is still true,
+  //     never a silent implication that the data is in it.
+  const databaseUrl = (env.DATABASE_URL ?? "").trim();
+  if (databaseUrl) {
+    if (!/^postgres(ql)?:\/\//i.test(databaseUrl)) {
+      problems.push({
+        key: "DATABASE_URL",
+        code: "database_url_bad",
+        detail: "DATABASE_URL must be a postgres:// or postgresql:// connection string",
+      });
+    } else if (store.kind === "file") {
+      notes.push({
+        key: "DATABASE_URL",
+        code: "database_provisioned_not_used",
+        detail: `a database is configured, but this build's store is FILE-BACKED (${dataDir || "./.openmind-data"}) and does not read or write it — the cutover onto the database is docs/STORAGE_SPEC.md slice 3 (the learner write path) and slice 4 (the backend), so until they land every record still lives on the filesystem this host replaces`,
+      });
+    }
+  }
+
   // 7. The AI timeout must be a sane number of milliseconds, or a typo silently
   //    becomes either an instant fallback or a 2-minute hang.
   const timeoutRaw = (env.OPENMIND_AI_TIMEOUT_MS ?? "").trim();

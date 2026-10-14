@@ -11141,6 +11141,25 @@ console.log("▸ The deployment reports its own configuration, and invents no re
       === envMod.dataDirOnOwnFilesystem(process.cwd()),
     "a directory that does not exist yet is judged by the filesystem that holds its nearest existing parent");
 
+  // 1d. A DATABASE THAT IS PROVISIONED AND NOT READ IS SAID OUT LOUD.
+  //
+  // The easiest way for an operator to be wrong about where a learner's record
+  // lives: set DATABASE_URL, tick the box, and leave the store writing JSON in a
+  // container's filesystem. The schema exists and is verified (`npm run
+  // db:verify` against a real database); the code that reads it is
+  // docs/STORAGE_SPEC.md slice 3+4 and does not exist, so the report must name
+  // what is still true rather than imply the data is in the database.
+  const withDb = envMod.envReport({ DATABASE_URL: "postgresql://user:pw@host/db?sslmode=require" });
+  ok(withDb.ok === true && withDb.notes.some((n) => n.code === "database_provisioned_not_used"),
+    "a configured database with the file-backed store is a NOTE naming the cutover that has not happened");
+  ok(!withDb.notes.find((n) => n.code === "database_provisioned_not_used").detail.includes("pw"),
+    "and it never echoes the connection string");
+  ok(envMod.envReport({ DATABASE_URL: "mysql://host/db" }).problems.some((p) => p.code === "database_url_bad"),
+    "while a connection string that is not Postgres is a problem");
+  ok(!envMod.envReport({ OPENMIND_STORE: "postgres", DATABASE_URL: "postgresql://u:p@h/d" })
+      .notes.some((n) => n.code === "database_provisioned_not_used"),
+    "and asking for the database does not carry a note saying it is unused — it is refused instead");
+
   // 2. A refused deployment profile is a PROBLEM and the default is reported —
   //    never the profile that was asked for.
   const refused = envMod.envReport({ OPENMIND_DEPLOYMENT: "not_a_real_profile" });
