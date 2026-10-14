@@ -176,7 +176,7 @@ The projection re-runs the model's own mathematics over the ledger (`recordAnswe
 
 ### 🧬 The Knowledge Genome (`lib/genome.ts`)
 
-**135 atomic concepts** — Mathematics (72), Physics (18), Chemistry (16), Biology (16), Computing (18) — each with:
+**135 atomic concepts** — Mathematics (67), Physics (18), Chemistry (16), Biology (16), Computing (18) — each with:
 
 - a curriculum-aligned **lesson** (a real explanation, not a syllabus checkbox),
 - explicit **prerequisites** forming a directed graph (validated cycle-free),
@@ -270,7 +270,7 @@ Next.js 15 (App Router, React 18, TypeScript strict, standalone output)
                            # rooms · teacher · genome · about
 ```
 
-**Storage**: flat JSON files under `OPENMIND_DATA_DIR` (default `.openmind-data/`) — zero setup, inspectable, trivially backed up. Every mutation runs inside a per-file lock so concurrent requests within one process can never interleave; stale diagnostic answers are rejected server-side by question id. That lock is an in-memory promise chain, so **the file store is single-process** — two servers over one directory lose each other's writes. A Postgres backend behind the same port is specified in [docs/STORAGE_SPEC.md](docs/STORAGE_SPEC.md) and **not built**: it is a mapping onto the 23 tables already rehearsed in `db/migrations`, and until then the database is a parallel artefact rather than the store.
+**Storage**: flat JSON files under `OPENMIND_DATA_DIR` (default `.openmind-data/`) — zero setup, inspectable, trivially backed up. Every mutation runs inside a per-file lock so concurrent requests within one process can never interleave; stale diagnostic answers are rejected server-side by question id. That lock is an in-memory promise chain, so **the file store is single-process** — two servers over one directory lose each other's writes. A Postgres backend behind the same port is specified in [docs/STORAGE_SPEC.md](docs/STORAGE_SPEC.md) and **not built**: it is a mapping onto the 26 tables already rehearsed in `db/migrations` (23 in the original schema, plus the three `0004` added), and until then the database is a parallel artefact rather than the store.
 
 ---
 

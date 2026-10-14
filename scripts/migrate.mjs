@@ -441,6 +441,107 @@ async function verify({ quiet = false } = {}) {
     await db.query("ROLLBACK TO SAVEPOINT erase");
     check(erased.rowCount === 1, "an event can be DELETED for erasure", `${erased.rowCount} row(s)`);
 
+    // ── 0004: the three shapes docs/STORAGE_SPEC.md §5 named as the gap ──────
+    // Each is asserted HERE, next to the ledger's own invariants, because each
+    // one is a rule the application relies on rather than a table it happens to
+    // have: the erasure log is what a restore re-applies, and the open-record
+    // index is what stops two baselines existing for one outcome.
+    await db.query(
+      `INSERT INTO erasures (learner_id, erased_at) VALUES ($1, $2)`,
+      ["verify_learner_erase", 1700000000000],
+    );
+    check(true, "an erasure can be recorded, which is what a restore re-applies");
+
+    // The log is an INSTRUCTION: an instruction that can be edited is not one.
+    await mustFail(
+      "and an erasure cannot be UPDATED (the log is append-only too)",
+      `UPDATE erasures SET erased_at = erased_at + 1 WHERE learner_id = $1`,
+      ["verify_learner_erase"],
+    );
+
+    // The open-record rule: one OPEN review per (class, concept, kind). The
+    // second insert is the exact duplicate the flow must never mint.
+    const INTERVENTION = `
+      INSERT INTO interventions (id, class_id, concept_id, kind, status, owner_id, version, created_at, payload)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`;
+    await db.query(INTERVENTION, [
+      "verify_iv_1", "verify_cls", "fractions", "weak_rate", "proposed", "verify_owner", 1, 1700000000000, "{}",
+    ]);
+    check(true, "an intervention record can be stored");
+    await mustFail(
+      "a SECOND open record for the same class, idea and kind is refused",
+      INTERVENTION,
+      ["verify_iv_2", "verify_cls", "fractions", "weak_rate", "assigned", "verify_owner", 1, 1700000000001, "{}"],
+    );
+    // …but a CLOSED one does not block a later review, which is the other half
+    // of the rule: a persistent finding must be reviewable again.
+    await db.query(`UPDATE interventions SET status = 'declined' WHERE id = $1`, ["verify_iv_1"]);
+    await db.query(INTERVENTION, [
+      "verify_iv_3", "verify_cls", "fractions", "weak_rate", "proposed", "verify_owner", 1, 1700000000002, "{}",
+    ]);
+    check(true, "while a closed review does not block a later one");
+
+    // The cache is a cache: a key round-trips and a re-set overwrites.
+    await db.query(`INSERT INTO ai_cache (key, value) VALUES ($1, $2)`, ["verify_key", JSON.stringify({ text: "hi" })]);
+    await db.query(`UPDATE ai_cache SET value = $2 WHERE key = $1`, ["verify_key", JSON.stringify({ text: "again" })]);
+    const cached = await db.query(`SELECT value FROM ai_cache WHERE key = $1`, ["verify_key"]);
+    check(cached.rows[0]?.value?.text === "again", "the AI cache holds a value and lets it be replaced");
+
+    // ── 0005: the learner's OWN record, which the typed columns cannot hold ──
+    // The MEASURED version of the gap docs/STORAGE_SPEC.md §5's mapping table
+    // hid: `profiles` models nine of the learner's declared facts and
+    // `StudentProfile` has thirty-odd, so a backend written against the COLUMNS
+    // compiles, round-trips, and returns a different learner. Both halves are
+    // asserted — the record that survives, and the same record written through
+    // the columns alone losing it — because only the pair shows which column is
+    // carrying the claim.
+    await db.query(`INSERT INTO users (id, handle) VALUES ($1, 'verify_handle_2')`, ["verify_learner_2"]);
+    const RECORD = {
+      profile: {
+        id: "verify_learner_1",
+        handle: "verify_handle",
+        exam: "gcse",
+        examDate: "2027-06-01",
+        timePerDay: 45,
+        board: "aqa",
+        teachingLang: "ur",
+        subjectCourses: { maths: { spec: "gcse", level: "higher" }, physics: { spec: "a-level" } },
+      },
+      secret: "cap_verify_secret",
+    };
+    await db.query(
+      `INSERT INTO profiles (user_id, country, language, secret_hash, payload)
+       VALUES ($1, 'GB', 'en', 'hash_of_cap_verify_secret', $2)`,
+      ["verify_learner_1", JSON.stringify(RECORD)],
+    );
+    await db.query(
+      `INSERT INTO profiles (user_id, country, language, secret_hash)
+       VALUES ($1, 'GB', 'en', 'hash_of_cap_verify_secret')`,
+      ["verify_learner_2"],
+    );
+    const roundtrip = await db.query(
+      `SELECT payload->'profile'->>'examDate' AS exam_date,
+              payload->'profile'->'subjectCourses'->'maths'->>'level' AS maths_level,
+              payload->>'secret' AS secret
+         FROM profiles WHERE user_id = $1`,
+      ["verify_learner_1"],
+    );
+    const rt = roundtrip.rows[0];
+    check(rt.exam_date === "2027-06-01",
+      "the learner's declared record round-trips — the exam date survives, and it has no column", "examDate " + rt.exam_date);
+    check(rt.maths_level === "higher",
+      "one course per subject survives: a single flat course would pitch one of two subjects at the wrong depth",
+      `maths level ${rt.maths_level}`);
+    check(rt.secret === "cap_verify_secret",
+      "and the capability secret comes back — sign-in hands it to a new device, which a hash alone cannot do");
+    const columnOnly = await db.query(
+      `SELECT payload->'profile'->>'examDate' AS exam_date FROM profiles WHERE user_id = $1`,
+      ["verify_learner_2"],
+    );
+    check(columnOnly.rows[0].exam_date === null,
+      "MEASURED: written through the columns alone, the same profile loses the exam date — the gap 0005 closes",
+      `exam_date ${JSON.stringify(columnOnly.rows[0].exam_date)}`);
+
     await db.query("ROLLBACK");
     if (!quiet) console.log("");
     return { ok: results.every((r) => r.ok), results };

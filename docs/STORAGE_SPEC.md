@@ -32,7 +32,7 @@ hour. The first draft of this table was, in fact, wrong in four places.
 | The lock primitive | `lib/server/store.ts:31` **and** `lib/server/auth.ts:80` | **two independent lock tables** |
 | The data directory | `store.ts:22`, `auth.ts:20`, `app/api/hub-status/route.ts:6` | **three resolvers** of `OPENMIND_DATA_DIR` |
 | The ledger | `lib/server/evidence.ts` | one JSONL per learner under `<data>/evidence/`, sharing the **same** lock table as the store, on purpose |
-| The relational schema | `db/migrations/*.up.sql` | **23 tables**, paired up/down files, checksums, drift detection, and a CI job that rehearses up → verify → down → up |
+| The relational schema | `db/migrations/*.up.sql` | **26 tables** (23 + the three `0004` added; `schema_migrations` is the runner's own ledger), paired up/down files, checksums, drift detection, and a CI job that rehearses up → verify → down → up |
 | Backup / restore | `backup-store.mjs`, `restore-drill.mjs` | per-file sha256 + manifest + retention/expiry; the drill restores, **boots the artefact** and asserts `deepReconcile` per learner |
 | Concurrency evidence | `scripts/race-probe.mjs` | 8 racing answers against one served question → exactly one accepted — **within one process** |
 
@@ -238,12 +238,17 @@ never into a second suite (§6).
 
 ## 5 · Mapping onto the schema that already exists
 
-This is the good news the recon produced: 23 tables already model this domain,
-so the port is a mapping rather than a design.
+This is the good news the recon produced: 23 tables already modelled most of this
+domain, so the port is a mapping rather than a design. One of them — `profiles` —
+could not in fact carry the record it was mapped to, and closing that plus the gap
+list below took three more tables and one column, in `0004_port_gaps` and
+`0005_profile_record` (each item, with the decision it forced, is recorded there).
+The count is 26 now, and it is MEASURED against a migrated database rather than
+added up from the files: `information_schema.tables` in `public`.
 
 | Port operation | Existing table(s) |
 |---|---|
-| `withLearner`, `getProfile`, `listProfiles`, `saveProfile` | `profiles`, `learner_projections` |
+| `withLearner`, `getProfile`, `listProfiles`, `saveProfile` | `profiles` — **via the `payload` column, and this row was WRONG until 0005**: see gap 6 — and `learner_projections` |
 | `readEvents`, `tx.append` | `evidence_events` (indexed for replay: `(learner_id, at)`, `(learner_id, concept_id, at)`, `question_id`, `tags` GIN) |
 | accounts, sessions | `users`, `sessions` (with `revoked_at` and `expires_at` — the epoch revoke path maps to `revoked_at`) |
 | classes, membership | `classes`, `class_members`, `assignments`, `assignment_results` |
@@ -280,6 +285,45 @@ honest gap list, and it is short:
 5. **`session-secret` is a file**, and is the one thing that must move to
    configuration/secret storage rather than a table: `lib/env.ts` already warns
    that a generated secret means "set it explicitly when running more than one".
+6. **`profiles` could not hold a real profile, and this gap was found by
+   writing the backend rather than by reading this table.** The mapping row above
+   said "`getProfile`/`saveProfile` → `profiles`", and that is false as the table
+   stood: it models NINE of the learner's declared facts (`country`, `language`,
+   `birth_year`, `goal`, `intent`, `subjects[]`, `specification_id`, `level_id`,
+   `secret_hash`) while `StudentProfile` (lib/types.ts) carries thirty-odd
+   (`handle`, `exam`, `examDate`, `timePerDay`, `board`, `grade`, `examples`,
+   `termsMode`, `explainLen`, `resources[]`, four language fields, and
+   `subjectCourses` — **one course per subject**, because a learner does not sit
+   one qualification and a single flat course pitches one subject at the wrong
+   depth). A backend written against those columns compiles, round-trips, and
+   returns a DIFFERENT learner: the exam date gone, the per-subject courses
+   collapsed to one, the teaching language lost. `saveProfile` would have
+   silently dropped facts about a child while every assertion in this suite
+   passed. **Resolved by 0005**: `profiles.payload jsonb` holds the record the
+   application authored — the same shape `rooms`, `papers`, `personal_papers` and
+   `packs` already use — and the typed columns stay the facts the database
+   QUERIES. The model half of a learner (`progress`, `masteries`, `diagnostics`,
+   `seenQuestions`) belongs to `learner_projections.model`, which is rebuildable
+   by replay; it must NOT be duplicated into `payload`.
+
+   **The same gap hid a second fact worth naming: `secret_hash` cannot serve the
+   feature it sits beside.** Sign-in hands the profile's capability secret BACK to
+   an authenticated session — the documented bridge that makes an existing learner
+   work on a new device, and a session without it cannot call `/api/progress`. A
+   hash is one-way by design, so a database holding only `secret_hash` cannot
+   perform that hand-back at all. The raw secret therefore round-trips in
+   `payload` and `secret_hash` is written from the same object in the same
+   statement. Storing the raw capability secret is the EXISTING design, not a new
+   decision: replacing it with a rotating token is a separate security change, not
+   a storage move.
+
+**Closed so far, and how**: gaps 1–3 by `0004_port_gaps` (the three tables, each
+carrying the decision §5.3 asked for as a constraint rather than a comment), gap 6
+by `0005_profile_record`. Gap 4 is a decision the backend slice makes when it
+reaches rooms; gap 5 is configuration, not storage. `npm run db:verify` executes
+the claims these files make — including the round-trip of the learner's own record
+AND the columns-only write that loses it — so 0004's and 0005's reason for
+existing is asserted rather than described.
 
 ## 6 · How parity is enforced (the part that usually rots)
 
