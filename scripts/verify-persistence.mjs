@@ -103,11 +103,22 @@ const ok = (cond, message, detail = "") => {
     console.error(`  ✗ ${message}${detail ? ` — ${detail}` : ""}`);
   }
 };
-/** Equality with both values named: "the mastery survived" is only useful with
- *  the number it survived as, and a mismatch is only diagnosable with both. */
+/**
+ * Equality with both values named: "the mastery survived" is only useful with
+ *  the number it survived as, and a mismatch is only diagnosable with both.
+ *
+ *  THE ARGUMENT ORDER IS THE CALL SITES': `(after, before)` — the value read from
+ *  the deployment now, then the value the baseline recorded. This helper was
+ *  declared `(before, after)` while every call site passed the other way round,
+ *  and printed each failure BACKWARDS as a result: a run in which a restart had
+ *  destroyed the learner reported "was null, now {the learner's whole history}"
+ *  for row after row, which reads as a learner RESTORED rather than one lost.
+ *  The equality is symmetric, so no assertion was ever wrong — only the sentence
+ *  a human acts on. Named here in the order the values actually occurred.
+ */
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const okSame = (before, after, message) =>
-  ok(same(before, after), message, same(before, after) ? `${JSON.stringify(after)}` : `was ${JSON.stringify(before)}, now ${JSON.stringify(after)}`);
+const okSame = (after, before, message) =>
+  ok(same(after, before), message, same(after, before) ? `${JSON.stringify(after)}` : `was ${JSON.stringify(before)}, now ${JSON.stringify(after)}`);
 
 // ── HTTP ────────────────────────────────────────────────────────────────────
 async function call(base, p, opts) {

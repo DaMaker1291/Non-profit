@@ -245,16 +245,29 @@ GET https://<host>/api/health                       →   uptimeSeconds: 20   (a
 
 A path is not a filesystem. `OPENMIND_DATA_DIR=/data` is silent on a host with
 no volume attached, because `/data` is then just a directory in the layer the
-host discards when the instance sleeps or a deploy lands. So `lib/env.ts` now
-also asks the FILESYSTEM, on hosts that are documented to discard theirs
-(`RENDER` on Render, `DYNO` on Heroku, `FLY_APP_NAME`, `K_SERVICE`,
-`WEBSITE_SITE_NAME`):
+host discards when the instance sleeps or a deploy lands. So `lib/env.ts` also
+asks the FILESYSTEM, on hosts that are documented to discard theirs (`RENDER` on
+Render, `DYNO` on Heroku, `FLY_APP_NAME`, `K_SERVICE`, `WEBSITE_SITE_NAME`).
 
-| data directory | readiness | problem code |
+**A device of its own is not a volume, and the first version of this check
+therefore certified a deployment that was losing learners.** Measured on a live
+Render service (free instance type, no disk): with the data directory inside the
+app directory, `/api/ready` answered `store:{kind:"file",singleInstance:true,
+durability:"durable",accepted:false,codes:[]}` — and 146 seconds after a deploy
+had replaced the process, `verify:persistence -- --verify` reported **4 passed,
+30 failed**, every learner-scoped read an HTTP 404: the learner, their record,
+their ledger, their class's join code, the intervention review and its frozen
+baseline. Inside a container the app directory IS a mount with a device of its
+own, and the host throws it away with the image. So the judgement reads
+`/proc/self/mountinfo` and takes the DEEPEST mount point above the data
+directory: an overlay, bind or tmpfs there is the host's filesystem whatever its
+device says, and only a mount that is not a view of the image is a volume.
+
+| data directory | readiness | code |
 |---|---|---|
-| on a filesystem of its own (a mounted volume) | ready | — |
-| on the same filesystem as everything else | **503** | `data_dir_not_durable` |
-| could not be measured | ready, with a note | `durability_unknown` |
+| a mount of its own that is not a view of the image (a disk the host keeps) | ready | — |
+| the host's root filesystem, or an overlay/bind/tmpfs mount it rebuilds with the image | **503** | `data_dir_not_durable` |
+| could not be measured (no mount table, or a device that proves nothing) | ready, with a note | `durability_unknown` |
 | `OPENMIND_ALLOW_EPHEMERAL_STORE=1` | ready, with a note | `ephemeral_store_accepted` |
 
 The judgement is scoped to those hosts on purpose: on a laptop `/data` is that
@@ -262,6 +275,18 @@ laptop's disk, and a test that flagged it would be a false alarm in the one
 place a developer reads the report. The three ways out are all deliberate acts —
 attach the volume, accept ephemerality in so many words, or run somewhere whose
 filesystem is yours.
+
+**Publish readiness on the right endpoint.** Because a store the host discards
+is a `data_dir_not_durable` PROBLEM, `/api/ready` answers **503** on such a
+deployment while serving every request perfectly — which is the honest answer
+("do not send learners here") and the wrong answer to give a liveness probe. A
+host's health check must watch `/api/health` (is the process up?); `/api/ready`
+is the release gate and the monitor's alarm, and a host that restarts on it would
+be restarting the one instance that is telling the truth. Render's own free
+instance type cannot attach a disk at all, so on that host the choice is a paid
+instance type with a disk (a subdirectory of the source directory such as
+`/opt/render/project/src/.openmind-data` is a valid mount path), a host with
+volumes, or `OPENMIND_ALLOW_EPHEMERAL_STORE=1` and calling it a demo.
 
 **`/api/ready` publishes that judgement as one field, and it is not only for
 humans.** The response carries a `store` block — `kind` (the backend in force),

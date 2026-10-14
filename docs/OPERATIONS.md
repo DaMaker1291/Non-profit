@@ -268,6 +268,18 @@ and server exceptions, and uptime monitoring of `/`, `/onboarding`,
 `/api/health`, `/api/ready`. Personal data in logs must be minimised the same way
 it is in the store.
 
+**Watch the right one for the right question.** `/api/health` is LIVENESS — the
+process is up — and is the only one a host's own health check should call.
+`/api/ready` is READINESS, and it is deliberately **503** when the store is one
+the host discards (a `data_dir_not_durable` problem): such a deployment serves
+every request perfectly and must not be sent learners, so an uptime monitor
+alarms on its status while the host's restart policy must not.
+`store.durability` on the same response is the one word to graph:
+`"durable"` is the only green, `"ephemeral"` (with `accepted:true`) is a demo
+somebody declared, and `"unknown"` is a store nobody has proved — treat all
+three of the non-green values as "no real learners here" rather than as
+variations of fine.
+
 ### The disk-headroom alarm
 
 The store, the compiled mirror and every build write to the same volume, and a

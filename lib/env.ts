@@ -118,16 +118,19 @@ function deviceOf(target: string): number | null {
 /**
  * Is the data directory on a filesystem of ITS OWN?
  *
- *   true  — a different device from the filesystem root, i.e. a mounted volume:
- *           the deploy replaces the image and leaves this alone;
- *   false — a directory on the same filesystem as everything else: in a
- *           container that is the layer the next deploy (and, on a host that
- *           sleeps, the next cold start) discards;
- *   null  — could not be determined, which is reported as "unknown", never as
- *           headroom, safety or a pass.
+ *   true  — a different device from the filesystem root;
+ *   false — the same filesystem as everything else;
+ *   null  — could not be determined.
  *
- * This is the fact `OPENMIND_DATA_DIR` cannot state about itself, and the reason
- * the check exists: a path is not a promise.
+ * ⚠ `true` IS NOT A VOLUME, and this function is not the durability judgement.
+ * Measured on a live deployment (Render, free instance type, no disk attached):
+ * a device of its own, `/api/ready` answering `durability:"durable"` — and
+ * `npm run verify:persistence -- --verify` reporting **4 passed, 30 failed**
+ * after a deploy replaced the process, every learner-scoped read a 404. Inside a
+ * container the app directory is routinely a mount of its own, and the host
+ * throws it away with the image. So a device number is a reason to look, never a
+ * reason to promise: `dataDirDurability` below is the judgement, and this is
+ * one of its inputs.
  */
 export function dataDirOnOwnFilesystem(dir: string): boolean | null {
   const target = path.resolve(dir);
@@ -137,11 +140,114 @@ export function dataDirOnOwnFilesystem(dir: string): boolean | null {
   return here !== root;
 }
 
-/** Facts a caller can supply instead of measuring, so a test can drive both
- *  branches of the durability rule on one machine (and so a caller that has
- *  already stat-ed the directory does not have to do it twice). */
+/**
+ * Filesystems that are a VIEW of something else rather than a disk of their
+ * own: the image layer a host builds each release into, a bind of it, or memory.
+ * A mount with one of these is not a volume however separate its device looks —
+ * which is the whole reason `/proc/self/mountinfo` is read instead of trusting a
+ * device number.
+ */
+const NON_VOLUME_FSTYPES = [
+  "overlay",
+  "overlayfs",
+  "aufs",
+  "tmpfs",
+  "ramfs",
+  "devtmpfs",
+  "squashfs",
+  "fuse",
+];
+
+/** Mount points come out of `/proc/self/mountinfo` escaped `\040`-style. */
+function unescapeMountPath(raw: string): string {
+  return raw.replace(/\\([0-7]{3})/g, (_m, oct) => String.fromCharCode(Number.parseInt(oct, 8)));
+}
+
+/** Is `child` `parent` itself, or beneath it? A single owner for the question,
+ *  because "is this path inside that one" has a trailing-separator trap: a
+ *  naive `startsWith` calls `/data-old` a child of `/data`. */
+function isWithin(child: string, parent: string): boolean {
+  if (parent === path.sep) return true;
+  return child === parent || child.startsWith(parent.endsWith(path.sep) ? parent : parent + path.sep);
+}
+
+/** The kernel's mount table, or `null` where there is none to read (not Linux).
+ *  Only `/proc/self/mountinfo` is parsed: `/proc/mounts` spells the same facts
+ *  differently, and two parsers for one fact is how they drift apart. */
+function readMountTable(): string | null {
+  try {
+    return fs.readFileSync("/proc/self/mountinfo", "utf8");
+  } catch {
+    return null;
+  }
+}
+
+/** What the filesystem under a data directory IS, as far as this process can
+ *  measure it. */
+export type DataDirDurability = "volume" | "host-filesystem" | "unknown";
+
+/**
+ * WILL THE HOST KEEP THIS DIRECTORY?
+ *
+ *   "volume"          — the longest mount point above it is a filesystem of its
+ *                       own that is not a view of the image: a disk the host
+ *                       preserves across deploys and restarts;
+ *   "host-filesystem" — it sits on the container's root filesystem, or on an
+ *                       overlay/bind/tmpfs mount, which is the same fact: the
+ *                       next deploy or cold start takes it with it;
+ *   "unknown"         — nothing on the path could be measured. Reported as
+ *                       unknown, never as a pass.
+ *
+ * The mount TABLE is the measurement, not the device number, and that is a
+ * lesson from a real deployment rather than a preference: a container's app
+ * directory is a mount of its own (so "different device" said volume) while
+ * being an overlay the host discards with the image (so every learner was lost).
+ * An overlay or tmpfs mount IS the host's filesystem, and saying so is the point
+ * of this function.
+ *
+ * `mountInfo` is the table's TEXT, injectable so a test can drive the real
+ * deploy layouts (a disk at `/data`, the same path inside an overlay) on one
+ * machine instead of asserting the rule from memory.
+ */
+export function dataDirDurability(dir: string, mountInfo?: string | null): DataDirDurability {
+  const target = path.resolve(dir);
+  const table = mountInfo === undefined ? readMountTable() : mountInfo;
+  if (table) {
+    // The DEEPEST mount point that contains the directory decides: a disk
+    // mounted under an overlay wins over the overlay above it, which is exactly
+    // the difference between data kept and data discarded.
+    let best: { at: string; fstype: string } | null = null;
+    for (const line of table.split("\n")) {
+      if (!line.trim()) continue;
+      const [head, tail] = line.split(" - ");
+      if (!head || tail === undefined) continue;
+      const at = unescapeMountPath(head.split(" ")[4] ?? "");
+      if (!at || !isWithin(target, at)) continue;
+      if (best === null || at.length > best.at.length) {
+        best = { at, fstype: (tail.split(" ")[0] ?? "").toLowerCase() };
+      }
+    }
+    if (best === null) return "unknown";
+    if (best.at === path.sep) return "host-filesystem";
+    const fstype = best.fstype;
+    if (NON_VOLUME_FSTYPES.some((t) => fstype === t || fstype.startsWith(`${t}.`))) return "host-filesystem";
+    return "volume";
+  }
+  // No mount table to read, so the device comparison is all that is left. Its
+  // strong direction still holds (the same device as the root IS the host's
+  // filesystem); its weak one does not, and saying "volume" there is the false
+  // promise above. So: refuse the claim, never invent it.
+  return dataDirOnOwnFilesystem(target) === false ? "host-filesystem" : "unknown";
+}
+
+/** Facts a caller can supply instead of measuring, so a test can drive every
+ *  branch of the durability rule on one machine (and so a caller that has
+ *  already measured the directory does not have to do it twice). */
 export interface EnvFacts {
-  dataDirOnOwnFilesystem?: boolean | null;
+  /** The judgement itself, from `dataDirDurability`. `"unknown"` is the
+   *  explicit "could not be measured" — there is no `null` spelling of it, so a
+   *  caller cannot say "unknown" by forgetting a field. */
+  dataDirDurability?: DataDirDurability;
 }
 
 /**
@@ -284,9 +390,12 @@ export function envReport(env: Record<string, string | undefined> = {}, facts: E
   //    data:{ok:true,code:"writable"}, problems:[] — and a learner created 20
   //    minutes earlier was HTTP 404 twenty minutes later, after the instance had
   //    slept and been replaced. So when the environment says it is running on a
-  //    host that discards its filesystem, the data directory must be on a
-  //    filesystem of its own; if it is not, that is a problem, and the escapes
-  //    are the same two as above.
+  //    host that discards its filesystem, the data directory must be a VOLUME,
+  //    decided by the mount table rather than by a device number — and a device
+  //    of its own was then measured to be the wrong test on that very host (see
+  //    `dataDirOnOwnFilesystem`, where the drill's 4/30 is recorded). If it is
+  //    not a volume, that is a problem, and the escapes are the same two as
+  //    above.
   const dataDir = (env.OPENMIND_DATA_DIR ?? "").trim();
   const host = ephemeralHost(env);
   const production = (env.NODE_ENV ?? "").trim() === "production" || Boolean(host);
@@ -306,25 +415,30 @@ export function envReport(env: Record<string, string | undefined> = {}, facts: E
       detail: `this deployment declares ${dataDir} AND says it accepts an ephemeral store, so losing it on a deploy is a known state rather than a surprise`,
     });
   } else if (host) {
-    // `undefined` means "measure it"; an explicit `null` means "could not be
-    // measured" and must NOT be silently replaced by a measurement, or the
-    // unknown case would report a confident answer on the caller's behalf.
-    const own = facts.dataDirOnOwnFilesystem === undefined
-      ? dataDirOnOwnFilesystem(dataDir)
-      : facts.dataDirOnOwnFilesystem;
-    if (own === false) {
+    // The judgement is `dataDirDurability`, and it reads the MOUNT TABLE — the
+    // one measurement that separates a disk the host keeps from an overlay it
+    // rebuilds. A device number cannot: inside a container the app directory has
+    // a device of its own and is still thrown away with the image, and that
+    // exact false promise was measured on a live deployment (see
+    // `dataDirOnOwnFilesystem`). An injected fact is honoured and never
+    // re-measured, or the unknown case would report a confident answer on the
+    // caller's behalf.
+    const durability = facts.dataDirDurability ?? dataDirDurability(dataDir);
+    if (durability === "host-filesystem") {
       problems.push({
         key: "OPENMIND_DATA_DIR",
         code: "data_dir_not_durable",
-        detail: `this host (${host}) replaces its filesystem when it deploys or restarts, and ${dataDir} is not a mounted volume — it is a directory on the filesystem the host discards, so every learner record and evidence ledger is lost on the next sleep or deploy. Attach a disk and point OPENMIND_DATA_DIR at its mount path, or set OPENMIND_ALLOW_EPHEMERAL_STORE=1 to accept losing them`,
+        detail: `this host (${host}) replaces its filesystem when it deploys or restarts, and ${dataDir} is not a volume of its own — it is a directory on the root filesystem or on a mount (overlay, bind, tmpfs) that the host rebuilds with the image, so every learner record and evidence ledger is lost on the next sleep or deploy. Attach a disk and point OPENMIND_DATA_DIR at its mount path, or set OPENMIND_ALLOW_EPHEMERAL_STORE=1 to accept losing them`,
       });
-    } else if (own === null) {
+    } else if (durability === "unknown") {
       notes.push({
         key: "OPENMIND_DATA_DIR",
         code: "durability_unknown",
-        detail: `this host (${host}) discards its filesystem, and whether ${dataDir} is a mounted volume could NOT be determined — verify the volume is attached and mounted at that path before trusting the store`,
+        detail: `this host (${host}) discards its filesystem, and whether ${dataDir} is a volume of its own could NOT be determined — verify the volume is attached and mounted at that path before trusting the store`,
       });
     }
+    // "volume" — a filesystem of its own that is not a view of the image.
+    // Silence, because that is the only answer with nothing left to ask for.
   }
 
   // 6b. WHICH STORE, and whether this build can serve it. A deployment that

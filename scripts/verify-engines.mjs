@@ -11099,42 +11099,79 @@ console.log("▸ The deployment reports its own configuration, and invents no re
   ok(envMod.envReport({ NODE_ENV: "production", OPENMIND_ALLOW_EPHEMERAL_STORE: "maybe" }).ok === false,
     "but only an explicit yes counts — any other value still fails readiness");
 
-  // 1c. A DECLARED DIRECTORY IS NOT AUTOMATICALLY A DURABLE ONE.
+  // 1c. A DECLARED DIRECTORY IS NOT AUTOMATICALLY A DURABLE ONE — AND A DEVICE OF
+  //     ITS OWN IS NOT A VOLUME.
   //
   // The rule above catches an UNDECLARED store on the production artefact, and a
   // real deployment got past it: a Render service with no disk attached
   // answered `ready:true`, `data:{ok:true,code:"writable"}`, `problems:[]` — and
   // a learner created 20 minutes earlier was HTTP 404 after the instance had
   // slept and been replaced. The declaration was never the question: a PATH is
-  // not a filesystem. So on a host that is documented to discard its filesystem,
-  // the directory must be on a filesystem of its own, and the FACT is injected
-  // here so both branches are decidable on one machine.
+  // not a filesystem.
+  //
+  // The FIRST fix for that asked whether the directory was on a filesystem of
+  // its own, and the live deployment answered `durability:"durable"` while a
+  // deploy that replaced the process destroyed the canary learner (`--verify`:
+  // 4 passed, 30 failed, every learner-scoped read a 404). Inside a container
+  // the app directory IS a mount of its own, and it is an overlay the host
+  // throws away with the image. So the judgement reads the MOUNT TABLE, an
+  // overlay/bind/tmpfs mount is the host's filesystem whatever its device, and
+  // the real deploy layouts are injected below as text so both answers are
+  // decidable on one machine.
   const hosted = { NODE_ENV: "production", OPENMIND_DATA_DIR: "/data", RENDER: "true" };
-  const notDurable = envMod.envReport(hosted, { dataDirOnOwnFilesystem: false });
+  /** A disk the host keeps: its own filesystem, mounted below the image. */
+  const diskTable = [
+    "22 28 0:21 / / rw,relatime - overlay overlay rw,lowerdir=/layers",
+    "31 22 8:16 / /data rw,relatime - xfs /dev/sdb rw",
+  ].join("\n");
+  /** The host that produced the false promise: the app directory is a mount of
+   *  its own AND an overlay, so a device number called it a volume. */
+  const imageTable = [
+    "22 28 0:21 / / rw,relatime - overlay overlay rw,lowerdir=/layers",
+    "35 22 0:21 / /opt/render/project/src rw,relatime - overlay overlay rw,lowerdir=/layers",
+  ].join("\n");
+  ok(envMod.dataDirDurability("/data", diskTable) === "volume",
+    "a directory on a disk mounted below the image is a volume the host keeps");
+  ok(envMod.dataDirDurability("/data/learners", diskTable) === "volume",
+    "and a directory BENEATH that mount is judged by it — the store creates its own subdirectories");
+  ok(envMod.dataDirDurability("/opt/render/project/src/.openmind-data", imageTable) === "host-filesystem",
+    "the app directory inside the image is NOT a volume even though it has a device of its own — the promise that lost a learner");
+  ok(envMod.dataDirDurability("/opt/render/project/src", imageTable) === "host-filesystem",
+    "and neither is the mount itself, asked for on its own");
+  ok(envMod.dataDirDurability("/data", null) === "host-filesystem",
+    "with no mount table to read, the same device as the root is still the host's filesystem");
+  ok(envMod.dataDirDurability("/", null) === "host-filesystem",
+    "the filesystem root is never a volume, measured or not");
+  ok(envMod.dataDirDurability("/", diskTable) === "host-filesystem",
+    "and a table with a disk on it does not turn the root into one");
+
+  const notDurable = envMod.envReport(hosted, { dataDirDurability: "host-filesystem" });
   ok(notDurable.ok === false && notDurable.problems.some((p) => p.code === "data_dir_not_durable"),
-    "a declared store that is NOT on a filesystem of its own is not ready on a host that discards its filesystem");
-  ok(envMod.envReport(hosted, { dataDirOnOwnFilesystem: true }).ok === true,
+    "a declared store that is not a volume the host keeps is not ready on a host that discards its filesystem");
+  ok(envMod.envReport(hosted, { dataDirDurability: "volume" }).ok === true,
     "while the same host with the directory on a mounted volume is ready — which is the disk this exists to ask for");
-  ok(envMod.envReport(hosted, { dataDirOnOwnFilesystem: null }).ok === true
-    && envMod.envReport(hosted, { dataDirOnOwnFilesystem: null }).notes.some((n) => n.code === "durability_unknown"),
+  ok(envMod.envReport(hosted, { dataDirDurability: "unknown" }).ok === true
+    && envMod.envReport(hosted, { dataDirDurability: "unknown" }).notes.some((n) => n.code === "durability_unknown"),
     "and a filesystem that cannot be measured is reported as UNKNOWN, never as durable");
   ok(envMod.envReport({ NODE_ENV: "production", OPENMIND_DATA_DIR: "/data" }).ok === true,
     "the same declaration on a machine that is not such a host is untouched (a laptop's /data is that laptop's disk)");
-  ok(envMod.envReport({ ...hosted, OPENMIND_ALLOW_EPHEMERAL_STORE: "1" }, { dataDirOnOwnFilesystem: false }).ok === true,
+  ok(envMod.envReport({ ...hosted, OPENMIND_ALLOW_EPHEMERAL_STORE: "1" }, { dataDirDurability: "host-filesystem" }).ok === true,
     "and accepting an ephemeral store in so many words still runs a throwaway instance as a note");
   ok(envMod.ephemeralHost({}) === "" && envMod.ephemeralHost({ RENDER: "true" }) === "Render",
     "the host is named from markers the platforms document, not guessed");
   ok(envMod.envReport({ RENDER: "true" }).problems.some((p) => p.code === "data_dir_undeclared"),
     "and an undeclared store on a recognised host is refused even when NODE_ENV says nothing (a Docker deploy need not set it)");
   // The fact itself, from the filesystem this suite is running on. The root is
-  // never on a filesystem of its own, and a directory the store has not created
-  // yet is judged by the filesystem that WOULD hold it — the case that matters,
-  // because the first readiness call happens before the first write.
+  // never a volume, and a directory the store has not created yet is judged by
+  // the filesystem that WOULD hold it — the case that matters, because the first
+  // readiness call happens before the first write.
   ok(envMod.dataDirOnOwnFilesystem("/") === false,
     "the filesystem root is not a filesystem of its own");
   ok(envMod.envReport({ NODE_ENV: "production", OPENMIND_DATA_DIR: "/", RENDER: "true" })
       .problems.some((p) => p.code === "data_dir_not_durable"),
-    "and the rule fires through the REAL filesystem probe, not only through injected facts");
+    "and the rule fires through the REAL probe, not only through injected facts");
+  ok(envMod.dataDirDurability("/") === "host-filesystem",
+    "as does the judgement itself on this machine's own filesystem");
   ok(envMod.dataDirOnOwnFilesystem("/definitely/not/here") === false,
     "and a path outside anything mounted is judged by the root it belongs to");
   ok(envMod.dataDirOnOwnFilesystem(nodePath.join(process.cwd(), "not-created-yet", "nested"))
