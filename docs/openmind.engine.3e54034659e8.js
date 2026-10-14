@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 57 modules compiled from lib/ by that script, wired
+ * Source: 58 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -1860,14 +1860,410 @@ function mcCoachingNative(lang, id) {
 }
 
 });
+__def("curricula/registry.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SHARED_PATHWAY_IDS = exports.UNRESEARCHED_CODES = exports.RESEARCHED_CODES = exports.CM_FRANCOPHONE = exports.CM_ANGLOPHONE = exports.SHARED_PATHWAYS = exports.INDEPENDENT_PATHWAY = exports.INTERNATIONAL_PATHWAY = exports.REVIEW_ORDER = void 0;
+exports.reviewAtLeast = reviewAtLeast;
+exports.pathwayById = pathwayById;
+exports.allPathways = allPathways;
+exports.countryRecord = countryRecord;
+exports.pathwayChoices = pathwayChoices;
+exports.defaultPathwayFor = defaultPathwayFor;
+exports.nationalRouteCodes = nationalRouteCodes;
+exports.pathwayChoiceRequired = pathwayChoiceRequired;
+exports.pathwayQuestionNeeded = pathwayQuestionNeeded;
+exports.initialPathwayFor = initialPathwayFor;
+exports.nationalPathwaysFor = nationalPathwaysFor;
+exports.mappingReviewKey = mappingReviewKey;
+exports.pathwayForCountry = pathwayForCountry;
+exports.REVIEW_ORDER = ["unmapped", "mapped", "researched", "reviewed", "verified"];
+function reviewAtLeast(status, min) {
+    return exports.REVIEW_ORDER.indexOf(status) >= exports.REVIEW_ORDER.indexOf(min);
+}
+// ── The pathways that are available in every country ────────────────────────
+//
+// ONE definition each, referenced by every country record, so "available
+// internationally" is a fact about the programme rather than 70 copies of it.
+const years = (...labels) => labels.map((label, i) => ({ id: slug(label), label, sequence: i + 1 }));
+/** A stable id from a label: "Form 1" → "form-1", "3e" → "3e". Accents and
+ *  punctuation are dropped rather than transliterated, so ids stay ASCII. */
+function slug(label) {
+    return label
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+}
+exports.INTERNATIONAL_PATHWAY = {
+    id: "int-international",
+    countryCode: "INT",
+    name: "International · Cambridge / IB",
+    pathwayType: "international",
+    schoolYears: years("Year 10", "Year 11", "Year 12", "Year 13"),
+    qualifications: [
+        { id: "igcse", name: "Cambridge IGCSE", stage: "Years 10–11", specIds: ["int-igcse"] },
+        { id: "ib", name: "International Baccalaureate", stage: "Years 12–13", specIds: ["int-ib"] },
+    ],
+    specificationIds: ["int-igcse", "int-ib"],
+    boards: [
+        { id: "cambridge", name: "Cambridge Assessment International Education", exams: ["IGCSE", "AS/A Level"] },
+        { id: "ib", name: "International Baccalaureate", exams: ["MYP", "Diploma Programme"] },
+    ],
+    // Cambridge's and the IB's own published programme pages would be the sources
+    // here; they are not on file, so the record says "mapped" rather than
+    // pretending otherwise. One line to fix, and the gate makes it visible.
+    sourceUrls: [],
+    recordReview: "mapped",
+    mappingReview: "mapped",
+    entryConcepts: ["fractions", "algebra-expressions", "linear-equations"],
+};
+exports.INDEPENDENT_PATHWAY = {
+    id: "int-independent",
+    countryCode: "XX",
+    name: "Independent · skills pathway",
+    pathwayType: "independent",
+    schoolYears: years("Foundations", "Core", "Advanced"),
+    qualifications: [
+        { id: "skills", name: "Independent skills pathway", stage: "Any stage", specIds: ["any-independent"] },
+    ],
+    specificationIds: ["any-independent"],
+    boards: [],
+    sourceUrls: [],
+    recordReview: "mapped",
+    mappingReview: "mapped",
+    entryConcepts: ["place-value", "fractions", "linear-equations"],
+    notes: "Not a school system and never presented as one: its years are bands, not " +
+        "classes. It is the pathway for a learner whose country has no mapped " +
+        "national route and who has not chosen an international programme, and it " +
+        "is the only pathway whose years are OpenMind's own vocabulary.",
+};
+exports.SHARED_PATHWAYS = [exports.INTERNATIONAL_PATHWAY, exports.INDEPENDENT_PATHWAY];
+// ── Cameroon: the reference case ────────────────────────────────────────────
+//
+// Two systems, one country. Both are GENERAL secondary education; the technical
+// and vocational routes exist in Cameroon as well and are NOT modelled here —
+// which is stated rather than implied, because a learner looking for them should
+// find the limit named.
+//
+// The sources are MINESEC's own descriptions of each subsystem. They establish
+// the STRUCTURE this record encodes (the years of each cycle and the
+// examinations that end them). They do not establish the concept mapping: which
+// genome concept a Cameroonian syllabus examines, and how deeply, is OpenMind's
+// own mapping and is marked "mapped" — awaiting a subject specialist.
+const CAMEROON_SOURCES = {
+    anglophone: "https://www.minesec.gov.cm/web/index.php/en/systeme-educatif-en/offre-de-formation-en/sous-systeme-anglophone-en",
+    francophone: "https://www.minesec.gov.cm/web/index.php/fr/systeme-educatif/offre-de-formation/sous-systeme-francophone",
+};
+exports.CM_ANGLOPHONE = {
+    id: "cm-anglophone-general-secondary",
+    countryCode: "CM",
+    name: "Cameroon · Anglophone system (GCE)",
+    pathwayType: "national",
+    language: "en",
+    // Five years of first cycle to the GCE Ordinary Level, then two years to the
+    // GCE Advanced Level. Every year of both cycles is offered: a Form 2 learner
+    // is working towards the O Level and must be able to say so.
+    schoolYears: years("Form 1", "Form 2", "Form 3", "Form 4", "Form 5", "Lower Sixth", "Upper Sixth"),
+    qualifications: [
+        { id: "gce-o", name: "GCE Ordinary Level", stage: "End of Form 5", specIds: ["cm-gce-o"] },
+        { id: "gce-a", name: "GCE Advanced Level", stage: "End of Upper Sixth", specIds: ["cm-gce-a"] },
+    ],
+    specificationIds: ["cm-gce-o", "cm-gce-a"],
+    boards: [
+        { id: "gce", name: "Cameroon GCE Board (MINESEC)", exams: ["GCE O Level", "GCE A Level"] },
+    ],
+    sourceUrls: [CAMEROON_SOURCES.anglophone],
+    recordReview: "researched",
+    mappingReview: "mapped",
+    entryConcepts: ["fractions", "linear-equations", "quadratics"],
+};
+exports.CM_FRANCOPHONE = {
+    id: "cm-francophone-general-secondary",
+    countryCode: "CM",
+    name: "Cameroun · système francophone (BEPC · Probatoire · Baccalauréat)",
+    pathwayType: "national",
+    language: "fr",
+    // Four years of premier cycle to the BEPC, then three years of second cycle
+    // through the Probatoire to the Baccalauréat.
+    schoolYears: years("6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"),
+    qualifications: [
+        { id: "bepc", name: "BEPC", stage: "End of 3e", specIds: ["cm-bepc"] },
+        { id: "probatoire", name: "Probatoire", stage: "End of 1re", specIds: ["cm-probatoire"] },
+        { id: "bac", name: "Baccalauréat", stage: "End of Terminale", specIds: ["cm-bac"] },
+    ],
+    specificationIds: ["cm-bepc", "cm-probatoire", "cm-bac"],
+    boards: [
+        { id: "minesec", name: "MINESEC (Cameroon) — Francophone system", exams: ["BEPC", "Probatoire", "Baccalauréat"] },
+    ],
+    sourceUrls: [CAMEROON_SOURCES.francophone],
+    recordReview: "researched",
+    mappingReview: "mapped",
+    entryConcepts: ["fractions", "algebra-expressions", "linear-equations"],
+};
+const NATIONAL_ROUTES = [
+    { code: "KE", system: "Kenya · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["ke-kcse"], boards: [{ id: "kenyan", name: "Kenya National Examinations (KNEC)", exams: ["KCPE", "KCSE Form 4"] }] },
+    { code: "IN", system: "India · Secondary", grades: ["Class 8", "Class 9", "Class 10", "Class 11", "Class 12"], entry: ["fractions", "linear-equations", "triangles"], specs: ["in-cbse", "in-icse"], boards: [
+            { id: "cbse", name: "Central Board of Secondary Education (CBSE)", exams: ["AISSE Class 10", "AISSCE Class 12"] },
+            { id: "icse", name: "Indian Certificate of Secondary Education (ICSE)", exams: ["ICSE Class 10", "ISC Class 12"] },
+            { id: "state", name: "State board", exams: ["SSC / HSC"] },
+        ] },
+    { code: "PH", system: "Philippines · JHS/SHS", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "integers", "linear-equations"], specs: ["ph-deped"], boards: [{ id: "philippine", name: "DepEd K-12", exams: ["DepEd National Assessments"] }] },
+    { code: "BD", system: "Bangladesh · Secondary", grades: ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"], entry: ["fractions", "percentages", "linear-equations"], specs: ["bd-ssc"], boards: [
+            { id: "bangladeshi", name: "Board of Intermediate and Secondary Education", exams: ["JSC", "SSC"] },
+        ] },
+    { code: "NG", system: "Nigeria · JSS/SSS", grades: ["JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"], entry: ["fractions", "percentages", "linear-equations"], specs: ["ng-waec"], boards: [{ id: "nigerian", name: "West African Examinations Council (WAEC) / NECO", exams: ["BECE", "WAEC / NECO SSSCE"] }] },
+    { code: "GH", system: "Ghana · JHS/SHS", grades: ["JHS 1", "JHS 2", "JHS 3", "SHS 1", "SHS 2", "SHS 3"], entry: ["fractions", "integers", "linear-equations"], specs: ["gh-wassce"], boards: [{ id: "state", name: "Ghana Education Service", exams: ["BECE", "WASSCE"] }] },
+    { code: "TZ", system: "Tanzania · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["tz-csee"], boards: [{ id: "kenyan", name: "Tanzania National Examinations (NECTA)", exams: ["PSLE", "CSEE"] }] },
+    { code: "UG", system: "Uganda · Secondary", grades: ["S1", "S2", "S3", "S4"], entry: ["fractions", "linear-equations", "triangles"], specs: ["ug-uce"], boards: [{ id: "kenyan", name: "Uganda National Examinations Board (UNEB)", exams: ["PLE", "UCE", "UACE"] }] },
+    { code: "PK", system: "Pakistan · Secondary", grades: ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"], entry: ["fractions", "percentages", "linear-equations"], specs: ["pk-matric"], boards: [
+            { id: "matric", name: "Matriculation (Punjab/Sindh/Balochistan)", exams: ["Matric"] },
+            { id: "state", name: "Federal Board / Cambridge", exams: ["O/A Levels"] },
+        ] },
+    { code: "ID", system: "Indonesia · SMP/SMA", grades: ["SMP 7", "SMP 8", "SMP 9", "SMA 10", "SMA 11", "SMA 12"], entry: ["fractions", "integers", "linear-equations"], specs: ["id-merdeka"], boards: [{ id: "indonesian", name: "Kurikulum Merdeka", exams: ["US SMP", "US SMA"] }] },
+    { code: "BR", system: "Brazil · Fundamental/Médio", grades: ["6º ano", "7º ano", "8º ano", "9º ano", "1º médio", "2º médio", "3º médio"], entry: ["fractions", "percentages", "linear-equations"], specs: ["br-enem"], boards: [{ id: "brazilian", name: "INEP / ENEM", exams: ["BNCC", "ENEM"] }] },
+    { code: "MX", system: "Mexico · Secundaria", grades: ["1º", "2º", "3º"], entry: ["fractions", "integers", "linear-equations"], specs: ["mx-sep"], boards: [{ id: "mexican", name: "SEP / ENP", exams: ["ENP"] }] },
+    { code: "GB", system: "United Kingdom · Secondary", grades: ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["uk-gcse", "uk-alevel"], boards: [
+            { id: "aqa", name: "AQA", exams: ["GCSE", "A-Level"] },
+            { id: "edexcel", name: "Pearson Edexcel", exams: ["GCSE", "A-Level"] },
+            { id: "ocr", name: "OCR", exams: ["GCSE", "A-Level"] },
+            { id: "wjec", name: "WJEC / Eduqas", exams: ["GCSE", "A-Level"] },
+        ] },
+    { code: "IE", system: "Ireland · Junior/Senior Cycle", grades: ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "6th Year"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["ie-junior"], boards: [{ id: "state", name: "NCCA (Junior Cycle / Leaving Certificate)", exams: ["Junior Cycle", "Leaving Certificate"] }] },
+    { code: "US", system: "United States · Middle/High School", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["us-core", "us-sat", "us-ap"], boards: [
+            { id: "commoncore", name: "Common Core State Standards", exams: ["State assessments"] },
+            { id: "collegeboard", name: "College Board", exams: ["SAT", "AP"] },
+        ] },
+    { code: "CA", system: "Canada · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["ca-provincial"], boards: [{ id: "canadian", name: "Provincial curriculum", exams: ["Provincial diploma exams"] }] },
+    { code: "AU", system: "Australia · Secondary", grades: ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["au-acara"], boards: [{ id: "acara", name: "Australian Curriculum (ACARA)", exams: ["NAPLAN", "ATAR"] }] },
+    { code: "ZA", system: "South Africa · Senior/FET", grades: ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["za-nsc"], boards: [{ id: "caps", name: "CAPS / National Senior Certificate", exams: ["NSC (Matric)"] }] },
+];
+function pathwayFromRoute(route) {
+    return {
+        id: `${route.code.toLowerCase()}-national`,
+        countryCode: route.code,
+        name: route.system,
+        pathwayType: "national",
+        schoolYears: years(...route.grades),
+        // EMPTY ON PURPOSE. The learner-facing name of a qualification is owned by
+        // the specification itself (lib/specifications.ts), and copying it here
+        // would be a second owner of one string. A pathway that has actually been
+        // researched (Cameroon's) names its own examinations and the point in the
+        // system they end; the gate demands that of a "researched" record and not of
+        // an inherited one, which is how the report tells the two apart.
+        qualifications: [],
+        specificationIds: route.specs,
+        boards: route.boards,
+        sourceUrls: route.sources ?? [],
+        recordReview: route.recordReview ?? "mapped",
+        mappingReview: "mapped",
+        entryConcepts: route.entry,
+        notes: "Record inherited from the route table this registry replaces: the years and " +
+            "awarding bodies were already in production, and the structural citations have " +
+            "not been collected. The qualification NAMES live on the specifications " +
+            "themselves (lib/specifications.ts), which is what a learner is shown.",
+    };
+}
+/** A country the picker offers with NO national pathway recorded. Listing them
+ *  explicitly (rather than inferring "anything unlisted is unmapped") is what
+ *  lets the gate tell "we have not researched this yet" apart from "somebody
+ *  forgot to add it at all", which is the difference the report has to show. */
+const UNRESEARCHED_COUNTRIES = [
+    // Africa
+    "ET", "EG", "MA", "RW", "ZM", "ZW", "MW", "ML", "SN", "CI", "NE", "BF", "SO", "SD",
+    // Asia & Middle East
+    "VN", "CN", "JP", "KR", "TR", "IR", "AF", "YE", "IQ", "SY", "JO", "LB", "NP", "LK",
+    "MM", "KH", "LA", "MN", "KZ", "UZ", "AE", "SA", "MY", "TH", "SG",
+    // Europe
+    "ES", "FR", "DE", "IT", "PL", "UA", "NL", "SE", "NO", "DK", "FI", "GR", "RO", "HU", "CZ", "CH",
+    // Americas
+    "CO", "AR", "PE", "HT", "BO", "EC", "GT", "HN", "NI", "SV", "DO", "CL",
+];
+const CURRICULA = {
+    ...Object.fromEntries(NATIONAL_ROUTES.map((r) => [
+        r.code,
+        {
+            countryCode: r.code,
+            nationalPathways: [pathwayFromRoute(r)],
+            internationalPathwayIds: ["int-international", "int-independent"],
+            defaultPathwayId: `${r.code.toLowerCase()}-national`,
+        },
+    ])),
+    // Cameroon: TWO national systems and NO default. This is the one record for
+    // which "which pathway?" is a question the learner must answer before the
+    // years and the qualifications mean anything.
+    CM: {
+        countryCode: "CM",
+        nationalPathways: [exports.CM_ANGLOPHONE, exports.CM_FRANCOPHONE],
+        internationalPathwayIds: ["int-international", "int-independent"],
+        defaultPathwayId: null,
+        notes: "Two general secondary systems run side by side, and neither is a fallback " +
+            "for the other: the Anglophone system ends in GCE O/A Level, the " +
+            "Francophone system in the BEPC, Probatoire and Baccalauréat. Technical and " +
+            "vocational routes are not modelled here.",
+    },
+    // International: the programme is the route. `defaultPathwayId` is the
+    // international pathway so this code keeps meaning what it always did.
+    INT: {
+        countryCode: "INT",
+        nationalPathways: [],
+        internationalPathwayIds: ["int-international", "int-independent"],
+        defaultPathwayId: "int-international",
+    },
+    // "Prefer not to say": no national pathway, no default — the same state an
+    // unlisted country is in, and for the same reason (the learner has not told us
+    // where they study, so nothing may be assumed about it).
+    XX: {
+        countryCode: "XX",
+        nationalPathways: [],
+        internationalPathwayIds: ["int-international", "int-independent"],
+        defaultPathwayId: null,
+    },
+};
+/** Every country code the registry can answer for, plus the "no national
+ *  route" list. Read by the audit report, never by a page. */
+exports.RESEARCHED_CODES = Object.keys(CURRICULA);
+exports.UNRESEARCHED_CODES = [...UNRESEARCHED_COUNTRIES];
+exports.SHARED_PATHWAY_IDS = exports.SHARED_PATHWAYS.map((p) => p.id);
+const ALL_PATHWAYS = [
+    ...Object.values(CURRICULA).flatMap((c) => c.nationalPathways),
+    ...exports.SHARED_PATHWAYS,
+];
+function pathwayById(id) {
+    if (!id)
+        return null;
+    return ALL_PATHWAYS.find((p) => p.id === id) ?? null;
+}
+function allPathways() {
+    return ALL_PATHWAYS;
+}
+/** The country record, or null when the country is not in the registry at all.
+ *  A null here is NOT "no pathway available" — it is "no record", and the
+ *  difference is exactly what the report prints. */
+function countryRecord(code) {
+    if (!code)
+        return null;
+    return CURRICULA[code] ?? null;
+}
+/** Every pathway a learner in this country may choose, in the order a picker
+ *  should offer them: the country's own systems first, then the international
+ *  programmes, then the independent pathway. A country with no record still gets
+ *  the last three — never an empty list, because `specsFor` must never leave a
+ *  learner with no course. */
+function pathwayChoices(code) {
+    const rec = countryRecord(code);
+    const ints = (rec?.internationalPathwayIds ?? ["int-international", "int-independent"])
+        .map((id) => pathwayById(id))
+        .filter((p) => Boolean(p));
+    if (!rec)
+        return ints.length ? ints : [exports.INDEPENDENT_PATHWAY];
+    const shared = ints.filter((p) => p.countryCode !== rec.countryCode);
+    return [...rec.nationalPathways, ...shared.filter((p) => p.pathwayType === "international"),
+        ...shared.filter((p) => p.pathwayType === "independent")];
+}
+/** The pathway a learner is placed on WITHOUT choosing one. Null means the
+ *  choice is real and must be made: two national systems, or a country with no
+ *  national route and no default to pretend to. */
+function defaultPathwayFor(code) {
+    const rec = countryRecord(code);
+    if (!rec)
+        return pathwayById("int-independent");
+    if (rec.defaultPathwayId)
+        return pathwayById(rec.defaultPathwayId);
+    if (rec.nationalPathways.length === 1)
+        return rec.nationalPathways[0];
+    return null;
+}
+/** Countries whose own education system is recorded. The one owner of the
+ *  number the learner-facing coverage sentence prints. */
+function nationalRouteCodes() {
+    return Object.values(CURRICULA)
+        .filter((c) => c.nationalPathways.length > 0)
+        .map((c) => c.countryCode);
+}
+/** Does this choice genuinely need to be asked for? True when the country has
+ *  two or more national systems (Cameroon), and false when one system settles it
+ *  or when the international/independent pathways are the honest default. */
+function pathwayChoiceRequired(code) {
+    const rec = countryRecord(code);
+    return Boolean(rec && rec.nationalPathways.length > 1);
+}
+/** Should a learner in this country be ASKED which education system they follow?
+ *  True where the answer is not already settled by the country — none recorded,
+ *  or more than one for the country to run. A country with exactly one recorded
+ *  national system is not asked: a screen offering a UK learner the choice of
+ *  "the UK system" is a question with one answer, and the international
+ *  programmes stay reachable from /curriculum (the screen whose job is changing
+ *  a course) rather than being a step in every enrolment. */
+function pathwayQuestionNeeded(code) {
+    const rec = countryRecord(code);
+    if (!rec)
+        return true; // unresearched: the honest offer is the explicit choice
+    return rec.nationalPathways.length !== 1;
+}
+/** The pathway a select should be SHOWING before the learner touches it.
+ *
+ *  The country's own system when it has exactly one — so the field is filled and
+ *  `Next` is not waiting on a question nobody asked. NOTHING when the country
+ *  has more than one (that is the question) and nothing when it has none: for an
+ *  unresearched country the international and independent courses are ALL
+ *  offered, and preselecting the skills pathway there would narrow a learner's
+ *  choices to one before they had said anything. */
+function initialPathwayFor(code) {
+    const rec = countryRecord(code);
+    if (!rec || rec.nationalPathways.length !== 1)
+        return "";
+    return rec.defaultPathwayId ?? "";
+}
+/** A country's own systems. Empty for an unresearched country, which is how a
+ *  surface tells "we have no national route for you" apart from "choose one of
+ *  ours" without a second list. */
+function nationalPathwaysFor(code) {
+    return countryRecord(code)?.nationalPathways ?? [];
+}
+/** THE SENTENCE A SURFACE SHOWS ABOUT HOW FAR THIS MAPPING HAS BEEN CHECKED,
+ *  as a dictionary key — never as a literal in a component, so the label cannot
+ *  drift from the record.
+ *
+ *  This exists because "there is a route for your country" and "a specialist has
+ *  read our mapping of it" are different claims, and the difference is invisible
+ *  to a learner unless a surface says it. Before this, every one of the 20
+ *  pathways rendered as an ordinary course while 20 of them had no source on
+ *  file and none had a reviewed mapping — the same defect as answering a French
+ *  learner with Cambridge IGCSE, one layer quieter. */
+function mappingReviewKey(pathway) {
+    if (!pathway)
+        return "";
+    if (reviewAtLeast(pathway.mappingReview, "reviewed")) {
+        return pathway.mappingReview === "verified" ? "course.mapVerified" : "course.mapReviewed";
+    }
+    return "course.mapPending";
+}
+/** The pathway a profile holds, if it is a real pathway AND one this country
+ *  offers. A pathway from another country is not "chosen" — it is stale, and
+ *  treating it as chosen is how a GCSE ends up scoping a Cameroonian course. */
+function pathwayForCountry(code, pathwayId) {
+    const pw = pathwayById(pathwayId);
+    if (!pw)
+        return null;
+    if (pw.pathwayType !== "national")
+        return pw;
+    return pw.countryCode === code ? pw : null;
+}
+
+});
 __def("curriculum.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CONTINUITY_CORE = exports.INDEPENDENT_ROUTE = void 0;
+exports.routeForPathway = routeForPathway;
+exports.routeForPathwayId = routeForPathwayId;
 exports.curriculumFor = curriculumFor;
 exports.boardName = boardName;
 exports.isContinuityMode = isContinuityMode;
 exports.setContinuityMode = setContinuityMode;
+const registry_1 = require("./curricula/registry");
 // A ROUTE'S YEAR LIST IS THE WHOLE SEQUENCE, not a sample of it.
 //
 // These lists were written with gaps — GB jumped Year 7 → Year 9, AU skipped
@@ -1888,68 +2284,85 @@ exports.setContinuityMode = setContinuityMode;
 // so completing a sequence gives the learner a truthful answer to give and
 // changes no lesson. Where a phase genuinely ends (India's secondary starts at
 // Class 8; INT's Cambridge/IB span is Years 10–13), the span is what it is.
-const ROUTES = {
-    KE: { system: "Kenya · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4"], entry: ["fractions", "linear-equations", "quadratics"], boards: [{ id: "kenyan", name: "Kenya National Examinations (KNEC)", exams: ["KCPE", "KCSE Form 4"] }] },
-    IN: { system: "India · Secondary", grades: ["Class 8", "Class 9", "Class 10", "Class 11", "Class 12"], entry: ["fractions", "linear-equations", "triangles"], boards: [
-            { id: "cbse", name: "Central Board of Secondary Education (CBSE)", exams: ["AISSE Class 10", "AISSCE Class 12"] },
-            { id: "icse", name: "Indian Certificate of Secondary Education (ICSE)", exams: ["ICSE Class 10", "ISC Class 12"] },
-            { id: "state", name: "State board", exams: ["SSC / HSC"] },
-        ] },
-    PH: { system: "Philippines · JHS/SHS", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "integers", "linear-equations"], boards: [{ id: "philippine", name: "DepEd K-12", exams: ["DepEd National Assessments"] }] },
-    BD: { system: "Bangladesh · Secondary", grades: ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"], entry: ["fractions", "percentages", "linear-equations"], boards: [
-            { id: "bangladeshi", name: "Board of Intermediate and Secondary Education", exams: ["JSC", "SSC"] },
-        ] },
-    NG: { system: "Nigeria · JSS/SSS", grades: ["JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"], entry: ["fractions", "percentages", "linear-equations"], boards: [{ id: "nigerian", name: "West African Examinations Council (WAEC) / NECO", exams: ["BECE", "WAEC / NECO SSSCE"] }] },
-    GH: { system: "Ghana · JHS/SHS", grades: ["JHS 1", "JHS 2", "JHS 3", "SHS 1", "SHS 2", "SHS 3"], entry: ["fractions", "integers", "linear-equations"], boards: [{ id: "state", name: "Ghana Education Service", exams: ["BECE", "WASSCE"] }] },
-    TZ: { system: "Tanzania · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4"], entry: ["fractions", "linear-equations", "quadratics"], boards: [{ id: "kenyan", name: "Tanzania National Examinations (NECTA)", exams: ["PSLE", "CSEE"] }] },
-    UG: { system: "Uganda · Secondary", grades: ["S1", "S2", "S3", "S4"], entry: ["fractions", "linear-equations", "triangles"], boards: [{ id: "kenyan", name: "Uganda National Examinations Board (UNEB)", exams: ["PLE", "UCE", "UACE"] }] },
-    PK: { system: "Pakistan · Secondary", grades: ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"], entry: ["fractions", "percentages", "linear-equations"], boards: [
-            { id: "matric", name: "Matriculation (Punjab/Sindh/Balochistan)", exams: ["Matric"] },
-            { id: "state", name: "Federal Board / Cambridge", exams: ["O/A Levels"] },
-        ] },
-    ID: { system: "Indonesia · SMP/SMA", grades: ["SMP 7", "SMP 8", "SMP 9", "SMA 10", "SMA 11", "SMA 12"], entry: ["fractions", "integers", "linear-equations"], boards: [{ id: "indonesian", name: "Kurikulum Merdeka", exams: ["US SMP", "US SMA"] }] },
-    BR: { system: "Brazil · Fundamental/Médio", grades: ["6º ano", "7º ano", "8º ano", "9º ano", "1º médio", "2º médio", "3º médio"], entry: ["fractions", "percentages", "linear-equations"], boards: [{ id: "brazilian", name: "INEP / ENEM", exams: ["BNCC", "ENEM"] }] },
-    MX: { system: "Mexico · Secundaria", grades: ["1º", "2º", "3º"], entry: ["fractions", "integers", "linear-equations"], boards: [{ id: "mexican", name: "SEP / ENP", exams: ["ENP"] }] },
-    GB: { system: "United Kingdom · Secondary", grades: ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"], entry: ["fractions", "algebra-expressions", "linear-equations"], boards: [
-            { id: "aqa", name: "AQA", exams: ["GCSE", "A-Level"] },
-            { id: "edexcel", name: "Pearson Edexcel", exams: ["GCSE", "A-Level"] },
-            { id: "ocr", name: "OCR", exams: ["GCSE", "A-Level"] },
-            { id: "wjec", name: "WJEC / Eduqas", exams: ["GCSE", "A-Level"] },
-        ] },
-    IE: { system: "Ireland · Junior/Senior Cycle", grades: ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "6th Year"], entry: ["fractions", "algebra-expressions", "linear-equations"], boards: [{ id: "state", name: "NCCA (Junior Cycle / Leaving Certificate)", exams: ["Junior Cycle", "Leaving Certificate"] }] },
-    US: { system: "United States · Middle/High School", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "algebra-expressions", "linear-equations"], boards: [
-            { id: "commoncore", name: "Common Core State Standards", exams: ["State assessments"] },
-            { id: "collegeboard", name: "College Board", exams: ["SAT", "AP"] },
-        ] },
-    CA: { system: "Canada · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "algebra-expressions", "linear-equations"], boards: [{ id: "canadian", name: "Provincial curriculum", exams: ["Provincial diploma exams"] }] },
-    AU: { system: "Australia · Secondary", grades: ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"], entry: ["fractions", "algebra-expressions", "linear-equations"], boards: [{ id: "acara", name: "Australian Curriculum (ACARA)", exams: ["NAPLAN", "ATAR"] }] },
-    ZA: { system: "South Africa · Senior/FET", grades: ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "algebra-expressions", "linear-equations"], boards: [{ id: "caps", name: "CAPS / National Senior Certificate", exams: ["NSC (Matric)"] }] },
-    INT: { system: "International · Cambridge / IB", grades: ["Year 10", "Year 11", "Year 12", "Year 13"], entry: ["fractions", "algebra-expressions", "linear-equations"], boards: [
-            { id: "cambridge", name: "Cambridge Assessment International Education", exams: ["IGCSE", "AS/A Level"] },
-            { id: "ib", name: "International Baccalaureate", exams: ["MYP", "Diploma Programme"] },
-        ] },
-};
-/** Independent pathway (§7 "I'm learning independently"): skills route, no syllabus. */
-exports.INDEPENDENT_ROUTE = {
-    system: "Independent · skills pathway",
-    grades: ["Foundations", "Core", "Advanced"],
-    entry: ["place-value", "fractions", "linear-equations"],
-    boards: [],
-};
-function curriculumFor(country) {
-    return ROUTES[country] ?? null;
+//
+// THE SAME RULE NOW APPLIES PER PATHWAY, which is why the sequences are checked
+// per pathway in `npm run verify` rather than per country: Cameroon's
+// Anglophone and Francophone systems are checked as two sequences, so a hole in
+// one cannot be masked by the other's numbers.
+/** The route a reading of ONE pathway produces. A caller that knows which
+ *  education system the learner follows must use this — `curriculumFor` can only
+ *  answer for a country, and a country with two systems has no single answer. */
+function routeForPathway(pathway) {
+    return {
+        system: pathway.name,
+        grades: pathway.schoolYears.map((y) => y.label),
+        entry: pathway.entryConcepts ?? [],
+        boards: pathway.boards,
+    };
 }
+/** The route a CHOSEN pathway produces, or null when the id names nothing or
+ *  names a pathway this learner cannot follow.
+ *
+ *  The country check matters for a NATIONAL pathway: the id is a stored profile
+ *  field, and a stale one (a learner who moved, or changed their country) must
+ *  not keep offering the old system's years. It deliberately does NOT apply to
+ *  the international and independent pathways, which belong to no country and
+ *  are offered in every one of them — requiring a country record for those was
+ *  the first version of this function, and it broke the case it most needed to
+ *  serve: a learner in an unrecorded country (France, Germany, and the rest)
+ *  choosing IGCSE got the skills pathway's band names instead of Years 10–13,
+ *  which the curriculum gate reports as a year the course does not contain. */
+function routeForPathwayId(country, pathwayId) {
+    const pw = (0, registry_1.pathwayById)(pathwayId);
+    if (!pw)
+        return null;
+    if (pw.pathwayType !== "national")
+        return routeForPathway(pw);
+    const record = (0, registry_1.countryRecord)(country);
+    const own = record?.nationalPathways.some((p) => p.id === pw.id) ?? false;
+    return own ? routeForPathway(pw) : null;
+}
+/** The route a reader gets when it has only a country in hand.
+ *
+ *  Null means "this country has no single route", and it covers three different
+ *  situations that the callers distinguish by the registry, not by a second
+ *  table: the country has no record at all (unresearched — France, Germany, and
+ *  50 others), the country has TWO national systems and the learner has not said
+ *  which (Cameroon must be asked), or the code is the deliberate "Prefer not to
+ *  say". Every caller already falls back to the independent pathway for a null
+ *  route; what none of them may do is guess WHICH system a two-system country
+ *  runs. */
+function curriculumFor(country) {
+    const record = (0, registry_1.countryRecord)(country);
+    if (!record)
+        return null;
+    const dflt = (0, registry_1.defaultPathwayFor)(country);
+    if (!dflt)
+        return null;
+    // A country with no national pathway keeps returning null (the independent
+    // and international pathways are the caller's fallback), EXCEPT for the
+    // international code itself, whose route the international programme is.
+    if (record.nationalPathways.length === 0 && dflt.pathwayType === "independent")
+        return null;
+    return routeForPathway(dflt);
+}
+/** Independent pathway (§7 "I'm learning independently"): the skills route, no
+ *  syllabus — and, unlike every national system here, its years are OpenMind's
+ *  own bands rather than a country's classes. Derived from the registry so the
+ *  one definition of it lives with every other pathway. */
+exports.INDEPENDENT_ROUTE = routeForPathway((0, registry_1.defaultPathwayFor)("XX") ?? (0, registry_1.allPathways)().find((p) => p.pathwayType === "independent"));
 /** The awarding body's own name for an id — a proper noun ("AQA", "Pearson
  *  Edexcel"), so it is never translated. Board ids are not globally unique
- *  ("state" is Ghana and India; "kenyan" is Kenya, Tanzania and Uganda), so
- *  this returns the first binding, which is the one the learner's own route
- *  would have offered. An unknown id degrades to its uppercase letters rather
- *  than to an empty header. */
+ *  ("state" is Ghana's, India's, Ireland's and Pakistan's; "kenyan" is Kenya's,
+ *  Tanzania's and Uganda's), so this returns the first binding, which is the one
+ *  the learner's own route would have offered — hence the registry's order is
+ *  load-bearing. An unknown id degrades to its uppercase letters rather than to
+ *  an empty header. */
 function boardName(id) {
     if (!id)
         return "";
-    for (const route of Object.values(ROUTES)) {
-        const b = route.boards.find((x) => x.id === id);
+    for (const pathway of (0, registry_1.allPathways)()) {
+        const b = pathway.boards.find((x) => x.id === id);
         if (b)
             return b.name;
     }
@@ -4320,6 +4733,9 @@ const en = {
     "nav.currTitle": "Your curriculum",
     "curr.title": "Your curriculum",
     "curr.sub": "Choose the course and tier you actually sit. OpenMind then knows which ideas are yours, how deep to pitch practice, and the words your curriculum uses.",
+    "course.mapPending": "Syllabus mapping: OpenMind's own, not yet reviewed by a subject specialist.",
+    "course.mapReviewed": "Syllabus mapping: reviewed by a subject specialist.",
+    "course.mapVerified": "Syllabus mapping: verified against the awarding body's published specification.",
     "curr.course": "Course / qualification",
     "curr.level": "Tier",
     "curr.save": "Save my course",
@@ -4530,6 +4946,8 @@ const en = {
     "onb.name": "Your name",
     "onb.where": "Where you are",
     "onb.lang": "Language",
+    "onb.pathway": "Education system",
+    "onb.pickPathway": "Choose your education system",
     "onb.grade": "Your grade level",
     "onb.independent": "I'm learning independently",
     "onb.examples": "Examples I'm familiar with",
@@ -5574,6 +5992,9 @@ const es = {
     "nav.currTitle": "Tu currículo",
     "curr.title": "Tu currículo",
     "curr.sub": "Elige el curso y el nivel que realmente estudias. Así OpenMind sabe qué ideas son tuyas, con qué profundidad practicar y qué palabras usa tu currículo.",
+    "course.mapPending": "Mapeo del temario: elaborado por OpenMind, aún no revisado por un especialista de la materia.",
+    "course.mapReviewed": "Mapeo del temario: revisado por un especialista de la materia.",
+    "course.mapVerified": "Mapeo del temario: verificado con el temario oficial publicado por el organismo examinador.",
     "curr.course": "Curso / titulación",
     "curr.level": "Nivel",
     "curr.save": "Guardar mi curso",
@@ -6151,6 +6572,8 @@ const es = {
     "onb.schoolLang": "Mi escuela usa (mantener términos en)",
     "onb.answerLang": "Idioma de respuesta (respondo en)",
     "onb.langHint": "Explicar en mi idioma, términos escolares en inglés. Cambiar en 2 toques cuando quiera.",
+    "onb.pathway": "Sistema educativo",
+    "onb.pickPathway": "Elige tu sistema educativo",
     "onb.grade": "Tu nivel de grado",
     "onb.independent": "Aprendo por mi cuenta",
     "onb.examples": "Ejemplos que me son familiares",
@@ -7076,6 +7499,9 @@ const fr = {
     "nav.currTitle": "Ton programme",
     "curr.title": "Ton programme",
     "curr.sub": "Choisis le cursus et le niveau que tu passes vraiment. OpenMind sait alors quelles notions sont les tiennes, à quelle profondeur travailler et quels mots ton programme emploie.",
+    "course.mapPending": "Correspondance avec le programme : établie par OpenMind, pas encore relue par un spécialiste de la matière.",
+    "course.mapReviewed": "Correspondance avec le programme : relue par un spécialiste de la matière.",
+    "course.mapVerified": "Correspondance avec le programme : vérifiée par rapport au programme officiel publié par l'organisme d'examen.",
     "curr.course": "Cursus / diplôme",
     "curr.level": "Niveau",
     "curr.save": "Enregistrer mon cursus",
@@ -7653,6 +8079,8 @@ const fr = {
     "onb.schoolLang": "Mon école utilise (garder les termes en)",
     "onb.answerLang": "Langue de réponse (je réponds en)",
     "onb.langHint": "Expliquer dans ma langue, termes scolaires en anglais. Changer en 2 gestes quand je veux.",
+    "onb.pathway": "Système éducatif",
+    "onb.pickPathway": "Choisis ton système éducatif",
     "onb.grade": "Ton niveau",
     "onb.independent": "J'apprends de façon autonome",
     "onb.examples": "Exemples qui me sont familiers",
@@ -8578,6 +9006,9 @@ const pt = {
     "nav.currTitle": "O teu currículo",
     "curr.title": "O teu currículo",
     "curr.sub": "Escolhe o curso e o nível que realmente frequentas. Assim o OpenMind sabe que ideias são tuas, com que profundidade praticar e que palavras usa o teu currículo.",
+    "course.mapPending": "Mapeamento do programa: feito pela OpenMind, ainda não revisto por um especialista da disciplina.",
+    "course.mapReviewed": "Mapeamento do programa: revisto por um especialista da disciplina.",
+    "course.mapVerified": "Mapeamento do programa: verificado face ao programa oficial publicado pelo organismo examinador.",
     "curr.course": "Curso / qualificação",
     "curr.level": "Nível",
     "curr.save": "Guardar o meu curso",
@@ -9155,6 +9586,8 @@ const pt = {
     "onb.schoolLang": "Minha escola usa (manter termos em)",
     "onb.answerLang": "Idioma de resposta (respondo em)",
     "onb.langHint": "Explicar no meu idioma, termos escolares em inglês. Mudar em 2 toques quando quiser.",
+    "onb.pathway": "Sistema educativo",
+    "onb.pickPathway": "Escolhe o teu sistema educativo",
     "onb.grade": "O teu nível",
     "onb.independent": "Aprendo por conta própria",
     "onb.examples": "Exemplos que me são familiares",
@@ -10080,6 +10513,9 @@ const ar = {
     "nav.currTitle": "منهجك الدراسي",
     "curr.title": "منهجك الدراسي",
     "curr.sub": "اختر المسار والمستوى الذي تدرسه فعلاً. عندئذٍ يعرف أوبن مايند أي الأفكار تخصّك، وبأي عمق يكون التدريب، وبأي كلمات يتحدّث منهجك.",
+    "course.mapPending": "مطابقة المنهج: من إعداد OpenMind، ولم يراجعها بعد متخصص في المادة.",
+    "course.mapReviewed": "مطابقة المنهج: راجعها متخصص في المادة.",
+    "course.mapVerified": "مطابقة المنهج: تم التحقق منها مقابل المنهج الرسمي المنشور من هيئة الامتحانات.",
     "curr.course": "المسار / الشهادة",
     "curr.level": "المستوى",
     "curr.save": "احفظ مساري",
@@ -10657,6 +11093,8 @@ const ar = {
     "onb.schoolLang": "مدرستي تستخدم (إبقاء المصطلحات بـ)",
     "onb.answerLang": "لغة الإجابة (أجيب بـ)",
     "onb.langHint": "الشرح بلغتي مع إبقاء المصطلحات المدرسية بالإنجليزية. التغيير بلمستين متى شئت.",
+    "onb.pathway": "النظام التعليمي",
+    "onb.pickPathway": "اختر نظامك التعليمي",
     "onb.grade": "مستواك الدراسي",
     "onb.independent": "أتعلم باستقلالية",
     "onb.examples": "أمثلة أعرفها",
@@ -11582,6 +12020,9 @@ const sw = {
     "nav.currTitle": "Mtaala wako",
     "curr.title": "Mtaala wako",
     "curr.sub": "Chagua kozi na ngazi unayofanya kweli. OpenMind hujua dhana zipi ni zako, kina cha mazoezi, na maneno ambayo mtaala wako hutumia.",
+    "course.mapPending": "Ulinganishaji wa mtaala: wa OpenMind, haujakaguliwa bado na mtaalamu wa somo.",
+    "course.mapReviewed": "Ulinganishaji wa mtaala: umekaguliwa na mtaalamu wa somo.",
+    "course.mapVerified": "Ulinganishaji wa mtaala: umethibitishwa dhidi ya mtaala rasmi uliochapishwa na bodi ya mitihani.",
     "curr.course": "Kozi / mtihani",
     "curr.level": "Ngazi",
     "curr.save": "Hifadhi kozi yangu",
@@ -12159,6 +12600,8 @@ const sw = {
     "onb.schoolLang": "Shule yangu hutumia (kuhifadhi maneno kwa)",
     "onb.answerLang": "Lugha ya kujibu (najibu kwa)",
     "onb.langHint": "Kueleza kwa lugha yangu, maneno ya shule kwa Kiingereza. Kubadilisha kwa mibiri miwili ninapopenda.",
+    "onb.pathway": "Mfumo wa elimu",
+    "onb.pickPathway": "Chagua mfumo wako wa elimu",
     "onb.grade": "Kiwango chako",
     "onb.independent": "Najifunza binafsi",
     "onb.examples": "Mifano nayofahiri",
@@ -13084,6 +13527,9 @@ const hi = {
     "nav.currTitle": "आपका पाठ्यक्रम",
     "curr.title": "आपका पाठ्यक्रम",
     "curr.sub": "वह कोर्स और स्तर चुनें जो आप वास्तव में पढ़ते हैं। फिर OpenMind जानता है कि कौन-से विचार आपके हैं, अभ्यास कितना गहरा हो, और आपका पाठ्यक्रम कौन-से शब्द प्रयोग करता है।",
+    "course.mapPending": "पाठ्यक्रम मानचित्रण: OpenMind का अपना, विषय-विशेषज्ञ द्वारा अभी समीक्षा नहीं की गई।",
+    "course.mapReviewed": "पाठ्यक्रम मानचित्रण: विषय-विशेषज्ञ द्वारा समीक्षित।",
+    "course.mapVerified": "पाठ्यक्रम मानचित्रण: परीक्षा बोर्ड द्वारा प्रकाशित पाठ्यक्रम के अनुसार सत्यापित।",
     "curr.course": "कोर्स / योग्यता",
     "curr.level": "स्तर",
     "curr.save": "मेरा कोर्स सहेजें",
@@ -13661,6 +14107,8 @@ const hi = {
     "onb.schoolLang": "मेरा स्कूल उपयोग करता है (शब्द इसमें रखें)",
     "onb.answerLang": "उत्तर की भाषा (मैं इसमें लिखूँ)",
     "onb.langHint": "मेरी भाषा में समझाएँ, स्कूली शब्द अंग्रेज़ी में रखें। कभी भी २ टैप में बदलें।",
+    "onb.pathway": "शिक्षा प्रणाली",
+    "onb.pickPathway": "अपनी शिक्षा प्रणाली चुनें",
     "onb.grade": "आपका कक्षा-स्तर",
     "onb.independent": "मैं स्वतंत्र रूप से सीख रहा/रही हूँ",
     "onb.examples": "मुझे जो उदाहरण परिचित हैं",
@@ -14586,6 +15034,9 @@ const id = {
     "nav.currTitle": "Kurikulummu",
     "curr.title": "Kurikulummu",
     "curr.sub": "Pilih kursus dan jenjang yang benar-benar kamu tempuh. OpenMind lalu tahu gagasan mana yang milikmu, seberapa dalam latihannya, dan kata apa yang dipakai kurikulummu.",
+    "course.mapPending": "Pemetaan silabus: milik OpenMind, belum ditinjau oleh ahli bidang studi.",
+    "course.mapReviewed": "Pemetaan silabus: ditinjau oleh ahli bidang studi.",
+    "course.mapVerified": "Pemetaan silabus: diverifikasi terhadap silabus resmi terbitan badan ujian.",
     "curr.course": "Kursus / kualifikasi",
     "curr.level": "Jenjang",
     "curr.save": "Simpan kursusku",
@@ -15164,6 +15615,8 @@ const id = {
     "onb.schoolLang": "Sekolah saya memakai (istilah tetap dalam)",
     "onb.answerLang": "Bahasa jawaban (saya menjawab dalam)",
     "onb.langHint": "Jelaskan dalam bahasa saya, istilah pelajaran tetap bahasa Inggris. Ganti kapan saja dengan 2 ketukan.",
+    "onb.pathway": "Sistem pendidikan",
+    "onb.pickPathway": "Pilih sistem pendidikanmu",
     "onb.grade": "Kelas kamu",
     "onb.independent": "Saya belajar mandiri",
     "onb.examples": "Contoh yang aku kenal",
@@ -16088,6 +16541,9 @@ const tl = {
     "nav.currTitle": "Kurikulum mo",
     "curr.title": "Kurikulum mo",
     "curr.sub": "Piliin ang kurso at antas na aktwal mong kinukuha. Alam na ng OpenMind kung aling mga ideya ang sa iyo, gaano kalalim ang pagsasanay, at anong mga salita ang ginagamit ng kurikulum mo.",
+    "course.mapPending": "Pagmamapa ng syllabus: sariling gawa ng OpenMind, hindi pa nasusuri ng espesyalista sa asignatura.",
+    "course.mapReviewed": "Pagmamapa ng syllabus: nasuri ng espesyalista sa asignatura.",
+    "course.mapVerified": "Pagmamapa ng syllabus: beripikado laban sa opisyal na syllabus na inilathala ng examination board.",
     "curr.course": "Kurso / kwalipikasyon",
     "curr.level": "Antas",
     "curr.save": "I-save ang kurso ko",
@@ -16666,6 +17122,8 @@ const tl = {
     "onb.schoolLang": "Ginagamit ng paaralan ko (panatilihin ang mga termino sa)",
     "onb.answerLang": "Wika ng sagot (sumasagot ako sa)",
     "onb.langHint": "Ipaliwanag sa wika ko, panatilihin ang mga terminong pang-eskuwela sa Ingles. Palitan anumang oras sa 2 tap.",
+    "onb.pathway": "Sistema ng edukasyon",
+    "onb.pickPathway": "Piliin ang sistema ng edukasyon mo",
     "onb.grade": "Baitang mo",
     "onb.independent": "Nag-aaral ako nang mag-isa",
     "onb.examples": "Mga halimbawang pamilyar ako",
@@ -17591,6 +18049,9 @@ const de = {
     "nav.currTitle": "Dein Lehrplan",
     "curr.title": "Dein Lehrplan",
     "curr.sub": "Wähle den Kurs und die Stufe, die du wirklich belegst. OpenMind weiß dann, welche Ideen deine sind, wie tief geübt wird und welche Wörter dein Lehrplan benutzt.",
+    "course.mapPending": "Lehrplan-Zuordnung: von OpenMind erstellt, noch nicht von einer Fachperson geprüft.",
+    "course.mapReviewed": "Lehrplan-Zuordnung: von einer Fachperson geprüft.",
+    "course.mapVerified": "Lehrplan-Zuordnung: gegen den veröffentlichten Lehrplan der Prüfungsbehörde geprüft.",
     "curr.course": "Kurs / Abschluss",
     "curr.level": "Stufe",
     "curr.save": "Meinen Kurs speichern",
@@ -18169,6 +18630,8 @@ const de = {
     "onb.schoolLang": "Meine Schule verwendet (Begriffe auf)",
     "onb.answerLang": "Antwortsprache (ich antworte auf)",
     "onb.langHint": "Auf meiner Sprache erklären, Fachbegriffe auf Englisch. Jederzeit mit 2 Tippern ändern.",
+    "onb.pathway": "Bildungssystem",
+    "onb.pickPathway": "Wähle dein Bildungssystem",
     "onb.grade": "Deine Klassenstufe",
     "onb.independent": "Ich lerne eigenständig",
     "onb.examples": "Beispiele, die ich kenne",
@@ -19152,6 +19615,9 @@ const ja = {
     "nav.currTitle": "あなたのカリキュラム",
     "curr.title": "あなたのカリキュラム",
     "curr.sub": "実際に受けているコースとレベルを選んでください。OpenMind はどの考えがあなたのものか、練習をどの深さで行うか、あなたのカリキュラムが使う言葉を知ります。",
+    "course.mapPending": "シラバスの対応付け：OpenMind によるもので、教科の専門家による確認はまだ受けていません。",
+    "course.mapReviewed": "シラバスの対応付け：教科の専門家による確認済み。",
+    "course.mapVerified": "シラバスの対応付け：試験実施機関が公開するシラバスに照らして検証済み。",
     "curr.course": "コース / 資格",
     "curr.level": "レベル",
     "curr.save": "このコースを保存",
@@ -19730,6 +20196,8 @@ const ja = {
     "onb.schoolLang": "学校で使う言語(用語はこのまま)",
     "onb.answerLang": "答える言語(返信はここで)",
     "onb.langHint": "説明は私の言語で、学校の用語は英語のまま。いつでも2タップで変更できます。",
+    "onb.pathway": "教育制度",
+    "onb.pickPathway": "自分の教育制度を選ぶ",
     "onb.grade": "学年",
     "onb.independent": "自分で学んでいる",
     "onb.examples": "馴染みのある例",
@@ -20713,6 +21181,9 @@ const zh = {
     "nav.currTitle": "你的课程体系",
     "curr.title": "你的课程体系",
     "curr.sub": "选择你实际参加的课程和层次。这样 OpenMind 就知道哪些概念属于你、练习该有多深，以及你的课程使用哪些术语。",
+    "course.mapPending": "大纲对应关系：由 OpenMind 自行建立，尚未经学科专家审阅。",
+    "course.mapReviewed": "大纲对应关系：已经学科专家审阅。",
+    "course.mapVerified": "大纲对应关系：已对照考试机构公布的大纲核实。",
     "curr.course": "课程 / 资格",
     "curr.level": "层次",
     "curr.save": "保存我的课程",
@@ -21291,6 +21762,8 @@ const zh = {
     "onb.schoolLang": "我的学校使用(术语保留为)",
     "onb.answerLang": "作答语言(我用……回答)",
     "onb.langHint": "用我的语言讲解,学校术语保留英文。随时两次点按即可更改。",
+    "onb.pathway": "教育体系",
+    "onb.pickPathway": "选择你的教育体系",
     "onb.grade": "你的年级",
     "onb.independent": "我在独立学习",
     "onb.examples": "我熟悉的例子",
@@ -22184,6 +22657,9 @@ const fa = {
     "nav.currTitle": "برنامهٔ درسی شما",
     "curr.title": "برنامهٔ درسی شما",
     "curr.sub": "دوره و سطحی را انتخاب کنید که واقعاً می‌گذرانید. آن‌گاه OpenMind می‌داند کدام ایده‌ها مال شماست، تمرین تا چه عمقی باشد و برنامهٔ شما چه واژه‌هایی به کار می‌برد.",
+    "course.mapPending": "تناظر برنامهٔ درسی: ساختهٔ OpenMind، هنوز توسط متخصص درس بازبینی نشده است.",
+    "course.mapReviewed": "تناظر برنامهٔ درسی: توسط متخصص درس بازبینی شده است.",
+    "course.mapVerified": "تناظر برنامهٔ درسی: با برنامهٔ رسمی منتشرشدهٔ سازمان آزمون راستیآزمایی شده است.",
     "curr.course": "دوره / مدرک",
     "curr.level": "سطح",
     "curr.save": "ذخیرهٔ دورهٔ من",
@@ -22762,6 +23238,8 @@ const fa = {
     "onb.schoolLang": "مدرسه‌ام استفاده می‌کند (اصطلاح‌ها به)",
     "onb.answerLang": "زبان پاسخ (پاسخ می‌دهم با)",
     "onb.langHint": "توضیح به زبان من، اصطلاح‌های درسی انگلیسی. هر وقت خواستی با دو لمس عوض کن.",
+    "onb.pathway": "نظام آموزشی",
+    "onb.pickPathway": "نظام آموزشی خود را انتخاب کنید",
     "onb.grade": "پایه تحصیلی",
     "onb.independent": "مستقل یاد می‌گیرم",
     "onb.examples": "مثال‌هایی که می‌شناسم",
@@ -23655,6 +24133,9 @@ const ur = {
     "nav.currTitle": "آپ کا نصاب",
     "curr.title": "آپ کا نصاب",
     "curr.sub": "وہ کورس اور سطح چنیں جو آپ واقعی پڑھتے ہیں۔ پھر OpenMind جانتا ہے کہ کون سے تصورات آپ کے ہیں، مشق کتنی گہری ہو، اور آپ کا نصاب کون سے الفاظ استعمال کرتا ہے۔",
+    "course.mapPending": "نصاب کا نقشہ: OpenMind کا اپنا، جسے ابھی کسی مضمون کے ماہر نے جانچا نہیں۔",
+    "course.mapReviewed": "نصاب کا نقشہ: مضمون کے ماہر نے جانچ لیا۔",
+    "course.mapVerified": "نصاب کا نقشہ: امتحانی بورڈ کے شائع کردہ نصاب کے مطابق تصدیق شدہ۔",
     "curr.course": "کورس / سند",
     "curr.level": "سطح",
     "curr.save": "میرا کورس محفوظ کریں",
@@ -24233,6 +24714,8 @@ const ur = {
     "onb.schoolLang": "میرا اسکول استعمال کرتا ہے (اصطلاحات رکھے)",
     "onb.answerLang": "جواب کی زبان (جواب دیتا ہوں)",
     "onb.langHint": "میری زبان میں سمجھائیں، اسکولی اصطلاحات انگریزی میں رکھیں۔ کبھی بھی دو ٹیپ میں بدلیں۔",
+    "onb.pathway": "نظامِ تعلیم",
+    "onb.pickPathway": "اپنا نظامِ تعلیم منتخب کریں",
     "onb.grade": "آپ کا درجہ",
     "onb.independent": "میں خود سیکھ رہا/رہی ہوں",
     "onb.examples": "مجھے جو مثالیں واقف ہیں",
@@ -25143,6 +25626,9 @@ exports.bn = {
     "nav.currTitle": "আপনার পাঠ্যক্রম",
     "curr.title": "আপনার পাঠ্যক্রম",
     "curr.sub": "আপনি যে কোর্স ও স্তরে পড়েন সেটি বেছে নিন। তখন OpenMind জানে কোন ধারণাগুলো আপনার, অনুশীলন কত গভীর হবে, আর আপনার পাঠ্যক্রম কোন শব্দ ব্যবহার করে।",
+    "course.mapPending": "সিলেবাস ম্যাপিং: OpenMind-এর নিজস্ব, এখনো কোনো বিষয়-বিশেষজ্ঞ পর্যালোচনা করেননি।",
+    "course.mapReviewed": "সিলেবাস ম্যাপিং: বিষয়-বিশেষজ্ঞ পর্যালোচনা করেছেন।",
+    "course.mapVerified": "সিলেবাস ম্যাপিং: পরীক্ষা বোর্ডের প্রকাশিত সিলেবাস অনুসারে যাচাই করা হয়েছে।",
     "curr.course": "কোর্স / যোগ্যতা",
     "curr.level": "স্তর",
     "curr.save": "আমার কোর্স সংরক্ষণ করুন",
@@ -25726,6 +26212,8 @@ exports.bn = {
     "onb.name": "আপনার নাম",
     "onb.where": "আপনি কোথায়",
     "onb.lang": "ভাষা",
+    "onb.pathway": "শিক্ষা ব্যবস্থা",
+    "onb.pickPathway": "তোমার শিক্ষা ব্যবস্থা বেছে নাও",
     "onb.grade": "আপনার শ্রেণি",
     "onb.independent": "আমি স্বাধীনভাবে শিখছি",
     "onb.examples": "যে উদাহরণ আমার পরিচিত",
@@ -26708,7 +27196,7 @@ function dueLabel(lang, at) {
 }
 /** Country picker data — broad coverage, compact. */
 exports.COUNTRIES = [
-    { code: "US", name: "United States" }, { code: "GB", name: "United Kingdom" }, { code: "IN", name: "India" },
+    { code: "US", name: "United States" }, { code: "GB", name: "United Kingdom" }, { code: "IE", name: "Ireland" }, { code: "IN", name: "India" },
     { code: "NG", name: "Nigeria" }, { code: "KE", name: "Kenya" }, { code: "ZA", name: "South Africa" },
     { code: "GH", name: "Ghana" }, { code: "TZ", name: "Tanzania" }, { code: "UG", name: "Uganda" },
     { code: "ET", name: "Ethiopia" }, { code: "EG", name: "Egypt" }, { code: "MA", name: "Morocco" },
@@ -48932,6 +49420,7 @@ exports.inSpecification = inSpecification;
 exports.levelsOf = levelsOf;
 const genome_1 = require("./genome");
 const curriculum_1 = require("./curriculum");
+const registry_1 = require("./curricula/registry");
 exports.TIERS = ["primary", "junior", "foundation", "higher", "advanced", "degree"];
 // ── The specifications ──────────────────────────────────────────────────────
 // One entry per (country/system → qualification). Levels are the tiers a
@@ -49136,6 +49625,62 @@ const MX = {
         { id: "prepa", tier: "higher", name: "Preparatoria", stages: [0, 4], difficulty: 0.7 },
     ],
 };
+// ── Cameroon (§7): TWO SYSTEMS, TWO SETS OF QUALIFICATIONS ──────────────────
+//
+// Cameroon's Ministry of Secondary Education runs two general secondary systems
+// side by side (see lib/curricula/registry.ts#CM_FRANCOPHONE for the sources),
+// so the country needs TWO national course sets and neither may stand in for
+// the other: a Cameroonian learner sits GCE O/A Level or the BEPC/Probatoire/
+// Baccalauréat, not both, and a picker that offered the wrong one would pitch
+// their whole course at the wrong depth.
+//
+// WHAT THESE ARE AND ARE NOT. They are OpenMind's mapping of each qualification
+// onto the genome — the same claim every other specification here makes. They
+// are NOT an equivalence: a GCE grade is not converted into a GCSE grade, and
+// nothing states that two qualifications share a syllabus or a marking scheme.
+// The internal `tier` on each level is OpenMind's DEPTH BAND (it chooses the
+// difficulty target and whether stage-0 arithmetic is in scope); the name beside
+// it is the system's own year, which is what a learner should read. The mapping
+// is marked "mapped" and not "reviewed" in the registry until a subject
+// specialist has read it.
+const CM_GCE_O = {
+    id: "cm-gce-o", country: "CM", board: "gce", name: "GCE Ordinary Level",
+    coverage: { maths: [0, 3], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 2] },
+    levels: [
+        { id: "form4", tier: "junior", name: "Form 4", stages: [0, 2], difficulty: 0.45 },
+        { id: "form5", tier: "foundation", name: "Form 5 · GCE O Level", stages: [0, 3], difficulty: 0.6 },
+    ],
+};
+const CM_GCE_A = {
+    id: "cm-gce-a", country: "CM", board: "gce", name: "GCE Advanced Level",
+    coverage: { maths: [2, 5], physics: [2, 3], chemistry: [2, 4], biology: [1, 3], computing: [1, 3] },
+    levels: [
+        { id: "lower6", tier: "advanced", name: "Lower Sixth", stages: [2, 4], difficulty: 0.78 },
+        { id: "upper6", tier: "degree", name: "Upper Sixth · GCE A Level", stages: [2, 5], difficulty: 0.9 },
+    ],
+};
+const CM_BEPC = {
+    id: "cm-bepc", country: "CM", board: "minesec", name: "BEPC",
+    coverage: { maths: [0, 3], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 2] },
+    levels: [
+        { id: "cycle1", tier: "junior", name: "Cycle 1 · 6e–5e", stages: [0, 2], difficulty: 0.42 },
+        { id: "bepc", tier: "foundation", name: "3e · BEPC", stages: [0, 3], difficulty: 0.55 },
+    ],
+};
+const CM_PROBATOIRE = {
+    id: "cm-probatoire", country: "CM", board: "minesec", name: "Probatoire",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "premiere", tier: "higher", name: "1re · Probatoire", stages: [0, 4], difficulty: 0.68 },
+    ],
+};
+const CM_BAC = {
+    id: "cm-bac", country: "CM", board: "minesec", name: "Baccalauréat",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "terminale", tier: "advanced", name: "Terminale · Baccalauréat", stages: [0, 4], difficulty: 0.75 },
+    ],
+};
 const INDEPENDENT = {
     id: "any-independent", country: "XX", board: "state", name: "Independent · skills pathway",
     coverage: { maths: [0, 5], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
@@ -49148,6 +49693,10 @@ const INDEPENDENT = {
 exports.SPECIFICATIONS = [
     UK, UK_ALEVEL, IGCSE, IB, US_CORE, SAT, US_AP, CA, ZA, AU, IE,
     IN_CBSE, IN_ICSE, PK, BD, KE, TZ, UG, NG, GH, PH, ID, BR, MX, INDEPENDENT,
+    // Cameroon's two systems (§7). Both are national courses; neither is a
+    // fallback for the other, and the learner's pathway (lib/curricula/registry)
+    // is what decides which set their qualification picker offers.
+    CM_GCE_O, CM_GCE_A, CM_BEPC, CM_PROBATOIRE, CM_BAC,
 ];
 // ── The two counts, kept apart on purpose ────────────────
 //
@@ -49159,18 +49708,36 @@ exports.SPECIFICATIONS = [
 // whose sentence takes its number from the prefix, a learner read "25 countries",
 // which nothing in the data supports.
 //
-// The honest pair, for the record: **18 countries have a national route** (GB,
-// US, ZA, AU, CA, IE, IN, PK, BD, KE, TZ, UG, NG, GH, PH, ID, BR, MX); the
+// The honest pair, for the record: **every country the registry records a
+// national pathway for has one** (GB, US, ZA, AU, CA, IE, IN, PK, BD, KE, TZ,
+// UG, NG, GH, PH, ID, BR, MX, and now Cameroon, which has TWO); the
 // international and independent courses serve everyone else; and the onboarding
-// picker offers 70 countries, so 52 of them are offered a real course that is NOT
+// picker offers 70 countries, so most of them are offered a real course that is NOT
 // their national curriculum. That is what the wording has to say — and this
 // constant is the ONE owner of the number, so no dictionary may re-bake it.
-exports.NATIONAL_ROUTE_COUNT = new Set(exports.SPECIFICATIONS.map((s) => s.country).filter((c) => c !== "INT" && c !== "XX")).size;
+//
+// THE OWNER IS NOW THE REGISTRY, not a set built from the specification list.
+// Those two numbers used to agree by construction; they stopped being the same
+// question the moment a country could have two pathways (Cameroon contributes two
+// national courses and ONE national route), so the count is taken from the layer
+// that models countries rather than the layer that models courses.
+exports.NATIONAL_ROUTE_COUNT = (0, registry_1.nationalRouteCodes)().length;
 /** Teaching-language settings a specification can recommend (§4): the terms a
  *  student's own curriculum uses. Empty means "use the genome's English
  *  vocabulary", which is the honest default. */
 const BOARD_TERMS = {
     aqa: "uk", edexcel: "uk", ocr: "uk", wjec: "uk",
+    // Cameroon (lib/curricula/registry.ts). The Anglophone GCE system teaches in
+    // the same maths vocabulary the genome is authored in, so it maps to the `uk`
+    // profile — which is EMPTY, and empty is the honest answer: nothing needs
+    // substituting. Saying so explicitly matters because the alternative is the
+    // accidental default, and the curriculum page promises "questions and
+    // explanations use your curriculum's vocabulary, not another country's".
+    // The Francophone system is French-medium: this layer substitutes ENGLISH
+    // words only (see applyTerminology), so `common` — no substitution — is the
+    // truthful profile for it rather than a claim that it has no vocabulary of
+    // its own.
+    gce: "uk", minesec: "common",
     cambridge: "uk", igcse: "uk", ib: "uk",
     commoncore: "us", collegeboard: "us",
     cbse: "india", icse: "india", matric: "india", "state": "common",
@@ -49268,8 +49835,33 @@ function specById(id) {
         return null;
     return exports.SPECIFICATIONS.find((s) => s.id === id) ?? null;
 }
-function specsFor(country) {
-    const direct = exports.SPECIFICATIONS.filter((s) => s.country === country);
+function specsFor(country, pathwayId) {
+    // `country` is optional because a LEARNER MAY HOLD AN INTERNATIONAL PATHWAY
+    // WITHOUT HAVING NAMED A COUNTRY: "prefer not to say" plus "I sit Cambridge
+    // IGCSE" is a coherent state, and the registry offers the international and
+    // independent pathways in every country including that one. An unset country
+    // simply matches no national listing, which is exactly what it should do.
+    // A CHOSEN PATHWAY SCOPES THE OFFER. This is what makes one country able to
+    // run two systems: a Cameroon Anglophone learner is offered the GCE O and A
+    // Levels and NOT the BEPC, Probatoire or Baccalauréat, and the reverse. The
+    // pathway's own list is the authority — a course no pathway leads to is a
+    // course nobody can choose, which the gate asserts.
+    const pathway = (0, registry_1.pathwayForCountry)(country, pathwayId);
+    if (pathway) {
+        const scoped = exports.SPECIFICATIONS.filter((s) => pathway.specificationIds.includes(s.id));
+        if (scoped.length > 0)
+            return scoped;
+    }
+    // "XX" IS NOT A COUNTRY, and it is not treated as one here. The independent
+    // specification carries `country: "XX"` so that it has a code, and a learner
+    // who declined to say where they study used to match it EXACTLY — so the only
+    // course a "prefer not to say" learner was ever offered was the skills
+    // pathway, while every unresearched country was offered the international
+    // programmes. Declining to name a country is not declining to sit an
+    // examination, so XX now falls through to the same list an unresearched
+    // country gets: Cambridge IGCSE and the IB, chosen explicitly, with the
+    // independent pathway beside them.
+    const direct = exports.SPECIFICATIONS.filter((s) => s.country === country && country !== "XX");
     if (direct.length > 0)
         return direct;
     // No national entry: international qualifications are still available, and
@@ -49339,8 +49931,8 @@ function coversSubject(spec, subject) {
  *  the country lists them. Used by every picker, so a surface can never offer a
  *  course it would then have to refuse. The independent pathway covers every
  *  STEM subject, so this is never empty. */
-function specOptionsFor(country, subject) {
-    const eligible = specsFor(country).filter((s) => coversSubject(s, subject));
+function specOptionsFor(country, subject, pathwayId) {
+    const eligible = specsFor(country, pathwayId).filter((s) => coversSubject(s, subject));
     return eligible.length > 0 ? eligible : [INDEPENDENT];
 }
 /** The specification a profile is following FOR ONE SUBJECT: an explicit choice
@@ -49349,7 +49941,7 @@ function specOptionsFor(country, subject) {
  *  always yield the same path. */
 function specForProfile(profile, subject) {
     const p = courseForSubject(profile, subject);
-    const candidates = specsFor(p.country ?? "XX");
+    const candidates = specsFor(p.country ?? "XX", p.pathway);
     const explicit = specById(p.spec);
     // An explicit choice is honoured only for a subject it actually contains. A
     // learner who named a maths-only qualification and also declared Biology has
@@ -49423,10 +50015,25 @@ function courseGaps(profile, subject) {
     // real tiers, so the learner still has to choose a qualification and a level.
     // Falling back here does not weaken the requirement; it removes a demand the
     // product cannot honour.
-    const route = c.country ? (0, curriculum_1.curriculumFor)(c.country) ?? curriculum_1.INDEPENDENT_ROUTE : null;
+    const route = c.country
+        ? (0, curriculum_1.routeForPathwayId)(c.country, c.pathway) ?? (0, curriculum_1.curriculumFor)(c.country) ?? curriculum_1.INDEPENDENT_ROUTE
+        : null;
     const out = [];
     if (!route)
         out.push("country");
+    // WHICH EDUCATION SYSTEM — asked only where the answer is genuinely open.
+    //
+    // A country with one national system (or none) needs no question: its years and
+    // its qualifications are what they are, and asking a UK learner to confirm they
+    // follow the UK system would be a step with one real answer. Cameroon has two
+    // systems running side by side, and until the learner says which one they
+    // follow, NOTHING downstream is answerable: the years they can declare differ
+    // (Form 1–5 + Lower/Upper Sixth vs 6e–Terminale), the qualifications differ
+    // (GCE O/A Level vs BEPC/Probatoire/Baccalauréat) and the depth band differs.
+    // Guessing one of the two would be the country-as-curriculum defect this
+    // registry exists to remove, so the gap is named and the step asks.
+    if ((0, registry_1.pathwayChoiceRequired)(c.country) && !(0, registry_1.pathwayForCountry)(c.country, c.pathway))
+        out.push("pathway");
     if (route && !route.grades.includes(c.grade ?? ""))
         out.push("grade");
     const spec = specById(c.spec);
@@ -50456,7 +51063,7 @@ function canTransfer(conceptId) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 57 },
+      meta: { modules: 58 },
     };
   });
   return __req("__entry__.js");

@@ -213,6 +213,21 @@ jobs:
       - name: The published page, walked in a real browser
         run: |
           npm run build:static
+          # ── AND THE COMMITTED COPY MUST BE THE ONE THE SOURCES PRODUCE ──────
+          # `docs/` is a build artefact that is COMMITTED, and a committed
+          # artefact's failure mode is that it silently falls behind the source
+          # it was built from. Measured: the committed static build had gone two
+          # days and 25 commits stale, so anyone serving `docs/` verbatim — a
+          # reviewer, `file://`, a fork — got engines from before the
+          # option-bias repairs, and the step above could not see it because it
+          # REBUILDS before it walks. The walk judges the fresh build; this line
+          # judges the committed one against it, and it costs no extra build
+          # because `npm run build:static` has just produced these files.
+          if [ -n "$(git status --porcelain -- docs/)" ]; then
+            echo "::error::docs/ is stale — run 'npm run build:static' and commit the result"
+            git status --porcelain -- docs/
+            exit 1
+          fi
           npm run verify:live
 
       # The suite drives the `reveal` test hook, which a production build strips
