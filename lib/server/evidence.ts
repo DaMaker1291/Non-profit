@@ -60,6 +60,37 @@ function idsOnDisk(learnerId: string): Set<string> {
   return set;
 }
 
+/**
+ * Does this file end in the MIDDLE of a line?
+ *
+ * A process killed while appending leaves a partial JSON object with no final
+ * newline, and that fragment changes what the NEXT append means: written
+ * straight after it, the new event is spliced onto the wreckage, the reader
+ * skips the whole line as malformed, and the learner's answer is lost while
+ * `appendEvidence` reports it as accepted. The conformance suite's torn-ledger
+ * case is what found this, and it is the exact failure a crash on a cheap phone
+ * produces.
+ *
+ * One byte is read rather than the file, because this runs on EVERY append and
+ * the answer is about the last byte alone. A missing or unreadable file is
+ * "framed": there is nothing to join onto.
+ */
+function endsMidLine(file: string): boolean {
+  let fd: number | null = null;
+  try {
+    const size = fs.statSync(file).size;
+    if (size === 0) return false;
+    fd = fs.openSync(file, "r");
+    const last = Buffer.alloc(1);
+    fs.readSync(fd, last, 0, 1, size - 1);
+    return last[0] !== 0x0a;
+  } catch {
+    return false;
+  } finally {
+    if (fd !== null) fs.closeSync(fd);
+  }
+}
+
 export interface AppendResult {
   accepted: string[];
   duplicates: string[];
@@ -88,7 +119,14 @@ export async function appendEvidence(learnerId: string, events: readonly Evidenc
       lines.push(JSON.stringify(e));
       accepted.push(e.id);
     }
-    if (lines.length) fs.appendFileSync(file, lines.join("\n") + "\n");
+    if (lines.length) {
+      // One newline of FRAMING, never of content: it decides where the next
+      // event begins, and the fragment's own bytes stay exactly where they are
+      // (rewriting them would be editing history, which this store must never
+      // do). Without it a crash silently costs every answer that follows it.
+      const prefix = endsMidLine(file) ? "\n" : "";
+      fs.appendFileSync(file, prefix + lines.join("\n") + "\n");
+    }
     return { accepted, duplicates };
   });
 }

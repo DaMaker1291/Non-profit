@@ -2,7 +2,9 @@
 
 **Status: IN PROGRESS.** Slices 0, 1 and 2 are implemented and committed (the
 store's single lock table and data-directory resolver; the port with the file
-backend behind it; the conformance suite and the `storage-check` gate). Everything
+backend behind it; the conformance suite, five failure cases and the
+`storage-check` gate — the failure cases found and fixed a **silent data-loss
+defect** in the ledger's append, §4). Everything
 else below is still specified rather than built, and says so. Every acceptance
 criterion names the command that proves it, so "implemented" is a claim a reviewer
 can check instead of take on trust.
@@ -173,6 +175,55 @@ learner earned and the record of why has been lost.
   at boot and released on exit; and `/api/ready` reports `store: "file",
   singleInstance: true` so an operator sees the constraint rather than inferring it.
 
+### What the failure cases measured (slice 2)
+
+`scripts/storage-conformance.mjs` runs five failure cases (F1–F5) beside the
+happy-path walk, because the happy path is not what storage is for. They need no
+database and no dev server, and they are the cheapest place in the repository to
+find out whether "safe storage" is measured or merely intended. Two of them
+changed the code:
+
+- **F1 · a torn final line.** A process killed mid-append leaves a partial JSON
+  object with no newline. Reading was already safe (a malformed line is skipped
+  and never repaired), but the append after it was not: written straight onto the
+  fragment it was spliced into the wreckage, the reader skipped the whole line,
+  and the answer was **lost while `appendEvidence` reported it as accepted** —
+  silent data loss that appears only after a crash, which is exactly the failure
+  a cheap phone produces. `lib/server/evidence.ts` now reads the file's last byte
+  and writes one newline of **framing** when it ends mid-line, so the next event
+  begins at a line boundary. The fragment's own bytes are never touched: this
+  decides where a line starts, it does not edit history.
+- **F2 · a write killed between the append and the projection** — the one window
+  the ordering WRITE EVENT → REPLAY → RESPOND cannot close by itself, and so the
+  case the ledger being the source of truth has to cover. Asserted in both
+  directions: the interrupted learner's ledger **replays to the model the
+  completed write produced** (`reconcileDeep` differences `[]`), and re-sending
+  the same events reports all of them as duplicates and counts them once. The
+  second half is true **only** because the route derives a stable event id from
+  the device's submission token (`submissionEventId`); a caller minting a fresh id
+  per attempt double-counts, which the suite measured before the fixture was
+  corrected — and which is why the id derivation is now part of the assertion.
+- **F3 · two processes over one directory** — the limit §2 states, measured.
+  3 child processes appending **10 batches of 4 events each** = **120 events**
+  appended concurrently to
+  one learner's ledger: 120 present, 120 unique ids, **0 of 120 lines
+  unparseable**, and the whole thing replays to one model. So `appendFileSync`'s
+  `O_APPEND` is a real concurrency story for this backend at this size — measured,
+  not assumed — while the in-process lock still guarantees nothing across
+  processes. That is why §2 stands and why slice 4 is where it stops standing.
+- **F4 · an append that cannot be written** throws, the model does **not** move,
+  and no pre-ledger snapshot is taken: the invariant behind the route's
+  `evidence_not_recorded` (503) with the staged question left in place.
+- **F5 · an unsafe learner id** is refused rather than sanitised and creates no
+  file — ids become file paths in this backend, and quietly rewriting one could
+  append one learner's evidence to another's.
+
+F1–F5 are **file-backend cases**: the port's own write path (`withLearner`) is
+slice 3 and does not exist yet, so they drive `lib/server/evidence.ts` and
+`lib/server/projection.ts` directly and report that as their skip reason whenever
+a non-file backend is active. When slice 3 lands they move **onto the port** —
+never into a second suite (§6).
+
 ## 5 · Mapping onto the schema that already exists
 
 This is the good news the recon produced: 23 tables already model this domain,
@@ -295,9 +346,10 @@ is claimed today):
    `deepReconcile` per learner, and the erasure taken before the archive is still
    re-applied (the §5.3 decision, whichever way it is decided).
 5. `npm run storage-check` exists, is wired into `production-check`, runs the
-   conformance suite + the benchmarks, writes `audit/storage-report.json`, and
-   **skips with the reason stated** when no `DATABASE_URL` is present — never a
-   pass it did not earn.
+   conformance suite + the benchmarks, writes `audit/storage-conformance.json`
+   (the committed record of the run, in the same shape as `audit/status.json` and
+   `audit/options-gate.json`), and **skips with the reason stated** when no
+   `DATABASE_URL` is present — never a pass it did not earn.
 6. Multi-instance: the file backend refuses to start as a second instance, and
    `/api/ready` reports the store kind and the single-instance constraint.
 7. A learner's whole history survives import → cutover → rollback:

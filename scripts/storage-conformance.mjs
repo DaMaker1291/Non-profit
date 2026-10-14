@@ -31,7 +31,13 @@
 //   · the answer key reads back by paper id; marking depends on it
 //   · the class/room update helpers answer `null` for a key they do not find
 //     instead of creating a record — the difference between a lookup and a write
-//
+//   · and the FAILURE cases, which are what storage is actually for: a torn
+//     final line, a write killed between the append and the projection, two
+//     processes over one directory, and an append that fails outright. Each
+//     asserts the property the failure must not break (see "durability under
+//     failure"). They are FILE-BACKEND cases today, because the port's own
+//     write path (`withLearner`) is slice 3 and does not exist yet.
+
 // ── What it must never do ────────────────────────────────────────────────────
 // Touch a real store. `DATA_DIR` is resolved at MODULE LOAD, so the temp
 // directory is set before the first require — the rule verify-engines.mjs
@@ -76,6 +82,14 @@ const { activeStorage, fileStorage } = require("../.verify/server/storage-file.j
 const { appendEvidence } = require("../.verify/server/evidence.js");
 const { newProfileState } = require("../.verify/learner-profile.js");
 const { ERASURES_FILE } = require("../.verify/server/erasures.js");
+// The write path and the replayer, for the failure cases below. The port has no
+// write method yet (slice 3), so those cases are driven through the modules the
+// file backend really writes with — and they say so in their own skip line
+// rather than pretending to be backend-neutral.
+const { commitAndProject } = require("../.verify/server/projection.js");
+const { reconcileDeep, replayModel } = require("../.verify/replay.js");
+const { answerEvidence, submissionEventId } = require("../.verify/evidence.js");
+const { spawn } = require("node:child_process");
 
 let pass = 0;
 const failures = [];
@@ -204,6 +218,278 @@ const UNLEDGED = "conf_learner_unledgered";
   ok("after which the history is empty", storage.readEvents(LEDGED).length === 0);
   ok("and the learner is gone from learnersWithEvents", !storage.learnersWithEvents().includes(LEDGED));
   ok("deleting again is false rather than a throw", storage.deleteEvents(LEDGED) === false);
+}
+
+// ── Durability under failure ────────────────────────────────────────────────
+//
+// The happy path is not what storage is for. These cases are the failures the
+// write path meets in the world, and each one asserts the property the failure
+// must not break:
+//
+//   F1 · a process killed mid-append costs ONE event, not the ledger — and the
+//        damaged line is skipped, never repaired (history is append-only)
+//   F2 · a write killed BETWEEN the append and the projection is
+//        indistinguishable from one that completed, both by replaying the
+//        ledger and by re-sending the write. This is the one window the
+//        ordering WRITE EVENT → REPLAY → RESPOND cannot close by itself, so
+//        the ledger being the source of truth is what has to cover it
+//   F3 · two processes over one directory. The in-process lock is a promise
+//        chain and says nothing about a second process, which is the entire
+//        reason this storage work exists: `appendFileSync` with O_APPEND is the
+//        file backend's only real concurrency story, so this MEASURES it rather
+//        than assuming it
+//   F4 · an append that cannot be written throws and the model does NOT move —
+//        the invariant behind the route's `evidence_not_recorded` (503)
+//   F5 · an id that is not a safe filename is REFUSED, not sanitised, and
+//        nothing is created behind it
+//
+// They print the strongest claim available rather than the convenient one: F1
+// and F3 read the FILE and parse every line, because `readEvents` skips a
+// malformed line and would therefore hide a tear behind a smaller count.
+//
+// NO DISK BEYOND THE TEMP STORE AND NO DEV SERVER: this is the cheapest place
+// in the repository to find out whether "safe storage" is measured or merely
+// intended.
+console.log("\n▸ durability under failure");
+if (storage.kind !== "file") {
+  skipped(
+    "write-path failure cases (F1–F5)",
+    "the port's write path (`withLearner`, docs/STORAGE_SPEC.md slice 3) does not exist yet, so these cases drive " +
+      "lib/server/evidence.ts + lib/server/projection.ts — the FILE backend's own write primitive. Move them onto the " +
+      "port when it lands; do not give them a second suite (§6)",
+  );
+} else {
+  const EVIDENCE_DIR = path.join(STORE_DIR, "evidence");
+  const ledgerFile = (id) => path.join(EVIDENCE_DIR, `${id}.jsonl`);
+  /** One realistic server-observed answer, so the fold has something to fold. */
+  const answer = (learnerId, conceptId, at, correct, seq) =>
+    answerEvidence({
+      learnerId, at, source: "practice", subject: "maths", conceptId, specificationId: null,
+      questionId: `${learnerId}_q${seq}`, correct, chosen: correct ? 0 : 1,
+      mode: "independent", hints: 0,
+    });
+  const what = (diffs) =>
+    diffs.slice(0, 3).map((d) => `${d.conceptId}.${d.field}: ledger=${d.ledger} model=${d.model}`).join("; ") +
+    (diffs.length > 3 ? ` (+${diffs.length - 3} more)` : "");
+
+  // ── F1 · a process killed in the middle of an append ──────────────────────
+  const TORN = "conf_learner_torn";
+  {
+    fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
+    const landed = [answer(TORN, "quadratics", 100, true, 1), answer(TORN, "quadratics", 200, false, 2)];
+    // Two complete lines, then the fragment a killed process leaves: a partial
+    // JSON object and no trailing newline. This is what `appendFileSync` looks
+    // like from the reader's side when the write did not finish.
+    const fragment = `{"type":"answer_submitted","id":"ev_torn","learnerId":"${TORN}","at":150`;
+    fs.writeFileSync(ledgerFile(TORN), landed.map((e) => JSON.stringify(e)).join("\n") + "\n" + fragment);
+
+    const read = storage.readEvents(TORN);
+    ok("a torn final line costs ONE event — the history before it still reads",
+      read.length === 2, `${read.length} event(s)`);
+    ok("and the events that did land come back in clock order, intact",
+      read.map((e) => e.id).join(",") === landed.map((e) => e.id).join(","),
+      read.map((e) => e.id).join(","));
+    ok("the half-written event is NOT invented into the history",
+      !read.some((e) => e.id === "ev_torn"));
+    // The store's own stated rule: a malformed line is skipped, never repaired
+    // and never deleted, because rewriting history is the one thing an
+    // append-only ledger must not do.
+    ok("and the fragment is left ON DISK — a damaged ledger is not rewritten",
+      fs.readFileSync(ledgerFile(TORN), "utf8").includes("ev_torn"));
+
+    // What the tear costs the MODEL: the surviving prefix must still fold. A
+    // ledger that cannot be projected from is worse than one missing an answer.
+    let replayed = null;
+    try { replayed = replayModel(read, TORN); } catch { /* asserted below */ }
+    ok("the surviving ledger still replays to a model",
+      replayed?.progress?.quadratics?.attempts === 2,
+      `attempts ${replayed?.progress?.quadratics?.attempts}`);
+
+    // …and the learner can CARRY ON. A store that latched a poisoned id cache
+    // on the damaged file would refuse every later answer from this learner.
+    const next = answer(TORN, "quadratics", 300, true, 3);
+    await appendEvidence(TORN, [next]);
+    ok("the ledger still accepts new events afterwards",
+      storage.readEvents(TORN).some((e) => e.id === next.id));
+    ok("and appending did not rewrite the damaged line either",
+      fs.readFileSync(ledgerFile(TORN), "utf8").includes("ev_torn"));
+    // The precise claim, because the coarse one hid a real defect on the first
+    // run: the new event must land on a line of its OWN. Appended straight onto
+    // the fragment it is spliced into the wreckage, the reader skips the whole
+    // line, and the answer is gone while `appendEvidence` reports it accepted.
+    const afterTear = fs.readFileSync(ledgerFile(TORN), "utf8").split("\n").filter((l) => l.trim());
+    ok("and the new event is a LINE OF ITS OWN, not spliced onto the half-written one",
+      afterTear.length === 4 &&
+        afterTear.filter((l) => { try { JSON.parse(l); return true; } catch { return false; } }).length === 3,
+      `${afterTear.length} line(s), ${afterTear.filter((l) => { try { JSON.parse(l); return true; } catch { return false; } }).length} parseable`);
+  }
+
+  // ── F2 · a write killed between the append and the projection ────────────
+  // The ordering is WRITE EVENT → CONFIRM APPEND → REPLAY → RESPOND, and the
+  // window it cannot close by itself is the instant between the append and the
+  // projection: kill the process there and the ledger holds an answer the model
+  // never folded. Two learners run the same three answers — A through the real
+  // path, B through an append whose projection never happened — and the claims
+  // are that B replays to A's model, and that B's RETRY (the learner pressing
+  // Check again) is recognised as already recorded rather than counted twice.
+  const COMMITTED = "conf_learner_committed";
+  const CRASHED = "conf_learner_crashed";
+  {
+    const shape = [
+      ["quadratics", 1000, true], ["quadratics", 2000, false],
+      ["linear-equations", 3000, true], ["quadratics", 4000, true],
+    ];
+    // The events are built ONCE and the SAME objects are re-sent, because that
+    // is what a retry is in the product: the route derives the event id from the
+    // device's submission token (`submissionEventId`), so a lost response, a
+    // double flush or a second tab draining one queue all mint the SAME id and
+    // the ledger recognises them as one event. Minting a fresh id per call would
+    // model a second genuine attempt at the same question — a different thing,
+    // which correctly counts twice. Deriving the ids here rather than inventing
+    // them is what keeps this case about the crash and not about my fixture.
+    const build = (id) =>
+      shape.map(([c, at, correct], i) =>
+        answerEvidence({
+          learnerId: id, at, source: "practice", subject: "maths", conceptId: c, specificationId: null,
+          questionId: `${id}_q${i}`, correct, chosen: correct ? 0 : 1, mode: "independent", hints: 0,
+          id: submissionEventId(`confsubmit${id.replace(/_/g, "")}${i}`) ?? undefined,
+        }));
+
+    const committed = newProfileState(COMMITTED);
+    await commitAndProject(COMMITTED, committed, build(COMMITTED));
+    ok("the completed write produced a model",
+      committed.progress.quadratics?.attempts === 3 && committed.progress["linear-equations"]?.attempts === 1,
+      `quadratics ${committed.progress.quadratics?.attempts}, linear-equations ${committed.progress["linear-equations"]?.attempts}`);
+
+    const crashed = newProfileState(CRASHED);
+    await appendEvidence(CRASHED, build(CRASHED)); // …and the process dies HERE
+    const divergence = reconcileDeep(replayModel(storage.readEvents(CRASHED), CRASHED), committed);
+    ok("a write killed between the append and the projection replays to the SAME model the completed write produced",
+      divergence.length === 0, what(divergence));
+
+    const retry = newProfileState(CRASHED);
+    const again = await commitAndProject(CRASHED, retry, build(CRASHED));
+    ok("re-sending the interrupted write reports every event as a duplicate",
+      again.accepted.length === 0 && again.duplicates.length === shape.length,
+      `accepted ${again.accepted.length}, duplicates ${again.duplicates.length}`);
+    ok("so the retry does not count the answers twice",
+      reconcileDeep(retry, committed).length === 0, what(reconcileDeep(retry, committed)));
+
+    // The other direction, which is the one a learner actually sees: the retried
+    // state is the one the route validates against and then responds with.
+    ok("and the retried model is the learner's whole history, not just the first two answers",
+      retry.progress.quadratics?.attempts === 3,
+      `attempts ${retry.progress.quadratics?.attempts}`);
+  }
+
+  // ── F3 · two processes over one directory ────────────────────────────────
+  const RACE = "conf_learner_race";
+  {
+    const CHILDREN = 3, BATCHES = 10, PER_BATCH = 4;
+    const expected = CHILDREN * BATCHES * PER_BATCH;
+    const childFile = path.join(STORE_DIR, "append-child.cjs");
+    // A real second process, because that is the only thing that can prove the
+    // lock table is per-process. It requires the SAME compiled modules and
+    // inherits OPENMIND_DATA_DIR, so it appends to the same directory as the
+    // parent — which is the deployment that would collide in the field
+    // (two node workers, or a worker and a CLI).
+    fs.writeFileSync(childFile, [
+      "// Written by scripts/storage-conformance.mjs — one process in F3.",
+      `const { appendEvidence } = require(${JSON.stringify(path.join(ROOT, ".verify", "server", "evidence.js"))});`,
+      `const LEARNER = ${JSON.stringify(RACE)};`,
+      "const tag = process.argv[2], batches = Number(process.argv[3]), perBatch = Number(process.argv[4]);",
+      "(async () => {",
+      "  for (let b = 0; b < batches; b++) {",
+      "    const batch = [];",
+      "    for (let i = 0; i < perBatch; i++) {",
+      "      const n = b * perBatch + i;",
+      "      batch.push({",
+      "        type: \"answer_submitted\", id: \"race_\" + tag + \"_\" + n, schemaVersion: 1,",
+      "        learnerId: LEARNER, provenance: \"server\",",
+      "        at: 1000000 + Number(tag) * 1000 + n, source: \"practice\", subject: \"maths\",",
+      "        conceptId: \"quadratics\", specificationId: null, questionId: \"q_\" + tag + \"_\" + n,",
+      "        correct: n % 2 === 0, chosen: 0, givenValue: null, mode: \"independent\",",
+      "        hints: 0, score: null, ms: null, tags: [], deviceAt: null, certainty: null,",
+      "      });",
+      "    }",
+      "    // A BATCH is one appendFileSync, so this is the case that matters: a torn",
+      "    // multi-line write loses four events at once, not one.",
+      "    await appendEvidence(LEARNER, batch);",
+      "  }",
+      "  process.exit(0);",
+      "})().catch((e) => { console.error(e); process.exit(1); });",
+      "",
+    ].join("\n"));
+
+    const runChild = (tag) =>
+      new Promise((resolve, reject) => {
+        const p = spawn(process.execPath, [childFile, String(tag), String(BATCHES), String(PER_BATCH)], {
+          env: process.env, stdio: ["ignore", "ignore", "pipe"],
+        });
+        let err = "";
+        p.stderr.on("data", (d) => { err += d; });
+        p.on("error", reject);
+        p.on("close", (code) =>
+          code === 0 ? resolve() : reject(new Error(`append child ${tag} exited ${code}: ${err.trim()}`)));
+      });
+    await Promise.all(Array.from({ length: CHILDREN }, (_, i) => runChild(i)));
+
+    const all = storage.readEvents(RACE);
+    ok(`${CHILDREN} processes appending at once kept every event (${expected})`,
+      all.length === expected, `${all.length} event(s)`);
+    ok("and none was written twice (the ids are unique)",
+      new Set(all.map((e) => e.id)).size === all.length,
+      `${new Set(all.map((e) => e.id)).size} unique of ${all.length}`);
+    // The claim that a COUNT cannot make: `readEvents` skips a malformed line, so
+    // an interleaved write could shorten the file and still look orderly. Read
+    // the file and parse every line instead.
+    const lines = fs.readFileSync(ledgerFile(RACE), "utf8").split("\n").filter((l) => l.trim());
+    let unparseable = 0;
+    for (const line of lines) { try { JSON.parse(line); } catch { unparseable++; } }
+    ok("every line of the file parses — no write was torn by another process",
+      unparseable === 0 && lines.length === expected, `${lines.length} line(s), ${unparseable} unparseable`);
+    ok("and no event crossed files: every one belongs to the learner whose ledger it is",
+      all.every((e) => e.learnerId === RACE));
+    let raced = null;
+    try { raced = replayModel(all, RACE); } catch { /* asserted below */ }
+    ok("a ledger written by three processes still rebuilds into one model",
+      raced?.progress?.quadratics?.attempts === expected,
+      `attempts ${raced?.progress?.quadratics?.attempts}`);
+  }
+
+  // ── F4 · a failed append must not move the model ─────────────────────────
+  // The 503 contract: if the evidence cannot be written, the model does not
+  // move and the learner is told so, rather than being shown a model that moved
+  // for no auditable reason. Driven with an event about a DIFFERENT learner,
+  // which the ledger refuses however the caller labels it.
+  const FAILED = "conf_learner_failed";
+  {
+    const state = newProfileState(FAILED);
+    let threw = false;
+    try { await commitAndProject(FAILED, state, [answer("conf_learner_someone_else", "quadratics", 500, true, 1)]); }
+    catch { threw = true; }
+    ok("an append that cannot be written THROWS rather than reporting success", threw);
+    ok("and the model did NOT move — no progress was invented",
+      Object.keys(state.progress).length === 0 && Object.keys(state.masteries).length === 0,
+      `progress ${JSON.stringify(state.progress)}`);
+    ok("and no snapshot of a pre-ledger model was taken either", !state.projectionBase);
+    ok("and nothing reached the ledger", storage.readEvents(FAILED).length === 0);
+  }
+
+  // ── F5 · an unsafe learner id is refused, not sanitised ──────────────────
+  // Learner ids become FILE PATHS in this backend, so quietly rewriting one
+  // could append one learner's evidence to another's file. A refusal is the only
+  // safe answer, and it must leave nothing behind.
+  {
+    const filesBefore = fs.readdirSync(EVIDENCE_DIR).length;
+    let threw = false;
+    try { await appendEvidence("../../etc/passwd", [answer("../../etc/passwd", "quadratics", 1, true, 1)]); }
+    catch { threw = true; }
+    ok("an id that is not a safe filename is REFUSED", threw);
+    ok("and nothing was created behind it",
+      fs.readdirSync(EVIDENCE_DIR).length === filesBefore,
+      `${fs.readdirSync(EVIDENCE_DIR).length} file(s), was ${filesBefore}`);
+  }
 }
 
 // ── Classes and membership ──────────────────────────────────────────────────
