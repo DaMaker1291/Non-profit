@@ -10,7 +10,10 @@ function build(subject: SubjectId, rows: Row[]): Concept[] {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MATHEMATICS — 72 concepts, stage 0 (primary foundations) → stage 5 (frontier)
+// MATHEMATICS — 67 concepts, stage 0 (primary foundations) → stage 5 (frontier).
+// A count written here is a SECOND copy of one `audit/status.json` owns, so it is
+// machine-checked against the rows below by `npm run status:check` — this header
+// said 72 for as long as anyone had looked, and the arrays have held 67.
 // ─────────────────────────────────────────────────────────────────────────────
 const MATHS: Row[] = [
   ["place-value", 0, "Place value", "Digits mean different amounts depending on their position.", "In the number 452, the digit 4 means 400, the 5 means 50 and the 2 means 2. Each step left multiplies a digit's value by ten, and each step right divides it by ten. This single idea is why we can write enormous numbers compactly, and it is the foundation of decimal numbers, estimation and standard form later on.", []],

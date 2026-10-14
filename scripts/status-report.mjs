@@ -198,10 +198,158 @@ if (start !== -1 && endAt !== -1 && endAt > start) {
 const nextStatus = JSON.stringify(status, null, 2) + "\n";
 const currentStatus = fs.existsSync(STATUS_PATH) ? fs.readFileSync(STATUS_PATH, "utf8") : null;
 
+// ── PROSE COUNTS ───────────────────────────────────────────────────────────
+// A count written in prose is a SECOND copy of one this table owns, and it is the
+// copy that drifts: README said "Mathematics (72)" and the genome's own header
+// said "MATHEMATICS — 72 concepts" while the arrays held 67. Both were accurate on
+// the day they were typed, and nothing checked them because nothing derived them.
+//
+// They are not deleted, because a reader meeting the subject list wants the
+// numbers at that point in the document — they are PARSED and held to the measured
+// counts, which is the rule this file already applies to the storage inventory the
+// spec cites. The claim forms are listed explicitly rather than swept for: a new
+// way of stating a count must be added here deliberately, so a claim can never be
+// unchecked by accident.
+const CLAIM_FORMS = [
+  {
+    file: "README.md",
+    // "**135 atomic concepts** — Mathematics (67), Physics (18), …"
+    total: /\*\*(\d+) atomic concepts\*\*/g,
+    perSubject: /(Mathematics|Physics|Chemistry|Biology|Computing) \((\d+)\)/g,
+    nameKey: {
+      Mathematics: "maths", Physics: "physics", Chemistry: "chemistry",
+      Biology: "biology", Computing: "computing",
+    },
+  },
+  {
+    // The genome's own section headers, where a count sits beside the rows it
+    // counts — the place a reader trusts most and the place this drifted longest.
+    file: "lib/genome.ts",
+    perSubject: /^\/\/ ([A-Z]+) — (\d+) concepts/gm,
+    nameKey: {
+      // MATHEMATICS, not MATHS: the genome's header spells it out, and this map
+      // said MATHS when the check was first written — so the one count that had
+      // drifted was the one the check could not see (see `--self-test`).
+      MATHEMATICS: "maths", PHYSICS: "physics", CHEMISTRY: "chemistry",
+      BIOLOGY: "biology", COMPUTING: "computing",
+    },
+  },
+];
+
+/**
+ * Every prose count, held to the measurement it restates. Returns one problem
+ * per disagreeing claim, naming the file, the claim as written, and both numbers
+ * — a drift report that says "README.md is stale" would send a reader looking for
+ * the wrong thing.
+ */
+function proseCountProblems(read = (file) => fs.readFileSync(file, "utf8")) {
+  const problems = [];
+  const subjects = Object.keys(bySubject);
+  for (const form of CLAIM_FORMS) {
+    // ── THE INVARIANT, BOTH WAYS ────────────────────────────────────────────
+    // Every subject the genome HAS must have a name in this form, or a claim
+    // about it is unmatchable and therefore unchecked; and every name here must
+    // be a subject it has, or it is a dead entry that looks like a check.
+    for (const key of subjects) {
+      if (!Object.values(form.nameKey).includes(key)) {
+        problems.push(`${form.file}: no claim name is mapped to the subject "${key}" — a count stated for it would go unchecked`);
+      }
+    }
+    for (const [name, key] of Object.entries(form.nameKey)) {
+      if (!subjects.includes(key)) {
+        problems.push(`${form.file}: "${name}" is mapped to subject "${key}", which the genome does not have — that claim would never be read`);
+      }
+    }
+
+    let text;
+    try {
+      text = read(form.file);
+    } catch {
+      // Not a silent skip: a file this check cannot read means the claims in it
+      // are unchecked, which is a different report from "they are consistent".
+      problems.push(`${form.file} could not be read — the counts it states are therefore unchecked`);
+      continue;
+    }
+    for (const [, n] of text.matchAll(form.total ?? /(?!)/g)) {
+      if (Number(n) !== G.CONCEPTS.length) {
+        problems.push(`${form.file} says "${n} atomic concepts"; the genome holds ${G.CONCEPTS.length}`);
+      }
+    }
+    for (const [, name, n] of text.matchAll(form.perSubject)) {
+      const key = form.nameKey[name];
+      const measured = key === undefined ? undefined : bySubject[key];
+      if (measured === undefined) {
+        // An unmapped name is not "not a claim" — it is a claim nobody checked.
+        // This branch is exactly how the first cut of this check went quiet.
+        problems.push(`${form.file} states a count for "${name}", which no subject name is mapped to`);
+        continue;
+      }
+      if (Number(n) !== measured) {
+        problems.push(`${form.file} says "${name} (${n})"; the genome holds ${measured}`);
+      }
+    }
+  }
+  return problems;
+}
+
+// ── THE SELF-TEST: a check that cannot fail is not a check ──────────────────
+// `npm run status:check` occupies a CI step, and this is what makes that step
+// worth having. Three things are proved:
+//
+//   · the claims on disk right now agree with the measured counts;
+//   · a count that DISAGREES is reported, for every claim form;
+//   · a claim form whose names do not line up with the genome's subjects is
+//     reported — the hole this check first shipped with, where its map said
+//     MATHS while the header says MATHEMATICS, so its one drifted number was the
+//     one it skipped and it printed "current".
+//
+// The lies are injected through the reader, so nothing on disk is edited: a run
+// killed halfway through a self-test cannot leave a lie behind. Wired into CI
+// beside `npm run disk-headroom -- --self-test`, which is where this repository
+// keeps its "is the alarm still calibrated" checks.
+if (process.argv.includes("--self-test")) {
+  const cases = [];
+  const caseOk = (name, cond, detail = "") => cases.push({ name, ok: !!cond, detail });
+  /** Add one to one number in a claim, leaving its shape intact. */
+  const bump = (text, re, captures = 2) =>
+    text.replace(re, (...args) => {
+      const whole = args[0];
+      const n = captures === 1 ? args[1] : args[2];
+      return whole.replace(String(n), String(Number(n) + 1));
+    });
+  const withFile = (file, text) => (f) => (f === file ? text : fs.readFileSync(f, "utf8"));
+
+  const real = proseCountProblems();
+  caseOk("the claims on disk agree with the measured counts", real.length === 0, real.join("; "));
+
+  for (const form of CLAIM_FORMS) {
+    const truth = fs.readFileSync(form.file, "utf8");
+    const lying = bump(truth, form.perSubject);
+    const found = proseCountProblems(withFile(form.file, lying));
+    caseOk(`a wrong per-subject count in ${form.file} is reported`, found.length > 0,
+      found[0] ?? "the scanner stayed silent");
+    if (form.total) {
+      const totalLie = proseCountProblems(withFile(form.file, bump(truth, form.total, 1)));
+      caseOk(`a wrong total in ${form.file} is reported`, totalLie.length > 0,
+        totalLie[0] ?? "the scanner stayed silent");
+    }
+    // A name the form does not cover must fail rather than be skipped.
+    const unmapped = proseCountProblems(() => "// WELDING — 12 concepts, stage 0\n");
+    caseOk(`${form.file}: a claim no nameKey entry covers is reported, not skipped`, unmapped.length > 0,
+      unmapped[0] ?? "silently skipped");
+  }
+
+  for (const c of cases) console.log(`  ${c.ok ? "✓" : "✗"} ${c.name}${c.ok || !c.detail ? "" : ` — ${c.detail}`}`);
+  const failed = cases.filter((c) => !c.ok).length;
+  console.log(`\nSTATUS SELF-TEST: ${cases.length - failed} passed, ${failed} failed\n`);
+  process.exit(failed ? 1 : 0);
+}
+
 if (CHECK) {
   const problems = [];
   if (currentStatus !== nextStatus) problems.push(`${STATUS_PATH} is stale (run \`npm run status\`)`);
   if (nextReadme !== readme) problems.push(`${README_PATH}'s status table is stale (run \`npm run status\`)`);
+  problems.push(...proseCountProblems());
   if (problems.length > 0) {
     console.error("✗ status report:");
     for (const p of problems) console.error(`  · ${p}`);

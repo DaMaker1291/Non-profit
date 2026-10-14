@@ -145,6 +145,23 @@ jobs:
       - name: Published numbers
         run: npm run status:check
 
+      # ── THE NUMBERS IN PROSE, AND THE PROOF THIS CHECK CAN FAIL ─────────────
+      # `status:check` holds the generated table to the content, AND holds the
+      # counts stated in PROSE — README's subject list and the genome's own
+      # section headers — because those are the copies that drift. One had: both
+      # said "Mathematics (72)" while the arrays held 67, for as long as anyone
+      # had looked.
+      #
+      # The self-test is here because the FIRST version of that check went QUIET
+      # on exactly the claim it was written for: its name map said MATHS while the
+      # header says MATHEMATICS, so the one drifted count was the one it skipped —
+      # and it reported everything as current. A check that cannot fail is not a
+      # check, so this plants the lies IN MEMORY (never on disk) and requires the
+      # scanner to report each one, including a claim whose subject name maps to
+      # nothing.
+      - name: Published numbers — prose claims, and the guard's own calibration
+        run: node scripts/status-report.mjs --self-test
+
       - name: Production build
         run: npm run build
       # ── Serve the artefact we just built, and check it is SERVED styled ──────
