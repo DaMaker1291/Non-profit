@@ -99,9 +99,14 @@ is no automatic expiry. The recommended schedule to adopt:
 
 ## 7. Deletion and export
 
-- **Erasure is implemented.** A learner-initiated delete removes the profile,
-  its ledger and its personal papers, and removes the learner from every class
-  roster (`deleteProfile`, `deleteEvidence`, `removeMemberEverywhere`).
+- **Erasure is implemented, as ONE workflow.** A learner-initiated delete removes
+  the profile, its ledger and its personal papers, and removes the learner from
+  every class roster — and the live route and a restore run the SAME sequence
+  (`lib/server/erasure.ts`), so neither path can leave a learner's own marked work
+  behind. If a step fails, the erase is not reported as done: it is recorded and
+  RESUMABLE, and the log shows which erases have not finished. Erasure is never
+  refused by the store's write guard — the right to be forgotten does not depend on
+  whether a deployment can keep records.
 - **A backup cannot undo an erasure.** A backup taken *before* the erase still
   contains that learner, and restoring it is the one thing a backup is for — so
   the erase also records the INTENT (`erasures.json`, `lib/server/erasures.ts`),

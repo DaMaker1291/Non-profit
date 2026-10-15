@@ -19,9 +19,12 @@
 //   · TWO learners coexist. `profiles.json` is one shared map, so a save that
 //     dropped the others would be catastrophic, silent, and invisible to a
 //     single-learner test
-//   · an erase removes the record AND writes the tombstone a restore re-applies,
-//     while a FAILED erase writes nothing — a tombstone for a learner who was
-//     never deleted is a false statement about a person
+//   · an erase is ONE WORKFLOW over four artefacts and an instruction (§14
+//     decision 2): every artefact goes, including the learner's own personal
+//     papers, and the instruction is the JOURNAL — written before the effects so
+//     an interrupted erase is both resumable and VISIBLE (an entry with no
+//     `completedAt` is an erase nobody finished), and a step that throws never
+//     reports success
 //   · `readEvents` is OLDEST FIRST. This case found a real defect on its first
 //     run: the port promises clock order, and the file backend returned append
 //     order — which differs the moment a device syncs work it did offline
@@ -236,25 +239,77 @@ const SAM = "conf_learner_sam";
   ok("two learners coexist: saving one does not drop the other",
     ids.includes(MEL) && ids.includes(SAM), `${ids.length} profile(s): ${ids.join(", ")}`);
 
-  // ── Erasure: the record AND the intent ────────────────────────────────────
-  const neverExisted = await storage.eraseProfile("conf_never_existed");
-  ok("erasing a learner who was never there answers false", neverExisted === false);
-  const logAfterMiss = fs.existsSync(path.join(STORE_DIR, ERASURES_FILE))
+  // ── Erasure: the ONE WORKFLOW, through the port ───────────────────────────
+  //
+  // docs/STORAGE_SPEC.md §14 decision 2, and this suite is the right home for it:
+  // the erase is a SEQUENCE over four artefacts plus an instruction, and a second
+  // backend must be held to the same sequence rather than to its own idea of one.
+  //
+  // Three properties are asserted, and each is a way "we deleted it" can be false:
+  //   · every artefact goes, including the learner's OWN marked work (the live path
+  //     used to leave personal papers behind while a restore removed them — F-2);
+  //   · the instruction is the JOURNAL, written before the effects, so an erase
+  //     interrupted at any step can be resumed and can be SEEN (an entry with no
+  //     `completedAt` is an erase nobody finished);
+  //   · nothing about another learner is touched.
+  const erasuresMod = require("../.verify/server/erasures.js");
+  const erasureMod = require("../.verify/server/erasure.js");
+  const target = erasureMod.portErasureTarget(storage);
+  const logAt = () => (fs.existsSync(path.join(STORE_DIR, ERASURES_FILE))
     ? fs.readFileSync(path.join(STORE_DIR, ERASURES_FILE), "utf8")
-    : "";
-  ok("and leaves NO tombstone — a failed erase must not claim a person was deleted",
-    !logAfterMiss.includes("conf_never_existed"));
+    : "");
+  const ledgerEvent = (id, evId, at) => ({
+    id: evId, learnerId: id, at, schemaVersion: 1, kind: "answer_submitted",
+    source: "practice", provenance: "server", conceptId: "quadratics",
+  });
+  await storage.savePersonalPaper({ id: "conf_pp_sam", owner: SAM, createdAt: Date.now(), origin: "user_provided" });
+  await appendEvidence(SAM, [ledgerEvent(SAM, "conf_ev_erase_1", 500)]);
+  ok("the learner to be erased has a ledger and a personal paper of their own",
+    (await storage.readEvents(SAM)).length === 1 && (await storage.listPersonalPapers(SAM)).length === 1);
 
-  const erased = await storage.eraseProfile(SAM);
-  ok("erasing a real learner answers true", erased === true);
+  const outcome = await erasureMod.eraseLearner(target, SAM, 777);
+  ok("an erase takes the record, the ledger AND the learner's own marked work",
+    outcome.existed && outcome.record && outcome.ledger && outcome.personalPapers === 1,
+    JSON.stringify(outcome));
   ok("the record is gone", (await storage.getProfile(SAM)) === null);
+  ok("the ledger is gone", (await storage.readEvents(SAM)).length === 0);
+  ok("the personal paper is gone — the artefact the live path used to leave on disk",
+    (await storage.listPersonalPapers(SAM)).length === 0);
+  ok("the INSTRUCTION is recorded, which is what a restore re-applies", logAt().includes(SAM));
+  const entry = (await storage.readErasures()).find((e) => e.learnerId === SAM);
+  ok("with the moment it was RECORDED and the moment it FINISHED — two states, one entry",
+    entry?.at === 777 && entry?.completedAt === 777, JSON.stringify(entry));
+  ok("so a workflow that ran to the end leaves nothing incomplete",
+    erasuresMod.incompleteErasures(await storage.readErasures()).length === 0);
   const after = (await storage.listProfiles()).map((s) => s.profile.id);
-  ok("and it is gone from the list too", !after.includes(SAM), after.join(", "));
-  const log = fs.existsSync(path.join(STORE_DIR, ERASURES_FILE))
-    ? fs.readFileSync(path.join(STORE_DIR, ERASURES_FILE), "utf8")
-    : "";
-  ok("while the INTENT is recorded, which is what a restore re-applies", log.includes(SAM));
-  ok("and the learner who was not erased is untouched", after.includes(MEL));
+  ok("and the learner who was not erased is untouched", after.includes(MEL) && !after.includes(SAM), after.join(", "));
+
+  // ── An erase that DIES halfway, and the same log completing it ────────────
+  // The property the order exists for. The record goes LAST of the effects, so an
+  // interruption leaves a learner who can still ask again — and the instruction is
+  // already on disk, so a retry (or a restore) knows what to finish. A workflow
+  // that recorded the intent at the end would leave exactly the unresumable state
+  // this asserts against.
+  const HALTED = "conf_learner_halted";
+  await storage.saveProfile(newProfileState(HALTED, { handle: "halted" }));
+  await appendEvidence(HALTED, [ledgerEvent(HALTED, "conf_ev_halt_1", 600)]);
+  let died = false;
+  try {
+    await erasureMod.eraseLearner({ ...target, removeLedger: async () => { throw new Error("killed mid-erase"); } }, HALTED, 888);
+  } catch {
+    died = true;
+  }
+  ok("an erase that fails at a step propagates the failure rather than reporting success", died);
+  ok("and the RECORD is still there, so the learner can ask again", (await storage.getProfile(HALTED)) !== null);
+  const incomplete = erasuresMod.incompleteErasures(await storage.readErasures());
+  ok("while the log shows exactly which erase was abandoned — the state an operator reads",
+    incomplete.length === 1 && incomplete[0].learnerId === HALTED,
+    incomplete.map((e) => e.learnerId).join(", ") || "none");
+  const resumed = await erasureMod.eraseLearner(target, HALTED, 999);
+  ok("and re-running the workflow completes it", resumed.existed && resumed.record && resumed.ledger && resumed.finished,
+    JSON.stringify(resumed));
+  ok("leaving nothing incomplete behind",
+    erasuresMod.incompleteErasures(await storage.readErasures()).length === 0);
 }
 
 // ── The ledger, read side ───────────────────────────────────────────────────

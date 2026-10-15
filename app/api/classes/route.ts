@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import {
+  createClass,
   getClass,
-  joinCode,
   listClasses,
   newId,
-  saveClass,
+  reconcileClassIdentities,
   updateClassByCode,
   updateClassById,
 } from "@/lib/server/store";
@@ -18,6 +18,21 @@ import type { ClassRoster, SubjectId } from "@/lib/types";
 
 export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
+  // THE LEGACY-ROSTER REPAIR, NAMED AT THE CALL SITE THAT WANTS IT (F-3).
+  //
+  // A roster written before member ids existed has to be reconciled ONCE, and it
+  // used to happen silently inside `getClass`: a READ took `profiles.json`, rewrote
+  // `classes.json`, and swallowed a failure — so a teacher's table could quietly be
+  // missing rows with no error anywhere. It is now an explicit, idempotent call,
+  // and the two read functions it used to hide in are pure.
+  //
+  // Best-effort HERE on purpose, and this is the one place the decision is made: a
+  // roster read must not fail because the repair could not be written (a deployment
+  // that has refused learner-data writes still serves reads), the repair is
+  // idempotent so the next read tries again, and it is not silent — the call names
+  // what it is doing. An operator who wants it to be strict runs
+  // `npm run data:repair-classes`.
+  await reconcileClassIdentities().catch(() => {});
   // `me` is the profile asking; `id` (when present) is the CLASS being read.
   // Membership is the rule: a class carries its learners' handles, mastery and
   // join code, so it answers only a profile that is IN the class. (Two holes
@@ -92,6 +107,11 @@ interface Body {
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     const body = (await req.json()) as Body;
+    // Same explicit repair as the read door, for the same reason and at the same
+    // level: a JOIN is a membership decision, and a roster that still carries
+    // pre-identity rows would decide it against a table that cannot name its own
+    // members. Best-effort, as on the read path.
+    await reconcileClassIdentities().catch(() => {});
     const auth = await authorizeLearner(typeof body.id === "string" ? body.id : null, body.secret);
     if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
     const caller = auth.state;
@@ -118,29 +138,34 @@ export async function POST(req: Request): Promise<NextResponse> {
           const refusal = courseRefusal(body.subject as SubjectId, course);
           if (refusal) return NextResponse.json({ error: refusal }, { status: 400 });
         }
-        const cls: ClassRoster = {
+        // The join code is chosen AND inserted inside one lock, by the store
+        // (`createClass`), so two teachers creating a class at the same moment
+        // cannot end up with the same code on the board — the check-then-insert
+        // shape this used to have. The database's own protection is the
+        // `classes_join_code_live_key` unique index, and the same loop is where
+        // that index's answer is honoured. See `newId`/`createClass` in
+        // lib/server/store.ts, and F-4 of docs/STORAGE_SPEC.md §13.
+        const h = (caller.profile.handle ?? "teacher").slice(0, 24);
+        const cls: ClassRoster = await createClass((joinCode) => ({
           id: newId("cls"),
           name: (body.name ?? "Untitled class").slice(0, 60),
           teacher: "teacher",
-          joinCode: joinCode(),
+          joinCode,
           language: body.language ?? "en",
           conceptIds: (body.conceptIds ?? []).slice(0, 12),
           subject: body.subject as SubjectId | undefined,
           specificationId: course,
-          students: {},
+          // The creator is the class's first member: they will read their own
+          // roster, and the plan engine needs their evidence like anyone's.
+          students: { [h]: {} },
+          membersById: { [h]: caller.profile.id },
+          members: [caller.profile.id],
           createdAt: Date.now(),
-        };
-        // The creator is the class's first member: they will read their own
-        // roster, and the plan engine needs their evidence like anyone's.
-        const h = (caller.profile.handle ?? "teacher").slice(0, 24);
-        cls.students[h] = {};
-        cls.membersById = { [h]: caller.profile.id };
-        cls.members = [caller.profile.id];
-        // The creator is the class's TEACHER — the one authority that may set
-        // its work and read its monitor. Recorded as the learner id, never the
-        // role label (which every class carries) or a joiner-chosen handle.
-        cls.ownerId = caller.profile.id;
-        await saveClass(cls);
+          // The creator is the class's TEACHER — the one authority that may set
+          // its work and read its monitor. Recorded as the learner id, never the
+          // role label (which every class carries) or a joiner-chosen handle.
+          ownerId: caller.profile.id,
+        }));
         return NextResponse.json({ cls });
       }
       case "join": {

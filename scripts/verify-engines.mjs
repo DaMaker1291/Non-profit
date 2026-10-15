@@ -5769,6 +5769,24 @@ console.log("▸ One data directory, one lock table");
 // port declares, the configuration is refused rather than defaulted when it names
 // something this build cannot serve, and no route reaches past the port to the
 // file helpers.
+/**
+ * CODE WITHOUT ITS PROSE, for the source guards below.
+ *
+ * These guards are textual, and the first version of them matched a COMMENT that
+ * explained the rule they enforce — the fix for F-1 documented the read it had
+ * removed, and the scan failed the file for naming it. A guard that punishes a
+ * route for documenting the defect it avoided is worse than no guard, because the
+ * cheapest way to satisfy it is to delete the explanation. So prose is stripped
+ * first and the guards see only what executes.
+ *
+ * Block comments and whole-line `//` comments, which is every comment in this
+ * codebase's style. A trailing `//` on a code line is deliberately NOT stripped:
+ * distinguishing it from the `//` in `https://` needs a real parser, and a guard
+ * that occasionally over-matches code is honest about what it is.
+ */
+const stripComments = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+
 console.log("▸ The storage port describes the store that runs");
 {
   const storageMod = require("../.verify/server/storage.js");
@@ -5853,11 +5871,11 @@ console.log("▸ The storage port describes the store that runs");
     }
     return out;
   };
-  const fileHelperUsers = collect("app").filter((f) => /\breadJson\b|\bwriteJson\b/.test(fs.readFileSync(f, "utf8")));
+  const fileHelperUsers = collect("app").filter((f) => /\breadJson\b|\bwriteJson\b/.test(stripComments(fs.readFileSync(f, "utf8"))));
   ok(fileHelperUsers.length === 0,
     `no route reaches past the port to the file helpers (users: ${fileHelperUsers.join(", ") || "none"})`);
   const libFileHelperUsers = collect("lib").filter((f) => /from\s*"\.\/store"/.test(fs.readFileSync(f, "utf8"))
-    && /\b(readJson|writeJson)\b/.test(fs.readFileSync(f, "utf8")));
+    && /\b(readJson|writeJson)\b/.test(stripComments(fs.readFileSync(f, "utf8"))));
   ok(libFileHelperUsers.length === 1 && libFileHelperUsers[0] === "lib/server/interventions.ts",
     `and exactly one lib module still uses them, the one whose data has no table yet (${libFileHelperUsers.join(", ") || "none"})`);
 }
@@ -11862,16 +11880,273 @@ console.log("▸ An erasure outlives the archive it was taken from");
   ok(!fs.existsSync(nodePath.join(archive, "evidence", "alice.jsonl")),
     "their ledger is not in the restored store either, so nothing can be re-derived about them");
 
-  // 5. The store's OWN erase path records it. `deleteProfile` is the one door the
-  //    erase route uses, so no route can delete a learner without leaving the
-  //    intent behind — asserted by driving it, not by grepping for a call.
+  // 5. THE RECORD AND THE INSTRUCTION ARE TWO CALLS, and that separation is F-2:
+  //    the instruction is written FIRST by the workflow so an interrupted erase is
+  //    resumable, which is impossible if removing the record is what writes it.
   await store.saveProfile(store.newProfileState("erase-me-01", { handle: "erase-me" }));
   const removed = await store.deleteProfile("erase-me-01");
-  const storeLog = JSON.parse(fs.readFileSync(nodePath.join(tmpData, "erasures.json"), "utf8"));
-  ok(removed && storeLog.entries.some((e) => e.learnerId === "erase-me-01"),
-    "and the store's own `deleteProfile` records the intent, so the erase route cannot forget to");
+  const logAfterRecordRemoval = await store.readErasureLog();
+  ok(removed && !logAfterRecordRemoval.some((e) => e.learnerId === "erase-me-01"),
+    "removing a record writes NO tombstone — the instruction is the workflow's to write, not the deletion's");
+  ok((await store.recordErasure("erase-me-01", T)) === true
+    && (await store.recordErasure("erase-me-01", T + 1)) === false,
+    "and recording it is a separate, idempotent call — a retry cannot move the moment it names");
 
-  for (const d of [dir, archive, empty]) fs.rmSync(d, { recursive: true, force: true });
+  // 6. THE LIVE PATH IS THE SAME WORKFLOW over the configured backend, and the
+  //    thing to assert is the F-2 parity: the artifacts a RESTORE removes and the
+  //    artifacts the LIVE route removes are the same four, including the learner's
+  //    own marked work (which the live path used to leave behind).
+  const { fileStorage } = require("../.verify/server/storage-file.js");
+  const { eraseLearner, portErasureTarget } = require("../.verify/server/erasure.js");
+  const evMod2 = require("../.verify/evidence.js");
+  const liveEvent = (id, at) => evMod2.answerEvidence({
+    learnerId: id, at, source: "practice", subject: "maths", conceptId: "quadratics",
+    specificationId: null, questionId: `erase-${at}`, correct: true, chosen: 0, mode: "independent", hints: 0,
+  });
+  const LIVE = "erase-live-01";
+  await store.saveProfile(store.newProfileState(LIVE, { handle: "erase-live" }));
+  await store.savePersonalPaper({ id: "pp_live_1", owner: LIVE, createdAt: Date.now(), origin: "user_provided" });
+  await store.saveClass({
+    id: "cls_erase_live", name: "Live", teacher: "teacher", joinCode: "ERASEL", language: "en",
+    conceptIds: [], students: { erase_live: {} }, membersById: { erase_live: LIVE }, members: [LIVE], createdAt: Date.now(),
+  });
+  await store.withLearner(LIVE, (ctx) => ctx.appendEvents([liveEvent(LIVE, 100)]));
+
+  const liveOutcome = await eraseLearner(portErasureTarget(fileStorage), LIVE);
+  ok(liveOutcome.existed && liveOutcome.record && liveOutcome.ledger
+    && liveOutcome.personalPapers === 1 && liveOutcome.memberships === 1,
+    `the live erasure removes all four artefacts, not the three it used to (${JSON.stringify(liveOutcome)})`);
+  ok((await store.getProfile(LIVE)) === null && (await store.listPersonalPapers(LIVE)).length === 0,
+    "the record is gone AND the learner's own marked work with it — the half the live path used to leave on disk");
+  ok((await store.readErasureLog()).some((e) => e.learnerId === LIVE),
+    "with the instruction recorded, so a restore taken before this moment cannot bring them back");
+  ok((await store.listClasses()).every((c) => !(c.members ?? []).includes(LIVE)),
+    "and no roster keeps a row, a binding or a self-report of theirs");
+
+  // 7. A RESUMED ERASE. The record already gone, the rest still there — which is
+  //    exactly the residue the OLD order left (deleteProfile wrote the tombstone
+  //    and the ledger/papers never followed). The instruction is what closes it.
+  const PARTIAL = "erase-partial-01";
+  await store.saveProfile(store.newProfileState(PARTIAL, { handle: "erase-partial" }));
+  await store.savePersonalPaper({ id: "pp_partial_1", owner: PARTIAL, createdAt: Date.now(), origin: "user_provided" });
+  await store.withLearner(PARTIAL, (ctx) => ctx.appendEvents([liveEvent(PARTIAL, 200)]));
+  await store.deleteProfile(PARTIAL);
+  const resumed = await eraseLearner(portErasureTarget(fileStorage), PARTIAL);
+  ok(!resumed.existed && resumed.ledger && resumed.personalPapers === 1 && resumed.intent,
+    "an erase that finds the record already gone still removes the ledger and the papers, and writes the instruction it was missing");
+  ok(resumed.resumed === true,
+    "and REPORTS that it finished an interrupted erase rather than performing a fresh one");
+
+  // 8. AND IT IS SAFE WHEN IT DIES HALFWAY. A target that throws at the ledger
+  //    leaves the record present (so the learner can ask again) and the
+  //    instruction already recorded (so a retry — or a restore — finishes it).
+  const FLAKY = "erase-flaky-01";
+  await store.saveProfile(store.newProfileState(FLAKY, { handle: "erase-flaky" }));
+  await store.withLearner(FLAKY, (ctx) => ctx.appendEvents([liveEvent(FLAKY, 300)]));
+  let died = false;
+  const flakyTarget = {
+    ...portErasureTarget(fileStorage),
+    removeLedger: async () => { throw new Error("the process died here"); },
+  };
+  try {
+    await eraseLearner(flakyTarget, FLAKY);
+  } catch {
+    died = true;
+  }
+  ok(died, "an erase that fails at a step propagates the failure rather than reporting an erase that did not happen");
+  ok((await store.getProfile(FLAKY)) !== null,
+    "and the RECORD is still there, so the learner can ask again — the record goes last for this reason");
+  ok((await store.readErasureLog()).some((e) => e.learnerId === FLAKY),
+    "while the instruction is already recorded, which is what makes the retry (or a restore) finish the job");
+  const retryOutcome = await eraseLearner(portErasureTarget(fileStorage), FLAKY);
+  ok(retryOutcome.existed && retryOutcome.record && retryOutcome.ledger,
+    "and the retry completes it");
+
+  // 9. AND THE ROUTE CANNOT DRIFT BACK TO THREE CALLS. The workflow is shared with
+  //    the restore path BY CONSTRUCTION (both go through `eraseLearner`), and this
+  //    is the source half of that claim: the erase route must name the workflow and
+  //    must not reach for the individual steps itself. It is the same kind of scan
+  //    as the credential and refusal checks above — a route that stopped using it
+  //    is a failing test rather than a divergence nobody noticed.
+  const eraseRouteSrc = fs.readFileSync("app/api/profile/route.ts", "utf8");
+  ok(/eraseLearner\s*\(/.test(eraseRouteSrc),
+    "the erase route calls the ONE workflow");
+  ok(!/\bdeleteEvidence\b|\bremoveMemberEverywhere\b/.test(eraseRouteSrc),
+    "and does not perform the steps itself — a process killed between three route calls is exactly what F-2 was");
+  ok(/portErasureTarget/.test(eraseRouteSrc) && /dirErasureTarget/.test(fs.readFileSync("lib/server/erasures.ts", "utf8")),
+    "with the live path and the restore path resolving to the same workflow over two targets");  for (const d of [dir, archive, empty]) fs.rmSync(d, { recursive: true, force: true });
+
+}
+
+// ── THE LEARNER TRANSACTION (docs/STORAGE_SPEC.md §14 decision 1) ────────────
+// One learner's record and the evidence that justifies it, as ONE unit, on ONE
+// serialised path. This is the contract the PostgreSQL backend must implement,
+// and the two properties that make it worth having are both asserted here against
+// the backend that exists today:
+//
+//   · A FAILURE COMMITS NOTHING TO THE RECORD. The record's write is STAGED by the
+//     transaction and flushed after the caller's function returns, so a route whose
+//     append failed, or whose validation refused, cannot leave a model that no
+//     ledger can reconstruct — the invariant this whole storage line protects.
+//   · FOUR CONCURRENT TRANSACTIONS ON ONE LEARNER LOSE NOTHING. The lock is the
+//     same one `updateProfile` has always used, and it is now the transaction's
+//     rather than each caller's, so the concurrency the old shape could not express
+//     is the concurrency this one is tested under.
+//
+// Plus the property that makes a FAILED transaction safe to retry: the event it
+// already appended is on the ledger and idempotent by id. That is not a defect —
+// an append-only ledger is not an edit — and a test that expected the ledger to
+// rewind would be asserting the opposite of the architecture.
+console.log("▸ A learner transaction commits the record, or leaves it alone");
+{
+  const projection = require("../.verify/server/projection.js");
+  const evMod = require("../.verify/evidence.js");
+  const TXN = "txn_learner_01";
+  await store.saveProfile(store.newProfileState(TXN, { handle: "txn", subjects: ["maths"] }));
+  const answerAt = (at) => evMod.answerEvidence({
+    learnerId: TXN, at, source: "practice", subject: "maths", conceptId: "quadratics",
+    specificationId: null, questionId: `txn-${at}`, correct: true, chosen: 0, mode: "independent", hints: 0,
+  });
+
+  // 1. A failure after the append leaves the RECORD untouched — the staged write
+  //    is dropped, not committed.
+  const first = answerAt(1_000);
+  let failed = null;
+  try {
+    await store.withLearner(TXN, async (ctx) => {
+      const s = await ctx.getProfile();
+      s.profile.goal = "written by a transaction that then failed";
+      await projection.commitAndProjectIn(ctx, s, [first]);
+      throw new Error("a later step in the transaction failed");
+    });
+  } catch (e) {
+    failed = e;
+  }
+  ok(failed?.message === "a later step in the transaction failed",
+    "a transaction that throws propagates its failure to the caller");
+  const afterFail = await store.getProfile(TXN);
+  ok(afterFail.profile.goal !== "written by a transaction that then failed" && !afterFail.progress.quadratics,
+    "and the record is EXACTLY as it was — the staged write was dropped, so a model no ledger can reconstruct is not reachable");
+  ok((await store.withLearner(TXN, (ctx) => ctx.readEvents())).length === 1,
+    "while the event it appended is on the ledger — an append is not an edit, and that is what makes the retry safe");
+
+  // 2. THE RETRY IS SAFE: the same event id again is a duplicate, so the answer
+  //    counts ONCE. This is the property that stops a retried request from
+  //    double-counting a learner's work.
+  const tally = {};
+  await store.withLearner(TXN, async (ctx) => {
+    const s = await ctx.getProfile();
+    const res = await projection.commitAndProjectIn(ctx, s, [first]);
+    tally.accepted = res.accepted.length;
+    tally.duplicates = res.duplicates.length;
+    await ctx.saveProfile(s);
+  });
+  const retried = await store.getProfile(TXN);
+  ok(tally.accepted === 0 && tally.duplicates === 1,
+    `re-sending the same event id is reported as a duplicate (accepted ${tally.accepted}, duplicates ${tally.duplicates})`);
+  ok(retried.progress.quadratics?.attempts === 1,
+    `so the answer counts ONCE, not twice (${retried.progress.quadratics?.attempts} attempt(s))`);
+
+  // 3. FOUR CONCURRENT TRANSACTIONS ON ONE LEARNER. Reuses the same answer function
+  //    with distinct times, so every event is genuinely new.
+  const N = 4;
+  await Promise.all(Array.from({ length: N }, (_, i) => store.withLearner(TXN, async (ctx) => {
+    const s = await ctx.getProfile();
+    await projection.commitAndProjectIn(ctx, s, [answerAt(2_000 + i)]);
+    await ctx.saveProfile(s);
+  })));
+  const converged = await store.getProfile(TXN);
+  const events = await store.withLearner(TXN, (ctx) => ctx.readEvents());
+  ok(events.length === 1 + N, `all ${1 + N} events landed (${events.length})`);
+  ok(converged.progress.quadratics?.attempts === 1 + N,
+    `and the record accounts for EVERY one of them — no lost update (${converged.progress.quadratics?.attempts} attempts)`);
+
+  // 4. The projection the transaction adopted IS the ledger's answer: replaying the
+  //    ledger on its own must reproduce the record the transaction wrote. This is
+  //    the ordering claim (WRITE EVENT → CONFIRM APPEND → REPLAY → RESPOND) checked
+  //    against the live model rather than asserted in a comment.
+  const replay = require("../.verify/replay.js");
+  const rebuilt = replay.replayModel(events, TXN, converged.projectionBase, converged.profile);
+  ok(JSON.stringify(rebuilt.progress) === JSON.stringify(converged.progress),
+    "and the record the transaction committed is exactly what replaying its ledger produces");
+}
+
+// ── F-3: A READ IS A READ ────────────────────────────────────────────────────
+// The legacy-roster repair used to run INSIDE `listClasses`/`getClass`: every
+// roster read took `profiles.json`, rewrote `classes.json` and swallowed the
+// failure. Asserted behaviourally rather than by grepping, because the defect was
+// a side effect and the fix has to be the absence of one: read every roster, and
+// the file must be byte-identical afterwards.
+console.log("▸ A class read writes nothing, and the repair is its own explicit step");
+{
+  const legacyId = "cls_legacy_repair";
+  const pupil = "legacy_pupil_01";
+  await store.saveProfile(store.newProfileState(pupil, { handle: "legacyhandle" }));
+  await store.saveClass({
+    id: legacyId, name: "Legacy", teacher: "teacher", joinCode: "LEGACY", language: "en",
+    conceptIds: [], students: { legacyhandle: { answers: 2 } }, createdAt: Date.now(),
+  });
+  const classesFile = nodePath.join(tmpData, "classes.json");
+  const beforeRead = fs.readFileSync(classesFile, "utf8");
+  await store.listClasses();
+  const one = await store.getClass(legacyId);
+  ok(fs.readFileSync(classesFile, "utf8") === beforeRead,
+    "reading every roster (and one by id) leaves the file byte-identical — a read no longer mutates durable state");
+  ok(one && !(one.membersById ?? {}).legacyhandle,
+    "and the legacy row is still UNBOUND after a read, which is the state the repair exists to fix rather than a thing reads do silently");
+
+  const repaired = await store.reconcileClassIdentities();
+  const bound = await store.getClass(legacyId);
+  ok(repaired.repaired >= 1 && bound.membersById?.legacyhandle === pupil,
+    "the EXPLICIT repair binds the legacy handle to the one profile that carries it");
+  ok((bound.members ?? []).includes(pupil),
+    "and records them as a member, so membership is identity-only from here on");
+  const again = await store.reconcileClassIdentities();
+  ok(again.repaired === 0, "and it is idempotent — a second run changes nothing");
+  ok(await store.counts().then((c) => c.classes >= 1 && c.learners >= 1),
+    "the store can answer how many of each without a caller reading a file (F-1)");
+
+}
+
+// ── F-1: A ROUTE DOES NOT NAME THE STORE'S FILES ──────────────────────────────
+// The guard that would have caught hub-status. It forbade importing
+// `readJson`/`writeJson` and the offender used `fs.readFile`, so the rule is now
+// the thing itself: a route may not NAME a store file, whatever it reads it with.
+// `app/api/ready` is not exempted by an allow-list — it probes for WRITABILITY with
+// a `.ready-…` file of its own and names no record, which is why the rule can be
+// absolute.
+console.log("▸ A route does not name the store's files");
+{
+  const STORE_FILES = [
+    "profiles.json", "classes.json", "rooms.json", "packs.json", "papers.json",
+    "personal-papers.json", "ai-cache.json", "erasures.json", "interventions.json", "boots.json",
+  ];
+  const collect = (dir, out = []) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = nodePath.join(dir, entry.name);
+      if (entry.isDirectory()) collect(full, out);
+      else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
+    }
+    return out;
+  };
+  const named = [];
+  for (const file of collect("app")) {
+    const src = stripComments(fs.readFileSync(file, "utf8"));
+    const hit = STORE_FILES.find((f) => src.includes(f));
+    if (hit) named.push(`${file} (${hit})`);
+  }
+  ok(named.length === 0,
+    `no route names a store file — the file layout is the backend's business (${named.join(", ") || "none"})`);
+  // And the scan can fail, asserted on the shape it was written for: the exact
+  // expression hub-status used to count learners from the filesystem.
+  const oldHubLine = 'await fs.readFile(path.join(DATA_DIR, "profiles.json"), "utf8")';
+  ok(STORE_FILES.some((f) => stripComments(oldHubLine).includes(f)),
+    "and the scan catches the shape it was written for (a direct read of profiles.json, which is what F-1 was)");
+  const hubSrc = fs.readFileSync("app/api/hub-status/route.ts", "utf8");
+  ok(/activeStorage\(\)\.counts\(\)/.test(hubSrc),
+    "while the hub door asks the PORT, so a database deployment is answered by the database");
+  ok(/store_unavailable/.test(hubSrc) && !/\bcatch\s*\([^)]*\)\s*\{\s*return 0/.test(hubSrc),
+    "and a store it cannot read is a 503, never a count of zero — `learners: 0` reaching a school is a false statement about that school");
 }
 
 // ── EVERY DOOR THAT WRITES LEARNER DATA TRANSLATES THE STORE'S REFUSAL ────────

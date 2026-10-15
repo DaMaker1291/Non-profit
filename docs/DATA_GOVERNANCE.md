@@ -123,16 +123,18 @@ the published version, and names which section moved. Publishing a new version i
 
 ## 7. Retention, deletion, export
 
-- Retention schedule: `PRIVACY.md` §6.
-- Deletion: implemented (`deleteProfile`, `deleteEvidence`,
-  `removeMemberEverywhere`) — profile, ledger, personal papers and every class
-  membership go together.
+- Retention schedule: `PRIVACY.md` §6.- Deletion: implemented as ONE WORKFLOW (`lib/server/erasure.ts`), used by the live
+  route and by a restore — profile, ledger, personal papers and every class
+  membership go together, on both paths. The order is the contract: the instruction
+  is recorded first (so an interrupted erase is resumable and visible), the effects
+  are removed, the record's absence is verified, and only then is the erase marked
+  finished (`ErasureRecord.completedAt`).
 - **An erasure is an INSTRUCTION, not only a deletion** (`lib/server/erasures.ts`).
   The erase writes `erasures.json` (learner id + when) beside the data it removes,
   because a backup taken earlier still holds that learner and a restore would
   put them back. `npm run restore-drill` re-applies the log to the restored copy
   (step 3b), so an archive cannot resurrect somebody who asked to be forgotten.
-  The file is append-only, one line per learner, and is the one artefact worth
+  The log is one entry per learner, is the one artefact worth
   carrying beside the archives: recovering on hardware with no live store has
   nothing else to re-apply from.
 - Export: the learner can read their own evidence and data over the API;

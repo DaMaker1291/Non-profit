@@ -608,6 +608,15 @@ stands, and they were found by enumerating rather than by reading for them.
 33 export statements: **25 data operations**, 2 pure id helpers, and the
 infrastructure the file store is built from.
 
+> **Updated by §14 (Phase B).** The store now has **47** export statements and 771
+> lines: `withLearner` (the transaction), `createClass` (collision-safe join code),
+> `reconcileClassIdentities` (the explicit legacy repair), `counts`,
+> `deletePersonalPapersFor`, `recordErasure`/`confirmErasure`/`readErasureLog`, plus
+> the `LedgerIO` registration. `deleteProfile` was NARROWED to the record alone.
+> One fewer route imports the store (20 → 19) because `hub-status` now asks the
+> PORT for its counts — a number this document's own status report measures, so a
+> stale table here is visible rather than silently wrong.
+
 | | Operations |
 |---|---|
 | Profiles | `getProfile` `listProfileStates` `saveProfile` `updateProfile` `deleteProfile` `removeMemberEverywhere` |
@@ -663,7 +672,7 @@ rather than let an operator infer it.
 | **A paper's key** | `saveStoredPaper`, then marked in a later request | durable before the paper is handed out; no multi-statement unit needed |
 | **The AI cache** | best-effort, `catch`ed | stays best-effort, and must never fail the request |
 
-### 13.4 · FOUR FINDINGS this inventory produced
+### 13.4 · FOUR FINDINGS this inventory produced (all four closed — see §14.3)
 
 **F-1 · A route reaches past the store into the data directory, and the existing
 source assertion does not catch it.** `app/api/hub-status/route.ts` does
@@ -749,3 +758,122 @@ papers/interventions/erasures (0001–0006 were written for a domain model and �
 table has to be re-checked against the adapter AS WRITTEN — the same check that
 found `0005` necessary), whether the async conversion of the 25 operations breaks
 any `.mjs` harness, or the import/cutover plan. Those are Phase B and slice 5.
+
+## 14 · The two decisions, and what Phase B landed
+
+Recorded before the adapter, because both change what gets built — and both were
+asked for by name in the review that followed §13.
+
+### 14.1 · Decision 1: a transaction-scoped storage context
+
+**The decision.** A learner's record write and the evidence that justifies it are
+ONE unit, and the operations that must join it receive a **transaction-scoped
+context** rather than resolving the storage port for themselves.
+
+The hazard this removes, measured in §13.3: the mutator is arbitrary JS that awaits
+ledger I/O, so a backend that opens a SECOND connection for the ledger inside the
+mutator deadlocks against the advisory lock the transaction itself holds. That is a
+production failure, not a unit-test one.
+
+**The contract** (`lib/server/storage.ts#LearnerContext`, `Storage.withLearner`):
+
+```text
+withLearner(learnerId, ctx => …)
+    → getProfile() / saveProfile(state) / deleteProfile()
+    → readEvents() / appendEvents(events)      ← on the transaction's own connection
+```
+
+Three properties, and the third is the one a caller must be able to rely on:
+
+1. every read and write in the context happens inside one serialised unit for that
+   learner;
+2. a function that THROWS leaves the RECORD exactly as it was — the write is staged
+   and flushed after the callback returns (`lib/server/store.ts#withLearner`);
+3. an event append that already succeeded may STAND. An append-only ledger is not an
+   edit, and replaying the same event id is a no-op — so the promise is "the record
+   does not move", never "the ledger rewinds". A database backend can roll both
+   back; a caller must be correct under the weaker of the two.
+
+`updateProfile` — the 24 call sites' entry point — is now a SPECIALISATION of
+`withLearner`, not a second read-modify-write, so the two cannot drift into
+disagreeing about what a serialised write means. And `commitAndProjectIn(ctx, state,
+events)` in `lib/server/projection.ts` is the write path for a caller already inside
+a transaction: the same four steps (WRITE EVENT → CONFIRM APPEND → REPLAY → RESPOND),
+sharing ONE implementation with `commitAndProject` so they cannot disagree about, say,
+which mark the replay folds from.
+
+**Acceptance, driven.** `npm run verify` runs four concurrent transactions on one
+learner and requires every event to land AND the record to account for each one (no
+lost update); a transaction that throws after its append must leave the record
+byte-identical while the event stands; a retried event id must be reported as a
+duplicate and counted once; and the record the transaction committed must be exactly
+what replaying its ledger produces. `npm run storage-check` drives the same contract
+against every backend this build can serve.
+
+### 14.2 · Decision 2: one authoritative erasure workflow
+
+**The decision.** Live deletion and recovery-driven erasure are the SAME workflow,
+removing the same things in the same order — and the learner's personal papers go on
+both paths.
+
+`lib/server/erasure.ts` is the workflow, `lib/server/erasures.ts` owns the log, and
+`portErasureTarget(storage)` / `dirErasureTarget(dir)` are the two targets. The order
+is the contract:
+
+```text
+RECORD THE INSTRUCTION → REMOVE THE EFFECTS → VERIFY → MARK FINISHED
+```
+
+- **The instruction is written FIRST**, which is a change from the shipped order. It is
+  the JOURNAL, not a receipt: its meaning is "this learner asked to be forgotten", and
+  an act does not become false because its effects were interrupted. The reverse order
+  loses the only durable trace of the request — which is exactly the residue the old
+  code left (record gone, ledger and papers still there, nothing anywhere saying a
+  deletion was asked for), and that residue is UNRESUMABLE.
+- **The record goes LAST of the four effects**, so an interruption leaves a learner the
+  route can still find and who can ask again.
+- **Verification happens before the finish is marked**: a record still present after the
+  effects is a THROWN error, never an `ok`.
+- **`ErasureRecord.completedAt`** is the second state: an entry with no `completedAt` is
+  an erase nobody finished. `incompleteErasures()` names them, so an abandoned erase is
+  visible to an operator instead of being indistinguishable from a finished one. A
+  restore re-applies both states identically — an erase that was ASKED FOR must be
+  completed either way.
+
+**Acceptance, driven.** `npm run storage-check` erases a learner holding a record, a
+ledger and a personal paper, and requires all three gone, the instruction recorded with
+both timestamps, and nothing left incomplete; then it kills the erase at the ledger step
+and requires the failure to propagate, the record to survive, the log to show exactly
+that one abandoned erase, and the re-run to complete it. `npm run verify` adds the
+live-path half (all four artefacts, including a class membership), the resumed-erase
+case, and a source assertion that the erase route cannot drift back to three calls.
+
+### 14.3 · The four findings, closed
+
+| | Was | Is |
+|---|---|---|
+| **F-1** | `hub-status` read the data directory itself and answered `learners: 0` from its `catch` — a false statement about a school, with HTTP 200 | the counts come from the port (`Storage.counts`), and a store that cannot be read is a 503 `store_unavailable`. The source guard is no longer "did you import `readJson`" but "does a route NAME a store file", so a direct `fs.readFile` cannot slip through it (comments are stripped first, so documenting the defect is not itself a violation) |
+| **F-2** | three calls from the route; personal papers removed by the restore path only; the instruction written last | §14.2 |
+| **F-3** | `listClasses`/`getClass` bound legacy handles — a WRITE — and swallowed the failure | both reads are pure (asserted: reading every roster leaves `classes.json` byte-identical); `reconcileClassIdentities()` is explicit, idempotent and PROPAGATES its failure; the class door calls it by name, and `npm run data:repair-classes` runs it as a migration |
+| **F-4** | `newId` was clock-derived; `joinCode` had no constraint behind it | `newId` is 122 random bits (`crypto.randomUUID`), and `createClass` chooses the code AND inserts it inside ONE lock, retrying — which is also where the schema's `classes_join_code_live_key` unique index (0001) is honoured. The DB constraint, not the check, is the protection |
+
+### 14.4 · What this does NOT do, stated rather than implied
+
+- **`OPENMIND_STORE=postgres` is still REFUSED at startup.** What landed is the
+  contract and the erasure. The PROFILE half of the port still resolves to the file
+  store's own functions, and `accounts.json` is still outside the port
+  (`lib/server/auth.ts`). A profile on one store and a ledger on another is one
+  learner's record in two places — the split this refusal exists to prevent.
+- **Phase C has not happened.** The contract exists, and the erasure path and the
+  suites use it; the ~25 route call sites still pass a mutator that takes `state`
+  alone, so `commitAndProject` (port-resolved) serves them. On the file backend that is
+  correct precisely because a file store has no second connection to open — on a
+  database backend it is the deadlock §14.1 describes, which is why that migration is a
+  named prerequisite of slice 4 rather than a cleanup.
+- **Atomicity across a file-backed boundary is not claimed.** The file backend stages
+  the record and cannot unlink-and-rewrite atomically; the workflow's guarantee is
+  RESUMABILITY, and a comment claiming more would be the kind of promise §14.2 exists
+  to avoid.
+- **`ai-cache.json` remains the single declared exception** (§13.2), and it must not
+  quietly stop being the only one: a second file-backed durable record is what the
+  refuse-to-start rule is for.

@@ -27,9 +27,10 @@
 //   2. It reuses the membership rule (`removeMember`) rather than reimplementing
 //      it, so an erased learner cannot survive in a roster on one path and not
 //      the other.
-//   3. Applying is IDEMPOTENT and TOTAL: an entry naming a learner who is already
-//      gone is a no-op, and one naming a learner who is present removes the
-//      profile, the ledger, their personal papers and their class membership.
+//   3. Applying is IDEMPOTENT and TOTAL, and that is now one workflow shared with
+//      the live path (`lib/server/erasure.ts`): an entry naming a learner who is
+//      already gone is a no-op, and one naming a learner who is present removes
+//      the profile, the ledger, their personal papers and their class membership.
 //      Partial erasure is what makes "we deleted it" false.
 //
 // What it does NOT do: delete the learner's ACCOUNT (an erase keeps the email and
@@ -40,6 +41,12 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { removeMember } from "./class-membership";
+// THE WORKFLOW. This module owns the LOG — reading it, appending to it, and
+// tolerating the shapes an operator may have had to hand-edit during a recovery —
+// and the erasure itself belongs to `lib/server/erasure.ts`, which is also what the
+// live route calls. Importing it in this direction (log → workflow) is the only
+// direction that works: the workflow must not know what a restored directory is.
+import { SAFE_LEARNER_ID as SAFE_ID, eraseLearner, type ErasureTarget } from "./erasure";
 import type { ClassRoster } from "../types";
 import type { PersonalPaper } from "../personal-paper";
 
@@ -51,8 +58,21 @@ const EVIDENCE_DIR = "evidence";
 export interface ErasureRecord {
   /** The learner id that was erased. An id, never a handle: handles are reusable. */
   learnerId: string;
-  /** When the erase happened (server clock), so a restore can report what it re-applied. */
+  /** When the learner's erase was RECORDED (server clock) — the moment the
+   *  instruction was taken, which is what a restore reports having re-applied. */
   at: number;
+  /**
+   * When the erase FINISHED. Absent or null means the instruction is recorded and
+   * the effects are not all confirmed — an interrupted erase, which is a state a
+   * restore must still complete and an operator should be able to see.
+   *
+   * The distinction is what makes "verify completion before marking the operation
+   * finished" representable (docs/STORAGE_SPEC.md §14 decision 2, step 5). One
+   * timestamp could not express it, and without it an entry claimed the same thing
+   * about a finished erase and an abandoned one. A restore treats both the same,
+   * deliberately: an erase that was asked for must be completed either way.
+   */
+  completedAt?: number | null;
 }
 
 export interface ErasureLog {
@@ -69,11 +89,11 @@ export interface ApplyOutcome {
   rosters: number;
 }
 
-/** A learner id we are willing to use as a path segment. The same shape the
- *  ledger enforces (`lib/ledger.ts#assertSafeLearnerId`), repeated here because
- *  this module unlinks files named by ids read from a log that may have travelled
- *  through a backup: a `../` in there must never reach the filesystem. */
-const SAFE_ID = /^[A-Za-z0-9_-]{3,64}$/;
+// A learner id we are willing to use as a path segment lives in the workflow
+// (SAFE_LEARNER_ID, imported above): this log unlinks files named by ids that may
+// have travelled through a backup, and a `../` in one must never reach the
+// filesystem — the same rule must hold for the live erase and for a restore, so
+// there is one definition and it belongs to the code that unlinks.
 
 async function readJson<T>(file: string, fallback: T): Promise<T> {
   try {
@@ -96,7 +116,11 @@ export async function readErasures(dir: string): Promise<ErasureRecord[]> {
   const entries = Array.isArray(log) ? log : (log.entries ?? []);
   return entries.filter(
     (e): e is ErasureRecord => !!e && typeof e.learnerId === "string" && SAFE_ID.test(e.learnerId),
-  );
+  ).map((e) => ({
+    learnerId: e.learnerId,
+    at: typeof e.at === "number" ? e.at : 0,
+    completedAt: typeof e.completedAt === "number" ? e.completedAt : null,
+  }));
 }
 
 /**
@@ -111,75 +135,135 @@ export async function readErasures(dir: string): Promise<ErasureRecord[]> {
 export async function appendErasure(dir: string, learnerId: string, at: number): Promise<boolean> {
   if (!SAFE_ID.test(learnerId)) return false;
   const file = path.join(dir, ERASURES_FILE);
-  const existing = await readJson<ErasureLog>(file, { version: 1, entries: [] });
-  const entries = Array.isArray(existing) ? existing : (existing.entries ?? []);
+  const entries = await rawEntries(file);
   if (entries.some((e) => e?.learnerId === learnerId)) return false;
   await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(file, JSON.stringify({ version: 1, entries: [...entries, { learnerId, at }] }, null, 2), "utf8");
+  await fs.writeFile(
+    file,
+    JSON.stringify({ version: 1, entries: [...entries, { learnerId, at, completedAt: null }] }, null, 2),
+    "utf8",
+  );
   return true;
+}
+
+/** The log's entries, exactly as stored — including the shapes an operator may
+ *  have had to hand-edit during a recovery. */
+async function rawEntries(file: string): Promise<ErasureRecord[]> {
+  const existing = await readJson<ErasureLog | ErasureRecord[]>(file, { version: 1, entries: [] });
+  const entries = Array.isArray(existing) ? existing : (existing.entries ?? []);
+  return entries.filter((e): e is ErasureRecord => !!e && typeof e?.learnerId === "string");
+}
+
+/**
+ * Mark a learner's erase FINISHED — the step that runs only after the effects
+ * have been removed and the record's absence verified.
+ *
+ * Idempotent, and it never moves a finish that is already recorded: the first
+ * completion is when the erase actually completed, and a second call is a retry
+ * or a re-applied log, not a new event. False means there was no instruction to
+ * mark (which is the caller's bug: the workflow records the instruction first).
+ */
+export async function confirmErasure(dir: string, learnerId: string, at: number): Promise<boolean> {
+  if (!SAFE_ID.test(learnerId)) return false;
+  const file = path.join(dir, ERASURES_FILE);
+  const entries = await rawEntries(file);
+  const entry = entries.find((e) => e.learnerId === learnerId);
+  if (!entry) return false;
+  if (entry.completedAt) return false;
+  entry.completedAt = at;
+  await fs.writeFile(file, JSON.stringify({ version: 1, entries }, null, 2), "utf8");
+  return true;
+}
+
+/** The erases this log records that have NOT been confirmed finished. What an
+ *  operator (or a drill) needs in order to see an erase that was abandoned. */
+export function incompleteErasures(entries: readonly ErasureRecord[]): ErasureRecord[] {
+  return entries.filter((e) => !e.completedAt);
+}
+
+/**
+ * A DIRECTORY AS AN ERASURE TARGET.
+ *
+ * This is the restore half: point it at a freshly restored directory and the
+ * learners the log names are removed from that copy — profile, ledger, personal
+ * papers and class membership — so an archive taken before the erase cannot
+ * resurrect them.
+ *
+ * It reads and writes files by ABSOLUTE PATH under `dir`, never through the store,
+ * because its most important caller is a restored copy that is not the live store
+ * (`npm run restore-drill`). Nothing here may name `DATA_DIR` for any reason.
+ */
+export function dirErasureTarget(dir: string): ErasureTarget {
+  const profilesFile = path.join(dir, "profiles.json");
+  const papersFile = path.join(dir, "personal-papers.json");
+  const classesFile = path.join(dir, "classes.json");
+  return {
+    label: `the store at ${dir}`,
+    hasRecord: async (id) => {
+      const profiles = await readJson<Record<string, unknown> | null>(profilesFile, null);
+      return Boolean(profiles && id in profiles);
+    },
+    removeRecord: async (id) => {
+      const profiles = await readJson<Record<string, unknown> | null>(profilesFile, null);
+      if (!profiles || !(id in profiles)) return false;
+      delete profiles[id];
+      await fs.writeFile(profilesFile, JSON.stringify(profiles), "utf8");
+      return true;
+    },
+    removeLedger: async (id) => {
+      try {
+        await fs.unlink(path.join(dir, EVIDENCE_DIR, `${id}.jsonl`));
+        return true;
+      } catch {
+        return false; // no ledger for this learner — nothing to remove
+      }
+    },
+    removePersonalPapers: async (id) => {
+      const papers = await readJson<Record<string, PersonalPaper> | null>(papersFile, null);
+      if (!papers) return 0;
+      const kept = Object.entries(papers).filter(([, p]) => (p as PersonalPaper)?.owner !== id);
+      if (kept.length === Object.keys(papers).length) return 0;
+      await fs.writeFile(papersFile, JSON.stringify(Object.fromEntries(kept)), "utf8");
+      return Object.keys(papers).length - kept.length;
+    },
+    removeMemberships: async (id) => {
+      const rosters = await readJson<ClassRoster[] | null>(classesFile, null);
+      if (!rosters) return 0;
+      let changed = 0;
+      // Through the ONE membership rule, so a learner erased here leaves a roster
+      // exactly as they would on the live path.
+      for (const cls of rosters) if (removeMember(cls, id)) changed++;
+      if (changed > 0) await fs.writeFile(classesFile, JSON.stringify(rosters), "utf8");
+      return changed;
+    },
+    recordIntent: (id, at) => appendErasure(dir, id, at),
+    completeIntent: (id, at) => confirmErasure(dir, id, at),
+  };
 }
 
 /**
  * RE-APPLY an erasure log to the store at `dir`.
  *
- * This is the restore half: point it at a freshly restored directory and the
- * learners the log names are removed from that copy — profile, ledger, personal
- * papers and class membership — so an archive taken before the erase cannot
- * resurrect them. Idempotent, and safe on a store where they are already gone.
+ * The restore half of `docs/PRIVACY.md` §7, and now a thin loop over the SAME
+ * workflow the live route runs: idempotent, safe on a store where the learners are
+ * already gone, and no longer a second implementation of "what an erase removes"
+ * (which is how the two paths came to disagree about personal papers).
  */
 export async function applyErasures(dir: string, entries: readonly ErasureRecord[]): Promise<ApplyOutcome> {
   const ids = [...new Set(entries.map((e) => e.learnerId).filter((id) => SAFE_ID.test(id)))];
   const outcome: ApplyOutcome = { named: entries.length, profiles: 0, ledgers: 0, personalPapers: 0, rosters: 0 };
   if (ids.length === 0) return outcome;
-  const erased = new Set(ids);
-
-  // 1. Profiles — the record the rest of a store is keyed by.
-  const profilesFile = path.join(dir, "profiles.json");
-  const profiles = await readJson<Record<string, unknown> | null>(profilesFile, null);
-  if (profiles) {
-    let changed = 0;
-    for (const id of ids) if (id in profiles) { delete profiles[id]; changed++; }
-    if (changed > 0) {
-      await fs.writeFile(profilesFile, JSON.stringify(profiles), "utf8");
-      outcome.profiles = changed;
-    }
-  }
-
-  // 2. Evidence ledgers — a file per learner, removed by name.
+  const target = dirErasureTarget(dir);
   for (const id of ids) {
-    const file = path.join(dir, EVIDENCE_DIR, `${id}.jsonl`);
-    try {
-      await fs.unlink(file);
-      outcome.ledgers++;
-    } catch {
-      /* no ledger for this learner — nothing to remove */
-    }
+    // The timestamp rides through so a restored copy reports WHEN the learner
+    // asked, rather than the moment the copy was restored.
+    const at = entries.find((e) => e.learnerId === id)?.at ?? Date.now();
+    const done = await eraseLearner(target, id, at);
+    if (done.record) outcome.profiles++;
+    if (done.ledger) outcome.ledgers++;
+    outcome.personalPapers += done.personalPapers;
+    outcome.rosters += done.memberships;
   }
-
-  // 3. Personal papers — owner-scoped, so the erase is a filter on `owner`.
-  const papersFile = path.join(dir, "personal-papers.json");
-  const papers = await readJson<Record<string, PersonalPaper> | null>(papersFile, null);
-  if (papers) {
-    const kept = Object.entries(papers).filter(([, p]) => !erased.has((p as PersonalPaper)?.owner ?? ""));
-    if (kept.length !== Object.keys(papers).length) {
-      await fs.writeFile(papersFile, JSON.stringify(Object.fromEntries(kept)), "utf8");
-      outcome.personalPapers = Object.keys(papers).length - kept.length;
-    }
-  }
-
-  // 4. Class membership — through the ONE membership rule, so a learner erased
-  //    here leaves the roster exactly as they would live.
-  const classesFile = path.join(dir, "classes.json");
-  const rosters = await readJson<ClassRoster[] | null>(classesFile, null);
-  if (rosters) {
-    let changed = 0;
-    for (const cls of rosters) for (const id of ids) if (removeMember(cls, id)) changed++;
-    if (changed > 0) {
-      await fs.writeFile(classesFile, JSON.stringify(rosters), "utf8");
-      outcome.rosters = changed;
-    }
-  }
-
   return outcome;
 }
 

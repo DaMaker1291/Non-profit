@@ -41,6 +41,12 @@ import type { ClassRoster, ProfileState, StudyPack, StudyRoom } from "../types";
 import type { AppendResult, EvidenceEvent } from "../evidence";
 import type { BuiltPaperAnswerKey } from "../papers";
 import type { PersonalPaper } from "../personal-paper";
+// TYPE-ONLY for the same reason as the rest: the erasure log's SHAPE is owned by
+// lib/server/erasures.ts — which is also the module a RESTORE reads a directory
+// with — and a value import here would drag `node:fs` into the port, which is the
+// one module `scripts/storage-conformance.mjs` loads before anything resolves a
+// backend.
+import type { ErasureRecord } from "./erasures";
 
 /** Which backend this deployment runs. A closed set on purpose: an unknown value
  *  is refused rather than defaulted, because a typo must not silently decide
@@ -61,6 +67,75 @@ export class StoreConfigError extends Error {
     super(message);
     this.name = "StoreConfigError";
   }
+}
+
+/**
+ * ONE LEARNER'S DURABLE UNIT, AS A TRANSACTION-SCOPED CONTEXT.
+ *
+ * This is the shape `docs/STORAGE_SPEC.md` §14 decision 1 specifies, and the
+ * hazard it removes is concrete rather than tidiness: the learner's profile write
+ * and the evidence append that justifies it must be ONE unit. Today they are two
+ * calls the route makes in sequence, and every claim this project makes about a
+ * learner rests on the caller getting that sequence right under concurrency.
+ *
+ * WHY A CONTEXT OBJECT rather than a lock plus free functions. A database backend
+ * cannot answer "append this event" on a connection it did not choose: the append
+ * has to travel on the SAME connection that holds the learner's lock, or the two
+ * operations block each other (one holds the advisory lock, the other waits for a
+ * connection that can never be granted). Passing the context IN makes that
+ * dependency visible at the call site and impossible to get wrong by accident —
+ * `ctx.appendEvents(...)` cannot open a second connection, because there is no
+ * other connection in scope. The alternative designs were both rejected:
+ *
+ *   · a module-global "current transaction" — the user's own words for it are
+ *     "an undocumented global variable", and it silently leaks across awaits;
+ *   · letting the backend guess ("am I inside a transaction?") — which is a
+ *     question a file backend answers differently from a database, so the two
+ *     backends would disagree about what a caller's code means.
+ *
+ * WHAT THE BACKEND OWES THE CALLER:
+ *   · every read and write here happens inside one serialised unit for this
+ *     learner, so no other request can observe a half-applied change;
+ *   · a `fn` that THROWS leaves the learner's RECORD exactly as it was — the
+ *     staged write is dropped, not committed;
+ *   · an event append that already succeeded may STAND (an append-only ledger is
+ *     not an edit, and replaying the same event id is a no-op — the idempotence
+ *     the retry path depends on), so the contract is "the record does not move",
+ *     never "the ledger rewinds". A database backend rolls both back because it
+ *     can; a caller must be correct under the weaker of the two.
+ */
+export interface LearnerContext {
+  /** The learner this transaction is about. */
+  readonly learnerId: string;
+  readonly kind: StoreKind;
+  /** The record as of the start of the transaction — or `null`, because a
+   *  transaction is also the shape a DELETION needs (a retried erase must be able
+   *  to finish removing a learner whose record is already gone). */
+  getProfile(): Promise<ProfileState | null>;
+  /** Stage a write of this (possibly mutated) record. Committed with the
+   *  transaction — never before it, and never if `fn` throws. */
+  saveProfile(state: ProfileState): Promise<void>;
+  /** Stage the removal of the record, inside the transaction. Returns whether
+   *  there was one to remove. */
+  deleteProfile(): Promise<boolean>;
+  /** This learner's history, OLDEST FIRST — the same promise as
+   *  `Storage.readEvents`, kept on the transaction's own connection. */
+  readEvents(): Promise<EvidenceEvent[]>;
+  /** Append events, idempotent by event id — the same promise as
+   *  `Storage.appendEvents`, kept on the transaction's own connection. */
+  appendEvents(events: readonly EvidenceEvent[]): Promise<AppendResult>;
+}
+
+/** How many of each, for a hub's at-a-glance counts. A separate method rather
+ *  than "list them and take the length" because a database answers this with a
+ *  `COUNT(*)`, and because the COUNT is the thing a surface must not invent: a
+ *  store that cannot be read must report a failure, never zero (F-1 of
+ *  docs/STORAGE_SPEC.md §13 — `learners: 0` reaching a school is a false
+ *  statement about that school). */
+export interface StoreCounts {
+  learners: number;
+  rooms: number;
+  classes: number;
 }
 
 /**
@@ -86,11 +161,42 @@ export interface Storage {
     id: string,
     mutator: (state: ProfileState) => T | Promise<T>,
   ): Promise<{ state: ProfileState; result: T } | null>;
-  /** Erase a learner: the record, its ledger, its papers, and the RECORD OF THE
-   *  INTENT — which is what lets a restore taken before the erase re-apply it. */
-  eraseProfile(id: string): Promise<boolean>;
+  /** THE LEARNER TRANSACTION (§14 decision 1). Read the record, append the events
+   *  that justify the change, re-project, write the record — as one unit, on one
+   *  connection, serialised against every other writer. Returns what `fn`
+   *  returned, so a caller reads the result of its own work rather than
+   *  re-fetching it. A `fn` that throws rolls the RECORD back; see
+   *  `LearnerContext` for exactly what that promise does and does not cover. */
+  withLearner<T>(learnerId: string, fn: (ctx: LearnerContext) => T | Promise<T>): Promise<T>;
+
+  /** Remove a learner's RECORD — the profile, and nothing else.
+   *
+   *  Deliberately narrow, and that is F-2 of docs/STORAGE_SPEC.md §13: the erase
+   *  is a SEQUENCE (ledger, papers, memberships, record, tombstone) and no single
+   *  backend call owns it, because a sequence is what makes it resumable and what
+   *  keeps the two callers — the live route and a restore — removing the same
+   *  things in the same order (`lib/server/erasure.ts`). A method that also wrote
+   *  the tombstone conflated "removing the record" with "recording the
+   *  instruction", which is why the instruction used to be written after a
+   *  half-finished removal could no longer be resumed. */
+  deleteProfile(id: string): Promise<boolean>;
+  /** Append the learner to the ERASURE LOG — the instruction a restore
+   *  re-applies, and the journal an interrupted erase resumes from. Idempotent:
+   *  a learner already in the log is left alone and `at` does not move. */
+  recordErasure(learnerId: string, at: number): Promise<boolean>;
+  /** Mark that instruction FINISHED, once the effects are removed and verified.
+   *  The pair is the erase's two states, and one timestamp could not carry them. */
+  confirmErasure(learnerId: string, at: number): Promise<boolean>;
+  /** The erasure log: who asked to be forgotten, and when. */
+  readErasures(): Promise<ErasureRecord[]>;
+  /** Remove one learner's personal papers, by OWNER. Returns how many were
+   *  removed. The live erase and the restore both call this, which is the whole
+   *  of F-2: they used to disagree about a learner's own marked work. */
+  deletePersonalPapersFor(owner: string): Promise<number>;
   /** Remove a learner from every class roster, in place. */
   removeMemberEverywhere(profileId: string): Promise<number>;
+  /** How many learners, rooms and classes this store holds. */
+  counts(): Promise<StoreCounts>;
 
   // ── The ledger: read AND write, and every method ASYNC ───────────────────
   //
@@ -188,8 +294,14 @@ export const STORAGE_METHODS: readonly (keyof Storage)[] = [
   "listProfiles",
   "saveProfile",
   "updateProfile",
-  "eraseProfile",
+  "withLearner",
+  "deleteProfile",
+  "recordErasure",
+  "confirmErasure",
+  "readErasures",
+  "deletePersonalPapersFor",
   "removeMemberEverywhere",
+  "counts",
   "readEvents",
   "appendEvents",
   "learnersWithEvents",

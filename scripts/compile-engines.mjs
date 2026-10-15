@@ -169,6 +169,13 @@ export const ENGINE_SOURCES = [
   // directories — including the archive-taken-before-the-erase case — so it is
   // compiled with the rest rather than described in prose.
   "lib/server/erasures.ts",
+  // ONE ERASURE, TWO CALLERS, ONE ORDER (docs/STORAGE_SPEC.md §14 decision 2):
+  // the workflow the live route and a restore both run. Compiled and required by
+  // the suite so the two targets are driven against the SAME assertions — the
+  // live port and a restored directory — which is the only way to catch the F-2
+  // class of defect (one path removing a learner's personal papers and the other
+  // leaving them) rather than describing it.
+  "lib/server/erasure.ts",
   // Real accounts: scrypt hashing, the signed session token, and the cookie
   // attributes. Compiled with the rest so the suite can assert the SESSION
   // FLAGS BEHAVIOURALLY (Secure follows the scheme, never blanket-on or

@@ -44,6 +44,9 @@ import { PROJECTION_VERSION, orderEvents, type EvidenceEvent } from "../evidence
 import type { ProfileState } from "../types";
 import { adoptProjection, reconcileDeep, replayModel } from "../replay";
 import { appendEvidence, readEvidence, type AppendResult } from "./evidence";
+// The transaction-scoped context, TYPE-ONLY: this module must not import a
+// backend, because it is called from inside one.
+import type { LearnerContext } from "./storage";
 
 /**
  * Stamp the pre-ledger snapshot, ONCE, and only when the ledger genuinely does
@@ -125,8 +128,52 @@ export function unprojectableShare(state: ProfileState): { concepts: number; att
 }
 
 /**
- * THE WRITE PATH. Append the events, confirm they landed, then re-project the
- * learner model from the whole ledger and adopt it.
+ * THE WRITE PATH'S FOUR STEPS, ONCE.
+ *
+ * WRITE EVENT → CONFIRM APPEND → REPLAY → RESPOND is one sequence and it now has
+ * one implementation, because the two entries below differ ONLY in where the
+ * ledger lives — the port, or the transaction context a caller is already inside.
+ * A second copy of this sequence is how the two would come to disagree about, say,
+ * which mark the replay folds from, and that disagreement would be a projection
+ * that double-counts an answer on one path and not the other.
+ */
+async function commitThrough(
+  learnerId: string,
+  state: ProfileState,
+  events: readonly EvidenceEvent[],
+  io: {
+    read(): Promise<EvidenceEvent[]>;
+    append(events: readonly EvidenceEvent[]): Promise<AppendResult>;
+  },
+): Promise<AppendResult> {
+  if (!events.length) return { accepted: [], duplicates: [] };
+  // 0. Read the ledger BEFORE the append: this is the reference the base
+  //    decision is measured against, and it is the prefix of the replay below.
+  //    Ordering it here keeps that prefix meaningful — the replay folds in
+  //    clock order, so the mark it skips must count in clock order too. (The
+  //    port already promises clock order, so this is idempotent; it is kept as
+  //    the statement of what the prefix means, not as the only place it holds.)
+  const before = orderEvents(await io.read());
+  // 1. Decide whether anything here predates the ledger. Nothing does for a
+  //    learner whose history the ledger already carries, and they get no base —
+  //    which is the claim worth keeping strong.
+  ensureProjectionBase(learnerId, state, events[0].at, before);
+  // 2. WRITE, and let the store — not the caller — decide what was new.
+  const result = await io.append(events);
+  // 3. REPLAY the ledger as it now stands. The post-append ledger is the prefix
+  //    plus exactly the events the store ACCEPTED — a duplicate is already in
+  //    the prefix and must not be folded twice — so one read serves both the
+  //    base decision and the projection.
+  const accepted = new Set(result.accepted);
+  const after = accepted.size
+    ? [...before, ...events.filter((e) => accepted.has(e.id))]
+    : before;
+  projectFromLedger(state, after);
+  return result;
+}
+
+/**
+ * THE WRITE PATH, through the configured backend.
  *
  * Call it from INSIDE the caller's profile lock, so the append and the
  * projection cannot be interleaved with another request for the same learner.
@@ -138,34 +185,40 @@ export function unprojectableShare(state: ProfileState): { concepts: number; att
  * through to a model update. An answer whose evidence could not be written is
  * not recorded, and the learner is told so rather than being shown a model that
  * moved for no auditable reason.
+ *
+ * A caller that is already inside a learner transaction must use
+ * `commitAndProjectIn` instead: this one asks the PORT for the ledger, and on a
+ * database backend that means a connection the transaction does not hold — the
+ * deadlock `docs/STORAGE_SPEC.md` §14 decision 1 exists to prevent.
  */
 export async function commitAndProject(
   learnerId: string,
   state: ProfileState,
   events: readonly EvidenceEvent[],
 ): Promise<AppendResult> {
-  if (!events.length) return { accepted: [], duplicates: [] };
-  // 0. Read the ledger BEFORE the append: this is the reference the base
-  //    decision is measured against, and it is the prefix of the replay below.
-  //    Ordering it here keeps that prefix meaningful — the replay folds in
-  //    clock order, so the mark it skips must count in clock order too. (The
-  //    port already promises clock order, so this is idempotent; it is kept as
-  //    the statement of what the prefix means, not as the only place it holds.)
-  const before = orderEvents(await readEvidence(learnerId));
-  // 1. Decide whether anything here predates the ledger. Nothing does for a
-  //    learner whose history the ledger already carries, and they get no base —
-  //    which is the claim worth keeping strong.
-  ensureProjectionBase(learnerId, state, events[0].at, before);
-  // 2. WRITE, and let the store — not the caller — decide what was new.
-  const result = await appendEvidence(learnerId, events);
-  // 3. REPLAY the ledger as it now stands. The post-append ledger is the prefix
-  //    plus exactly the events the store ACCEPTED — a duplicate is already in
-  //    the prefix and must not be folded twice — so one read serves both the
-  //    base decision and the projection.
-  const accepted = new Set(result.accepted);
-  const after = accepted.size
-    ? [...before, ...events.filter((e) => accepted.has(e.id))]
-    : before;
-  projectFromLedger(state, after);
-  return result;
+  return commitThrough(learnerId, state, events, {
+    read: () => readEvidence(learnerId),
+    append: (batch) => appendEvidence(learnerId, batch),
+  });
+}
+
+/**
+ * THE WRITE PATH, inside a learner transaction (§14 decision 1).
+ *
+ * Same four steps, same `state`, and the ledger operations go through the
+ * CONTEXT — which is the only object that can promise they travel on the
+ * transaction's own connection. This is the entry point every route migrates to
+ * as its mutator learns to take the context (docs/STORAGE_SPEC.md §14, phase C);
+ * until then `commitAndProject` above serves them, and it is correct on the file
+ * backend precisely because a file store has no second connection to open.
+ */
+export async function commitAndProjectIn(
+  ctx: LearnerContext,
+  state: ProfileState,
+  events: readonly EvidenceEvent[],
+): Promise<AppendResult> {
+  return commitThrough(ctx.learnerId, state, events, {
+    read: () => ctx.readEvents(),
+    append: (batch) => ctx.appendEvents(batch),
+  });
 }

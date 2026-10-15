@@ -1,5 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
+// Ids are RANDOM, not clock-derived — see `newId` for why the shape changed.
+import { randomUUID } from "node:crypto";
 // The profile's own shape and its wire-stripping rule are PURE, and the static
 // build (no server at all) needs both — so they live in lib/learner-profile.ts
 // and are re-exported here. A second copy would be a default that drifts.
@@ -10,11 +12,21 @@ import { bindLegacyHandles, hasRow, removeMember } from "./class-membership";
 // The erasure log. An erase records an INTENT here as well as removing the data,
 // because a backup taken earlier still holds the learner and a restore would put
 // them back — see lib/server/erasures.ts, and `npm run restore-drill`.
-import { ERASURES_FILE, appendErasure } from "./erasures";
+import {
+  ERASURES_FILE,
+  appendErasure,
+  confirmErasure as confirmErasureInDir,
+  readErasures,
+  type ErasureRecord,
+} from "./erasures";
 // The storage port. Imported for its REAL effect as well as its types: resolving
 // the configured backend at module load is what refuses a deployment that asked
 // for a backend this build cannot serve.
-import { resolveStoreKind } from "./storage";
+import { resolveStoreKind, type LearnerContext, type StoreCounts } from "./storage";
+// The repo's ONE event-ordering rule. The port promises `readEvents` is oldest
+// first, and the transaction context must keep that promise on its own path —
+// this is the same call `storage-file.ts` makes for the backend's own read.
+import { orderEvents, type AppendResult, type EvidenceEvent } from "../evidence";
 // The ONE owner of "may this deployment keep a learner's record": see
 // `storeWriteBlock` below, which is the write path's half of it.
 import { storeReadiness } from "../env";
@@ -136,6 +148,27 @@ export async function readJson<T>(file: string, fallback: T): Promise<T> {
   }
 }
 
+/**
+ * READ IT, OR SAY YOU COULD NOT — the strict half of `readJson`.
+ *
+ * `readJson` answers its fallback for BOTH "there is no file" and "the file is
+ * there and I could not read it", which is right for a record lookup (a learner
+ * who is not stored and a learner whose store is corrupt both answer 404) and
+ * wrong for a COUNT. This is F-1 of docs/STORAGE_SPEC.md §13: a hub told a school
+ * `learners: 0` because reading `profiles.json` threw. An ABSENT file is still an
+ * empty store (a school that has never enrolled anybody must not see an error),
+ * but anything else — a permission error, a truncated file, a volume that did not
+ * mount — is a failure to report as one.
+ */
+async function readJsonStrict<T>(file: string, fallback: T): Promise<T> {
+  try {
+    return JSON.parse(await fs.readFile(path.join(DATA_DIR, file), "utf8")) as T;
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException)?.code === "ENOENT") return fallback;
+    throw e;
+  }
+}
+
 export async function writeJson(
   file: string,
   data: unknown,
@@ -184,14 +217,18 @@ export async function saveProfile(state: ProfileState): Promise<void> {
 }
 
 /**
- * Delete a profile's record entirely. The one path privacy's right to erasure
- * can take (§23): the profile, its ledger and its personal papers all go.
- * Evidence is append-only on the normal paths — deletion is a deliberate,
- * learner-initiated act, not an edit, which is why it lives here beside the
- * store's other whole-record operations rather than on any route.
+ * Remove a learner's RECORD. Nothing else, deliberately.
+ *
+ * This used to write the erasure tombstone too, and that pairing is what made a
+ * half-finished erase unresumable (F-2 of docs/STORAGE_SPEC.md §13): the record
+ * could be gone while the ledger, the personal papers and the memberships were
+ * still there, and the instruction that would have let a retry or a restore
+ * finish the job was the LAST thing written. The record and the instruction are
+ * now two calls, and the erasure is one workflow that makes them one unit
+ * (`lib/server/erasure.ts`) — used by the live route and by a restore.
  */
 export async function deleteProfile(id: string): Promise<boolean> {
-  const removed = await withLock("profiles.json", async () => {
+  return withLock("profiles.json", async () => {
     const all = await readJson<Record<string, ProfileState>>("profiles.json", {});
     if (!all[id]) return false;
     delete all[id];
@@ -200,15 +237,68 @@ export async function deleteProfile(id: string): Promise<boolean> {
     await writeJson("profiles.json", all, "erasure");
     return true;
   });
-  // The record of the INTENT, written only once the profile is really gone (a
-  // failed erase must not leave a tombstone claiming a learner was deleted).
-  // Held under the same lock table as every other write to this store, so two
-  // concurrent erases cannot lose each other's entry — and named beside the lock
-  // so the file is the same one `lib/server/erasures.ts` reads from a restore.
-  if (removed) {
-    await withLock(ERASURES_FILE, () => appendErasure(DATA_DIR, id, Date.now()));
-  }
-  return removed;
+}
+
+/**
+ * Record one learner's erasure intent: the line in `erasures.json` a RESTORE
+ * re-applies, and the journal an interrupted erase resumes from.
+ *
+ * Under the store's own lock table, so two concurrent erases cannot lose each
+ * other's entry, and named beside the lock so the file is the one
+ * `lib/server/erasures.ts` reads from a restored copy. Idempotent — the
+ * `appendErasure` rule — because the workflow writes it FIRST and a retry must
+ * not move a timestamp a restore has already reported.
+ */
+export async function recordErasure(learnerId: string, at: number): Promise<boolean> {
+  return withLock(ERASURES_FILE, () => appendErasure(DATA_DIR, learnerId, at));
+}
+
+/**
+ * Mark one learner's erasure FINISHED, once the workflow has removed the effects
+ * and verified the record's absence.
+ *
+ * The second half of the pair `recordErasure` starts: the instruction is written
+ * before the effects so an interrupted erase can be resumed, and this is what
+ * distinguishes a finished erase from an abandoned one — the difference the
+ * workflow verifies before it reports success.
+ */
+export async function confirmErasure(learnerId: string, at: number): Promise<boolean> {
+  return withLock(ERASURES_FILE, () => confirmErasureInDir(DATA_DIR, learnerId, at));
+}
+
+/** The erasure log this store holds. The live half of what a restore re-applies. */
+export async function readErasureLog(): Promise<ErasureRecord[]> {
+  return readErasures(DATA_DIR);
+}
+
+/**
+ * One learner's PERSONAL PAPERS, by owner — removed, and how many went.
+ */
+export async function deletePersonalPapersFor(owner: string): Promise<number> {
+  return withLock("personal-papers.json", async () => {
+    const all = await readJson<Record<string, PersonalPaper>>("personal-papers.json", {});
+    const kept = Object.entries(all).filter(([, p]) => (p as PersonalPaper)?.owner !== owner);
+    if (kept.length === Object.keys(all).length) return 0;
+    await writeJson("personal-papers.json", Object.fromEntries(kept), "erasure");
+    return Object.keys(all).length - kept.length;
+  });
+}
+
+/**
+ * How many learners, rooms and classes this store holds.
+ *
+ * STRICT on purpose (see `readJsonStrict`): a count is a statement about a school,
+ * and a failed read must not become `0`. The old hub door did exactly that — it
+ * read `profiles.json` itself and answered `learners: 0` from its `catch` — which
+ * is a false statement about the school wearing the costume of an empty one.
+ */
+export async function counts(): Promise<StoreCounts> {
+  const [profiles, rooms, classes] = await Promise.all([
+    readJsonStrict<Record<string, ProfileState>>("profiles.json", {}),
+    readJsonStrict<StudyRoom[]>("rooms.json", []),
+    readJsonStrict<ClassRoster[]>("classes.json", []),
+  ]);
+  return { learners: Object.keys(profiles).length, rooms: rooms.length, classes: classes.length };
 }
 
 /** Remove one learner's membership from every class roster, in place. Used by
@@ -242,21 +332,130 @@ export async function listProfileStates(): Promise<ProfileState[]> {
   return Object.values(all);
 }
 
+// ── THE LEARNER TRANSACTION ─────────────────────────────────────────────────
+//
+// One learner's record and every event that justifies it, as ONE unit, on one
+// serialised path. docs/STORAGE_SPEC.md §14 decision 1 specifies it and this is
+// the file backend's implementation.
+//
+// WHY THE LEDGER IS INJECTED RATHER THAN IMPORTED. The file ledger
+// (`lib/server/evidence-file.ts`) has exactly ONE importer, `storage-file.ts`,
+// and `npm run verify` fails if that stops being true — that rule is what keeps
+// "the ledger" and "the JSONL file" from becoming the same import again, which is
+// how a backend silently stops being swappable. So the backend REGISTERS its own
+// ledger reader/writer here, once, at module load, and the context calls through
+// it. (`updateProfile` below never touches the ledger methods, so a caller that
+// reaches the store without a backend loaded — a test, a drill — still works; the
+// ledger methods are the only ones that need the registration, and they say so.)
+export interface LedgerIO {
+  /** This learner's events, in APPEND order — the context applies the ordering rule. */
+  read(learnerId: string): EvidenceEvent[];
+  append(learnerId: string, events: readonly EvidenceEvent[]): Promise<AppendResult>;
+}
+
+let ledgerIO: LedgerIO | null = null;
+
+export function registerLedgerIO(io: LedgerIO): void {
+  ledgerIO = io;
+}
+
+function ledgerFor(learnerId: string): LedgerIO {
+  if (!ledgerIO) {
+    throw new Error(
+      "this transaction asked for " + learnerId + "'s ledger before a backend registered one " +
+      "(lib/server/storage-file.ts calls registerLedgerIO at load) — a ledger operation outside a " +
+      "loaded backend is a configuration bug, not a missing learner",
+    );
+  }
+  return ledgerIO;
+}
+
+/**
+ * THE LEARNER TRANSACTION (§14 decision 1) — and the ONE read-modify-write of
+ * `profiles.json` in this codebase.
+ *
+ * The ordering it enforces is the architecture's, not this file's: the caller
+ * WRITES THE EVENT, CONFIRMS THE APPEND, REPLAYS, and only then does the record's
+ * write get committed — because the record's write is STAGED here and flushed
+ * after `fn` returns. That inversion is the point: a `fn` that throws (an append
+ * that failed, a validation that refused, a route that answered 503) leaves the
+ * record exactly as it was, so a model that cannot be reconstructed from the
+ * ledger is not a state the code can reach.
+ *
+ * WHAT `fn` CANNOT GET: a second writer. The whole body runs under
+ * `profiles.json`'s lock, which is a promise chain for this key — so calling
+ * `withLock("profiles.json", …)` from inside `fn` (which `updateProfile`'s
+ * mutator does not, and `commitAndProject` does not: it opens no lock of its own)
+ * would QUEUE BEHIND THIS ONE and hang. Nothing inside a transaction may take the
+ * profile lock again; that is why the context exists rather than the caller doing
+ * both steps.
+ *
+ * THE LOCK ORDER, unchanged and load-bearing: profiles.json → the learner's
+ * ledger. Nothing anywhere takes them the other way round, and this function is
+ * where that order is created.
+ */
+export async function withLearner<T>(
+  id: string,
+  fn: (ctx: LearnerContext) => T | Promise<T>,
+): Promise<T> {
+  return withLock("profiles.json", async () => {
+    const all = await readJson<Record<string, ProfileState>>("profiles.json", {});
+    // The staged write. `null` = nothing to change; `removed` = the record is to
+    // be deleted instead. Never both.
+    let staged: ProfileState | null = null;
+    let removed = false;
+    const ctx: LearnerContext = {
+      learnerId: id,
+      kind: "file",
+      getProfile: async () => all[id] ?? null,
+      saveProfile: async (state) => {
+        if (state.profile.id !== id) {
+          throw new Error(`a transaction for ${id} cannot write ${state.profile.id}'s record`);
+        }
+        staged = state;
+        removed = false;
+      },
+      deleteProfile: async () => {
+        if (!all[id]) return false;
+        removed = true;
+        staged = null;
+        return true;
+      },
+      readEvents: async () => orderEvents(ledgerFor(id).read(id)),
+      appendEvents: (events) => ledgerFor(id).append(id, events),
+    };
+    // Throwing here commits NOTHING: no write has happened yet.
+    const result = await fn(ctx);
+    if (removed) {
+      delete all[id];
+      await writeJson("profiles.json", all, "erasure");
+    } else if (staged) {
+      all[id] = staged;
+      await writeJson("profiles.json", all);
+    }
+    return result;
+  });
+}
+
 /**
  * Atomic read-modify-write: the mutator runs while the file lock is held, so
  * concurrent handlers (double-fired effects, parallel tabs, racing answers)
  * can never lose each other's updates.
+ *
+ * A SPECIALISATION of `withLearner`, not a second implementation of it — so the
+ * two cannot drift into disagreeing about what a serialised write means. `null`
+ * means the learner does not exist, and the mutator is never run for one who does
+ * not (creating is not a mutation of an existing learner: §3 Q2 of the spec).
  */
 export async function updateProfile<T>(
   id: string,
   mutator: (state: ProfileState) => T | Promise<T>,
 ): Promise<{ state: ProfileState; result: T } | null> {
-  return withLock("profiles.json", async () => {
-    const all = await readJson<Record<string, ProfileState>>("profiles.json", {});
-    const state = all[id];
+  return withLearner(id, async (ctx) => {
+    const state = await ctx.getProfile();
     if (!state) return null;
     const result = await mutator(state);
-    await writeJson("profiles.json", all);
+    await ctx.saveProfile(state);
     return { state, result };
   });
 }
@@ -405,43 +604,57 @@ export async function cacheSet(key: string, value: unknown): Promise<void> {
 // ── Classes ─────────────────────────────────────────────────────────────────
 
 /**
- * EVERY class read passes through here, so a roster written before member ids
- * existed is reconciled ONCE (lib/server/class-membership#bindLegacyHandles)
- * and the result is written back — after which every membership decision is
- * identity-only. The alternative was matching a display name on every read,
- * which let any profile with the same name into the class.
+ * Does this roster still carry the shape written before member ids existed?
  *
- * The write happens only when something actually changed, so a normal read
- * costs one extra JSON read and no write. A class whose handles are ambiguous
- * is left alone: an unowned row grants nothing, and it is tried again on a
- * later read in case the ambiguity resolves (two profiles, one name is the
- * only case this refuses to guess about).
- *
- * Two shapes need reconciling, and both are the same missing fact: a row with
- * no identity (written before member ids existed), and a member with no row
- * (a learner whose row the old join rebound onto somebody else).
+ * Two shapes, and both are the same missing fact: a row with no identity
+ * (written before member ids existed), and a member with no row (a learner whose
+ * row the old join rebound onto somebody else).
  */
 function needsIdentity(cls: ClassRoster): boolean {
   if (Object.keys(cls.students ?? {}).some((h) => !cls.membersById?.[h])) return true;
   return (cls.members ?? []).some((id) => !hasRow(cls, id));
 }
 
-async function classesWithIdentity(): Promise<ClassRoster[]> {
-  const all = await readJson<ClassRoster[]>("classes.json", []);
-  if (!all.some(needsIdentity)) return all;
-  const states = await listProfileStates();
-  let changed = false;
-  for (const cls of all) if (bindLegacyHandles(cls, states)) changed = true;
-  // Best-effort on purpose: this write is a reconciliation a READ performs, and
-  // a read must never fail because it could not write back — least of all on a
-  // deployment that has refused learner-data writes. The binding is tried again
-  // on the next read, so nothing is lost by skipping it here.
-  if (changed) await withLock("classes.json", () => writeJson("classes.json", all)).catch(() => {});
-  return all;
+/**
+ * THE LEGACY-ROSTER REPAIR — EXPLICIT, IDEMPOTENT, AND NO LONGER A SIDE EFFECT
+ * OF READING.
+ *
+ * A roster written before member ids existed holds `students: { handle: … }` and
+ * nothing that says WHO those handles are. Reconciling it means matching names
+ * ONCE and writing the identity down (lib/server/class-membership#bindLegacyHandles
+ * — the alternative was matching a name on every read, which let a stranger into
+ * a class).
+ *
+ * It used to run inside `listClasses`/`getClass`: every roster READ took
+ * `profiles.json`, rewrote `classes.json`, and swallowed a write failure with
+ * `.catch(() => {})`. Three things wrong with that, all of them F-3 of
+ * docs/STORAGE_SPEC.md §13: a read mutated durable state, a read could never
+ * report the write it was making, and a failure to repair was invisible — a
+ * teacher's table silently missing rows, with no error anywhere. So it is now a
+ * named operation with a named caller, it PROPAGATES its failure, and the two
+ * read functions below are pure.
+ *
+ * Safe to call repeatedly: a bound handle is skipped, and an ambiguous one is
+ * simply tried again (it binds the moment the name is unambiguous, which is the
+ * only time a guess is not a guess).
+ */
+export async function reconcileClassIdentities(): Promise<{ classes: number; repaired: number }> {
+  return withLock("classes.json", async () => {
+    const all = await readJson<ClassRoster[]>("classes.json", []);
+    if (!all.some(needsIdentity)) return { classes: all.length, repaired: 0 };
+    const states = await listProfileStates();
+    let repaired = 0;
+    for (const cls of all) if (bindLegacyHandles(cls, states)) repaired++;
+    if (repaired > 0) await writeJson("classes.json", all);
+    return { classes: all.length, repaired };
+  });
 }
 
+/** Every roster, exactly as stored. A READ: it writes nothing, repairs nothing
+ *  and takes no lock — see `reconcileClassIdentities` for the repair, which is
+ *  the caller's explicit step. */
 export async function listClasses(): Promise<ClassRoster[]> {
-  return classesWithIdentity();
+  return readJson<ClassRoster[]>("classes.json", []);
 }
 
 export async function saveClass(cls: ClassRoster): Promise<void> {
@@ -454,7 +667,7 @@ export async function saveClass(cls: ClassRoster): Promise<void> {
 }
 
 export async function getClass(id: string): Promise<ClassRoster | null> {
-  const all = await classesWithIdentity();
+  const all = await listClasses();
   return all.find((c) => c.id === id) ?? null;
 }
 
@@ -491,13 +704,67 @@ export async function updateClassById<T>(
   });
 }
 
+/**
+ * AN ID, RANDOMLY — 122 bits of it, from the platform's own generator.
+ *
+ * The old shape was `<base36 millis><6 random base36>` and it was F-4 of
+ * docs/STORAGE_SPEC.md §13. Two ids minted in the same millisecond collided with
+ * probability ~1 in 2·10⁹, which is fine for a file store and NOT an answer to
+ * "how does a database keep this unique": a database's guarantee is a PRIMARY KEY,
+ * the id has to be unique BEFORE the constraint is consulted or every insert
+ * becomes a retry, and a collision there is a failed insert for a learner who did
+ * nothing wrong. It also leaked the creation time off the id wherever an id is
+ * visible (a URL, an export). `randomUUID` is the platform's CSPRNG, and the
+ * dashes are dropped so the result stays one path-safe token for the ledger's
+ * file names.
+ */
 export function newId(prefix: string): string {
-  return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  return `${prefix}_${randomUUID().replace(/-/g, "")}`;
 }
 
+/** The alphabet a join code is drawn from: no I, L, O, 0 or 1, because a learner
+ *  reads this off a whiteboard and types it on a phone keypad. 31 characters, so
+ *  six of them is ~2^29.6 — enough that a collision is an accident rather than a
+ *  routine event, and small enough to write down. */
+const JOIN_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
 export function joinCode(): string {
-  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   let s = "";
-  for (let i = 0; i < 6; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)];
+  for (let i = 0; i < 6; i++) s += JOIN_ALPHABET[Math.floor(Math.random() * JOIN_ALPHABET.length)];
   return s;
+}
+
+/**
+ * CREATE A CLASS, WITH A JOIN CODE NOBODY ELSE HOLDS.
+ *
+ * F-4 again, and the shape is the whole point: the code is chosen and inserted
+ * inside ONE lock, so "is this code free?" and "write it" cannot be separated by
+ * another request — which is what a check-then-insert across two calls would do
+ * (that is the exact pattern the storage rule forbids: never decide a value is
+ * available and insert it later with nothing protecting the decision).
+ *
+ * The `build` callback receives the code so the caller cannot forget to use the
+ * one that was checked.
+ *
+ * A DATABASE'S guarantee is stronger and lives in the schema, not here:
+ * `classes_join_code_live_key` (db/migrations/0001_initial.up.sql) is a UNIQUE
+ * index on `upper(join_code)` over live classes. This loop is where that index's
+ * answer is honoured too — a unique violation is a collision, and the retry is
+ * the same next attempt. What must never happen is a SECOND live class holding a
+ * code a learner already has on a whiteboard, because a learner would then be
+ * enrolled in the wrong room by a correct action.
+ */
+export async function createClass(build: (joinCode: string) => ClassRoster): Promise<ClassRoster> {
+  return withLock("classes.json", async () => {
+    const all = await readJson<ClassRoster[]>("classes.json", []);
+    for (let attempt = 0; attempt < 32; attempt++) {
+      const code = joinCode();
+      if (all.some((c) => (c.joinCode ?? "").toUpperCase() === code)) continue;
+      const cls = build(code);
+      all.push(cls);
+      await writeJson("classes.json", all);
+      return cls;
+    }
+    throw new Error("no free join code after 32 attempts — the code space is exhausted, not unlucky");
+  });
 }

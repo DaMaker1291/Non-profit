@@ -29,8 +29,12 @@
 import {
   cacheGet,
   cacheSet,
+  confirmErasure,
+  counts,
+  deletePersonalPapersFor,
   deleteProfile,
   updateProfile,
+  withLearner,
   getClass,
   getPersonalPaper,
   getProfile,
@@ -42,6 +46,9 @@ import {
   listProfileStates,
   listRooms,
   readAllPacks,
+  readErasureLog,
+  recordErasure,
+  registerLedgerIO,
   removeMemberEverywhere,
   saveClass,
   savePack,
@@ -74,17 +81,26 @@ import { resolveStoreKind, type Storage } from "./storage";
 export const fileStorage: Storage = {
   kind: "file",
 
-  // Profiles. `eraseProfile` is `deleteProfile`, which removes the record AND
-  // appends the erasure intent — the pair a restore re-applies.
+  // Profiles. `deleteProfile` removes the RECORD and nothing else, and
+  // `recordErasure` writes the instruction — a deliberate pair, because the
+  // erasure is one workflow over both (lib/server/erasure.ts) and it must be able
+  // to write the instruction BEFORE the effects to stay resumable.
   getProfile,
   listProfiles: listProfileStates,
   saveProfile,
   // THE LEARNER TRANSACTION, and here it is literally the store's own
   // read-modify-write: the file backend does not re-implement it, so the two
-  // cannot drift into disagreeing about what a serialised write means.
+  // cannot drift into disagreeing about what a serialised write means. `withLearner`
+  // is the general contract and `updateProfile` is its one-mutator specialisation.
   updateProfile,
-  eraseProfile: deleteProfile,
+  withLearner,
+  deleteProfile,
+  recordErasure,
+  confirmErasure,
+  readErasures: readErasureLog,
+  deletePersonalPapersFor,
   removeMemberEverywhere,
+  counts,
 
   // The ledger. `readEvents` is in CLOCK order, which is what the port promises
   // and what `replayModel` folds; `appendEvents` is the store's own append (the
@@ -134,10 +150,33 @@ export const fileStorage: Storage = {
   getPersonalPaper,
   listPersonalPapers,
 
-  // The AI result cache.
+  // The AI result cache. The ONE method pair this file is allowed to keep
+  // file-backed: `ai-cache.json` is regenerable by design (§5 of the spec — a lost
+  // entry costs one model call), so it is the only declared exception to "every
+  // durable record goes through the selected backend". It is listed as EXCEPTIONAL
+  // rather than silently file-shaped because the exception has to be visible to a
+  // reader of the port, not discovered by one.
   cacheGet,
   cacheSet,
 };
+
+// ── THE BACKEND DECLARES ITS OWN LEDGER ─────────────────────────────────────
+//
+// One line, and it is the price of a rule worth keeping: `lib/server/evidence-file.ts`
+// has exactly ONE importer — this file — and `npm run verify` fails if a second
+// module starts naming it. A transaction (`store.ts#withLearner`) needs to read
+// and append a learner's events inside the profile lock, and if it imported the
+// ledger itself that rule would be false for the most important caller of all.
+// So the backend registers its ledger here, at module load, and the context calls
+// through the registration. The direction is still backend → both halves; nothing
+// the transaction does can reach a file the configured backend did not write.
+registerLedgerIO({
+  // APPEND order, deliberately: the context applies the repo's one ordering rule
+  // (`orderEvents`) to what this returns, exactly as `readEvents` above does — so
+  // the port's "oldest first" promise holds identically on both paths.
+  read: (learnerId) => readEvidence(learnerId),
+  append: (learnerId, events) => appendEvidence(learnerId, events),
+});
 
 /**
  * The backend this deployment runs, resolved from the environment.

@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
-import { deleteProfile, getProfile, newProfileState, publicProfileState, saveProfile, removeMemberEverywhere } from "@/lib/server/store";
-import { deleteEvidence } from "@/lib/server/evidence";
+import { getProfile, newProfileState, publicProfileState, saveProfile } from "@/lib/server/store";
+// THE ERASURE IS ONE WORKFLOW, shared with the restore path — see
+// lib/server/erasure.ts for why it is a sequence rather than three calls from
+// this route, and why the instruction is written before the effects.
+import { eraseLearner, portErasureTarget } from "@/lib/server/erasure";
+import { activeStorage } from "@/lib/server/storage-file";
 // A store that has refused learner-data writes throws from inside `saveProfile`;
 // this is the one place that turns the refusal into the answer a learner reads.
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
@@ -401,8 +405,9 @@ export async function DELETE(req: Request): Promise<NextResponse> {
   if (searchParams.get("confirm") !== "ERASE") {
     return NextResponse.json({ error: "confirm_required" }, { status: 400 });
   }
-  const removed = await deleteProfile(id);
-  await deleteEvidence(id);
-  await removeMemberEverywhere(id);
-  return NextResponse.json({ ok: true, removed });
+  const outcome = await eraseLearner(portErasureTarget(activeStorage()), id);
+  // `removed` is kept at its old meaning ("there was a record and it is gone") so
+  // an existing caller or script does not have to learn the richer shape, and the
+  // outcome rides beside it for a caller that wants to know what else went.
+  return NextResponse.json({ ok: true, removed: outcome.existed, erased: outcome });
 }

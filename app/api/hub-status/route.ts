@@ -1,30 +1,46 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import { resolveDeployment } from "@/lib/deployment";
-// The store owns where the data is. This route resolved OPENMIND_DATA_DIR for
-// itself, which made a third answer to "where is the store" — see the
-// one-data-directory assertion in scripts/verify-engines.mjs.
-import { DATA_DIR } from "@/lib/server/store";
-
-async function countFile(file: string): Promise<number> {
-  try {
-    const raw = await fs.readFile(path.join(DATA_DIR, file), "utf8");
-    const j = JSON.parse(raw);
-    if (Array.isArray(j)) return j.length;
-    return Object.keys(j).length;
-  } catch {
-    return 0;
-  }
-}
+// THE COUNTS COME FROM THE STORE, NOT FROM THE FILESYSTEM.
+//
+// This route used to read the data directory itself:
+//
+//     countFile("profiles.json") → fs.readFile(path.join(DATA_DIR, …)) → catch → 0
+//
+// and that is F-1 of docs/STORAGE_SPEC.md §13. Three things were wrong with it,
+// and only the third is visible:
+//
+//   1. It named the FILE LAYOUT — the one thing the storage port exists to keep
+//      private — so it was a second answer to "where does learner data live", and
+//      the first casualty was a database deployment, where there is no
+//      `profiles.json` at all.
+//   2. Its failure path was a COUNT OF ZERO, so a hub whose store could not be
+//      read told a school `learners: 0`. That is not a degraded answer; it is a
+//      false statement about the school, wearing the costume of an empty one, and
+//      it arrived with HTTP 200.
+//   3. The source-level guard did not catch it either: that guard forbids importing
+//      `readJson`/`writeJson`, and this used `fs.readFile` — which is exactly the
+//      lesson `npm run verify` now pins (a route may not NAME a store file).
+//
+// So: one call to the port, which a database answers with a COUNT(*), and a
+// REFUSAL rather than a number when the store cannot be read.
+import { activeStorage } from "@/lib/server/storage-file";
 
 /** GET /api/hub-status — community hub at a glance. Counts only, no PII —
  *  and deliberately no filesystem paths: a hub's data directory layout is
  *  infrastructure detail the LAN doesn't need. */
 export async function GET(): Promise<NextResponse> {
-  const [profiles, rooms, classes] = await Promise.all([
-    countFile("profiles.json"), countFile("rooms.json"), countFile("classes.json"),
-  ]);
+  let counts: { learners: number; rooms: number; classes: number };
+  try {
+    counts = await activeStorage().counts();
+  } catch (e) {
+    // A hub that cannot count is NOT a hub with no learners. 503 with a code (and
+    // no numbers at all, rather than numbers that are wrong), which is what a
+    // monitor and a teacher both need to see.
+    return NextResponse.json(
+      { hub: true, error: "store_unavailable", detail: (e as Error)?.message ?? "store read failed" },
+      { status: 503, headers: { "cache-control": "no-store" } },
+    );
+  }
   // THE ENVIRONMENT THIS HUB IS ACTUALLY RUNNING AS. A school's constraints
   // are declared in the environment, which means the person who can see the
   // hub could not see the declaration without going to the machine — and
@@ -38,9 +54,9 @@ export async function GET(): Promise<NextResponse> {
     hub: true,
     version: "1.0.0",
     now: Date.now(),
-    learners: profiles,
-    rooms,
-    classes,
+    learners: counts.learners,
+    rooms: counts.rooms,
+    classes: counts.classes,
     deployment: {
       id: profile.id,
       label: profile.label,
