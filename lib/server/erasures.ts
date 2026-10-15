@@ -14,7 +14,10 @@
 //
 // So the erase records an INTENT while it removes the data (`erasures.json`:
 // learner id + when), and a restore RE-APPLIES that intent to whatever store it
-// just materialised. The log is tiny, append-only and one line per learner, so it
+// just materialised. The log is tiny and append-only — one line per instruction,
+// plus one line when the erase is CONFIRMED, because the SQL twin of this file is
+// append-only BY TRIGGER and a completion is therefore a second record rather than
+// an edit of the first — so it
 // is the one file worth carrying beside the archives — that is why
 // `npm run restore-drill` takes `--erasure-source`.
 //
@@ -55,24 +58,39 @@ export const ERASURES_FILE = "erasures.json";
 /** Where a learner's ledger lives, relative to a store directory. */
 const EVIDENCE_DIR = "evidence";
 
+/**
+ * WHAT A LINE IN THE LOG IS.
+ *
+ *   recorded  — the INSTRUCTION: "this learner asked to be forgotten".
+ *   completed — the CONFIRMATION: "the effects are gone", appended AFTER it.
+ *
+ * TWO RECORDS AND NOT ONE MUTABLE ONE, and the schema is what decided it.
+ * `docs/STORAGE_SPEC.md` §14.2 first expressed the finish as a `completedAt`
+ * field rewritten onto the instruction, which made the log's second write an
+ * UPDATE — and the Postgres twin of this file is append-only BY TRIGGER
+ * (`db/migrations/0004_port_gaps.up.sql`), with `npm run db:verify` asserting
+ * "an erasure cannot be UPDATED (the log is append-only too)". The schema's own
+ * guard even prescribes the fix: "Append a correcting record instead." So a
+ * completion is a SECOND LINE, the log stays append-only in BOTH backends, and
+ * "did this erase finish?" is a fold over records rather than a field —
+ * `erasureStateFor`/`incompleteErasures` below are that fold, and one owner of it.
+ */
+export type ErasureEntry = "recorded" | "completed";
+
 export interface ErasureRecord {
+  /** Which record this is — see `ErasureEntry`. Absent on a line written before
+   *  completions existed, which `rawEntries` reads as an instruction. */
+  entry?: ErasureEntry;
   /** The learner id that was erased. An id, never a handle: handles are reusable. */
   learnerId: string;
-  /** When the learner's erase was RECORDED (server clock) — the moment the
-   *  instruction was taken, which is what a restore reports having re-applied. */
+  /** When THIS record was written (server clock): the moment the learner asked,
+   *  for an instruction — which is what a restore reports having re-applied — or
+   *  the moment the erase finished, for a completion. */
   at: number;
-  /**
-   * When the erase FINISHED. Absent or null means the instruction is recorded and
-   * the effects are not all confirmed — an interrupted erase, which is a state a
-   * restore must still complete and an operator should be able to see.
-   *
-   * The distinction is what makes "verify completion before marking the operation
-   * finished" representable (docs/STORAGE_SPEC.md §14 decision 2, step 5). One
-   * timestamp could not express it, and without it an entry claimed the same thing
-   * about a finished erase and an abandoned one. A restore treats both the same,
-   * deliberately: an erase that was asked for must be completed either way.
-   */
-  completedAt?: number | null;
+  /** For a completion: the `at` of the instruction it finishes. A learner can be
+   *  erased, re-created and erased again, and each instruction gets its own
+   *  confirmation — the same pairing the SQL log's primary key makes explicit. */
+  of?: number;
 }
 
 export interface ErasureLog {
@@ -107,26 +125,18 @@ async function readJson<T>(file: string, fallback: T): Promise<T> {
  *  anyone, which is NOT the same as "no erasure can have happened": a store that
  *  predates this file has a log of nothing and an unknown history. */
 export async function readErasures(dir: string): Promise<ErasureRecord[]> {
-  const log = await readJson<ErasureLog | ErasureRecord[]>(path.join(dir, ERASURES_FILE), {
-    version: 1,
-    entries: [],
-  });
-  // Tolerate a bare array: the log is a file an operator may have to hand-edit
-  // during a recovery, and refusing to read the obvious shape would be a trap.
-  const entries = Array.isArray(log) ? log : (log.entries ?? []);
-  return entries.filter(
-    (e): e is ErasureRecord => !!e && typeof e.learnerId === "string" && SAFE_ID.test(e.learnerId),
-  ).map((e) => ({
-    learnerId: e.learnerId,
-    at: typeof e.at === "number" ? e.at : 0,
-    completedAt: typeof e.completedAt === "number" ? e.completedAt : null,
-  }));
+  return (await rawEntries(path.join(dir, ERASURES_FILE))).filter((e) => SAFE_ID.test(e.learnerId));
 }
 
 /**
- * Record one erasure. Idempotent: a learner already in the log is left alone
- * (re-erasing, or a retry after a crash, must not grow the file or move `at`).
- * Returns whether a new entry was written.
+ * Record one erasure INSTRUCTION.
+ *
+ * Idempotent by identity AND moment: re-applying the same (learner, `at`) pair
+ * — which is exactly what a retry and a re-applied restore log do — writes
+ * nothing, so a crash cannot grow the file or move the moment it names. A learner
+ * erased a SECOND time after being re-created carries a new `at`, and gets a
+ * second instruction: the log is a HISTORY, which is the same rule the SQL log's
+ * primary key `(learner_id, erased_at)` states.
  *
  * The caller supplies the directory and the clock rather than this function
  * reading either: the store writes its own DATA_DIR under its own lock (one lock
@@ -136,49 +146,113 @@ export async function appendErasure(dir: string, learnerId: string, at: number):
   if (!SAFE_ID.test(learnerId)) return false;
   const file = path.join(dir, ERASURES_FILE);
   const entries = await rawEntries(file);
-  if (entries.some((e) => e?.learnerId === learnerId)) return false;
+  if (entries.some((e) => e.entry !== "completed" && e.learnerId === learnerId && e.at === at)) return false;
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(
     file,
-    JSON.stringify({ version: 1, entries: [...entries, { learnerId, at, completedAt: null }] }, null, 2),
+    JSON.stringify({ version: 1, entries: [...entries, { entry: "recorded", learnerId, at }] }, null, 2),
     "utf8",
   );
   return true;
 }
 
-/** The log's entries, exactly as stored — including the shapes an operator may
- *  have had to hand-edit during a recovery. */
+/**
+ * The log's entries, as records — including the shapes an operator may have had
+ * to hand-edit during a recovery.
+ *
+ * Tolerates a bare array (the log is a file somebody may have to fix by hand),
+ * and reads a LEGACY line — `{ learnerId, at, completedAt }`, written before a
+ * completion became its own record — as BOTH records it was standing for: the
+ * instruction at `at`, and a completion at `completedAt` for it. That is what
+ * keeps a store written by the previous version readable by this one, which for
+ * an erasure log is not a nicety: the alternative is a restore that resurrects
+ * somebody whose erase it could not parse.
+ */
 async function rawEntries(file: string): Promise<ErasureRecord[]> {
   const existing = await readJson<ErasureLog | ErasureRecord[]>(file, { version: 1, entries: [] });
-  const entries = Array.isArray(existing) ? existing : (existing.entries ?? []);
-  return entries.filter((e): e is ErasureRecord => !!e && typeof e?.learnerId === "string");
+  const stored = Array.isArray(existing) ? existing : (existing.entries ?? []);
+  const out: ErasureRecord[] = [];
+  for (const e of stored) {
+    if (!e || typeof e.learnerId !== "string") continue;
+    const at = typeof e.at === "number" ? e.at : 0;
+    if (e.entry === "completed") {
+      out.push({ entry: "completed", learnerId: e.learnerId, at, of: typeof e.of === "number" ? e.of : at });
+      continue;
+    }
+    out.push({ entry: "recorded", learnerId: e.learnerId, at });
+    const legacyCompleted = (e as { completedAt?: unknown }).completedAt;
+    if (typeof legacyCompleted === "number") {
+      out.push({ entry: "completed", learnerId: e.learnerId, at: legacyCompleted, of: at });
+    }
+  }
+  return out;
 }
 
 /**
  * Mark a learner's erase FINISHED — the step that runs only after the effects
  * have been removed and the record's absence verified.
  *
- * Idempotent, and it never moves a finish that is already recorded: the first
- * completion is when the erase actually completed, and a second call is a retry
- * or a re-applied log, not a new event. False means there was no instruction to
- * mark (which is the caller's bug: the workflow records the instruction first).
+ * APPENDS a completion record; it never rewrites the instruction, because the log
+ * is append-only in both backends (see `ErasureEntry`). Idempotent: an erase that
+ * already has its confirmation for the latest instruction is left alone, so a
+ * retry or a re-applied log cannot move the moment the erase finished. False
+ * means there was nothing to confirm — no instruction at all, or one already
+ * completed, either of which the caller should not treat as an error.
  */
 export async function confirmErasure(dir: string, learnerId: string, at: number): Promise<boolean> {
   if (!SAFE_ID.test(learnerId)) return false;
   const file = path.join(dir, ERASURES_FILE);
   const entries = await rawEntries(file);
-  const entry = entries.find((e) => e.learnerId === learnerId);
-  if (!entry) return false;
-  if (entry.completedAt) return false;
-  entry.completedAt = at;
-  await fs.writeFile(file, JSON.stringify({ version: 1, entries }, null, 2), "utf8");
+  const state = erasureStateFor(entries, learnerId);
+  if (state.recordedAt === null || state.completedAt !== null) return false;
+  await fs.writeFile(
+    file,
+    JSON.stringify(
+      { version: 1, entries: [...entries, { entry: "completed", learnerId, at, of: state.recordedAt }] },
+      null,
+      2,
+    ),
+    "utf8",
+  );
   return true;
 }
 
-/** The erases this log records that have NOT been confirmed finished. What an
- *  operator (or a drill) needs in order to see an erase that was abandoned. */
+/** The INSTRUCTIONS in a log, in the order they were written. */
+export function instructionsOf(entries: readonly ErasureRecord[]): ErasureRecord[] {
+  return entries.filter((e) => e.entry !== "completed");
+}
+
+/**
+ * What this log says about ONE learner: when they asked, when it finished (null
+ * if it has not), and whether the latest instruction is unfinished.
+ *
+ * The LATEST instruction is the one that answers it, deliberately. A learner whose
+ * first erase was interrupted and whose retry completed has one abandoned
+ * instruction and one finished one, and what an operator needs to know about them
+ * is the retry's answer, not the first attempt's. Reading per-instruction instead
+ * would report every retried erase as permanently abandoned.
+ */
+export function erasureStateFor(
+  entries: readonly ErasureRecord[],
+  learnerId: string,
+): { recordedAt: number | null; completedAt: number | null; incomplete: boolean } {
+  const mine = instructionsOf(entries).filter((e) => e.learnerId === learnerId);
+  if (mine.length === 0) return { recordedAt: null, completedAt: null, incomplete: false };
+  const latest = mine.reduce((a, b) => (b.at > a.at ? b : a));
+  const done = entries.find(
+    (e) => e.entry === "completed" && e.learnerId === learnerId && (e.of ?? -1) === latest.at,
+  );
+  return { recordedAt: latest.at, completedAt: done ? done.at : null, incomplete: !done };
+}
+
+/** The erases this log records that have NOT been confirmed finished — the
+ *  learners whose LATEST instruction is unanswered. What an operator (or a
+ *  drill) needs in order to see an erase that was abandoned. */
 export function incompleteErasures(entries: readonly ErasureRecord[]): ErasureRecord[] {
-  return entries.filter((e) => !e.completedAt);
+  return instructionsOf(entries).filter((e) => {
+    const state = erasureStateFor(entries, e.learnerId);
+    return state.incomplete && state.recordedAt === e.at;
+  });
 }
 
 /**

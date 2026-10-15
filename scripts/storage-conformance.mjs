@@ -276,9 +276,17 @@ const SAM = "conf_learner_sam";
   ok("the personal paper is gone — the artefact the live path used to leave on disk",
     (await storage.listPersonalPapers(SAM)).length === 0);
   ok("the INSTRUCTION is recorded, which is what a restore re-applies", logAt().includes(SAM));
-  const entry = (await storage.readErasures()).find((e) => e.learnerId === SAM);
-  ok("with the moment it was RECORDED and the moment it FINISHED — two states, one entry",
-    entry?.at === 777 && entry?.completedAt === 777, JSON.stringify(entry));
+  // Two RECORDS, not one mutated one: the instruction, then the completion. The
+  // log is append-only in both backends, so "finished" cannot be a field written
+  // onto the first record (the SQL twin refuses UPDATE by trigger).
+  const log = await storage.readErasures();
+  const state = erasuresMod.erasureStateFor(log, SAM);
+  ok("with the moment it was RECORDED and the moment it FINISHED — two records, one instruction",
+    state.recordedAt === 777 && state.completedAt === 777, JSON.stringify(state));
+  ok("and the log holds them as separate records rather than an edit",
+    log.filter((e) => e.learnerId === SAM).length === 2
+    && log.some((e) => e.learnerId === SAM && e.entry === "completed" && e.of === 777),
+    JSON.stringify(log.filter((e) => e.learnerId === SAM)));
   ok("so a workflow that ran to the end leaves nothing incomplete",
     erasuresMod.incompleteErasures(await storage.readErasures()).length === 0);
   const after = (await storage.listProfiles()).map((s) => s.profile.id);

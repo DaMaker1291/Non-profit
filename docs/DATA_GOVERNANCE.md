@@ -127,8 +127,9 @@ the published version, and names which section moved. Publishing a new version i
   route and by a restore — profile, ledger, personal papers and every class
   membership go together, on both paths. The order is the contract: the instruction
   is recorded first (so an interrupted erase is resumable and visible), the effects
-  are removed, the record's absence is verified, and only then is the erase marked
-  finished (`ErasureRecord.completedAt`).
+  are removed, the record's absence is verified, and only then is the erase marked finished —
+  by APPENDING a completion record, because the log is append-only in both backends
+  (the SQL twin refuses UPDATE by trigger).
 - **An erasure is an INSTRUCTION, not only a deletion** (`lib/server/erasures.ts`).
   The erase writes `erasures.json` (learner id + when) beside the data it removes,
   because a backup taken earlier still holds that learner and a restore would

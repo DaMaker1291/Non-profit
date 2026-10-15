@@ -3208,10 +3208,24 @@ console.log("▸ Privacy: export and erasure");
     "the erasure is recorded on disk as an intent, not only as a deletion");
   ok(!fs.existsSync(path.join(DATA_DIR, "evidence", `${vid}.jsonl`)),
     "and the learner's evidence ledger file is really gone from the store");
+  const entriesBefore = JSON.parse(fs.readFileSync(logFile, "utf8")).entries ?? [];
   const again = await call(`/api/profile?id=${vid}&secret=${encodeURIComponent(SECRETS.get(vid))}&confirm=ERASE`, { method: "DELETE" });
   const entriesAfter = JSON.parse(fs.readFileSync(logFile, "utf8")).entries ?? [];
-  ok(again.status === 404 && entriesAfter.filter((e) => e.learnerId === vid).length === 1,
-    "a second erase finds nothing and cannot enter them in the log twice");
+  // ONE INSTRUCTION, and no new line at all from the second attempt. Counted on
+  // instructions rather than on lines because the log also carries the COMPLETION
+  // (below) — the two-record shape that keeps it append-only, which is what the
+  // SQL twin's trigger and `npm run db:verify` require.
+  ok(again.status === 404
+    && entriesAfter.filter((e) => e.learnerId === vid && e.entry !== "completed").length === 1
+    && entriesAfter.length === entriesBefore.length,
+    `a second erase finds nothing and cannot enter them in the log twice (${entriesBefore.length} → ${entriesAfter.length} line(s))`);
+  const mine = entriesAfter.filter((e) => e.learnerId === vid);
+  const instruction = mine.find((e) => e.entry !== "completed");
+  const completion = mine.find((e) => e.entry === "completed");
+  ok(Boolean(completion),
+    "and the erase is CONFIRMED by an appended second record — the instruction is never rewritten, so the log is append-only in this backend too");
+  ok(instruction && completion && completion.of === instruction.at && completion.at >= instruction.at,
+    `with the completion naming the instruction it finishes (of=${completion?.of} = at=${instruction?.at}), which is how a re-erased learner's second erase is told apart from the first`);
 }
 
 

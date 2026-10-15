@@ -87,7 +87,11 @@ export interface Storage {
   getProfile(id: string): Promise<ProfileState | null>;
   listProfiles(): Promise<ProfileState[]>;
   saveProfile(state: ProfileState): Promise<void>;
-  /** Deletes the record AND records the intent to delete, in one unit. */
+  /** Deletes the record AND records the intent to delete, in one unit.
+   *  SUPERSEDED by §14.2, which split it three ways — `deleteProfile` (the record
+   *  alone), `recordErasure` and `confirmErasure` (the log) — because an erasure is
+   *  a RESUMABLE WORKFLOW rather than one call, and one call could not express the
+   *  order that makes it resumable. */
   eraseProfile(id: string): Promise<boolean>;
 
   listAccounts(): Promise<Account[]>;
@@ -834,11 +838,22 @@ RECORD THE INSTRUCTION → REMOVE THE EFFECTS → VERIFY → MARK FINISHED
   route can still find and who can ask again.
 - **Verification happens before the finish is marked**: a record still present after the
   effects is a THROWN error, never an `ok`.
-- **`ErasureRecord.completedAt`** is the second state: an entry with no `completedAt` is
-  an erase nobody finished. `incompleteErasures()` names them, so an abandoned erase is
-  visible to an operator instead of being indistinguishable from a finished one. A
-  restore re-applies both states identically — an erase that was ASKED FOR must be
-  completed either way.
+- **A completion is a SECOND RECORD, not a field on the first** (`entry: "recorded"`
+  then `entry: "completed"`, paired by `of`). The first version of this decision wrote
+  the finish as a mutable `completedAt` on the instruction, and the audit that followed
+  found it contradicts the schema: `db/migrations/0004_port_gaps.up.sql` guards the
+  erasures log with `append_only_reject_mutation`, `npm run db:verify` asserts "an
+  erasure cannot be UPDATED (the log is append-only too)", and that schema's own
+  comment prescribes the fix — "Append a correcting record instead." So the log stays
+  append-only in BOTH backends, and "did this erase finish?" is a fold over records
+  (`erasureStateFor`, one owner of it) rather than a field. `incompleteErasures()`
+  names the learners whose LATEST instruction is unanswered — the latest, so a retried
+  erase is not reported as permanently abandoned, and a re-erased learner is not
+  answered by their first attempt. A restore re-applies both states identically: an
+  erase that was ASKED FOR must be completed either way. `readErasures` also reads a
+  LEGACY line (`{learnerId, at, completedAt}`) as both records it stood for, because
+  the alternative for an erasure log is a restore that resurrects somebody whose erase
+  it could not parse.
 
 **Acceptance, driven.** `npm run storage-check` erases a learner holding a record, a
 ledger and a personal paper, and requires all three gone, the instruction recorded with

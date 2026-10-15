@@ -11831,8 +11831,8 @@ console.log("▸ An erasure outlives the archive it was taken from");
 
   // 1. The log: recorded once, idempotent, and never a path traversal.
   ok((await erasures.appendErasure(dir, "alice", T)) === true, "the erase records the INTENT (`erasures.json`)");
-  ok((await erasures.appendErasure(dir, "alice", T + 1)) === false,
-    "recording it twice is a no-op — a retry cannot grow the log or move the moment it names");
+  ok((await erasures.appendErasure(dir, "alice", T)) === false,
+    "recording the SAME instruction twice is a no-op — a retry cannot grow the log or move the moment it names");
   const log = await erasures.readErasures(dir);
   ok(log.length === 1 && log[0].learnerId === "alice" && log[0].at === T,
     `and the log holds one entry, with the clock it was given (${log.length})`);
@@ -11889,8 +11889,11 @@ console.log("▸ An erasure outlives the archive it was taken from");
   ok(removed && !logAfterRecordRemoval.some((e) => e.learnerId === "erase-me-01"),
     "removing a record writes NO tombstone — the instruction is the workflow's to write, not the deletion's");
   ok((await store.recordErasure("erase-me-01", T)) === true
-    && (await store.recordErasure("erase-me-01", T + 1)) === false,
-    "and recording it is a separate, idempotent call — a retry cannot move the moment it names");
+    && (await store.recordErasure("erase-me-01", T)) === false,
+    "and recording it is a separate, idempotent call — a retry cannot grow the log or move the moment it names");
+  ok((await store.confirmErasure("erase-me-01", T + 1)) === true
+    && (await store.confirmErasure("erase-me-01", T + 2)) === false,
+    "while confirming it APPENDS a completion and never rewrites the instruction — the log is append-only in both backends");
 
   // 6. THE LIVE PATH IS THE SAME WORKFLOW over the configured backend, and the
   //    thing to assert is the F-2 parity: the artifacts a RESTORE removes and the
@@ -11974,7 +11977,31 @@ console.log("▸ An erasure outlives the archive it was taken from");
   ok(!/\bdeleteEvidence\b|\bremoveMemberEverywhere\b/.test(eraseRouteSrc),
     "and does not perform the steps itself — a process killed between three route calls is exactly what F-2 was");
   ok(/portErasureTarget/.test(eraseRouteSrc) && /dirErasureTarget/.test(fs.readFileSync("lib/server/erasures.ts", "utf8")),
-    "with the live path and the restore path resolving to the same workflow over two targets");  for (const d of [dir, archive, empty]) fs.rmSync(d, { recursive: true, force: true });
+    "with the live path and the restore path resolving to the same workflow over two targets");  // 10. THE LOG IS APPEND-ONLY, IN BOTH BACKENDS. This is not a style choice: the
+  //     Postgres twin of this file is append-only BY TRIGGER and `npm run db:verify`
+  //     asserts "an erasure cannot be UPDATED (the log is append-only too)", so
+  //     "finished" had to be a SECOND record rather than a field written onto the
+  //     first — which is also what that schema's own comment prescribes.
+  ok((await erasures.appendErasure(dir, "alice", T + 1)) === true
+    && (await erasures.readErasures(dir)).filter((e) => e.learnerId === "alice" && e.entry !== "completed").length === 2,
+    "a later moment is a SECOND instruction rather than an edit of the first — the log is a history, as the SQL primary key (learner_id, erased_at) says");
+  const aliceState = erasures.erasureStateFor(await erasures.readErasures(dir), "alice");
+  ok(aliceState.recordedAt === T + 1 && aliceState.incomplete === true,
+    "and the NEWEST instruction is what answers whether the erase is done, so an earlier completed attempt is not mistaken for this one");
+  ok((await erasures.confirmErasure(dir, "alice", T + 2)) === true
+    && erasures.erasureStateFor(await erasures.readErasures(dir), "alice").completedAt === T + 2,
+    "confirming it APPENDS a completion — the instruction is never rewritten");
+  ok(erasures.incompleteErasures(await erasures.readErasures(dir)).length === 0,
+    "and the fold reports no abandoned erase once the newest instruction is answered");
+  ok((await erasures.confirmErasure(dir, "alice", T + 3)) === false,
+    "while confirming an already-finished erase is a no-op, so a retry cannot move the moment it finished");
+  // A log whose instruction was never answered is what an operator has to see.
+  const abandoned = fs.mkdtempSync(nodePath.join(os.tmpdir(), "om-erase-abandoned-"));
+  await erasures.appendErasure(abandoned, "bob", T);
+  ok(erasures.incompleteErasures(await erasures.readErasures(abandoned)).length === 1,
+    "and an instruction with no completion is exactly what shows up as unfinished");
+
+  for (const d of [dir, archive, empty, abandoned]) fs.rmSync(d, { recursive: true, force: true });
 
 }
 
