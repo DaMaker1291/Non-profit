@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { getRoom, listRooms, newId, saveRoom, updateRoomById } from "@/lib/server/store";
+// A store that cannot keep a learner record refuses the write and says why; this
+// route turns that refusal into the honest 503 instead of a bare 500.
+import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { roomTutorTurn } from "@/lib/server/room-tutor";
 import type { StudyRoom } from "@/lib/types";
 
@@ -102,7 +105,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       default:
         return NextResponse.json({ error: "unknown action" }, { status: 400 });
     }
-  } catch {
+  } catch (e) {
+    const refusal = storeWriteRefusal(e);
+    if (refusal) return refusal;
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
 }

@@ -258,23 +258,66 @@ had replaced the process, `verify:persistence -- --verify` reported **4 passed,
 30 failed**, every learner-scoped read an HTTP 404: the learner, their record,
 their ledger, their class's join code, the intervention review and its frozen
 baseline. Inside a container the app directory IS a mount with a device of its
-own, and the host throws it away with the image. So the judgement reads
-`/proc/self/mountinfo` and takes the DEEPEST mount point above the data
-directory: an overlay, bind or tmpfs there is the host's filesystem whatever its
-device says, and only a mount that is not a view of the image is a volume.
+own, and the host throws it away with the image.
 
-| data directory | readiness | code |
-|---|---|---|
-| a mount of its own that is not a view of the image (a disk the host keeps) | ready | — |
-| the host's root filesystem, or an overlay/bind/tmpfs mount it rebuilds with the image | **503** | `data_dir_not_durable` |
-| could not be measured (no mount table, or a device that proves nothing) | ready, with a note | `durability_unknown` |
-| `OPENMIND_ALLOW_EPHEMERAL_STORE=1` | ready, with a note | `ephemeral_store_accepted` |
+**So the judgement moved to the mount table — and the SAME host passed again.**
+The fixed build was deployed and answered, verbatim:
 
-The judgement is scoped to those hosts on purpose: on a laptop `/data` is that
-laptop's disk, and a test that flagged it would be a false alarm in the one
-place a developer reads the report. The three ways out are all deliberate acts —
-attach the volume, accept ephemerality in so many words, or run somewhere whose
-filesystem is yours.
+```text
+"store":{"kind":"file","singleInstance":true,"durability":"durable",
+         "accepted":false,"codes":[]}
+```
+
+while the canary learner from the previous deploy was still gone. Render's
+application directory is a mount of its own, on a filesystem of its own, and the
+host rebuilds it anyway: reading `/proc/self/mountinfo` and taking the deepest
+mount point above the store separated an overlay from a disk, and did not
+separate a disk from a directory the host discards with the container.
+
+**TWO MEASUREMENTS, TWO FALSE PASSES — AND THE CONCLUSION IS THE RULE.** No
+statistic a process can take tells a disk the host keeps from a directory it
+rebuilds, because the difference is only visible across the restart the question
+is about. So the check was narrowed to what it can PROVE, and everything else is
+enforced by DECLARATION plus the restart drill:
+
+| data directory | readiness | writes | code |
+|---|---|---|---|
+| this is not a host that discards filesystems (a laptop, a school server, a self-hosted box) | ready | permitted | — |
+| a host that discards filesystems, and the store is neither declared nor measured | **503** | **refused** | `durability_unknown` |
+| the host's root filesystem, or an overlay/bind/tmpfs mount it rebuilds with the image | **503** | **refused** | `data_dir_not_durable` |
+| no data directory declared at all on the production artefact | **503** | **refused** | `data_dir_undeclared` |
+| `OPENMIND_DATA_DIR_DURABLE=1` over a mount that is NOT measured to be the host's own | ready | permitted, as a CLAIM | `durability_declared` (note) |
+| `OPENMIND_ALLOW_EPHEMERAL_STORE=1` | ready | permitted, as a labelled demo | `ephemeral_store_accepted` (note) |
+| both of those at once | **503** | **refused** | `durability_contradiction` |
+
+Three properties of that table are deliberate:
+
+- **A measurement outranks a declaration.** `OPENMIND_DATA_DIR_DURABLE=1` over a
+  filesystem visibly the host's own (its root, an overlay, a tmpfs) is refused
+  anyway: nobody may declare a tmpfs durable. A declaration may only ever RELAX
+  an absence of knowledge, never contradict a measurement.
+- **The refusal is enforced, not merely reported.** `lib/server/store.ts` throws
+  `StoreWriteBlockedError` from the primitives every learner-record write goes
+  through (`writeJson`, and the ledger's `appendEvidence`), so a route added
+  tomorrow cannot forget it. Routes translate it
+  (`lib/server/write-refusal.ts`) into **503 `store_not_durable`** carrying the
+  report's own code and the variable an operator has to set. ERASURE and session
+  identity writes are never refused: a store that cannot keep data is the worst
+  place to keep it after a deletion request, and signing out must work
+  everywhere.
+- **The judgement is scoped to hosts the platforms themselves name** (`RENDER`,
+  `DYNO`, `FLY_APP_NAME`, `K_SERVICE`, `WEBSITE_SITE_NAME`). On a laptop `/data`
+  is that laptop's disk and flagging it would be a false alarm in the one place a
+  developer reads the report. A store on an unrecognised host is reported as
+  `mode:"host-durable"` — the question does not arise *as far as this process can
+tell*, and the report says which of the two it is telling you.
+
+**Render's free instance type cannot attach a disk at all**, so on that host the
+choice is: a paid instance type with a disk (a path inside the source directory
+such as `/opt/render/project/src/.openmind-data` is a valid mount path), a host
+with volumes, or `OPENMIND_ALLOW_EPHEMERAL_STORE=1` and calling it a demo. The
+last of those is a legitimate answer — it is the one that keeps the public
+instance usable without anybody being told their history is safe.
 
 **Publish readiness on the right endpoint.** Because a store the host discards
 is a `data_dir_not_durable` PROBLEM, `/api/ready` answers **503** on such a
@@ -294,8 +337,45 @@ humans.** The response carries a `store` block — `kind` (the backend in force)
 refusal), `singleInstance` (true for exactly the backend that has the
 constraint), `durability` (`"durable" | "ephemeral" | "unknown"`, derived from
 the codes above by `lib/env.ts`, which stays the one owner of the judgement) and
-`codes` (those codes verbatim, for a log). Two consequences that matter more
-than the field itself:
+`codes` (those codes verbatim, for a log). `/api/health` carries a four-field
+version of the same block (`kind`, `durability`, `mode`, `writesPermitted`) so an
+uptime monitor can see both answers from the endpoint it is allowed to poll.
+
+`/api/ready` then separates CONFIGURATION from MEASUREMENT, which is the
+distinction the two live incidents were about:
+
+```jsonc
+"store": {
+  "kind": "file", "configured": "", "singleInstance": true,
+  "durability": "unknown",
+  "persistence": {                    // CONFIGURATION — what was declared
+    "mode": "unproven",               // host-durable | declared-durable |
+                                      // accepted-ephemeral | unproven |
+                                      // undeclared | contradictory | unservable
+    "declaredBy": null,               // the variable that made the claim
+    "writesPermitted": false,         // may this deployment take a learner record?
+    "blockedBy": "durability_unknown",
+    "evidence": "restart drill — OPENMIND_BASE=<url> npm run verify:persistence -- --write, replace the instance, then --verify"
+  },
+  "measured": {                       // MEASUREMENT — what the store has SEEN
+    "boots": 3, "firstSeenAt": 1792000000000,
+    "survivedDeployments": 0,         // releases this store was still there for
+    "deployment": "local-1.0.0"
+  },
+  "codes": ["durability_unknown"]
+}
+```
+
+`measured` is `lib/server/boot-log.ts`: every process that answers readiness
+writes its identity into the store, so a later process can say whether it found
+BEFORE it — and `survivedDeployments` counts the process starts that found a
+record written by a *different* deployment. It is deliberately weak and it is
+never read instead of the declaration: a container restarted in place keeps its
+writable layer, so `boots > 1` is not durability. What it does give is the one
+honest statement about a declared store — "declared durable, and this store has
+not yet been observed to survive a release" (`survivedDeployments: 0`) — which
+is exactly what a monitor should alarm on. Two consequences that matter more
+than the fields themselves:
 
 - a **monitor can alarm on it** — `store.durability != "durable"` is a
   deployment that will lose its learners, stated as data rather than discovered
@@ -304,7 +384,11 @@ than the field itself:
 - the **deploy drill reads it** and fails BEFORE creating anything
   (`scripts/verify-persistence.mjs`), so a release cannot be certified against a
   store the host discards. An artefact too old to report its store fails there
-  too — which is the correct answer for a build that predates the check.
+  too — which is the correct answer for a build that predates the check. The same
+  drill then proves its OWN worth: after a green restart it re-points the same
+  assertions at a second, EMPTY store (the loss an ephemeral deploy produces) and
+  requires them to FAIL — with a baseline asserted non-null before the loss, so
+  "was null, now null" cannot pass as a survival.
 
 **The host itself is the other half of the fix, and it is a platform setting,
 not code.** For this deployment (a Render web service):

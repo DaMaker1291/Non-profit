@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listPacks, readAllPacks, savePack, getProfile } from "@/lib/server/store";
+import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { getConcept } from "@/lib/genome";
 import type { StudyPack } from "@/lib/types";
 
@@ -75,7 +76,11 @@ async function handle(req: Request): Promise<NextResponse> {
     }
 
     return NextResponse.json({ error: "unknown action" }, { status: 400 });
-  } catch {
+  } catch (e) {
+    // A shared pack is learner-written content and is stored like one: a store
+    // that cannot keep it answers 503 with its reason, not a bare 400.
+    const refusal = storeWriteRefusal(e);
+    if (refusal) return refusal;
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
 }

@@ -6,6 +6,10 @@ import {
 import { specById, specForProfile, levelOf, type ActiveSpec, type CourseFields } from "@/lib/specifications";
 import { cacheGet, cacheSet, getStoredPaper, saveStoredPaper, updateProfile } from "@/lib/server/store";
 import { authorisedProfile } from "@/lib/server/auth";
+// A paper is only sittable if it can be MARKED, and marking reads the key this
+// route stores — so a store that cannot keep the key refuses the paper rather
+// than handing over one that can never be marked.
+import { storeWriteRefusalNow } from "@/lib/server/write-refusal";
 import { analysePaper } from "@/lib/paper-analysis";
 import { answerEvidence, type EvidenceEvent } from "@/lib/evidence";
 import { commitAndProject } from "@/lib/server/projection";
@@ -120,6 +124,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
   }
 
+  const refusal = storeWriteRefusalNow();
+  if (refusal) return refusal;
   await saveStoredPaper(built.key);
 
   return NextResponse.json({
@@ -171,6 +177,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   const profile = await authorisedProfile(req, body.id ?? null, body.secret ?? null);
   let recorded = 0;
   if (profile) {
+    // The marking below is computed from the key, but its whole point is the
+    // EVIDENCE it records — so the refusal is asked before the work rather than
+    // suffered after it.
+    const refusal = storeWriteRefusalNow();
+    if (refusal) return refusal;
     const learnerId = profile.profile.id;
     // One clock for the sitting: every model write and every event below
     // carries it, so replay reproduces the paper's model footprint exactly.

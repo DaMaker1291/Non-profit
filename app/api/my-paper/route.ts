@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { listPersonalPapers, newId, savePersonalPaper, updateProfile } from "@/lib/server/store";
+// A store that cannot keep a learner record refuses the write and says why; this
+// route turns that refusal into the honest 503 instead of a bare 500.
+import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { analysePersonalPaper, mayStorePersonalPaper, personalPaperEvidence, validatePersonalPaper, type PersonalPaper } from "@/lib/personal-paper";
 import { rightsFor, type ContentAction } from "@/lib/content-rights";
 import { getConcept } from "@/lib/genome";
@@ -180,6 +183,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!paper) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json({ paper: { id: paper.id, title: paper.title, questions: paper.questions.length }, analysis: analysePersonalPaper(paper) });
   } catch (e) {
+    const refusal = storeWriteRefusal(e);
+    if (refusal) return refusal;
     if (e instanceof Error && e.message === "unauthorized") {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }

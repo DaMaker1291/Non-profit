@@ -4,6 +4,8 @@ import { readEvidence } from "@/lib/server/evidence";
 import { PROJECTION_VERSION, projectLearner, validateEvent, impactSnapshot, type EvidenceEvent } from "@/lib/evidence";
 import { replayModel, reconcileDeep } from "@/lib/replay";
 import { commitAndProject, unprojectableShare } from "@/lib/server/projection";
+// A store that cannot keep this write answers 503 with its reason — never a 500.
+import { storeWriteRefusal } from "@/lib/server/write-refusal";
 
 /**
  * /api/evidence — the ledger's read and sync door.
@@ -140,7 +142,12 @@ export async function POST(req: Request) {
       refused,
       ids: result.accepted,
     });
-  } catch {
+  } catch (err) {
+    // The refusal is checked BEFORE the 401: a deployment whose store cannot
+    // hold evidence must say so rather than telling a syncing device that its
+    // capability is wrong, which would send it looking for a new secret.
+    const refusal = storeWriteRefusal(err);
+    if (refusal) return refusal;
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 }

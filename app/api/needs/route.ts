@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { getClass, listClasses, newId, updateClassById } from "@/lib/server/store";
+// A store that cannot keep a learner record refuses the write and says why; this
+// route turns that refusal into the honest 503 instead of a bare 500.
+import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { authorizeLearner } from "@/lib/server/capability";
 import { isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
 import { resolveMembers } from "@/lib/server/class-view";
@@ -399,7 +402,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       default:
         return NextResponse.json({ error: "unknown action" }, { status: 400 });
     }
-  } catch {
+  } catch (e) {
+    const refusal = storeWriteRefusal(e);
+    if (refusal) return refusal;
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getClass, listClasses, newId, updateClassById } from "@/lib/server/store";
 import { authorizeLearner } from "@/lib/server/capability";
+import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { handleOf, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
 import { resolveMembers } from "@/lib/server/class-view";
 import { assignableConcepts, deriveAssignmentProgress, monitorFor } from "@/lib/server/assignment-view";
@@ -271,7 +272,11 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
 
     return NextResponse.json({ error: "unknown action" }, { status: 400 });
-  } catch {
+  } catch (e) {
+    // Setting or removing work is a write to a class's own record: when the
+    // deployment cannot keep it, the answer is the store's own 503 and reason.
+    const refusal = storeWriteRefusal(e);
+    if (refusal) return refusal;
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
 }

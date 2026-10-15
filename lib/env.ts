@@ -32,7 +32,7 @@ import path from "node:path";
 import { resolveDeployment, type ResolvedDeployment } from "./deployment";
 // The one owner of "which storage backend does this configuration ask for", so
 // this report and `lib/server/store.ts` cannot disagree about it.
-import { STORE_ENV, storeKindReport } from "./server/storage";
+import { STORE_ENV, storeKindReport, type StoreKind } from "./server/storage";
 
 export interface EnvProblem {
   /** The variable at fault, named so an operator can act on it. */
@@ -98,6 +98,8 @@ export function ephemeralHost(env: Record<string, string | undefined> = {}): str
   }
   return "";
 }
+
+
 
 /** The device a path lives on, walking up to the nearest EXISTING ancestor
  *  (a directory the store will create on first write does not exist yet), or
@@ -173,13 +175,24 @@ function isWithin(child: string, parent: string): boolean {
 
 /** The kernel's mount table, or `null` where there is none to read (not Linux).
  *  Only `/proc/self/mountinfo` is parsed: `/proc/mounts` spells the same facts
- *  differently, and two parsers for one fact is how they drift apart. */
+ *  differently, and two parsers for one fact is how they drift apart.
+ *
+ *  Read ONCE per process and remembered, because `/api/health` asks this too and
+ *  a health check must stay cheap enough that a load balancer cannot mistake a
+ *  busy process for a dead one. That is not storage I/O — the file is a window
+ *  onto kernel state, not a disk read — but it is still one syscall per probe
+ *  that nothing is served by repeating: a process that has started has already
+ *  seen the filesystem it was given, and a disk attached afterwards arrives with
+ *  a new process. */
+let mountTableCache: string | null | undefined;
 function readMountTable(): string | null {
+  if (mountTableCache !== undefined) return mountTableCache;
   try {
-    return fs.readFileSync("/proc/self/mountinfo", "utf8");
+    mountTableCache = fs.readFileSync("/proc/self/mountinfo", "utf8");
   } catch {
-    return null;
+    mountTableCache = null;
   }
+  return mountTableCache;
 }
 
 /** What the filesystem under a data directory IS, as far as this process can
@@ -209,27 +222,56 @@ export type DataDirDurability = "volume" | "host-filesystem" | "unknown";
  * deploy layouts (a disk at `/data`, the same path inside an overlay) on one
  * machine instead of asserting the rule from memory.
  */
+export function dataDirFilesystem(
+  dir: string,
+  mountInfo?: string | null,
+): { at: string; fstype: string } | null {
+  const target = path.resolve(dir);
+  const table = mountInfo === undefined ? readMountTable() : mountInfo;
+  if (!table) return null;
+  // The DEEPEST mount point that contains the directory decides: a disk mounted
+  // under an overlay wins over the overlay above it, which is exactly the
+  // difference between data kept and data discarded. ONE parser, two readers
+  // (this and the judgement below), because two parsers for one fact drift.
+  let best: { at: string; fstype: string } | null = null;
+  for (const line of table.split("\n")) {
+    if (!line.trim()) continue;
+    const [head, tail] = line.split(" - ");
+    if (!head || tail === undefined) continue;
+    const at = unescapeMountPath(head.split(" ")[4] ?? "");
+    if (!at || !isWithin(target, at)) continue;
+    if (best === null || at.length > best.at.length) {
+      best = { at, fstype: (tail.split(" ")[0] ?? "").toLowerCase() };
+    }
+  }
+  return best;
+}
+
+/**
+ * WILL THE HOST KEEP THIS DIRECTORY? — and this can only ever answer "no" or
+ * "don't know".
+ *
+ *   "host-filesystem" — MEASURED to be the host's own: the root filesystem, or
+ *                       an overlay/bind/tmpfs mount, or the same device as the
+ *                       root. The host takes it with the image;
+ *   "volume"          — a mount of its own that is not a view of the image —
+ *                       which is a REASON TO BELIEVE, not a promise. Render's
+ *                       app directory is exactly this shape and a deploy
+ *                       destroyed a learner on it, so "volume" never becomes a
+ *                       durability claim by itself (see `envReport`: the claim
+ *                       is the operator's declaration, and the restart drill is
+ *                       its evidence);
+ *   "unknown"         — nothing measurable, or the weak half of the device
+ *                       comparison, which on a container is not evidence.
+ */
 export function dataDirDurability(dir: string, mountInfo?: string | null): DataDirDurability {
   const target = path.resolve(dir);
   const table = mountInfo === undefined ? readMountTable() : mountInfo;
   if (table) {
-    // The DEEPEST mount point that contains the directory decides: a disk
-    // mounted under an overlay wins over the overlay above it, which is exactly
-    // the difference between data kept and data discarded.
-    let best: { at: string; fstype: string } | null = null;
-    for (const line of table.split("\n")) {
-      if (!line.trim()) continue;
-      const [head, tail] = line.split(" - ");
-      if (!head || tail === undefined) continue;
-      const at = unescapeMountPath(head.split(" ")[4] ?? "");
-      if (!at || !isWithin(target, at)) continue;
-      if (best === null || at.length > best.at.length) {
-        best = { at, fstype: (tail.split(" ")[0] ?? "").toLowerCase() };
-      }
-    }
-    if (best === null) return "unknown";
-    if (best.at === path.sep) return "host-filesystem";
-    const fstype = best.fstype;
+    const found = dataDirFilesystem(target, table);
+    if (found === null) return "unknown";
+    if (found.at === path.sep) return "host-filesystem";
+    const fstype = found.fstype;
     if (NON_VOLUME_FSTYPES.some((t) => fstype === t || fstype.startsWith(`${t}.`))) return "host-filesystem";
     return "volume";
   }
@@ -238,6 +280,183 @@ export function dataDirDurability(dir: string, mountInfo?: string | null): DataD
   // filesystem); its weak one does not, and saying "volume" there is the false
   // promise above. So: refuse the claim, never invent it.
   return dataDirOnOwnFilesystem(target) === false ? "host-filesystem" : "unknown";
+}
+
+/**
+ * The ONE word a monitor, a drill or a human reads, from the codes that describe
+ * the store. It lives here rather than in `/api/ready` because the route is not
+ * a place a rule can be tested: a caller could re-derive the mapping and the two
+ * copies would answer differently. "durable" is the answer for the ABSENCE of
+ * any finding, which is why an unrecognised code must not be able to demote it —
+ * adding a note is not the same as reporting a problem.
+ */
+export type DurabilityWord = "durable" | "ephemeral" | "unknown";
+
+/** Every code `durabilityWord` reads, so a caller can filter the report to the
+ *  findings about the store without keeping its own list. */
+export const DURABILITY_CODES: readonly string[] = [
+  "data_dir_not_durable",
+  "data_dir_undeclared",
+  "ephemeral_store_accepted",
+  "durability_unknown",
+  "durability_declared",
+  "durability_contradiction",
+] as const;
+
+/**
+ * The findings that STOP learner-data writes, and therefore stop readiness.
+ *
+ * A note never appears here, and that asymmetry is the rule rather than an
+ * oversight: `OPENMIND_ALLOW_EPHEMERAL_STORE` and `OPENMIND_DATA_DIR_DURABLE`
+ * are the two ways an operator may SAY what this deployment is, and saying it
+ * turns a refusal into a labelled state. Everything else is an absenc: nobody
+ * has declared anything, so nothing may be assumed.
+ *
+ * `store_not_implemented` / `unknown_store_kind` are here because a backend this
+ * build cannot serve holds no learner data at all — the file store must never
+ * be written to on behalf of a deployment that asked for a database.
+ */
+export const STORE_BLOCKING_CODES: readonly string[] = [
+  "data_dir_undeclared",
+  "data_dir_not_durable",
+  "durability_unknown",
+  "durability_contradiction",
+  "store_not_implemented",
+  "unknown_store_kind",
+];
+
+/** What an operator has DONE about persistence — configuration, never evidence.
+ *  The measurement is separate and cannot be inferred from any of these. */
+export type PersistenceMode =
+  /** This is not a host that discards filesystems (a laptop, a self-hosted box,
+   *  a school server): the question does not arise, so nothing is claimed. */
+  | "host-durable"
+  /** A host that discards filesystems, with the operator DECLARING
+   *  (OPENMIND_DATA_DIR_DURABLE=1) that the store at that path survives — a
+   *  claim whose only acceptable evidence is the restart drill. */
+  | "declared-durable"
+  /** A host that discards filesystems, with the operator DECLARING
+   *  (OPENMIND_ALLOW_EPHEMERAL_STORE=1) that losing the store is expected. The
+   *  labelled demo: writes are accepted BECAUSE nobody is promised anything. */
+  | "accepted-ephemeral"
+  /** A host that discards filesystems and nothing is declared: the store is
+   *  unproven, so writes are refused (fail closed). */
+  | "unproven"
+  /** Nothing declares where the store lives on the production artefact. */
+  | "undeclared"
+  /** Both declarations are set at once, so neither can be trusted (see
+   *  `durability_contradiction`): inconsistent configuration fails closed. */
+  | "contradictory"
+  /** The configuration asks for a backend this build cannot serve. */
+  | "unservable";
+
+/**
+ * THE STORE'S READINESS, AS ONE OBJECT — and the one function the write path,
+ * the readiness route and the deploy drill all ask.
+ *
+ * Four questions, deliberately kept apart because conflating them is how a
+ * deployment promises storage it does not have:
+ *
+ *   kind                — which backend (the file store, or a refusal)
+ *   mode / declaredBy   — what the operator has DECLARED (configuration)
+ *   writesPermitted     — may a learner record be written here AT ALL
+ *   durability / codes  — the same findings, in the vocabularies the routes and
+ *                         the drill already speak
+ *
+ * `writesPermitted` is the gate: it is false unless this deployment is either
+ * not a filesystem-discarding host, or has declared one of the two modes above.
+ * Note the asymmetry that the second live drill taught: a MEASURED loss
+ * (`data_dir_not_durable`) refuses writes whatever anyone declares, because a
+ * declaration cannot overrule a tmpfs the host is about to rebuild; a
+ * declaration may only ever RELAX an absence of knowledge, never contradict a
+ * measurement.
+ */
+export interface StoreReadiness {
+  kind: StoreKind | null;
+  configured: string;
+  mode: PersistenceMode;
+  declaredBy: string | null;
+  writesPermitted: boolean;
+  blockedBy: string | null;
+  /** The operator-facing sentence for `blockedBy`, so a route can say WHY. */
+  reason: string;
+  durability: DurabilityWord;
+  codes: string[];
+}
+
+export function storeReadiness(
+  env: Record<string, string | undefined> = {},
+  facts: EnvFacts = {},
+): StoreReadiness {
+  const report = envReport(env, facts);
+  const store = storeKindReport(env);
+  const findings = [...report.problems, ...report.notes].filter((f) =>
+    DURABILITY_CODES.includes(f.code) || STORE_BLOCKING_CODES.includes(f.code),
+  );
+  const codes = findings.map((f) => f.code);
+  const blockers = report.problems.filter((p) => STORE_BLOCKING_CODES.includes(p.code));
+
+  // THE MODE IS READ OFF THE FINDINGS rather than re-derived from the
+  // environment: a second derivation is a second answer, and the one an operator
+  // reads (`mode`) and the one that gates writes (`blockedBy`) would then be
+  // able to disagree. Priority is the order an operator would fix them in.
+  const mode: PersistenceMode = store.kind === null
+    ? "unservable"
+    : codes.includes("durability_contradiction")
+      ? "contradictory"
+      : codes.includes("ephemeral_store_accepted")
+        ? "accepted-ephemeral"
+        : codes.includes("durability_declared")
+          ? "declared-durable"
+          : codes.includes("durability_unknown") || codes.includes("data_dir_not_durable")
+            ? "unproven"
+            : codes.includes("data_dir_undeclared")
+              ? "undeclared"
+              : "host-durable";
+
+  const declaredBy = mode === "declared-durable"
+    ? "OPENMIND_DATA_DIR_DURABLE"
+    : mode === "accepted-ephemeral"
+      ? "OPENMIND_ALLOW_EPHEMERAL_STORE"
+      : null;
+
+  const blockedBy = store.kind === null
+    ? (store.problem?.code ?? "unknown_store_kind")
+    : blockers[0]?.code ?? null;
+  const reason = store.kind === null
+    ? (store.problem?.detail ?? "this build cannot serve the configured store")
+    : blockers[0]?.detail ?? "";
+
+  return {
+    kind: store.kind,
+    configured: store.configured,
+    mode,
+    declaredBy,
+    writesPermitted: blockedBy === null,
+    blockedBy,
+    reason,
+    durability: durabilityWord(codes),
+    codes,
+  };
+}
+
+/** The codes that mean the store IS discarded, whether that was accepted or
+ *  merely suffered. */
+const EPHEMERAL_CODES: readonly string[] = [
+  "data_dir_not_durable",
+  "data_dir_undeclared",
+  "ephemeral_store_accepted",
+];
+
+export function durabilityWord(codes: readonly string[]): DurabilityWord {
+  if (codes.some((c) => EPHEMERAL_CODES.includes(c))) return "ephemeral";
+  // "unknown" is the honest word for every finding that leaves the question
+  // OPEN — an unmeasurable directory, two declarations that contradict each
+  // other, or a backend this build cannot serve at all. Saying "durable" for any
+  // of those is the false promise this vocabulary exists to make impossible.
+  const open = ["durability_unknown", "durability_contradiction", "store_not_implemented", "unknown_store_kind"];
+  if (codes.some((c) => open.includes(c))) return "unknown";
+  return "durable";
 }
 
 /** Facts a caller can supply instead of measuring, so a test can drive every
@@ -400,45 +619,107 @@ export function envReport(env: Record<string, string | undefined> = {}, facts: E
   const host = ephemeralHost(env);
   const production = (env.NODE_ENV ?? "").trim() === "production" || Boolean(host);
   const acceptsEphemeral = /^(1|true|yes)$/i.test((env.OPENMIND_ALLOW_EPHEMERAL_STORE ?? "").trim());
+  const declaredDurable = /^(1|true|yes)$/i.test((env.OPENMIND_DATA_DIR_DURABLE ?? "").trim());
+  // ── TWO CLAIMS AT ONCE IS NOT A CONFIGURATION, IT IS A CONTRADICTION ───────
+  // "this store survives a deploy" and "losing this store is expected" cannot
+  // both be what the operator means, and guessing which one was intended is how
+  // a deployment ends up on the wrong side of the difference between a demo and
+  // an incident. Inconsistent configuration fails closed, like every other one.
+  if (acceptsEphemeral && declaredDurable) {
+    problems.push({
+      key: "OPENMIND_DATA_DIR_DURABLE",
+      code: "durability_contradiction",
+      detail: "both OPENMIND_DATA_DIR_DURABLE and OPENMIND_ALLOW_EPHEMERAL_STORE are set, and they contradict each other: one says this path survives a redeploy, the other says losing it is expected. Set exactly one — and if the store is on a disk, drop the acceptance and prove the disk with the restart drill",
+    });
+  }
+  // Declaring a directory DURABLE while using the default one is the same
+  // contradiction in a different dress: the default directory lives INSIDE the
+  // application, which is the one place a deploy certainly replaces.
+  if (!dataDir && declaredDurable) {
+    problems.push({
+      key: "OPENMIND_DATA_DIR",
+      code: "data_dir_undeclared",
+      detail: "OPENMIND_DATA_DIR_DURABLE is set but OPENMIND_DATA_DIR is not, so the declaration is about ./.openmind-data INSIDE the application directory — the one location a redeploy certainly replaces. Point OPENMIND_DATA_DIR at the mounted disk, then declare it durable and prove it with the restart drill",
+    });
+  }
   if (!dataDir) {
     const detail =
       "learning data lives in ./.openmind-data inside the application directory, and a redeploy replaces that directory — point OPENMIND_DATA_DIR at a durable volume, or set OPENMIND_ALLOW_EPHEMERAL_STORE=1 to accept that this deployment's learner records are lost on every deploy";
-    if (production && !acceptsEphemeral) {
+    // Already reported as a problem above when the durability was declared for
+    // the default directory: the two findings are one mistake, and reporting the
+    // same code twice would make the report look like two.
+    if (production && !acceptsEphemeral && !declaredDurable) {
       problems.push({ key: "OPENMIND_DATA_DIR", code: "data_dir_undeclared", detail });
     } else {
       notes.push({ key: "OPENMIND_DATA_DIR", code: "data_dir_default", detail });
     }
-  } else if (acceptsEphemeral) {
-    notes.push({
-      key: "OPENMIND_ALLOW_EPHEMERAL_STORE",
-      code: "ephemeral_store_accepted",
-      detail: `this deployment declares ${dataDir} AND says it accepts an ephemeral store, so losing it on a deploy is a known state rather than a surprise`,
-    });
-  } else if (host) {
-    // The judgement is `dataDirDurability`, and it reads the MOUNT TABLE — the
-    // one measurement that separates a disk the host keeps from an overlay it
-    // rebuilds. A device number cannot: inside a container the app directory has
-    // a device of its own and is still thrown away with the image, and that
-    // exact false promise was measured on a live deployment (see
-    // `dataDirOnOwnFilesystem`). An injected fact is honoured and never
-    // re-measured, or the unknown case would report a confident answer on the
-    // caller's behalf.
+  } else if (!acceptsEphemeral && host) {
+    // THE JUDGEMENT HERE CAN ONLY EVER PROVE THAT THE STORE IS DISCARDED. That
+    // asymmetry is the lesson of two live drills rather than caution for its own
+    // sake:
+    //
+    //   · a device of its own was read as a volume, and the deployment answered
+    //     `durability:"durable"` while a deploy that replaced the process left
+    //     every learner-scoped read a 404 (see `dataDirOnOwnFilesystem`);
+    //   · reading the MOUNT TABLE instead was then measured against that same
+    //     host and still said durable: Render's app directory is a mount of its
+    //     own, on a filesystem of its own, and the host rebuilds it anyway.
+    //
+    // No statistic this process can take tells a disk the host keeps from a
+    // directory it rebuilds — the difference is only visible across a restart.
+    // So on such a host the durability CLAIM has to be the operator's
+    // (`OPENMIND_DATA_DIR_DURABLE=1`), and its evidence is the restart drill,
+    // which is the one measurement that can answer the question because it
+    // outlives the restart it is asking about. Everything else is `unknown`:
+    // a note rather than a pass, and the state every gate refuses.
     const durability = facts.dataDirDurability ?? dataDirDurability(dataDir);
+    const mount = dataDirFilesystem(dataDir);
+    const evidence = mount
+      ? `the deepest mount above it is ${mount.fstype} at ${mount.at}`
+      : "no mount above it could be read";
     if (durability === "host-filesystem") {
+      // MEASURED loss, and it outranks any declaration: a tmpfs or an overlay is
+      // the host's own filesystem whatever anybody says about it, so declaring
+      // durability over one is not a claim this product may honour.
       problems.push({
         key: "OPENMIND_DATA_DIR",
         code: "data_dir_not_durable",
-        detail: `this host (${host}) replaces its filesystem when it deploys or restarts, and ${dataDir} is not a volume of its own — it is a directory on the root filesystem or on a mount (overlay, bind, tmpfs) that the host rebuilds with the image, so every learner record and evidence ledger is lost on the next sleep or deploy. Attach a disk and point OPENMIND_DATA_DIR at its mount path, or set OPENMIND_ALLOW_EPHEMERAL_STORE=1 to accept losing them`,
+        detail: `this host (${host}) replaces its filesystem when it deploys or restarts, and ${dataDir} is on that filesystem — ${evidence}: the root filesystem, or a mount the host rebuilds with the image, so every learner record and evidence ledger is lost on the next sleep or deploy. Attach a disk and point OPENMIND_DATA_DIR at its mount path, or set OPENMIND_ALLOW_EPHEMERAL_STORE=1 to accept losing them`,
       });
-    } else if (durability === "unknown") {
+    } else if (declaredDurable) {
       notes.push({
+        key: "OPENMIND_DATA_DIR_DURABLE",
+        code: "durability_declared",
+        detail: `this host (${host}) replaces its filesystem when it deploys or restarts, and whether ${dataDir} survives that cannot be measured from inside the process — ${evidence}, and a filesystem of its own is not evidence, because a container's app directory is one too. The store is being treated as KEPT because this deployment declares it (OPENMIND_DATA_DIR_DURABLE=1), and that claim is worth exactly as much as the last restart drill: OPENMIND_BASE=… npm run verify:persistence -- --write, replace the instance, then --verify`,
+      });
+    } else {
+      // UNPROVEN, and that is now a REFUSAL rather than a note: writes are
+      // refused and readiness is 503. The store might survive — Render's app
+      // directory is a mount of its own, and the mount table cannot see a
+      // container's future — but "might" is not something a learner's history
+      // may be written into, and a note beside a running site is exactly the
+      // shape of the promise that lost a classroom. The escape is a deliberate
+      // DECLARATION (a disk plus OPENMIND_DATA_DIR_DURABLE=1, proven by the
+      // drill) or an explicit acceptance of loss (OPENMIND_ALLOW_EPHEMERAL_STORE
+      // =1), which turns this instance into a labelled demo.
+      problems.push({
         key: "OPENMIND_DATA_DIR",
         code: "durability_unknown",
-        detail: `this host (${host}) discards its filesystem, and whether ${dataDir} is a volume of its own could NOT be determined — verify the volume is attached and mounted at that path before trusting the store`,
+        detail: `this host (${host}) discards its filesystem, and whether ${dataDir} survives that could NOT be established from inside the process — ${evidence}. Attach a volume at that path and declare it (OPENMIND_DATA_DIR_DURABLE=1), then prove it with the restart drill (npm run verify:persistence -- --write, replace the instance, --verify); or set OPENMIND_ALLOW_EPHEMERAL_STORE=1 to run this instance as a demo whose learner records are expected to be lost. No statistic this process can take tells a disk the host keeps from a directory it rebuilds, so until one of those two is declared, learner-data writes are refused`,
       });
     }
-    // "volume" — a filesystem of its own that is not a view of the image.
-    // Silence, because that is the only answer with nothing left to ask for.
+  }
+
+  // The ACCEPTANCE, reported once whatever else is true of this deployment —
+  // including when no data directory was declared at all, because "I accept an
+  // ephemeral store" is the sentence that turns a refusal into a labelled demo
+  // and it must be visible in the report that explains the difference.
+  if (acceptsEphemeral && !declaredDurable) {
+    notes.push({
+      key: "OPENMIND_ALLOW_EPHEMERAL_STORE",
+      code: "ephemeral_store_accepted",
+      detail: `${dataDir ? `this deployment declares ${dataDir} and ` : "this deployment "}says it accepts an ephemeral store, so losing it on a deploy is a KNOWN state rather than a surprise: learner records may be written, and every one of them is expected to disappear when this instance is replaced`,
+    });
   }
 
   // 6b. WHICH STORE, and whether this build can serve it. A deployment that

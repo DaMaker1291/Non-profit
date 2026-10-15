@@ -524,6 +524,30 @@ async function writeCanary(base, mode) {
   const projection = projectionOf(ledger.body);
   ok(projection != null, "and names the projection that produced the model from it", `v${projection?.projectionVersion ?? projection?.version ?? "?"}`);
 
+  // ── THE BASELINE MUST BE NON-NULL, AND SAID SO BEFORE THE RESTART ─────────
+  // A comparison between two nulls PASSES: a store that lost the record and a
+  // store that never wrote one are the same shape to `okSame`, so a drill whose
+  // baseline is empty certifies nothing at all. Every field the verify phase
+  // compares is therefore asserted present HERE, where a missing one is a
+  // fixture bug with a cause, rather than being counted as a survival after a
+  // restart that never had anything to lose. (Measured need, not caution: the
+  // first cut of this file recorded a projection of `null` on one side of the
+  // comparison and reported it as a mismatch against a product that was fine.)
+  const baseline = {
+    answers: typeof answers === "number" ? answers : null,
+    attempts: typeof row?.attempts === "number" && row.attempts > 0 ? row.attempts : null,
+    events: events.length,
+    joinCode: typeof cls.joinCode === "string" && cls.joinCode.length >= 4 ? cls.joinCode : null,
+    onboardedAt: typeof onboardedAt === "number" ? onboardedAt : null,
+    spec: typeof spec === "string" ? spec : null,
+    projection: projection ?? null,
+    conceptRow: row ?? null,
+  };
+  const empty = Object.entries(baseline).filter(([, v]) => v === null).map(([k]) => k);
+  ok(empty.length === 0,
+    `the recorded baseline is non-null in every field the restart is judged by (${Object.keys(baseline).length} fields)`,
+    empty.length ? `null: ${empty.join(", ")}` : "");
+
   return {
     base: base.replace(/\/+$/, ""),
     createdAt: Date.now(),
@@ -557,6 +581,9 @@ async function writeCanary(base, mode) {
     pupil: { id: pupilId, secret: pupilSecret },
     mate: { id: mateId, secret: mateSecret },
     canaryEvidence: { answers, events, projection, spec, onboardedAt, mastery: graded.body?.mastery ?? null, classJoinCode: cls.joinCode, conceptId },
+    /** The non-null baseline, so the verify phase can REFUSE to judge a
+     *  comparison whose before-side is empty (see the assertion above). */
+    baseline,
   };
 }
 
@@ -750,9 +777,61 @@ async function runLocal() {
     ok(ledgerAfter === ledgerBefore, "the ledger file is byte-identical after the restart");
     okSame(after.events, canary.events, "and the events the API returns are exactly the ones it returned before");
 
+    // ── PHASE C: THE DRILL CAN FAIL, ON THE LOSS IT EXISTS TO CATCH ─────────
+    //
+    // Everything above proves this drill passes a store that kept its data. A
+    // check that only ever passes is not a check, so the SAME verifier is then
+    // pointed at the loss condition an ephemeral deployment produces on its next
+    // deploy: a freshly created filesystem where the learner used to be. It must
+    // report the loss, and the report must be about REAL data — which is what the
+    // non-null baseline asserted in phase 1 buys: a "was null, now null" shape
+    // could not have been recorded, so every failure here compares a real value
+    // against its absence.
+    step("Loss · the same verifier, against a store that lost everything");
+    const lostDir = fs.mkdtempSync(path.join(os.tmpdir(), "om-persist-lost-"));
+    const lostBase = `/tmp/om-persist-lost-${process.pid}`;
+    let lostServer = null;
+    const beforePass = pass;
+    const beforeFail = fail;
+    const beforeLost = lost.length;
+    let lostPassed = 0;
+    let lostFailed = 0;
+    let lostMessages = [];
+    try {
+      lostServer = startStandalone({ port: PORT + 1, dataDir: lostDir });
+      const readyLost = await waitForReady(lostServer);
+      ok(!!readyLost, `a second instance boots on an EMPTY store (${lostBase} is the deploy that replaced the disk)`);
+      await verifyCanary(lostServer.base, canary, { expectRestart: false });
+    } catch (e) {
+      // Throwing is also "the verifier reported it", but say so rather than
+      // counting it as a pass: the next assertions are about the REPORT.
+      console.log(`  · the verifier threw against the lost store: ${e.message}`);
+    } finally {
+      lostPassed = pass - beforePass;
+      lostFailed = fail - beforeFail;
+      lostMessages = lost.slice(beforeLost);
+      // The self-test's own failures are EXPECTED, so they must not fail the
+      // run: the counters go back to what the real restart proved.
+      pass = beforePass;
+      fail = beforeFail;
+      lost.length = beforeLost;
+      if (lostServer) await lostServer.stop().catch(() => {});
+      try {
+        fs.rmSync(lostDir, { recursive: true, force: true });
+      } catch {
+        /* leave it for the OS if a file is locked */
+      }
+    }
+    ok(lostFailed > 0, `the verifier REPORTS the loss instead of passing it (${lostFailed} failures, ${lostPassed} passes)`);
+    const namedLoss = lostMessages.find((m) => /still exists|UNCHANGED|same join code|same number of attempts|identical|still reads/i.test(m));
+    ok(!!namedLoss, `and the failures name the data that is gone — not a null-to-null comparison (${namedLoss ?? "none named"})`);
+    ok(canary.baseline && Object.values(canary.baseline).every((v) => v !== null),
+      "because the baseline it is judged against was non-null before the loss was simulated");
+
     console.log(`\n${"─".repeat(58)}`);
     console.log(`PERSISTENCE (local, across a real process restart): ${pass} passed, ${fail} failed`);
     console.log(`  store: ${dataDir}`);
+    console.log(`  the drill's own self-test (the same verifier against a store that lost everything): ${lostFailed} losses reported, ${lostPassed} claim(s) still held — expected, and excluded from the counts above`);
     return fail;
   } finally {
     if (first) await first.stop().catch(() => {});

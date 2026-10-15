@@ -6,6 +6,9 @@ import {
 import { getProfile, newProfileState, publicProfileState, saveProfile } from "@/lib/server/store";
 import type { ProfileState, SubjectId } from "@/lib/types";
 import { readBody, sessionTokenFor, str, withSession } from "../_shared";
+// A sign-up IS the creation of a learner record, so a deployment whose store has
+// refused learner data must refuse the sign-up too — with its reason, not a 500.
+import { storeWriteRefusalNow } from "@/lib/server/write-refusal";
 
 const SUBJECTS: SubjectId[] = ["maths", "physics", "chemistry", "biology", "computing"];
 const ROLES: AccountRole[] = ["student", "teacher", "org"];
@@ -33,6 +36,13 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (await findAccountByEmail(email)) {
     return NextResponse.json({ error: "email_taken" }, { status: 409 });
   }
+
+  // NO LEARNER RECORD, NO ACCOUNT. Every branch below writes a profile (a new one
+  // or the adopted anonymous one) and an account pointing at it, and a store the
+  // deployment has not declared it can keep must not accept either — the account
+  // would be a login whose learning had nowhere to live.
+  const refusal = storeWriteRefusalNow();
+  if (refusal) return refusal;
 
   // 1. Claim the ANONYMOUS profile, if one was offered and proves itself.
   let state: ProfileState | null = null;

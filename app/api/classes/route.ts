@@ -9,6 +9,7 @@ import {
   updateClassById,
 } from "@/lib/server/store";
 import { authorizeLearner } from "@/lib/server/capability";
+import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { freeHandle, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
 import { liveRoster, memberEvidence, resolveMembers } from "@/lib/server/class-view";
 import { SUBJECT_IDS } from "@/lib/subjects";
@@ -221,7 +222,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       default:
         return NextResponse.json({ error: "unknown action" }, { status: 400 });
     }
-  } catch {
+  } catch (e) {
+    // A class, a join or a self-report is learner data: a store that cannot keep
+    // the write answers 503 with its reason rather than a blanket 400.
+    const refusal = storeWriteRefusal(e);
+    if (refusal) return refusal;
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
 }

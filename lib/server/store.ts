@@ -15,6 +15,9 @@ import { ERASURES_FILE, appendErasure } from "./erasures";
 // the configured backend at module load is what refuses a deployment that asked
 // for a backend this build cannot serve.
 import { resolveStoreKind } from "./storage";
+// The ONE owner of "may this deployment keep a learner's record": see
+// `storeWriteBlock` below, which is the write path's half of it.
+import { storeReadiness } from "../env";
 export { newProfileState, publicProfileState };
 import type { ClassRoster, ProfileState, StudentProfile, StudyPack, StudyRoom } from "../types";
 import type { BuiltPaperAnswerKey } from "../papers";
@@ -59,6 +62,70 @@ async function ensureDir(): Promise<void> {
   await fs.mkdir(DATA_DIR, { recursive: true });
 }
 
+// ── MAY THIS DEPLOYMENT KEEP WHAT IT IS ABOUT TO WRITE? ─────────────────────
+//
+// The rule itself lives in lib/env.ts (`storeReadiness`), so the readiness route,
+// the drill and the write path cannot disagree about it. Its second live drill
+// was the one that forced it: a Render service with no disk answered ready:true
+// and lost a canary learner to the next deploy, and the lesson is not "detect
+// that host" — it is that NO statistic a process can take tells a disk the host
+// keeps from a directory it rebuilds. So the deployment must DECLARE which it is,
+// and until it does, learner-data writes are refused rather than accepted and
+// quietly thrown away.
+//
+// The refusal is enforced HERE, at the primitive every learner-record write goes
+// through, rather than in the routes: a route added tomorrow cannot forget a
+// check it never had to write. Routes translate it (lib/server/write-refusal.ts)
+// so a learner sees a sentence rather than a stack trace.
+
+export class StoreWriteBlockedError extends Error {
+  constructor(
+    /** The code from lib/env.ts — `durability_unknown`, `data_dir_not_durable`, … */
+    readonly code: string,
+    /** Why, in a sentence an operator can act on. */
+    readonly detail: string,
+  ) {
+    super(detail);
+    this.name = "StoreWriteBlockedError";
+  }
+}
+
+/**
+ * WHY this write is happening — and the whole of the policy, in one type.
+ *
+ *   learner-record — a learner's record, history or work. REFUSED on a store the
+ *                    deployment has not declared it can keep. This is the default,
+ *                    because the safe direction for a forgotten argument is to
+ *                    refuse.
+ *   erasure        — removing a learner's data. NEVER refused: erasure is a
+ *                    right, and a store that cannot keep data is exactly where
+ *                    keeping it after being asked to delete it is worst.
+ *   identity       — an account's own session bookkeeping (sign-out, the epoch
+ *                    that revokes tokens, a password change). NEVER refused:
+ *                    signing out must work on every deployment, and refusing it
+ *                    would leave a learner signed in because the disk is wrong.
+ */
+export type WritePurpose = "learner-record" | "erasure" | "identity";
+
+/** The refusal, or null when this deployment may write learner records. Resolved
+ *  once per process: the environment does not change under a running server, and
+ *  every write asking the same question again is how a write path gets slow. */
+let writePolicy: { code: string; detail: string } | null | undefined;
+export function storeWriteBlock(): { code: string; detail: string } | null {
+  if (writePolicy === undefined) {
+    const ready = storeReadiness(process.env);
+    writePolicy = ready.writesPermitted
+      ? null
+      : { code: ready.blockedBy ?? "store_not_writable", detail: ready.reason };
+  }
+  return writePolicy;
+}
+
+/** For tests and for a process that must re-read a changed environment. */
+export function resetStoreWritePolicy(): void {
+  writePolicy = undefined;
+}
+
 export async function readJson<T>(file: string, fallback: T): Promise<T> {
   try {
     const raw = await fs.readFile(path.join(DATA_DIR, file), "utf8");
@@ -69,11 +136,32 @@ export async function readJson<T>(file: string, fallback: T): Promise<T> {
   }
 }
 
-export async function writeJson(file: string, data: unknown): Promise<void> {
+export async function writeJson(
+  file: string,
+  data: unknown,
+  purpose: WritePurpose = "learner-record",
+): Promise<void> {
+  const text = JSON.stringify(data);
+  const block = purpose === "learner-record" ? storeWriteBlock() : null;
+  if (block) {
+    // A WRITE THAT WOULD NOT CHANGE THE FILE IS NOT A WRITE. This matters on a
+    // store we have refused: several read doors (`GET /api/progress`) read the
+    // profile inside the file lock and write it straight back, and refusing their
+    // no-op write would turn a read-only deployment into one that cannot be read.
+    // It also spares a real deployment an unnecessary rewrite of a file it just
+    // read. Compared on the serialised text, which is the exact bytes the write
+    // would produce.
+    try {
+      if ((await fs.readFile(path.join(DATA_DIR, file), "utf8")) === text) return;
+    } catch {
+      // Unreadable or absent: the write is real, and the refusal stands.
+    }
+    throw new StoreWriteBlockedError(block.code, `${block.detail} (refused while writing ${file})`);
+  }
   await ensureDir();
   // Unique temp name per write: two writers must never share one tmp file.
   const tmp = path.join(DATA_DIR, `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`);
-  await fs.writeFile(tmp, JSON.stringify(data), "utf8");
+  await fs.writeFile(tmp, text, "utf8");
   await fs.rename(tmp, path.join(DATA_DIR, file));
 }
 
@@ -107,7 +195,9 @@ export async function deleteProfile(id: string): Promise<boolean> {
     const all = await readJson<Record<string, ProfileState>>("profiles.json", {});
     if (!all[id]) return false;
     delete all[id];
-    await writeJson("profiles.json", all);
+    // "erasure": the right to be forgotten does not depend on the deployment
+    // being able to keep records — see WritePurpose.
+    await writeJson("profiles.json", all, "erasure");
     return true;
   });
   // The record of the INTENT, written only once the profile is really gone (a
@@ -137,7 +227,7 @@ export async function removeMemberEverywhere(profileId: string): Promise<number>
     // class-membership.ts#removeMember, because the erasure a RESTORE re-applies
     // to a restored copy has to remove identically.
     for (const cls of rosters) if (removeMember(cls, profileId)) changed++;
-    if (changed > 0) await writeJson("classes.json", rosters);
+    if (changed > 0) await writeJson("classes.json", rosters, "erasure");
     return changed;
   });
 }
@@ -295,12 +385,21 @@ export async function cacheGet(key: string): Promise<unknown | null> {
 }
 
 export async function cacheSet(key: string, value: unknown): Promise<void> {
-  await withLock("ai-cache.json", async () => {
-    const all = await readJson<Record<string, unknown>>("ai-cache.json", {});
-    all[key] = value;
-    const entries = Object.entries(all).slice(-4000);
-    await writeJson("ai-cache.json", Object.fromEntries(entries));
-  });
+  // The cache is disposable by design — a lost entry costs one model call, and
+  // nothing a learner was promised rests on it — so a refusal to write here must
+  // never fail the request that produced the value. Every other write in this
+  // file lets the refusal through.
+  try {
+    await withLock("ai-cache.json", async () => {
+      const all = await readJson<Record<string, unknown>>("ai-cache.json", {});
+      all[key] = value;
+      const entries = Object.entries(all).slice(-4000);
+      await writeJson("ai-cache.json", Object.fromEntries(entries));
+    });
+  } catch (e) {
+    if (e instanceof StoreWriteBlockedError) return;
+    throw e;
+  }
 }
 
 // ── Classes ─────────────────────────────────────────────────────────────────
@@ -333,7 +432,11 @@ async function classesWithIdentity(): Promise<ClassRoster[]> {
   const states = await listProfileStates();
   let changed = false;
   for (const cls of all) if (bindLegacyHandles(cls, states)) changed = true;
-  if (changed) await withLock("classes.json", () => writeJson("classes.json", all));
+  // Best-effort on purpose: this write is a reconciliation a READ performs, and
+  // a read must never fail because it could not write back — least of all on a
+  // deployment that has refused learner-data writes. The binding is tried again
+  // on the next read, so nothing is lost by skipping it here.
+  if (changed) await withLock("classes.json", () => writeJson("classes.json", all)).catch(() => {});
   return all;
 }
 

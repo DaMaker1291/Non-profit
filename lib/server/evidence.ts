@@ -17,7 +17,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { DATA_DIR, withLock } from "./store";
+import { DATA_DIR, StoreWriteBlockedError, storeWriteBlock, withLock } from "./store";
 import type { EvidenceEvent } from "../evidence";
 
 const DIR = path.join(DATA_DIR, "evidence");
@@ -105,6 +105,14 @@ export async function appendEvidence(learnerId: string, events: readonly Evidenc
   const accepted: string[] = [];
   const duplicates: string[] = [];
   if (!events.length) return { accepted, duplicates };
+  // The LEDGER is the strongest claim this product makes about a learner, so it
+  // is refused first and hardest: a store the deployment cannot keep must not
+  // accept one more event, because `commitAndProject` answers
+  // `evidence_not_recorded` rather than moving the model on an event nobody will
+  // find again. Checked BEFORE the file is touched, so the refusal costs nothing
+  // and no empty ledger is created for a learner who cannot be recorded.
+  const block = storeWriteBlock();
+  if (block) throw new StoreWriteBlockedError(block.code, `${block.detail} (refused while appending evidence)`);
   const file = fileFor(learnerId); // validates before anything is created
   ensureDir();
   return withLock(file, async () => {

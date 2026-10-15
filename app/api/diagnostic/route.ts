@@ -6,6 +6,8 @@ import { applyTerminology, specForProfile } from "@/lib/specifications";
 import { EVIDENCE_SCHEMA_VERSION, answerEvidence, newEvidenceId, type Certainty, type EvidenceEvent } from "@/lib/evidence";
 import { appendEvidence } from "@/lib/server/evidence";
 import { commitAndProject } from "@/lib/server/projection";
+// A store that cannot keep this write answers 503 with its reason — never a 500.
+import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import type { ProfileState, Question, SubjectId } from "@/lib/types";
 
 /** The request's subject, checked against the same list the router validates
@@ -338,6 +340,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     }
     return NextResponse.json(r);
   } catch (e) {
+    const refusal = storeWriteRefusal(e);
+    if (refusal) return refusal;
     if (e instanceof Error && e.message === "unauthorized") {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }

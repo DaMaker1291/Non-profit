@@ -4,6 +4,10 @@ import {
 } from "@/lib/server/auth";
 import { getProfile, publicProfileState } from "@/lib/server/store";
 import { readBody, str } from "../_shared";
+// Adopting this device's guest profile onto the account writes to that profile
+// (it mints its capability secret if it has none), so a store that cannot keep
+// learner data refuses the claim rather than half-performing it.
+import { storeWriteRefusalNow } from "@/lib/server/write-refusal";
 
 /**
  * POST /api/auth/claim — attach the anonymous profile on THIS device to the
@@ -20,6 +24,9 @@ import { readBody, str } from "../_shared";
 export async function POST(req: Request): Promise<NextResponse> {
   const account = await accountFromRequest(req);
   if (!account) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const refusal = storeWriteRefusalNow();
+  if (refusal) return refusal;
 
   const body = await readBody(req);
   const profileId = str(body.profileId);

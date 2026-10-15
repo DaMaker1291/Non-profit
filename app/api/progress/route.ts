@@ -22,6 +22,8 @@ import { getConcept } from "@/lib/genome";
 import { answerEvidence, deviceClaimAt, hintEvidence, submissionEventId, type EvidenceEvent } from "@/lib/evidence";
 import { appendEvidence, hasEvidence, readEvidence } from "@/lib/server/evidence";
 import { commitAndProject } from "@/lib/server/projection";
+// A store that cannot keep this write answers 503 with its reason — never a 500.
+import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import type { ProfileState, Question } from "@/lib/types";
 
 /** A choice index must be a real array index: anything else is a client bug,
@@ -99,6 +101,11 @@ export async function GET(req: Request): Promise<NextResponse> {
     if (!state) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json(state.result);
   } catch (e) {
+    // A READ can still write here — `checkSecret` binds a legacy profile's
+    // capability secret on its first authenticated read — so this door has the
+    // same refusal as the POST below rather than answering it as a bad request.
+    const refusal = storeWriteRefusal(e);
+    if (refusal) return refusal;
     if (e instanceof Error && e.message === "unauthorized") {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
@@ -606,6 +613,8 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     return NextResponse.json({ error: "unknown action" }, { status: 400 });
   } catch (e) {
+    const refusal = storeWriteRefusal(e);
+    if (refusal) return refusal;
     if (e instanceof Error && e.message === "unauthorized") {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }

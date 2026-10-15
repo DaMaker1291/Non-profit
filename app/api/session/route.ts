@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { updateProfile } from "@/lib/server/store";
 import { authorisedProfile } from "@/lib/server/auth";
+import { storeWriteRefusalNow } from "@/lib/server/write-refusal";
 import { getConcept } from "@/lib/genome";
 import { hasGenerator } from "@/lib/questions";
 import { isNextKind, type NextKind } from "@/lib/next-engine";
@@ -74,6 +75,12 @@ export async function POST(req: Request): Promise<NextResponse> {
     typeof body.secret === "string" ? body.secret : null,
   );
   if (!profile) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Both actions write: `start` stages the baseline the adaptation is measured
+  // against, `finish` stores the result. A store that cannot keep either answers
+  // here, before a sitting is opened that could never be closed honestly.
+  const refusal = storeWriteRefusalNow();
+  if (refusal) return refusal;
 
   if (action === "start") {
     const conceptId = typeof body.conceptId === "string" ? body.conceptId : "";

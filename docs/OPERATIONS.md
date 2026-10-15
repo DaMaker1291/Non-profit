@@ -270,15 +270,33 @@ it is in the store.
 
 **Watch the right one for the right question.** `/api/health` is LIVENESS — the
 process is up — and is the only one a host's own health check should call.
-`/api/ready` is READINESS, and it is deliberately **503** when the store is one
-the host discards (a `data_dir_not_durable` problem): such a deployment serves
-every request perfectly and must not be sent learners, so an uptime monitor
-alarms on its status while the host's restart policy must not.
-`store.durability` on the same response is the one word to graph:
-`"durable"` is the only green, `"ephemeral"` (with `accepted:true`) is a demo
-somebody declared, and `"unknown"` is a store nobody has proved — treat all
-three of the non-green values as "no real learners here" rather than as
-variations of fine.
+`/api/ready` is READINESS, and it is deliberately **503** when the store cannot
+be kept (an undeclared, unproven or measured-ephemeral data directory): such a
+deployment serves every request perfectly and must not be sent learners, so an
+uptime monitor alarms on its status while the host's restart policy must not.
+Both endpoints now carry the same judgement — `/api/health` as
+`store:{kind,durability,mode,writesPermitted}`, `/api/ready` with the full
+`persistence` (what was DECLARED) and `measured` (what the store has SEEN)
+blocks — so one poll answers both questions.
+
+The three things to alarm on, in order of how much they cost to discover late:
+
+- **`store.persistence.writesPermitted === false`.** Learner-data writes are
+  being REFUSED with `503 store_not_durable`. Reads still work, so the site looks
+  alive while nobody can save anything: the deployment is misconfigured, and the
+  code in `store.persistence.blockedBy` (`durability_unknown`,
+  `data_dir_not_durable`, `data_dir_undeclared`, `durability_contradiction`,
+  `store_not_implemented`) names which variable to look at. `durability`
+  `"ephemeral"` with `accepted:true` is NOT this case — that is a declared demo
+  that may write and will lose it.
+- **`store.persistence.mode === "declared-durable"` with
+  `store.measured.survivedDeployments === 0`.** Somebody has claimed the store
+  survives a redeploy and the store itself has never been observed to. That is
+  the state to schedule the drill from (`npm run verify:persistence`), not to
+  trust.
+- **`store.durability` drifting off `"durable"`.** `"ephemeral"` is a demo
+  somebody declared; `"unknown"` is a store nobody has proved. Treat both as
+  "no real learners here" rather than as variations of fine.
 
 ### The disk-headroom alarm
 

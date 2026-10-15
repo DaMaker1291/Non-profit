@@ -242,10 +242,16 @@ const CLAIM_FORMS = [
  * — a drift report that says "README.md is stale" would send a reader looking for
  * the wrong thing.
  */
-function proseCountProblems(read = (file) => fs.readFileSync(file, "utf8")) {
+function proseCountProblems(
+  read = (file) => fs.readFileSync(file, "utf8"),
+  // Injectable so the self-test can drive a form of its OWN — see `--self-test`
+  // below, where each form must prove its defect is detected WITHOUT help from
+  // the other form's fixture.
+  forms = CLAIM_FORMS,
+) {
   const problems = [];
   const subjects = Object.keys(bySubject);
-  for (const form of CLAIM_FORMS) {
+  for (const form of forms) {
     // ── THE INVARIANT, BOTH WAYS ────────────────────────────────────────────
     // Every subject the genome HAS must have a name in this form, or a claim
     // about it is unmatchable and therefore unchecked; and every name here must
@@ -322,20 +328,37 @@ if (process.argv.includes("--self-test")) {
   const real = proseCountProblems();
   caseOk("the claims on disk agree with the measured counts", real.length === 0, real.join("; "));
 
+  // ── ONE FORM'S TEST MAY NOT BE SATISFIED BY ANOTHER FORM'S DEFECT ─────────
+  //
+  // Every case below is run with the OTHER form's file read from disk, and the
+  // scan is required to report problems ABOUT THE FORM UNDER TEST and nothing
+  // else. That assertion is the whole isolation rule, and it is not theoretical:
+  // the first cut of the unmapped-name case read ONE fake text as EVERY file, so
+  // the README iteration passed on a problem the scan had actually reported for
+  // `lib/genome.ts` — a case that would have gone on passing after the README
+  // half of the check was deleted.
+  const aboutFile = (file, problems) => problems.length > 0 && problems.every((p) => p.startsWith(file));
   for (const form of CLAIM_FORMS) {
     const truth = fs.readFileSync(form.file, "utf8");
     const lying = bump(truth, form.perSubject);
     const found = proseCountProblems(withFile(form.file, lying));
-    caseOk(`a wrong per-subject count in ${form.file} is reported`, found.length > 0,
-      found[0] ?? "the scanner stayed silent");
+    caseOk(`a wrong per-subject count in ${form.file} is reported, and only about that file`,
+      aboutFile(form.file, found), found[0] ?? "the scanner stayed silent");
     if (form.total) {
       const totalLie = proseCountProblems(withFile(form.file, bump(truth, form.total, 1)));
-      caseOk(`a wrong total in ${form.file} is reported`, totalLie.length > 0,
-        totalLie[0] ?? "the scanner stayed silent");
+      caseOk(`a wrong total in ${form.file} is reported, and only about that file`,
+        aboutFile(form.file, totalLie), totalLie[0] ?? "the scanner stayed silent");
     }
-    // A name the form does not cover must fail rather than be skipped.
-    const unmapped = proseCountProblems(() => "// WELDING — 12 concepts, stage 0\n");
-    caseOk(`${form.file}: a claim no nameKey entry covers is reported, not skipped`, unmapped.length > 0,
+    // A NAME the form does not cover must fail rather than be skipped. The
+    // fixture is the form's OWN text read with one name taken out of its own
+    // nameKey, so the claim it states is genuinely unmapped and the reader still
+    // lies about one file only.
+    const name0 = Object.keys(form.nameKey)[0];
+    const partial = { ...form, nameKey: { ...form.nameKey } };
+    delete partial.nameKey[name0];
+    const unmapped = proseCountProblems(withFile(form.file, truth), [partial]);
+    caseOk(`${form.file}: a claim its own nameKey does not cover is reported, not skipped`,
+      aboutFile(form.file, unmapped) && unmapped.some((p) => p.includes("no subject name is mapped to")),
       unmapped[0] ?? "silently skipped");
   }
 

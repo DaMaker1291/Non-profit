@@ -11114,10 +11114,21 @@ console.log("▸ The deployment reports its own configuration, and invents no re
   // deploy that replaced the process destroyed the canary learner (`--verify`:
   // 4 passed, 30 failed, every learner-scoped read a 404). Inside a container
   // the app directory IS a mount of its own, and it is an overlay the host
-  // throws away with the image. So the judgement reads the MOUNT TABLE, an
-  // overlay/bind/tmpfs mount is the host's filesystem whatever its device, and
-  // the real deploy layouts are injected below as text so both answers are
-  // decidable on one machine.
+  // throws away with the image. So the judgement moved to the MOUNT TABLE — and
+  // that was then measured against the SAME host and ALSO said durable: Render's
+  // app directory is a mount of its own, on a filesystem of its own, and the host
+  // rebuilds it anyway.
+  //
+  // TWO MEASUREMENTS, TWO FALSE PASSES, AND THE CONCLUSION IS THE POINT: no
+  // statistic this process can take tells a disk the host keeps from a directory
+  // it rebuilds, because the difference is only visible across the restart the
+  // question is about. So the judgement was narrowed to what it can PROVE — a
+  // filesystem visibly the host's own (the root, an overlay/bind/tmpfs, or the
+  // same device as the root) is CERTAIN loss — and everything else is enforced by
+  // DECLARATION plus the restart drill, with learner-data writes REFUSED until
+  // one of the two declarations is made. The real deploy layouts are still
+  // injected below as text, because the mount table is what separates a certain
+  // loss from an unproven one.
   const hosted = { NODE_ENV: "production", OPENMIND_DATA_DIR: "/data", RENDER: "true" };
   /** A disk the host keeps: its own filesystem, mounted below the image. */
   const diskTable = [
@@ -11147,12 +11158,137 @@ console.log("▸ The deployment reports its own configuration, and invents no re
 
   const notDurable = envMod.envReport(hosted, { dataDirDurability: "host-filesystem" });
   ok(notDurable.ok === false && notDurable.problems.some((p) => p.code === "data_dir_not_durable"),
-    "a declared store that is not a volume the host keeps is not ready on a host that discards its filesystem");
-  ok(envMod.envReport(hosted, { dataDirDurability: "volume" }).ok === true,
-    "while the same host with the directory on a mounted volume is ready — which is the disk this exists to ask for");
-  ok(envMod.envReport(hosted, { dataDirDurability: "unknown" }).ok === true
-    && envMod.envReport(hosted, { dataDirDurability: "unknown" }).notes.some((n) => n.code === "durability_unknown"),
-    "and a filesystem that cannot be measured is reported as UNKNOWN, never as durable");
+    "a store MEASURED to be on the host's own filesystem is not ready on a host that discards it");
+  // The false promise itself, as a fixture: a directory that LOOKS like a disk of
+  // its own gets no credit from this report, because looking like a disk is what
+  // the destroyed learner's directory did.
+  const looksLikeADisk = envMod.envReport(hosted, { dataDirDurability: "volume" });
+  ok(looksLikeADisk.ok === false && looksLikeADisk.problems.some((p) => p.code === "durability_unknown"),
+    "and a mount table that looks like a volume is NOT proof — it is reported as unproven, which refuses writes");
+  const unmeasurable = envMod.envReport(hosted, { dataDirDurability: "unknown" });
+  ok(unmeasurable.ok === false && unmeasurable.problems.some((p) => p.code === "durability_unknown"),
+    "as is a filesystem that cannot be measured at all — UNKNOWN, never a pass");
+
+  // ── THE TWO DECLARATIONS, AND WHAT EACH ONE BUYS ──────────────────────────
+  // Declaring durability over a mount that at least is not the host's own
+  // filesystem is accepted as a CLAIM (a note), and readiness passes on it — the
+  // claim's evidence is the restart drill, named in the detail and in
+  // /api/ready, not this process's opinion about a mount table.
+  const declared = envMod.envReport({ ...hosted, OPENMIND_DATA_DIR_DURABLE: "1" }, { dataDirDurability: "volume" });
+  ok(declared.ok === true && declared.notes.some((n) => n.code === "durability_declared"),
+    "declaring the store durable over a mounted disk is a CLAIM the deployment may make, reported as a note");
+  const declaredReady = envMod.storeReadiness({ ...hosted, OPENMIND_DATA_DIR_DURABLE: "1" }, { dataDirDurability: "volume" });
+  ok(declaredReady.writesPermitted === true && declaredReady.mode === "declared-durable"
+    && declaredReady.declaredBy === "OPENMIND_DATA_DIR_DURABLE",
+    "and writes are permitted on that declaration — with the variable that made it named beside them");
+  // A DECLARATION CAN NEVER OVERRULE A MEASUREMENT: a tmpfs the host is about to
+  // rebuild stays a refusal however loudly it is declared durable.
+  ok(envMod.envReport({ ...hosted, OPENMIND_DATA_DIR_DURABLE: "1" }, { dataDirDurability: "host-filesystem" }).ok === false,
+    "while the same declaration over a filesystem MEASURED to be the host's own is still refused — measurement outranks a claim");
+  // Accepting loss is the other declaration, and it is the labelled demo: writes
+  // are permitted BECAUSE nothing was promised, and the word stays ephemeral.
+  const accepted = envMod.storeReadiness({ ...hosted, OPENMIND_ALLOW_EPHEMERAL_STORE: "1" }, { dataDirDurability: "volume" });
+  ok(accepted.writesPermitted === true && accepted.mode === "accepted-ephemeral" && accepted.durability === "ephemeral",
+    "accepting an ephemeral store permits writes and still reports the store as ephemeral, never as durable");
+  // Both at once is not a configuration, and guessing which was meant is how a
+  // deployment ends up on the wrong side of the difference between a demo and an
+  // incident. Inconsistent configuration fails closed.
+  const contradictory = envMod.storeReadiness({ ...hosted, OPENMIND_DATA_DIR_DURABLE: "1", OPENMIND_ALLOW_EPHEMERAL_STORE: "1" }, { dataDirDurability: "volume" });
+  ok(contradictory.writesPermitted === false && contradictory.mode === "contradictory"
+    && contradictory.blockedBy === "durability_contradiction" && contradictory.durability === "unknown",
+    "both declarations at once is a contradiction: writes refused, and the word is UNKNOWN rather than either claim");
+  ok(envMod.storeReadiness({ RENDER: "true", OPENMIND_DATA_DIR_DURABLE: "1" }).blockedBy === "data_dir_undeclared",
+    "and declaring durability for the DEFAULT in-application directory is refused by name — that location is the one a deploy certainly replaces");
+  // The whole policy, as a table, so a change to any one row is a failing test
+  // rather than a reading of the code.
+  const POLICY = [
+    [{}, { dataDirDurability: "host-filesystem" }, "host-durable", true],
+    [{ NODE_ENV: "production", OPENMIND_DATA_DIR: "/data" }, { dataDirDurability: "volume" }, "host-durable", true],
+    [{ RENDER: "true" }, { dataDirDurability: "volume" }, "undeclared", false],
+    [hosted, { dataDirDurability: "volume" }, "unproven", false],
+    [{ ...hosted, OPENMIND_DATA_DIR_DURABLE: "1" }, { dataDirDurability: "volume" }, "declared-durable", true],
+    [{ ...hosted, OPENMIND_ALLOW_EPHEMERAL_STORE: "1" }, { dataDirDurability: "volume" }, "accepted-ephemeral", true],
+  ];
+  for (const [env, facts, mode, writes] of POLICY) {
+    const r = envMod.storeReadiness(env, facts);
+    ok(r.mode === mode && r.writesPermitted === writes,
+      `the write policy for ${JSON.stringify(env)} is ${mode}/writes=${writes} (got ${r.mode}/writes=${r.writesPermitted})`);
+  }
+  ok(envMod.storeReadiness({ OPENMIND_STORE: "postgres" }).writesPermitted === false
+    && envMod.storeReadiness({ OPENMIND_STORE: "postgres" }).mode === "unservable",
+    "and a backend this build cannot serve permits no writes at all rather than falling back to the file store");
+
+  // ── 1d. THE WRITE PATH ITSELF REFUSES, NOT ONLY THE REPORT ────────────────
+  // A report that says "unproven" while the store still accepts a learner record
+  // is the same false promise in a different file. The refusal is enforced at the
+  // primitive every learner-record write goes through, so this drives the REAL
+  // store module — against the temp data directory the suite already set up, and
+  // with the environment each case needs.
+  {
+    const saved = {};
+    for (const k of ["RENDER", "OPENMIND_DATA_DIR_DURABLE", "OPENMIND_ALLOW_EPHEMERAL_STORE"]) {
+      saved[k] = process.env[k];
+    }
+    const setCase = (extra) => {
+      for (const k of ["RENDER", "OPENMIND_DATA_DIR_DURABLE", "OPENMIND_ALLOW_EPHEMERAL_STORE"]) delete process.env[k];
+      Object.assign(process.env, extra);
+      store.resetStoreWritePolicy();
+    };
+    const blockedName = async (fn) => {
+      try {
+        await fn();
+        return null;
+      } catch (e) {
+        return e?.name ?? "(not an error)";
+      }
+    };
+
+    setCase({ RENDER: "true" });
+    // The code depends on what this machine's filesystem makes of the temp store
+    // (certain loss or unproven); both are refusals, and the report is what names
+    // which — so the assertion is that it refuses and says which of the two.
+    ok(["durability_unknown", "data_dir_not_durable"].includes(store.storeWriteBlock()?.code),
+      `with the store unproven or on a discarding filesystem, the write path reports the refusal it will enforce (${store.storeWriteBlock()?.code})`);
+    const probeFile = "engine-gate-probe.json";
+    ok((await blockedName(() => store.writeJson(probeFile, { a: 1 }))) === "StoreWriteBlockedError",
+      "and a learner-record write is REFUSED at the store rather than accepted and discarded");
+    ok(!fs.existsSync(nodePath.join(tmpData, probeFile)), "with nothing written to the data directory");
+    // The read-door escape: several routes read the profile inside the file lock
+    // and write it straight back, so a no-op write must not be a refusal —
+    // otherwise a read-only deployment would also be an unreadable one.
+    setCase({});
+    await store.writeJson(probeFile, { a: 1 });
+    ok(fs.existsSync(nodePath.join(tmpData, probeFile)), "a permitted deployment writes it normally");
+    setCase({ RENDER: "true" });
+    ok((await blockedName(() => store.writeJson(probeFile, { a: 1 }))) === null,
+      "and on a blocked store the SAME content is not a write at all, so a read door still answers");
+    ok((await blockedName(() => store.writeJson(probeFile, { a: 2 }))) === "StoreWriteBlockedError",
+      "while content that would change the store is refused");
+    // Erasure is not a learner-record write: a store that cannot keep data is the
+    // worst place to keep it after being asked to delete it.
+    ok((await blockedName(() => store.writeJson(probeFile, { gone: true }, "erasure"))) === null,
+      "but an ERASURE is never refused, whatever the deployment's durability is");
+    // The ledger, which is the strongest claim the product makes about a learner.
+    ok((await blockedName(() => evidenceStore.appendEvidence("gatelearner", [{ id: "evt_gate", learnerId: "gatelearner" }]))) === "StoreWriteBlockedError",
+      "and the evidence ledger refuses too, so no answer is recorded on a store that cannot keep it");
+    setCase({ RENDER: "true", OPENMIND_ALLOW_EPHEMERAL_STORE: "1" });
+    ok(store.storeWriteBlock() === null
+      && (await blockedName(() => store.writeJson(probeFile, { a: 3 }))) === null,
+      "accepting an ephemeral store turns the same instance into a labelled demo that may write");
+    // Leave the environment (and the cached policy) exactly as the rest of this
+    // suite expects to find them: every later assertion reads the real store.
+    for (const k of ["RENDER", "OPENMIND_DATA_DIR_DURABLE", "OPENMIND_ALLOW_EPHEMERAL_STORE"]) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+    store.resetStoreWritePolicy();
+    ok(store.storeWriteBlock() === null, "and the suite's own store is writable again once the cases are over");
+    try {
+      fs.rmSync(nodePath.join(tmpData, probeFile), { force: true });
+    } catch {
+      /* nothing to remove */
+    }
+  }
   ok(envMod.envReport({ NODE_ENV: "production", OPENMIND_DATA_DIR: "/data" }).ok === true,
     "the same declaration on a machine that is not such a host is untouched (a laptop's /data is that laptop's disk)");
   ok(envMod.envReport({ ...hosted, OPENMIND_ALLOW_EPHEMERAL_STORE: "1" }, { dataDirDurability: "host-filesystem" }).ok === true,
@@ -11470,6 +11606,56 @@ console.log("▸ An erasure outlives the archive it was taken from");
     "and the store's own `deleteProfile` records the intent, so the erase route cannot forget to");
 
   for (const d of [dir, archive, empty]) fs.rmSync(d, { recursive: true, force: true });
+}
+
+// ── EVERY DOOR THAT WRITES LEARNER DATA TRANSLATES THE STORE'S REFUSAL ────────
+//
+// The enforcement lives at the store primitive, so a route added tomorrow cannot
+// forget a check it never had to write — but the ANSWER a learner sees is still
+// written per route, and a route that writes without translating would hand them
+// a 500 for a deployment state an operator can fix in one line. This is the same
+// kind of scan as the credential check above: a static invariant over the routes,
+// so the failure is a failing test rather than a learner's screenshot.
+//
+// It keys on the WRITE functions the store and the ledger export. A read-only
+// route may import `getProfile` and needs nothing; a route that can `saveProfile`
+// or `appendEvidence` must name `storeWriteRefusal` somewhere in the file.
+{
+  console.log("▸ A route that can write learner data answers a refused write honestly");
+  const WRITE_FNS = [
+    "saveProfile", "updateProfile", "deleteProfile", "removeMemberEverywhere",
+    "saveClass", "updateClassByCode", "updateClassById", "saveRoom", "updateRoomById",
+    "savePack", "saveStoredPaper", "savePersonalPaper", "appendEvidence", "commitAndProject",
+  ];
+  const routes = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = nodePath.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name === "route.ts") routes.push(full);
+    }
+  };
+  walk("app/api");
+  ok(routes.length > 10, `the routes were found to scan (${routes.length} files)`);
+  const missing = [];
+  for (const file of routes) {
+    const src = fs.readFileSync(file, "utf8");
+    const importsStore = /from "@\/lib\/server\/(store|evidence|projection)"/.test(src);
+    if (!importsStore) continue;
+    const importsWrite = WRITE_FNS.some((fn) => new RegExp(`\\b${fn}\\b`).test(src));
+    const mutates = /export async function (POST|PUT|PATCH|DELETE)\b/.test(src);
+    if (!(importsWrite && mutates)) continue;
+    if (!/storeWriteRefusal/.test(src)) missing.push(file);
+  }
+  ok(missing.length === 0,
+    `every mutating route that writes learner data translates the refusal (${missing.length} without: ${missing.join(", ")})`);
+  // And the check can fail: a route that writes and does not translate is what it
+  // exists to catch, asserted by scanning a file known to be covered… with the
+  // helper's name removed, which is exactly the state a new route starts in.
+  const sample = "app/api/needs/route.ts";
+  const stripped = fs.readFileSync(sample, "utf8").replaceAll("storeWriteRefusal", "somethingElse");
+  ok(!/storeWriteRefusal/.test(stripped) && /\bupdateClassById\b/.test(stripped),
+    `and the scan would catch a route that stopped translating it (${sample})`);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

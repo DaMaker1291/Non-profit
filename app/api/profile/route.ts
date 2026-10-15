@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { deleteProfile, getProfile, newProfileState, publicProfileState, saveProfile, removeMemberEverywhere } from "@/lib/server/store";
 import { deleteEvidence } from "@/lib/server/evidence";
+// A store that has refused learner-data writes throws from inside `saveProfile`;
+// this is the one place that turns the refusal into the answer a learner reads.
+import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { accountFromRequest, newProfileId } from "@/lib/server/auth";
 import { isBoardId, type ProfileState, type StudentProfile, type SubjectCourse, type SubjectId } from "@/lib/types";
 import { coversSubject, incompleteSubjects, specById, specsFor } from "@/lib/specifications";
@@ -358,7 +361,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     // a qualification nobody chose. DERIVED — computed from the profile on every
     // read, never stored, so it cannot drift from the profile it describes.
     return NextResponse.json({ ...publicProfileState(state), isNew, courseGaps: incompleteSubjects(p) });
-  } catch {
+  } catch (e) {
+    // A REFUSAL IS NOT A BAD REQUEST. On a deployment whose store cannot keep
+    // learner data the write is refused at the store, and answering "bad request"
+    // (or 500) would tell a learner their form was wrong when the truth is that
+    // the site cannot hold what they sent. 503 with the reason, and the reason
+    // names the variable the operator has to set.
+    const refusal = storeWriteRefusal(e);
+    if (refusal) return refusal;
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
 }
