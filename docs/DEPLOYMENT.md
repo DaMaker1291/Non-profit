@@ -137,8 +137,35 @@ db/migrations/0001_initial.(up|down).sql            identity, cohorts, ledger, a
              0003_course_versions.(up|down).sql    content releases, evidence binding
              0004_port_gaps.(up|down).sql          erasure log, AI cache, interventions
              0005_profile_record.(up|down).sql     the learner's own record (profiles.payload)
+             0006_learner_identity.(up|down).sql   a profile that is NOT an account; the account
+                                                   columns; the database's own boot record
 scripts/migrate.mjs                                 status | up | down | rehearse | verify
+lib/server/pg.ts                                    the connection: pool, transactions,
+                                                   advisory locks, health, refusal
 ```
+
+0006 is worth reading before deploying a database, because four of the five things
+it changes are facts about this product that the original schema refused — found
+by writing the connection layer against it rather than by re-reading it: a learner
+record no longer REQUIRES an account row (the `/solve` and `/try` wedge, and the
+guest path in onboarding, enrol before anyone types an email); the link to an
+account is `ON DELETE SET NULL` rather than `CASCADE`, so deleting an identity row
+cannot destroy a learner's record outside the logged erasure path; `users` gains
+what an account actually is (email, scrypt hash and salt, role, `session_epoch`,
+the owned profile, `verified`); and `store_boots` gives the measurement
+`/api/ready` reports as `persistence.boots` somewhere to live on a deployment
+whose store is a database. `profiles.payload` (0005) still carries the learner's
+own record, and `learner_projections.model` still carries the derived half.
+
+The connection layer is likewise real and tested, not scaffolding: `npm run
+verify` asserts that a deployment asking for Postgres with no connection string is
+REFUSED (never handed the file store), that an unreachable database is reported as
+unreachable rather than as empty — the difference between "run the migrations" and
+"your DNS is wrong" — and that two writers on ONE learner serialise across a
+connection pool while two writers on different learners do not queue behind each
+other. Those assertions need a database, so they run when
+`OPENMIND_TEST_DATABASE_URL` names a scratch one (CI's `database` job does) and are
+printed as SKIPPED otherwise — a skip, never a pass it did not earn.
 
 Every migration is PAIRED and CHECKED: the runner refuses a migration with no
 `.down.sql`, refuses to apply anything on top of an applied migration whose file
@@ -157,16 +184,86 @@ single piece between today and public multi-instance deployment. Until it is
 done, the deployment is single-instance and `db:migrate` is a step that keeps a
 schema ready rather than a step this build depends on.
 
+### 5.1 The free external database: what an operator can do TODAY, and the one step that is blocked
+
+This is the section to read if the host is Render's free web-service tier, where no
+disk can be attached and the application directory is replaced on every deploy. The
+architecture is right and the code is not finished; saying so precisely matters
+more than sounding finished.
+
+**You can do all of this now**, and it is safe to do against a real Neon project:
+
+1. Create the free Neon project (free tier: 1 GB per project, 100 compute-hours a
+   month, a six-hour instant-restore window). Neon hands you a connection string
+   with `sslmode=require` — keep the whole string, including `sslmode`, and put it
+   in the platform's secret store. Never in the repository, never in a `NEXT_PUBLIC_`
+   variable.
+2. From a checkout with that string in `DATABASE_URL`, put the schema on it:
+
+   ```text
+   DATABASE_URL='postgres://…' npm run db:migrate
+   DATABASE_URL='postgres://…' npm run db:verify    # the schema's claims, executed
+   DATABASE_URL='postgres://…' npm run db:status    # drift + pending, read-only
+   ```
+
+   The runner refuses to apply on top of drifted history, refuses a migration with
+   no reverse, and never runs from `production-check` — so this is a step that can
+   be repeated safely, and the rehearsal (`npm run db:rehearse`) needs a THROWAWAY
+   database because it drops everything it created.
+3. Read `/api/ready` on the running deployment. It reports the database as
+   PROVISIONED AND NOT USED (`database_provisioned_not_used`) — a note, not a
+   problem, and exactly the truth: the schema is ready and the store has not moved.
+   Nothing about a learner's data is in the database yet.
+
+**The blocked step is the last one**: `OPENMIND_STORE=postgres` is REFUSED at
+startup until the whole record moves through the storage port ([STORAGE_SPEC.md](STORAGE_SPEC.md)
+slice 3b) and the remaining domains and accounts move behind it (slice 4). The
+LEDGER has already moved (slice 3a): `lib/server/evidence.ts` is a facade over the
+port and `lib/server/evidence-file.ts` is the file backend's ledger, with both
+halves asserted at the source in `npm run verify`. The PROFILE has not, and that
+is what keeps the refusal: with profiles in `profiles.json` and a learner's
+history in a database, one learner's record would live in two places — the split
+this refusal exists to make unconfigurable. It is
+refused rather than attempted because serving the file store to a deployment that
+asked for a database puts a classroom's records on an ephemeral filesystem while
+the operator believes they are in Postgres, and that failure is silent.
+
+So, **on a host that discards its filesystem and offers no disk, this build cannot
+yet keep a learner's data, and no configuration makes it**:
+
+- `OPENMIND_DATA_DIR=/data` with `OPENMIND_DATA_DIR_DURABLE=1` is a DECLARATION
+  about a path, and on a host with no disk there is nothing under it to declare —
+  §6.2 is the measurement that produced the rule, and writes are refused there
+  without a declaration and cannot be made durable with one.
+- `OPENMIND_ALLOW_EPHEMERAL_STORE=1` makes the instance usable (a demo, a preview,
+  a lesson) while `/api/ready` keeps reporting `durability:"ephemeral"` and every
+  learner is lost on the next deploy. That is the honest free option today, and it
+  is not a pilot.
+
+**The free path that DOES keep data today** is a host with a real disk: a
+free-tier virtual machine (the always-free tiers give a small one with a disk), a
+school laptop, a Raspberry Pi, or any container host with a volume. There the
+existing contract applies unchanged — `OPENMIND_DATA_DIR` pointing at the disk,
+`OPENMIND_DATA_DIR_DURABLE=1`, and the restart drill in §6.1 to prove it — which
+is exactly what `docker compose` and `./start-openmind.sh` already do, with no code
+change at all. Once slice 3+4 land, the same repository runs on Render free + Neon
+free, and this section becomes the steps to move to it.
+
 That work is specified rather than pending: [STORAGE_SPEC.md](STORAGE_SPEC.md)
 fixes the port, the crash-consistency rule, the parity mechanism and the
-import/cutover/rollback plan. Three slices are done — the store's lock table and
+import/cutover/rollback plan. Four slices are done — the store's lock table and
 data-directory resolver are single-owner; `lib/server/storage.ts` defines the port
 with the file store behind it (`lib/server/storage-file.ts`), asserted at runtime
-against the method list so nothing can implement the interface only in a type; and
+against the method list so nothing can implement the interface only in a type;
 `npm run storage-check` drives the port's own semantics against every configured
 backend, so a second backend cannot be introduced with a second test suite (it is
-wired into `npm run production-check` and into the CI gate). The write path
-(`withLearner`, the learner transaction) is slice 3, and the
+wired into `npm run production-check` and into the CI gate); and the LEDGER is on
+the port (slice 3a) — the read/write side asynchronous, the file implementation
+split into `lib/server/evidence-file.ts` behind the facade, every route and both
+`.mjs` harnesses awaiting it, and the split enforced by source assertions (the
+facade opens no files of its own; the file ledger has exactly one importer).
+What remains of the write path (`withLearner`, the learner transaction, plus
+profiles and accounts) is slice 3b, and the
 Postgres backend is slice 4: **`OPENMIND_STORE=postgres` is refused at startup
 until it exists**, deliberately, because a deployment that believes it is on a
 database while writing single-process files is worse than one that will not

@@ -14,6 +14,11 @@ import type {
   SubjectId,
 } from "@/lib/types";
 
+/** A learner's ledger, named once. `readEvidence` reads through the storage port
+ *  and is therefore ASYNCHRONOUS, so `ReturnType<typeof readEvidence>` alone
+ *  would name a Promise and this map would hold the wrong thing. */
+type LedgerEvents = Awaited<ReturnType<typeof readEvidence>>;
+
 // ── SET WORK, AND READ WHAT IT PRODUCED ─────────────────────────────────────
 //
 // The one door for teacher assignments. Two questions, and they are different:
@@ -65,7 +70,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   const mineClasses = (await listClasses()).filter((cls) => isMemberOf(cls, me));
   const assigned: AssignedWork[] = [];
   const monitor: AssignmentMonitor[] = [];
-  let ownLedger: ReturnType<typeof readEvidence> | null = null;
+  let ownLedger: LedgerEvents | null = null;
 
   // What each class the caller OWNS may be set work on. The candidate list is
   // computed HERE, from the class's declared curriculum, so a surface renders
@@ -91,8 +96,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     // about who is in the class. Each member's ledger is read ONCE and reused
     // across the class's assignments.
     const memberStates = teacher ? await resolveMembers(cls) : [];
-    const ledgers = new Map<string, ReturnType<typeof readEvidence>>();
-    if (teacher) for (const m of memberStates) ledgers.set(m.handle, readEvidence(m.state.profile.id));
+    const ledgers = new Map<string, LedgerEvents>();
+    if (teacher) for (const m of memberStates) ledgers.set(m.handle, await readEvidence(m.state.profile.id));
     for (const a of work) {
       // WHO THE WORK WAS SET FOR, and it is enforced on BOTH sides of this
       // door. An empty (or absent) list is the whole class — the ordinary case.
@@ -118,7 +123,7 @@ export async function GET(req: Request): Promise<NextResponse> {
         // never reaches their list. Stated as a skip rather than a filter so
         // the rule sits beside the read it guards.
         if (targets.length > 0 && !targets.includes(handle)) continue;
-        ownLedger ??= readEvidence(me.profile.id);
+        ownLedger ??= await readEvidence(me.profile.id);
         assigned.push({
           assignment: a,
           className: cls.name,

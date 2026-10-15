@@ -32,7 +32,13 @@
 import type { ClassRoster, ProfileState, StudyPack, StudyRoom } from "../types";
 // The event schema and the profile shape live in their own modules, not in
 // lib/types.ts — the compiler caught this rather than a runtime `undefined`.
-import type { EvidenceEvent } from "../evidence";
+//
+// TYPE-ONLY, and that is load-bearing rather than stylistic: `lib/server/evidence.ts`
+// imports the store, which imports this module, so a VALUE import here would close
+// a cycle. A type is erased, so the port still imports nothing at runtime — which is
+// what lets `scripts/storage-conformance.mjs` load the port and CONSULT it before
+// anything resolves a backend.
+import type { AppendResult, EvidenceEvent } from "../evidence";
 import type { BuiltPaperAnswerKey } from "../papers";
 import type { PersonalPaper } from "../personal-paper";
 
@@ -69,22 +75,61 @@ export interface Storage {
   getProfile(id: string): Promise<ProfileState | null>;
   listProfiles(): Promise<ProfileState[]>;
   saveProfile(state: ProfileState): Promise<void>;
+  /** THE LEARNER TRANSACTION. Read-modify-write of one learner's record and its
+   *  projection, serialised against every other writer — which for the file
+   *  backend is the in-process lock table and for a database is a transaction
+   *  holding an advisory lock on the learner. It is the method every answer path
+   *  already uses (`lib/server/store.ts#updateProfile`), so a backend that
+   *  implements it is interchangeable on the write path; `null` means the learner
+   *  does not exist, and the mutator is never run for one who does not. */
+  updateProfile<T>(
+    id: string,
+    mutator: (state: ProfileState) => T | Promise<T>,
+  ): Promise<{ state: ProfileState; result: T } | null>;
   /** Erase a learner: the record, its ledger, its papers, and the RECORD OF THE
    *  INTENT — which is what lets a restore taken before the erase re-apply it. */
   eraseProfile(id: string): Promise<boolean>;
   /** Remove a learner from every class roster, in place. */
   removeMemberEverywhere(profileId: string): Promise<number>;
 
-  // ── The ledger, read side. The write path is slice 3 (`withLearner`). ────
+  // ── The ledger: read AND write, and every method ASYNC ───────────────────
+  //
+  // WHY THESE ARE `Promise`-RETURNING and the file backend's own functions are
+  // not. A file can be read between two lines of JavaScript; a database cannot —
+  // there is no synchronous answer to "what is on this learner's ledger?" that a
+  // Postgres backend could give without blocking the whole event loop. The port
+  // is the CONTRACT every backend implements, so the contract is the asynchronous
+  // one, and the file backend answers with an already-resolved promise (which
+  // costs nothing: `await` on a settled value is one microtask).
+  //
+  // The alternative — leaving the port synchronous and letting the database
+  // backend... not be one — is what put a `spawnSync`-shaped temptation in the
+  // way of every implementer, and a store that blocks the event loop under a
+  // classroom's answers is a different outage with the same cause.
+  //
+  // The LEDGER half has migrated (slice 3a): `lib/server/evidence.ts` is a facade
+  // that delegates every one of these five to `activeStorage()`, and the file
+  // implementation lives in `lib/server/evidence-file.ts` behind this backend —
+  // so no route opens a ledger file itself, and the file ledger has exactly one
+  // importer. The PROFILE half (`lib/server/store.ts`) has not: it is slice 3b,
+  // together with `withLearner`, and until then `resolveStoreKind` keeps refusing
+  // any non-file backend (see below), which is what stops a learner's record from
+  // living in two places at once.
   /** A learner's history, OLDEST FIRST — the input to `replayModel`. Clock
    *  order, not append order: a device that was offline appends events that
    *  happened before ones already written, so a backend that returns the file
    *  in the order it was written breaks the promise its consumer depends on.
    *  `scripts/storage-conformance.mjs` holds every backend to this. */
-  readEvents(learnerId: string): EvidenceEvent[];
-  learnersWithEvents(): string[];
-  hasEvent(learnerId: string, eventId: string): boolean;
-  deleteEvents(learnerId: string): boolean;
+  readEvents(learnerId: string): Promise<EvidenceEvent[]>;
+  /** Append events, idempotent by event id: a re-sent event is reported as a
+   *  duplicate and not written. This is the WRITE side of the ledger, and it is
+   *  the strongest claim the product makes about a learner — so a backend that
+   *  cannot record must THROW rather than report success (`commitAndProject`
+   *  turns that into the route's `evidence_not_recorded` 503). */
+  appendEvents(learnerId: string, events: readonly EvidenceEvent[]): Promise<AppendResult>;
+  learnersWithEvents(): Promise<string[]>;
+  hasEvent(learnerId: string, eventId: string): Promise<boolean>;
+  deleteEvents(learnerId: string): Promise<boolean>;
 
   // ── Classes and membership ───────────────────────────────────────────────
   listClasses(): Promise<ClassRoster[]>;
@@ -142,9 +187,11 @@ export const STORAGE_METHODS: readonly (keyof Storage)[] = [
   "getProfile",
   "listProfiles",
   "saveProfile",
+  "updateProfile",
   "eraseProfile",
   "removeMemberEverywhere",
   "readEvents",
+  "appendEvents",
   "learnersWithEvents",
   "hasEvent",
   "deleteEvents",

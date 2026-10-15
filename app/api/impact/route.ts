@@ -29,9 +29,12 @@ export async function GET(req: Request) {
     if (presented !== required) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const learners = learnersWithEvidence();
+  const learners = await learnersWithEvidence();
+  // One read per learner, in parallel: the report walks EVERY ledger, so doing
+  // this sequentially would make the deployment report as slow as its learner
+  // count — and on a database backend, N round trips one after another.
   const report = generateImpactReport(
-    learners.map((learnerId) => ({ learnerId, events: readEvidence(learnerId) })),
+    await Promise.all(learners.map(async (learnerId) => ({ learnerId, events: await readEvidence(learnerId) }))),
   );
 
   return NextResponse.json({

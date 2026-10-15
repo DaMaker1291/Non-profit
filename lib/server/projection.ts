@@ -148,8 +148,10 @@ export async function commitAndProject(
   // 0. Read the ledger BEFORE the append: this is the reference the base
   //    decision is measured against, and it is the prefix of the replay below.
   //    Ordering it here keeps that prefix meaningful — the replay folds in
-  //    clock order, so the mark it skips must count in clock order too.
-  const before = orderEvents(readEvidence(learnerId));
+  //    clock order, so the mark it skips must count in clock order too. (The
+  //    port already promises clock order, so this is idempotent; it is kept as
+  //    the statement of what the prefix means, not as the only place it holds.)
+  const before = orderEvents(await readEvidence(learnerId));
   // 1. Decide whether anything here predates the ledger. Nothing does for a
   //    learner whose history the ledger already carries, and they get no base —
   //    which is the claim worth keeping strong.

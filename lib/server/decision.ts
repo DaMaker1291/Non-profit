@@ -32,7 +32,7 @@ export async function decisionContextFor(learnerId: string): Promise<DecisionCon
   const share = unprojectableShare(state);
   return decisionContext(
     state,
-    readEvidence(learnerId),
+    await readEvidence(learnerId),
     // The version that PRODUCED this model. A base written before an algorithm
     // bump still carries its own version, so a stale model is identifiable
     // rather than merely old.

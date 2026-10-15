@@ -23,8 +23,9 @@
 //      events always produces the same learner model — the property that makes
 //      "improve the algorithm, keep the history" possible.
 //
-// Pure and dependency-light: no I/O lives here (that is lib/server/evidence.ts),
-// so every claim about it is testable without a server.
+// Pure and dependency-light: no I/O lives here (that is the ledger behind the
+// storage port — lib/server/evidence-file.ts for the file backend), so every
+// claim about it is testable without a server.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { isRetentionEvidence } from "./proof";
@@ -624,6 +625,28 @@ export interface LearnerProjection {
     diagnostics: number;
     papers: number;
   };
+}
+
+/**
+ * What one append DID: which event ids landed, and which were already there.
+ *
+ * It lives here, with the event schema, rather than in the file backend that used
+ * to declare it, because it is a fact about the LEDGER and not about JSONL: the
+ * port (`lib/server/storage.ts`) promises this shape for `appendEvents`, and a
+ * database backend must answer with the same two lists. The ledger facade
+ * (`lib/server/evidence.ts`) re-exports it, so nothing that imports it from there
+ * changes. (The client twin
+ * `lib/ledger.ts` keeps its own declaration: it is the other side of the seam and
+ * runs with no server at all.)
+ *
+ * `duplicates` is not a failure to report and not a no-op to hide: a re-sent
+ * event is the SAME event — a device reconnecting, a response lost after the
+ * write — and telling the caller which ids were recognised is how a sync says
+ * "already recorded" instead of silently counting an answer twice.
+ */
+export interface AppendResult {
+  accepted: string[];
+  duplicates: string[];
 }
 
 /** Stable ordering: server time, then id. Two events with the same clock value

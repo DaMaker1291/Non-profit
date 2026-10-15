@@ -402,7 +402,7 @@ export async function DELETE(req: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "confirm_required" }, { status: 400 });
   }
   const removed = await deleteProfile(id);
-  deleteEvidence(id);
+  await deleteEvidence(id);
   await removeMemberEverywhere(id);
   return NextResponse.json({ ok: true, removed });
 }

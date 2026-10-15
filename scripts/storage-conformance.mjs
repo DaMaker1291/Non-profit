@@ -79,6 +79,11 @@ if (configured.problem) {
   process.exit(2);
 }
 const { activeStorage, fileStorage } = require("../.verify/server/storage-file.js");
+// The FACADE, not the file ledger: `lib/server/evidence.ts` delegates to the
+// configured backend through the storage port, so these failure cases drive the
+// same write path the application does. (The file backend's own implementation
+// lives in lib/server/evidence-file.ts and is deliberately not imported here —
+// one path in, asserted by `npm run verify`.)
 const { appendEvidence } = require("../.verify/server/evidence.js");
 const { newProfileState } = require("../.verify/learner-profile.js");
 const { ERASURES_FILE } = require("../.verify/server/erasures.js");
@@ -91,10 +96,44 @@ const { reconcileDeep, replayModel } = require("../.verify/replay.js");
 const { answerEvidence, submissionEventId } = require("../.verify/evidence.js");
 const { spawn } = require("node:child_process");
 
+/**
+ * A PROMISE IS NOT AN ASSERTION.
+ *
+ * This suite drives the PORT, whose read side is about to become ASYNCHRONOUS so a
+ * database backend can implement it. That is the moment a test suite stops being a
+ * test suite quietly: `ok("the history is oldest first", storage.readEvents(x))`
+ * with a missing `await` passes **every time** — a Promise is truthy — and it passes
+ * hardest exactly where the port is most broken. Nothing about the output says so,
+ * so the suite would report a green conformance run over a backend nobody checked.
+ *
+ * Two rules guard against that, and they are complementary:
+ *
+ *   1. `ok` REFUSES a thenable outright — it is recorded as a FAILURE, with the fix
+ *      named in the failure text. So a bare un-awaited Promise fails here instead of
+ *      passing, and a `CONFORMANCE-FAILURES` line names it.
+ *   2. The other half is covered by ordinary comparison: `hasEvent(x) === false` is
+ *      `false` when handed a Promise, so a forgotten `await` beside a operator fails
+ *      too. There is no third shape — every assertion is either a bare value
+ *      (rule 1) or a comparison (fails on its own).
+ *
+ * The harness proves rule 1 about ITSELF at startup, on the real `ok`, rather than
+ * asserting in a comment that it would work: see "the harness cannot be fooled".
+ * This file is not typechecked (it is .mjs), so there is no compiler to lean on —
+ * the guard IS the compiler here.
+ */
+const isThenable = (v) =>
+  v !== null && (typeof v === "object" || typeof v === "function") && typeof v.then === "function";
+
 let pass = 0;
 const failures = [];
 const skips = [];
 const ok = (name, cond, detail = "") => {
+  if (isThenable(cond)) {
+    const note = `${name} — the assertion was given a Promise instead of a boolean, so the value was never checked (await it)`;
+    failures.push(note);
+    console.log(`  ✗ ${note}`);
+    return;
+  }
   if (cond) pass++;
   else failures.push(`${name}${detail ? ` — ${detail}` : ""}`);
   console.log(`  ${cond ? "✓" : "✗"} ${name}${detail ? ` — ${detail}` : ""}`);
@@ -106,6 +145,41 @@ const skipped = (what, why) => {
 
 console.log("\nOpenMind — storage conformance (docs/STORAGE_SPEC.md §6)");
 console.log(`  store under test: ${STORE_DIR}\n`);
+
+// ── The harness cannot be fooled ────────────────────────────────────────────
+// Driven on the REAL `ok`, with the planted entries removed afterwards so they
+// cannot appear in this run's failure list. A guard nobody has watched fire is a
+// comment, and this one exists to stop a green run from meaning nothing.
+console.log("▸ the harness cannot be fooled by a Promise");
+{
+  console.log("  (planting three deliberately-failing assertions below — every shape a missed `await` can take. " +
+    "They are removed from this run's failure list, and the names say \"planted\" so they cannot be mistaken " +
+    "for real failures)");
+  const plantedAt = failures.length;
+  ok("planted: a bare resolved Promise", Promise.resolve(true));
+  ok("planted: a bare pending Promise", new Promise(() => {}));
+  // THE SHAPE MOST MISSED `await`s ACTUALLY HAVE. Once the port's reads are
+  // asynchronous, a forgotten `await` before a comparison does not produce a bare
+  // Promise — it produces `Promise.resolve(x).length === 0`, which is `false`. That
+  // fails loudly on its own (recorded as a failure, never a pass), and this plants
+  // it so the claim is measured rather than argued.
+  ok("planted: a comparison against an un-awaited call", Promise.resolve([]).length === 0);
+  const planted = failures.splice(plantedAt);
+  ok("a bare Promise handed to an assertion is counted as a FAILURE, not a pass",
+    planted.length === 3, `recorded ${planted.length} of 3`);
+  ok("and so is a comparison against an un-awaited call — neither shape can go green",
+    planted.some((f) => f.startsWith("planted: a comparison")));
+  ok("and the failure names the fix, so a missing `await` is obvious in the report",
+    planted.every((f) => /await/.test(f)), planted[0] ?? "");
+  // …and the ordinary path is untouched: booleans decide, in both directions.
+  ok("while a boolean true still passes and a boolean false still fails",
+    isThenable(true) === false && isThenable(false) === false && isThenable(undefined) === false);
+  // The judgment is deliberately narrow: something that merely HAS a `then` field
+  // that is not callable is data, not a promise, and refusing it would fail
+  // assertions about stored records that happen to carry such a field.
+  ok("and only a real thenable is refused — a stored record with a `then` FIELD is data",
+    isThenable({ then: 1 }) === false && isThenable({ then: () => {} }) === true);
+}
 
 // ── Which backends CAN this build serve? ────────────────────────────────────
 // Asked before anything runs, because the answer decides whether this is a
@@ -196,28 +270,32 @@ const UNLEDGED = "conf_learner_unledgered";
   // looks like, and it is the case the port's "oldest first" promise is about.
   await appendEvidence(LEDGED, [ev("ev_c", 300), ev("ev_a", 100), ev("ev_b", 200)]);
 
-  const events = storage.readEvents(LEDGED);
+  // `await` on every port read, even though the file backend is synchronous today:
+  // the port is becoming asynchronous for the database backend, and awaiting now
+  // means this suite is already correct across that change instead of being amended
+  // while the thing it guards is moving. (Awaiting a plain value is a no-op.)
+  const events = await storage.readEvents(LEDGED);
   ok("readEvents returns the learner's whole history", events.length === 3, `${events.length} event(s)`);
   ok("OLDEST FIRST — clock order, not the order the file was written",
     events.map((e) => e.id).join(",") === "ev_a,ev_b,ev_c",
     `got ${events.map((e) => `${e.id}@${e.at}`).join(",")}`);
 
-  ok("an unknown learner has an empty history rather than an error", storage.readEvents(UNLEDGED).length === 0);
-  ok("hasEvent knows an event this learner wrote", storage.hasEvent(LEDGED, "ev_a") === true);
-  ok("and answers false for one they did not", storage.hasEvent(LEDGED, "ev_nope") === false);
+  ok("an unknown learner has an empty history rather than an error", (await storage.readEvents(UNLEDGED)).length === 0);
+  ok("hasEvent knows an event this learner wrote", (await storage.hasEvent(LEDGED, "ev_a")) === true);
+  ok("and answers false for one they did not", (await storage.hasEvent(LEDGED, "ev_nope")) === false);
   ok("hasEvent is learner-scoped: another learner's id is not mine",
-    storage.hasEvent(UNLEDGED, "ev_a") === false);
+    (await storage.hasEvent(UNLEDGED, "ev_a")) === false);
 
-  const ledgers = storage.learnersWithEvents();
+  const ledgers = await storage.learnersWithEvents();
   ok("learnersWithEvents lists the learner who has a ledger", ledgers.includes(LEDGED));
   ok("and not one who has none — the impact report walks ledgers, not profiles",
     !ledgers.includes(UNLEDGED));
 
-  const deleted = storage.deleteEvents(LEDGED);
+  const deleted = await storage.deleteEvents(LEDGED);
   ok("deleteEvents reports having removed a ledger", deleted === true);
-  ok("after which the history is empty", storage.readEvents(LEDGED).length === 0);
-  ok("and the learner is gone from learnersWithEvents", !storage.learnersWithEvents().includes(LEDGED));
-  ok("deleting again is false rather than a throw", storage.deleteEvents(LEDGED) === false);
+  ok("after which the history is empty", (await storage.readEvents(LEDGED)).length === 0);
+  ok("and the learner is gone from learnersWithEvents", !(await storage.learnersWithEvents()).includes(LEDGED));
+  ok("deleting again is false rather than a throw", (await storage.deleteEvents(LEDGED)) === false);
 }
 
 // ── Durability under failure ────────────────────────────────────────────────
@@ -243,6 +321,18 @@ const UNLEDGED = "conf_learner_unledgered";
 //   F5 · an id that is not a safe filename is REFUSED, not sanitised, and
 //        nothing is created behind it
 //
+// F1 AND F2 GO ONE STEP FURTHER, and the step is the one that makes a failure
+// case worth its run: each REMOVES its own protection and shows the loss — F1
+// writes the next event the way the pre-fix code did (no framing newline) and the
+// event is silently swallowed, F2 mints a fresh event id per attempt and the same
+// answers are counted twice. A failure case whose assertion has never been watched
+// fail proves nothing about the code; these two are watched failing INSIDE the
+// suite's own run, on a temp store, with no fault injected into the product.
+// F3–F5 have nothing to remove: F3 MEASURES real concurrency across processes
+// (a lost update there is probable, not certain, so an assertion resting on the
+// race going badly would be flaky — the positive count carries that claim), and
+// F4/F5 assert the refusal itself, which is the property rather than a proxy for it.
+//
 // They print the strongest claim available rather than the convenient one: F1
 // and F3 read the FILE and parse every line, because `readEvents` skips a
 // malformed line and would therefore hide a tear behind a smaller count.
@@ -253,10 +343,10 @@ const UNLEDGED = "conf_learner_unledgered";
 console.log("\n▸ durability under failure");
 if (storage.kind !== "file") {
   skipped(
-    "write-path failure cases (F1–F5)",
-    "the port's write path (`withLearner`, docs/STORAGE_SPEC.md slice 3) does not exist yet, so these cases drive " +
-      "lib/server/evidence.ts + lib/server/projection.ts — the FILE backend's own write primitive. Move them onto the " +
-      "port when it lands; do not give them a second suite (§6)",
+    "write-path failure cases (F1–F5)",      "these cases OBSERVE the file backend (they parse the ledger file to see a torn write and an interleaved " +
+      "append), and the port's own transaction method (`withLearner`, docs/STORAGE_SPEC.md slice 3) does not exist " +
+      "yet. Drive F4/F5 — the refusal properties, which are backend-neutral — through the port when it lands; do " +
+      "not give them a second suite (§6)",
   );
 } else {
   const EVIDENCE_DIR = path.join(STORE_DIR, "evidence");
@@ -283,7 +373,7 @@ if (storage.kind !== "file") {
     const fragment = `{"type":"answer_submitted","id":"ev_torn","learnerId":"${TORN}","at":150`;
     fs.writeFileSync(ledgerFile(TORN), landed.map((e) => JSON.stringify(e)).join("\n") + "\n" + fragment);
 
-    const read = storage.readEvents(TORN);
+    const read = await storage.readEvents(TORN);
     ok("a torn final line costs ONE event — the history before it still reads",
       read.length === 2, `${read.length} event(s)`);
     ok("and the events that did land come back in clock order, intact",
@@ -310,7 +400,7 @@ if (storage.kind !== "file") {
     const next = answer(TORN, "quadratics", 300, true, 3);
     await appendEvidence(TORN, [next]);
     ok("the ledger still accepts new events afterwards",
-      storage.readEvents(TORN).some((e) => e.id === next.id));
+      (await storage.readEvents(TORN)).some((e) => e.id === next.id));
     ok("and appending did not rewrite the damaged line either",
       fs.readFileSync(ledgerFile(TORN), "utf8").includes("ev_torn"));
     // The precise claim, because the coarse one hid a real defect on the first
@@ -322,6 +412,24 @@ if (storage.kind !== "file") {
       afterTear.length === 4 &&
         afterTear.filter((l) => { try { JSON.parse(l); return true; } catch { return false; } }).length === 3,
       `${afterTear.length} line(s), ${afterTear.filter((l) => { try { JSON.parse(l); return true; } catch { return false; } }).length} parseable`);
+
+    // ── …AND THE PROTECTION IS LOAD-BEARING ────────────────────────────────
+    // An assertion nobody has watched fail is worth very little, so this one
+    // REMOVES the protection and shows the loss: the same new event is written the
+    // way the code wrote it before `endsMidLine` existed — appended straight onto
+    // the fragment, with no framing newline — and read back through the port's own
+    // reader. The event is gone, and nothing about the store says so. That is the
+    // defect this case exists to catch, reproduced on purpose rather than described.
+    const UNFRAMED = "conf_learner_unframed";
+    const kept = [answer(UNFRAMED, "quadratics", 100, true, 1)];
+    const swallowed = answer(UNFRAMED, "quadratics", 200, true, 2);
+    const halfLine = `{"type":"answer_submitted","id":"ev_unframed","learnerId":"${UNFRAMED}","at":150`;
+    fs.writeFileSync(ledgerFile(UNFRAMED), kept.map((e) => JSON.stringify(e)).join("\n") + "\n" + halfLine);
+    fs.appendFileSync(ledgerFile(UNFRAMED), JSON.stringify(swallowed) + "\n"); // ← the pre-fix write
+    const unframedRead = await storage.readEvents(UNFRAMED);
+    ok("WITHOUT the framing, the very next event is silently LOST — so the assertion above has teeth",
+      unframedRead.length === 1 && !unframedRead.some((e) => e.id === swallowed.id),
+      `read back ${unframedRead.length} event(s) where 2 were written`);
   }
 
   // ── F2 · a write killed between the append and the projection ────────────
@@ -363,7 +471,7 @@ if (storage.kind !== "file") {
 
     const crashed = newProfileState(CRASHED);
     await appendEvidence(CRASHED, build(CRASHED)); // …and the process dies HERE
-    const divergence = reconcileDeep(replayModel(storage.readEvents(CRASHED), CRASHED), committed);
+    const divergence = reconcileDeep(replayModel(await storage.readEvents(CRASHED), CRASHED), committed);
     ok("a write killed between the append and the projection replays to the SAME model the completed write produced",
       divergence.length === 0, what(divergence));
 
@@ -380,6 +488,26 @@ if (storage.kind !== "file") {
     ok("and the retried model is the learner's whole history, not just the first two answers",
       retry.progress.quadratics?.attempts === 3,
       `attempts ${retry.progress.quadratics?.attempts}`);
+
+    // ── …AND THE PROTECTION IS LOAD-BEARING ────────────────────────────────
+    // The retry is recognised as a duplicate ONLY because the route derives the
+    // event id from the device's submission token. Mint a FRESH id per attempt —
+    // the obvious implementation, and the one that is tempting to call equivalent —
+    // and the same answers are counted a second time: the model moves because a
+    // learner pressed Check twice, which is a mastery figure that depends on how
+    // flaky their connection was. Measured here so the stable id cannot be
+    // simplified away by someone who has not met this case.
+    const doubleCounted = newProfileState(CRASHED);
+    const freshIds = shape.map(([c, at, correct], i) =>
+      answerEvidence({
+        learnerId: CRASHED, at, source: "practice", subject: "maths", conceptId: c, specificationId: null,
+        questionId: `${CRASHED}_q${i}`, correct, chosen: correct ? 0 : 1, mode: "independent", hints: 0,
+        id: `conf_fresh_${i}_${Math.random().toString(36).slice(2, 8)}`,
+      }));
+    await commitAndProject(CRASHED, doubleCounted, freshIds);
+    ok("while a FRESH id per attempt counts the same answers TWICE — which is why the id is derived from the token",
+      (doubleCounted.progress.quadratics?.attempts ?? 0) > (committed.progress.quadratics?.attempts ?? 0),
+      `quadratics ${doubleCounted.progress.quadratics?.attempts} attempts with fresh ids vs ${committed.progress.quadratics?.attempts} through the real path`);
   }
 
   // ── F3 · two processes over one directory ────────────────────────────────
@@ -434,7 +562,7 @@ if (storage.kind !== "file") {
       });
     await Promise.all(Array.from({ length: CHILDREN }, (_, i) => runChild(i)));
 
-    const all = storage.readEvents(RACE);
+    const all = await storage.readEvents(RACE);
     ok(`${CHILDREN} processes appending at once kept every event (${expected})`,
       all.length === expected, `${all.length} event(s)`);
     ok("and none was written twice (the ids are unique)",
@@ -473,7 +601,7 @@ if (storage.kind !== "file") {
       Object.keys(state.progress).length === 0 && Object.keys(state.masteries).length === 0,
       `progress ${JSON.stringify(state.progress)}`);
     ok("and no snapshot of a pre-ledger model was taken either", !state.projectionBase);
-    ok("and nothing reached the ledger", storage.readEvents(FAILED).length === 0);
+    ok("and nothing reached the ledger", (await storage.readEvents(FAILED)).length === 0);
   }
 
   // ── F5 · an unsafe learner id is refused, not sanitised ──────────────────

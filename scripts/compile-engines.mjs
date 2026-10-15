@@ -153,6 +153,15 @@ export const ENGINE_SOURCES = [
   // than quietly given a file store.
   "lib/server/storage.ts",
   "lib/server/storage-file.ts",
+  // THE DATABASE CONNECTION (docs/STORAGE_SPEC.md slice 4). Compiled with the rest
+  // even though nothing serves from it yet, because the two claims it makes are
+  // checkable NOW and are the ones a database deployment gets wrong quietly: a
+  // deployment that asks for Postgres and has no connection string must be REFUSED
+  // rather than served a file store, and a database that cannot be reached must be
+  // reportable as unreachable without being confused with an empty one. The suite
+  // drives both against a real server when one is configured, and skips with the
+  // reason stated when none is — never a pass it did not earn.
+  "lib/server/pg.ts",
   "lib/server/store.ts",
   // The erasure log. An erase records the INTENT as well as removing the data,
   // because a backup taken earlier still holds the learner and restoring it is
@@ -165,7 +174,14 @@ export const ENGINE_SOURCES = [
   // FLAGS BEHAVIOURALLY (Secure follows the scheme, never blanket-on or
   // blanket-off) rather than reading the source for a string.
   "lib/server/auth.ts",
+  // THE LEDGER, and the pair matters: `evidence.ts` is the FACADE the application
+  // calls (it holds the port and no storage), `evidence-file.ts` is the file
+  // backend's own JSONL implementation behind it. Both are compiled because
+  // `storage-file.ts` requires the second and the suite requires the first — and
+  // because the suite asserts the split architecturally: the facade must contain
+  // no file plumbing, and the file ledger must have exactly ONE importer.
   "lib/server/evidence.ts",
+  "lib/server/evidence-file.ts",
   "lib/server/projection.ts",
   "lib/server/decision.ts",
   "lib/content-graph.ts",

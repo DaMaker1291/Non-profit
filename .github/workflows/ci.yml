@@ -47,6 +47,14 @@ jobs:
           --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgres://openmind:openmind@localhost:5432/openmind_ci
+      # The suite's real-server half (lib/server/pg.ts: reachability, the refusal
+      # without a connection string, and the per-learner advisory lock) runs only
+      # against a database explicitly named as a TEST one, so it can never be
+      # pointed at an operator's own DATABASE_URL by accident. Without this the
+      # engines suite prints that it is SKIPPING those assertions — a skip, never a
+      # pass — which is exactly why the variable is here: this job exists so the
+      # database half of the checklist runs rather than skips.
+      OPENMIND_TEST_DATABASE_URL: postgres://openmind:openmind@localhost:5432/openmind_ci
       OPENMIND_ENV: ci
     steps:
       - uses: actions/checkout@v4

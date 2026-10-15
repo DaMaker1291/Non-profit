@@ -195,8 +195,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       // the first delivery has already consumed — and answered as what it is
       // instead of being re-graded or refused as a stale question.
       const replayId = submissionEventId((body as AnswerBody).submissionId);
-      if (replayId && hasEvidence(body.id, replayId)) {
-        const prior = readEvidence(body.id).find((e) => e.id === replayId);
+      if (replayId && (await hasEvidence(body.id, replayId))) {
+        const prior = (await readEvidence(body.id)).find((e) => e.id === replayId);
         return NextResponse.json({
           duplicate: true,
           recorded: true,

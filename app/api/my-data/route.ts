@@ -45,6 +45,6 @@ export async function GET(req: Request): Promise<NextResponse> {
     profile: publicProfileState(state),
     progress: state.progress,
     diagnostics: state.diagnostics ?? {},
-    events: readEvidence(id),
+    events: await readEvidence(id),
   });
 }

@@ -510,13 +510,13 @@ async function verify({ quiet = false } = {}) {
       secret: "cap_verify_secret",
     };
     await db.query(
-      `INSERT INTO profiles (user_id, country, language, secret_hash, payload)
-       VALUES ($1, 'GB', 'en', 'hash_of_cap_verify_secret', $2)`,
+      `INSERT INTO profiles (id, user_id, country, language, secret_hash, payload)
+       VALUES ($1, $1, 'GB', 'en', 'hash_of_cap_verify_secret', $2)`,
       ["verify_learner_1", JSON.stringify(RECORD)],
     );
     await db.query(
-      `INSERT INTO profiles (user_id, country, language, secret_hash)
-       VALUES ($1, 'GB', 'en', 'hash_of_cap_verify_secret')`,
+      `INSERT INTO profiles (id, user_id, country, language, secret_hash)
+       VALUES ($1, $1, 'GB', 'en', 'hash_of_cap_verify_secret')`,
       ["verify_learner_2"],
     );
     const roundtrip = await db.query(
@@ -542,13 +542,88 @@ async function verify({ quiet = false } = {}) {
       "MEASURED: written through the columns alone, the same profile loses the exam date — the gap 0005 closes",
       `exam_date ${JSON.stringify(columnOnly.rows[0].exam_date)}`);
 
+    // ── 0006: a learner record that is not an account, and the account ────────
+    // Four claims, each one a shape the application HAS (found by writing the
+    // Postgres backend against 0001 rather than by re-reading it) and that the
+    // schema refused until this migration. Asserted here, beside the ledger's own
+    // invariants, because each is a rule the product relies on.
+
+    // (a) THE WEDGE. `/solve` and `/try` practise with no sign-up, and onboarding's
+    // guest path enrols before anyone types an email. As of 0001 that learner could
+    // not be stored at all: a profile demanded a `users` row, so a backend would
+    // have had to invent an account for a child who never made one.
+    await db.query(
+      `INSERT INTO profiles (id, country, language, secret_hash) VALUES ($1, 'GB', 'en', 'hash_of_anonymous')`,
+      ["verify_anonymous"],
+    );
+    const anon = await db.query(
+      `SELECT user_id FROM profiles WHERE id = $1`, ["verify_anonymous"],
+    );
+    check(anon.rows[0]?.user_id === null,
+      "a learner with NO account can be stored — the `/solve` wedge has a home",
+      `user_id ${JSON.stringify(anon.rows[0]?.user_id)}`);
+
+    // (b) THE ERASE PATH IS THE APP'S. Deleting an identity row must not destroy a
+    // learner's record behind the application's back: erasure is logged
+    // (erasures), and a cascading foreign key is an unlogged second one.
+    await db.query(`DELETE FROM users WHERE id = $1`, ["verify_learner_2"]);
+    const orphaned = await db.query(
+      `SELECT user_id FROM profiles WHERE id = $1`, ["verify_learner_2"],
+    );
+    check(orphaned.rows[0] !== undefined && orphaned.rows[0].user_id === null,
+      "deleting the ACCOUNT does not delete the learner record (the link is SET NULL, not CASCADE)",
+      `rows ${orphaned.rowCount}`);
+
+    // (c) EMAIL IS THE SIGN-IN KEY, and an address is not case-sensitive to the
+    // person typing it. Same address in different case is one account, not two.
+    await db.query(
+      `INSERT INTO users (id, handle, email, name, pass_hash, salt, profile_id)
+       VALUES ($1, 'verify_handle_3', 'learner@example.test', 'L', 'hash', 'salt', 'verify_learner_1')`,
+      ["verify_learner_3"],
+    );
+    await mustFail(
+      "a second LIVE account with the same email in different case is refused",
+      `INSERT INTO users (id, handle, email, name, pass_hash, salt, profile_id)
+       VALUES ($1, 'verify_handle_4', 'LEARNER@example.test', 'L', 'hash', 'salt', 'verify_learner_1')`,
+      ["verify_learner_4"],
+    );
+    // The role is a closed set, and the DEFAULT is the least privileged one: an
+    // unstated role must never be able to grant teacher access.
+    await mustFail(
+      "an unknown account role is refused",
+      `UPDATE users SET role = 'admin' WHERE id = $1`,
+      ["verify_learner_3"],
+    );
+    const defaultRole = await db.query(`SELECT role FROM users WHERE id = $1`, ["verify_learner_3"]);
+    check(defaultRole.rows[0]?.role === "student",
+      "and the default role is the least privileged one",
+      `role ${defaultRole.rows[0]?.role}`);
+
+    // (d) THE DATABASE'S OWN BOOT RECORD — the measurement `/api/ready` reports as
+    // `persistence.boots`. On a file store it is boots.json in the directory being
+    // measured; a database deployment has no such directory, so the fact has to
+    // live in the database or the readiness answer would be a claim again.
+    await db.query(
+      `INSERT INTO store_boots (backend, deployment, booted_at_ms) VALUES ('postgres', $1, 1700000000000)`,
+      ["dep-one"],
+    );
+    await db.query(
+      `INSERT INTO store_boots (backend, deployment, booted_at_ms) VALUES ('postgres', $1, 1700000000001)`,
+      ["dep-two"],
+    );
+    const boots = await db.query(
+      `SELECT count(*)::int AS boots, count(DISTINCT deployment)::int AS deployments FROM store_boots`,
+    );
+    check(boots.rows[0].boots === 2 && boots.rows[0].deployments === 2,
+      "two boots by two different deployments are visible — a store that outlived a release",
+      `${boots.rows[0].deployments} deployment(s)`);
+
     await db.query("ROLLBACK");
     if (!quiet) console.log("");
-    return { ok: results.every((r) => r.ok), results };
-  } catch (e) {
-    await db.query("ROLLBACK").catch(() => {});
-    fail(`schema verification could not run: ${e.message}`);
-  } finally {
+    return { ok: results.every((r) => r.ok), results };    } catch (e) {
+      await db.query("ROLLBACK").catch(() => {});
+      fail(`schema verification could not run: ${e.message}\n    (a failure here means the SCHEMA and the assertions disagree — the news is which claim stopped being true, not the SQL text)`);
+    } finally {
     await db.end();
   }
 }

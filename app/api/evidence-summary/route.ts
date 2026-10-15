@@ -31,7 +31,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    const events = readEvidence(id);
+    const events = await readEvidence(id);
     const projection = projectLearner(events);
     const ordered = orderEvents(events);
     const answers = ordered.filter((e): e is AnswerSubmitted => e.type === "answer_submitted");

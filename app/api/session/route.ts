@@ -92,13 +92,13 @@ export async function POST(req: Request): Promise<NextResponse> {
     const kind = asKind(body.kind) ?? "PRACTISE";
     const rawTarget = typeof body.target === "number" ? Math.round(body.target) : SESSION_TARGET;
     const target = Math.max(3, Math.min(10, rawTarget));
-    const upd = await updateProfile(profile.profile.id, (state) => {
+    const upd = await updateProfile(profile.profile.id, async (state) => {
       const sess = state as Session;
       // The baseline's "step" is the SAME decision Home will make for this
       // learner, so the ledger is read here rather than the decision being
       // taken from the model alone — otherwise a session could record a plan
       // the learner was never shown, and "the plan moved" would be unfalsifiable.
-      const events = readEvidence(profile.profile.id);
+      const events = await readEvidence(profile.profile.id);
       const { ledger, resumed } = openSession(state, conceptId, kind, sess.learnSession, target, Date.now(), undefined, events);
       sess.learnSession = ledger;
       return { ...publicSession(ledger), resumed };
@@ -109,14 +109,14 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   if (action === "finish") {
     const conceptId = typeof body.conceptId === "string" ? body.conceptId : "";
-    const upd = await updateProfile(profile.profile.id, (state) => {
+    const upd = await updateProfile(profile.profile.id, async (state) => {
       const sess = state as Session;
       const ledger = sess.learnSession;
       // No baseline → no honest diff. Refuse rather than manufacture one.
       if (!ledger || (conceptId && ledger.conceptId !== conceptId)) return { error: "no_session" as const };
       // Same door, same ledger as the baseline: the closing decision is
       // comparable with the opening one because both came from the evidence.
-      const result = computeResult(state, ledger, Date.now(), undefined, readEvidence(profile.profile.id));
+      const result = computeResult(state, ledger, Date.now(), undefined, await readEvidence(profile.profile.id));
       state.lastSession = toSummary(result);
       delete sess.learnSession;
       return { result };

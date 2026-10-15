@@ -14,7 +14,7 @@ import { listProfileStates } from "./store";
 import { isTeacherOf, teacherHandle } from "./class-membership";
 // Relative specifiers: this module is in the compile mirror, which is built
 // with `tsc <files> ...` and no tsconfig, where `@/...` does not resolve.
-import { isDeviceReported, orderEvents, projectLearner } from "../evidence";
+import { isDeviceReported, orderEvents, projectLearner, type EvidenceEvent } from "../evidence";
 // The proof vocabulary, asked for rather than restated: what one answer
 // PROVED, what a concept's work proved, and the state of its delayed recall
 // are one rule each (lib/proof.ts), shared with the learner's own screens and
@@ -76,7 +76,7 @@ export async function resolveMembers(cls: ClassRoster): Promise<Array<{ handle: 
  *  work is shown per concept: guided practice measures the teaching, not the
  *  learner — a concept asked but never answered independently is unmeasured
  *  here, and the plan treats absence of data as exactly that. */
-function deriveLive(learnerId: string, handle: string, events: ReturnType<typeof readEvidence>): ClassMemberLive {
+function deriveLive(learnerId: string, handle: string, events: readonly EvidenceEvent[]): ClassMemberLive {
   const p = projectLearner(events);
   const concepts: ClassMemberLive["concepts"] = {};
   for (const [conceptId, c] of Object.entries(p.byConcept)) {
@@ -120,7 +120,7 @@ export async function liveRoster(cls: ClassRoster): Promise<ClassRoster> {
   const members = await resolveMembers(cls);
   const live: Record<string, ClassMemberLive> = {};
   for (const { handle, state } of members) {
-    live[handle] = deriveLive(state.profile.id, handle, readEvidence(state.profile.id));
+    live[handle] = deriveLive(state.profile.id, handle, await readEvidence(state.profile.id));
   }
   const teacher = teacherHandle(cls);
   const students: ClassRoster["students"] = {};
@@ -164,8 +164,8 @@ const UNMEASURED_CAP = 24;
  * seen on, so a teacher can check the claim instead of being told to believe
  * it.
  */
-export function memberEvidence(cls: ClassRoster, handle: string, state: ProfileState): ClassMemberEvidence {
-  const events = readEvidence(state.profile.id);
+export async function memberEvidence(cls: ClassRoster, handle: string, state: ProfileState): Promise<ClassMemberEvidence> {
+  const events = await readEvidence(state.profile.id);
   const p = projectLearner(events);
 
   // When each answer happened relative to the previous evidence on the SAME

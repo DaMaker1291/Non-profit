@@ -31,7 +31,7 @@ hour. The first draft of this table was, in fact, wrong in four places.
 | Data files | the store, the ledger, accounts, erasures, interventions | **10 JSON files**, plus `<data>/evidence/*.jsonl` (one ledger per learner) and `session-secret` |
 | The lock primitive | `lib/server/store.ts:31` **and** `lib/server/auth.ts:80` | **two independent lock tables** |
 | The data directory | `store.ts:22`, `auth.ts:20`, `app/api/hub-status/route.ts:6` | **three resolvers** of `OPENMIND_DATA_DIR` |
-| The ledger | `lib/server/evidence.ts` | one JSONL per learner under `<data>/evidence/`, sharing the **same** lock table as the store, on purpose |
+| The ledger | **facade** `lib/server/evidence.ts` · **file backend** `lib/server/evidence-file.ts` | one JSONL per learner under `<data>/evidence/`, sharing the **same** lock table as the store, on purpose. Since slice 3a the facade holds no storage: it asks the port for the configured backend, and the file ledger has exactly **one** importer (`storage-file.ts`) — both asserted in `npm run verify` |
 | The relational schema | `db/migrations/*.up.sql` | **26 tables** (23 + the three `0004` added; `schema_migrations` is the runner's own ledger), paired up/down files, checksums, drift detection, and a CI job that rehearses up → verify → down → up |
 | Backup / restore | `backup-store.mjs`, `restore-drill.mjs` | per-file sha256 + manifest + retention/expiry; the drill restores, **boots the artefact** and asserts `deepReconcile` per learner |
 | Concurrency evidence | `scripts/race-probe.mjs` | 8 racing answers against one served question → exactly one accepted — **within one process** |
@@ -197,11 +197,13 @@ changed the code:
   without the learner noticing answers vanishing.
 
   **Blast radius, audited rather than assumed:** `appendFileSync` appears exactly
-  ONCE in the whole codebase (`lib/server/evidence.ts`) — every other store file
+  ONCE in the whole codebase (`lib/server/evidence-file.ts`; the module was named
+  `evidence.ts` when this was measured, and slice 3a split the facade out of it) —
+  every other store file
   is written whole via temp-file rename, which cannot tear — and the live store
   holds **0 evidence ledgers**, so no real record was ever exposed. The second
   half matters: had this checkout carried a class, every answer written after the
-  first crash would have been unrecoverable and unnoticed. `lib/server/evidence.ts` now reads the file's last byte
+  first crash would have been unrecoverable and unnoticed. `lib/server/evidence-file.ts` now reads the file's last byte
   and writes one newline of **framing** when it ends mid-line, so the next event
   begins at a line boundary. The fragment's own bytes are never touched: this
   decides where a line starts, it does not edit history.
@@ -230,11 +232,14 @@ changed the code:
   file — ids become file paths in this backend, and quietly rewriting one could
   append one learner's evidence to another's.
 
-F1–F5 are **file-backend cases**: the port's own write path (`withLearner`) is
-slice 3 and does not exist yet, so they drive `lib/server/evidence.ts` and
-`lib/server/projection.ts` directly and report that as their skip reason whenever
-a non-file backend is active. When slice 3 lands they move **onto the port** —
-never into a second suite (§6).
+F1–F5 are **file-backend cases**, and the honest reason is narrower than it was:
+they do not merely “not use the port” — the ledger's read and write now DO go
+through it (slice 3a) — they **observe the ledger FILE** (parsing every line to
+see a torn write, reading a ledger written by three processes), which a non-file
+backend cannot answer in the same currency. F4/F5 are the backend-neutral half
+(the refusal properties) and move onto the port when `withLearner` lands. The
+whole group reports its skip reason whenever a non-file backend is active, and
+never gets a second suite (§6).
 
 ## 5 · Mapping onto the schema that already exists
 
@@ -339,7 +344,8 @@ So:
   existing `db:rehearse` machinery).
 - **The whole server-module section of `npm run verify` runs twice** — once per
   backend — because `verify-engines.mjs` already compiles and requires the server
-  modules (`lib/server/store.ts`, `evidence.ts`, `projection.ts`) against a temp
+  modules (`lib/server/store.ts`, `evidence.ts`, `evidence-file.ts`,
+  `projection.ts`) against a temp
   `OPENMIND_DATA_DIR`. The Postgres run sets `OPENMIND_STORE=postgres` and a
   scratch `DATABASE_URL`. Same test file, two runs, and a **failure list** compare
   between them: the compare is the parity assertion, not the pass counts.
@@ -437,7 +443,8 @@ is claimed today):
 | 0 *(done)* | one lock table, one `DATA_DIR`, with a source assertion | — |
 | 1 *(done)* | port + types + file backend behind it, no behaviour change, all gates green | — |
 | 2 *(done)* | the conformance suite (`scripts/storage-conformance.mjs`), `npm run storage-check`, wired into `production-check` and CI | — |
-| 3 | **the write path**: `withLearner` on the port (§3 Q1), the answer / diagnostic / paper / sync routes migrated through it, and accounts moved off `auth.ts`'s private file | 4–6 days |
+| 3a *(done)* | **the ledger on the port**: the read/write side asynchronous, the file ledger split out from the facade, every route and every `.mjs` harness awaiting it, the split asserted at the source | — |
+| 3b | **the write path**: `withLearner` on the port (§3 Q1), profiles migrated onto it, and accounts moved off `auth.ts`'s private file | 3–4 days |
 | 4 | Postgres backend + advisory locks + the missing-table decisions (§5), and the *second* `verify` run with the failure-list compare | 4–6 days |
 | 5 | import / export / cutover / rollback drills | 3–4 days |
 | 6 | benchmarks, two-process probe, docs, `/api/ready` reporting | 2–3 days |
@@ -457,3 +464,135 @@ did not honour the clock-order contract the port promises — see §3).
 Total ≈ 15–22 focused days. These are estimates from the inventory above (19 call
 sites, 32 functions, 23 existing tables), not measured — the project's own rule
 applies to them too, so they are labelled as such.
+
+## 12 · Where slice 4 stands — landed, measured, and the order of what remains
+
+Written because "Postgres is coming" is not a state anybody can act on. Each
+sentence below is something a command in this repository now proves.
+
+**LANDED (a slice-4 preamble: the schema it needs and the connection it needs).**
+
+- `lib/server/pg.ts` — the single owner of the connection: one pool per process
+  (injectable env, so a test drives a scratch database without touching
+  `process.env`), transactions with **transaction-scoped advisory locks** (the
+  cross-process half of what `withLock` does in memory, and a lock a crashed
+  process cannot leave held), and `databaseHealth`, which is memoised so a polled
+  `/api/ready` cannot turn a free-tier database into a load test and **never
+  throws**: an unreachable database is the answer, not an error.
+- `db/migrations/0006_learner_identity` — the facts about this product that the
+  original schema REFUSED: a learner record with no account row (the `/solve` and
+  `/try` wedge), an account link that is `ON DELETE SET NULL` rather than a
+  `CASCADE` that could destroy a record outside the logged erasure path, the
+  columns an account actually has (email, scrypt hash + salt, role,
+  `session_epoch`, owned profile, `verified`), and `store_boots` — because a
+  database deployment has no data directory for `boots.json` to measure the
+  survival of.
+- `@types/pg`, so the connection layer is typed rather than `any`.
+
+**LANDED (slice 3a — the ledger is on the port, and the door the app uses holds
+no storage).** This was §12's remaining item 1, minus `withLearner`.
+
+- `lib/server/evidence-file.ts` is the file backend's ledger: the JSONL
+  implementation, moved rather than rewritten (the framing rule, the id dedupe,
+  the lock table it shares with the store, and the unsafe-id refusal all moved
+  with it). `lib/server/evidence.ts` is now the **facade** — five functions, each
+  a delegation to `activeStorage()`.
+- **The split is the change, not a tidy-up.** Before it, “the ledger” and “the
+  JSONL file” were the same import, so a second backend could not exist without
+  rewriting every call site — and a call site reaching for the cheap synchronous
+  function would read a file the configured backend never wrote. `npm run verify`
+  now fails on either half: the facade must contain **no file plumbing** (no
+  `node:fs`, no `*FileSync`, no bare `fs.`), it must reach the ledger through the
+  port, and the file ledger must have **exactly one importer** (`storage-file.ts`).
+  Both were watched firing on a mutated copy before being trusted.
+- **Every consumer awaits**, including the two places no compiler reaches:
+  `scripts/verify-engines.mjs` and `scripts/static-smoke.mjs` are `.mjs`, and both
+  carry an `ok()` that REFUSES a thenable (slice 2 added the first; the same guard
+  went into the second *before* any call site consumed the async port). ~30 ledger
+  reads in `verify-engines.mjs` were converted, including the helpers
+  (`ledgerOf` / `projectionOf` / `rowsOf` / `rowOf`) whose callers would otherwise
+  have compared against a Promise.
+- **The HALF-await §12 warned about** (`ok(name, Promise.resolve([]).length === 0)`) is
+  the guard's third planted shape. `Array.prototype.every`/`.map` callbacks cannot
+  await, so ledger reads inside predicates were deliberately lifted OUT of them —
+  `[...ids].every((x) => !ledgerOf(id).some(...))` becomes a set read once, above.
+
+**MEASURED on the landed slice:** `npm run verify` **3037 passed, 0 failed** with
+`OPENMIND_TEST_DATABASE_URL` set (so the database half RAN rather than skipped; the
+three `✗` lines in that output are the harness's own planted Promise cases, which
+are removed from the totals). `npm run storage-check` **85 cases, 0 failed, 1
+skipped**, `CONFORMANCE-FAILURES:` empty. `npm run verify:static` **95 passed, 0
+failed**. `npx tsc --noEmit` clean. And the end-to-end suite over real HTTP against
+a scratch store: **858 passed, 0 failed**, with `.openmind-data` never opened
+(`find .openmind-data -newermt <run start>` returned nothing) — covering every
+door that reads or writes a ledger: `/api/progress`, `/api/session`,
+`/api/diagnostic`, `/api/evidence` + `/api/evidence-summary`, `/api/my-data`,
+`/api/impact`, `/api/assignments`, `/api/needs`, `/api/classes`, `/api/profile`,
+`/api/pack-export`.
+
+**MEASURED (slice 4's preamble).** `npm run verify` runs 3037 assertions with
+`OPENMIND_TEST_DATABASE_URL` set and 3027 without, 0 failed either way: the ten
+difference IS the database half, which prints that it is SKIPPING (with the reason
+and the command to run it) rather than passing. CI's `production-check` job sets
+the variable so the database half always runs there. The assertions that matter:
+a deployment configured for Postgres with **no connection string is REFUSED**, not
+handed the file store; an unreachable database is reported as unreachable *and*
+`databaseHealth` says nothing about its schema, so it can never be confused with a
+reachable-but-unmigrated one; a real statement round-trips; **two writers on one
+learner serialise** while two writers on different learners do not; a rolled-back
+transaction releases its lock; and a malformed statement is NOT reported as an
+outage. `npm run db:rehearse` applies, verifies, reverses all six migrations and
+re-applies them against a real server, and `npm run db:verify` now asserts 0006's
+four claims beside the ledger's own.
+
+**TWO DEFECTS THAT SUITE FOUND IN ITS OWN FIRST RUN**, recorded because both were
+invisible without a real server and both were the class of failure this project
+treats as unacceptable:
+
+1. `connect()` sat OUTSIDE the try in `withLockedTransaction`/`pgQuery`, so an
+   unreachable database escaped as a raw driver rejection — a route would have
+   answered 500 ("your answer was wrong") where the truth is "come back in a
+   minute".
+2. `databaseHealth` named `schema_migrations` directly, so a reachable database
+   whose migrations had not run threw "relation does not exist" and was reported
+   **unreachable** — sending an operator to debug DNS, a firewall and TLS while the
+   real answer was "run the migrations".
+
+**REMAINING, in order, because each is a prerequisite of the next.**
+
+1. **Slice 3b, the rest of the write path.** `withLearner` on the port (§3 Q1:
+   open one learner's durable unit, stage events, stage the projection, so a
+   backend can do all three in one transaction), and `lib/server/store.ts` itself
+   onto the port — profiles, classes, rooms, packs, papers, personal papers and
+   `ai_cache` are still reached by their routes through the store's own functions.
+   **The ledger is the half that has migrated**; the profile half is what 3b is.
+   `OPENMIND_STORE=postgres` must therefore stay **REFUSED**, and that is not a
+   precaution: with the profile on the file store and the ledger on a database, a
+   learner's record would live in two places at once — precisely the split this
+   whole line exists to prevent. The refusal is what makes that unconfigurable.
+2. **Accounts off `lib/server/auth.ts`'s private `accounts.json`** (§1 names it as
+   the one data file outside the port, and 0006 has now given it a table).
+3. **`lib/server/storage-postgres.ts`**: profiles (payload + typed columns +
+   `learner_projections`), `evidence_events` (idempotent append, clock-ordered
+   read), classes/members, rooms, packs, papers, personal papers, ai_cache,
+   erasures, interventions, store_boots. A backend must be added to
+   `scripts/storage-conformance.mjs` — never given a second suite (§6).
+4. **`resolveStoreKind` accepts `postgres`** — only with a configured database,
+   and only once 1–3 make it true; `/api/ready` reports the kind, reachability,
+   the schema version and the boot record.
+5. **The conformance PG half** against a scratch schema, and the second `verify`
+   run with the §6 failure-list compare. This is the parity evidence, and it is
+   what turns "a second backend exists" into "a second backend is interchangeable".
+6. **`scripts/storage-import.mjs`** and the §7 drills (import → verify → flip →
+   rollback), after which `.env.example`'s "NOT SERVABLE YET" note comes out.
+7. **Docs**: re-check §5's mapping table against the backend AS WRITTEN (0006 is
+   what that check produced when it was done for the schema), re-measure §9's
+   acceptance list, and update `docs/OPERATIONS.md` (backing up a database
+   deployment) and `docs/DATA_GOVERNANCE.md` (§5.3's erasure decision, now that
+   `erasures` has a table and 0006 fixed the paths that remove a learner).
+
+**WHAT AN OPERATOR SHOULD KNOW TODAY:** none of this makes a database deployment
+serve learner data yet, and the one place that is stated for them rather than for
+us is `docs/DEPLOYMENT.md` §5.1 — including the free path that DOES keep data today
+(a host with a real disk), because the honest answer to "can I run this free" is
+not "wait for slice 4".

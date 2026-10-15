@@ -79,10 +79,49 @@ const evidence = require("../.verify/evidence.js");
 const localAi = require("../.verify/local-ai.js");
 const localModel = require("../.verify/local-model.js");
 
+/**
+ * A PROMISE IS NOT AN ASSERTION — the same rule `scripts/storage-conformance.mjs`
+ * now enforces, and it is here for the same reason: the port's ledger reads are
+ * ASYNC (lib/server/storage.ts), and this file is `.mjs`, so there is no compiler
+ * to catch a missing `await`. `ok(ledger.readEvidence(id).length === 1)` with one
+ * forgotten keyword fails on its own (a Promise has no length), but a bare
+ * `ok(ledger.readEvidence(id))` would be TRUTHY and pass without checking
+ * anything — a green run over a backend nobody measured.
+ *
+ * The suite proves this about itself at startup rather than asserting it in
+ * prose: see "the harness cannot be fooled" below.
+ */
+const isThenable = (v) =>
+  v !== null && (typeof v === "object" || typeof v === "function") && typeof v.then === "function";
+
 let pass = 0, fail = 0;
 function ok(cond, msg) {
+  if (isThenable(cond)) {
+    fail++;
+    console.error("  ✗ FAIL:", `${msg} — the assertion was given a Promise instead of a boolean, so the value was never checked (await it)`);
+    return;
+  }
   if (cond) { pass++; }
   else { fail++; console.error("  ✗ FAIL:", msg); }
+}
+
+// ── The harness cannot be fooled ────────────────────────────────────────────
+// Run on the REAL `ok`, with the counters restored afterwards so the planted
+// cases cannot appear in this run's totals. Every shape a missing `await` can
+// take is planted, because the comparison shape is the common one and it fails
+// for a different reason than the bare one.
+{
+  console.log("▸ the harness cannot be fooled by a Promise");
+  const plantedFail = fail;
+  console.log("  (planting three deliberately-failing assertions below — they are removed from this run's totals)");
+  ok(Promise.resolve(true), "planted: a bare resolved Promise");
+  ok(new Promise(() => {}), "planted: a bare pending Promise");
+  ok(Promise.resolve([]).length === 0, "planted: a comparison against an un-awaited call");
+  const caught = fail - plantedFail;
+  fail = plantedFail; // the planted cases are not this run's failures
+  ok(caught === 3, `all three planted shapes were counted as FAILURES (${caught} of 3)`);
+  ok(isThenable({ then: 1 }) === false && isThenable({ then: () => {} }) === true,
+    "and only a real thenable is refused — a record with a `then` FIELD is data, not a promise");
 }
 
 // ── 0. The content graph ────────────────────────────────────────────────────
@@ -5686,11 +5725,39 @@ console.log("▸ One data directory, one lock table");
 
   // And the ledger must still share it: a lock per module would let an evidence
   // append and a profile write race on the same learner, which is the reason
-  // DATA_DIR and `locks` are exported from the store at all.
-  const ledger = fs.readFileSync("lib/server/evidence.ts", "utf8");
-  ok(/import\s*\{[^}]*\bwithLock\b[^}]*\}\s*from\s*"\.\/store"/.test(ledger) &&
-     /import\s*\{[^}]*\bDATA_DIR\b[^}]*\}\s*from\s*"\.\/store"/.test(ledger),
-    "and the evidence ledger takes both from the store rather than from a copy of its own");
+  // DATA_DIR and `locks` are exported from the store at all. The module that
+  // takes them is the FILE ledger (lib/server/evidence-file.ts) — the door the
+  // application uses (lib/server/evidence.ts) is a facade over the storage port
+  // and holds no storage of its own, which is asserted just below.
+  const fileLedger = fs.readFileSync("lib/server/evidence-file.ts", "utf8");
+  ok(/import\s*\{[^}]*\bwithLock\b[^}]*\}\s*from\s*"\.\/store"/.test(fileLedger) &&
+     /import\s*\{[^}]*\bDATA_DIR\b[^}]*\}\s*from\s*"\.\/store"/.test(fileLedger),
+    "and the file evidence ledger takes both from the store rather than from a copy of its own");
+
+  // ── AND THE SPLIT IS THE PROPERTY, NOT A REFACTOR ────────────────────────
+  //
+  // THE FAILURE THIS PREVENTS, stated so it is not abstract: `lib/server/evidence.ts`
+  // used to BE the file ledger. That made "the ledger" and "the JSONL file" the
+  // same import, so a second backend could not exist without rewriting every call
+  // site — and, worse, a call site that reached for the cheap synchronous
+  // function would read a file the configured backend never wrote. The facade
+  // holds no storage; the file ledger has exactly ONE importer; and both are
+  // asserted here rather than described in the module's header comment, because
+  // the way this regresses is a helpful one-line import.
+  const facade = stripComments(fs.readFileSync("lib/server/evidence.ts", "utf8"));
+  const plumbing = /from "node:fs"|readFileSync|appendFileSync|writeFileSync|mkdirSync|readdirSync|\bfs\./.exec(facade);
+  ok(!plumbing,
+    `the evidence facade opens no files of its own (found: ${plumbing ? JSON.stringify(plumbing[0]) : "none"})`);
+  ok(/from "\.\/storage-file"/.test(facade) && /activeStorage\(\)/.test(facade),
+    "and it reaches a learner's ledger by asking the storage port for the configured backend");
+
+  // ONE PATH IN. A second importer of the file ledger is how a backend silently
+  // stops being swappable — the split-persistence failure this whole storage
+  // line exists to prevent — so the importer set is pinned, not merely counted.
+  const ledgerImporters = files.filter((f) =>
+    /from "\.\/evidence-file"|from "@\/lib\/server\/evidence-file"/.test(stripComments(fs.readFileSync(f, "utf8"))));
+  ok(ledgerImporters.length === 1 && ledgerImporters[0] === "lib/server/storage-file.ts",
+    `the file ledger has exactly ONE importer, the file backend (found: ${ledgerImporters.join(", ") || "none"})`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -5793,6 +5860,183 @@ console.log("▸ The storage port describes the store that runs");
     && /\b(readJson|writeJson)\b/.test(fs.readFileSync(f, "utf8")));
   ok(libFileHelperUsers.length === 1 && libFileHelperUsers[0] === "lib/server/interventions.ts",
     `and exactly one lib module still uses them, the one whose data has no table yet (${libFileHelperUsers.join(", ") || "none"})`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// THE DATABASE CONNECTION (docs/STORAGE_SPEC.md, slice 4)
+// ════════════════════════════════════════════════════════════════════════════
+// The connection layer is compiled and driven BEFORE any backend serves from it,
+// because the two claims it makes are the ones a database deployment gets wrong
+// quietly, and both are checkable without a route:
+//
+//   1. A deployment that asks for Postgres and has NO connection string must be
+//      refused, not handed the file store. That refusal is the whole reason this
+//      module exists rather than a `new Pool()` at the call site.
+//   2. A database that cannot be REACHED must be reportable as unreachable — and
+//      distinguishable from one that is merely empty (no schema yet), which is
+//      the difference between "run the migrations" and "your DNS is wrong".
+//
+// Plus the one property the file backend cannot offer at all and that slice 4
+// exists for: two writers on the SAME learner serialise across processes, while
+// two writers on DIFFERENT learners do not queue behind each other.
+console.log("\n▸ The database connection refuses, reports, and serialises");
+{
+  const pgMod = require("../.verify/server/pg.js");
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // ── 1. No connection string is NOT "the file store" ──────────────────────
+  ok(pgMod.databaseConfigured({}) === false && pgMod.databaseConfigured({ DATABASE_URL: "   " }) === false,
+    "an unset or blank DATABASE_URL counts as unconfigured");
+  ok(pgMod.databaseUrl({ DATABASE_URL: '  "postgres://h/db"  ' }) === "postgres://h/db",
+    "and a value pasted with quotes or padding around it is read, not passed through to libpq");
+  let unconfigured = null;
+  try { pgMod.getPool({}); } catch (e) { unconfigured = e; }
+  ok(unconfigured?.name === "DatabaseUnavailableError" && unconfigured.code === "database_not_configured",
+    "a pool is REFUSED rather than created without a connection string");
+  ok(Boolean(unconfigured) && /DATABASE_URL/.test(unconfigured.message) && /filesystem/.test(unconfigured.message),
+    "and the refusal names the variable and says it will not fall back to the filesystem instead");
+
+  // The REPORTING half, for a readiness screen rather than a stack trace.
+  const none = await pgMod.databaseHealth({}, { fresh: true });
+  ok(none.configured === false && none.reachable === false && none.error === "database_not_configured" && none.schemaVersion === null,
+    "an unconfigured deployment's health is REPORTED as unconfigured, with no measurement invented for it");
+
+  // ── 2. Unreachable, and it must never look like empty ────────────────────
+  // Port 1 refuses immediately on every platform, so this costs milliseconds.
+  const dead = { DATABASE_URL: "postgres://openmind:openmind@127.0.0.1:1/openmind" };
+  const deadHealth = await pgMod.databaseHealth(dead, { fresh: true });
+  ok(deadHealth.configured === true && deadHealth.reachable === false && /ECONNREFUSED|refused/i.test(deadHealth.error ?? ""),
+    `an unreachable database is reported (not thrown) with the code that says why: ${deadHealth.error}`);
+  ok(deadHealth.schemaVersion === null,
+    "and its schema is reported as unmeasured — never as \"no schema\", which would send an operator to run migrations on a database that is down");
+
+  ok(pgMod.isConnectionError({ code: "ECONNREFUSED" }) && pgMod.isConnectionError({ code: "08006" })
+    && pgMod.isConnectionError({ code: "57P03" }),
+    "a lost connection, a shut-down server and one that cannot accept connections all count as unreachable");
+  ok(!pgMod.isConnectionError({ code: "42P01" }) && !pgMod.isConnectionError(new Error("no code")),
+    "while a query error does not — a missing table is a bug in the statement, not an outage");
+
+  let unavailable = null;
+  try { await pgMod.pgQuery("select 1", [], dead); } catch (e) { unavailable = e; }
+  ok(unavailable?.name === "DatabaseUnavailableError" && unavailable.code === "database_unavailable" && Boolean(unavailable.cause),
+    "a failed statement against an unreachable server raises `database_unavailable` and keeps the driver's cause");
+
+  // ── 3. The REAL server, when one is configured ───────────────────────────
+  // Deliberately NOT `DATABASE_URL`: this suite runs in the operator's own
+  // checkout, and the local `.env` may hold a production connection string. A
+  // test that wrote to it would be the exact side effect this repository
+  // forbids, so the real half runs only against a database explicitly named as
+  // a test one — and says so when there is none.
+  const testUrl = (process.env.OPENMIND_TEST_DATABASE_URL ?? "").trim();
+  if (!testUrl) {
+    console.log("  · SKIPPED (stated, not passed): the real-server half needs OPENMIND_TEST_DATABASE_URL — " +
+      "`OPENMIND_TEST_DATABASE_URL=postgres://… npm run verify` runs it against a scratch database, and CI's `database` job does (see .github/workflows/ci.yml).");
+    pgMod.resetDatabaseHealth();
+  } else {
+    const env = { DATABASE_URL: testUrl };
+    pgMod.resetDatabaseHealth();
+    const health = await pgMod.databaseHealth(env, { fresh: true });
+    ok(health.configured === true && health.reachable === true && typeof health.latencyMs === "number",
+      `the database is reachable (${health.latencyMs}ms, server ${health.serverVersion})`);
+
+    // The schema it reports must be the newest one THESE FILES describe — derived
+    // from the directory rather than pinned to a version, so adding a migration
+    // updates the assertion instead of breaking it. A reachable database with no
+    // ledger at all is reported as reachable-but-unprepared, which is a fact about
+    // the deployment and not a failure of this suite.
+    const versions = fs.readdirSync("db/migrations")
+      .filter((f) => f.endsWith(".up.sql"))
+      .map((f) => f.slice(0, -".up.sql".length)).sort();
+    const latest = versions[versions.length - 1];
+    ok(health.schemaVersion === null || health.schemaVersion === latest,
+      `the schema it reports is the newest one the migration files describe (${health.schemaVersion} vs ${latest})`);
+    if (health.schemaVersion === null) {
+      console.log("  · note: this database is reachable but has NOT been migrated (`npm run db:migrate`); " +
+        "reachability is asserted, the migration half is skipped.");
+    }
+
+    // A round trip: a real statement, through the pool, with parameters.
+    const rows = await pgMod.pgQuery("select $1::int as n", [7], env);
+    ok(rows[0]?.n === 7, "a parameterised statement round-trips through the pool");
+
+    // ── THE PROPERTY THE FILE BACKEND CANNOT OFFER ────────────────────────
+    // One learner's read-modify-write must not interleave with another process's:
+    // an in-process promise chain cannot promise that, and the whole reason a
+    // database deployment is worth having is that it can. Two transactions on the
+    // same key, the second started 60ms into the first's 150ms hold: it must not
+    // begin until the first has committed.
+    const key = `openmind-verify-${Date.now().toString(36)}`;
+    const order = [];
+    const first = pgMod.withLockedTransaction(key, async (c) => {
+      order.push("a-start");
+      await sleep(150);
+      await c.query("select 1");
+      order.push("a-end");
+    }, env);
+    await sleep(60);
+    const second = pgMod.withLockedTransaction(key, async (c) => {
+      order.push("b-start");
+      await c.query("select 1");
+      order.push("b-end");
+    }, env);
+    await Promise.all([first, second]);
+    ok(order.join(",") === "a-start,a-end,b-start,b-end",
+      `two writers on the SAME learner serialise across the pool (${order.join(",")})`);
+
+    // …and unrelated learners do NOT queue behind each other. A single global lock
+    // would pass the assertion above and serialise a whole classroom.
+    const other = [];
+    const x = pgMod.withLockedTransaction(key, async (c) => {
+      other.push("x-start");
+      await sleep(150);
+      await c.query("select 1");
+      other.push("x-end");
+    }, env);
+    await sleep(60);
+    const y = pgMod.withLockedTransaction(`${key}-other`, async (c) => {
+      other.push("y-start");
+      await c.query("select 1");
+      other.push("y-end");
+    }, env);
+    await Promise.all([x, y]);
+    // The property is "y was not held up by x", and the interleaving that shows it
+    // is y STARTING before x ends — not y finishing last, which depends on how the
+    // two bodies happen to be scheduled. Asserted as the relation it is, because an
+    // exact ordering here would fail on a loaded machine and be "fixed" by
+    // weakening it, which is how a real global lock would pass.
+    ok(other[0] === "x-start" && other.indexOf("y-start") > -1 && other.indexOf("y-start") < other.indexOf("x-end"),
+      `while a DIFFERENT learner is not held up by one in flight — the lock is per learner, not global (${other.join(",")})`);
+
+    // A failed transaction must surface its error AND release the lock. The second
+    // half is free with a transaction-scoped advisory lock and would have to be
+    // simulated by any lock held in memory or in a row.
+    let boom = null;
+    try {
+      await pgMod.withLockedTransaction(key, async () => { throw new Error("boom"); }, env);
+    } catch (e) { boom = e; }
+    ok(/boom/.test(String(boom?.message)), "a transaction that throws surfaces its own error, not a driver error");
+    const afterRollback = await pgMod.withLockedTransaction(key, async () => "ok", env);
+    ok(afterRollback === "ok", "and the lock does not outlive the rollback — a crashed writer cannot hold a learner forever");
+
+    // A query error is not an outage: the route that sees it must not answer 503.
+    let badSql = null;
+    try { await pgMod.pgQuery("select * from openmind_no_such_table", [], env); } catch (e) { badSql = e; }
+    ok(badSql && badSql.name !== "DatabaseUnavailableError" && badSql.code === "42P01",
+      "a malformed statement raises the driver's own error rather than being reported as an unreachable database");
+
+    // The probe is memoised: a monitor polling /api/ready must not turn a free-tier
+    // database into a load test, and `fresh` is how a drill re-measures on purpose.
+    pgMod.resetDatabaseHealth();
+    const cachedOne = await pgMod.databaseHealth(env);
+    const cachedTwo = await pgMod.databaseHealth(env);
+    ok(cachedOne === cachedTwo && cachedOne.reachable === true,
+      "the health probe is memoised for a few seconds, so polling readiness does not hammer the database");
+    const forced = await pgMod.databaseHealth(env, { fresh: true });
+    ok(forced !== cachedOne && forced.reachable === true,
+      "and `fresh` re-measures on purpose — that is what the deploy drill asks for");
+    await pgMod.endPool();
+    pgMod.resetDatabaseHealth();
+  }
 }
 
 // ── On-device AI (local tier) ──────────────────────────────────────────────
@@ -6101,7 +6345,7 @@ console.log("\n▸ On-device AI, on the phone the learner has");
   const again = await evidenceStore.appendEvidence(LEARNER, [evA]);
   ok(first.accepted.length === 1 && again.accepted.length === 0 && again.duplicates.length === 1,
     "re-sending an event is idempotent: reported as a duplicate, not counted twice");
-  ok(evidenceStore.readEvidence(LEARNER).length === 1, "and the ledger on disk holds exactly one copy");
+  ok((await evidenceStore.readEvidence(LEARNER)).length === 1, "and the ledger on disk holds exactly one copy");
 
   let crossWrote = false;
   try { await evidenceStore.appendEvidence("another-learner", [evA]); } catch { crossWrote = true; }
@@ -6112,7 +6356,10 @@ console.log("\n▸ On-device AI, on the phone the learner has");
   ok(traversal, "and an id that would escape the data directory is rejected, never silently sanitised");
 
   let malformed = false;
-  try { evidenceStore.readEvidence("../store"); } catch { malformed = true; }
+  // The read is refused by the SAME rule the write is, and the refusal now
+  // arrives as a rejection: `readEvidence` goes through the storage port, whose
+  // contract is asynchronous, so the `catch` must be reachable from an `await`.
+  try { await evidenceStore.readEvidence("../store"); } catch { malformed = true; }
   ok(malformed, "reads are guarded by the same rule as writes");
 
   // ── The reconciliation: the ledger agrees with the model it shadows ───────
@@ -6566,7 +6813,7 @@ console.log("\n▸ On-device AI, on the phone the learner has");
   ok(projectionMod.unprojectableShare(jstate) === null,
     "while a ledger-complete learner reports nothing unprojectable — the claim worth making");
   const legacyDiffs = replayMod.reconcileDeep(
-    replayMod.replayModel(evidenceStore.readEvidence(legacyId), legacyId, legacy.projectionBase), legacy);
+    replayMod.replayModel(await evidenceStore.readEvidence(legacyId), legacyId, legacy.projectionBase), legacy);
   ok(legacyDiffs.length === 0,
     `and the projection still reconciles against its own ledger plus its base (${legacyDiffs.length} diffs)`);
 
@@ -6858,10 +7105,14 @@ console.log("▸ Two learners, one bank, different evidence");
     for (const step of steps) await record(id, step);
   };
   const every = (correct) => DRAWN.map((_, i) => ({ i, correct }));
+  // THE LEDGER IS READ THROUGH THE STORAGE PORT and is therefore ASYNCHRONOUS
+  // (lib/server/evidence.ts delegates to the configured backend), so these
+  // helpers are async and every use awaits them. This suite's `ok` refuses a
+  // thenable, so a missed `await` here fails the run rather than passing it.
   const ledgerOf = (id) => evidenceStore.readEvidence(id);
-  const projectionOf = (id) => evidence.projectLearner(ledgerOf(id));
-  const rowsOf = (id, conceptId) => view.conceptKnowledge(projectionOf(id), conceptId, t).rows;
-  const row = (id, conceptId, from) => rowsOf(id, conceptId).find((r) => r.from === from);
+  const projectionOf = async (id) => evidence.projectLearner(await ledgerOf(id));
+  const rowsOf = async (id, conceptId) => view.conceptKnowledge(await projectionOf(id), conceptId, t).rows;
+  const row = async (id, conceptId, from) => (await rowsOf(id, conceptId)).find((r) => r.from === from);
 
   // A: every answer right. B: the same items, one right. C: A's evidence again
   // under a different learner id — the control that says a decision difference
@@ -6874,8 +7125,8 @@ console.log("▸ Two learners, one bank, different evidence");
   await drive("pair-guided", [{ i: 0, correct: true, hints: 2 }]);
 
   // ── What they were asked, and how they answered — read off the ledger ────
-  const strongEvents = ledgerOf("pair-strong");
-  const weakEvents = ledgerOf("pair-weak");
+  const strongEvents = await ledgerOf("pair-strong");
+  const weakEvents = await ledgerOf("pair-weak");
   ok(strongEvents.length === 6 && weakEvents.length === 6,
     `both learners' whole work is on the ledger (${strongEvents.length} and ${weakEvents.length} events)`);
   ok(strongEvents.map((e) => e.questionId).join() === weakEvents.map((e) => e.questionId).join(),
@@ -6888,10 +7139,10 @@ console.log("▸ Two learners, one bank, different evidence");
     `and the histories are the ones this test intends (${strongRight}/6 vs ${weakRight}/6 correct)`);
 
   // ── (a) The dimensions the evidence supports, in both directions ─────────
-  const strongAll = row("pair-strong", CONCEPT, "all-answers");
-  const weakAll = row("pair-weak", CONCEPT, "all-answers");
-  const strongInd = row("pair-strong", CONCEPT, "independent");
-  const weakInd = row("pair-weak", CONCEPT, "independent");
+  const strongAll = await row("pair-strong", CONCEPT, "all-answers");
+  const weakAll = await row("pair-weak", CONCEPT, "all-answers");
+  const strongInd = await row("pair-strong", CONCEPT, "independent");
+  const weakInd = await row("pair-weak", CONCEPT, "independent");
   ok(strongAll?.rate?.correct === 6 && strongAll?.rate?.asked === 6,
     `six right answers read as six, not as a band or a percentage (${strongAll?.rate?.correct}/${strongAll?.rate?.asked})`);
   ok(weakAll?.rate?.correct === 1 && weakAll?.rate?.asked === 6,
@@ -6907,27 +7158,27 @@ console.log("▸ Two learners, one bank, different evidence");
   // ── (b) What the history did NOT measure stays unmeasured ────────────────
   for (const [id, label] of [["pair-strong", "the learner who got them all"], ["pair-weak", "the learner who missed them"]]) {
     for (const from of ["transfer", "retention"]) {
-      const r = row(id, CONCEPT, from);
+      const r = await row(id, CONCEPT, from);
       ok(r?.unmeasured === true && r?.rate === null,
         `${label}: ${from} reads UNMEASURED with no rate at all — absence is not 0% (${JSON.stringify(r?.rate)})`);
     }
     // The sharpest form of the rule: on a concept this learner was never asked
     // about, NO row may imply anything about them.
-    const untouched = rowsOf(id, UNTOUCHED);
+    const untouched = await rowsOf(id, UNTOUCHED);
     ok(untouched.length > 0 && untouched.every((r) => r.unmeasured === true && r.rate === null),
       `${label}: a concept they were never asked about reads unmeasured on all ${untouched.length} dimensions — no evidence is never a failure`);
   }
 
   // ── A hinted answer is evidence of recall and of nothing stronger ────────
-  ok(row("pair-guided", CONCEPT, "all-answers")?.rate?.asked === 1,
+  ok((await row("pair-guided", CONCEPT, "all-answers"))?.rate?.asked === 1,
     "a hinted answer is still an answer, and is counted as recall");
-  ok(row("pair-guided", CONCEPT, "independent")?.unmeasured === true,
+  ok((await row("pair-guided", CONCEPT, "independent"))?.unmeasured === true,
     "but work done with a hint cannot buy INDEPENDENCE: that dimension stays unmeasured rather than scored as a failed attempt");
 
   // ── The model is the ledger's projection, not a field written by hand ────
   for (const id of ["pair-strong", "pair-weak", "pair-guided"]) {
     const saved = await store.getProfile(id);
-    const diffs = replayMod.reconcileDeep(replayMod.replayModel(ledgerOf(id), id, saved.projectionBase), saved);
+    const diffs = replayMod.reconcileDeep(replayMod.replayModel(await ledgerOf(id), id, saved.projectionBase), saved);
     ok(diffs.length === 0,
       `${id}: the saved model is exactly what its own ledger projects (${diffs.length} differences) — the evidence was recorded, not assigned`);
   }
@@ -6958,14 +7209,14 @@ console.log("▸ Two learners, one bank, different evidence");
     `and the learner who missed them is asked to rebuild the idea first (${topWeak.kind}:${topWeak.conceptId}) — same content, not the same advice`);
 
   for (const [id, res, label] of [["pair-strong", strong, "the strong learner"], ["pair-weak", weak, "the weak learner"]]) {
-    const own = new Set(ledgerOf(id).map((e) => e.id));
+    const own = new Set((await ledgerOf(id)).map((e) => e.id));
     ok(res.actions.every((a) => a.evidenceIds.every((x) => own.has(x))),
       `${label}: every citation resolves in THAT learner's own ledger (${res.actions.reduce((n, a) => n + a.evidenceIds.length, 0)} citations)`);
     ok(decisionMod.citationGaps(res.ctx, res.actions).length === 0,
       `${label}: and none is broken (${decisionMod.citationGaps(res.ctx, res.actions).join("; ") || "none"})`);
     ok(res.actions[0].basis === "cited",
       `${label}: the action says its reason comes from recorded work (${res.actions[0].basis})`);
-    const measured = new Set(ledgerOf(id).map((e) => e.conceptId));
+    const measured = new Set((await ledgerOf(id)).map((e) => e.conceptId));
     const ground = res.actions.filter((a) => a.conceptId && !measured.has(a.conceptId));
     ok(ground.every((a) => a.basis === "unattributed" && a.evidenceIds.length === 0),
       `${label}: work proposed on a concept they have no evidence for is new ground (${ground.map((a) => `${a.kind}:${a.conceptId}=${a.basis}`).join(", ") || "none in the ranking"}), never a cited weakness`);
@@ -6990,9 +7241,13 @@ console.log("▸ Two learners, one bank, different evidence");
   ok(twinDiffs.length === 0,
     `a second learner with the SAME evidence gets the SAME ranking, field for field (${twinDiffs.slice(0, 3).join(" | ") || "every field agrees"})`);
   const twinCited = new Set(twin.actions.flatMap((a) => a.evidenceIds));
-  ok(twinCited.size > 0 && [...twinCited].every((x) => !ledgerOf("pair-strong").some((e) => e.id === x)),
+  // The strongest learner's own event ids, read ONCE outside the predicate:
+  // `Array.prototype.every` cannot await, so leaving the read inside it would
+  // compare against a Promise and pass for the wrong reason.
+  const strongIds = new Set((await ledgerOf("pair-strong")).map((e) => e.id));
+  ok(twinCited.size > 0 && [...twinCited].every((x) => !strongIds.has(x)),
     "and what it cites is its own ledger, not its twin's");
-  ok(JSON.stringify(rowsOf("pair-twin", CONCEPT)) === JSON.stringify(rowsOf("pair-strong", CONCEPT)),
+  ok(JSON.stringify(await rowsOf("pair-twin", CONCEPT)) === JSON.stringify(await rowsOf("pair-strong", CONCEPT)),
     "with the same dimension rows to match — learner identity is not evidence in either direction");
 }
 
@@ -7049,11 +7304,15 @@ console.log("▸ Retention is measured, never assumed");
       mode: "independent", hints: step.hints ?? 0, ms: 4000, tags: q.misconceptionTags ?? [],
     })]);
   });
+  // Async for the same reason as the pair block above: the ledger is reached
+  // through the storage port. `rowOf` awaits the projection so a caller that
+  // awaits it gets the ROW, not a Promise of one — a `?.` on a Promise would be
+  // `undefined` and every assertion below would fail loudly, which is the point.
   const ledgerOf = () => evidenceStore.readEvidence(RET);
   const modelOf = () => store.getProfile(RET);
-  const projectionOf = () => evidence.projectLearner(ledgerOf());
-  const rowOf = (conceptId, from) =>
-    view.conceptKnowledge(projectionOf(), conceptId, t).rows.find((r) => r.from === from);
+  const projectionOf = async () => evidence.projectLearner(await ledgerOf());
+  const rowOf = async (conceptId, from) =>
+    view.conceptKnowledge(await projectionOf(), conceptId, t).rows.find((r) => r.from === from);
   const decideAt = async (now) => {
     const ctx = await serverDecisionMod.decisionContextFor(RET);
     return { ctx, actions: ctx ? decisionMod.decide(ctx, { max: 6, now }) : [] };
@@ -7063,11 +7322,13 @@ console.log("▸ Retention is measured, never assumed");
   for (let i = 0; i < DRAWN.length; i++) await answer({ i, at: T0 + i * 1000, correct: true });
 
   // ── Solid work in ONE sitting is not memory ──────────────────────────────
-  ok(rowOf(CONCEPT, "independent")?.rate?.correct === 4,
-    `four hint-free answers are independence evidence (${rowOf(CONCEPT, "independent")?.rate?.correct}/4)`);
-  ok(rowOf(CONCEPT, "retention")?.unmeasured === true && rowOf(CONCEPT, "retention")?.rate === null,
+  const freshIndependent = await rowOf(CONCEPT, "independent");
+  const freshRetention = await rowOf(CONCEPT, "retention");
+  ok(freshIndependent?.rate?.correct === 4,
+    `four hint-free answers are independence evidence (${freshIndependent?.rate?.correct}/4)`);
+  ok(freshRetention?.unmeasured === true && freshRetention?.rate === null,
     "and NOTHING here claims retention: a concept answered once, in one sitting, has not been remembered — it has been rehearsed");
-  ok(evidence.impactSnapshot(ledgerOf()).unmeasured.some((u) => u.startsWith("retention:")),
+  ok(evidence.impactSnapshot(await ledgerOf()).unmeasured.some((u) => u.startsWith("retention:")),
     "the impact snapshot names retention as the gap it is, rather than leaving it implied");
 
   // ── The scheduler decides when a concept is due ──────────────────────────
@@ -7100,31 +7361,33 @@ console.log("▸ Retention is measured, never assumed");
   ok(stamp === "retrieval",
     "the serve path's own rule (isRetentionDue — the function the route calls) is what stamps the answer");
   await answer({ i: 0, at, correct: true, source: stamp });
-  ok(ledgerOf().at(-1).source === "retrieval",
+  const afterRetrieval = await ledgerOf();
+  ok(afterRetrieval.at(-1).source === "retrieval",
     "so the answer lands on the ledger as a retrieval, not as more practice");
-  const retained = rowOf(CONCEPT, "retention");
+  const retained = await rowOf(CONCEPT, "retention");
   ok(retained?.rate?.asked === 1 && retained?.rate?.correct === 1 && retained?.band === "strong",
     `and retention is MEASURED for the first time — recalled after ${interval} day(s) (${retained?.rate?.correct}/${retained?.rate?.asked}, ${retained?.band})`);
-  ok(!evidence.impactSnapshot(ledgerOf()).unmeasured.some((u) => u.startsWith("retention:")),
+  ok(!evidence.impactSnapshot(await ledgerOf()).unmeasured.some((u) => u.startsWith("retention:")),
     "the impact snapshot stops describing retention as unmeasured, because it no longer is");
-  ok(ledgerOf().filter((e) => e.source === "retrieval").length === 1,
+  ok((await ledgerOf()).filter((e) => e.source === "retrieval").length === 1,
     "exactly one event carries the retrieval source — no drifting credit");
 
   // ── The gate: what CANNOT buy the dimension ──────────────────────────────
   // Same sitting, same concept, seconds later: the answer is recorded (it is
   // real work) but it cannot be a delayed recall, because nothing was delayed.
   await answer({ i: 1, at: at + 60_000, correct: true, source: "retrieval" });
-  ok(rowOf(CONCEPT, "retention")?.rate?.asked === 1,
+  ok((await rowOf(CONCEPT, "retention"))?.rate?.asked === 1,
     "answering again in the same sitting adds no retention credit — the elapsed gap IS the measurement");
   // A hinted retrieval is rehearsal: guided recall proves nothing about what
   // survives without help.
   await answer({ i: 2, at: at + interval * DAY, correct: true, hints: 2, source: "retrieval" });
-  ok(rowOf(CONCEPT, "retention")?.rate?.asked === 1,
+  ok((await rowOf(CONCEPT, "retention"))?.rate?.asked === 1,
     "and a retrieval answered with a hint is rehearsal, not retention");
   // A FAILED retrieval is the most valuable observation of the three.
   await answer({ i: 3, at: at + 2 * interval * DAY, correct: false, source: "retrieval" });
-  ok(rowOf(CONCEPT, "retention")?.rate?.asked === 2 && rowOf(CONCEPT, "retention")?.rate?.correct === 1,
-    `forgetting is recorded rather than hidden: the failed delayed recall counts as asked, not correct (${rowOf(CONCEPT, "retention")?.rate?.correct}/${rowOf(CONCEPT, "retention")?.rate?.asked})`);
+  const forgotten = await rowOf(CONCEPT, "retention");
+  ok(forgotten?.rate?.asked === 2 && forgotten?.rate?.correct === 1,
+    `forgetting is recorded rather than hidden: the failed delayed recall counts as asked, not correct (${forgotten?.rate?.correct}/${forgotten?.rate?.asked})`);
 
   // ── THE STATE, WHICH A RATIO CANNOT EXPRESS ──────────────────────────────
   // 1 of 2 describes a learner who held this and has since lost it AND one who
@@ -7139,8 +7402,9 @@ console.log("▸ Retention is measured, never assumed");
     "a concept with no delayed recall is UNMEASURED — an absence is never read as a failure");
   ok(proofMod2.retentionState(undefined) === "unmeasured" && proofMod2.retentionState({ asked: 1, correct: 0, lastHeld: null }) === "forgotten",
     "and a record built before the outcome was kept falls back to what its counts can still honestly support");
-  ok(rowOf(CONCEPT, "retention")?.state === "forgotten",
-    `the row the surface renders carries that state (${rowOf(CONCEPT, "retention")?.state}) — and ${proofMod2.retentionLabelKey("forgotten")} is the key it renders, from the rule rather than the page`);
+  const stateRow = await rowOf(CONCEPT, "retention");
+  ok(stateRow?.state === "forgotten",
+    `the row the surface renders carries that state (${stateRow?.state}) — and ${proofMod2.retentionLabelKey("forgotten")} is the key it renders, from the rule rather than the page`);
 
   // The boundary of the owned rule, seen from the LEDGER'S side. The projection
   // used to spell the three conditions out again beside a comment claiming to be
@@ -7149,8 +7413,9 @@ console.log("▸ Retention is measured, never assumed");
   // answer stamped as a retrieval an hour after the last evidence is not a
   // delayed recall, because the GAP is the measurement.
   await answer({ i: 0, at: at + 2 * interval * DAY + 3600e3, correct: true, source: "retrieval" });
-  ok(rowOf(CONCEPT, "retention")?.rate?.asked === 2 && rowOf(CONCEPT, "retention")?.state === "forgotten",
-    `and an hour later even a stamped retrieval buys nothing — short gap, no credit, and the state stays ${rowOf(CONCEPT, "retention")?.state} rather than being reset by same-sitting work`);
+  const shortGap = await rowOf(CONCEPT, "retention");
+  ok(shortGap?.rate?.asked === 2 && shortGap?.state === "forgotten",
+    `and an hour later even a stamped retrieval buys nothing — short gap, no credit, and the state stays ${shortGap?.state} rather than being reset by same-sitting work`);
 
   // ── The review is refreshed, so the loop closes ──────────────────────────
   const now = at + 2 * interval * DAY;
@@ -7162,14 +7427,14 @@ console.log("▸ Retention is measured, never assumed");
 
   // ── Retention survives a rebuild, or it is not evidence ──────────────────
   const saved = await modelOf();
-  const diffs = replayMod.reconcileDeep(replayMod.replayModel(ledgerOf(), RET, saved.projectionBase), saved);
+  const diffs = replayMod.reconcileDeep(replayMod.replayModel(await ledgerOf(), RET, saved.projectionBase), saved);
   ok(diffs.length === 0,
     `the ledger alone rebuilds the retention dimension (${diffs.length} differences${diffs.length ? ": " + diffs.slice(0, 3).map((d) => d.field).join(", ") : ""}) — it is evidence, not an annotation on the live model`);
   const wiped = structuredClone(saved);
   wiped.progress = {};
   wiped.masteries = {};
   delete wiped.projectionBase;
-  projectionMod.projectFromLedger(wiped, ledgerOf());
+  projectionMod.projectFromLedger(wiped, await ledgerOf());
   ok(JSON.stringify(wiped.progress[CONCEPT].retention) === JSON.stringify(saved.progress[CONCEPT].retention)
     && wiped.progress[CONCEPT].retention.asked === 2,
     `delete the model, replay the ledger, and the same retention record comes back (${JSON.stringify(wiped.progress[CONCEPT].retention)})`);
@@ -7188,7 +7453,7 @@ console.log("▸ Retention is measured, never assumed");
   });
   const updated = await modelOf();
   sessionMod.noteActivity(opened.ledger, { correct: true, mode: "independent", hints: 0, conceptId: CONCEPT, ms: 3000 });
-  const outcome = sessionMod.computeResult(updated, opened.ledger, recalledAt + 60_000, undefined, ledgerOf());
+  const outcome = sessionMod.computeResult(updated, opened.ledger, recalledAt + 60_000, undefined, await ledgerOf());
   ok(outcome.changeReason === "retained",
     `a review that HELD is reported as retained, not as ordinary progress (${outcome.changeReason})`);
   ok(sessionMod.reasonKey(outcome.changeReason) === "sess.r.retained",
@@ -7203,7 +7468,7 @@ console.log("▸ Retention is measured, never assumed");
     i: 1, at: failedAt, correct: false,
     source: retentionMod.isRetentionDue(await modelOf(), CONCEPT, failedAt) ? "retrieval" : "practice",
   });
-  const failedResult = sessionMod.computeResult(await modelOf(), failed.ledger, failedAt + 60_000, undefined, ledgerOf());
+  const failedResult = sessionMod.computeResult(await modelOf(), failed.ledger, failedAt + 60_000, undefined, await ledgerOf());
   ok(failedResult.changeReason !== "retained",
     `and a review that did NOT hold never claims it did (${failedResult.changeReason})`);
 }
@@ -7389,8 +7654,9 @@ console.log("▸ Offline answers sync once, in order, and are never trusted for 
   ok(events.every((e) => e.id && /^ev_[A-Za-z0-9_-]{8,64}$/.test(e.id)),
     `every replayed answer carries a well-formed derived id (${events[0].id})`);
   const fileAfterFirst = fs.readFileSync(ledgerFile(A), "utf8");
-  ok(evidenceStore.readEvidence(A).length === drawn.length,
-    `a batch of ${drawn.length} offline answers reaches the ledger (${evidenceStore.readEvidence(A).length})`);
+  const ledgerA = await evidenceStore.readEvidence(A);
+  ok(ledgerA.length === drawn.length,
+    `a batch of ${drawn.length} offline answers reaches the ledger (${ledgerA.length})`);
 
   // Delivered AGAIN: byte-identical ledger. Not "no visible difference" — the
   // file itself is unchanged, which is what "counted once" has to mean.
@@ -7400,7 +7666,7 @@ console.log("▸ Offline answers sync once, in order, and are never trusted for 
   ok(fs.readFileSync(ledgerFile(A), "utf8") === fileAfterFirst,
     "and the ledger file is byte-identical after the second delivery");
   const modelA = await store.getProfile(A);
-  ok(replayMod.reconcileDeep(replayMod.replayModel(evidenceStore.readEvidence(A), A), modelA).length === 0,
+  ok(replayMod.reconcileDeep(replayMod.replayModel(await evidenceStore.readEvidence(A), A), modelA).length === 0,
     "the learner model still reconciles against the ledger after a replayed batch");
 
   // A REVERSED batch — newer answers arriving before older ones, which is what
@@ -7408,8 +7674,8 @@ console.log("▸ Offline answers sync once, in order, and are never trusted for 
   // own ordering (lib/evidence#orderEvents) is doing nothing.
   const B = "offline-b";
   await runLearner(B, [2, 1, 0], 3);
-  const eventsA = evidenceStore.readEvidence(A);
-  const eventsB = evidenceStore.readEvidence(B);
+  const eventsA = await evidenceStore.readEvidence(A);
+  const eventsB = await evidenceStore.readEvidence(B);
   ok(evidence.orderEvents(eventsA).map((e) => e.conceptId).join(",") === evidence.orderEvents(eventsB).map((e) => e.conceptId).join(","),
     "delivered in reverse, the ledger's own ordering puts the answers in the same sequence");
   const projA = evidence.projectLearner(eventsA);
@@ -7422,7 +7688,7 @@ console.log("▸ Offline answers sync once, in order, and are never trusted for 
   // The device's claim is KEPT and DISCLOSED, and it is not the clock the
   // projection reads. `source: "practice"` here is the point: the server did not
   // schedule these as reviews, so nothing about them is memory evidence.
-  const kept = evidenceStore.readEvidence(A)[0];
+  const kept = (await evidenceStore.readEvidence(A))[0];
   ok(kept.deviceAt === BASE - 3 * DAY,
     `the device's claimed time is preserved on the event as its own claim (${kept.deviceAt})`);
   ok(kept.at > kept.deviceAt && kept.at >= BASE,
@@ -7462,7 +7728,7 @@ console.log("▸ Offline answers sync once, in order, and are never trusted for 
   const runPair = async (id, serverAges) => {
     await store.saveProfile(store.newProfileState(id, COURSE));
     await store.updateProfile(id, (state) => projectionMod.commitAndProject(id, state, pair(id, serverAges)));
-    return evidence.projectLearner(evidenceStore.readEvidence(id));
+    return evidence.projectLearner(await evidenceStore.readEvidence(id));
   };
   const SERVER_AGED = await runPair("offline-c", true);
   const CLAIM_ONLY = await runPair("offline-d", false);
@@ -7606,14 +7872,14 @@ console.log("▸ One student's evidence is derived from their own ledger");
   };
 
   // ── NOTHING RECORDED IS NOT 0% ───────────────────────────────────────────
-  const emptyMember = cv.memberEvidence(rosterEv, "Mira_pin", await store.getProfile(LID));
+  const emptyMember = await cv.memberEvidence(rosterEv, "Mira_pin", await store.getProfile(LID));
   ok(emptyMember.answers === 0 && emptyMember.concepts.length === 0 && emptyMember.recent.length === 0,
     "a member who has answered nothing reads as nothing recorded");
   ok(Object.values(emptyMember.dimensions).every((d) => d === null),
     "and every dimension is null — unknown, never a 0% nobody earned");
   ok(emptyMember.curriculumDeclared === true && emptyMember.unmeasured.length > 0,
     `while the ideas nobody has asked yet are named from the class's own course (${emptyMember.unmeasured.length} of them)`);
-  const noCourse = cv.memberEvidence({ ...rosterEv, subject: undefined }, "Mira_pin", await store.getProfile(LID));
+  const noCourse = await cv.memberEvidence({ ...rosterEv, subject: undefined }, "Mira_pin", await store.getProfile(LID));
   ok(noCourse.curriculumDeclared === false && noCourse.unmeasured.length === 0,
     "a class that declared no course names no unmeasured ideas rather than being given a default one to fail");
 
@@ -7632,7 +7898,7 @@ console.log("▸ One student's evidence is derived from their own ledger");
   ]);
 
   const stateEv = await store.getProfile(LID);
-  const ev = cv.memberEvidence(rosterEv, "Mira_pin", stateEv);
+  const ev = await cv.memberEvidence(rosterEv, "Mira_pin", stateEv);
   const liveEv = (await cv.liveRoster(rosterEv)).live.Mira_pin;
   const frac = ev.concepts.find((c) => c.conceptId === "fractions");
   ok(ev.answers === 4 && ev.concepts.length === 3,
@@ -8326,7 +8592,7 @@ console.log("▸ AI explains, never records");
 
   // The dimensions are the same rows the concept page shows, from the same
   // projection — counts, and only where something was measured.
-  const projection = evidence.projectLearner(evidenceStore.readEvidence(AI_LEARNER));
+  const projection = evidence.projectLearner(await evidenceStore.readEvidence(AI_LEARNER));
   const pageRows = view.conceptKnowledge(projection, CONCEPT, t).rows.filter((r) => r.rate && r.rate.asked > 0);
   ok(g.measured.length === pageRows.length
     && g.measured.every((m) => {

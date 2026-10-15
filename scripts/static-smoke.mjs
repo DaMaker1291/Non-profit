@@ -195,7 +195,11 @@ async function main() {
   section("The server's write path (JSONL + projection)");
   const serverState = profileFor();
   await server.projection.commitAndProject(LEARNER, serverState, all);
-  const onDisk = server.evidence.readEvidence(LEARNER);
+  // Every ledger read goes through the storage port and is therefore ASYNC —
+  // `server.evidence` is the facade (lib/server/evidence.ts), not the file
+  // backend, so a missed `await` here reads a Promise and every count below
+  // silently becomes `undefined`.
+  const onDisk = await server.evidence.readEvidence(LEARNER);
   ok(onDisk.length === all.length, `the ledger holds every event (${onDisk.length}/${all.length})`);
   ok(onDisk.map((e) => e.id).join() === all.map((e) => e.id).join(), "the ledger preserves append order");
 
@@ -231,11 +235,11 @@ async function main() {
     `the server reports every re-delivered event as a duplicate (${dupServer.duplicates.length})`);
   ok(dupStatic.accepted.length === 0 && dupStatic.duplicates.length === all.length,
     `the static store does the same (${dupStatic.duplicates.length})`);
-  ok(server.evidence.readEvidence(LEARNER).length === all.length, "the ledger did not grow");
+  ok((await server.evidence.readEvidence(LEARNER)).length === all.length, "the ledger did not grow");
   ok(store.read(LEARNER).length === all.length, "the static ledger did not grow");
   ok(same(serverBefore, modelShape(serverState)) && same(staticBefore, modelShape(staticState)),
     "neither model moved");
-  ok(same(presented(serverState, server.evidence.readEvidence(LEARNER)), sp),
+  ok(same(presented(serverState, await server.evidence.readEvidence(LEARNER)), sp),
     "the recommendation is unchanged by the duplicate");
 
   // ── 5. Out of order: late arrivals do not reorder or corrupt ────────────
@@ -275,7 +279,7 @@ async function main() {
     "the server's replay is arrival-order independent too");
   ok(same(modelShape(rev), modelShape(staticState)),
     "and it agrees with the static build on the same reversed history");
-  ok(server.evidence.readEvidence("static-rev-learner").length === all.length,
+  ok((await server.evidence.readEvidence("static-rev-learner")).length === all.length,
     "the late-arriving ledger kept every event (append-only, never rewritten)");
 
   // ── 6. The store refuses another learner's event ────────────────────────

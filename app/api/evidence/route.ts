@@ -50,7 +50,7 @@ export async function GET(req: Request) {
     if (!state) return NextResponse.json({ error: "not_found" }, { status: 404 });
     checkSecret(state, secret);
 
-    const all = readEvidence(id);
+    const all = await readEvidence(id);
     const events = since === null ? all : all.filter((e) => e.at > since);
     const projection = projectLearner(all);
     // The deep reconciliation: rebuild the model from the ledger — from the

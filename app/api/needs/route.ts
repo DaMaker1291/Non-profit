@@ -71,11 +71,11 @@ async function deriveNeeds(
 ): Promise<{ needs: ClassNeed[]; curriculum: string[] }> {
   if (!cls.subject) return { needs: [], curriculum: [] };
   const curriculum = assignableConcepts(cls.subject, cls.specificationId ?? null);
-  const members = (await resolveMembers(cls)).map((m) => ({
+  const members = await Promise.all((await resolveMembers(cls)).map(async (m) => ({
     handle: m.handle,
     learnerId: m.state.profile.id,
-    events: readEvidence(m.state.profile.id),
-  }));
+    events: await readEvidence(m.state.profile.id),
+  })));
   const nowMs = Date.now();
   const main = deriveClassNeeds({ members, curriculum, nowMs });
   const gaps = derivePrerequisiteGaps({
@@ -423,8 +423,8 @@ async function outcomeFor(
   // The idea the comparison is made on: the objective stamped at assign, else
   // the finding's own concept (records written before that field existed).
   const objective = rec.objectiveId ?? rec.conceptId;
-  const outcomes: MemberOutcome[] = memberRows.map((m) =>
-    memberOutcome(readEvidence(m.state.profile.id), objective, rec.baseAt ?? 0, m.handle, m.state.profile.id));
+  const outcomes: MemberOutcome[] = await Promise.all(memberRows.map(async (m) =>
+    memberOutcome(await readEvidence(m.state.profile.id), objective, rec.baseAt ?? 0, m.handle, m.state.profile.id)));
   return {
     verdict: outcomeVerdict(outcomes),
     objectiveId: objective,

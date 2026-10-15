@@ -53,7 +53,7 @@ export async function GET(req: Request): Promise<NextResponse> {
       const members = await resolveMembers(cls);
       const m = members.find((x) => x.state.profile.id === learner);
       if (!m) return NextResponse.json({ error: "not a member" }, { status: 404 });
-      return NextResponse.json({ member: memberEvidence(cls, m.handle, m.state) });
+      return NextResponse.json({ member: await memberEvidence(cls, m.handle, m.state) });
     }
     return NextResponse.json({ cls: await liveRoster(cls) });
   }

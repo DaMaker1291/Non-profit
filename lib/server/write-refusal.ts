@@ -2,8 +2,11 @@
 // THE ONE SENTENCE EVERY ROUTE GIVES WHEN THE STORE WILL NOT KEEP THE WRITE.
 //
 // The rule lives in lib/env.ts (`storeReadiness`) and is enforced in
-// lib/server/store.ts and lib/server/evidence.ts, at the primitives every
-// learner-record write goes through. This module is the HTTP half of it, and it
+// lib/server/store.ts (every JSON write) and lib/server/evidence-file.ts (the
+// ledger append), at the primitives every learner-record write goes through.
+// The ledger half is reached through the facade lib/server/evidence.ts, so a
+// route's `appendEvidence` is refused before the file is touched. This module is
+// the HTTP half of it, and it
 // exists so that half has ONE shape: `503` with the code, the sentence, and the
 // two ways to fix the deployment — never a stack trace, never a 500.
 //
