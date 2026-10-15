@@ -596,3 +596,156 @@ serve learner data yet, and the one place that is stated for them rather than fo
 us is `docs/DEPLOYMENT.md` §5.1 — including the free path that DOES keep data today
 (a host with a real disk), because the honest answer to "can I run this free" is
 not "wait for slice 4".
+
+## 13 · Slice 3b inventory: the store's operations, classified (PHASE A, no code yet)
+
+Written BEFORE any adapter, because the adapter is not a translation of file
+operations into SQL. Two of the four findings below are defects in the code as it
+stands, and they were found by enumerating rather than by reading for them.
+
+### 13.1 · Every export of `lib/server/store.ts`, and what it is
+
+33 export statements: **25 data operations**, 2 pure id helpers, and the
+infrastructure the file store is built from.
+
+| | Operations |
+|---|---|
+| Profiles | `getProfile` `listProfileStates` `saveProfile` `updateProfile` `deleteProfile` `removeMemberEverywhere` |
+| Classes | `listClasses` `getClass` `saveClass` `updateClassByCode` `updateClassById` |
+| Rooms | `listRooms` `getRoom` `saveRoom` `updateRoomById` |
+| Community packs | `listPacks` `savePack` `readAllPacks` |
+| Papers | `saveStoredPaper` `getStoredPaper` (the ANSWER KEY — marking depends on it) |
+| Personal papers | `savePersonalPaper` `getPersonalPaper` `listPersonalPapers` (owner-scoped) |
+| AI cache | `cacheGet` `cacheSet` |
+| Ids | `newId` `joinCode` (pure; already port methods in §3) |
+| File infrastructure | `DATA_DIR` `locks` `withLock` `readJson` `writeJson` `StoreWriteBlockedError` `WritePurpose` `storeWriteBlock` `resetStoreWritePolicy` — these are the FILE backend's internals, and the port's design rule already says none of them may appear in the interface |
+| Re-exports | `newProfileState` `publicProfileState` (pure, from `lib/learner-profile.ts`, shared with the static build) |
+
+**Consumers, measured by import statement rather than by name-match: 20 files under
+`app/api/**` import the store, plus 8 lib modules** (`write-refusal`, `class-view`,
+`interventions`, `capability`, `decision`, `storage-file`, `evidence-file`, `auth`),
+plus the harnesses (`storage-conformance`, `verify-engines`, and the drills). 24
+`updateProfile` call sites; `progress` alone accounts for 8.
+
+### 13.2 · The data, classified (this is the decision the adapter must honour)
+
+| File | Class | Why | Table (0001–0006) |
+|---|---|---|---|
+| `profiles.json` | **durable — required** | the learner's record: declared course, progress, masteries, transient sitting state. Losing it loses the learner | `profiles` (payload + typed columns) + `learner_projections` |
+| `evidence/<id>.jsonl` | **durable — required** | the ledger; already on the port (slice 3a) | `evidence_events` |
+| `classes.json` | **durable — required** | rosters, membership, assignments, self-reports | `classes`, `class_members`, `assignments`, `assignment_results` |
+| `papers.json` | **durable — required** | the answer KEY, server-side only. A lost key makes a sitting unmarkable, and the paper has already been handed to the learner | `papers` + the key columns |
+| `personal-papers.json` | **durable — required** | owner-scoped learner work (marks per question, no question text) | `personal_papers` |
+| `rooms.json` | **durable — required** | shared study rooms and their messages | `rooms` |
+| `interventions.json` | **durable — required** | the teacher's review records, and the window an outcome is measured over | `interventions` |
+| `erasures.json` | **durable — required, and must outlive the archive** | the erase INSTRUCTION a restore re-applies (`lib/server/erasures.ts`) | `erasures` |
+| `accounts.json` + `session-secret` | **durable — required (identity)** | `lib/server/auth.ts`, private. Losing the secret signs everyone out; losing an account loses the email/password link | `users`, `sessions` |
+| `ai-cache.json` | **regenerable cache — deliberately ephemeral is acceptable** | the code already says so: a lost entry costs one model call, and `cacheSet` swallows even the write REFUSAL rather than failing the request that produced the value | `ai_cache` |
+| `boots.json` | **regenerable measurement — meaningless on a database** | it measures whether a FILESYSTEM outlived a process. 0006 gives it `store_boots`, which is a different measurement (a release opened this database) | `store_boots` |
+| `practice` / `learnSession` / `servedPractice` / `retrievalStage` | **transient, inside the profile record** | per-sitting staged state. Not evidence — but it must round-trip mid-sitting or the next answer is refused as "stale or unknown question", so it is part of the profile's unit, not a cache | (payload) |
+
+**THE RULE THIS PRODUCES, which is the acceptance criterion the adapter is judged
+by:** in a deployment selecting `postgres`, every **durable — required** row above
+must be served by the database, and a durable file still being read or written
+outside the port must make the deployment **REFUSE TO START** rather than run split.
+Exactly one row (`ai-cache.json`) is permitted to stay file-backed, and only
+because losing it costs a model call — so if it stays, `/api/ready` must say so
+rather than let an operator infer it.
+
+### 13.3 · Transaction boundaries (where "one operation" must become one unit)
+
+| Unit | Today | What it must become |
+|---|---|---|
+| **A learner's answer** | `updateProfile(id, state => commitAndProject(...))` — the in-process lock is held across the ledger append and the replay | `withLearner`: one transaction holding a per-learner advisory lock, containing the ledger append AND the projection write. **The hard part, and the only real design question in 3b:** the mutator is arbitrary JS that awaits ledger I/O, so the ledger's own write must be able to JOIN the caller's transaction. Either the transaction context is ambient (AsyncLocalStorage) or `LearnerTx` is passed explicitly (§3 Q1 already raises this) — but a backend that opens a SECOND connection inside the mutator deadlocks against its own advisory lock, which is a failure this project would meet in production and not in a unit test |
+| **A class edit** | `updateClassByCode` / `updateClassById`: read-modify-write under the `classes.json` lock | one transaction, row-locked on the class |
+| **A room edit** | `updateRoomById`: same shape | one transaction, row-locked on the room |
+| **An erasure** | see F-2 below — three calls from the route, and a fourth write inside `deleteProfile` | one unit: the port's own `eraseProfile` contract, which the interface ALREADY declares and the file backend does not yet keep |
+| **A paper's key** | `saveStoredPaper`, then marked in a later request | durable before the paper is handed out; no multi-statement unit needed |
+| **The AI cache** | best-effort, `catch`ed | stays best-effort, and must never fail the request |
+
+### 13.4 · FOUR FINDINGS this inventory produced
+
+**F-1 · A route reaches past the store into the data directory, and the existing
+source assertion does not catch it.** `app/api/hub-status/route.ts` does
+`fs.readFile(path.join(DATA_DIR, "profiles.json"))` and counts keys, for
+`profiles.json`, `rooms.json` and `classes.json`, to publish `learners`, `rooms`
+and `classes` to a school's LAN. The assertion in `verify-engines.mjs` forbids
+`app/**` from importing `readJson`/`writeJson` — and this route bypasses it by
+calling `fs.readFile` directly. On a database deployment there is no
+data directory, `countFile`'s `catch` returns **0**, and the hub would report
+**`learners: 0` for a school that has learners** — a false statement about the
+school, answered with HTTP 200. This must move behind the port (a count, or the
+existing `list*` methods) or fail closed, and the assertion must be widened to
+catch a direct `fs` read of the data directory rather than only the two helpers.
+
+There are exactly **two other `DATA_DIR` consumers under `app/`**, and they are a
+different category — both in `/api/ready`: a write-read-delete probe proving the
+directory is really writable, and `recordBoot(DATA_DIR, …)`, the survival
+measurement `boots.json` holds. Neither reads a stored record, so neither can
+report a false fact about a learner; but on a database deployment both are
+measuring the wrong thing, and the schema already answers them (`databaseHealth`
+for the probe, `store_boots` for the boot record — see §13.2). A complete
+inventory is the point of this section, so they are named here rather than
+rediscovered later.
+
+**F-2 · `eraseProfile` does not do what the port says it does, the erase is not
+one unit, and personal papers are removed by NEITHER live path.** The interface
+documents `eraseProfile` as: "the record, its ledger, its papers, and the RECORD OF
+THE INTENT". The file backend maps it to `deleteProfile`, which removes the record
+and appends the tombstone and **nothing else**. `DELETE /api/profile` therefore
+reaches the rest through two further, separate calls — `deleteEvidence(id)` then
+`removeMemberEverywhere(id)` — so a process killed between them leaves a learner
+whose record is gone and whose **ledger and class rows are not**: a partial
+erasure, the one kind there is no excuse for, and exactly the state `erasures.ts`
+calls "what makes 'we deleted it' false". It is repairable (`applyErasures` is
+idempotent and total) but nothing runs it against the live store.
+
+**And the two erase paths disagree about personal papers.** `applyErasures` — the
+RESTORE path — removes the profile, the ledger, the class membership **and the
+learner's personal papers**, and reports `personalPapers` as part of its outcome.
+The live route removes the first three and leaves the papers on disk, and there is
+no store function that could remove them (`savePersonalPaper`/`getPersonalPaper`/
+`listPersonalPapers` exist; no delete does). `AGENTS.md`'s defence — that a paper
+keyed to a deleted owner "resolves to nothing", which is true for READ access
+because reads are owner-scoped — is about reachability, not about the record
+surviving in the store. One of the two paths is wrong about a learner's own marked
+work, and the privacy page's sentence ("the erase takes the whole record with it")
+is the one that has to be true.
+
+Phase B must make the port's own contract true — one `eraseProfile` that removes
+the record, the ledger, the personal papers and the memberships as ONE unit, in one
+transaction — and add the conformance case that holds it: erase a learner with a
+ledger, a personal paper and a class membership, then assert all four are gone,
+from every backend, and that a FAILED erase leaves no tombstone (which the suite
+already checks for the file backend alone).
+
+**F-3 · A READ performs a WRITE in another domain.** `listClasses`/`getClass` call
+`classesWithIdentity()`, which reads `classes.json`, reads **every profile**
+(`listProfileStates`) to bind legacy handles, and writes the result back
+best-effort (`.catch(() => {})`). On a database this is a read that mutates the
+profiles domain inside whatever transaction happens to be open, and it fails
+silently by design. The reconciliation is idempotent and retried on the next read,
+so the honest options are: do it ONCE at import/cutover, or keep it lazy but make
+it explicit rather than a swallowed side effect. Deciding this is part of 3b — an
+adapter that copies the function as written would inherit a write-on-read.
+
+**F-4 · `newId`/`joinCode` are already port methods and have NO database answer as
+written.** They are in-memory random generators, so ids differ per process and a
+`joinCode` collision is only avoided by the alphabet being large. On a database
+they belong to the row (a generated key, a unique constraint on the code), which
+is why they sit on the port beside the data operations rather than staying a free
+function. Not urgent, and named so it is a decision rather than an oversight.
+
+### 13.5 · What Phase A establishes, and what it does not
+
+**Establishes:** the operation set (25), its consumers (20 routes + 8 lib modules +
+the harnesses), the classification of all twelve data files, the four operations
+that need a real transaction, and four defects — one of which (`F-2`) is a
+promise the port makes that the code does not keep, and one (`F-1`) that would
+publish a false number to a school.
+
+**Does NOT establish:** the PostgreSQL schema mapping for rooms/papers/personal
+papers/interventions/erasures (0001–0006 were written for a domain model and §5's
+table has to be re-checked against the adapter AS WRITTEN — the same check that
+found `0005` necessary), whether the async conversion of the 25 operations breaks
+any `.mjs` harness, or the import/cutover plan. Those are Phase B and slice 5.
