@@ -506,7 +506,34 @@ export function ladderMastery(c: LadderState): number {
   // reached (it is where the sitting placed them — `openedAt`, for any surface
   // to see), and it counts only once the learner has proven a band at or above
   // it (see the guard below).
-  const openRung = Math.min(c.openedAt ?? 0, rungs - 1);
+  // ── WHERE THE CONCEPT ACTUALLY OPENED (audit #1, measured) ───────────────
+  //
+  // Two different facts can raise a fresh concept's opening rung, and they are
+  // recorded in two different fields (`LadderState.openedAt` — see the opener):
+  // the COURSE floor, and the bands this SESSION had already demonstrated on an
+  // earlier concept (the skip, recorded in `skippedBands`).
+  //
+  // Only the first was read here, and that was the 66% bug: when the session
+  // skip set `stage = 2` while the course floor stayed 0, this function counted
+  // rungs 0 and 1 as PASSED from a position nobody had proven on this concept —
+  // 0.1 + 0.28 × 2 = 0.66 for a learner who answered both questions wrong. The
+  // guard below (`demonstrated > 0 ? openRung : 0`) could not catch it either,
+  // because `demonstrated` was itself counted from the wrong rung.
+  //
+  // The opening rung is therefore the deepest fact available. That repairs the
+  // over-claim without creating its mirror image: a concept opened at a rung by
+  // the learner's own course, and then swept clean, still collects the position
+  // it was placed at (the credits below are unchanged for that case), which is
+  // what keeps a flawless year-11 run from being reported as a shallow one.
+  const courseRung = Math.min(c.openedAt ?? 0, rungs - 1);
+  const skippedRungs = Math.min(c.skippedBands?.length ?? 0, rungs - 1);
+  // …and the record's OWN evidence, which cannot drift from it: a ladder that
+  // only ever asked its current rung OPENED there, whatever raised it. That is
+  // read from the counts rather than from a second field being kept in step,
+  // because a credit rule that trusts a companion field is how this bug existed
+  // in the first place (`openedAt` and `stage` disagreed, and only one was read).
+  const onlyThisRung = c.askedThisStage > 0 && c.asked === c.askedThisStage;
+  const openRung = Math.max(courseRung, skippedRungs, onlyThisRung ? Math.min(c.stage, rungs - 1) : 0);
   // The highest rung this ladder actually PASSED: a perfect final stage is a
   // pass, anything else leaves the current rung unproven. Everything between
   // the opening rung and that one was proven on the way up, because an
@@ -718,8 +745,22 @@ export function diagnosticToProgress(c: LadderState, at = Date.now()): ConceptPr
     attempts: c.asked,
     correct: c.correct,
     streak: 0,
-    // Accuracy == mastery here: the diagnostic is the accuracy evidence.
-    accuracy: mastery,
+    // ── ACCURACY IS THE RATE; MASTERY IS THE POSITION CLAIM (audit #1) ──────
+    //
+    // These were the same number, and that is what carried the 66% into a
+    // record whose own counts said 0/2. `ladderMastery` is a POSITION score —
+    // which rungs of this concept's ladder the sitting reached and proved —
+    // while `accuracy` is documented as "EWMA of graded-answer outcomes", a
+    // RATE. Writing the position score into both meant a learner who answered
+    // everything wrong was handed a two-thirds accuracy, and because
+    // `integratedMastery` reads accuracy as its base, the next display of the
+    // number repeated it.
+    //
+    // A rate is answerable from the record itself: this sitting asked `asked`
+    // questions and got `correct` of them right. When nothing was asked there
+    // is no rate and the neutral position claim stands in for it (a seed with
+    // `asked: 0` is never displayed as a measurement — see `buildResult`).
+    accuracy: c.asked > 0 ? c.correct / c.asked : mastery,
     mastery,
     lastSeen: at,
     misconceptions: {},
@@ -755,11 +796,19 @@ export function mergeDiagnosticSeed(
     return;
   }
   const practiceAnswers = existing.attempts ?? 0;
+  // Which SITTING the displayed claim comes from, decided before the merge
+  // touches anything. `mastery` takes the stronger run (evidence is not
+  // un-earned by a later bad day), and the accuracy that travels with the
+  // number has to be THAT run's rate: a new sitting's 0/2 used to overwrite
+  // accuracy while the mastery it did not beat stayed on screen, so the record
+  // read "two-thirds mastery, zero accuracy" — the same two-claims-one-number
+  // defect the seed itself had, one merge later.
+  const seedWins = (seed.mastery ?? 0) >= (existing.mastery ?? 0);
   if (practiceAnswers < DIAG_RELEASE_EVIDENCE) {
     // Supervised window: the diagnostic measurement IS the best evidence.
     existing.attempts = Math.max(existing.attempts ?? 0, seed.attempts);
     existing.correct = Math.max(existing.correct ?? 0, seed.correct);
-    existing.accuracy = seed.accuracy;
+    existing.accuracy = seedWins ? seed.accuracy : (existing.accuracy ?? seed.accuracy);
   } else {
     // Practice has taken over; only lift the claim if the diagnostic is stronger.
     existing.accuracy = Math.max(existing.accuracy ?? 0, seed.accuracy ?? 0);

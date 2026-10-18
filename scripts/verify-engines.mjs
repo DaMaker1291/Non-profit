@@ -1179,6 +1179,88 @@ console.log("▸ Difficulty-tracked diagnostic");
   }
   const fullRun = full.concepts[0];
   ok(diag.ladderMastery(fullRun) >= 0.82, `full-depth run on a capable generator reaches its depth ceiling (${diag.ladderMastery(fullRun).toFixed(2)})`);
+
+  // ── AUDIT #1: A CONCEPT ANSWERED ENTIRELY WRONG IS NEVER "MOSTLY THERE" ──
+  //
+  // The live defect, measured on a real learner's record: `/progress` showed
+  // `66% mastery` beside `0/2` correct. The sitting's own seed was
+  // `{attempts:2, correct:0, mastery:0.66, accuracy:0.66}` — 0.1 + 0.28 × 2,
+  // i.e. TWO RUNGS CREDITED AS PASSED.
+  //
+  // The cause was positional, not arithmetic. A concept can open at a rung for
+  // two reasons — the learner's COURSE is placed there (`openedAt`), or the
+  // SESSION already demonstrated the band on an earlier concept
+  // (`skippedBands`) — and `ladderMastery` read only the first as the opening
+  // rung. When the skip raised `stage` to 2 over a course floor of 0, the rungs
+  // between 0 and the failed rung were counted as proven positions on a concept
+  // whose own answers were both wrong. The guard meant to catch exactly this
+  // (`demonstrated > 0 ? openRung : 0`) could not, because `demonstrated` was
+  // counted from the same wrong rung.
+  //
+  // Asserted as an INVARIANT over the whole state space rather than on the one
+  // state that was reported, so a future change to the opener, the skip, or the
+  // credit rule cannot reintroduce it in a shape this fixture never happens to
+  // build.
+  {
+    const ESTABLISHED = 0.65;
+    const overclaims = [];
+    for (const conceptId of ["fractions", "standard-form", "quadratics", "pythagoras", "negatives"]) {
+      const rungs = diag.bandsFor(conceptId);
+      for (let stage = 0; stage < rungs; stage++) {
+        for (let openedAt = 0; openedAt < rungs; openedAt++) {
+          for (const done of [false, true]) {
+            const m = diag.ladderMastery({
+              conceptId, stage, openedAt, done,
+              askedThisStage: 2, correctThisStage: 0,
+              asked: 2, correct: 0, usedSeeds: [], servedDifficulty: [0.5, 0.55],
+            });
+            if (m >= ESTABLISHED) overclaims.push(`${conceptId} stage ${stage}/opened ${openedAt} → ${m.toFixed(2)}`);
+          }
+          // …and the state the session skip really produces: `openedAt` stays at
+          // the COURSE floor while `stage` is raised by bands proven elsewhere.
+          const skipped = diag.ladderMastery({
+            conceptId, stage, openedAt, done: true,
+            askedThisStage: 2, correctThisStage: 0,
+            asked: 2, correct: 0, usedSeeds: [], servedDifficulty: [0.5, 0.55],
+            skippedBands: ["recall", "application"],
+          });
+          if (skipped >= ESTABLISHED) overclaims.push(`${conceptId} skipped-to ${stage}/opened ${openedAt} → ${skipped.toFixed(2)}`);
+        }
+      }
+    }
+    ok(overclaims.length === 0,
+      `an all-wrong concept never reaches the established bar, however it opened (${overclaims.slice(0, 3).join(", ") || "swept every rung pair of 5 concepts"})`);
+
+    // The SEED carries the same fact, on both fields — and the two are
+    // different claims now: mastery (where the ladder got to) and accuracy
+    // (how often the answers were right) can no longer be one number.
+    const swept = { conceptId: "fractions", stage: 2, openedAt: 0, done: true, askedThisStage: 2, correctThisStage: 0, asked: 2, correct: 0, usedSeeds: [], servedDifficulty: [0.5, 0.55], skippedBands: ["recall", "application"] };
+    const seededWrong = diag.diagnosticToProgress(swept, 1);
+    ok(seededWrong.mastery < ESTABLISHED && seededWrong.accuracy === 0,
+      `the seeded record says 0/2 rather than two-thirds (mastery ${seededWrong.mastery.toFixed(2)}, accuracy ${seededWrong.accuracy.toFixed(2)})`);
+    const seededRight = diag.diagnosticToProgress(fullRun, 1);
+    ok(seededRight.accuracy === 1 && seededRight.mastery > 0.82,
+      `and a clean run is a clean rate as well as a high claim (accuracy ${seededRight.accuracy.toFixed(2)}, mastery ${seededRight.mastery.toFixed(2)})`);
+
+    // THE OTHER TWO STATES THE SEED CAN BE IN, so the four are asserted rather
+    // than the two that were reported: NO EVIDENCE (never a fabricated rate) and
+    // PARTIALLY CORRECT (a half-right band is not a passing one).
+    const noEvidence = diag.diagnosticToProgress({ conceptId: "fractions", stage: 0, askedThisStage: 0, correctThisStage: 0, done: false, asked: 0, correct: 0, usedSeeds: [], servedDifficulty: [] }, 1);
+    ok(noEvidence.mastery === 0.1 && noEvidence.accuracy === 0.1,
+      `a concept nobody asked about carries no fabricated rate (mastery ${noEvidence.mastery.toFixed(2)}, accuracy ${noEvidence.accuracy.toFixed(2)})`);
+    const halfRight = diag.diagnosticToProgress({ conceptId: "fractions", stage: 0, askedThisStage: 2, correctThisStage: 1, done: true, asked: 2, correct: 1, usedSeeds: [], servedDifficulty: [0.2, 0.25] }, 1);
+    ok(halfRight.accuracy === 0.5 && halfRight.mastery < ESTABLISHED && halfRight.mastery < halfRight.accuracy,
+      `partially correct work reads as half a rate and no passed band (accuracy ${halfRight.accuracy.toFixed(2)}, mastery ${halfRight.mastery.toFixed(2)})`);
+
+    // A LATER, WORSE SITTING MUST NOT MIX THE TWO: mastery keeps the stronger
+    // run, so accuracy has to keep that run's rate as well.
+    const kept = { fractions: diag.diagnosticToProgress(fullRun, 1) };
+    const strongMastery = kept.fractions.mastery;
+    diag.mergeDiagnosticSeed(kept, "fractions", seededWrong, 2);
+    ok(kept.fractions.mastery === strongMastery && kept.fractions.accuracy === 1,
+      `a re-sit that went worse does not pair the stronger claim with the weaker rate (mastery ${kept.fractions.mastery.toFixed(2)}, accuracy ${kept.fractions.accuracy.toFixed(2)})`);
+  }
+
   // A single slip no longer amputates the ladder (two-strike bands).
   const resilient = diag.newDiagnosticSession("maths");
   resilient.concepts = [{ conceptId: "linear-equations", stage: 0, askedThisStage: 0, correctThisStage: 0, done: false, asked: 0, correct: 0, usedSeeds: [], servedDifficulty: [] }];
