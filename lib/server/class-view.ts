@@ -11,7 +11,7 @@
 // reported. A self-report may flatter `cls.students`; it can never move this.
 // What the ledger has never measured is absent from the row: unknown, not 0.
 import { listProfileStates } from "./store";
-import { isTeacherOf, teacherHandle } from "./class-membership";
+import { handleOf, isTeacherOf, teacherHandle } from "./class-membership";
 // Relative specifiers: this module is in the compile mirror, which is built
 // with `tsc <files> ...` and no tsconfig, where `@/...` does not resolve.
 import { isDeviceReported, orderEvents, projectLearner, type EvidenceEvent } from "../evidence";
@@ -129,6 +129,60 @@ export async function liveRoster(cls: ClassRoster): Promise<ClassRoster> {
     students[handle] = report;
   }
   return { ...cls, students, live };
+}
+
+/**
+ * A MEMBER'S OWN VIEW OF A CLASS THEY ARE IN — AND NOTHING BEYOND IT.
+ *
+ * A class carries its teacher's material: the JOIN CODE (which is how anyone
+ * gets into the class at all), every peer's measured rates, and the work that
+ * has been set. Membership was being read as permission to see all of it: the
+ * roster door answered every member with the full `liveRoster`, so a student
+ * who had just joined could read the code they had used, every classmate's
+ * mastery, and the monitors the teacher's own screen renders. Measured on a
+ * shared device — the deployment this product is written for — that is one
+ * child reading another's record.
+ *
+ * Membership is still enough to read the class ITSELF: its name, its subject,
+ * its course and your own row. What it is not enough for is the class's
+ * material about other people, and that distinction is now made by the door
+ * rather than by the page that happens to render it — `app/api/classes`, and
+ * the negative claims in `scripts/verify-permissions.mjs` (the authorisation
+ * matrix `docs/OPERATIONS.md` names) that hold it in place.
+ *
+ * `joinCode` is returned EMPTY rather than removed because the field is part of
+ * the class's wire shape; an empty code is not a code, and a surface that tries
+ * to show one has nothing to show. Work is not carried here either: a member
+ * reads their own assignments through /api/assignments, which already returns
+ * their own row and no monitor.
+ */
+export async function memberRoster(cls: ClassRoster, me: ProfileState): Promise<ClassRoster> {
+  const id = me.profile.id;
+  const handle = handleOf(cls, id);
+  const own = <T,>(all: Record<string, T> | undefined): Record<string, T> =>
+    handle && all && Object.prototype.hasOwnProperty.call(all, handle) ? { [handle]: all[handle] } : {};
+  // The live row is DERIVED, like every other one (the stored roster holds no
+  // `live` at all — it is a read-time projection), so a member's own row is
+  // built the same way the teacher's table builds it: from their own ledger.
+  const live = handle
+    ? { [handle]: deriveLive(id, handle, await readEvidence(id)) }
+    : {};
+  return {
+    ...cls,
+    // Not the teacher's to receive: the code is how new members are admitted.
+    joinCode: "",
+    // Their own row, and only their own row — a peer's handle is not this
+    // learner's business, and neither is the size of the class.
+    students: own(cls.students),
+    live,
+    misconceptions: own(cls.misconceptions),
+    // Identity fields, narrowed to the caller: the roster's other ids are
+    // other people.
+    members: cls.members?.includes(id) ? [id] : [],
+    membersById: handle ? { [handle]: id } : {},
+    // Set work is read through the assignment door, already scoped to them.
+    assignments: [],
+  };
 }
 
 /** How many answers the detail lists, and how many curriculum concepts it is

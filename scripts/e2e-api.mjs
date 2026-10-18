@@ -821,12 +821,17 @@ ok(wedgeAns.status === 200 && typeof wedgeAns.body.correct === "boolean", "wedge
 // The class from section 8 has REAL measured evidence now (§8 drove answers
 // through the grading path); the plan must reflect what was measured — not
 // the self-report the same section deliberately planted. The pack carries the
-// answer key, so it answers members only.
+// answer key AND the class's measured weaknesses, so it answers the class's
+// TEACHER only — membership was enough once, and a student could download the
+// answers to their own homework.
 const packBase = `/api/pack-export?id=${cls.body.cls.id}`;
 const packNoAuth = await call(`${packBase}&format=json`);
 ok(packNoAuth.status === 400, "the offline pack (with its answer key) answers nothing to a caller with no identity");
 const packWrong = await getAuthed(`${packBase}&me=${stranger.body.profile.id}&format=json`, stranger.body.profile.id);
 ok(packWrong.status === 403, "and a non-member gets the same refusal the roster gives");
+const packMember = await getAuthed(`${packBase}&me=${sid}&format=json`, sid);
+ok(packMember.status === 403 && packMember.body?.error === "not the teacher",
+  `a MEMBER of the class is refused the pack as well — it carries their homework's answer key (HTTP ${packMember.status}: ${packMember.body?.error})`);
 // (raw fetch: the HTML body must be read as TEXT, and the capability rides in
 // the URL exactly as the teacher page's own download links carry it)
 const planHtml = await fetch(`${BASE}${packBase}&me=${pid}&format=html&secret=${encodeURIComponent(SECRETS.get(pid) ?? "")}`);
@@ -1004,9 +1009,21 @@ ok((planJson.bank ?? []).every((d) => d.questions.every((q) => typeof q.prompt =
   for (let i = 0; i < 3; i++) await gradeOne(joinerId, "fractions", true);
   for (let i = 0; i < 5; i++) await gradeOne(outsiderId, "fractions", true); // never joins; real work of their own
   const secondJoin = await post("/api/classes", { id: secondId, action: "join", joinCode: namesCode, handle: "Alex" });
-  ok(secondJoin.status === 200 && secondJoin.body.cls?.membersById?.["Alex 2"] === secondId &&
-     secondJoin.body.cls?.membersById?.Alex === joinerId,
-    `and a SECOND Alex gets their own row rather than taking over the first's (rows ${Object.keys(secondJoin.body.cls?.students ?? {}).join(", ")})`);
+  // THE JOIN ANSWER IS A READ OF THE CLASS, SO IT IS SCOPED TOO. A joiner is
+  // handed their OWN row and nothing about the learner whose row they might
+  // otherwise have taken over — the rule is asserted from both sides: the
+  // joiner's reply must not name the other Alex, and the teacher's own read
+  // must show both rows bound to their own learners.
+  ok(secondJoin.status === 200 && secondJoin.body.cls?.membersById?.["Alex 2"] === secondId,
+    `and a SECOND Alex is bound to their own row (rows ${Object.keys(secondJoin.body.cls?.students ?? {}).join(", ")})`);
+  ok(!("Alex" in (secondJoin.body.cls?.membersById ?? {})) &&
+     !Object.values(secondJoin.body.cls?.membersById ?? {}).includes(joinerId),
+    "while the join reply names no other member — a joiner does not receive the class's identities");
+  ok(secondJoin.body.cls?.joinCode === "",
+    `and does not receive the class's join code back (${JSON.stringify(secondJoin.body.cls?.joinCode)})`);
+  const teacherRoster = (await getAuthed(`/api/classes?me=${nid}&id=${namesCid}`, nid)).body.cls;
+  ok(teacherRoster.membersById?.Alex === joinerId && teacherRoster.membersById?.["Alex 2"] === secondId,
+    "the teacher's roster holds both rows, each bound to the learner who joined under it");
   for (let i = 0; i < 2; i++) await gradeOne(secondId, "fractions", true);
 
   const namesRoster = (await getAuthed(`/api/classes?me=${nid}&id=${namesCid}`, nid)).body.cls;

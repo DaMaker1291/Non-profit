@@ -775,8 +775,16 @@ export function concepts(query: { concept?: string; subject?: string }): Promise
 // PEOPLE — classes, assignments, rooms
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** The rosters this learner belongs to (as a teacher, or as a member). */
-export function classes(me: string): Promise<{ classes: ClassRoster[] }> {
+/** The classes this learner belongs to (as a teacher, or as a member).
+ *
+ *  WHAT EACH ONE CONTAINS DEPENDS ON WHAT THE CALLER IS TO IT, and that is the
+ *  server's decision, not this call's: a class they TEACH arrives with its full
+ *  live roster and its join code, one they merely attend arrives sanitised to
+ *  their own row (lib/server/class-view#memberRoster). `teaching` is the
+ *  server's answer to "is there a teacher console here at all?" — the page uses
+ *  it to decide between the console and the teacher door, so a learner is never
+ *  shown a join code or a classmate's evidence to begin with. */
+export function classes(me: string): Promise<{ classes: ClassRoster[]; teaching: boolean }> {
   return send("/api/classes", { query: { me } });
 }
 

@@ -851,7 +851,7 @@ show("week's plan", `${tPlan.days.length} days · ${tPlan.fromCurriculum ? "from
 ok(!tPlanNames.includes("Ravi"),
   `the week's plan is built from the students, never the teacher (${tPlanNames.length ? tPlanNames.join(", ") : "no group work assigned yet"})`);
 
-sub("The pack a teacher downloads opens, and only for a member");
+sub("The pack a teacher downloads opens, and only for the class's teacher");
 const tBase = `/api/pack-export?id=${encodeURIComponent(tClassId)}&me=${encodeURIComponent(tAccount.id)}`;
 const tPack = await call(`${tBase}&secret=${encodeURIComponent(sid(tAccount.id))}&format=html`);
 show("print link", `HTTP ${tPack.status} · ${String(tPack.body?.raw ?? "").length > 0 ? "a printable pack" : JSON.stringify(tPack.body)?.slice(0, 80)}`);
@@ -859,8 +859,9 @@ ok(tPack.status === 200, "the Print link a teacher clicks returns the pack (it u
 const tBare = await call(`${tBase}&format=json`);
 ok(tBare.status === 401 || tBare.status === 400, `and the same URL without the capability is refused (HTTP ${tBare.status} ${tBare.body?.error ?? ""})`);
 const tMember = await call(`/api/pack-export?id=${encodeURIComponent(tClassId)}&me=${encodeURIComponent(tKid.id)}&secret=${encodeURIComponent(sid(tKid.id))}&format=json`);
-show("a member of the class", `HTTP ${tMember.status} ${tMember.status !== 200 ? (tMember.body?.error ?? "") : "the pack, with its answer key"}`);
-ok(tMember.status === 200, "a member of the class can open the pack for their own class");
+show("a member of the class", `HTTP ${tMember.status} ${tMember.body?.error ?? ""}`);
+ok(tMember.status === 403,
+  `a member of the class CANNOT open the pack — it carries the answer key to their own homework (HTTP ${tMember.status} ${tMember.body?.error ?? ""})`);
 const tOutsider = await freshStudent("Sana");
 const tStranger = await call(`/api/pack-export?id=${encodeURIComponent(tClassId)}&me=${encodeURIComponent(tOutsider.id)}&secret=${encodeURIComponent(sid(tOutsider.id))}&format=json`);
 show("a signed-in outsider", `HTTP ${tStranger.status} ${tStranger.body?.error ?? ""}`);

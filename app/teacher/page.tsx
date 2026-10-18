@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MasteryBar, useI18n, useProfile, loadLocalProfileId } from "@/lib/client";
+import { MasteryBar, useAccount, useI18n, useProfile, loadLocalProfileId } from "@/lib/client";
 import * as api from "@/lib/api/client";
 import { ApiError, classPackUrl } from "@/lib/api/client";
 import { getConcept } from "@/lib/genome";
@@ -49,6 +49,27 @@ export default function TeacherPage() {
   // used to render as success. The hook already exposes the state; this page
   // just never asked for it.
   const { state, loading } = useProfile();
+  // ── WHO THIS PAGE IS FOR (audit #5) ────────────────────────────────────────
+  //
+  // `/teacher` is two things in one route: the door a would-be teacher comes in
+  // by, and the console the school's teacher works in. It rendered the console
+  // to ANY visitor holding a profile — so a student who had joined a class could
+  // read the join code they had used, the class's activity, and (until the door
+  // below stopped serving it) their classmates' rows. On the shared-device
+  // deployment this product is written for, that is one child reading another's
+  // record.
+  //
+  // AUTHORITY IS CLASS OWNERSHIP, AND IT IS THE SERVER'S — `teaching` is the
+  // answer /api/classes computes with the same `isTeacherOf` that licenses
+  // setting a class's work (`lib/server/class-membership`), and the roster it
+  // returns to a member carries no join code and no peer rows whatever this page
+  // does. The account's role is used for exactly one thing here: a teacher who
+  // has signed up but not yet made a class still needs the create-class form
+  // rather than the door they just came through. It is a self-declared label,
+  // so it can decide what to SHOW and is never asked what to ALLOW.
+  const { session, status: accountStatus } = useAccount();
+  const teacherAccount = !!session.account && session.account.role !== "student";
+  const [teaching, setTeaching] = useState(false);
 
   const [classes, setClasses] = useState<ClassRoster[]>([]);
   const [name, setName] = useState("");
@@ -108,6 +129,9 @@ export default function TeacherPage() {
       const j = await api.classes(id);
       setReadErr((e) => ({ ...e, classes: "" }));
       setClasses(j.classes ?? []);
+      // The server's own answer to "does this caller teach anything?" — never
+      // inferred here from the classes it happens to have returned.
+      setTeaching(j.teaching === true);
     } catch (e) {
       setReadErr((prev) => ({ ...prev, classes: failureText(e) }));
     }
@@ -254,7 +278,15 @@ export default function TeacherPage() {
   // the languages their school works in. The curriculum is declared per CLASS,
   // on the class itself (the panels below), which is the only place it can be
   // true — one teacher teaches Year 10 Maths and Year 12 Physics.
-  if (!loading && !state) {
+  // The console is for somebody who TEACHES — one class is enough, and so is
+  // having come here to teach and not yet made one. Everyone else gets the door:
+  // no join code, no class activity, no control that needs a class they do not
+  // own. `accountStatus === "booting"` is a wait, not an answer: the probe may
+  // turn this visitor into a teacher, and showing a learner's door to a teacher
+  // for one frame is the smaller error but still an error.
+  const bootingTeacher = accountStatus === "booting";
+  const consoleFor = teacherAccount || teaching;
+  if (!loading && !bootingTeacher && (!state || !consoleFor)) {
     return (
       <main className="container" style={{ paddingTop: 36 }}>
         <p className="eyebrow">{t("teach.title")}</p>
@@ -267,10 +299,24 @@ export default function TeacherPage() {
             <Link className="btn" href="/onboarding?role=teacher&mode=signup">{t("teach.entryCreate")}</Link>
             <Link className="btn ghost" href="/onboarding?role=teacher&mode=signin">{t("onb.signIn")}</Link>
           </div>
+          {/* A LEARNER WHO LANDS HERE IS SENT TO THEIR OWN WORK, NOT INTO
+              ENROLMENT. The second line used to offer `/onboarding` — the
+              learner's setup — to somebody who already has a profile, which is
+              the wrong door for them and re-runs a wizard they finished. */}
           <p className="small muted" style={{ marginTop: 16, marginBottom: 0 }}>
-            {t("teach.entryStudent")} <Link href="/onboarding">{t("home.start")}</Link>
+            {t("teach.entryStudent")}{" "}
+            <Link href={state ? "/dashboard" : "/onboarding"}>{state ? t("nav.home") : t("home.start")}</Link>
           </p>
         </div>
+      </main>
+    );
+  }
+  // The account probe has not answered yet and no class says otherwise: wait
+  // rather than render a console we may have to take away.
+  if (!loading && bootingTeacher && !teaching) {
+    return (
+      <main className="container" style={{ paddingTop: 36 }}>
+        <Loading lines={3} />
       </main>
     );
   }

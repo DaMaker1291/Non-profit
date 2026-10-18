@@ -128,6 +128,12 @@ ok(typeof joinCode === "string" && joinCode.length >= 4, "the class carries a jo
 
 const joined = await authedPost("/api/classes", { action: "join", joinCode, handle: "perm_student" }, bob.id);
 ok(joined.status === 200, "a learner joins by code");
+// THE JOIN REPLY IS A READ OF THE CLASS. It handed the joiner every classmate's
+// row and the code they had just typed; it answers with their own row now.
+ok(joined.body?.cls?.joinCode === "",
+  `the join reply carries no join code (${JSON.stringify(joined.body?.cls?.joinCode)})`);
+ok(!Object.values(joined.body?.cls?.membersById ?? {}).some((id) => id === teacher.id),
+  "and names no other member's learner id");
 
 // The roster door names the CALLER in `me` and the CLASS in `id`; both are sent,
 // which is the shape the route actually reads.
@@ -145,6 +151,58 @@ ok(anonRead.status !== 200, "an anonymous caller cannot read a class by id", `go
 
 // ── 4. Only the class's OWNER may change it or set its work ──────────────────
 group("4 · teacher authority: the owner, and only the owner");
+// ── 3b. A MEMBER READS THE CLASS, NOT THE CLASS'S MATERIAL ABOUT OTHERS ─────
+//
+// The roster door used to answer a student with exactly what it answers the
+// teacher: the JOIN CODE they had just used, every classmate's measured rate,
+// and the live view a teacher's screen is built on. On the shared-device
+// deployment this product is written for, that is one child reading another's
+// record — so the refusal is asserted as three separate facts rather than as a
+// status code, because the status was 200 throughout the defect.
+group("3b · a member receives their own row, never the class's material");
+const studentOwn = await classRead(bob);
+ok(!studentOwn.body?.cls?.joinCode, `a member's class read carries NO join code (${JSON.stringify(studentOwn.body?.cls?.joinCode)})`);
+ok(!JSON.stringify(studentOwn.body ?? {}).includes(joinCode), "and the code appears nowhere in the body");
+ok(Object.keys(studentOwn.body?.cls?.students ?? {}).length <= 1,
+  `their class read holds no peer rows (${Object.keys(studentOwn.body?.cls?.students ?? {}).join(", ") || "none"})`);
+ok(Object.keys(studentOwn.body?.cls?.live ?? {}).length <= 1,
+  `and no peer's measured evidence (${Object.keys(studentOwn.body?.cls?.live ?? {}).join(", ") || "none"})`);
+ok(Object.values(studentOwn.body?.cls?.live ?? {}).every((m) => m.learnerId === bob.id),
+  "every live row it does hold is the caller's own");
+// …and it is a REAL row: derived from the caller's own ledger by the same
+// `deriveLive` the teacher's table uses, not copied out of a roster that does
+// not store one. (An empty ledger is a row of zeros with `answers: 0`, which is
+// how "unmeasured" is said — never an absence that a table renders as blank.)
+ok(studentOwn.body?.cls?.live?.perm_student?.learnerId === bob.id,
+  "the member's own live row is derived from their ledger (learnerId " + (studentOwn.body?.cls?.live?.perm_student?.learnerId ?? "absent") + ")");
+ok(Array.isArray(studentOwn.body?.cls?.assignments) && studentOwn.body.cls.assignments.length === 0,
+  "the class's set work is not read through this door (a member reads their own work from /api/assignments)");
+
+const teacherOwn = await classRead(teacher);
+ok(teacherOwn.body?.cls?.joinCode === joinCode, "the teacher's read of the same class still carries the join code");
+ok(Object.keys(teacherOwn.body?.cls?.students ?? {}).includes("perm_student"),
+  `and the teacher's table still lists the class's students (${Object.keys(teacherOwn.body?.cls?.students ?? {}).join(", ")})`);
+
+// The LIST is the other half: the teacher page decides between the console and
+// the door from the server's own answer, so the flag has to be the server's.
+const teacherList = await authedGet(`/api/classes?me=${teacher.id}`, teacher.id);
+ok(teacherList.body?.teaching === true, "a class's owner is told they teach (teaching: true)");
+const studentList = await authedGet(`/api/classes?me=${bob.id}`, bob.id);
+ok(studentList.body?.teaching === false, "a member who owns no class is told they do not");
+const listed = (studentList.body?.classes ?? []).find((c) => c.id === cls.id);
+ok(!!listed, "their class is still listed — membership is enough to see the class itself");
+ok(listed?.joinCode === "", `but listed with no join code (${JSON.stringify(listed?.joinCode)})`);
+ok(listed?.live?.perm_student?.learnerId === bob.id, "and with the caller's own derived row still in it");
+ok(Object.keys(listed?.live ?? {}).length <= 1, "and with no classmate's evidence in it");
+
+// The offline pack carries the week's full question bank WITH its answer key,
+// and was answered to any member. It is the teacher's material.
+const memberPack = await authedGet(`/api/pack-export?id=${cls.id}&me=${bob.id}&format=json`, bob.id);
+ok(memberPack.status === 403 && memberPack.body?.error === "not the teacher",
+  `a member is refused the answer-key pack (HTTP ${memberPack.status} ${memberPack.body?.error ?? ""})`);
+const ownerPack = await authedGet(`/api/pack-export?id=${cls.id}&me=${teacher.id}&format=json`, teacher.id);
+ok(ownerPack.status === 200, `while the class's teacher still receives it (HTTP ${ownerPack.status})`);
+
 const studentEdit = await authedPost("/api/classes", { action: "update", clsId: cls.id, subject: "physics" }, bob.id);
 ok(studentEdit.status === 403, "a non-owner cannot edit the class's curriculum", `got HTTP ${studentEdit.status}`);
 const studentAssign = await authedPost("/api/assignments", {

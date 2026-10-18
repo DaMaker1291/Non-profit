@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getClass } from "@/lib/server/store";
 import { authorizeLearner } from "@/lib/server/capability";
 import { buildWeeklyPlan, classSubject } from "@/lib/teacher-plan";
-import { isMemberOf } from "@/lib/server/class-membership";
+import { isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
 import { liveRoster } from "@/lib/server/class-view";
 import { generateQuestion } from "@/lib/questions";
 import { getConcept } from "@/lib/genome";
@@ -31,6 +31,17 @@ export async function GET(req: Request): Promise<NextResponse> {
   const auth = await authorizeLearner(searchParams.get("me"), searchParams.get("secret"));
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
   if (!isMemberOf(cls, auth.state)) return NextResponse.json({ error: "not a member" }, { status: 403 });
+  // ── AND MEMBERSHIP IS NOT ENOUGH: THE PACK IS TEACHER MATERIAL ──────────
+  //
+  // The pack is the class's weekly plan — every member's measured weakness,
+  // the work set for the week, and the FULL QUESTION BANK WITH ITS ANSWER KEY.
+  // Membership was the whole check, so a student could download the teacher's
+  // plan for the class and the answer key for their own homework; on a shared
+  // device that is a two-tap route to the answers. It answers the class's
+  // TEACHER only — the same authority that sets the work it prints
+  // (lib/server/class-membership#isTeacherOf), asked here rather than inferred
+  // from who called the page.
+  if (!isTeacherOf(cls, auth.state)) return NextResponse.json({ error: "not the teacher" }, { status: 403 });
   // The plan reads the LIVE projection view — the same derivation the roster
   // door serves — so the printed pack and the on-screen table can never
   // disagree about the same students.

@@ -11,7 +11,7 @@ import {
 import { authorizeLearner } from "@/lib/server/capability";
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { freeHandle, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
-import { liveRoster, memberEvidence, resolveMembers } from "@/lib/server/class-view";
+import { liveRoster, memberEvidence, memberRoster, resolveMembers } from "@/lib/server/class-view";
 import { SUBJECT_IDS } from "@/lib/subjects";
 import { courseRefusal } from "@/lib/specifications";
 import type { ClassRoster, SubjectId } from "@/lib/types";
@@ -70,12 +70,30 @@ export async function GET(req: Request): Promise<NextResponse> {
       if (!m) return NextResponse.json({ error: "not a member" }, { status: 404 });
       return NextResponse.json({ member: await memberEvidence(cls, m.handle, m.state) });
     }
-    return NextResponse.json({ cls: await liveRoster(cls) });
+    // ── THE ROSTER IS THE TEACHER'S; A MEMBER GETS THEIR OWN ROW ────────────
+    //
+    // Membership used to be the whole requirement here, so a student who had
+    // joined a class was handed the SAME response as the teacher who owns it:
+    // the join code they could pass on, every classmate's measured rates, and
+    // the work set for the class. The live view is a teacher's instrument — it
+    // exists so somebody can decide who needs help — and the rule that decides
+    // who may read it is the same rule that decides who may set the class's
+    // work (lib/server/class-membership#isTeacherOf). A member still reads the
+    // class itself, sanitised to their own row (class-view#memberRoster).
+    return NextResponse.json({ cls: isTeacherOf(cls, me) ? await liveRoster(cls) : await memberRoster(cls, me) });
   }
-  // The listing shows only classes the caller belongs to.
+  // The listing shows only classes the caller belongs to. WHAT THEY ARE TO THE
+  // CLASS decides how much of each one they receive, and the same decision is
+  // made per class rather than per page — a teacher who also joined a colleague's
+  // class reads the class they TEACH in full and the one they merely attend
+  // sanitised. `teaching` is the answer to "is there a console here at all?",
+  // which the teacher page needs before it renders one.
   const all = await listClasses();
   const mine = all.filter((cls) => isMemberOf(cls, me));
-  return NextResponse.json({ classes: await Promise.all(mine.map(liveRoster)) });
+  const classes = await Promise.all(
+    mine.map((cls) => (isTeacherOf(cls, me) ? liveRoster(cls) : memberRoster(cls, me))),
+  );
+  return NextResponse.json({ classes, teaching: mine.some((cls) => isTeacherOf(cls, me)) });
 }
 
 interface Body {
@@ -194,7 +212,14 @@ export async function POST(req: Request): Promise<NextResponse> {
           return { joined: h };
         });
         if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
-        return NextResponse.json({ cls: upd.cls });
+        // The JOIN ANSWER IS A READ OF THE CLASS, and it was the same leak as
+        // the roster door: a learner who joined was handed every classmate's
+        // row in the reply. A joiner is not the class's teacher (a teacher
+        // joining their own class by code already is), so what they get back is
+        // their own row — the fact they need is that the join worked.
+        return NextResponse.json({
+          cls: isTeacherOf(upd.cls, caller) ? upd.cls : await memberRoster(upd.cls, caller),
+        });
       }
       case "update": {
         // A CLASS'S CURRICULUM IS DECLARED WHERE THE CLASS ALREADY IS.
