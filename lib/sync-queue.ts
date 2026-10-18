@@ -237,7 +237,10 @@ export function enqueueAnswer(op: {
 export interface AnswerRequest {
   submissionId: string;
   body: Record<string, unknown>;
-  /** The device's claim about when the learner answered. */
+  /** When the learner answered, by this device's clock. It travels on the WIRE
+   *  only when the answer has to be REPLAYED — see `postAnswer` — because the
+   *  claim means "the server did not watch this happen", and a live POST is a
+   *  request the server is watching. */
   deviceAt?: number;
 }
 
@@ -263,7 +266,23 @@ export function isRetryable(status: number): boolean {
  */
 export async function postAnswer(url: string, req: AnswerRequest): Promise<PostOutcome> {
   const deviceAt = typeof req.deviceAt === "number" && Number.isFinite(req.deviceAt) ? req.deviceAt : Date.now();
-  const body = { ...req.body, submissionId: req.submissionId, deviceAt };
+  // THE CLAIM IS SENT WITH THE REPLAY, NEVER WITH THE LIVE ATTEMPT.
+  //
+  // `deviceAt` is what makes a learner's own record say "recorded offline" — it
+  // is the marker of an answer the server did not watch being given. This module
+  // used to put it on EVERY answer, including the one that went out over a live
+  // connection, so every ordinary practice row was disclosed as unverified
+  // (lib/evidence.ts#isDeviceReported, read by /api/evidence-summary and the
+  // progress page). The disclosure was therefore always on and told the truth
+  // about nothing.
+  //
+  // The distinction the ledger needs is not "does a client clock exist" — of
+  // course it does — but "did this answer wait in the device's queue". So the
+  // live body carries only the submission token, and the HELD body (written by
+  // `enqueueAnswer`, and posted verbatim by the flush) carries the claim. A
+  // first attempt that fails still records `deviceAt` on the entry, which is
+  // exactly when the claim becomes true.
+  const body = { ...req.body, submissionId: req.submissionId };
   let res: Response;
   try {
     res = await wire(url, {

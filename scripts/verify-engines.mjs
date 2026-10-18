@@ -12308,5 +12308,95 @@ console.log("▸ A route does not name the store's files");
     `and the scan would catch a route that stopped translating it (${sample})`);
 }
 
+// ── AN ANSWER TAKEN ONLINE IS NOT "RECORDED OFFLINE" ─────────────────────────
+//
+// The disclosure on a learner's own record has one job: to say which answers the
+// server did not watch being given. It was firing on EVERY practice answer,
+// because `sync-queue.postAnswer` stamped `deviceAt` on the live request as well
+// as on the held one, and `isDeviceReported` reads any answer carrying a device
+// clock as device-reported. The page therefore asserted, on every line, the
+// opposite of what had happened.
+//
+// The rule is not "does a client clock exist" — one always does — but "did this
+// answer wait in the device's queue". That is what these assertions hold, in
+// both directions: the live body must carry no claim, and the replayed body must
+// still carry it (a fix that simply deleted the stamp would silence the
+// disclosure for genuinely offline work, which is the failure that matters
+// more).
+{
+  console.log("▸ An answer taken online is not disclosed as offline, and a replayed one still is");
+  const syncQueue = require("../.verify/sync-queue.js");
+  const evidenceMod = require("../.verify/evidence.js");
+  const realFetch = globalThis.fetch;
+  const realWindow = globalThis.window;
+  const store = new Map();
+  try {
+    globalThis.window = {
+      localStorage: {
+        getItem: (k) => (store.has(k) ? store.get(k) : null),
+        setItem: (k, v) => void store.set(k, String(v)),
+        removeItem: (k) => void store.delete(k),
+      },
+    };
+    syncQueue.clearQueue();
+    const claimed = 1_700_020_000_000;
+
+    // 1. LIVE: the request goes out over a working connection.
+    let liveBody = null;
+    globalThis.fetch = async (_url, init) => {
+      liveBody = JSON.parse(init.body);
+      return { ok: true, status: 200, json: async () => ({}) };
+    };
+    const sent = await syncQueue.postAnswer("/api/progress", {
+      submissionId: "sub_onlinelive01",
+      deviceAt: claimed,
+      body: { action: "answer", id: "disclosure-learner", conceptId: "fractions", choiceIndex: 1 },
+    });
+    ok(sent.kind === "sent", `a live answer is sent, not held (${sent.kind})`);
+    ok(liveBody && liveBody.submissionId === "sub_onlinelive01", "and it names its submission token (the replay's idempotency key)");
+    ok(liveBody && !("deviceAt" in liveBody),
+      `but it carries NO device claim — the server watched this one (${JSON.stringify(liveBody?.deviceAt)})`);
+
+    // 2. HELD: the same answer, over a connection that is gone.
+    globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
+    const held = await syncQueue.postAnswer("/api/progress", {
+      submissionId: "sub_offlineheld1",
+      deviceAt: claimed,
+      body: { action: "answer", id: "disclosure-learner", conceptId: "fractions", choiceIndex: 2 },
+    });
+    ok(held.kind === "held", `an answer that cannot be sent is held (${held.kind})`);
+    const queued = syncQueue.readQueue().find((r) => r.submissionId === "sub_offlineheld1");
+    ok(queued && Number(queued.body?.deviceAt) === claimed,
+      `and the held copy carries the claim it will be disclosed by (${queued?.body?.deviceAt})`);
+
+    // 3. REPLAY: the flush posts the held body verbatim, so the claim survives.
+    let replayBody = null;
+    globalThis.fetch = async (_url, init) => {
+      replayBody = JSON.parse(init.body);
+      return { ok: true, status: 200, json: async () => ({}) };
+    };
+    await syncQueue.flushQueue();
+    ok(replayBody && Number(replayBody.deviceAt) === claimed,
+      `the replay still carries the claim, so genuinely offline work stays disclosed (${replayBody?.deviceAt})`);
+
+    // 4. THE RULE the page reads, both ways.
+    const ev = (deviceAt) => evidenceMod.answerEvidence({
+      learnerId: "disclosure-learner", at: claimed + 60_000, source: "practice", subject: "maths",
+      conceptId: "fractions", specificationId: null, questionId: "disclosure-q", correct: true,
+      chosen: 0, mode: "independent", hints: 0, ms: 1000, tags: [], deviceAt,
+    });
+    ok(evidenceMod.isDeviceReported(ev(null)) === false,
+      "an answer the server watched is not device-reported");
+    ok(evidenceMod.isDeviceReported(ev(claimed)) === true,
+      "an answer returned from a device's queue is device-reported");
+    ok(evidenceMod.isDeviceReported({ ...ev(null), provenance: "device" }) === true,
+      "and so is an event a device authored outright (the ingestion door)");
+    syncQueue.clearQueue();
+  } finally {
+    globalThis.fetch = realFetch;
+    globalThis.window = realWindow;
+  }
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
