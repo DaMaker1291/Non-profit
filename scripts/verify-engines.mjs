@@ -12398,5 +12398,183 @@ console.log("▸ A route does not name the store's files");
   }
 }
 
+// ── THE SIGN-IN DOOR HAS A BOUNDED ATTEMPT COUNT, AND IT CANNOT BE USED TO
+//    LOCK A LEARNER OUT ──────────────────────────────────────────────────────
+//
+// docs/SECURITY.md §9 blocker 1 said, correctly, that sign-in had no attempt
+// counter, no lockout and no delay: scrypt made each guess expensive, and the
+// NUMBER of guesses was unlimited, so the only cost was the attacker's. The
+// assertions below are about behaviour a code read cannot establish.
+//
+// TWO OF THESE ARE REPAIRS OF THE FIRST ATTEMPT AT THAT FIX, and both are worth
+// keeping in this shape because each is a way to build a limiter that measures
+// wrong:
+//
+//   1. A HARD ceiling on the ACCOUNT was also a refusal of the account's own
+//      correct password, so a stranger who knew an email address could keep its
+//      owner out for the whole window. The `soft` mode below exists for that:
+//      the attempt is SLOWED and still checked, so the learner gets in and the
+//      attacker does not get to deny them. Asserted directly, because "the
+//      limiter refuses" is exactly the property that made it an attack.
+//   2. A naive limiter increments on every attempt INCLUDING refused ones, so an
+//      attacker who simply keeps trying holds the victim's window open forever —
+//      a permanent lockout produced by the protection itself. The clock is
+//      injected, so that failure is measured rather than reasoned about.
+{
+  console.log("▸ The sign-in door bounds attempts without locking a learner out");
+  const rate = require("../.verify/server/rate-limit.js");
+  const hard = { max: 3, windowMs: 60_000, mode: "hard" };
+  const soft = { max: 3, windowMs: 60_000, mode: "soft" };
+  const t0 = 1_000_000;
+
+  // ── A HARD bound: the source's own bucket, where a refusal denies nobody ──
+  rate.resetAll();
+  const first = rate.hit("k", hard, t0);
+  ok(first.allowed && first.remaining === 2, `the first attempt is allowed (${first.remaining} left)`);
+  rate.hit("k", hard, t0);
+  const third = rate.hit("k", hard, t0);
+  ok(third.allowed && third.remaining === 0, "the attempt that reaches the ceiling is still allowed");
+  const refused = rate.hit("k", hard, t0 + 1_000);
+  ok(!refused.allowed && refused.retryAfterSec === 59,
+    `the next one is refused with the wait it must observe (${refused.retryAfterSec}s)`);
+
+  // THE PROPERTY THAT MATTERS: keep hammering and the window still closes at
+  // the time the FIRST failure opened it.
+  for (let i = 0; i < 500; i++) rate.hit("k", hard, t0 + 2_000 + i);
+  ok(rate.peek("k", hard, t0 + 60_000).allowed,
+    "500 refused attempts did not extend the window: it closes on schedule");
+  ok(rate.peek("k", hard, t0 + 59_999).allowed === false,
+    "and not one millisecond early");
+
+  // ── THE ACCOUNT IS A SOFT bound: slowed, never refused ───────────────────
+  // This is the finding, stated as the failing behaviour the fix removes: with a
+  // hard account ceiling, an attacker's failures are the owner's lockout.
+  rate.resetAll();
+  const victim = rate.signinKeyFor("victim@example.test");
+  for (let i = 0; i < 3; i++) rate.hit(victim, soft, t0);
+  const attacked = rate.peek(victim, soft, t0);
+  ok(attacked.allowed === true,
+    "an account that has spent its budget is NOT refused — the owner can still sign in");
+  ok(attacked.delayMs === rate.SIGNIN_BACKOFF_MS[0],
+    `it is slowed instead, by the first step of the scale (${attacked.delayMs}ms)`);
+  ok(attacked.retryAfterSec === 0, "and it is told to wait 0 seconds, because it is not being turned away");
+  // Hammering deepens the pause but can never remove the door.
+  let deepest = 0;
+  let everRefused = false;
+  for (let i = 0; i < 500; i++) {
+    const after = rate.hit(victim, soft, t0);
+    if (!after.allowed) everRefused = true;
+    deepest = Math.max(deepest, after.delayMs);
+  }
+  const still = rate.peek(victim, soft, t0);
+  ok(!everRefused && still.allowed === true,
+    "500 further wrong guesses leave the account signable-in (no amount of guessing locks the owner out)");
+  ok(still.delayMs === rate.SIGNIN_BACKOFF_MS[rate.SIGNIN_BACKOFF_MS.length - 1],
+    `the pause saturates rather than growing without bound (${still.delayMs}ms)`);
+  ok(still.delayMs <= 2_000, `and the owner never waits more than two seconds (${still.delayMs}ms)`);
+  // THE CONTROL: the same counter with the other mode DOES refuse. Without this
+  // pair the assertion above would hold for a limiter that never bounds anything.
+  rate.resetAll();
+  for (let i = 0; i < 3; i++) rate.hit(victim, hard, t0);
+  ok(rate.peek(victim, hard, t0).allowed === false,
+    "while the same ceiling in HARD mode refuses — so mode is what changed, not the counting");
+
+  // A SOFT window closes on schedule too, and never extends: the count saturates
+  // inside the window rather than moving its end.
+  ok(rate.peek(victim, hard, t0 + 60_000).allowed,
+    "and a soft/hard window closes at the time its first failure opened it");
+
+  // One learner's budget is another's nothing, in both modes.
+  rate.resetAll();
+  for (let i = 0; i < 3; i++) rate.hit(rate.signinKeyFor("victim@example.test"), soft, t0);
+  ok(rate.peek(rate.signinKeyFor("someone-else@example.test"), soft, t0).delayMs === 0,
+    "a different account is untouched (the bound is per account, not global)");
+  ok(rate.signinKeyFor("  Victim@Example.TEST ") === rate.signinKeyFor("victim@example.test"),
+    "the account key is normalised, so a space or a capital is not a fresh budget");
+
+  // ── THE POLICIES THE DOORS ACTUALLY USE ──────────────────────────────────
+  // The modes are the design, and a later edit that quietly makes the ACCOUNT
+  // hard would reintroduce the lockout while every assertion above still passed.
+  ok(rate.SIGNIN_PER_ACCOUNT.mode === "soft",
+    "sign-in counts per ACCOUNT in soft mode (a bound that can never deny the owner their own account)");
+  ok(rate.SIGNIN_PER_ADDRESS.mode === "hard",
+    "sign-in counts per SOURCE ADDRESS in hard mode (the one bound that stops an attacker spending scrypt)");
+  ok(rate.SIGNIN_PER_PROCESS.mode === "soft",
+    "and the process-wide bound is soft, so it cannot be thrown to take sign-in down for everyone");
+  ok(rate.SIGNIN_PER_ADDRESS.max > rate.SIGNIN_PER_ACCOUNT.max,
+    "the address budget is the looser of the two, because a classroom shares one address");
+
+  // ── THE PROCESS BOUND ────────────────────────────────────────────────────
+  // Keyed on nothing the attacker chooses, and never cleared by a success: it
+  // counts derivations already spent, which is why it is the bound a distributed
+  // attack cannot route around.
+  rate.resetAll();
+  for (let i = 0; i < 1_000; i++) rate.hit(rate.SIGNIN_PROCESS_KEY, rate.SIGNIN_PER_PROCESS, t0);
+  const loaded = rate.peek(rate.SIGNIN_PROCESS_KEY, rate.SIGNIN_PER_PROCESS, t0);
+  ok(loaded.allowed === true, "a hammered process still answers (it slows, it does not refuse)");
+  ok(loaded.delayMs > 0 && loaded.delayMs <= 2_000,
+    `but it slows every further derivation, bounded (${loaded.delayMs}ms)`);
+  ok(rate.SIGNIN_PER_PROCESS.max >= 60,
+    `the process budget is above ordinary use (${rate.SIGNIN_PER_PROCESS.max}/min), so a busy morning is not a slowdown`);
+
+  // `peek` is what the route calls before the scrypt derivation, so it must not
+  // itself spend an attempt — otherwise a hard-refused source still costs a
+  // window per request and the limiter protects nothing but the password.
+  rate.resetAll();
+  for (let i = 0; i < 10; i++) rate.peek("p", hard, t0);
+  ok(rate.peek("p", hard, t0).remaining === 3, "peek() never consumes an attempt");
+
+  // A successful sign-in clears the count: seven typos then the right password
+  // must leave the account clean, not one attempt from a refusal.
+  rate.resetAll();
+  rate.hit("c", hard, t0);
+  rate.hit("c", hard, t0);
+  rate.clear("c");
+  ok(rate.peek("c", hard, t0).remaining === 3, "clear() gives the account its full budget back");
+
+  // BOUNDED MEMORY. The keys are attacker-chosen email addresses, so an
+  // unbounded map is a leak an attacker drives simply by trying to sign in.
+  rate.resetAll();
+  for (let i = 0; i < 20_000; i++) rate.hit(`flood-${i}`, hard, t0);
+  ok(rate.trackedKeys() <= 10_000,
+    `20,000 distinct accounts cannot grow the table past its ceiling (${rate.trackedKeys()} tracked)`);
+  ok(rate.trackedKeys() > 0, "and the table still holds live keys (it trimmed, it did not stop counting)");
+  rate.resetAll();
+
+  // A RESTART CLEARS EVERY COUNTER — a limitation, asserted so it is stated
+  // rather than assumed in the safe direction. A second module instance is a new
+  // process's view: no keys, and a key that was refused is allowed again.
+  for (let i = 0; i < 3; i++) rate.hit("restart", hard, t0);
+  ok(rate.peek("restart", hard, t0).allowed === false, "before a restart the key is refused");
+  const ratePath = require.resolve("../.verify/server/rate-limit.js");
+  delete require.cache[ratePath];
+  const restarted = require("../.verify/server/rate-limit.js");
+  ok(restarted.trackedKeys() === 0, "a fresh process (a re-loaded module) tracks nothing");
+  ok(restarted.peek("restart", hard, t0).allowed === true,
+    "so a restart clears the bound — which is why the proxy is still the outer limit");
+  // Put the shared instance back for the assertions below.
+  delete require.cache[ratePath];
+  require(ratePath);
+  rate.resetAll();
+
+  // A FORGED HEADER IS NOT A LIMIT. With no declared proxy there is no address
+  // key at all — a client can set `x-forwarded-for` to anything, so keying a
+  // lockout on it would let the attacker rotate one line and try forever.
+  delete process.env.OPENMIND_TRUSTED_PROXY;
+  const forged = new Request("http://localhost:4173/api/auth/login", {
+    headers: { "x-forwarded-for": "1.2.3.4" },
+  });
+  ok(rate.clientAddress(forged) === null,
+    "an undeclared proxy means no address key (a client-set header is not a limit)");
+  process.env.OPENMIND_TRUSTED_PROXY = "1";
+  const proxied = new Request("http://localhost:4173/api/auth/login", {
+    headers: { "x-forwarded-for": "6.6.6.6, 203.0.113.9" },
+  });
+  ok(rate.clientAddress(proxied) === "203.0.113.9",
+    `with a trusted proxy the RIGHTMOST hop is used, not the spoofable leftmost (${rate.clientAddress(proxied)})`);
+  delete process.env.OPENMIND_TRUSTED_PROXY;
+  rate.resetAll();
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

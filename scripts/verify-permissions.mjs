@@ -264,6 +264,110 @@ ok(logout.status === 200, "sign-out succeeds");
 const meAfter = await call("/api/auth/me", { headers: { cookie } });
 ok(!meAfter.body?.account, "the OLD cookie no longer authenticates — sign-out is a server decision, not a client courtesy");
 
+// ── 7. Guessing a password is bounded, and the bound cannot deny the owner ───
+//
+// THE ASSERTION THIS SECTION EXISTS FOR IS THE ONE THAT USED TO BE ITS
+// OPPOSITE. The first version of the limiter answered 429 to every attempt
+// against an account after eight failures — including the account's own correct
+// password — and this suite asserted that as a feature. It is a denial of
+// service: anyone who knows an email address can keep its owner out for the
+// length of the window, on a product where that owner may be a child on a
+// shared device. So the last line below now requires the opposite: after the
+// attack, the learner whose password is right SIGNS IN.
+//
+group("7 · the sign-in door bounds attempts without locking a learner out (docs/SECURITY.md §9)");
+// A UNIQUE address per run, so this section is independent of every other suite
+// that signs in against the same server.
+const guessEmail = `rl_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}@example.org`;
+const realPassword = "a-long-enough-password";
+// A REAL account, so the assertions below are about a password that WOULD work:
+// bounding a nonexistent address proves much less than bounding a real one.
+const seeded = await call("/api/auth/signup", json({
+  email: guessEmail, password: realPassword, name: "Rate Limit", role: "student",
+}));
+ok(seeded.status === 200, "a real account exists to guess against");
+const wrongGuess = (email = guessEmail, password = "definitely-not-it") =>
+  call("/api/auth/login", json({ email, password }));
+const statuses = [];
+const elapsed = [];
+for (let i = 0; i < 10; i++) {
+  const t = Date.now();
+  statuses.push((await wrongGuess()).status);
+  elapsed.push(Date.now() - t);
+}
+ok(statuses.slice(0, 8).every((s) => s === 401),
+  `the first eight wrong passwords are ordinary refusals (${statuses.slice(0, 8).join(",")})`);
+ok(statuses.slice(8).every((s) => s === 401),
+  `and the next two are STILL ordinary refusals, not a lockout (${statuses.slice(8).join(",")})`);
+// THE PAUSE IS THE BOUND, so it has to be OBSERVED, not just computed: a route
+// that forgot to await it would pass every assertion above while the limiter did
+// nothing at all. The ninth attempt is the first over budget (the pause starts
+// after the eighth failure), and it is compared with the eighth rather than with
+// the first so a cold start or a compile is not mistaken for a delay.
+ok(elapsed[8] - elapsed[7] >= 200,
+  `the ninth attempt is actually made to WAIT — ${elapsed[8]}ms against ${elapsed[7]}ms for the eighth (the soft bound is awaited, not merely computed)`);
+
+// The account is SLOWED, not shut: the correct password works. This is the
+// review's finding pinned as the behaviour that must hold.
+const correctAfterAttack = await call("/api/auth/login", json({ email: guessEmail, password: realPassword }));
+ok(correctAfterAttack.status === 200,
+  `the account's OWN correct password still signs in after ten wrong attempts (HTTP ${correctAfterAttack.status})`);
+ok(!!correctAfterAttack.headers.get("set-cookie"),
+  "and it really is a session — the cookie is issued, not just a 200");
+
+// ONE BUDGET PER ACCOUNT, however the address is typed. Normalisation is the
+// rule, so an attacker cannot buy a fresh budget by capitalising the address and
+// a learner cannot lose theirs by typing it the way they remember it.
+const shouty = `  ${guessEmail.toUpperCase()}  `;
+for (let i = 0; i < 9; i++) await wrongGuess(shouty);
+const afterShouty = await call("/api/auth/login", json({ email: guessEmail, password: realPassword }));
+ok(afterShouty.status === 200,
+  `a differently-cased address shares the same budget, and the owner still signs in (HTTP ${afterShouty.status})`);
+
+// The bound is an account's, not the server's: a second account is unaware of it.
+const otherEmail = `${guessEmail.split("@")[0]}_b@example.org`;
+const other = await wrongGuess(otherEmail);
+ok(other.status === 401, `a different account is still answered normally (HTTP ${other.status})`);
+// …and an address with no account at all is answered IDENTICALLY, so neither
+// the status nor the body says whether the address is registered.
+const unknown = await wrongGuess(`nobody_${Date.now().toString(36)}@example.org`);
+ok(unknown.status === 401 && unknown.body?.error === other.body?.error,
+  `an unregistered address is refused with the same status and error as a wrong password (HTTP ${unknown.status} ${unknown.body?.error ?? ""})`);
+
+// ── 7b. THE SOURCE BOUND, WHEN THE DEPLOYMENT DECLARES A PROXY ──────────────
+//
+// The address key exists only under OPENMIND_TRUSTED_PROXY=1, and then it is the
+// RIGHTMOST x-forwarded-for hop. This suite does not start the server, so it must
+// ASK whether the bound is live rather than assume it: distinct unknown accounts
+// are used so the per-account pause cannot be mistaken for the source refusal,
+// and the loop stops at the first 429.
+const proxied = [];
+for (let i = 0; i < 45; i++) {
+  const r = await call("/api/auth/login", json(
+    { email: `src_${Date.now().toString(36)}_${i}@example.org`, password: "definitely-not-it" },
+    { "x-forwarded-for": "198.51.100.7" },
+  ));
+  proxied.push(r);
+  if (r.status === 429) break;
+}
+const refusal = proxied.find((r) => r.status === 429);
+if (refusal) {
+  ok(refusal.body?.error === "too_many_attempts",
+    `a source that spends its budget is refused by the address bound (HTTP ${refusal.status} ${refusal.body?.error ?? ""})`);
+  ok(Number(refusal.headers.get("retry-after")) > 0,
+    `and says how long to wait in the header a proxy already understands (${refusal.headers.get("retry-after")})`);
+  ok(/no-store/i.test(refusal.headers.get("cache-control") ?? ""),
+    "and keeps the refusal out of any cache (a cached 429 locks out a learner who just typed the right password)");
+} else {
+  // NOT A PASS AND NOT A FAILURE: this server has no trusted proxy, so there is
+  // no address key to spend — which is itself the documented default. The
+  // policy's hard/soft modes and `clientAddress` are driven directly, with an
+  // injected clock, in `npm run verify`.
+  console.log(`  · source bound not exercised: this server was started without OPENMIND_TRUSTED_PROXY=1, so no address key exists (${proxied.length} attempts, all ${proxied[0]?.status ?? "?"})`);
+  ok(proxied.every((r) => r.status === 401),
+    "and with no declared proxy a forged x-forwarded-for buys no refusal (a header a client sets is not a limit)");
+}
+
 console.log(`\n${"─".repeat(58)}`);
 console.log(`PERMISSIONS: ${pass} passed, ${fail} failed`);
 if (fail) for (const b of bad) console.log(`  · ${b}`);

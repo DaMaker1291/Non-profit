@@ -5,7 +5,8 @@ import {
 } from "@/lib/server/auth";
 import { getProfile, newProfileState, publicProfileState, saveProfile } from "@/lib/server/store";
 import type { ProfileState, SubjectId } from "@/lib/types";
-import { readBody, sessionTokenFor, str, withSession } from "../_shared";
+import { clientAddress, hit, SIGNUP_PER_ADDRESS } from "@/lib/server/rate-limit";
+import { readBody, sessionTokenFor, str, tooManyAttempts, withSession } from "../_shared";
 // A sign-up IS the creation of a learner record, so a deployment whose store has
 // refused learner data must refuse the sign-up too — with its reason, not a 500.
 import { storeWriteRefusalNow } from "@/lib/server/write-refusal";
@@ -32,6 +33,21 @@ export async function POST(req: Request): Promise<NextResponse> {
   const pwErr = passwordProblem(password);
   if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 });
   if (name.trim().length < 1) return NextResponse.json({ error: "bad_name" }, { status: 400 });
+
+  // ONE ADDRESS MAY NOT CREATE ACCOUNTS WITHOUT A LIMIT.
+  //
+  // This is the door that writes a learner record AND an account, so an
+  // unbounded loop here is a store-filling, mail-less account factory. The
+  // count is per source ADDRESS, which only exists when the deployment declares
+  // a trusted proxy — with no address there is no key, and the bound is the
+  // reverse proxy's (`docs/DEPLOYMENT.md` §10). It is deliberately NOT keyed on
+  // the email: a stranger choosing addresses is exactly the behaviour being
+  // bounded, so letting them choose a fresh key per attempt bounds nothing.
+  const address = clientAddress(req);
+  if (address) {
+    const after = hit(`signup:ip:${address}`, SIGNUP_PER_ADDRESS);
+    if (!after.allowed) return tooManyAttempts(after.retryAfterSec);
+  }
 
   if (await findAccountByEmail(email)) {
     return NextResponse.json({ error: "email_taken" }, { status: 409 });

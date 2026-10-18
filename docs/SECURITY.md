@@ -127,25 +127,66 @@ which asserts, over HTTP:
 | `Referrer-Policy` | **PROPOSED** (proxy) |
 | `Permissions-Policy` | **PROPOSED** (proxy) |
 | Clickjacking protection | **PROPOSED** (proxy / frame-ancestors) |
-| Rate limiting | **PROPOSED** (proxy) — see §9 |
+| Rate limiting | **PARTIAL** — sign-in and sign-up bounded in-process (`lib/server/rate-limit.ts`); every other door **PROPOSED** (proxy) — see §9 |
 
 ## 9. Launch blockers
 
 These are not optional hardening; each is a condition of putting OpenMind in
 front of the public:
 
-1. **Rate limiting.** Signup, signin, password-reset, AI, answer submission,
-   diagnostic submission, sync, uploads and teacher invitations must be limited
-   at the proxy. One abusive client can otherwise exhaust the process.
+1. **Rate limiting — partly closed, still a blocker.**
 
-   Concretely, for signin: there is **no attempt counter, no lockout and no delay**
-   anywhere in `lib/server/auth.ts`. Password verification is scrypt with a
-   per-account salt, compared in constant time (`timingSafeEqual`), so each guess
-   costs an attacker a real derivation — but the *number* of guesses is unlimited,
-   and each one also costs this server a derivation. That is the whole exposure:
-   the cost per attempt is high, the attempt count is unbounded. A reverse proxy
-   must bound it, per account and per source address, before this deployment is
-   reachable by the public.
+   **What is closed.** `lib/server/rate-limit.ts` bounds the two credential
+   doors. It has two modes, and the choice of mode is the security decision:
+
+   * **`hard` refuses before the scrypt derivation.** Used for a SOURCE ADDRESS
+     (40 failures per fifteen minutes) and for sign-up (ten accounts per
+     address per hour). A refusal here denies nobody their own account, and it
+     is the bound that stops an attacker making this server do derivation work.
+   * **`soft` slows the attempt and still checks the password.** Used for the
+     ACCOUNT (eight failures per fifteen minutes, then a 250 ms → 2 s pause)
+     and for the PROCESS (120 derivations per minute, the bound a distributed
+     attack cannot route around because it is keyed on nothing an attacker
+     chooses).
+
+   **Why the account bound is soft, stated because it was got wrong once.** The
+   first version had a hard ceiling on the account and answered `429` to every
+   attempt against it, including the account's own correct password. That lets a
+   remote stranger who knows an email address keep a learner out of their own
+   record for the length of the window — a denial of service produced by the
+   protection, on a product whose typical device is shared. The account bound is
+   therefore a pause the owner waits out, never a door that is shut on them;
+   `npm run verify:permissions` §7 asserts that the owner signs in after an
+   attack. An attack costs its target at most two seconds per attempt.
+
+   Four properties are deliberate and asserted in `npm run verify`:
+
+   * the key is the **account**, because Next's route handlers expose no socket
+     address and a request header a client can set is not a limit; an address
+     key is used only when the deployment declares `OPENMIND_TRUSTED_PROXY=1`,
+     and then the RIGHTMOST `x-forwarded-for` hop (the peer the proxy saw),
+     never the spoofable leftmost;
+   * a **refused attempt does not extend the window**, so an attacker cannot
+     hold a hard bound open by continuing to try, and a soft window's end is
+     stamped once and never moved;
+   * the counter table has a **ceiling**, because its keys are attacker-chosen
+     email addresses and an unbounded map is a leak an attacker drives by
+     trying to sign in;
+   * **a restart clears every counter**, which is asserted rather than assumed:
+     it is a reason the proxy remains required, not a property to rely on.
+
+   Neither mode reveals whether an account exists: an unregistered address is
+   counted by the same keys and answered with the same `401` and the same body
+   as a wrong password, and it is slowed identically.
+
+   **What is not.** It is an in-process counter: it bounds one server process
+   (the shape the file store already has), and a restart clears it. Password
+   reset does not exist to be bounded, and the **AI, answer-submission,
+   diagnostic, sync, upload and teacher-invitation** doors are still unbounded —
+   one abusive client can exhaust the process through any of them. The reverse
+   proxy remains required for those, and for any deployment running more than
+   one process. Password verification itself is scrypt with a per-account salt,
+   compared in constant time (`timingSafeEqual`).
 2. **Security headers.** The set in §8, tested rather than copied.
 3. **HTTPS everywhere in production**, with `Secure` cookies confirmed on a real
    HTTPS host.

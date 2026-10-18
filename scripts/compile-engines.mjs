@@ -187,6 +187,13 @@ export const ENGINE_SOURCES = [
   // `storage-file.ts` requires the second and the suite requires the first — and
   // because the suite asserts the split architecturally: the facade must contain
   // no file plumbing, and the file ledger must have exactly ONE importer.
+  // THE ATTEMPT COUNT on the sign-in door (docs/SECURITY.md §9 blocker 1).
+  // Compiled and required by the suite because the two claims worth making
+  // about it are BEHAVIOURAL and neither is visible in a code read: a refused
+  // attempt must not extend the window (otherwise an attacker holds a lockout
+  // open forever), and a window must close on its own with no request at all.
+  // Both need an injected clock, which is why the module takes one.
+  "lib/server/rate-limit.ts",
   "lib/server/evidence.ts",
   "lib/server/evidence-file.ts",
   "lib/server/projection.ts",

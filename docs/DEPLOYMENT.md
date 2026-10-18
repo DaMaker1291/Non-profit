@@ -620,13 +620,33 @@ HTTPS or carries `x-forwarded-proto: https` (`lib/server/auth.ts#cookieAttribute
 — so a real HTTPS deployment gets the flag, and a plain-HTTP school install still
 works.
 
-**Rate limiting: PROPOSED — still absent, and still a launch blocker.** There is
-no rate limiter in this repository. The right place is the reverse proxy (signup,
-signin, AI, answer submission, sync, upload, teacher invitations) because it also
-protects the process before a request costs anything. `SECURITY.md` §9 states the
-exposure concretely: signin has no attempt counter, no lockout and no delay, so
-the number of password guesses is unbounded — only scrypt's own cost per attempt
-bounds an attacker.
+**Rate limiting: PARTLY IMPLEMENTED, still a launch blocker at the proxy.**
+
+Two things are true at once, and conflating them is how this becomes a false
+claim of readiness:
+
+* **The sign-in door is bounded in the app** (`lib/server/rate-limit.ts`), in
+  two modes that are not interchangeable. A **source address** is refused hard
+  after 40 failures in fifteen minutes (and sign-up after ten accounts an hour)
+  — before the scrypt derivation, so an attacker cannot make the process do the
+  work. An **account** is slowed instead: eight failures in fifteen minutes,
+  then each further attempt waits 250 ms → 2 s and the password is STILL
+  checked, so the learner whose password is right signs in behind the pause.
+  That asymmetry is deliberate: a hard account ceiling would let anyone who
+  knows an email address keep its owner out, which is the opposite of what a
+  bound is for. A **process-wide** soft bound (120 derivations a minute) is the
+  backstop a distributed attack cannot route around. `npm run verify:permissions`
+  §7 drives the burst over HTTP and asserts the owner signs in afterwards;
+  `npm run verify` drives both modes against an injected clock.
+* **It is an in-process counter, so it is not the outer bound.** It bounds one
+  server process, which is the shape the file store already has; a restart
+  clears it. The address keys exist only when `OPENMIND_TRUSTED_PROXY=1`, because
+  Next's route handlers expose no socket address — the only address available is
+  a request header, and a header a client can set is not a limit. **The proxy is
+  still required** for sign-up, the AI routes, answer submission, sync, uploads
+  and teacher invitations, and for any deployment running more than one process.
+
+`SECURITY.md` §9 states what remains, by door, rather than as one sentence.
 
 **Security headers: PROPOSED.** No `Content-Security-Policy`,
 `Strict-Transport-Security`, `X-Content-Type-Options`, `Referrer-Policy` or
@@ -662,7 +682,10 @@ Ordered by risk, and each is honest:
    exist and are gated (§5), but the application still reads and writes the
    file-backed store: single-instance, fine for one school, wrong for a growing
    public service. `DATA_GOVERNANCE.md` §5.
-2. **No rate limiting.** `SECURITY.md`.
+2. **Rate limiting is partial.** The sign-in and sign-up doors are bounded
+   in-process (`lib/server/rate-limit.ts`); the AI, answer, sync and upload doors
+   are not, and an in-process counter does not survive a restart or a second
+   process. The proxy is still the outer bound. `SECURITY.md` §9.
 3. **No security headers.** §10 above.
 4. **No external error/uptime monitoring.** `/api/health` and `/api/ready` exist
    to be polled; nothing polls them and nothing aggregates errors. `OPERATIONS.md`.

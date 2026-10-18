@@ -51,6 +51,12 @@ const ERROR_KEYS: Record<string, string> = {
   bad_name: "onb.errName",
   signup_failed: "onb.errCreate",
   login_failed: "onb.errCreds",
+  // The one refusal the limiter makes, and it is about the NETWORK rather than
+  // the account (a source address that has spent its budget). Saying "could not
+  // create your profile" here would blame the learner's connection for an
+  // attempt count, and saying "wrong password" would be a lie about their own
+  // account — so it has its own sentence, in every dictionary.
+  too_many_attempts: "onb.errTooMany",
 };
 
 /**
