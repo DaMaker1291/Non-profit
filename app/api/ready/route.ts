@@ -51,16 +51,33 @@ export async function GET(): Promise<NextResponse> {
   // 1. Storage: a real write, a real read-back, and a real unlink. Asking
   //    `access()` proves less — a read-only mount passes a permissions check and
   //    still loses every answer.
-  const data = await (async (): Promise<{ ok: boolean; code: string }> => {
+  //    AND WHEN IT FAILS IT NAMES THE PATH AND THE ERROR. "not_writable" is the
+  //    truth and useless on its own: measured on a live Render service, an
+  //    `OPENMIND_DATA_DIR` pointing at a directory the process may not create
+  //    reported exactly that, while the operator had no way to tell WHICH path
+  //    the server had resolved (`path.resolve` of a relative value depends on the
+  //    process's cwd) or whether the cause was permission (EACCES), a read-only
+  //    mount (EROFS), a missing parent (ENOENT) or a full disk (ENOSPC). The
+  //    path is not a secret — it is the operator's own variable — and the errno
+  //    is the whole diagnosis, so both are reported.
+  const data = await (async (): Promise<{ ok: boolean; code: string; dir: string; error?: string }> => {
     const probe = path.join(DATA_DIR, `.ready-${process.pid}-${Date.now().toString(36)}`);
     try {
       await fs.mkdir(DATA_DIR, { recursive: true });
       await fs.writeFile(probe, "ok", "utf8");
       const back = await fs.readFile(probe, "utf8");
       await fs.unlink(probe);
-      return back === "ok" ? { ok: true, code: "writable" } : { ok: false, code: "read_back_mismatch" };
-    } catch {
-      return { ok: false, code: "not_writable" };
+      return back === "ok"
+        ? { ok: true, code: "writable", dir: DATA_DIR }
+        : { ok: false, code: "read_back_mismatch", dir: DATA_DIR };
+    } catch (e) {
+      const err = e as { code?: unknown; message?: unknown };
+      return {
+        ok: false,
+        code: "not_writable",
+        dir: DATA_DIR,
+        error: typeof err?.code === "string" ? err.code : String(err?.message ?? "unknown"),
+      };
     }
   })();
 
