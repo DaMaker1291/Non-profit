@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getClass } from "@/lib/server/store";
-import { authorizeLearner } from "@/lib/server/capability";
+import { teacherOfClass } from "@/lib/server/authority";
 import { buildWeeklyPlan, classSubject } from "@/lib/teacher-plan";
 import { isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
 import { liveRoster } from "@/lib/server/class-view";
@@ -28,9 +28,11 @@ export async function GET(req: Request): Promise<NextResponse> {
   // enforces. (An unauthenticated GET here used to hand the key to anyone
   // holding a class id.) The teacher page presents its capability on both
   // links; `me` names the member, not the class.
-  const auth = await authorizeLearner(searchParams.get("me"), searchParams.get("secret"));
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  if (!isMemberOf(cls, auth.state)) return NextResponse.json({ error: "not a member" }, { status: 403 });
+  // AND IT IS THE TEACHER'S ACCOUNT, NOT A MEMBER'S CAPABILITY — see below.
+  // The learner credential is not consulted at all, because the pack is teacher
+  // material and a capability proves only who is holding the phone.
+  const teacher = await teacherOfClass(req, cls);
+  if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
   // ── AND MEMBERSHIP IS NOT ENOUGH: THE PACK IS TEACHER MATERIAL ──────────
   //
   // The pack is the class's weekly plan — every member's measured weakness,
@@ -41,7 +43,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   // TEACHER only — the same authority that sets the work it prints
   // (lib/server/class-membership#isTeacherOf), asked here rather than inferred
   // from who called the page.
-  if (!isTeacherOf(cls, auth.state)) return NextResponse.json({ error: "not the teacher" }, { status: 403 });
+  if (!isTeacherOf(cls, teacher.profile)) return NextResponse.json({ error: "not_the_teacher" }, { status: 403 });
   // The plan reads the LIVE projection view — the same derivation the roster
   // door serves — so the printed pack and the on-screen table can never
   // disagree about the same students.

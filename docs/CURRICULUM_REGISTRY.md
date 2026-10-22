@@ -61,8 +61,9 @@ difficulty target and whether stage-0 arithmetic is in scope) — not an examina
 
 - **Countries with one recorded system** (UK, US, IN, …): no question is asked. The years and
   qualifications follow from the country, exactly as before, and no field is invented.
-- **Countries with two systems** (Cameroon): the wizard asks **which system they follow**, and
-  `Next` waits. Until it is answered, no year list or qualification list means anything: the
+- **Countries with two systems** (Cameroon): the course screen (`/curriculum`) asks **which system they follow**, and
+  Save waits — the sign-up wizard does not ask, because a course is chosen where it can be
+  explained and is never seeded for a learner at the end of an enrolment. Until it is answered, no year list or qualification list means anything: the
   two systems sit different exams, in different years, at different depths.
 - **Countries with no mapped national route**: the step says so (`curr.unmapped`) and offers
   the international programmes and the skills pathway as explicit choices. Nothing is chosen
@@ -137,10 +138,26 @@ It is wired into `npm run production-check` and CI (`gates.yml`), and it writes
 `audit/curriculum-coverage.json` deterministically — no timestamps, so the committed report
 only changes when the data does.
 
+## The syllabus mapping layer (`lib/curricula/mappings.ts`)
+
+"Mapped" used to be a label on the pathway with nothing under it. It now names a document:
+`lib/curricula/mappings.ts` holds one entry per concept under a **heading quoted from the
+published syllabus**, plus a sentence saying what the source asks for. Two courses are on file
+— England's GCSE Mathematics (56 of its 130 concepts) and India's CBSE Class X (21 of 131) —
+and the gate checks that every entry is a concept the genome holds, in that course's real
+coverage, in the mapping's own subject, mapped once, under a heading and a statement, with an
+`https` source whose URL is also recorded on the pathway; and it refuses a pathway that claims
+`reviewed`/`verified` while no reviewer has signed its mapping, or a signed mapping left
+declared below `reviewed`. See [`CURRICULUM_MAPPING.md`](CURRICULUM_MAPPING.md).
+
+The honest position, stated in the same place a ministry will look: **zero mappings have been
+reviewed by a qualified person**, so no mapping is `verified` and the app does not claim it is.
+
 ## Known limits
 
-- The syllabus mappings are OpenMind's own. Nothing here is a board's published scheme of
-  work, and nothing claims to be.
+- The syllabus mappings are OpenMind's own reading of a published document. Two of thirty
+  specifications have one, and neither has been reviewed by a subject specialist — the code
+  keeps that distinction rather than blurring it (`mappingsWithReviewer: 0`).
 - Twenty pathways have no structural citation on file. They are the routes that predate the
   registry; the report names them every run rather than hiding the gap.
 - A qualification's learner-facing **name** is owned by the specification

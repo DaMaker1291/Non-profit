@@ -30,8 +30,25 @@ const ok = (cond, msg, detail = "") => {
 };
 const group = (n) => console.log(`\n${n}`);
 
+/** The suite's own client address, when it is talking to a server that has
+ *  DECLARED a trusted proxy.
+ *
+ *  Such a server refuses a credential request it cannot attribute (see
+ *  lib/server/client-address.ts), which is the whole point of the fail-closed
+ *  rule — so a harness testing that deployment has to send the header a real
+ *  proxy would. `OPENMIND_TRUSTED_PROXY` in the HARNESS environment is the
+ *  signal, and it must match the server's: the two are started from one
+ *  command in CI (gates.yml) precisely so they cannot disagree. */
+const PROXIED = /^(1|true|yes)$/i.test((process.env.OPENMIND_TRUSTED_PROXY ?? "").trim());
+const SUITE_ADDRESS = "198.51.100.42";
+function proxied(headers = {}) {
+  if (!PROXIED) return headers;
+  const has = Object.keys(headers).some((k) => k.toLowerCase() === "x-forwarded-for");
+  return has ? headers : { ...headers, "x-forwarded-for": SUITE_ADDRESS };
+}
+
 async function call(path, opts) {
-  const res = await fetch(BASE + path, opts);
+  const res = await fetch(BASE + path, opts ? { ...opts, headers: proxied(opts.headers) } : opts);
   const text = await res.text();
   let body = null;
   try { body = text ? JSON.parse(text) : null; } catch { body = { raw: text.slice(0, 200) }; }
@@ -46,6 +63,13 @@ const json = (body, extra = {}) => ({
 // Capability secrets: every profile in this suite carries one, so a request that
 // names a profile can be sent with the right secret, a WRONG one, or none.
 const secrets = new Map();
+// Teacher authority is the ACCOUNT's (lib/server/authority.ts), so a teacher in
+// this suite is a real signup and its cookie rides on every request that names
+// it — the same thing a browser does, because same-origin fetch sends the
+// session cookie by default. A capability in the same body is still sent (the
+// class door ignores it for administration, which is the point asserted below).
+const sessions = new Map();
+const cookieOf = (id) => (id && sessions.has(id) ? { Cookie: sessions.get(id) } : {});
 async function newProfile(body) {
   const secret = `perm-${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
   const r = await call("/api/profile", json({ ...body, secret }));
@@ -53,10 +77,27 @@ async function newProfile(body) {
   if (id) secrets.set(id, secret);
   return { id, secret, status: r.status };
 }
+async function newTeacher(body = {}) {
+  const email = `perm-teacher-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}@example.org`;
+  const r = await call("/api/auth/signup", json({
+    email, password: "a-long-enough-password", name: body.handle ?? "Perm Teacher",
+    role: "teacher", country: body.country ?? "GB", language: body.language ?? "en",
+    subjects: body.subjects ?? ["maths"],
+  }));
+  const state = r.body?.profile?.profile;
+  const id = state?.id;
+  const secret = r.body?.secret;
+  if (id) {
+    if (secret) secrets.set(id, secret);
+    const cookie = (r.headers.get("set-cookie") ?? "").split(";")[0];
+    if (cookie) sessions.set(id, cookie);
+  }
+  return { id, secret, status: r.status };
+}
 const authedGet = (path, id, secret = secrets.get(id)) =>
-  call(`${path}${path.includes("?") ? "&" : "?"}secret=${encodeURIComponent(secret ?? "")}`);
+  call(`${path}${path.includes("?") ? "&" : "?"}secret=${encodeURIComponent(secret ?? "")}`, { headers: cookieOf(id) });
 const authedPost = (path, body, id) =>
-  call(path, json({ ...body, id, secret: secrets.get(id) }));
+  call(path, json({ ...body, id, secret: secrets.get(id) }, cookieOf(id)));
 
 // ── Preflight: fail fast and clearly if no server is answering ────────────────
 try {
@@ -118,7 +159,8 @@ ok(!leaked, "and the refused event is genuinely absent from A's ledger");
 
 // ── 3. Class membership governs the roster, not the caller's word ────────────
 group("3 · a class answers only a member (and hides its join code)");
-const teacher = await newProfile({ handle: "perm_teacher", country: "GB", language: "en", subjects: ["maths"] });
+const teacher = await newTeacher({ handle: "perm_teacher", country: "GB" });
+ok(teacher.status === 200 && Boolean(teacher.id), "a TEACHER ACCOUNT exists (authority is the account's, not a capability's)");
 const stranger = await newProfile({ handle: "perm_stranger", country: "GB", language: "en", subjects: ["maths"] });
 const made = await authedPost("/api/classes", { action: "create", name: "Permissions 10A", subject: "maths" }, teacher.id);
 ok(made.status === 200 && made.body?.cls?.id, "a teacher creates a class");
@@ -138,7 +180,7 @@ ok(!Object.values(joined.body?.cls?.membersById ?? {}).some((id) => id === teach
 // The roster door names the CALLER in `me` and the CLASS in `id`; both are sent,
 // which is the shape the route actually reads.
 const classRead = (caller) =>
-  call(`/api/classes?me=${caller.id}&id=${cls.id}&secret=${encodeURIComponent(caller.secret)}`);
+  call(`/api/classes?me=${caller.id}&id=${cls.id}&secret=${encodeURIComponent(caller.secret)}`, { headers: cookieOf(caller.id) });
 const studentRead = await classRead(bob);
 ok(studentRead.status === 200 && studentRead.body?.cls?.id === cls.id, "a member reads the class roster", `got HTTP ${studentRead.status}`);
 const teacherRead = await classRead(teacher);
@@ -198,18 +240,29 @@ ok(Object.keys(listed?.live ?? {}).length <= 1, "and with no classmate's evidenc
 // The offline pack carries the week's full question bank WITH its answer key,
 // and was answered to any member. It is the teacher's material.
 const memberPack = await authedGet(`/api/pack-export?id=${cls.id}&me=${bob.id}&format=json`, bob.id);
-ok(memberPack.status === 403 && memberPack.body?.error === "not the teacher",
-  `a member is refused the answer-key pack (HTTP ${memberPack.status} ${memberPack.body?.error ?? ""})`);
+ok(memberPack.status === 401 && memberPack.body?.error === "teacher_account_required",
+  `a member's capability is not a teacher session, so the answer-key pack is refused (HTTP ${memberPack.status} ${memberPack.body?.error ?? ""})`);
+// THE DEFECT, ASKED DIRECTLY: the class owner's own PROFILE CAPABILITY is a
+// learner credential even though the profile belongs to an adult. If it were
+// authority, a shared handset holding it could administer the class.
+const ownerCapabilityPack = await call(`/api/pack-export?id=${cls.id}&me=${teacher.id}&format=json&secret=${encodeURIComponent(teacher.secret ?? "")}`);
+ok(ownerCapabilityPack.status === 401 && ownerCapabilityPack.body?.error === "teacher_account_required",
+  `the owner's own CAPABILITY cannot download the pack without the account session (HTTP ${ownerCapabilityPack.status} ${ownerCapabilityPack.body?.error ?? ""})`);
 const ownerPack = await authedGet(`/api/pack-export?id=${cls.id}&me=${teacher.id}&format=json`, teacher.id);
 ok(ownerPack.status === 200, `while the class's teacher still receives it (HTTP ${ownerPack.status})`);
 
 const studentEdit = await authedPost("/api/classes", { action: "update", clsId: cls.id, subject: "physics" }, bob.id);
-ok(studentEdit.status === 403, "a non-owner cannot edit the class's curriculum", `got HTTP ${studentEdit.status}`);
+ok(studentEdit.status === 401 && studentEdit.body?.error === "teacher_account_required",
+  "a learner's capability cannot edit the class's curriculum", `got HTTP ${studentEdit.status} ${studentEdit.body?.error ?? ""}`);
+const ownerCapabilityEdit = await authedPost("/api/classes", { action: "update", clsId: cls.id, subject: "maths" }, teacher.id);
+ok(ownerCapabilityEdit.status === 200,
+  "the owner's account CAN (it carries the cookie its capability alone never could)", `got HTTP ${ownerCapabilityEdit.status}`);
 const studentAssign = await authedPost("/api/assignments", {
   action: "create", clsId: cls.id, subject: "maths",
   conceptIds: ["linear-equations"], title: "Not yours to set", dueAt: Date.now() + 86_400_000,
 }, bob.id);
-ok(studentAssign.status === 403, "a non-owner cannot set the class work", `got HTTP ${studentAssign.status}`);
+ok(studentAssign.status === 401 && studentAssign.body?.error === "teacher_account_required",
+  "a member's capability cannot set the class work", `got HTTP ${studentAssign.status} ${studentAssign.body?.error ?? ""}`);
 const teacherAssign = await authedPost("/api/assignments", {
   action: "create", clsId: cls.id, subject: "maths",
   conceptIds: ["linear-equations"], title: "Owner's work", dueAt: Date.now() + 86_400_000,
@@ -341,16 +394,21 @@ ok(unknown.status === 401 && unknown.body?.error === other.body?.error,
 // ASK whether the bound is live rather than assume it: distinct unknown accounts
 // are used so the per-account pause cannot be mistaken for the source refusal,
 // and the loop stops at the first 429.
-const proxied = [];
+// NOT `proxied` — that name is the header helper above, and this module is one
+// scope. The duplicate declaration was a SyntaxError, so this whole suite failed
+// at load with "Identifier 'proxied' has already been declared" and asserted
+// nothing; `npm run verify:permissions` is a listed gate, so that is a gate that
+// had stopped running rather than a gate that passed.
+const proxyAttempts = [];
 for (let i = 0; i < 45; i++) {
   const r = await call("/api/auth/login", json(
     { email: `src_${Date.now().toString(36)}_${i}@example.org`, password: "definitely-not-it" },
     { "x-forwarded-for": "198.51.100.7" },
   ));
-  proxied.push(r);
+  proxyAttempts.push(r);
   if (r.status === 429) break;
 }
-const refusal = proxied.find((r) => r.status === 429);
+const refusal = proxyAttempts.find((r) => r.status === 429);
 if (refusal) {
   ok(refusal.body?.error === "too_many_attempts",
     `a source that spends its budget is refused by the address bound (HTTP ${refusal.status} ${refusal.body?.error ?? ""})`);
@@ -363,10 +421,65 @@ if (refusal) {
   // no address key to spend — which is itself the documented default. The
   // policy's hard/soft modes and `clientAddress` are driven directly, with an
   // injected clock, in `npm run verify`.
-  console.log(`  · source bound not exercised: this server was started without OPENMIND_TRUSTED_PROXY=1, so no address key exists (${proxied.length} attempts, all ${proxied[0]?.status ?? "?"})`);
-  ok(proxied.every((r) => r.status === 401),
+  console.log(`  · source bound not exercised: this server was started without OPENMIND_TRUSTED_PROXY=1, so no address key exists (${proxyAttempts.length} attempts, all ${proxyAttempts[0]?.status ?? "?"})`);
+  ok(proxyAttempts.every((r) => r.status === 401),
     "and with no declared proxy a forged x-forwarded-for buys no refusal (a header a client sets is not a limit)");
 }
+
+// ── 8. The doors that cost money or CPU are bounded too ─────────────────────
+//
+// Sign-in was never the expensive door; it was the one shaped like a guess.
+// These are shaped like a BILL — every AI turn can be a paid model call, every
+// paper submission runs the whole marking analysis, every sync batch writes a
+// ledger — and before this section existed nothing measured them at all. Each
+// assertion is a 429 that means "stop", plus a second learner who is unaffected
+// (a bound that slows the whole school is not a bound, it is an outage).
+//
+group("8 · a loop on the expensive doors is refused, and only for the learner looping");
+const worker = await newProfile({ handle: "perm_loop", country: "GB", language: "en", subjects: ["maths"] });
+const bystander = await newProfile({ handle: "perm_bystander", country: "GB", language: "en", subjects: ["maths"] });
+
+// AI: 20 turns a minute per learner.
+const aiStatuses = [];
+for (let i = 0; i < 21; i++) {
+  const r = await authedPost("/api/ai", { conceptId: "fractions", language: "en" }, worker.id);
+  aiStatuses.push(r.status);
+}
+const aiRefused = aiStatuses[20];
+ok(aiStatuses.slice(0, 20).every((s) => s === 200),
+  `twenty AI turns on one learner are served (${aiStatuses.slice(0, 5).join(",")}…${aiStatuses[19]})`);
+ok(aiRefused === 429, `the twenty-first is refused (HTTP ${aiRefused})`);
+const aiRefusal = await authedPost("/api/ai", { conceptId: "fractions", language: "en" }, bystander.id);
+ok(aiRefusal.status === 200,
+  `and a different learner is not affected by it (HTTP ${aiRefusal.status}) — the key is the learner, not the process`);
+
+// UPLOAD: 10 submissions per ten minutes. The request is deliberately INVALID:
+// the gate runs before validation, so a 429 here proves the limit is spent
+// before the work, which is the only ordering that protects anything.
+const uploadStatuses = [];
+for (let i = 0; i < 11; i++) {
+  const r = await authedPost("/api/my-paper", { action: "create", title: null }, worker.id);
+  uploadStatuses.push(r.status);
+}
+ok(uploadStatuses.slice(0, 10).every((s) => s === 400),
+  `ten malformed paper submissions are answered on their merits (${uploadStatuses.slice(0, 3).join(",")}…)`);
+ok(uploadStatuses[10] === 429,
+  `the eleventh is refused BEFORE validation — the bound is spent before the marking work (HTTP ${uploadStatuses[10]})`);
+
+// SYNC: 60 batches a minute per learner. Empty batches are the cheapest possible
+// request, so what is measured is the counter, not the ledger.
+const syncStatuses = [];
+for (let i = 0; i < 61; i++) {
+  const r = await authedPost("/api/evidence", { events: [] }, worker.id);
+  syncStatuses.push(r.status);
+}
+ok(syncStatuses.slice(0, 60).every((s) => s === 200),
+  `sixty sync batches drain normally (${syncStatuses.slice(0, 3).join(",")}…)`);
+ok(syncStatuses[60] === 429, `the sixty-first is refused (HTTP ${syncStatuses[60]})`);
+
+// AND THE REFUSAL SAYS WHEN. One header, same shape as the sign-in door.
+const wait = (await authedPost("/api/evidence", { events: [] }, worker.id)).headers.get("retry-after");
+ok(Number(wait) > 0, `the refusal carries Retry-After, like every other bounded door (${wait})`);
 
 console.log(`\n${"─".repeat(58)}`);
 console.log(`PERMISSIONS: ${pass} passed, ${fail} failed`);

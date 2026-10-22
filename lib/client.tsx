@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { ProfileState, SubjectCourse, SubjectId } from "./types";
-import { clearIdentity, ensureSecret, loadProfileId, loadSecret, onIdentityChange, writeProfileId, writeSecret } from "./api/identity";
+import { clearIdentity, deviceLearners, ensureSecret, forgetDeviceLearner, loadProfileId, loadSecret, onIdentityChange, rememberOnDevice, switchToDeviceLearner, writeProfileId, writeSecret } from "./api/identity";
 import * as api from "./api/client";
 import { ApiError } from "./api/client";
 import {
@@ -12,6 +12,7 @@ import {
   type AuthStatus, type Lifecycle, type ProfileStatus, type RouteDecision,
 } from "./app-state";
 import { LANGS, isRtl, langMeta, translator } from "./i18n";
+import { clearKioskSession } from "./kiosk-session";
 
 // ── Identity on this device ─────────────────────────────────────────────────
 // One event, one meaning: "the learner identity stored on this device changed".
@@ -76,20 +77,92 @@ export const EMPTY_SESSION: AccountSession = api.EMPTY_SESSION;
  *  every later write is refused with no session to fall back on. */
 export function adoptSession(s: AccountSession): void {
   if (typeof window === "undefined") return;
+  // A SIGN-IN ENDS ANY CLASSROOM LESSON ON THIS HANDSET. Otherwise the shell
+  // would keep showing "finish and hand back" for a session that is no longer
+  // the identity in storage, and pressing it would clear the account's identity
+  // instead of the lesson's.
+  clearKioskSession();
   if (s.profile) writeProfileId(s.profile.profile.id);
   if (s.secret) writeSecret(s.secret);
+  // Signing in on a shared handset must leave that learner SELECTABLE
+  // afterwards, or the next child's sign-in erases the first child's way back.
+  //
+  // BUT ONLY A LEARNER. The roster stores each entry's capability in cleartext,
+  // and a TEACHER's capability is classroom authority — the audit measured that a
+  // learner's secret could already create and administer a class, and remembering
+  // a teacher's would hand that to every child who picks the phone up. A teacher
+  // account is not a household learner; it is never added, and the switch screen
+  // therefore cannot offer it.
+  const role = s.account?.role;
+  const isLearner = !role || role === "student";
+  if (isLearner && s.profile && s.secret) rememberOnDevice(s.profile.profile.handle);
 }
+
+// ── Several learners on one device ─────────────────────────────────────────
+// Re-exported so a page can read and change the device roster without importing
+// the storage module directly — the same reason loadLocalProfileId lives here.
+export { deviceLearners, rememberOnDevice, switchToDeviceLearner, forgetDeviceLearner };
+export type { RosterLearner } from "./device-roster";
 
 /** The server's own reason for a refusal, so a caller can explain rather than
  *  report "something went wrong" — and so the fallback is the caller's to name
- *  rather than a status code leaking into a sentence a learner reads. */
+ *  rather than a status code leaking into a sentence a learner reads.
+ *
+ *  THE FALLBACK IS `unreachable` AND THAT WORD IS LOAD-BEARING. It is returned
+ *  only when the call never reached the server (status 0), so it is the ONE case
+ *  in which "check your connection" is a true sentence. Every other outcome — a
+ *  401 from a device whose stored secret does not own the record, a 400 naming a
+ *  course the qualification does not teach, a 500 — is a refusal the SERVER
+ *  made, and this module used to collapse all of them into a bare
+ *  "profile create failed" that no caller could tell apart. The onboarding form
+ *  then printed the connection sentence for all of it, so a learner with working
+ *  internet was told to check it. The onboarding form maps `unreachable` to
+ *  that sentence and every other outcome to one that says the server refused.
+ *
+ *  A thrown non-ApiError (a storage failure inside adoption, a bug) is
+ *  `client_error`: also not the learner's connection, and equally worth naming. */
 function reasonOf(e: unknown, fallback: string): string {
-  return e instanceof ApiError && e.code ? e.code : fallback;
+  if (e instanceof ApiError) {
+    if (e.code) return e.code;
+    return e.status === 0 ? "unreachable" : `http_${e.status}`;
+  }
+  return fallback;
 }
 
 export function clearSession(): void {
   if (typeof window === "undefined") return;
   clearIdentity();
+}
+
+// ── CLASSROOM MODE ─────────────────────────────────────────────────────────
+//
+// A kiosk learner is NOT a remembered learner. The identity is written (every
+// route reads those two keys) but the household roster is deliberately not — and
+// that distinction is the whole Phase C requirement: one mechanism must not solve
+// two different security problems. A classroom handset holds no permanent
+// capability for anyone (the server issues a session instead), so there is nothing
+// worth remembering and everything to lose by storing it.
+
+export async function kioskLogin(input: { classId?: string; joinCode?: string; handle: string; pin: string }): Promise<api.KioskSession> {
+  const data = await api.kioskLogin(input);
+  if (data.profile?.profile?.id && data.secret) {
+    writeProfileId(data.profile.profile.id);
+    writeSecret(data.secret);
+  }
+  return data;
+}
+
+/** Hand the device back: the server ends the session, then this device forgets it.
+ *  The server first ON PURPOSE — if the network fails, the identity is still
+ *  cleared locally (the next learner must not inherit it), and the token dies at
+ *  its expiry even if the call never arrives. */
+export async function kioskLeave(): Promise<void> {
+  const token = loadSecret();
+  try {
+    if (token) await api.kioskLeave(token);
+  } finally {
+    clearIdentity();
+  }
 }
 
 export interface SignUpInput {
@@ -128,6 +201,49 @@ export async function signIn(email: string, password: string): Promise<AccountSe
 export async function signOut(): Promise<void> {
   await api.signOut();
   clearSession();
+}
+
+/**
+ * Get back into an account with a recovery code — the learner's own printed one,
+ * or a teacher's fifteen-minute grant.
+ *
+ * This is a SIGN-IN, not a repair: it adopts the returned session (account,
+ * profile, capability secret) exactly as `signIn` does, because the learner's next
+ * action is to keep working and a session that is "recovered" but not adopted is a
+ * second sign-in they were never told to do.
+ *
+ * The new `recoveryCode` rides on the returned session and must be shown before it
+ * is forgotten: the old code is dead the moment this succeeds.
+ */
+export async function recoverAccount(input: {
+  email?: string;
+  code: string;
+  newPassword: string;
+}): Promise<AccountSession> {
+  try {
+    const data = await api.recover(input);
+    adoptSession(data);
+    emitSessionChange();
+    return data;
+  } catch (e) {
+    throw new Error(reasonOf(e, "recovery_failed"));
+  }
+}
+
+/** Mint a fresh recovery code from a signed-in session (current password required). */
+export async function mintRecoveryCode(currentPassword: string): Promise<string> {
+  try {
+    return (await api.rotateRecoveryCode(currentPassword)).recoveryCode;
+  } catch (e) {
+    throw new Error(reasonOf(e, "recovery_code_failed"));
+  }
+}
+
+/** A teacher's reset grant for one learner on their own roster. */
+export function teacherResetGrant(
+  learnerId: string,
+): Promise<{ code: string; expiresAt: number; learner: string }> {
+  return api.requestResetGrant(learnerId);
 }
 
 /** Who is signed in on this device, and which learner profile that is. */
@@ -240,9 +356,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // only control is a link it cannot resolve — and NOTHING the learner
       // clicked did anything. That is what a stalled probe looks like from the
       // outside, and it is why this branch exists at all.
-      probeProfile(id).then(({ state, gone }) => {
+      probeProfile(id).then(({ state, gone, refused }) => {
         if (!alive) return;
-        if (gone) {
+        if (gone || refused) {
           // The device names a profile the server does not have — a store reset,
           // a profile erased on another device, a test id left behind. The ghost
           // is not a learner: while it sits in localStorage, `loadLocalProfileId`
@@ -250,6 +366,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           // on every page, and enrolment PATCHes a profile that does not exist
           // instead of creating one. Clear it, so "no learner" is true when we
           // say it and the next move (a fresh enrolment) is honest.
+          //
+          // A REFUSAL IS THE SAME DEAD END (and was the same bug, one answer
+          // later): the secret this device holds cannot write to that record, so
+          // every gated page is refused and no retry can change that. Clearing
+          // the identity asks the learner to enrol again — which CREATES a
+          // profile, since there is no id left to patch — and erases nothing on
+          // the server: the old record stays exactly where it is, reachable by
+          // signing in to whichever account owns it.
           clearSession();
           setProfile(null);
           setProfileStatus("missing");
@@ -348,8 +472,11 @@ export async function createProfile(init: {
   // identity, and every later write is refused.
   try {
     return await api.createProfile(init);
-  } catch {
-    throw new Error("profile create failed");
+  } catch (e) {
+    // The reason travels. Swallowing it here cost a walk of the whole
+    // enrolment flow to learn that a 401 had been reported as a connection
+    // problem (see `reasonOf`).
+    throw new Error(reasonOf(e, "client_error"));
   }
 }
 
@@ -361,8 +488,8 @@ export async function saveProfilePatch(
   const id = loadLocalProfileId();
   try {
     return await api.saveProfile(patch, id);
-  } catch {
-    throw new Error("profile save failed");
+  } catch (e) {
+    throw new Error(reasonOf(e, "client_error"));
   }
 }
 
@@ -400,16 +527,35 @@ const MAX_PROBE_RETRIES = 4;
  * Never rejects, so the caller cannot be left with a pending promise and a
  * boot state it can never leave.
  */
-async function probeProfile(id: string): Promise<{ state: ProfileState | null; gone: boolean }> {
+/** A refusal of the CREDENTIAL, not of the request: the server answered, and this
+ *  device's secret does not authorise that record. 401/403 only — a 500 or a 429
+ *  is the server failing to answer usefully, and clearing the identity for one
+ *  would throw away a real learner over somebody else's outage. */
+function isCredentialRefusal(code: string): boolean {
+  return code === "unauthorized" || code === "forbidden" || code === "http_401" || code === "http_403";
+}
+
+async function probeProfile(id: string): Promise<{ state: ProfileState | null; gone: boolean; refused: boolean }> {
   const r = await api.probeProfile(id);
   if (r.status !== "ok") {
-    // Only a 404 is a fact about the learner. A refusal or an unanswered call
-    // is NO information, and treating either as "gone" would erase a real
-    // learner over a dropped packet.
-    return { state: null, gone: r.status === "notFound" };
+    // THREE ANSWERS, KEPT APART — and the middle one was being lost.
+    //
+    //   notFound     the server answered "I do not have this" — a FACT.
+    //   refused      the server answered "not with that secret" — also a fact
+    //                about this device, and not an outage. `transport.probe`
+    //                already distinguishes it; collapsing it into "unreachable"
+    //                is what made a stale id+secret pair sit on the boot screen
+    //                through four retries and then forever, because the boot
+    //                state is never mistaken for signed-out and nothing retries
+    //                after the ceiling.
+    //   unreachable  nobody answered. NO information: keep the identity, retry.
+    if (r.status === "refused" && isCredentialRefusal(r.code)) {
+      return { state: null, gone: false, refused: true };
+    }
+    return { state: null, gone: r.status === "notFound", refused: false };
   }
   if (r.data.secret && loadSecret() !== r.data.secret) writeSecret(r.data.secret);
-  return { state: r.data, gone: false };
+  return { state: r.data, gone: false, refused: false };
 }
 
 export function useProfile(): {

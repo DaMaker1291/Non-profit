@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { updateProfile } from "@/lib/server/store";
+// The learner transaction, through the port-facing door (lib/server/transaction.ts):
+// a session's write and the ledger read it is measured against are ONE unit.
+import { withLearnerState } from "@/lib/server/transaction";
 import { authorisedProfile } from "@/lib/server/auth";
 import { storeWriteRefusalNow } from "@/lib/server/write-refusal";
 import { getConcept } from "@/lib/genome";
 import { hasGenerator } from "@/lib/questions";
 import { isNextKind, type NextKind } from "@/lib/next-engine";
-import { readEvidence } from "@/lib/server/evidence";
 import {
   SESSION_TARGET,
   computeResult,
@@ -92,13 +93,18 @@ export async function POST(req: Request): Promise<NextResponse> {
     const kind = asKind(body.kind) ?? "PRACTISE";
     const rawTarget = typeof body.target === "number" ? Math.round(body.target) : SESSION_TARGET;
     const target = Math.max(3, Math.min(10, rawTarget));
-    const upd = await updateProfile(profile.profile.id, async (state) => {
+    const upd = await withLearnerState(profile.profile.id, async (ctx, state) => {
       const sess = state as Session;
       // The baseline's "step" is the SAME decision Home will make for this
       // learner, so the ledger is read here rather than the decision being
       // taken from the model alone — otherwise a session could record a plan
       // the learner was never shown, and "the plan moved" would be unfalsifiable.
-      const events = await readEvidence(profile.profile.id);
+      //
+      // Read THROUGH THE TRANSACTION (`ctx.readEvents`), not through the port: the
+      // evidence this decision rests on and the session it opens are the same unit,
+      // and a database backend cannot hand a transaction's own work to a second
+      // connection (§14.1 of docs/STORAGE_SPEC.md).
+      const events = await ctx.readEvents();
       const { ledger, resumed } = openSession(state, conceptId, kind, sess.learnSession, target, Date.now(), undefined, events);
       sess.learnSession = ledger;
       return { ...publicSession(ledger), resumed };
@@ -109,14 +115,15 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   if (action === "finish") {
     const conceptId = typeof body.conceptId === "string" ? body.conceptId : "";
-    const upd = await updateProfile(profile.profile.id, async (state) => {
+    const upd = await withLearnerState(profile.profile.id, async (ctx, state) => {
       const sess = state as Session;
       const ledger = sess.learnSession;
       // No baseline → no honest diff. Refuse rather than manufacture one.
       if (!ledger || (conceptId && ledger.conceptId !== conceptId)) return { error: "no_session" as const };
       // Same door, same ledger as the baseline: the closing decision is
-      // comparable with the opening one because both came from the evidence.
-      const result = computeResult(state, ledger, Date.now(), undefined, await readEvidence(profile.profile.id));
+      // comparable with the opening one because both came from the evidence —
+      // and read through this transaction, for the same reason as above.
+      const result = computeResult(state, ledger, Date.now(), undefined, await ctx.readEvents());
       state.lastSession = toSummary(result);
       delete sess.learnSession;
       return { result };

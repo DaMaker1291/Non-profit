@@ -299,7 +299,86 @@ const counts = {
   verifiedPathways: R.allPathways().filter((p) => p.recordReview === "verified").length,
 };
 
-const report = { generatedBy: "scripts/curriculum-gate.mjs", counts, countries, pathways, problems };
+// ── 3. The mappings: the half a ministry can actually audit ─────────────────
+//
+// The registry's `mappingReview` is a label; this is the evidence under it. Each
+// mapping names a published document, quotes that document's headings, and
+// places individual concepts under them. The checks below are what stop a
+// mapping from being decoration: a concept that does not exist, a concept the
+// course does not teach, a source that is not recorded on the pathway it claims,
+// or a review claimed without a reviewer's name and date.
+const M = require("../.verify/curricula/mappings.js");
+const mappings = M.CONCEPT_MAPPINGS;
+const mappingRows = [];
+for (const m of mappings) {
+  const where = `mapping ${m.specId}`;
+  const spec = S.specById(m.specId);
+  const pw = R.pathwayById(m.pathwayId);
+  ok(Boolean(spec), `${where}: unknown specification`);
+  ok(Boolean(pw), `${where}: unknown pathway ${m.pathwayId}`);
+  if (spec && pw) {
+    ok(pw.specificationIds.includes(m.specId), `${where}: ${m.pathwayId} does not lead to this course`);
+    // THE PATHWAY MUST CARRY THE SOURCE IT IS MAPPED AGAINST. Otherwise the
+    // citation lives only in a file the learner's course does not point at, and
+    // "this is mapped against X" is unverifiable from the record.
+    ok(pw.sourceUrls.includes(m.source.url), `${where}: the mapping's source is not recorded on pathway ${pw.id}`);
+  }
+  ok(/^https:\/\//.test(m.source.url), `${where}: the source is not an https reference`);
+  ok(Boolean(m.source.title && m.source.publisher && m.source.published), `${where}: the source is missing its title, publisher or date`);
+  ok(m.source.verification === "document" || m.source.verification === "portal", `${where}: unknown verification level`);
+  ok((m.reviewer === null) === (m.reviewedAt === null), `${where}: reviewer and reviewedAt must both be set or both be absent`);
+  if (m.reviewer !== null) {
+    ok(m.reviewer.trim().length > 1, `${where}: a reviewer with no name`);
+    ok(Number.isFinite(Date.parse(m.reviewedAt ?? "")), `${where}: reviewedAt is not a date`);
+  }
+
+  const coverage = spec ? S.courseConceptIds(spec) : new Set();
+  const seen = new Set();
+  for (const e of m.entries) {
+    const concept = G.CONCEPTS_BY_ID[e.conceptId];
+    if (!concept) { fail(`${where}: names concept “${e.conceptId}”, which the genome does not hold`); continue; }
+    ok(coverage.has(e.conceptId), `${where}: “${e.conceptId}” is not in that course's coverage, so mapping it claims the course teaches what it does not`);
+    ok(concept.subject === m.subject, `${where}: “${e.conceptId}” is ${concept.subject}, not ${m.subject}`);
+    ok(!seen.has(e.conceptId), `${where}: “${e.conceptId}” is mapped twice`);
+    seen.add(e.conceptId);
+    ok(Boolean(e.ref && e.ref.trim()), `${where}: “${e.conceptId}” has no published heading`);
+    ok(Boolean(e.statement && e.statement.trim().length > 10), `${where}: “${e.conceptId}” has no statement of what the source asks`);
+  }
+  ok(m.entries.length > 0, `${where}: an empty mapping is not a mapping`);
+
+  // THE ONE DIRECTION THAT MUST NEVER INVERT: a pathway may not claim a review
+  // that no reviewer signed, and a signed mapping should be reflected in the
+  // pathway's own status rather than left unread.
+  if (pw) {
+    if (M.mappingIsReviewed(m)) {
+      ok(R.reviewAtLeast(pw.mappingReview, "reviewed"), `${where}: a signed mapping whose pathway still reads “${pw.mappingReview}”`);
+    } else {
+      ok(!R.reviewAtLeast(pw.mappingReview, "reviewed"), `${where}: pathway ${pw.id} claims “${pw.mappingReview}” but no reviewer has signed its mapping`);
+    }
+  }
+  mappingRows.push({
+    specId: m.specId,
+    pathwayId: m.pathwayId,
+    source: m.source.title,
+    publisher: m.source.publisher,
+    published: m.source.published,
+    verification: m.source.verification,
+    conceptsMapped: m.entries.length,
+    courseConcepts: coverage.size,
+    reviewer: m.reviewer,
+    reviewedAt: m.reviewedAt,
+  });
+}
+const mappedSpecIds = new Set(mappings.map((m) => m.specId));
+ok(mappedSpecIds.size === mappings.length, "two mappings for one specification");
+
+counts.mappingsOnFile = mappings.length;
+counts.mappedSpecifications = mappedSpecIds.size;
+counts.mappingsWithReviewer = mappings.filter((m) => M.mappingIsReviewed(m)).length;
+counts.conceptsMapped = mappings.reduce((n, m) => n + m.entries.length, 0);
+counts.mappingsVerifiedAgainstDocument = mappings.filter((m) => m.source.verification === "document").length;
+
+const report = { generatedBy: "scripts/curriculum-gate.mjs", counts, countries, pathways, mappings: mappingRows, problems };
 fs.mkdirSync("audit", { recursive: true });
 fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2) + "\n");
 

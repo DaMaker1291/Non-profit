@@ -27,7 +27,28 @@ export type BoardId =
   | "gce" | "minesec"
   // Americas, Asia-Pacific
   | "philippine" | "bangladeshi" | "indonesian" | "brazilian" | "mexican"
-  | "commoncore" | "collegeboard" | "acara" | "canadian";
+  | "commoncore" | "collegeboard" | "acara" | "canadian"
+  // The countries the picker has always offered and the product never had a
+  // curriculum for: 51 ministries and examination councils, one id each.
+  // A SHARED id is not an option here — `boardName` returns the FIRST pathway
+  // that binds an id, so reusing "state" for France would have shown a French
+  // learner "Ghana Education Service" in the context strip. See
+  // lib/curricula/registry.ts for the source each of these is recorded from.
+  // Africa
+  | "ethiopian" | "egyptian" | "moroccan" | "rwandan" | "zambian"
+  | "zimsec" | "malawian" | "malian" | "senegalese" | "ivorian"
+  | "nigerien" | "burkinabe" | "somali" | "sudanese"
+  // Asia & Middle East
+  | "vietnamese" | "turkish" | "iranian" | "afghan" | "chinese"
+  | "japanese" | "korean" | "yemeni" | "iraqi" | "syrian"
+  | "jordanian" | "lebanese" | "nepali" | "srilankan" | "myanmar"
+  | "cambodian" | "lao" | "mongolian" | "kazakh" | "uzbek"
+  // Europe
+  | "spanish" | "french" | "german" | "italian" | "polish" | "ukrainian"
+  // Americas
+  | "colombian" | "argentine" | "peruvian" | "haitian" | "bolivian"
+  | "ecuadorian" | "guatemalan" | "honduran" | "nicaraguan" | "salvadoran"
+  | "dominican";
 
 /** Runtime registry for the BoardId union — the single source of truth shared
  *  by the profile API, the enrolment UI and the specification layer. Without
@@ -41,6 +62,21 @@ export const BOARD_IDS: BoardId[] = [
   "gce", "minesec",
   "philippine", "bangladeshi", "indonesian", "brazilian", "mexican",
   "commoncore", "collegeboard", "acara", "canadian",
+  // Africa
+  "ethiopian", "egyptian", "moroccan", "rwandan", "zambian",
+  "zimsec", "malawian", "malian", "senegalese", "ivorian",
+  "nigerien", "burkinabe", "somali", "sudanese",
+  // Asia & Middle East
+  "vietnamese", "turkish", "iranian", "afghan", "chinese",
+  "japanese", "korean", "yemeni", "iraqi", "syrian",
+  "jordanian", "lebanese", "nepali", "srilankan", "myanmar",
+  "cambodian", "lao", "mongolian", "kazakh", "uzbek",
+  // Europe
+  "spanish", "french", "german", "italian", "polish", "ukrainian",
+  // Americas
+  "colombian", "argentine", "peruvian", "haitian", "bolivian",
+  "ecuadorian", "guatemalan", "honduran", "nicaraguan", "salvadoran",
+  "dominican",
 ];
 
 export function isBoardId(value: unknown): value is BoardId {
@@ -54,6 +90,8 @@ void _boardIdsCover;
 
 /** Learning style preference the student finds most effective. */
 export type LearningStyle = "visual" | "auditory" | "kinesthetic" | "reading-writing";
+
+export type AccountRole = "student" | "teacher" | "org";
 
 /** A node in the Knowledge Genome: one teachable atomic concept. */
 export interface Concept {
@@ -402,12 +440,67 @@ export interface SubjectCourse {
 /** An account is an email + password that owns one StudentProfile. Kept in
  *  lib/types.ts next to the profile it points at so the client and the server
  *  cannot disagree about its shape. */
+export interface Account {
+  /** Unique account identifier. */
+  id: string;
+  /** Normalised (lowercased, trimmed) — the unique key for sign-in. */
+  email: string;
+  /** Display name the learner typed. Never required to be a real name. */
+  name: string;
+  role: AccountRole;
+  /** scrypt(password, salt) hex. The plain password is never stored or logged. */
+  passHash: string;
+  /** Per-account salt for scrypt. */
+  salt: string;
+  createdAt: number;
+  /** Last time the account was accessed, used for activity tracking. */
+  lastSeenAt: number;
+  /** The learner profile this account owns (lib/types.ts ProfileState). */
+  profileId: string;
+  /** Honest status: OpenMind ships no mail service, so an address cannot be proved. False means "nobody has verified this address" — the UI says so rather than implying a verification step that never ran. */
+  verified: boolean;
+  /** Bumped on sign-out. Every session token records the epoch it was issued in, so bumping this invalidates every outstanding token for the account — which is what makes signing out a SERVER decision rather than a client courtesy. Without it, "sign out" only cleared the cookie: the token kept verifying until its 60-day expiry, so anyone who had a copy of it (a shared phone's history, a synced profile) stayed signed in. On a shared phone that is the behaviour a learner actually needs. */
+  sessionEpoch?: number;
+  /**
+   * THE RECOVERY CODE, stored only as a scrypt hash plus its own salt.
+   *
+   * Why a hash rather than the code: a recovery code is a bearer credential —
+   * whoever holds it can take the account over — so a store that held it in the
+   * clear would make every backup, every `.openmind-data` copy and every support
+   * screenshot a password-equivalent. It is minted once (lib/recovery-code.ts),
+   * shown once, and rotated on use.
+   *
+   * Absent on accounts created before this existed: those have no recovery code
+   * until they ask for one from a signed-in session, which is the honest state and
+   * not an error — see `rotateRecoveryCode` in lib/server/auth.ts.
+   */
+  recoverySalt?: string;
+  recoveryHash?: string;
+  /**
+   * A TEACHER-ISSUED RESET GRANT, and the reason it is not the recovery code.
+   *
+   * The learner who needs this is the one who has lost the printed paper, has no
+   * mailbox they control, and is sitting in front of a teacher who can see them on
+   * a roster. The grant is short (15 minutes), single use, and verified against its
+   * own hash — so reading it aloud in a corridor is survivable, and it can never be
+   * confused with the long-lived code the learner keeps.
+   */
+  resetSalt?: string;
+  resetHash?: string;
+  /** When the grant stops working. A missing or past value makes the hash inert. */
+  resetExpiresAt?: number;
+}
+
+/** A read-only subset of Account — safe to send to the client without exposing
+ *  password hashes, salts or recovery secrets. */
 export interface PublicAccount {
   id: string;
   email: string;
   name: string;
-  role: "student" | "teacher" | "org";
+  role: AccountRole;
   createdAt: number;
+  /** Last time the account was accessed, used for activity tracking. */
+  lastSeenAt: number;
   /** The learner profile this account owns. */
   profileId: string;
   /** False = the address was never proved (OpenMind ships no mail service). */
@@ -629,6 +722,21 @@ export interface StudyRoom {
   forkOf?: string;
 }
 
+/** One member's classroom credential. The PIN itself is never stored, only the
+ *  scrypt hash of it, exactly as a password is handled (lib/server/store.ts
+ *  #hashPassword). `failed`/`lockedUntil` live here rather than in the rate
+ *  limiter's in-memory table because a lockout must survive the restart that a
+ *  child will try first. */
+export interface KioskCredential {
+  salt: string;
+  hash: string;
+  issuedAt: number;
+  /** Consecutive failures, reset on success. */
+  failed?: number;
+  /** Epoch ms before which even a CORRECT PIN is refused. */
+  lockedUntil?: number;
+}
+
 export interface ClassRoster {
   id: string;
   name: string;
@@ -649,10 +757,35 @@ export interface ClassRoster {
   /** handle -> the learner id that joined under it, so the live view can find
    *  a member's ledger by id instead of trusting handle uniqueness. */
   membersById?: Record<string, string>;
-  /** The learner id of the teacher who created the class — the ONE authority
-   *  that may set or remove its work and read its monitor. Absent on rosters
-   *  that predate the field; those authorize on the first member recorded. */
+  /** The learner id of the teacher who created the class. It names WHOSE PROFILE
+   *  the class belongs to — a display fact and the key the class is stored
+   *  under. It is NOT the authority: a profile id travels with a capability
+   *  secret, and a capability is what every reminder on a shared phone holds.
+   *  Authority is `teacherAccountId` (lib/server/authority.ts). */
   ownerId?: string;
+  /** THE ACCOUNT THAT MAY ADMINISTER THIS CLASS.
+   *
+   *  Recorded when a TEACHER ACCOUNT creates the class, and the only thing
+   *  teacher-only doors accept. It is separate from `ownerId` on purpose: the
+   *  audit measured that a learner's capability could create a class and then
+   *  administer it, because every check asked "is this the owner's PROFILE?"
+   *  and a capability is that profile. A profile secret proves who is asking;
+   *  an account session proves what they may administer.
+   *
+   *  Absent on classes created before this field existed; those resolve their
+   *  administrator from the creator's owning account, and a class whose creator
+   *  has no account is administrable by nobody (409 class_has_no_teacher_account)
+   *  rather than being handed to whoever presents a capability. */
+  teacherAccountId?: string;
+  /** CLASSROOM CREDENTIALS, keyed by the learner's profile id — one entry per
+   *  member whose access is a PIN rather than a stored capability.
+   *
+   *  A supervised classroom cannot keep 40 permanent bearer secrets on three
+   *  handsets (see the shared-device audit): anyone holding the phone would hold
+   *  every learner. The teacher issues a PIN; the server keeps only its scrypt
+   *  hash and hands back a short-lived session instead. Deleting the entry is how
+   *  a teacher revokes a PIN. */
+  kiosk?: Record<string, KioskCredential>;
   /** The subject this class is taught, declared when it is created. Optional
    *  so rosters that predate the field keep working: the subject is then
    *  inferred from the concepts they carry (lib/teacher-plan#classSubject).

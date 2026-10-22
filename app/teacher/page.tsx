@@ -19,6 +19,8 @@ import HubStatus from "@/components/hub-status";
 // the "not yet measured" dash is that component's own honesty guarantee.
 import { Dims } from "@/components/dims";
 import { ErrorState, Loading } from "@/components/states";
+import { ResetCode } from "@/components/reset-code";
+import { ClassroomPins } from "@/components/classroom-pins";
 import NeedsPanel, { type NeedLaunch } from "@/components/needs-panel";
 import { dimensionFor, type KnowledgeRow } from "@/lib/evidence-view";
 import type { AssignmentIntervention, AssignmentMonitor, ClassMemberEvidence, ClassRoster, SubjectId } from "@/lib/types";
@@ -497,6 +499,12 @@ export default function TeacherPage() {
               />
               <span>· {t("teach.prov")}</span>
             </p>
+            {/* THE CLASSROOM'S CREDENTIALS, issued here — and OUTSIDE the
+                roster's own conditional, because the first thing a teacher does
+                with a new class is enroll it. A panel that only appeared once
+                the class already had members would be unreachable for exactly
+                the class that needs it. */}
+            <ClassroomPins cls={cls} me={meId()} />
             {measured.length === 0 && students.length > 0 && (
               <p className="note" style={{ marginBottom: 10 }}>{t("teach.noEvidence")}</p>
             )}
@@ -568,15 +576,23 @@ export default function TeacherPage() {
                             not a navigation. */}
                         <td style={{ textAlign: "end" }}>
                           {m ? (
-                            <button
-                              type="button"
-                              className="btn ghost small"
-                              aria-expanded={openId === m.learnerId}
-                              onClick={() => setOpenStudent((s) => ({
-                                ...s,
-                                [cls.id]: s[cls.id] === m.learnerId ? null : m.learnerId,
-                              }))}
-                            >{t("tl.open")}</button>
+                            <span style={{ display: "inline-flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap", alignItems: "center" }}>
+                              {/* THE WAY BACK IN, beside the evidence. A learner
+                                  locked out of their record is the most urgent
+                                  thing on this roster, and the teacher is the one
+                                  person who can fix it — see the component for why
+                                  this is membership rather than a help desk. */}
+                              <ResetCode learnerId={m.learnerId} />
+                              <button
+                                type="button"
+                                className="btn ghost small"
+                                aria-expanded={openId === m.learnerId}
+                                onClick={() => setOpenStudent((s) => ({
+                                  ...s,
+                                  [cls.id]: s[cls.id] === m.learnerId ? null : m.learnerId,
+                                }))}
+                              >{t("tl.open")}</button>
+                            </span>
                           ) : null}
                         </td>
                       </tr>

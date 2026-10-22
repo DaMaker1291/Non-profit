@@ -21,6 +21,10 @@
 // needs to know when identity is written.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { forgetLearner, readRoster, rememberLearner, findLearner, touchLearner } from "../device-roster";
+import { clearKioskSession } from "../kiosk-session";
+import type { RosterLearner } from "../device-roster";
+
 export const PROFILE_ID_KEY = "openmind:profileId";
 export const PROFILE_SECRET_KEY = "openmind:profileSecret";
 
@@ -72,6 +76,23 @@ function setIfChanged(key: string, value: string | null): void {
   announce();
 }
 
+/** Write BOTH halves as one fact.
+ *
+ *  A switch that wrote the id and then the secret announced twice, and between
+ *  the two writes the device named the new learner with the OLD learner's
+ *  capability — a pair the server refuses. Nothing was lost (a 401 is not a
+ *  404, so the provider keeps the identity and retries), but a shared phone
+ *  should not send a request that is wrong by construction on every switch, and
+ *  the module's own rule is that a change announces once. */
+function writeIdentity(id: string, secret: string): void {
+  const store = storage();
+  if (!store) return;
+  const changed = store.getItem(PROFILE_ID_KEY) !== id || store.getItem(PROFILE_SECRET_KEY) !== secret;
+  store.setItem(PROFILE_ID_KEY, id);
+  store.setItem(PROFILE_SECRET_KEY, secret);
+  if (changed) announce();
+}
+
 export function loadProfileId(): string | null {
   return storage()?.getItem(PROFILE_ID_KEY) ?? null;
 }
@@ -119,8 +140,63 @@ export function ensureSecret(): string {
 export function clearIdentity(): void {
   const store = storage();
   if (!store) return;
-  const had = store.getItem(PROFILE_ID_KEY) !== null || store.getItem(PROFILE_SECRET_KEY) !== null;
+  const active = store.getItem(PROFILE_ID_KEY);
+  const had = active !== null || store.getItem(PROFILE_SECRET_KEY) !== null;
+  // A profile the server has confirmed GONE must leave the roster too, or the
+  // shared-device screen keeps offering a switch to a learner who no longer
+  // exists — the ghost the 404 probe was added to clear, one layer up.
+  if (active) forgetLearner(store, active);
+  // A classroom session is not a remembered learner, and a device that has
+  // forgotten its learner must not still claim a lesson is running — the shell
+  // would keep offering "finish and hand back" for a session that is gone.
+  clearKioskSession();
   store.removeItem(PROFILE_ID_KEY);
   store.removeItem(PROFILE_SECRET_KEY);
   if (had) announce();
+}
+
+// ── SEVERAL LEARNERS ON ONE DEVICE ─────────────────────────────────────────
+//
+// The identity above is still ONE learner at a time: every route, the guard and
+// the transport read a single id/secret pair, and nothing about that changes.
+// These four functions are the layer a shared handset needs — a remembered list
+// either side of the same two keys — so switching is "write the pair", not a
+// second source of truth about who is signed in.
+//
+// The list is written whenever a learner is met (enrolment, sign-in, first visit
+// to the account screen) and read only by the account screen. It never leaves
+// the device, and the server never learns it exists.
+
+export function rememberOnDevice(name?: string): RosterLearner[] {
+  const store = storage();
+  const id = store?.getItem(PROFILE_ID_KEY) ?? null;
+  const secret = store?.getItem(PROFILE_SECRET_KEY) ?? null;
+  if (!store || !id || !secret) return readRoster(store);
+  return rememberLearner(store, { id, secret, name });
+}
+
+export function deviceLearners(): RosterLearner[] {
+  return readRoster(storage());
+}
+
+/** Become another learner on this device. Returns false when the id is not on
+ *  the roster — a caller must not treat that as success, because the screen
+ *  would then show the previous learner's work under the new name. */
+export function switchToDeviceLearner(id: string): boolean {
+  const store = storage();
+  const entry = findLearner(store, id);
+  if (!store || !entry) return false;
+  writeIdentity(entry.id, entry.secret);
+  touchLearner(store, entry.id);
+  return true;
+}
+
+/** Remove a learner from this device. Removing the ACTIVE one clears the
+ *  identity as well, so "remove" cannot leave a device speaking for a learner
+ *  who is no longer listed. */
+export function forgetDeviceLearner(id: string): void {
+  const store = storage();
+  if (!store) return;
+  forgetLearner(store, id);
+  if (store.getItem(PROFILE_ID_KEY) === id) clearIdentity();
 }

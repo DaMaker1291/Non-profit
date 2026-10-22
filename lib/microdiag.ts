@@ -139,8 +139,10 @@ export function buildFlare(
 }
 
 /** Grade a submitted micro-check and persist the classification. Runs inside
- *  the store's profile lock via updateProfile. Returns the classification, or
- *  null when the submission doesn't correspond to a standing flare. */
+ *  the learner transaction the route opened (`withLearnerState`), and the answer
+ *  it produces goes on the ledger through that transaction's own context.
+ *  Returns the classification, or null when the submission doesn't correspond
+ *  to a standing flare. */
 export function gradeMicroCheck(
   state: ProfileState,
   conceptId: string,

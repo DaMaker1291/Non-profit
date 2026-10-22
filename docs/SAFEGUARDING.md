@@ -6,6 +6,11 @@ This is the operational answer. It covers the learner-facing surfaces that can
 carry risk — the AI tutor, class rooms, names and handles — and it is honest
 about which parts are code and which are process.
 
+It is the **product-side** half of safeguarding. The **school-side** half — who
+is responsible in a deployment, the adult code of conduct, safer recruitment,
+and how a concern is raised when the school has no internet — is
+[`ministry/SAFEGUARDING.md`](ministry/SAFEGUARDING.md).
+
 ---
 
 ## 1. The surfaces where a child could encounter something unsafe

@@ -32,7 +32,12 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "om-questions-"));
 //   specifications -> {genome, curriculum, types}, genome -> types
 //   numeric-items -> {types, numeric-items-core}, numeric-items-core -> numeric-items
 //   answer -> types
-for (const file of ["types.ts", "i18n.ts", "genome.ts", "curricula/registry.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-computing.ts", "questions-chemistry.ts", "questions-physics.ts", "questions-biology.ts", "questions-mid-maths.ts", "questions-mid-computing.ts", "questions-mid-physics.ts", "questions-mid-chemistry.ts", "questions-mid-biology.ts", "questions-senior.ts", "numeric-items.ts", "numeric-items-core.ts", "answer.ts", "questions.ts"]) {
+// `i18n-recovery.ts` is imported by `i18n.ts` (the recovery vocabulary is merged
+// into DICTS at load so key parity still holds for all 15 languages). This list
+// is HARDCODED, so a new import of `lib/i18n.ts` that is not added here dies as
+// ERR_MODULE_NOT_FOUND from /tmp — which reads like a broken question bank and
+// is why the checklist run caught it rather than a reader.
+for (const file of ["types.ts", "i18n.ts", "i18n-recovery.ts", "i18n-curriculum.ts", "i18n-device.ts", "i18n-kiosk.ts", "genome.ts", "curricula/registry.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-computing.ts", "questions-chemistry.ts", "questions-physics.ts", "questions-biology.ts", "questions-mid-maths.ts", "questions-mid-computing.ts", "questions-mid-physics.ts", "questions-mid-chemistry.ts", "questions-mid-biology.ts", "questions-senior.ts", "numeric-items.ts", "numeric-items-core.ts", "answer.ts", "questions.ts"]) {
   const src = fs.readFileSync(path.join(LIB, file), "utf8");
   const js = ts.transpileModule(src, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },

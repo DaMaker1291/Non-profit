@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { fetchProfile, loadLocalProfileId, loadLocalProfileSecret, saveProfilePatch, signOut, updateAccount, useAccount, useI18n } from "@/lib/client";
+import { fetchProfile, loadLocalProfileId, loadLocalProfileSecret, mintRecoveryCode, rememberOnDevice, saveProfilePatch, signOut, updateAccount, useAccount, useI18n } from "@/lib/client";
 import * as api from "@/lib/api/client";
 import { ApiError } from "@/lib/api/client";
 import AttachAccount from "@/components/attach-account";
+import DeviceLearners from "@/components/device-learners";
 import type { ProfileState } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -33,6 +34,10 @@ export default function AccountPage() {
   const [school, setSchool] = useState("");
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
+  /** A recovery code just minted on this screen, held only long enough to print
+   *  it. The server keeps the hash, so this string cannot be fetched again — the
+   *  learner either writes it down now or rotates another. */
+  const [newRecovery, setNewRecovery] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -51,7 +56,15 @@ export default function AccountPage() {
 
   useEffect(() => {
     const id = loadLocalProfileId();
-    if (id) fetchProfile(id).then((s) => s && setProfile(s));
+    if (!id) return;
+    fetchProfile(id).then((s) => {
+      if (!s) return;
+      setProfile(s);
+      // A learner who reaches this screen is REMEMBERED on the device, which is
+      // how a roster that predates the feature fills itself in: the second child
+      // to open this page is offered back to the first.
+      rememberOnDevice(s.profile.handle);
+    });
   }, [session.account]);
 
   useEffect(() => {
@@ -199,6 +212,10 @@ export default function AccountPage() {
   return (
     <main className="container narrow" style={{ paddingTop: 32, maxWidth: 720 }}>
       <p className="eyebrow"><span className="no">◉</span> {t("acct.title")}</p>
+
+      {/* Whose work is this screen showing, and who else uses this phone. It
+          renders nothing when there is only one learner on the device. */}
+      <DeviceLearners />
 
       {!ready && <p className="lead">{t("common.loading")}</p>}
 
@@ -418,6 +435,54 @@ export default function AccountPage() {
             <button className="btn small" onClick={savePassword} disabled={busy || !current || !next}>
               {busy ? t("onb.settingUp") : t("common.save")}
             </button>
+
+            {/* ── THE WAY BACK IN ─────────────────────────────────────────────
+
+                A recovery code is minted at sign-up and shown once. This is where
+                a learner who has lost the paper (and is still signed in — the last
+                moment they can act) replaces it, and where an account created
+                before the feature existed gets its first one.
+
+                It reuses the CURRENT password field above rather than asking
+                again: the same credential is required, and two password boxes a
+                few lines apart is how a learner types their new password into the
+                wrong one. */}
+            <h3 style={{ marginTop: 24 }}>{t("rec.title")}</h3>
+            <p className="small muted">{t("rec.lead")}</p>
+            {newRecovery && (
+              <div className="card" style={{ textAlign: "center", margin: "12px 0" }}>
+                <p className="mono" style={{ fontSize: 22, letterSpacing: 2, margin: "6px 0" }} aria-live="polite">
+                  {newRecovery}
+                </p>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+              <button
+                className="btn small"
+                onClick={async () => {
+                  setBusy(true);
+                  setErr("");
+                  setMsg("");
+                  try {
+                    setNewRecovery(await mintRecoveryCode(current));
+                    setMsg(t("acc.saved"));
+                  } catch (e) {
+                    const code = e instanceof Error ? e.message : "";
+                    setErr(code === "bad_current_password" ? t("acct.errCurrent") : t("common.error"));
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                disabled={busy || !current}
+              >
+                {t("rec.make")}
+              </button>
+              {newRecovery && (
+                <button className="btn ghost small" onClick={() => window.print()}>
+                  {t("rec.print")}
+                </button>
+              )}
+            </div>
 
             {msg && <p className="small" style={{ marginTop: 12 }}>{msg}</p>}
             {err && <p className="marking bad" style={{ padding: "10px 14px" }}><span className="mark" aria-hidden="true">✗</span> {err}</p>}

@@ -33,14 +33,22 @@
     "**/*.ts",
     "**/*.tsx",
     ".next-check/types/**/*.ts",
+    ".next-dev-probe/types/**/*.ts",
     ".next-dev/types/**/*.ts",
     ".next-e2e/types/**/*.ts",
     ".next-prod/types/**/*.ts",
     ".next-ui/types/**/*.ts",
     ".next/types/**/*.ts",
+    "/tmp/om-e2e-2LlNZW/dist/types/**/*.ts",
+    "/tmp/om-e2e-b2Vd2t/dist/types/**/*.ts",
+    "/tmp/om-kiosk-j4Kw1v/dist/types/**/*.ts",
+    "/tmp/om-kiosk-zt3lmz/dist/types/**/*.ts",
+    "/tmp/om-prod-i9U2P5/dist/types/**/*.ts",
+    "/tmp/probe-dist/types/**/*.ts",
+    "/var/folders/jv/99cytc8j2qq62x068bpfxd_40000gn/T/om-kiosk-restart-HCGJdH/dist/types/**/*.ts",
     "next-env.d.ts",
     "next.config.mjs",
-    ".next-dev-probe/types/**/*.ts"
+    "/var/folders/jv/99cytc8j2qq62x068bpfxd_40000gn/T/om-kiosk-restart-fe7HNv/dist/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

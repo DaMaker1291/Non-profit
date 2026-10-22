@@ -18,6 +18,7 @@ Everything below lives in `OPENMIND_DATA_DIR` and nowhere else.
 | Data | Where | Personal? | Purpose |
 |---|---|---|---|
 | Account: email, display name, role, scrypt password hash + salt | `accounts.json` | yes (email) | sign-in |
+| Recovery credential: scrypt hash + salt of the learner's printed recovery code, and (while one is live) a teacher's fifteen-minute reset grant with its expiry | `accounts.json` | yes (pseudonymous credential) | getting back into the record when the password is forgotten |
 | Profile: handle, country, language, subjects, course, year, goal | `profiles.json` | yes (handle) | adapt teaching |
 | Evidence ledger: answers, correctness, hints, timing, misconception tags, self-reported certainty | `evidence/<id>.jsonl` | pseudonymous (learner id) | the learner model |
 | Class roster: name, join code, member ids/handles, self-reports | `classes.json` | yes (handles) | teaching |

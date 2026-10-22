@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { authorizeLearner } from "@/lib/server/capability";
+import { ingressLimitKey, learnerLimitKey, pace } from "@/lib/server/limits";
+import { AI_PER_LEARNER, AI_PER_PROCESS, AI_PROCESS_KEY } from "@/lib/server/rate-limit";
 import { tutorTurn } from "@/lib/server/tutor";
 
 /**
@@ -41,6 +43,16 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
     learnerId = auth.state.profile.id;
   }
+
+  // The tutor turn can be a paid model call, so it is bounded the same way
+  // /api/ai is — before the call, on the learner whose secret was just checked,
+  // with the process-wide soft counter behind it for signed-out visitors.
+  await pace(AI_PROCESS_KEY, AI_PER_PROCESS);
+  const gate = await pace(
+    learnerLimitKey("ai", learnerId) ?? ingressLimitKey("ai", req),
+    AI_PER_LEARNER,
+  );
+  if (gate) return gate;
 
   const turn = await tutorTurn({ learnerId, conceptId, message, language, questionText });
   if (!turn) return NextResponse.json({ error: "unknown concept" }, { status: 404 });

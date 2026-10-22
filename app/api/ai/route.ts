@@ -4,6 +4,8 @@ import { cacheGet, cacheSet } from "@/lib/server/store";
 import { generateQuestion, serveView } from "@/lib/questions";
 import { termsFor } from "@/lib/specifications";
 import { authorisedProfile } from "@/lib/server/auth";
+import { ingressLimitKey, learnerLimitKey, pace } from "@/lib/server/limits";
+import { AI_PER_LEARNER, AI_PER_PROCESS, AI_PROCESS_KEY } from "@/lib/server/rate-limit";
 import { tutorGroundingFor } from "@/lib/server/tutor";
 import type { BoardId, Question } from "@/lib/types";
 
@@ -42,6 +44,22 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!conceptId) return NextResponse.json({ error: "missing conceptId" }, { status: 400 });
 
   const profile = await authorisedProfile(req, body.id ?? null, body.secret ?? null);
+
+  // ── THE MOST EXPENSIVE DOOR IN THE APP ────────────────────────────────────
+  // Every turn here can be a paid model call, so the bound is spent BEFORE the
+  // call and keyed on the learner whose secret was just checked — unforgeable,
+  // because a caller cannot name a profile it cannot prove. A signed-out visitor
+  // is keyed on the source address when the deployment declares an ingress, and
+  // on nothing otherwise; the PROCESS-wide counter is the part no caller can
+  // route around, and it is soft (it paces, it never refuses) so that a flood
+  // cannot be used to make the tutor unavailable to everyone.
+  await pace(AI_PROCESS_KEY, AI_PER_PROCESS);
+  const aiGate = await pace(
+    learnerLimitKey("ai", profile?.profile.id ?? null) ?? ingressLimitKey("ai", req),
+    AI_PER_LEARNER,
+  );
+  if (aiGate) return aiGate;
+
   const board = profile?.profile.board as BoardId | undefined;
   // The same grounding the tutor gets, read from this learner's projection:
   // an explanation written for the step they are actually on, not for the

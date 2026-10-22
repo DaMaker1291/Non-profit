@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
-import { updateProfile } from "@/lib/server/store";
+// The learner transaction, through the port-facing door (lib/server/transaction.ts):
+// a sitting's model write and the ledger events it rests on are ONE unit.
+import { withLearnerState } from "@/lib/server/transaction";
 import { buildResult, certaintyTally, currentConcept, gradeAnswer, markObservedConcepts, newDiagnosticSession, nextQuestion, plannedQuestions } from "@/lib/diagnostic";
 import { serveView } from "@/lib/questions";
 import { applyTerminology, specForProfile } from "@/lib/specifications";
 import { EVIDENCE_SCHEMA_VERSION, answerEvidence, newEvidenceId, type Certainty, type EvidenceEvent } from "@/lib/evidence";
-import { appendEvidence } from "@/lib/server/evidence";
-import { commitAndProject } from "@/lib/server/projection";
+import { commitAndProjectIn } from "@/lib/server/projection";
 // A store that cannot keep this write answers 503 with its reason — never a 500.
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
+import { authorisedProfile } from "@/lib/server/auth";
+import { checkPresentedSecret, classroomSessionFor } from "@/lib/server/capability";
+import { learnerLimitKey, pace } from "@/lib/server/limits";
+import { DIAGNOSTIC_PER_LEARNER } from "@/lib/server/rate-limit";
 import type { ProfileState, Question, SubjectId } from "@/lib/types";
 
 /** The request's subject, checked against the same list the router validates
@@ -19,16 +24,6 @@ function subjectOf(raw: unknown): SubjectId | null {
 
 const VALID_SUBJECTS = ["maths", "physics", "chemistry", "biology", "computing"];
 const VALID_KINDS = ["baseline", "retest", "probe"];
-
-/** Capability check (audit P0-E): every authenticated action presents the
- *  profile's secret. Legacy profiles (created before secrets) bind the first
- *  presented secret; after that the binding is immutable. Throws so the
- *  outer catch turns a wrong token into a 400 rather than a silent write. */
-function checkSecret(state: ProfileState, presented: unknown): void {
-  if (typeof presented !== "string" || !presented) throw new Error("unauthorized");
-  if (!state.secret) { state.secret = presented; return; }
-  if (state.secret !== presented) throw new Error("unauthorized");
-}
 
 // Diagnostic sessions live on the profile under `${subject}:session` (one live
 // session per subject); completed runs land in state.diagnostics under
@@ -65,6 +60,21 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!body?.id || !body?.action || typeof body.subject !== "string" || !VALID_SUBJECTS.includes(body.subject)) {
       return NextResponse.json({ error: "bad request" }, { status: 400 });
     }
+
+    // A sitting is cheap per action but long overall, and every action rewrites
+    // the learner's record. The ladder bounds what an honest client can ask for;
+    // this bounds a client that ignores the ladder. Keyed on the learner the
+    // caller proves, so it can never be another learner's budget.
+    const sitter = await authorisedProfile(req, body.id, body.secret ?? null);
+    if (!sitter) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    // WHICH KIND of credential this is, resolved once on the request thread: a
+    // classroom session belongs to the learner it was minted for and to nobody
+    // else, and it is never bound as their capability (lib/server/capability.ts
+    // #checkPresentedSecret). Without this a provisioned learner was let into the
+    // route and then refused by every mutator inside it.
+    const kioskFor = await classroomSessionFor(body.id, body.secret ?? null);
+    const diagnosticGate = await pace(learnerLimitKey("diagnostic", sitter.profile.id), DIAGNOSTIC_PER_LEARNER);
+    if (diagnosticGate) return diagnosticGate;
     // Audit P0-B: only an explicitly-declared benchmark kind may use it. The
     // start action carries the requested kind; answer/skip/finish actions
     // reuse the kind already recorded on the live session.
@@ -95,8 +105,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     };
 
     if (body.action === "start") {
-      const upd = await updateProfile(body.id, (state: ProfileState) => {
-        checkSecret(state, body.secret);
+      const upd = await withLearnerState(body.id, (_ctx, state: ProfileState) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
         // Test-hook reveal for the E2E suite (non-production only).
         const reveal = body.reveal === true && process.env.NODE_ENV !== "production";
 
@@ -173,18 +183,22 @@ export async function POST(req: Request): Promise<NextResponse> {
     const isSkip = body.action === "skip";
     const isFinish = body.action === "finish";
 
-    // Evidence collected during this request, appended to the ledger after the
-    // profile write resolves (outside the lock). A diagnostic answer is
-    // MEASUREMENT, which is why its source is "diagnostic": the learner model
-    // may teach from practice, but only measurement can show change.
+    // Evidence collected during this request, appended to the ledger INSIDE the
+    // learner transaction (`ctx.appendEvents` below) rather than after the
+    // response: the event belongs to the same unit as the sitting it is detail
+    // for, and a ledger write resolved from the port would open a second
+    // connection beside the one holding this learner's lock (§14.1 of
+    // docs/STORAGE_SPEC.md). A diagnostic answer is MEASUREMENT, which is why
+    // its source is "diagnostic": the learner model may teach from practice,
+    // but only measurement can show change.
     //
     // The FINISH action is different and no longer uses this list: the sitting
     // folds into the model as one event, so its event is written and
-    // confirmed INSIDE the lock, before the projection (see below).
+    // confirmed inside the transaction, before the projection (see below).
     const pending: EvidenceEvent[] = [];
 
-    const upd = await updateProfile(body.id, async (state: ProfileState) => {
-      checkSecret(state, body.secret);
+    const upd = await withLearnerState(body.id, async (ctx, state: ProfileState) => {
+      checkPresentedSecret(state, body.secret, kioskFor);
       const session = (state as unknown as Record<string, unknown>)[sessionKey] as DiagnosticSession | undefined;
 
       // Each run owns its own timestamped bucket; nothing here can overwrite
@@ -242,7 +256,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         // DETAIL: they must not be folded here as well, or every diagnostic
         // answer would count twice. See lib/replay.ts's header.
         try {
-          await commitAndProject(body.id, state, [sitting]);
+          await commitAndProjectIn(ctx, state, [sitting]);
         } catch {
           return { error: "evidence_not_recorded" as const };
         }
@@ -297,6 +311,13 @@ export async function POST(req: Request): Promise<NextResponse> {
           hints: 0,
           certainty,
         }));
+        // The answer's own event, on the TRANSACTION's connection. A failure is
+        // tolerated exactly as it was when this append lived after the response:
+        // the sitting is recorded in the profile either way, and `reconcile()`
+        // reports the gap rather than the sitting being lost to it.
+        try {
+          await ctx.appendEvents(pending);
+        } catch { /* the sitting stands; the ledger gap is reported, not hidden */ }
         const nextQ = nextQuestion(session);
         session.lastQ = nextQ;
         spend(state, nextQ);
@@ -327,16 +348,6 @@ export async function POST(req: Request): Promise<NextResponse> {
         { error: r.error },
         { status: r.error === "evidence_not_recorded" ? 503 : 400 },
       );
-    }
-    // Only a successful, un-errored request contributes evidence. A rejected
-    // request (stale question, bad choice, wrong secret) observed nothing.
-    if (pending.length) {
-      try {
-        await appendEvidence(body.id, pending);
-      } catch {
-        // The answer is already recorded in the profile; a ledger failure must
-        // not fail the sitting. reconcile() reports the gap.
-      }
     }
     return NextResponse.json(r);
   } catch (e) {

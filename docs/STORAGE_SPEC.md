@@ -1,11 +1,13 @@
 # Storage layer — spec and test plan
 
-**Status: IN PROGRESS.** Slices 0, 1 and 2 are implemented and committed (the
-store's single lock table and data-directory resolver; the port with the file
-backend behind it; the conformance suite, five failure cases and the
-`storage-check` gate — the failure cases found and fixed a **silent data-loss
-defect** in the ledger's append, §4). Everything
-else below is still specified rather than built, and says so. Every acceptance
+**Status: IN PROGRESS.** Slices 0–3 are implemented (the store's single lock
+table and data-directory resolver; the port with the file backend behind it; the
+conformance suite, five failure cases and the `storage-check` gate — the failure
+cases found and fixed a **silent data-loss defect** in the ledger's append, §4;
+the ledger behind a facade (3a); and 3b — `withLearner`/`withLearnerState` on the
+port with the state-only mutator deleted, and ACCOUNTS moved off
+`lib/server/auth.ts`'s private `accounts.json` onto ten port operations). Slice 4,
+the Postgres backend, is specified rather than built, and says so. Every acceptance
 criterion names the command that proves it, so "implemented" is a claim a reviewer
 can check instead of take on trust.
 
@@ -26,8 +28,8 @@ hour. The first draft of this table was, in fact, wrong in four places.
 
 | Thing | Where | Measured |
 |---|---|---|
-| The file store | `lib/server/store.ts` | 381 lines, **33 export statements** (27 async functions, 3 sync, `DATA_DIR` and `locks`, and one re-export) |
-| Call sites | **20** files under `app/api/**` import from `@/lib/server/store` | `progress` alone calls `updateProfile` **8 times** |
+| The file store | `lib/server/store.ts` | 381 lines, **33 export statements** (27 async functions, 3 sync, `DATA_DIR` and `locks`, and one re-export) — see §14.1 for the shape after phase C, which replaced `updateProfile` with `withLearnerState` |
+| Call sites | **20** files under `app/api/**` import from `@/lib/server/store` | `progress` alone called `updateProfile` **8 times**; after phase C no route names it at all |
 | Data files | the store, the ledger, accounts, erasures, interventions | **10 JSON files**, plus `<data>/evidence/*.jsonl` (one ledger per learner) and `session-secret` |
 | The lock primitive | `lib/server/store.ts:31` **and** `lib/server/auth.ts:80` | **two independent lock tables** |
 | The data directory | `store.ts:22`, `auth.ts:20`, `app/api/hub-status/route.ts:6` | **three resolvers** of `OPENMIND_DATA_DIR` |
@@ -564,32 +566,47 @@ treats as unacceptable:
 
 **REMAINING, in order, because each is a prerequisite of the next.**
 
-1. **Slice 3b, the rest of the write path.** `withLearner` on the port (§3 Q1:
-   open one learner's durable unit, stage events, stage the projection, so a
-   backend can do all three in one transaction), and `lib/server/store.ts` itself
-   onto the port — profiles, classes, rooms, packs, papers, personal papers and
-   `ai_cache` are still reached by their routes through the store's own functions.
-   **The ledger is the half that has migrated**; the profile half is what 3b is.
-   `OPENMIND_STORE=postgres` must therefore stay **REFUSED**, and that is not a
-   precaution: with the profile on the file store and the ledger on a database, a
-   learner's record would live in two places at once — precisely the split this
-   whole line exists to prevent. The refusal is what makes that unconfigurable.
-2. **Accounts off `lib/server/auth.ts`'s private `accounts.json`** (§1 names it as
-   the one data file outside the port, and 0006 has now given it a table).
-3. **`lib/server/storage-postgres.ts`**: profiles (payload + typed columns +
+1. **LANDED (slice 3b, the write path).** `withLearner` and its record-shaped
+   specialisation `withLearnerState` are on the port, and the file backend answers
+   them with the store's own read-modify-write rather than a second
+   implementation; `updateProfile` — the mutator that could only take the record —
+   was DELETED, because a mutator that cannot see the transaction appends its
+   evidence by resolving the port and deadlocks against the lock it holds on a
+   database backend. The conformance suite drives the transaction through the port.
+2. **LANDED (slice 3b, identity).** Accounts are on the port: ten semantic
+   operations (`getAccount`, `findAccountByEmail`, `accountOwningProfile`,
+   `countAccounts`, `createAccount`, `setAccountProfile`, `touchAccount`,
+   `updateAccount`, `setPassword`, `revokeSessions`), implemented by the file
+   backend and by nothing else. `lib/server/auth.ts` no longer reads or writes
+   `accounts.json` — it holds authentication (hashing, the signed session, the
+   cookie, the epoch check) and asks `activeStorage()` for the identity facts, the
+   same facade shape as `lib/server/evidence.ts`. Two writers for one file, and two
+   declarations of `Account`/`AccountRole` (one of which the client could not see),
+   are gone with it; the conformance suite holds a second backend to the semantics,
+   including that a duplicate address is refused INSIDE the write and that sign-out
+   is an epoch bump. Account writes pass the `"identity"` write purpose, so a
+   learner can always sign out on a deployment whose store has refused records.
+3. **The routes' own store calls (the rest of the profile stage).** `saveProfile`
+   still has callers under `app/` (signup's create path, `profile`'s legacy
+   capability bind and field patch) and `getProfile` is read by six doors, all
+   through `lib/server/store.ts` rather than through the port. Until those move,
+   `OPENMIND_STORE=postgres` must stay **REFUSED**, and that is not a precaution:
+   on a second backend those doors would read a store the configured backend never
+   wrote — precisely the split this whole line exists to prevent.
+4. **`lib/server/storage-postgres.ts`**: profiles (payload + typed columns +
    `learner_projections`), `evidence_events` (idempotent append, clock-ordered
    read), classes/members, rooms, packs, papers, personal papers, ai_cache,
    erasures, interventions, store_boots. A backend must be added to
    `scripts/storage-conformance.mjs` — never given a second suite (§6).
-4. **`resolveStoreKind` accepts `postgres`** — only with a configured database,
+5. **`resolveStoreKind` accepts `postgres`** — only with a configured database,
    and only once 1–3 make it true; `/api/ready` reports the kind, reachability,
    the schema version and the boot record.
-5. **The conformance PG half** against a scratch schema, and the second `verify`
+6. **The conformance PG half** against a scratch schema, and the second `verify`
    run with the §6 failure-list compare. This is the parity evidence, and it is
    what turns "a second backend exists" into "a second backend is interchangeable".
-6. **`scripts/storage-import.mjs`** and the §7 drills (import → verify → flip →
+7. **`scripts/storage-import.mjs`** and the §7 drills (import → verify → flip →
    rollback), after which `.env.example`'s "NOT SERVABLE YET" note comes out.
-7. **Docs**: re-check §5's mapping table against the backend AS WRITTEN (0006 is
+8. **Docs**: re-check §5's mapping table against the backend AS WRITTEN (0006 is
    what that check produced when it was done for the schema), re-measure §9's
    acceptance list, and update `docs/OPERATIONS.md` (backing up a database
    deployment) and `docs/DATA_GOVERNANCE.md` (§5.3's erasure decision, now that
@@ -601,7 +618,7 @@ us is `docs/DEPLOYMENT.md` §5.1 — including the free path that DOES keep data
 (a host with a real disk), because the honest answer to "can I run this free" is
 not "wait for slice 4".
 
-## 13 · Slice 3b inventory: the store's operations, classified (PHASE A, no code yet)
+## 13 · Slice 3b inventory: the store's operations, classified (the inventory 3b was built from)
 
 Written BEFORE any adapter, because the adapter is not a translation of file
 operations into SQL. Two of the four findings below are defects in the code as it
@@ -798,13 +815,23 @@ Three properties, and the third is the one a caller must be able to rely on:
    does not move", never "the ledger rewinds". A database backend can roll both
    back; a caller must be correct under the weaker of the two.
 
-`updateProfile` — the 24 call sites' entry point — is now a SPECIALISATION of
-`withLearner`, not a second read-modify-write, so the two cannot drift into
-disagreeing about what a serialised write means. And `commitAndProjectIn(ctx, state,
-events)` in `lib/server/projection.ts` is the write path for a caller already inside
-a transaction: the same four steps (WRITE EVENT → CONFIRM APPEND → REPLAY → RESPOND),
-sharing ONE implementation with `commitAndProject` so they cannot disagree about, say,
-which mark the replay folds from.
+`withLearnerState(id, (ctx, state) => …)` is the record-shaped SPECIALISATION of
+`withLearner` — open the record, refuse when there is none, run the mutator, stage the
+record back — and the context is the mutator's FIRST argument, so a mutator that
+needs the transaction has to name it. The state-only `updateProfile` that phase B
+kept for its 24 call sites **no longer exists** (phase C, §14.5): with the routes
+migrated, a mutator that cannot see the context had no remaining caller, and the
+shape it allowed — resolve the port for the ledger write while holding the
+learner's lock — is the deadlock §14.1 exists to prevent. It is now
+unrepresentable rather than unimported.
+
+And `commitAndProjectIn(ctx, state, events)` in `lib/server/projection.ts` is the
+write path for a caller already inside a transaction: the same four steps (WRITE
+EVENT → CONFIRM APPEND → REPLAY → RESPOND), sharing ONE implementation with
+`commitAndProject` so they cannot disagree about, say, which mark the replay folds
+from. An event the fold deliberately IGNORES (the hint action log, a diagnostic
+sitting's per-answer detail) is appended with `ctx.appendEvents` instead: it needs
+the transaction's connection and has nothing to re-project.
 
 **Acceptance, driven.** `npm run verify` runs four concurrent transactions on one
 learner and requires every event to land AND the record to account for each one (no
@@ -875,16 +902,56 @@ case, and a source assertion that the erase route cannot drift back to three cal
 ### 14.4 · What this does NOT do, stated rather than implied
 
 - **`OPENMIND_STORE=postgres` is still REFUSED at startup.** What landed is the
-  contract and the erasure. The PROFILE half of the port still resolves to the file
-  store's own functions, and `accounts.json` is still outside the port
-  (`lib/server/auth.ts`). A profile on one store and a ledger on another is one
-  learner's record in two places — the split this refusal exists to prevent.
-- **Phase C has not happened.** The contract exists, and the erasure path and the
-  suites use it; the ~25 route call sites still pass a mutator that takes `state`
-  alone, so `commitAndProject` (port-resolved) serves them. On the file backend that is
-  correct precisely because a file store has no second connection to open — on a
-  database backend it is the deadlock §14.1 describes, which is why that migration is a
-  named prerequisite of slice 4 rather than a cleanup.
+  contract, the erasure, the write path and identity. The remaining reason is
+  narrower than it was and easy to lose: a few ROUTES still read and write a
+  learner's record through `lib/server/store.ts`'s own functions instead of through
+  the port (`saveProfile` in signup's create path and in `app/api/profile`, and
+  `getProfile` behind six doors). On a second backend those would read a store the
+  configured backend never wrote — one learner's record in two places, the split
+  this refusal exists to prevent. Accounts are no longer part of that list:
+  `lib/server/auth.ts` holds no storage, and `accounts.json` is reached only by the
+  file backend behind the port.
+- **Phase C HAS happened, and this is what it moved.** Every route that reads or
+  writes a learner's record now opens a transaction through
+  `lib/server/transaction.ts` — the port-facing door, so a deployment configured for
+  another backend is answered by it — and every evidence operation belonging to that
+  unit goes through the context: `commitAndProjectIn(ctx, …)` for a graded event,
+  `ctx.appendEvents(…)` for the two the fold ignores, `ctx.readEvents()` for the
+  session route's baseline ledger reads (which used to resolve the port INSIDE the
+  lock — the exact second-connection hazard). Twelve call sites across six routes:
+  `progress` (8), `diagnostic` (2), `evidence`, `my-paper`, `paper`, `session` (2).
+  The state-only `updateProfile` was deleted rather than left as a convenience, and
+  five claims are asserted in `npm run verify`: no file under `app/` names
+  `updateProfile`, `appendEvidence` or the port-resolved `commitAndProject`; every
+  route that opens a transaction imports it from the transaction door; each of the six
+  routes still opens one; and — at the BOUNDARY, with the port replaced by a backend
+  that REFUSES the ledger methods — a whole transaction (read the record, read the
+  ledger, append, re-project, stage) still succeeds while a mutator that resolves the
+  port for its own write hits the refusal. `npm run storage-check` drives the same
+  contract through the port, so a second backend inherits the cases rather than a
+  promise.
+- **What phase C did NOT move, measured rather than described, because it is the
+  NEXT stage and not an oversight.** (Since 3b, accounts are out of this list: the
+  ten identity operations are on the port and `auth.ts` writes no file.) One learner's RECORD is still read and written
+  through `lib/server/store.ts`'s own functions wherever a route is not inside a
+  transaction: `saveProfile` has **five** callers under `app/` —
+  `app/api/auth/signup` (the create path, twice) and `app/api/profile` (the legacy
+  capability-secret binding inside `authorize`, which a **GET** can trigger; the
+  create path; and the field-patch write) — and `getProfile` is read by six doors
+  (`profile`, `evidence`, `evidence-summary`, `my-data`, `packs`, `auth/claim`) plus
+  `my-paper`'s dynamic import. Phase C moved the WRITE UNITS (the evidence-bearing
+  transactions); leaving the profile door itself on the file backend is exactly why
+  `OPENMIND_STORE=postgres` still refuses, and moving it is the profile stage of the
+  plan, not a leftover. Accounts are NOT on this list any more: since 3b the ten
+  identity operations are on the port and `lib/server/auth.ts` holds no storage at
+  all, so `accounts.json` has exactly one writer — the file backend — which is the
+  defect (two writers, two lock tables, two `OPENMIND_DATA_DIR` resolvers) the
+  account stage existed to remove. `lib/server/interventions.ts` remains the one
+  named lib exception to "a route does not name a store file", `app/api/ready`
+  writes its own
+  `.ready-…` probe into the data directory and names no record (an argument the F-1
+  guard already makes, and it is why the guard is absolute rather than an allow-list),
+  and `ai-cache.json` is the one declared file-backed exemption.
 - **Atomicity across a file-backed boundary is not claimed.** The file backend stages
   the record and cannot unlink-and-rewrite atomically; the workflow's guarantee is
   RESUMABILITY, and a comment claiming more would be the kind of promise §14.2 exists
@@ -892,3 +959,53 @@ case, and a source assertion that the erase route cannot drift back to three cal
 - **`ai-cache.json` remains the single declared exception** (§13.2), and it must not
   quietly stop being the only one: a second file-backed durable record is what the
   refuse-to-start rule is for.
+
+### 14.5 · F-5, found BY phase C: a model BEHIND its ledger was frozen as pre-ledger
+history
+
+Phase C's own test — a transaction whose append succeeded and whose staged record
+write did not — produced a state no earlier case had built: the ledger contains an
+answer the model has never folded. That is not a hypothetical: the ordering
+(WRITE EVENT → CONFIRM APPEND → REPLAY → RESPOND) means the append lands first and
+`writeJson` runs after, so a full disk, a refused store or a killed process leaves
+exactly it. §14.1 states the resulting promise as *"the record does not move"*, never
+*"the ledger rewinds"* — and the projection is what is supposed to make the standing
+event count.
+
+It did not. `ensureProjectionBase` decided "is this learner's model un-ledgered
+history?" by asking whether the ledger's replay DIFFERED from the model, which is
+true in BOTH directions. A model that was behind therefore got a pre-ledger snapshot
+whose `ledgerMark` was the whole ledger, and the fold then skipped the very answer
+that was on it. Measured on the compiled engines, by disabling the fix and re-running
+the same scenario:
+
+| | with the fix | with the directional test disabled |
+|---|---|---|
+| the next transaction | folds the stranded answer (`attempts` 3) | leaves it out (`attempts` 2) |
+| `projectionBase` | absent | **stamped** |
+| `unprojectableShare` | `null` | `{ concepts: 1, attempts: 1, at: 3000 }` |
+
+The last row is the worse half: the learner is told, on their own evidence screen,
+that an answer they DID record predates the ledger — a false disclosure about their
+record, produced by the code that exists to disclose honestly. The answer itself was
+not lost (the ledger is append-only and it is there), but it was permanently absent
+from the model that teaches them.
+
+**The fix is a direction, not a different threshold.** `ensureProjectionBase` now
+stamps the snapshot only when the model holds recorded work the ledger cannot count —
+and measures that on the MONOTONE fields alone (`attempts`, `correct`,
+`independent.`, `transfer.`, `retention.`, `ms`, `answers`, `misconception.`). The
+derived ones are excluded deliberately: `accuracy` (2 of 2 is 100%), `streak`,
+`mastery` and `lastSeen` can all sit ABOVE the full model's value on a partial
+ledger, so a "greater than" test on them would conclude that a learner with real
+pre-ledger history holds nothing the ledger cannot count — and the snapshot that
+preserves their work would never be taken. When the divergence runs the other way
+the ledger is the more complete account and the projection is simply allowed to
+repair the model.
+
+Both directions are asserted as a PAIR in `npm run verify` and again in
+`npm run storage-check`, because a rule that stamps a snapshot for either direction
+is as wrong as one that stamps it for neither: the same measurement is run on a
+learner who worked before the ledger existed (snapshot taken, 3 pre-ledger answers
+kept) and on a learner whose record is one answer behind (no snapshot, work folded,
+no disclosure).

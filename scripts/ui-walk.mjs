@@ -3,23 +3,27 @@
 // THE UI WALK — a real browser, driving the real wizard.
 //
 // WHY THIS EXISTS. Every pass of this campaign verified the middle of the
-// enrolment wizard — country, year group, subjects, qualification, tier,
-// language — by READING THE DOM, never by clicking it, because the controls are
-// native `<select>`s and React rejects a synthetic `change` event: dispatch one
-// and the select shows the new value while the component's state stays put, so
-// the wizard does not move. That is an instrumentation limit, and it left the
-// exact steps nobody had driven as the exact steps nobody had verified. A pin
-// that cannot touch the control it guards is not a gate.
+// enrolment wizard — country, subjects, qualification, tier, language — by
+// READING THE DOM, never by clicking it, because the controls are native
+// `<select>`s and React rejects a synthetic `change` event: dispatch one and the
+// select shows the new value while the component's state stays put, so the
+// wizard does not move. That is an instrumentation limit, and it left the exact
+// steps nobody had driven as the exact steps nobody had verified. A pin that
+// cannot touch the control it guards is not a gate.
 //
 // WHAT IT DOES INSTEAD. It drives Chrome through the DevTools Protocol with
 // REAL input events — trusted mouse clicks and real key presses — so the
 // browser's own event pipeline fires the `change` React is listening for. No
 // dependency is added: Chrome and Node's global WebSocket are enough.
 //
-// WHAT IT PROVES. A fresh learner (empty browser storage, no account) can walk
-// from country to goal through the interface alone, every step's `Next` is
-// enabled only when the step is actually answered, and the profile the SERVER
-// stored matches what the screen said it would.
+// WHAT IT PROVES. A fresh learner (empty browser storage, no account) can enrol
+// in THREE screens — an account (or an honest "not yet"), where they are and
+// what they read, and what they study — and nothing else is asked at the door.
+// The course, the year group and the preferences are then driven on the pages
+// that own them (`/curriculum`, `/access`), because that is where a learner can
+// answer them with something to go on. Every step's `Next` is enabled only when
+// the step is answered, and the profile the SERVER stored matches what the
+// screens said it would.
 //
 // HOW IT DRIVES A SELECT. Chromium's own behaviour: a focused `<select>`
 // responds to a typed character by jumping to the matching option, and repeating
@@ -61,19 +65,15 @@ function nextAppHelpers(base, send) {
   // choice labels (checkbox/radio) have no span, so their trimmed text is theirs.
   const labelWith = (text) => `[...document.querySelectorAll("main label")].find(l => { const span = l.querySelector(":scope > span"); const own = span ? span.textContent.trim() : (l.textContent || "").trim(); return own === ${JSON.stringify(text)}; })`;
   const selectUnder = (labelText) => `${labelWith(labelText)}?.querySelector("select")`;
-  /**
-   * The nth select under a field label — one per declared subject, in the order
-   * the learner declared them. "A course per subject" is only true if each
-   * subject has its OWN control, so the walk addresses them by position.
-   */
-  const selectUnderNth = (labelText, n) =>
-    `[...document.querySelectorAll("main label")].filter(l => { const s = l.querySelector(":scope > span"); return s && s.textContent.trim() === ${JSON.stringify(labelText)}; })[${n}]?.querySelector("select")`;
   const buttonMatching = (re) => `[...document.querySelectorAll("main button")].find(b => ${re}.test(b.textContent || ""))`;
 
   /** This walk's name for the shared select driver. */
   const pick = (selectExpr, wanted, what, settle) => pickOption(selectExpr, wanted, what, settle);
 
-  const stepCounter = () => evaluate(`return (document.querySelector("main")?.innerText || "").match(/Step \\d+ of \\d+/)?.[0] ?? null;`);
+  // The counter is written `Step 2/3` on the page. Matched loosely and compared
+  // EXACTLY, because a loose match is how the old walk kept a step counter it
+  // never asserted.
+  const stepCounter = () => evaluate(`return (document.querySelector("main")?.innerText || "").match(/Step \\d+\\s*\\/\\s*\\d+/)?.[0] ?? null;`);
 
   const nextButton = buttonMatching('/(Next|Start learning)/');
   const clickNext = async (what) => {
@@ -83,7 +83,7 @@ function nextAppHelpers(base, send) {
     await clickExpr(nextButton, `the button that advances ${what}`);
   };
 
-  return { pick, stepCounter, clickNext, labelWith, selectUnder, selectUnderNth, buttonMatching };
+  return { pick, stepCounter, clickNext, labelWith, selectUnder, buttonMatching };
 }
 
 // ── The walk ────────────────────────────────────────────────────────────────
@@ -111,7 +111,8 @@ async function main() {
     const opened = await p.evaluate(`return { h1: document.querySelector("main h1").textContent.trim(), step: (document.querySelector("main").innerText.match(/Step \\d+\\s*\\/\\s*\\d+/) || [null])[0] };`);
     check(opened.h1 === "Create your account",
       `a learner with no account and no history is asked to create one, not to sign in ("${opened.h1}")`);
-    check(/^Step \d+\s*\/\s*\d+$/.test(opened.step ?? ""), `and the wizard says where they are (${opened.step})`);
+    check(/^Step 1\s*\/\s*3$/.test(opened.step ?? ""),
+      `and the wizard says where they are — the first of THREE screens, not six (${opened.step})`);
 
     // ── Step 1: the account choice, by real click on the label ──────────────
     await p.clickExpr(p.labelWith("Continue without an account"), "the continue-without-an-account choice");
@@ -120,124 +121,20 @@ async function main() {
     check(guest.next === false, "and the step can be completed without inventing an account");
     await p.clickNext("the account step");
 
-    // ── Step 2: country and year group — two native selects ─────────────────
-    section("Country and year group, driven through the select itself");
+    // ── Step 2: where they are and what they read — all of it ───────────────
+    section("Where they are and what they read");
     await p.waitFor(`return !!${p.selectUnder("Where you are")};`, "the country select");
     const step2 = await p.stepCounter();
+    check(/^Step 2\s*\/\s*3$/.test(step2 ?? ""), `the second of three screens (${step2})`);
     await p.typeInto(`document.querySelector("main input[type=text]")`, "walk_learner", "the display-name field");
     const countryText = await p.pick(p.selectUnder("Where you are"), "GB", "country");
-    check(countryText === "United Kingdom" || /United Kingdom/.test(countryText), `the country is chosen by keystroke alone (${countryText})`);
-    await p.waitFor(`return [...(${p.selectUnder("Your grade level")}?.options ?? [])].some(o => o.value === "Year 10");`, "the country's year groups to appear");
-    const gradeText = await p.pick(p.selectUnder("Your grade level"), "Year 10", "year group");
-    check(await p.valueOf(p.selectUnder("Your grade level")) === "Year 10", `and the year group follows from that country (${gradeText})`);
-    await p.clickNext("the country step");
-
-    // ── Step 3: subjects — checkboxes and a radio group ─────────────────────
-    section("Subjects and daily time");
-    await p.waitFor(`return !!${p.labelWith("Physics")};`, "the subject choices");
-    await p.clickExpr(`${p.labelWith("Physics")}?.querySelector("input")`, "the Physics subject");
-    await p.clickExpr(`${p.labelWith("30 min")}?.querySelector("input")`, "30 minutes a day");
-    const subjects = await p.evaluate(`return [...document.querySelectorAll("main input[type=checkbox]")].filter(i => i.checked).map(i => (i.closest("label")?.textContent || "").trim());`);
-    check(subjects.some((s) => /Physics/.test(s)), `a second subject can be added (${subjects.join(", ")})`);
-    check(await p.evaluate(`return ${p.labelWith("30 min")}?.className.includes("on") ?? false;`), "and the daily-time choice registers");
-    await p.clickNext("the subjects step");
-
-    // ── Step 4: one course per subject — the selects the harness could not touch
-    section("A course per subject: qualification and tier");
-    const qual = (n) => p.selectUnderNth("Qualification", n);
-    const level = (n) => p.selectUnderNth("Level", n);
-    await p.waitFor(`return !!${qual(0)};`, "the first subject's qualification select");
-
-    const controls = await p.evaluate(`return [...document.querySelectorAll("main label")].filter(l => { const s = l.querySelector(":scope > span"); return s && s.textContent.trim() === "Qualification"; }).length;`);
-    check(controls === 2, `each of the two declared subjects gets its OWN qualification control (${controls})`);
-    check(await p.valueOf(qual(1)) === "", "and the second subject starts unchosen rather than inheriting the first one's course");
-
-    const courseInfo = await p.evaluate(`const s = ${qual(0)}; return { options: [...s.options].map(o => ({ value: o.value, text: (o.textContent || "").trim() })) };`);
-    const gbSpec = courseInfo.options.find((o) => o.value.includes("gcse"))?.value
-      ?? courseInfo.options.find((o) => o.value)?.value;
-    check(Boolean(gbSpec), `the country's qualifications are offered for the first subject (${courseInfo.options.filter((o) => o.value).map((o) => o.value).join(", ")})`);
-    const specText = await p.pick(qual(0), gbSpec, "the first subject's qualification");
-    check(await p.valueOf(qual(0)) === gbSpec, `the qualification is chosen by keystroke (${specText})`);
-
-    // ── HOW FAR HAS THIS COURSE'S SYLLABUS MAPPING BEEN CHECKED? ────────────
-    // The learner is told, in the same breath as the course, and the sentence
-    // follows the RECORD rather than the route's existence: 20 pathways have no
-    // structural source on file and none has a reviewed mapping, so the honest
-    // line is the pending one. The engines suite pins the registry half of this
-    // rule (the label is a function of `mappingReview`, and no language gives two
-    // states the same sentence); this is the half a learner can actually see.
-    const mapping = await p.evaluate(`return [...document.querySelectorAll("main p")].map((el) => el.textContent.trim()).filter((t) => /^Syllabus mapping/i.test(t));`);
-    check(mapping.length === 1,
-      `the course says how far its syllabus mapping has been checked (${mapping.length === 1 ? `one line` : `${mapping.length} lines`})`);
-    check(mapping.every((line) => /not yet reviewed/i.test(line)),
-      `and it states the UNREVIEWED state rather than claiming a review nobody has done ("${mapping[0] ?? "no line at all"}")`);
-
-    // THE TIER IS THE LEARNER'S OWN CHOICE. Choosing a tiered qualification
-    // must NOT quietly enrol them at the qualification's first tier. Measured
-    // live, the select arrived with `levels[0]` (GCSE Foundation) already
-    // selected, so a Higher candidate was served — and taught — at Foundation
-    // depth without ever making that choice. The placeholder is the field
-    // saying so, and the gap line names the tier it is waiting for.
-    await p.waitFor(`return !!${level(0)};`, "the tier select to appear with the qualification");
-
-    check(await p.valueOf(level(0)) === "", "choosing a tiered qualification leaves the tier UNCHOSEN rather than defaulting to its first one");
-    // The mapping sentence is about the COURSE, so it is still on screen once the
-    // tier question appears — it must not be a splash that the next field erases.
-    check(await p.evaluate(`return [...document.querySelectorAll("main p")].some((el) => /^Syllabus mapping/i.test(el.textContent.trim()));`),
-      "and the mapping line survives the fields that follow it");
-    const missingTier = await p.evaluate(`return (document.querySelector("main").innerText.match(/Mathematics · needs: [^\\n]+/) || [null])[0];`);
-    check(/Level/.test(missingTier ?? ""), `and the step names the tier it is waiting for (${missingTier})`);
-
-    // The tier options must belong to THAT qualification.
-    const tiers = await p.evaluate(`return [...${level(0)}.options].map(o => o.value).filter(Boolean);`);
-    const tier = tiers.includes("foundation") ? "foundation" : tiers[0];
-    check(Boolean(tier), `the qualification's tiers are offered (${tiers.join(", ")})`);
-    await p.pick(level(0), tier, "the first subject's tier");
-    check(await p.valueOf(level(0)) === tier, `and the tier belongs to it (${tier})`);
-
-    // THE GATE, WHILE IT IS STILL CLOSED. One course per subject means a
-    // half-configured learner must not be able to continue — and the screen has
-    // to say which subject it is waiting for AND which part of the course is
-    // missing. "needs a course" named neither the field nor a way out: a learner
-    // whose year group was never set read it, chose a qualification and a tier,
-    // and `Next` stayed dead with nothing left on the screen to change.
-    const refused = await p.evaluate(`const b = ${p.buttonMatching('/(Next|Start learning)/')}; return { disabled: b ? b.disabled : null, why: (document.querySelector("main").innerText.match(/(Mathematics|Physics) · needs: [^\\n]+/) || [null])[0] };`);
-    check(refused.disabled === true, "with the second subject's course still unchosen the step refuses to continue");
-    check(Boolean(refused.why), `and it names the subject it is waiting for, with the field it is missing (${refused.why})`);
-    check(/Qualification/.test(refused.why ?? ""), "and the field it names is the one that is actually missing");
-
-    // The second subject — its own course, chosen separately.
-    await p.pick(qual(1), gbSpec, "the second subject's qualification");
-    check(await p.valueOf(qual(1)) === gbSpec, "the second subject's course is chosen separately, not copied");
-    if (await p.evaluate(`return !!${level(1)};`)) {
-      const tiers2 = await p.evaluate(`return [...${level(1)}.options].map(o => o.value).filter(Boolean);`);
-      await p.pick(level(1), tiers2.includes("foundation") ? "foundation" : tiers2[0], "the second subject's tier");
-      check(await p.valueOf(level(1)) !== "", "and its tier is answered too");
-    }
-    const enabled = await p.evaluate(`const b = ${p.buttonMatching('/(Next|Start learning)/')}; return b ? !b.disabled : null;`);
-    check(enabled === true, "once both subjects have a course, the step opens");
-    await p.clickExpr(`${p.labelWith("AQA")}?.querySelector("input")`, "the AQA board");
-    const boardOn = await p.evaluate(`return ${p.labelWith("AQA")}?.className.includes("on") ?? false;`);
-    check(boardOn, "the exam board is a declared choice, not a default");
-    await p.clickNext("the course step");
-
-    // ── Step 5: goals ───────────────────────────────────────────────────────
-    section("Why they are learning");
-    await p.waitFor(`return !!${p.selectUnder("Main reason")};`, "the goals step");
-    await p.pick(p.selectUnder("Main reason"), "exams", "main reason");
-    check(await p.valueOf(p.selectUnder("Main reason")) === "exams", "the coarse reason is chosen (exams)");
-    await p.typeInto(`[...document.querySelectorAll("main input[type=text]")].find(i => i.value === "")`, "I want to pass my GCSE maths", "the goal field");
-    const goal = await p.valueOf(`[...document.querySelectorAll("main input[type=text]")].find(i => i.value)`);
-    check(/pass my GCSE/.test(goal ?? ""), `and their own words are recorded ("${goal}")`);
-    await p.clickNext("the goals step");
-
-    // ── Step 6: how it should talk to them — the language controls ──────────
-    section("How OpenMind should talk to them");
-    const LANG = "Language";
-    const TEACH = "Teaching language (explanations)";
-    const ANSWER = "Answer language (I reply in)";
-    const SCHOOL = "My school uses (keep terms in)";
-    await p.waitFor(`return !!${p.selectUnder(LANG)};`, "the language step");
+    check(/United Kingdom/.test(countryText), `the country is chosen by keystroke alone (${countryText})`);
+    // THE YEAR GROUP IS NOT ASKED HERE ANY MORE. It is a fact about a course the
+    // learner has not chosen yet, and the screen that asks for the course asks
+    // for it (`/curriculum`). The walk proves the deferral instead of trusting
+    // it: there is no grade control on this screen.
+    check(await p.evaluate(`return !!${p.selectUnder("Your grade level")};`) === false,
+      "the year group is not asked at sign-up, where nothing yet depends on it");
 
     // The interface language is not a preference the page merely stores: it
     // switches the page. Change it, prove the document changed with it, and put
@@ -245,8 +142,8 @@ async function main() {
     const englishH1 = await p.evaluate(`return document.querySelector("main h1").textContent.trim();`);
     // Addressed by POSITION, not by its label: one real key press re-renders the
     // page in the chosen language, so the English label this control had is gone
-    // by the time anyone looks again.
-    const LANG_SEL = '[...document.querySelectorAll("main select")][0]';
+    // by the time anyone looks again. [0] is the country, [1] the language.
+    const LANG_SEL = '[...document.querySelectorAll("main select")][1]';
     await p.pick(LANG_SEL, "fr", "interface language", 'document.documentElement.lang === "fr"');
     await p.waitFor(`return document.documentElement.lang === "fr";`, "the interface to switch language");
     const switched = await p.evaluate(`return { h1: document.querySelector("main h1").textContent.trim(), dir: document.documentElement.dir, stored: localStorage.getItem("openmind:lang") };`);
@@ -254,44 +151,132 @@ async function main() {
       `choosing the interface language switches the interface itself ("${englishH1}" → "${switched.h1}", dir ${switched.dir})`);
     await p.pick(LANG_SEL, "en", "interface language", 'document.documentElement.lang === "en"');
     await p.waitFor(`return document.documentElement.lang === "en";`, "the interface to return to English");
+    await p.clickNext("the about step");
 
-    await p.pick(p.selectUnder(TEACH), "es", "teaching language");
-    check(await p.valueOf(p.selectUnder(TEACH)) === "es", "the teaching language is chosen by keystroke (es)");
-    await p.pick(p.selectUnder(ANSWER), "fr", "answer language");
-    check(await p.valueOf(p.selectUnder(ANSWER)) === "fr", "and the language they answer in is a separate choice (fr)");
-    await p.pick(p.selectUnder(SCHOOL), "en", "school language");
-    check(await p.valueOf(p.selectUnder(SCHOOL)) === "en", "as is the language their school's terms stay in");
-    await p.clickExpr(`${p.labelWith("Local terms only")}?.querySelector("input")`, "the local-terms choice");
-    check(await p.evaluate(`return ${p.labelWith("Local terms only")}?.className.includes("on") ?? false;`), "and the terminology choice registers");
-    await p.clickNext("the last step");
+    // ── Step 3: subjects — checkboxes, and the last screen ─────────────────
+    section("What they study");
+    await p.waitFor(`return !!${p.labelWith("Physics")};`, "the subject choices");
+    const step3 = await p.stepCounter();
+    check(/^Step 3\s*\/\s*3$/.test(step3 ?? ""), `and the third screen is the last one (${step3})`);
+    await p.clickExpr(`${p.labelWith("Physics")}?.querySelector("input")`, "the Physics subject");
+    const subjects = await p.evaluate(`return [...document.querySelectorAll("main input[type=checkbox]")].filter(i => i.checked).map(i => (i.closest("label")?.textContent || "").trim());`);
+    check(subjects.some((s) => /Physics/.test(s)), `a second subject can be added (${subjects.join(", ")})`);
+    await p.clickNext("the subjects step");
 
-    // ── The walk lands, and the server has what the screen promised ─────────
-    section("Where the walk lands, and what the server stored");
-    await p.waitFor(`return location.pathname.startsWith("/diagnostic/");`, "the enrolment to finish and the diagnostic to open", 25000);
-    const landed = await p.evaluate(`return { path: location.pathname, subject: location.pathname.split("/").pop() };`);
-    check(landed.subject === "maths", `a new learner lands on the diagnostic for their first subject (${landed.path})`);
+    // ── The walk lands on the COURSE, because a course is a required field ──
+    //
+    // Enrolment collected where and what. The qualification and its tier are
+    // chosen on /curriculum — and the baseline diagnostic is a measurement OF a
+    // course, so the guard sends an enrolled, course-less learner there first
+    // rather than sampling the fallback syllabus and building every later
+    // recommendation on it. The order is therefore
+    // `onboarding → course → diagnostic → home`, and it is proven here rather
+    // than described: landing, a refused diagnostic, and a refused lesson.
+    section("Where the walk lands: the required course comes first");
+    await p.waitFor(`return location.pathname === "/curriculum";`, "the enrolment to finish and the course screen to open", 25000);
+    const landed = await p.evaluate(`return { path: location.pathname };`);
+    check(landed.path === "/curriculum", `a new learner lands on the course screen, not the diagnostic (${landed.path})`);
+    // AND THE GATE IS REAL, not a suggestion: the pages that need a course refuse
+    // an enrolled learner who has not chosen one.
+    await p.goto(`${BASE}/diagnostic/maths`);
+    await p.waitFor(`return location.pathname === "/curriculum";`, "the diagnostic to refuse a course-less learner", 20000);
+    const bounced = await p.evaluate(`return location.pathname + location.search;`);
+    check(/^\/curriculum\?return=/.test(bounced),
+      `the baseline diagnostic refuses a learner with no course, and keeps where they were going (${bounced})`);
+    await p.goto(`${BASE}/learn/maths/fractions`);
+    await p.waitFor(`return location.pathname === "/curriculum";`, "the lesson page to refuse a course-less learner", 20000);
+    check(true, "and so does the learning surface, which would otherwise be served the fallback syllabus");
 
-    // ── The very first screen a new learner meets, in their own browser ──────
-    // A sitting is adaptive, so it has no fixed length — and it used to show a
-    // bare `01.` with no total, no concept named and no exit, which reads as
-    // open-ended. The denominator is the ENGINE's estimate (it simulates the
-    // climb), the concept is named, and a learner who does not know can say so
-    // instead of guessing.
-    // The counters render only once the first question has been served, so wait
-    // for the sitting rather than reading the screen mid-fetch.
-    await p.waitFor(`return /Question \\d+ of about \\d+/.test(document.querySelector("main").innerText);`, "the sitting to serve its first question and say how long it is", 20000);
+    // ── THE COURSE IS ASKED LATER, WHERE IT CAN BE EXPLAINED ────────────────
+    // The wizard used to ask for a qualification and a tier at the end of a
+    // sign-up, which is the worst moment to ask a tired learner to name a paper
+    // they have not been taught yet — and seeding `levels[0]` enrolled them at
+    // the easier tier without their having chosen it. The course now lives on
+    // the screen whose job is changing it, and these are the claims that matter:
+    // nothing is saved that the learner did not choose, a tiered qualification
+    // arrives UNCHOSEN, and the screen names the part it is waiting for.
+    section("The course is chosen where it can be explained");
+    await p.goto(`${BASE}/curriculum`);
+    await p.waitFor(`return !!document.querySelector("#curr-spec");`, "the course screen", 20000);
+    const saveCourse = p.buttonMatching('/Save my course/');
+    const beforeChoice = await p.evaluate(`const b = ${saveCourse}; return { disabled: b ? b.disabled : null, why: (document.querySelector("main .field-error")?.textContent || "").trim() };`);
+    check(beforeChoice.disabled === true,
+      "a learner who has never chosen a course cannot save the one the page fell back to");
+    check(/Qualification|Course/i.test(beforeChoice.why), `and the screen names what is still missing (${beforeChoice.why})`);
+    const specInfo = await p.evaluate(`const s = document.querySelector("#curr-spec"); return { first: (s.options[0]?.textContent || "").trim(), value: s.value };`);
+    check(specInfo.value === "" && /Choose your qualification/i.test(specInfo.first),
+      `and the qualification control opens on a prompt, not on the fallback wearing the learner's name (${specInfo.first})`);
+
+    const courseOptions = await p.evaluate(`return [...document.querySelector("#curr-spec").options].map(o => ({ value: o.value, text: (o.textContent || "").trim() }));`);
+    const gbSpec = courseOptions.find((o) => /gcse/i.test(o.value) && /mathematics/i.test(o.text))?.value
+      ?? courseOptions.find((o) => /gcse/i.test(o.value))?.value
+      ?? courseOptions[0]?.value ?? "";
+    check(Boolean(gbSpec), `the country's qualifications are offered (${courseOptions.map((o) => o.value).join(", ")})`);
+    await p.pick(`document.querySelector("#curr-spec")`, gbSpec, "the maths qualification");
+    check(await p.valueOf(`document.querySelector("#curr-spec")`) === gbSpec, `the qualification is chosen by keystroke (${gbSpec})`);
+
+    // THE TIER IS THE LEARNER'S OWN CHOICE. Choosing a tiered qualification must
+    // NOT quietly enrol them at the qualification's first tier — measured live,
+    // the select arrived with `levels[0]` (GCSE Foundation) already selected, so
+    // a Higher candidate was served — and taught — at Foundation depth without
+    // ever making that choice.
+    await p.waitFor(`return !!document.querySelector("#curr-level");`, "the tier select");
+    check(await p.valueOf(`document.querySelector("#curr-level")`) === "",
+      "choosing a tiered qualification leaves the tier UNCHOSEN rather than defaulting to its first one");
+    const tierInfo = await p.evaluate(`const s = document.querySelector("#curr-level"); return { first: (s.options[0]?.textContent || "").trim(), options: [...s.options].map(o => o.value).filter(Boolean) };`);
+    check(/Choose a tier/i.test(tierInfo.first),
+      `and the empty option is a prompt, not a tier wearing the learner's name (${tierInfo.first})`);
+    const refusedCourse = await p.evaluate(`const b = ${saveCourse}; return { disabled: b ? b.disabled : null, why: (document.querySelector("main .field-error")?.textContent || "").trim() };`);
+    check(refusedCourse.disabled === true, "so Save refuses the course while the tier is unanswered");
+    check(/Level|Tier/i.test(refusedCourse.why), `and names the tier it is waiting for (${refusedCourse.why})`);
+
+    const tier = tierInfo.options.includes("foundation") ? "foundation" : tierInfo.options[0];
+    await p.pick(`document.querySelector("#curr-level")`, tier, "the maths tier");
+    check(await p.valueOf(`document.querySelector("#curr-level")`) === tier, `and the tier belongs to that qualification (${tier})`);
+
+    // The year group is asked HERE, beside the course it describes.
+    await p.waitFor(`return [...(${p.selectUnder("Your grade level")}?.options ?? [])].some(o => o.value === "Year 10");`, "the country's year groups");
+    await p.pick(p.selectUnder("Your grade level"), "Year 10", "year group");
+    check(await p.valueOf(p.selectUnder("Your grade level")) === "Year 10", "and the year group is chosen beside its course (Year 10)");
+
+    check(await p.evaluate(`const b = ${saveCourse}; return b ? !b.disabled : null;`) === true,
+      "once the course and its tier are answered, Save opens");
+    await p.clickExpr(saveCourse, "Save my course");
+    await p.waitFor(`return [...document.querySelectorAll("main button")].some(b => /Saved/i.test(b.textContent || ""));`, "the course to be saved", 10000);
+    check(true, "and the screen confirms the save rather than claiming it silently");
+
+    // The second subject has its OWN course control, chosen separately. The
+    // "Saved ✓" badge is timed (2.5s), so wait for the button to offer itself
+    // again before addressing it — a label that has not reset yet is not a
+    // missing control.
+    await sleep(2700);
+    await p.waitFor(`return !!${saveCourse};`, "the course button to offer itself again");
+    await p.clickExpr(p.buttonMatching('/Physics/'), "the Physics chip");
+    await p.waitFor(`return [...document.querySelectorAll("main p strong")].some(s => s.textContent.trim() === "Physics");`, "the Physics course panel");
+    await p.pick(`document.querySelector("#curr-spec")`, gbSpec, "the physics qualification");
+    if (await p.valueOf(`document.querySelector("#curr-level")`) === "") {
+      const phyTiers = await p.evaluate(`return [...document.querySelector("#curr-level").options].map(o => o.value).filter(Boolean);`);
+      await p.pick(`document.querySelector("#curr-level")`, phyTiers.includes("foundation") ? "foundation" : phyTiers[0], "the physics tier");
+    }
+    await p.clickExpr(saveCourse, "Save my course for Physics");
+    await p.waitFor(`return [...document.querySelectorAll("main button")].some(b => /Saved/i.test(b.textContent || ""));`, "the second course to be saved", 10000);
+    check(true, "the second subject's course is saved separately, not inherited from the first");
+
+    // ── NOW THE BASELINE, WHICH THE COURSE JUST UNLOCKED ──────────────────────
+    // /curriculum is public and carries no ticket for a learner who simply
+    // enrolled, so the walk asks for the diagnostic by name — the same door the
+    // guard refused a moment ago, and the proof that the refusal was about the
+    // course rather than about the learner.
+    section("The baseline diagnostic the course unlocked");
+    await p.goto(`${BASE}/diagnostic/maths`);
+    await p.waitFor(`return /Question \\d+ of about \\d+/.test(document.querySelector("main").innerText);`, "the sitting to serve its first question and say how long it is", 25000);
     const sitting = await p.evaluate(`const t = document.querySelector("main").innerText; const progress = (t.match(/Question \\d+ of about \\d+/) || [null])[0]; const buttons = [...document.querySelectorAll("main button")].map((b) => b.textContent.trim()); const links = [...document.querySelectorAll("main a")].map((a) => a.textContent.trim()); return { progress, sure: buttons.some((x) => /I think I know/.test(x)), unsure: buttons.some((x) => /I'm unsure/.test(x)), idk: buttons.some((x) => /I don't know/.test(x)), ask: !!document.querySelector("[data-certainty]"), choices: document.querySelectorAll("main .choices button").length, leave: links.some((x) => /Leave for now/.test(x)) };`);
     check(/^Question \d+ of about \d+$/.test(sitting.progress ?? ""), `the sitting says how long it is, approximately (${sitting.progress})`);
     check(sitting.sure && sitting.unsure && sitting.idk,
       "and asks how sure the learner is, with an honest way to say they don't know");
-    // COMMITTED BEFORE THE VERDICT: the choices stay hidden until the learner has
-    // said, so a grade can never contaminate the self-report.
     check(sitting.ask === true && sitting.choices === 0,
       `the choices are withheld until the learner says how sure they are (${sitting.choices} shown)`);
     check(sitting.leave, "and a way to leave without losing the sitting");
-
-    // And the self-report actually drives the sitting: saying it reveals the
-    // choices, and answering is marked server-side as always.
     await p.clickExpr(`[...document.querySelectorAll("[data-certainty] button")].find(b => /think I know/.test(b.textContent || ""))`, 'the "I think I know" choice');
     await p.waitFor(`return document.querySelectorAll("main .choices button").length > 0;`, "the choices to appear once the learner has said", 10000);
     check(true, "saying how sure you are reveals the choices");
@@ -299,6 +284,44 @@ async function main() {
     await p.waitFor(`return !!document.querySelector("main .marking");`, "the answer to come back marked", 15000);
     const marked = await p.evaluate(`const m = document.querySelector("main .marking"); return { cls: m ? m.className : "" };`);
     check(/good|bad/.test(marked.cls), `and the answer is still marked by the server (${marked.cls})`);
+
+    // ── Everything the screens promised, read back from the SERVER ──────────
+    section("What the server stored");
+    const stored = await p.evaluate(`return { id: localStorage.getItem("openmind:profileId"), secret: localStorage.getItem("openmind:profileSecret") };`);
+    profileId = stored.id;
+    check(Boolean(stored.id && stored.secret), `the browser holds the profile it just created (${stored.id})`);
+    const res = await fetch(`${BASE}/api/profile?id=${stored.id}&secret=${stored.secret}`);
+    const body = await res.json();
+    const prof = body.profile ?? {};
+    check(prof.country === "GB", `the country the learner chose is stored (${prof.country})`);
+    check(prof.grade === "Year 10", `and the year group they deferred, then chose with the course (${prof.grade})`);
+    check((prof.subjects ?? []).includes("physics") && (prof.subjects ?? []).includes("maths"), `both subjects are stored (${(prof.subjects ?? []).join(", ")})`);
+    check(prof.subjectCourses?.maths?.spec === gbSpec, `the first subject's qualification is the one chosen (${prof.subjectCourses?.maths?.spec})`);
+    check(prof.subjectCourses?.maths?.specLevel === tier, `with the tier chosen beside it (${prof.subjectCourses?.maths?.specLevel})`);
+    check(prof.subjectCourses?.physics?.spec === gbSpec,
+      `and the second subject has its OWN course, not the first one's silence (${JSON.stringify(prof.subjectCourses?.physics)})`);
+    check(prof.spec === gbSpec, `the single-course mirror follows the first subject (${prof.spec})`);
+    // THE DEFERRED ANSWERS ARE TRUE DEFAULTS, NOT MISSING ONES: the languages the
+    // wizard no longer asks each follow the one the learner read, and the goal it
+    // no longer asks is empty rather than invented for them.
+    check(prof.teachingLang === "en" && prof.answerLang === "en" && prof.schoolLang === "en",
+      `the languages nobody was asked follow the one they read (${prof.teachingLang}, ${prof.answerLang}, ${prof.schoolLang})`);
+    check(prof.language === "en", `and the interface language it finished in (${prof.language})`);
+    check(prof.goal === "", `the goal nobody was asked is empty, not put in their mouth ("${prof.goal}")`);
+
+    // ── AND THE DEFERRED PREFERENCES ARE STILL REACHABLE ────────────────────
+    // Deferring a question is only honest if the answer can still be given. This
+    // is the screen that owns the terminology choice the wizard used to ask — and
+    // the one whose payload once dropped it for a no-account learner.
+    section("The rest of the personalisation is still reachable");
+    await p.goto(`${BASE}/access`);
+    await p.waitFor(`return !!${p.buttonMatching('/Local terms only/')};`, "the preferences screen", 20000);
+    await p.clickExpr(p.buttonMatching('/Local terms only/'), "the local-terms choice");
+    await p.clickExpr(p.buttonMatching('/^\\s*Save\\s*$/'), "Save on the preferences screen");
+    await p.waitFor(`return [...document.querySelectorAll("main button")].some(b => /Saved/i.test(b.textContent || ""));`, "the preferences to be saved", 10000);
+    const afterAccess = await (await fetch(`${BASE}/api/profile?id=${stored.id}&secret=${stored.secret}`)).json();
+    check(afterAccess.profile?.termsMode === "local",
+      `the terminology choice a learner makes later is stored (${afterAccess.profile?.termsMode})`);
 
     // ── §14: a paper is sat like an exam, not scrolled like a worksheet ─────
     // The walk's learner is enrolled on GCSE maths, so the papers surface has a
@@ -339,31 +362,11 @@ async function main() {
     // name and a board code and nothing about which course this actually was.
     section("The shell names the learner's course");
     const strip = await p.evaluate(`const el = document.querySelector("[data-context-strip]"); return { text: ((el?.innerText || el?.textContent || "")).trim(), label: el?.getAttribute("aria-label") ?? "" };`);
-    check(/United Kingdom/.test(strip.text) && /GCSE/.test(strip.text) && /AQA/.test(strip.text) && /Year 10/.test(strip.text),
-      `the shell names the learner's own country, course, board and year (${strip.text})`);
+    check(/United Kingdom/.test(strip.text) && /GCSE/.test(strip.text) && /Year 10/.test(strip.text),
+      `the shell names the learner's own country, course and year (${strip.text})`);
     check(/Mathematics/.test(strip.text),
       "and the subject they are being taught, in their own course's words");
     check(Boolean(strip.label), "with an accessible name — it is a run of bare nouns joined by separators");
-
-    const stored = await p.evaluate(`return { id: localStorage.getItem("openmind:profileId"), secret: localStorage.getItem("openmind:profileSecret") };`);
-    profileId = stored.id;
-    check(Boolean(stored.id && stored.secret), `the browser holds the profile it just created (${stored.id})`);
-    const res = await fetch(`${BASE}/api/profile?id=${stored.id}&secret=${stored.secret}`);
-    const body = await res.json();
-    const prof = body.profile ?? {};
-    check(prof.country === "GB", `the country the learner chose is stored (${prof.country})`);
-    check(prof.grade === "Year 10", `and the year group (${prof.grade})`);
-    check((prof.subjects ?? []).includes("physics") && (prof.subjects ?? []).includes("maths"), `both subjects are stored (${(prof.subjects ?? []).join(", ")})`);
-    check(prof.subjectCourses?.maths?.spec === gbSpec, `the first subject's qualification is the one chosen (${prof.subjectCourses?.maths?.spec})`);
-    check(prof.subjectCourses?.maths?.specLevel === tier, `with the tier chosen beside it (${prof.subjectCourses?.maths?.specLevel})`);
-    check(prof.subjectCourses?.physics?.spec === gbSpec, `and the second subject has its OWN course, not the first one's silence (${JSON.stringify(prof.subjectCourses?.physics)})`);
-    check(prof.spec === gbSpec, `the single-course mirror follows the first subject (${prof.spec})`);
-    check(prof.board === "aqa", `the board is stored (${prof.board})`);
-    check(prof.goal === "I want to pass my GCSE maths", `the learner's own goal is stored ("${prof.goal}")`);
-    check(prof.teachingLang === "es" && prof.answerLang === "fr", `both language choices are stored (${prof.teachingLang}, ${prof.answerLang})`);
-    check(prof.schoolLang === "en", `and the school's language (${prof.schoolLang})`);
-    check(prof.language === "en", `and the interface language it finished in (${prof.language})`);
-    check(prof.termsMode === "local", `and the terminology preference (${prof.termsMode})`);
 
     // LEAVE THE STORE AS IT FOUND IT. A gate that runs on every change must not
     // fill the data store with the learners it made — and the erasure door is the

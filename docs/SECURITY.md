@@ -36,7 +36,7 @@ device's clock is correct, or that a caller who presents an id is its owner.
 
 ## 3. Identity and authority — where the decisions live
 
-Two credentials exist, and the server owns both:
+Three credentials exist, and the server owns all three:
 
 - **An account session** — a signed `om_session` cookie (`lib/server/auth.ts`).
   The payload is `accountId.epoch.expiry.hmac`; the HMAC key is
@@ -45,7 +45,47 @@ Two credentials exist, and the server owns both:
   account dies immediately — a server decision, not a client courtesy.
 - **A capability secret** — each learner profile carries a `secret`, and
   learner-scoped routes require it (`lib/server/capability.ts#authorizeLearner`).
-  A profile id alone is never enough; a read route never mints a secret.
+  A profile id alone is never enough; a read route never mints a secret. It is a
+  **permanent bearer credential**: no expiry, no rotation, bearer of everything
+  that learner may do.
+- **A classroom session** — a short-lived token a learner receives by exchanging
+  the PIN their teacher issued (`app/api/kiosk/login/route.ts`). Stored as a
+  sha256 hash in `kiosk-sessions.json`, bounded by a server-side expiry, deleted
+  by the server on hand-back, and marked `via: "kiosk"` where credentials are
+  checked so the doors that must refuse it can ask a flag rather than re-parse a
+  string. It travels the same `secret` slot, so no route needed a second
+  transport. See `docs/DEVICE_MODES.md` for which credential belongs to which
+  deployment.
+
+  A classroom session is narrower in what it may **do**, not in whether it can
+  learn: it is served practice, has its answers marked, and reads its own
+  progress and evidence. That half was measured broken once — the guard *inside*
+  each mutator compared the token with the record's permanent capability, so a
+  PIN sign-in returned 200 and every lesson route then answered 401. The rule now
+  has one owner, `lib/server/capability.ts#checkPresentedSecret`, which accepts a
+  session the route has already resolved for **that** learner and never binds it
+  as the capability (a token the server ends at hand-back must not become the
+  credential for the record). `npm run verify` scans every route for a private
+  copy of that comparison, so a fifth hand-written version fails the suite.
+
+**A capability is a learner credential, never an administrative one.**
+Teacher-only operations (creating or editing a class, setting its work, issuing
+classroom credentials, exporting its roster, reading one learner's evidence, and
+the evidence→intervention loop at `/api/needs`) are authorised by an ACCOUNT whose
+role is `teacher`/`org` and that owns the class — `lib/server/authority.ts`
+(`teacherCaller`, `teacherOfClass`). They do not accept a profile capability at
+all. This is a fix, not a preference: a learner's own id and secret could create
+a class and then administer it, because every class door asked "is this the
+class's owner profile?" and a capability *is* that profile. `/api/needs` was the
+last door still asking that question — its intervention loop could freeze a
+finding and set the class's work from a capability — and it now asks the account
+rule like the rest. The properties are pinned by source assertions in
+`npm run verify` and driven over real HTTP by `npm run verify:kiosk` against a
+scratch store, whose permission matrix asks every teacher-only action with the
+owner account, another teacher's account, the owner's own capability, a learner
+capability, a live classroom session and a learner account. `verify:permissions`
+(`npm run verify:permissions`) carries the same negative claims against the
+production build.
 
 The cookie is `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure` **when the
 request is actually served over HTTPS** (or carries `x-forwarded-proto: https`) —
@@ -179,11 +219,21 @@ front of the public:
    counted by the same keys and answered with the same `401` and the same body
    as a wrong password, and it is slowed identically.
 
+   **The recovery door is bounded by the same three keys**, deliberately: a
+   recovery code is a bearer credential, so guessing one must cost what guessing
+   a password costs. `POST /api/auth/recover` shares the account (soft), source
+   (hard, where a trusted proxy makes it meaningful) and process (soft) bounds
+   with sign-in, counts on failure and clears on success, and answers one `401`
+   for a wrong code, an expired grant and a code that belongs to another account
+   (app/api/auth/recover). **Teacher-issued grants add a second, tighter bound of
+   their own**: eight secret characters, fifteen minutes, single use, and issued
+   only by the teacher of a roster the learner is actually on.
+
    **What is not.** It is an in-process counter: it bounds one server process
-   (the shape the file store already has), and a restart clears it. Password
-   reset does not exist to be bounded, and the **AI, answer-submission,
-   diagnostic, sync, upload and teacher-invitation** doors are still unbounded —
-   one abusive client can exhaust the process through any of them. The reverse
+   (the shape the file store already has), and a restart clears it. The **AI,
+   answer-submission, diagnostic, sync, upload and teacher-invitation** doors are
+   still unbounded — one abusive client can exhaust the process through any of
+   them. The reverse
    proxy remains required for those, and for any deployment running more than
    one process. Password verification itself is scrypt with a per-account salt,
    compared in constant time (`timingSafeEqual`).

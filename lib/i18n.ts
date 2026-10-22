@@ -21,6 +21,11 @@ export interface LangMeta {
   sample: string;
 }
 
+import { RECOVERY_STRINGS } from "./i18n-recovery";
+import { CURRICULUM_STRINGS } from "./i18n-curriculum";
+import { DEVICE_STRINGS } from "./i18n-device";
+import { KIOSK_STRINGS } from "./i18n-kiosk";
+
 const en: Dict = {
   "cur.covers": "{n} of the {total} concepts here belong to your course.",
   "cur.outside": "Not in your course",
@@ -307,6 +312,9 @@ const en: Dict = {
   "onb.subjectsNote": "Subjects: Mathematics (you can add more later). No need to pick anything else right now.",
   "onb.needSubject": "Choose at least one subject — your plan is built from these.",
   "onb.errCreate": "Could not create your profile — check your connection and try again.",
+  "onb.errRefused": "The server refused this profile change — this is not your connection. The code below is the reason.",
+  "onb.errNotYours": "This device's saved profile can no longer be written to — its secret does not match it. Nothing was erased; this browser simply cannot reach that record. Sign in to the account that owns it, or start a fresh profile here.",
+  "onb.freshStart": "Start a fresh profile on this device",
   "ls.visual": "👁 Visual",
   "ls.auditory": "🔊 Auditory",
   "ls.kinesthetic": "✋ Kinesthetic",
@@ -967,6 +975,7 @@ const en: Dict = {
   "onb.errCreds": "Email or password is incorrect.",
   "onb.errName": "Please enter a name.",
   "onb.errTooMany": "Too many tries from this network. Wait a few minutes, then try again.",
+  "onb.errIngress": "Sign-in is not available from this connection — ask your school or network administrator.",
   "onb.signedInAs": "Signed in as",
   "onb.signOut": "Sign out",
   "onb.claim": "Bring this device's progress with me",
@@ -1935,6 +1944,9 @@ const es: Dict = {
   "onb.subjectsNote": "Materias: Matemáticas (puedes añadir más luego). No hace falta elegir nada más ahora.",
   "onb.needSubject": "Elige al menos una asignatura: tu plan se construye a partir de ellas.",
   "onb.errCreate": "No se pudo crear tu perfil — revisa tu conexión e inténtalo de nuevo.",
+  "onb.errRefused": "El servidor rechazó este cambio de perfil: no es tu conexión. El código de abajo es el motivo.",
+  "onb.errNotYours": "Ya no se puede escribir en el perfil guardado en este dispositivo: su secreto no coincide. No se borró nada; este navegador solo no puede llegar a ese registro. Inicia sesión con la cuenta que lo posee o empieza un perfil nuevo aquí.",
+  "onb.freshStart": "Empezar un perfil nuevo en este dispositivo",
   "ls.visual": "👁 Visual",
   "ls.auditory": "🔊 Auditivo",
   "ls.kinesthetic": "✋ Kinestésico",
@@ -2475,6 +2487,7 @@ const es: Dict = {
   "onb.errCreds": "El correo o la contraseña no son correctos.",
   "onb.errName": "Escribe un nombre.",
   "onb.errTooMany": "Demasiados intentos desde esta red. Espera unos minutos e inténtalo de nuevo.",
+  "onb.errIngress": "No se puede iniciar sesión desde esta conexión; pregunta a tu centro o a tu administrador de red.",
   "onb.signedInAs": "Sesión iniciada como",
   "onb.signOut": "Cerrar sesión",
   "onb.claim": "Llevar el progreso de este dispositivo",
@@ -3444,6 +3457,9 @@ const fr: Dict = {
   "onb.subjectsNote": "Matières : Mathématiques (tu pourras en ajouter plus tard). Rien d'autre à choisir pour l'instant.",
   "onb.needSubject": "Choisis au moins une matière — ton plan se construit à partir de celles-ci.",
   "onb.errCreate": "Impossible de créer ton profil — vérifie ta connexion et réessaie.",
+  "onb.errRefused": "Le serveur a refusé cette modification du profil — ce n'est pas ta connexion. Le code ci-dessous en donne la raison.",
+  "onb.errNotYours": "Le profil enregistré sur cet appareil n'est plus accessible en écriture — son secret ne correspond pas. Rien n'a été effacé ; ce navigateur ne peut simplement pas atteindre cet enregistrement. Connecte-toi au compte qui le possède, ou commence un nouveau profil ici.",
+  "onb.freshStart": "Commencer un nouveau profil sur cet appareil",
   "ls.visual": "👁 Visuel",
   "ls.auditory": "🔊 Auditif",
   "ls.kinesthetic": "✋ Kinesthésique",
@@ -3984,6 +4000,7 @@ const fr: Dict = {
   "onb.errCreds": "E-mail ou mot de passe incorrect.",
   "onb.errName": "Veuillez saisir un nom.",
   "onb.errTooMany": "Trop de tentatives depuis ce réseau. Attends quelques minutes, puis réessaie.",
+  "onb.errIngress": "La connexion n'est pas disponible depuis ce réseau — demande à ton établissement ou à ton administrateur réseau.",
   "onb.signedInAs": "Connecté en tant que",
   "onb.signOut": "Se déconnecter",
   "onb.claim": "Emporter la progression de cet appareil",
@@ -4953,6 +4970,9 @@ const pt: Dict = {
   "onb.subjectsNote": "Matérias: Matemática (podes acrescentar mais depois). Não precisas de escolher mais nada agora.",
   "onb.needSubject": "Escolhe pelo menos uma disciplina — o teu plano é construído a partir delas.",
   "onb.errCreate": "Não foi possível criar o teu perfil — verifica a ligação e tenta de novo.",
+  "onb.errRefused": "O servidor recusou esta alteração do perfil — não é a tua ligação. O código abaixo indica o motivo.",
+  "onb.errNotYours": "Já não é possível escrever no perfil guardado neste dispositivo — o segredo não corresponde. Nada foi apagado; este navegador apenas não chega a esse registo. Entra na conta que o possui ou começa um perfil novo aqui.",
+  "onb.freshStart": "Começar um perfil novo neste dispositivo",
   "ls.visual": "👁 Visual",
   "ls.auditory": "🔊 Auditivo",
   "ls.kinesthetic": "✋ Cinestésico",
@@ -5493,6 +5513,7 @@ const pt: Dict = {
   "onb.errCreds": "E-mail ou senha incorretos.",
   "onb.errName": "Digite um nome.",
   "onb.errTooMany": "Demasiadas tentativas nesta rede. Espera alguns minutos e tenta de novo.",
+  "onb.errIngress": "Não é possível iniciar sessão a partir desta ligação — fala com a tua escola ou com o administrador da rede.",
   "onb.signedInAs": "Conectado como",
   "onb.signOut": "Sair",
   "onb.claim": "Levar o progresso deste aparelho",
@@ -6462,6 +6483,9 @@ const ar: Dict = {
   "onb.subjectsNote": "المواد: الرياضيات (يمكن إضافة المزيد لاحقًا). لا حاجة لاختيار شيء آخر الآن.",
   "onb.needSubject": "اختر مادة واحدة على الأقل — خطتك تُبنى من هذه المواد.",
   "onb.errCreate": "تعذر إنشاء ملفك — تحقق من الاتصال وحاول مجددًا.",
+  "onb.errRefused": "رفض الخادم هذا التغيير في الملف — ليست مشكلة اتصالك. الرمز أدناه هو السبب.",
+  "onb.errNotYours": "لم يعد بالإمكان الكتابة في الملف المحفوظ على هذا الجهاز — السرّ لا يطابقه. لم يُحذف شيء؛ هذا المتصفح لا يستطيع الوصول إلى ذلك السجل فقط. سجّل الدخول إلى الحساب الذي يملكه، أو ابدأ ملفًا جديدًا هنا.",
+  "onb.freshStart": "ابدأ ملفًا جديدًا على هذا الجهاز",
   "ls.visual": "👁 بصري",
   "ls.auditory": "🔊 سمعي",
   "ls.kinesthetic": "✋ حركي",
@@ -7002,6 +7026,7 @@ const ar: Dict = {
   "onb.errCreds": "البريد أو كلمة المرور غير صحيحة.",
   "onb.errName": "أدخل اسمًا.",
   "onb.errTooMany": "محاولات كثيرة جدًا من هذه الشبكة. انتظر بضع دقائق ثم حاول مجددًا.",
+  "onb.errIngress": "تسجيل الدخول غير متاح من هذا الاتصال — اسأل مدرستك أو مسؤول الشبكة.",
   "onb.signedInAs": "مسجل الدخول باسم",
   "onb.signOut": "تسجيل الخروج",
   "onb.claim": "نقل تقدم هذا الجهاز معي",
@@ -7971,6 +7996,9 @@ const sw: Dict = {
   "onb.subjectsNote": "Masomo: Hisabati (unaweza kuongeza baadaye). Hakuna haja ya kuchagua nyingine sasa.",
   "onb.needSubject": "Chagua somo moja au zaidi — mpango wako unajengwa kutoka kwa haya.",
   "onb.errCreate": "Imeshindikana kuunda wasifu wako — angalia mtandao ujaribu tena.",
+  "onb.errRefused": "Seva ilikataa mabadiliko haya ya wasifu — hii si mtandao wako. Msimbo ulio hapa chini ndio sababu.",
+  "onb.errNotYours": "Wasifu uliohifadhiwa kwenye kifaa hiki hauwezi kuandikwa tena — siri yake hailingani. Hakuna kilichofutwa; kivinjari hiki hakiwezi kufikia rekodi hiyo tu. Ingia kwenye akaunti inayoimiliki, au anza wasifu mpya hapa.",
+  "onb.freshStart": "Anza wasifu mpya kwenye kifaa hiki",
   "ls.visual": "👁 Kuona",
   "ls.auditory": "🔊 Kusikia",
   "ls.kinesthetic": "✋ Kugusa",
@@ -8511,6 +8539,7 @@ const sw: Dict = {
   "onb.errCreds": "Barua pepe au nenosiri si sahihi.",
   "onb.errName": "Tafadhali weka jina.",
   "onb.errTooMany": "Majaribio mengi mno kutoka mtandao huu. Subiri dakika chache, kisha ujaribu tena.",
+  "onb.errIngress": "Kuingia hakuwezekani kutoka mtandao huu — uliza shule yako au msimamizi wa mtandao.",
   "onb.signedInAs": "Umeingia kama",
   "onb.signOut": "Toka",
   "onb.claim": "Chukua maendeleo ya kifaa hiki",
@@ -9480,6 +9509,9 @@ const hi: Dict = {
   "onb.subjectsNote": "विषय: गणित (बाद में और जोड़ सकते हैं)। अभी और चुनने की ज़रूरत नहीं।",
   "onb.needSubject": "कम से कम एक विषय चुनिए — आपकी योजना इन्हीं से बनती है।",
   "onb.errCreate": "प्रोफ़ाइल नहीं बनी — कनेक्शन जाँचें और फिर कोशिश करें।",
+  "onb.errRefused": "सर्वर ने प्रोफ़ाइल में यह बदलाव अस्वीकार किया — यह आपका कनेक्शन नहीं है। नीचे दिया कोड कारण है।",
+  "onb.errNotYours": "इस डिवाइस पर सहेजी गई प्रोफ़ाइल में अब लिखा नहीं जा सकता — उसका सीक्रेट मेल नहीं खाता। कुछ मिटाया नहीं गया; यह ब्राउज़र बस उस रिकॉर्ड तक नहीं पहुँच सकता। जिस खाते का यह है उसमें साइन इन करें, या यहाँ नई प्रोफ़ाइल शुरू करें।",
+  "onb.freshStart": "इस डिवाइस पर नई प्रोफ़ाइल शुरू करें",
   "ls.visual": "👁 देखकर",
   "ls.auditory": "🔊 सुनकर",
   "ls.kinesthetic": "✋ करके",
@@ -10020,6 +10052,7 @@ const hi: Dict = {
   "onb.errCreds": "ईमेल या पासवर्ड गलत है।",
   "onb.errName": "कृपया नाम दर्ज करें।",
   "onb.errTooMany": "इस नेटवर्क से बहुत ज़्यादा कोशिशें। कुछ मिनट रुककर फिर कोशिश करें।",
+  "onb.errIngress": "इस कनेक्शन से साइन इन उपलब्ध नहीं है — अपने स्कूल या नेटवर्क व्यवस्थापक से पूछें।",
   "onb.signedInAs": "इस रूप में साइन इन:",
   "onb.signOut": "साइन आउट",
   "onb.claim": "इस डिवाइस की प्रगति साथ ले चलें",
@@ -10990,6 +11023,9 @@ const id: Dict = {
   "onb.subjectsNote": "Pelajaran: Matematika (bisa menambah nanti). Tak perlu memilih lainnya sekarang.",
   "onb.needSubject": "Pilih minimal satu mata pelajaran — rencanamu dibangun dari ini.",
   "onb.errCreate": "Gagal membuat profilmu — periksa koneksi dan coba lagi.",
+  "onb.errRefused": "Server menolak perubahan profil ini — ini bukan koneksimu. Kode di bawah adalah alasannya.",
+  "onb.errNotYours": "Profil yang tersimpan di perangkat ini tidak bisa ditulis lagi — rahasianya tidak cocok. Tidak ada yang dihapus; peramban ini hanya tidak bisa menjangkau catatan itu. Masuk ke akun yang memilikinya, atau mulai profil baru di sini.",
+  "onb.freshStart": "Mulai profil baru di perangkat ini",
   "ls.visual": "👁 Visual",
   "ls.auditory": "🔊 Auditori",
   "ls.kinesthetic": "✋ Kinestetik",
@@ -11529,6 +11565,7 @@ const id: Dict = {
   "onb.errCreds": "Email atau kata sandi salah.",
   "onb.errName": "Masukkan nama.",
   "onb.errTooMany": "Terlalu banyak percobaan dari jaringan ini. Tunggu beberapa menit, lalu coba lagi.",
+  "onb.errIngress": "Masuk tidak tersedia dari koneksi ini — tanyakan ke sekolah atau admin jaringanmu.",
   "onb.signedInAs": "Masuk sebagai",
   "onb.signOut": "Keluar",
   "onb.claim": "Bawa kemajuan perangkat ini",
@@ -12499,6 +12536,9 @@ const tl: Dict = {
   "onb.subjectsNote": "Asignatura: Matematika (pwedeng magdagdag mamaya). Walang ibang pipiliin ngayon.",
   "onb.needSubject": "Pumili ng kahit isang asignatura — mula rito binubuo ang plano mo.",
   "onb.errCreate": "Hindi nagawa ang profile — tingnan ang koneksyon at subukang muli.",
+  "onb.errRefused": "Tinanggihan ng server ang pagbabagong ito sa profile — hindi ito ang koneksyon mo. Ang code sa ibaba ang dahilan.",
+  "onb.errNotYours": "Hindi na maisusulat ang profile na naka-save sa device na ito — hindi tugma ang sikreto nito. Walang nabura; hindi lang maabot ng browser na ito ang rekord na iyon. Mag-sign in sa account na may-ari nito, o magsimula ng bagong profile dito.",
+  "onb.freshStart": "Magsimula ng bagong profile sa device na ito",
   "ls.visual": "👁 Pandama",
   "ls.auditory": "🔊 Pandinig",
   "ls.kinesthetic": "✋ Pandama",
@@ -13039,6 +13079,7 @@ const tl: Dict = {
   "onb.errCreds": "Mali ang email o password.",
   "onb.errName": "Maglagay ng pangalan.",
   "onb.errTooMany": "Masyadong maraming pagsubok mula sa network na ito. Maghintay ng ilang minuto, pagkatapos subukan muli.",
+  "onb.errIngress": "Hindi available ang pag-sign in mula sa koneksyong ito — tanungin ang iyong paaralan o network administrator.",
   "onb.signedInAs": "Naka-sign in bilang",
   "onb.signOut": "Mag-sign out",
   "onb.claim": "Isama ang progreso sa device na ito",
@@ -14010,6 +14051,9 @@ const de: Dict = {
   "onb.subjectsNote": "Fächer: Mathematik (später erweiterbar). Mehr muss jetzt nicht gewählt werden.",
   "onb.needSubject": "Wähle mindestens ein Fach — daraus entsteht dein Plan.",
   "onb.errCreate": "Profil konnte nicht erstellt werden — prüfe die Verbindung und versuch es erneut.",
+  "onb.errRefused": "Der Server hat diese Profiländerung abgelehnt — das ist nicht deine Verbindung. Der Code unten nennt den Grund.",
+  "onb.errNotYours": "Das auf diesem Gerät gespeicherte Profil lässt sich nicht mehr beschreiben — sein Secret passt nicht. Nichts wurde gelöscht; dieser Browser erreicht diesen Datensatz nur nicht. Melde dich beim Konto an, dem er gehört, oder beginne hier ein neues Profil.",
+  "onb.freshStart": "Neues Profil auf diesem Gerät beginnen",
   "ls.visual": "👁 Visuell",
   "ls.auditory": "🔊 Auditiv",
   "ls.kinesthetic": "✋ Motorisch",
@@ -14608,6 +14652,7 @@ const de: Dict = {
   "onb.errCreds": "E-Mail oder Passwort ist falsch.",
   "onb.errName": "Bitte gib einen Namen ein.",
   "onb.errTooMany": "Zu viele Versuche aus diesem Netzwerk. Warte ein paar Minuten und versuche es dann erneut.",
+  "onb.errIngress": "Anmeldung ist über diese Verbindung nicht möglich — wende dich an deine Schule oder deine Netzwerkverwaltung.",
   "onb.signedInAs": "Angemeldet als",
   "onb.signOut": "Abmelden",
   "onb.claim": "Fortschritt dieses Geräts mitnehmen",
@@ -15578,6 +15623,9 @@ const ja: Dict = {
   "onb.subjectsNote": "教科：数学（後で追加できます）。今は他を選ぶ必要はありません。",
   "onb.needSubject": "少なくとも1つ科目を選んでください。あなたの計画はここから作られます。",
   "onb.errCreate": "プロフィールを作成できません — 接続を確認してもう一度。",
+  "onb.errRefused": "サーバーがこのプロフィール変更を拒否しました — 接続の問題ではありません。理由は下のコードです。",
+  "onb.errNotYours": "この端末に保存されたプロフィールには書き込めません — シークレットが一致しません。何も消去されていません。このブラウザーがその記録に届かないだけです。所有するアカウントでサインインするか、ここで新しいプロフィールを始めてください。",
+  "onb.freshStart": "この端末で新しいプロフィールを始める",
   "ls.visual": "👁 見て学ぶ",
   "ls.auditory": "🔊 聞いて学ぶ",
   "ls.kinesthetic": "✋ 体で学ぶ",
@@ -16176,6 +16224,7 @@ const ja: Dict = {
   "onb.errCreds": "メールかパスワードが違います。",
   "onb.errName": "名前を入力してください。",
   "onb.errTooMany": "このネットワークからの試行が多すぎます。数分待ってからもう一度お試しください。",
+  "onb.errIngress": "この接続からはサインインできません。学校またはネットワーク管理者に問い合わせてください。",
   "onb.signedInAs": "ログイン中:",
   "onb.signOut": "ログアウト",
   "onb.claim": "この端末の学習記録を引き継ぐ",
@@ -17146,6 +17195,9 @@ const zh: Dict = {
   "onb.subjectsNote": "科目：数学（以后可添加）。现在无需选择其他。",
   "onb.needSubject": "至少选择一门科目——你的计划由此生成。",
   "onb.errCreate": "无法创建档案——检查网络后重试。",
+  "onb.errRefused": "服务器拒绝了这次档案修改——这不是网络问题。下方代码即为原因。",
+  "onb.errNotYours": "无法再写入此设备上保存的档案——它的密钥不匹配。没有任何内容被删除，只是这个浏览器无法访问那条记录。请登录拥有它的账号，或在此开始新档案。",
+  "onb.freshStart": "在此设备上开始新档案",
   "ls.visual": "👁 视觉型",
   "ls.auditory": "🔊 听觉型",
   "ls.kinesthetic": "✋ 动手型",
@@ -17654,6 +17706,7 @@ const zh: Dict = {
   "onb.errCreds": "邮箱或密码不正确。",
   "onb.errName": "请输入姓名。",
   "onb.errTooMany": "来自此网络的尝试次数过多。请等待几分钟后再试。",
+  "onb.errIngress": "此连接无法登录——请联系你的学校或网络管理员。",
   "onb.signedInAs": "已登录为",
   "onb.signOut": "退出登录",
   "onb.claim": "带上这台设备的进度",
@@ -18624,6 +18677,9 @@ const fa: Dict = {
   "onb.subjectsNote": "موضوع‌ها: ریاضی (بعداً می‌توان اضافه کرد). فعلاً چیز دیگری لازم نیست.",
   "onb.needSubject": "دست‌کم یک درس را انتخاب کنید — برنامهٔ شما از همین‌ها ساخته می‌شود.",
   "onb.errCreate": "ساخت پروفایل ناموفق — اتصال را بررسی کن و دوباره تلاش کن.",
+  "onb.errRefused": "سرور این تغییر پروفایل را رد کرد — این مشکل اتصال تو نیست. کد زیر دلیل آن است.",
+  "onb.errNotYours": "پروفایل ذخیره‌شده روی این دستگاه دیگر قابل نوشتن نیست — کلید آن مطابقت ندارد. چیزی پاک نشده است؛ فقط این مرورگر به آن رکورد دسترسی ندارد. به حسابی که مالک آن است وارد شو، یا اینجا پروفایل تازه‌ای آغاز کن.",
+  "onb.freshStart": "آغاز پروفایل تازه روی این دستگاه",
   "ls.visual": "👁 دیداری",
   "ls.auditory": "🔊 شنیداری",
   "ls.kinesthetic": "✋ حرکتی",
@@ -19132,6 +19188,7 @@ const fa: Dict = {
   "onb.errCreds": "ایمیل یا گذرواژه نادرست است.",
   "onb.errName": "نامی وارد کنید.",
   "onb.errTooMany": "تلاش‌های بیش از حد از این شبکه. چند دقیقه صبر کنید و دوباره تلاش کنید.",
+  "onb.errIngress": "ورود از این اتصال ممکن نیست — از مدرسه یا مدیر شبکه بپرسید.",
   "onb.signedInAs": "وارد شده به‌عنوان",
   "onb.signOut": "خروج",
   "onb.claim": "پیشرفت این دستگاه را همراه ببر",
@@ -20102,6 +20159,9 @@ const ur: Dict = {
   "onb.subjectsNote": "مضامین: ریاضی (بعد میں مزید شامل کرسکتے ہیں)۔ ابھی اور منتخب کرنے کی ضرورت نہیں۔",
   "onb.needSubject": "کم از کم ایک مضمون منتخب کریں — آپ کا منصوبہ اسی سے بنتا ہے۔",
   "onb.errCreate": "پروفائل نہیں بن سکا — کنکشن چیک کریں اور دوبارہ کوشش کریں۔",
+  "onb.errRefused": "سرور نے پروفائل کی یہ تبدیلی مسترد کر دی — یہ آپ کا کنکشن نہیں ہے۔ نیچے دیا گیا کوڈ وجہ ہے۔",
+  "onb.errNotYours": "اس ڈیوائس پر محفوظ پروفائل میں اب لکھا نہیں جا سکتا — اس کا سیکرٹ میل نہیں کھاتا۔ کچھ مٹایا نہیں گیا؛ یہ براؤزر صرف اس ریکارڈ تک نہیں پہنچ سکتا۔ جس اکاؤنٹ کا یہ ہے اس میں سائن اِن کریں، یا یہاں نیا پروفائل شروع کریں۔",
+  "onb.freshStart": "اس ڈیوائس پر نیا پروفائل شروع کریں",
   "ls.visual": "👁 دیکھ کر",
   "ls.auditory": "🔊 سن کر",
   "ls.kinesthetic": "✋ کر کے",
@@ -20610,6 +20670,7 @@ const ur: Dict = {
   "onb.errCreds": "ای میل یا پاس ورڈ غلط ہے۔",
   "onb.errName": "براہ کرم نام لکھیں۔",
   "onb.errTooMany": "اس نیٹ ورک سے بہت زیادہ کوششیں۔ چند منٹ انتظار کریں، پھر دوبارہ کوشش کریں۔",
+  "onb.errIngress": "اس کنکشن سے سائن ان دستیاب نہیں — اپنے اسکول یا نیٹ ورک ایڈمنسٹر سے پوچھیں۔",
   "onb.signedInAs": "بطور سائن ان",
   "onb.signOut": "سائن آؤٹ",
   "onb.claim": "اس ڈیوائس کی پیش رفت ساتھ لے جائیں",
@@ -21603,6 +21664,9 @@ export const bn: Dict = {
   "onb.subjectsNote": "বিষয়: গণিত (পরে যোগ করা যাবে)। এখন আর কিছু বাছাই লাগবে না।",
   "onb.needSubject": "অন্তত একটি বিষয় বেছে নিন — এগুলো থেকেই আপনার পরিকল্পনা তৈরি হয়।",
   "onb.errCreate": "প্রোফাইল তৈরি হয়নি — সংযোগ দেখে আবার চেষ্টা করুন।",
+  "onb.errRefused": "সার্ভার এই প্রোফাইল পরিবর্তন প্রত্যাখ্যান করেছে — এটি আপনার সংযোগের সমস্যা নয়। নিচের কোডটিই কারণ।",
+  "onb.errNotYours": "এই ডিভাইসে সংরক্ষিত প্রোফাইলে আর লেখা যাবে না — এর সিক্রেট মেলে না। কিছু মুছে ফেলা হয়নি; শুধু এই ব্রাউজার ওই রেকর্ডে পৌঁছাতে পারে না। যে অ্যাকাউন্টের এটি, তাতে সাইন ইন করুন, অথবা এখানে নতুন প্রোফাইল শুরু করুন।",
+  "onb.freshStart": "এই ডিভাইসে নতুন প্রোফাইল শুরু করুন",
   "ls.visual": "👁 দেখে",
   "ls.auditory": "🔊 শুনে",
   "ls.kinesthetic": "✋ করে",
@@ -22171,6 +22235,7 @@ export const bn: Dict = {
   "onb.errCreds": "ইমেইল বা পাসওয়ার্ড ভুল।",
   "onb.errName": "একটি নাম লিখুন।",
   "onb.errTooMany": "এই নেটওয়ার্ক থেকে অনেকবার চেষ্টা হয়েছে। কয়েক মিনিট অপেক্ষা করে আবার চেষ্টা করুন।",
+  "onb.errIngress": "এই সংযোগ থেকে সাইন ইন করা যাচ্ছে না — আপনার স্কুল বা নেটওয়ার্ক প্রশাসককে জিজ্ঞাসা করুন।",
   "onb.signedInAs": "সাইন ইন করা আছে",
   "onb.signOut": "সাইন আউট",
   "onb.claim": "এই ডিভাইসের অগ্রগতি সঙ্গে নিন",
@@ -22545,6 +22610,32 @@ export const bn: Dict = {
 export const DICTS: Record<string, Dict> = {
   en, es, fr, pt, ar, sw, hi, id, tl, ur, fa, de, ja, zh, bn,
 };
+
+// THE RECOVERY VOCABULARY, merged rather than pasted fifteen times into the
+// dictionaries above. One feature, one reviewable block (lib/i18n-recovery.ts),
+// and the SAME dictionary afterwards — `t()`, the English fallback and the suite's
+// key-parity assertion all read DICTS, so a language that missed a key still fails
+// `npm run verify` exactly as it would have. Merge is last so nothing overwrites a
+// key the product already owned.
+// Each source is merged SEPARATELY. Spreading two language maps into one object
+// would keep only the second map's entry for a language both define — the
+// failure is silent and it removes keys that were already working.
+for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOSK_STRINGS]) {
+  for (const [code, extra] of Object.entries(source)) {
+    const dict = DICTS[code];
+    if (!dict) continue;
+    for (const [key, value] of Object.entries(extra)) {
+      if (!(key in dict)) dict[key] = value;
+    }
+  }
+}
+// `en` is the fallback for a missing key, so it must carry them even if a caller
+// reaches it directly rather than through DICTS.
+for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOSK_STRINGS]) {
+  for (const [key, value] of Object.entries(source.en)) {
+    if (!(key in en)) en[key] = value;
+  }
+}
 
 export const LANG_CODES = LANGS.map((l) => l.code);
 

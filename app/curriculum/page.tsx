@@ -14,12 +14,20 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { safeReturnPath } from "@/lib/app-state";
 import { loadLocalProfileId, useI18n, useProfile } from "@/lib/client";
 import * as api from "@/lib/api/client";
 import { curriculumFor, routeForPathwayId, INDEPENDENT_ROUTE } from "@/lib/curriculum";
 import {
   defaultPathwayFor, initialPathwayFor, mappingReviewKey, nationalPathwaysFor, pathwayChoices, pathwayForCountry,
 } from "@/lib/curricula/registry";
+import { mappingCitation, mappingForSpec } from "@/lib/curricula/mappings";
+// THE NAME OF A MISSING PART OF A COURSE HAS ONE OWNER. Home's card, and this
+// screen now that the course is chosen here rather than in the wizard, both say
+// which field is missing — and a learner who reads "Tier" on one and "Level" on
+// the other is being sent to fix two different things that are the same thing.
+import { FIELD_LABEL } from "@/components/course-first";
 import { COUNTRIES, fill } from "@/lib/i18n";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
 import { ctitle, levelLabel } from "@/lib/content-i18n";
@@ -93,6 +101,10 @@ export default function CurriculumPage() {
     // system they just moved away from.
     return specForProfile({ ...(profile ?? {}), pathway: pathway || undefined }, subject);
   }, [specId, levelId, baseChoices, profile, subject, pathway]);
+  // The mapping the ACTIVE COURSE has, if one has been written — the evidence under
+  // the status sentence above, and the only thing allowed to put a document's name
+  // beside a course. Read AFTER `active`, because it is derived from it.
+  const mapping = mappingForSpec(active.spec.id);
   // A PICKER MUST NEVER HIDE THE COURSE IN FORCE. A learner whose stored
   // qualification belongs to a pathway the select is not scoping to — a UK
   // learner on Cambridge IGCSE, which the live store holds — would otherwise see
@@ -102,8 +114,41 @@ export default function CurriculumPage() {
     () => (baseChoices.some((s) => s.id === active.spec.id) ? baseChoices : [active.spec, ...baseChoices]),
     [baseChoices, active.spec],
   );
+  // ── A TIER IS CHOSEN, NEVER SEEDED, AND HERE IS WHERE THAT MATTERS ──────
+  //
+  // This page is now where a deferred course is chosen, and its `active` memo
+  // falls back to `spec.levels[0]` for a qualification the learner just picked.
+  // For the GCSE that is FOUNDATION — the exact silent enrolment that made the
+  // old wizard's learners too easy to teach. So the fallback stays as a DISPLAY
+  // value (the coverage panel must say something), while the level SELECT shows
+  // a prompt until the learner answers, and Save refuses until they do.
+  //
+  // The same guard closes a second hole: pressing Save without choosing anything
+  // used to write the resolved fallback course (country → first listing) onto a
+  // learner who had never picked one. A course is saved only when it is theirs —
+  // an explicit choice here, or a COMPLETE course already on the profile.
+  const storedCourse = profile?.subjectCourses?.[subject];
+  const hasStoredCourse = Boolean(storedCourse?.spec && storedCourse?.specLevel);
+  // AN UNCHOSEN QUALIFICATION HAS TO BE EXPRESSIBLE. The select is driven by the
+  // RESOLVED course, so when the fallback for this country happens to be the one
+  // the learner wants, choosing it fired no `change` at all — the page went on
+  // saying "still to choose: qualification" above a box that already showed it,
+  // and Save stayed dead. Null until touched (or a stored course), so the empty
+  // option is a prompt and picking the fallback is a real choice.
+  const needsSpec = !specId && !hasStoredCourse;
+  const chosenSpec = specId
+    ? (specById(specId) ?? baseChoices[0] ?? null)
+    : hasStoredCourse ? (specById(storedCourse!.spec!) ?? null) : null;
+  const gradeLevel = chosenSpec ? levelForGrade(chosenSpec, profile?.grade ?? "") : null;
+  const needsLevel = Boolean(chosenSpec) && chosenSpec!.levels.length > 1 && !levelId && !gradeLevel;
+  const canSave = Boolean(chosenSpec) && !needsLevel;
   const gaps = useMemo(() => incompleteSubjects(profile ?? {}), [profile]);
 
+  // THE TICKET THIS PAGE WAS OPENED WITH, if the guard sent the learner here
+  // because a course is required. Read from the URL in the save handler rather
+  // than through `useSearchParams`, which would put this whole page behind a
+  // Suspense boundary for one string that is only needed after a click.
+  const router = useRouter();
   const report = useMemo(() => coverageReport(active), [active]);
   // The same fallback the course gate uses: a country this product does not
   // model still has the independent pathway, and it still has grades to choose
@@ -115,7 +160,7 @@ export default function CurriculumPage() {
 
   async function save() {
     const id = loadLocalProfileId();
-    if (!id) return;
+    if (!id || !canSave) return;
     // Written to THIS subject's course. /api/profile mirrors the learner's first
     // subject into the flat fields, so single-course readers stay true.
     //
@@ -153,6 +198,13 @@ export default function CurriculumPage() {
     setPathwayId(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+    // A COURSE NO LONGER KEEPS THE LEARNER HERE. When the guard sent them to this
+    // screen (`?return=`), the save is the last thing standing between them and
+    // the page they asked for, so honour the ticket. A learner who came to change
+    // a course on purpose carried no ticket and stays where they are, with the
+    // confirmation they expect.
+    const wanted = safeReturnPath(new URLSearchParams(window.location.search).get("return"), "");
+    if (wanted) router.push(wanted);
   }
 
   if (loading) {
@@ -241,6 +293,18 @@ export default function CurriculumPage() {
               be missing — every course looked equally authoritative while none
               of the mappings had been read by a specialist. */}
           {reviewKey && <p className="small muted" style={{ marginBottom: 0 }}>{t(reviewKey as Parameters<typeof t>[0])}</p>}
+          {/* WHAT IT WAS MAPPED AGAINST, named. "Not yet reviewed" is an
+              admission; a citation is something a specialist can audit, and a
+              ministry's first question about any curriculum claim is "against
+              which document?". The title, publisher and date are the
+              document's own, untranslated on purpose: a citation that has been
+              translated cannot be looked up. */}
+          {mapping && (
+            <p className="small muted" style={{ marginBottom: 0 }}>
+              {t("course.mapSource")} {mappingCitation(mapping)}
+              {mapping.source.verification === "portal" ? ` · ${t("course.mapPortal")}` : ""}
+            </p>
+          )}
         </div>
         {/* One course per subject. The chips say which subjects have one — a
             subject still missing its course is named, never silently defaulted. */}
@@ -270,9 +334,11 @@ export default function CurriculumPage() {
             id="curr-spec"
             className="mono"
             style={{ width: "100%", marginTop: 6 }}
-            value={active.spec.id}
+            value={needsSpec ? "" : active.spec.id}
             onChange={(e) => { setSpecId(e.target.value); setLevelId(null); }}
           >
+            {/* A prompt, not the fallback painted as an answer. */}
+            {needsSpec && <option value="" disabled>{t("onb.pickSpec")}</option>}
             {choices.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
@@ -284,9 +350,12 @@ export default function CurriculumPage() {
             id="curr-level"
             className="mono"
             style={{ width: "100%", marginTop: 6 }}
-            value={active.level.id}
+            value={needsLevel ? "" : active.level.id}
             onChange={(e) => setLevelId(e.target.value)}
           >
+            {/* A prompt, not an answer: the first tier used to be painted as the
+                learner's own choice. */}
+            {needsLevel && <option value="" disabled>{t("onb.pickLevel")}</option>}
             {active.spec.levels.map((l) => (
               <option key={l.id} value={l.id}>
                 {levelLabel(lang, l.tier, l.name)}
@@ -295,8 +364,13 @@ export default function CurriculumPage() {
           </select>
         </div>
         <div className="actions" style={{ marginTop: 12 }}>
-          <button className="btn" onClick={save}>{saved ? t("curr.saved") : t("curr.save")}</button>
+          <button className="btn" onClick={save} disabled={!canSave}>{saved ? t("curr.saved") : t("curr.save")}</button>
         </div>
+        {!canSave && (
+          <p className="field-error" role="status">
+            ⚠ {fill(t("onb.needFields"), { fields: t(FIELD_LABEL[chosenSpec ? "specLevel" : "spec"] as Parameters<typeof t>[0]) })}
+          </p>
+        )}
       </section>
 
       {/* Honest coverage: what the course contains, out of the whole map. */}

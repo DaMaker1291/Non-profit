@@ -4,7 +4,9 @@ import {
   papersForSpec, type BuiltPaperAnswerKey,
 } from "@/lib/papers";
 import { specById, specForProfile, levelOf, type ActiveSpec, type CourseFields } from "@/lib/specifications";
-import { cacheGet, cacheSet, getStoredPaper, saveStoredPaper, updateProfile } from "@/lib/server/store";
+import { cacheGet, cacheSet, getStoredPaper, saveStoredPaper } from "@/lib/server/store";
+// The learner transaction, through the port-facing door (lib/server/transaction.ts).
+import { withLearnerState } from "@/lib/server/transaction";
 import { authorisedProfile } from "@/lib/server/auth";
 // A paper is only sittable if it can be MARKED, and marking reads the key this
 // route stores — so a store that cannot keep the key refuses the paper rather
@@ -12,7 +14,7 @@ import { authorisedProfile } from "@/lib/server/auth";
 import { storeWriteRefusalNow } from "@/lib/server/write-refusal";
 import { analysePaper } from "@/lib/paper-analysis";
 import { answerEvidence, type EvidenceEvent } from "@/lib/evidence";
-import { commitAndProject } from "@/lib/server/projection";
+import { commitAndProjectIn } from "@/lib/server/projection";
 import { asQuestion, aiStatus, llmExamQuestions, type QuestionRequest } from "@/lib/llm";
 import { subjectLabel } from "@/lib/subjects";
 import type { SubjectId } from "@/lib/types";
@@ -187,7 +189,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     // carries it, so replay reproduces the paper's model footprint exactly.
     const paperAt = Date.now();
     const pending: EvidenceEvent[] = [];
-    await updateProfile(learnerId, async (state) => {
+    await withLearnerState(learnerId, async (ctx, state) => {
       for (const q of result.perQuestion) {
         if (q.correct === null) continue; // unanswered is not evidence
         // Carry the key's misconception tags into the learner model. Without
@@ -218,9 +220,10 @@ export async function POST(req: Request): Promise<NextResponse> {
         recorded++;
       }
       // ── THE CUTOVER: WRITE EVENT → CONFIRM APPEND → REPLAY → RESPOND ──
-      // The sitting is written and confirmed BEFORE the learner model moves.
+      // The sitting is written and confirmed BEFORE the learner model moves, and
+      // the events travel on the transaction's own connection (§14.1).
       try {
-        await commitAndProject(learnerId, state, pending);
+        await commitAndProjectIn(ctx, state, pending);
       } catch {
         // The paper is still marked and the diagnosis is still returned — the
         // marking is computed from the key. What is honest is that NOTHING was

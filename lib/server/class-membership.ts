@@ -71,6 +71,10 @@ export function removeMember(cls: ClassRoster, learnerId: string): boolean {
     delete cls.students[handle];
     if (cls.misconceptions) delete cls.misconceptions[handle];
   }
+  // AND THEIR CLASSROOM CREDENTIAL. An erase (or a leave) that left the PIN hash
+  // on the roster would keep a row for a learner the roster no longer lists — and
+  // if the profile were ever recreated under that id, the old PIN would open it.
+  if (cls.kiosk) delete cls.kiosk[learnerId];
   return true;
 }
 

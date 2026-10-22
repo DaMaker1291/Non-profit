@@ -4,6 +4,7 @@ import { Nav, Topbar } from "@/components/nav";
 import { AppProvider, I18nProvider } from "@/lib/client";
 import { AccessProvider } from "@/components/access-provider";
 import { OfflineBar } from "@/components/offline-bar";
+import { KioskBar } from "@/components/kiosk-bar";
 import { Footer } from "@/components/footer-note";
 import { RouteGuard } from "@/components/route-guard";
 
@@ -69,6 +70,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <div className="shell-main" id="main">
                   <Topbar />
                   <OfflineBar />
+                  {/* A classroom handset needs its way out on EVERY page, which
+                      is why this sits beside the offline bar and outside the
+                      guard — see components/kiosk-bar.tsx. */}
+                  <KioskBar />
                   {/* One guard for every page: see components/route-guard.tsx. */}
                   <RouteGuard>{children}</RouteGuard>
                   <footer className="footer">

@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
-import { getProfile, updateProfile } from "@/lib/server/store";
+import { getProfile } from "@/lib/server/store";
+// The learner transaction. A route reaches it through this door rather than the
+// store's own function, so the configured backend decides where the record and
+// its evidence live (lib/server/transaction.ts).
+import { withLearnerState } from "@/lib/server/transaction";
 import { readEvidence } from "@/lib/server/evidence";
 import { PROJECTION_VERSION, projectLearner, validateEvent, impactSnapshot, type EvidenceEvent } from "@/lib/evidence";
 import { replayModel, reconcileDeep } from "@/lib/replay";
-import { commitAndProject, unprojectableShare } from "@/lib/server/projection";
+import { commitAndProjectIn, unprojectableShare } from "@/lib/server/projection";
 // A store that cannot keep this write answers 503 with its reason — never a 500.
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
+import { learnerLimitKey, pace } from "@/lib/server/limits";
+import { SYNC_PER_LEARNER } from "@/lib/server/rate-limit";
+import { checkPresentedSecret, classroomSessionFor } from "@/lib/server/capability";
 
 /**
  * /api/evidence — the ledger's read and sync door.
@@ -31,13 +38,6 @@ import { storeWriteRefusal } from "@/lib/server/write-refusal";
  *     path) are the only ones the impact report treats as observed.
  */
 
-/** Same capability model as the other learner routes: the profile's secret is
- *  presented and compared. Throws → 401 via the outer catch. */
-function checkSecret(state: { secret?: string }, presented: unknown): void {
-  if (typeof presented !== "string" || !presented) throw new Error("unauthorized");
-  if (!state.secret || state.secret !== presented) throw new Error("unauthorized");
-}
-
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -48,7 +48,10 @@ export async function GET(req: Request) {
 
     const state = await getProfile(id);
     if (!state) return NextResponse.json({ error: "not_found" }, { status: 404 });
-    checkSecret(state, secret);
+    // Two credentials are valid (lib/server/capability.ts#checkPresentedSecret);
+    // `bind: false` keeps THIS door's older, stricter rule that a profile with no
+    // secret is refused rather than adopting the first token it is shown.
+    checkPresentedSecret(state, secret, await classroomSessionFor(id, secret), { bind: false });
 
     const all = await readEvidence(id);
     const events = since === null ? all : all.filter((e) => e.at > since);
@@ -103,7 +106,14 @@ export async function POST(req: Request) {
     const id = typeof body.id === "string" ? body.id : "";
     const state = await getProfile(id);
     if (!state) return NextResponse.json({ error: "not_found" }, { status: 404 });
-    checkSecret(state, body.secret);
+    checkPresentedSecret(state, body.secret, await classroomSessionFor(id, body.secret), { bind: false });
+
+    // A drained offline queue is a legitimate burst, and a device that has been
+    // dark for a week still arrives in pages (500 events each). What this bounds
+    // is a client that ignores the paging and posts without end — keyed on the
+    // learner whose secret was just checked, so it cannot spend another's.
+    const syncGate = await pace(learnerLimitKey("sync", id), SYNC_PER_LEARNER);
+    if (syncGate) return syncGate;
 
     const raw = Array.isArray(body.events) ? (body.events as unknown[]) : null;
     if (!raw) return NextResponse.json({ error: "events_required" }, { status: 400 });
@@ -130,10 +140,12 @@ export async function POST(req: Request) {
     // back from a week offline does not merely fill a log — the work it did
     // moves the model, which is the whole point of recording it.
     //
-    // It runs inside the profile lock so the append and the projection cannot
-    // interleave with another request for the same learner — and so a batch of
-    // duplicates is a no-op rather than a double count.
-    const upd = await updateProfile(id, (state) => commitAndProject(id, state, validated));
+    // It runs inside the learner TRANSACTION, and the append travels on that
+    // transaction's own connection (`commitAndProjectIn`): a batch of duplicates
+    // is a no-op rather than a double count, and a database deployment does not
+    // open a second connection for a ledger write it already holds the lock for
+    // (docs/STORAGE_SPEC.md §14.1).
+    const upd = await withLearnerState(id, (ctx, state) => commitAndProjectIn(ctx, state, validated));
     if (!upd) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const result = upd.result;
     return NextResponse.json({

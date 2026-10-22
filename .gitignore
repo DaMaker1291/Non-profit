@@ -48,3 +48,10 @@ openmind-data
 # with scripts/visual-guard.mjs, never source.
 .visual/
 .visual-selftest-*/
+
+# Test scratch directories a TMPDIR rooted in the checkout produces: `tmp/`
+# holds 1.8 GB of Next build caches from the e2e/kiosk runs, and `var/` is a
+# macOS TMPDIR tree. Neither is source, and staging them nearly committed a
+# 1.8 GB artefact dump.
+tmp/
+var/

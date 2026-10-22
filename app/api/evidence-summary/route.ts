@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProfile } from "@/lib/server/store";
+import { checkPresentedSecret, classroomSessionFor } from "@/lib/server/capability";
 import { readEvidence } from "@/lib/server/evidence";
 import { isDeviceReported, orderEvents, projectLearner, type AnswerSubmitted } from "@/lib/evidence";
 
@@ -27,9 +28,12 @@ export async function GET(req: Request) {
     const secret = url.searchParams.get("secret");
     const state = await getProfile(id);
     if (!state) return NextResponse.json({ error: "not_found" }, { status: 404 });
-    if (typeof secret !== "string" || !secret || !state.secret || state.secret !== secret) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
+    // The ONE capability rule (lib/server/capability.ts): the learner's own
+    // secret, or the classroom session their PIN bought for THIS learner. It was
+    // written out by hand here, which is how a provisioned learner could sign in
+    // and then read no evidence at all. `bind: false` preserves this door's
+    // stricter rule for a profile that has never had a secret.
+    checkPresentedSecret(state, secret, await classroomSessionFor(id, secret), { bind: false });
 
     const events = await readEvidence(id);
     const projection = projectLearner(events);

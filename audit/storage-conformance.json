@@ -1,12 +1,12 @@
 {
   "suite": "storage-conformance",
   "spec": "docs/STORAGE_SPEC.md §6",
-  "generatedAt": "2026-10-15T22:19:30.802Z",
+  "generatedAt": "2026-10-20T12:05:32.209Z",
   "storeIsTemporary": true,
   "backendsTested": [
     "file"
   ],
-  "casesPassed": 93,
+  "casesPassed": 138,
   "failures": [],
   "skipped": [
     "postgres conformance — no Postgres backend exists in this build — docs/STORAGE_SPEC.md slice 4; when it lands, its adapter goes in this file so there is still ONE suite"

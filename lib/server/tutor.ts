@@ -8,8 +8,10 @@
 //
 // It holds because of what is NOT here. Nothing in this file — or in the two
 // modules it composes, lib/llm.ts and lib/server/tutor.ts's own call graph —
-// imports `answerEvidence`, `appendEvidence`, `commitAndProject`, `updateProfile`
-// or `saveProfile`. The only way into the ledger is append → confirm →
+// imports `answerEvidence`, `appendEvidence`, `commitAndProject`,
+// `commitAndProjectIn`, `withLearner`, `withLearnerState` or `saveProfile` — the
+// transaction door is on that list because after phase C it is how a caller
+// reaches a learner's record, and an AI path must not open one at all. The only way into the ledger is append → confirm →
 // replay/adopt (`lib/server/projection.ts`), reached from the grading routes
 // after the SERVER has marked something against the deterministic engine's own
 // key. A model's text is returned to the caller and to nobody else. The engines

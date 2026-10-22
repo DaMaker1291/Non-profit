@@ -28,7 +28,8 @@
 
 import { ApiError, buildUrl, capabilityFor, postAnswer, probe, send, type Probe, type Query } from "./transport";
 import { newSubmissionId } from "../sync-queue";
-import { ensureSecret, writeProfileId, writeSecret } from "./identity";
+import { ensureSecret, rememberOnDevice, writeProfileId, writeSecret } from "./identity";
+import { readKioskSession } from "../kiosk-session";
 import type {
   Assignment, AssignmentMemberProgress, AssignmentMonitor, ClassMemberEvidence,
   ClassRoster, ConceptProgress, DiagnosticResult, PathStep, ProfileState,
@@ -85,6 +86,10 @@ export interface AccountSession {
   account: PublicAccount | null;
   profile: ProfileState | null;
   secret: string | null;
+  /** THE RECOVERY CODE, returned exactly once — at sign-up and after a recovery —
+   *  because the store keeps only its hash. Absent on every other response: a
+   *  session that could re-read it would be a session that could copy it. */
+  recoveryCode?: string;
 }
 
 export const EMPTY_SESSION: AccountSession = { account: null, profile: null, secret: null };
@@ -119,6 +124,42 @@ export async function signOut(): Promise<void> {
   // session has still signed the learner out, and refusing to clear the device
   // over it would leave them signed in locally for no reason.
   await send<Record<string, never>>("/api/auth/logout", { method: "POST", body: {}, tolerate: [401] });
+}
+
+/**
+ * Recover an account with a code — the learner's printed one, or a teacher's
+ * fifteen-minute grant.
+ *
+ * `email` is optional and that is the point: a grant carries its own lookup key, so
+ * the learner who cannot remember which address they typed at enrolment can still
+ * get back in. When an email IS given it names the account, and the server refuses
+ * a code that belongs to a different one (lib/server/auth.ts#recoverAccount).
+ */
+export function recover(input: {
+  email?: string;
+  code: string;
+  newPassword: string;
+}): Promise<AccountSession> {
+  return send<AccountSession>("/api/auth/recover", { method: "POST", body: { ...input } });
+}
+
+/** Mint a new recovery code from a signed-in session. The current password is
+ *  required: a borrowed session must not be able to mint a permanent key. */
+export function rotateRecoveryCode(currentPassword: string): Promise<{ recoveryCode: string }> {
+  return send<{ recoveryCode: string }>("/api/auth/recovery-code", {
+    method: "POST",
+    body: { currentPassword },
+  });
+}
+
+/** A teacher's short-lived reset grant for one learner they actually teach. */
+export function requestResetGrant(
+  learnerId: string,
+): Promise<{ code: string; expiresAt: number; learner: string }> {
+  return send<{ code: string; expiresAt: number; learner: string }>("/api/auth/reset-grant", {
+    method: "POST",
+    body: { learnerId },
+  });
 }
 
 /** Who is signed in on this device, and which learner profile that is. A failure
@@ -225,6 +266,35 @@ export async function saveProfile(
 
 /** Erase the learner's record. Requires the confirmation word the route
  *  demands, so no caller can do this by accident. */
+// ── THE CLASSROOM DOORS ─────────────────────────────────────────────────────
+//
+// A supervised classroom does not use the household roster. The teacher issues a
+// PIN, the learner exchanges it here for a SHORT-LIVED session, and the server
+// (not the phone) decides when it ends. The returned `secret` is that session
+// token — not the learner's permanent capability — which is why the same
+// plumbing carries it and why the doors that must refuse a classroom session can
+// tell the two apart (lib/server/capability.ts).
+
+export interface KioskSession {
+  profile: ProfileState;
+  secret: string;
+  expiresAt: number;
+  classId: string;
+  className: string;
+  handle: string;
+}
+
+export function kioskLogin(input: { classId?: string; joinCode?: string; handle: string; pin: string }): Promise<KioskSession> {
+  return send<KioskSession>("/api/kiosk/login", { method: "POST", body: { ...input } });
+}
+
+/** Hand the device back. The SERVER ends the session (`deleteKioskSession`), so a
+ *  token copied off the handset is dead the moment this succeeds — which clearing
+ *  localStorage could never achieve on its own. */
+export function kioskLeave(token: string): Promise<Record<string, never>> {
+  return send<Record<string, never>>("/api/kiosk/leave", { method: "POST", body: { token } });
+}
+
 export async function eraseProfile(id: string): Promise<void> {
   await send<Record<string, never>>("/api/profile", { query: { id, confirm: "ERASE" }, method: "DELETE" });
 }
@@ -234,6 +304,18 @@ export async function eraseProfile(id: string): Promise<void> {
 function adoptProfile(state: ProfileView): void {
   if (state.profile?.id) writeProfileId(state.profile.id);
   if (state.secret) writeSecret(state.secret);
+  // A learner created (or saved) on this device is also ADDED TO IT, so the
+  // shared-handset screen can offer them back later. This is the one place a
+  // profile is adopted from a response, so it is the one place that has to say
+  // so — a school enrolling a class would otherwise leave every learner after
+  // the first unreachable once the next child enrolled.
+  //
+  // EXCEPT IN A CLASSROOM. A saved profile in kiosk mode carries a SESSION TOKEN,
+  // not a capability, and the roster's entry is exactly the thing this mode
+  // exists not to keep: it would outlive the lesson and be offered on the switch
+  // screen beside household learners. A lesson is not rememberable — the PIN is
+  // the way back in, and the teacher can re-issue it.
+  if (state.profile?.id && state.secret && !readKioskSession()) rememberOnDevice(state.profile.handle);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -801,7 +883,15 @@ export function classMember(me: string, clsId: string, learnerId: string): Promi
   return send("/api/classes", { query: { me, id: clsId, learner: learnerId } });
 }
 
-export function classAction(input: { action: "create" | "join" | "report" | "update"; id: string; [k: string]: unknown }): Promise<Record<string, unknown>> {
+export function classAction(input: {
+  /** `provision` and `revoke` are the classroom credential's two acts. They are
+   *  in the union because the school console needs them, not because a learner
+   *  route may ask for them: the door authorises them by ACCOUNT
+   *  (lib/server/authority.ts) and refuses a profile capability outright. */
+  action: "create" | "join" | "report" | "update" | "provision" | "revoke";
+  id?: string;
+  [k: string]: unknown;
+}): Promise<Record<string, unknown>> {
   return send("/api/classes", { method: "POST", body: { ...input } });
 }
 

@@ -16,20 +16,33 @@
 // shim. So the port names operations ("the profiles", "this learner's events"),
 // and the file layout stays private to the backend that has one.
 //
-// WHAT IS DELIBERATELY NOT HERE YET: `withLearner` — the one method that opens a
-// learner's durable unit, stages events and stages the projection. That is the
-// method that CHANGES THE WRITE PATH, and slice 1's acceptance was "no behaviour
-// change", so the answer path still runs exactly as it does today
-// (`updateProfile` → `commitAndProject` → `appendEvidence`). **Slice 3 lands it**,
-// with the read side already ported here. Claiming otherwise in a comment is how
-// a spec becomes decoration.
+// WHAT LANDED IN SLICE 3, stated here so this comment stops describing a shape
+// the code no longer has: `withLearner` (the learner transaction, §14 decision 1)
+// and `withLearnerState` (its record-shaped specialisation, which is what the
+// routes call) are on the port, the ledger is behind it, and PHASE C has moved
+// every route that touches a learner's record onto them — so a route's evidence
+// append travels on the transaction's own connection rather than beside it.
 //
-// WHAT ELSE IS NOT HERE: accounts. `lib/server/auth.ts` owns `accounts.json`
-// privately and already imports this store, so moving accounts onto the port
-// needs the two modules' dependency untangled first — slice 3, named rather than
-// forgotten. Until then `accounts.json` is the one data file outside the port.
+// WHAT IS STILL NOT HERE, and it is now a short list: every operation named below
+// is implemented by the FILE backend, so being on the port and being reached
+// THROUGH it are two different claims. The one that is still false is the second:
+// a few routes read and write a learner's profile with `store.ts`'s own functions
+// (signup's create path, `app/api/profile`, and the six doors that call
+// `getProfile`) rather than through the port. That is exactly why
+// `resolveStoreKind` still REFUSES `postgres` — on a second backend those doors
+// would read a store the configured backend never wrote, one learner's record in
+// two places, which is the failure this refusal exists to prevent.
+//
+// WHAT ELSE IS NOT HERE, AND WHY THAT IS NOW A SHORT LIST: the CLASS/ROOM/PACK/
+// PAPER half of the store is implemented by the file backend's own functions, so
+// it is behind the port without being re-implemented by it. Accounts were the one
+// data file with TWO writers (`lib/server/auth.ts` kept a private reader and writer
+// for `accounts.json`); they are now here too — the port names the ten identity
+// operations, `auth.ts` keeps only authentication (hashing, the signed session, the
+// cookie) and asks the port for the rest. That is what makes "which backend holds
+// this school's identities" a question with one answer instead of two.
 // ─────────────────────────────────────────────────────────────────────────────
-import type { ClassRoster, ProfileState, StudyPack, StudyRoom } from "../types";
+import type { Account, AccountRole, ClassRoster, ProfileState, StudyPack, StudyRoom } from "../types";
 // The event schema and the profile shape live in their own modules, not in
 // lib/types.ts — the compiler caught this rather than a runtime `undefined`.
 //
@@ -150,16 +163,24 @@ export interface Storage {
   getProfile(id: string): Promise<ProfileState | null>;
   listProfiles(): Promise<ProfileState[]>;
   saveProfile(state: ProfileState): Promise<void>;
-  /** THE LEARNER TRANSACTION. Read-modify-write of one learner's record and its
-   *  projection, serialised against every other writer — which for the file
-   *  backend is the in-process lock table and for a database is a transaction
-   *  holding an advisory lock on the learner. It is the method every answer path
-   *  already uses (`lib/server/store.ts#updateProfile`), so a backend that
-   *  implements it is interchangeable on the write path; `null` means the learner
-   *  does not exist, and the mutator is never run for one who does not. */
-  updateProfile<T>(
+  /** THE RECORD-SHAPED LEARNER TRANSACTION, and the entry point every route that
+   *  touches a learner's record now uses (docs/STORAGE_SPEC.md §14, phase C).
+   *
+   *  Read-modify-write of ONE learner's record, serialised against every other
+   *  writer — which for the file backend is the in-process lock table and for a
+   *  database is a transaction holding an advisory lock on the learner. `null`
+   *  means the learner does not exist, and the mutator is never run for one who
+   *  does not.
+   *
+   *  THE MUTATOR RECEIVES THE CONTEXT, not only the record, and that is the whole
+   *  point of the parameter: the evidence that justifies the change has to travel
+   *  on THIS transaction's own connection (`commitAndProjectIn`) — a caller that
+   *  instead resolves the port for its ledger write opens a second connection and
+   *  deadlocks against the lock this transaction holds (§14.1). Passing the
+   *  context IN is what makes that impossible rather than discouraged. */
+  withLearnerState<T>(
     id: string,
-    mutator: (state: ProfileState) => T | Promise<T>,
+    mutator: (ctx: LearnerContext, state: ProfileState) => T | Promise<T>,
   ): Promise<{ state: ProfileState; result: T } | null>;
   /** THE LEARNER TRANSACTION (§14 decision 1). Read the record, append the events
    *  that justify the change, re-project, write the record — as one unit, on one
@@ -198,6 +219,69 @@ export interface Storage {
   /** How many learners, rooms and classes this store holds. */
   counts(): Promise<StoreCounts>;
 
+  // ── Identity: accounts, and the sessions a sign-out revokes ───────────────
+  //
+  // WHY ACCOUNTS BELONG ON THIS PORT AT ALL, when the profile is the learner.
+  // "An account owns exactly one learner profile" is the invariant the whole
+  // identity story rests on, and for a while the account lived in a file the port
+  // could not see: `lib/server/auth.ts` had its own reader, its own writer and its
+  // own lock for `accounts.json`. Two writers is the defect the store's single lock
+  // table and single `DATA_DIR` were centralised to remove, one layer up — and it
+  // meant an account had no answer to "where does this deployment keep it?".
+  //
+  // The ten operations below are SEMANTIC (no account is "a JSON object in a
+  // file"): a relational backend keeps them in `users`/`sessions`
+  // (db/migrations/0006_learner_identity.up.sql), which is exactly why
+  // `revokeSessions` is a method rather than "read, mutate, write" — the epoch bump
+  // is one statement there, and doing it as read-modify-write in the caller is how
+  // a concurrent sign-in and sign-out lose one of each other.
+  accountOwningProfile(profileId: string, exceptAccountId?: string): Promise<Account | null>;
+  getAccount(id: string): Promise<Account | null>;
+  findAccountByEmail(email: string): Promise<Account | null>;
+  countAccounts(): Promise<number>;
+  /** Create an account bound to an already-created profile. Throws
+   *  `email_taken` when the address is already registered — INSIDE the write, so
+   *  two concurrent sign-ups cannot both pass a check made outside it. */
+  createAccount(input: {
+    email: string;
+    password: string;
+    name: string;
+    role?: AccountRole;
+    profileId: string;
+  }): Promise<Account>;
+  setAccountProfile(accountId: string, profileId: string): Promise<Account | null>;
+  touchAccount(accountId: string): Promise<void>;
+  updateAccount(
+    accountId: string,
+    patch: { name?: string; role?: AccountRole },
+  ): Promise<Account | null>;
+  /** Set a new password. The CURRENT password is checked by the route, because
+   *  that is an authentication decision rather than a storage one. */
+  setPassword(accountId: string, password: string): Promise<void>;
+  /** Bump the account's session epoch, revoking every outstanding token. A
+   *  sign-out that only cleared a cookie was not a sign-out: the token kept
+   *  verifying until its expiry on any device that still had a copy. */
+  revokeSessions(accountId: string): Promise<void>;
+
+  // ── Recovery: the credentials that get a learner back in ─────────────────
+  //
+  // ON THE PORT, for the same reason accounts are: these are writes to the
+  // identity record, and `lib/server/auth.ts` must not become a second store to
+  // make them. `null` means "clear it" in both setters — see store.ts for why the
+  // two states are one method rather than two.
+  /** Store a learner's recovery code as a hash + salt, or clear it (`null`). */
+  setRecoveryCode(accountId: string, code: { salt: string; hash: string } | null): Promise<Account | null>;
+  /** Store a teacher-issued reset grant (hash + salt + expiry in ONE write), or
+   *  clear it (`null`). The expiry rides with the hash because a grant that
+   *  exists without an end date is a code that never stops working. */
+  setResetGrant(
+    accountId: string,
+    grant: { salt: string; hash: string; expiresAt: number } | null,
+  ): Promise<Account | null>;
+  /** The account a teacher-issued grant names, from its PUBLIC lookup key. The
+   *  key shortlists one account; the secret half still has to verify. */
+  findAccountByResetKey(key: string): Promise<Account | null>;
+
   // ── The ledger: read AND write, and every method ASYNC ───────────────────
   //
   // WHY THESE ARE `Promise`-RETURNING and the file backend's own functions are
@@ -213,14 +297,22 @@ export interface Storage {
   // way of every implementer, and a store that blocks the event loop under a
   // classroom's answers is a different outage with the same cause.
   //
-  // The LEDGER half has migrated (slice 3a): `lib/server/evidence.ts` is a facade
-  // that delegates every one of these five to `activeStorage()`, and the file
-  // implementation lives in `lib/server/evidence-file.ts` behind this backend —
-  // so no route opens a ledger file itself, and the file ledger has exactly one
-  // importer. The PROFILE half (`lib/server/store.ts`) has not: it is slice 3b,
-  // together with `withLearner`, and until then `resolveStoreKind` keeps refusing
-  // any non-file backend (see below), which is what stops a learner's record from
-  // living in two places at once.
+  // Both halves have migrated. The LEDGER was slice 3a: `lib/server/evidence.ts`
+  // is a facade that delegates every one of these five to `activeStorage()`, and
+  // the file implementation lives in `lib/server/evidence-file.ts` behind this
+  // backend, so no route opens a ledger file itself and the file ledger has
+  // exactly one importer. The PROFILE half was 3b: `withLearner`/`withLearnerState`
+  // are on the port (the file backend's own read-modify-write, not a second
+  // implementation), and the account operations followed it out of
+  // `lib/server/auth.ts`, which no longer writes a file for identity at all.
+  //
+  // `resolveStoreKind` STILL refuses a non-file backend, and the reason is now a
+  // narrower one that is easy to lose: the port DESCRIBES the store, but a few
+  // routes still read and write a learner's record through `lib/server/store.ts`'s
+  // own functions rather than through it (the signup/profile create paths and the
+  // six doors that call `getProfile`). On a second backend those would read a store
+  // the configured backend never wrote, so the refusal stays until those call sites
+  // move — see docs/STORAGE_SPEC.md §12.
   /** A learner's history, OLDEST FIRST — the input to `replayModel`. Clock
    *  order, not append order: a device that was offline appends events that
    *  happened before ones already written, so a backend that returns the file
@@ -293,7 +385,7 @@ export const STORAGE_METHODS: readonly (keyof Storage)[] = [
   "getProfile",
   "listProfiles",
   "saveProfile",
-  "updateProfile",
+  "withLearnerState",
   "withLearner",
   "deleteProfile",
   "recordErasure",
@@ -302,6 +394,19 @@ export const STORAGE_METHODS: readonly (keyof Storage)[] = [
   "deletePersonalPapersFor",
   "removeMemberEverywhere",
   "counts",
+  "accountOwningProfile",
+  "getAccount",
+  "findAccountByEmail",
+  "countAccounts",
+  "createAccount",
+  "setAccountProfile",
+  "touchAccount",
+  "updateAccount",
+  "setPassword",
+  "revokeSessions",
+  "setRecoveryCode",
+  "setResetGrant",
+  "findAccountByResetKey",
   "readEvents",
   "appendEvents",
   "learnersWithEvents",

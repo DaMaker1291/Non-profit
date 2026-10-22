@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { updateProfile } from "@/lib/server/store";
+// The learner transaction, through the port-facing door (lib/server/transaction.ts):
+// every action below opens ONE learner's record, and the evidence it records
+// travels on that transaction's own connection.
+import { withLearnerState } from "@/lib/server/transaction";
 import { emptyProgress, isRetentionEvidence } from "@/lib/progress";
 // ── THE SERVE'S DECISION LIVES IN lib/operations.ts, NOT HERE ──────────────
 // Which band, whether the recall is due, which draw, which served keys are
@@ -20,10 +23,14 @@ import { buildHint } from "@/lib/hints";
 import { noteActivity, type SessionLedger } from "@/lib/session";
 import { getConcept } from "@/lib/genome";
 import { answerEvidence, deviceClaimAt, hintEvidence, submissionEventId, type EvidenceEvent } from "@/lib/evidence";
-import { appendEvidence, hasEvidence, readEvidence } from "@/lib/server/evidence";
-import { commitAndProject } from "@/lib/server/projection";
+import { hasEvidence, readEvidence } from "@/lib/server/evidence";
+import { commitAndProjectIn } from "@/lib/server/projection";
 // A store that cannot keep this write answers 503 with its reason — never a 500.
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
+import { authorisedProfile } from "@/lib/server/auth";
+import { checkPresentedSecret, classroomSessionFor } from "@/lib/server/capability";
+import { learnerLimitKey, pace } from "@/lib/server/limits";
+import { ANSWERS_PER_LEARNER } from "@/lib/server/rate-limit";
 import type { ProfileState, Question } from "@/lib/types";
 
 /** A choice index must be a real array index: anything else is a client bug,
@@ -32,14 +39,7 @@ function validChoice(n: unknown): n is number {
   return typeof n === "number" && Number.isInteger(n) && n >= 0;
 }
 
-/** Capability check (audit P0-E): every authenticated action presents the
- *  profile's secret. Legacy profiles bind the first presented secret; after
- *  that the binding is immutable. Throws → 401 via the outer catch. */
-function checkSecret(state: ProfileState, presented: unknown): void {
-  if (typeof presented !== "string" || !presented) throw new Error("unauthorized");
-  if (!state.secret) { state.secret = presented; return; }
-  if (state.secret !== presented) throw new Error("unauthorized");
-}
+
 
 type Session = ServeState & {
   starter?: Record<string, { q: Question; s: ReturnType<typeof buildStarter> }>;
@@ -88,20 +88,24 @@ export async function GET(req: Request): Promise<NextResponse> {
   const secret = searchParams.get("secret");
   if (!secret) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   // The read presents the capability too, and a WRONG one is answered exactly
-  // the way every other door answers it. `checkSecret` throws from inside the
+  // the way every other door answers it. `checkPresentedSecret` throws from inside the
   // mutator, and this handler — unlike POST and /api/evidence — had no catch
   // around it, so a wrong secret left Next with an unhandled error and the
   // caller with a bare 500 and no body. The rule is the same on a read as on a
   // write; the difference in status code was the only thing hiding it.
   try {
-    const state = await updateProfile(id, (s) => {
-      checkSecret(s, secret);
+    // A classroom session is a credential for ITS OWN learner (lib/server/
+    // capability.ts#classroomSessionFor): resolved here, on the request thread,
+    // because the mutator below is synchronous and the port is not.
+    const kioskFor = await classroomSessionFor(id, secret);
+    const state = await withLearnerState(id, (_ctx, s) => {
+      checkPresentedSecret(s, secret, kioskFor);
       return { progress: s.progress, masteries: s.masteries };
     });
     if (!state) return NextResponse.json({ error: "not found" }, { status: 404 });
     return NextResponse.json(state.result);
   } catch (e) {
-    // A READ can still write here — `checkSecret` binds a legacy profile's
+    // A READ can still write here — `checkPresentedSecret` binds a legacy profile's
     // capability secret on its first authenticated read — so this door has the
     // same refusal as the POST below rather than answering it as a bad request.
     const refusal = storeWriteRefusal(e);
@@ -119,6 +123,26 @@ export async function POST(req: Request): Promise<NextResponse> {
     const body = (await req.json()) as ServeBody | AnswerBody | HintBody | MicroBody | StarterBody | StarterPickBody | PeerBody;
     if (!body?.id) return NextResponse.json({ error: "bad request" }, { status: 400 });
 
+    // ── BOUND THE WORK BEFORE IT RUNS ──────────────────────────────────────
+    // Every action below spends CPU (a serve draws an item, an answer runs the
+    // grader and reprojects the model) and writes the learner's record, so this
+    // is the door a script would loop on. The bound is keyed on the learner the
+    // caller PROVES — never on the id alone, which is not a credential — so an
+    // attacker cannot spend somebody else's budget, and the only way to spend
+    // one is to hold that learner's secret. `authorisedProfile` is the same
+    // check the transaction below performs (it also accepts a signed-in owner
+    // and binds a legacy profile's first secret), so this adds no new authority.
+    const caller = await authorisedProfile(req, body.id, (body as { secret?: string }).secret ?? null);
+    if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    // …and WHICH KIND of credential it was decides what the mutators below will
+    // accept. A classroom session is valid for this learner only, it is never
+    // bound as their capability, and every action (serve, answer, hint, flare,
+    // starter, peer) needs it: refusing these was a provisioned learner being
+    // signed in and then unable to practise.
+    const kioskFor = await classroomSessionFor(body.id, (body as { secret?: string }).secret ?? null);
+    const progressGate = await pace(learnerLimitKey("progress", caller.profile.id), ANSWERS_PER_LEARNER);
+    if (progressGate) return progressGate;
+
     if (body.action === "serve") {
       const conceptId = body.conceptId;
       if (typeof conceptId !== "string" || !conceptId) return NextResponse.json({ error: "bad request" }, { status: 400 });
@@ -127,8 +151,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       // serve a question at the top of the concept's difficulty range, not
       // another draw from the same distribution. Attribution stays server-side.
       const isTransfer = body.intent === "transfer";
-      const upd = await updateProfile(body.id, (state) => {
-        checkSecret(state, body.secret);
+      const upd = await withLearnerState(body.id, (_ctx, state) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
         const sess = (state as Session);
         const served = servePractice({
           state: sess,
@@ -209,8 +233,8 @@ export async function POST(req: Request): Promise<NextResponse> {
           flare: null,
         });
       }
-      const upd = await updateProfile(body.id, async (state) => {
-        checkSecret(state, body.secret);
+      const upd = await withLearnerState(body.id, async (ctx, state) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
         const practice = (state as Session).practice;
         const q = practice?.[conceptId]?.q;
         if (!q || q.id !== questionId) {
@@ -348,7 +372,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         // learner can answer again rather than losing the answer to a model
         // that moved for no auditable reason.
         try {
-          await commitAndProject(body.id, state, [event]);
+          await commitAndProjectIn(ctx, state, [event]);
         } catch {
           // Nothing has been spent: the transfer credit and the staged question
           // are still here, so a retry records this answer properly rather than
@@ -441,9 +465,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       // still evidence — "asked for help here, twice, before getting it" — so
       // it is recorded as a hint_requested event, which the fold deliberately
       // ignores. See lib/evidence.ts#hintEvidence.
-      let hintEvent: EvidenceEvent | null = null;
-      const upd = await updateProfile(body.id, (state) => {
-        checkSecret(state, body.secret);
+      const upd = await withLearnerState(body.id, async (ctx, state) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
         const state_ = state as Session;
         const q = state_.practice?.[conceptId]?.q;
         if (!q || q.id !== questionId) {
@@ -468,7 +491,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         });
         p.hints ??= {};
         p.hints[String(level)] = (p.hints[String(level)] ?? 0) + 1;
-        hintEvent = hintEvidence({
+        const hintEvent = hintEvidence({
           learnerId: body.id,
           at: Date.now(),
           source: "practice",
@@ -478,14 +501,20 @@ export async function POST(req: Request): Promise<NextResponse> {
           questionId,
           level,
         }) as EvidenceEvent;
+        // THE ACTION LOG TRAVELS ON THE TRANSACTION. Asking for a hint is
+        // evidence — "asked for help here, before getting it" — but it is not a
+        // graded answer: the fold deliberately ignores it, so it moves no model
+        // field and the hint must not be lost with it. Appended through the
+        // CONTEXT (the transaction's own connection, §14.1) and tolerated
+        // exactly as it was when this append ran outside the lock.
+        try {
+          await ctx.appendEvents([hintEvent]);
+        } catch { /* the hint was served; the action log gap is reported, not hidden */ }
         return { hint: buildHint(q, level), level };
       });
       if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
       const r = upd.result as { error?: string };
       if (r.error) return NextResponse.json({ error: r.error }, { status: 400 });
-      if (hintEvent) {
-        try { await appendEvidence(body.id, [hintEvent]); } catch { /* the hint was served; the action log gap is reported, not hidden */ }
-      }
       return NextResponse.json(upd.result);
     }
 
@@ -497,8 +526,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       ) {
         return NextResponse.json({ error: "bad request" }, { status: 400 });
       }
-      const upd = await updateProfile(body.id, async (state) => {
-        checkSecret(state, body.secret);
+      const upd = await withLearnerState(body.id, async (ctx, state) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
         const graded = gradeMicroCheck(state, conceptId, misconceptionId, questionId, choiceIndex);
         if (!graded) return { error: "no flare to grade" as const };
         // A micro-check IS a graded answer on the misconception's home concept
@@ -525,7 +554,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         }) as EvidenceEvent;
         // Event first, model second — the same order as every other write.
         try {
-          await commitAndProject(body.id, state, [event]);
+          await commitAndProjectIn(ctx, state, [event]);
         } catch {
           return { error: "evidence_not_recorded" as const };
         }
@@ -548,8 +577,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (typeof conceptId !== "string" || !conceptId || typeof questionId !== "string" || !questionId) {
         return NextResponse.json({ error: "bad request" }, { status: 400 });
       }
-      const upd = await updateProfile(body.id, (state) => {
-        checkSecret(state, body.secret);
+      const upd = await withLearnerState(body.id, (_ctx, state) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
         const sess = (state as Session);
         const q = sess.practice?.[conceptId]?.q;
         if (!q || q.id !== questionId) return { error: "stale or unknown question" as const };
@@ -575,8 +604,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (typeof conceptId !== "string" || !conceptId || typeof questionId !== "string" || !questionId || !validChoice(choiceIndex)) {
         return NextResponse.json({ error: "bad request" }, { status: 400 });
       }
-      const upd = await updateProfile(body.id, (state) => {
-        checkSecret(state, body.secret);
+      const upd = await withLearnerState(body.id, (_ctx, state) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
         const sess = (state as Session);
         const entry = sess.starter?.[conceptId];
         if (!entry || entry.q.id !== questionId) return { error: "no starter flow for question" as const };
@@ -598,8 +627,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (typeof conceptId !== "string" || !conceptId || typeof strong !== "boolean") {
         return NextResponse.json({ error: "bad request" }, { status: 400 });
       }
-      const upd = await updateProfile(body.id, (state) => {
-        checkSecret(state, body.secret);
+      const upd = await withLearnerState(body.id, (_ctx, state) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
         // Same rule as starter: creating the entry is not a measurement.
         const p = (state.progress[conceptId] ??= emptyProgress());
         p.peer ??= { checks: 0, strong: 0 };

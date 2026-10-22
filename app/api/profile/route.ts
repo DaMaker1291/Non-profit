@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { getProfile, newProfileState, publicProfileState, saveProfile } from "@/lib/server/store";
+import {
+  deleteKioskSessionsFor, getProfile, newProfileState, publicProfileState, resolveKioskSession, saveProfile,
+} from "@/lib/server/store";
 // THE ERASURE IS ONE WORKFLOW, shared with the restore path — see
 // lib/server/erasure.ts for why it is a sequence rather than three calls from
 // this route, and why the instruction is written before the effects.
@@ -12,8 +14,17 @@ import { accountFromRequest, newProfileId } from "@/lib/server/auth";
 import { isBoardId, type ProfileState, type StudentProfile, type SubjectCourse, type SubjectId } from "@/lib/types";
 import { coversSubject, incompleteSubjects, specById, specsFor } from "@/lib/specifications";
 import { pathwayForCountry } from "@/lib/curricula/registry";
+import { COUNTRIES } from "@/lib/i18n";
 
 const SUBJECTS: SubjectId[] = ["maths", "physics", "chemistry", "biology", "computing"];
+
+/** Every country code a profile may name, plus the deliberate "prefer not to
+ *  say". The check used to be `/^[A-Z]{2}$/`, which accepts "QQ": a typo, a
+ *  hand-rolled client, or a country this product has no route for all became a
+ *  national code nothing answers for, and the learner was then handed the
+ *  independent pathway as though that were their school system. A named refusal
+ *  is the honest answer, and it names the field so a client can fix it. */
+const COUNTRY_CODES = new Set<string>([...COUNTRIES.map((c) => c.code), "XX"]);
 
 /** One per-subject course entry, validated field by field.
  *
@@ -103,6 +114,13 @@ async function authorize(
   const account = await accountFromRequest(req);
   if (account && account.profileId === state.profile.id) return true;
   const secret = typeof presented === "string" ? presented : "";
+  // A CLASSROOM SESSION IS A LEARNER CREDENTIAL, and this door has to know it or
+  // a kiosk learner cannot read their own profile. It is checked BEFORE the
+  // permanent secret because a kiosk learner has no usable one.
+  if (secret.length >= 32) {
+    const kiosk = await resolveKioskSession(secret);
+    if (kiosk && kiosk.profileId === state.profile.id) return true;
+  }
   if (!state.secret) {
     if (secret.length < 16 || secret.length > 128) return false;
     state.secret = secret;
@@ -130,6 +148,15 @@ export async function GET(req: Request): Promise<NextResponse> {
   return NextResponse.json({ ...publicProfileState(state), courseGaps: incompleteSubjects(state.profile) });
 }
 
+/** FIELDS A CLASSROOM SESSION MAY NOT SET. A PIN the teacher issued proves who
+ *  the learner is; it does not let them re-declare the course the teacher
+ *  provisioned them onto (that would silently change the curriculum, the depth
+ *  of every question and the terminology applied to it). The fields are named
+ *  here, once, rather than filtered in four places. */
+const KIOSK_LOCKED_FIELDS = [
+  "country", "pathway", "board", "grade", "spec", "specLevel", "subjectCourses", "exam", "examDate",
+] as const;
+
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     const body = (await req.json()) as Partial<StudentProfile> & Record<string, unknown> & { id?: string };
@@ -151,9 +178,28 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
+    // ── A CLASSROOM SESSION EDITS PREFERENCES, NOT ITS OWN COURSE ────────────
+    // The teacher provisioned this learner onto a curriculum. A PIN proves who is
+    // at the keyboard; it must not let them swap the qualification, the tier or
+    // the education system out from under the class (which would silently change
+    // what every question is pitched at and which terminology is applied). The
+    // fields they MAY change — goal, intent, time per day, examples, language of
+    // explanation — are the ones a learner owns.
+    if (await resolveKioskSession(typeof body.secret === "string" ? body.secret : "")) {
+      const touched = KIOSK_LOCKED_FIELDS.filter((f) => body[f] !== undefined);
+      if (touched.length > 0) {
+        return NextResponse.json({ error: `kiosk_field_locked: ${touched.join(", ")}` }, { status: 403 });
+      }
+    }
+
     const p = state.profile;
     if (typeof body.handle === "string" && body.handle.trim()) p.handle = body.handle.trim().slice(0, 24);
-    if (typeof body.country === "string" && /^[A-Z]{2}$/.test(body.country)) p.country = body.country;
+    if (typeof body.country === "string" && /^[A-Z]{2}$/.test(body.country)) {
+      if (!COUNTRY_CODES.has(body.country)) {
+        return NextResponse.json({ error: "unknown_country", field: "country" }, { status: 400 });
+      }
+      p.country = body.country;
+    }
     // ── WHICH EDUCATION SYSTEM (§7) ─────────────────────────────────────────
     // Optional, because most countries run one general secondary system and
     // asking a UK learner to confirm they follow the UK system is a question
@@ -355,6 +401,28 @@ export async function POST(req: Request): Promise<NextResponse> {
       // back would clear a learner's exam date because they set a tier.
       if (firstCourse.examDate) p.examDate = firstCourse.examDate;
     }
+    // ── WHAT A PROFILE CANNOT BE FINISHED WITHOUT ───────────────────────────
+    //
+    // The completion stamp used to be writable on an empty profile: a client
+    // could POST `{onboarded: true}` with no country and no subjects, and the
+    // learner then held a finished-looking record with no curriculum in it — the
+    // guard let them into /learn, where the serve fell back to the independent
+    // pathway and taught them a course nobody chose. "Required" has to mean the
+    // SERVER refuses, not that a screen happens not to offer the button.
+    //
+    // Only two fields are required HERE, and deliberately not the qualification:
+    // enrolment collects where and what, and the course and its tier are chosen
+    // on /curriculum (`courseIsReady` in lib/app-state.ts gates the surfaces that
+    // need one). This is the floor, so a profile can never be complete and
+    // course-less at the same time.
+    if (body.onboarded === true) {
+      const missing: string[] = [];
+      if (!p.country) missing.push("country");
+      if (!(p.subjects?.length > 0)) missing.push("subjects");
+      if (missing.length > 0) {
+        return NextResponse.json({ error: "profile_incomplete", missing }, { status: 422 });
+      }
+    }
     // Enrolment completeness is recorded, never assumed: an abandoned flow
     // leaves the stamp absent and the app can say so.
     if (body.onboarded === true && !p.onboardedAt) p.onboardedAt = Date.now();
@@ -402,10 +470,21 @@ export async function DELETE(req: Request): Promise<NextResponse> {
   if (!(await authorize(req, state, searchParams.get("secret")))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  // ERASURE IS NOT A CLASSROOM ACTION. A kiosk session is a short-lived
+  // credential the teacher issued for a lesson; it must not be able to destroy a
+  // record (that was one of the measured defects: a capability could erase, and
+  // a shared phone holds capabilities). The household case — a learner with no
+  // account, holding their own permanent capability — keeps this door, because
+  // there is no other authority to ask for.
+  if (await resolveKioskSession(searchParams.get("secret") ?? "")) {
+    return NextResponse.json({ error: "kiosk_cannot_erase" }, { status: 403 });
+  }
   if (searchParams.get("confirm") !== "ERASE") {
     return NextResponse.json({ error: "confirm_required" }, { status: 400 });
   }
   const outcome = await eraseLearner(portErasureTarget(activeStorage()), id);
+  // A credential whose learner is gone is a credential nothing should answer to.
+  await deleteKioskSessionsFor(id);
   // `removed` is kept at its old meaning ("there was a record and it is gone") so
   // an existing caller or script does not have to learn the richer shape, and the
   // outcome rides beside it for a caller that wants to know what else went.

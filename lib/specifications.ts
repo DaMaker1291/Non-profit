@@ -363,6 +363,134 @@ const CM_BAC: Specification = {
   ],
 };
 
+// ── NATIONAL COURSES FOR EVERY COUNTRY THE PICKER OFFERS ────────────────────
+//
+// WHY THIS BLOCK EXISTS. Of the 71 countries the enrolment picker offers, 19
+// had a national course and 52 did not. A learner who chose France, Germany,
+// Japan, Vietnam, Ethiopia, Egypt or any of the other 46 was answered with
+// Cambridge IGCSE or the IB — programmes that exist as ALTERNATIVES, handed over
+// as the automatic answer to "what does my school teach?". `specsFor("FR")`
+// returned nothing, so every layer below (coverage, difficulty band, paper
+// choice, terminology) fell through to the independent pathway, and the
+// curriculum page's coverage panel was empty for half the world.
+//
+// WHAT A ROW CLAIMS, AND WHAT IT DOES NOT. A row records the STRUCTURE of a
+// national course: which qualification ends it, which stage window of the
+// genome it reaches in each subject, and which tiers a learner picks between.
+// The coverage window is OpenMind's mapping onto its own genome, never a
+// syllabus transcription. The registry (lib/curricula/registry.ts) records how
+// far the structural record has been checked and what it was read from; nothing
+// here claims a course covers everything its ministry publishes.
+//
+// THE TOOLBAR IS INTERNAL. `junior`/`foundation`/`higher`/`advanced` choose a
+// difficulty band and whether stage-0 arithmetic is in scope. It is NOT an
+// equivalence between qualifications: a Matura is not "our A-Level", it is a
+// course whose practice sits in that band, and no grade is converted anywhere.
+
+/** [tier id, tier kind, the school's own name for it, stage window, difficulty] */
+type NationalLevel = [string, TierId, string, StageWindow, number];
+
+interface NationalCourse {
+  id: string;
+  country: string;
+  board: BoardId;
+  /** The qualification's own name, in the system's own words. Data, never
+   *  translated: an Ethiopian sits the ESSLCE in every interface language. */
+  name: string;
+  coverage: Partial<Record<SubjectId, StageWindow>>;
+  levels: NationalLevel[];
+}
+
+// Three coverage windows, so a row says which kind of course it is rather than
+// restating five subject windows 51 times. Every national course below teaches
+// all five subjects in some form — that is why none of them omits a subject, and
+// the curriculum gate refuses a pathway whose year has no course for a subject.
+const COV_LOWER: Partial<Record<SubjectId, StageWindow>> = {
+  maths: [0, 3], physics: [1, 2], chemistry: [0, 2], biology: [0, 2], computing: [0, 2],
+};
+const COV_SECONDARY: Partial<Record<SubjectId, StageWindow>> = {
+  maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3],
+};
+const COV_UPPER: Partial<Record<SubjectId, StageWindow>> = {
+  maths: [0, 5], physics: [1, 4], chemistry: [0, 4], biology: [0, 4], computing: [0, 4],
+};
+
+const junior = (id: string, name: string, difficulty = 0.42): NationalLevel => [id, "junior", name, [0, 2], difficulty];
+const middle = (id: string, name: string, stages: StageWindow = [0, 3], difficulty = 0.52): NationalLevel => [id, "foundation", name, stages, difficulty];
+const senior = (id: string, name: string, stages: StageWindow = [0, 4], difficulty = 0.66): NationalLevel => [id, "higher", name, stages, difficulty];
+const final = (id: string, name: string, stages: StageWindow = [0, 4], difficulty = 0.8): NationalLevel => [id, "advanced", name, stages, difficulty];
+
+const NATIONAL_COURSES: NationalCourse[] = [
+  // ── Africa ────────────────────────────────────────────────────────────────
+  { id: "et-esslce", country: "ET", board: "ethiopian", name: "Ethiopian School Leaving Certificate (ESSLCE)", coverage: COV_SECONDARY, levels: [middle("grade-10", "Grade 10", [0, 3], 0.48), final("grade-12", "Grade 12", [0, 4], 0.7)] },
+  { id: "eg-thanaweya", country: "EG", board: "egyptian", name: "Thanaweya Amma (General Secondary Certificate)", coverage: COV_SECONDARY, levels: [middle("grade-11", "Grade 11", [0, 3], 0.5), final("grade-12", "Grade 12", [0, 3], 0.68)] },
+  { id: "ma-college", country: "MA", board: "moroccan", name: "Brevet (3e année collège)", coverage: COV_LOWER, levels: [middle("3ac", "3AC", [0, 2], 0.45)] },
+  { id: "ma-bac", country: "MA", board: "moroccan", name: "Baccalauréat marocain", coverage: COV_UPPER, levels: [senior("1bac", "1re année Bac", [0, 4], 0.68), final("2bac", "2e année Bac", [0, 4], 0.8)] },
+  { id: "rw-o-level", country: "RW", board: "rwandan", name: "Ordinary Level (REB)", coverage: COV_SECONDARY, levels: [middle("s3", "S3", [0, 3], 0.48)] },
+  { id: "rw-a-level", country: "RW", board: "rwandan", name: "Advanced Level (REB)", coverage: COV_UPPER, levels: [senior("s5", "S5", [0, 4], 0.74), final("s6", "S6", [0, 4], 0.84)] },
+  { id: "zm-school-certificate", country: "ZM", board: "zambian", name: "School Certificate (ECZ)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9 (Junior Secondary)", [0, 2], 0.45), senior("grade-12", "Grade 12", [0, 3], 0.62)] },
+  { id: "zw-o-level", country: "ZW", board: "zimsec", name: "ZIMSEC Ordinary Level", coverage: COV_SECONDARY, levels: [senior("form-4", "Form 4", [0, 3], 0.58)] },
+  { id: "zw-a-level", country: "ZW", board: "zimsec", name: "ZIMSEC Advanced Level", coverage: COV_UPPER, levels: [final("upper-sixth", "Upper Sixth", [0, 4], 0.82)] },
+  { id: "mw-msce", country: "MW", board: "malawian", name: "Malawi School Certificate of Education (MSCE)", coverage: COV_SECONDARY, levels: [senior("form-4", "Form 4", [0, 3], 0.58)] },
+  { id: "ml-bac", country: "ML", board: "malian", name: "Baccalauréat malien", coverage: COV_SECONDARY, levels: [middle("3e", "3e (DEF)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.64)] },
+  { id: "sn-bac", country: "SN", board: "senegalese", name: "Baccalauréat sénégalais", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BFEM)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.64)] },
+  { id: "ci-bac", country: "CI", board: "ivorian", name: "Baccalauréat ivoirien", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BEPC)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.64)] },
+  { id: "ne-bac", country: "NE", board: "nigerien", name: "Baccalauréat nigérien", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BEPC)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.62)] },
+  { id: "bf-bac", country: "BF", board: "burkinabe", name: "Baccalauréat burkinabè", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BEPC)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.62)] },
+  { id: "so-form-4", country: "SO", board: "somali", name: "Form 4 National Examination", coverage: COV_SECONDARY, levels: [senior("form-4", "Form 4", [0, 3], 0.55)] },
+  { id: "sd-school-certificate", country: "SD", board: "sudanese", name: "Sudan School Certificate", coverage: COV_SECONDARY, levels: [senior("secondary-3", "Secondary 3", [0, 3], 0.6)] },
+
+  // ── Asia & the Middle East ────────────────────────────────────────────────
+  { id: "vn-thpt", country: "VN", board: "vietnamese", name: "THPT Quốc gia (National High School Examination)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-12", "Grade 12", [0, 4], 0.76)] },
+  { id: "tr-yks", country: "TR", board: "turkish", name: "YKS (TYT / AYT)", coverage: COV_SECONDARY, levels: [middle("grade-8", "Grade 8 (LGS)", [0, 2], 0.45), final("grade-12", "Grade 12", [0, 4], 0.72)] },
+  { id: "ir-konkur", country: "IR", board: "iranian", name: "Konkur (university entrance)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-12", "Grade 12", [0, 4], 0.74)] },
+  { id: "af-baccalaureate", country: "AF", board: "afghan", name: "Baccalaureate (Kankor entry)", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.55)] },
+  { id: "cn-gaokao", country: "CN", board: "chinese", name: "Gaokao (National College Entrance Examination)", coverage: COV_UPPER, levels: [middle("grade-9", "Grade 9 (Zhongkao)", [0, 3], 0.6), final("grade-12", "Grade 12 (Gaokao)", [0, 4], 0.86)] },
+  { id: "jp-nyushi", country: "JP", board: "japanese", name: "Daigaku Nyushi (university entrance)", coverage: COV_UPPER, levels: [middle("junior-high-3", "Junior High 3", [0, 3], 0.6), final("high-school-3", "High School 3", [0, 4], 0.8)] },
+  { id: "kr-csat", country: "KR", board: "korean", name: "Suneung (CSAT)", coverage: COV_UPPER, levels: [middle("middle-3", "Middle 3", [0, 3], 0.62), final("high-3", "High 3", [0, 4], 0.86)] },
+  { id: "ye-general-secondary", country: "YE", board: "yemeni", name: "General Secondary Certificate", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.55)] },
+  { id: "iq-preparatory", country: "IQ", board: "iraqi", name: "Sixth Preparatory Certificate", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.58)] },
+  { id: "sy-baccalaureate", country: "SY", board: "syrian", name: "Al-Shahada Al-Thanawiyya (Baccalaureate)", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.58)] },
+  { id: "jo-tawjihi", country: "JO", board: "jordanian", name: "Tawjihi (General Secondary Certificate)", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 3], 0.62)] },
+  { id: "lb-baccalaureate", country: "LB", board: "lebanese", name: "Lebanese Baccalaureate", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 4], 0.68)] },
+  { id: "np-see", country: "NP", board: "nepali", name: "Secondary Education Examination (SEE)", coverage: COV_LOWER, levels: [middle("grade-10", "Grade 10", [0, 2], 0.5)] },
+  { id: "np-neb", country: "NP", board: "nepali", name: "NEB Grade 12", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 3], 0.62)] },
+  { id: "lk-o-level", country: "LK", board: "srilankan", name: "GCE Ordinary Level (Sri Lanka)", coverage: COV_LOWER, levels: [middle("grade-11", "Grade 11", [0, 2], 0.5)] },
+  { id: "lk-a-level", country: "LK", board: "srilankan", name: "GCE Advanced Level (Sri Lanka)", coverage: COV_SECONDARY, levels: [final("grade-13", "Grade 13", [0, 4], 0.78)] },
+  { id: "mm-matriculation", country: "MM", board: "myanmar", name: "Matriculation Examination", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.56)] },
+  { id: "kh-baccalaureate", country: "KH", board: "cambodian", name: "Baccalauréat (Cambodia)", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.56)] },
+  { id: "la-upper-secondary", country: "LA", board: "lao", name: "Upper Secondary Completion", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.55)] },
+  { id: "mn-eesh", country: "MN", board: "mongolian", name: "ЭЕШ (University Entrance Examination)", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 3], 0.6)] },
+  { id: "kz-unt", country: "KZ", board: "kazakh", name: "ҰБТ (Unified National Testing)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-11", "Grade 11", [0, 4], 0.72)] },
+  { id: "uz-entrance", country: "UZ", board: "uzbek", name: "University entrance examinations", coverage: COV_SECONDARY, levels: [senior("grade-11", "Grade 11", [0, 3], 0.6)] },
+
+  // ── Europe ────────────────────────────────────────────────────────────────
+  { id: "es-eso", country: "ES", board: "spanish", name: "Educación Secundaria Obligatoria (ESO)", coverage: COV_LOWER, levels: [junior("1-eso", "1º ESO", 0.4), middle("4-eso", "4º ESO", [0, 2], 0.5)] },
+  { id: "es-bachillerato", country: "ES", board: "spanish", name: "Bachillerato (EBAU)", coverage: COV_UPPER, levels: [senior("1-bachillerato", "1º Bachillerato", [0, 4], 0.7), final("2-bachillerato", "2º Bachillerato", [0, 4], 0.8)] },
+  { id: "fr-college", country: "FR", board: "french", name: "Diplôme national du brevet", coverage: COV_LOWER, levels: [middle("3e", "3e", [0, 2], 0.5)] },
+  { id: "fr-bac", country: "FR", board: "french", name: "Baccalauréat", coverage: COV_UPPER, levels: [senior("1re", "1re", [0, 4], 0.74), final("terminale", "Terminale", [0, 4], 0.84)] },
+  { id: "de-msa", country: "DE", board: "german", name: "Mittlerer Schulabschluss", coverage: COV_LOWER, levels: [middle("klasse-10", "Klasse 10", [0, 2], 0.5)] },
+  { id: "de-abi", country: "DE", board: "german", name: "Abitur", coverage: COV_UPPER, levels: [senior("klasse-11", "Klasse 11", [0, 4], 0.72), final("klasse-12", "Klasse 12", [0, 4], 0.86)] },
+  { id: "it-media", country: "IT", board: "italian", name: "Licenza media", coverage: COV_LOWER, levels: [middle("3-media", "3ª media", [0, 2], 0.45)] },
+  { id: "it-maturita", country: "IT", board: "italian", name: "Esame di Stato (Maturità)", coverage: COV_UPPER, levels: [senior("4-superiore", "4ª superiore", [0, 4], 0.7), final("5-superiore", "5ª superiore", [0, 4], 0.8)] },
+  { id: "pl-osmoklasisty", country: "PL", board: "polish", name: "Egzamin ósmoklasisty", coverage: COV_LOWER, levels: [middle("klasa-8", "Klasa 8", [0, 2], 0.5)] },
+  { id: "pl-matura", country: "PL", board: "polish", name: "Matura", coverage: COV_UPPER, levels: [senior("liceum-3", "Liceum 3", [0, 4], 0.7), final("liceum-4", "Liceum 4", [0, 4], 0.82)] },
+  { id: "ua-nmt", country: "UA", board: "ukrainian", name: "НМТ (National Multi-subject Test)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-12", "Grade 12", [0, 4], 0.75)] },
+
+  // ── The Americas ──────────────────────────────────────────────────────────
+  { id: "co-saber-11", country: "CO", board: "colombian", name: "Saber 11", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.45), final("grade-11", "Grade 11", [0, 3], 0.65)] },
+  { id: "ar-secundaria", country: "AR", board: "argentine", name: "Secundaria · Título de Bachiller", coverage: COV_SECONDARY, levels: [senior("6-ano", "6º año", [0, 3], 0.6)] },
+  { id: "pe-secundaria", country: "PE", board: "peruvian", name: "Educación Secundaria (EBR)", coverage: COV_SECONDARY, levels: [senior("5-secundaria", "5º secundaria", [0, 3], 0.6)] },
+  { id: "ht-bac", country: "HT", board: "haitian", name: "Baccalauréat (Haïti)", coverage: COV_SECONDARY, levels: [middle("3e-af", "3e AF", [0, 2], 0.44), final("philo", "Philo (Terminale)", [0, 3], 0.6)] },
+  { id: "bo-bachillerato", country: "BO", board: "bolivian", name: "Bachillerato (Bolivia)", coverage: COV_SECONDARY, levels: [senior("6-secundaria", "6º de secundaria", [0, 3], 0.58)] },
+  { id: "ec-bachillerato", country: "EC", board: "ecuadorian", name: "Bachillerato (Ecuador)", coverage: COV_SECONDARY, levels: [middle("10-egb", "10º EGB", [0, 2], 0.45), senior("3-bachillerato", "3º bachillerato", [0, 3], 0.65)] },
+  { id: "gt-diversificado", country: "GT", board: "guatemalan", name: "Diversificado", coverage: COV_SECONDARY, levels: [senior("5-diversificado", "5º diversificado", [0, 3], 0.56)] },
+  { id: "hn-bachillerato", country: "HN", board: "honduran", name: "Bachillerato (Honduras)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
+  { id: "ni-bachillerato", country: "NI", board: "nicaraguan", name: "Bachillerato (Nicaragua)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
+  { id: "sv-bachillerato", country: "SV", board: "salvadoran", name: "Bachillerato (El Salvador)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
+  { id: "do-bachillerato", country: "DO", board: "dominican", name: "Bachillerato (República Dominicana)", coverage: COV_SECONDARY, levels: [senior("6-secundaria", "6º de secundaria", [0, 3], 0.6)] },
+];
+
 const INDEPENDENT: Specification = {
   id: "any-independent", country: "XX", board: "state", name: "Independent · skills pathway",
   coverage: { maths: [0, 5], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
@@ -380,6 +508,16 @@ export const SPECIFICATIONS: Specification[] = [
   // fallback for the other, and the learner's pathway (lib/curricula/registry)
   // is what decides which set their qualification picker offers.
   CM_GCE_O, CM_GCE_A, CM_BEPC, CM_PROBATOIRE, CM_BAC,
+  // Every country the picker offers now has a course of its own. Expanded from
+  // the compact table above so one row per country stays one row.
+  ...NATIONAL_COURSES.map((c): Specification => ({
+    id: c.id,
+    country: c.country,
+    board: c.board,
+    name: c.name,
+    coverage: c.coverage,
+    levels: c.levels.map(([id, tier, name, stages, difficulty]) => ({ id, tier, name, stages, difficulty })),
+  })),
 ];
 // ── The two counts, kept apart on purpose ────────────────
 //
@@ -762,12 +900,14 @@ export function courseGaps(profile: CourseFields, subject: SubjectId): CourseFie
   // always fallen back to the international qualifications for ANY country it
   // has no national entry for, under the comment "Never leave a country with no
   // route." The two disagreed, and the disagreement was a dead end: 53 of the
-  // 70 countries the picker offers (France, Germany, Italy, Spain, Japan,
-  // China, Vietnam, Colombia, …) are not modelled, so `country` was reported as
-  // missing, the qualification step's own gate (`courseGaps.length === 0`)
-  // could never be satisfied, and `Next` stayed disabled for ever. Measured
-  // live: a learner could create an account and then never leave step 4 of 6 —
-  // which reads exactly like "sign-up does not work".
+  // 70 countries the picker then offered (France, Germany, Italy, Spain, Japan,
+  // China, Vietnam, Colombia, …) had no national course, so `country` was
+  // reported as missing, the qualification step's own gate
+  // (`courseGaps.length === 0`) could never be satisfied, and `Next` stayed
+  // disabled for ever. Measured live: a learner could create an account and then
+  // never leave step 4 of 6 — which reads exactly like "sign-up does not work".
+  // Those countries have courses now (see NATIONAL_COURSES, which is why this
+  // fallback is reached only by a code the picker does not offer at all).
   //
   // The independent pathway IS a course — the rule this function's own doc
   // states — and it carries real grades (Foundations / Core / Advanced) and

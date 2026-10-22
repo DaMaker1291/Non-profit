@@ -34,12 +34,18 @@
 //   · the answer key reads back by paper id; marking depends on it
 //   · the class/room update helpers answer `null` for a key they do not find
 //     instead of creating a record — the difference between a lookup and a write
+//   · THE LEARNER TRANSACTION (§14 decision 1), which is what phase C moved the
+//     routes onto: the record and the evidence justifying it are ONE unit, a
+//     function that throws commits nothing to the record while the append it
+//     already made STANDS, and the context's own history is CLOCK-ordered — the
+//     same promise `readEvents` makes, kept on the transaction's own connection
 //   · and the FAILURE cases, which are what storage is actually for: a torn
 //     final line, a write killed between the append and the projection, two
 //     processes over one directory, and an append that fails outright. Each
 //     asserts the property the failure must not break (see "durability under
-//     failure"). They are FILE-BACKEND cases today, because the port's own
-//     write path (`withLearner`) is slice 3 and does not exist yet.
+//     failure"). They OBSERVE the ledger FILE — they parse every line to see a
+//     tear — so they are the file backend's cases and say so when another
+//     backend is configured, rather than passing on a measure they did not take.
 
 // ── What it must never do ────────────────────────────────────────────────────
 // Touch a real store. `DATA_DIR` is resolved at MODULE LOAD, so the temp
@@ -90,11 +96,11 @@ const { activeStorage, fileStorage } = require("../.verify/server/storage-file.j
 const { appendEvidence } = require("../.verify/server/evidence.js");
 const { newProfileState } = require("../.verify/learner-profile.js");
 const { ERASURES_FILE } = require("../.verify/server/erasures.js");
-// The write path and the replayer, for the failure cases below. The port has no
-// write method yet (slice 3), so those cases are driven through the modules the
-// file backend really writes with — and they say so in their own skip line
-// rather than pretending to be backend-neutral.
-const { commitAndProject } = require("../.verify/server/projection.js");
+// The write path and the replayer. The LEARNER TRANSACTION is driven through the
+// port (its own section below); these two are for the failure cases, which are
+// file-backend cases and say so in their own skip line rather than pretending to
+// be backend-neutral.
+const { commitAndProject, commitAndProjectIn } = require("../.verify/server/projection.js");
 const { reconcileDeep, replayModel } = require("../.verify/replay.js");
 const { answerEvidence, submissionEventId } = require("../.verify/evidence.js");
 const { spawn } = require("node:child_process");
@@ -320,8 +326,250 @@ const SAM = "conf_learner_sam";
     erasuresMod.incompleteErasures(await storage.readErasures()).length === 0);
 }
 
+// ── Identity: accounts, and the session epoch a sign-out bumps ──────────────
+//
+// WHY ACCOUNTS ARE ON THIS PORT AT ALL. `lib/server/auth.ts` used to own
+// `accounts.json` with its own reader, its own writer and its own idea of what a
+// normalised address looks like — a second store, holding the one thing a store
+// must never have two of. These cases are the SEMANTICS a second backend has to
+// keep, not a smoke test of the file: a duplicate address is refused inside the
+// write (a check made outside it protects nothing under concurrency), an address
+// matches case-insensitively because normalisation happens in the store, a profile
+// has at most one owning account, and a sign-out is an EPOCH BUMP — the value every
+// token is checked against — rather than a flag somebody remembers to read.
+console.log("\n▸ identity (accounts, on the port with the learner record they own)");
+{
+  // The REAL password check, not a re-implemented one: `passwordMatches` is what
+  // sign-in calls, so this asserts hashing and the stored record agree rather than
+  // asserting a hash is 64 hex characters.
+  const auth = require("../.verify/server/auth.js");
+  const countBefore = await storage.countAccounts();
+
+  const acct = await storage.createAccount({
+    email: "  Conf.Learner@Example.Test  ",
+    password: "correct horse battery",
+    name: "  Mel  ",
+    role: "student",
+    profileId: MEL,
+  });
+  ok("an account is created bound to the learner it owns", acct.profileId === MEL, acct.profileId);
+  ok("with a NORMALISED address, so one address typed two ways is one key",
+    acct.email === "conf.learner@example.test", acct.email);
+  ok("and a display name trimmed rather than stored with its spaces", acct.name === "Mel", JSON.stringify(acct.name));
+  ok("the account is STORED, not merely returned", (await storage.getAccount(acct.id))?.id === acct.id);
+  ok("its password is not on the record, and the salt is the account's own",
+    acct.passHash !== "correct horse battery" && acct.salt.length >= 32);
+  ok("the stored hash is the one the sign-in path accepts — one implementation of both",
+    auth.passwordMatches(acct, "correct horse battery") === true);
+  ok("while a wrong password is refused", auth.passwordMatches(acct, "correct horse batteryX") === false);
+  ok("the count moved by exactly one", (await storage.countAccounts()) === countBefore + 1,
+    `${countBefore} → ${await storage.countAccounts()}`);
+
+  ok("findAccountByEmail finds it through the same normalisation",
+    (await storage.findAccountByEmail("CONF.LEARNER@example.test"))?.id === acct.id);
+  ok("and an unregistered address is null, never an empty account",
+    (await storage.findAccountByEmail("nobody@example.test")) === null);
+
+  // The duplicate, INSIDE the write. Two concurrent sign-ups with the same address
+  // both pass a check made in the route and only one survives the insert; this is
+  // the assertion that the backend is where the decision happens.
+  let dup = null;
+  try {
+    await storage.createAccount({
+      email: "conf.learner@EXAMPLE.test",
+      password: "another long password",
+      name: "Dupe",
+      profileId: "conf_learner_dupe",
+    });
+  } catch (e) {
+    dup = e;
+  }
+  ok("a second account for the same address is REFUSED, inside the write",
+    dup?.message === "email_taken", dup?.message ?? "no error");
+  ok("and the refused sign-up added no account", (await storage.countAccounts()) === countBefore + 1);
+
+  ok("the profile's owner is answered from the profile id — the question every adoption path asks",
+    (await storage.accountOwningProfile(MEL))?.id === acct.id);
+  ok("and an account can be excluded, so re-adopting one's own profile is not a conflict",
+    (await storage.accountOwningProfile(MEL, acct.id)) === null);
+
+  const seenBefore = (await storage.getAccount(acct.id)).lastSeenAt;
+  await new Promise((r) => setTimeout(r, 5));
+  await storage.touchAccount(acct.id);
+  ok("touchAccount moves lastSeenAt forward, which is what 'last seen' has to mean",
+    (await storage.getAccount(acct.id)).lastSeenAt > seenBefore);
+
+  const renamed = await storage.updateAccount(acct.id, { name: "Melanie", role: "teacher" });
+  ok("updateAccount stores the name and role the learner chose",
+    renamed?.name === "Melanie" && renamed?.role === "teacher",
+    `${renamed?.name}/${renamed?.role}`);
+  ok("while an unknown account answers null rather than inventing one",
+    (await storage.updateAccount("conf_no_such_account", { name: "x" })) === null);
+
+  await storage.setPassword(acct.id, "a brand new passphrase");
+  const rotated = await storage.getAccount(acct.id);
+  ok("setPassword re-salts and re-hashes: the OLD password no longer opens the account",
+    rotated.salt !== acct.salt && auth.passwordMatches(rotated, "correct horse battery") === false);
+  ok("and the new one does", auth.passwordMatches(rotated, "a brand new passphrase") === true);
+
+  const epoch = rotated.sessionEpoch ?? 0;
+  await storage.revokeSessions(acct.id);
+  ok("revokeSessions bumps the epoch every token is checked against — sign-out is a server decision",
+    ((await storage.getAccount(acct.id)).sessionEpoch ?? 0) === epoch + 1,
+    `${epoch} → ${(await storage.getAccount(acct.id)).sessionEpoch}`);
+  await storage.revokeSessions(acct.id);
+  ok("and it is monotone, so two sign-outs cannot cancel each other out",
+    ((await storage.getAccount(acct.id)).sessionEpoch ?? 0) === epoch + 2);
+  await storage.revokeSessions("conf_no_such_account");
+  ok("a revoke for an account that does not exist creates nothing",
+    (await storage.getAccount("conf_no_such_account")) === null);
+
+  const other = await storage.createAccount({
+    email: "conf.other@example.test",
+    password: "another long password",
+    name: "Other",
+    profileId: "conf_learner_third",
+  });
+  const moved = await storage.setAccountProfile(other.id, "conf_learner_fourth");
+  ok("setAccountProfile moves the binding the claim path makes",
+    moved?.profileId === "conf_learner_fourth", moved?.profileId);
+  ok("and the ownership question follows it — one owner for the profile it now holds",
+    (await storage.accountOwningProfile("conf_learner_fourth"))?.id === other.id);
+  ok("while the profile it left has no owner again",
+    (await storage.accountOwningProfile("conf_learner_third")) === null);
+  ok("an unknown account cannot be pointed at a profile",
+    (await storage.setAccountProfile("conf_no_such_account", MEL)) === null);
+
+  // ── Recovery credentials ─────────────────────────────────────────────────
+  // A recovery code is a bearer credential, so the port's contract is that only a
+  // DIGEST is stored, that clearing is a state rather than an empty string, and
+  // that a teacher's grant carries its deadline in the SAME write as its hash. A
+  // backend that splits the grant across two writes leaves, on a crash between
+  // them, a code that never stops working.
+  const rc = require("../.verify/recovery-code.js");
+  const withCode = await storage.setRecoveryCode(acct.id, { salt: "conf-salt", hash: "conf-hash" });
+  ok(withCode?.recoveryHash === "conf-hash" && withCode?.recoverySalt === "conf-salt",
+    "setRecoveryCode stores the digest + salt and returns the account");
+  const reloaded = await storage.getAccount(acct.id);
+  ok(reloaded.recoveryHash === "conf-hash" && !JSON.stringify(reloaded).includes("conf-code"),
+    "and a re-read holds the digest, never the credential");
+  const codeCleared = await storage.setRecoveryCode(acct.id, null);
+  ok(codeCleared && codeCleared.recoveryHash === undefined && codeCleared.recoverySalt === undefined,
+    "clearing it removes the fields, so 'no code yet' is a state a caller can see");
+
+  const granted = await storage.setResetGrant(acct.id, { salt: "g-salt", hash: "g-hash", expiresAt: 12_345 });
+  ok(granted?.resetExpiresAt === 12_345 && granted?.resetHash === "g-hash",
+    "setResetGrant writes the deadline WITH the hash — a grant with no end date is a code that never stops working");
+  ok((await storage.findAccountByResetKey(rc.resetKeyFor(acct.id)))?.id === acct.id,
+    "and its public lookup key finds the account without an address");
+  ok((await storage.findAccountByResetKey("ZZZZZZZZ")) === null
+    && (await storage.findAccountByResetKey("short")) === null,
+    "while a key that names nobody — or is the wrong length — finds nobody");
+  const grantCleared = await storage.setResetGrant(acct.id, null);
+  ok(grantCleared && grantCleared.resetHash === undefined && grantCleared.resetExpiresAt === undefined,
+    "and clearing a grant removes the deadline with the hash");
+}
+
+// ── The learner transaction (§14 decision 1), driven through the PORT ────────
+//
+// PHASE C moved every route that touches a learner's record onto this method, so
+// the suite that holds every backend to the port's semantics has to drive it
+// rather than the file store's functions: the record and the evidence that
+// justifies it are ONE unit, and each property below is one a caller relies on.
+console.log("\n▸ the learner transaction (the write path phase C moved the routes to)");
+const TXN = "conf_learner_txn";
+{
+  let ranForMissing = false;
+  const missing = await storage.withLearnerState("conf_txn_nobody", () => { ranForMissing = true; return "x"; });
+  ok("withLearnerState answers null for a learner who does not exist, and never runs the mutator",
+    missing === null && ranForMissing === false, JSON.stringify(missing));
+
+  await storage.saveProfile(newProfileState(TXN, { handle: "txn", subjects: ["maths"] }));
+  const txnEvent = (id, at) => answerEvidence({
+    learnerId: TXN, at, source: "practice", subject: "maths", conceptId: "quadratics",
+    specificationId: null, questionId: `conf_txn_q${id}`, correct: true, chosen: 0, mode: "independent", hints: 0,
+  });
+
+  // 1. The whole write path in one unit: read the record, read the CONTEXT's own
+  //    ledger, append, re-project, stage the record.
+  const first = txnEvent("a", 1_000);
+  const committed = await storage.withLearnerState(TXN, async (ctx, state) => {
+    const before = await ctx.readEvents();
+    const res = await commitAndProjectIn(ctx, state, [first]);
+    return { before: before.length, accepted: res.accepted.length };
+  });
+  ok("a transaction reads the record it is about and appends its evidence as one unit",
+    committed?.result.before === 0 && committed.result.accepted === 1, JSON.stringify(committed?.result));
+  ok("and the record it committed is the projection of that evidence",
+    (await storage.getProfile(TXN))?.progress?.quadratics?.attempts === 1);
+  ok("with the context's read served by the transaction rather than the port",
+    (await storage.withLearner(TXN, (ctx) => ctx.readEvents())).length === 1);
+
+  // 2. A FAILURE COMMITS NOTHING TO THE RECORD, and the append it already made
+  //    STANDs. The second half is the weaker promise the port documents — an
+  //    append-only ledger is not an edit — and a backend that could roll both
+  //    back still has to be correct for a caller written against this one.
+  const beforeFail = JSON.stringify(await storage.getProfile(TXN));
+  const second = txnEvent("b", 2_000);
+  let threw = false;
+  try {
+    await storage.withLearner(TXN, async (ctx) => {
+      const state = await ctx.getProfile();
+      state.profile.goal = "written by a transaction that then failed";
+      await commitAndProjectIn(ctx, state, [second]);
+      throw new Error("a later step failed");
+    });
+  } catch {
+    threw = true;
+  }
+  ok("a transaction that throws propagates the failure to its caller", threw);
+  ok("and leaves the RECORD byte-identical — the staged write was dropped, not committed",
+    JSON.stringify(await storage.getProfile(TXN)) === beforeFail);
+  ok("while the event it appended stands, which is what makes the retry safe",
+    (await storage.readEvents(TXN)).length === 2);
+
+  // 3. THE RETRY IS IDEMPOTENT: the same event id again is a duplicate, so the
+  //    answer counts ONCE. Retried requests are ordinary (a dropped response).
+  const retry = await storage.withLearnerState(TXN, async (ctx, state) => {
+    let tally = null;
+    const res = await commitAndProjectIn(ctx, state, [second]);
+    tally = { accepted: res.accepted.length, duplicates: res.duplicates.length };
+    return tally;
+  });
+  ok("re-sending an event id is reported as a duplicate rather than double-counted",
+    retry?.result.accepted === 0 && retry.result.duplicates === 1, JSON.stringify(retry?.result));
+  ok("so the record still accounts for each answer exactly once",
+    (await storage.getProfile(TXN))?.progress?.quadratics?.attempts === 2);
+
+  // 4. THE CONTEXT'S HISTORY IS CLOCK-ORDERED, not append-ordered — the promise
+  //    `readEvents` makes, kept on the transaction's own connection. A device that
+  //    syncs a morning of offline work at lunchtime appends events that happened
+  //    BEFORE ones already written, and the fold's answer must not depend on that.
+  const later = txnEvent("c", 9_000);
+  const earlier = txnEvent("d", 3_000);
+  await storage.withLearner(TXN, (ctx) => ctx.appendEvents([later]));
+  const ordered = await storage.withLearner(TXN, async (ctx) => {
+    await ctx.appendEvents([earlier]);
+    return (await ctx.readEvents()).map((e) => e.at);
+  });
+  ok("a late-arriving older event is read back in CLOCK order by the context",
+    ordered[ordered.length - 1] === 9_000 && ordered[ordered.length - 2] === 3_000,
+    ordered.join(", "));
+
+  // 5. AND THE CONTEXT CAN CREATE AND DELETE. `withLearnerState` is for an
+  //    existing record; a CREATE (onboarding) and an ERASE both stage the record
+  //    itself, and both are what a database backend must serve on one connection.
+  const CREATED = "conf_learner_created";
+  await storage.withLearner(CREATED, (ctx) => ctx.saveProfile(newProfileState(CREATED, { handle: "made-inside" })));
+  ok("a transaction can stage a record that does not exist yet (the create path)",
+    (await storage.getProfile(CREATED))?.profile?.handle === "made-inside");
+  const removed = await storage.withLearner(CREATED, (ctx) => ctx.deleteProfile());
+  ok("and stage a removal, which is how the erase removes a record inside a unit",
+    removed === true && (await storage.getProfile(CREATED)) === null);
+}
+
 // ── The ledger, read side ───────────────────────────────────────────────────
-console.log("\n▸ the ledger (read side — the write path is slice 3)");
+console.log("\n▸ the ledger (read side — the write side is the transaction above)");
 const LEDGED = "conf_learner_ledger";
 const UNLEDGED = "conf_learner_unledgered";
 {
@@ -405,11 +653,10 @@ const UNLEDGED = "conf_learner_unledgered";
 // intended.
 console.log("\n▸ durability under failure");
 if (storage.kind !== "file") {
-  skipped(
-    "write-path failure cases (F1–F5)",      "these cases OBSERVE the file backend (they parse the ledger file to see a torn write and an interleaved " +
-      "append), and the port's own transaction method (`withLearner`, docs/STORAGE_SPEC.md slice 3) does not exist " +
-      "yet. Drive F4/F5 — the refusal properties, which are backend-neutral — through the port when it lands; do " +
-      "not give them a second suite (§6)",
+  skipped(      "write-path failure cases (F1–F5)",      "these cases OBSERVE the file backend (they parse the ledger file to see a torn write and an interleaved " +
+      "append), which another backend does not have. The port's own transaction is covered above on every backend; " +
+      "F4/F5 — the refusal properties, which ARE backend-neutral — move here through the port when a second " +
+      "backend exists; do not give them a second suite (§6)",
   );
 } else {
   const EVIDENCE_DIR = path.join(STORE_DIR, "evidence");

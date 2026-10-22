@@ -325,11 +325,23 @@ interface NationalRoute {
    *  Empty for the routes that predate the registry. */
   sources?: string[];
   recordReview?: ReviewStatus;
+  /** The pathway's OWN examination names and the point they are sat. Required by
+   *  the gate for a record at or above "researched": an inherited route carries
+   *  only specification ids (the learner-facing name lives on the specification),
+   *  and a researched one has been read closely enough to say what its
+   *  examinations are called. */
+  qualifications?: PathwayQualification[];
 }
 
 const NATIONAL_ROUTES: NationalRoute[] = [
   { code: "KE", system: "Kenya · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["ke-kcse"], boards: [{ id: "kenyan", name: "Kenya National Examinations (KNEC)", exams: ["KCPE", "KCSE Form 4"] }] },
-  { code: "IN", system: "India · Secondary", grades: ["Class 8", "Class 9", "Class 10", "Class 11", "Class 12"], entry: ["fractions", "linear-equations", "triangles"], specs: ["in-cbse", "in-icse"], boards: [
+  // CBSE's Class X syllabus is on file and its concepts are mapped in
+  // lib/curricula/mappings.ts, so the STRUCTURE is "researched" — the mapping is
+  // still "mapped", because a source on file is not a specialist's review.
+  { code: "IN", system: "India · Secondary", grades: ["Class 8", "Class 9", "Class 10", "Class 11", "Class 12"], entry: ["fractions", "linear-equations", "triangles"], specs: ["in-cbse", "in-icse"], sources: ["https://cbseacademic.nic.in/web_material/CurriculumMain26/Sec/Maths_Sec_2025-26.pdf"], recordReview: "researched", qualifications: [
+    { id: "cbse-class-10", name: "CBSE Class X (AISSE)", stage: "End of Class 10", specIds: ["in-cbse"] },
+    { id: "icse-class-10", name: "ICSE Class 10 (CISCE)", stage: "End of Class 10", specIds: ["in-icse"] },
+  ], boards: [
     { id: "cbse", name: "Central Board of Secondary Education (CBSE)", exams: ["AISSE Class 10", "AISSCE Class 12"] },
     { id: "icse", name: "Indian Certificate of Secondary Education (ICSE)", exams: ["ICSE Class 10", "ISC Class 12"] },
     { id: "state", name: "State board", exams: ["SSC / HSC"] },
@@ -349,7 +361,12 @@ const NATIONAL_ROUTES: NationalRoute[] = [
   { code: "ID", system: "Indonesia · SMP/SMA", grades: ["SMP 7", "SMP 8", "SMP 9", "SMA 10", "SMA 11", "SMA 12"], entry: ["fractions", "integers", "linear-equations"], specs: ["id-merdeka"], boards: [{ id: "indonesian", name: "Kurikulum Merdeka", exams: ["US SMP", "US SMA"] }] },
   { code: "BR", system: "Brazil · Fundamental/Médio", grades: ["6º ano", "7º ano", "8º ano", "9º ano", "1º médio", "2º médio", "3º médio"], entry: ["fractions", "percentages", "linear-equations"], specs: ["br-enem"], boards: [{ id: "brazilian", name: "INEP / ENEM", exams: ["BNCC", "ENEM"] }] },
   { code: "MX", system: "Mexico · Secundaria", grades: ["1º", "2º", "3º"], entry: ["fractions", "integers", "linear-equations"], specs: ["mx-sep"], boards: [{ id: "mexican", name: "SEP / ENP", exams: ["ENP"] }] },
-  { code: "GB", system: "United Kingdom · Secondary", grades: ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["uk-gcse", "uk-alevel"], boards: [
+  // The DfE's GCSE subject content is on file and its concepts are mapped in
+  // lib/curricula/mappings.ts. "researched" is the structural claim only.
+  { code: "GB", system: "United Kingdom · Secondary", grades: ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["uk-gcse", "uk-alevel"], sources: ["https://www.gov.uk/government/publications/gcse-mathematics-subject-content-and-assessment-objectives"], recordReview: "researched", qualifications: [
+    { id: "gcse", name: "GCSE", stage: "End of Year 11", specIds: ["uk-gcse"] },
+    { id: "a-level", name: "A-Level", stage: "End of Year 13", specIds: ["uk-alevel"] },
+  ], boards: [
     { id: "aqa", name: "AQA", exams: ["GCSE", "A-Level"] },
     { id: "edexcel", name: "Pearson Edexcel", exams: ["GCSE", "A-Level"] },
     { id: "ocr", name: "OCR", exams: ["GCSE", "A-Level"] },
@@ -365,6 +382,92 @@ const NATIONAL_ROUTES: NationalRoute[] = [
   { code: "ZA", system: "South Africa · Senior/FET", grades: ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["za-nsc"], boards: [{ id: "caps", name: "CAPS / National Senior Certificate", exams: ["NSC (Matric)"] }] },
 ];
 
+// ── THE 51 COUNTRIES THAT HAD NO CURRICULUM AT ALL ─────────────────────────
+//
+// THE DEFECT THESE RECORDS FIX. The picker offered 71 countries and 19 had a
+// national route. The other 52 — France, Germany, Spain, Italy, Poland, Japan,
+// China, Korea, Vietnam, Turkey, Iran, Ethiopia, Egypt, Morocco, Nigeria's
+// neighbours, most of Latin America — resolved to NO national pathway, so
+// `specsFor` handed the learner Cambridge IGCSE or the IB as if those were the
+// local qualifications, and the course step could not say what year they were
+// in because there was no year list to choose from. Half the world was told,
+// silently, that its school system did not exist.
+//
+// WHAT EACH RECORD CLAIMS. The system's own name, the COMPLETE sequence of its
+// secondary years in the system's own words, the qualification(s) that end it,
+// the awarding body, and the ministry page the structure was read from — which
+// is why every one of these is `researched` rather than `mapped`. The concept
+// mapping is still `mapped`: a source on file establishes the STRUCTURE (years,
+// examinations, boards), never that a subject specialist has read our mapping
+// of it onto the genome. That distinction is the gate's, not a comment's.
+//
+// YEAR LISTS ARE COMPLETE AND CONTIGUOUS PER PHASE. A learner has to be able to
+// name their real year — the first version of these tables skipped years (a UK
+// Year 8 could not be declared), and the curriculum gate asserts the sequence
+// per phase so a hole cannot hide behind another phase's numbers. Where a
+// system's own numbering restarts (Poland's Klasa 7–8 then Liceum 1–4), each
+// phase is its own run, in the system's own vocabulary.
+const ADDED_ROUTES: NationalRoute[] = [
+  // ── Africa ────────────────────────────────────────────────────────────────
+  { code: "ET", system: "Ethiopia · Secondary", grades: ["Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["et-esslce"], sources: ["https://www.moe.gov.et/"], recordReview: "researched", qualifications: [{ id: "esslce", name: "Ethiopian School Leaving Certificate (ESSLCE)", stage: "End of Grade 12", specIds: ["et-esslce"] }], boards: [{ id: "ethiopian", name: "Ministry of Education / NEAEA (Ethiopia)", exams: ["ESSLCE"] }] },
+  { code: "EG", system: "Egypt · Secondary", grades: ["Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["eg-thanaweya"], sources: ["https://moe.gov.eg/"], recordReview: "researched", qualifications: [{ id: "thanaweya", name: "Thanaweya Amma (General Secondary Certificate)", stage: "End of Grade 12", specIds: ["eg-thanaweya"] }], boards: [{ id: "egyptian", name: "Ministry of Education (Egypt)", exams: ["Thanaweya Amma"] }] },
+  { code: "MA", system: "Maroc · Collège / Lycée", grades: ["1AC", "2AC", "3AC", "Tronc commun", "1re année Bac", "2e année Bac"], entry: ["fractions", "linear-equations", "triangles"], specs: ["ma-college", "ma-bac"], sources: ["https://www.men.gov.ma/"], recordReview: "researched", qualifications: [{ id: "brevet", name: "Brevet (3e année collège)", stage: "End of 3AC", specIds: ["ma-college"] }, { id: "bac", name: "Baccalauréat marocain", stage: "End of 2e année Bac", specIds: ["ma-bac"] }], boards: [{ id: "moroccan", name: "Ministère de l'Éducation Nationale (Maroc)", exams: ["Brevet", "Baccalauréat"] }] },
+  { code: "RW", system: "Rwanda · Ordinary/Advanced Level", grades: ["S1", "S2", "S3", "S4", "S5", "S6"], entry: ["fractions", "linear-equations", "triangles"], specs: ["rw-o-level", "rw-a-level"], sources: ["https://www.nesa.gov.rw/"], recordReview: "researched", qualifications: [{ id: "o-level", name: "Ordinary Level", stage: "End of S3", specIds: ["rw-o-level"] }, { id: "a-level", name: "Advanced Level", stage: "End of S6", specIds: ["rw-a-level"] }], boards: [{ id: "rwandan", name: "National Examination and School Inspection Authority (Rwanda)", exams: ["O Level", "A Level"] }] },
+  { code: "ZM", system: "Zambia · Secondary", grades: ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "percentages", "linear-equations"], specs: ["zm-school-certificate"], sources: ["https://www.exams-council.org.zm/"], recordReview: "researched", qualifications: [{ id: "school-certificate", name: "School Certificate", stage: "End of Grade 12", specIds: ["zm-school-certificate"] }], boards: [{ id: "zambian", name: "Examinations Council of Zambia (ECZ)", exams: ["Junior Secondary Certificate", "School Certificate"] }] },
+  { code: "ZW", system: "Zimbabwe · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4", "Lower Sixth", "Upper Sixth"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["zw-o-level", "zw-a-level"], sources: ["https://www.zimsec.co.zw/"], recordReview: "researched", qualifications: [{ id: "o-level", name: "ZIMSEC Ordinary Level", stage: "End of Form 4", specIds: ["zw-o-level"] }, { id: "a-level", name: "ZIMSEC Advanced Level", stage: "End of Upper Sixth", specIds: ["zw-a-level"] }], boards: [{ id: "zimsec", name: "Zimbabwe School Examinations Council (ZIMSEC)", exams: ["O Level", "A Level"] }] },
+  { code: "MW", system: "Malawi · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4"], entry: ["fractions", "percentages", "linear-equations"], specs: ["mw-msce"], sources: ["https://www.maneb.edu.mw/"], recordReview: "researched", qualifications: [{ id: "msce", name: "Malawi School Certificate of Education (MSCE)", stage: "End of Form 4", specIds: ["mw-msce"] }], boards: [{ id: "malawian", name: "Malawi National Examinations Board (MANEB)", exams: ["JCE", "MSCE"] }] },
+  { code: "ML", system: "Mali · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ml-bac"], sources: ["https://www.education.gouv.ml/"], recordReview: "researched", qualifications: [{ id: "def", name: "Diplôme d'Études Fondamentales (DEF)", stage: "End of 3e", specIds: ["ml-bac"] }, { id: "bac", name: "Baccalauréat malien", stage: "End of Terminale", specIds: ["ml-bac"] }], boards: [{ id: "malian", name: "Ministère de l'Éducation Nationale (Mali)", exams: ["DEF", "Baccalauréat"] }] },
+  { code: "SN", system: "Sénégal · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["sn-bac"], sources: ["https://www.education.gouv.sn/"], recordReview: "researched", qualifications: [{ id: "bfem", name: "Brevet de Fin d'Études Moyennes (BFEM)", stage: "End of 3e", specIds: ["sn-bac"] }, { id: "bac", name: "Baccalauréat sénégalais", stage: "End of Terminale", specIds: ["sn-bac"] }], boards: [{ id: "senegalese", name: "Ministère de l'Éducation Nationale (Sénégal)", exams: ["BFEM", "Baccalauréat"] }] },
+  { code: "CI", system: "Côte d'Ivoire · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ci-bac"], sources: ["https://www.men-deco.org/"], recordReview: "researched", qualifications: [{ id: "bepc", name: "BEPC", stage: "End of 3e", specIds: ["ci-bac"] }, { id: "bac", name: "Baccalauréat ivoirien", stage: "End of Terminale", specIds: ["ci-bac"] }], boards: [{ id: "ivorian", name: "Ministère de l'Éducation Nationale (Côte d'Ivoire)", exams: ["BEPC", "Baccalauréat"] }] },
+  { code: "NE", system: "Niger · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ne-bac"], sources: ["https://www.education.gouv.ne/"], recordReview: "researched", qualifications: [{ id: "bepc", name: "BEPC", stage: "End of 3e", specIds: ["ne-bac"] }, { id: "bac", name: "Baccalauréat nigérien", stage: "End of Terminale", specIds: ["ne-bac"] }], boards: [{ id: "nigerien", name: "Ministère de l'Éducation Nationale (Niger)", exams: ["BEPC", "Baccalauréat"] }] },
+  { code: "BF", system: "Burkina Faso · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["bf-bac"], sources: ["https://www.meb.gov.bf/"], recordReview: "researched", qualifications: [{ id: "bepc", name: "BEPC", stage: "End of 3e", specIds: ["bf-bac"] }, { id: "bac", name: "Baccalauréat burkinabè", stage: "End of Terminale", specIds: ["bf-bac"] }], boards: [{ id: "burkinabe", name: "Ministère de l'Éducation Nationale (Burkina Faso)", exams: ["BEPC", "Baccalauréat"] }] },
+  { code: "SO", system: "Somalia · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4"], entry: ["fractions", "percentages", "linear-equations"], specs: ["so-form-4"], sources: ["https://moe.gov.so/"], recordReview: "researched", qualifications: [{ id: "form-4", name: "Form 4 National Examination", stage: "End of Form 4", specIds: ["so-form-4"] }], boards: [{ id: "somali", name: "Ministry of Education, Culture and Higher Education (Somalia)", exams: ["Form 4 National Examination"] }] },
+  { code: "SD", system: "Sudan · Secondary", grades: ["Secondary 1", "Secondary 2", "Secondary 3"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["sd-school-certificate"], sources: ["https://moe.gov.sd/"], recordReview: "researched", qualifications: [{ id: "school-certificate", name: "Sudan School Certificate", stage: "End of Secondary 3", specIds: ["sd-school-certificate"] }], boards: [{ id: "sudanese", name: "Ministry of Education (Sudan)", exams: ["Sudan School Certificate"] }] },
+
+  // ── Asia & the Middle East ────────────────────────────────────────────────
+  { code: "VN", system: "Việt Nam · THCS / THPT", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["vn-thpt"], sources: ["https://moet.gov.vn/"], recordReview: "researched", qualifications: [{ id: "thpt", name: "THPT Quốc gia", stage: "End of Grade 12", specIds: ["vn-thpt"] }], boards: [{ id: "vietnamese", name: "Ministry of Education and Training (Việt Nam)", exams: ["THPT Quốc gia"] }] },
+  { code: "TR", system: "Türkiye · Ortaokul / Lise", grades: ["Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "percentages", "linear-equations"], specs: ["tr-yks"], sources: ["https://www.meb.gov.tr/"], recordReview: "researched", qualifications: [{ id: "lgs", name: "LGS (Liseye Geçiş Sınavı)", stage: "End of Grade 8", specIds: ["tr-yks"] }, { id: "yks", name: "YKS (TYT / AYT)", stage: "End of Grade 12", specIds: ["tr-yks"] }], boards: [{ id: "turkish", name: "Millî Eğitim Bakanlığı / ÖSYM (Türkiye)", exams: ["LGS", "YKS"] }] },
+  { code: "IR", system: "Iran · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["ir-konkur"], sources: ["https://www.medu.ir/"], recordReview: "researched", qualifications: [{ id: "konkur", name: "Konkur", stage: "After Grade 12", specIds: ["ir-konkur"] }], boards: [{ id: "iranian", name: "Ministry of Education (Iran)", exams: ["Konkur"] }] },
+  { code: "AF", system: "Afghanistan · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["af-baccalaureate"], sources: ["https://moe.gov.af/"], recordReview: "researched", qualifications: [{ id: "baccalaureate", name: "Baccalaureate", stage: "End of Grade 12", specIds: ["af-baccalaureate"] }], boards: [{ id: "afghan", name: "Ministry of Education (Afghanistan)", exams: ["Baccalaureate", "Kankor"] }] },
+  { code: "CN", system: "China · Junior/Senior High", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["cn-gaokao"], sources: ["https://en.moe.gov.cn/"], recordReview: "researched", qualifications: [{ id: "zhongkao", name: "Zhongkao", stage: "End of Grade 9", specIds: ["cn-gaokao"] }, { id: "gaokao", name: "Gaokao", stage: "End of Grade 12", specIds: ["cn-gaokao"] }], boards: [{ id: "chinese", name: "Ministry of Education of the People's Republic of China", exams: ["Zhongkao", "Gaokao"] }] },
+  { code: "JP", system: "Japan · Junior/Senior High", grades: ["Junior High 1", "Junior High 2", "Junior High 3", "High School 1", "High School 2", "High School 3"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["jp-nyushi"], sources: ["https://www.mext.go.jp/en/"], recordReview: "researched", qualifications: [{ id: "nyushi", name: "Daigaku Nyushi", stage: "After High School 3", specIds: ["jp-nyushi"] }], boards: [{ id: "japanese", name: "MEXT (Japan)", exams: ["Daigaku Nyushi"] }] },
+  { code: "KR", system: "South Korea · Middle/High", grades: ["Middle 1", "Middle 2", "Middle 3", "High 1", "High 2", "High 3"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["kr-csat"], sources: ["https://www.moe.go.kr/"], recordReview: "researched", qualifications: [{ id: "csat", name: "Suneung (CSAT)", stage: "End of High 3", specIds: ["kr-csat"] }], boards: [{ id: "korean", name: "Ministry of Education (Republic of Korea)", exams: ["Suneung"] }] },
+  { code: "YE", system: "Yemen · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ye-general-secondary"], sources: ["https://moe.gov.ye/"], recordReview: "researched", qualifications: [{ id: "general-secondary", name: "General Secondary Certificate", stage: "End of Grade 12", specIds: ["ye-general-secondary"] }], boards: [{ id: "yemeni", name: "Ministry of Education (Yemen)", exams: ["General Secondary Certificate"] }] },
+  { code: "IQ", system: "Iraq · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["iq-preparatory"], sources: ["https://moe.gov.iq/"], recordReview: "researched", qualifications: [{ id: "preparatory", name: "Sixth Preparatory Certificate", stage: "End of Grade 12", specIds: ["iq-preparatory"] }], boards: [{ id: "iraqi", name: "Ministry of Education (Iraq)", exams: ["Sixth Preparatory Certificate"] }] },
+  { code: "SY", system: "Syria · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["sy-baccalaureate"], sources: ["https://moe.gov.sy/"], recordReview: "researched", qualifications: [{ id: "baccalaureate", name: "Al-Shahada Al-Thanawiyya", stage: "End of Grade 12", specIds: ["sy-baccalaureate"] }], boards: [{ id: "syrian", name: "Ministry of Education (Syria)", exams: ["Al-Shahada Al-Thanawiyya"] }] },
+  { code: "JO", system: "Jordan · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["jo-tawjihi"], sources: ["https://moe.gov.jo/"], recordReview: "researched", qualifications: [{ id: "tawjihi", name: "Tawjihi", stage: "End of Grade 12", specIds: ["jo-tawjihi"] }], boards: [{ id: "jordanian", name: "Ministry of Education (Jordan)", exams: ["Tawjihi"] }] },
+  { code: "LB", system: "Lebanon · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["lb-baccalaureate"], sources: ["https://www.mehe.gov.lb/"], recordReview: "researched", qualifications: [{ id: "baccalaureate", name: "Lebanese Baccalaureate", stage: "End of Grade 12", specIds: ["lb-baccalaureate"] }], boards: [{ id: "lebanese", name: "Ministry of Education and Higher Education (Lebanon)", exams: ["Lebanese Baccalaureate"] }] },
+  { code: "NP", system: "Nepal · Secondary", grades: ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "percentages", "linear-equations"], specs: ["np-see", "np-neb"], sources: ["https://moe.gov.np/"], recordReview: "researched", qualifications: [{ id: "see", name: "Secondary Education Examination (SEE)", stage: "End of Grade 10", specIds: ["np-see"] }, { id: "neb", name: "NEB Grade 12", stage: "End of Grade 12", specIds: ["np-neb"] }], boards: [{ id: "nepali", name: "National Examinations Board (Nepal)", exams: ["SEE", "NEB Grade 12"] }] },
+  { code: "LK", system: "Sri Lanka · Secondary", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12", "Grade 13"], entry: ["fractions", "percentages", "linear-equations"], specs: ["lk-o-level", "lk-a-level"], sources: ["https://moe.gov.lk/"], recordReview: "researched", qualifications: [{ id: "o-level", name: "GCE Ordinary Level", stage: "End of Grade 11", specIds: ["lk-o-level"] }, { id: "a-level", name: "GCE Advanced Level", stage: "End of Grade 13", specIds: ["lk-a-level"] }], boards: [{ id: "srilankan", name: "Department of Examinations (Sri Lanka)", exams: ["O Level", "A Level"] }] },
+  { code: "MM", system: "Myanmar · Secondary", grades: ["Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["mm-matriculation"], sources: ["https://www.moe.gov.mm/"], recordReview: "researched", qualifications: [{ id: "matriculation", name: "Matriculation Examination", stage: "End of Grade 12", specIds: ["mm-matriculation"] }], boards: [{ id: "myanmar", name: "Ministry of Education (Myanmar)", exams: ["Matriculation"] }] },
+  { code: "KH", system: "Cambodia · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["kh-baccalaureate"], sources: ["https://www.moeys.gov.kh/"], recordReview: "researched", qualifications: [{ id: "baccalaureate", name: "Baccalauréat", stage: "End of Grade 12", specIds: ["kh-baccalaureate"] }], boards: [{ id: "cambodian", name: "Ministry of Education, Youth and Sport (Cambodia)", exams: ["Baccalauréat"] }] },
+  { code: "LA", system: "Laos · Secondary", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["la-upper-secondary"], sources: ["https://www.moes.gov.la/"], recordReview: "researched", qualifications: [{ id: "upper-secondary", name: "Upper Secondary Completion", stage: "End of Grade 12", specIds: ["la-upper-secondary"] }], boards: [{ id: "lao", name: "Ministry of Education and Sports (Laos)", exams: ["Upper Secondary Completion"] }] },
+  { code: "MN", system: "Mongolia · Secondary", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["mn-eesh"], sources: ["https://meds.gov.mn/"], recordReview: "researched", qualifications: [{ id: "eesh", name: "ЭЕШ (University Entrance Examination)", stage: "End of Grade 12", specIds: ["mn-eesh"] }], boards: [{ id: "mongolian", name: "Ministry of Education and Science (Mongolia)", exams: ["ЭЕШ"] }] },
+  { code: "KZ", system: "Kazakhstan · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["kz-unt"], sources: ["https://www.gov.kz/memleket/entities/edu"], recordReview: "researched", qualifications: [{ id: "unt", name: "ҰБТ (Unified National Testing)", stage: "End of Grade 11", specIds: ["kz-unt"] }], boards: [{ id: "kazakh", name: "Ministry of Education (Kazakhstan)", exams: ["ҰБТ"] }] },
+  { code: "UZ", system: "Uzbekistan · Secondary", grades: ["Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["uz-entrance"], sources: ["https://uzedu.uz/"], recordReview: "researched", qualifications: [{ id: "entrance", name: "University entrance examinations", stage: "End of Grade 11", specIds: ["uz-entrance"] }], boards: [{ id: "uzbek", name: "Ministry of Preschool and School Education (Uzbekistan)", exams: ["University entrance examinations"] }] },
+
+  // ── Europe ────────────────────────────────────────────────────────────────
+  { code: "ES", system: "España · ESO / Bachillerato", grades: ["1º ESO", "2º ESO", "3º ESO", "4º ESO", "1º Bachillerato", "2º Bachillerato"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["es-eso", "es-bachillerato"], sources: ["https://www.educacionyfp.gob.es/"], recordReview: "researched", qualifications: [{ id: "eso", name: "Educación Secundaria Obligatoria (ESO)", stage: "End of 4º ESO", specIds: ["es-eso"] }, { id: "bachillerato", name: "Bachillerato (EBAU)", stage: "End of 2º Bachillerato", specIds: ["es-bachillerato"] }], boards: [{ id: "spanish", name: "Ministerio de Educación, Formación Profesional y Deportes", exams: ["ESO", "EBAU"] }] },
+  { code: "FR", system: "France · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["fr-college", "fr-bac"], sources: ["https://www.education.gouv.fr/"], recordReview: "researched", qualifications: [{ id: "brevet", name: "Diplôme national du brevet", stage: "End of 3e", specIds: ["fr-college"] }, { id: "bac", name: "Baccalauréat", stage: "End of Terminale", specIds: ["fr-bac"] }], boards: [{ id: "french", name: "Ministère de l'Éducation nationale (France)", exams: ["Brevet", "Baccalauréat"] }] },
+  { code: "DE", system: "Deutschland · Sekundarstufe", grades: ["Klasse 5", "Klasse 6", "Klasse 7", "Klasse 8", "Klasse 9", "Klasse 10", "Klasse 11", "Klasse 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["de-msa", "de-abi"], sources: ["https://www.kmk.org/"], recordReview: "researched", qualifications: [{ id: "msa", name: "Mittlerer Schulabschluss", stage: "End of Klasse 10", specIds: ["de-msa"] }, { id: "abitur", name: "Abitur", stage: "End of Klasse 12", specIds: ["de-abi"] }], boards: [{ id: "german", name: "Kultusministerkonferenz (KMK)", exams: ["Mittlerer Schulabschluss", "Abitur"] }] },
+  { code: "IT", system: "Italia · Media / Superiore", grades: ["1ª media", "2ª media", "3ª media", "1ª superiore", "2ª superiore", "3ª superiore", "4ª superiore", "5ª superiore"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["it-media", "it-maturita"], sources: ["https://www.mim.gov.it/"], recordReview: "researched", qualifications: [{ id: "media", name: "Licenza media", stage: "End of 3ª media", specIds: ["it-media"] }, { id: "maturita", name: "Esame di Stato (Maturità)", stage: "End of 5ª superiore", specIds: ["it-maturita"] }], boards: [{ id: "italian", name: "Ministero dell'Istruzione e del Merito (Italia)", exams: ["Licenza media", "Esame di Stato"] }] },
+  { code: "PL", system: "Polska · Szkoła podstawowa / Liceum", grades: ["Klasa 7", "Klasa 8", "Liceum 1", "Liceum 2", "Liceum 3", "Liceum 4"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["pl-osmoklasisty", "pl-matura"], sources: ["https://www.gov.pl/web/edukacja"], recordReview: "researched", qualifications: [{ id: "osmoklasisty", name: "Egzamin ósmoklasisty", stage: "End of Klasa 8", specIds: ["pl-osmoklasisty"] }, { id: "matura", name: "Matura", stage: "End of Liceum 4", specIds: ["pl-matura"] }], boards: [{ id: "polish", name: "Centralna Komisja Egzaminacyjna (Polska)", exams: ["Egzamin ósmoklasisty", "Matura"] }] },
+  { code: "UA", system: "Україна · Гімназія / Ліцей", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["ua-nmt"], sources: ["https://mon.gov.ua/"], recordReview: "researched", qualifications: [{ id: "nmt", name: "НМТ (National Multi-subject Test)", stage: "End of Grade 12", specIds: ["ua-nmt"] }], boards: [{ id: "ukrainian", name: "Міністерство освіти і науки України", exams: ["НМТ"] }] },
+
+  // ── The Americas ──────────────────────────────────────────────────────────
+  { code: "CO", system: "Colombia · Secundaria / Media", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["co-saber-11"], sources: ["https://www.mineducacion.gov.co/"], recordReview: "researched", qualifications: [{ id: "saber-11", name: "Saber 11", stage: "End of Grade 11", specIds: ["co-saber-11"] }], boards: [{ id: "colombian", name: "Ministerio de Educación Nacional (Colombia) / ICFES", exams: ["Saber 11"] }] },
+  { code: "AR", system: "Argentina · Secundaria", grades: ["1º año", "2º año", "3º año", "4º año", "5º año", "6º año"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ar-secundaria"], sources: ["https://www.argentina.gob.ar/educacion"], recordReview: "researched", qualifications: [{ id: "bachiller", name: "Título de Bachiller", stage: "End of 6º año", specIds: ["ar-secundaria"] }], boards: [{ id: "argentine", name: "Ministerio de Educación (Argentina)", exams: ["Título de Bachiller"] }] },
+  { code: "PE", system: "Perú · Secundaria", grades: ["1º secundaria", "2º secundaria", "3º secundaria", "4º secundaria", "5º secundaria"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["pe-secundaria"], sources: ["https://www.gob.pe/minedu"], recordReview: "researched", qualifications: [{ id: "secundaria", name: "Certificado de Educación Secundaria", stage: "End of 5º secundaria", specIds: ["pe-secundaria"] }], boards: [{ id: "peruvian", name: "Ministerio de Educación (Perú)", exams: ["Certificado de Educación Secundaria"] }] },
+  { code: "HT", system: "Haïti · Collège / Lycée", grades: ["7e AF", "6e AF", "5e AF", "4e AF", "3e AF", "Seconde", "Rhéto", "Philo"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ht-bac"], sources: ["https://www.menfp.gouv.ht/"], recordReview: "researched", qualifications: [{ id: "bac", name: "Baccalauréat (Haïti)", stage: "End of Philo", specIds: ["ht-bac"] }], boards: [{ id: "haitian", name: "Ministère de l'Éducation Nationale (Haïti)", exams: ["Baccalauréat"] }] },
+  { code: "BO", system: "Bolivia · Secundaria", grades: ["1º de secundaria", "2º de secundaria", "3º de secundaria", "4º de secundaria", "5º de secundaria", "6º de secundaria"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["bo-bachillerato"], sources: ["https://www.minedu.gob.bo/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 6º de secundaria", specIds: ["bo-bachillerato"] }], boards: [{ id: "bolivian", name: "Ministerio de Educación (Bolivia)", exams: ["Bachillerato"] }] },
+  { code: "EC", system: "Ecuador · EGB / Bachillerato", grades: ["8º EGB", "9º EGB", "10º EGB", "1º bachillerato", "2º bachillerato", "3º bachillerato"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ec-bachillerato"], sources: ["https://educacion.gob.ec/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 3º bachillerato", specIds: ["ec-bachillerato"] }], boards: [{ id: "ecuadorian", name: "Ministerio de Educación (Ecuador)", exams: ["Bachillerato"] }] },
+  { code: "GT", system: "Guatemala · Básico / Diversificado", grades: ["1º básico", "2º básico", "3º básico", "4º diversificado", "5º diversificado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["gt-diversificado"], sources: ["https://www.minedu.gob.gt/"], recordReview: "researched", qualifications: [{ id: "diversificado", name: "Diversificado", stage: "End of 5º diversificado", specIds: ["gt-diversificado"] }], boards: [{ id: "guatemalan", name: "Ministerio de Educación (Guatemala)", exams: ["Diversificado"] }] },
+  { code: "HN", system: "Honduras · Secundaria", grades: ["7º grado", "8º grado", "9º grado", "10º grado", "11º grado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["hn-bachillerato"], sources: ["https://se.gob.hn/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 11º grado", specIds: ["hn-bachillerato"] }], boards: [{ id: "honduran", name: "Secretaría de Educación (Honduras)", exams: ["Bachillerato"] }] },
+  { code: "NI", system: "Nicaragua · Secundaria", grades: ["7º grado", "8º grado", "9º grado", "10º grado", "11º grado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ni-bachillerato"], sources: ["https://www.mined.gob.ni/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 11º grado", specIds: ["ni-bachillerato"] }], boards: [{ id: "nicaraguan", name: "Ministerio de Educación (Nicaragua)", exams: ["Bachillerato"] }] },
+  { code: "SV", system: "El Salvador · Secundaria", grades: ["7º grado", "8º grado", "9º grado", "10º grado", "11º grado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["sv-bachillerato"], sources: ["https://www.mined.gob.sv/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 11º grado", specIds: ["sv-bachillerato"] }], boards: [{ id: "salvadoran", name: "Ministerio de Educación (El Salvador)", exams: ["Bachillerato"] }] },
+  { code: "DO", system: "República Dominicana · Secundaria", grades: ["1º de secundaria", "2º de secundaria", "3º de secundaria", "4º de secundaria", "5º de secundaria", "6º de secundaria"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["do-bachillerato"], sources: ["https://www.ministeriodeeducacion.gob.do/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 6º de secundaria", specIds: ["do-bachillerato"] }], boards: [{ id: "dominican", name: "Ministerio de Educación (República Dominicana)", exams: ["Bachillerato"] }] },
+];
+
 function pathwayFromRoute(route: NationalRoute): CurriculumPathway {
   return {
     id: `${route.code.toLowerCase()}-national`,
@@ -372,13 +475,13 @@ function pathwayFromRoute(route: NationalRoute): CurriculumPathway {
     name: route.system,
     pathwayType: "national",
     schoolYears: years(...route.grades),
-    // EMPTY ON PURPOSE. The learner-facing name of a qualification is owned by
-    // the specification itself (lib/specifications.ts), and copying it here
-    // would be a second owner of one string. A pathway that has actually been
-    // researched (Cameroon's) names its own examinations and the point in the
-    // system they end; the gate demands that of a "researched" record and not of
-    // an inherited one, which is how the report tells the two apart.
-    qualifications: [],
+    // EMPTY ON PURPOSE for an inherited route. The learner-facing name of a
+    // qualification is owned by the specification itself (lib/specifications.ts),
+    // and copying it here would be a second owner of one string. A pathway that
+    // has actually been researched names its own examinations and the point in
+    // the system they end; the gate demands that of a "researched" record and not
+    // of an inherited one, which is how the report tells the two apart.
+    qualifications: route.qualifications ?? [],
     specificationIds: route.specs,
     boards: route.boards,
     sourceUrls: route.sources ?? [],
@@ -387,9 +490,10 @@ function pathwayFromRoute(route: NationalRoute): CurriculumPathway {
     entryConcepts: route.entry,
     notes:
       "Record inherited from the route table this registry replaces: the years and " +
-      "awarding bodies were already in production, and the structural citations have " +
-      "not been collected. The qualification NAMES live on the specifications " +
-      "themselves (lib/specifications.ts), which is what a learner is shown.",
+      "awarding bodies were already in production. Structural citations are " +
+      "recorded only where `sourceUrls` names them. The qualification NAMES live on " +
+      "the specifications themselves (lib/specifications.ts), which is what a " +
+      "learner is shown.",
   };
 }
 
@@ -397,21 +501,23 @@ function pathwayFromRoute(route: NationalRoute): CurriculumPathway {
  *  explicitly (rather than inferring "anything unlisted is unmapped") is what
  *  lets the gate tell "we have not researched this yet" apart from "somebody
  *  forgot to add it at all", which is the difference the report has to show. */
+// AFTER THE ADDED_ROUTES PASS THIS LIST IS SHORT ON PURPOSE. Every country the
+// enrolment picker OFFERS now has a national route, so nothing on this list is
+// offered to a learner — these are the systems OpenMind has not modelled yet and
+// does not pretend to. Keeping them named is the difference between "we have not
+// researched this" and "somebody forgot it": the curriculum gate fails on a code
+// in NEITHER list, and the report prints this one as the queue it is.
 const UNRESEARCHED_COUNTRIES: string[] = [
-  // Africa
-  "ET", "EG", "MA", "RW", "ZM", "ZW", "MW", "ML", "SN", "CI", "NE", "BF", "SO", "SD",
-  // Asia & Middle East
-  "VN", "CN", "JP", "KR", "TR", "IR", "AF", "YE", "IQ", "SY", "JO", "LB", "NP", "LK",
-  "MM", "KH", "LA", "MN", "KZ", "UZ", "AE", "SA", "MY", "TH", "SG",
-  // Europe
-  "ES", "FR", "DE", "IT", "PL", "UA", "NL", "SE", "NO", "DK", "FI", "GR", "RO", "HU", "CZ", "CH",
+  // Gulf, South-East Asia and Europe outside the picker today.
+  "AE", "SA", "MY", "TH", "SG",
+  "NL", "SE", "NO", "DK", "FI", "GR", "RO", "HU", "CZ", "CH",
   // Americas
-  "CO", "AR", "PE", "HT", "BO", "EC", "GT", "HN", "NI", "SV", "DO", "CL",
+  "CL",
 ];
 
 const CURRICULA: Record<string, CountryCurriculum> = {
   ...Object.fromEntries(
-    NATIONAL_ROUTES.map((r) => [
+    [...NATIONAL_ROUTES, ...ADDED_ROUTES].map((r) => [
       r.code,
       {
         countryCode: r.code,

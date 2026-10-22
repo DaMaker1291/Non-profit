@@ -30,14 +30,25 @@ Learning data persists in `./openmind-data` on the host. Copy that one directory
 Without Docker:
 
 ```bash
-npm ci && npm run build && npm start
+npm ci && npm run build
+OPENMIND_DATA_DIR="$(pwd)/.openmind-data" npm start   # → http://localhost:4173
 ```
 
-### Configuration (all optional)
+That variable is not decoration on a production build. With no declared data directory the artefact **refuses every learner-record write** (HTTP `503`, `store_not_durable`) and reports itself not ready — because the default store sits inside the application directory, which is the one location a redeploy certainly replaces, and a site that renders while silently refusing to save a learner's work is worse than one that fails loudly. `docker compose up -d` and `./start-openmind.sh` set the variable from the artefact itself; a bare `npm run build && npm start` does not.
+
+`next start` also prints a warning — `"next start" does not work with "output: standalone"` — because this app builds a standalone server. It serves correctly anyway (`npm start` was measured serving `/` styled and accepting a learner record), but on a non-Docker host the *recommended* command is `./start-openmind.sh`: it runs `node server.js` and copies the content-hashed static tree next to it, then verifies over HTTP that the page is styled. That last step is why the script is the recommendation rather than a raw `node .next/standalone/server.js`.
+
+To check a deployment once it is up:
+
+```bash
+OPENMIND_BASE=http://localhost:4173 npm run smoke   # readiness, and what the store actually is
+```
+
+### Configuration (one setting is required in production)
 
 Copy `.env.example` to `.env`:
 
-- `OPENMIND_DATA_DIR` — where data lives (USB stick, mounted school drive, Docker volume). Defaults to `./.openmind-data`.
+- `OPENMIND_DATA_DIR` — where data lives (USB stick, mounted school drive, Docker volume). **Required in production.** It defaults to `./.openmind-data`, which is inside the application directory and is therefore refused on the production artefact until it is declared. On a host that replaces its filesystem when it deploys (Render, Heroku, Fly), a path is not enough — the question is the *filesystem*, not the path: attach a disk and declare it (`OPENMIND_DATA_DIR_DURABLE=1`, whose only acceptable evidence is the restart drill, `npm run verify:persistence -- --write` then `--verify`), or say in so many words that this instance is a demo whose records are expected to disappear (`OPENMIND_ALLOW_EPHEMERAL_STORE=1`). Until one of those two is declared, learner-data writes are refused rather than accepted and thrown away. `npm run verify:install` drives all three states through the built server.
 - Any **one** of `GEMINI_API_KEY` / `OPENAI_API_KEY` / `GROQ_API_KEY` / `OPENROUTER_API_KEY` — upgrades the Socratic tutor to LLM-backed. **Nothing is gated**: without a key, the offline rule-based tutor works and every feature stays available.
 - `OPENMIND_AI_BASE_URL` + `OPENMIND_AI_KEY` (+ optional `OPENMIND_AI_MODEL`, `OPENMIND_AI_TIMEOUT_MS`) — point the AI layer at your own OpenAI-compatible endpoint. These take precedence over the vendor keys above, so a school or region running its own model is never shadowed by a stray key in the environment.
 
@@ -79,7 +90,9 @@ visitor ──► onboarding ──► baseline diagnostic ──► Home ──
 
 **Accounts are real.** Email + password (scrypt, per-account salt), a signed HttpOnly session cookie, and one learner profile per account — so signing in on any device restores the whole history. Sign-up keeps the anonymous profile already on that device: `POST /api/auth/signup` with `claim.profileId` moves the recorded work across instead of starting again. Accounts are **optional** — the wedge and practice still run without one, and the UI says plainly which of the two you are using. Honest limit: OpenMind sends no mail, so an address is never *verified*; the account record says so.
 
-**Enrolment is a real flow** (`/onboarding`, 5 steps): account or guest → about you → your course (country → specification → tier → board → exam date) → subjects and daily minutes → languages. Everything lands on the learner profile (`grade`, `spec`, `specLevel`, `board`, `examDate`, `timePerDay`, `onboardedAt`), and the whole flow is translated into all 15 languages.
+**Enrolment is three screens** (`/onboarding`): account or guest → where you are and what you read → what you study. That is everything the rest of the product cannot work without.
+
+Everything else is asked later, where it can be answered with something to go on: the course (country → education system → specification → tier) and the year group on `/curriculum`, the exam date, daily budget and goal on the plan, and the terminology and example-setting choices on `/access`. The split is deliberate — a tier picked at the end of a sign-up is a tier picked by someone who has not seen a single question yet, and leaving it unset is a state the product reports (`courseGaps`) instead of filling in for the learner. All of it lands on the learner profile (`grade`, `spec`, `specLevel`, `board`, `examDate`, `timePerDay`, `onboardedAt`), and every screen is translated into all 15 languages.
 
 **Exam papers** (`/papers`, `lib/papers.ts`). Each paper follows a real qualification's published shape — papers, sections, mark values, time allowed, calculator rules and grade-boundary percentages — and is assembled from the **specification layer's actual coverage** at that tier's difficulty. Sit it under its own timer, then get the mark scheme, the raw score and a grade *estimate* (boundaries move every series — the UI says so). Two honest limits: these are OpenMind's own exam-style questions written to the specification, **not reproductions of copyrighted past papers**, and every answer is recorded as *independent* evidence, which is exactly the signal the learner model needs.
 
@@ -298,8 +311,8 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Course × subject rows audited for depth | 311 | every subject's target depth is reachable, by some generator in its course | `audit/content-coverage.json` |
 | **Storage** | Lock tables in lib/ and app/ | 1 | one, in lib/server/store.ts — two tables means two writers with no common serialisation point | `source scan` |
 |  | Owners of where learning data lives | 1 | one, in lib/server/store.ts; lib/env.ts reports the variable and resolves nothing, so it is exempt | `source scan` |
-|  | Route files importing the store | 19 | 47 export statements in a 771-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
-|  | JSON files the server modules own | 11 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "boots.json", "classes.json", "erasures.json", "interventions.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
+|  | Route files importing the store | 20 | 75 export statements in a 1179-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
+|  | JSON files the server modules own | 12 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "boots.json", "classes.json", "erasures.json", "interventions.json", "kiosk-sessions.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
 | **Pilot (UK GCSE maths)** | Concepts in the review cluster | 11 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
 |  | Items awaiting human review | 110 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
 |  | Cluster concepts with no named misconception to probe | 1 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |
@@ -308,7 +321,7 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | National pathways | 20 | Cameroon runs two systems, so this exceeds the country count | `lib/curricula/registry.ts` |
 |  | Offerings without a national route | 52 | offered the international programmes and the skills pathway, explicitly | `lib/curricula/registry.ts` |
 |  | Specifications | 30 | 27 national · 2 international · 1 independent | `lib/specifications.ts` |
-|  | Pathways with no structural source on file | 20 | named on every `curriculum-gate` run rather than hidden | `lib/curricula/registry.ts` |
+|  | Pathways with no structural source on file | 18 | named on every `curriculum-gate` run rather than hidden | `lib/curricula/registry.ts` |
 |  | Pathways whose syllabus mapping has been reviewed | 0 | every mapping is currently OpenMind's own | `lib/curricula/registry.ts` |
 
 <!-- status:end -->

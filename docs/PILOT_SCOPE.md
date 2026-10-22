@@ -34,7 +34,7 @@ the only question that decides whether any of it matters.
 | Decision | Proposed | Why |
 |---|---|---|
 | Subject | **Maths** | The concepts with independent verification (fractions, surds, completing-square, mixture-problems, circle-area-arc) are maths, so the reviewed set and the verified set overlap. |
-| Course | **UK GCSE Mathematics, Foundation AND Higher** (19 national routes exist, and `npm run curriculum-gate` asserts the picker offers every one of them; this route has a full grade ladder and two tiers) | A single declared course drives all six layers, so the pilot measures one coherent thing. A mixed-tier class sits both tiers, so the pack draws items at both targets. |
+| Course | **UK GCSE Mathematics, Foundation AND Higher** (70 of the 71 offered countries now have a national route, and `npm run curriculum-gate` asserts the picker offers every one of them; this route has a full grade ladder and two tiers) | A single declared course drives all six layers, so the pilot measures one coherent thing. A mixed-tier class sits both tiers, so the pack draws items at both targets. |
 | Concepts | **11**, chosen from the genome's own prerequisite graph rather than by taste — see below | Small enough for a teacher to read every item; large enough for a before/after. |
 | Items | Every item a student meets in those concepts, **reviewed by a teacher before use** | Review is the layer that does not exist; this is how it comes into existence. |
 | Duration | 3–4 weeks, two sessions a week | Long enough to include a delayed retention check. |

@@ -31,13 +31,21 @@ jobs:
       - run: npm ci --no-audit --no-fund
 
       - name: Compiler
-        run: npm run typecheck
-
-      - name: Engine suite
+        run: npm run typecheck- name: Engine suite
         run: npm run verify
 
+      # ── INGRESS CONTRACT VERIFICATION ─────────────────────────────────────
+      # Verifies the proxy contract that rate-limit and ingress doors rely on.
+      # Tests that forged X-Forwarded-For headers cannot choose rate-limit identities,
+      # that rotation of spoofed addresses collapses to one identity, and that
+      # requests bypassing the declared proxy are refused (not silently unbounded).
+      # The simulated proxy models the edge proxy's append behaviour (Fly.io style).
+      - name: Ingress contract
+        run: npm run verify:ingress
+
       # ── ONE SUITE, EVERY BACKEND ────────────────────────────────────────────
-      # The storage port (docs/STORAGE_SPEC.md) exists so a second backend can be
+      # The storage port (docs/STORAGE_SPEC.md) exists so a second backend can
+ be
       # a drop-in, and the failure mode it must not have is a second SUITE: a
       # backend that passes its own tests and not the product's. This drives the
       # port's semantics — clock-ordered history, owner-scoped reads, the erase

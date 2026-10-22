@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
-import { listPersonalPapers, newId, savePersonalPaper, updateProfile } from "@/lib/server/store";
+import { listPersonalPapers, newId, savePersonalPaper } from "@/lib/server/store";
+// The learner transaction, through the port-facing door (lib/server/transaction.ts).
+import { withLearnerState } from "@/lib/server/transaction";
 // A store that cannot keep a learner record refuses the write and says why; this
 // route turns that refusal into the honest 503 instead of a bare 500.
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
+import { authorisedProfile } from "@/lib/server/auth";
+import { checkPresentedSecret, classroomSessionFor } from "@/lib/server/capability";
+import { learnerLimitKey, pace } from "@/lib/server/limits";
+import { UPLOAD_PER_LEARNER } from "@/lib/server/rate-limit";
 import { analysePersonalPaper, mayStorePersonalPaper, personalPaperEvidence, validatePersonalPaper, type PersonalPaper } from "@/lib/personal-paper";
 import { rightsFor, type ContentAction } from "@/lib/content-rights";
 import { getConcept } from "@/lib/genome";
 import { answerEvidence, type EvidenceEvent } from "@/lib/evidence";
-import { commitAndProject } from "@/lib/server/projection";
+import { commitAndProjectIn } from "@/lib/server/projection";
 import type { SubjectId } from "@/lib/types";
 import type { ProfileState } from "@/lib/types";
 
@@ -40,12 +46,6 @@ import type { ProfileState } from "@/lib/types";
 /** Fields that steer the request rather than describing the paper. */
 const CONTROL_KEYS = ["action", "id", "secret", "paperId"];
 
-function checkSecret(state: ProfileState, presented: unknown): void {
-  if (typeof presented !== "string" || !presented) throw new Error("unauthorized");
-  if (!state.secret) { state.secret = presented; return; }
-  if (state.secret !== presented) throw new Error("unauthorized");
-}
-
 /** The rights facts, derived from the one rights model so no surface can state
  *  something the code does not believe. */
 function rightsSummary(): { origin: "user_provided"; permitted: ContentAction[]; stored: string[] } {
@@ -70,8 +70,11 @@ export async function GET(req: Request): Promise<NextResponse> {
   const { getProfile } = await import("@/lib/server/store");
   const state = await getProfile(id);
   if (!state) return NextResponse.json({ error: "not found" }, { status: 404 });
+  // A classroom session is this learner's credential too, and only theirs —
+  // resolved before the try so a wrong token is still the one 401 answer.
+  const kioskFor = await classroomSessionFor(id, secret);
   try {
-    checkSecret(state, secret);
+    checkPresentedSecret(state, secret, kioskFor);
   } catch {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
@@ -92,6 +95,18 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!body?.id || (body.action !== "create" && body.action !== "mark")) {
       return NextResponse.json({ error: "bad request" }, { status: 400 });
     }
+
+    // BRING-YOUR-OWN-PAPER IS THE UPLOAD DOOR, and each submission runs the
+    // whole marking analysis over every question on the paper. The bound is
+    // spent on the learner the caller PROVES: the same `authorisedProfile` the
+    // mutators below apply, so this adds no authority — only a count.
+    const owner = await authorisedProfile(req, body.id, body.secret ?? null);
+    if (!owner) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    // Same two credentials as every other learner door: a capability, or the
+    // classroom session this learner's PIN bought (lib/server/capability.ts).
+    const kioskFor = await classroomSessionFor(body.id, body.secret ?? null);
+    const uploadGate = await pace(learnerLimitKey("upload", owner.profile.id), UPLOAD_PER_LEARNER);
+    if (uploadGate) return uploadGate;
 
     // A deployment that has not permitted private storage must not silently
     // store anyway: the rights gate is the precondition, asked out loud.
@@ -123,8 +138,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       const paperAt = Date.now();
       const pending: EvidenceEvent[] = [];
       let committed = true;
-      const upd = await updateProfile(body.id, async (state: ProfileState) => {
-        checkSecret(state, body.secret);
+      const upd = await withLearnerState(body.id, async (ctx, state: ProfileState) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
         if (!state.personalPapers) state.personalPapers = [];
         if (!state.personalPapers.includes(paper.id)) state.personalPapers.push(paper.id);
         for (const e of personalPaperEvidence(paper)) {
@@ -156,8 +171,10 @@ export async function POST(req: Request): Promise<NextResponse> {
           pending.push({ ...ev, provenance: "device" });
         }
         // ── THE CUTOVER: WRITE EVENT → CONFIRM APPEND → REPLAY → RESPOND ──
+        // Inside the learner TRANSACTION, and through ITS context: the events
+        // travel on the connection that holds this learner's lock (§14.1).
         try {
-          await commitAndProject(body.id, state, pending);
+          await commitAndProjectIn(ctx, state, pending);
         } catch {
           committed = false;
         }

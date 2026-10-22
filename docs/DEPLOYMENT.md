@@ -78,8 +78,44 @@ Section 5 says why, and what would have to change to get there.
 docker compose up -d                # → http://localhost:4173
 
 # Without Docker
-npm ci && npm run build && npm start
+npm ci && npm run build
+OPENMIND_DATA_DIR="$(pwd)/.openmind-data" npm start
 ```
+
+**The one variable a non-Docker production start must set.** `next start` runs the
+production artefact with `NODE_ENV=production`, so an undeclared data directory is
+`data_dir_undeclared` — a BLOCKING code in `lib/env.ts`, not a note: `/api/ready`
+answers 503 and every learner-record write is refused with `store_not_durable`,
+because a production store inside the application directory is one redeploy away
+from losing a classroom. `docker compose up -d` and `./start-openmind.sh` set it
+from the artefact itself (the `Dockerfile`'s `ENV`, the script's own `export`); a
+hand-typed `npm start` has to say it, and `npm run verify:install` fails if any
+documented start path stops doing so.
+
+**A warning `npm start` prints, and why the block above is still correct.** Next
+says `"next start" does not work with "output: standalone"` — this app builds a
+standalone server. The warning is advisory at this size: `npm start` was measured
+(config, 17 Oct 2026) answering `/api/ready` 200, serving `/` **with its
+stylesheet**, and accepting a learner record into the declared directory. But the
+command that matches the build is `./start-openmind.sh`, which runs `node
+server.js` and copies `public` + `.next/static` beside it before checking over
+HTTP that the served page is styled; `node .next/standalone/server.js` on its own
+is the one combination that can serve HTTP 200 and NO styling, so it is not
+documented as a start command anywhere.
+
+After starting:
+
+```bash
+OPENMIND_BASE=http://localhost:4173 npm run smoke      # readiness + what the store IS
+test "$(curl -s -o /dev/null -w '%{http_code}' -X POST localhost:4173/api/profile -H 'content-type: application/json' -d '{}')" = 200 \
+  && echo "a learner record is accepted"               # the write, not just the report
+```
+
+That last probe is the one that matters: `/api/ready` describing a store that then
+refuses a write is exactly the state a learner meets as "it didn't save". A green
+`npm run verify:install` proves readiness and write behaviour **on this host**; it
+does **not** prove survival across a container replacement — only the restart drill
+(`npm run verify:persistence -- --write`, replace the instance, `--verify`) answers that.
 
 `next.config.mjs` builds a `standalone` server. A standalone server serves HTML
 that points at a **separate content-hashed static tree**, which is why

@@ -2,16 +2,21 @@
   "generatedBy": "scripts/curriculum-gate.mjs",
   "counts": {
     "countriesOffered": 71,
-    "countriesWithNationalRoute": 19,
-    "countriesUnmapped": 52,
-    "nationalPathways": 20,
-    "specifications": 30,
-    "nationalSpecifications": 27,
+    "countriesWithNationalRoute": 70,
+    "countriesUnmapped": 1,
+    "nationalPathways": 71,
+    "specifications": 91,
+    "nationalSpecifications": 88,
     "internationalSpecifications": 2,
     "independentSpecifications": 1,
-    "pathsWithNoSource": 20,
+    "pathsWithNoSource": 18,
     "reviewedMappings": 0,
-    "verifiedPathways": 0
+    "verifiedPathways": 0,
+    "mappingsOnFile": 2,
+    "mappedSpecifications": 2,
+    "mappingsWithReviewer": 0,
+    "conceptsMapped": 77,
+    "mappingsVerifiedAgainstDocument": 1
   },
   "countries": [
     {
@@ -70,17 +75,19 @@
             "uk-gcse",
             "uk-alevel"
           ],
-          "recordReview": "mapped",
+          "recordReview": "researched",
           "mappingReview": "mapped",
-          "sourceUrls": []
+          "sourceUrls": [
+            "https://www.gov.uk/government/publications/gcse-mathematics-subject-content-and-assessment-objectives"
+          ]
         }
       ],
       "offeredCourses": [
         "uk-gcse",
         "uk-alevel"
       ],
-      "recordReview": "mapped",
-      "sourcesOnFile": 0
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "IE",
@@ -131,17 +138,19 @@
             "in-cbse",
             "in-icse"
           ],
-          "recordReview": "mapped",
+          "recordReview": "researched",
           "mappingReview": "mapped",
-          "sourceUrls": []
+          "sourceUrls": [
+            "https://cbseacademic.nic.in/web_material/CurriculumMain26/Sec/Maths_Sec_2025-26.pdf"
+          ]
         }
       ],
       "offeredCourses": [
         "in-cbse",
         "in-icse"
       ],
-      "recordReview": "mapped",
-      "sourcesOnFile": 0
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "NG",
@@ -319,41 +328,96 @@
     {
       "countryCode": "ET",
       "countryName": "Ethiopia",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "et-national",
+          "name": "Ethiopia · Secondary",
+          "years": [
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "et-esslce"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.moe.gov.et/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "et-esslce"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "EG",
       "countryName": "Egypt",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "eg-national",
+          "name": "Egypt · Secondary",
+          "years": [
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "eg-thanaweya"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://moe.gov.eg/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "eg-thanaweya"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "MA",
       "countryName": "Morocco",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ma-national",
+          "name": "Maroc · Collège / Lycée",
+          "years": [
+            "1AC",
+            "2AC",
+            "3AC",
+            "Tronc commun",
+            "1re année Bac",
+            "2e année Bac"
+          ],
+          "specificationIds": [
+            "ma-college",
+            "ma-bac"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.men.gov.ma/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "ma-college",
+        "ma-bac"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "PK",
@@ -476,15 +540,35 @@
     {
       "countryCode": "VN",
       "countryName": "Vietnam",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "vn-national",
+          "name": "Việt Nam · THCS / THPT",
+          "years": [
+            "Grade 6",
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "vn-thpt"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://moet.gov.vn/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "vn-thpt"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "BR",
@@ -547,184 +631,466 @@
     {
       "countryCode": "CO",
       "countryName": "Colombia",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "co-national",
+          "name": "Colombia · Secundaria / Media",
+          "years": [
+            "Grade 6",
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11"
+          ],
+          "specificationIds": [
+            "co-saber-11"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.mineducacion.gov.co/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "co-saber-11"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "AR",
       "countryName": "Argentina",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ar-national",
+          "name": "Argentina · Secundaria",
+          "years": [
+            "1º año",
+            "2º año",
+            "3º año",
+            "4º año",
+            "5º año",
+            "6º año"
+          ],
+          "specificationIds": [
+            "ar-secundaria"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.argentina.gob.ar/educacion"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "ar-secundaria"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "PE",
       "countryName": "Peru",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "pe-national",
+          "name": "Perú · Secundaria",
+          "years": [
+            "1º secundaria",
+            "2º secundaria",
+            "3º secundaria",
+            "4º secundaria",
+            "5º secundaria"
+          ],
+          "specificationIds": [
+            "pe-secundaria"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.gob.pe/minedu"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "pe-secundaria"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "ES",
       "countryName": "Spain",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "es-national",
+          "name": "España · ESO / Bachillerato",
+          "years": [
+            "1º ESO",
+            "2º ESO",
+            "3º ESO",
+            "4º ESO",
+            "1º Bachillerato",
+            "2º Bachillerato"
+          ],
+          "specificationIds": [
+            "es-eso",
+            "es-bachillerato"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.educacionyfp.gob.es/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "es-eso",
+        "es-bachillerato"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "FR",
       "countryName": "France",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "fr-national",
+          "name": "France · Collège / Lycée",
+          "years": [
+            "6e",
+            "5e",
+            "4e",
+            "3e",
+            "2nde",
+            "1re",
+            "Terminale"
+          ],
+          "specificationIds": [
+            "fr-college",
+            "fr-bac"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.education.gouv.fr/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "fr-college",
+        "fr-bac"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "DE",
       "countryName": "Germany",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "de-national",
+          "name": "Deutschland · Sekundarstufe",
+          "years": [
+            "Klasse 5",
+            "Klasse 6",
+            "Klasse 7",
+            "Klasse 8",
+            "Klasse 9",
+            "Klasse 10",
+            "Klasse 11",
+            "Klasse 12"
+          ],
+          "specificationIds": [
+            "de-msa",
+            "de-abi"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.kmk.org/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "de-msa",
+        "de-abi"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "IT",
       "countryName": "Italy",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "it-national",
+          "name": "Italia · Media / Superiore",
+          "years": [
+            "1ª media",
+            "2ª media",
+            "3ª media",
+            "1ª superiore",
+            "2ª superiore",
+            "3ª superiore",
+            "4ª superiore",
+            "5ª superiore"
+          ],
+          "specificationIds": [
+            "it-media",
+            "it-maturita"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.mim.gov.it/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "it-media",
+        "it-maturita"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "PL",
       "countryName": "Poland",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "pl-national",
+          "name": "Polska · Szkoła podstawowa / Liceum",
+          "years": [
+            "Klasa 7",
+            "Klasa 8",
+            "Liceum 1",
+            "Liceum 2",
+            "Liceum 3",
+            "Liceum 4"
+          ],
+          "specificationIds": [
+            "pl-osmoklasisty",
+            "pl-matura"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.gov.pl/web/edukacja"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "pl-osmoklasisty",
+        "pl-matura"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "TR",
       "countryName": "Turkey",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "tr-national",
+          "name": "Türkiye · Ortaokul / Lise",
+          "years": [
+            "Grade 5",
+            "Grade 6",
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "tr-yks"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.meb.gov.tr/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "tr-yks"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "IR",
       "countryName": "Iran",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ir-national",
+          "name": "Iran · Secondary",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "ir-konkur"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.medu.ir/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "ir-konkur"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "AF",
       "countryName": "Afghanistan",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "af-national",
+          "name": "Afghanistan · Secondary",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "af-baccalaureate"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://moe.gov.af/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "af-baccalaureate"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "CN",
       "countryName": "China",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "cn-national",
+          "name": "China · Junior/Senior High",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "cn-gaokao"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://en.moe.gov.cn/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "cn-gaokao"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "JP",
       "countryName": "Japan",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "jp-national",
+          "name": "Japan · Junior/Senior High",
+          "years": [
+            "Junior High 1",
+            "Junior High 2",
+            "Junior High 3",
+            "High School 1",
+            "High School 2",
+            "High School 3"
+          ],
+          "specificationIds": [
+            "jp-nyushi"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.mext.go.jp/en/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "jp-nyushi"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "KR",
       "countryName": "South Korea",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "kr-national",
+          "name": "South Korea · Middle/High",
+          "years": [
+            "Middle 1",
+            "Middle 2",
+            "Middle 3",
+            "High 1",
+            "High 2",
+            "High 3"
+          ],
+          "specificationIds": [
+            "kr-csat"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.moe.go.kr/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "kr-csat"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "AU",
@@ -789,106 +1155,262 @@
     {
       "countryCode": "UA",
       "countryName": "Ukraine",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ua-national",
+          "name": "Україна · Гімназія / Ліцей",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "ua-nmt"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://mon.gov.ua/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "ua-nmt"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "RW",
       "countryName": "Rwanda",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "rw-national",
+          "name": "Rwanda · Ordinary/Advanced Level",
+          "years": [
+            "S1",
+            "S2",
+            "S3",
+            "S4",
+            "S5",
+            "S6"
+          ],
+          "specificationIds": [
+            "rw-o-level",
+            "rw-a-level"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.nesa.gov.rw/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "rw-o-level",
+        "rw-a-level"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "ZM",
       "countryName": "Zambia",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "zm-national",
+          "name": "Zambia · Secondary",
+          "years": [
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "zm-school-certificate"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.exams-council.org.zm/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "zm-school-certificate"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "ZW",
       "countryName": "Zimbabwe",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "zw-national",
+          "name": "Zimbabwe · Secondary",
+          "years": [
+            "Form 1",
+            "Form 2",
+            "Form 3",
+            "Form 4",
+            "Lower Sixth",
+            "Upper Sixth"
+          ],
+          "specificationIds": [
+            "zw-o-level",
+            "zw-a-level"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.zimsec.co.zw/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "zw-o-level",
+        "zw-a-level"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "MW",
       "countryName": "Malawi",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "mw-national",
+          "name": "Malawi · Secondary",
+          "years": [
+            "Form 1",
+            "Form 2",
+            "Form 3",
+            "Form 4"
+          ],
+          "specificationIds": [
+            "mw-msce"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.maneb.edu.mw/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "mw-msce"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "ML",
       "countryName": "Mali",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ml-national",
+          "name": "Mali · Collège / Lycée",
+          "years": [
+            "6e",
+            "5e",
+            "4e",
+            "3e",
+            "2nde",
+            "1re",
+            "Terminale"
+          ],
+          "specificationIds": [
+            "ml-bac"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.education.gouv.ml/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "ml-bac"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "SN",
       "countryName": "Senegal",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "sn-national",
+          "name": "Sénégal · Collège / Lycée",
+          "years": [
+            "6e",
+            "5e",
+            "4e",
+            "3e",
+            "2nde",
+            "1re",
+            "Terminale"
+          ],
+          "specificationIds": [
+            "sn-bac"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.education.gouv.sn/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "sn-bac"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "CI",
       "countryName": "Côte d'Ivoire",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ci-national",
+          "name": "Côte d'Ivoire · Collège / Lycée",
+          "years": [
+            "6e",
+            "5e",
+            "4e",
+            "3e",
+            "2nde",
+            "1re",
+            "Terminale"
+          ],
+          "specificationIds": [
+            "ci-bac"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.men-deco.org/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "ci-bac"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "CM",
@@ -954,327 +1476,802 @@
     {
       "countryCode": "NE",
       "countryName": "Niger",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ne-national",
+          "name": "Niger · Collège / Lycée",
+          "years": [
+            "6e",
+            "5e",
+            "4e",
+            "3e",
+            "2nde",
+            "1re",
+            "Terminale"
+          ],
+          "specificationIds": [
+            "ne-bac"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.education.gouv.ne/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "ne-bac"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "BF",
       "countryName": "Burkina Faso",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "bf-national",
+          "name": "Burkina Faso · Collège / Lycée",
+          "years": [
+            "6e",
+            "5e",
+            "4e",
+            "3e",
+            "2nde",
+            "1re",
+            "Terminale"
+          ],
+          "specificationIds": [
+            "bf-bac"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.meb.gov.bf/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "bf-bac"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "SO",
       "countryName": "Somalia",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "so-national",
+          "name": "Somalia · Secondary",
+          "years": [
+            "Form 1",
+            "Form 2",
+            "Form 3",
+            "Form 4"
+          ],
+          "specificationIds": [
+            "so-form-4"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://moe.gov.so/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "so-form-4"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "SD",
       "countryName": "Sudan",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "sd-national",
+          "name": "Sudan · Secondary",
+          "years": [
+            "Secondary 1",
+            "Secondary 2",
+            "Secondary 3"
+          ],
+          "specificationIds": [
+            "sd-school-certificate"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://moe.gov.sd/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "sd-school-certificate"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "YE",
       "countryName": "Yemen",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ye-national",
+          "name": "Yemen · Secondary",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "ye-general-secondary"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://moe.gov.ye/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "ye-general-secondary"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "IQ",
       "countryName": "Iraq",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "iq-national",
+          "name": "Iraq · Secondary",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "iq-preparatory"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://moe.gov.iq/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "iq-preparatory"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "SY",
       "countryName": "Syria",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "sy-national",
+          "name": "Syria · Secondary",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "sy-baccalaureate"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://moe.gov.sy/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "sy-baccalaureate"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "JO",
       "countryName": "Jordan",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "jo-national",
+          "name": "Jordan · Secondary",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "jo-tawjihi"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://moe.gov.jo/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "jo-tawjihi"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "LB",
       "countryName": "Lebanon",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "lb-national",
+          "name": "Lebanon · Secondary",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "lb-baccalaureate"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.mehe.gov.lb/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "lb-baccalaureate"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "NP",
       "countryName": "Nepal",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "np-national",
+          "name": "Nepal · Secondary",
+          "years": [
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "np-see",
+            "np-neb"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://moe.gov.np/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "np-see",
+        "np-neb"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "LK",
       "countryName": "Sri Lanka",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "lk-national",
+          "name": "Sri Lanka · Secondary",
+          "years": [
+            "Grade 6",
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12",
+            "Grade 13"
+          ],
+          "specificationIds": [
+            "lk-o-level",
+            "lk-a-level"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://moe.gov.lk/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "lk-o-level",
+        "lk-a-level"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "MM",
       "countryName": "Myanmar",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "mm-national",
+          "name": "Myanmar · Secondary",
+          "years": [
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "mm-matriculation"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.moe.gov.mm/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "mm-matriculation"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "KH",
       "countryName": "Cambodia",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "kh-national",
+          "name": "Cambodia · Secondary",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "kh-baccalaureate"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.moeys.gov.kh/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "kh-baccalaureate"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "LA",
       "countryName": "Laos",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "la-national",
+          "name": "Laos · Secondary",
+          "years": [
+            "Grade 6",
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "la-upper-secondary"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.moes.gov.la/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "la-upper-secondary"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "MN",
       "countryName": "Mongolia",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "mn-national",
+          "name": "Mongolia · Secondary",
+          "years": [
+            "Grade 6",
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11",
+            "Grade 12"
+          ],
+          "specificationIds": [
+            "mn-eesh"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://meds.gov.mn/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "mn-eesh"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "KZ",
       "countryName": "Kazakhstan",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "kz-national",
+          "name": "Kazakhstan · Secondary",
+          "years": [
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11"
+          ],
+          "specificationIds": [
+            "kz-unt"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.gov.kz/memleket/entities/edu"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "kz-unt"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "UZ",
       "countryName": "Uzbekistan",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "uz-national",
+          "name": "Uzbekistan · Secondary",
+          "years": [
+            "Grade 5",
+            "Grade 6",
+            "Grade 7",
+            "Grade 8",
+            "Grade 9",
+            "Grade 10",
+            "Grade 11"
+          ],
+          "specificationIds": [
+            "uz-entrance"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://uzedu.uz/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "uz-entrance"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "HT",
       "countryName": "Haiti",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ht-national",
+          "name": "Haïti · Collège / Lycée",
+          "years": [
+            "7e AF",
+            "6e AF",
+            "5e AF",
+            "4e AF",
+            "3e AF",
+            "Seconde",
+            "Rhéto",
+            "Philo"
+          ],
+          "specificationIds": [
+            "ht-bac"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.menfp.gouv.ht/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "ht-bac"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "BO",
       "countryName": "Bolivia",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "bo-national",
+          "name": "Bolivia · Secundaria",
+          "years": [
+            "1º de secundaria",
+            "2º de secundaria",
+            "3º de secundaria",
+            "4º de secundaria",
+            "5º de secundaria",
+            "6º de secundaria"
+          ],
+          "specificationIds": [
+            "bo-bachillerato"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.minedu.gob.bo/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "bo-bachillerato"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "EC",
       "countryName": "Ecuador",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ec-national",
+          "name": "Ecuador · EGB / Bachillerato",
+          "years": [
+            "8º EGB",
+            "9º EGB",
+            "10º EGB",
+            "1º bachillerato",
+            "2º bachillerato",
+            "3º bachillerato"
+          ],
+          "specificationIds": [
+            "ec-bachillerato"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://educacion.gob.ec/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "ec-bachillerato"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "GT",
       "countryName": "Guatemala",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "gt-national",
+          "name": "Guatemala · Básico / Diversificado",
+          "years": [
+            "1º básico",
+            "2º básico",
+            "3º básico",
+            "4º diversificado",
+            "5º diversificado"
+          ],
+          "specificationIds": [
+            "gt-diversificado"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.minedu.gob.gt/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "gt-diversificado"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "HN",
       "countryName": "Honduras",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "hn-national",
+          "name": "Honduras · Secundaria",
+          "years": [
+            "7º grado",
+            "8º grado",
+            "9º grado",
+            "10º grado",
+            "11º grado"
+          ],
+          "specificationIds": [
+            "hn-bachillerato"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://se.gob.hn/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "hn-bachillerato"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "NI",
       "countryName": "Nicaragua",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "ni-national",
+          "name": "Nicaragua · Secundaria",
+          "years": [
+            "7º grado",
+            "8º grado",
+            "9º grado",
+            "10º grado",
+            "11º grado"
+          ],
+          "specificationIds": [
+            "ni-bachillerato"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.mined.gob.ni/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "ni-bachillerato"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "SV",
       "countryName": "El Salvador",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "sv-national",
+          "name": "El Salvador · Secundaria",
+          "years": [
+            "7º grado",
+            "8º grado",
+            "9º grado",
+            "10º grado",
+            "11º grado"
+          ],
+          "specificationIds": [
+            "sv-bachillerato"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.mined.gob.sv/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "sv-bachillerato"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "DO",
       "countryName": "Dominican Republic",
-      "status": "unmapped",
-      "nationalPathways": [],
-      "offeredCourses": [
-        "int-igcse",
-        "int-ib",
-        "any-independent"
+      "status": "national",
+      "nationalPathways": [
+        {
+          "id": "do-national",
+          "name": "República Dominicana · Secundaria",
+          "years": [
+            "1º de secundaria",
+            "2º de secundaria",
+            "3º de secundaria",
+            "4º de secundaria",
+            "5º de secundaria",
+            "6º de secundaria"
+          ],
+          "specificationIds": [
+            "do-bachillerato"
+          ],
+          "recordReview": "researched",
+          "mappingReview": "mapped",
+          "sourceUrls": [
+            "https://www.ministeriodeeducacion.gob.do/"
+          ]
+        }
       ],
-      "recordReview": "unmapped",
-      "sourcesOnFile": 0
+      "offeredCourses": [
+        "do-bachillerato"
+      ],
+      "recordReview": "researched",
+      "sourcesOnFile": 1
     },
     {
       "countryCode": "XX",
@@ -1309,14 +2306,19 @@
       "countryCode": "IN",
       "pathwayType": "national",
       "years": 5,
-      "qualifications": [],
+      "qualifications": [
+        "CBSE Class X (AISSE)",
+        "ICSE Class 10 (CISCE)"
+      ],
       "specificationIds": [
         "in-cbse",
         "in-icse"
       ],
-      "recordReview": "mapped",
+      "recordReview": "researched",
       "mappingReview": "mapped",
-      "sourceUrls": []
+      "sourceUrls": [
+        "https://cbseacademic.nic.in/web_material/CurriculumMain26/Sec/Maths_Sec_2025-26.pdf"
+      ]
     },
     {
       "id": "ph-national",
@@ -1453,14 +2455,19 @@
       "countryCode": "GB",
       "pathwayType": "national",
       "years": 7,
-      "qualifications": [],
+      "qualifications": [
+        "GCSE",
+        "A-Level"
+      ],
       "specificationIds": [
         "uk-gcse",
         "uk-alevel"
       ],
-      "recordReview": "mapped",
+      "recordReview": "researched",
       "mappingReview": "mapped",
-      "sourceUrls": []
+      "sourceUrls": [
+        "https://www.gov.uk/government/publications/gcse-mathematics-subject-content-and-assessment-objectives"
+      ]
     },
     {
       "id": "ie-national",
@@ -1528,6 +2535,900 @@
       "recordReview": "mapped",
       "mappingReview": "mapped",
       "sourceUrls": []
+    },
+    {
+      "id": "et-national",
+      "countryCode": "ET",
+      "pathwayType": "national",
+      "years": 4,
+      "qualifications": [
+        "Ethiopian School Leaving Certificate (ESSLCE)"
+      ],
+      "specificationIds": [
+        "et-esslce"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.moe.gov.et/"
+      ]
+    },
+    {
+      "id": "eg-national",
+      "countryCode": "EG",
+      "pathwayType": "national",
+      "years": 4,
+      "qualifications": [
+        "Thanaweya Amma (General Secondary Certificate)"
+      ],
+      "specificationIds": [
+        "eg-thanaweya"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://moe.gov.eg/"
+      ]
+    },
+    {
+      "id": "ma-national",
+      "countryCode": "MA",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Brevet (3e année collège)",
+        "Baccalauréat marocain"
+      ],
+      "specificationIds": [
+        "ma-college",
+        "ma-bac"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.men.gov.ma/"
+      ]
+    },
+    {
+      "id": "rw-national",
+      "countryCode": "RW",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Ordinary Level",
+        "Advanced Level"
+      ],
+      "specificationIds": [
+        "rw-o-level",
+        "rw-a-level"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.nesa.gov.rw/"
+      ]
+    },
+    {
+      "id": "zm-national",
+      "countryCode": "ZM",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [
+        "School Certificate"
+      ],
+      "specificationIds": [
+        "zm-school-certificate"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.exams-council.org.zm/"
+      ]
+    },
+    {
+      "id": "zw-national",
+      "countryCode": "ZW",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "ZIMSEC Ordinary Level",
+        "ZIMSEC Advanced Level"
+      ],
+      "specificationIds": [
+        "zw-o-level",
+        "zw-a-level"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.zimsec.co.zw/"
+      ]
+    },
+    {
+      "id": "mw-national",
+      "countryCode": "MW",
+      "pathwayType": "national",
+      "years": 4,
+      "qualifications": [
+        "Malawi School Certificate of Education (MSCE)"
+      ],
+      "specificationIds": [
+        "mw-msce"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.maneb.edu.mw/"
+      ]
+    },
+    {
+      "id": "ml-national",
+      "countryCode": "ML",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "Diplôme d'Études Fondamentales (DEF)",
+        "Baccalauréat malien"
+      ],
+      "specificationIds": [
+        "ml-bac"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.education.gouv.ml/"
+      ]
+    },
+    {
+      "id": "sn-national",
+      "countryCode": "SN",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "Brevet de Fin d'Études Moyennes (BFEM)",
+        "Baccalauréat sénégalais"
+      ],
+      "specificationIds": [
+        "sn-bac"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.education.gouv.sn/"
+      ]
+    },
+    {
+      "id": "ci-national",
+      "countryCode": "CI",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "BEPC",
+        "Baccalauréat ivoirien"
+      ],
+      "specificationIds": [
+        "ci-bac"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.men-deco.org/"
+      ]
+    },
+    {
+      "id": "ne-national",
+      "countryCode": "NE",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "BEPC",
+        "Baccalauréat nigérien"
+      ],
+      "specificationIds": [
+        "ne-bac"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.education.gouv.ne/"
+      ]
+    },
+    {
+      "id": "bf-national",
+      "countryCode": "BF",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "BEPC",
+        "Baccalauréat burkinabè"
+      ],
+      "specificationIds": [
+        "bf-bac"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.meb.gov.bf/"
+      ]
+    },
+    {
+      "id": "so-national",
+      "countryCode": "SO",
+      "pathwayType": "national",
+      "years": 4,
+      "qualifications": [
+        "Form 4 National Examination"
+      ],
+      "specificationIds": [
+        "so-form-4"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://moe.gov.so/"
+      ]
+    },
+    {
+      "id": "sd-national",
+      "countryCode": "SD",
+      "pathwayType": "national",
+      "years": 3,
+      "qualifications": [
+        "Sudan School Certificate"
+      ],
+      "specificationIds": [
+        "sd-school-certificate"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://moe.gov.sd/"
+      ]
+    },
+    {
+      "id": "vn-national",
+      "countryCode": "VN",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "THPT Quốc gia"
+      ],
+      "specificationIds": [
+        "vn-thpt"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://moet.gov.vn/"
+      ]
+    },
+    {
+      "id": "tr-national",
+      "countryCode": "TR",
+      "pathwayType": "national",
+      "years": 8,
+      "qualifications": [
+        "LGS (Liseye Geçiş Sınavı)",
+        "YKS (TYT / AYT)"
+      ],
+      "specificationIds": [
+        "tr-yks"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.meb.gov.tr/"
+      ]
+    },
+    {
+      "id": "ir-national",
+      "countryCode": "IR",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Konkur"
+      ],
+      "specificationIds": [
+        "ir-konkur"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.medu.ir/"
+      ]
+    },
+    {
+      "id": "af-national",
+      "countryCode": "AF",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Baccalaureate"
+      ],
+      "specificationIds": [
+        "af-baccalaureate"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://moe.gov.af/"
+      ]
+    },
+    {
+      "id": "cn-national",
+      "countryCode": "CN",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Zhongkao",
+        "Gaokao"
+      ],
+      "specificationIds": [
+        "cn-gaokao"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://en.moe.gov.cn/"
+      ]
+    },
+    {
+      "id": "jp-national",
+      "countryCode": "JP",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Daigaku Nyushi"
+      ],
+      "specificationIds": [
+        "jp-nyushi"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.mext.go.jp/en/"
+      ]
+    },
+    {
+      "id": "kr-national",
+      "countryCode": "KR",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Suneung (CSAT)"
+      ],
+      "specificationIds": [
+        "kr-csat"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.moe.go.kr/"
+      ]
+    },
+    {
+      "id": "ye-national",
+      "countryCode": "YE",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "General Secondary Certificate"
+      ],
+      "specificationIds": [
+        "ye-general-secondary"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://moe.gov.ye/"
+      ]
+    },
+    {
+      "id": "iq-national",
+      "countryCode": "IQ",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Sixth Preparatory Certificate"
+      ],
+      "specificationIds": [
+        "iq-preparatory"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://moe.gov.iq/"
+      ]
+    },
+    {
+      "id": "sy-national",
+      "countryCode": "SY",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Al-Shahada Al-Thanawiyya"
+      ],
+      "specificationIds": [
+        "sy-baccalaureate"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://moe.gov.sy/"
+      ]
+    },
+    {
+      "id": "jo-national",
+      "countryCode": "JO",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Tawjihi"
+      ],
+      "specificationIds": [
+        "jo-tawjihi"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://moe.gov.jo/"
+      ]
+    },
+    {
+      "id": "lb-national",
+      "countryCode": "LB",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Lebanese Baccalaureate"
+      ],
+      "specificationIds": [
+        "lb-baccalaureate"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.mehe.gov.lb/"
+      ]
+    },
+    {
+      "id": "np-national",
+      "countryCode": "NP",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [
+        "Secondary Education Examination (SEE)",
+        "NEB Grade 12"
+      ],
+      "specificationIds": [
+        "np-see",
+        "np-neb"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://moe.gov.np/"
+      ]
+    },
+    {
+      "id": "lk-national",
+      "countryCode": "LK",
+      "pathwayType": "national",
+      "years": 8,
+      "qualifications": [
+        "GCE Ordinary Level",
+        "GCE Advanced Level"
+      ],
+      "specificationIds": [
+        "lk-o-level",
+        "lk-a-level"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://moe.gov.lk/"
+      ]
+    },
+    {
+      "id": "mm-national",
+      "countryCode": "MM",
+      "pathwayType": "national",
+      "years": 4,
+      "qualifications": [
+        "Matriculation Examination"
+      ],
+      "specificationIds": [
+        "mm-matriculation"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.moe.gov.mm/"
+      ]
+    },
+    {
+      "id": "kh-national",
+      "countryCode": "KH",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Baccalauréat"
+      ],
+      "specificationIds": [
+        "kh-baccalaureate"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.moeys.gov.kh/"
+      ]
+    },
+    {
+      "id": "la-national",
+      "countryCode": "LA",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "Upper Secondary Completion"
+      ],
+      "specificationIds": [
+        "la-upper-secondary"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.moes.gov.la/"
+      ]
+    },
+    {
+      "id": "mn-national",
+      "countryCode": "MN",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "ЭЕШ (University Entrance Examination)"
+      ],
+      "specificationIds": [
+        "mn-eesh"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://meds.gov.mn/"
+      ]
+    },
+    {
+      "id": "kz-national",
+      "countryCode": "KZ",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [
+        "ҰБТ (Unified National Testing)"
+      ],
+      "specificationIds": [
+        "kz-unt"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.gov.kz/memleket/entities/edu"
+      ]
+    },
+    {
+      "id": "uz-national",
+      "countryCode": "UZ",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "University entrance examinations"
+      ],
+      "specificationIds": [
+        "uz-entrance"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://uzedu.uz/"
+      ]
+    },
+    {
+      "id": "es-national",
+      "countryCode": "ES",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Educación Secundaria Obligatoria (ESO)",
+        "Bachillerato (EBAU)"
+      ],
+      "specificationIds": [
+        "es-eso",
+        "es-bachillerato"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.educacionyfp.gob.es/"
+      ]
+    },
+    {
+      "id": "fr-national",
+      "countryCode": "FR",
+      "pathwayType": "national",
+      "years": 7,
+      "qualifications": [
+        "Diplôme national du brevet",
+        "Baccalauréat"
+      ],
+      "specificationIds": [
+        "fr-college",
+        "fr-bac"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.education.gouv.fr/"
+      ]
+    },
+    {
+      "id": "de-national",
+      "countryCode": "DE",
+      "pathwayType": "national",
+      "years": 8,
+      "qualifications": [
+        "Mittlerer Schulabschluss",
+        "Abitur"
+      ],
+      "specificationIds": [
+        "de-msa",
+        "de-abi"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.kmk.org/"
+      ]
+    },
+    {
+      "id": "it-national",
+      "countryCode": "IT",
+      "pathwayType": "national",
+      "years": 8,
+      "qualifications": [
+        "Licenza media",
+        "Esame di Stato (Maturità)"
+      ],
+      "specificationIds": [
+        "it-media",
+        "it-maturita"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.mim.gov.it/"
+      ]
+    },
+    {
+      "id": "pl-national",
+      "countryCode": "PL",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Egzamin ósmoklasisty",
+        "Matura"
+      ],
+      "specificationIds": [
+        "pl-osmoklasisty",
+        "pl-matura"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.gov.pl/web/edukacja"
+      ]
+    },
+    {
+      "id": "ua-national",
+      "countryCode": "UA",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "НМТ (National Multi-subject Test)"
+      ],
+      "specificationIds": [
+        "ua-nmt"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://mon.gov.ua/"
+      ]
+    },
+    {
+      "id": "co-national",
+      "countryCode": "CO",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Saber 11"
+      ],
+      "specificationIds": [
+        "co-saber-11"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.mineducacion.gov.co/"
+      ]
+    },
+    {
+      "id": "ar-national",
+      "countryCode": "AR",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Título de Bachiller"
+      ],
+      "specificationIds": [
+        "ar-secundaria"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.argentina.gob.ar/educacion"
+      ]
+    },
+    {
+      "id": "pe-national",
+      "countryCode": "PE",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [
+        "Certificado de Educación Secundaria"
+      ],
+      "specificationIds": [
+        "pe-secundaria"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.gob.pe/minedu"
+      ]
+    },
+    {
+      "id": "ht-national",
+      "countryCode": "HT",
+      "pathwayType": "national",
+      "years": 8,
+      "qualifications": [
+        "Baccalauréat (Haïti)"
+      ],
+      "specificationIds": [
+        "ht-bac"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.menfp.gouv.ht/"
+      ]
+    },
+    {
+      "id": "bo-national",
+      "countryCode": "BO",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specificationIds": [
+        "bo-bachillerato"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.minedu.gob.bo/"
+      ]
+    },
+    {
+      "id": "ec-national",
+      "countryCode": "EC",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specificationIds": [
+        "ec-bachillerato"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://educacion.gob.ec/"
+      ]
+    },
+    {
+      "id": "gt-national",
+      "countryCode": "GT",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [
+        "Diversificado"
+      ],
+      "specificationIds": [
+        "gt-diversificado"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.minedu.gob.gt/"
+      ]
+    },
+    {
+      "id": "hn-national",
+      "countryCode": "HN",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specificationIds": [
+        "hn-bachillerato"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://se.gob.hn/"
+      ]
+    },
+    {
+      "id": "ni-national",
+      "countryCode": "NI",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specificationIds": [
+        "ni-bachillerato"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.mined.gob.ni/"
+      ]
+    },
+    {
+      "id": "sv-national",
+      "countryCode": "SV",
+      "pathwayType": "national",
+      "years": 5,
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specificationIds": [
+        "sv-bachillerato"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.mined.gob.sv/"
+      ]
+    },
+    {
+      "id": "do-national",
+      "countryCode": "DO",
+      "pathwayType": "national",
+      "years": 6,
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specificationIds": [
+        "do-bachillerato"
+      ],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourceUrls": [
+        "https://www.ministeriodeeducacion.gob.do/"
+      ]
     },
     {
       "id": "cm-anglophone-general-secondary",
@@ -1600,6 +3501,32 @@
       "recordReview": "mapped",
       "mappingReview": "mapped",
       "sourceUrls": []
+    }
+  ],
+  "mappings": [
+    {
+      "specId": "uk-gcse",
+      "pathwayId": "gb-national",
+      "source": "GCSE mathematics: subject content and assessment objectives",
+      "publisher": "Department for Education (England)",
+      "published": "2013-11-01",
+      "verification": "document",
+      "conceptsMapped": 56,
+      "courseConcepts": 130,
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "specId": "in-cbse",
+      "pathwayId": "in-national",
+      "source": "Mathematics (Subject Code 041 & 241), Classes IX–X — syllabus",
+      "publisher": "Central Board of Secondary Education (India), Academic Unit",
+      "published": "2025-26 session",
+      "verification": "portal",
+      "conceptsMapped": 21,
+      "courseConcepts": 131,
+      "reviewer": null,
+      "reviewedAt": null
     }
   ],
   "problems": []

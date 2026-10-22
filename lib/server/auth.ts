@@ -1,15 +1,46 @@
-import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { promises as fs } from "fs";
 import path from "path";
-// DATA_DIR and withLock come from the store rather than being re-derived here.
-// They used to be a SECOND copy of each (`const DATA_DIR = …` and its own
-// `locks` map), which is the shape that fails quietly: two lock tables means an
-// accounts write and a profile write can be in flight at the same time and
-// neither knows about the other, and three resolvers of OPENMIND_DATA_DIR means
-// a deployment can be pointed at two directories by editing one of them. `verify`
-// now fails if a second copy reappears (see "one data directory, one lock table").
-import { DATA_DIR, getProfile, newId, publicProfileState, saveProfile, withLock } from "./store";
-import type { ProfileState } from "../types";
+// DATA_DIR comes from the store rather than being re-derived here. It used to be a
+// SECOND copy (`const DATA_DIR = …`), which is the shape that fails quietly: three
+// resolvers of OPENMIND_DATA_DIR means a deployment can be pointed at two
+// directories by editing one of them. What is left of this module's own file I/O is
+// the SESSION SECRET — a signing key, not a record, and deliberately not in a
+// database: a deployment that copied its data directory and left the key behind
+// would sign everyone out, and one that restored it without the records would
+// validate tokens for accounts that are about to be recreated with the same ids.
+import {
+  DATA_DIR, ensureProfileSecretFor, getProfile, hashPassword, makeSalt, normaliseEmail,
+  publicProfileState, resolveKioskSession, saveProfile,
+} from "./store";
+import type { Account, AccountRole, ProfileState, PublicAccount } from "../types";
+// THE BACKEND, NOT A FILE. Accounts live on the storage port (lib/server/storage.ts)
+// exactly like a learner's record and its ledger, and this module asks the
+// CONFIGURED backend for them — the same one the profile comes from. That is what
+// replaced the private `accounts.json` reader/writer this file used to own: on any
+// deployment whose store is not the file store, two writers for the same file is
+// one learner's identity in two places.
+import { activeStorage } from "./storage-file";
+// The credential's SHAPE is pure and lives on its own (lib/recovery-code.ts): the
+// alphabet, the grouping, the lookup key and the 79-bit length are all facts a test
+// can check without an account. What this module adds is the hashing and the
+// lifecycle — mint, verify, rotate, expire.
+import {
+  mintRecoveryCode, normaliseCode, RECOVERY_SYMBOLS, resetGrantCode, RESET_TTL_MS, splitGrant,
+} from "../recovery-code";
+// The ONE implementation of hashing / normalisation / id minting.
+//
+// These used to exist here AND in the store. One copy is not tidiness: a second
+// scrypt parameter set, a second email normalisation or a second profile-id shape
+// is how a sign-in stops matching an account written minutes earlier, and the
+// failure looks like "wrong password" rather than like a duplicated helper.
+export {
+  ensureProfileSecretFor,
+  hashPassword,
+  makeSalt,
+  newProfileId,
+  normaliseEmail,
+} from "./store";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REAL accounts. Before this module OpenMind had no sign-up at all: a learner
@@ -24,88 +55,26 @@ import type { ProfileState } from "../types";
 // rather than starting again.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type AccountRole = "student" | "teacher" | "org";
-
-export interface Account {
-  id: string;
-  /** Normalised (lowercased, trimmed) — the unique key for sign-in. */
-  email: string;
-  /** Display name the learner typed. Never required to be a real name. */
-  name: string;
-  role: AccountRole;
-  /** scrypt(password, salt) hex. The plain password is never stored or logged. */
-  passHash: string;
-  salt: string;
-  createdAt: number;
-  lastSeenAt: number;
-  /** The learner profile this account owns (lib/types.ts ProfileState). */
-  profileId: string;
-  /**
-   * Honest status: OpenMind ships no mail service, so an address cannot be
-   * proved. False means "nobody has verified this address" — the UI says so
-   * rather than implying a verification step that never ran.
-   */
-  verified: boolean;
-  /**
-   * Bumped on sign-out. Every session token records the epoch it was issued
-   * in, so bumping this invalidates every outstanding token for the account —
-   * which is what makes signing out a SERVER decision rather than a client
-   * courtesy. Without it, "sign out" only cleared the cookie: the token kept
-   * verifying until its 60-day expiry, so anyone who had a copy of it (a shared
-   * phone's history, a synced profile) stayed signed in. On a shared phone that
-   * is the behaviour a learner actually needs.
-   */
-  sessionEpoch?: number;
-}
+// ── The SHAPES are the app's, not this module's ─────────────────────────────
+//
+// `Account`, `PublicAccount` and `AccountRole` live in lib/types.ts beside the
+// profile they point at. They used to be declared HERE as well, which is three
+// declarations of one role union and two of the account shape — and the client
+// (which can only import lib/types.ts) was reading the other copy. A field added
+// to one was invisible to the other, and the symptom is a UI that quietly shows
+// `undefined`. The re-exports below keep every existing import working.
+export type { Account, AccountRole, PublicAccount };
 
 /** Everything about an account that is safe to send to the client. */
-export interface PublicAccount {
-  id: string;
-  email: string;
-  name: string;
-  role: AccountRole;
-  createdAt: number;
-  profileId: string;
-  verified: boolean;
-}
-
 export function publicAccount(a: Account): PublicAccount {
   return {
     id: a.id, email: a.email, name: a.name, role: a.role,
-    createdAt: a.createdAt, profileId: a.profileId, verified: a.verified,
+    createdAt: a.createdAt, lastSeenAt: a.lastSeenAt,
+    profileId: a.profileId, verified: a.verified,
   };
 }
 
-// ── Storage ─────────────────────────────────────────────────────────────────
-// Same one-directory-is-the-deployment model as the rest of the store: copy
-// .openmind-data and you have carried every account and every learner with it.
-
-async function readAccounts(): Promise<Record<string, Account>> {
-  try {
-    const raw = await fs.readFile(path.join(DATA_DIR, "accounts.json"), "utf8");
-    return JSON.parse(raw) as Record<string, Account>;
-  } catch {
-    return {};
-  }
-}
-
-async function writeAccounts(all: Record<string, Account>): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  const file = "accounts.json";
-  const tmp = path.join(DATA_DIR, `${file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`);
-  await fs.writeFile(tmp, JSON.stringify(all), "utf8");
-  await fs.rename(tmp, path.join(DATA_DIR, file));
-}
-
 // ── Passwords ───────────────────────────────────────────────────────────────
-
-export function hashPassword(password: string, salt: string): string {
-  return scryptSync(password, salt, 64).toString("hex");
-}
-
-export function makeSalt(): string {
-  return randomBytes(16).toString("hex");
-}
 
 /** Constant-time compare — a length mismatch is itself rejected first, since
  *  timingSafeEqual throws on unequal buffers. */
@@ -131,134 +100,230 @@ export function emailProblem(email: unknown): string | null {
   return null;
 }
 
-export function normaliseEmail(email: string): string {
-  return email.trim().toLowerCase();
+// ── Account operations: the facade over the storage port ────────────────────
+//
+// Every one of these is ONE LINE, deliberately. The bodies used to live here and
+// wrote `accounts.json` directly, which made this module a second store: it had its
+// own reader, its own writer and its own idea of what a normalised email or a
+// profile id looks like. The identities of a school now live wherever its learner
+// records live, chosen by `resolveStoreKind()` — and the files behind that choice
+// are the backend's business, not authentication's.
+//
+// This is the same shape as `lib/server/evidence.ts`: a facade holding no storage,
+// so a second backend is a matter of implementing the port rather than of finding
+// every call site. Authentication itself (hashing, the signed token, the cookie,
+// the epoch check) stays HERE, because that is policy rather than persistence.
+
+export function getAccount(id: string): Promise<Account | null> {
+  return activeStorage().getAccount(id);
 }
 
-// ── Account operations ──────────────────────────────────────────────────────
-
-export async function getAccount(id: string): Promise<Account | null> {
-  const all = await readAccounts();
-  return all[id] ?? null;
+export function findAccountByEmail(email: string): Promise<Account | null> {
+  return activeStorage().findAccountByEmail(email);
 }
 
-export async function findAccountByEmail(email: string): Promise<Account | null> {
-  const target = normaliseEmail(email);
-  const all = await readAccounts();
-  return Object.values(all).find((a) => a.email === target) ?? null;
+export function countAccounts(): Promise<number> {
+  return activeStorage().countAccounts();
 }
 
-export async function countAccounts(): Promise<number> {
-  return Object.keys(await readAccounts()).length;
-}
-
-/**
- * The account that already owns a learner profile, if any.
- *
- * "An account owns exactly one learner profile" is the invariant this module is
- * built on, and it only holds if a profile is handed to an account ONCE. Two
- * accounts pointing at one profile is not a merge of two learners — it is a
- * stranger inside someone else's record, and the newcomer's own enrolment then
- * rewrites the owner's course, year and name.
- *
- * This is the question every adoption path must ask before it binds anything.
- * It cannot be answered from the profile's secret: a device that holds a
- * session always holds that profile's secret, so "the secret matched" says
- * nothing about whether the profile is anonymous. Ownership is the fact.
- */
-export async function accountOwningProfile(
+export function accountOwningProfile(
   profileId: string,
   exceptAccountId?: string,
 ): Promise<Account | null> {
-  if (!profileId) return null;
-  const all = await readAccounts();
-  return Object.values(all).find((a) => a.profileId === profileId && a.id !== exceptAccountId) ?? null;
+  return activeStorage().accountOwningProfile(profileId, exceptAccountId);
 }
 
 /**
  * Create an account bound to a learner profile. The caller creates (or claims)
  * the profile first, so a sign-up never leaves an account pointing at nothing.
+ * A duplicate address is refused by the BACKEND, inside its own write — a check
+ * made here and an insert made later protects nothing under concurrency.
  */
-export async function createAccount(input: {
+export function createAccount(input: {
   email: string;
   password: string;
   name: string;
   role?: AccountRole;
   profileId: string;
 }): Promise<Account> {
-  return withLock("accounts.json", async () => {
-    const all = await readAccounts();
-    const email = normaliseEmail(input.email);
-    if (Object.values(all).some((a) => a.email === email)) throw new Error("email_taken");
-    const salt = makeSalt();
-    const account: Account = {
-      id: newId("acc"),
-      email,
-      name: input.name.trim().slice(0, 40) || email.split("@")[0],
-      role: input.role ?? "student",
-      salt,
-      passHash: hashPassword(input.password, salt),
-      createdAt: Date.now(),
-      lastSeenAt: Date.now(),
-      profileId: input.profileId,
-      verified: false,
-    };
-    all[account.id] = account;
-    await writeAccounts(all);
-    return account;
-  });
+  return activeStorage().createAccount(input);
 }
 
 /** Point an existing account at a different profile (used when a signed-in
  *  learner claims the anonymous profile they were already using). */
-export async function setAccountProfile(accountId: string, profileId: string): Promise<Account | null> {
-  return withLock("accounts.json", async () => {
-    const all = await readAccounts();
-    const a = all[accountId];
-    if (!a) return null;
-    a.profileId = profileId;
-    a.lastSeenAt = Date.now();
-    await writeAccounts(all);
-    return a;
-  });
+export function setAccountProfile(accountId: string, profileId: string): Promise<Account | null> {
+  return activeStorage().setAccountProfile(accountId, profileId);
 }
 
-export async function touchAccount(accountId: string): Promise<void> {
-  await withLock("accounts.json", async () => {
-    const all = await readAccounts();
-    const a = all[accountId];
-    if (!a) return;
-    a.lastSeenAt = Date.now();
-    await writeAccounts(all);
-  });
+export function touchAccount(accountId: string): Promise<void> {
+  return activeStorage().touchAccount(accountId);
 }
 
 /** Change the display name / role stored on the account. */
-export async function updateAccount(
+export function updateAccount(
   accountId: string,
   patch: { name?: string; role?: AccountRole },
 ): Promise<Account | null> {
-  return withLock("accounts.json", async () => {
-    const all = await readAccounts();
-    const a = all[accountId];
-    if (!a) return null;
-    if (typeof patch.name === "string" && patch.name.trim()) a.name = patch.name.trim().slice(0, 40);
-    if (patch.role) a.role = patch.role;
-    await writeAccounts(all);
-    return a;
-  });
+  return activeStorage().updateAccount(accountId, patch);
 }
 
 /** Set a new password (requires the current one at the route level). */
-export async function setPassword(accountId: string, password: string): Promise<void> {
-  await withLock("accounts.json", async () => {
-    const all = await readAccounts();
-    const a = all[accountId];
-    if (!a) return;
-    a.salt = makeSalt();
-    a.passHash = hashPassword(password, a.salt);
-    await writeAccounts(all);
+export function setPassword(accountId: string, password: string): Promise<void> {
+  return activeStorage().setPassword(accountId, password);
+}
+
+/** End every outstanding session for this account (bump the epoch). */
+export function revokeSessions(accountId: string): Promise<void> {
+  return activeStorage().revokeSessions(accountId);
+}
+
+// ── Recovery credentials ────────────────────────────────────────────────────
+//
+// THE HOLE THIS CLOSES: an account is an email and a password, and this
+// deployment has no mail service, so a forgotten password ended the learner's
+// record — the ledger, the diagnostics, the misconceptions a teacher was working
+// from. There was no reset route at all. An email reset would have been the wrong
+// answer for this population anyway (a shared phone, a borrowed address), so the
+// credential is a printed code plus a short-lived teacher grant.
+//
+// Every function here works on a HASH of the normalised code. The plaintext exists
+// only in the value returned to the caller that is about to show it once.
+
+/** scrypt of the NORMALISED code. Normalising before hashing is what makes
+ *  `abcd-efgh-jkmn-pqrs` and `ABCD EFGH JKMN PQRS` the same credential — a learner
+ *  typing it from paper will produce both. */
+function digestCode(code: string, salt: string): string {
+  return hashPassword(normaliseCode(code), salt);
+}
+
+/** Constant-time comparison of a typed code against a stored digest. A missing
+ *  salt or hash answers false rather than throwing: an account with no code is a
+ *  state, not an error. */
+function digestMatches(code: string, salt: string | undefined, hash: string | undefined): boolean {
+  if (!salt || !hash) return false;
+  const candidate = Buffer.from(digestCode(code, salt), "hex");
+  const known = Buffer.from(hash, "hex");
+  if (candidate.length === 0 || candidate.length !== known.length) return false;
+  return timingSafeEqual(candidate, known);
+}
+
+/** Is this grant still live? A missing expiry is NOT an open-ended grant: it is a
+ *  record that this build no longer understands, and refusing is the safe reading. */
+function grantLive(account: Account): boolean {
+  return (account.resetExpiresAt ?? 0) > Date.now();
+}
+
+/**
+ * Mint a recovery code for an account and return the PLAINTEXT once.
+ *
+ * Called at sign-up (so every new learner gets one before they need it) and after
+ * every successful recovery (so a code that has been typed into a shared phone
+ * does not stay valid for the life of the account). `null` means the account does
+ * not exist — the caller answers 401/404 rather than pretending it worked.
+ */
+export async function mintRecoveryCodeFor(accountId: string): Promise<string | null> {
+  const code = mintRecoveryCode();
+  const salt = makeSalt();
+  const updated = await activeStorage().setRecoveryCode(accountId, { salt, hash: digestCode(code, salt) });
+  return updated ? code : null;
+}
+
+/**
+ * Replace a learner's recovery code from a session that can already prove the
+ * password.
+ *
+ * The current password is required for the same reason a password change requires
+ * it: a borrowed laptop must not be able to mint itself a permanent key to
+ * somebody else's record.
+ */
+export async function rotateRecoveryCode(
+  accountId: string,
+  currentPassword: string,
+): Promise<{ ok: true; code: string } | { ok: false; reason: "bad_password" | "no_account" }> {
+  const account = await getAccount(accountId);
+  if (!account) return { ok: false, reason: "no_account" };
+  if (!passwordMatches(account, currentPassword)) return { ok: false, reason: "bad_password" };
+  const code = await mintRecoveryCodeFor(accountId);
+  if (!code) return { ok: false, reason: "no_account" };
+  return { ok: true, code };
+}
+
+/**
+ * A teacher-issued grant, for the learner who has lost the paper.
+ *
+ * The code carries its own LOOKUP KEY (the first eight characters), so the learner
+ * does not have to remember an address to use it — which is the whole point, since
+ * the population this exists for is the one whose email is borrowed or invented.
+ * The grant is single use and expires in fifteen minutes; using it also rotates the
+ * learner's long-term code, so the short-lived one never becomes the permanent one.
+ */
+export async function grantResetCode(
+  accountId: string,
+): Promise<{ code: string; expiresAt: number } | null> {
+  const code = resetGrantCode(accountId);
+  const salt = makeSalt();
+  const expiresAt = Date.now() + RESET_TTL_MS;
+  const updated = await activeStorage().setResetGrant(accountId, {
+    salt, hash: digestCode(code, salt), expiresAt,
   });
+  return updated ? { code, expiresAt } : null;
+}
+
+/**
+ * Use a recovery code (or a teacher's grant) to set a new password.
+ *
+ * THE LOOKUP RULE, stated because it is the security boundary:
+ *
+ *   · an email names ONE account, and the code must match THAT account — a grant
+ *     for a different account is refused rather than silently resetting somebody
+ *     else's record;
+ *   · with no email, the code must split into a lookup key + secret, and the secret
+ *     must verify against the account the key names. This is the path a learner uses
+ *     when they cannot remember which address they typed.
+ *
+ * On success: the password is replaced, every session is revoked (a recovery is
+ * exactly when a shared phone's stale cookie must stop working), the grant is
+ * cleared, and a NEW recovery code is minted and returned. `null` is the single
+ * failure answer for "no such account", "wrong code", "expired grant" and "code
+ * does not belong to this email" — the caller must not be able to tell them apart.
+ */
+export async function recoverAccount(input: {
+  email?: string;
+  code: string;
+  newPassword: string;
+}): Promise<{ account: Account; recoveryCode: string } | null> {
+  const typed = normaliseCode(input.code);
+  // Shape check before any storage read: a code that cannot be one of ours is not
+  // a lookup, it is a typo.
+  if (typed.length !== RECOVERY_SYMBOLS) return null;
+
+  const email = normaliseEmail(input.email ?? "");
+  let target: Account | null = null;
+
+  if (email) {
+    const account = await findAccountByEmail(email);
+    if (!account) return null;
+    const own = digestMatches(typed, account.recoverySalt, account.recoveryHash);
+    const granted = grantLive(account) && digestMatches(typed, account.resetSalt, account.resetHash);
+    if (!own && !granted) return null;
+    target = account;
+  } else {
+    // No email: only a teacher grant can be used, and only by its own lookup key.
+    const grant = splitGrant(typed);
+    if (!grant) return null;
+    const account = await activeStorage().findAccountByResetKey(grant.key);
+    if (!account || !grantLive(account)) return null;
+    if (!digestMatches(typed, account.resetSalt, account.resetHash)) return null;
+    target = account;
+  }
+
+  await activeStorage().setPassword(target.id, input.newPassword);
+  await activeStorage().revokeSessions(target.id);
+  await activeStorage().setResetGrant(target.id, null);
+  const recoveryCode = await mintRecoveryCodeFor(target.id);
+  const fresh = await getAccount(target.id);
+  if (!fresh || !recoveryCode) return null;
+  return { account: fresh, recoveryCode };
 }
 
 // ── Sessions ────────────────────────────────────────────────────────────────
@@ -332,17 +397,6 @@ export async function verifySessionToken(token: string | undefined | null): Prom
   return accountId;
 }
 
-/** End every outstanding session for this account (bump the epoch). */
-export async function revokeSessions(accountId: string): Promise<void> {
-  await withLock("accounts.json", async () => {
-    const all = await readAccounts();
-    const a = all[accountId];
-    if (!a) return;
-    a.sessionEpoch = (a.sessionEpoch ?? 0) + 1;
-    await writeAccounts(all);
-  });
-}
-
 /** The attributes every session cookie carries, wherever it is written.
  *
  *  `Secure` is added only when the request is actually served over HTTPS (or
@@ -401,26 +455,6 @@ export async function accountFromRequest(req: Request): Promise<Account | null> 
   return account;
 }
 
-/** A fresh, unguessable id for a newly created learner profile. Kept here so
- *  the auth routes and the profile route agree on the shape. */
-export function newProfileId(): string {
-  return `${newId("stu")}${randomUUID().slice(0, 4)}`;
-}
-
-/**
- * Hand the profile's capability secret back to a *session-authenticated*
- * caller. The session proves the password; the secret then lets every existing
- * `/api/progress`, `/api/diagnostic` call work unchanged on a brand-new device
- * — which is exactly what "my work is saved to my account" has to mean.
- */
-export async function ensureProfileSecretFor(state: ProfileState): Promise<string> {
-  if (!state.secret) {
-    state.secret = randomUUID().replace(/-/g, "");
-    await saveProfile(state);
-  }
-  return state.secret;
-}
-
 /**
  * Resolve the caller's learner profile from either credential: a signed-in
  * session, or the profile's capability secret. Used by the routes that act on
@@ -446,6 +480,15 @@ export async function authorisedProfile(
       return state;
     }
     return null;
+  }
+  // A CLASSROOM SESSION IS A LEARNER CREDENTIAL TOO, and it is checked before
+  // the permanent secret because a kiosk learner has none they may use: their
+  // PIN was exchanged (server-side) for this token. Doors that must refuse a
+  // classroom session ask `authorizeLearner`'s `via` flag; this door exists for
+  // the read paths that only need to know "is this the learner they name?".
+  if (typeof secret === "string" && secret.length >= 32) {
+    const session = await resolveKioskSession(secret);
+    if (session && session.profileId === id) return state;
   }
   return secret && secret === state.secret ? state : null;
 }

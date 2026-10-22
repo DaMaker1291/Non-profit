@@ -5473,13 +5473,23 @@ console.log("\n▸ Where the learner is allowed to be");
       auth: "signed_in", profileStatus: "incomplete",
       profile: { profile: { id: "p1", subjects: ["maths"] }, progress: {}, diagnostics: {} },
     },
+    // A COURSE IS NOW PART OF `enrolled`, and these fixtures carry a COMPLETE
+    // one on purpose. Enrolment collects where and what the learner studies; the
+    // qualification and tier are chosen on /curriculum, so "onboarded but no
+    // course" is a real state (the `courseless` case below) and is NOT the same
+    // as "ready to be measured".
     fresh: {
+      auth: "signed_in", profileStatus: "complete",
+      profile: COURSE_PROFILE({}),
+    },
+    // Enrolled, and holding no course: the state the cut-down enrolment creates.
+    courseless: {
       auth: "signed_in", profileStatus: "complete",
       profile: { profile: { id: "p1", onboardedAt: 1, subjects: ["maths"] }, progress: {}, diagnostics: {} },
     },
     measured: {
       auth: "signed_in", profileStatus: "complete",
-      profile: { profile: { id: "p1", onboardedAt: 1, subjects: ["maths"] }, progress: {}, diagnostics: { maths: {} } },
+      profile: COURSE_PROFILE({ diagnostics: { maths: {} } }),
     },
     // A teacher account owns a learner profile like everybody else, and the
     // session says so. It is the case that used to be routed into a baseline
@@ -5490,6 +5500,22 @@ console.log("\n▸ Where the learner is allowed to be");
     },
   };
   const L = Object.fromEntries(Object.entries(CASES).map(([k, v]) => [k, appState.deriveLifecycle(v)]));
+
+  // A COMPLETE COURSE, as the profile holds one: the qualification and tier for
+  // the learner's first subject, a year group that route contains, and the
+  // country. Written once so every fixture below means the same thing by
+  // "enrolled" — the rule `courseIsReady` reads is `incompleteSubjects`.
+  function COURSE_PROFILE(extra = {}) {
+    return {
+      profile: {
+        id: "p1", onboardedAt: 1, subjects: ["maths"], country: "GB", grade: "Year 11",
+        subjectCourses: { maths: { spec: "uk-gcse", specLevel: "higher" } },
+      },
+      progress: {},
+      diagnostics: {},
+      ...extra,
+    };
+  }
 
   // Boot is a state, not an absence — the bug class this whole section exists for.
   ok(L.booting.booting === true && L.stranger.booting === false,
@@ -5536,6 +5562,20 @@ console.log("\n▸ Where the learner is allowed to be");
   const freshDashboard = appState.resolveRoute(L.fresh, "/dashboard");
   ok(freshDashboard.to === "/diagnostic/maths?return=%2Fdashboard",
     `a never-measured learner is sent to be measured, then back to Home (got ${freshDashboard.to})`);
+  // ── AND A COURSE COMES BEFORE THE MEASUREMENT ────────────────────────────
+  // The diagnostic samples the learner's own course, so a baseline sat before
+  // one was chosen measures the fallback syllabus and every recommendation is
+  // then built on it. /curriculum is where the qualification and tier are
+  // chosen; it is public, so this redirect cannot loop.
+  const noCourse = appState.resolveRoute(L.courseless, "/dashboard");
+  ok(noCourse.action === "redirect" && noCourse.to === "/curriculum?return=%2Fdashboard",
+    `an enrolled learner with NO course is sent to choose one, carrying the ticket (got ${noCourse.to})`);
+  ok(appState.resolveRoute(L.courseless, "/curriculum").action === "allow",
+    "and the screen that asks for it is reachable, so the refusal is not a dead end");
+  ok(L.courseless.courseReady === false && L.fresh.courseReady === true,
+    "the lifecycle knows the difference between enrolled and enrolled-with-a-course");
+  ok(appState.resolveRoute(L.courseless, "/learn/maths/quadratics").action === "redirect",
+    "a course-less learner is not let into the learning surfaces on the fallback syllabus");
   ok(appState.resolveRoute(L.measured, "/dashboard").action === "allow",
     "and a measured learner is simply allowed into Home");
 
@@ -5601,12 +5641,15 @@ console.log("\n▸ Where the learner is allowed to be");
     profile: { profile: { id: "p1", subjects: [] }, progress: {} },
   }).stage === "onboarding",
     "an un-enrolled teacher still finishes the wizard before being sent anywhere");
-  const learnerState = appState.deriveAppState({
+  const learnerState = appState.deriveAppState({ signedIn: true, profile: COURSE_PROFILE() });
+  ok(learnerState.stage === "diagnostic" && learnerState.route === "/diagnostic/maths",
+    `while a learner who has never been measured is still sent to be measured (${learnerState.stage} ${learnerState.route})`);
+  const unpicked = appState.deriveAppState({
     signedIn: true,
     profile: { profile: { id: "p2", onboardedAt: 1, subjects: ["maths"] }, progress: {}, diagnostics: {} },
   });
-  ok(learnerState.stage === "diagnostic" && learnerState.route === "/diagnostic/maths",
-    `while a learner who has never been measured is still sent to be measured (${learnerState.stage} ${learnerState.route})`);
+  ok(unpicked.stage === "course" && unpicked.route === "/curriculum",
+    `and an enrolled learner who has not chosen a course is sent to /curriculum first (${unpicked.stage} ${unpicked.route})`);
 
   // AND THE SOURCE TRIPWIRES, because every one of these is a one-line rule a
   // later refactor can quietly undo without failing a behavioural test.
@@ -5625,9 +5668,11 @@ console.log("\n▸ Where the learner is allowed to be");
   ok(/updateAccount\(\{ role: next \}\)/.test(accountSrc) && accountSrc.includes('t("acct.role")'),
     "and the account screen can declare the role the wizard only asks once, so a teacher who signed up as a student is not stuck there");
   const onboardSrc = fs.readFileSync("app/onboarding/page.tsx", "utf8");
+  // A teacher's step list EXCLUDES the subjects screen, which is the shape that
+  // replaced the `{!isTeacherAccount && (` guard around the learner's step.
   ok(/isTeacherAccount \? t\("teach\.title"\) : t\("onb\.start"\)/.test(onboardSrc) &&
-    /\{!isTeacherAccount && \(/.test(onboardSrc),
-    "while a teacher's wizard ends by naming their platform and does not ask them which year they sit");
+    /const steps = isTeacherAccount\s*\? \(signedIn \? \["about"\] : \["account", "about"\]\)\s*:\s*learnerSteps;/.test(onboardSrc),
+    "while a teacher's wizard ends by naming their platform and never asks them which year they sit");
 
   // ── AND ENROLMENT'S OWN DESTINATION, WHICH IS NOT THE GUARD'S ─────────────
   // `resolveRoute` decides whether a page MAY OPEN; enrolment decides where
@@ -5644,18 +5689,27 @@ console.log("\n▸ Where the learner is allowed to be");
   // It is pure, so it is swept here over the WHOLE table rather than over the
   // two examples that were reported.
   const settle = appState.settlementTarget;
-  const teacherTicket = settle({ isTeacher: true, guest: false, wanted: "/dashboard", already: false, subject: "maths" });
+  // `courseComplete` is part of the decision now — an enrolled learner with no
+  // course is sent to /curriculum before anything is measured — so every sweep
+  // below states it rather than letting an absent field mean "no course".
+  const teacherTicket = settle({ isTeacher: true, guest: false, wanted: "/dashboard", already: false, subject: "maths", courseComplete: false });
   ok(!teacherTicket.startsWith("/diagnostic/"),
     `a signed-in TEACHER with a learner ticket is NOT sent to be measured (got ${teacherTicket})`);
   ok(teacherTicket === "/dashboard",
     `and the ticket they CAN open is honoured (got ${teacherTicket})`);
-  ok(settle({ isTeacher: true, guest: false, wanted: "", already: false, subject: "maths" }) === "/teacher",
+  ok(settle({ isTeacher: true, guest: false, wanted: "", already: false, subject: "maths", courseComplete: false }) === "/teacher",
     "a teacher arriving with no ticket at all still lands on their own platform");
-  ok(settle({ isTeacher: true, guest: false, wanted: "/teacher", already: true, subject: "maths" }) === "/teacher",
+  ok(settle({ isTeacher: true, guest: false, wanted: "/teacher", already: true, subject: "maths", courseComplete: false }) === "/teacher",
     "and so does a teacher whose ticket names it");
+  // THE COURSE COMES FIRST FOR A LEARNER, and the ticket survives the detour so
+  // the learner lands where they asked once the course exists.
+  ok(settle({ isTeacher: false, guest: false, wanted: "/dashboard", already: false, subject: "maths", courseComplete: false }) === "/curriculum?return=%2Fdashboard",
+    "a learner who has not chosen a course is sent to /curriculum, carrying the ticket");
+  ok(settle({ isTeacher: false, guest: true, wanted: "", already: false, subject: "physics", courseComplete: false }) === "/curriculum",
+    "and a guest with no ticket goes there with nothing attached");
   const teacherSettled = appState.ACCESS_RULES
     .filter((r) => !r.path.startsWith("/teacher"))
-    .map((r) => ({ path: r.path, to: settle({ isTeacher: true, guest: false, wanted: r.path, already: false, subject: "maths" }) }))
+    .map((r) => ({ path: r.path, to: settle({ isTeacher: true, guest: false, wanted: r.path, already: false, subject: "maths", courseComplete: false }) }))
     .filter((x) => x.to.startsWith("/diagnostic/"));
   ok(teacherSettled.length === 0,
     `NO ticket of any kind settles a teacher on a diagnostic (${teacherSettled.slice(0, 4).map((x) => `${x.path}→${x.to}`).join(", ") || "none"})`);
@@ -5663,20 +5717,26 @@ console.log("\n▸ Where the learner is allowed to be");
   // re-attach itself, which is the redirect loop this branch was already fixed
   // for once. Checked across every classified route, not just Home.
   const learnerSettled = appState.ACCESS_RULES
-    .map((r) => ({ path: r.path, to: settle({ isTeacher: false, guest: false, wanted: r.path, already: false, subject: "maths" }) }))
+    .map((r) => ({ path: r.path, to: settle({ isTeacher: false, guest: false, wanted: r.path, already: false, subject: "maths", courseComplete: true }) }))
     .filter((x) => appState.accessFor(x.to) === "diagnosed");
   ok(learnerSettled.length === 0,
     `nor is any learner settled onto a page the guard will refuse (${learnerSettled.slice(0, 4).map((x) => `${x.path}→${x.to}`).join(", ") || "none"})`);
   // The learner rules are untouched by the teacher case being subtracted.
-  ok(settle({ isTeacher: false, guest: false, wanted: "/dashboard", already: false, subject: "maths" }) === "/diagnostic/maths?return=%2Fdashboard",
-    "a never-measured learner is still sent to the baseline diagnostic, then back to what they asked for");
-  ok(settle({ isTeacher: false, guest: false, wanted: "/dashboard", already: true, subject: "maths" }) === "/dashboard",
+  ok(settle({ isTeacher: false, guest: false, wanted: "/dashboard", already: false, subject: "maths", courseComplete: true }) === "/diagnostic/maths?return=%2Fdashboard",
+    "a never-measured learner with a course is sent to the baseline diagnostic, then back to what they asked for");
+  ok(settle({ isTeacher: false, guest: false, wanted: "/dashboard", already: true, subject: "maths", courseComplete: true }) === "/dashboard",
     "and one who already has a diagnostic goes straight to their ticket");
-  ok(settle({ isTeacher: false, guest: true, wanted: "", already: false, subject: "physics" }) === "/diagnostic/physics",
+  ok(settle({ isTeacher: false, guest: true, wanted: "", already: false, subject: "physics", courseComplete: true }) === "/diagnostic/physics",
     "a guest enrolling with no ticket is measured in their OWN first subject");
-  ok(settle({ isTeacher: true, guest: true, wanted: "", already: false, subject: "maths" }) === "/diagnostic/maths",
-    "a guest has no account to read a role from, so the guest path stays a learner's");
-  ok(settle({ isTeacher: false, guest: false, wanted: "/learn/maths/quadratics", already: true, subject: "maths" }) === "/learn/maths/quadratics",
+  // A guest has no account to read a role from, so `isTeacher` must not move
+  // them: the destination is the learner's, which now means the course first and
+  // the diagnostic after it — never the teacher platform.
+  const guestSettled = settle({ isTeacher: true, guest: true, wanted: "", already: false, subject: "maths", courseComplete: false });
+  ok(guestSettled === "/curriculum",
+    `a guest has no account to read a role from, so the guest path stays a learner's (got ${guestSettled})`);
+  ok(settle({ isTeacher: true, guest: true, wanted: "", already: false, subject: "maths", courseComplete: true }) === "/diagnostic/maths",
+    "and once the course exists the guest is measured in their own first subject");
+  ok(settle({ isTeacher: false, guest: false, wanted: "/learn/maths/quadratics", already: true, subject: "maths", courseComplete: true }) === "/learn/maths/quadratics",
     "and a ticket to ordinary work is honoured verbatim");
 
   // LOOP FREEDOM, over the whole table × every lifecycle state. A redirect we
@@ -5804,6 +5864,35 @@ console.log("▸ One data directory, one lock table");
     /new Map<string, Promise<unknown>>\s*\(\s*\)/.test(stripComments(fs.readFileSync(f, "utf8"))));
   ok(lockTables.length === 1 && lockTables[0] === OWNER,
     `exactly one lock table exists, in the store (found: ${lockTables.join(", ") || "none"})`);
+
+  // ── ONE WRITER PER FILE, for the file that had two ───────────────────────
+  //
+  // `accounts.json` used to be written by `lib/server/auth.ts` with its own
+  // reader, its own writer and its own idea of a normalised address — a second
+  // store, holding the one structure a school's identities live in, behind a lock
+  // table it never shared and an `OPENMIND_DATA_DIR` it resolved itself. Slice 3b
+  // moved the ten identity operations onto the storage port. This pins the RESULT
+  // rather than the shape: the file NAME appears in exactly one module, and the
+  // account's declared shape exists exactly once, in `lib/types.ts`, where both the
+  // client and the server read it (a second `Account`/`AccountRole` declaration is
+  // how a field added on the server becomes `undefined` in the UI, and role
+  // literals drift apart in silence).
+  const accountWriters = files.filter((f) => /accounts\.json/.test(stripComments(fs.readFileSync(f, "utf8"))));
+  ok(accountWriters.length === 1 && accountWriters[0] === OWNER,
+    `accounts.json has ONE writer, the store (found: ${accountWriters.join(", ") || "none"})`);
+  const accountShapes = files.filter((f) =>
+    /export\s+(interface|type)\s+Account\b|export\s+type\s+AccountRole\b|export\s+interface\s+PublicAccount\b/.test(
+      stripComments(fs.readFileSync(f, "utf8"))));
+  ok(accountShapes.length === 1 && accountShapes[0] === "lib/types.ts",
+    `the account's shape is declared once, in lib/types.ts (found: ${accountShapes.join(", ") || "none"})`);
+  // The scans can FAIL — driven on the real predicates, on the pre-3b auth.ts's own
+  // line, so a green run is not a scan that matches nothing.
+  const beforeSlice3b = 'const all = await readAccounts(); await writeAccounts(all); // accounts.json';
+  const wouldFlag = ["lib/server/auth.ts"].filter((f) => /accounts\.json/.test(beforeSlice3b));
+  const wouldFlagShape = ["lib/server/auth.ts"].filter((f) =>
+    /export\s+interface\s+Account\b/.test("export interface Account {\n  id: string;\n}"));
+  ok(wouldFlag.length === 1 && wouldFlag[0] !== OWNER && wouldFlagShape.length === 1,
+    "and the scans catch the shape they were written for (the pre-3b account write and duplicate interface, verbatim)");
 
   // And the ledger must still share it: a lock per module would let an evidence
   // append and a profile write race on the same learner, which is the reason
@@ -6963,6 +7052,58 @@ console.log("\n▸ On-device AI, on the phone the learner has");
   ok(covered.progress.fractions.attempts === 2,
     "and their second answer counts as a second answer, not as a first");
 
+  // ── THE SAME MEASUREMENT, WITH THE DIVERGENCE THE OTHER WAY ────────────
+  // The base is for history the ledger CANNOT carry. A model that is BEHIND its
+  // ledger is a second state the write path really reaches — the transaction
+  // appends the event and writes the record after, so a record write that fails
+  // (a full disk, a store that has been refused) leaves an answer ON the ledger
+  // that the model never folded — and reading that as un-ledgered history did two
+  // wrong things at once: it froze the model at the stale value, so the answer
+  // never reached the learner's record, and it made `unprojectableShare` name that
+  // answer as work that PREDATES the ledger. The directions are asserted as a
+  // PAIR, because a rule that stamps a base for either is as wrong as one that
+  // stamps it for neither.
+  const behindId = "behind-1";
+  const behindAnswer = (n, at) => evidence.answerEvidence({
+    learnerId: behindId, at, source: "practice", subject: "maths",
+    conceptId: "fractions", specificationId: null, questionId: `bq${n}`,
+    correct: true, chosen: 0, mode: "independent", hints: 0,
+  });
+  const behind = store.newProfileState(behindId);
+  await projectionMod.commitAndProject(behindId, behind, [behindAnswer(1, J0 + 1000)]);
+  await store.saveProfile(behind);
+  ok(behind.progress.fractions.attempts === 1 && behind.projectionBase === undefined,
+    "a learner whose whole history is in the ledger has no snapshot and one recorded answer");
+  // The write the record never got. The event IS on the ledger, which is exactly
+  // what the transaction promises ("the record does not move" is not "the ledger
+  // rewinds") — and it leaves the model one answer behind.
+  await evidenceStore.appendEvidence(behindId, [behindAnswer(2, J0 + 2000)]);
+  const caughtUp = await store.withLearnerState(behindId, async (ctx, state) => {
+    await projectionMod.commitAndProjectIn(ctx, state, [behindAnswer(3, J0 + 3000)]);
+    return state;
+  });
+  ok(caughtUp.state.progress.fractions.attempts === 3,
+    `the next transaction folds the answer that was already on the ledger (1 recorded + 1 stranded + 1 new = ${caughtUp.state.progress.fractions.attempts})`);
+  ok(caughtUp.state.projectionBase === undefined,
+    "and stamps NO pre-ledger snapshot — the stranded answer is ON the ledger, so it is not history the ledger cannot carry");
+  ok(projectionMod.unprojectableShare(caughtUp.state) === null,
+    "so the read door does not tell them an answer of theirs predates the ledger");
+  // THE CONTROL: the same measurement with the divergence the other way MUST
+  // stamp the snapshot — otherwise the rule above would be one that never
+  // preserves pre-ledger work at all.
+  const aheadId = "ahead-1";
+  const ahead = store.newProfileState(aheadId);
+  ahead.progress.fractions = {
+    attempts: 3, correct: 2, streak: 1, mastery: 0.4, accuracy: 0.67, lastSeen: J0, misconceptions: {},
+  };
+  await projectionMod.commitAndProject(aheadId, ahead, [evidence.answerEvidence({
+    learnerId: aheadId, at: J0 + 4000, source: "practice", subject: "maths",
+    conceptId: "fractions", specificationId: null, questionId: "aq1",
+    correct: true, chosen: 0, mode: "independent", hints: 0,
+  })]);
+  ok(ahead.projectionBase?.unprojected.attempts === 3 && ahead.progress.fractions.attempts === 4,
+    `while a learner who really did work before the ledger keeps that work AND gets the snapshot that names it (3 pre-ledger + 1 = ${ahead.progress.fractions.attempts})`);
+
   // ══════════════════════════════════════════════════════════════════════════
   // ONE DOOR, ONE DECISION. Every surface that asks "what next?" assembles a
   // DecisionContext and calls `decide`. Two surfaces reaching the same learner
@@ -7146,11 +7287,11 @@ console.log("\n▸ On-device AI, on the phone the learner has");
 //       is educationally decisive.
 //
 // It is driven the way a learner drives it: the item is drawn from the bank,
-// `answerEvidence` records it, and `commitAndProject` appends to the ledger and
-// re-projects the model INSIDE the profile lock — the same `updateProfile`
-// /api/progress walks. No model field is written by hand anywhere below, and
-// the replay equality at the end asserts the saved model is its own ledger's
-// projection.
+// `answerEvidence` records it, and `commitAndProjectIn` appends to the ledger and
+// re-projects the model INSIDE the learner transaction — the same
+// `withLearnerState` /api/progress walks. No model field is written by hand
+// anywhere below, and the replay equality at the end asserts the saved model is
+// its own ledger's projection.
 console.log("▸ Two learners, one bank, different evidence");
 {
   const specs = require("../.verify/specifications.js");
@@ -7190,9 +7331,9 @@ console.log("▸ Two learners, one bank, different evidence");
   const NOW = T0 + 900000;
 
   /** The recording path, exactly as /api/progress walks it. */
-  const record = (id, step, conceptId = CONCEPT) => store.updateProfile(id, async (state) => {
+  const record = (id, step, conceptId = CONCEPT) => store.withLearnerState(id, async (ctx, state) => {
     const q = step.q ?? DRAWN[step.i];
-    await projectionMod.commitAndProject(id, state, [evidence.answerEvidence({
+    await projectionMod.commitAndProjectIn(ctx, state, [evidence.answerEvidence({
       learnerId: id, at: T0 + step.i * 1000, source: "practice", subject: "maths",
       conceptId, specificationId: state.profile.spec, questionId: q.id,
       correct: step.correct, chosen: step.correct ? q.answer : (q.answer + 1) % q.choices.length,
@@ -7395,9 +7536,9 @@ console.log("▸ Retention is measured, never assumed");
   /** One graded answer, recorded the way the route records it: the event is
    *  minted with the source and hint count the SERVER knew, then appended and
    *  re-projected inside the profile lock. */
-  const answer = (step) => store.updateProfile(RET, async (state) => {
+  const answer = (step) => store.withLearnerState(RET, async (ctx, state) => {
     const q = DRAWN[step.i];
-    await projectionMod.commitAndProject(RET, state, [evidence.answerEvidence({
+    await projectionMod.commitAndProjectIn(ctx, state, [evidence.answerEvidence({
       learnerId: RET, at: step.at, source: step.source ?? "practice", subject: "maths",
       conceptId: CONCEPT, specificationId: state.profile.spec, questionId: q.id,
       correct: step.correct, chosen: step.correct ? q.answer : (q.answer + 1) % q.choices.length,
@@ -7745,7 +7886,7 @@ console.log("▸ Offline answers sync once, in order, and are never trusted for 
   const runLearner = async (id, order, claimAgoDays) => {
     await store.saveProfile(store.newProfileState(id, COURSE));
     const events = batch(id, BASE, order, claimAgoDays);
-    await store.updateProfile(id, (state) => projectionMod.commitAndProject(id, state, events));
+    await store.withLearnerState(id, (ctx, state) => projectionMod.commitAndProjectIn(ctx, state, events));
     return events;
   };
 
@@ -7760,7 +7901,7 @@ console.log("▸ Offline answers sync once, in order, and are never trusted for 
 
   // Delivered AGAIN: byte-identical ledger. Not "no visible difference" — the
   // file itself is unchanged, which is what "counted once" has to mean.
-  const replay = await store.updateProfile(A, (state) => projectionMod.commitAndProject(A, state, events));
+  const replay = await store.withLearnerState(A, (ctx, state) => projectionMod.commitAndProjectIn(ctx, state, events));
   ok(replay.result.accepted.length === 0 && replay.result.duplicates.length === drawn.length,
     `re-delivering the same batch appends NOTHING (accepted ${replay.result.accepted.length}, duplicates ${replay.result.duplicates.length})`);
   ok(fs.readFileSync(ledgerFile(A), "utf8") === fileAfterFirst,
@@ -7827,7 +7968,7 @@ console.log("▸ Offline answers sync once, in order, and are never trusted for 
   });
   const runPair = async (id, serverAges) => {
     await store.saveProfile(store.newProfileState(id, COURSE));
-    await store.updateProfile(id, (state) => projectionMod.commitAndProject(id, state, pair(id, serverAges)));
+    await store.withLearnerState(id, (ctx, state) => projectionMod.commitAndProjectIn(ctx, state, pair(id, serverAges)));
     return evidence.projectLearner(await evidenceStore.readEvidence(id));
   };
   const SERVER_AGED = await runPair("offline-c", true);
@@ -8036,10 +8177,22 @@ console.log("▸ One student's evidence is derived from their own ledger");
   // gated by the class's TEACHER. A member of the class reading a peer's record
   // is the failure this branch exists to make impossible, and it cannot be
   // pinned from a module — the gate is in the route.
+  // THE GATE MOVED, AND THIS ASSERTION MOVED WITH IT. It first read
+  // `isTeacherOf(cls, me)` — "is the asking PROFILE the class's owner profile?" —
+  // which was the whole defect the kiosk work fixed: a capability IS that
+  // profile, so the two strings in localStorage could open a classmate's
+  // evidence. The authority is now the session's teaching ACCOUNT
+  // (lib/server/authority), so the assertion names that instead, and names where
+  // the answer must come from. It is a stronger pair than the original: the old
+  // one could pass on a route that trusted a capability, this one cannot.
   const classesSrc2 = fs.readFileSync("app/api/classes/route.ts", "utf8");
   const learnerBranch = classesSrc2.slice(classesSrc2.indexOf('searchParams.get("learner")'));
-  ok(/isTeacherOf\(cls, me\)/.test(learnerBranch),
-    "the learner branch of the roster door is gated by the class's TEACHER, not by membership");
+  ok(/canAdminister\(cls, teaching\?\.id \?\? null\)/.test(learnerBranch),
+    "the learner branch of the roster door is gated by the class's TEACHER ACCOUNT, not by membership");
+  ok(/const teaching = await teachingAccountOf\(req\)/.test(classesSrc2),
+    "and that answer is resolved from the session's account, never from the caller's capability");
+  ok(!/isTeacherOf\(cls, me\)/.test(learnerBranch),
+    "so a profile capability — even the class owner's own — is not what opens a peer's evidence");
   ok(learnerBranch.includes("memberEvidence(cls,"),
     "and it answers with the one derivation rather than a second copy of it");
 }
@@ -8265,9 +8418,10 @@ console.log("▸ Assigned work is derived, not counted");
   // What is pinned here is the WIRING: the page hands that owner the ACCOUNT's
   // role (never the wizard's radio) and does not re-derive the branch itself.
   const appStateSrcForTeacher = fs.readFileSync("lib/app-state.ts", "utf8");
-  ok(onbSrc.includes('import { settlementTarget } from "@/lib/app-state";') &&
+  ok(/import \{[^}]*\bsettlementTarget\b[^}]*\} from "@\/lib\/app-state";/.test(onbSrc) &&
      onbSrc.includes("isTeacher: isTeacherAccount") &&
-     onbSrc.includes('guest: mode === "guest"'),
+     onbSrc.includes('guest: mode === "guest"') &&
+     onbSrc.includes("courseComplete:"),
     "and the redirect reads that one answer rather than the wizard's radio");
   ok(appStateSrcForTeacher.includes("const teacherHome = isTeacher && !guest") &&
      appStateSrcForTeacher.includes("if (teacherHome && !(wanted && !wanted.startsWith(\"/teacher\")))"),
@@ -8643,9 +8797,9 @@ console.log("▸ AI explains, never records");
   await store.saveProfile(store.newProfileState(AI_LEARNER, COURSE));
   const answers = [true, false, false, true];
   for (let i = 0; i < answers.length; i++) {
-    await store.updateProfile(AI_LEARNER, async (state) => {
+    await store.withLearnerState(AI_LEARNER, async (ctx, state) => {
       const q = DRAWN[i];
-      await projectionMod.commitAndProject(AI_LEARNER, state, [evidence.answerEvidence({
+      await projectionMod.commitAndProjectIn(ctx, state, [evidence.answerEvidence({
         learnerId: AI_LEARNER, at: A0 + i * 1000, source: "practice", subject: "maths",
         conceptId: CONCEPT, specificationId: state.profile.spec, questionId: q.id,
         correct: answers[i], chosen: answers[i] ? q.answer : (q.answer + 1) % q.choices.length,
@@ -8714,7 +8868,10 @@ console.log("▸ AI explains, never records");
   // that an AI path cannot reach the ledger or a mastery field. (The rooms route
   // imports the ROOM store, not the learner store — rooms carry messages.)
   const AI_MODULES = ["lib/llm.ts", "lib/tutor-context.ts", "lib/server/tutor.ts", "lib/server/room-tutor.ts", "app/api/tutor/route.ts", "app/api/ai/route.ts", "app/api/rooms/route.ts"];
-  const WRITE_SYMBOLS = ["answerEvidence", "hintEvidence", "appendEvidence", "commitAndProject", "updateProfile", "saveProfile", "withRetentionProof"];
+  // The transaction door is on this list as well as the ledger: after phase C a
+  // route that could reach a learner's record does it through `withLearnerState`,
+  // so THAT is the symbol an AI path reaching the model would name.
+  const WRITE_SYMBOLS = ["answerEvidence", "hintEvidence", "appendEvidence", "commitAndProject", "commitAndProjectIn", "withLearner", "withLearnerState", "saveProfile", "withRetentionProof"];
   const importers = AI_MODULES.filter((f) => {
     const src = fs.readFileSync(f, "utf8").replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
     return WRITE_SYMBOLS.some((s) => new RegExp(`\\b${s}\\b`).test(src));
@@ -9100,8 +9257,8 @@ console.log("▸ AI explains, never records");
   // next grounding must know about it.
   const eventsBefore = (await serverDecisionMod.decisionContextFor(AI_LEARNER)).events.length;
   const q5 = questions.generateQuestion(CONCEPT, "ai-5");
-  await store.updateProfile(AI_LEARNER, async (state) => {
-    await projectionMod.commitAndProject(AI_LEARNER, state, [evidence.answerEvidence({
+  await store.withLearnerState(AI_LEARNER, async (ctx, state) => {
+    await projectionMod.commitAndProjectIn(ctx, state, [evidence.answerEvidence({
       learnerId: AI_LEARNER, at: A0 + 9000, source: "practice", subject: "maths",
       conceptId: CONCEPT, specificationId: state.profile.spec, questionId: q5.id,
       correct: true, chosen: q5.answer, mode: "independent", hints: 0, ms: 4000,
@@ -9298,12 +9455,16 @@ console.log("▸ AI explains, never records");
   // `market`, `city`) and two of them labelled with the same string — so the
   // learner saw the same option twice, the choice silently fell back to neutral,
   // and the two authored cultures the form never offered were unreachable.
-  ok(onb.includes("CULTURES") && onb.includes("cultureLabel"),
-    "the enrolment form renders the culture list from its owner (lib/culture.ts)");
-  ok(!/cult\.(neutral|agriculture|urban)/.test(onb),
-    "and does not keep a second copy of the labels in the old key family");
-  ok(!/id: "(farm|market|city)"/.test(onb),
-    "nor a second set of ids the engine cannot resolve");
+  // The choice itself MOVED: a sign-up no longer asks which setting examples are
+  // set in (it is a preference about how the teaching reads, not something the
+  // first screen can depend on), so the owner's list is rendered where the other
+  // preferences are. Both halves are asserted — the surface that owns it uses the
+  // owner, and the wizard does not quietly reintroduce a second list.
+  const accessSrc = fs.readFileSync("app/access/page.tsx", "utf8");
+  ok(accessSrc.includes("CULTURES") && accessSrc.includes("cultureLabel("),
+    "the preferences screen renders the culture list from its owner (lib/culture.ts)");
+  ok(!/cult\.(neutral|agriculture|urban)/.test(accessSrc) && !/id: "(farm|market|city)"/.test(onb),
+    "and neither screen keeps a second copy of the labels or a set of ids the engine cannot resolve");
 
   // ── A radio GROUP is not a label ───────────────────────────────────────
   // Wrapping the legend and the options in one <label> made each option's
@@ -9328,8 +9489,14 @@ console.log("▸ AI explains, never records");
       deepest = Math.max(deepest, depth);
     }
     ok(deepest <= 1, `no label sits inside another label in the wizard (deepest ${deepest})`);
-    const groups = onb.match(/role="radiogroup"/g)?.length ?? 0;
-    ok(groups >= 4, `every radio group is named as a group (${groups} found)`);
+    // NAMED, not merely counted. Three radio groups lived in the six-screen
+    // wizard; the three-screen one has two, so a bare count would now pin the
+    // screen list rather than the access rule. What must hold for every group in
+    // the form is that the tag carries a name of its own.
+    const groups = onb.match(/<div\b[^>]*role="radiogroup"[^>]*>/g) ?? [];
+    const unnamed = groups.filter((tag) => !/aria-label=|aria-labelledby=/.test(tag));
+    ok(groups.length >= 2 && unnamed.length === 0,
+      `every radio group is named as a group (${groups.length} found, ${unnamed.length} unnamed)`);
   }
 
   // ── No step refuses to continue without saying why ────────────────────
@@ -9343,27 +9510,25 @@ console.log("▸ AI explains, never records");
   // The course step used to say "needs a course" for every gap — the same mistake
   // the Home card made before it named the field, and the one that turned this
   // step into a loop. A course has four parts, the gate reports WHICH are
-  // missing, and the step now prints them.
-  ok(onb.includes('fill(t("next.courseMissing")') && onb.includes("FIELD_LABEL["),
-    "the course step names the PART of the course it is waiting for, from the labels the Home card uses");
-  // ...AND CAN SATISFY WHAT IT DEMANDS. Measured live: a learner who left the
-  // year group alone on step 2 (the select's default IS the placeholder, so that
+  // missing, and the screen that collects it prints them — through the labels
+  // the Home card uses, so the two surfaces cannot call the same gap two names.
+  const curSource = fs.readFileSync("app/curriculum/page.tsx", "utf8");
+  ok(curSource.includes('fill(t("onb.needFields")') && curSource.includes("FIELD_LABEL["),
+    "the course screen names the PART of the course it is waiting for, from the labels the Home card uses");
+  // ...AND CAN SATISFY WHAT IT DEMANDS. Measured on the old wizard: a learner who
+  // left the year group alone (the select's default WAS the placeholder, so that
   // is every learner who did not go looking) chose a qualification and a tier,
-  // and `Next` stayed dead with nothing left on the screen to change. The field
-  // blocking it is asked for here, and its placeholder cannot be picked — on a
-  // route with grades, "I'm learning independently" is not one.
-  ok(onb.includes('courseMissing.some((m) => m.missing.includes("grade"))'),
-    "the course step can set the year group it is missing, instead of sending the learner back a step");
-  // The placeholder must be a PROMPT, and it must not be selectable. It used to
-  // be `t("onb.grade")` — the very words of that field's own <span> label — so
-  // a learner read the same phrase twice: once as the label and once as the
-  // value already sitting in the box, and concluded there was nothing left to
-  // answer. Pinning the identical string was pinning the defect, so the check
-  // now asserts the two things that make it a prompt rather than a claim.
-  ok(onb.includes('<option value="" disabled>{t("onb.pickGrade")}</option>'),
-    "the year group's placeholder says what to do and cannot be picked");
-  ok(!/<option value=""[^>]*>\{t\("onb\.grade"\)\}<\/option>/.test(onb),
-    "and it is never the field's own label printed back as if it were an answer");
+  // and `Next` stayed dead with nothing left on the screen to change. The screen
+  // that asks for a course therefore also asks for the year group it can be
+  // missing, and Home's card — which names `grade` — has somewhere to send them.
+  ok(curSource.includes("levelForGrade(") && curSource.includes('t("onb.grade")'),
+    "the course screen can set the year group it is missing, instead of sending the learner back a step");
+  // The year group is not guessed. An unset one shows the honest "not at school"
+  // answer rather than the field's own label sitting in the box as though the
+  // learner had chosen a class, and the stored value is what the profile holds.
+  ok(!/<option value=""[^>]*>\{t\("onb\.grade"\)\}<\/option>/.test(curSource) &&
+     curSource.includes('<option value="">{t("onb.independent")}</option>'),
+    "and an unset year group is never the field's own label printed back as if it were an answer");
 
   // ── A step change is a page change ─────────────────────────────────────
   // Measured on a phone: advancing left the new step wherever the last one was
@@ -9392,50 +9557,46 @@ console.log("▸ AI explains, never records");
   ok(onb.includes('className="field-error" role="status"'),
     "in the field-error style the sheet already carried, announced rather than only drawn");
 
-  // ── No control that cannot be answered ─────────────────────────────────
-  // The course step is the one step a learner cannot pass without answering, and
-  // it offered a Level field whose only option was the placeholder — a control
-  // that looks required, cannot be satisfied, and borrowed the word from the
-  // field beside it ("I'm learning independently" as a LEVEL).
-  ok(onb.includes("levels.length > 0 &&"),
-    "the Level field is offered only when the chosen course has levels to choose");
-  // ── A tier the learner must CHOOSE is not chosen for them ──────────────
-  // Choosing a qualification seeded the tier from `pick.levels[0]`, and
-  // `levels[0]` is Foundation for the GCSE — so a learner who chose "GCSE" (and
-  // nothing else) was quietly enrolled at the easier tier, served at its
-  // difficulty and taught at its depth, never having made that choice. That is
-  // a real cause of "the questions are too easy". The tier is seeded only when
-  // the year group genuinely names one, or when there is nothing to choose
-  // between; otherwise the field is left empty, NAMED as missing (the gap line
-  // above), and `Next` waits for it.
-  ok(onb.includes("pick.levels.length === 1 ? pick.levels[0] : null"),
+  // ── SIX SCREENS BECAME THREE, AND THE COURSE IS NOT ONE OF THEM ─────────
+  // Enrolment asks only what nothing later can work without: who the account is,
+  // where the learner is (which decides the curriculum) and what they study
+  // (which decides the diagnostic). The course, the goal and the languages are
+  // asked later, on the pages that own them, where a learner has a plan to look
+  // at before answering. The rule that matters is NEGATIVE as much as positive:
+  // the wizard must not grow a fourth screen for the course back.
+  ok(/const learnerSteps = signedIn\s*\n?\s*\? \["about", "subjects"\]\s*\n?\s*: \["account", "about", "subjects"\];/.test(onb),
+    "a learner's setup is THREE screens — account, where they are, what they study");
+  ok(!/current === "(course|goals|teach)"/.test(onb) && !onb.includes("subjectCourses") && !onb.includes("specLevel"),
+    "and the wizard no longer renders a course, goal or language step, or sends a course of its own");
+
+  // ── THE COURSE STEP'S RULES, AT THE COURSE STEP'S NEW HOME ─────────────
+  // Deferring a question is only honest if the same guarantees hold where it is
+  // asked. The course screen resolves a display fallback (country → first
+  // listing) so the coverage panel can say something — and that fallback must
+  // never become a SAVE, because a course the learner never chose then reads as
+  // their own choice everywhere else. And the tier is still never seeded from
+  // `levels[0]`: that is Foundation for the GCSE, the silent easier enrolment
+  // that made learners too easy to teach.
+  const curSrc = fs.readFileSync("app/curriculum/page.tsx", "utf8");
+  ok(/const needsLevel = Boolean\(chosenSpec\) && chosenSpec!\.levels\.length > 1 && !levelId && !gradeLevel;/.test(curSrc),
     "choosing a qualification does not enrol the learner at the qualification's first tier");
-  ok(onb.includes('<option value="" disabled>{t("onb.pickLevel")}</option>'),
+  ok(curSrc.includes('<option value="" disabled>{t("onb.pickLevel")}</option>'),
     "and an unchosen tier says so, rather than painting the first tier as the learner's own answer");
-  // The SAME trap on the qualification select, where it was worse. Its empty
-  // option read "I'm learning independently" — an ANSWER, in a box the gate then
-  // refuses, because `courseGaps` reports `spec` missing whenever no
-  // qualification is set. Measured live: a learner saw the qualification filled
-  // in, chose a tier, and found `Next` dead with every visible field apparently
-  // answered. A prompt says what to do; a claim with nothing behind it is the
-  // form lying to the person filling it in.
-  ok(onb.includes('<option value="" disabled>{t("onb.pickSpec")}</option>'),
-    "an unchosen qualification is a prompt, not an answer the gate will refuse");
-  ok(!/<option value="">\{t\("onb\.independent"\)\}<\/option>[\s\S]{0,220}options\.map/.test(onb),
-    "and the qualification select no longer offers a selectable empty answer");
-  // ── A DEAD BUTTON IS EXPLAINED WHERE IT IS ─────────────────────────────
-  // The course step disabled `Next` with its only explanation in a `muted`
-  // line above the form, phrased in the product's own vocabulary. This asserts
-  // the sentence exists AND that it is derived from the same gate the button
-  // reads — so the two cannot drift into disagreeing about what is missing.
-  ok(onb.includes("const needText = ") && onb.includes('fill(t("onb.needFields")'),
-    "the course step says, in the imperative, what Next is waiting for");
-  // ...and reads the SAME gate the button does, so the sentence and the disabled
-  // state cannot drift apart into disagreeing about what is still missing.
-  ok(/const needText = [\s\S]{0,400}?canAdvance\(\)/.test(onb),
-    "and derives what is missing from the gate that disabled the button");
-  ok(onb.includes('className="field-error wizard-need"'),
-    "and prints it beside the button rather than above the form");
+  ok(/const canSave = Boolean\(chosenSpec\) && !needsLevel;/.test(curSrc) &&
+    /if \(!id \|\| !canSave\) return;/.test(curSrc),
+    "and a course the learner never chose cannot be saved, even though the page resolves one to display");
+  // AN UNCHOSEN QUALIFICATION MUST BE EXPRESSIBLE. Driving it live found the
+  // other half: both selects were driven by the RESOLVED course, so when the
+  // fallback already equalled the course the learner wanted, choosing it fired
+  // no `change` at all — Save stayed dead under a box that already showed it.
+  ok(/const needsSpec = !specId && !hasStoredCourse;/.test(curSrc) &&
+     /value=\{needsSpec \? "" : active\.spec\.id\}/.test(curSrc) &&
+     curSrc.includes('{needsSpec && <option value="" disabled>{t("onb.pickSpec")}</option>}'),
+    "and the qualification control opens empty when nothing is chosen, so picking the fallback is a real choice");
+  ok(/disabled=\{!canSave\}/.test(curSrc) && curSrc.includes('fill(t("onb.needFields")'),
+    "the button is disabled by that same gate and the screen names what it is waiting for");
+  ok(curSrc.includes('levelForGrade(chosenSpec, profile?.grade ?? "")') && curSrc.includes('t("onb.grade")'),
+    "and the year group is asked beside the course, so the gap card that sends a learner here can be closed");
 
   // ── Said once, where it is true ────────────────────────────────────────
   const noteUses = (onb.match(/t\("onb\.subjectsNote"\)/g) ?? []).length;
@@ -9856,11 +10017,16 @@ console.log("▸ A missing course is named by field, and can be finished where w
     "and today that is the pending sentence on all of them, because no mapping has been reviewed");
   ok(cur.mappingReviewKey(null) === "" && cur.mappingReviewKey(undefined) === "",
     "a surface with no pathway makes no claim at all rather than defaulting to one");
-  // Both learner-facing surfaces must route through that one function.
-  const labelSites = ["app/onboarding/page.tsx", "app/curriculum/page.tsx"]
-    .filter((f) => !fs.readFileSync(f, "utf8").includes("mappingReviewKey("));
-  ok(labelSites.length === 0,
-    `and both surfaces that offer a pathway ask the registry for its label${labelSites.length ? ` (hard-coded or absent in: ${labelSites.join(", ")})` : ""}`);
+  // ONE SURFACE OFFERS A PATHWAY NOW. The wizard used to, and the course screen
+  // does; a sign-up no longer asks which education system a learner follows, so
+  // requiring the key THERE would have pinned a step that is deliberately gone.
+  // The surface that offers it must still route through the registry, and the
+  // wizard must not grow a hard-coded pathway label back.
+  const onbPathway = fs.readFileSync("app/onboarding/page.tsx", "utf8");
+  ok(fs.readFileSync("app/curriculum/page.tsx", "utf8").includes("mappingReviewKey("),
+    "the course screen asks the registry for its pathway's mapping label");
+  ok(!onbPathway.includes("mappingReviewKey") && !onbPathway.includes("pathwayChoices"),
+    "and the wizard no longer offers an education system to choose, so no label of its own to get wrong");
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -9879,9 +10045,16 @@ console.log("▸ Enrolment is collected once");
   const onb = fs.readFileSync("app/onboarding/page.tsx", "utf8");
   ok(/createProfile\(\{\s*\.\.\.enrolment\(\)/.test(onb),
     "the no-account door sends the same package as the account door, rather than a second list");
-  const named = (onb.match(/^\s*termsMode,$/gm) ?? []).length;
-  ok(named === 1,
-    `and a choice the wizard collects is named in exactly one payload (termsMode appears in ${named})`);
+  // TERMS MODE IS NO LONGER ENROLMENT'S TO COLLECT. The wizard asks nothing about
+  // terminology now, and the failure this pins was a field that only ONE of its
+  // two doors sent. The rule that replaces it is stronger and simpler: a
+  // preference enrolment does not ask must not appear in its payload at all, and
+  // the screen that does ask it must send it.
+  const inWizard = (onb.match(/^\s*termsMode,$/gm) ?? []).length;
+  ok(inWizard === 0,
+    `the wizard sends no terminology choice it never asked for (termsMode appears in ${inWizard})`);
+  ok(/saveProfile\(\{[^}]*termsMode: terms/s.test(fs.readFileSync("app/access/page.tsx", "utf8")),
+    "and the preferences screen, which does ask, sends it in its own save");
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -10093,6 +10266,61 @@ console.log("▸ Onboarding moves one step per press");
     "the bare increment — the thing that skipped three steps — is gone");
 }
 
+console.log("▸ A refused save is not a connection problem");
+{
+  // MEASURED, NOT SUSPECTED. A device holding a profile id with a stale secret
+  // asked the server to save, the server answered 401 `unauthorized`, and the
+  // enrolment form printed "Could not create your profile — check your
+  // connection and try again." The learner's internet was fine; the sentence was
+  // false, and it is the last sentence a first run should get wrong because it
+  // sends someone to fix the one thing that is working.
+  //
+  // THREE CAUSES, all removed: lib/client.tsx#createProfile and
+  // #saveProfilePatch each caught EVERY error and rethrew a bare string, so a
+  // 401, a 400 naming a course the qualification does not teach, and a genuine
+  // drop all arrived at the form as the same opaque failure; and the form had one
+  // sentence for all of it.
+  const client = fs.readFileSync("lib/client.tsx", "utf8");
+  const swallow = /catch\s*\{\s*throw new Error\("profile (create|save) failed"\)/;
+  ok(!swallow.test(client),
+    "no profile operation swallows the server's reason (the 401-as-connection bug)");
+  ok((client.match(/reasonOf\(e, "client_error"\)/g) ?? []).length >= 2,
+    "createProfile AND saveProfilePatch both pass the reason on");
+  ok(/return e\.status === 0 \? "unreachable" : `http_\$\{e\.status\}`/.test(client),
+    "`unreachable` means the call never arrived — a 401 gets its own name, not the connection's");
+
+  const onb = fs.readFileSync("app/onboarding/page.tsx", "utf8");
+  ok(/unreachable: "onb\.errCreate"/.test(onb),
+    "the connection sentence is mapped to `unreachable` alone");
+  ok(/if \(code === "unauthorized"\)/.test(onb) && /fresh: true/.test(onb),
+    "a 401 gets its own sentence and the one action that can work");
+  ok(/setErrCode\(shown\.code\)/.test(onb),
+    "the refusal's own code is shown beside the message, so it is reportable");
+  // AND THE SAME FACT ONE LAYER UP: the provider's probe used to treat a 401 as
+  // "unreachable", so a stale pair retried four times and then sat on the boot
+  // screen for the life of the tab — a page whose only control cannot resolve.
+  // `transport.probe` had already kept `refused` apart from `unreachable`; the
+  // provider threw that distinction away.
+  ok(client.includes("function isCredentialRefusal") && /if \(gone \|\| refused\)/.test(client),
+    "a 401 is treated as a fact about this device, not as an outage (the permanent boot screen)");
+  ok(/return code === "unauthorized" \|\| code === "forbidden" \|\| code === "http_401" \|\| code === "http_403";/.test(client),
+    "and ONLY a credential refusal clears the identity — a 500 or a 429 must not throw a real learner away");
+  ok(/async function startFreshProfile/.test(onb) && /clearSession\(\);\s*await finishWithRecovery\(""\);/.test(onb),
+    "and starting fresh clears the identity BEFORE re-entering finish, so it creates instead of patching the same record");
+
+  // The three sentences, in all fifteen languages — and not as English. The
+  // parity sweep proves a key EXISTS everywhere; a dictionary that carried the
+  // English string would pass that and still show English.
+  const lit = require("../.verify/i18n.js");
+  const EN = lit.DICTS.en;
+  for (const key of ["onb.errRefused", "onb.errNotYours", "onb.freshStart"]) {
+    const missing = lit.LANG_CODES.filter((c) => !lit.DICTS[c] || !lit.DICTS[c][key]);
+    ok(missing.length === 0, `${key} is authored in all ${lit.LANG_CODES.length} languages (missing: ${missing.join(",") || "none"})`);
+    const english = lit.LANG_CODES.filter((c) => c !== "en" && lit.DICTS[c][key] === EN[key]);
+    ok(english.length === 0, `${key} is not the English sentence in a translation (${english.join(",") || "none"})`);
+  }
+}
+
 console.log("▸ A finished diagnostic is a change to where the learner belongs");
 {
   const diag = fs.readFileSync("app/diagnostic/[subject]/page.tsx", "utf8");
@@ -10139,7 +10367,7 @@ console.log("▸ A finished diagnostic is a change to where the learner belongs"
 //
 // The block above pins the diagnostic's half of one defect. Its other half was
 // never pinned, so it came back — and this time it is an infinite loop, not one
-// bounce. Walking a brand-new learner through all six onboarding steps on the
+// bounce. Walking a brand-new learner through the whole onboarding wizard on the
 // production build recorded, 39ms apart:
 //
 //   push("/dashboard")  →  replace("/diagnostic/maths?return=%2Fdashboard")
@@ -10173,8 +10401,16 @@ console.log("▸ Enrolment hands over a learner the guard will actually admit");
   // the page calls and does not restate. The RULES below were pinned in the page
   // when they lived there; they are pinned in the owner now, and the pure sweep
   // in "▸ Where the learner is allowed to be" exercises them behaviourally.
-  ok(onb.includes('import { settlementTarget } from "@/lib/app-state";') &&
-     /router\.push\(settlementTarget\(\{/.test(onb),
+  // TWO SHAPES, ONE RULE. The page used to push the call directly. The recovery
+  // detour (a printed code shown between "account created" and "where you are
+  // going") has to compute the destination BEFORE the detour and push it after —
+  // so the call is bound to `target` and pushed from there. What must not change
+  // is that the destination comes from `settlementTarget` and is never spelled out
+  // as a route literal.
+  ok(/import \{[^}]*\bsettlementTarget\b[^}]*\} from "@\/lib\/app-state";/.test(onb) &&
+     (/router\.push\(settlementTarget\(\{/.test(onb) ||
+      (/const target = settlementTarget\(\{/.test(onb) && /router\.push\(target\)/.test(onb) &&
+       !/router\.push\("\//.test(onb))),
     "the destination is decided by the one owner of the access contract, not restated in the page");
   ok(!onb.includes("accessFor(wanted)") && !onb.includes("diagnostic/${subject}"),
     "and the page no longer derives that destination itself");
@@ -10198,10 +10434,19 @@ console.log("▸ Enrolment hands over a learner the guard will actually admit");
   // caught it without a browser, and it cannot go stale as pages are added.
   const { ACCESS_RULES, accessFor: accessForRule, resolveRoute, deriveLifecycle } =
     require("../.verify/app-state.js");
+  // A COMPLETE COURSE, because a baseline diagnostic is a measurement OF a
+  // course: the learner who reaches this sweep has chosen one, and the redirect
+  // this asserts is the diagnostic's, not /curriculum's.
   const enrolledNotMeasured = deriveLifecycle({
     auth: "signed_out",
     profileStatus: "complete",
-    profile: { profile: { id: "p", subjects: ["maths"], onboardedAt: 1 }, progress: {}, diagnostics: {} },
+    profile: {
+      profile: {
+        id: "p", subjects: ["maths"], onboardedAt: 1, country: "GB", grade: "Year 11",
+        subjectCourses: { maths: { spec: "uk-gcse", specLevel: "higher" } },
+      },
+      progress: {}, diagnostics: {},
+    },
   });
   const bounced = ACCESS_RULES
     .filter((r) => r.requirement === "diagnosed")
@@ -10494,14 +10739,31 @@ console.log("▸ Every offered country can complete a course");
   ok(COUNTRIES.length >= 60, `the picker's own country list was read (${COUNTRIES.length} countries)`);
   ok(problems.length === 0,
     `and every one of them can finish a course (${problems.slice(0, 5).join("; ") || "none blocked"})`);
-  // The direction that keeps the rule honest: an unmodelled country is answered
-  // with a REAL pathway, not with silence. France gets the independent route's
-  // years, and a learner there is asked for a qualification rather than refused.
-  const fr = C.curriculumFor("FR");
-  ok(fr === null, "a country with no national entry still has none (the fallback is the step's, not a fabricated route)");
-  const frGaps = S.courseGaps({ country: "FR", grade: "Core", subjects: ["maths"] }, "maths");
-  ok(!frGaps.includes("country"), "but such a country is never reported as a missing course field");
-  ok(frGaps.includes("spec"), "while the qualification itself is still required, so the choice stays the learner's");
+  // ── THE LONG TAIL THIS USED TO BE ────────────────────────────────────────
+  // This assertion used to name FRANCE as "a country with no national entry",
+  // and it was true: 52 of the 71 offered countries had none, so the picker's
+  // own list was mostly countries the product could not describe. Every one of
+  // them now has a route, and that is the state the gate and this suite must
+  // keep — so the claim is stated as a whole-population one instead of on one
+  // example, which is what made the old assertion pass while half the world was
+  // unmodelled.
+  // `curriculumFor` answers a COUNTRY, so it is null for Cameroon too — not
+  // because Cameroon has nothing recorded, but because it runs two systems and
+  // the learner has not said which. The claim here is "has a national system",
+  // which is the record, not the single default.
+  const unmodelledOffered = COUNTRIES
+    .filter(({ code }) => code !== "XX" && (R.countryRecord(code)?.nationalPathways ?? []).length === 0)
+    .map(({ code }) => code);
+  ok(unmodelledOffered.length === 0,
+    `every country the picker offers has a national route (${unmodelledOffered.slice(0, 6).join(", ") || "all of them"})`);
+  // The honest gap still exists where it should: a code the picker does NOT
+  // offer (Chile, the Netherlands, …) is unmodelled, and a learner holding one
+  // is answered with a REAL pathway rather than with silence.
+  const cl = C.curriculumFor("CL");
+  ok(cl === null, "a system OpenMind has not modelled still has none (the fallback is the step's, not a fabricated route)");
+  const clGaps = S.courseGaps({ country: "CL", grade: "Core", subjects: ["maths"] }, "maths");
+  ok(!clGaps.includes("country"), "but such a country is never reported as a missing course field");
+  ok(clGaps.includes("spec"), "while the qualification itself is still required, so the choice stays the learner's");
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -11584,7 +11846,125 @@ console.log("▸ The deployment reports its own configuration, and invents no re
     && envMod.storeReadiness({ OPENMIND_STORE: "postgres" }).mode === "unservable",
     "and a backend this build cannot serve permits no writes at all rather than falling back to the file store");
 
-  // ── 1d. THE WRITE PATH ITSELF REFUSES, NOT ONLY THE REPORT ────────────────
+  // ── 1d. THE INSTALL CONTRACT: A DOCUMENTED START MUST CONFIGURE THE STORE ──
+  //
+  // The audit of 16 Oct 2026 found a P0 in the DOCS rather than in the code: the
+  // README's non-Docker command was `npm ci && npm run build && npm start`, and
+  // configuration was described as "all optional". `next start` runs the
+  // production artefact with NODE_ENV=production, so an undeclared data directory
+  // is `data_dir_undeclared` — a BLOCKING code, not a note — which means the site
+  // RENDERS, the diagnostic OPENS, and every learner-record write answers 503.
+  // That is the state a learner meets as "it didn't save", and it is invisible to
+  // every check that does not look at the environment the DOCUMENTED command
+  // produces.
+  //
+  // Two halves, and both are needed. The RULE: the documented environment with no
+  // data directory permits no write, and the same environment with one declared
+  // permits them. The DOCS: every documented way to start the server configures
+  // the store — itself, or through an artefact that does (the Docker image's ENV,
+  // the launcher's own export), which are held to it below rather than trusted.
+  const documentedPlain = envMod.storeReadiness({ NODE_ENV: "production" });
+  ok(documentedPlain.writesPermitted === false && documentedPlain.blockedBy === "data_dir_undeclared",
+    "a production artefact with no declared data directory permits NO learner-record write (the trap the docs must not lead into)");
+  ok(envMod.storeReadiness({ NODE_ENV: "production", OPENMIND_DATA_DIR: "/srv/openmind-data" }).writesPermitted === true,
+    "and the same environment with the directory declared permits them — which is what the documented command must produce");
+
+  /** A block that shows how to start the server. */
+  const STARTS_SERVER = /next start|npm (?:run )?start|docker compose up|docker run|\.\/start-openmind\.sh/;
+  /** A block that names an artefact which configures the store FOR the operator. */
+  const VIA_ARTEFACT = /docker compose|docker run|start-openmind\.sh/;
+  const declaresStore = (block) => /OPENMIND_DATA_DIR|OPENMIND_ALLOW_EPHEMERAL_STORE|OPENMIND_DATA_DIR_DURABLE/.test(block);
+  let documentedStarts = 0;
+  for (const file of ["README.md", "docs/DEPLOYMENT.md"]) {
+    const blocks = [...fs.readFileSync(file, "utf8").matchAll(/```bash\n([\s\S]*?)```/g)].map((m) => m[1]);
+    for (const block of blocks) {
+      if (!STARTS_SERVER.test(block)) continue;
+      documentedStarts += 1;
+      ok(VIA_ARTEFACT.test(block) || declaresStore(block),
+        `${file}: a documented way to start the server configures the store (${block.trim().split("\n").slice(-2).join(" · ").slice(0, 80)})`);
+    }
+  }
+  ok(documentedStarts >= 2, `the documents still show how to start a server (${documentedStarts} block(s) found)`);
+  // A check that cannot fail proves nothing: the shape this fix removed — a bare
+  // build-and-start with no declaration — must NOT satisfy the predicate above.
+  ok(!declaresStore("npm ci && npm run build && npm start") && !VIA_ARTEFACT.test("npm ci && npm run build && npm start"),
+    "and the check can fail: the old bare `npm ci && npm run build && npm start` block declared nothing, which is the defect this pins");
+  // The two self-configuring artefacts, held to their promise rather than assumed.
+  ok(/ENV[\s\S]*OPENMIND_DATA_DIR=\/data/.test(fs.readFileSync("Dockerfile", "utf8")),
+    "the Docker image sets OPENMIND_DATA_DIR itself, so `docker compose up -d` needs nothing from the operator");
+  ok(/OPENMIND_DATA_DIR=/.test(fs.readFileSync("start-openmind.sh", "utf8")),
+    "and `./start-openmind.sh` exports it, so the app it documents is configured by construction");
+  // The behaviour those docs describe, driven through the REAL artefact, is
+  // `npm run verify:install` (scripts/verify-install-contract.mjs). This section
+  // is the rule and the documents; that script is the server.
+
+  // ── 1d-bis. A PROCUREMENT DOCUMENT'S CITATIONS MUST RESOLVE ────────────────
+  // The ministry pack (docs/ministry/*) and the mapping note are written on ONE
+  // promise: every technical claim names the file that makes it true, so a
+  // reviewer can follow it into the code. That promise has a failure mode a
+  // reader cannot see until they try — the file was renamed, the function was
+  // called something else — and a citation that resolves to nothing costs the
+  // whole document its authority. Written because a drafting pass shipped THREE:
+  // `lib/projection.ts` for `lib/server/projection.ts`, `#projectLearner` for
+  // `#projectFromLedger`, and `lib/server/assignments.ts`, a module that does not
+  // exist. Each was a line a ministry officer would check first, and the first
+  // two were only one directory apart — which is exactly how a citation goes
+  // wrong in a way nobody notices.
+  {
+    const docFiles = [
+      ...fs.readdirSync("docs/ministry").filter((n) => n.endsWith(".md")).map((n) => `docs/ministry/${n}`),
+      "docs/CURRICULUM_MAPPING.md",
+      // The evidence base a funding application would cite. It is held to the
+      // same rule for the same reason: the figures it reports about THIS
+      // repository must be followable to the file that makes them true.
+      "docs/EVIDENCE_BASE.md",
+    ];
+    ok(docFiles.length >= 4, `the ministry pack is on disk (${docFiles.length} document(s))`);
+    let citations = 0;
+    const unresolved = [];
+    for (const file of docFiles) {
+      const text = fs.readFileSync(file, "utf8");
+      // `path/to/file.ts#symbol` — a claim that names a specific function.
+      for (const m of text.matchAll(/`([A-Za-z0-9_./-]+\.(?:ts|tsx|mjs|json|md|css))#([A-Za-z0-9_$]+)`/g)) {
+        citations += 1;
+        const [, target, symbol] = m;
+        if (!fs.existsSync(target)) { unresolved.push(`${file}: ${target}#${symbol} — no such file`); continue; }
+        // Deliberately lenient on HOW the symbol appears (a doc may name a
+        // function, a type or a field) but not on whether it appears at all.
+        if (!new RegExp(`\\b${symbol.replace(/[$]/g, "\\$")}\\b`).test(fs.readFileSync(target, "utf8"))) {
+          unresolved.push(`${file}: ${target}#${symbol} — the file never names it`);
+        }
+      }
+      // A bare path under the source tree — the claim is that the module exists.
+      for (const m of text.matchAll(/`((?:lib|app|components|scripts|db|audit)\/[A-Za-z0-9_./\[\]-]+)`/g)) {
+        citations += 1;
+        if (!fs.existsSync(m[1])) unresolved.push(`${file}: ${m[1]} — no such file`);
+      }
+    }
+    ok(unresolved.length === 0,
+      `every file and symbol the ministry pack cites exists (${citations} citations; ${unresolved.slice(0, 4).join(" | ")})`);
+    ok(citations >= 40,
+      `the documents still cite the code rather than asserting it in prose (${citations} citations)`);
+    // And the check can fail: the citations the drafting pass actually got wrong
+    // must be caught by the same predicate, along with the near-miss this suite's
+    // own history produces — a function named at the module that RE-EXPORTS it
+    // missing the module that DEFINES it (`sessionTokenFor` lives in
+    // `app/api/auth/_shared.ts`, not `lib/server/auth.ts`, which is why a
+    // plausible citation is the dangerous kind).
+    for (const planted of [
+      ["lib/projection.ts", null],
+      ["lib/server/assignments.ts", null],
+      ["lib/server/projection.ts", "projectLearner"],
+      ["lib/server/auth.ts", "sessionTokenFor"],
+    ]) {
+      const [target, symbol] = planted;
+      const caught = !fs.existsSync(target) ||
+        (symbol !== null && !new RegExp(`\\b${symbol}\\b`).test(fs.readFileSync(target, "utf8")));
+      ok(caught, `the citation check rejects the citation that shipped: ${target}${symbol ? `#${symbol}` : ""}`);
+    }
+  }
+
+  // ── 1e. THE WRITE PATH ITSELF REFUSES, NOT ONLY THE REPORT ────────────────
   // A report that says "unproven" while the store still accepts a learner record
   // is the same false promise in a different file. The refusal is enforced at the
   // primitive every learner-record write goes through, so this drives the REAL
@@ -12098,9 +12478,9 @@ console.log("▸ An erasure outlives the archive it was taken from");
 //     append failed, or whose validation refused, cannot leave a model that no
 //     ledger can reconstruct — the invariant this whole storage line protects.
 //   · FOUR CONCURRENT TRANSACTIONS ON ONE LEARNER LOSE NOTHING. The lock is the
-//     same one `updateProfile` has always used, and it is now the transaction's
-//     rather than each caller's, so the concurrency the old shape could not express
-//     is the concurrency this one is tested under.
+//     same one the record's writers have always used, and it is now the
+//     transaction's rather than each caller's, so the concurrency the old shape
+//     could not express is the concurrency this one is tested under.
 //
 // Plus the property that makes a FAILED transaction safe to retry: the event it
 // already appended is on the ledger and idempotent by id. That is not a defect —
@@ -12178,6 +12558,351 @@ console.log("▸ A learner transaction commits the record, or leaves it alone");
   const rebuilt = replay.replayModel(events, TXN, converged.projectionBase, converged.profile);
   ok(JSON.stringify(rebuilt.progress) === JSON.stringify(converged.progress),
     "and the record the transaction committed is exactly what replaying its ledger produces");
+}
+
+// ── PHASE C: THE ROUTES' TRANSACTION IS THE ONE THAT TRAVELS ────────────────
+//
+// docs/STORAGE_SPEC.md §14, phase C. The contract above is worth exactly what the
+// CALL SITES do with it, and there were two ways to get it wrong that no compiler
+// can see:
+//
+//   · a route that keeps a mutator taking `state` alone, so its ledger write
+//     resolves the PORT from inside the transaction — correct on the file backend
+//     precisely because a file store has no second connection to open, and the
+//     deadlock §14.1 describes on a database one;
+//   · a route that reaches the store's own `withLearner` instead of the
+//     transaction door, so a deployment configured for another backend opens a
+//     file-locked transaction for a record that backend holds.
+//
+// The first is asserted at the BOUNDARY rather than by signature. The port is
+// replaced with a backend that REFUSES the ledger operations, and a whole
+// transaction — read the record, read the ledger, append, re-project, stage the
+// record — must still succeed, because none of it may touch the port. The control
+// (the port-resolved write must still fail against that same backend) is what
+// makes the pass meaningful instead of vacuous.
+console.log("▸ A learner transaction never reaches the storage port");
+{
+  const fileMod = require("../.verify/server/storage-file.js");
+  const transactionMod = require("../.verify/server/transaction.js");
+  const projectionMod = require("../.verify/server/projection.js");
+  const ev = require("../.verify/evidence.js");
+  const C = "phasec-no-port-01";
+  await store.saveProfile(store.newProfileState(C, { handle: "phasec", subjects: ["maths"] }));
+  // ONE event object: `answerEvidence` mints a fresh id per call, so comparing an
+  // id across two calls would compare two different events.
+  const ev1 = ev.answerEvidence({
+    learnerId: C, at: 1_000, source: "practice", subject: "maths", conceptId: "quadratics",
+    specificationId: null, questionId: "phasec-1", correct: true, chosen: 0, mode: "independent", hints: 0,
+  });
+  const ev2 = ev.answerEvidence({
+    learnerId: C, at: 2_000, source: "practice", subject: "maths", conceptId: "quadratics",
+    specificationId: null, questionId: "phasec-2", correct: true, chosen: 0, mode: "independent", hints: 0,
+  });
+
+  const realActive = fileMod.activeStorage;
+  const refuse = (name) => () => { throw new Error(`the storage PORT was reached inside a learner transaction: ${name}()`); };
+  // A backend that OPENS the transaction itself (which is what a database does)
+  // and refuses everything the transaction's own CONTEXT is supposed to serve.
+  fileMod.activeStorage = () => ({
+    ...fileMod.fileStorage,
+    readEvents: refuse("readEvents"),
+    appendEvents: refuse("appendEvents"),
+    hasEvent: refuse("hasEvent"),
+    deleteEvents: refuse("deleteEvents"),
+  });
+  let viaDoor = null;
+  let reached = null;
+  try {
+    ok(transactionMod.transactionKind() === fileMod.fileStorage.kind,
+      "the transaction door resolves the CONFIGURED backend rather than naming the file store");
+    viaDoor = await transactionMod.withLearnerState(C, async (ctx, state) => {
+      const before = await ctx.readEvents();
+      const res = await projectionMod.commitAndProjectIn(ctx, state, [ev1]);
+      return { read: before.length, accepted: res.accepted.length };
+    });
+    ok(viaDoor && viaDoor.result.read === 0 && viaDoor.result.accepted === 1,
+      `a whole transaction — read the record, read the ledger, append, re-project, stage the record — runs with the port refusing (${JSON.stringify(viaDoor?.result)})`);
+    ok(viaDoor.state.progress.quadratics?.attempts === 1,
+      "and the record it committed is the projection of the event it appended");
+    ok((await transactionMod.withLearner(C, (ctx) => ctx.readEvents())).length === 1,
+      "the context's own read is served by the transaction, not by the port");
+
+    // THE CONTROL. Without this the block would pass on a patch that never
+    // applied: a mutator that resolves the port for its own ledger write must
+    // HIT the refusal, because that is the shape phase C removed from the routes.
+    try {
+      await fileMod.fileStorage.withLearnerState(C, (ctx, state) => projectionMod.commitAndProject(C, state, [ev2]));
+    } catch (e) {
+      reached = e;
+    }
+    ok(reached && /storage PORT was reached inside a learner transaction/.test(reached.message),
+      `while a mutator that resolves the port for its own ledger write hits the refusal — the failure §14.1 exists for (${reached?.message ?? "no error"})`);
+  } finally {
+    fileMod.activeStorage = realActive;
+  }
+  const landed = await fileMod.fileStorage.readEvents(C);
+  ok(landed.length === 1 && landed[0].id === ev1.id,
+    `and only the TRANSACTION's event is on the ledger, read back through the restored port (${landed.length} event(s))`);
+  ok((await store.getProfile(C)).progress.quadratics?.attempts === 1,
+    "with the record accounting for it — the refused write left nothing behind");
+}
+
+// ── PHASE C AT THE SOURCE: NO ROUTE CAN RE-OPEN THE HOLE ────────────────────
+// A boundary test proves the door the routes went through this time. These are the
+// scans that keep them there: a route that re-introduces the state-only mutator,
+// appends through the port, reaches the port-resolved commit, or imports the
+// transaction from the store instead of the port-facing module fails the run.
+console.log("▸ A route reaches a learner's record through the transaction door");
+{
+  const collectApp = (dir, out = []) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) collectApp(full, out);
+      else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full);
+    }
+    return out;
+  };
+  const appFiles = collectApp("app");
+  ok(appFiles.length > 40, `the application was found to scan (${appFiles.length} files)`);
+  const read = (f) => stripComments(fs.readFileSync(f, "utf8"));
+
+  const stateOnly = appFiles.filter((f) => /\bupdateProfile\b/.test(read(f)));
+  ok(stateOnly.length === 0,
+    `no route names the state-only mutator any more — it does not exist (${stateOnly.join(", ") || "none"})`);
+  const portAppend = appFiles.filter((f) => /\bappendEvidence\s*\(/.test(read(f)));
+  ok(portAppend.length === 0,
+    `and none appends evidence through the port: the append belongs to the transaction (${portAppend.join(", ") || "none"})`);
+  // `commitAndProject(` and `commitAndProjectIn(` are distinguishable without a
+  // lookbehind: the `In` is a word character, so the first pattern cannot match it.
+  const portCommit = appFiles.filter((f) => /commitAndProject\s*\(/.test(read(f)));
+  ok(portCommit.length === 0,
+    `nor resolves the port for its projection — commitAndProjectIn travels on the transaction (${portCommit.join(", ") || "none"})`);
+  const wrongDoor = appFiles.filter((f) => {
+    const src = read(f);
+    return /\bwithLearner(State)?\s*\(/.test(src)
+      && !/import\s*\{[^}]*\bwithLearner(State)?\b[^}]*\}\s*from\s*"@\/lib\/server\/transaction"/.test(src);
+  });
+  ok(wrongDoor.length === 0,
+    `and every route that opens one imports it from the port-facing door, never from the store (${wrongDoor.join(", ") || "none"})`);
+  // The scans can fail, asserted on the shape they were written for: the
+  // pre-phase-C /api/progress line, verbatim.
+  const oldShape = "const upd = await updateProfile(body.id, async (state) => commitAndProject(body.id, state, [event]));";
+  ok(/\bupdateProfile\b/.test(oldShape) && /commitAndProject\s*\(/.test(oldShape),
+    "and the scans catch the shape they were written for (the pre-phase-C progress route, verbatim)");
+  // AND THE POSITIVE HALF: the routes that record evidence must open one, so a
+  // route that quietly stopped using the transaction fails here too.
+  const EVIDENCE_ROUTES = ["progress", "diagnostic", "evidence", "my-paper", "paper", "session"];
+  const missing = EVIDENCE_ROUTES.filter((r) => !/\bwithLearnerState\s*\(/.test(read(`app/api/${r}/route.ts`)));
+  ok(missing.length === 0,
+    `every route that records evidence opens a learner transaction (${missing.join(", ") || `${EVIDENCE_ROUTES.length} routes`})`);
+}
+
+// ── THE WAY BACK IN: RECOVERY CODES AND TEACHER GRANTS ──────────────────────
+//
+// An account is an email and a password, and this deployment has no mail service
+// (`Account.verified` is false for everyone, truthfully). Before this existed, a
+// forgotten password ended a learner's record, and the population it happens to is
+// the one on a shared phone with a borrowed address. So the credential is a printed
+// code, plus a fifteen-minute grant a teacher can read out.
+//
+// The claims worth asserting are the ones a screen cannot show: the printed length
+// buys the entropy the header claims, the alphabet excludes the characters people
+// misread, only the HASH is stored, a used code is dead, a used grant is dead, an
+// expired grant is dead, and a grant for one account cannot reset another.
+console.log("▸ A learner can get back into their own record");
+{
+  const rc = require("../.verify/recovery-code.js");
+  const auth = require("../.verify/server/auth.js");
+  const fileMod = require("../.verify/server/storage-file.js");
+  const storage = fileMod.fileStorage;
+
+  ok(rc.RECOVERY_ALPHABET.length === 31 && !/[ILO01]/.test(rc.RECOVERY_ALPHABET),
+    `the alphabet excludes the characters a learner misreads on paper (${rc.RECOVERY_ALPHABET.length} symbols)`);
+  ok(Math.round(rc.codeEntropyBits(rc.RECOVERY_SYMBOLS)) === 79,
+    `a printed code carries about 79 bits (${rc.codeEntropyBits(rc.RECOVERY_SYMBOLS).toFixed(1)})`);
+  const minted = rc.mintRecoveryCode();
+  ok(/^[A-Z0-9]{4}(-[A-Z0-9]{4}){3}$/.test(minted), `a code is grouped for reading (${minted})`);
+  ok(rc.normaliseCode(minted).length === rc.RECOVERY_SYMBOLS && rc.groupCode(minted.toLowerCase().replace(/-/g, " ")) === minted,
+    "and lower-case, spaced or ungrouped, it is the same credential");
+  ok(new Set(Array.from({ length: 50 }, () => rc.mintRecoveryCode())).size === 50,
+    "fifty codes are fifty distinct codes — a collision here would be a shared account");
+  ok(rc.splitGrant(rc.resetGrantCode("acc_0123456789abcdef0123456789abcdef"))?.key === "01234567",
+    "a teacher grant carries its account's lookup key, so the learner need not remember an address");
+
+  // THE MINTING IS A CREDENTIAL, NOT A RANDOM STRING. `Math.random` is a PRNG
+  // whose state is recoverable from its output, and a fallback to it would weaken
+  // every code minted on that deployment without changing anything a test sees.
+  // Comments stripped first, for the reason the other source guards give: this
+  // module's header NAMES `Math.random` to explain why it is not used, and a guard
+  // that fails a file for documenting the defect is a guard that gets deleted.
+  const mintSrc = stripComments(fs.readFileSync("lib/recovery-code.ts", "utf8"));
+  ok(!/Math\.random/.test(mintSrc) && /getRandomValues/.test(mintSrc),
+    "codes come from the platform CSPRNG, with no Math.random fallback");
+
+  const email = "recovery-check@example.test";
+  const created = await storage.createAccount({
+    email, password: "the first password", name: "Recovery Check", profileId: "prof_recovery_check",
+  });
+  const code = await auth.mintRecoveryCodeFor(created.id);
+  ok(/^[A-Z0-9]{4}(-[A-Z0-9]{4}){3}$/.test(code ?? ""), "a recovery code is minted and returned once");
+  const stored = await storage.getAccount(created.id);
+  ok(stored.recoveryHash && !JSON.stringify(stored).includes(rc.normaliseCode(code)),
+    "and only its HASH is on the account — the plaintext exists once, on the screen");
+
+  ok((await auth.recoverAccount({ email, code: "AAAA-BBBB-CCCC-DDDD", newPassword: "a second password" })) === null,
+    "a wrong code recovers nothing");
+  const recovered = await auth.recoverAccount({
+    email: email.toUpperCase(), code: code.toLowerCase(), newPassword: "a second password",
+  });
+  ok(recovered?.account.id === created.id, "the printed code recovers the account, typed in any case");
+  ok(recovered && recovered.recoveryCode !== code, "and the used code is ROTATED rather than left valid");
+  ok(auth.passwordMatches(await storage.getAccount(created.id), "a second password"),
+    "the new password is the one that now opens it");
+  ok(!auth.passwordMatches(await storage.getAccount(created.id), "the first password"),
+    "and the forgotten one no longer does");
+  ok((recovered.account.sessionEpoch ?? 0) === (created.sessionEpoch ?? 0) + 1,
+    "every outstanding session is revoked — a recovery is exactly when a shared phone's cookie must die");
+  ok((await auth.recoverAccount({ email, code, newPassword: "a third password" })) === null,
+    "a code that has been used is dead, even with the right password shape");
+
+  // THE TEACHER PATH, which is the one that works without an address.
+  const pupil = await storage.createAccount({
+    email: "grant-pupil@example.test", password: "grant pupil password", name: "Grant Pupil", profileId: "prof_grant_pupil",
+  });
+  const grant = await auth.grantResetCode(pupil.id);
+  const ttl = (grant?.expiresAt ?? 0) - Date.now();
+  ok(grant && ttl > 0 && ttl <= rc.RESET_TTL_MS, `a teacher grant expires in fifteen minutes (${Math.round(ttl / 60000)} min)`);
+  const viaGrant = await auth.recoverAccount({ code: grant.code, newPassword: "a brand new password" });
+  ok(viaGrant?.account.id === pupil.id,
+    "a grant recovers an account with NO email at all — its lookup key names the account");
+  ok((await auth.recoverAccount({ code: grant.code, newPassword: "a fourth password" })) === null,
+    "and it works exactly once");
+
+  // Expiry, with a REAL hash: mint, then move the deadline behind us.
+  const second = await auth.grantResetCode(pupil.id);
+  const live = await storage.getAccount(pupil.id);
+  await storage.setResetGrant(pupil.id, { salt: live.resetSalt, hash: live.resetHash, expiresAt: Date.now() - 1_000 });
+  ok((await auth.recoverAccount({ code: second.code, newPassword: "another good password" })) === null,
+    "an expired grant is refused even when the secret is right");
+
+  const other = await storage.createAccount({
+    email: "other-owner@example.test", password: "other owner password", name: "Other", profileId: "prof_other_owner",
+  });
+  const theirGrant = await auth.grantResetCode(other.id);
+  ok((await auth.recoverAccount({ email: pupil.email, code: theirGrant.code, newPassword: "a fifth password" })) === null,
+    "a grant for one account cannot reset the account an email names");
+
+  // The authority a grant comes from is MEMBERSHIP, not a role name — asserted at
+  // the route's own predicate, because "we checked it in the handler" is what
+  // regresses when a second caller appears.
+  const cm = require("../.verify/server/class-membership.js");
+  const teacherState = store.newProfileState("prof_teacher_authority", { handle: "teacher_one" });
+  const pupilState = store.newProfileState("prof_grant_pupil", { handle: "pupil_one" });
+  const roster = {
+    id: "cls_reset", name: "Reset", teacher: "teacher_one", joinCode: "RESET1", language: "en", conceptIds: [],
+    students: { pupil_one: {} }, members: ["prof_grant_pupil"],
+    membersById: { pupil_one: "prof_grant_pupil" }, ownerId: "prof_teacher_authority", createdAt: 0,
+  };
+  ok(cm.isTeacherOf(roster, teacherState) && cm.isMemberOf(roster, pupilState),
+    "the teacher who may issue a grant is the one who teaches that learner");
+  const stranger = store.newProfileState("prof_stranger_teacher", { handle: "teacher_two" });
+  ok(!cm.isTeacherOf(roster, stranger),
+    "and another teacher's account, holding the same role, gets nothing");
+}
+
+// ── THE CONTENT AND THE ROSTER LEAVE IN FORMATS A MINISTRY IMPORTS ────────
+//
+// The strategic claim behind these files: adoption is cheap when a ministry can
+// put our items INSIDE the platform it already bought. That is only true if the
+// bytes are actually a ZIP, the XML is actually escaped, and a roster export does
+// not quietly carry an address. Each is asserted on the BYTES, not on a route's
+// status code.
+console.log("▸ Content and rosters export in the formats a ministry imports");
+{
+  const { zipStore } = require("../.verify/export/zip.js");
+  const { qtiItemXml, qtiPackage } = require("../.verify/export/qti.js");
+  const { oneRosterCsvBundle } = require("../.verify/export/oneroster.js");
+  const { caseFramework } = require("../.verify/export/case.js");
+  const { CONCEPTS_BY_ID } = require("../.verify/genome.js");
+
+  const zip = zipStore([{ path: "a.txt", data: "hello" }, { path: "b.txt", data: "world" }]);
+  const zipText = Buffer.from(zip).toString("latin1");
+  // The signatures are BYTES, not the text "PK\\x01\\x02" — a string literal here
+  // would assert that the archive contains its own escape sequence.
+  const CENTRAL = `PK${String.fromCharCode(1, 2)}`;
+  const EOCD = `PK${String.fromCharCode(5, 6)}`;
+  ok(zip[0] === 0x50 && zip[1] === 0x4b && zip[2] === 0x03 && zip[3] === 0x04, "a package is a real ZIP (local file header)");
+  ok(zipText.includes(CENTRAL) && zipText.includes(EOCD), "with a central directory and an end record — what `unzip` reads first");
+  ok(Buffer.from(zipStore([{ path: "a.txt", data: "hello" }]))
+    .equals(Buffer.from(zipStore([{ path: "a.txt", data: "hello" }]))),
+    "and the same input produces the same BYTES — a rebuild cannot look like a content change");
+
+  const item = {
+    id: "q1", conceptId: "quadratics", difficulty: 0.6,
+    prompt: "Solve $x^2 - 5x + 6 = 0$ & say why x < 4",
+    choices: ["2 & 3", "1 & 6", "-2 & -3", "5 & -6"], answer: 0,
+    explanation: "The correct answer is 2 and 3 because the factors are (x-2)(x-3).",
+    misconceptionTags: [],
+  };
+  const xml = qtiItemXml(item, "Quadratic equations");
+  ok(xml.startsWith("<?xml") && xml.includes('xmlns="http://www.imsglobal.org/xsd/imsqti_v2p2"'),
+    "an item is QTI 2.2 XML");
+  // Every raw `&` must be part of an entity: strip the valid ones and nothing
+  // may be left, which is what "the prompt cannot corrupt the file" means.
+  const unescapedAmp = xml.replace(/&(amp|lt|gt|quot|apos);/g, "");
+  ok(xml.includes("&amp;") && xml.includes("&lt; 4") && !unescapedAmp.includes("&"),
+    "and every `&` and `<` in the prompt is escaped — a prompt with maths must not corrupt the file");
+  ok(xml.includes('<correctResponse>') && xml.includes("<value>C1</value>")
+    && xml.includes('shuffle="true"'),
+    "the key is declared and the choices are shuffled, so the bank's option-position bias is not exported with it");
+  ok(!xml.includes("because the factors"), "and the explanation is NOT exported: it states the key");
+
+  const concept = CONCEPTS_BY_ID["quadratics"] ?? Object.values(CONCEPTS_BY_ID)[0];
+  const pkg = Buffer.from(qtiPackage({ concept, items: [item] })).toString("latin1");
+  ok(pkg.includes("imsmanifest.xml") && pkg.includes("imsqti_item_xmlv2p2"),
+    "the package declares its items in an IMS manifest, so an importer discovers them rather than guessing");
+
+  const roster = {
+    id: "cls_export", name: "Year 10 Maths", teacher: "teacher_one", joinCode: "EXP123", language: "en",
+    conceptIds: [], students: {}, members: [], membersById: {}, ownerId: "prof_teacher_authority", createdAt: 0,
+  };
+  // The teacher is IN the fixture because the route has to add them: the class
+  // view's member list deliberately answers only the learners, and a package built
+  // from it alone describes a section nobody teaches.
+  const csv = oneRosterCsvBundle({
+    cls: roster,
+    members: [
+      { id: "prof_teacher_authority", handle: "teacher_one", role: "teacher" },
+      { id: "prof_grant_pupil", handle: "Pupil, One", role: "student" },
+    ],
+    now: 1_700_000_000_000,
+  });
+  ok(["manifest.csv", "orgs.csv", "courses.csv", "classes.csv", "users.csv", "enrollments.csv"]
+    .every((f) => typeof csv[f] === "string" && csv[f].length > 0),
+    "a OneRoster 1.2 CSV bundle carries every file the binding requires");
+  ok(csv["users.csv"].startsWith("sourcedId,") && csv["users.csv"].includes('"Pupil, One"'),
+    "with RFC-4180 quoting — a learner whose handle contains a comma does not become two columns");
+  ok(!/@/.test(csv["users.csv"]) && !/@/.test(csv["enrollments.csv"]),
+    "and NO address anywhere in it: the roster holds handles, and an export must not invent the rest");
+  ok(csv["users.csv"].includes(",teacher,teacher_one,") && csv["users.csv"].includes(",student,\"Pupil, One\","),
+    "the teacher is a user with role teacher, beside the learner — a package without them describes a class nobody teaches");
+  ok(csv["enrollments.csv"].includes(",teacher,true,") && csv["enrollments.csv"].includes(",student,false,"),
+    "and one teacher is enrolled as primary while a learner is enrolled, not marked a head of department");
+
+  const spec = {
+    id: "om-test-spec", country: "GB", board: "aqa", name: "GCSE",
+    coverage: { maths: [0, 4] }, levels: [{ id: "foundation", tier: "foundation", name: "Foundation", stages: [0, 3], difficulty: 0.45 }],
+  };
+  const framework = caseFramework({
+    spec, concepts: [CONCEPTS_BY_ID["quadratics"], CONCEPTS_BY_ID["fractions"]].filter(Boolean),
+  });
+  ok(framework.CFPackage.CFDocument.identifier === "om-case-om-test-spec",
+    "a curriculum framework names itself after the course it exports");
+  ok(framework.CFPackage.CFItems.length === 2
+    && framework.CFPackage.CFItems.every((i) => i.humanCodingScheme && i.fullStatement),
+    "each concept is a CFItem with the stable id a ministry mapping can quote");
+  ok(framework.CFPackage.CFDocument.lastChangeDateTime === "2026-01-01T00:00:00.000Z",
+    "and the timestamp is a build constant, so two exports of one genome are byte-identical");
 }
 
 // ── F-3: A READ IS A READ ────────────────────────────────────────────────────
@@ -12273,9 +12998,10 @@ console.log("▸ A route does not name the store's files");
 {
   console.log("▸ A route that can write learner data answers a refused write honestly");
   const WRITE_FNS = [
-    "saveProfile", "updateProfile", "deleteProfile", "removeMemberEverywhere",
+    "saveProfile", "withLearner", "withLearnerState", "deleteProfile", "removeMemberEverywhere",
     "saveClass", "updateClassByCode", "updateClassById", "saveRoom", "updateRoomById",
     "savePack", "saveStoredPaper", "savePersonalPaper", "appendEvidence", "commitAndProject",
+    "commitAndProjectIn",
   ];
   const routes = [];
   const walk = (dir) => {
@@ -12290,7 +13016,7 @@ console.log("▸ A route does not name the store's files");
   const missing = [];
   for (const file of routes) {
     const src = fs.readFileSync(file, "utf8");
-    const importsStore = /from "@\/lib\/server\/(store|evidence|projection)"/.test(src);
+    const importsStore = /from "@\/lib\/server\/(store|evidence|projection|transaction)"/.test(src);
     if (!importsStore) continue;
     const importsWrite = WRITE_FNS.some((fn) => new RegExp(`\\b${fn}\\b`).test(src));
     const mutates = /export async function (POST|PUT|PATCH|DELETE)\b/.test(src);
@@ -12557,23 +13283,432 @@ console.log("▸ A route does not name the store's files");
   require(ratePath);
   rate.resetAll();
 
-  // A FORGED HEADER IS NOT A LIMIT. With no declared proxy there is no address
-  // key at all — a client can set `x-forwarded-for` to anything, so keying a
-  // lockout on it would let the attacker rotate one line and try forever.
-  delete process.env.OPENMIND_TRUSTED_PROXY;
-  const forged = new Request("http://localhost:4173/api/auth/login", {
-    headers: { "x-forwarded-for": "1.2.3.4" },
-  });
-  ok(rate.clientAddress(forged) === null,
-    "an undeclared proxy means no address key (a client-set header is not a limit)");
-  process.env.OPENMIND_TRUSTED_PROXY = "1";
-  const proxied = new Request("http://localhost:4173/api/auth/login", {
-    headers: { "x-forwarded-for": "6.6.6.6, 203.0.113.9" },
-  });
-  ok(rate.clientAddress(proxied) === "203.0.113.9",
-    `with a trusted proxy the RIGHTMOST hop is used, not the spoofable leftmost (${rate.clientAddress(proxied)})`);
-  delete process.env.OPENMIND_TRUSTED_PROXY;
   rate.resetAll();
+}
+
+// ── WHOSE ADDRESS IS THIS? THE INGRESS CONTRACT ─────────────────────────────
+//
+// The address is the one input to a source-keyed limit that the CLIENT controls
+// the bytes of, so the whole contract is about which byte a client cannot choose.
+// It is measured here, against the module the routes call, because every claim
+// below is about a malformed or adversarial input rather than about the happy
+// path: a forged first entry, a duplicated header, a chain shorter than the
+// declared topology, an address that is really a string, two encodings of one
+// client that must not become two budgets.
+//
+// THE PROVIDER FACT THIS RESTS ON (docs/DEPLOYMENT.md §10 records the sources):
+// Fly's edge APPENDS to `x-forwarded-for` rather than replacing what the client
+// sent, so the peer it saw is the RIGHTMOST entry whatever the client injected to
+// the left. Fly also documents `Fly-Client-IP` as "the IP address ... from the
+// perspective of Fly Proxy" but does NOT document that it overwrites a
+// client-supplied value of that name — an unspecified collision is not something
+// a rate-limit key may rest on, and reading it anyway would be a bypass.
+{
+  console.log("▸ A forwarded address is believed only where the client cannot choose it");
+  const ingress = require("../.verify/server/client-address.js");
+  const req = (forwarded) => {
+    const headers = new Headers();
+    if (Array.isArray(forwarded)) for (const v of forwarded) headers.append("x-forwarded-for", v);
+    else if (forwarded !== null) headers.set("x-forwarded-for", forwarded);
+    return headers;
+  };
+  const NONE = {};
+  const ONE = { OPENMIND_TRUSTED_PROXY: "1" };
+  const TWO = { OPENMIND_TRUSTED_PROXY: "1", OPENMIND_TRUSTED_PROXY_HOPS: "2" };
+  const at = (headers, env) => {
+    const r = ingress.readIngress(headers, env);
+    return r.kind === "client" ? r.address : r.kind === "refused" ? `refused:${r.reason}` : "direct";
+  };
+
+  // NO PROXY DECLARED: there is no address at all, and a forged header does not
+  // create one. This is the `docker compose` shape.
+  ok(at(req("1.2.3.4"), NONE) === "direct",
+    "with no declared proxy there is NO address (a client-set header is not a limit)");
+  ok(at(req("6.6.6.6, 203.0.113.9"), NONE) === "direct",
+    "and a whole forged chain does not become one either");
+
+  // ORDINARY REQUEST THROUGH THE DECLARED PROXY.
+  ok(at(req("203.0.113.9"), ONE) === "203.0.113.9", "a request through the proxy is attributed to its peer");
+  ok(at(req(null), ONE) === "refused:header_missing",
+    "a declared proxy that sends no chain is not silently unbounded — the request is refused");
+
+  // A FORGED ENTRY IS TO THE LEFT OF THE TRUSTED POSITION, which is the whole
+  // reason the position is counted from the right.
+  ok(at(req("1.2.3.4, 203.0.113.9"), ONE) === "203.0.113.9",
+    "an injected first entry cannot name the client: the APPENDED peer wins");
+  ok(at(req("1.2.3.4, 5.6.7.8, 203.0.113.9"), ONE) === "203.0.113.9",
+    "nor can a whole injected chain move it");
+  ok(at(req(["1.2.3.4", "203.0.113.9"]), ONE) === "203.0.113.9",
+    "a DUPLICATE header is joined into the same chain, not read as a second chance");
+
+  // ROTATING THE FORGERY MUST NOT BUY A FRESH BUDGET. Measured as: every one of
+  // a hundred different injected prefixes resolves to the one real peer.
+  const rotated = new Set();
+  for (let i = 0; i < 100; i++) rotated.add(at(req(`10.0.${i}.${i}, 203.0.113.9`), ONE));
+  ok(rotated.size === 1 && rotated.has("203.0.113.9"),
+    `100 rotating forged addresses produce ONE identity (${rotated.size} distinct)`);
+
+  // TWO CLIENTS ARE TWO BUDGETS.
+  ok(at(req("198.51.100.7"), ONE) !== at(req("198.51.100.8"), ONE),
+    "two different peers are two different keys");
+
+  // A DEEPER TOPOLOGY: the client is the second entry from the right, and the
+  // injected left entries still cannot reach it.
+  ok(at(req("1.2.3.4, 198.51.100.7, 10.0.0.1"), TWO) === "198.51.100.7",
+    "with two appending proxies the client is the SECOND entry from the right");
+  ok(at(req("198.51.100.7"), TWO) === "refused:chain_too_short",
+    "a chain shorter than the declared topology is refused, not read as if it proved a client");
+  ok(at(req("1.2.3.4, 5.6.7.8, 100.64.0.1"), TWO) === "5.6.7.8",
+    "and the position, not the value, decides even when the entries look plausible");
+
+  // MALFORMED IS REFUSED. A key must be an address, never a string the client
+  // got into the chain: an arbitrary key is a key an attacker rotates.
+  for (const bad of ["unknown", "not-an-ip", "1.2.3.256", "010.0.0.1", "1.2.3", "", "1.2.3.4:99999", "[1.2.3.4]x"]) {
+    ok(at(req(bad), ONE).startsWith("refused:"),
+      `an entry that is not an address is refused, not turned into a key (${JSON.stringify(bad)})`);
+  }
+
+  // ONE CLIENT, ONE BUDGET, HOWEVER THE PROXY ENCODES IT.
+  ok(at(req("[2001:db8::1]:443"), ONE) === "2001:db8::1", "an IPv6 peer's port is stripped");
+  ok(at(req("2001:DB8::1"), ONE) === at(req("[2001:db8::1]"), ONE),
+    "and its case and brackets do not make a second budget");
+  ok(at(req("1.2.3.4:5678"), ONE) === "1.2.3.4", "an IPv4 peer's port is stripped");
+  ok(at(req("::ffff:1.2.3.4"), ONE) === "1.2.3.4",
+    "an IPv4-mapped IPv6 address is the same client as its IPv4 form");
+
+  // A HOP COUNT THAT IS NOT A HOP COUNT is a configuration fault, reported as
+  // one — guessing what an operator meant is how a bound becomes decorative.
+  for (const hops of ["0", "-1", "abc", "2.5", "99"]) {
+    ok(at(req("203.0.113.9"), { OPENMIND_TRUSTED_PROXY: "1", OPENMIND_TRUSTED_PROXY_HOPS: hops }) === "refused:proxy_misconfigured",
+      `a hop count of ${JSON.stringify(hops)} is refused as a misconfiguration`);
+  }
+  ok(ingress.ingressConfig({ OPENMIND_TRUSTED_PROXY: "1" }).hops === 1,
+    "an unset hop count means the single-proxy default (1)");
+  ok(ingress.ingressConfig({}).declared === false, "and no flag means no attribution at all");
+
+  // THE SOURCE-KEYED LIMIT IS DRIVEN BY THIS, so a refused ingress must produce
+  // NO KEY rather than a shared one: one shared bucket is an outage for everyone.
+  const refused = ingress.readIngress(req(null), ONE);
+  ok(refused.kind === "refused", "a refused ingress is a distinct outcome from 'no proxy'");
+}
+
+// ── EVERY DOOR THAT COSTS MONEY OR CPU NAMES ITS BOUND ──────────────────────
+//
+// The policies are worth nothing if a route stops calling them, and the failure
+// is invisible: the app keeps working, the suite keeps passing, and the door is
+// simply unbounded again. So the wiring is asserted as a source fact per route,
+// with a control proving the scan can fail. The VALUES are asserted too, because
+// a bound of `max: 0` or a soft mode on a paid door would pass a "does it call
+// pace" check while bounding nothing.
+console.log("▸ Every door that costs money or CPU names its bound");
+{
+  const rate = require("../.verify/server/rate-limit.js");
+  const DOORS = [
+    ["app/api/ai/route.ts", ["AI_PER_LEARNER", "AI_PER_PROCESS"]],
+    ["app/api/tutor/route.ts", ["AI_PER_LEARNER", "AI_PER_PROCESS"]],
+    ["app/api/progress/route.ts", ["ANSWERS_PER_LEARNER"]],
+    ["app/api/evidence/route.ts", ["SYNC_PER_LEARNER"]],
+    ["app/api/my-paper/route.ts", ["UPLOAD_PER_LEARNER"]],
+    ["app/api/diagnostic/route.ts", ["DIAGNOSTIC_PER_LEARNER"]],
+    ["app/api/auth/login/route.ts", ["SIGNIN_PER_ACCOUNT", "SIGNIN_PER_ADDRESS", "SIGNIN_PER_PROCESS"]],
+    ["app/api/auth/signup/route.ts", ["SIGNUP_PER_ADDRESS"]],
+  ];
+  for (const [file, names] of DOORS) {
+    const src = fs.readFileSync(file, "utf8");
+    const bounded = /\bpace\(/.test(src) || /\bpeek\(/.test(src) || /\bhit\(/.test(src);
+    ok(bounded, `${file} spends a bound on the work it does`);
+    for (const name of names) {
+      ok(new RegExp(`\\b${name}\\b`).test(src), `${file} is bounded by ${name}`);
+      const policy = rate[name];
+      ok(policy && policy.max > 0 && policy.windowMs > 0,
+        `${name} is a real policy (${policy?.max}/${policy?.windowMs}ms ${policy?.mode})`);
+    }
+  }
+  // The three that must never be HARD, each for the same reason: they are
+  // keyed on something other than one caller, so a refusal is a denial of
+  // service someone else can trigger.
+  for (const name of ["SIGNIN_PER_ACCOUNT", "SIGNIN_PER_PROCESS", "AI_PER_PROCESS"]) {
+    ok(rate[name].mode === "soft", `${name} is soft — it paces, it never refuses`);
+  }
+  // The paid doors are hard and generous: a bound that a person can reach is a
+  // bound that turns into a lockout.
+  for (const name of ["AI_PER_LEARNER", "UPLOAD_PER_LEARNER", "SYNC_PER_LEARNER", "ANSWERS_PER_LEARNER"]) {
+    ok(rate[name].mode === "hard", `${name} refuses (it protects a resource that costs money)`);
+    ok(rate[name].max >= 10, `${name} is above ordinary use (${rate[name].max}), so only a loop reaches it`);
+  }
+  // The credential doors must also ask the ingress whether the request is
+  // attributable at all — a declared proxy that delivered nothing is not a
+  // reason to run unbounded.
+  for (const file of ["app/api/auth/login/route.ts", "app/api/auth/signup/route.ts"]) {
+    const src = fs.readFileSync(file, "utf8");
+    ok(/ingressFor\(/.test(src), `${file} asks the ingress contract for an address`);
+    ok(/untrustedIngress\(/.test(src), `${file} refuses a request that did not come through the declared ingress`);
+  }
+  // THE CONTROL: the scan can fail. A door with its pacing removed is exactly
+  // the state a future edit leaves behind.
+  const stripped = fs.readFileSync("app/api/ai/route.ts", "utf8").replaceAll("pace(", "paused(");
+  ok(!/\bpace\(/.test(stripped) && /AI_PER_LEARNER/.test(stripped),
+    "and the scan would catch a door that stopped spending its bound");
+}
+
+// ── SEVERAL LEARNERS ON ONE DEVICE ────────────────────────────────────
+//
+// The deployment this project is built for is three handsets for a class of
+// forty. Until this roster existed the second learner to enrol on a device
+// REPLACED the first — one id, one secret in localStorage — and the first
+// child's record survived on the server while becoming unreachable from the
+// only device they use. The ordering and the cap are where that goes wrong
+// quietly, so they are driven here on a Map rather than trusted.
+{
+  const roster = require("../.verify/device-roster.js");
+  const fakeStore = (initial) => {
+    const map = new Map(Object.entries(initial ?? {}));
+    return {
+      getItem: (k) => (map.has(k) ? map.get(k) : null),
+      setItem: (k, v) => { map.set(k, String(v)); },
+      removeItem: (k) => { map.delete(k); },
+    };
+  };
+  const names = (list) => list.map((r) => r.name || r.id);
+
+  const empty = fakeStore();
+  ok(roster.readRoster(empty).length === 0, "a device nobody has used yet has no learners on it");
+  ok(roster.readRoster(null).length === 0, "and a device with no storage (private mode, server render) reads as empty rather than throwing");
+
+  const one = fakeStore();
+  roster.rememberLearner(one, { id: "p1", secret: "s1", name: "Amina", at: 1000 });
+  roster.rememberLearner(one, { id: "p2", secret: "s2", name: "Baraka", at: 2000 });
+  ok(names(roster.readRoster(one)).join(",") === "Baraka,Amina", "the most recently used learner is first, so the list reads like a device's history");
+
+  // Re-meeting the same learner updates them IN PLACE (no duplicate row) and
+  // moves them to the front — the failure this prevents is a child appearing
+  // twice, once with a secret that no longer works.
+  roster.rememberLearner(one, { id: "p1", secret: "s1b", name: "Amina K", at: 3000 });
+  const afterReMeet = roster.readRoster(one);
+  ok(afterReMeet.length === 2 && afterReMeet[0].id === "p1" && afterReMeet[0].secret === "s1b", "meeting a learner again refreshes their entry instead of duplicating it");
+
+  // THE CAP. A roster that grows without limit shows every learner who ever used
+  // the phone to the next person who opens it. The learner just remembered must
+  // never be the one evicted, or the screen offers a switch it cannot make.
+  const many = fakeStore();
+  for (let i = 0; i < roster.ROSTER_LIMIT + 5; i += 1) {
+    roster.rememberLearner(many, { id: `p${i}`, secret: `s${i}`, name: `L${i}`, at: 1000 + i });
+  }
+  const capped = roster.readRoster(many);
+  ok(capped.length === roster.ROSTER_LIMIT, `the roster holds ${roster.ROSTER_LIMIT} learners, not everyone who ever used the device`);
+  ok(capped[0].id === `p${roster.ROSTER_LIMIT + 4}`, "and the learner just remembered is the one kept, not the one dropped");
+  ok(roster.ROSTER_LIMIT >= 4 && roster.ROSTER_LIMIT <= 12, `the cap is a study group rather than one child or a whole school (${roster.ROSTER_LIMIT})`);
+
+  // Unreadable storage is "no other learners", never a crash on the account
+  // screen — a half-written value is what a browser closing mid-write leaves.
+  ok(roster.readRoster(fakeStore({ [roster.ROSTER_KEY]: "{not json" })).length === 0, "a half-written roster reads as empty rather than breaking the page that shows it");
+  const junk = fakeStore({ [roster.ROSTER_KEY]: JSON.stringify([{ id: "p1" }, { secret: "s2" }, { id: "p3", secret: "s3" }, { id: "p3", secret: "dup" }]) });
+  const cleaned = roster.readRoster(junk);
+  ok(cleaned.length === 1 && cleaned[0].id === "p3" && cleaned[0].secret === "s3",
+    "an entry without an id or without a secret is dropped, and a duplicate id keeps the first — an entry either names a learner this device can become or it is not one");
+
+  // Forgetting one learner must not touch the others, and must not pretend to
+  // have worked on an id it does not hold.
+  const two = fakeStore();
+  roster.rememberLearner(two, { id: "p1", secret: "s1", name: "Amina", at: 1000 });
+  roster.rememberLearner(two, { id: "p2", secret: "s2", name: "Baraka", at: 2000 });
+  const left = roster.forgetLearner(two, "p1");
+  ok(left.length === 1 && left[0].id === "p2", "forgetting one learner leaves the other one exactly as they were");
+  ok(roster.forgetLearner(two, "nobody").length === 1, "forgetting an id the device does not hold changes nothing");
+  ok(roster.findLearner(two, "p1") === null && roster.findLearner(two, "p2")?.secret === "s2", "a lookup hands back the learner's OWN entry, which is the only thing a switch may write");
+
+  // A label is not an identity: it is trimmed for a button, and never replaced
+  // by the id (a credential-adjacent string nobody should read off a screen).
+  ok(roster.displayName({ name: "  " }) === "" && roster.displayName({ name: "x".repeat(60) }).length === roster.NAME_LIMIT,
+    "a name is trimmed to what fits on a button and an absent one is empty, never the profile id");
+
+  // ── The wiring the unit tests above cannot see ──────────────────────────
+  const identitySrc = fs.readFileSync("lib/api/identity.ts", "utf8");
+  ok(/from "\.\.\/device-roster"/.test(identitySrc), "the identity module delegates the roster rather than keeping a second list of learners");
+  // BOTH halves, as ONE fact. Writing the id and then the secret announced
+  // twice and left a window where the device named the new learner with the
+  // OLD capability — a pair the server refuses, on every switch.
+  ok(/export function switchToDeviceLearner[\s\S]{0,400}writeIdentity\(entry\.id, entry\.secret\)/.test(identitySrc),
+    "switching writes both halves of the identity through one writer — an id without its secret is a device that reads nothing");
+  {
+    const bothIdx = identitySrc.indexOf("function writeIdentity");
+    const body = bothIdx >= 0 ? identitySrc.slice(bothIdx, bothIdx + 700) : "";
+    const setA = body.indexOf("setItem(PROFILE_ID_KEY");
+    const setB = body.indexOf("setItem(PROFILE_SECRET_KEY");
+    const say = body.indexOf("announce()");
+    ok(bothIdx >= 0 && setA >= 0 && setB >= 0 && say > setA && say > setB,
+      "and the identity is announced only after both keys are written, so no listener can read a mixed pair");
+  }
+  ok(/export function clearIdentity[\s\S]{0,500}forgetLearner\(store, active\)/.test(identitySrc),
+    "and a profile the server confirms GONE leaves the roster, so the screen stops offering a learner who no longer exists");
+  const apiSrc = fs.readFileSync("lib/api/client.ts", "utf8");
+  // Sliced, not distance-matched: the 900-character window that used to stand in
+  // for "inside this function" broke on a comment, and named a caller that was
+  // still correct. See the same change on `adoptSession` below, and the classroom
+  // guard the body now carries.
+  const adoptIdx2 = apiSrc.indexOf("function adoptProfile");
+  const adoptEnd2 = adoptIdx2 >= 0 ? apiSrc.indexOf("\n}", adoptIdx2) : -1;
+  const adoptBody2 = adoptIdx2 >= 0 && adoptEnd2 > adoptIdx2 ? apiSrc.slice(adoptIdx2, adoptEnd2) : "";
+  ok(/rememberOnDevice\(state\.profile\.handle\)/.test(adoptBody2),
+    "creating or saving a profile puts that learner on the device roster — the one place a profile is adopted from a response");
+  const shellSrc = fs.readFileSync("lib/client.tsx", "utf8");
+  // The body is SLICED, not distance-matched. A 500-character window used to
+  // stand in for "inside this function" and broke the moment the function gained
+  // the comment that explains the classroom rule — a failure that named the
+  // wrong cause ("sign-in erases the way back") for a change that made the rule
+  // stricter. Slice to the closing brace, then assert the two facts that matter:
+  // a learner is remembered, and a teacher is not.
+  const adoptIdx = shellSrc.indexOf("export function adoptSession");
+  const adoptEnd = adoptIdx >= 0 ? shellSrc.indexOf("\n}", adoptIdx) : -1;
+  const adoptBody = adoptIdx >= 0 && adoptEnd > adoptIdx ? shellSrc.slice(adoptIdx, adoptEnd) : "";
+  ok(/rememberOnDevice\(s\.profile\.profile\.handle\)/.test(adoptBody),
+    "and signing in on a shared handset leaves that learner selectable, or the next child's sign-in erases the way back");
+  ok(/role === "student"/.test(adoptBody) && adoptBody.indexOf("role === \"student\"") < adoptBody.indexOf("rememberOnDevice("),
+    "while a TEACHER's account is never written to the roster — its capability is classroom authority, and the roster is cleartext on a shared phone");
+  const uiSrc = fs.readFileSync("components/device-learners.tsx", "utf8");
+  ok(/roster\.length\s*<\s*2\s*\)\s*return null/.test(uiSrc), "the switcher renders only when there is a choice to make");
+  ok(/switchToDeviceLearner\(id\)[\s\S]{0,200}location\.reload\(\)/.test(uiSrc),
+    "and switching reloads the page, because a shell holding one learner's profile in React state is how one child's marks appear under another child's name");
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// A CLASSROOM'S AUTHORITY IS NOT A LEARNER'S CAPABILITY
+//
+// The measured defect this section pins was a MISSING DISTINCTION, not a missing
+// check: every class door asked "is the asking profile the class's owner?", and
+// a profile capability IS that profile, so a learner's own id+secret created a
+// class and then administered it (200 with a join code, from a scratch store).
+// A future edit can restore it in one line — `teacherCaller` → `authorizeLearner`
+// reads like a simplification — which is why the rule is asserted at the source
+// as well as driven over HTTP by `npm run verify:kiosk`.
+{
+  const classesSrc3 = fs.readFileSync("app/api/classes/route.ts", "utf8");
+  ok(/const TEACHER_ACTIONS = new Set\(\["create", "update", "provision", "revoke"\]\)/.test(classesSrc3),
+    "the four class-administration actions are named in one set");
+  ok(/if \(!TEACHER_ACTIONS\.has\(body\.action\)\)/.test(classesSrc3),
+    "and that set is what turns the capability check OFF — an administration action is never authenticated by a profile secret");
+  ok(/case "create":[\s\S]{0,2500}const teacher = await teacherCaller\(req\)/.test(classesSrc3),
+    "creating a class asks the ACCOUNT, which is the fix for the measured defect");
+  for (const [label, src] of [
+    ["setting a class's work", fs.readFileSync("app/api/assignments/route.ts", "utf8")],
+    ["exporting a roster", fs.readFileSync("app/api/export/oneroster/route.ts", "utf8")],
+    ["exporting an offline pack", fs.readFileSync("app/api/pack-export/route.ts", "utf8")],
+  ]) {
+    ok(/teacherOfClass\(req,/.test(src), `${label} is authorised by the class's teacher account`);
+  }
+
+  // A CLASSROOM SESSION IS A NARROWER CREDENTIAL THAN THE CAPABILITY, and the two
+  // doors that must refuse it say so by name rather than by remembering to.
+  const profileSrc = fs.readFileSync("app/api/profile/route.ts", "utf8");
+  ok(/kiosk_cannot_erase/.test(profileSrc),
+    "a classroom session cannot erase a record, and the refusal names itself");
+  ok(/kiosk_field_locked/.test(profileSrc),
+    "nor re-declare the course its teacher provisioned — a preference is the learner's, a curriculum is not");
+  ok(/kiosk_cannot_export/.test(fs.readFileSync("app/api/my-data/route.ts", "utf8")),
+    "nor pull the full personal-data export off a shared handset");
+
+  // THE PIN IS A CREDENTIAL: hashed at rest, bounded on use, and never stored in
+  // the clear on the class roster.
+  const storeSrc3 = fs.readFileSync("lib/server/store.ts", "utf8");
+  ok(/export function kioskPinHash[\s\S]{0,200}scryptSync\(/.test(storeSrc3),
+    "a PIN is stored as a scrypt hash with a per-learner salt, like a password");
+  ok(/export function mintKioskPin[\s\S]{0,200}randomInt\(/.test(storeSrc3),
+    "and minted with `randomInt`, because a credential drawn from Math.random is not a credential");
+  const kioskSrc = fs.readFileSync("lib/server/kiosk.ts", "utf8");
+  ok(/KIOSK_PIN_POLICY: LimitPolicy = \{ max: 8, windowMs: 15 \* 60 \* 1000, mode: "hard" \}/.test(kioskSrc),
+    "the attempt budget is HARD and lives in one reviewed place — a 20-bit credential's whole margin");
+  const loginSrc = fs.readFileSync("app/api/kiosk/login/route.ts", "utf8");
+  const hitIdx = loginSrc.indexOf("hit(kioskLimitKey(");
+  const hashIdx = loginSrc.indexOf("hashEquals(");
+  ok(hitIdx >= 0 && hashIdx > hitIdx,
+    "and the bound is consulted BEFORE the hash is computed, so a spent budget costs no CPU");
+  // The three ways in can fail — no such class, no such learner in it, wrong PIN
+  // — must be ONE answer. Asserted on the responses rather than on the comment
+  // that explains them, so a future branch that names its reason fails here.
+  const sameRefusal = (loginSrc.match(/\{ error: "unauthorized" \}, \{ status: 401 \}/g) ?? []).length;
+  ok(sameRefusal >= 3 && !/unknown_class|unknown_learner|wrong_pin/.test(loginSrc),
+    `an unattended handset is not a directory: the three failures are one refusal (${sameRefusal} identical 401s)`);
+
+  // THE SESSION, NOT THE CAPABILITY, IS WHAT A CLASSROOM LEARNS WITH.
+  const capSrc = fs.readFileSync("lib/server/capability.ts", "utf8");
+  ok(/resolveKioskSession\(presented\)/.test(capSrc) && /via: "kiosk"/.test(capSrc),
+    "the one credential door marks a classroom session, so every other door can ask what it is");
+  ok(/session\.profileId === state\.profile\.id/.test(capSrc),
+    "and a token minted for one learner is not a credential for another, even by changing the id");
+  ok(/export function clearIdentity[\s\S]{0,700}clearKioskSession\(\)/.test(fs.readFileSync("lib/api/identity.ts", "utf8")),
+    "handing the device back clears the classroom marker with the identity — a forgotten learner does not leave a lesson running");
+
+  // ── A CLASSROOM SESSION MUST BE ABLE TO LEARN ──────────────────────────
+  //
+  // The other half of the same rule, and the one the first 40-property suite
+  // missed: it proved what a session may NOT do and never that its learner could
+  // practise. MEASURED on a scratch store — PIN sign-in 200, then
+  // `POST /api/progress {action:"serve"}` 401, reading progress 401, reading the
+  // learner's own evidence 401 — because the guard INSIDE every mutator compared
+  // the presented token against the record's permanent capability. The route had
+  // already accepted the session (`authorisedProfile` does), so the learner was
+  // signed in and unable to do the one thing they came for.
+  ok(/export function checkPresentedSecret\([\s\S]{0,900}if \(provenFor && provenFor === state\.profile\.id\) return;/.test(capSrc),
+    "a classroom session the route proved for THIS learner satisfies the mutator guard (lib/server/capability.ts#checkPresentedSecret)");
+  ok(/export async function classroomSessionFor\([\s\S]{0,500}session\.profileId === id \? id : null/.test(capSrc),
+    "…and is resolved AGAINST the learner before the lock, so the fact travels into the mutator instead of a Promise");
+  ok(/function checkPresentedSecret\([\s\S]{0,1200}if \(opts\.bind \?\? true\)/.test(capSrc),
+    "a proven session is never BOUND as the profile's capability — a token the server ends at hand-back must not become the credential for the record");
+  // One owner, asserted over the whole route tree: the guard used to be copied
+  // into four route files by hand, and the copies then disagreed with the door
+  // that had already let the request in. A fifth copy must fail here.
+  const routeDirs = fs.readdirSync("app/api", { withFileTypes: true }).filter((d) => d.isDirectory());
+  const secretComparisonsInRoutes = [];
+  for (const d of routeDirs) {
+    for (const f of fs.readdirSync(`app/api/${d.name}`, { withFileTypes: true })) {
+      const p = `app/api/${d.name}/${f.name}`;
+      const src = f.isDirectory() && fs.existsSync(`${p}/route.ts`) ? fs.readFileSync(`${p}/route.ts`, "utf8") : null;
+      if (!src) continue;
+      // Comments are stripped first: a route that DOCUMENTS the old comparison
+      // must not fail a guard that exists because of it (the rule AGENTS.md
+      // records for the store-file scan).
+      const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+      if (/state\.secret\s*[!=]==\s*|\s[!=]==\s*state\.secret|function checkSecret\(/.test(code)) {
+        secretComparisonsInRoutes.push(p);
+      }
+    }
+  }
+  ok(secretComparisonsInRoutes.length === 0,
+    `no route keeps its own copy of the capability comparison — one owner, not four (${secretComparisonsInRoutes.join(", ") || "none found"})`);
+
+  // ── AND THE TEACHER CAN ACTUALLY ISSUE ONE ─────────────────────────────
+  // The API could mint PINs from the first day and no screen could ask for them,
+  // which is a flow that exists in a curl script rather than for a teacher. The
+  // panel is asserted at the source because "the teacher console still has the
+  // control" is not something the HTTP suite can see, and a forgotten PIN has to
+  // be re-issuable on the SAME record — a second profile for one child would
+  // split their evidence, which is the quiet way to lose it.
+  const teacherSrc2 = fs.readFileSync("app/teacher/page.tsx", "utf8");
+  ok(/<ClassroomPins cls=\{cls\} me=\{meId\(\)\} \/>/.test(teacherSrc2),
+    "the class card renders the classroom-PIN panel, outside the roster's own conditional (a new class has no members to show it beside)");
+  const pinsSrc = fs.readFileSync("components/classroom-pins.tsx", "utf8");
+  ok(/action: "provision"[\s\S]{0,200}clsId: cls\.id/.test(pinsSrc),
+    "issuing a PIN goes through the class door's provision action, never a client-side credential");
+  ok(/send\(\[\{ id: l\.id, handle: l\.handle \}\], t\("teach\.pinsOnce"\)\)/.test(pinsSrc),
+    "and a forgotten PIN is RE-ISSUED by id, on the same learner");
+  ok(/if \(l\.reissued\) await deleteKioskSessionsFor\(l\.id\)/.test(classesSrc3),
+    "which ends the sessions the old PIN bought, so a live handset cannot outlive its revocation");
+  ok(/not_a_classroom_learner/.test(classesSrc3),
+    "and a re-issue for a learner the class does not carry is refused by name");
+
+  // THE TWO MODES MUST NOT BLEED INTO EACH OTHER. Found by walking the kiosk UI:
+  // a learner who changed a PREFERENCE saved their profile, `adoptProfile`
+  // remembered it on the household roster, and the classroom's 90-minute session
+  // token became a durable-looking roster entry the switch screen would offer
+  // beside real household learners. The roster is for capabilities; a lesson is
+  // not rememberable.
+  const apiSrc2 = fs.readFileSync("lib/api/client.ts", "utf8");
+  ok(/!readKioskSession\(\)\) rememberOnDevice\(state\.profile\.handle\)/.test(apiSrc2),
+    "adopting a profile in a classroom lesson does NOT add the session token to the household roster");
+  ok(!/if \(state\.profile\?\.id && state\.secret\) rememberOnDevice\(/.test(apiSrc2),
+    "…and the unguarded call cannot come back: the roster's entries are capabilities, and a lesson has none");
+  ok(/export function adoptSession[\s\S]{0,400}clearKioskSession\(\)/.test(fs.readFileSync("lib/client.tsx", "utf8")),
+    "and signing in clears any classroom marker, so the hand-back control cannot follow a session that already ended");
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

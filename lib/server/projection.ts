@@ -48,6 +48,46 @@ import { appendEvidence, readEvidence, type AppendResult } from "./evidence";
 // backend, because it is called from inside one.
 import type { LearnerContext } from "./storage";
 
+/** One reconciliation difference, as `reconcileDeep` reports it. */
+type Diff = ReturnType<typeof reconcileDeep>[number];
+
+/**
+ * The fields that COUNT recorded work — the monotone ones, and only those.
+ *
+ * `accuracy`, `streak`, `mastery` and `lastSeen` are deliberately absent and the
+ * absence is load-bearing: they are DERIVED, so a partial ledger's value can sit
+ * ABOVE the full model's (two answers, both right, is 100% accuracy against a
+ * pre-ledger learner's 9 of 13). A "greater than" test on those would conclude
+ * that a learner with real pre-ledger history holds nothing the ledger cannot
+ * count, and the snapshot that preserves their work would never be taken.
+ */
+const COUNTED_FIELDS = [
+  "attempts", "correct", "independent.", "transfer.", "retention.", "ms", "answers", "misconception.",
+] as const;
+
+/**
+ * Does the MODEL hold recorded work the ledger cannot account for?
+ *
+ * This is the only divergence that justifies a pre-ledger snapshot. Its converse —
+ * a model that is BEHIND its ledger — is a state the write path can really reach
+ * (the event is appended first and the record is written after, so a record write
+ * that fails leaves the ledger ahead), and there the honest repair is the
+ * projection, not a snapshot that would freeze the stale model in place.
+ *
+ * A whole concept present on one side and absent on the other is the clearest
+ * case of each direction: the ledger having it and the model not is exactly what an
+ * unfolded event looks like, and the model having it and the ledger not is a
+ * learner who worked before the ledger existed.
+ */
+function modelHoldsWorkTheLedgerCannotCount(diffs: readonly Diff[]): boolean {
+  return diffs.some((d) => {
+    if (d.field === "concept") return d.model !== null && d.ledger === null;
+    if (typeof d.model !== "number" || typeof d.ledger !== "number") return false;
+    if (!COUNTED_FIELDS.some((f) => d.field.startsWith(f))) return false;
+    return d.model > d.ledger;
+  });
+}
+
 /**
  * Stamp the pre-ledger snapshot, ONCE, and only when the ledger genuinely does
  * not account for the model.
@@ -61,8 +101,26 @@ import type { LearnerContext } from "./storage";
  * its own and reconcile it against the model. Nothing missing means the ledger
  * already IS this learner's whole history, no base is needed, and their
  * projection is the strongest possible claim (the ledger alone, from their
- * first event). Anything missing is un-ledgered history — the pre-ledger case
- * this exists for — and is preserved.
+ * first event).
+ *
+ * ── AND THE DIVERGENCE HAS A DIRECTION, which is the other half of the test ──
+ * A difference between the two does not by itself say the MODEL holds history
+ * the ledger cannot: it is equally what a model that is BEHIND its ledger looks
+ * like, and that is a reachable state rather than a hypothetical one — the
+ * transaction appends the event first and writes the record after, so a record
+ * write that fails (a full disk, a store that has been refused) leaves an event
+ * on the ledger that the model never folded. "The record does not move" is the
+ * transaction's promise; the projection's job is to fold what stands.
+ *
+ * Reading that state as un-ledgered history did two wrong things at once: it
+ * froze the model at the stale value, so the answer that IS on the ledger never
+ * reached the learner's record — and it made `unprojectableShare` name that
+ * answer as work that PREDATES the ledger, which is the opposite of true.
+ *
+ * So the base is stamped only when the model holds recorded work the ledger
+ * cannot count, and otherwise the projection is allowed to repair the model from
+ * the ledger. Measured on the MONOTONE counts — see
+ * `modelHoldsWorkTheLedgerCannotCount` for why a derived ratio cannot answer it.
  *
  * `before` MUST be the ledger read BEFORE the caller appends the events being
  * committed, and the state BEFORE the caller folds them, so the two sides of
@@ -81,6 +139,10 @@ export function ensureProjectionBase(
   if (Object.keys(state.progress).length === 0 && Object.keys(state.masteries).length === 0) return false;
   const missing = reconcileDeep(replayModel(before, learnerId), state);
   if (missing.length === 0) return false;
+  // The model is behind the ledger, or differs only in what the ledger DERIVES:
+  // either way the ledger is the more complete account, and the projection above
+  // is the repair. Stamping here is what lost the answer.
+  if (!modelHoldsWorkTheLedgerCannotCount(missing)) return false;
   // Name what is missing, exactly: the concepts the ledger could not account
   // for, and how much recorded work sits on them. A count taken from the whole
   // base would overstate it by including concepts the ledger DID carry.

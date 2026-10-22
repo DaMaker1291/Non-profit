@@ -78,6 +78,9 @@ export const ENGINE_SOURCES = [
   // unmapped country is never handed a national course of another country)
   // rather than reading the data file for a string.
   "lib/curricula/registry.ts",
+  // The syllabus mappings: the data a ministry can audit, compiled with the
+  // registry that reports on it so the gate compares the two in one place.
+  "lib/curricula/mappings.ts",
   "lib/curriculum.ts",
   "lib/deadline.ts",
   "lib/specifications.ts",
@@ -112,6 +115,10 @@ export const ENGINE_SOURCES = [
   // a wire must move every call, INCLUDING the answer (lib/sync-queue.ts
   // reached `fetch` itself until `setAnswerWire` closed that hole).
   "lib/api/identity.ts",
+  // The shared-device roster is pure ordering over an injected key-value store,
+  // which is what lets `npm run verify` drive the cap and the dedupe on a Map
+  // instead of trusting a localStorage it cannot reach from node.
+  "lib/device-roster.ts",
   "lib/api/transport.ts",
   "lib/api/client.ts",
   // ── THE SERVE, WITHOUT A TRANSPORT ──────────────────────────────────────
@@ -181,12 +188,21 @@ export const ENGINE_SOURCES = [
   // FLAGS BEHAVIOURALLY (Secure follows the scheme, never blanket-on or
   // blanket-off) rather than reading the source for a string.
   "lib/server/auth.ts",
-  // THE LEDGER, and the pair matters: `evidence.ts` is the FACADE the application
-  // calls (it holds the port and no storage), `evidence-file.ts` is the file
-  // backend's own JSONL implementation behind it. Both are compiled because
-  // `storage-file.ts` requires the second and the suite requires the first — and
-  // because the suite asserts the split architecturally: the facade must contain
-  // no file plumbing, and the file ledger must have exactly ONE importer.
+  // THE WAY BACK IN (lib/recovery-code.ts). Compiled because its claims are the
+  // ones a credential must not get wrong quietly: the printed length has to buy
+  // the entropy the header claims, the alphabet has to exclude the characters a
+  // human misreads, and minting must come from the platform CSPRNG rather than
+  // `Math.random`. None of those is visible in a screenshot of the screen.
+  "lib/recovery-code.ts",
+  // INTEROPERABILITY (lib/export/*): a QTI package a Moodle can import, a OneRoster
+  // roster bundle, and a CASE framework. Compiled and required so the suite can
+  // read the BYTES it produces — the ZIP's own structure, XML escaping of a prompt
+  // containing `&` or `<`, and the privacy rule that a roster export carries
+  // handles rather than addresses — instead of trusting a route that returned 200.
+  "lib/export/zip.ts",
+  "lib/export/qti.ts",
+  "lib/export/oneroster.ts",
+  "lib/export/case.ts",
   // THE ATTEMPT COUNT on the sign-in door (docs/SECURITY.md §9 blocker 1).
   // Compiled and required by the suite because the two claims worth making
   // about it are BEHAVIOURAL and neither is visible in a code read: a refused
@@ -194,9 +210,28 @@ export const ENGINE_SOURCES = [
   // open forever), and a window must close on its own with no request at all.
   // Both need an injected clock, which is why the module takes one.
   "lib/server/rate-limit.ts",
+  // WHO IS THIS REQUEST FROM: the ingress contract behind every SOURCE-keyed
+  // bound. Compiled because its claims are all about adversarial input — a
+  // forged first entry, a duplicated header, a chain shorter than the declared
+  // topology, an address that is really a string — and none of those is visible
+  // in a code read, while getting one wrong is a bypass an attacker drives.
+  "lib/server/client-address.ts",
+  // THE LEDGER, and the pair matters: `evidence.ts` is the FACADE the application
+  // calls (it holds the port and no storage), `evidence-file.ts` is the file
+  // backend's own JSONL implementation behind it. Both are compiled because
+  // `storage-file.ts` requires the second and the suite requires the first — and
+  // because the suite asserts the split architecturally: the facade must contain
+  // no file plumbing, and the file ledger must have exactly ONE importer.
   "lib/server/evidence.ts",
   "lib/server/evidence-file.ts",
   "lib/server/projection.ts",
+  // THE LEARNER TRANSACTION, AS THE APPLICATION REACHES IT (docs/STORAGE_SPEC.md
+  // §14, phase C). Compiled with the rest because the suite holds two claims about
+  // it: the routes reach a transaction through this door rather than through the
+  // store's own file-backend function, and a transaction cannot reach the PORT for
+  // its ledger — the second is asserted by driving one with the port replaced by a
+  // backend that refuses, which is the boundary §14.1's deadlock lives at.
+  "lib/server/transaction.ts",
   "lib/server/decision.ts",
   "lib/content-graph.ts",
   // The read half of the loop (evidence → what the learner is told). It is a

@@ -27,14 +27,17 @@
 // prevent.
 // ─────────────────────────────────────────────────────────────────────────────
 import {
+  accountOwningProfile,
   cacheGet,
   cacheSet,
   confirmErasure,
+  countAccounts,
   counts,
+  createAccount,
   deletePersonalPapersFor,
   deleteProfile,
-  updateProfile,
   withLearner,
+  withLearnerState,
   getClass,
   getPersonalPaper,
   getProfile,
@@ -50,15 +53,25 @@ import {
   recordErasure,
   registerLedgerIO,
   removeMemberEverywhere,
+  revokeSessions,
   saveClass,
   savePack,
   savePersonalPaper,
   saveProfile,
   saveRoom,
   saveStoredPaper,
+  findAccountByResetKey,
+  setAccountProfile,
+  setPassword,
+  setRecoveryCode,
+  setResetGrant,
+  touchAccount,
+  updateAccount,
   updateClassByCode,
   updateClassById,
   updateRoomById,
+  findAccountByEmail,
+  getAccount,
 } from "./store";
 import { appendEvidence, deleteEvidence, hasEvidence, learnersWithEvidence, readEvidence } from "./evidence-file";
 // The repo's ONE ordering rule (stable by clock, tie-broken by id). The port
@@ -91,9 +104,10 @@ export const fileStorage: Storage = {
   // THE LEARNER TRANSACTION, and here it is literally the store's own
   // read-modify-write: the file backend does not re-implement it, so the two
   // cannot drift into disagreeing about what a serialised write means. `withLearner`
-  // is the general contract and `updateProfile` is its one-mutator specialisation.
-  updateProfile,
+  // is the general contract and `withLearnerState` is the specialisation the route
+  // call sites use — the same object the port promises, with the file lock behind it.
   withLearner,
+  withLearnerState,
   deleteProfile,
   recordErasure,
   confirmErasure,
@@ -101,6 +115,26 @@ export const fileStorage: Storage = {
   deletePersonalPapersFor,
   removeMemberEverywhere,
   counts,
+
+  // Identity. The file backend's implementations are the store's own functions,
+  // so there is no second copy to drift from — the drift this replaced was a
+  // private `accounts.json` reader/writer in `lib/server/auth.ts`, which meant the
+  // file had two writers and the port could not describe it at all.
+  accountOwningProfile,
+  getAccount,
+  findAccountByEmail,
+  countAccounts,
+  createAccount,
+  setAccountProfile,
+  touchAccount,
+  updateAccount,
+  setPassword,
+  revokeSessions,
+  // Recovery. The store owns the hashing-adjacent storage; the CODE itself never
+  // reaches here in the clear, and the file holds only a scrypt hash + salt.
+  setRecoveryCode,
+  setResetGrant,
+  findAccountByResetKey,
 
   // The ledger. `readEvents` is in CLOCK order, which is what the port promises
   // and what `replayModel` folds; `appendEvents` is the store's own append (the

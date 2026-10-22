@@ -14,24 +14,6 @@ export async function sessionTokenFor(account: { id: string; sessionEpoch?: numb
   return createSessionToken(account.id, account.sessionEpoch ?? 0);
 }
 
-/**
- * The refusal a bounded door gives when its window is full.
- *
- * `Retry-After` is on the response as well as in the body, because the header is
- * what a proxy, a load test and a browser all already understand — and because a
- * client that only reads the status must still be able to wait the right amount.
- * `Cache-Control: no-store` keeps the refusal out of any intermediary cache: an
- * error page cached for a minute would lock out a learner who had just typed the
- * right password.
- */
-export function tooManyAttempts(retryAfterSec: number): NextResponse {
-  const seconds = Math.max(1, Math.ceil(retryAfterSec));
-  return NextResponse.json(
-    { error: "too_many_attempts", retryAfterSec: seconds },
-    { status: 429, headers: { "Retry-After": String(seconds), "Cache-Control": "no-store" } },
-  );
-}
-
 export async function readBody(req: Request): Promise<Record<string, unknown>> {
   try {
     const body = await req.json();

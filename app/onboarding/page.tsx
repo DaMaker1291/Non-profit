@@ -3,38 +3,22 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
-  claimGuestProfile, createProfile, currentGuestClaim, loadLocalProfileId, returnTarget, saveProfilePatch,
+  claimGuestProfile, clearSession, createProfile, currentGuestClaim, loadLocalProfileId, recoverAccount, returnTarget, saveProfilePatch,
   signIn, signOut, signUp, useAccount, useI18n, useProfile,
 } from "@/lib/client";
-import { settlementTarget } from "@/lib/app-state";
-import { COUNTRIES, fill, LANGS } from "@/lib/i18n";
-import { levelLabel } from "@/lib/content-i18n";
-import { FIELD_LABEL } from "@/components/course-first";
-import { curriculumFor, routeForPathwayId, INDEPENDENT_ROUTE } from "@/lib/curriculum";
-import {
-  defaultPathwayFor, initialPathwayFor, mappingReviewKey, nationalPathwaysFor, pathwayById,
-  pathwayChoiceRequired, pathwayChoices, pathwayQuestionNeeded,
-} from "@/lib/curricula/registry";
+import { courseIsReady, settlementTarget } from "@/lib/app-state";
+import { COUNTRIES, LANGS } from "@/lib/i18n";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
-import { incompleteSubjects, levelForGrade, specOptionsFor } from "@/lib/specifications";
-// The culture vocabulary has ONE owner (lib/culture.ts) because the concept
-// page reads the same ids back through `exampleFor` when it picks the case a
-// worked example is set in. This form used to carry its own list — ids
-// `farm`/`market`/`city` that the owner does not know, two of them labelled with
-// the same string — so the choice was inert: the learner picked "Farming" and
-// got the neutral example, and the two authored cultures this file never offered
-// (coast, sport) were unreachable. Rendering from CULTURES is what makes the
-// choice do what it says.
-import { CULTURES, cultureLabel } from "@/lib/culture";
-import { isBoardId, type ProfileState, type SubjectCourse, type SubjectId } from "@/lib/types";
+import { type ProfileState, type SubjectId } from "@/lib/types";
 import { Loading } from "@/components/states";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Real enrolment. The old page was a single form that minted an anonymous
-// profile id and jumped to /dashboard — no account, nothing to sign back into,
-// and nothing recorded about the course. This is the flow a student actually
-// needs: an account (or an honest "not yet"), who they are, what they sit, what
-// they study, and how they want to be taught.
+// Real enrolment, in THREE screens: an account (or an honest "not yet"), where
+// the learner is and the language they read, and what they study. The course,
+// the exam date, the daily budget, the goal and the teaching/terminology choices
+// are asked later, where they can be answered with something to go on
+// (`/curriculum` and `/access`), because a sign-up is the worst moment to ask a
+// tired learner to pick a tier they have not been taught yet.
 //
 // Every step writes to the real learner profile — the same ProfileState the
 // question engine, the diagnostic and the Mind map read.
@@ -43,6 +27,11 @@ import { Loading } from "@/components/states";
 type Mode = "signup" | "signin" | "guest";
 
 const ERROR_KEYS: Record<string, string> = {
+  // THE ONE OUTCOME THAT IS ABOUT THE NETWORK. `lib/client.tsx#reasonOf` says
+  // `unreachable` only when the call never reached the server, so this sentence
+  // — the one this form used to print for EVERY failure, including a 401 — is
+  // now printed for exactly the case it describes.
+  unreachable: "onb.errCreate",
   email_taken: "onb.errTaken",
   bad_email: "onb.errEmail",
   weak_password: "onb.errPassword",
@@ -57,7 +46,37 @@ const ERROR_KEYS: Record<string, string> = {
   // attempt count, and saying "wrong password" would be a lie about their own
   // account — so it has its own sentence, in every dictionary.
   too_many_attempts: "onb.errTooMany",
+  // The deployment's ingress did not prove this request came through it. The
+  // learner cannot fix that by retrying, so the message names who can.
+  untrusted_ingress: "onb.errIngress",
 };
+
+/** THE THREE OUTCOMES, KEPT APART BECAUSE THEY NEED DIFFERENT ACTIONS.
+ *
+ *  This form used to print one sentence — "check your connection" — for all
+ *  three. Measured: a 401 from the server rendered exactly that, so a learner
+ *  with working internet was sent to fix the one thing that was working.
+ *
+ *    unreachable  nobody answered. The connection sentence is TRUE here, and it
+ *                 is the only code that earns it (lib/client.tsx#reasonOf).
+ *    known        a refusal this form already has a sentence for (a taken
+ *                 email, a weak password) — no code shown, the sentence says it.
+ *    unauthorized the device's stored id+secret does not own that record. There
+ *                 is nothing to retry, so it gets its own sentence, its code,
+ *                 and the one action that can work (onb.freshStart).
+ *
+ *  Anything else is the server saying no for a reason no screen knows: say so,
+ *  in a sentence that does not blame the connection, and print the code beside
+ *  it for whoever has to act on it. A code is never a sentence.
+ */
+function errorFor(code: string, t: (key: string) => string): { message: string; code: string; fresh: boolean } {
+  if (code === "unauthorized") {
+    return { message: t("onb.errNotYours"), code, fresh: true };
+  }
+  const known = ERROR_KEYS[code];
+  if (known) return { message: t(known), code: "", fresh: false };
+  return { message: t("onb.errRefused"), code: code || "unknown", fresh: false };
+}
 
 /**
  * The page shell.
@@ -99,6 +118,22 @@ function OnboardingFlow() {
   const { set: setLearner } = useProfile();
 
   const [mode, setMode] = useState<Mode>("signup");
+  // ── The recovery code, and the two ways to use one ──────────────────────
+  //
+  // WHY IT IS HELD HERE rather than shown inside the account step: a sign-up
+  // finishes with a redirect, so a code rendered in the form would be unmounted
+  // before it could be read. `recoveryCode` therefore takes over the page for one
+  // screen, between "account created" and "where you are going", and the learner
+  // cannot leave without either printing it or saying they saved it — a code that
+  // can be skipped is a code that will be skipped.
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [recoveryFresh, setRecoveryFresh] = useState(false);
+  const [pendingTarget, setPendingTarget] = useState("");
+  // The recovery form itself: a lost password, a code, and the new one.
+  const [recoverOpen, setRecoverOpen] = useState(false);
+  const [recoverCode, setRecoverCode] = useState("");
+  const [recoverNew, setRecoverNew] = useState("");
+  const [recoverErr, setRecoverErr] = useState("");
   /** The account choice is a PREFERENCE as well as an answer. A learner who chose
    *  "continue without an account" should not be handed the create-account form
    *  again because a link in the shell brought them back here; it is remembered
@@ -109,6 +144,7 @@ function OnboardingFlow() {
   const pickMode = (m: Mode) => {
     setMode(m);
     setErr("");
+    setErrCode("");
     try { window.localStorage.setItem(MODE_KEY, m); } catch { /* private mode */ }
   };
   // WHO IS THIS (§2: the first branch in the global flow). An account can be a
@@ -144,40 +180,26 @@ function OnboardingFlow() {
   const [password, setPassword] = useState("");
   const [handle, setHandle] = useState("");
 
+  // THREE THINGS, AND NOTHING ELSE. Country (which decides the curriculum),
+  // language (which decides how every screen after this one speaks), and the
+  // subject list (which decides the diagnostic). The course, the exam date, the
+  // daily budget, the goal and the teaching/answer/terminology choices are all
+  // asked later, on `/curriculum` and `/access`, where the learner has seen what
+  // a plan looks like and can answer them with something to go on.
   const [country, setCountry] = useState("XX");
-  const [grade, setGrade] = useState("");
-  const [examples, setExamples] = useState("neutral");
-  const [board, setBoard] = useState("");
-  // WHICH EDUCATION SYSTEM (§7). Empty unless the learner actually chose one —
-  // a country with a single recorded system needs no question, and its route is
-  // what `curriculumFor` answers for. Where the question IS asked (no national
-  // route recorded, or two of them, as in Cameroon) this holds the answer.
-  const [pathway, setPathway] = useState("");
-  const [spec, setSpec] = useState("");
-  const [specLevel, setSpecLevel] = useState("");
-  const [exam, setExam] = useState("");
-  const [examDate, setExamDate] = useState("");
-  // WHY they are learning (§3: goals belong to the plan). `intent` is the
-  // coarse motivation the dashboard reads; `goal` is the learner's own words —
-  // the sentence Home quotes back with the progress line under it.
-  const [intent, setIntent] = useState<"" | "exams" | "understand" | "project" | "code" | "competition" | "life">("");
-  const [goal, setGoal] = useState("");
   const [subjects, setSubjects] = useState<SubjectId[]>(["maths"]);
-  // ONE COURSE PER SUBJECT (§1). GCSE Maths (Foundation) beside A-Level Physics
-  // is an ordinary combination, and a single qualification for all subjects
-  // either pitches one of them at the wrong depth or plans work against a
-  // coverage set that does not contain the subject at all. Empty until the
-  // course step opens, which seeds each subject from the learner's first choice.
-  const [courses, setCourses] = useState<Partial<Record<SubjectId, SubjectCourse>>>({});
-  const [timePerDay, setTimePerDay] = useState(20);
-  const [teaching, setTeaching] = useState(lang);
-  const [answer, setAnswer] = useState(lang);
-  const [school, setSchool] = useState(lang);
-  const [termsMode, setTermsMode] = useState<"mixed" | "local">("mixed");
 
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  /** The server's own refusal code, when the failure had one. Rendered beside the
+   *  sentence — never instead of it — so a learner can read the message and the
+   *  person helping them can act on the name. */
+  const [errCode, setErrCode] = useState("");
+  /** True when the device holds a record it cannot write to (the 401 case), so
+   *  the one useful action — start over here, without touching the server's
+   *  copy — is offered instead of a retry that cannot work. */
+  const [canFreshStart, setCanFreshStart] = useState(false);
   const [notice, setNotice] = useState("");
   /** ONE STEP PER PRESS, ALWAYS. `setStep((s) => s + 1)` fired three times in one
    *  tick moves three steps, and a triple-click on "Next" is not an exotic act —
@@ -213,52 +235,32 @@ function OnboardingFlow() {
   // once, for the reason line below — `finish` reads it again to keep the
   // promise it makes.
   const pending = returnTarget(params, "");
-  // The same fallback `courseGaps` applies, for the same reason: a country this
-  // product does not model still has the independent pathway, and it still has
-  // real grades to choose from. Left as `?? (country === "XX" ? … : null)` this
-  // matched the gate's old dead end — the step required a grade from
-  // `route.grades` while offering an empty list, so the control that fixed the
-  // gap could not be used.
-  // The pathway is what decides the years and the boards, so it comes FIRST:
-  // `routeForPathwayId` answers for a choice already made, `curriculumFor` for a
-  // country with one system, and the independent route when neither applies —
-  // which is the same three-step fallback the course gate applies, so the form
-  // cannot offer a year the gate would then refuse.
-  const pathwayOptions = useMemo(() => pathwayChoices(country), [country]);
-  const askPathway = pathwayQuestionNeeded(country);
-  const needsPathway = pathwayChoiceRequired(country);
-  // A country with NO national route is not a silent gap any more: the step says
-  // so (curr.unmapped) and offers the international programmes and the skills
-  // pathway as explicit choices, rather than answering with Cambridge on the
-  // learner's behalf.
-  const noNationalRoute = nationalPathwaysFor(country).length === 0;
-  // HOW FAR THIS MAPPING HAS BEEN CHECKED, said on the screen that chooses the
-  // course. "We have a route for your country" and "a specialist has read our
-  // mapping of it" are different claims, and the learner is entitled to know
-  // which one they are being taught against.
-  const reviewKey = mappingReviewKey(pathwayById(pathway) ?? defaultPathwayFor(country));
-  const route = routeForPathwayId(country, pathway) ?? curriculumFor(country) ?? INDEPENDENT_ROUTE;
-  const boards = route?.boards ?? [];
-  // Changing country re-asks the question and clears the years it implied: a
-  // Form 5 declaration is not a year of the German system, and a GCSE is not a
-  // course in Cameroon.
-  useEffect(() => {
-    setPathway((prev) => {
-      if (!pathwayQuestionNeeded(country)) return "";
-      if (prev && pathwayChoices(country).some((p) => p.id === prev)) return prev;
-      return initialPathwayFor(country);
-    });
-  }, [country]);
   // Captured ONCE, before any sign-in can overwrite localStorage. Reading it at
   // submit time would name the account's fresh profile and claim nothing.
   const guestClaim = useMemo(() => currentGuestClaim(), []);
   const guestHere = guestClaim !== null;
   const signedIn = Boolean(session.account);
 
-  // Signed-in learners skip the account step entirely: they are already here.
+  // ── THREE SCREENS, AND NOTHING THAT CAN BE ASKED LATER ──────────────────
+  //
+  // The wizard used to be six: account, about, subjects, course, goals, teach.
+  // Every one was optional except the first three, and the three that are gone
+  // each had a better home — the course is a card on Home (`CourseFirst`) that
+  // sends the learner to /curriculum with the field it is missing named, the
+  // goal and the exam date belong to a plan the learner can shape once they have
+  // seen one, and the teaching/answer languages default to the language this
+  // screen is being read in. What is left is the information without which no
+  // 
+  // screen after this can do anything: who the account is, where they are (which
+  // decides the curriculum), and what they study (which decides the diagnostic).
+  //
+  // FEWEST TAPS IS ALSO A CURRICULUM RULE, not only a courtesy: an unchosen
+  // course is "not chosen" and is reported by `courseGaps`, whereas a course
+  // picked by a tired learner at the end of a sign-up is the Foundation tier the
+  // old wizard used to seed for them. Deferring it keeps that choice explicit.
   const learnerSteps = signedIn
-    ? ["about", "subjects", "course", "goals", "teach"]
-    : ["account", "about", "subjects", "course", "goals", "teach"];
+    ? ["about", "subjects"]
+    : ["account", "about", "subjects"];
   // A TEACHER'S SETUP IS NOT A LEARNER'S (see app/teacher/page.tsx, which sends
   // them here). "What are you studying?", "which tier do you sit?" and "what is
   // your goal?" are questions about the person being TAUGHT — and the course
@@ -267,8 +269,12 @@ function OnboardingFlow() {
   // were allowed to make a class. Their setup is the account, who they are, and
   // the languages their school works in; the curriculum is declared per CLASS,
   // where one teacher can teach Year 10 Maths and Year 12 Physics at once.
+  // A teacher's setup is the account, where they are (it scopes the classes they
+  // declare), and — for a new account — the screen that creates it. Their school
+  // language defaults to the one they are reading; the curriculum is declared per
+  // CLASS, where a teacher may teach two year groups in one day.
   const steps = isTeacherAccount
-    ? (signedIn ? ["about", "teach"] : ["account", "about", "teach"])
+    ? (signedIn ? ["about"] : ["account", "about"])
     : learnerSteps;
   const current = steps[Math.min(step, steps.length - 1)];
 
@@ -299,78 +305,21 @@ function OnboardingFlow() {
 
   function toggleSubject(id: SubjectId) {
     setSubjects((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
-    // A dropped subject takes its course with it: a course for work that is no
-    // longer theirs is a stale record, not a preference.
-    setCourses((prev) => {
-      if (!(id in prev)) return prev;
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
   }
-
-  /** Every subject's course, seeded from the learner's first choice so the
-   *  common case ("the same for all of them") is a click, not four forms. */
-  useEffect(() => {
-    if (current !== "course") return;
-    setCourses((prev) => {
-      const next: Partial<Record<SubjectId, SubjectCourse>> = {};
-      const lead = subjects[0];
-      const seed: SubjectCourse = {
-        spec: prev[lead]?.spec ?? spec ?? undefined,
-        specLevel: prev[lead]?.specLevel ?? specLevel ?? undefined,
-      };
-      for (const s of subjects) {
-        next[s] = prev[s] ?? (s === lead ? seed : { ...seed });
-      }
-      return next;
-    });
-    // Only when the step opens or the subject list changes — never on every
-    // keystroke, which would fight the learner for control of the selects.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, subjects.join(",")]);
-
-  /** The course draft as the engine sees it — the same shape /api/profile stores,
-   *  so the requirement the form enforces and the requirement the server enforces
-   *  are one function, not two lists of field names. */
-  function courseDraft() {
-    return {
-      country,
-      // Sent only when the learner made the choice, so a country that settles it
-      // stores nothing: "no answer" and "the country's own system" stay
-      // distinguishable, and neither is written on the learner's behalf.
-      pathway: pathway || undefined,
-      grade,
-      board: isBoardId(board) ? board : undefined,
-      spec: spec || undefined,
-      specLevel: specLevel || undefined,
-      subjects,
-      subjectCourses: courses,
-    };
-  }
-  const courseMissing = incompleteSubjects(courseDraft());
 
   /** Everything the enrolment collected, in the shape /api/profile accepts. */
   function enrolment() {
-    // The flat fields follow the learner's FIRST subject, so a reader that
-    // genuinely has one course still gets a true one (see lib/types.ts).
-    const lead = subjects[0] ? courses[subjects[0]] : undefined;
     return {
       handle: handle.trim() || undefined,
       country,
       language: lang,
-      teachingLang: teaching,
-      answerLang: answer,
-      schoolLang: school,
-      grade: grade || undefined,
-      examples,
-      pathway: pathway || undefined,
-      board: board || undefined,
-      spec: lead?.spec ?? (spec || undefined),
-      specLevel: lead?.specLevel ?? (specLevel || undefined),
-      subjectCourses: courses,
-      exam: exam || undefined,
-      examDate: examDate || undefined,
+      // The three taught/answered/school languages follow the one the learner
+      // just chose, because the screens that could have differed are deferred and
+      // a profile left at the server's "en" would explain a French sign-up in
+      // English. `/access` changes each of them independently later.
+      teachingLang: lang,
+      answerLang: lang,
+      schoolLang: lang,
       // A teacher's own subject list is not a course they sit, and the step that
       // would have collected it is not shown to them — sending the form's
       // DEFAULT here (["maths"]) would enrol a physics teacher in mathematics.
@@ -379,24 +328,41 @@ function OnboardingFlow() {
       // stored list alone, so "I did not say" cannot be mistaken for "I study
       // nothing", and a sign-up falls back to the same default as before.
       subjects: isTeacherAccount ? [] : subjects,
-      termsMode,
-      timePerDay,
-      intent: intent || "",
-      goal: goal.trim(),
+      // The learner's own words for why they are here are asked later, on
+      // `/access`; the field is part of the create payload, so it is stated as
+      // empty rather than implied.
+      goal: "",
       onboarded: true,
     };
   }
 
+  /** The button's handler. A thin wrapper so the enrolment body below can be
+   *  re-entered with a recovery code WITHOUT an `onClick` event becoming that
+   *  argument — `onClick={finish}` passes a MouseEvent, and a truthy object in a
+   *  `string` slot is exactly the kind of mistake that renders "[object Object]"
+   *  as somebody's recovery code. */
   async function finish() {
+    await finishWithRecovery("");
+  }
+
+  async function finishWithRecovery(recoveredCode: string) {
     setBusy(true);
     setErr("");
+    setErrCode("");
     try {
+      // The recovery code this pass produced: minted by a sign-up, or carried in
+      // from a successful recovery (whose old code is now dead). Held here rather
+      // than in state because the redirect below is decided in this same pass, and
+      // a state update made mid-function is not visible to the branch that decides
+      // to skip it.
+      let minted = recoveredCode;
       if (!signedIn) {
         if (mode === "signup") {
-          await signUp({
+          const created = await signUp({
             email, password, name: handle.trim(), country, language: lang,
             subjects, claimCurrent: claim && guestHere, role,
           });
+          minted = created.recoveryCode ?? "";
         } else if (mode === "signin") {
           await signIn(email, password);
           // Carry this device's anonymous work into the account if it can —
@@ -485,20 +451,111 @@ function OnboardingFlow() {
       // `npm run verify` over the cases that broke — a teacher with a learner
       // ticket and a teacher without one. Re-deriving the branch here by hand is
       // exactly how a teacher got a maths diagnostic.
-      router.push(settlementTarget({
+      // THE DESTINATION IS DECIDED HERE, ONCE. The recovery screen is a detour on
+      // the way there, not a second decision — so the target is computed now and
+      // pushed when the learner has acknowledged the code. Re-deriving it after the
+      // detour would be a second copy of the rule that sends a teacher to their
+      // platform instead of a diagnostic (the bug `settlementTarget` exists for).
+      const target = settlementTarget({
         isTeacher: isTeacherAccount,
         guest: mode === "guest",
         wanted,
         already,
         subject,
-      }));
+        // The course is chosen on /curriculum, not here: a new learner always
+        // answers NO to this and is sent there next, because the baseline
+        // diagnostic samples a course and would otherwise measure a fallback
+        // syllabus. A returning learner who merely patched a subject keeps the
+        // course they already had and is not sent back through it.
+        courseComplete: saved ? courseIsReady(saved) : false,
+      });
+      if (minted) {
+        setRecoveryCode(minted);
+        setRecoveryFresh(false);
+        setPendingTarget(target);
+        setBusy(false);
+        return;
+      }
+      router.push(target);
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
-      setErr(t(ERROR_KEYS[code] ?? "onb.errCreate"));
+      // A REFUSAL IS NOT AN OUTAGE — see `errorFor`, which is where the three
+      // outcomes (unreachable / known refusal / everything else) are kept apart.
+      const shown = errorFor(code, t);
+      setErr(shown.message);
+      setErrCode(shown.code);
+      setCanFreshStart(shown.fresh);
       // Send the learner back to the step that owns the failure.
       if (code === "email_taken" || code === "bad_email" || code === "weak_password" || code === "bad_credentials") {
         setStep(0);
       }
+      setBusy(false);
+    }
+  }
+
+  /** THE WAY OUT OF A RECORD THIS DEVICE CANNOT WRITE.
+   *
+   *  A 401 on save means the stored id+secret pair does not own a record the
+   *  server still has — a second account claimed it, the store was restored from
+   *  another copy, or the two halves were paired wrongly once. Retrying cannot
+   *  fix that, and until this button existed the learner's only escape was
+   *  clearing site data by hand, so the form offered the one thing that could
+   *  never work while telling them to try it again.
+   *
+   *  This drops the identity — and the account session, if the device is signed
+   *  in, because a session that cannot write to the record it names is no use
+   *  here — and re-enters `finish`. With no id left, the form CREATES a profile
+   *  instead of patching one. Nothing on the server is erased: the old record
+   *  stays exactly where it is, reachable by whoever owns it.
+   */
+  async function startFreshProfile() {
+    setErr("");
+    setErrCode("");
+    setCanFreshStart(false);
+    if (signedIn) {
+      try {
+        await signOut();
+      } catch {
+        // The identity is cleared below either way; a failed sign-out only
+        // leaves a cookie the next request will be refused by, not data lost.
+      }
+    }
+    clearSession();
+    await finishWithRecovery("");
+  }
+
+  /**
+   * Get back in with a recovery code, then finish enrolment normally.
+   *
+   * The password field above holds the password the learner has FORGOTTEN — that
+   * is what put them here — so this asks for a new one rather than reusing it. On
+   * success the server has already revoked every old session and rotated the code,
+   * and `finish`'s own second half runs against the recovered learner: the profile
+   * patch, the shell refresh, and the destination.
+   */
+  async function useRecovery() {
+    setBusy(true);
+    setErr("");
+    setErrCode("");
+    setRecoverErr("");
+    try {
+      const recovered = await recoverAccount({
+        // Empty is meaningful: a teacher's grant carries its own lookup key, so the
+        // learner who cannot remember which address they typed can still get in.
+        email: email.trim() || undefined,
+        code: recoverCode,
+        newPassword: recoverNew,
+      });
+      // The recovered session is adopted by `recoverAccount`, so the enrolment
+      // half runs against the recovered learner. The NEW code is passed in: the old
+      // one is dead the moment this succeeded, and a recovery that ends without
+      // showing the replacement leaves the learner one forgotten password away from
+      // losing the record again. `finishWithRecovery` shows it before navigating.
+      setBusy(false);
+      setRecoverOpen(false);
+      await finishWithRecovery(recovered.recoveryCode ?? "");
+    } catch {
+      setRecoverErr(t("rec.err"));
       setBusy(false);
     }
   }
@@ -525,7 +582,11 @@ function OnboardingFlow() {
       : !email.includes("@") ? { field: "email", key: email.length > 0 ? "onb.errEmail" : null }
       : mode === "signin" ? (password.length > 0 ? null : { field: "password", key: null })
       : password.length < 8 ? { field: "password", key: password.length > 0 ? "onb.errPassword" : null }
-      : handle.trim().length === 0 ? { field: "name", key: "onb.errName" }
+      // A NAME IS NOT REQUIRED TO START. `handle` is optional end-to-end, and
+      // asking for it at the door is one more field between a learner and their
+      // first question; the "about" screen asks for it once, prefilled from here
+      // when they did type one. The field stays on this screen because it is the
+      // one place an account can set it before the profile exists.
       : null;
   /** The issue only when it is worth saying out loud. Both the message and the
    *  `aria-invalid` flag read this one value, so a field can never be marked
@@ -537,32 +598,11 @@ function OnboardingFlow() {
 
   const canAdvance = (): boolean => {
     if (current === "account") return mode === "guest" ? true : acctIssue === null;
+    // At least one subject, because the next screen is a diagnostic IN one. The
+    // sentence beside the button is the same one the screen's lead prints when
+    // the list is empty, so the gate and its explanation cannot disagree.
     if (current === "subjects") return subjects.length > 0;
-    // No learner reaches personalised work on a course nobody finished choosing:
-    // the same requirement /api/profile stores, read from the same function.
-    if (current === "course") return courseMissing.length === 0;
     return true;
-  };
-
-  /** WHAT `Next` IS WAITING FOR, said where the button is.
-   *
-   *  A disabled `Next` with no sentence beside it is the wall a first run dies
-   *  on — and the course step had exactly that. Its only signal was a `muted`
-   *  line above the form reading "needs: Your grade level · Qualification",
-   *  which the eye takes for a label rather than an instruction, in the
-   *  product's own vocabulary rather than the learner's. This says the same
-   *  thing in the imperative, next to the control it is about, and it is DERIVED
-   *  from the one gate `canAdvance` reads — so the sentence and the button
-   *  cannot disagree, and the requirement is never invented here. */
-  const needText = (): string | null => {
-    if (current !== "course" || canAdvance()) return null;
-    const fields = [...new Set(courseMissing.flatMap((m) => m.missing))];
-    if (fields.length === 0) return null;
-    return fill(t("onb.needFields"), {
-      fields: fields
-        .map((f) => (FIELD_LABEL[f] ? t(FIELD_LABEL[f] as Parameters<typeof t>[0]) : f))
-        .join(" · "),
-    });
   };
 
   if (!ready) {
@@ -572,6 +612,56 @@ function OnboardingFlow() {
     return (
       <main className="container narrow page">
         <Loading lines={4} />
+      </main>
+    );
+  }
+
+  // ── THE RECOVERY CODE, ON ITS OWN SCREEN ──────────────────────────────────
+  //
+  // PRINTED, not merely displayed. The learner's next device may not be this one,
+  // and a code that exists only until the tab closes is not a recovery code —
+  // which is also why there is no way past this screen except print or "I have
+  // saved it". A dismissal button here would be used, and the learner who used it
+  // is the one who needed the code.
+  //
+  // It takes over the page rather than sitting inside the wizard because a
+  // successful sign-up is followed by a redirect: anything rendered inside the
+  // account step is unmounted before it can be read or written down.
+  if (recoveryCode) {
+    return (
+      <main className="container narrow page">
+        <p className="eyebrow"><span className="no">◉</span> {t("rec.title")}</p>
+        <h1>{t(recoveryFresh ? "rec.new" : "rec.title")}</h1>
+        <p className="lead">{t("rec.lead")}</p>
+        <div className="card" style={{ marginTop: 16, textAlign: "center" }}>
+          <p className="mono" style={{ fontSize: 26, letterSpacing: 2, margin: "10px 0" }} aria-live="polite">
+            {recoveryCode}
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <button className="btn ghost" type="button" onClick={() => window.print()} style={{ flex: 1 }}>
+            {t("rec.print")}
+          </button>
+          <button
+            className="btn primary"
+            type="button"
+            // `pendingTarget` is always set by `finishWithRecovery`, which is the
+            // only thing that puts this screen on the page. Disabling rather than
+            // substituting a default route is deliberate: a recovery screen that
+            // guessed where to go would be a second owner of the destination the
+            // access contract already decides.
+            disabled={!pendingTarget}
+            onClick={() => {
+              const target = pendingTarget;
+              setRecoveryCode("");
+              setPendingTarget("");
+              if (target) router.push(target);
+            }}
+            style={{ flex: 1 }}
+          >
+            {t("rec.saved")}
+          </button>
+        </div>
       </main>
     );
   }
@@ -651,7 +741,11 @@ function OnboardingFlow() {
                 </label>
               ))}
             </div>
-            <div className="checks" style={{ flexWrap: "wrap", marginBottom: 16 }}>
+            {/* A RADIO GROUP IS A GROUP. These three are one choice about how to
+                start, so they carry a group name of their own — otherwise a
+                screen reader reads three loose radios under the role cards
+                above them, which is a different question. */}
+            <div className="checks" role="radiogroup" aria-label={t("onb.setup")} style={{ flexWrap: "wrap", marginBottom: 16 }}>
               {([["signup", "onb.createAcct"], ["signin", "onb.signIn"], ["guest", "onb.guest"]] as Array<[Mode, string]>).map(([m, key]) => (
                 <label key={m} className={mode === m ? "on" : ""} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                   <input type="radio" name="mode" checked={mode === m} onChange={() => pickMode(m)} />
@@ -695,17 +789,14 @@ function OnboardingFlow() {
                 {mode === "signup" && (
                   <label className="field">
                     <span>{t("onb.name")}</span>
-                    <input
-                      type="text"
-                      autoComplete="name"
-                      value={handle}
-                      onChange={(e) => setHandle(e.target.value)}
-                      placeholder="amina_k"
-                      maxLength={24}
-                      required
-                      aria-required="true"
-                      aria-invalid={invalid("name")}
-                    />
+                  <input
+                    type="text"
+                    autoComplete="name"
+                    value={handle}
+                    onChange={(e) => setHandle(e.target.value)}
+                    placeholder="amina_k"
+                    maxLength={24}
+                  />
                   </label>
                 )}
                 {issueFor("name")}
@@ -728,39 +819,69 @@ function OnboardingFlow() {
             <p className="small muted" style={{ marginTop: 12 }}>
               {mode === "guest" ? t("onb.guestNote") : t("onb.verifyNote")}
             </p>
-          </div>
-        </>
-      )}
 
-      {current === "goals" && (
-        <>
-          <h1>{t("onb.goalStep")}</h1>
-          <p className="lead">{t("onb.goalLead")}</p>
-          <div className="exercise" style={{ marginTop: 20 }}>
-            {/* WHY they are here. Coarse motivation first — it is a click, and
-                the plan reads it — then the learner's own words, which Home
-                quotes back with the progress toward it. Both optional: a
-                learner without a stated goal still gets the engine's plan. */}
-            <label className="field">
-              <span>{t("onb.intentLabel")}</span>
-              <select value={intent} onChange={(e) => setIntent(e.target.value as typeof intent)}>
-                <option value="">{t("onb.goalSkip")}</option>
-                {([["exams", "intent.exams"], ["understand", "intent.understand"], ["project", "intent.project"], ["code", "intent.code"], ["competition", "intent.competition"], ["life", "intent.life"]] as Array<[typeof intent & string, string]>).map(([v, key]) => (
-                  <option key={v} value={v}>{t(key)}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>{t("onb.goalLabel")}</span>
-              <input
-                type="text"
-                value={goal}
-                maxLength={200}
-                placeholder={t("onb.goalPh")}
-                onChange={(e) => setGoal(e.target.value)}
-              />
-            </label>
-            <p className="small muted">{t("onb.goalNote")}</p>
+            {/* ── LOCKED OUT ─────────────────────────────────────────────────
+
+                A sign-in form with no way back is how a learner loses their
+                record, and this deployment has no mail service to send a reset
+                link — so the way back is a code they were given at sign-up, or a
+                short-lived one their teacher reads out. Both are accepted here,
+                and the email may be left empty for the teacher's code because it
+                carries its own account lookup key.
+
+                Shown only in sign-in mode: offering "forgotten your password?" to
+                somebody creating an account is a distraction from the step they
+                came to do. */}
+            {mode === "signin" && (
+              <div style={{ marginTop: 12 }}>
+                {!recoverOpen ? (
+                  <button
+                    className="btn ghost small"
+                    type="button"
+                    onClick={() => { setRecoverOpen(true); setRecoverErr(""); }}
+                  >
+                    {t("rec.forgot")}
+                  </button>
+                ) : (
+                  <div className="exercise">
+                    <label className="field">
+                      <span>{t("rec.emailHint")}</span>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        autoComplete="email"
+                      />
+                    </label>
+                    <label className="field">
+                      <span>{t("rec.title")}</span>
+                      <input
+                        type="text"
+                        value={recoverCode}
+                        onChange={(e) => setRecoverCode(e.target.value)}
+                        autoComplete="one-time-code"
+                        inputMode="text"
+                        spellCheck={false}
+                        placeholder="ABCD-EFGH-JKMN-PQRS"
+                      />
+                    </label>
+                    <label className="field">
+                      <span>{t("acct.newPw")}</span>
+                      <input
+                        type="password"
+                        value={recoverNew}
+                        onChange={(e) => setRecoverNew(e.target.value)}
+                        autoComplete="new-password"
+                      />
+                    </label>
+                    {recoverErr && <p className="small" role="alert">{recoverErr}</p>}
+                    <button className="btn primary" type="button" onClick={useRecovery} disabled={busy}>
+                      {t("rec.use")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -780,251 +901,24 @@ function OnboardingFlow() {
               <span>{t("onb.name")}</span>
               <input type="text" value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="amina_k" maxLength={24} />
             </label>
+            {/* WHERE THEY ARE AND WHAT THEY READ. Country decides the
+                curriculum, the grades and the boards this learner will be
+                offered LATER on /curriculum; language is the one the product
+                speaks to them in from the next screen on. Two selects, both
+                with a true default, so the screen can be passed without a tap
+                if neither is wrong. */}
             <div className="grid cols2">
               <label className="field">
                 <span>{t("onb.where")}</span>
-                <select value={country} onChange={(e) => { setCountry(e.target.value); setBoard(""); setSpec(""); setSpecLevel(""); setGrade(""); setPathway(""); setCourses({}); }}>
+                <select value={country} onChange={(e) => setCountry(e.target.value)}>
                   {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
                 </select>
               </label>
-              {/* A TEACHER IS NOT ASKED WHICH YEAR THEY SIT. The year group feeds
-                  the course step, which a teacher's wizard does not have, and the
-                  culture examples pick the setting a worked example is set in —
-                  questions about the person being TAUGHT. Asking them of the
-                  teacher is "treated like a student" in its most literal form.
-                  Their country stays: it decides which qualifications the
-                  CLASSES they declare can sit. */}
-              {!isTeacherAccount && (
-                <label className="field">
-                  <span>{t("onb.grade")}</span>
-                  <select value={grade} onChange={(e) => setGrade(e.target.value)}>
-                    <option value="">{t("onb.independent")}</option>
-                    {(route?.grades ?? []).map((g) => <option key={g} value={g}>{g}</option>)}
-                  </select>
-                </label>
-              )}
-            </div>
-            {!isTeacherAccount && (
               <label className="field">
-                <span>{t("onb.examples")}</span>
-                <select value={examples} onChange={(e) => setExamples(e.target.value)}>
-                  {CULTURES.map((c) => (
-                    <option key={c.id} value={c.id}>{t(cultureLabel(c.id))}</option>
-                  ))}
+                <span>{t("onb.language")}</span>
+                <select value={lang} onChange={(e) => setLang(e.target.value)}>
+                  {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native} — {l.name}</option>)}
                 </select>
-              </label>
-            )}
-          </div>
-        </>
-      )}
-
-      {current === "course" && (
-        <>
-          <h1>{t("onb.currStep")}</h1>
-          <p className="lead">{t("curr.sub")}</p>
-          <div className="exercise" style={{ marginTop: 20 }}>
-            {/* THE STEP CAN NOW SATISFY THE YEAR GROUP IT DEMANDS.
-
-                A course has four parts (`CourseField`) and this step offered
-                two of them — qualification and tier — while the gate it enforces
-                wants all four. So a learner who left the year group alone on step
-                2 (its default is the placeholder, so that is every learner who
-                did not go looking) saw "Mathematics · needs a course", chose a
-                qualification and a tier, and `Next` stayed dead with nothing
-                left on the screen to change: measured live. Back was the only
-                way out, and the label pointed at a field that was already set.
-
-                The year group is asked for HERE, where it is required, and it
-                is a disabled placeholder — on this route "I'm learning
-                independently" is not a year group, so offering it would keep the
-                learner in the same loop.
-
-                THE COUNTRY GAP IS GONE, and the wall it made with it. This
-                comment used to record a Back-only exit: `courseGaps` reported
-                `country` missing for every country with no national route — 53
-                of the 70 the picker offers — so on this screen `Next` could
-                never enable and a learner who picked France, Germany, Japan or
-                any of the other unmodelled countries was stuck on step 4 of 6
-                for ever, with an account already created. That read as "sign-
-                up is broken". The fix belongs to the gate and now lives in
-                `courseGaps` (see the note there): an independent route IS a
-                course, so an unmodelled country falls back to it instead of
-                being refused, and the step offers that route's real grades and
-                tiers. */}
-            {/* WHICH EDUCATION SYSTEM — asked where the country does not settle
-                it, and required only where a real choice is open (Cameroon's two
-                systems). The select is not a preference: it scopes the years and
-                the qualification list below it, so changing it clears the course
-                that belonged to the old system rather than leaving a GCE O Level
-                on a Francophone learner's record. */}
-            {askPathway && (
-              <label className="field">
-                <span>{t("onb.pathway")}</span>
-                <select
-                  value={pathway}
-                  onChange={(e) => {
-                    setPathway(e.target.value);
-                    setBoard("");
-                    setSpec("");
-                    setSpecLevel("");
-                    setCourses({});
-                  }}
-                  required={needsPathway}
-                  aria-required={needsPathway}
-                >
-                  <option value="" disabled={needsPathway}>{t("onb.pickPathway")}</option>
-                  {pathwayOptions.map((pw) => (
-                    <option key={pw.id} value={pw.id}>{pw.name}</option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {askPathway && noNationalRoute && (
-              <p className="small muted" style={{ marginTop: -6 }}>{t("curr.unmapped")}</p>
-            )}
-            {reviewKey && (
-              <p className="small muted" style={{ marginTop: -6 }}>
-                {t(reviewKey as Parameters<typeof t>[0])}
-              </p>
-            )}
-            {courseMissing.some((m) => m.missing.includes("grade")) && (
-              <label className="field">
-                <span>{t("onb.grade")}</span>
-                <select
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                  required
-                  aria-required="true"
-                >
-                  {/* The prompt, not the label. This select's placeholder text
-                      used to be `onb.grade` — the very words of its own <span>
-                      — so a learner read the same phrase twice and concluded
-                      there was nothing left to answer. */}
-                  <option value="" disabled>{t("onb.pickGrade")}</option>
-                  {(route?.grades ?? []).map((g) => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </label>
-            )}
-            {/* ONE COURSE PER SUBJECT. The choice list is narrowed to the
-                qualifications that actually contain the subject, so a
-                maths-only paper can never be offered (or saved) as a physics
-                course. */}
-            {subjects.map((s) => {
-              const options = specOptionsFor(country, s);
-              const chosen = courses[s]?.spec ?? "";
-              const levels = options.find((x) => x.id === chosen)?.levels ?? [];
-              const missing = courseMissing.find((m) => m.subject === s)?.missing ?? [];
-              return (
-                <div key={s} style={{ marginBottom: 14 }}>
-                  <p className="small" style={{ margin: "0 0 6px" }}>
-                    <strong>{t(SUBJECT_LABELS[s])}</strong>
-                    {/* WHICH part of the course is missing, not just "a course".
-                        The step reports the gap per subject (`incompleteSubjects`
-                        returns it) and used to throw it away for a phrase that
-                        named no field — the same mistake the Home card made
-                        before it named the field, and the one that turned this
-                        step into a loop. */}
-                    {missing.length > 0 && (
-                      <span className="small muted">
-                        {" · "}
-                        {fill(t("next.courseMissing"), {
-                          fields: missing.map((f) => t(FIELD_LABEL[f] as Parameters<typeof t>[0])).join(" · "),
-                        })}
-                      </span>
-                    )}
-                  </p>
-                  <div className="grid cols2">
-                    <label className="field">
-                      <span>{t("onb.spec")}</span>
-                      <select
-                        value={chosen}
-                        required
-                        aria-required="true"
-                        onChange={(e) => {
-                          const pick = options.find((x) => x.id === e.target.value);
-                          // THE TIER IS THE LEARNER'S OWN CHOICE. It used to be
-                          // seeded to `pick.levels[0]` whenever the year group
-                          // named no tier — and `levels[0]` is Foundation for the
-                          // GCSE, so a learner who chose "GCSE" (and nothing
-                          // else) was quietly enrolled at the easier tier, served
-                          // at its difficulty and taught at its depth. That is
-                          // the "the questions are too easy" complaint with a
-                          // cause. Silence is not a choice: a qualification with
-                          // a real tier choice now leaves it EMPTY, the step
-                          // names the tier as the field it is waiting for (the
-                          // gap line below), and `Next` waits for it. The year
-                          // group still seeds a tier when it genuinely names one,
-                          // and a course with a single tier has nothing to
-                          // choose.
-                          const level = pick
-                            ? levelForGrade(pick, grade) ?? (pick.levels.length === 1 ? pick.levels[0] : null)
-                            : null;
-                          setCourses((prev) => ({ ...prev, [s]: { ...prev[s], spec: pick?.id, specLevel: level?.id } }));
-                          // The flat fields follow the FIRST subject, which is
-                          // what any single-course reader will see.
-                          if (s === subjects[0]) {
-                            setSpec(pick?.id ?? "");
-                            setSpecLevel(level?.id ?? "");
-                          }
-                        }}
-                      >
-                        <option value="" disabled>{t("onb.pickSpec")}</option>
-                        {options.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-                      </select>
-                    </label>
-                    {/* Only a course with tiers has a level to choose, and a
-                        control whose only option is a placeholder is a dead end
-                        on the one step a learner cannot pass without answering:
-                        it looks required, it cannot be answered, and the word in
-                        it belonged to the field beside it. */}
-                    {levels.length > 0 && (
-                      <label className="field">
-                        <span>{t("onb.level")}</span>
-                        <select
-                          value={courses[s]?.specLevel ?? ""}
-                          required
-                          aria-required="true"
-                          onChange={(e) => {
-                            setCourses((prev) => ({ ...prev, [s]: { ...prev[s], specLevel: e.target.value } }));
-                            if (s === subjects[0]) setSpecLevel(e.target.value);
-                          }}
-                        >
-                          {/* An unchosen tier says so. Without this the browser
-                              paints the first tier as selected while the stored
-                              value is empty, so the learner reads a choice they
-                              never made. */}
-                          <option value="" disabled>{t("onb.pickLevel")}</option>
-                          {levels.map((l) => (
-                            <option key={l.id} value={l.id}>{levelLabel(lang, l.tier, l.name)}</option>
-                          ))}
-                        </select>
-                      </label>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            {boards.length > 0 && (
-              <div className="field" role="radiogroup" aria-label={t("onb.board")}>
-                <span>{t("onb.board")}</span>
-                <div className="checks" style={{ flexWrap: "wrap" }}>
-                  {boards.map((b) => (
-                    <label key={b.id} className={board === b.id ? "on" : ""} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <input type="radio" name="board" checked={board === b.id} onChange={() => setBoard(b.id === board ? "" : b.id)} />
-                      {b.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="grid cols2">
-              <label className="field">
-                <span>{t("acc.examLabel")}</span>
-                <input type="text" value={exam} onChange={(e) => setExam(e.target.value)} placeholder={t("acc.examPh")} maxLength={40} />
-              </label>
-              <label className="field">
-                <span>{t("onb.examDate")}</span>
-                <input type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} />
               </label>
             </div>
           </div>
@@ -1051,86 +945,32 @@ function OnboardingFlow() {
                 </label>
               ))}
             </div>
-            {/* A radio GROUP is not a label. Wrapping the legend and every
-                option in one <label> made the first option's accessible name the
-                whole group — "MINUTES A DAY 10 min 20 min 30 min 45 min 60 min"
-                — so a screen reader user could not hear the choices. The group
-                is named as a group and each option names itself, which is the
-                pattern the role picker above already uses. */}
-            <div className="field" role="radiogroup" aria-label={t("onb.timePerDay")} style={{ marginTop: 16 }}>
-              <span>{t("onb.timePerDay")}</span>
-              <div className="checks" style={{ flexWrap: "wrap" }}>
-                {[10, 20, 30, 45, 60].map((m) => (
-                  <label key={m} className={timePerDay === m ? "on" : ""} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    <input type="radio" name="time" checked={timePerDay === m} onChange={() => setTimePerDay(m)} />
-                    {m} min
-                  </label>
-                ))}
-              </div>
-            </div>
           </div>
         </>
       )}
 
-      {current === "teach" && (
-        <>
-          <h1>{t("onb.langStep")}</h1>
-          <p className="lead">{t("onb.langHint")}</p>
-          <div className="exercise" style={{ marginTop: 20 }}>
-            <label className="field">
-              <span>{t("onb.language")}</span>
-              <select value={lang} onChange={(e) => setLang(e.target.value)}>
-                {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native} — {l.name}</option>)}
-              </select>
-            </label>
-            <div className="grid cols2">
-              <label className="field">
-                <span>{t("onb.teachingLang")}</span>
-                <select value={teaching} onChange={(e) => setTeaching(e.target.value)}>
-                  {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
-                </select>
-              </label>
-              <label className="field">
-                <span>{t("onb.answerLang")}</span>
-                <select value={answer} onChange={(e) => setAnswer(e.target.value)}>
-                  {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
-                </select>
-              </label>
-            </div>
-            <label className="field">
-              <span>{t("onb.schoolLang")}</span>
-              <select value={school} onChange={(e) => setSchool(e.target.value)}>
-                {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
-              </select>
-            </label>
-            <div className="field" role="radiogroup" aria-label={t("acc.language")}>
-              <span>{t("acc.language")}</span>
-              <div className="checks" style={{ flexWrap: "wrap" }}>
-                {(["mixed", "local"] as const).map((m) => (
-                  <label key={m} className={termsMode === m ? "on" : ""} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    <input type="radio" name="terms" checked={termsMode === m} onChange={() => setTermsMode(m)} />
-                    {t(m === "mixed" ? "acc.termsMixed" : "acc.termsLocal")}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <p className="small muted">{t("lq.teachNote")}</p>
-          </div>
-        </>
+      {err && (
+        <div className="marking bad" style={{ padding: "10px 14px" }} role="alert">
+          <p><span className="mark" aria-hidden="true">✗</span> {err}</p>
+          {errCode && (
+            <p className="small" style={{ marginTop: 6 }}>
+              code: <code>{errCode}</code>
+            </p>
+          )}
+          {canFreshStart && (
+            <p style={{ marginTop: 10 }}>
+              <button className="btn" onClick={startFreshProfile} disabled={busy}>
+                {t("onb.freshStart")}
+              </button>
+            </p>
+          )}
+        </div>
       )}
-
-      {err && <p className="marking bad" style={{ padding: "10px 14px" }}><span className="mark" aria-hidden="true">✗</span> {err}</p>}
       {notice && <p className="marking" style={{ padding: "10px 14px" }}>{notice}</p>}
-
-      {/* The dead button, explained — beside it, in the learner's words, and
-          read from the same gate that disabled it. */}
-      {needText() && (
-        <p className="field-error wizard-need" role="status">⚠ {needText()}</p>
-      )}
 
       <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
         {step > 0 && (
-          <button className="btn" onClick={() => { setStep((s) => s - 1); setErr(""); }} disabled={busy}>
+          <button className="btn" onClick={() => { setStep((s) => s - 1); setErr(""); setErrCode(""); }} disabled={busy}>
             ← {t("onb.back")}
           </button>
         )}

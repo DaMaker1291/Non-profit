@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getProfile, publicProfileState } from "@/lib/server/store";
+import { getProfile, publicProfileState, resolveKioskSession } from "@/lib/server/store";
 import { readEvidence } from "@/lib/server/evidence";
 import { accountFromRequest } from "@/lib/server/auth";
 import type { ProfileState } from "@/lib/types";
@@ -36,6 +36,15 @@ async function authorise(req: Request): Promise<{ state: ProfileState; id: strin
 }
 
 export async function GET(req: Request): Promise<NextResponse> {
+  // A FULL EXPORT IS NOT A CLASSROOM ACTION, and the refusal comes FIRST because
+  // `authorise` below answers 401: a classroom session is a valid learner
+  // credential for its own record, so it would otherwise get past this door and
+  // hand the whole ledger to a shared handset. A kiosk credential is issued for
+  // a lesson; the learner's own permanent capability keeps this door, because it
+  // is theirs and there is nobody else to ask.
+  if (await resolveKioskSession(new URL(req.url).searchParams.get("secret") ?? "")) {
+    return NextResponse.json({ error: "kiosk_cannot_export" }, { status: 403 });
+  }
   const auth = await authorise(req);
   if (!auth) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if ("missing" in auth) return NextResponse.json({ error: "not_found" }, { status: 404 });

@@ -98,14 +98,30 @@ export async function prepareStandalone({ build = true } = {}) {
  *
  * `stop()` marks the shutdown as deliberate, so the exit watcher does not
  * report an intended teardown as a crash.
+ *
+ * `extraEnv` is for the one caller that must boot the artefact in a
+ * configuration OTHER than a correctly-configured one — `npm run verify:install`,
+ * which drives the refused states (an unproven store, an accepted-ephemeral demo)
+ * through the real server to prove the deployment's own report matches what it
+ * actually does. It is applied LAST so a caller can override anything above it,
+ * and it defaults to nothing, so every existing caller boots exactly as before.
+ * The one variable it may never be used to remove is `OPENMIND_DATA_DIR`: a boot
+ * recipe whose store location is `undefined` is not a configuration, and the
+ * scratch directory is set above for the reason the header gives.
  */
-export function startStandalone({ port, dataDir, prefix = "  [server] " }) {
+export function startStandalone({ port, dataDir, prefix = "  [server] ", extraEnv = {} }) {
   const base = `http://localhost:${port}`;
   fs.mkdirSync(dataDir, { recursive: true });
 
   const child = spawn(process.execPath, [SERVER], {
     cwd: STANDALONE,
-    env: { ...process.env, PORT: String(port), OPENMIND_DATA_DIR: dataDir, NODE_ENV: "production" },
+    env: {
+      ...process.env,
+      PORT: String(port),
+      OPENMIND_DATA_DIR: dataDir,
+      NODE_ENV: "production",
+      ...extraEnv,
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -192,7 +208,7 @@ export async function waitForReady(server, { timeoutMs = 90_000, quiet = false }
  * propagates after teardown — a suite that cannot be run must never look like a
  * suite that passed.
  */
-export async function withProductionServer({ port = 4199, build = true, label = "run" }, fn) {
+export async function withProductionServer({ port = 4199, build = true, label = "run", extraEnv = {} }, fn) {
   const dataDir = path.join(ROOT, `.production-${label}-${Date.now().toString(36)}`);
 
   let server = null;
@@ -217,7 +233,7 @@ export async function withProductionServer({ port = 4199, build = true, label = 
     await prepareStandalone({ build });
 
     say(`▸ Start production on http://localhost:${port} with a scratch store`);
-    server = startStandalone({ port, dataDir });
+    server = startStandalone({ port, dataDir, extraEnv });
 
     say("▸ Wait for readiness");
     const ready = await waitForReady(server);

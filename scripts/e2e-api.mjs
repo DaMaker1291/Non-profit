@@ -97,19 +97,62 @@ const json = (body, headers = {}) => ({
 // Capability secrets (audit P0-E): every profile created by this suite gets a
 // secret; any POST naming that profile carries it automatically.
 const SECRETS = new Map();
+// ── AND THE OTHER CREDENTIAL: A TEACHER'S ACCOUNT SESSION ───────────────────
+//
+// Class administration is the ACCOUNT's authority (lib/server/authority.ts),
+// not a learner capability's. This suite was written before that separation and
+// composed every teacher as a plain profile, so it created classes with a
+// learner's capability and then asserted the old rule back at itself: the first
+// run after the change died on `cls.body.cls.joinCode` because the door had
+// (correctly) answered 401. A teacher in this suite is therefore a real signup,
+// and its cookie rides on every request that names it — which is exactly what a
+// browser does, since same-origin fetch sends the session cookie by default.
+const SESSIONS = new Map();
+const authHeaders = (id) => (id && SESSIONS.has(id) ? { Cookie: SESSIONS.get(id) } : {});
 const post = (p, b) => {
+  const id = b && typeof b === "object" ? b.id : undefined;
   const body = b && typeof b === "object" && b.id && SECRETS.has(b.id) ? { ...b, secret: SECRETS.get(b.id) } : b;
-  return call(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  return call(p, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders(id) }, body: JSON.stringify(body) });
 };
 const getAuthed = (path, id) => {
   const s = SECRETS.get(id);
-  return call(`${path}${path.includes("?") ? "&" : "?"}secret=${encodeURIComponent(s ?? "")}`);
+  return call(`${path}${path.includes("?") ? "&" : "?"}secret=${encodeURIComponent(s ?? "")}`, { headers: authHeaders(id) });
 };
 async function newProfile(body) {
   const secret = `e2e-${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
   const r = await post("/api/profile", { ...body, secret });
   if (r.body?.profile?.id) SECRETS.set(r.body.profile.id, secret);
   return r;
+}
+
+/** A TEACHER is a signed-in account. The returned shape matches `newProfile`
+ *  (`body.profile.id`), so a call site that only needs the id keeps working —
+ *  the difference is that the cookie is recorded here and attached by
+ *  `post`/`getAuthed` to every request that names this learner. */
+const RUN_ID = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+async function newTeacher(body = {}) {
+  const handle = body.handle ?? "teacher_e2e";
+  const email = `e2e-${handle}-${RUN_ID}@example.test`;
+  const r = await call("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      password: "e2e-teacher-password-1",
+      name: handle,
+      role: "teacher",
+      country: body.country ?? "GB",
+      language: body.language ?? "en",
+      subjects: body.subjects ?? ["maths"],
+    }),
+  });
+  const state = r.body?.profile?.profile ?? null;
+  if (state?.id) {
+    if (r.body?.secret) SECRETS.set(state.id, r.body.secret);
+    const cookie = (r.headers.get("set-cookie") ?? "").split(";")[0];
+    if (cookie) SESSIONS.set(state.id, cookie);
+  }
+  return { status: r.status, body: { ...r.body, profile: state }, headers: r.headers };
 }
 
 // 1. Profile lifecycle
@@ -752,11 +795,19 @@ let stranger; // (filled in §8, reused by §9.5's non-member assertion)
 // the field and still get a maths week, because the plan engine defaulted to
 // maths for anything that declared nothing — so this line was asserting the
 // defect. The maths path is what this section means to test, so it now says so.
-const cls = await post("/api/classes", { id: pid, action: "create", name: "Class 9A — Mathematics", subject: "maths" });
+// THE CLASS'S TEACHER IS AN ACCOUNT. This section used to create the class with
+// the main learner's capability, which is the measured defect: on a shared
+// handset the person holding a learner's id and secret could create a class and
+// then administer it. The learner now joins with their capability; the class is
+// created and read by a signed-in teaching account.
+const clsTeacher = await newTeacher({ handle: "cls_teacher_e2e", subjects: ["maths"] });
+const tid0 = clsTeacher.body?.profile?.id;
+ok(clsTeacher.status === 200 && !!tid0, "a teacher ACCOUNT exists to own the class");
+const cls = await post("/api/classes", { id: tid0, action: "create", name: "Class 9A — Mathematics", subject: "maths" });
 ok(cls.status === 200 && /^[A-Z2-9]{6}$/.test(cls.body.cls.joinCode), `class created with join code (${cls.body.cls.joinCode})`);
 const code = cls.body.cls.joinCode;
 const cj = await post("/api/classes", { id: pid, action: "join", joinCode: code, handle: "amina_k" });
-ok(cj.status === 200 && cj.body.cls.students["amina_k"], "teacher joined their own class by code");
+ok(cj.status === 200 && cj.body.cls.students["amina_k"], "a learner joins the class by its code");
 ok((await post("/api/classes", { action: "join", joinCode: code, handle: "ghost" })).status === 400, "joining with NO identity is refused outright");
 
 // A second learner joins — the student flow — and does REAL work on the real
@@ -770,8 +821,8 @@ for (let i = 0; i < 2; i++) ok((await gradeOne(sid, "linear-equations", false)) 
 // Three doors on the same class: two members, one authenticated stranger.
 const roster = await getAuthed(`/api/classes?me=${sid}&id=${cls.body.cls.id}`, sid);
 ok(roster.status === 200, "a member reads the roster with their own capability");
-const rosterT = await getAuthed(`/api/classes?me=${pid}&id=${cls.body.cls.id}`, pid);
-ok(rosterT.status === 200, "so does the class's creator");
+const rosterT = await getAuthed(`/api/classes?me=${tid0}&id=${cls.body.cls.id}`, tid0);
+ok(rosterT.status === 200 && Boolean(rosterT.body.cls.joinCode), "and the class's teacher account reads the live roster (join code included)");
 stranger = await newProfile({ handle: "stranger_p", country: "GB" });
 ok(stranger.status === 200 && !!stranger.body.profile?.id, "an authenticated stranger exists for the refusal tests");
 // (raw call, not post(): post() auto-presents the profile's REAL secret, and
@@ -825,16 +876,23 @@ ok(wedgeAns.status === 200 && typeof wedgeAns.body.correct === "boolean", "wedge
 // TEACHER only — membership was enough once, and a student could download the
 // answers to their own homework.
 const packBase = `/api/pack-export?id=${cls.body.cls.id}`;
+// The pack is TEACHER material, and a teacher here is a signed-in ACCOUNT: a
+// capability is a learner credential, so its refusal is "sign in as a teacher"
+// rather than "not this class's teacher". Both are refusals; naming which one
+// is what keeps the browser's instruction honest.
 const packNoAuth = await call(`${packBase}&format=json`);
-ok(packNoAuth.status === 400, "the offline pack (with its answer key) answers nothing to a caller with no identity");
+ok(packNoAuth.status === 401 && packNoAuth.body?.error === "teacher_account_required",
+  `the offline pack (with its answer key) answers nothing without a teacher session (${packNoAuth.status} ${packNoAuth.body?.error})`);
 const packWrong = await getAuthed(`${packBase}&me=${stranger.body.profile.id}&format=json`, stranger.body.profile.id);
-ok(packWrong.status === 403, "and a non-member gets the same refusal the roster gives");
+ok(packWrong.status === 401, `and a learner capability — even a non-member's — is not a teacher session (${packWrong.status})`);
 const packMember = await getAuthed(`${packBase}&me=${sid}&format=json`, sid);
-ok(packMember.status === 403 && packMember.body?.error === "not the teacher",
+ok(packMember.status === 401 && packMember.body?.error === "teacher_account_required",
   `a MEMBER of the class is refused the pack as well — it carries their homework's answer key (HTTP ${packMember.status}: ${packMember.body?.error})`);
 // (raw fetch: the HTML body must be read as TEXT, and the capability rides in
 // the URL exactly as the teacher page's own download links carry it)
-const planHtml = await fetch(`${BASE}${packBase}&me=${pid}&format=html&secret=${encodeURIComponent(SECRETS.get(pid) ?? "")}`);
+const planHtml = await fetch(`${BASE}${packBase}&me=${tid0}&format=html`, {
+  headers: { Cookie: SESSIONS.get(tid0) ?? "" },
+});
 const planText = await planHtml.text();
 ok(planHtml.status === 200 && planHtml.headers.get("content-type").includes("text/html"), "pack export: printable HTML responds for a member");
 ok(planText.includes("Linear equations"), "pack focuses the class's MEASURED weak concept (linear-equations)");
@@ -842,7 +900,7 @@ ok((planText.match(/Linear equations/g) ?? []).length >= 2, "weak concept appear
 // Separate answer key section — never inline with the questions.
 ok(/class="key"/.test(planText), "answer key is its own section (print-split)");
 ok(planText.includes('dir="rtl"') === /lang="(ar|ur|fa)"/.test(planText), "RTL flag matches class language");
-const planJson = (await getAuthed(`${packBase}&me=${pid}&format=json`, pid)).body;
+const planJson = (await getAuthed(`${packBase}&me=${tid0}&format=json`, tid0)).body;
 ok(Array.isArray(planJson.bank) && planJson.bank.length === 5, "pack JSON: five days");
 ok((planJson.bank ?? []).every((d) => d.questions.length >= 3), "pack JSON: every day has a question bank");
 // Null-safe: a pack that answers 400 has no plan, and this must FAIL rather than
@@ -861,7 +919,7 @@ ok((planJson.bank ?? []).every((d) => d.questions.every((q) => typeof q.prompt =
 // physics. Driven here through the real doors on a subject the platform serves
 // end to end, with a student who has done real physics work.
 {
-  const physTeacher = await newProfile({ handle: "phys_teacher_e2e", country: "GB", language: "en", subjects: ["physics"] });
+  const physTeacher = await newTeacher({ handle: "phys_teacher_e2e", country: "GB", language: "en", subjects: ["physics"] });
   const tid = physTeacher.body?.profile?.id;
   const physCls = await post("/api/classes", { id: tid, action: "create", name: "Year 11 Physics", subject: "physics" });
   const physId = physCls.body?.cls?.id;
@@ -889,7 +947,9 @@ ok((planJson.bank ?? []).every((d) => d.questions.every((q) => typeof q.prompt =
   ok(days.includes("momentum"),
     "and the week teaches the class's own weakest measured concept");
   // The artefact itself: what a teacher prints and hands out.
-  const physHtml = await (await fetch(`${BASE}/api/pack-export?id=${physId}&me=${tid}&format=html&secret=${encodeURIComponent(SECRETS.get(tid) ?? "")}`)).text();
+  const physHtml = await (await fetch(`${BASE}/api/pack-export?id=${physId}&me=${tid}&format=html`, {
+    headers: { Cookie: SESSIONS.get(tid) ?? "" },
+  })).text();
   ok(/Forces|Momentum|Newton/.test(physHtml) && !/Fractions|Place value/.test(physHtml),
     "the printable pack names physics concepts and no maths ones");
 
@@ -922,7 +982,7 @@ ok((planJson.bank ?? []).every((d) => d.questions.every((q) => typeof q.prompt =
     && !(detail?.unmeasured ?? []).includes("momentum"),
     "with the concept the live view calls weak, and not named as unmeasured");
   const peer = await getAuthed(`/api/classes?me=${kidId}&id=${physId}&learner=${kidId}`, kidId);
-  ok(peer.status === 403 && peer.body?.error === "not the teacher",
+  ok(peer.status === 403 && peer.body?.error === "not_the_teacher",
     `while a student who IS a member of the class is refused it (HTTP ${peer.status}: ${peer.body?.error}) — their own record has its own doors`);
   const stranger = await getAuthed(`/api/classes?me=${tid}&id=${physId}&learner=no_such_member_e2e`, tid);
   ok(stranger.status === 404,
@@ -992,7 +1052,7 @@ ok((planJson.bank ?? []).every((d) => d.questions.every((q) => typeof q.prompt =
 // name. Driven here with three profiles all called "Alex": one joins, one joins
 // second, one never joins at all.
 {
-  const namesTeacher = await newProfile({ handle: "names_teacher_e2e", country: "GB", language: "en", subjects: ["maths"] });
+  const namesTeacher = await newTeacher({ handle: "names_teacher_e2e", country: "GB", language: "en", subjects: ["maths"] });
   const nid = namesTeacher.body?.profile?.id;
   const namesCls = await post("/api/classes", { id: nid, action: "create", name: "Year 10 Maths", subject: "maths" });
   const namesCid = namesCls.body?.cls?.id;
@@ -1040,8 +1100,8 @@ ok((planJson.bank ?? []).every((d) => d.questions.every((q) => typeof q.prompt =
   const outsiderRead = await getAuthed(`/api/classes?me=${outsiderId}&id=${namesCid}`, outsiderId);
   ok(outsiderRead.status === 403, `and cannot read the class they were never in (HTTP ${outsiderRead.status})`);
   const outsiderPack = await getAuthed(`/api/pack-export?id=${namesCid}&me=${outsiderId}&format=json`, outsiderId);
-  ok(outsiderPack.status === 403,
-    `nor its answer-key pack (HTTP ${outsiderPack.status}) — a name is not a credential`);
+  ok(outsiderPack.status === 401 && outsiderPack.body?.error === "teacher_account_required",
+    `nor its answer-key pack (HTTP ${outsiderPack.status}) — a learner capability is not a teacher session`);
   const joinerSees = await getAuthed(`/api/classes?me=${joinerId}`, joinerId);
   ok((joinerSees.body.classes ?? []).some((c) => c.id === namesCid),
     "while the learner who did join still reads their own class");
@@ -1405,8 +1465,14 @@ ok(typeof mWrong.body.hint?.text === "string" && mWrong.body.hint.text.length > 
 //     it says why NOW and how the session is shaped — and it must fit the day
 //     the learner said they have, or it is advice they cannot take.
 {
+  // CALENDAR days, not 24-hour blocks: `Date.now() + 5 * 86400000` lands on the
+  // 26th when a five-day offset crosses a DST change (measured in the UK on
+  // 22 Oct 2026: the +5×24h instant was 23:40 on the 26th, so `daysUntilExam`
+  // rightly said 4 and this fixture asserted 5). `setDate` is the calendar
+  // operation the exam date actually means.
   const dayStr = (offset) => {
-    const d = new Date(Date.now() + offset * 86400000);
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
     const p = (n) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   };
@@ -1615,6 +1681,108 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   const stillOwners = await call(`/api/profile?id=${ownerId}`, { headers: ownerJar });
   ok(stillOwners.status === 200 && stillOwners.body.profile?.id === ownerId,
     "while the profile's real owner can still read it — the session still owns that learner");
+}
+
+// 12c. THE WAY BACK IN — a password is not the only key to a learner's record.
+//
+// This deployment has no mail service (`verified` is false for every account), so
+// a forgotten password used to mean a lost record: the ledger, the diagnostics,
+// the misconceptions a teacher was working from. The recovery code is the answer,
+// and this section walks the two ways it is used — the learner's own printed code,
+// and a teacher's fifteen-minute grant for the learner who lost the paper.
+//
+// It is over HTTP on purpose: the engine suite proves the digests, and only this
+// walk proves the DOORS agree — that a used code is dead, that the new one signs
+// in, that a wrong code answers exactly as an unknown address does, and that a
+// teacher who does not teach the learner gets nothing.
+{
+  const stamp = Date.now();
+  const email = `e2e-guard-recover-${stamp}@example.test`;
+  const password = "recover-test-password";
+  const created = await call("/api/auth/signup", json({
+    email, password, name: "Recovery Learner", country: "GB", language: "en", subjects: ["maths"],
+  }));
+  const accountId = created.body.account?.id;
+  const learnerId = created.body.profile?.profile?.id;
+  const paperCode = created.body.recoveryCode;
+  ok(created.status === 200 && typeof paperCode === "string" && paperCode.length > 0,
+    "sign-up hands the learner a recovery code to keep");
+  // The alphabet is the hand-copied one: no I, L, O, 0 or 1. A code that is right
+  // but unreadable is the same as no code.
+  ok(/^([A-Z2-9]{4}-){3}[A-Z2-9]{4}$/.test(paperCode ?? "") && !/[ILO01]/.test(paperCode ?? ""),
+    `and it is written in the alphabet a learner can copy off paper (${paperCode})`);
+
+  // A WRONG CODE AND AN UNKNOWN ADDRESS ANSWER THE SAME WAY. Different answers
+  // would make this door a directory of who has an account here.
+  const wrongCode = await call("/api/auth/recover", json({ email, code: "AAAA-BBBB-CCCC-DDDD", newPassword: "recover-test-password-2" }));
+  const unknownEmail = await call("/api/auth/recover", json({ email: `e2e-nobody-${stamp}@example.test`, code: "AAAA-BBBB-CCCC-DDDD", newPassword: "recover-test-password-2" }));
+  ok(wrongCode.status === 401, `a wrong code is refused (${wrongCode.status})`);
+  ok(unknownEmail.status === wrongCode.status && unknownEmail.body.error === wrongCode.body.error,
+    `and an address with no account answers IDENTICALLY — this door does not say who is registered (${unknownEmail.body.error})`);
+
+  // THE REAL THING: the printed code sets a new password and signs the learner in.
+  const recovered = await call("/api/auth/recover", json({ email, code: paperCode, newPassword: "recover-test-password-2" }));
+  ok(recovered.status === 200 && recovered.body.account?.id === accountId,
+    `the printed code gets the learner back into their OWN record (${recovered.status})`);
+  ok(recovered.body.profile?.profile?.id === learnerId,
+    "and back into the same learner profile — a reset is not a new enrolment");
+  ok(Boolean(recovered.headers.get("set-cookie")),
+    "with a session, because the point is to get back to work, not to a login form");
+  const rotated = recovered.body.recoveryCode;
+  ok(typeof rotated === "string" && rotated !== paperCode,
+    "the code that was used is ROTATED — a code typed into a shared phone does not stay valid");
+
+  // The old password is gone, the new one works, and the old code is dead.
+  const oldPw = await call("/api/auth/login", json({ email, password }));
+  ok(oldPw.status === 401, "the forgotten password no longer opens the account");
+  const newPw = await call("/api/auth/login", json({ email, password: "recover-test-password-2" }));
+  ok(newPw.status === 200 && newPw.body.account?.id === accountId, "the password the code set does");
+  const reused = await call("/api/auth/recover", json({ email, code: paperCode, newPassword: "recover-test-password-3" }));
+  ok(reused.status === 401, "and the used code is refused when it is typed again (single use is real, not just a new code in the response)");
+  const viaRotated = await call("/api/auth/recover", json({ email, code: rotated, newPassword: "recover-test-password-3" }));
+  ok(viaRotated.status === 200, "while the rotated code works — the rotation reached the store, not only the response body");
+
+  // ── THE SECOND KEY: a teacher who already teaches them ────────────────────
+  const teacher = await call("/api/auth/signup", json({
+    email: `e2e-guard-teacher-${stamp}@example.test`, password: "teacher-test-password",
+    name: "Recovery Teacher", role: "teacher", country: "GB", language: "en", subjects: ["maths"],
+  }));
+  const teacherId = teacher.body.profile?.profile?.id;
+  const teacherJar = { Cookie: teacher.headers.get("set-cookie") ?? "" };
+  const cls = await call("/api/classes", json({ id: teacherId, secret: teacher.body.secret, action: "create", name: `Recovery ${stamp}`, subject: "maths" }, teacherJar));
+  ok(cls.status === 200 && Boolean(cls.body.cls?.joinCode), "a teacher has a class to put the learner on");
+  const joined = await call("/api/classes", json({ id: learnerId, secret: created.body.secret, action: "join", joinCode: cls.body.cls.joinCode, handle: "recover_kid" }));
+  ok(joined.status === 200, "and the learner is on its roster");
+
+  const granted = await call("/api/auth/reset-grant", json({ learnerId }, teacherJar));
+  ok(granted.status === 200 && typeof granted.body.code === "string",
+    `the teacher who teaches them can issue a short-lived code (${granted.status})`);
+  ok(typeof granted.body.expiresAt === "number" && granted.body.expiresAt > Date.now(),
+    "with an expiry the teacher can read out with the code");
+  ok(typeof granted.body.learner === "string" && !JSON.stringify(granted.body).includes("@"),
+    "naming the learner by handle, never handing the teacher an address the learner did not share");
+
+  // THE AUTHORITY IS THE ROSTER, NOT THE ROLE NAME.
+  const strangerTeacher = await call("/api/auth/signup", json({
+    email: `e2e-guard-stranger-teacher-${stamp}@example.test`, password: "teacher-test-password",
+    name: "Other Teacher", role: "teacher", country: "GB", language: "en", subjects: ["maths"],
+  }));
+  const strangerGrant = await call("/api/auth/reset-grant", json({ learnerId }, { Cookie: strangerTeacher.headers.get("set-cookie") ?? "" }));
+  ok(strangerGrant.status === 403 && strangerGrant.body.error === "not_your_learner",
+    `another teacher — one who does not teach this learner — is refused (${strangerGrant.status} ${strangerGrant.body.error})`);
+  const anonymousGrant = await call("/api/auth/reset-grant", json({ learnerId }));
+  ok(anonymousGrant.status === 401, "and nobody at all is refused before the roster is even consulted");
+
+  // THE GRANT WORKS WITH NO EMAIL, because a teacher-mediated reset that still
+  // asks for a mailbox is not teacher-mediated — the learner's address may be a
+  // borrowed one nobody can open. Its first half names the account.
+  const viaGrant = await call("/api/auth/recover", json({ code: granted.body.code, newPassword: "recover-test-password-4" }));
+  ok(viaGrant.status === 200 && viaGrant.body.account?.id === accountId,
+    `the grant gets in with NO email typed — the code names its own account (${viaGrant.status})`);
+  const grantAgain = await call("/api/auth/recover", json({ code: granted.body.code, newPassword: "recover-test-password-5" }));
+  ok(grantAgain.status === 401, "and it is single use, so reading it aloud in a corridor is worth one reset");
+  const afterGrant = await call("/api/auth/login", json({ email, password: "recover-test-password-4" }));
+  ok(afterGrant.status === 200, "the password it set works like any other");
 }
 
 // 13. The evidence ledger: every graded answer leaves a trace, and the trace
@@ -2475,8 +2643,18 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
     goal: "Check every read door", subjects: ["maths"],
   });
   const did = dp.body.profile.id;
-  const cls = await post("/api/classes", { id: did, action: "create", name: "Door check" });
+  // A learner's capability can no longer create a class (the measured defect),
+  // so the fixture's class is owned by a teacher ACCOUNT and the learner joins
+  // it with the capability this section is about.
+  const doorTeacher = await newTeacher({ handle: "door_teacher_e2e", subjects: ["maths"] });
+  const dtid = doorTeacher.body?.profile?.id;
+  const learnerMade = await post("/api/classes", { id: did, action: "create", name: "Learner-made class" });
+  ok(learnerMade.status === 401 && learnerMade.body?.error === "teacher_account_required",
+    `a learner's capability cannot create a class (${learnerMade.status} ${learnerMade.body?.error})`);
+  const cls = await post("/api/classes", { id: dtid, action: "create", name: "Door check", subject: "maths" });
   const cid = cls.body.cls.id;
+  ok((await post("/api/classes", { id: did, action: "join", joinCode: cls.body.cls.joinCode, handle: "door_e2e" })).status === 200,
+    "the learner joins it, so the class doors below have a member to answer");
   // One graded answer, so "served" cannot be confused with "served an empty
   // body": the member list of every door below is non-trivial for this learner.
   const serve = await post("/api/progress", { action: "serve", id: did, conceptId: "fractions", reveal: true });
@@ -2512,8 +2690,11 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
   // teacher's own view must keep working, and an anonymous caller must get
   // neither the roster nor the code.
   const ownClass = await getAuthed(`/api/classes?me=${did}&id=${cid}`, did);
-  ok(ownClass.status === 200 && ownClass.body.cls.joinCode === cls.body.cls.joinCode,
-    "a class still hands its join code to the profile that created it — the door is closed to strangers, not to its teacher");
+  ok(ownClass.status === 200 && ownClass.body.cls.joinCode === "",
+    "a member reads the class, SANITISED: no join code and only their own row");
+  const teacherClass = await getAuthed(`/api/classes?me=${dtid}&id=${cid}`, dtid);
+  ok(teacherClass.status === 200 && teacherClass.body.cls.joinCode === cls.body.cls.joinCode,
+    "while the class's teacher account still gets the live roster and its join code");
   const anonClass = await call(`/api/classes?me=${did}&id=${cid}`);
   ok(anonClass.status === 401 && anonClass.body.cls === undefined,
     `an anonymous caller gets neither the roster nor the join code (${anonClass.status})`);
@@ -2521,7 +2702,7 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
   ok(anonList.status === 401 && anonList.body.classes === undefined,
     `and cannot enumerate the store's classes either (${anonList.status})`);
   const noCaller = await call("/api/classes");
-  ok(noCaller.status === 400 && noCaller.body.classes === undefined,
+  ok(noCaller.status === 401 && noCaller.body.classes === undefined,
     `an unnamed caller is turned away before anything is read (${noCaller.status})`);
   const wrongClass = await call(`/api/classes?me=${did}&id=${cid}&secret=${WRONG}`);
   ok(wrongClass.status === 401, `a wrong secret buys no class (${wrongClass.status})`);
@@ -2729,7 +2910,7 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
   const DAY = 24 * 60 * 60 * 1000;
 
   // The teacher, the class, and the curriculum it declares.
-  const t = await newProfile({ handle: "teach_w", country: "GB", language: "en", subjects: ["maths"] });
+  const t = await newTeacher({ handle: "teach_w", country: "GB", language: "en", subjects: ["maths"] });
   const teacher = t.body.profile.id;
   const cls = await post("/api/classes", { id: teacher, action: "create", name: "Year 10 Maths", subject: "maths" });
   ok(cls.status === 200 && cls.body.cls.subject === "maths",
@@ -2845,7 +3026,7 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
     "a hint on one assigned idea does not downgrade the other — the verdict is per concept, as the work was");
 
   // ── NEGATIVE: another teacher can neither read nor alter this class's data ──
-  const ot = await newProfile({ handle: "teach_x", country: "GB", language: "en", subjects: ["maths"] });
+  const ot = await newTeacher({ handle: "teach_x", country: "GB", language: "en", subjects: ["maths"] });
   const other = ot.body.profile.id;
   const steal = await post("/api/assignments", {
     id: other, action: "create", clsId: cid, conceptIds: ["ratio"], dueAt: Date.now() + DAY,
@@ -2861,7 +3042,8 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
   const studentTry = await post("/api/assignments", {
     id: student, action: "create", clsId: cid, conceptIds: ["ratio"], dueAt: Date.now() + DAY,
   });
-  ok(studentTry.status === 403, `a member who is not the teacher cannot set work (${studentTry.status})`);
+  ok(studentTry.status === 401 && studentTry.body?.error === "teacher_account_required",
+    `a member's capability is not a teacher session, so it cannot set work (${studentTry.status} ${studentTry.body?.error})`);
   // The door refuses the missing and the wrong capability like every other one.
   const anon = await call(`/api/assignments?me=${teacher}`);
   ok(anon.status === 401, `the assignment door answers nothing without the capability (${anon.status})`);
@@ -2982,7 +3164,7 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
 console.log("▸ Evidence→intervention: the loop, over its own doors");
 {
   const IV_DAY = 24 * 60 * 60 * 1000;
-  const ivT = await newProfile({ handle: "iv_teacher_e2e", country: "GB", language: "en", subjects: ["maths"] });
+  const ivT = await newTeacher({ handle: "iv_teacher_e2e", country: "GB", language: "en", subjects: ["maths"] });
   const ivTid = ivT.body?.profile?.id;
   const ivC = await post("/api/classes", {
     id: ivTid, action: "create", name: "Intervention E2E", subject: "maths", specificationId: "uk-gcse",
@@ -3005,11 +3187,22 @@ console.log("▸ Evidence→intervention: the loop, over its own doors");
   await gradeOne(s3, IV, true);
 
   // ── WHO MAY ASK ──────────────────────────────────────────────────────────
+  // THE DOOR IS THE ACCOUNT's now, so "no credential" and "a learner's
+  // credential" are two different refusals — and neither is a 200.
   const noCap = await call(`/api/needs?me=${ivTid}`);
-  ok(noCap.status === 401, `the needs door answers nothing without the capability (${noCap.status})`);
+  ok(noCap.status === 401 && noCap.body?.error === "teacher_account_required",
+    `the needs door answers nothing without a teacher session (${noCap.status} ${noCap.body?.error})`);
   const asMember = await getAuthed(`/api/needs?me=${s1}&cls=${ivCid}`, s1);
-  ok(asMember.status === 403, `a member who is not the teacher cannot read the class's needs (${asMember.status})`);
-  const otherT = await newProfile({ handle: "iv_other_e2e", country: "GB", language: "en", subjects: ["maths"] });
+  ok(asMember.status === 401, `a member's capability is not a teacher session (${asMember.status})`);
+  const studentAccount = await call("/api/auth/signup", json({
+    email: `e2e-student-needs-${RUN_ID}@example.test`, password: "e2e-student-password-1",
+    name: "Needs Student", role: "student", country: "GB", language: "en", subjects: ["maths"],
+  }));
+  const studentJar = { Cookie: (studentAccount.headers.get("set-cookie") ?? "").split(";")[0] };
+  const studentNeeds = await call(`/api/needs?cls=${ivCid}`, { headers: studentJar });
+  ok(studentNeeds.status === 403 && studentNeeds.body?.error === "teacher_role_required",
+    `a signed-in LEARNER account is refused by role (${studentNeeds.status} ${studentNeeds.body?.error})`);
+  const otherT = await newTeacher({ handle: "iv_other_e2e", country: "GB", language: "en", subjects: ["maths"] });
   const otherTid = otherT.body?.profile?.id;
   const asOther = await getAuthed(`/api/needs?me=${otherTid}&cls=${ivCid}`, otherTid);
   ok(asOther.status === 403, `nor can another teacher inspect a class they do not own (${asOther.status})`);
@@ -3312,8 +3505,10 @@ console.log("▸ Curriculum pathways: two systems in one country");
   ok((backAgain.body.courseGaps ?? []).some((g) => (g.missing ?? []).includes("spec")),
     `and switching back drops the qualification that belonged to the other system (${JSON.stringify(backAgain.body.courseGaps)})`);
 
-  // IGCSE IS A CHOICE, NOT A FALLBACK. A learner in a country with no mapped
-  // national route can choose the international programme and declare ITS years.
+  // IGCSE IS A CHOICE, NOT A FALLBACK. ANY learner can choose the international
+  // programme and declare ITS years — including one whose own country now has a
+  // national route (Germany does, since the 51-country pass), which is what makes
+  // the programme an alternative rather than an escape from a missing record.
   const intl = await newProfile({
     country: "DE", subjects: ["maths"], onboarded: true,
     pathway: "int-international", grade: "Year 11",
@@ -3321,28 +3516,28 @@ console.log("▸ Curriculum pathways: two systems in one country");
   });
   const intlId = intl.body.profile.id;
   ok(intl.status === 200 && (intl.body.courseGaps ?? []).length === 0,
-    `a learner in an unmapped country can choose the international programme and declare its years (${JSON.stringify(intl.body.courseGaps)})`);
+    `a learner can choose the international programme over their national one and declare its years (${JSON.stringify(intl.body.courseGaps)})`);
   // AND IS NOT OFFERED SOMEBODY ELSE'S NATIONAL COURSE: the chosen system scopes
   // the offer, so a UK qualification is refused on an international profile.
   const otherNational = await post("/api/profile", { id: intlId, subjectCourses: { maths: { spec: "uk-gcse" } } });
   ok(otherNational.status === 400 && /pathway_does_not_offer/.test(otherNational.body?.error ?? ""),
     `and another country's national course is not selectable under it (${otherNational.status}: ${otherNational.body?.error})`);
-  // The SAME learner, now declaring no international programme, keeps the wider
-  // offer: the skills pathway and the international programmes together, which is
-  // what a country with no mapped national route is answered with.
+  // The SAME learner, now declaring the SKILLS pathway: it is a pathway like any
+  // other now — chosen, with its own years — rather than the answer a country
+  // with no record was given. Declaring it is what makes "Core" a real year.
   const skills = await post("/api/profile", {
-    id: intlId, pathway: null, grade: "Core",
+    id: intlId, pathway: "int-independent", grade: "Core",
     subjectCourses: { maths: { spec: "any-independent", specLevel: "core" } },
   });
-  ok(skills.status === 200 && !(skills.body.profile ?? {}).pathway && (skills.body.courseGaps ?? []).length === 0,
-    `and the skills pathway is reachable when no programme has been declared (${JSON.stringify(skills.body.courseGaps)})`);
+  ok(skills.status === 200 && (skills.body.profile ?? {}).pathway === "int-independent" && (skills.body.courseGaps ?? []).length === 0,
+    `and the skills pathway is reachable as a chosen programme, with its own years (${JSON.stringify(skills.body.courseGaps)})`);
   // A YEAR BELONGS TO THE PATHWAY THAT NAMED IT. Dropping the international
   // programme leaves "Year 11" a year of nothing, and the honest answer is to say
   // so rather than to keep a year no course in force contains — the same rule the
   // Cameroon section asserts in the other direction. The first run of this suite
   // is how the difference was found: the assertion above demanded a complete
   // course while the request itself declared NO year the skills pathway has.
-  const staleYear = await post("/api/profile", { id: intlId, pathway: null, grade: "Year 11" });
+  const staleYear = await post("/api/profile", { id: intlId, pathway: "int-independent", grade: "Year 11" });
   ok((staleYear.body.courseGaps ?? []).some((g) => (g.missing ?? []).includes("grade")),
     `and the abandoned programme's year is reported rather than silently kept (${JSON.stringify(staleYear.body.courseGaps)})`);
   await post("/api/profile", { id: intlId, grade: "Core" });

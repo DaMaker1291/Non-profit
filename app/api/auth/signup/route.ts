@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import {
   accountOwningProfile, createAccount, emailProblem, ensureProfileSecretFor, findAccountByEmail,
-  newProfileId, passwordProblem, publicAccount, type AccountRole,
+  mintRecoveryCodeFor, newProfileId, passwordProblem, publicAccount, type AccountRole,
 } from "@/lib/server/auth";
 import { getProfile, newProfileState, publicProfileState, saveProfile } from "@/lib/server/store";
 import type { ProfileState, SubjectId } from "@/lib/types";
-import { clientAddress, hit, SIGNUP_PER_ADDRESS } from "@/lib/server/rate-limit";
-import { readBody, sessionTokenFor, str, tooManyAttempts, withSession } from "../_shared";
+import { hit, SIGNUP_PER_ADDRESS } from "@/lib/server/rate-limit";
+import { ingressFor } from "@/lib/server/client-address";
+import { tooManyAttempts, untrustedIngress } from "@/lib/server/limits";
+import { readBody, sessionTokenFor, str, withSession } from "../_shared";
 // A sign-up IS the creation of a learner record, so a deployment whose store has
 // refused learner data must refuse the sign-up too — with its reason, not a 500.
 import { storeWriteRefusalNow } from "@/lib/server/write-refusal";
@@ -34,6 +36,12 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 });
   if (name.trim().length < 1) return NextResponse.json({ error: "bad_name" }, { status: 400 });
 
+  // A DECLARED INGRESS THAT DID NOT DELIVER A CHAIN refuses here too — see the
+  // login door. Sign-up writes the account AND the learner record, so it is the
+  // last door that should run unattributed because a proxy was misconfigured.
+  const ingress = ingressFor(req);
+  if (ingress.kind === "refused") return untrustedIngress(ingress.reason);
+
   // ONE ADDRESS MAY NOT CREATE ACCOUNTS WITHOUT A LIMIT.
   //
   // This is the door that writes a learner record AND an account, so an
@@ -43,9 +51,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   // reverse proxy's (`docs/DEPLOYMENT.md` §10). It is deliberately NOT keyed on
   // the email: a stranger choosing addresses is exactly the behaviour being
   // bounded, so letting them choose a fresh key per attempt bounds nothing.
-  const address = clientAddress(req);
-  if (address) {
-    const after = hit(`signup:ip:${address}`, SIGNUP_PER_ADDRESS);
+  if (ingress.kind === "client") {
+    const after = hit(`signup:ip:${ingress.address}`, SIGNUP_PER_ADDRESS);
     if (!after.allowed) return tooManyAttempts(after.retryAfterSec);
   }
 
@@ -114,9 +121,25 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 
   const secret = await ensureProfileSecretFor(state);
+  // EVERY NEW LEARNER GETS A RECOVERY CODE BEFORE THEY NEED ONE. Minting it at
+  // sign-up rather than on demand is the difference between "there is a way back"
+  // and "there was a way back if you thought about it while you still had access" —
+  // and the population this exists for is the one that will not think of it.
+  //
+  // It rides on the sign-up response because there is no second chance to show it:
+  // only its hash is stored. A null here means the account write succeeded and this
+  // one did not, which is `identity`-purpose storage failing in the middle of a
+  // sign-up — rare, and NOT a reason to fail the learner's enrolment. They can mint
+  // one from a session later (POST /api/auth/recovery-code), and the UI says so.
+  const recoveryCode = await mintRecoveryCodeFor(account.id);
   const token = await sessionTokenFor(account);
   return withSession(
-    { account: publicAccount(account), profile: publicProfileState(state), secret },
+    {
+      account: publicAccount(account),
+      profile: publicProfileState(state),
+      secret,
+      ...(recoveryCode ? { recoveryCode } : {}),
+    },
     token,
     200,
     req,

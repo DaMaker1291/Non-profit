@@ -5,7 +5,7 @@
 // Everything here applies instantly; nothing here leaves your device except
 // what you explicitly save to your profile.
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAccess } from "@/components/access-provider";
 import { useI18n, useLearnLangs, useProfile, loadLocalProfileId } from "@/lib/client";
 import * as api from "@/lib/api/client";
@@ -14,6 +14,7 @@ import LangQuick from "@/components/lang-quick";
 import { queueLength } from "@/lib/sync-queue";
 import { isContinuityMode, setContinuityMode } from "@/lib/curriculum";
 import { RESOURCE_OPTIONS } from "@/lib/resources";
+import { CULTURES, cultureLabel } from "@/lib/culture";
 
 export default function AccessPage() {
   const { prefs, set } = useAccess();
@@ -27,15 +28,41 @@ export default function AccessPage() {
   const [board, setBoard] = useState(state?.profile.board ?? "");
   const [exam, setExam] = useState(state?.profile.exam ?? "");
   const [learningStyle, setLearningStyle] = useState(state?.profile.learningStyle ?? "");
+  // THE SETTING EXAMPLES ARE SET IN. Enrolment used to ask this beside the year
+  // group, which made a sign-up carry one more question than it needed; the
+  // answer is a preference about how the teaching reads, so it lives with the
+  // other preferences. The list comes from its ONE owner (lib/culture.ts), whose
+  // ids are the ones `exampleFor` can resolve — a second hand-written list is how
+  // the form once offered two ids the engine could not read.
+  const [examples, setExamples] = useState(state?.profile.examples ?? "neutral");
   const [saved, setSaved] = useState(false);
 
+  // ── A CLICK MADE WHILE THE PROFILE IS STILL LOADING MUST NOT BE UNDONE ────
+  //
+  // The effect below seeds these controls from the profile. It re-runs whenever
+  // `state` arrives or is refetched, and it used to OVERWRITE whatever the
+  // learner had chosen in the meantime: measured in `npm run verify:ui`, the
+  // walk pressed "Local terms only" and pressed Save, and the stored value was
+  // `mixed` — the default — because the fetch that landed in between put the
+  // untouched value back over the choice. A preference the learner set and the
+  // screen then abandoned for them is the same defect as a course seeded from
+  // `levels[0]`, one layer quieter. Once anything here is touched, the server's
+  // copy is no longer allowed to answer for it.
+  const touched = useRef(false);
+  /** Mark the learner's choice, then make it. Every control on this screen uses
+   *  this so the effect's seeding cannot answer over a real answer. */
+  const choose = (apply: () => void) => () => {
+    touched.current = true;
+    apply();
+  };
   useEffect(() => {
     setPending(queueLength());
     setCont(isContinuityMode());
-    if (state) {
+    if (state && !touched.current) {
       setTerms(state.profile.termsMode ?? "mixed");
       setExplainLen(state.profile.explainLen ?? "full");
       setResources(state.profile.resources ?? []);
+      setExamples(state.profile.examples ?? "neutral");
     }
   }, [state]);
 
@@ -43,7 +70,7 @@ export default function AccessPage() {
     const id = loadLocalProfileId();
     if (!id) return;
     try {
-      await api.saveProfile({ termsMode: terms, explainLen, resources, board, exam, learningStyle }, id);
+      await api.saveProfile({ termsMode: terms, explainLen, resources, board, exam, learningStyle, examples }, id);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch {
@@ -76,11 +103,17 @@ export default function AccessPage() {
           </select>
         </label>
         <LangQuick profileLang={state?.profile.language} />
+        <label className="field" style={{ maxWidth: 320, marginTop: 10 }}>
+          <span>{t("onb.examples")}</span>
+          <select value={examples} onChange={(e) => choose(() => setExamples(e.target.value))()}>
+            {CULTURES.map((c) => <option key={c.id} value={c.id}>{t(cultureLabel(c.id))}</option>)}
+          </select>
+        </label>
         <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-          <button className={`btn small ${terms === "mixed" ? "" : "ghost"}`} onClick={() => setTerms("mixed")}>{t("acc.termsMixed")}</button>
-          <button className={`btn small ${terms === "local" ? "" : "ghost"}`} onClick={() => setTerms("local")}>{t("acc.termsLocal")}</button>
-          <button className={`btn small ${explainLen === "full" ? "" : "ghost"}`} onClick={() => setExplainLen("full")}>{t("acc.fullExplain")}</button>
-          <button className={`btn small ${explainLen === "short" ? "" : "ghost"}`} onClick={() => setExplainLen("short")}>{t("acc.shortExplain")}</button>
+          <button className={`btn small ${terms === "mixed" ? "" : "ghost"}`} onClick={choose(() => setTerms("mixed"))}>{t("acc.termsMixed")}</button>
+          <button className={`btn small ${terms === "local" ? "" : "ghost"}`} onClick={choose(() => setTerms("local"))}>{t("acc.termsLocal")}</button>
+          <button className={`btn small ${explainLen === "full" ? "" : "ghost"}`} onClick={choose(() => setExplainLen("full"))}>{t("acc.fullExplain")}</button>
+          <button className={`btn small ${explainLen === "short" ? "" : "ghost"}`} onClick={choose(() => setExplainLen("short"))}>{t("acc.shortExplain")}</button>
         </div>
       </section>
 
@@ -105,7 +138,7 @@ export default function AccessPage() {
         <p className="eyebrow" style={{ margin: 0 }}>{t("acc.have")}</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
           {RESOURCE_OPTIONS.map((r) => (
-            <button key={r.id} className={`btn small ${resources.includes(r.id) ? "" : "ghost"}`} aria-pressed={resources.includes(r.id)} onClick={() => setResources((prev) => prev.includes(r.id) ? prev.filter((x) => x !== r.id) : [...prev, r.id])}>{t(r.label)}</button>
+            <button key={r.id} className={`btn small ${resources.includes(r.id) ? "" : "ghost"}`} aria-pressed={resources.includes(r.id)} onClick={choose(() => setResources((prev) => prev.includes(r.id) ? prev.filter((x) => x !== r.id) : [...prev, r.id]))}>{t(r.label)}</button>
           ))}
         </div>
       </section>
@@ -115,12 +148,12 @@ export default function AccessPage() {
         <p className="small muted">{t("acc.boardNote")}</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
           {[["cbse", "acc.b.cbse"], ["icse", "acc.b.icse"], ["igcse", "acc.b.igcse"], ["state", "acc.b.state"], ["matric", "acc.b.matric"], ["nigerian", "acc.b.nigerian"], ["kenyan", "acc.b.kenyan"], ["philippine", "acc.b.philippine"], ["bangladeshi", "acc.b.bangladeshi"], ["indonesian", "acc.b.indonesian"], ["brazilian", "acc.b.brazilian"], ["mexican", "acc.b.mexican"]].map(([id, key]) => (
-            <button key={id} className={`btn small ${board === id ? "" : "ghost"}`} onClick={() => setBoard((b) => b === id ? "" : id)}>{t(key)}</button>
+            <button key={id} className={`btn small ${board === id ? "" : "ghost"}`} onClick={choose(() => setBoard((b) => b === id ? "" : id))}>{t(key)}</button>
           ))}
         </div>
         <div style={{ marginTop: 10 }}>
           <label className="small muted" htmlFor="exam-input">{t("acc.examLabel")}</label>
-          <input id="exam-input" className="input" style={{ width: "100%", marginTop: 4 }} value={exam} onChange={(e) => setExam(e.target.value.slice(0, 40))} placeholder={t("acc.examPh")} />
+          <input id="exam-input" className="input" style={{ width: "100%", marginTop: 4 }} value={exam} onChange={(e) => choose(() => setExam(e.target.value.slice(0, 40)))()} placeholder={t("acc.examPh")} />
         </div>
       </section>
 
@@ -129,7 +162,7 @@ export default function AccessPage() {
         <p className="small muted">{t("acc.howTeachNote")}</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
           {[["visual", "ls.visual"], ["auditory", "ls.auditory"], ["kinesthetic", "ls.kinesthetic"], ["reading-writing", "ls.reading"]].map(([id, label]) => (
-            <button key={id} className={`btn small ${learningStyle === id ? "" : "ghost"}`} onClick={() => setLearningStyle((s) => s === id ? "" : id)}>{t(label)}</button>
+            <button key={id} className={`btn small ${learningStyle === id ? "" : "ghost"}`} onClick={choose(() => setLearningStyle((s) => s === id ? "" : id))}>{t(label)}</button>
           ))}
         </div>
       </section>

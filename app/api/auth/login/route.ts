@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { findAccountByEmail, passwordMatches, sessionPayload, touchAccount } from "@/lib/server/auth";
 import {
-  clear, clientAddress, hit, peek, SIGNIN_PER_ACCOUNT, SIGNIN_PER_ADDRESS, SIGNIN_PER_PROCESS,
+  clear, hit, peek, SIGNIN_PER_ACCOUNT, SIGNIN_PER_ADDRESS, SIGNIN_PER_PROCESS,
   SIGNIN_PROCESS_KEY, signinKeyFor, sleep, type LimitPolicy,
 } from "@/lib/server/rate-limit";
-import { readBody, sessionTokenFor, str, tooManyAttempts, withSession } from "../_shared";
+import { ingressFor } from "@/lib/server/client-address";
+import { tooManyAttempts, untrustedIngress } from "@/lib/server/limits";
+import { readBody, sessionTokenFor, str, withSession } from "../_shared";
 
 /**
  * POST /api/auth/login — sign in and get the learner profile back.
@@ -45,11 +47,18 @@ export async function POST(req: Request): Promise<NextResponse> {
   const password = str(body.password);
   if (!email || !password) return NextResponse.json({ error: "missing" }, { status: 400 });
 
+  // 0. CAN THIS REQUEST BE ATTRIBUTED AT ALL? A declared proxy that did not
+  //    deliver a usable chain means this request did not arrive through the
+  //    ingress the deployment declared — either a misconfigured proxy or someone
+  //    reaching the origin directly. Refusing is the loud, correct answer: the
+  //    alternative is running this door unbounded while reporting it bounded.
+  const ingress = ingressFor(req);
+  if (ingress.kind === "refused") return untrustedIngress(ingress.reason);
+
   // 1. HARD BOUNDS FIRST: a source that has spent its budget is refused before
   //    this server spends a derivation on it.
   const hard: [string, LimitPolicy][] = [];
-  const address = clientAddress(req);
-  if (address) hard.push([`signin:ip:${address}`, SIGNIN_PER_ADDRESS]);
+  if (ingress.kind === "client") hard.push([`signin:ip:${ingress.address}`, SIGNIN_PER_ADDRESS]);
   for (const [key, policy] of hard) {
     const now = peek(key, policy);
     if (!now.allowed) return tooManyAttempts(now.retryAfterSec);

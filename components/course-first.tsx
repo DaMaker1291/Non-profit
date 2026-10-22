@@ -27,8 +27,10 @@ import type { SubjectId } from "@/lib/types";
 
 /** The label for each field a course can be missing — the SAME labels the form
  *  that sets them uses, so the card's promise and the screen behind it agree.
- *  Exported because the wizard's course step names its gaps too; one owner for
- *  "how a missing course field is called". */
+ *  Exported because `/curriculum` — the screen this card sends the learner to,
+ *  and the one that now collects the course the wizard no longer asks for —
+ *  names its own gaps with it too; one owner for "how a missing course field is
+ *  called". */
 export const FIELD_LABEL: Record<CourseField, string> = {
   country: "onb.country",
   // The education system (§7). Named here as well as on the wizard, because the

@@ -12,8 +12,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { ProfileState } from "./types";
+import { incompleteSubjects } from "./specifications";
 
-export type AppStage = "welcome" | "onboarding" | "diagnostic" | "home";
+export type AppStage = "welcome" | "onboarding" | "course" | "diagnostic" | "home";
 
 export interface AppStateInput {
   /** Is there an authenticated account on this device? */
@@ -46,6 +47,34 @@ export interface AppState {
   diagnosticSubject: string;
   /** Questions this learner has answered — evidence of a real history. */
   attempts: number;
+  /**
+   * IS THERE A COURSE TO TEACH?
+   *
+   * Enrolment collects where the learner studies and what they study; the
+   * QUALIFICATION and its tier are chosen on /curriculum, deliberately later,
+   * because three screens of account plus a course picker is the wall the
+   * enrolment was cut down to avoid. That leaves a state that did not exist
+   * before: enrolled, and holding no course. It is not a lifecycle stage a
+   * learner may sit in — a diagnostic sampled against a course nobody chose is
+   * a baseline for the wrong curriculum, and every question after it is pitched
+   * at that fallback. So it is a required field, and this is where it is
+   * enforced: an enrolled learner with an incomplete course goes to /curriculum,
+   * which is the only screen that can complete it.
+   */
+  courseReady: boolean;
+}
+
+/**
+ * WHAT A COURSE NEEDS, in one place: at least one subject, and every course
+ * field the subject's own curriculum asks for (country, year group, and a tier
+ * for a qualification that has tiers). `incompleteSubjects` is the same gate the
+ * form and the API use, so the lifecycle cannot disagree with the screen about
+ * whether a learner is set up.
+ */
+export function courseIsReady(profile: ProfileState | null | undefined): boolean {
+  if (!profile) return false;
+  if ((profile.profile.subjects ?? []).length === 0) return false;
+  return incompleteSubjects(profile.profile).length === 0;
 }
 
 const SUBJECTS = ["maths", "physics", "chemistry", "biology", "computing"];
@@ -98,10 +127,12 @@ export function deriveAppState({ signedIn, profile, isTeacher }: AppStateInput):
       diagnosed: false,
       diagnosticSubject: subject,
       attempts: 0,
+      courseReady: false,
     };
   }
 
   const onboarded = typeof profile.profile.onboardedAt === "number";
+  const courseReady = courseIsReady(profile);
   if (!onboarded) {
     return {
       stage: "onboarding",
@@ -111,6 +142,7 @@ export function deriveAppState({ signedIn, profile, isTeacher }: AppStateInput):
       diagnosed: false,
       diagnosticSubject: subject,
       attempts,
+      courseReady,
     };
   }
 
@@ -135,6 +167,27 @@ export function deriveAppState({ signedIn, profile, isTeacher }: AppStateInput):
       diagnosed,
       diagnosticSubject: subject,
       attempts,
+      courseReady,
+    };
+  }
+  // ── THE COURSE IS A REQUIRED FIELD, AND THIS IS WHERE IT IS ASKED FOR ────
+  // Before the diagnostic, because the diagnostic samples the course's own
+  // coverage: a baseline sat against a fallback course measures the wrong
+  // syllabus and then every recommendation is built on it. `state.needsOnboarding`
+  // is the sentence already authored in all fifteen dictionaries for exactly
+  // this — "Your course and subjects are not set yet — that is what makes
+  // practice match your exam" — so this state adds no new string. /curriculum is
+  // the screen that completes it and is public, so the redirect cannot loop.
+  if (!courseReady) {
+    return {
+      stage: "course",
+      route: "/curriculum",
+      reasonKey: "state.needsOnboarding",
+      onboarded,
+      diagnosed,
+      diagnosticSubject: subject,
+      attempts,
+      courseReady,
     };
   }
   if (!diagnosed) {
@@ -146,6 +199,7 @@ export function deriveAppState({ signedIn, profile, isTeacher }: AppStateInput):
       diagnosed,
       diagnosticSubject: subject,
       attempts,
+      courseReady,
     };
   }
 
@@ -157,6 +211,7 @@ export function deriveAppState({ signedIn, profile, isTeacher }: AppStateInput):
     diagnosed,
     diagnosticSubject: subject,
     attempts,
+    courseReady,
   };
 }
 
@@ -179,7 +234,7 @@ export function homeRouteFor(lifecycle: Pick<Lifecycle, "isTeacher">): string {
 
 /** Is a stage one we should actively move the learner out of? */
 export function isBlockingStage(stage: AppStage): boolean {
-  return stage === "onboarding" || stage === "diagnostic";
+  return stage === "onboarding" || stage === "course" || stage === "diagnostic";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -258,6 +313,7 @@ export function deriveLifecycle({ auth, profileStatus, profile, isTeacher }: Lif
       diagnosed: false,
       diagnosticSubject: "maths",
       attempts: 0,
+      courseReady: false,
       profileId: null,
     };
   }
@@ -301,11 +357,24 @@ const ACCESS: Record<string, AccessRequirement> = {
   // Onboarding is where signed-out and un-enrolled learners are SENT, so it
   // can never require anything — otherwise every redirect would loop.
   "/onboarding": "public",
+  // THE CLASSROOM DOOR. A handset that has been handed back is nobody's device:
+  // it must open to a screen that ASKS for a class code and a PIN, so it has to
+  // work with no learner at all. Gating it behind a learner would make the
+  // hand-back impossible to complete — the screen that starts the next lesson
+  // would be the one the guard refuses.
+  "/kiosk": "public",
 
-  // Needs an account (or a profile) but no enrolment: the account screen and
-  // the diagnostic itself (which needs to exist before enrolment is "done").
+  // Needs an account (or a profile) but no enrolment: the account screen.
   "/account": "authenticated",
-  "/diagnostic": "authenticated",
+  // THE BASELINE DIAGNOSTIC NEEDS A COURSE. It was `authenticated` — a profile,
+  // nothing more — which let an enrolled learner who had not chosen a
+  // qualification sit it against the fallback syllabus: the questions are
+  // sampled from `coverageOf(active)`, so the measurement, and every
+  // recommendation built on it afterwards, would describe a course nobody chose.
+  // `onboarded` now means "enrolled AND holding a course" (see MET below), which
+  // is exactly the condition a sitting requires. Measured live: the walk reached
+  // the diagnostic with no course and was served "Quadratic equations".
+  "/diagnostic": "onboarded",
 
   // Needs a course recorded, because the surface is meaningless without one.
   "/learn": "onboarded",
@@ -395,7 +464,12 @@ export interface RouteDecision {
 const MET: Record<AccessRequirement, (l: Lifecycle) => boolean> = {
   public: () => true,
   authenticated: (l) => l.auth === "signed_in" || l.profileStatus === "complete" || l.profileStatus === "incomplete",
-  onboarded: (l) => l.onboarded,
+  // A COURSE IS PART OF BEING SET UP. `/learn`, `/papers`, `/progress` and the
+  // rest are gated on `onboarded`, and before this an enrolled learner with no
+  // chosen qualification passed that gate and was served the fallback course —
+  // the exact thing the enrolment used to ask for and now defers. A teacher is
+  // exempt for the same reason they are exempt from the diagnostic.
+  onboarded: (l) => l.onboarded && (l.isTeacher || l.courseReady),
   // A teacher is not a learner waiting to be measured. `/dashboard` was gated on
   // evidence so that nobody is shown a mastery board of zeros for work they have
   // never been asked to do — which is exactly the argument for NOT sending a
@@ -443,6 +517,16 @@ const MET: Record<AccessRequirement, (l: Lifecycle) => boolean> = {
 export interface SettlementInput {
   /** The SESSION's account is a teacher/school, not this form's role picker. */
   isTeacher: boolean;
+  /**
+   * Did this learner already hold a complete course when they finished?
+   *
+   * The enrolment no longer asks for a qualification, so for a new learner the
+   * answer is NO and the next screen is /curriculum — not the diagnostic, which
+   * samples a course and would otherwise measure the fallback syllabus. A
+   * returning learner who patched their subjects keeps their course and is not
+   * sent back through a screen they already completed.
+   */
+  courseComplete: boolean;
   /** Enrolling without an account: there is no role to read, never a teacher. */
   guest: boolean;
   /** The sanitised `?return=` ticket, or `""` when there is none. */
@@ -453,10 +537,16 @@ export interface SettlementInput {
   subject: string;
 }
 
-export function settlementTarget({ isTeacher, guest, wanted, already, subject }: SettlementInput): string {
+export function settlementTarget({ isTeacher, guest, wanted, already, subject, courseComplete }: SettlementInput): string {
   // A teacher's platform is the default, and a ticket to it is honoured.
   const teacherHome = isTeacher && !guest;
   if (teacherHome && !(wanted && !wanted.startsWith("/teacher"))) return "/teacher";
+  // THE REQUIRED COURSE COMES BEFORE ANY MEASUREMENT, and before the ticket:
+  // a learner sent to `/learn/maths/quadratics` with no course chosen would be
+  // served the fallback syllabus under a page that looks finished. /curriculum
+  // is public, so honouring it cannot loop, and it carries the ticket so the
+  // learner lands where they asked once the course exists.
+  if (!teacherHome && !already && !courseComplete) return withReturn("/curriculum", wanted);
   // A destination the guard would immediately refuse is not a destination.
   // `accessFor` is a static contract and cannot see the account's role, so the
   // teacher case is subtracted here exactly as `MET.diagnosed` subtracts it.
@@ -482,6 +572,9 @@ export function resolveRoute(lifecycle: Lifecycle, path: string): RouteDecision 
   }
   if (!lifecycle.onboarded) {
     return { action: "redirect", to: withReturn("/onboarding", path), reasonKey: "state.needsOnboarding", requirement };
+  }
+  if (!lifecycle.courseReady && !lifecycle.isTeacher) {
+    return { action: "redirect", to: withReturn("/curriculum", path), reasonKey: "state.needsOnboarding", requirement };
   }
   return {
     action: "redirect",

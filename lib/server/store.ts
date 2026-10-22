@@ -1,10 +1,14 @@
 import { promises as fs } from "fs";
 import path from "path";
 // Ids are RANDOM, not clock-derived — see `newId` for why the shape changed.
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID, randomBytes, randomInt, scryptSync } from "node:crypto";
 // The profile's own shape and its wire-stripping rule are PURE, and the static
 // build (no server at all) needs both — so they live in lib/learner-profile.ts
 // and are re-exported here. A second copy would be a default that drifts.
+import type { Account, AccountRole } from "../types";
+// The lookup key is DERIVED from the account id, so the store and the printed
+// grant cannot disagree about which account a teacher's code names.
+import { resetKeyFor } from "../recovery-code";
 import { newProfileState, publicProfileState } from "../learner-profile";
 // The membership rule, in one place: the store is only the caller that makes a
 // legacy roster's identities durable.
@@ -217,6 +221,27 @@ export async function saveProfile(state: ProfileState): Promise<void> {
 }
 
 /**
+ * Generate a new profile ID (RANDOM, not clock-derived). Used by sign-up to
+ * create a fresh learner record alongside the new account.
+ */
+export function newProfileId(): string {
+  return `prof_${randomUUID().replace(/-/g, "")}`;
+}
+
+/**
+ * Ensure a profile has a capability secret. If the profile already has one,
+ * return it; otherwise generate and store a new one. This is called during
+ * sign-up and claim so the profile is always callable from a fresh session.
+ */
+export async function ensureProfileSecretFor(state: ProfileState): Promise<string> {
+  if (state.secret) return Promise.resolve(state.secret);
+  const secret = `sec_${randomUUID().replace(/-/g, "")}`;
+  state.secret = secret;
+  await saveProfile(state);
+  return secret;
+}
+
+/**
  * Remove a learner's RECORD. Nothing else, deliberately.
  *
  * This used to write the erasure tombstone too, and that pairing is what made a
@@ -344,7 +369,7 @@ export async function listProfileStates(): Promise<ProfileState[]> {
 // "the ledger" and "the JSONL file" from becoming the same import again, which is
 // how a backend silently stops being swappable. So the backend REGISTERS its own
 // ledger reader/writer here, once, at module load, and the context calls through
-// it. (`updateProfile` below never touches the ledger methods, so a caller that
+// it. (`withLearnerState` below never touches the ledger methods, so a caller that
 // reaches the store without a backend loaded — a test, a drill — still works; the
 // ledger methods are the only ones that need the registration, and they say so.)
 export interface LedgerIO {
@@ -384,8 +409,8 @@ function ledgerFor(learnerId: string): LedgerIO {
  *
  * WHAT `fn` CANNOT GET: a second writer. The whole body runs under
  * `profiles.json`'s lock, which is a promise chain for this key — so calling
- * `withLock("profiles.json", …)` from inside `fn` (which `updateProfile`'s
- * mutator does not, and `commitAndProject` does not: it opens no lock of its own)
+ * `withLock("profiles.json", …)` from inside `fn` (which `withLearnerState`'s
+ * mutator does not, and `commitAndProjectIn` does not: it opens no lock of its own)
  * would QUEUE BEHIND THIS ONE and hang. Nothing inside a transaction may take the
  * profile lock again; that is why the context exists rather than the caller doing
  * both steps.
@@ -446,15 +471,25 @@ export async function withLearner<T>(
  * two cannot drift into disagreeing about what a serialised write means. `null`
  * means the learner does not exist, and the mutator is never run for one who does
  * not (creating is not a mutation of an existing learner: §3 Q2 of the spec).
+ *
+ * THE MUTATOR'S FIRST ARGUMENT IS THE CONTEXT, deliberately (§14 phase C). A
+ * mutator taking only the record could append its evidence by resolving the PORT,
+ * which on a database backend opens a second connection and deadlocks against the
+ * advisory lock this transaction holds — correct on the file backend, and the one
+ * failure a unit test on the file backend cannot see. Making the context the
+ * first parameter means a mutator that needs the transaction has to name it.
+ *
+ * The state-only form (`updateProfile`) is gone for that reason: it was a
+ * convenience that could only be used correctly by accident.
  */
-export async function updateProfile<T>(
+export async function withLearnerState<T>(
   id: string,
-  mutator: (state: ProfileState) => T | Promise<T>,
+  mutator: (ctx: LearnerContext, state: ProfileState) => T | Promise<T>,
 ): Promise<{ state: ProfileState; result: T } | null> {
   return withLearner(id, async (ctx) => {
     const state = await ctx.getProfile();
     if (!state) return null;
-    const result = await mutator(state);
+    const result = await mutator(ctx, state);
     await ctx.saveProfile(state);
     return { state, result };
   });
@@ -721,11 +756,258 @@ export async function updateClassById<T>(
 export function newId(prefix: string): string {
   return `${prefix}_${randomUUID().replace(/-/g, "")}`;
 }
+/** Normalise an email: trim and lowercase. Used by account operations so the
+ * same address typed differently is always the same key. */
+export function normaliseEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/** Generate a random scrypt salt (16 bytes = 128 bits). */
+export function makeSalt(): string {
+  return randomBytes(16).toString("hex");
+}
+
+/** scrypt(password, salt, 64) -> hex. Kept here so account operations in the
+ * file store do not need to import from auth.ts and create a circular dependency.
+ */
+export function hashPassword(password: string, salt: string): string {
+  return scryptSync(password, salt, 64).toString("hex");
+}
+
 
 /** The alphabet a join code is drawn from: no I, L, O, 0 or 1, because a learner
  *  reads this off a whiteboard and types it on a phone keypad. 31 characters, so
  *  six of them is ~2^29.6 — enough that a collision is an accident rather than a
  *  routine event, and small enough to write down. */
+
+// ── Accounts: the identity half of the store ────────────────────────────────
+//
+// THE ONE IMPLEMENTATION, and it lives here rather than in `lib/server/auth.ts`
+// for a reason that is a bug this project had: `auth.ts` used to own
+// `accounts.json` privately (its own reader, its own writer, its own lock), so the
+// file had two writers whose only shared protection was that both of them
+// happened to take the same lock. That is the same defect the store's `locks` map
+// and `DATA_DIR` were centralised to remove, one layer up — and it meant an account
+// could not be described by the storage port at all, which is what slice 4 needs.
+//
+// So this is the FILE backend's account implementation. `auth.ts` keeps what is
+// genuinely authentication (hashing, the session token, the cookie) and asks the
+// port for the rest; a Postgres backend implements these ten methods against the
+// `users`/`sessions` tables (db/migrations/0006_learner_identity.up.sql) instead.
+//
+// TWO RULES THAT ARE EASY TO GET WRONG HERE:
+//
+//   · writes pass `"identity"`, so a password change, a sign-out and an account
+//     rename work on a deployment whose store has refused LEARNER records. A
+//     learner must be able to sign out precisely when the disk is wrong; refusing
+//     that would leave them signed in. (The refusal exists for records that would
+//     be silently lost, not for the account that names who is signed in.)
+//   · every write is inside `withLock("accounts.json", …)`, and every decision
+//     that depends on what is in the file ("is this email free?") is made INSIDE
+//     that lock. Checking and then inserting across two calls is the shape F-4
+//     names: the check protects nothing, and two concurrent sign-ups with the same
+//     address can both pass it.
+export async function getAccount(id: string): Promise<Account | null> {
+  const all = await readJson<Record<string, Account>>("accounts.json", {});
+  return all[id] ?? null;
+}
+
+export async function findAccountByEmail(email: string): Promise<Account | null> {
+  const target = normaliseEmail(email);
+  const all = await readJson<Record<string, Account>>("accounts.json", {});
+  return Object.values(all).find((a) => a.email === target) ?? null;
+}
+
+/**
+ * The account that already owns a learner profile, if any.
+ *
+ * "An account owns exactly one learner profile" is the invariant the auth module
+ * is built on, and it only holds if a profile is handed to an account ONCE. Two
+ * accounts pointing at one profile is not a merge of two learners — it is a
+ * stranger inside someone else's record, and the newcomer's own enrolment then
+ * rewrites the owner's course, year and name.
+ *
+ * This is the question every adoption path must ask before it binds anything. It
+ * cannot be answered from the profile's secret: a device that holds a session
+ * always holds that profile's secret, so "the secret matched" says nothing about
+ * whether the profile is anonymous. Ownership is the fact.
+ */
+export async function accountOwningProfile(
+  profileId: string,
+  exceptAccountId?: string,
+): Promise<Account | null> {
+  if (!profileId) return null;
+  const all = await readJson<Record<string, Account>>("accounts.json", {});
+  return Object.values(all).find((a) => a.profileId === profileId && a.id !== exceptAccountId) ?? null;
+}
+
+export async function countAccounts(): Promise<number> {
+  return Object.keys(await readJson<Record<string, Account>>("accounts.json", {})).length;
+}
+
+export async function createAccount(input: {
+  email: string;
+  password: string;
+  name: string;
+  role?: AccountRole;
+  profileId: string;
+}): Promise<Account> {
+  return withLock("accounts.json", async () => {
+    const all = await readJson<Record<string, Account>>("accounts.json", {});
+    const email = normaliseEmail(input.email);
+    if (Object.values(all).some((a) => a.email === email)) throw new Error("email_taken");
+    const salt = makeSalt();
+    const account: Account = {
+      id: newId("acc"),
+      email,
+      name: input.name.trim().slice(0, 40) || email.split("@")[0],
+      role: input.role ?? "student",
+      salt,
+      passHash: hashPassword(input.password, salt),
+      createdAt: Date.now(),
+      lastSeenAt: Date.now(),
+      profileId: input.profileId,
+      verified: false,
+    };
+    all[account.id] = account;
+    await writeJson("accounts.json", all, "identity");
+    return account;
+  });
+}
+
+export async function setAccountProfile(accountId: string, profileId: string): Promise<Account | null> {
+  return withLock("accounts.json", async () => {
+    const all = await readJson<Record<string, Account>>("accounts.json", {});
+    const a = all[accountId];
+    if (!a) return null;
+    a.profileId = profileId;
+    a.lastSeenAt = Date.now();
+    await writeJson("accounts.json", all, "identity");
+    return a;
+  });
+}
+
+export async function touchAccount(accountId: string): Promise<void> {
+  await withLock("accounts.json", async () => {
+    const all = await readJson<Record<string, Account>>("accounts.json", {});
+    const a = all[accountId];
+    if (!a) return;
+    a.lastSeenAt = Date.now();
+    await writeJson("accounts.json", all, "identity");
+  });
+}
+
+export async function updateAccount(
+  accountId: string,
+  patch: { name?: string; role?: AccountRole },
+): Promise<Account | null> {
+  return withLock("accounts.json", async () => {
+    const all = await readJson<Record<string, Account>>("accounts.json", {});
+    const a = all[accountId];
+    if (!a) return null;
+    if (typeof patch.name === "string" && patch.name.trim()) a.name = patch.name.trim().slice(0, 40);
+    if (patch.role) a.role = patch.role;
+    await writeJson("accounts.json", all, "identity");
+    return a;
+  });
+}
+
+export async function setPassword(accountId: string, password: string): Promise<void> {
+  await withLock("accounts.json", async () => {
+    const all = await readJson<Record<string, Account>>("accounts.json", {});
+    const a = all[accountId];
+    if (!a) return;
+    a.salt = makeSalt();
+    a.passHash = hashPassword(password, a.salt);
+    await writeJson("accounts.json", all, "identity");
+  });
+}
+
+/**
+ * Store (or clear) a learner's recovery code, as a hash plus salt.
+ *
+ * Clearing is expressed as `null` rather than a separate method because the two
+ * halves of the workflow — "a learner has a code" and "a learner has none yet" —
+ * are the same write with different content, and two methods would let a caller do
+ * one and forget the other. The fields are deleted rather than blanked so an
+ * account without a code is distinguishable from one with an empty string.
+ */
+export async function setRecoveryCode(
+  accountId: string,
+  code: { salt: string; hash: string } | null,
+): Promise<Account | null> {
+  return withLock("accounts.json", async () => {
+    const all = await readJson<Record<string, Account>>("accounts.json", {});
+    const a = all[accountId];
+    if (!a) return null;
+    if (code) {
+      a.recoverySalt = code.salt;
+      a.recoveryHash = code.hash;
+    } else {
+      delete a.recoverySalt;
+      delete a.recoveryHash;
+    }
+    await writeJson("accounts.json", all, "identity");
+    return a;
+  });
+}
+
+/**
+ * Store (or clear) a teacher-issued reset grant.
+ *
+ * The expiry is part of the SAME write as the hash, deliberately: an expiry written
+ * afterwards is a window in which a grant exists with no end date, and a crash
+ * between the two writes would leave a code that never stops working.
+ */
+export async function setResetGrant(
+  accountId: string,
+  grant: { salt: string; hash: string; expiresAt: number } | null,
+): Promise<Account | null> {
+  return withLock("accounts.json", async () => {
+    const all = await readJson<Record<string, Account>>("accounts.json", {});
+    const a = all[accountId];
+    if (!a) return null;
+    if (grant) {
+      a.resetSalt = grant.salt;
+      a.resetHash = grant.hash;
+      a.resetExpiresAt = grant.expiresAt;
+    } else {
+      delete a.resetSalt;
+      delete a.resetHash;
+      delete a.resetExpiresAt;
+    }
+    await writeJson("accounts.json", all, "identity");
+    return a;
+  });
+}
+
+/**
+ * The account a teacher-issued grant belongs to, from its LOOKUP KEY.
+ *
+ * The key is the first eight hex characters of the account id (see
+ * `resetKeyFor` in lib/recovery-code.ts), so this is a prefix scan. That is
+ * acceptable for the file store — a school's roll is thousands, not millions — and
+ * it is why the key is public: it shortlists ONE account, and the secret half of
+ * the code still has to verify against that account's hash. A database backend
+ * answers this with an index; the port is what makes that a swap rather than a
+ * rewrite.
+ */
+export async function findAccountByResetKey(key: string): Promise<Account | null> {
+  const wanted = key.trim().toUpperCase();
+  if (wanted.length !== 8) return null;
+  const all = await readJson<Record<string, Account>>("accounts.json", {});
+  return Object.values(all).find((a) => resetKeyFor(a.id) === wanted) ?? null;
+}
+
+export async function revokeSessions(accountId: string): Promise<void> {
+  await withLock("accounts.json", async () => {
+    const all = await readJson<Record<string, Account>>("accounts.json", {});
+    const a = all[accountId];
+    if (!a) return;
+    a.sessionEpoch = (a.sessionEpoch ?? 0) + 1;
+    await writeJson("accounts.json", all, "identity");
+  });
+}
 const JOIN_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 export function joinCode(): string {
@@ -766,5 +1048,131 @@ export async function createClass(build: (joinCode: string) => ClassRoster): Pro
       return cls;
     }
     throw new Error("no free join code after 32 attempts — the code space is exhausted, not unlucky");
+  });
+}
+
+// ── CLASSROOM SESSIONS ──────────────────────────────────────────────────────
+//
+// A supervised classroom cannot hold 40 permanent bearer capabilities on three
+// handsets. That is the whole finding of the shared-device audit: the roster
+// keeps each learner's secret in cleartext, so anyone holding the phone holds
+// every learner. A classroom handset needs the opposite property — a credential
+// that (a) is not the learner's permanent secret, (b) the SERVER can end, and
+// (c) dies on its own.
+//
+// So a kiosk learner authenticates with a PIN the teacher issued, and receives a
+// session TOKEN instead of a capability. The token is what the existing
+// `secret` plumbing carries, which is why no route had to learn a second
+// transport: the difference is enforced where the decision is made
+// (lib/server/capability.ts marks it `via: "kiosk"`), and every door that must
+// refuse a classroom session asks that flag rather than re-parsing anything.
+//
+// WHAT IS STORED, AND WHY IT IS A HASH. The file holds sha256(token), never the
+// token: a copy of `kiosk-sessions.json` (a backup, a support bundle, an
+// operator reading a school's volume) must not be a set of live credentials.
+// Lookup is by hash, so there is no comparison to make constant-time — the map
+// either has the key or it does not.
+export const KIOSK_SESSIONS_FILE = "kiosk-sessions.json";
+
+export interface KioskSessionRecord {
+  profileId: string;
+  classId: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
+/** sha256 of a session token. The token itself is 256 random bits and is shown
+ *  once, to the device that just proved the PIN. */
+function hashKioskToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+/** scrypt, like a password. A six-digit PIN has ~20 bits: `hashPassword` in this
+ *  file is the right primitive, and the rate limiter is the other half of the
+ *  answer (a PIN space that small is only safe when attempts are bounded). */
+export function kioskPinHash(pin: string, salt: string): string {
+  return scryptSync(pin.trim(), salt, 64).toString("hex");
+}
+
+/** Six digits, uniformly drawn — `randomInt` (not `Math.random`) because this is
+ *  a credential. Written as a string so a leading zero is preserved: `012345` and
+ *  `12345` are different PINs and a number would merge them. */
+export function mintKioskPin(): string {
+  return String(randomInt(0, 1_000_000)).padStart(6, "0");
+}
+
+/** A token the device presents as its secret: 256 random bits, hex. */
+export function mintKioskToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
+/** A profile's permanent capability, generated but NEVER disclosed — used by a
+ *  teacher-provisioned classroom learner, whose only usable credential is the
+ *  session its PIN is exchanged for. It is written because every learner record
+ *  has one (a profile with an empty secret is a profile the first writer could
+ *  claim), and it must not be mistaken for the classroom credential: nobody is
+ *  ever shown this string. */
+export function mintUnshownSecret(): string {
+  return randomBytes(32).toString("hex");
+}
+
+export async function createKioskSession(
+  profileId: string,
+  classId: string,
+  ttlMs: number,
+): Promise<{ token: string; expiresAt: number }> {
+  const token = mintKioskToken();
+  const now = Date.now();
+  const expiresAt = now + Math.max(60_000, Math.min(ttlMs, 12 * 60 * 60 * 1000));
+  await withLock(KIOSK_SESSIONS_FILE, async () => {
+    const all = await readJson<Record<string, KioskSessionRecord>>(KIOSK_SESSIONS_FILE, {});
+    // Expired rows are dropped on every write: a file that only grows is a file
+    // an operator has to reason about, and an expired row is not a credential.
+    for (const [k, v] of Object.entries(all)) if (v.expiresAt <= now) delete all[k];
+    all[hashKioskToken(token)] = { profileId, classId, createdAt: now, expiresAt };
+    // `identity` purpose: a store that has refused learner records must still be
+    // able to END a session, and creating one is pointless there anyway (the
+    // learner it names could not be written). It is also never refused, which is
+    // what keeps sign-out working on every deployment.
+    await writeJson(KIOSK_SESSIONS_FILE, all, "identity");
+  });
+  return { token, expiresAt };
+}
+
+/** The live session this token names, or null. Expiry is checked HERE, on the
+ *  server, because the client's clock is the attacker's to change. */
+export async function resolveKioskSession(token: string): Promise<KioskSessionRecord | null> {
+  if (typeof token !== "string" || token.length < 32) return null;
+  const all = await readJson<Record<string, KioskSessionRecord>>(KIOSK_SESSIONS_FILE, {});
+  const found = all[hashKioskToken(token)];
+  if (!found) return null;
+  if (found.expiresAt <= Date.now()) return null;
+  return found;
+}
+
+/** Hand-back. Deleting the row is what makes the token dead SERVER-SIDE, so a
+ *  copied token (a history entry, a synced profile, a run of the browser console)
+ *  is worth nothing after the learner leaves — which clearing the phone alone
+ *  could never achieve. */
+export async function deleteKioskSession(token: string): Promise<void> {
+  if (typeof token !== "string" || !token) return;
+  await withLock(KIOSK_SESSIONS_FILE, async () => {
+    const all = await readJson<Record<string, KioskSessionRecord>>(KIOSK_SESSIONS_FILE, {});
+    const key = hashKioskToken(token);
+    if (!all[key]) return;
+    delete all[key];
+    await writeJson(KIOSK_SESSIONS_FILE, all, "identity");
+  });
+}
+
+/** Every session for a learner — an erasure, or a teacher re-issuing a PIN. */
+export async function deleteKioskSessionsFor(profileId: string): Promise<void> {
+  await withLock(KIOSK_SESSIONS_FILE, async () => {
+    const all = await readJson<Record<string, KioskSessionRecord>>(KIOSK_SESSIONS_FILE, {});
+    let changed = false;
+    for (const [k, v] of Object.entries(all)) {
+      if (v.profileId === profileId) { delete all[k]; changed = true; }
+    }
+    if (changed) await writeJson(KIOSK_SESSIONS_FILE, all, "identity");
   });
 }

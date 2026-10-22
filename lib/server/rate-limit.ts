@@ -54,9 +54,10 @@
 // bound on `x-forwarded-for` lets the attacker rotate one line and try forever.
 // The account key cannot be forged — it is the thing being guessed — so the
 // per-account delay holds with no proxy at all. An address key is used ONLY when
-// the deployment declares a trusted proxy (`OPENMIND_TRUSTED_PROXY`), because
-// then the header is written by something the operator controls, and the
-// rightmost hop is the peer that proxy actually saw.
+// the deployment declares a trusted proxy AND the request can be attributed
+// through it; whether it can is decided in ONE place, `client-address.ts`, whose
+// header note states the provider evidence for counting a fixed number of hops
+// FROM THE RIGHT rather than trusting a header name.
 //
 // WHY A FIXED WINDOW AND NOT A SLIDING ONE.
 //
@@ -66,8 +67,6 @@
 // first failure closes on schedule whatever happens next, and a SOFT window's
 // `resetAt` is stamped once and never moved. Both properties are asserted in
 // `npm run verify` rather than left as a comment.
-import type { NextRequest } from "next/server";
-
 /** How a bound behaves once its budget is spent. */
 export type LimitMode = "hard" | "soft";
 
@@ -119,8 +118,51 @@ export const SIGNIN_PER_ADDRESS: LimitPolicy = { max: 40, windowMs: 15 * 60_000,
  *  attacker could throw to take sign-in down for everyone. */
 export const SIGNIN_PER_PROCESS: LimitPolicy = { max: 120, windowMs: 60_000, mode: "soft" };
 /** Sign-up: how many accounts one source address may create in an hour. Only
- *  applies when a trusted proxy names the address (see `clientAddress`). */
+ *  applies when a trusted proxy names the address (see `client-address.ts`). */
 export const SIGNUP_PER_ADDRESS: LimitPolicy = { max: 10, windowMs: 60 * 60_000, mode: "hard" };
+
+// ── THE OTHER DOORS THAT COST MONEY OR CPU ─────────────────────────────────
+//
+// Sign-in was never the expensive door; it was the one whose abuse is shaped
+// like a guess. These are the ones whose abuse is shaped like a bill: every AI
+// turn can be a paid model call, every answer runs the grader and the
+// projection, every sync batch writes a ledger, and a personal paper runs the
+// whole marking analysis. They are all HARD and all GENEROUS, keyed on the
+// AUTHENTICATED learner — which is unforgeable because the secret was checked
+// first, so the only person who can spend a learner's budget is someone who
+// already holds that learner's credential. Refusing at these bars therefore
+// cannot deny a learner their own record; it stops a loop.
+//
+// A request that reaches one of these doors unauthenticated has no learner to
+// key on. The AI doors are the only ones where that is a real path (a signed-out
+// visitor gets the offline tutor), so they also carry a process-wide SOFT bound
+// — counted, never refused — which is the difference between "the bill has a
+// ceiling" and "the bill is whatever one script wants".
+
+/** AI turns per learner per minute. A learner reading explanations cannot reach
+ *  this; a refresh loop reaches it in fifteen seconds. */
+export const AI_PER_LEARNER: LimitPolicy = { max: 20, windowMs: 60_000, mode: "hard" };
+/** AI turns across the PROCESS per minute, soft: it only slows. Same reason as
+ *  the sign-in process bound — a hard global ceiling is a switch an attacker
+ *  could throw to make the tutor unavailable to everyone. */
+export const AI_PER_PROCESS: LimitPolicy = { max: 120, windowMs: 60_000, mode: "soft" };
+/** Progress actions (a serve, an answer, a hint) per learner per five minutes.
+ *  Two a second sustained: a person working flat out is at ~12 a minute and a
+ *  whole e2e journey on one learner stays well under this, while a script in a
+ *  loop is thousands a second. It bounds the loop, not the learner. */
+export const ANSWERS_PER_LEARNER: LimitPolicy = { max: 600, windowMs: 5 * 60_000, mode: "hard" };
+/** Offline sync batches per learner per minute. A device that has been offline
+ *  for a week drains in a handful of batches; a hundred a minute is a script. */
+export const SYNC_PER_LEARNER: LimitPolicy = { max: 60, windowMs: 60_000, mode: "hard" };
+/** Personal-paper submissions per learner per ten minutes. Each one runs the
+ *  marking analysis over every question on the paper. */
+export const UPLOAD_PER_LEARNER: LimitPolicy = { max: 10, windowMs: 10 * 60_000, mode: "hard" };
+/** Diagnostic actions (start, answer, finish) per learner per five minutes. The
+ *  sitting's own ladder bounds it; this bounds a client that ignores the ladder. */
+export const DIAGNOSTIC_PER_LEARNER: LimitPolicy = { max: 200, windowMs: 5 * 60_000, mode: "hard" };
+
+/** The fixed key the AI process bound is counted against. */
+export const AI_PROCESS_KEY = "ai:process:all";
 
 /** The fixed key the process-wide bound is counted against. Exported so the
  *  route and its test cannot disagree about what "the process" means. */
@@ -284,33 +326,6 @@ export function trackedKeys(): number {
 export function resetAll(): void {
   buckets.clear();
   calls = 0;
-}
-
-function truthyEnv(value: string | undefined): boolean {
-  return /^(1|true|yes)$/i.test((value ?? "").trim());
-}
-
-/**
- * The caller's source address, or `null` when this deployment has not declared
- * a proxy that writes one.
- *
- * `null` is the important return value: it means "no address limit applies",
- * NOT "the address is unknown, so use a placeholder". A placeholder would put
- * every visitor in one shared bucket and turn a limit into an outage.
- *
- * With a single trusted proxy, the RIGHTMOST `x-forwarded-for` hop is the peer
- * that proxy itself saw, which is the client. The leftmost hop is whatever the
- * client chose to send, which is why it is never used.
- */
-export function clientAddress(req: Request | NextRequest): string | null {
-  if (!truthyEnv(process.env.OPENMIND_TRUSTED_PROXY)) return null;
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) {
-    const hops = forwarded.split(",").map((h) => h.trim()).filter(Boolean);
-    if (hops.length) return hops[hops.length - 1];
-  }
-  const real = req.headers.get("x-real-ip");
-  return real && real.trim() ? real.trim() : null;
 }
 
 /** The normalised account key a sign-in is counted against. Exported so the

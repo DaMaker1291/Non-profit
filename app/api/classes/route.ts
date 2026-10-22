@@ -9,12 +9,17 @@ import {
   updateClassById,
 } from "@/lib/server/store";
 import { authorizeLearner } from "@/lib/server/capability";
+import { authorisedProfile } from "@/lib/server/auth";
+import { canAdminister, teacherCaller, teacherOfClass, teachingAccountOf } from "@/lib/server/authority";
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { freeHandle, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
+import {
+  deleteKioskSessionsFor, kioskPinHash, makeSalt, mintKioskPin, mintUnshownSecret, newProfileState, saveProfile,
+} from "@/lib/server/store";
 import { liveRoster, memberEvidence, memberRoster, resolveMembers } from "@/lib/server/class-view";
 import { SUBJECT_IDS } from "@/lib/subjects";
-import { courseRefusal } from "@/lib/specifications";
-import type { ClassRoster, SubjectId } from "@/lib/types";
+import { courseRefusal, specById } from "@/lib/specifications";
+import type { ClassRoster, ProfileState, SubjectId } from "@/lib/types";
 
 export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
@@ -39,9 +44,15 @@ export async function GET(req: Request): Promise<NextResponse> {
   // closed here: this door used to hand join codes to anonymous callers, and
   // later it authenticated the caller without ever checking they belonged to
   // the class they named.)
-  const auth = await authorizeLearner(searchParams.get("me"), searchParams.get("secret"));
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const me = auth.state;
+  // `authorisedProfile` accepts the capability OR a signed-in session that owns
+  // the profile — a teacher's console reads its roster with the cookie alone,
+  // which is the credential that also carries its authority.
+  const me = await authorisedProfile(req, searchParams.get("me"), searchParams.get("secret"));
+  if (!me) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // TEACHER AUTHORITY IS THE ACCOUNT'S, resolved ONCE for the whole request (a
+  // listing asks about every class it returns). A learner's capability — even the
+  // owner's own — is not an administration credential: see lib/server/authority.
+  const teaching = await teachingAccountOf(req);
 
   const id = searchParams.get("id");
   if (id) {
@@ -61,7 +72,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     // by handle, which a class can hold two of.
     const learner = searchParams.get("learner");
     if (learner) {
-      if (!isTeacherOf(cls, me)) return NextResponse.json({ error: "not the teacher" }, { status: 403 });
+      if (!(await canAdminister(cls, teaching?.id ?? null))) {
+        return NextResponse.json({ error: "not_the_teacher" }, { status: 403 });
+      }
       // Membership through the ONE resolver, which is also what excludes the
       // teacher from their own class's student list — so a teacher cannot ask
       // for a row that is not a student's.
@@ -80,7 +93,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     // who may read it is the same rule that decides who may set the class's
     // work (lib/server/class-membership#isTeacherOf). A member still reads the
     // class itself, sanitised to their own row (class-view#memberRoster).
-    return NextResponse.json({ cls: isTeacherOf(cls, me) ? await liveRoster(cls) : await memberRoster(cls, me) });
+    return NextResponse.json({ cls: (await canAdminister(cls, teaching?.id ?? null)) ? await liveRoster(cls) : await memberRoster(cls, me) });
   }
   // The listing shows only classes the caller belongs to. WHAT THEY ARE TO THE
   // CLASS decides how much of each one they receive, and the same decision is
@@ -89,15 +102,31 @@ export async function GET(req: Request): Promise<NextResponse> {
   // sanitised. `teaching` is the answer to "is there a console here at all?",
   // which the teacher page needs before it renders one.
   const all = await listClasses();
+  // A TEACHER ADMINISTERS CLASSES THEY MAY NOT BE A MEMBER OF (a class is a
+  // roster of learners; the teacher's own profile is not required in it). The
+  // listing therefore includes administrable classes as well as joined ones, and
+  // each row says which it is — `canAdminister` is the same rule the write doors
+  // apply, so a console cannot offer an action the server would refuse.
   const mine = all.filter((cls) => isMemberOf(cls, me));
-  const classes = await Promise.all(
-    mine.map((cls) => (isTeacherOf(cls, me) ? liveRoster(cls) : memberRoster(cls, me))),
-  );
-  return NextResponse.json({ classes, teaching: mine.some((cls) => isTeacherOf(cls, me)) });
+  const administered = all.filter((cls) => !isMemberOf(cls, me));
+  // The shape stays a LIST OF ROSTERS, with one derived flag added: a client that
+  // renders `cls.students` keeps working, and the console can show "you administer
+  // this" from the same response that carries the roster. `canAdminister` is
+  // computed here and never stored — it is a property of the REQUEST, not of the
+  // class, and writing it down would make it stale the moment a teacher changes.
+  const rows: (ClassRoster & { canAdminister?: boolean })[] = [];
+  for (const cls of mine) {
+    const administer = await canAdminister(cls, teaching?.id ?? null);
+    rows.push({ ...(administer ? await liveRoster(cls) : await memberRoster(cls, me)), canAdminister: administer });
+  }
+  for (const cls of administered) {
+    if (await canAdminister(cls, teaching?.id ?? null)) rows.push({ ...(await liveRoster(cls)), canAdminister: true });
+  }
+  return NextResponse.json({ classes: rows, teaching: rows.some((r) => r.canAdminister) });
 }
 
 interface Body {
-  action: "create" | "join" | "report" | "update";
+  action: "create" | "join" | "report" | "update" | "provision" | "revoke";
   /** The class an "update" edits. */
   clsId?: string;
   /** The calling profile. Every action is authenticated by its capability, so
@@ -120,6 +149,16 @@ interface Body {
   conceptMastery?: Record<string, number>;
   /** misconceptionId -> hit count, reported by the joining student. */
   misconceptionHits?: Record<string, number>;
+  /** provision: the learners this teacher is enrolling in the class, by name.
+   *  Each gets a profile, a PIN (returned ONCE) and a credential row on the
+   *  class; nothing is printed twice and nothing is stored in the clear.
+   *
+   *  An entry that names an EXISTING classroom `id` re-issues that learner's PIN
+   *  instead of enrolling a new one — "I forgot my PIN" must not create a second
+   *  record, which is what revoke-then-provision would do. */
+  learners?: { handle?: string; id?: string }[];
+  /** revoke: whose classroom credential to destroy. */
+  learnerId?: string;
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -130,11 +169,40 @@ export async function POST(req: Request): Promise<NextResponse> {
     // pre-identity rows would decide it against a table that cannot name its own
     // members. Best-effort, as on the read path.
     await reconcileClassIdentities().catch(() => {});
-    const auth = await authorizeLearner(typeof body.id === "string" ? body.id : null, body.secret);
-    if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-    const caller = auth.state;
+    // WHICH CREDENTIAL THIS ACTION NEEDS DEPENDS ON WHAT IT IS.
+    //
+    //   learner actions (join, report)  the caller's own capability — as before.
+    //   teacher actions (create, update, provision, revoke)
+    //                                  a signed-in teaching ACCOUNT, and NO
+    //                                  learner capability at all. This is the fix
+    //                                  for the measured defect: the capability
+    //                                  check used to run for every action, and
+    //                                  `create` then treated the caller's profile
+    //                                  as the teacher. Asking for a capability here
+    //                                  would reintroduce exactly that.
+    const TEACHER_ACTIONS = new Set(["create", "update", "provision", "revoke"]);
+    let caller: ProfileState | null = null;
+    if (!TEACHER_ACTIONS.has(body.action)) {
+      const auth = await authorizeLearner(typeof body.id === "string" ? body.id : null, body.secret);
+      if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+      caller = auth.state;
+    }
     switch (body.action) {
       case "create": {
+        // ── A CLASS IS CREATED BY A TEACHER ACCOUNT, AND NOTHING ELSE ────────
+        //
+        // MEASURED DEFECT (shared-device audit): this branch used to accept any
+        // profile capability, so a learner's own id+secret created a class and
+        // became its "teacher". Every later door asked `isTeacherOf`, which
+        // compares PROFILE ids — and a capability is that profile — so the same
+        // two strings could then set work, read every classmate's answers and
+        // export the roster. No role was consulted anywhere.
+        //
+        // The fix is not a bigger secret or a hidden button: the authority is a
+        // DIFFERENT KIND of credential. A signed-in account with a teaching role
+        // owns the class; the profile capability only ever says who is asking.
+        const teacher = await teacherCaller(req);
+        if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
         // A class declares the curriculum it is taught (and, optionally, the
         // course). Work is assigned from that declaration, so a typo is
         // rejected here rather than becoming a class that silently cannot be
@@ -163,7 +231,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         // `classes_join_code_live_key` unique index, and the same loop is where
         // that index's answer is honoured. See `newId`/`createClass` in
         // lib/server/store.ts, and F-4 of docs/STORAGE_SPEC.md §13.
-        const h = (caller.profile.handle ?? "teacher").slice(0, 24);
+        const h = (teacher.profile.profile.handle ?? "teacher").slice(0, 24);
         const cls: ClassRoster = await createClass((joinCode) => ({
           id: newId("cls"),
           name: (body.name ?? "Untitled class").slice(0, 60),
@@ -176,17 +244,22 @@ export async function POST(req: Request): Promise<NextResponse> {
           // The creator is the class's first member: they will read their own
           // roster, and the plan engine needs their evidence like anyone's.
           students: { [h]: {} },
-          membersById: { [h]: caller.profile.id },
-          members: [caller.profile.id],
+          membersById: { [h]: teacher.profileId },
+          members: [teacher.profileId],
           createdAt: Date.now(),
-          // The creator is the class's TEACHER — the one authority that may set
-          // its work and read its monitor. Recorded as the learner id, never the
-          // role label (which every class carries) or a joiner-chosen handle.
-          ownerId: caller.profile.id,
+          // WHOSE PROFILE the class belongs to (a display fact and the storage
+          // key), and SEPARATELY the ACCOUNT that may administer it. Two fields
+          // because they are two facts: `ownerId` travels with a capability,
+          // `teacherAccountId` is the one a teacher-only door accepts.
+          ownerId: teacher.profileId,
+          teacherAccountId: teacher.account.id,
         }));
         return NextResponse.json({ cls });
       }
       case "join": {
+        // The branch above only skips the capability check for teacher actions;
+        // this one needs the caller's identity, and says so rather than asserting.
+        if (!caller) return NextResponse.json({ error: "missing id" }, { status: 400 });
         const upd = await updateClassByCode(body.joinCode ?? "", (cls) => {
           // A HANDLE IS A LABEL, NOT A KEY INTO SOMEONE ELSE'S ROW.
           // This used to write `membersById[h] = caller` unconditionally, so two
@@ -231,8 +304,13 @@ export async function POST(req: Request): Promise<NextResponse> {
         // by name when the subject is not part of it, so a class can never end
         // up taught a qualification it does not sit.
         if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
+        const existing = await getClass(body.clsId);
+        if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
+        // The class's ADMINISTRATOR, on the account — not the caller's profile.
+        const teacher = await teacherOfClass(req, existing);
+        if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
         const upd = await updateClassById(body.clsId, (cls) => {
-          if (!isTeacherOf(cls, caller)) return { error: "not the teacher" as const, status: 403 as const };
+          if (!isTeacherOf(cls, teacher.profile)) return { error: "not_the_teacher" as const, status: 403 as const };
           if (body.subject !== undefined && !(SUBJECT_IDS as string[]).includes(body.subject as string)) {
             return { error: "unknown subject" as const, status: 400 as const };
           }
@@ -252,6 +330,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         return NextResponse.json({ cls: upd.cls });
       }
       case "report": {
+        if (!caller) return NextResponse.json({ error: "missing id" }, { status: 400 });
         // Self-report remains, deliberately, as the FALLBACK channel: a device
         // with no profile can still attach numbers to a handle. But the live
         // view — the teacher's table and the plan's data — is derived from the
@@ -268,6 +347,137 @@ export async function POST(req: Request): Promise<NextResponse> {
         });
         if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
         return NextResponse.json({ cls: upd.cls });
+      }
+      case "provision": {
+        // ── THE TEACHER ISSUES THE CREDENTIALS ─────────────────────────────
+        //
+        // This is the kiosk model's first half: forty learners on three handsets
+        // cannot hold forty permanent capabilities (that is the shared-device
+        // audit's finding, and the reason the household roster is not the
+        // classroom's identity system). The teacher creates the learners HERE,
+        // the server mints a PIN for each, and the PIN is returned exactly once
+        // — it is stored as a scrypt hash on the class and is never readable
+        // again. A PIN is not a secret anyone can reuse off the device: it is
+        // exchanged at /api/kiosk/login for a session the server can end.
+        if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
+        const existing = await getClass(body.clsId);
+        if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
+        const teacher = await teacherOfClass(req, existing);
+        if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
+        const named = Array.isArray(body.learners)
+          ? body.learners.map((l) => ({
+              handle: typeof l?.handle === "string" ? l.handle.trim().slice(0, 24) : "",
+              id: typeof l?.id === "string" ? l.id : "",
+            }))
+          : [];
+        if (named.length === 0) return NextResponse.json({ error: "no learners named" }, { status: 400 });
+        if (named.length > 200) return NextResponse.json({ error: "too many learners" }, { status: 400 });
+        if (named.some((l) => !l.id && !l.handle)) return NextResponse.json({ error: "no learners named" }, { status: 400 });
+        // A re-issue names a learner who ALREADY has a classroom credential on
+        // THIS class. Anything else is refused rather than guessed at: minting a
+        // PIN for an id the class does not carry would hand a teacher a key to a
+        // record that is not on their roster.
+        for (const l of named) {
+          if (l.id && !existing.kiosk?.[l.id]) {
+            return NextResponse.json({ error: "not_a_classroom_learner" }, { status: 404 });
+          }
+        }
+        const handleOf = (id: string): string =>
+          Object.entries(existing.membersById ?? {}).find(([, v]) => v === id)?.[0] ?? "";
+
+        const issued: { id: string; handle: string; pin: string; reissued: boolean }[] = [];
+        for (const { id: existingId, handle: namedHandle } of named) {
+          // THE SAME CREDENTIAL ROW, A NEW PIN. An existing learner keeps their
+          // record, their handle and their work; only the secret that opens it
+          // changes (and their live sessions are ended below).
+          if (existingId) {
+            issued.push({ id: existingId, handle: handleOf(existingId) || namedHandle, pin: mintKioskPin(), reissued: true });
+            continue;
+          }
+          const handle = namedHandle;
+          const id = newId("prof");
+          const state = newProfileState(id, {
+            handle,
+            country: teacher.profile.profile.country ?? "XX",
+            language: existing.language || "en",
+            subjects: existing.subject ? [existing.subject] : teacher.profile.profile.subjects,
+            // A teacher-provisioned learner is enrolled, not mid-wizard: the
+            // class declared their subject and the school declared the language,
+            // so the guard must not send them back through onboarding.
+            onboardedAt: Date.now(),
+          });
+          // The permanent capability exists because every learner record has one
+          // (an empty secret is a record the first writer could claim) and is
+          // NEVER DISCLOSED: this learner's only usable credential is the session
+          // its PIN buys, which the server ends at hand-back.
+          state.secret = mintUnshownSecret();
+          if (existing.specificationId) {
+            const spec = specById(existing.specificationId);
+            if (spec) {
+              state.profile.spec = spec.id;
+              state.profile.specLevel = spec.levels[0].id;
+            }
+          }
+          // The record is written BEFORE the roster row, so a refused store
+          // cannot leave a member the teacher can see and nobody can sign in as.
+          await saveProfile(state);
+          issued.push({ id, handle, pin: mintKioskPin(), reissued: false });
+        }
+        const upd = await updateClassById(existing.id, (cls) => {
+          cls.kiosk ??= {};
+          for (const l of issued) {
+            const salt = makeSalt();
+            cls.kiosk[l.id] = { salt, hash: kioskPinHash(l.pin, salt), issuedAt: Date.now() };
+            // A learner already on the roster keeps their row: `freeHandle` is
+            // for a NEW member, and running it for an existing one would bind a
+            // second handle to the same record (the collision this roster was
+            // repaired for in the first place).
+            if (!(cls.members ?? []).includes(l.id)) {
+              const h = freeHandle(cls, l.handle, l.id);
+              cls.students[h] = cls.students[h] ?? {};
+              cls.membersById ??= {};
+              cls.membersById[h] = l.id;
+              cls.members ??= [];
+              cls.members.push(l.id);
+            }
+          }
+          return { provisioned: issued.length };
+        });
+        if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+        // A RE-ISSUED PIN KILLS THE SESSIONS THE OLD ONE BOUGHT. Without this, a
+        // handset still holding the old token would keep working until expiry,
+        // and the re-issue would be a courtesy rather than a revocation.
+        for (const l of issued) if (l.reissued) await deleteKioskSessionsFor(l.id);
+        // THE ONLY TIME THE PINS LEAVE THIS FUNCTION. A caller that loses them
+        // re-issues (see `revoke`), which is deliberate: a credential the server
+        // can show twice is a credential that lives in a log.
+        return NextResponse.json({ learners: issued, cls: upd.cls });
+      }
+      case "revoke": {
+        // DESTROYING a credential. "I forgot my PIN" is answered by `provision`
+        // with the learner's `id` (a new PIN on the SAME record); this action is
+        // for a learner who should no longer have a way in at all — a phone
+        // handed on, a class removed from the timetable. Sessions for that
+        // learner are ended here too, or a handset still holding one would keep
+        // working past its revocation.
+        if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
+        if (typeof body.learnerId !== "string" || !body.learnerId) {
+          return NextResponse.json({ error: "missing learner" }, { status: 400 });
+        }
+        const existing = await getClass(body.clsId);
+        if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
+        const teacher = await teacherOfClass(req, existing);
+        if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
+        const upd = await updateClassById(existing.id, (cls) => {
+          if (!cls.kiosk?.[body.learnerId as string]) return { error: "not a classroom learner" as const, status: 404 as const };
+          delete cls.kiosk[body.learnerId as string];
+          return { revoked: body.learnerId as string };
+        });
+        if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+        const r = upd.result as { error?: string; status?: number; revoked?: string };
+        if (r.error) return NextResponse.json({ error: r.error }, { status: r.status ?? 400 });
+        await deleteKioskSessionsFor(body.learnerId);
+        return NextResponse.json({ revoked: r.revoked });
       }
       default:
         return NextResponse.json({ error: "unknown action" }, { status: 400 });

@@ -3,8 +3,18 @@ import { getClass, listClasses, newId, updateClassById } from "@/lib/server/stor
 // A store that cannot keep a learner record refuses the write and says why; this
 // route turns that refusal into the honest 503 instead of a bare 500.
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
-import { authorizeLearner } from "@/lib/server/capability";
-import { isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
+// TEACHER AUTHORITY IS THE ACCOUNT'S, on this door as on every other teacher
+// door. It used to decide with `isTeacherOf(cls, caller)` — "is this PROFILE the
+// class's owner?" — and a capability IS that profile, so the same two strings
+// that let a learner practise also let whoever held them read the class's
+// derived needs and set its work through the intervention loop. That is the
+// exact defect the class door was repaired for; leaving this door on the old
+// rule would have made the repair a screen rather than a boundary.
+//
+// A classroom PIN session is not a teacher either, by the same construction:
+// `teacherCaller` reads the signed-in ACCOUNT, so a session token presented as
+// `secret` is irrelevant here rather than special-cased.
+import { canAdminister, teacherCaller, teacherOfClass } from "@/lib/server/authority";
 import { resolveMembers } from "@/lib/server/class-view";
 import { assignableConcepts, deriveAssignmentProgress, monitorFor } from "@/lib/server/assignment-view";
 import { readEvidence } from "@/lib/server/evidence";
@@ -118,16 +128,17 @@ function needIdFor(kind: FindingKind, conceptId: string, misconceptionId?: strin
 
 export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
-  const auth = await authorizeLearner(searchParams.get("me"), searchParams.get("secret"));
-  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-  const me = auth.state;
+  const who = await teacherCaller(req);
+  if (!who.ok) return NextResponse.json({ error: who.error }, { status: who.status });
 
   const clsId = searchParams.get("cls");
   if (clsId) {
     const cls = await getClass(clsId);
     if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
-    if (!isMemberOf(cls, me)) return NextResponse.json({ error: "not a member" }, { status: 403 });
-    if (!isTeacherOf(cls, me)) return NextResponse.json({ error: "not the teacher" }, { status: 403 });
+    // Same rule, same two refusals as every other teacher door: a signed-in
+    // teaching ACCOUNT that owns THIS class. `me`/`secret` are not consulted.
+    const teacher = await teacherOfClass(req, cls);
+    if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
     const { needs } = await deriveNeeds(cls, null);
     const records = (await listForClass(clsId))
       .filter((r) => r.status === "proposed" || r.status === "assigned" || r.status === "resolved");
@@ -137,7 +148,10 @@ export async function GET(req: Request): Promise<NextResponse> {
   // No class named: the strongest needs across every class the caller OWNS.
   // Sorted by severity within each class, then capped — Teacher Home reads
   // this, and "too many to read" is the failure mode the cap exists for.
-  const mine = (await listClasses()).filter((cls) => isTeacherOf(cls, me));
+  const mine: Awaited<ReturnType<typeof listClasses>> = [];
+  for (const cls of await listClasses()) {
+    if (await canAdminister(cls, who.account.id)) mine.push(cls);
+  }
   const rows: Array<ClassNeed & { className: string; clsId2: string }> = [];
   for (const cls of mine) {
     const { needs } = await deriveNeeds(cls, null);
@@ -185,19 +199,16 @@ const DECISION_KINDS: readonly DecisionKind[] = [
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     const body = (await req.json()) as Body;
-    const auth = await authorizeLearner(typeof body.id === "string" ? body.id : null, body.secret);
-    if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-    const caller = auth.state;
-
     if (typeof body.clsId !== "string" || !body.clsId) {
       return NextResponse.json({ error: "missing class" }, { status: 400 });
     }
     const cls = await getClass(body.clsId);
     if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
-    // Same two refusals the roster door uses: the class's material about its
-    // students belongs to its teacher, and to nobody else.
-    if (!isMemberOf(cls, caller)) return NextResponse.json({ error: "not a member" }, { status: 403 });
-    if (!isTeacherOf(cls, caller)) return NextResponse.json({ error: "not the teacher" }, { status: 403 });
+    // THE ACCOUNT'S AUTHORITY, decided once, before anything is derived. A
+    // capability in the body is a learner credential: it names nobody here.
+    const teacher = await teacherOfClass(req, cls);
+    if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
+    const caller = teacher.profile;
 
     const members = await resolveMembers(cls);
     const byHandle = new Set(members.map((m) => m.handle));
@@ -305,7 +316,12 @@ export async function POST(req: Request): Promise<NextResponse> {
             : "Intervention");
         const stamp = Date.now();
         const upd = await updateClassById(cls.id, (c) => {
-          if (!isTeacherOf(c, caller)) return { error: "not the teacher" as const, status: 403 as const };
+          // Re-check INSIDE the lock, synchronously: an account that no longer
+          // owns the roster must not administer it. A legacy row (no
+          // `teacherAccountId` yet) was resolved by `teacherOfClass` above.
+          if (c.teacherAccountId && c.teacherAccountId !== teacher.account.id) {
+            return { error: "not the teacher" as const, status: 403 as const };
+          }
           const a: Assignment = {
             id: newId("asg"),
             clsId: c.id,

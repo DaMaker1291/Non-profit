@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getClass, listClasses, newId, updateClassById } from "@/lib/server/store";
 import { authorizeLearner } from "@/lib/server/capability";
+import { canAdminister, teacherOfClass, teachingAccountOf } from "@/lib/server/authority";
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { handleOf, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
 import { resolveMembers } from "@/lib/server/class-view";
@@ -66,6 +67,11 @@ export async function GET(req: Request): Promise<NextResponse> {
   const auth = await authorizeLearner(searchParams.get("me"), searchParams.get("secret"));
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const me = auth.state;
+  // THE MONITOR IS A TEACHER'S INSTRUMENT AND A TEACHER'S ACCOUNT IS THE ONLY
+  // THING THAT OPENS IT. A capability proves who is asking; it does not prove
+  // what they may administer (the audit measured a learner's own secret reading
+  // every member's evidence through this door's sibling checks).
+  const teaching = await teachingAccountOf(req);
 
   const mineClasses = (await listClasses()).filter((cls) => isMemberOf(cls, me));
   const assigned: AssignedWork[] = [];
@@ -77,8 +83,10 @@ export async function GET(req: Request): Promise<NextResponse> {
   // the one rule rather than rebuilding it (and a picker cannot offer a concept
   // the door would refuse). A class that has declared no subject offers
   // nothing and says so — no default curriculum is substituted.
+  const administered = new Map<string, boolean>();
+  for (const cls of mineClasses) administered.set(cls.id, await canAdminister(cls, teaching?.id ?? null));
   const owned = mineClasses
-    .filter((cls) => isTeacherOf(cls, me))
+    .filter((cls) => administered.get(cls.id) === true)
     .map((cls) => ({
       id: cls.id,
       name: cls.name,
@@ -90,7 +98,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   for (const cls of mineClasses) {
     const work = cls.assignments ?? [];
     if (work.length === 0) continue;
-    const teacher = isTeacherOf(cls, me);
+    const teacher = administered.get(cls.id) === true;
     // A teacher reads every member's row; a member reads only their own. The
     // resolution is the same one the roster uses, so the two cannot disagree
     // about who is in the class. Each member's ledger is read ONCE and reused
@@ -169,13 +177,20 @@ interface Body {
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     const body = (await req.json()) as Body;
-    const auth = await authorizeLearner(typeof body.id === "string" ? body.id : null, body.secret);
-    if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
-    const caller = auth.state;
-
+    // ONLY THE CLASS'S TEACHER ACCOUNT MAY SET OR REMOVE WORK. The learner
+    // capability is deliberately NOT consulted: it proves who is asking, and the
+    // audit measured that a learner's capability could set a class's work because
+    // that was the only credential this door ever asked for.
     if (typeof body.clsId !== "string" || !body.clsId) {
       return NextResponse.json({ error: "missing class" }, { status: 400 });
     }
+
+    // SETTING OR REMOVING WORK IS TEACHER AUTHORITY, ON THE ACCOUNT. The
+    // capability above names the caller; this decides whether they may act.
+    const target = await getClass(body.clsId);
+    if (!target) return NextResponse.json({ error: "not found" }, { status: 404 });
+    const teacher = await teacherOfClass(req, target);
+    if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
 
     if (body.action === "create") {
       const conceptIds = Array.isArray(body.conceptIds)
@@ -218,7 +233,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
 
       const upd = await updateClassById(body.clsId, (cls) => {
-        if (!isTeacherOf(cls, caller)) return { error: "not the teacher" as const, status: 403 as const };
+        if (!isTeacherOf(cls, teacher.profile)) return { error: "not_the_teacher" as const, status: 403 as const };
         // The curriculum the class actually declared — never a default. A class
         // that declared none may have one declared here (a legacy roster), and
         // a class whose declared course covers none of its subject can be set
@@ -235,7 +250,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         const a: Assignment = {
           id: newId("asg"),
           clsId: cls.id,
-          createdBy: caller.profile.id,
+          createdBy: teacher.profile.profile.id,
           title,
           subject,
           specificationId: cls.specificationId ?? null,
@@ -264,7 +279,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         return NextResponse.json({ error: "missing assignment" }, { status: 400 });
       }
       const upd = await updateClassById(body.clsId, (cls) => {
-        if (!isTeacherOf(cls, caller)) return { error: "not the teacher" as const, status: 403 as const };
+        if (!isTeacherOf(cls, teacher.profile)) return { error: "not_the_teacher" as const, status: 403 as const };
         const before = (cls.assignments ?? []).length;
         cls.assignments = (cls.assignments ?? []).filter((a) => a.id !== body.assignmentId);
         if (cls.assignments.length === before) return { error: "not found" as const, status: 404 as const };
