@@ -58,9 +58,54 @@ export function storeWriteRefusalNow(): NextResponse | null {
  *        …the route's own error handling
  *      }
  */
+/**
+ * THE SECOND WAY A STORE REFUSES, and the one that used to be reported as the
+ * learner's fault.
+ *
+ * The durability refusal above is DELIBERATE — the store checks before writing
+ * and throws a named error. A filesystem that simply says no is not deliberate:
+ * it throws a plain `Error` carrying a `code` and often a `syscall`/`path`, and
+ * it reached the route's generic `catch`, which answered `400 bad request`.
+ * Measured on a live Render service whose data directory could not be created:
+ * a learner pressing "Start learning" was told "bad request" — their form was
+ * fine; the deployment could not write a file. The errno is the diagnosis and
+ * the path is the operator's own variable, so both are reported, and the status
+ * is 503 for the same reason the durability refusal uses it: nothing is
+ * forbidden to this caller, the deployment cannot serve.
+ */
+const WRITE_ERRNOS = new Set([
+  "EACCES", "EPERM", "EROFS", "ENOSPC", "EDQUOT", "ENOENT", "ENOTDIR", "EIO", "EMFILE", "ENFILE",
+]);
+
 export function storeWriteRefusal(e: unknown): NextResponse | null {
-  const err = e as { name?: unknown; code?: unknown; detail?: unknown; message?: unknown } | null;
-  if (!err || err.name !== "StoreWriteBlockedError") return null;
+  const err = e as {
+    name?: unknown; code?: unknown; detail?: unknown; message?: unknown; path?: unknown; syscall?: unknown;
+  } | null;
+  if (!err) return null;
+  // A RAW FILESYSTEM ERROR IS STILL A STORE REFUSAL. Checked by code AND by the
+  // shape a `fs` error has (`syscall` or `path`), so an unrelated error that
+  // happens to carry `code: "EACCES"` is not re-badged as a store problem.
+  if (err.name !== "StoreWriteBlockedError") {
+    const code = typeof err.code === "string" ? err.code : "";
+    const looksLikeFs = typeof err.syscall === "string" || typeof err.path === "string";
+    if (!WRITE_ERRNOS.has(code) || !looksLikeFs) return null;
+    const where = typeof err.path === "string" && err.path ? ` (${err.path})` : "";
+    return NextResponse.json(
+      {
+        error: "store_not_writable",
+        reason: code,
+        // The VARIABLE is deliberately not named in this sentence. `lib/server/store.ts`
+        // is the one place allowed to resolve where learning data lives, and the
+        // source guard that enforces it scans strings too — naming the variable
+        // here reads as a second copy of the rule. The path already travels in
+        // this message and in `/api/ready`'s `data.dir`, which is what an operator
+        // acts on.
+        detail: `the server could not write its data directory${where}: ${code}. The deployment must point its data directory at a path the server process can create and write — learner records cannot be kept anywhere else`,
+        writes: false,
+      },
+      { status: 503, headers: { "cache-control": "no-store" } },
+    );
+  }
   const code = typeof err.code === "string" ? err.code : "store_not_writable";
   const detail = typeof err.detail === "string" ? err.detail : String(err.message ?? "");
   return NextResponse.json(
