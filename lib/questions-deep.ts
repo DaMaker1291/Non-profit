@@ -719,19 +719,27 @@ export const DEEP_GENS: Record<string, DeepGen> = {
     const l = r.int(21, 89) / 10;
     const w = r.int(21, 89) / 10;
     const maxArea = (l + 0.05) * (w + 0.05);
-    const correct = `${deepNum(maxArea, 4)} cm²`;
+    // EVERY OPTION IS PRINTED TO THE SAME PRECISION, and the prompt states it.
+    // These options used to be `deepNum(x, 4)`, which TRIMS trailing zeros — so
+    // the key, a product of two 1-dp bounds, was the only option with four
+    // decimals (55.9475 cm² beside 56.7 and 15.6) and picking the longest string
+    // scored 100% on this concept. Fixed-width formatting removes the cue and is
+    // the truthful presentation: four decimal places of a centimetre-squared
+    // computed from 0.1 cm measurements is precision the data cannot support.
+    const f2 = (x: number) => x.toFixed(2);
+    const correct = `${f2(maxArea)} cm²`;
     return {
-      prompt: `A rectangle measures ${deepNum(l, 1)} cm by ${deepNum(w, 1)} cm, each measured to the nearest 0.1 cm. What is the largest possible value of its area?`,
+      prompt: `A rectangle measures ${deepNum(l, 1)} cm by ${deepNum(w, 1)} cm, each measured to the nearest 0.1 cm. What is the largest possible value of its area, in cm²? Give your answer to 2 decimal places.`,
       correct,
       wrongs: pickDistinct(correct, [
-        `${deepNum(l * w, 4)} cm²`,
-        `${deepNum((l + 0.1) * (w + 0.1), 4)} cm²`,
-        `${deepNum(2 * (l + 0.05) + 2 * (w + 0.05), 4)} cm²`,
-        `${deepNum((l + 0.05) * (w - 0.05), 4)} cm²`,
-        `${deepNum(l * w + 0.1, 4)} cm²`,
+        `${f2(l * w)} cm²`,
+        `${f2((l + 0.1) * (w + 0.1))} cm²`,
+        `${f2(2 * (l + 0.05) + 2 * (w + 0.05))} cm²`,
+        `${f2((l + 0.05) * (w - 0.05))} cm²`,
+        `${f2(l * w + 0.1)} cm²`,
       ]),
       tags: ["round-half"],
-      explanation: `To the nearest 0.1 cm, the true length is at most ${deepNum(l + 0.05, 2)} cm and the true width at most ${deepNum(w + 0.05, 2)} cm. The largest area uses BOTH upper bounds: ${deepNum(l + 0.05, 2)} × ${deepNum(w + 0.05, 2)} = ${deepNum(maxArea, 4)} cm². Using the measurements as written (${deepNum(l * w, 4)}) ignores the rounding altogether, and adding the whole 0.1 step assumes twice the real uncertainty.`,
+      explanation: `To the nearest 0.1 cm, the true length is at most ${deepNum(l + 0.05, 2)} cm and the true width at most ${deepNum(w + 0.05, 2)} cm. The largest area uses BOTH upper bounds: ${deepNum(l + 0.05, 2)} × ${deepNum(w + 0.05, 2)} = ${f2(maxArea)} cm². Using the measurements as written (${f2(l * w)}) ignores the rounding altogether, and adding the whole 0.1 step assumes twice the real uncertainty.`,
       difficulty: 0.78 + r.next() * 0.06,
     };
   },
@@ -1996,8 +2004,8 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       prompt: `A microscope shows a cell about ${width} μm wide:\n· green disks are visible inside it: ${chloro ? "yes" : "no"}\n· a dark rounded shape is visible: ${nucleus ? "yes" : "no"}\nThe cell is most likely which, and why?`,
       correct: `${name} — ${nucleus ? "a nucleus is present" : "no nucleus is present"}${chloro ? " and chloroplasts show" : " and no chloroplasts show"}`,
       wrongs: pickDistinct(`${name} — ${nucleus ? "a nucleus is present" : "no nucleus is present"}${chloro ? " and chloroplasts show" : " and no chloroplasts show"}`, [
-        `${nucleus ? "A fungus cell — no nucleus is present" : "An animal cell — a nucleus is present"}`,
-        `${chloro ? "An animal cell — chloroplasts show" : "A plant cell — chloroplasts show"}`,
+        `${nucleus ? "A fungus cell — no nucleus is present, which the dark rounded shape inside rules out" : "An animal cell — a nucleus is present, which the featureless interior rules out"}`,
+        `${chloro ? "An animal cell — chloroplasts show, and animal cells keep chloroplasts in their skin" : "A plant cell — chloroplasts show, and every plant cell is green all through"}`,
         `A bacterium — the width fits`,
       ]),
       tags: [],
@@ -2019,11 +2027,19 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       return {
         prompt: `An enzyme's reaction rate was measured at five temperatures:\n${table.join("\n")}\nWhat happens ABOVE the peak temperature, and why?`,
         correct: "The rate falls sharply — the enzyme's active site denatures",
-        wrongs: pickDistinct("The rate falls sharply — the enzyme's active site denatures", [
+        // FIVE CANDIDATES, THREE SERVED — see the note on `ai-basics`. A fixed
+        // option set carries a fixed length rank, so a row whose key is the
+        // longest string is a certain win for a learner who reads nothing. More
+        // candidates than options, chosen per draw, is what makes the key's rank
+        // vary; every candidate here is wrong for this table in its own way, and
+        // each is stated as fully as the key so length stops carrying the answer.
+        wrongs: pickDistinct("The rate falls sharply — the enzyme's active site denatures", r.shuffle([
           "The rate stays at the peak — more heat cannot help or harm",
-          "The rate keeps rising — heat always speeds reactions",
-          "The rate falls gently — the substrate runs out",
-        ]),
+          "The rate keeps rising — heat always speeds up reactions",
+          "The rate falls gently — the substrate has run out",
+          "The rate falls to zero at once and stays there, because heat destroys an enzyme completely and instantly",
+          "The rate rises again after a dip, because the enzyme rebuilds its own active site and recovers",
+        ])),
         tags: [],
         explanation: `Below the peak, heat gives molecules more kinetic energy — more successful collisions. Above it the protein vibrates so hard its three-dimensional shape warps: the active site no longer fits the substrate, so the rate COLLAPSES (in this table, from 100% to ${opt === 37 ? "90%" : "25%"} and below). Heat speeds chemistry but destroys protein shape — two effects fighting, and shape loses.`,
         difficulty: 0.72,
@@ -2054,11 +2070,13 @@ export const DEEP_GENS: Record<string, DeepGen> = {
     return {
       prompt: `Two enzymes' optimum pH:\n· Pepsin (stomach): pH ${pepsin === 1 ? 2 : pepsin === 3 ? 1 : 3}\n· Amylase (mouth): pH ${amylase}\nThe same amylase sample is placed at pH 2. What happens, and what does the comparison show?`,
       correct: "Activity falls to near zero — the sample denatures far from its optimum; optimum pH differs by location",
-      wrongs: pickDistinct("Activity falls to near zero — the sample denatures far from its optimum; optimum pH differs by location", [
-        "Activity doubles — acids activate enzymes",
-        "Activity is unchanged — pH only matters for pepsin",
-        "The amylase works better because pH 2 is lower, and lower is faster",
-      ]),
+      wrongs: pickDistinct("Activity falls to near zero — the sample denatures far from its optimum; optimum pH differs by location", r.shuffle([
+        "The amylase works better at pH 2, because a lower pH means more hydrogen ions and therefore a faster reaction",
+        "Activity is unchanged — pH only shapes pepsin, and amylase keeps working at whatever pH it is placed in",
+        "Activity doubles — stomach acid activates digestive enzymes, so moving an enzyme to a lower pH always speeds it up",
+        "Activity keeps rising for a while, then settles back to the rate it had at pH 7, because enzymes buffer themselves",
+        "Activity falls slightly, but only because the sample has been diluted by the stomach contents",
+      ])),
       tags: [],
       explanation: `An enzyme works only near its optimum pH. Amylase's is ${amylase}; at pH 2 the ionic bonds holding its shape break, the active site warps, and activity collapses — the same denaturation heat causes, by a different route. Pepsin's optimum near pH 2 is why protein digestion works in the stomach but not the mouth: the enzymes are matched to their location's chemistry.`,
       difficulty: 0.76,
@@ -2075,9 +2093,13 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       return {
         prompt: `Pondweed bubbles per minute against light intensity:${table}\nWhy does the count stop rising beyond 20 a.u.?`,
         correct: "A different factor (CO₂ or temperature) is now limiting",
+        // The key was the longest option here; it is now the second-longest,
+        // with one misconception stated more fully than the key and two in
+        // brief — so "pick the longest" scores nothing. See the note on
+        // `ai-basics` for why a single option set has a floor at 50%.
         wrongs: pickDistinct("A different factor (CO₂ or temperature) is now limiting", [
+          "Chlorophyll stops working at high light, so the leaf stops absorbing any more of it",
           "The plant has used up all its light",
-          "Chlorophyll stops working at high light",
           "The plant is photosynthesising less as light rises",
         ]),
         tags: [],
@@ -2155,9 +2177,9 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       prompt: `A fermentation flask of yeast in sugar solution is kept at ${yeast} °C:\n· limewater in the outlet turns cloudy\n· the solution smells of alcohol\nWhich process, and what do the two observations show?`,
       correct: "Anaerobic respiration — CO₂ (limewater) and ethanol (the smell) are its products",
       wrongs: pickDistinct("Anaerobic respiration — CO₂ (limewater) and ethanol (the smell) are its products", [
-        "Aerobic respiration — CO₂ and alcohol are its products",
+        "Aerobic respiration — CO₂ and alcohol are its products, since yeast respires fully whenever sugar is in the flask",
         "Photosynthesis — yeast makes sugar from CO₂",
-        "Denaturation — the yeast is breaking down at ${yeast} °C",
+        `Denaturation — the yeast is breaking down at ${yeast} °C`,
       ]),
       tags: [],
       explanation: `Yeast without oxygen: glucose → ethanol + CO₂. Cloudy limewater is the standard test for CO₂; the alcohol smell is the ethanol. The temperature matters too: warm speeds fermentation, but far above ~40 °C the yeast enzymes denature and it stops.`,
@@ -2192,9 +2214,9 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       prompt: `Pancreatic lipase works in the small intestine at around pH 7–8. ${acid === "HCl (stomach acid)" ? "Stomach contents entering the intestine are pH 2." : "Fat entering the intestine is in large oily drops."}\nHow does bile make fat digestion faster?`,
       correct: "It emulsifies fat into tiny droplets — more surface for lipase — and neutralises stomach acid",
       wrongs: pickDistinct("It emulsifies fat into tiny droplets — more surface for lipase — and neutralises stomach acid", [
+        "It raises the temperature of the intestine so that lipase works faster, and it also washes the fat along the gut wall",
         "It digests fat itself, so lipase only finishes the job",
         "It adds water to the fat, diluting it into submission",
-        "It raises the fat's temperature so lipase works faster",
       ]),
       tags: [],
       explanation: `Bile is not an enzyme — it changes the CONDITIONS. Emulsification chops big drops into tiny ones, multiplying the surface lipase can attack (rate ∝ surface area). It is also alkaline, neutralising the pH 2 stomach acid so the intestinal enzymes can work. Two effects, one secretion.`,
@@ -2687,6 +2709,7 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       prompt: `Two users choose the SAME password. The server stores:\n· ${u1}: hash(pw + salt1)\n· ${u2}: hash(pw + salt2), salt1 ≠ salt2\nWhy the different salts?`,
       correct: "Equal passwords produce different hashes, so a stolen table cannot reveal who shares a password",
       wrongs: pickDistinct("Equal passwords produce different hashes, so a stolen table cannot reveal who shares a password", [
+        "Salts are added so the same password is stored at a different length for each user, which stops a stolen table from matching either row",
         "Salts make the login faster for the server",
         "Salts are needed because hashing is reversible without them",
         "Each salt replaces the user's password before hashing",
@@ -2900,7 +2923,7 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       prompt: `The same mass of magnesium ribbon reacts with the same acid:\n· at ${t1} °C, 100 cm³ of gas collects in 80 s\n· at ${t2} °C, 100 cm³ collects in 40 s\nWhat does the comparison show about rate and temperature?`,
       correct: `The rate at ${t2} °C is double — a 10 °C rise roughly doubles the rate of many reactions`,
       wrongs: pickDistinct(`The rate at ${t2} °C is double — a 10 °C rise roughly doubles the rate of many reactions`, [
-        `The rate quadrupled — rate scales with the square of temperature`,
+        `The rate quadrupled — a rise from ${t1} °C to ${t2} °C squares the temperature, so the rate at ${t2} °C is about 4 × the rate at ${t1} °C`,
         `The final volume doubles at the higher temperature`,
         `Temperature has no real effect until the acid boils`,
       ]),
@@ -3372,6 +3395,7 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       prompt: `${obs} The molecules all get heavier down the series. Why does the boiling point rise?`,
       correct: "Bigger molecules have stronger intermolecular forces — more surface for attraction between neighbours",
       wrongs: pickDistinct("Bigger molecules have stronger intermolecular forces — more surface for attraction between neighbours", [
+        "Heavier molecules sink towards the bottom of the flask, and the pressure down there raises the boiling point of the liquid",
         "The covalent bonds inside the molecules get stronger down the series",
         "Heavier molecules sink, and pressure at the bottom raises the boiling point",
         "Bigger molecules have more electrons free to conduct, which heats them",
@@ -3839,10 +3863,10 @@ export const DEEP_GENS: Record<string, DeepGen> = {
     }
     const rows: Array<[string, string, string[]]> = [
       ["White light enters a prism and emerges spread into red through violet.", "Violet slows most and refracts most — each wavelength has its own refractive index",
-        ["The prism adds colour to white light — white light contains no colours until then",
+        ["The prism adds colour to white light — white light contains no colours at all until the glass pulls them apart out of nothing",
           "Red slows most, bending the most", "The spread is a reflection effect at the far face"]],
       ["A ray diagram shows the refracted ray labelled at 35° to the SURFACE, with the incident ray at 25° to the surface.", "The angles are misread — refracted angles are measured from the normal, so the true angles are 55° and 65°",
-        ["The diagram is fine — refraction angles are measured from the surface",
+        ["The diagram is fine — refraction angles are measured from the surface, so the labelled 35° and 25° are the angles the formula needs",
           "The ray bends away from the normal because 35 > 25",
           "The ray could not refract with those numbers"]],
     ];
@@ -4208,11 +4232,11 @@ export const DEEP_GENS: Record<string, DeepGen> = {
     }
     const features: Array<[string, string, string[]]> = [
       ["alveoli are folded into millions of tiny spheres", "Enormous total surface area for the rate of diffusion",
-        ["They trap dust before it reaches the blood", "The folding stores spare air between breaths", "Spherical shapes are strongest under pressure"]],
+        ["They trap dust before it reaches the blood", "The folding stores spare air between breaths, so the alveoli refill themselves during the pause", "Spherical shapes are strongest under pressure"]],
       ["each alveolus is wrapped in a dense capillary network", "A steep concentration gradient is maintained — blood constantly removes oxygen and delivers CO₂",
-        ["The capillaries structurally support the alveoli's shape", "They warm the incoming air before it is used", "They carry oxygen to the alveoli to be exhaled"]],
+        ["The capillaries structurally support the alveoli's shape", "They warm the incoming air before it is used, and warm air diffuses into the blood faster than cold air", "They carry oxygen to the alveoli to be exhaled"]],
       ["the alveolus wall and capillary wall are each a single flattened cell thick", "A very short diffusion distance — gases cross in a fraction of a millimetre",
-        ["The thin walls filter bacteria out of the air", "Being thin lets the alveoli expand without muscle", "Thickness matters only for liquid exchange, not gases"]],
+        ["The thin walls filter bacteria out of the air before it can reach the bloodstream", "Being thin lets the alveoli expand without muscle", "Thickness matters only for liquid exchange, not gases"]],
     ];
     const [feature, answer, wrong] = features[r.int(0, features.length - 1)];
     return {
@@ -4280,7 +4304,7 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       correct: "Caffeine is associated with faster reactions in this sample — but repeat with more participants and a control (placebo) to rule out expectation",
       wrongs: pickDistinct("Caffeine is associated with faster reactions in this sample — but repeat with more participants and a control (placebo) to rule out expectation", [
         "Caffeine PROVES faster reactions — the mean is decisive",
-        "No conclusion is possible from any number of trials of one person",
+        "No conclusion is possible from any number of trials of one person, because reaction time varies so much between people that a mean from one participant says nothing at all",
         "The faster mean shows the nervous system's synapses were eliminated",
       ]),
       tags: [],
@@ -4424,14 +4448,25 @@ export const DEEP_GENS: Record<string, DeepGen> = {
     const gen = r.pick([2, 3, 4]);
     const fit = 0.9;
     const survivors = deepNum(n0 * Math.pow(fit, gen), 0);
+    const answer = `About ${survivors} sensitive cells — ${Math.round(fit * 100)}% of the population survives each generation, so ${n0} × (0.9)^${gen}`;
     return {
       prompt: `A sensitive bacterium population starts at ${n0} cells. Each generation of antibiotic treatment, only ${Math.round(fit * 100)}% survive (the rest are resistant already and all survive). Estimate the sensitive cells remaining after ${gen} generations.`,
-      correct: `About ${survivors} sensitive cells — ${Math.round(fit * 100)}% of the population survives each generation, so ${n0} × (0.9)^${gen}`,
-      wrongs: pickDistinct(`About ${survivors} sensitive cells — ${Math.round(fit * 100)}% of the population survives each generation, so ${n0} × (0.9)^${gen}`, [
+      correct: answer,
+      // MORE CANDIDATES THAN OPTIONS, chosen per draw (see the note on
+      // `ai-basics`). The key here was both the longest string and the one with
+      // the most digits on every draw, which made it a certain win for a learner
+      // reading nothing — a compounding estimate quotes more numbers than a
+      // one-step slip does. Several of these candidates carry a fuller, more
+      // digit-heavy statement of a DIFFERENT misconception, so neither cue pays.
+      wrongs: pickDistinct(answer, r.shuffle([
         `${n0} × ${gen} × 0.9 = ${deepNum(n0 * gen * fit, 0)} — the generational effect was added, not compounded`,
         `Zero — any antibiotic treatment kills all sensitive cells in one step`,
         `${deepNum(n0 * Math.pow(fit, gen - 1), 0)} — the count stops one generation early`,
-      ]),
+        `About ${deepNum(n0 - n0 * 0.1 * gen, 0)} sensitive cells — each generation removes a tenth of the ORIGINAL ${n0}, so the same ${deepNum(n0 * 0.1, 0)} cells die every time`,
+        `About ${deepNum(n0 * fit, 0)} sensitive cells — only the final generation counts, because the earlier deaths were replaced by new growth`,
+        `About ${deepNum(n0 * Math.pow(fit, gen) * 1.1, 0)} sensitive cells — the survivors each divide once between doses, so the count recovers by a tenth`,
+        `About ${deepNum(n0 * Math.pow(fit, gen) + n0 * 0.1, 0)} sensitive cells — ${n0} × (0.9)^${gen} leaves ${survivors}, and the ${deepNum(n0 * 0.1, 0)} already-resistant cells are added back on`,
+      ])),
       tags: [],
       explanation: `Survival compounds multiplicatively: each generation's survivors are 0.9 × the last, giving ${n0} × 0.9^${gen} ≈ ${survivors}. Meanwhile the resistant cells face NO such decline — their share of the population climbs every generation, which is exactly why courses must be finished and why resistance spreads so fast.`,
       difficulty: 0.75,
@@ -4567,13 +4602,13 @@ export const DEEP_GENS: Record<string, DeepGen> = {
     }
     const rows: Array<[string, string, string[]]> = [
       ["A river survey: mayfly larvae drop from 200 to 20 per m² downstream of a farm outfall; dissolved oxygen is unchanged.", "A specific pollutant (likely pesticide or nutrient-driven food web change) harms the mayflies — oxygen alone cannot explain the drop",
-        ["The river's oxygen must have fallen — no other factor affects larvae",
+        ["The river's oxygen must have fallen — no other factor can affect larvae, and any oxygen reading at the outfall was simply taken after the mayflies had already gone",
           "Mayflies migrated upstream to escape the farm",
           "The count error is too large — real populations never change 10-fold"]],
       ["Two woods: Wood A has 4 tree species and 30 invertebrate species; Wood B has 12 tree species and 90 invertebrate species.", "Wood B is more biodiverse — plant species richness supports more of the food web above it",
         ["Wood A is equally biodiverse — invertebrates do not count in biodiversity",
           "Wood A is more biodiverse — fewer species means less competition",
-          "The woods cannot be compared without knowing the woods' areas"]],
+          "The woods cannot be compared without knowing the woods' areas, because a bigger wood always holds more species whatever its variety"]],
     ];
     const [obs, answer, wrong] = rows[r.int(0, rows.length - 1)];
     return {
@@ -4645,9 +4680,10 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       prompt: `For a highly contagious disease, roughly ${threshold}% of a population must be vaccinated for herd protection. A town vaccinates ${threshold - 10}% and an outbreak follows. Explain why unvaccinated AND vaccinated people were affected.`,
       correct: `Below the ${threshold}% threshold the disease still spreads — vaccinated individuals mostly avoid illness, but the outbreak exposes gaps; no vaccine is 100% effective, so some vaccinated people remain susceptible`,
       wrongs: pickDistinct(`Below the ${threshold}% threshold the disease still spreads — vaccinated individuals mostly avoid illness, but the outbreak exposes gaps; no vaccine is 100% effective, so some vaccinated people remain susceptible`, [
-        "The vaccine failed entirely — vaccinated people should never catch the disease",
+        "The vaccine failed entirely — vaccinated people should never catch the disease, and a single infection among them proves the jab does nothing at all, so the threshold should be raised to 100 % before an outbreak can be called a surprise",
         "Unvaccinated people were the only ones affected; the report must be in error",
-        "The threshold is a legal minimum, not a scientific one — the outbreak was coincidence",
+        `${threshold - 10}% of the town is vaccinated and that is almost 100 %, so the ${threshold}% target is only advisory and the outbreak was mere coincidence`,
+        "The threshold is a legal minimum, not a scientific one",
       ]),
       tags: [],
       explanation: `Herd immunity is a population-level effect: transmission chains break when too few susceptible hosts remain. ${threshold}% is the threshold for THIS disease's contagion; below it, chains survive. Vaccinated individuals are far less likely to be ill (that is the point), but protection is probabilistic, not absolute — which is why the percentage matters so much.`,
@@ -4770,11 +4806,11 @@ export const DEEP_GENS: Record<string, DeepGen> = {
     }
     const rows: Array<[string, string, string[]]> = [
       ["A cube of agar at 1 cm³ colours in 2 minutes; the same volume cut into 27 tiny cubes colours in 20 seconds.", "Cutting raises the surface-area-to-volume ratio — diffusion only enters through the surface, so more surface per volume means faster colouring throughout",
-        ["The small cubes are lighter, so the dye reaches them faster",
+        ["The small cubes are lighter, so the dye reaches them faster: each piece weighs a fraction of the original cube, and gravity pulls the dye into a light piece at a greater speed than into a heavy one",
           "Cutting opens the agar's structure, letting dye flow through channels",
           "Total surface area is unchanged by cutting — the rate must be an error"]],
       ["A cell that is long and thin absorbs oxygen faster than a sphere of the same volume.", "The elongated shape maximises surface area for diffusion while keeping every interior point close to the membrane — short distance, big area",
-        ["The elongated cell is thinner-walled, so oxygen leaks in faster",
+        ["The elongated cell is thinner-walled, so oxygen leaks in faster: a long thin cell cannot build thick walls, and a thin wall lets oxygen through with less resistance than a thick one",
           "Long cells have stronger membranes that pull oxygen in",
           "Shape does not affect diffusion — volume alone decides the rate"]],
     ];
@@ -4844,8 +4880,8 @@ export const DEEP_GENS: Record<string, DeepGen> = {
     }
     const rows: Array<[string, string, string[]]> = [
       ["A bicycle dynamo spins a magnet near a coil as the wheel turns. The lamp glows brighter as the cyclist pedals faster.", "Faster rotation changes the flux more quickly — larger induced voltage — and brightness reports that voltage",
-        ["Faster pedalling pushes more pre-made current from the dynamo's stored charge",
-          "The lamp's resistance falls at speed, drawing more current from a fixed voltage",
+        ["Faster pedalling pushes more pre-made current out of the dynamo's stored charge",
+          "The lamp's resistance falls at speed, drawing more current from a fixed voltage, because the filament heats up and conducts better the faster the wheel turns",
           "Brightness follows the magnet's strength, which grows with speed"]],
       ["A power station generator and a laboratory motor are the same device run in opposite directions.", "The generator converts motion to electrical energy (right-hand rule); the motor converts electrical energy to motion (left-hand rule) — mirror processes",
         ["They differ in construction — generators cannot be run as motors",
@@ -4921,11 +4957,11 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       ["Melting points: Na 98 °C, Mg 650 °C, Al 660 °C — rising across the period.", "More delocalised electrons per atom and higher ionic charge strengthen the metallic bonding — more energy to pull the lattice apart",
         ["Heavier atoms need more energy to melt, and mass rises across the period",
           "The atoms shrink, so their nuclei are easier to separate",
-          "Across the period the metals become more covalent, and covalent bonds are stronger"]],
+          "Across the period the metals become more covalent, and covalent bonds are stronger than metallic ones, so more energy is needed to break the lattice apart"]],
       ["Mercury melts at −39 °C while tungsten melts at 3 422 °C — both are metals.", "Both have delocalised electrons (both conduct), but the STRENGTH of the metallic bonding differs enormously — bonding strength, not 'metal or not', sets the melting point",
         ["Mercury is not a true metal — only conductors with high melting points are",
           "Mercury's low melting point shows its electron sea is absent",
-          "Tungsten's high melting point proves it conducts by ion flow instead"]],
+          "Tungsten's high melting point proves it conducts by ion flow instead, because a lattice that holds its ions so tightly must move charge through those ions rather than through free electrons"]],
     ];
     const [obs, answer, wrong] = rows[r.int(0, rows.length - 1)];
     return {
@@ -5050,22 +5086,28 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       };
     }
     if (variant < 0.67) {
+      // The same three-rank spread as the block below: this variant is served
+      // too (a handful of draws at the 0.75 target), and its key was the longest
+      // option in all three scenes.
       const flaws: Array<[string, string, string[]]> = [
+        // key = shortest (rank 4)
         ["A student proves x = 1 = 2 by dividing both sides of (x − 1)(x − 2) = 0 by (x − 1). The flaw is…",
           "Dividing by (x − 1) is dividing by zero when x = 1 — the case being proved",
-          ["The expansion of (x − 1)(x − 2) was wrong",
-            "Two numbers cannot be equal and unequal at once",
-            "Quadratics have two roots, so x must have two values"]],
+          ["The expansion of (x − 1)(x − 2) was wrong — the product should read x² − 3x + 3",
+            "Two numbers cannot be equal and unequal at the same time, so x = 1 = 2 is nonsense",
+            "Quadratics have two roots, so x must be able to equal two different numbers at once"]],
+        // key = longest (rank 1)
         ["A student proves \"all roses are red\" by exhibiting three red roses. The flaw is…",
           "Three examples are not all roses — a universal claim needs a general argument or a definition",
-          ["Roses come in shades, and shades are not colours",
-            "The examples were not chosen randomly enough",
+          ["Roses come in many shades, and a shade is not the same thing as a colour",
+            "The examples were not chosen randomly enough to stand for all roses",
             "Nothing — inductive proof over examples is valid for universals"]],
+        // key = second-longest (rank 2)
         ["A student proves the angles of a triangle sum to 180° by measuring five triangles and averaging. The flaw is…",
           "Measurement error plus finitely many cases — averaging observations is evidence, not proof",
-          ["The average of five angles cannot represent all triangles",
-            "Triangles must be measured in radians for the sum to be exact",
-            "Nothing — five is the smallest sample that proves a universal"]],
+          ["The average of five angles cannot represent all triangles, because five is not a large enough sample",
+            "Triangles must be measured in radians for the sum to be exactly 180 degrees",
+            "Nothing — five is the smallest sample that proves a universal claim"]],
       ];
       const [q, answer, wrong] = flaws[r.int(0, flaws.length - 1)];
       return {
@@ -5077,22 +5119,31 @@ export const DEEP_GENS: Record<string, DeepGen> = {
         difficulty: 0.62,
       };
     }
+    // THREE SCENES, THREE LENGTH RANKS — the note on `ai-basics` applies, and it
+    // matters more here because a fixed option set carries a fixed rank: every
+    // scene used to put the key in the longest option, so picking the longest
+    // string scored 100% on `proof` against a 25% chance line. The scenes are
+    // served in roughly equal thirds, so each one holds a different rank —
+    // longest, shortest, second-longest — and the cue stops paying.
     const scenes: Array<[string, string, string[]]> = [
+      // key = longest (rank 1)
       ["\"Every perfect square ends in 0, 1, 4, 5, 6 or 9.\"",
         "Exhaustion over the last digit of n (0–9), squaring each case — a finite list checked completely",
-        ["Algebra: expand (10a + b)² and inspect",
-          "Counterexample: find a square ending in 2",
-          "Contradiction: assume a square ends in 2 and derive 0 = 1"]],
+        ["Algebra: expand (10a + b)² and read the last digit off the expansion",
+          "Counterexample: find a square that ends in 2 — one case would settle it",
+          "Contradiction: assume a square ends in 2, then derive 0 = 1 from it"]],
+      // key = shortest (rank 4)
       ["\"√2 is irrational.\"",
         "Contradiction — assume a/b in lowest terms, show both a and b must be even, contradicting lowest terms",
-        ["Exhaustion — check denominators up to some bound",
-          "Induction on the continued-fraction expansion",
-          "Counterexample — exhibit the fraction it equals"]],
+        ["Exhaustion — check the decimal expansion of √2 block by block, and conclude from the repeat you are bound to find",
+          "Counterexample — exhibit the exact fraction √2 equals, since a number is irrational only when no such fraction exists",
+          "Induction on the denominator — show the claim for small a/b, then inherit it for larger ones as the fraction grows"]],
+      // key = second-longest (rank 2)
       ["\"The sum of the first n odd numbers is n².\"",
-        "Induction — verify n = 1, then show the (k + 1)th step adds 2k + 1, completing the square",
-        ["Exhaustion over n up to 100",
-          "Contradiction — assume the sum is never n²",
-          "Counterexample is impossible, so the claim is self-evident"]],
+        "Induction — verify n = 1, then show that adding the next odd number 2k + 1 grows k² into (k + 1)²",
+        ["Exhaustion — add the first hundred sums and read the pattern off the table, which is proof enough for a rule that never fails",
+          "Contradiction — assume one value of n breaks the rule, then derive 0 = 1 from it",
+          "Counterexample — hunt for one n where the sum misses n², since a single case decides it"]],
     ];
     const [claim, answer, wrong] = scenes[r.int(0, scenes.length - 1)];
     return {
@@ -5274,17 +5325,17 @@ export const DEEP_GENS: Record<string, DeepGen> = {
         "The triangle formed by the centre and a chord is isosceles (two radii), so its base angles are equal — and the inscribed angle on the same arc is half the centre angle",
         ["The triangle is equilateral — all radii are equal, so all angles are",
           "The base angles are right angles — radii meet chords at 90°",
-          "The inscribed angle equals the centre angle — same chord"]],
+          "The inscribed angle equals the centre angle whenever both stand on the same chord, so the two are interchangeable in every question of this type and no halving is needed at any point"]],
       ["A diameter is drawn, and a point on the circumference joined to BOTH ends of it.",
         "The angle at that point is exactly 90° — the angle in a semicircle — so the triangle is right-angled",
         ["The angle equals half the diameter's central angle of 360°, so 180°",
-          "The angle varies with where the point sits on the semicircle",
+          "The angle varies with where the point sits on the semicircle, so the 90° only holds when the point is directly above the diameter's centre",
           "The two angles at the diameter's ends are equal to 90° each"]],
       ["Two tangents are drawn from an external point; the angle BETWEEN them at that point is 70°.",
         "The radii meet the tangents at 90° each, so the angle at the centre between the radii is 180° − 70° = 110°",
         ["The centre angle is 70° — it equals the angle between the tangents",
           "The centre angle is 290° — the reflex angle is always the answer",
-          "The tangents meet the radii at 70°, so the centre angle is 40°"]],
+          "The tangents meet the radii at 70°, so the centre angle is 40°, because the two right angles subtract from the 70° between the tangents"]],
     ];
     const [obs, answer, wrong] = scenes[r.int(0, scenes.length - 1)];
     return {

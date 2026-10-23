@@ -68,8 +68,68 @@ const BASELINE = "audit/option-bias-baseline.json";
 //
 // ai-basics: was 100% (every variant's key was the longest option), now 36.7%
 // with the best of the eight strategies, held across held-out seeds.
+//
+// ── THE 2026-10 PASS: THE LONGEST-KEY TIER ──────────────────────────────────
+// A learner reported the symptom in the plainest possible words — "sometimes
+// the longest answer is always right" — and the audit agreed: 28 of 135 concepts
+// put the key in the longest option at ≥90% of served draws, 6 of them at
+// exactly 100%. The measurement is what the report could not say, and the
+// repair is what the measurement could not do.
+//
+// TWO MECHANISMS, both seen at the SERVED level (family-level edits are not
+// enough — see the note in the audit about `gravity-fields`):
+//
+//  1. PARALLEL CLAUSES. Every distractor is now stated as fully as the key, so
+//     length stops carrying the answer. This is not padding: a fuller statement
+//     of a misconception is a better distractor, because it names the reasoning
+//     the learner has to reject rather than just the label.
+//  2. MORE CANDIDATES THAN OPTIONS. A fixed option set carries a FIXED length
+//     rank, so a single `pickDistinct(key, [w1, w2, w3])` cannot vary — the key
+//     is the longest string on every draw or on none. `r.shuffle([...5 or 6]))`
+//     before `pickDistinct` makes which three are served vary per draw, which is
+//     what lets one row hold several ranks. Families with several scenes
+//     (`proof`, `evolution`, `circle-geometry-adv`) instead give each scene its
+//     own rank — the `ai-basics` pattern — which costs no new content.
+//
+// ⚠ THE FLOOR IS 50%, AND IT IS ARITHMETIC, NOT EFFORT. With four options, one
+// strategy always wins: if the key is neither longest nor shortest, `middles`
+// scores 1/2 = 50% on that item; if it IS an extreme, `longest`/`shortest`
+// scores 100% and `extremes` 50%. So NO single fixed option set can score below
+// 50%, and the only way under it is variation across the items a concept serves.
+// `cells` sits at 63% for exactly this reason and is recorded honestly rather
+// than papered over. The concepts that reached 25–45% did so because their
+// served set now varies; the ones at 40–50% are at or near the floor.
+//
+// Ceilings are measured + 0.04, and were checked on HELD-OUT seeds (prefix
+// `held-out:opt-bias`) before being written here: every one reproduced inside
+// 0.05 points, so this is a property of the option sets, not of the 60 draws the
+// edit was chosen against.
 const REPAIRED = {
   "ai-basics": 0.45,
+  // Was 100% — the four concepts where "pick the longest" never failed.
+  bounds: 0.29, // 100% → 25%: every area now printed to a stated 2 dp
+  enzymes: 0.41, // 100% → 38%
+  evolution: 0.46, // 100% → 42%
+  proof: 0.42, // 100% → 38%, one rank per scene
+  // Was 93–99%.
+  photosynthesis: 0.46, // 98% → 43%
+  respiration: 0.46, // 93% → 42%
+  digestion: 0.51, // 93% → 47%
+  diffusion: 0.45, // 98% → 41%
+  biodiversity: 0.47, // 97% → 43%
+  "breathing-gas": 0.45, // 97% → 41%
+  "covalent-bonding": 0.46, // 95% → 42%
+  "metallic-bonding": 0.41, // 95% → 38%
+  "rates-reaction": 0.49, // 97% → 45%
+  "light-optics": 0.43, // 98% → 39%
+  "circle-geometry-adv": 0.46, // 99% → 42%
+  cybersecurity: 0.50, // 94% → 46%
+  "nervous-system": 0.49, // 92% → 45%
+  "immune-health": 0.48, // 91% → 44%
+  "em-induction": 0.50, // 89% → 46%
+  // 95% → 63%: at the four-option floor (see above), so it is held here rather
+  // than claimed as repaired.
+  cells: 0.67,
 };
 
 // ── Repairs that did NOT hold, with the measured reason ─────────────────────

@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 58 modules compiled from lib/ by that script, wired
+ * Source: 64 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -439,6 +439,9 @@ exports.ensureSecret = exports.EMPTY_SESSION = exports.ApiError = void 0;
 exports.signUp = signUp;
 exports.signIn = signIn;
 exports.signOut = signOut;
+exports.recover = recover;
+exports.rotateRecoveryCode = rotateRecoveryCode;
+exports.requestResetGrant = requestResetGrant;
 exports.session = session;
 exports.claimProfile = claimProfile;
 exports.updateAccount = updateAccount;
@@ -446,6 +449,8 @@ exports.readProfile = readProfile;
 exports.probeProfile = probeProfile;
 exports.createProfile = createProfile;
 exports.saveProfile = saveProfile;
+exports.kioskLogin = kioskLogin;
+exports.kioskLeave = kioskLeave;
 exports.eraseProfile = eraseProfile;
 exports.progressFor = progressFor;
 exports.learnerExists = learnerExists;
@@ -491,6 +496,7 @@ Object.defineProperty(exports, "ApiError", { enumerable: true, get: function () 
 const sync_queue_1 = require("../sync-queue");
 const identity_1 = require("./identity");
 Object.defineProperty(exports, "ensureSecret", { enumerable: true, get: function () { return identity_1.ensureSecret; } });
+const kiosk_session_1 = require("../kiosk-session");
 exports.EMPTY_SESSION = { account: null, profile: null, secret: null };
 function signUp(input) {
     return (0, transport_1.send)("/api/auth/signup", { method: "POST", body: { ...input } });
@@ -505,6 +511,33 @@ async function signOut() {
     // session has still signed the learner out, and refusing to clear the device
     // over it would leave them signed in locally for no reason.
     await (0, transport_1.send)("/api/auth/logout", { method: "POST", body: {}, tolerate: [401] });
+}
+/**
+ * Recover an account with a code — the learner's printed one, or a teacher's
+ * fifteen-minute grant.
+ *
+ * `email` is optional and that is the point: a grant carries its own lookup key, so
+ * the learner who cannot remember which address they typed at enrolment can still
+ * get back in. When an email IS given it names the account, and the server refuses
+ * a code that belongs to a different one (lib/server/auth.ts#recoverAccount).
+ */
+function recover(input) {
+    return (0, transport_1.send)("/api/auth/recover", { method: "POST", body: { ...input } });
+}
+/** Mint a new recovery code from a signed-in session. The current password is
+ *  required: a borrowed session must not be able to mint a permanent key. */
+function rotateRecoveryCode(currentPassword) {
+    return (0, transport_1.send)("/api/auth/recovery-code", {
+        method: "POST",
+        body: { currentPassword },
+    });
+}
+/** A teacher's short-lived reset grant for one learner they actually teach. */
+function requestResetGrant(learnerId) {
+    return (0, transport_1.send)("/api/auth/reset-grant", {
+        method: "POST",
+        body: { learnerId },
+    });
 }
 /** Who is signed in on this device, and which learner profile that is. A failure
  *  is an empty session, not a thrown error: the shell renders signed-out. */
@@ -566,8 +599,15 @@ async function saveProfile(patch, id) {
     adoptProfile(state);
     return state;
 }
-/** Erase the learner's record. Requires the confirmation word the route
- *  demands, so no caller can do this by accident. */
+function kioskLogin(input) {
+    return (0, transport_1.send)("/api/kiosk/login", { method: "POST", body: { ...input } });
+}
+/** Hand the device back. The SERVER ends the session (`deleteKioskSession`), so a
+ *  token copied off the handset is dead the moment this succeeds — which clearing
+ *  localStorage could never achieve on its own. */
+function kioskLeave(token) {
+    return (0, transport_1.send)("/api/kiosk/leave", { method: "POST", body: { token } });
+}
 async function eraseProfile(id) {
     await (0, transport_1.send)("/api/profile", { query: { id, confirm: "ERASE" }, method: "DELETE" });
 }
@@ -578,6 +618,19 @@ function adoptProfile(state) {
         (0, identity_1.writeProfileId)(state.profile.id);
     if (state.secret)
         (0, identity_1.writeSecret)(state.secret);
+    // A learner created (or saved) on this device is also ADDED TO IT, so the
+    // shared-handset screen can offer them back later. This is the one place a
+    // profile is adopted from a response, so it is the one place that has to say
+    // so — a school enrolling a class would otherwise leave every learner after
+    // the first unreachable once the next child enrolled.
+    //
+    // EXCEPT IN A CLASSROOM. A saved profile in kiosk mode carries a SESSION TOKEN,
+    // not a capability, and the roster's entry is exactly the thing this mode
+    // exists not to keep: it would outlive the lesson and be offered on the switch
+    // screen beside household learners. A lesson is not rememberable — the PIN is
+    // the way back in, and the teacher can re-issue it.
+    if (state.profile?.id && state.secret && !(0, kiosk_session_1.readKioskSession)())
+        (0, identity_1.rememberOnDevice)(state.profile.handle);
 }
 // ─────────────────────────────────────────────────────────────────────────────
 // LEARNING — the loop itself
@@ -813,7 +866,15 @@ function concepts(query) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PEOPLE — classes, assignments, rooms
 // ─────────────────────────────────────────────────────────────────────────────
-/** The rosters this learner belongs to (as a teacher, or as a member). */
+/** The classes this learner belongs to (as a teacher, or as a member).
+ *
+ *  WHAT EACH ONE CONTAINS DEPENDS ON WHAT THE CALLER IS TO IT, and that is the
+ *  server's decision, not this call's: a class they TEACH arrives with its full
+ *  live roster and its join code, one they merely attend arrives sanitised to
+ *  their own row (lib/server/class-view#memberRoster). `teaching` is the
+ *  server's answer to "is there a teacher console here at all?" — the page uses
+ *  it to decide between the console and the teacher door, so a learner is never
+ *  shown a join code or a classmate's evidence to begin with. */
 function classes(me) {
     return (0, transport_1.send)("/api/classes", { query: { me } });
 }
@@ -893,6 +954,12 @@ exports.writeSecret = writeSecret;
 exports.mintSecret = mintSecret;
 exports.ensureSecret = ensureSecret;
 exports.clearIdentity = clearIdentity;
+exports.rememberOnDevice = rememberOnDevice;
+exports.deviceLearners = deviceLearners;
+exports.switchToDeviceLearner = switchToDeviceLearner;
+exports.forgetDeviceLearner = forgetDeviceLearner;
+const device_roster_1 = require("../device-roster");
+const kiosk_session_1 = require("../kiosk-session");
 exports.PROFILE_ID_KEY = "openmind:profileId";
 exports.PROFILE_SECRET_KEY = "openmind:profileSecret";
 /** localStorage, or null when there is no window (server render, tests) or when
@@ -944,6 +1011,24 @@ function setIfChanged(key, value) {
         store.setItem(key, value);
     announce();
 }
+/** Write BOTH halves as one fact.
+ *
+ *  A switch that wrote the id and then the secret announced twice, and between
+ *  the two writes the device named the new learner with the OLD learner's
+ *  capability — a pair the server refuses. Nothing was lost (a 401 is not a
+ *  404, so the provider keeps the identity and retries), but a shared phone
+ *  should not send a request that is wrong by construction on every switch, and
+ *  the module's own rule is that a change announces once. */
+function writeIdentity(id, secret) {
+    const store = storage();
+    if (!store)
+        return;
+    const changed = store.getItem(exports.PROFILE_ID_KEY) !== id || store.getItem(exports.PROFILE_SECRET_KEY) !== secret;
+    store.setItem(exports.PROFILE_ID_KEY, id);
+    store.setItem(exports.PROFILE_SECRET_KEY, secret);
+    if (changed)
+        announce();
+}
 function loadProfileId() {
     return storage()?.getItem(exports.PROFILE_ID_KEY) ?? null;
 }
@@ -988,11 +1073,66 @@ function clearIdentity() {
     const store = storage();
     if (!store)
         return;
-    const had = store.getItem(exports.PROFILE_ID_KEY) !== null || store.getItem(exports.PROFILE_SECRET_KEY) !== null;
+    const active = store.getItem(exports.PROFILE_ID_KEY);
+    const had = active !== null || store.getItem(exports.PROFILE_SECRET_KEY) !== null;
+    // A profile the server has confirmed GONE must leave the roster too, or the
+    // shared-device screen keeps offering a switch to a learner who no longer
+    // exists — the ghost the 404 probe was added to clear, one layer up.
+    if (active)
+        (0, device_roster_1.forgetLearner)(store, active);
+    // A classroom session is not a remembered learner, and a device that has
+    // forgotten its learner must not still claim a lesson is running — the shell
+    // would keep offering "finish and hand back" for a session that is gone.
+    (0, kiosk_session_1.clearKioskSession)();
     store.removeItem(exports.PROFILE_ID_KEY);
     store.removeItem(exports.PROFILE_SECRET_KEY);
     if (had)
         announce();
+}
+// ── SEVERAL LEARNERS ON ONE DEVICE ─────────────────────────────────────────
+//
+// The identity above is still ONE learner at a time: every route, the guard and
+// the transport read a single id/secret pair, and nothing about that changes.
+// These four functions are the layer a shared handset needs — a remembered list
+// either side of the same two keys — so switching is "write the pair", not a
+// second source of truth about who is signed in.
+//
+// The list is written whenever a learner is met (enrolment, sign-in, first visit
+// to the account screen) and read only by the account screen. It never leaves
+// the device, and the server never learns it exists.
+function rememberOnDevice(name) {
+    const store = storage();
+    const id = store?.getItem(exports.PROFILE_ID_KEY) ?? null;
+    const secret = store?.getItem(exports.PROFILE_SECRET_KEY) ?? null;
+    if (!store || !id || !secret)
+        return (0, device_roster_1.readRoster)(store);
+    return (0, device_roster_1.rememberLearner)(store, { id, secret, name });
+}
+function deviceLearners() {
+    return (0, device_roster_1.readRoster)(storage());
+}
+/** Become another learner on this device. Returns false when the id is not on
+ *  the roster — a caller must not treat that as success, because the screen
+ *  would then show the previous learner's work under the new name. */
+function switchToDeviceLearner(id) {
+    const store = storage();
+    const entry = (0, device_roster_1.findLearner)(store, id);
+    if (!store || !entry)
+        return false;
+    writeIdentity(entry.id, entry.secret);
+    (0, device_roster_1.touchLearner)(store, entry.id);
+    return true;
+}
+/** Remove a learner from this device. Removing the ACTIVE one clears the
+ *  identity as well, so "remove" cannot leave a device speaking for a learner
+ *  who is no longer listed. */
+function forgetDeviceLearner(id) {
+    const store = storage();
+    if (!store)
+        return;
+    (0, device_roster_1.forgetLearner)(store, id);
+    if (store.getItem(exports.PROFILE_ID_KEY) === id)
+        clearIdentity();
 }
 
 });
@@ -2004,7 +2144,13 @@ exports.CM_FRANCOPHONE = {
 };
 const NATIONAL_ROUTES = [
     { code: "KE", system: "Kenya · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["ke-kcse"], boards: [{ id: "kenyan", name: "Kenya National Examinations (KNEC)", exams: ["KCPE", "KCSE Form 4"] }] },
-    { code: "IN", system: "India · Secondary", grades: ["Class 8", "Class 9", "Class 10", "Class 11", "Class 12"], entry: ["fractions", "linear-equations", "triangles"], specs: ["in-cbse", "in-icse"], boards: [
+    // CBSE's Class X syllabus is on file and its concepts are mapped in
+    // lib/curricula/mappings.ts, so the STRUCTURE is "researched" — the mapping is
+    // still "mapped", because a source on file is not a specialist's review.
+    { code: "IN", system: "India · Secondary", grades: ["Class 8", "Class 9", "Class 10", "Class 11", "Class 12"], entry: ["fractions", "linear-equations", "triangles"], specs: ["in-cbse", "in-icse"], sources: ["https://cbseacademic.nic.in/web_material/CurriculumMain26/Sec/Maths_Sec_2025-26.pdf"], recordReview: "researched", qualifications: [
+            { id: "cbse-class-10", name: "CBSE Class X (AISSE)", stage: "End of Class 10", specIds: ["in-cbse"] },
+            { id: "icse-class-10", name: "ICSE Class 10 (CISCE)", stage: "End of Class 10", specIds: ["in-icse"] },
+        ], boards: [
             { id: "cbse", name: "Central Board of Secondary Education (CBSE)", exams: ["AISSE Class 10", "AISSCE Class 12"] },
             { id: "icse", name: "Indian Certificate of Secondary Education (ICSE)", exams: ["ICSE Class 10", "ISC Class 12"] },
             { id: "state", name: "State board", exams: ["SSC / HSC"] },
@@ -2024,7 +2170,12 @@ const NATIONAL_ROUTES = [
     { code: "ID", system: "Indonesia · SMP/SMA", grades: ["SMP 7", "SMP 8", "SMP 9", "SMA 10", "SMA 11", "SMA 12"], entry: ["fractions", "integers", "linear-equations"], specs: ["id-merdeka"], boards: [{ id: "indonesian", name: "Kurikulum Merdeka", exams: ["US SMP", "US SMA"] }] },
     { code: "BR", system: "Brazil · Fundamental/Médio", grades: ["6º ano", "7º ano", "8º ano", "9º ano", "1º médio", "2º médio", "3º médio"], entry: ["fractions", "percentages", "linear-equations"], specs: ["br-enem"], boards: [{ id: "brazilian", name: "INEP / ENEM", exams: ["BNCC", "ENEM"] }] },
     { code: "MX", system: "Mexico · Secundaria", grades: ["1º", "2º", "3º"], entry: ["fractions", "integers", "linear-equations"], specs: ["mx-sep"], boards: [{ id: "mexican", name: "SEP / ENP", exams: ["ENP"] }] },
-    { code: "GB", system: "United Kingdom · Secondary", grades: ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["uk-gcse", "uk-alevel"], boards: [
+    // The DfE's GCSE subject content is on file and its concepts are mapped in
+    // lib/curricula/mappings.ts. "researched" is the structural claim only.
+    { code: "GB", system: "United Kingdom · Secondary", grades: ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12", "Year 13"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["uk-gcse", "uk-alevel"], sources: ["https://www.gov.uk/government/publications/gcse-mathematics-subject-content-and-assessment-objectives"], recordReview: "researched", qualifications: [
+            { id: "gcse", name: "GCSE", stage: "End of Year 11", specIds: ["uk-gcse"] },
+            { id: "a-level", name: "A-Level", stage: "End of Year 13", specIds: ["uk-alevel"] },
+        ], boards: [
             { id: "aqa", name: "AQA", exams: ["GCSE", "A-Level"] },
             { id: "edexcel", name: "Pearson Edexcel", exams: ["GCSE", "A-Level"] },
             { id: "ocr", name: "OCR", exams: ["GCSE", "A-Level"] },
@@ -2039,6 +2190,88 @@ const NATIONAL_ROUTES = [
     { code: "AU", system: "Australia · Secondary", grades: ["Year 7", "Year 8", "Year 9", "Year 10", "Year 11", "Year 12"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["au-acara"], boards: [{ id: "acara", name: "Australian Curriculum (ACARA)", exams: ["NAPLAN", "ATAR"] }] },
     { code: "ZA", system: "South Africa · Senior/FET", grades: ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "algebra-expressions", "linear-equations"], specs: ["za-nsc"], boards: [{ id: "caps", name: "CAPS / National Senior Certificate", exams: ["NSC (Matric)"] }] },
 ];
+// ── THE 51 COUNTRIES THAT HAD NO CURRICULUM AT ALL ─────────────────────────
+//
+// THE DEFECT THESE RECORDS FIX. The picker offered 71 countries and 19 had a
+// national route. The other 52 — France, Germany, Spain, Italy, Poland, Japan,
+// China, Korea, Vietnam, Turkey, Iran, Ethiopia, Egypt, Morocco, Nigeria's
+// neighbours, most of Latin America — resolved to NO national pathway, so
+// `specsFor` handed the learner Cambridge IGCSE or the IB as if those were the
+// local qualifications, and the course step could not say what year they were
+// in because there was no year list to choose from. Half the world was told,
+// silently, that its school system did not exist.
+//
+// WHAT EACH RECORD CLAIMS. The system's own name, the COMPLETE sequence of its
+// secondary years in the system's own words, the qualification(s) that end it,
+// the awarding body, and the ministry page the structure was read from — which
+// is why every one of these is `researched` rather than `mapped`. The concept
+// mapping is still `mapped`: a source on file establishes the STRUCTURE (years,
+// examinations, boards), never that a subject specialist has read our mapping
+// of it onto the genome. That distinction is the gate's, not a comment's.
+//
+// YEAR LISTS ARE COMPLETE AND CONTIGUOUS PER PHASE. A learner has to be able to
+// name their real year — the first version of these tables skipped years (a UK
+// Year 8 could not be declared), and the curriculum gate asserts the sequence
+// per phase so a hole cannot hide behind another phase's numbers. Where a
+// system's own numbering restarts (Poland's Klasa 7–8 then Liceum 1–4), each
+// phase is its own run, in the system's own vocabulary.
+const ADDED_ROUTES = [
+    // ── Africa ────────────────────────────────────────────────────────────────
+    { code: "ET", system: "Ethiopia · Secondary", grades: ["Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["et-esslce"], sources: ["https://www.moe.gov.et/"], recordReview: "researched", qualifications: [{ id: "esslce", name: "Ethiopian School Leaving Certificate (ESSLCE)", stage: "End of Grade 12", specIds: ["et-esslce"] }], boards: [{ id: "ethiopian", name: "Ministry of Education / NEAEA (Ethiopia)", exams: ["ESSLCE"] }] },
+    { code: "EG", system: "Egypt · Secondary", grades: ["Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["eg-thanaweya"], sources: ["https://moe.gov.eg/"], recordReview: "researched", qualifications: [{ id: "thanaweya", name: "Thanaweya Amma (General Secondary Certificate)", stage: "End of Grade 12", specIds: ["eg-thanaweya"] }], boards: [{ id: "egyptian", name: "Ministry of Education (Egypt)", exams: ["Thanaweya Amma"] }] },
+    { code: "MA", system: "Maroc · Collège / Lycée", grades: ["1AC", "2AC", "3AC", "Tronc commun", "1re année Bac", "2e année Bac"], entry: ["fractions", "linear-equations", "triangles"], specs: ["ma-college", "ma-bac"], sources: ["https://www.men.gov.ma/"], recordReview: "researched", qualifications: [{ id: "brevet", name: "Brevet (3e année collège)", stage: "End of 3AC", specIds: ["ma-college"] }, { id: "bac", name: "Baccalauréat marocain", stage: "End of 2e année Bac", specIds: ["ma-bac"] }], boards: [{ id: "moroccan", name: "Ministère de l'Éducation Nationale (Maroc)", exams: ["Brevet", "Baccalauréat"] }] },
+    { code: "RW", system: "Rwanda · Ordinary/Advanced Level", grades: ["S1", "S2", "S3", "S4", "S5", "S6"], entry: ["fractions", "linear-equations", "triangles"], specs: ["rw-o-level", "rw-a-level"], sources: ["https://www.nesa.gov.rw/"], recordReview: "researched", qualifications: [{ id: "o-level", name: "Ordinary Level", stage: "End of S3", specIds: ["rw-o-level"] }, { id: "a-level", name: "Advanced Level", stage: "End of S6", specIds: ["rw-a-level"] }], boards: [{ id: "rwandan", name: "National Examination and School Inspection Authority (Rwanda)", exams: ["O Level", "A Level"] }] },
+    { code: "ZM", system: "Zambia · Secondary", grades: ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "percentages", "linear-equations"], specs: ["zm-school-certificate"], sources: ["https://www.exams-council.org.zm/"], recordReview: "researched", qualifications: [{ id: "school-certificate", name: "School Certificate", stage: "End of Grade 12", specIds: ["zm-school-certificate"] }], boards: [{ id: "zambian", name: "Examinations Council of Zambia (ECZ)", exams: ["Junior Secondary Certificate", "School Certificate"] }] },
+    { code: "ZW", system: "Zimbabwe · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4", "Lower Sixth", "Upper Sixth"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["zw-o-level", "zw-a-level"], sources: ["https://www.zimsec.co.zw/"], recordReview: "researched", qualifications: [{ id: "o-level", name: "ZIMSEC Ordinary Level", stage: "End of Form 4", specIds: ["zw-o-level"] }, { id: "a-level", name: "ZIMSEC Advanced Level", stage: "End of Upper Sixth", specIds: ["zw-a-level"] }], boards: [{ id: "zimsec", name: "Zimbabwe School Examinations Council (ZIMSEC)", exams: ["O Level", "A Level"] }] },
+    { code: "MW", system: "Malawi · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4"], entry: ["fractions", "percentages", "linear-equations"], specs: ["mw-msce"], sources: ["https://www.maneb.edu.mw/"], recordReview: "researched", qualifications: [{ id: "msce", name: "Malawi School Certificate of Education (MSCE)", stage: "End of Form 4", specIds: ["mw-msce"] }], boards: [{ id: "malawian", name: "Malawi National Examinations Board (MANEB)", exams: ["JCE", "MSCE"] }] },
+    { code: "ML", system: "Mali · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ml-bac"], sources: ["https://www.education.gouv.ml/"], recordReview: "researched", qualifications: [{ id: "def", name: "Diplôme d'Études Fondamentales (DEF)", stage: "End of 3e", specIds: ["ml-bac"] }, { id: "bac", name: "Baccalauréat malien", stage: "End of Terminale", specIds: ["ml-bac"] }], boards: [{ id: "malian", name: "Ministère de l'Éducation Nationale (Mali)", exams: ["DEF", "Baccalauréat"] }] },
+    { code: "SN", system: "Sénégal · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["sn-bac"], sources: ["https://www.education.gouv.sn/"], recordReview: "researched", qualifications: [{ id: "bfem", name: "Brevet de Fin d'Études Moyennes (BFEM)", stage: "End of 3e", specIds: ["sn-bac"] }, { id: "bac", name: "Baccalauréat sénégalais", stage: "End of Terminale", specIds: ["sn-bac"] }], boards: [{ id: "senegalese", name: "Ministère de l'Éducation Nationale (Sénégal)", exams: ["BFEM", "Baccalauréat"] }] },
+    { code: "CI", system: "Côte d'Ivoire · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ci-bac"], sources: ["https://www.men-deco.org/"], recordReview: "researched", qualifications: [{ id: "bepc", name: "BEPC", stage: "End of 3e", specIds: ["ci-bac"] }, { id: "bac", name: "Baccalauréat ivoirien", stage: "End of Terminale", specIds: ["ci-bac"] }], boards: [{ id: "ivorian", name: "Ministère de l'Éducation Nationale (Côte d'Ivoire)", exams: ["BEPC", "Baccalauréat"] }] },
+    { code: "NE", system: "Niger · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ne-bac"], sources: ["https://www.education.gouv.ne/"], recordReview: "researched", qualifications: [{ id: "bepc", name: "BEPC", stage: "End of 3e", specIds: ["ne-bac"] }, { id: "bac", name: "Baccalauréat nigérien", stage: "End of Terminale", specIds: ["ne-bac"] }], boards: [{ id: "nigerien", name: "Ministère de l'Éducation Nationale (Niger)", exams: ["BEPC", "Baccalauréat"] }] },
+    { code: "BF", system: "Burkina Faso · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["bf-bac"], sources: ["https://www.meb.gov.bf/"], recordReview: "researched", qualifications: [{ id: "bepc", name: "BEPC", stage: "End of 3e", specIds: ["bf-bac"] }, { id: "bac", name: "Baccalauréat burkinabè", stage: "End of Terminale", specIds: ["bf-bac"] }], boards: [{ id: "burkinabe", name: "Ministère de l'Éducation Nationale (Burkina Faso)", exams: ["BEPC", "Baccalauréat"] }] },
+    { code: "SO", system: "Somalia · Secondary", grades: ["Form 1", "Form 2", "Form 3", "Form 4"], entry: ["fractions", "percentages", "linear-equations"], specs: ["so-form-4"], sources: ["https://moe.gov.so/"], recordReview: "researched", qualifications: [{ id: "form-4", name: "Form 4 National Examination", stage: "End of Form 4", specIds: ["so-form-4"] }], boards: [{ id: "somali", name: "Ministry of Education, Culture and Higher Education (Somalia)", exams: ["Form 4 National Examination"] }] },
+    { code: "SD", system: "Sudan · Secondary", grades: ["Secondary 1", "Secondary 2", "Secondary 3"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["sd-school-certificate"], sources: ["https://moe.gov.sd/"], recordReview: "researched", qualifications: [{ id: "school-certificate", name: "Sudan School Certificate", stage: "End of Secondary 3", specIds: ["sd-school-certificate"] }], boards: [{ id: "sudanese", name: "Ministry of Education (Sudan)", exams: ["Sudan School Certificate"] }] },
+    // ── Asia & the Middle East ────────────────────────────────────────────────
+    { code: "VN", system: "Việt Nam · THCS / THPT", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["vn-thpt"], sources: ["https://moet.gov.vn/"], recordReview: "researched", qualifications: [{ id: "thpt", name: "THPT Quốc gia", stage: "End of Grade 12", specIds: ["vn-thpt"] }], boards: [{ id: "vietnamese", name: "Ministry of Education and Training (Việt Nam)", exams: ["THPT Quốc gia"] }] },
+    { code: "TR", system: "Türkiye · Ortaokul / Lise", grades: ["Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "percentages", "linear-equations"], specs: ["tr-yks"], sources: ["https://www.meb.gov.tr/"], recordReview: "researched", qualifications: [{ id: "lgs", name: "LGS (Liseye Geçiş Sınavı)", stage: "End of Grade 8", specIds: ["tr-yks"] }, { id: "yks", name: "YKS (TYT / AYT)", stage: "End of Grade 12", specIds: ["tr-yks"] }], boards: [{ id: "turkish", name: "Millî Eğitim Bakanlığı / ÖSYM (Türkiye)", exams: ["LGS", "YKS"] }] },
+    { code: "IR", system: "Iran · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["ir-konkur"], sources: ["https://www.medu.ir/"], recordReview: "researched", qualifications: [{ id: "konkur", name: "Konkur", stage: "After Grade 12", specIds: ["ir-konkur"] }], boards: [{ id: "iranian", name: "Ministry of Education (Iran)", exams: ["Konkur"] }] },
+    { code: "AF", system: "Afghanistan · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["af-baccalaureate"], sources: ["https://moe.gov.af/"], recordReview: "researched", qualifications: [{ id: "baccalaureate", name: "Baccalaureate", stage: "End of Grade 12", specIds: ["af-baccalaureate"] }], boards: [{ id: "afghan", name: "Ministry of Education (Afghanistan)", exams: ["Baccalaureate", "Kankor"] }] },
+    { code: "CN", system: "China · Junior/Senior High", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["cn-gaokao"], sources: ["https://en.moe.gov.cn/"], recordReview: "researched", qualifications: [{ id: "zhongkao", name: "Zhongkao", stage: "End of Grade 9", specIds: ["cn-gaokao"] }, { id: "gaokao", name: "Gaokao", stage: "End of Grade 12", specIds: ["cn-gaokao"] }], boards: [{ id: "chinese", name: "Ministry of Education of the People's Republic of China", exams: ["Zhongkao", "Gaokao"] }] },
+    { code: "JP", system: "Japan · Junior/Senior High", grades: ["Junior High 1", "Junior High 2", "Junior High 3", "High School 1", "High School 2", "High School 3"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["jp-nyushi"], sources: ["https://www.mext.go.jp/en/"], recordReview: "researched", qualifications: [{ id: "nyushi", name: "Daigaku Nyushi", stage: "After High School 3", specIds: ["jp-nyushi"] }], boards: [{ id: "japanese", name: "MEXT (Japan)", exams: ["Daigaku Nyushi"] }] },
+    { code: "KR", system: "South Korea · Middle/High", grades: ["Middle 1", "Middle 2", "Middle 3", "High 1", "High 2", "High 3"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["kr-csat"], sources: ["https://www.moe.go.kr/"], recordReview: "researched", qualifications: [{ id: "csat", name: "Suneung (CSAT)", stage: "End of High 3", specIds: ["kr-csat"] }], boards: [{ id: "korean", name: "Ministry of Education (Republic of Korea)", exams: ["Suneung"] }] },
+    { code: "YE", system: "Yemen · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ye-general-secondary"], sources: ["https://moe.gov.ye/"], recordReview: "researched", qualifications: [{ id: "general-secondary", name: "General Secondary Certificate", stage: "End of Grade 12", specIds: ["ye-general-secondary"] }], boards: [{ id: "yemeni", name: "Ministry of Education (Yemen)", exams: ["General Secondary Certificate"] }] },
+    { code: "IQ", system: "Iraq · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["iq-preparatory"], sources: ["https://moe.gov.iq/"], recordReview: "researched", qualifications: [{ id: "preparatory", name: "Sixth Preparatory Certificate", stage: "End of Grade 12", specIds: ["iq-preparatory"] }], boards: [{ id: "iraqi", name: "Ministry of Education (Iraq)", exams: ["Sixth Preparatory Certificate"] }] },
+    { code: "SY", system: "Syria · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["sy-baccalaureate"], sources: ["https://moe.gov.sy/"], recordReview: "researched", qualifications: [{ id: "baccalaureate", name: "Al-Shahada Al-Thanawiyya", stage: "End of Grade 12", specIds: ["sy-baccalaureate"] }], boards: [{ id: "syrian", name: "Ministry of Education (Syria)", exams: ["Al-Shahada Al-Thanawiyya"] }] },
+    { code: "JO", system: "Jordan · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["jo-tawjihi"], sources: ["https://moe.gov.jo/"], recordReview: "researched", qualifications: [{ id: "tawjihi", name: "Tawjihi", stage: "End of Grade 12", specIds: ["jo-tawjihi"] }], boards: [{ id: "jordanian", name: "Ministry of Education (Jordan)", exams: ["Tawjihi"] }] },
+    { code: "LB", system: "Lebanon · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["lb-baccalaureate"], sources: ["https://www.mehe.gov.lb/"], recordReview: "researched", qualifications: [{ id: "baccalaureate", name: "Lebanese Baccalaureate", stage: "End of Grade 12", specIds: ["lb-baccalaureate"] }], boards: [{ id: "lebanese", name: "Ministry of Education and Higher Education (Lebanon)", exams: ["Lebanese Baccalaureate"] }] },
+    { code: "NP", system: "Nepal · Secondary", grades: ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "percentages", "linear-equations"], specs: ["np-see", "np-neb"], sources: ["https://moe.gov.np/"], recordReview: "researched", qualifications: [{ id: "see", name: "Secondary Education Examination (SEE)", stage: "End of Grade 10", specIds: ["np-see"] }, { id: "neb", name: "NEB Grade 12", stage: "End of Grade 12", specIds: ["np-neb"] }], boards: [{ id: "nepali", name: "National Examinations Board (Nepal)", exams: ["SEE", "NEB Grade 12"] }] },
+    { code: "LK", system: "Sri Lanka · Secondary", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12", "Grade 13"], entry: ["fractions", "percentages", "linear-equations"], specs: ["lk-o-level", "lk-a-level"], sources: ["https://moe.gov.lk/"], recordReview: "researched", qualifications: [{ id: "o-level", name: "GCE Ordinary Level", stage: "End of Grade 11", specIds: ["lk-o-level"] }, { id: "a-level", name: "GCE Advanced Level", stage: "End of Grade 13", specIds: ["lk-a-level"] }], boards: [{ id: "srilankan", name: "Department of Examinations (Sri Lanka)", exams: ["O Level", "A Level"] }] },
+    { code: "MM", system: "Myanmar · Secondary", grades: ["Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["mm-matriculation"], sources: ["https://www.moe.gov.mm/"], recordReview: "researched", qualifications: [{ id: "matriculation", name: "Matriculation Examination", stage: "End of Grade 12", specIds: ["mm-matriculation"] }], boards: [{ id: "myanmar", name: "Ministry of Education (Myanmar)", exams: ["Matriculation"] }] },
+    { code: "KH", system: "Cambodia · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["kh-baccalaureate"], sources: ["https://www.moeys.gov.kh/"], recordReview: "researched", qualifications: [{ id: "baccalaureate", name: "Baccalauréat", stage: "End of Grade 12", specIds: ["kh-baccalaureate"] }], boards: [{ id: "cambodian", name: "Ministry of Education, Youth and Sport (Cambodia)", exams: ["Baccalauréat"] }] },
+    { code: "LA", system: "Laos · Secondary", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["la-upper-secondary"], sources: ["https://www.moes.gov.la/"], recordReview: "researched", qualifications: [{ id: "upper-secondary", name: "Upper Secondary Completion", stage: "End of Grade 12", specIds: ["la-upper-secondary"] }], boards: [{ id: "lao", name: "Ministry of Education and Sports (Laos)", exams: ["Upper Secondary Completion"] }] },
+    { code: "MN", system: "Mongolia · Secondary", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["mn-eesh"], sources: ["https://meds.gov.mn/"], recordReview: "researched", qualifications: [{ id: "eesh", name: "ЭЕШ (University Entrance Examination)", stage: "End of Grade 12", specIds: ["mn-eesh"] }], boards: [{ id: "mongolian", name: "Ministry of Education and Science (Mongolia)", exams: ["ЭЕШ"] }] },
+    { code: "KZ", system: "Kazakhstan · Secondary", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["kz-unt"], sources: ["https://www.gov.kz/memleket/entities/edu"], recordReview: "researched", qualifications: [{ id: "unt", name: "ҰБТ (Unified National Testing)", stage: "End of Grade 11", specIds: ["kz-unt"] }], boards: [{ id: "kazakh", name: "Ministry of Education (Kazakhstan)", exams: ["ҰБТ"] }] },
+    { code: "UZ", system: "Uzbekistan · Secondary", grades: ["Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["uz-entrance"], sources: ["https://uzedu.uz/"], recordReview: "researched", qualifications: [{ id: "entrance", name: "University entrance examinations", stage: "End of Grade 11", specIds: ["uz-entrance"] }], boards: [{ id: "uzbek", name: "Ministry of Preschool and School Education (Uzbekistan)", exams: ["University entrance examinations"] }] },
+    // ── Europe ────────────────────────────────────────────────────────────────
+    { code: "ES", system: "España · ESO / Bachillerato", grades: ["1º ESO", "2º ESO", "3º ESO", "4º ESO", "1º Bachillerato", "2º Bachillerato"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["es-eso", "es-bachillerato"], sources: ["https://www.educacionyfp.gob.es/"], recordReview: "researched", qualifications: [{ id: "eso", name: "Educación Secundaria Obligatoria (ESO)", stage: "End of 4º ESO", specIds: ["es-eso"] }, { id: "bachillerato", name: "Bachillerato (EBAU)", stage: "End of 2º Bachillerato", specIds: ["es-bachillerato"] }], boards: [{ id: "spanish", name: "Ministerio de Educación, Formación Profesional y Deportes", exams: ["ESO", "EBAU"] }] },
+    { code: "FR", system: "France · Collège / Lycée", grades: ["6e", "5e", "4e", "3e", "2nde", "1re", "Terminale"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["fr-college", "fr-bac"], sources: ["https://www.education.gouv.fr/"], recordReview: "researched", qualifications: [{ id: "brevet", name: "Diplôme national du brevet", stage: "End of 3e", specIds: ["fr-college"] }, { id: "bac", name: "Baccalauréat", stage: "End of Terminale", specIds: ["fr-bac"] }], boards: [{ id: "french", name: "Ministère de l'Éducation nationale (France)", exams: ["Brevet", "Baccalauréat"] }] },
+    { code: "DE", system: "Deutschland · Sekundarstufe", grades: ["Klasse 5", "Klasse 6", "Klasse 7", "Klasse 8", "Klasse 9", "Klasse 10", "Klasse 11", "Klasse 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["de-msa", "de-abi"], sources: ["https://www.kmk.org/"], recordReview: "researched", qualifications: [{ id: "msa", name: "Mittlerer Schulabschluss", stage: "End of Klasse 10", specIds: ["de-msa"] }, { id: "abitur", name: "Abitur", stage: "End of Klasse 12", specIds: ["de-abi"] }], boards: [{ id: "german", name: "Kultusministerkonferenz (KMK)", exams: ["Mittlerer Schulabschluss", "Abitur"] }] },
+    { code: "IT", system: "Italia · Media / Superiore", grades: ["1ª media", "2ª media", "3ª media", "1ª superiore", "2ª superiore", "3ª superiore", "4ª superiore", "5ª superiore"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["it-media", "it-maturita"], sources: ["https://www.mim.gov.it/"], recordReview: "researched", qualifications: [{ id: "media", name: "Licenza media", stage: "End of 3ª media", specIds: ["it-media"] }, { id: "maturita", name: "Esame di Stato (Maturità)", stage: "End of 5ª superiore", specIds: ["it-maturita"] }], boards: [{ id: "italian", name: "Ministero dell'Istruzione e del Merito (Italia)", exams: ["Licenza media", "Esame di Stato"] }] },
+    { code: "PL", system: "Polska · Szkoła podstawowa / Liceum", grades: ["Klasa 7", "Klasa 8", "Liceum 1", "Liceum 2", "Liceum 3", "Liceum 4"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["pl-osmoklasisty", "pl-matura"], sources: ["https://www.gov.pl/web/edukacja"], recordReview: "researched", qualifications: [{ id: "osmoklasisty", name: "Egzamin ósmoklasisty", stage: "End of Klasa 8", specIds: ["pl-osmoklasisty"] }, { id: "matura", name: "Matura", stage: "End of Liceum 4", specIds: ["pl-matura"] }], boards: [{ id: "polish", name: "Centralna Komisja Egzaminacyjna (Polska)", exams: ["Egzamin ósmoklasisty", "Matura"] }] },
+    { code: "UA", system: "Україна · Гімназія / Ліцей", grades: ["Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"], entry: ["fractions", "linear-equations", "quadratics"], specs: ["ua-nmt"], sources: ["https://mon.gov.ua/"], recordReview: "researched", qualifications: [{ id: "nmt", name: "НМТ (National Multi-subject Test)", stage: "End of Grade 12", specIds: ["ua-nmt"] }], boards: [{ id: "ukrainian", name: "Міністерство освіти і науки України", exams: ["НМТ"] }] },
+    // ── The Americas ──────────────────────────────────────────────────────────
+    { code: "CO", system: "Colombia · Secundaria / Media", grades: ["Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["co-saber-11"], sources: ["https://www.mineducacion.gov.co/"], recordReview: "researched", qualifications: [{ id: "saber-11", name: "Saber 11", stage: "End of Grade 11", specIds: ["co-saber-11"] }], boards: [{ id: "colombian", name: "Ministerio de Educación Nacional (Colombia) / ICFES", exams: ["Saber 11"] }] },
+    { code: "AR", system: "Argentina · Secundaria", grades: ["1º año", "2º año", "3º año", "4º año", "5º año", "6º año"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ar-secundaria"], sources: ["https://www.argentina.gob.ar/educacion"], recordReview: "researched", qualifications: [{ id: "bachiller", name: "Título de Bachiller", stage: "End of 6º año", specIds: ["ar-secundaria"] }], boards: [{ id: "argentine", name: "Ministerio de Educación (Argentina)", exams: ["Título de Bachiller"] }] },
+    { code: "PE", system: "Perú · Secundaria", grades: ["1º secundaria", "2º secundaria", "3º secundaria", "4º secundaria", "5º secundaria"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["pe-secundaria"], sources: ["https://www.gob.pe/minedu"], recordReview: "researched", qualifications: [{ id: "secundaria", name: "Certificado de Educación Secundaria", stage: "End of 5º secundaria", specIds: ["pe-secundaria"] }], boards: [{ id: "peruvian", name: "Ministerio de Educación (Perú)", exams: ["Certificado de Educación Secundaria"] }] },
+    { code: "HT", system: "Haïti · Collège / Lycée", grades: ["7e AF", "6e AF", "5e AF", "4e AF", "3e AF", "Seconde", "Rhéto", "Philo"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ht-bac"], sources: ["https://www.menfp.gouv.ht/"], recordReview: "researched", qualifications: [{ id: "bac", name: "Baccalauréat (Haïti)", stage: "End of Philo", specIds: ["ht-bac"] }], boards: [{ id: "haitian", name: "Ministère de l'Éducation Nationale (Haïti)", exams: ["Baccalauréat"] }] },
+    { code: "BO", system: "Bolivia · Secundaria", grades: ["1º de secundaria", "2º de secundaria", "3º de secundaria", "4º de secundaria", "5º de secundaria", "6º de secundaria"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["bo-bachillerato"], sources: ["https://www.minedu.gob.bo/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 6º de secundaria", specIds: ["bo-bachillerato"] }], boards: [{ id: "bolivian", name: "Ministerio de Educación (Bolivia)", exams: ["Bachillerato"] }] },
+    { code: "EC", system: "Ecuador · EGB / Bachillerato", grades: ["8º EGB", "9º EGB", "10º EGB", "1º bachillerato", "2º bachillerato", "3º bachillerato"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ec-bachillerato"], sources: ["https://educacion.gob.ec/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 3º bachillerato", specIds: ["ec-bachillerato"] }], boards: [{ id: "ecuadorian", name: "Ministerio de Educación (Ecuador)", exams: ["Bachillerato"] }] },
+    { code: "GT", system: "Guatemala · Básico / Diversificado", grades: ["1º básico", "2º básico", "3º básico", "4º diversificado", "5º diversificado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["gt-diversificado"], sources: ["https://www.minedu.gob.gt/"], recordReview: "researched", qualifications: [{ id: "diversificado", name: "Diversificado", stage: "End of 5º diversificado", specIds: ["gt-diversificado"] }], boards: [{ id: "guatemalan", name: "Ministerio de Educación (Guatemala)", exams: ["Diversificado"] }] },
+    { code: "HN", system: "Honduras · Secundaria", grades: ["7º grado", "8º grado", "9º grado", "10º grado", "11º grado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["hn-bachillerato"], sources: ["https://se.gob.hn/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 11º grado", specIds: ["hn-bachillerato"] }], boards: [{ id: "honduran", name: "Secretaría de Educación (Honduras)", exams: ["Bachillerato"] }] },
+    { code: "NI", system: "Nicaragua · Secundaria", grades: ["7º grado", "8º grado", "9º grado", "10º grado", "11º grado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ni-bachillerato"], sources: ["https://www.mined.gob.ni/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 11º grado", specIds: ["ni-bachillerato"] }], boards: [{ id: "nicaraguan", name: "Ministerio de Educación (Nicaragua)", exams: ["Bachillerato"] }] },
+    { code: "SV", system: "El Salvador · Secundaria", grades: ["7º grado", "8º grado", "9º grado", "10º grado", "11º grado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["sv-bachillerato"], sources: ["https://www.mined.gob.sv/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 11º grado", specIds: ["sv-bachillerato"] }], boards: [{ id: "salvadoran", name: "Ministerio de Educación (El Salvador)", exams: ["Bachillerato"] }] },
+    { code: "DO", system: "República Dominicana · Secundaria", grades: ["1º de secundaria", "2º de secundaria", "3º de secundaria", "4º de secundaria", "5º de secundaria", "6º de secundaria"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["do-bachillerato"], sources: ["https://www.ministeriodeeducacion.gob.do/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 6º de secundaria", specIds: ["do-bachillerato"] }], boards: [{ id: "dominican", name: "Ministerio de Educación (República Dominicana)", exams: ["Bachillerato"] }] },
+];
 function pathwayFromRoute(route) {
     return {
         id: `${route.code.toLowerCase()}-national`,
@@ -2046,13 +2279,13 @@ function pathwayFromRoute(route) {
         name: route.system,
         pathwayType: "national",
         schoolYears: years(...route.grades),
-        // EMPTY ON PURPOSE. The learner-facing name of a qualification is owned by
-        // the specification itself (lib/specifications.ts), and copying it here
-        // would be a second owner of one string. A pathway that has actually been
-        // researched (Cameroon's) names its own examinations and the point in the
-        // system they end; the gate demands that of a "researched" record and not of
-        // an inherited one, which is how the report tells the two apart.
-        qualifications: [],
+        // EMPTY ON PURPOSE for an inherited route. The learner-facing name of a
+        // qualification is owned by the specification itself (lib/specifications.ts),
+        // and copying it here would be a second owner of one string. A pathway that
+        // has actually been researched names its own examinations and the point in
+        // the system they end; the gate demands that of a "researched" record and not
+        // of an inherited one, which is how the report tells the two apart.
+        qualifications: route.qualifications ?? [],
         specificationIds: route.specs,
         boards: route.boards,
         sourceUrls: route.sources ?? [],
@@ -2060,28 +2293,31 @@ function pathwayFromRoute(route) {
         mappingReview: "mapped",
         entryConcepts: route.entry,
         notes: "Record inherited from the route table this registry replaces: the years and " +
-            "awarding bodies were already in production, and the structural citations have " +
-            "not been collected. The qualification NAMES live on the specifications " +
-            "themselves (lib/specifications.ts), which is what a learner is shown.",
+            "awarding bodies were already in production. Structural citations are " +
+            "recorded only where `sourceUrls` names them. The qualification NAMES live on " +
+            "the specifications themselves (lib/specifications.ts), which is what a " +
+            "learner is shown.",
     };
 }
 /** A country the picker offers with NO national pathway recorded. Listing them
  *  explicitly (rather than inferring "anything unlisted is unmapped") is what
  *  lets the gate tell "we have not researched this yet" apart from "somebody
  *  forgot to add it at all", which is the difference the report has to show. */
+// AFTER THE ADDED_ROUTES PASS THIS LIST IS SHORT ON PURPOSE. Every country the
+// enrolment picker OFFERS now has a national route, so nothing on this list is
+// offered to a learner — these are the systems OpenMind has not modelled yet and
+// does not pretend to. Keeping them named is the difference between "we have not
+// researched this" and "somebody forgot it": the curriculum gate fails on a code
+// in NEITHER list, and the report prints this one as the queue it is.
 const UNRESEARCHED_COUNTRIES = [
-    // Africa
-    "ET", "EG", "MA", "RW", "ZM", "ZW", "MW", "ML", "SN", "CI", "NE", "BF", "SO", "SD",
-    // Asia & Middle East
-    "VN", "CN", "JP", "KR", "TR", "IR", "AF", "YE", "IQ", "SY", "JO", "LB", "NP", "LK",
-    "MM", "KH", "LA", "MN", "KZ", "UZ", "AE", "SA", "MY", "TH", "SG",
-    // Europe
-    "ES", "FR", "DE", "IT", "PL", "UA", "NL", "SE", "NO", "DK", "FI", "GR", "RO", "HU", "CZ", "CH",
+    // Gulf, South-East Asia and Europe outside the picker today.
+    "AE", "SA", "MY", "TH", "SG",
+    "NL", "SE", "NO", "DK", "FI", "GR", "RO", "HU", "CZ", "CH",
     // Americas
-    "CO", "AR", "PE", "HT", "BO", "EC", "GT", "HN", "NI", "SV", "DO", "CL",
+    "CL",
 ];
 const CURRICULA = {
-    ...Object.fromEntries(NATIONAL_ROUTES.map((r) => [
+    ...Object.fromEntries([...NATIONAL_ROUTES, ...ADDED_ROUTES].map((r) => [
         r.code,
         {
             countryCode: r.code,
@@ -2645,6 +2881,147 @@ function basisViolations(ctx, actions) {
 }
 
 });
+__def("device-roster.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// SEVERAL LEARNERS, ONE DEVICE.
+//
+// THE PROBLEM THIS EXISTS FOR. The app has always held ONE learner per browser:
+// a profile id and its capability secret in localStorage. That is the right
+// model for a personal phone and the wrong one for the deployment this project
+// says it is for — a classroom where forty children share three handsets, or a
+// household where two siblings share one. On such a device the second child
+// either overwrites the first child's identity (and then cannot get back to
+// their own record) or has to sign out and retype a secret nobody has written
+// down. Measured on this checkout: no profile switcher existed anywhere.
+//
+// WHAT THIS IS NOT. It does not merge records, share a secret between learners,
+// or let one learner read another's work. Each entry is that learner's OWN
+// capability — the same token their personal phone would hold — and switching
+// is simply "this device now speaks for that learner". The server still checks
+// the secret on every call, so holding a roster entry is exactly as powerful as
+// holding a phone, which is the trust boundary a shared device already has.
+//
+// WHY IT IS A SEPARATE, PURE MODULE. `lib/api/identity.ts` owns the two storage
+// keys and the announce rule; this file owns only "which learners this device
+// has met and in what order", over an injected key-value store. That keeps the
+// ordering, dedupe and cap testable in `npm run verify` with a Map, with no
+// window and no React — the same reason the transport is separate from the UI.
+//
+// THE CAP IS DELIBERATE. A roster that grows without limit eventually exposes
+// every learner who ever used the device to the next person who opens the
+// account screen, which is a safeguarding problem rather than a storage one.
+// Eight is enough for a study group and small enough to read on one screen.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NAME_LIMIT = exports.ROSTER_LIMIT = exports.ROSTER_KEY = void 0;
+exports.displayName = displayName;
+exports.readRoster = readRoster;
+exports.rememberLearner = rememberLearner;
+exports.forgetLearner = forgetLearner;
+exports.findLearner = findLearner;
+exports.touchLearner = touchLearner;
+exports.ROSTER_KEY = "openmind:learners";
+exports.ROSTER_LIMIT = 8;
+/** A name is a LABEL for a shared screen, not an identity: the record's own
+ *  handle is authoritative, and this is only what fits on a button. */
+exports.NAME_LIMIT = 24;
+/** The name shown on a switch button. Falls back to a neutral label rather than
+ *  an empty button, which is unusable — and never to the id, which is a
+ *  credential-adjacent string nobody should be reading off a screen. */
+function displayName(entry) {
+    const name = (entry.name ?? "").trim();
+    return name ? name.slice(0, exports.NAME_LIMIT) : "";
+}
+function normalise(raw) {
+    if (!raw || typeof raw !== "object")
+        return null;
+    const r = raw;
+    const id = typeof r.id === "string" ? r.id.trim() : "";
+    const secret = typeof r.secret === "string" ? r.secret.trim() : "";
+    if (!id || !secret)
+        return null;
+    const name = typeof r.name === "string" ? displayName({ name: r.name }) : "";
+    const lastUsedAt = typeof r.lastUsedAt === "number" && Number.isFinite(r.lastUsedAt) ? r.lastUsedAt : 0;
+    return { id, secret, name, lastUsedAt };
+}
+/** Tolerant by construction: a roster written by an older build, or by hand, or
+ *  half-written by a browser that closed mid-write, must not throw on every page
+ *  load. Unreadable content reads as "no other learners", never as an error the
+ *  account screen has to render. */
+function readRoster(store) {
+    if (!store)
+        return [];
+    let parsed;
+    try {
+        const raw = store.getItem(exports.ROSTER_KEY);
+        if (!raw)
+            return [];
+        parsed = JSON.parse(raw);
+    }
+    catch {
+        return [];
+    }
+    if (!Array.isArray(parsed))
+        return [];
+    const seen = new Set();
+    const out = [];
+    for (const item of parsed) {
+        const entry = normalise(item);
+        if (!entry || seen.has(entry.id))
+            continue;
+        seen.add(entry.id);
+        out.push(entry);
+        if (out.length >= exports.ROSTER_LIMIT)
+            break;
+    }
+    return out;
+}
+function writeRoster(store, list) {
+    if (!store)
+        return;
+    try {
+        store.setItem(exports.ROSTER_KEY, JSON.stringify(list.slice(0, exports.ROSTER_LIMIT)));
+    }
+    catch {
+        // Private mode or a full quota: the learner this device is currently
+        // speaking for is unaffected, so a roster write failure must not surface as
+        // an error on a screen whose real job is showing their record.
+    }
+}
+/** Add or refresh one learner, most-recent first, capped. The learner being
+ *  remembered is NEVER the one dropped when the cap is reached — evicting the
+ *  entry just created would leave the screen claiming a switch it cannot make. */
+function rememberLearner(store, entry) {
+    const clean = normalise({ ...entry, lastUsedAt: entry.at ?? Date.now() });
+    if (!clean)
+        return readRoster(store);
+    const rest = readRoster(store).filter((r) => r.id !== clean.id);
+    const next = [clean, ...rest].slice(0, exports.ROSTER_LIMIT);
+    writeRoster(store, next);
+    return next;
+}
+/** Drop one learner. Removing the CURRENT one is the caller's problem (it must
+ *  clear the identity too) — this function only edits the list, so it cannot
+ *  half-forget somebody. */
+function forgetLearner(store, id) {
+    const next = readRoster(store).filter((r) => r.id !== id);
+    writeRoster(store, next);
+    return next;
+}
+function findLearner(store, id) {
+    return readRoster(store).find((r) => r.id === id) ?? null;
+}
+/** Touch the entry a switch just used, so "most recent" keeps meaning it. */
+function touchLearner(store, id, at = Date.now()) {
+    const list = readRoster(store);
+    const entry = list.find((r) => r.id === id);
+    if (!entry)
+        return list;
+    return rememberLearner(store, { ...entry, at });
+}
+
+});
 __def("diagnostic.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -3110,7 +3487,34 @@ function ladderMastery(c) {
     // reached (it is where the sitting placed them — `openedAt`, for any surface
     // to see), and it counts only once the learner has proven a band at or above
     // it (see the guard below).
-    const openRung = Math.min(c.openedAt ?? 0, rungs - 1);
+    // ── WHERE THE CONCEPT ACTUALLY OPENED (audit #1, measured) ───────────────
+    //
+    // Two different facts can raise a fresh concept's opening rung, and they are
+    // recorded in two different fields (`LadderState.openedAt` — see the opener):
+    // the COURSE floor, and the bands this SESSION had already demonstrated on an
+    // earlier concept (the skip, recorded in `skippedBands`).
+    //
+    // Only the first was read here, and that was the 66% bug: when the session
+    // skip set `stage = 2` while the course floor stayed 0, this function counted
+    // rungs 0 and 1 as PASSED from a position nobody had proven on this concept —
+    // 0.1 + 0.28 × 2 = 0.66 for a learner who answered both questions wrong. The
+    // guard below (`demonstrated > 0 ? openRung : 0`) could not catch it either,
+    // because `demonstrated` was itself counted from the wrong rung.
+    //
+    // The opening rung is therefore the deepest fact available. That repairs the
+    // over-claim without creating its mirror image: a concept opened at a rung by
+    // the learner's own course, and then swept clean, still collects the position
+    // it was placed at (the credits below are unchanged for that case), which is
+    // what keeps a flawless year-11 run from being reported as a shallow one.
+    const courseRung = Math.min(c.openedAt ?? 0, rungs - 1);
+    const skippedRungs = Math.min(c.skippedBands?.length ?? 0, rungs - 1);
+    // …and the record's OWN evidence, which cannot drift from it: a ladder that
+    // only ever asked its current rung OPENED there, whatever raised it. That is
+    // read from the counts rather than from a second field being kept in step,
+    // because a credit rule that trusts a companion field is how this bug existed
+    // in the first place (`openedAt` and `stage` disagreed, and only one was read).
+    const onlyThisRung = c.askedThisStage > 0 && c.asked === c.askedThisStage;
+    const openRung = Math.max(courseRung, skippedRungs, onlyThisRung ? Math.min(c.stage, rungs - 1) : 0);
     // The highest rung this ladder actually PASSED: a perfect final stage is a
     // pass, anything else leaves the current rung unproven. Everything between
     // the opening rung and that one was proven on the way up, because an
@@ -3269,8 +3673,22 @@ function diagnosticToProgress(c, at = Date.now()) {
         attempts: c.asked,
         correct: c.correct,
         streak: 0,
-        // Accuracy == mastery here: the diagnostic is the accuracy evidence.
-        accuracy: mastery,
+        // ── ACCURACY IS THE RATE; MASTERY IS THE POSITION CLAIM (audit #1) ──────
+        //
+        // These were the same number, and that is what carried the 66% into a
+        // record whose own counts said 0/2. `ladderMastery` is a POSITION score —
+        // which rungs of this concept's ladder the sitting reached and proved —
+        // while `accuracy` is documented as "EWMA of graded-answer outcomes", a
+        // RATE. Writing the position score into both meant a learner who answered
+        // everything wrong was handed a two-thirds accuracy, and because
+        // `integratedMastery` reads accuracy as its base, the next display of the
+        // number repeated it.
+        //
+        // A rate is answerable from the record itself: this sitting asked `asked`
+        // questions and got `correct` of them right. When nothing was asked there
+        // is no rate and the neutral position claim stands in for it (a seed with
+        // `asked: 0` is never displayed as a measurement — see `buildResult`).
+        accuracy: c.asked > 0 ? c.correct / c.asked : mastery,
         mastery,
         lastSeen: at,
         misconceptions: {},
@@ -3300,11 +3718,19 @@ function mergeDiagnosticSeed(progress, conceptId, seed, at) {
         return;
     }
     const practiceAnswers = existing.attempts ?? 0;
+    // Which SITTING the displayed claim comes from, decided before the merge
+    // touches anything. `mastery` takes the stronger run (evidence is not
+    // un-earned by a later bad day), and the accuracy that travels with the
+    // number has to be THAT run's rate: a new sitting's 0/2 used to overwrite
+    // accuracy while the mastery it did not beat stayed on screen, so the record
+    // read "two-thirds mastery, zero accuracy" — the same two-claims-one-number
+    // defect the seed itself had, one merge later.
+    const seedWins = (seed.mastery ?? 0) >= (existing.mastery ?? 0);
     if (practiceAnswers < mastery_1.DIAG_RELEASE_EVIDENCE) {
         // Supervised window: the diagnostic measurement IS the best evidence.
         existing.attempts = Math.max(existing.attempts ?? 0, seed.attempts);
         existing.correct = Math.max(existing.correct ?? 0, seed.correct);
-        existing.accuracy = seed.accuracy;
+        existing.accuracy = seedWins ? seed.accuracy : (existing.accuracy ?? seed.accuracy);
     }
     else {
         // Practice has taken over; only lift the claim if the diagnostic is stronger.
@@ -3682,8 +4108,9 @@ __def("evidence.js", function (module, exports, require) {
 //      events always produces the same learner model — the property that makes
 //      "improve the algorithm, keep the history" possible.
 //
-// Pure and dependency-light: no I/O lives here (that is lib/server/evidence.ts),
-// so every claim about it is testable without a server.
+// Pure and dependency-light: no I/O lives here (that is the ledger behind the
+// storage port — lib/server/evidence-file.ts for the file backend), so every
+// claim about it is testable without a server.
 // ─────────────────────────────────────────────────────────────────────────────
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SOURCES = exports.PROJECTION_VERSION = exports.EVIDENCE_SCHEMA_VERSION = void 0;
@@ -4391,7 +4818,10 @@ function build(subject, rows) {
     }));
 }
 // ─────────────────────────────────────────────────────────────────────────────
-// MATHEMATICS — 72 concepts, stage 0 (primary foundations) → stage 5 (frontier)
+// MATHEMATICS — 67 concepts, stage 0 (primary foundations) → stage 5 (frontier).
+// A count written here is a SECOND copy of one `audit/status.json` owns, so it is
+// machine-checked against the rows below by `npm run status:check` — this header
+// said 72 for as long as anyone had looked, and the arrays have held 67.
 // ─────────────────────────────────────────────────────────────────────────────
 const MATHS = [
     ["place-value", 0, "Place value", "Digits mean different amounts depending on their position.", "In the number 452, the digit 4 means 400, the 5 means 50 and the 2 means 2. Each step left multiplies a digit's value by ten, and each step right divides it by ten. This single idea is why we can write enormous numbers compactly, and it is the foundation of decimal numbers, estimation and standard form later on.", []],
@@ -4653,6 +5083,890 @@ function buildHint(q, level) {
 }
 
 });
+__def("i18n-curriculum.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// THE CURRICULUM-MAPPING VOCABULARY, in all fifteen languages.
+//
+// Two strings, and they exist because a citation nobody can read is not a
+// citation. `course.mapPending` (lib/i18n.ts) already says how far the mapping
+// has been checked; these name WHAT it was checked against, which is the fact a
+// ministry's subject specialist needs before they can disagree with a single
+// line of it.
+//
+// The document's own title, publisher and date are NOT translated: they are
+// proper nouns and a citation, and a translated citation cannot be looked up.
+// Only the lead-in and the caveat are localised.
+//
+// Merged into `DICTS` at module load (lib/i18n.ts), so `t()`, the English
+// fallback and the suite's key-parity assertion all see one dictionary.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CURRICULUM_STRINGS = void 0;
+exports.CURRICULUM_STRINGS = {
+    en: {
+        "course.mapSource": "Mapped against:",
+        "course.mapPortal": "the source is on file; a reviewer must still check each heading against the document",
+    },
+    es: {
+        "course.mapSource": "Mapeado con:",
+        "course.mapPortal": "la fuente está archivada; un revisor debe comprobar aún cada encabezado con el documento",
+    },
+    fr: {
+        "course.mapSource": "Correspondance établie avec :",
+        "course.mapPortal": "la source est archivée ; un relecteur doit encore vérifier chaque intitulé dans le document",
+    },
+    pt: {
+        "course.mapSource": "Mapeado com base em:",
+        "course.mapPortal": "a fonte está arquivada; um revisor ainda deve conferir cada título no documento",
+    },
+    ar: {
+        "course.mapSource": "تمت المطابقة مع:",
+        "course.mapPortal": "المصدر محفوظ؛ على المراجع أن يتحقق بعد من كل عنوان في الوثيقة",
+    },
+    sw: {
+        "course.mapSource": "Imeoanishwa na:",
+        "course.mapPortal": "chanzo kipo kwenye faili; mhakiki bado anapaswa kuhakiki kila kichwa ndani ya hati",
+    },
+    hi: {
+        "course.mapSource": "इसके अनुसार मैप किया गया:",
+        "course.mapPortal": "स्रोत फ़ाइल में है; समीक्षक को अभी दस्तावेज़ में प्रत्येक शीर्षक जाँचना है",
+    },
+    id: {
+        "course.mapSource": "Dipetakan terhadap:",
+        "course.mapPortal": "sumbernya tersimpan; peninjau masih harus memeriksa setiap judul di dalam dokumen",
+    },
+    tl: {
+        "course.mapSource": "Nakamapa laban sa:",
+        "course.mapPortal": "nasa file ang pinagmulan; kailangan pa ring suriin ng tagasuri ang bawat pamagat sa dokumento",
+    },
+    de: {
+        "course.mapSource": "Abgeglichen mit:",
+        "course.mapPortal": "die Quelle liegt vor; eine Prüfperson muss noch jede Überschrift im Dokument abgleichen",
+    },
+    ja: {
+        "course.mapSource": "対応付けの根拠：",
+        "course.mapPortal": "出典は保管済みです。確認者が文書内の各見出しを照合する必要があります",
+    },
+    zh: {
+        "course.mapSource": "对照依据：",
+        "course.mapPortal": "来源已存档；审阅者仍需逐条核对文件中的标题",
+    },
+    fa: {
+        "course.mapSource": "نگاشتشده بر پایه:",
+        "course.mapPortal": "منبع در پرونده موجود است؛ بازبین باید هر سرصفحه را با سند بررسی کند",
+    },
+    ur: {
+        "course.mapSource": "اس کی بنیاد پر نقشہ بنایا گیا:",
+        "course.mapPortal": "ماخذ فائل میں موجود ہے؛ جائزہ لینے والے کو دستاویز میں ہر عنوان جانچنا باقی ہے",
+    },
+    bn: {
+        "course.mapSource": "যার ভিত্তিতে ম্যাপ করা হয়েছে:",
+        "course.mapPortal": "উৎস ফাইলে আছে; পর্যালোচককে এখনও নথির প্রতিটি শিরোনাম যাচাই করতে হবে",
+    },
+};
+
+});
+__def("i18n-device.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// THE SHARED-DEVICE VOCABULARY, in all fifteen languages.
+//
+// Six strings, and they exist because "switch learner" is a sentence a child
+// reads on a phone someone else was using a minute ago. The hint has to say two
+// things at once: this shows a different learner's work, and nothing is mixed.
+// The removal warning has to be honest about what is lost — the sign-in on this
+// device, not the record — because a learner who removes themselves and cannot
+// get back in has lost their history in practice even though the file still
+// holds it.
+//
+// Merged into `DICTS` at module load (lib/i18n.ts), so `t()`, the English
+// fallback and the suite's key-parity assertion all see one dictionary.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DEVICE_STRINGS = void 0;
+exports.DEVICE_STRINGS = {
+    en: {
+        "acct.learners": "Learners on this device",
+        "acct.learner": "Learner",
+        "acct.learnersHint": "Each learner keeps their own record. Switching changes whose work is shown — it never mixes two learners' answers.",
+        "acct.active": "Active",
+        "acct.switch": "Switch",
+        "acct.remove": "Remove",
+        "acct.removeHint": "Removing forgets the sign-in on this device. The record stays where it is, but you will need the learner's account or recovery code to open it again.",
+    },
+    es: {
+        "acct.learners": "Estudiantes en este dispositivo",
+        "acct.learner": "Estudiante",
+        "acct.learnersHint": "Cada estudiante mantiene su propio registro. Cambiar decide de quién se muestra el trabajo; nunca mezcla las respuestas de dos estudiantes.",
+        "acct.active": "Activo",
+        "acct.switch": "Cambiar",
+        "acct.remove": "Quitar",
+        "acct.removeHint": "Quitar olvida el inicio de sesión en este dispositivo. El registro sigue donde está, pero necesitarás la cuenta o el código de recuperación para volver a abrirlo.",
+    },
+    fr: {
+        "acct.learners": "Élèves sur cet appareil",
+        "acct.learner": "Élève",
+        "acct.learnersHint": "Chaque élève garde son propre dossier. Changer décide de qui le travail est affiché ; les réponses de deux élèves ne sont jamais mélangées.",
+        "acct.active": "Actif",
+        "acct.switch": "Changer",
+        "acct.remove": "Retirer",
+        "acct.removeHint": "Retirer oublie la connexion sur cet appareil. Le dossier reste où il est, mais il faudra le compte ou le code de récupération de l'élève pour le rouvrir.",
+    },
+    pt: {
+        "acct.learners": "Estudantes neste dispositivo",
+        "acct.learner": "Estudante",
+        "acct.learnersHint": "Cada estudante mantém o seu próprio registo. Mudar decide de quem é o trabalho mostrado; nunca mistura as respostas de dois estudantes.",
+        "acct.active": "Ativo",
+        "acct.switch": "Mudar",
+        "acct.remove": "Remover",
+        "acct.removeHint": "Remover esquece a sessão neste dispositivo. O registo fica onde está, mas vai precisar da conta ou do código de recuperação para o abrir outra vez.",
+    },
+    ar: {
+        "acct.learners": "المتعلمون على هذا الجهاز",
+        "acct.learner": "متعلم",
+        "acct.learnersHint": "لكل متعلم سجله الخاص. التبديل يحدد سجل من يُعرض؛ ولا يخلط إجابات متعلمين أبدًا.",
+        "acct.active": "نشط",
+        "acct.switch": "تبديل",
+        "acct.remove": "إزالة",
+        "acct.removeHint": "الإزالة تنسى تسجيل الدخول على هذا الجهاز. يبقى السجل في مكانه، لكنك ستحتاج حساب المتعلم أو رمز الاسترداد لفتحه مرة أخرى.",
+    },
+    sw: {
+        "acct.learners": "Wanafunzi kwenye kifaa hiki",
+        "acct.learner": "Mwanafunzi",
+        "acct.learnersHint": "Kila mwanafunzi ana rekodi yake. Kubadilisha huamua kazi ya nani inaonyeshwa; hakuchanganyi majibu ya wanafunzi wawili.",
+        "acct.active": "Anayetumia",
+        "acct.switch": "Badilisha",
+        "acct.remove": "Ondoa",
+        "acct.removeHint": "Kuondoa kunasahau kuingia kwenye kifaa hiki. Rekodi inabaki mahali pake, lakini utahitaji akaunti ya mwanafunzi au msimbo wa urejeshaji kuifungua tena.",
+    },
+    hi: {
+        "acct.learners": "इस डिवाइस पर सीखने वाले",
+        "acct.learner": "सीखने वाला",
+        "acct.learnersHint": "हर सीखने वाले का अपना रिकॉर्ड रहता है। बदलने से तय होता है किसका काम दिखेगा; दो लोगों के उत्तर कभी नहीं मिलते।",
+        "acct.active": "सक्रिय",
+        "acct.switch": "बदलें",
+        "acct.remove": "हटाएँ",
+        "acct.removeHint": "हटाने से इस डिवाइस पर साइन-इन भूल जाता है। रिकॉर्ड जहाँ है वहीं रहता है, पर उसे फिर खोलने के लिए खाता या रिकवरी कोड चाहिए होगा।",
+    },
+    id: {
+        "acct.learners": "Pelajar di perangkat ini",
+        "acct.learner": "Pelajar",
+        "acct.learnersHint": "Setiap pelajar menyimpan catatannya sendiri. Mengganti menentukan pekerjaan siapa yang ditampilkan; jawaban dua pelajar tidak pernah tercampur.",
+        "acct.active": "Aktif",
+        "acct.switch": "Ganti",
+        "acct.remove": "Hapus",
+        "acct.removeHint": "Menghapus melupakan sesi di perangkat ini. Catatan tetap di tempatnya, tetapi Anda perlu akun atau kode pemulihan pelajar untuk membukanya lagi.",
+    },
+    tl: {
+        "acct.learners": "Mga mag-aaral sa device na ito",
+        "acct.learner": "Mag-aaral",
+        "acct.learnersHint": "Bawat mag-aaral ay may sariling talaan. Ang pagpalit ay nagtatakda kung kaninong gawa ang ipapakita; hindi kailanman pinaghahalo ang sagot ng dalawa.",
+        "acct.active": "Aktibo",
+        "acct.switch": "Palitan",
+        "acct.remove": "Alisin",
+        "acct.removeHint": "Ang pag-alis ay nakakalimot sa pag-sign in sa device na ito. Nananatili ang talaan, ngunit kakailanganin mo ang account o recovery code ng mag-aaral upang buksan itong muli.",
+    },
+    de: {
+        "acct.learners": "Lernende auf diesem Gerät",
+        "acct.learner": "Lernende Person",
+        "acct.learnersHint": "Jede lernende Person behält ihren eigenen Datensatz. Wechseln bestimmt, wessen Arbeit gezeigt wird; Antworten zweier Lernender werden nie vermischt.",
+        "acct.active": "Aktiv",
+        "acct.switch": "Wechseln",
+        "acct.remove": "Entfernen",
+        "acct.removeHint": "Entfernen vergisst die Anmeldung auf diesem Gerät. Der Datensatz bleibt, wo er ist, aber zum erneuten Öffnen braucht es das Konto oder den Wiederherstellungscode der lernenden Person.",
+    },
+    ja: {
+        "acct.learners": "この端末の学習者",
+        "acct.learner": "学習者",
+        "acct.learnersHint": "学習者ごとに自分の記録があります。切り替えると表示される記録が変わり、二人の解答が混ざることはありません。",
+        "acct.active": "使用中",
+        "acct.switch": "切り替え",
+        "acct.remove": "削除",
+        "acct.removeHint": "削除するとこの端末のサインインを忘れます。記録自体は残りますが、もう一度開くにはアカウントまたは回復コードが必要です。",
+    },
+    zh: {
+        "acct.learners": "此设备上的学习者",
+        "acct.learner": "学习者",
+        "acct.learnersHint": "每位学习者保留自己的记录。切换会决定显示谁的学习记录；绝不会把两人的答案混在一起。",
+        "acct.active": "当前",
+        "acct.switch": "切换",
+        "acct.remove": "移除",
+        "acct.removeHint": "移除会忘记此设备上的登录。记录仍在原处，但再次打开需要该学习者的账户或恢复码。",
+    },
+    fa: {
+        "acct.learners": "یادگیرندگان روی این دستگاه",
+        "acct.learner": "یادگیرنده",
+        "acct.learnersHint": "هر یادگیرنده سابقهٔ خودش را دارد. جابه‌جایی تعیین می‌کند کار چه کسی نمایش داده شود؛ پاسخ دو نفر هرگز با هم مخلوط نمی‌شود.",
+        "acct.active": "فعال",
+        "acct.switch": "تغییر",
+        "acct.remove": "حذف",
+        "acct.removeHint": "حذف کردن، ورود روی این دستگاه را فراموش می‌کند. سابقه سر جای خود می‌ماند، اما برای بازکردن دوباره به حساب یا کد بازیابی یادگیرنده نیاز دارید.",
+    },
+    ur: {
+        "acct.learners": "اس ڈیوائس پر سیکھنے والے",
+        "acct.learner": "سیکھنے والا",
+        "acct.learnersHint": "ہر سیکھنے والے کا اپنا ریکارڈ ہے۔ تبدیل کرنے سے طے ہوتا ہے کس کا کام دکھایا جائے؛ دو افراد کے جواب کبھی نہیں ملتے۔",
+        "acct.active": "فعال",
+        "acct.switch": "تبدیل کریں",
+        "acct.remove": "ہٹائیں",
+        "acct.removeHint": "ہٹانے سے اس ڈیوائس پر سائن اِن بھول جاتا ہے۔ ریکارڈ اپنی جگہ رہتا ہے، مگر دوبارہ کھولنے کے لیے اکاؤنٹ یا ریکوری کوڈ درکار ہوگا۔",
+    },
+    bn: {
+        "acct.learners": "এই ডিভাইসে শিক্ষার্থীরা",
+        "acct.learner": "শিক্ষার্থী",
+        "acct.learnersHint": "প্রত্যেক শিক্ষার্থীর নিজের রেকর্ড থাকে। বদলালে ঠিক হয় কার কাজ দেখানো হবে; দুইজনের উত্তর কখনো মেশে না।",
+        "acct.active": "সক্রিয়",
+        "acct.switch": "বদলান",
+        "acct.remove": "সরান",
+        "acct.removeHint": "সরালে এই ডিভাইসের সাইন-ইন ভুলে যাবে। রেকর্ড যেখানে আছে সেখানেই থাকে, তবে আবার খুলতে শিক্ষার্থীর অ্যাকাউন্ট বা রিকভারি কোড লাগবে।",
+    },
+};
+
+});
+__def("i18n-kiosk.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// THE CLASSROOM VOCABULARY, in all fifteen languages.
+//
+// Six strings, and every one of them is read on a shared handset by a child who
+// has just been handed it. The rule that shapes them: say WHAT this screen is for
+// (a lesson, not an account), say WHO can start it (the teacher's PIN), and make
+// the way out obvious — a hand-back nobody can find is a hand-back that does not
+// happen, and the next learner then inherits a session.
+//
+// Merged into `DICTS` at module load (lib/i18n.ts), so `t()`, the English
+// fallback and the suite's key-parity assertion all see one dictionary.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.KIOSK_STRINGS = void 0;
+exports.KIOSK_STRINGS = {
+    en: {
+        "kiosk.title": "Start a lesson",
+        "kiosk.lead": "This device is shared. Enter the class code and the PIN your teacher gave you.",
+        "kiosk.code": "Class code",
+        "kiosk.name": "Your name in the class",
+        "kiosk.pin": "Your PIN",
+        "kiosk.start": "Start",
+        "kiosk.bad": "That class code, name or PIN did not match. Check the PIN with your teacher.",
+        "kiosk.locked": "Too many tries. Wait a few minutes, or ask your teacher for a new PIN.",
+        "kiosk.leave": "Finish and hand back",
+        "kiosk.leaving": "Ending this lesson…",
+        "kiosk.done": "This lesson has ended on this device.",
+    },
+    es: {
+        "kiosk.title": "Empezar una clase",
+        "kiosk.lead": "Este dispositivo es compartido. Escribe el código de la clase y el PIN que te dio tu profesor.",
+        "kiosk.code": "Código de la clase",
+        "kiosk.name": "Tu nombre en la clase",
+        "kiosk.pin": "Tu PIN",
+        "kiosk.start": "Empezar",
+        "kiosk.bad": "El código, el nombre o el PIN no coinciden. Revisa el PIN con tu profesor.",
+        "kiosk.locked": "Demasiados intentos. Espera unos minutos o pide un PIN nuevo a tu profesor.",
+        "kiosk.leave": "Terminar y devolver",
+        "kiosk.leaving": "Cerrando esta clase…",
+        "kiosk.done": "Esta clase ha terminado en este dispositivo.",
+    },
+    fr: {
+        "kiosk.title": "Commencer une séance",
+        "kiosk.lead": "Cet appareil est partagé. Saisis le code de la classe et le code PIN donné par ton professeur.",
+        "kiosk.code": "Code de la classe",
+        "kiosk.name": "Ton nom dans la classe",
+        "kiosk.pin": "Ton code PIN",
+        "kiosk.start": "Commencer",
+        "kiosk.bad": "Le code, le nom ou le PIN ne correspond pas. Vérifie le PIN avec ton professeur.",
+        "kiosk.locked": "Trop d'essais. Attends quelques minutes ou demande un nouveau PIN à ton professeur.",
+        "kiosk.leave": "Terminer et rendre",
+        "kiosk.leaving": "Fin de cette séance…",
+        "kiosk.done": "Cette séance est terminée sur cet appareil.",
+    },
+    pt: {
+        "kiosk.title": "Começar uma aula",
+        "kiosk.lead": "Este dispositivo é partilhado. Introduz o código da turma e o PIN que o professor deu.",
+        "kiosk.code": "Código da turma",
+        "kiosk.name": "O teu nome na turma",
+        "kiosk.pin": "O teu PIN",
+        "kiosk.start": "Começar",
+        "kiosk.bad": "O código, o nome ou o PIN não correspondem. Confirma o PIN com o professor.",
+        "kiosk.locked": "Demasiadas tentativas. Espera alguns minutos ou pede um PIN novo ao professor.",
+        "kiosk.leave": "Terminar e devolver",
+        "kiosk.leaving": "A terminar esta aula…",
+        "kiosk.done": "Esta aula terminou neste dispositivo.",
+    },
+    ar: {
+        "kiosk.title": "ابدأ حصة",
+        "kiosk.lead": "هذا الجهاز مشترك. أدخل رمز الصف والرمز السري الذي أعطاك إياه معلمك.",
+        "kiosk.code": "رمز الصف",
+        "kiosk.name": "اسمك في الصف",
+        "kiosk.pin": "رمزك السري",
+        "kiosk.start": "ابدأ",
+        "kiosk.bad": "رمز الصف أو الاسم أو الرمز السري غير مطابق. تحقق من الرمز مع معلمك.",
+        "kiosk.locked": "محاولات كثيرة. انتظر بضع دقائق أو اطلب رمزًا جديدًا من معلمك.",
+        "kiosk.leave": "أنهِ وأعد الجهاز",
+        "kiosk.leaving": "جارٍ إنهاء هذه الحصة…",
+        "kiosk.done": "انتهت هذه الحصة على هذا الجهاز.",
+    },
+    sw: {
+        "kiosk.title": "Anza somo",
+        "kiosk.lead": "Kifaa hiki ni cha pamoja. Weka msimbo wa darasa na PIN uliyopewa na mwalimu wako.",
+        "kiosk.code": "Msimbo wa darasa",
+        "kiosk.name": "Jina lako darasani",
+        "kiosk.pin": "PIN yako",
+        "kiosk.start": "Anza",
+        "kiosk.bad": "Msimbo wa darasa, jina au PIN hailingani. Hakikisha PIN na mwalimu wako.",
+        "kiosk.locked": "Majaribio mengi mno. Subiri dakika chache, au omba PIN mpya kwa mwalimu.",
+        "kiosk.leave": "Maliza na rudi kifaa",
+        "kiosk.leaving": "Inamaliza somo hili…",
+        "kiosk.done": "Somo hili limekwisha kwenye kifaa hiki.",
+    },
+    hi: {
+        "kiosk.title": "पाठ शुरू करें",
+        "kiosk.lead": "यह डिवाइस साझा है। कक्षा कोड और शिक्षक द्वारा दिया गया पिन डालें।",
+        "kiosk.code": "कक्षा कोड",
+        "kiosk.name": "कक्षा में आपका नाम",
+        "kiosk.pin": "आपका पिन",
+        "kiosk.start": "शुरू करें",
+        "kiosk.bad": "कोड, नाम या पिन मेल नहीं खाता। शिक्षक से पिन जाँचें।",
+        "kiosk.locked": "बहुत कोशिशें। कुछ मिनट रुकें या शिक्षक से नया पिन माँगें।",
+        "kiosk.leave": "समाप्त करें और लौटाएँ",
+        "kiosk.leaving": "यह पाठ समाप्त हो रहा है…",
+        "kiosk.done": "इस डिवाइस पर यह पाठ समाप्त हो गया।",
+    },
+    id: {
+        "kiosk.title": "Mulai pelajaran",
+        "kiosk.lead": "Perangkat ini dipakai bersama. Masukkan kode kelas dan PIN dari gurumu.",
+        "kiosk.code": "Kode kelas",
+        "kiosk.name": "Namamu di kelas",
+        "kiosk.pin": "PIN-mu",
+        "kiosk.start": "Mulai",
+        "kiosk.bad": "Kode kelas, nama, atau PIN tidak cocok. Periksa PIN dengan gurumu.",
+        "kiosk.locked": "Terlalu banyak percobaan. Tunggu beberapa menit, atau minta PIN baru ke gurumu.",
+        "kiosk.leave": "Selesai dan kembalikan",
+        "kiosk.leaving": "Mengakhiri pelajaran ini…",
+        "kiosk.done": "Pelajaran ini telah berakhir di perangkat ini.",
+    },
+    tl: {
+        "kiosk.title": "Magsimula ng aralin",
+        "kiosk.lead": "Ibinabahagi ang device na ito. Ilagay ang class code at ang PIN na bigay ng guro mo.",
+        "kiosk.code": "Class code",
+        "kiosk.name": "Pangalan mo sa klase",
+        "kiosk.pin": "Ang PIN mo",
+        "kiosk.start": "Simulan",
+        "kiosk.bad": "Hindi tugma ang class code, pangalan, o PIN. Itanong sa guro mo ang PIN.",
+        "kiosk.locked": "Sobrang daming subok. Maghintay ng ilang minuto, o humingi ng bagong PIN sa guro.",
+        "kiosk.leave": "Tapusin at isauli",
+        "kiosk.leaving": "Tinatapos ang araling ito…",
+        "kiosk.done": "Tapos na ang araling ito sa device na ito.",
+    },
+    de: {
+        "kiosk.title": "Stunde beginnen",
+        "kiosk.lead": "Dieses Gerät wird geteilt. Gib den Klassencode und die PIN ein, die du von deiner Lehrkraft bekommen hast.",
+        "kiosk.code": "Klassencode",
+        "kiosk.name": "Dein Name in der Klasse",
+        "kiosk.pin": "Deine PIN",
+        "kiosk.start": "Starten",
+        "kiosk.bad": "Klassencode, Name oder PIN stimmen nicht. Prüfe die PIN mit deiner Lehrkraft.",
+        "kiosk.locked": "Zu viele Versuche. Warte einige Minuten oder bitte um eine neue PIN.",
+        "kiosk.leave": "Beenden und zurückgeben",
+        "kiosk.leaving": "Diese Stunde wird beendet…",
+        "kiosk.done": "Diese Stunde ist auf diesem Gerät beendet.",
+    },
+    ja: {
+        "kiosk.title": "授業を始める",
+        "kiosk.lead": "この端末は共用です。クラスコードと先生から渡されたPINを入力してください。",
+        "kiosk.code": "クラスコード",
+        "kiosk.name": "クラスでの名前",
+        "kiosk.pin": "PIN",
+        "kiosk.start": "始める",
+        "kiosk.bad": "クラスコード、名前、またはPINが一致しません。先生にPINを確認してください。",
+        "kiosk.locked": "試行回数が多すぎます。数分待つか、先生に新しいPINを頼んでください。",
+        "kiosk.leave": "終了して返却",
+        "kiosk.leaving": "この授業を終了しています…",
+        "kiosk.done": "この端末での授業は終了しました。",
+    },
+    zh: {
+        "kiosk.title": "开始一节课",
+        "kiosk.lead": "此设备为共用。请输入班级代码和老师给你的 PIN。",
+        "kiosk.code": "班级代码",
+        "kiosk.name": "你在班上的名字",
+        "kiosk.pin": "你的 PIN",
+        "kiosk.start": "开始",
+        "kiosk.bad": "班级代码、名字或 PIN 不正确。请向老师核对 PIN。",
+        "kiosk.locked": "尝试次数过多。请等几分钟，或向老师要一个新的 PIN。",
+        "kiosk.leave": "结束并交回",
+        "kiosk.leaving": "正在结束这节课…",
+        "kiosk.done": "此设备上的这节课已结束。",
+    },
+    fa: {
+        "kiosk.title": "شروع یک درس",
+        "kiosk.lead": "این دستگاه مشترک است. کد کلاس و پینی را که معلم داده وارد کن.",
+        "kiosk.code": "کد کلاس",
+        "kiosk.name": "نام تو در کلاس",
+        "kiosk.pin": "پین تو",
+        "kiosk.start": "شروع",
+        "kiosk.bad": "کد کلاس، نام یا پین مطابقت ندارد. پین را با معلم بررسی کن.",
+        "kiosk.locked": "تلاش بیش از حد. چند دقیقه صبر کن یا از معلم پین تازه بخواه.",
+        "kiosk.leave": "پایان و بازگرداندن",
+        "kiosk.leaving": "در حال پایان دادن به این درس…",
+        "kiosk.done": "این درس روی این دستگاه تمام شد.",
+    },
+    ur: {
+        "kiosk.title": "سبق شروع کریں",
+        "kiosk.lead": "یہ ڈیوائس مشترکہ ہے۔ کلاس کوڈ اور استاد کا دیا ہوا پن درج کریں۔",
+        "kiosk.code": "کلاس کوڈ",
+        "kiosk.name": "کلاس میں آپ کا نام",
+        "kiosk.pin": "آپ کا پن",
+        "kiosk.start": "شروع کریں",
+        "kiosk.bad": "کلاس کوڈ، نام یا پن میل نہیں کھاتا۔ استاد سے پن چیک کریں۔",
+        "kiosk.locked": "بہت کوششیں۔ کچھ منٹ انتظار کریں یا استاد سے نیا پن لیں۔",
+        "kiosk.leave": "ختم کریں اور واپس دیں",
+        "kiosk.leaving": "یہ سبق ختم ہو رہا ہے…",
+        "kiosk.done": "اس ڈیوائس پر یہ سبق ختم ہو گیا۔",
+    },
+    bn: {
+        "kiosk.title": "একটি পাঠ শুরু করুন",
+        "kiosk.lead": "এই ডিভাইসটি সবার সাথে ভাগ করা। ক্লাস কোড ও শিক্ষকের দেওয়া পিন দিন।",
+        "kiosk.code": "ক্লাস কোড",
+        "kiosk.name": "ক্লাসে আপনার নাম",
+        "kiosk.pin": "আপনার পিন",
+        "kiosk.start": "শুরু করুন",
+        "kiosk.bad": "ক্লাস কোড, নাম বা পিন মেলেনি। শিক্ষকের সাথে পিন মিলিয়ে নিন।",
+        "kiosk.locked": "অনেকবার চেষ্টা হয়েছে। কয়েক মিনিট অপেক্ষা করুন, বা শিক্ষকের কাছে নতুন পিন চান।",
+        "kiosk.leave": "শেষ করুন ও ফিরিয়ে দিন",
+        "kiosk.leaving": "এই পাঠ শেষ হচ্ছে…",
+        "kiosk.done": "এই ডিভাইসে পাঠটি শেষ হয়েছে।",
+    },
+};
+// ─────────────────────────────────────────────────────────────────────────────
+// THE TEACHER'S SIDE OF THE SAME VOCABULARY.
+//
+// Read on a laptop, by the one person allowed to mint a credential — and the
+// sentence that matters most is the one saying a PIN is shown ONCE, because the
+// server keeps only a scrypt hash and cannot produce it a second time.
+//
+// Kept in this module rather than added to fifteen dictionary blocks elsewhere so
+// the whole classroom vocabulary has one home and one parity check: the loop
+// below merges into the same `KIOSK_STRINGS` object `lib/i18n.ts` re-exports, so
+// `t("teach.pinsTitle")` resolves in every language the product ships.
+// ─────────────────────────────────────────────────────────────────────────────
+const TEACHER_STRINGS = {
+    en: {
+        "teach.pinsTitle": "Classroom PINs",
+        "teach.pinsLead": "Give each learner a PIN for the shared handset. It is shown once.",
+        "teach.pinsNames": "Names, one per line",
+        "teach.pinsIssue": "Issue PINs",
+        "teach.pinsWorking": "Issuing…",
+        "teach.pinsOnce": "These PINs will not be shown again — print or write them down now.",
+        "teach.pinsReissue": "New PIN for a learner",
+        "teach.pinsNew": "New PIN",
+        "teach.pinsPrint": "Print",
+    },
+    es: {
+        "teach.pinsTitle": "PIN de la clase",
+        "teach.pinsLead": "Da a cada alumno un PIN para el dispositivo compartido. Solo se muestra una vez.",
+        "teach.pinsNames": "Nombres, uno por línea",
+        "teach.pinsIssue": "Crear PIN",
+        "teach.pinsWorking": "Creando…",
+        "teach.pinsOnce": "Estos PIN no se volverán a mostrar: imprímelos o anótalos ahora.",
+        "teach.pinsReissue": "Nuevo PIN para un alumno",
+        "teach.pinsNew": "Nuevo PIN",
+        "teach.pinsPrint": "Imprimir",
+    },
+    fr: {
+        "teach.pinsTitle": "Codes PIN de la classe",
+        "teach.pinsLead": "Donne à chaque élève un PIN pour l'appareil partagé. Il n'est affiché qu'une fois.",
+        "teach.pinsNames": "Noms, un par ligne",
+        "teach.pinsIssue": "Générer les PIN",
+        "teach.pinsWorking": "Génération…",
+        "teach.pinsOnce": "Ces PIN ne seront plus affichés — imprime-les ou note-les maintenant.",
+        "teach.pinsReissue": "Nouveau PIN pour un élève",
+        "teach.pinsNew": "Nouveau PIN",
+        "teach.pinsPrint": "Imprimer",
+    },
+    pt: {
+        "teach.pinsTitle": "PIN da turma",
+        "teach.pinsLead": "Dá a cada aluno um PIN para o dispositivo partilhado. Só aparece uma vez.",
+        "teach.pinsNames": "Nomes, um por linha",
+        "teach.pinsIssue": "Criar PIN",
+        "teach.pinsWorking": "A criar…",
+        "teach.pinsOnce": "Estes PIN não voltam a aparecer — imprime-os ou escreve-os agora.",
+        "teach.pinsReissue": "Novo PIN para um aluno",
+        "teach.pinsNew": "Novo PIN",
+        "teach.pinsPrint": "Imprimir",
+    },
+    ar: {
+        "teach.pinsTitle": "رموز الصف",
+        "teach.pinsLead": "أعطِ كل متعلم رمزًا للجهاز المشترك. يظهر مرة واحدة فقط.",
+        "teach.pinsNames": "الأسماء، اسم في كل سطر",
+        "teach.pinsIssue": "إنشاء الرموز",
+        "teach.pinsWorking": "جارٍ الإنشاء…",
+        "teach.pinsOnce": "لن تظهر هذه الرموز مرة أخرى — اطبعها أو اكتبها الآن.",
+        "teach.pinsReissue": "رمز جديد لمتعلم",
+        "teach.pinsNew": "رمز جديد",
+        "teach.pinsPrint": "طباعة",
+    },
+    sw: {
+        "teach.pinsTitle": "PIN za darasa",
+        "teach.pinsLead": "Mpe kila mwanafunzi PIN kwa kifaa kinachotumiwa na wengi. Inaonekana mara moja tu.",
+        "teach.pinsNames": "Majina, moja kwa mstari",
+        "teach.pinsIssue": "Toa PIN",
+        "teach.pinsWorking": "Inatayarisha…",
+        "teach.pinsOnce": "PIN hizi hazitaonekana tena — zichapishe au ziandike sasa.",
+        "teach.pinsReissue": "PIN mpya kwa mwanafunzi",
+        "teach.pinsNew": "PIN mpya",
+        "teach.pinsPrint": "Chapisha",
+    },
+    hi: {
+        "teach.pinsTitle": "कक्षा के पिन",
+        "teach.pinsLead": "साझा डिवाइस के लिए हर शिक्षार्थी को एक पिन दें। यह केवल एक बार दिखता है।",
+        "teach.pinsNames": "नाम, एक प्रति पंक्ति",
+        "teach.pinsIssue": "पिन बनाएँ",
+        "teach.pinsWorking": "बन रहे हैं…",
+        "teach.pinsOnce": "ये पिन दोबारा नहीं दिखेंगे — अभी छापें या लिख लें।",
+        "teach.pinsReissue": "किसी शिक्षार्थी के लिए नया पिन",
+        "teach.pinsNew": "नया पिन",
+        "teach.pinsPrint": "छापें",
+    },
+    id: {
+        "teach.pinsTitle": "PIN kelas",
+        "teach.pinsLead": "Beri setiap siswa PIN untuk perangkat bersama. Hanya ditampilkan sekali.",
+        "teach.pinsNames": "Nama, satu per baris",
+        "teach.pinsIssue": "Terbitkan PIN",
+        "teach.pinsWorking": "Menerbitkan…",
+        "teach.pinsOnce": "PIN ini tidak akan ditampilkan lagi — cetak atau catat sekarang.",
+        "teach.pinsReissue": "PIN baru untuk siswa",
+        "teach.pinsNew": "PIN baru",
+        "teach.pinsPrint": "Cetak",
+    },
+    fil: {
+        "teach.pinsTitle": "Mga PIN ng klase",
+        "teach.pinsLead": "Bigyan ang bawat mag-aaral ng PIN para sa shared na device. Isang beses lang ito ipinapakita.",
+        "teach.pinsNames": "Mga pangalan, isa kada linya",
+        "teach.pinsIssue": "Maglabas ng PIN",
+        "teach.pinsWorking": "Naglalabas…",
+        "teach.pinsOnce": "Hindi na muling ipapakita ang mga PIN na ito — i-print o isulat na ngayon.",
+        "teach.pinsReissue": "Bagong PIN para sa mag-aaral",
+        "teach.pinsNew": "Bagong PIN",
+        "teach.pinsPrint": "I-print",
+    },
+    tl: {
+        "teach.pinsTitle": "Mga PIN ng klase",
+        "teach.pinsLead": "Bigyan ang bawat mag-aaral ng PIN para sa shared na device. Isang beses lang itong ipinapakita.",
+        "teach.pinsNames": "Mga pangalan, isa kada linya",
+        "teach.pinsIssue": "Maglabas ng PIN",
+        "teach.pinsWorking": "Naglalabas…",
+        "teach.pinsOnce": "Hindi na muling ipapakita ang mga PIN na ito — i-print o isulat na ngayon.",
+        "teach.pinsReissue": "Bagong PIN para sa mag-aaral",
+        "teach.pinsNew": "Bagong PIN",
+        "teach.pinsPrint": "I-print",
+    },
+    ur: {
+        "teach.pinsTitle": "کلاس کے پن",
+        "teach.pinsLead": "مشترکہ ڈیوائس کے لیے ہر سیکھنے والے کو پن دیں۔ یہ صرف ایک بار دکھتا ہے۔",
+        "teach.pinsNames": "نام، ایک فی سطر",
+        "teach.pinsIssue": "پن جاری کریں",
+        "teach.pinsWorking": "جاری ہو رہے ہیں…",
+        "teach.pinsOnce": "یہ پن دوبارہ نہیں دکھائے جائیں گے — ابھی پرنٹ کریں یا لکھ لیں۔",
+        "teach.pinsReissue": "سیکھنے والے کے لیے نیا پن",
+        "teach.pinsNew": "نیا پن",
+        "teach.pinsPrint": "پرنٹ",
+    },
+    fa: {
+        "teach.pinsTitle": "کدهای کلاس",
+        "teach.pinsLead": "به هر دانشآموز یک کد برای دستگاه مشترک بدهید. فقط یک بار نشان داده میشود.",
+        "teach.pinsNames": "نامها، هر کدام در یک خط",
+        "teach.pinsIssue": "صدور کدها",
+        "teach.pinsWorking": "در حال صدور…",
+        "teach.pinsOnce": "این کدها دیگر نشان داده نمیشوند — همین حالا چاپ یا یادداشت کنید.",
+        "teach.pinsReissue": "کد جدید برای یک دانشآموز",
+        "teach.pinsNew": "کد جدید",
+        "teach.pinsPrint": "چاپ",
+    },
+    de: {
+        "teach.pinsTitle": "Klassen-PINs",
+        "teach.pinsLead": "Gib jedem Lernenden eine PIN für das geteilte Gerät. Sie wird nur einmal angezeigt.",
+        "teach.pinsNames": "Namen, eine pro Zeile",
+        "teach.pinsIssue": "PINs ausgeben",
+        "teach.pinsWorking": "Wird ausgegeben…",
+        "teach.pinsOnce": "Diese PINs werden nicht erneut angezeigt — jetzt drucken oder notieren.",
+        "teach.pinsReissue": "Neue PIN für eine Lernende",
+        "teach.pinsNew": "Neue PIN",
+        "teach.pinsPrint": "Drucken",
+    },
+    ja: {
+        "teach.pinsTitle": "クラスのPIN",
+        "teach.pinsLead": "共有端末用に学習者ごとにPINを発行します。表示は一度だけです。",
+        "teach.pinsNames": "名前（1行に1人）",
+        "teach.pinsIssue": "PINを発行",
+        "teach.pinsWorking": "発行中…",
+        "teach.pinsOnce": "このPINは二度と表示されません。今すぐ印刷するか書き留めてください。",
+        "teach.pinsReissue": "学習者のPINを再発行",
+        "teach.pinsNew": "新しいPIN",
+        "teach.pinsPrint": "印刷",
+    },
+    zh: {
+        "teach.pinsTitle": "班级 PIN",
+        "teach.pinsLead": "为每位学生签发共享设备用的 PIN。只显示一次。",
+        "teach.pinsNames": "姓名，每行一个",
+        "teach.pinsIssue": "签发 PIN",
+        "teach.pinsWorking": "正在签发…",
+        "teach.pinsOnce": "这些 PIN 不会再次显示——请立即打印或记下。",
+        "teach.pinsReissue": "为学生重新签发 PIN",
+        "teach.pinsNew": "新 PIN",
+        "teach.pinsPrint": "打印",
+    },
+    bn: {
+        "teach.pinsTitle": "ক্লাসের পিন",
+        "teach.pinsLead": "শেয়ার করা ডিভাইসের জন্য প্রত্যেক শিক্ষার্থীকে একটি পিন দিন। এটি কেবল একবার দেখানো হয়।",
+        "teach.pinsNames": "নাম, প্রতি লাইনে একটি",
+        "teach.pinsIssue": "পিন তৈরি করুন",
+        "teach.pinsWorking": "তৈরি হচ্ছে…",
+        "teach.pinsOnce": "এই পিনগুলো আর দেখানো হবে না — এখনই প্রিন্ট করুন বা লিখে রাখুন।",
+        "teach.pinsReissue": "শিক্ষার্থীর জন্য নতুন পিন",
+        "teach.pinsNew": "নতুন পিন",
+        "teach.pinsPrint": "প্রিন্ট",
+    },
+};
+for (const [code, dict] of Object.entries(TEACHER_STRINGS)) {
+    exports.KIOSK_STRINGS[code] = { ...(exports.KIOSK_STRINGS[code] ?? {}), ...dict };
+}
+
+});
+__def("i18n-recovery.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// THE RECOVERY VOCABULARY, in all fifteen languages.
+//
+// WHY IT IS ITS OWN MODULE rather than fifteen insertions into lib/i18n.ts: the
+// strings belong to ONE feature and one review — a translator reading them together
+// can see that `rec.lead` and `rec.saved` are a single promise, and a reviewer can
+// diff the whole vocabulary in one place. `lib/i18n.ts` merges them at module load,
+// so `t()`, the fallback to English and the suite's key-parity assertion all see one
+// dictionary exactly as before. A key missing here fails `npm run verify` for the
+// language it is missing from, which is the rule the rest of the product keeps.
+//
+// THE SENTENCES ARE SHORT ON PURPOSE. They are read on a shared phone, often by a
+// learner who is already worried about losing their work. The lead line carries the
+// one fact that matters — there is no email reset — because a recovery screen that
+// implies a mailbox exists sends the learner looking for one they do not have.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RECOVERY_STRINGS = void 0;
+exports.RECOVERY_STRINGS = {
+    en: {
+        "rec.title": "Your recovery code",
+        "rec.lead": "Write this code down and keep it safe. If you forget your password, this is the only way back into your record — there is no email reset.",
+        "rec.print": "Print this code",
+        "rec.saved": "I have saved it",
+        "rec.forgot": "Forgotten your password?",
+        "rec.use": "Use a recovery code",
+        "rec.err": "That code does not match this account.",
+        "rec.new": "Your new recovery code",
+        "rec.grantLead": "Read this to the learner. It works once, for 15 minutes.",
+        "rec.emailHint": "Email (leave empty if you are using a code from your teacher)",
+    },
+    es: {
+        "rec.title": "Tu código de recuperación",
+        "rec.lead": "Apunta este código y guárdalo. Si olvidas tu contraseña, es la única forma de volver a tu historial: no hay restablecimiento por correo.",
+        "rec.print": "Imprimir este código",
+        "rec.saved": "Lo he guardado",
+        "rec.forgot": "¿Olvidaste tu contraseña?",
+        "rec.use": "Usar un código de recuperación",
+        "rec.err": "Ese código no coincide con esta cuenta.",
+        "rec.new": "Tu nuevo código de recuperación",
+        "rec.grantLead": "Léeselo al estudiante. Funciona una sola vez, durante 15 minutos.",
+        "rec.emailHint": "Correo (déjalo vacío si usas un código de tu profesor)",
+    },
+    fr: {
+        "rec.title": "Ton code de récupération",
+        "rec.lead": "Note ce code et garde-le. Si tu oublies ton mot de passe, c'est le seul moyen de retrouver ton dossier : il n'y a pas de réinitialisation par e-mail.",
+        "rec.print": "Imprimer ce code",
+        "rec.saved": "Je l'ai noté",
+        "rec.forgot": "Mot de passe oublié ?",
+        "rec.use": "Utiliser un code de récupération",
+        "rec.err": "Ce code ne correspond pas à ce compte.",
+        "rec.new": "Ton nouveau code de récupération",
+        "rec.grantLead": "Lis-le à l'élève. Il fonctionne une seule fois, pendant 15 minutes.",
+        "rec.emailHint": "E-mail (laisse vide si tu utilises un code de ton professeur)",
+    },
+    pt: {
+        "rec.title": "O teu código de recuperação",
+        "rec.lead": "Escreve este código e guarda-o. Se te esqueceres da palavra-passe, é a única forma de voltar ao teu registo: não há reposição por email.",
+        "rec.print": "Imprimir este código",
+        "rec.saved": "Já guardei",
+        "rec.forgot": "Esqueceste-te da palavra-passe?",
+        "rec.use": "Usar um código de recuperação",
+        "rec.err": "Esse código não corresponde a esta conta.",
+        "rec.new": "O teu novo código de recuperação",
+        "rec.grantLead": "Lê isto ao aluno. Funciona uma vez, durante 15 minutos.",
+        "rec.emailHint": "Email (deixa vazio se estiveres a usar um código do teu professor)",
+    },
+    ar: {
+        "rec.title": "رمز الاستعادة الخاص بك",
+        "rec.lead": "اكتب هذا الرمز واحفظه. إذا نسيت كلمة المرور، فهذه هي الطريقة الوحيدة للعودة إلى سجلك — لا توجد إعادة تعيين بالبريد الإلكتروني.",
+        "rec.print": "اطبع هذا الرمز",
+        "rec.saved": "لقد حفظته",
+        "rec.forgot": "هل نسيت كلمة المرور؟",
+        "rec.use": "استخدام رمز استعادة",
+        "rec.err": "هذا الرمز لا يطابق هذا الحساب.",
+        "rec.new": "رمز الاستعادة الجديد الخاص بك",
+        "rec.grantLead": "اقرأ هذا على المتعلم. يعمل مرة واحدة فقط، لمدة 15 دقيقة.",
+        "rec.emailHint": "البريد الإلكتروني (اتركه فارغًا إذا كنت تستخدم رمزًا من معلمك)",
+    },
+    sw: {
+        "rec.title": "Msimbo wako wa kurejesha",
+        "rec.lead": "Andika msimbo huu na uuhifadhi. Ukisahau nenosiri lako, hii ndiyo njia pekee ya kurudi kwenye rekodi yako — hakuna urejeshaji kwa barua pepe.",
+        "rec.print": "Chapisha msimbo huu",
+        "rec.saved": "Nimeuhifadhi",
+        "rec.forgot": "Umesahau nenosiri lako?",
+        "rec.use": "Tumia msimbo wa kurejesha",
+        "rec.err": "Msimbo huo hauwiani na akaunti hii.",
+        "rec.new": "Msimbo wako mpya wa kurejesha",
+        "rec.grantLead": "Msomee mwanafunzi. Unafanya kazi mara moja, kwa dakika 15.",
+        "rec.emailHint": "Barua pepe (acha wazi ikiwa unatumia msimbo kutoka kwa mwalimu wako)",
+    },
+    hi: {
+        "rec.title": "आपका रिकवरी कोड",
+        "rec.lead": "यह कोड लिखकर सुरक्षित रखें। अगर आप अपना पासवर्ड भूल जाएँ, तो यही आपके रिकॉर्ड तक वापस जाने का एकमात्र रास्ता है — ईमेल से रीसेट नहीं होता।",
+        "rec.print": "यह कोड प्रिंट करें",
+        "rec.saved": "मैंने इसे सहेज लिया है",
+        "rec.forgot": "पासवर्ड भूल गए?",
+        "rec.use": "रिकवरी कोड का उपयोग करें",
+        "rec.err": "यह कोड इस खाते से मेल नहीं खाता।",
+        "rec.new": "आपका नया रिकवरी कोड",
+        "rec.grantLead": "यह शिक्षार्थी को पढ़कर सुनाएँ। यह एक बार, 15 मिनट के लिए काम करता है।",
+        "rec.emailHint": "ईमेल (अगर आप अपने शिक्षक का कोड इस्तेमाल कर रहे हैं तो खाली छोड़ें)",
+    },
+    id: {
+        "rec.title": "Kode pemulihanmu",
+        "rec.lead": "Tulis kode ini dan simpan. Jika kamu lupa kata sandi, ini satu-satunya jalan kembali ke catatanmu — tidak ada pengaturan ulang lewat email.",
+        "rec.print": "Cetak kode ini",
+        "rec.saved": "Sudah kusimpan",
+        "rec.forgot": "Lupa kata sandi?",
+        "rec.use": "Pakai kode pemulihan",
+        "rec.err": "Kode itu tidak cocok dengan akun ini.",
+        "rec.new": "Kode pemulihan barumu",
+        "rec.grantLead": "Bacakan ini kepada siswa. Kode berlaku sekali, selama 15 menit.",
+        "rec.emailHint": "Email (biarkan kosong jika memakai kode dari gurumu)",
+    },
+    tl: {
+        "rec.title": "Ang iyong recovery code",
+        "rec.lead": "Isulat ang code na ito at itago. Kung makalimutan mo ang password, ito lang ang paraan pabalik sa iyong rekord — walang reset sa email.",
+        "rec.print": "I-print ang code na ito",
+        "rec.saved": "Naitago ko na",
+        "rec.forgot": "Nakalimutan mo ang password?",
+        "rec.use": "Gumamit ng recovery code",
+        "rec.err": "Hindi tumutugma ang code na iyon sa account na ito.",
+        "rec.new": "Ang bago mong recovery code",
+        "rec.grantLead": "Basahin ito sa mag-aaral. Gumagana ito nang isang beses, sa loob ng 15 minuto.",
+        "rec.emailHint": "Email (iwanang blangko kung gumagamit ka ng code mula sa guro mo)",
+    },
+    de: {
+        "rec.title": "Dein Wiederherstellungscode",
+        "rec.lead": "Schreib diesen Code auf und bewahre ihn auf. Wenn du dein Passwort vergisst, ist er der einzige Weg zurück zu deinem Datensatz — eine Zurücksetzung per E-Mail gibt es nicht.",
+        "rec.print": "Diesen Code drucken",
+        "rec.saved": "Ich habe ihn gespeichert",
+        "rec.forgot": "Passwort vergessen?",
+        "rec.use": "Wiederherstellungscode verwenden",
+        "rec.err": "Dieser Code passt nicht zu diesem Konto.",
+        "rec.new": "Dein neuer Wiederherstellungscode",
+        "rec.grantLead": "Lies das der Lernenden vor. Er gilt einmal, für 15 Minuten.",
+        "rec.emailHint": "E-Mail (leer lassen, wenn du einen Code von deiner Lehrkraft verwendest)",
+    },
+    ja: {
+        "rec.title": "リカバリーコード",
+        "rec.lead": "このコードを書き留めて保管してください。パスワードを忘れた場合、記録に戻る唯一の方法です。メールでの再設定はありません。",
+        "rec.print": "このコードを印刷",
+        "rec.saved": "保存しました",
+        "rec.forgot": "パスワードをお忘れですか？",
+        "rec.use": "リカバリーコードを使う",
+        "rec.err": "このコードはこのアカウントと一致しません。",
+        "rec.new": "新しいリカバリーコード",
+        "rec.grantLead": "学習者に読み上げてください。15分間、1回だけ有効です。",
+        "rec.emailHint": "メール（先生からもらったコードを使う場合は空欄）",
+    },
+    zh: {
+        "rec.title": "你的恢复码",
+        "rec.lead": "请把这个码抄下来并保管好。如果你忘了密码，这是回到你的记录的唯一方式——没有邮件重置。",
+        "rec.print": "打印此码",
+        "rec.saved": "我已保存",
+        "rec.forgot": "忘记密码？",
+        "rec.use": "使用恢复码",
+        "rec.err": "该恢复码与此账户不匹配。",
+        "rec.new": "你的新恢复码",
+        "rec.grantLead": "请读给这名学生听。它只能使用一次，15 分钟内有效。",
+        "rec.emailHint": "邮箱（如果使用老师给你的码，请留空）",
+    },
+    fa: {
+        "rec.title": "کد بازیابی شما",
+        "rec.lead": "این کد را بنویسید و نگه دارید. اگر رمز عبور را فراموش کنید، تنها راه بازگشت به سابقهٔ شما همین است — بازنشانی با ایمیل وجود ندارد.",
+        "rec.print": "چاپ این کد",
+        "rec.saved": "آن را ذخیره کردم",
+        "rec.forgot": "رمز عبور را فراموش کرده‌اید؟",
+        "rec.use": "استفاده از کد بازیابی",
+        "rec.err": "این کد با این حساب مطابقت ندارد.",
+        "rec.new": "کد بازیابی جدید شما",
+        "rec.grantLead": "این را برای دانش‌آموز بخوانید. یک بار و برای ۱۵ دقیقه کار می‌کند.",
+        "rec.emailHint": "ایمیل (اگر از کد معلم خود استفاده می‌کنید خالی بگذارید)",
+    },
+    ur: {
+        "rec.title": "آپ کا ریکوری کوڈ",
+        "rec.lead": "یہ کوڈ لکھ لیں اور محفوظ رکھیں۔ اگر آپ اپنا پاس ورڈ بھول جائیں تو یہی آپ کے ریکارڈ تک واپس جانے کا واحد راستہ ہے — ای میل سے ری سیٹ نہیں ہوتا۔",
+        "rec.print": "یہ کوڈ پرنٹ کریں",
+        "rec.saved": "میں نے محفوظ کر لیا",
+        "rec.forgot": "پاس ورڈ بھول گئے؟",
+        "rec.use": "ریکوری کوڈ استعمال کریں",
+        "rec.err": "یہ کوڈ اس اکاؤنٹ سے مطابقت نہیں رکھتا۔",
+        "rec.new": "آپ کا نیا ریکوری کوڈ",
+        "rec.grantLead": "یہ سیکھنے والے کو پڑھ کر سنائیں۔ یہ ایک بار، 15 منٹ کے لیے کام کرتا ہے۔",
+        "rec.emailHint": "ای میل (اگر آپ اپنے استاد کا کوڈ استعمال کر رہے ہیں تو خالی چھوڑ دیں)",
+    },
+    bn: {
+        "rec.title": "আপনার রিকভারি কোড",
+        "rec.lead": "এই কোডটি লিখে রেখে নিরাপদে রাখুন। পাসওয়ার্ড ভুলে গেলে আপনার রেকর্ডে ফেরার এটিই একমাত্র উপায় — ইমেইলে রিসেট হয় না।",
+        "rec.print": "এই কোডটি প্রিন্ট করুন",
+        "rec.saved": "আমি এটি সংরক্ষণ করেছি",
+        "rec.forgot": "পাসওয়ার্ড ভুলে গেছেন?",
+        "rec.use": "রিকভারি কোড ব্যবহার করুন",
+        "rec.err": "এই কোডটি এই অ্যাকাউন্টের সাথে মেলে না।",
+        "rec.new": "আপনার নতুন রিকভারি কোড",
+        "rec.grantLead": "শিক্ষার্থীকে এটি পড়ে শোনান। এটি একবারই কাজ করে, ১৫ মিনিটের জন্য।",
+        "rec.emailHint": "ইমেইল (শিক্ষকের দেওয়া কোড ব্যবহার করলে খালি রাখুন)",
+    },
+};
+/**
+ * The ACTION label, injected rather than pasted into fifteen dictionaries.
+ *
+ * It is separate from the block above because it is a verb, not a sentence: the
+ * account screen's button that mints a replacement code. Keeping it as a map next
+ * to the vocabulary — and merging it into the SAME dictionaries at module load —
+ * means a language cannot ship the screen with a raw key, while the translator
+ * still reads one file.
+ */
+const RECOVERY_ACTION = {
+    en: "Get a new code",
+    es: "Obtener un código nuevo",
+    fr: "Obtenir un nouveau code",
+    pt: "Obter um código novo",
+    ar: "الحصول على رمز جديد",
+    sw: "Pata msimbo mpya",
+    hi: "नया कोड लें",
+    id: "Dapatkan kode baru",
+    tl: "Kumuha ng bagong code",
+    de: "Neuen Code erzeugen",
+    ja: "新しいコードを作成",
+    zh: "生成新码",
+    fa: "ساخت کد جدید",
+    ur: "نیا کوڈ بنائیں",
+    bn: "নতুন কোড তৈরি করুন",
+};
+for (const [code, label] of Object.entries(RECOVERY_ACTION)) {
+    const dict = exports.RECOVERY_STRINGS[code];
+    if (dict)
+        dict["rec.make"] = label;
+}
+
+});
 __def("i18n.js", function (module, exports, require) {
 "use strict";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4670,6 +5984,10 @@ exports.isRtl = isRtl;
 exports.translator = translator;
 exports.fill = fill;
 exports.dueLabel = dueLabel;
+const i18n_recovery_1 = require("./i18n-recovery");
+const i18n_curriculum_1 = require("./i18n-curriculum");
+const i18n_device_1 = require("./i18n-device");
+const i18n_kiosk_1 = require("./i18n-kiosk");
 const en = {
     "cur.covers": "{n} of the {total} concepts here belong to your course.",
     "cur.outside": "Not in your course",
@@ -4956,6 +6274,9 @@ const en = {
     "onb.subjectsNote": "Subjects: Mathematics (you can add more later). No need to pick anything else right now.",
     "onb.needSubject": "Choose at least one subject — your plan is built from these.",
     "onb.errCreate": "Could not create your profile — check your connection and try again.",
+    "onb.errRefused": "The server refused this profile change — this is not your connection. The code below is the reason.",
+    "onb.errNotYours": "This device's saved profile can no longer be written to — its secret does not match it. Nothing was erased; this browser simply cannot reach that record. Sign in to the account that owns it, or start a fresh profile here.",
+    "onb.freshStart": "Start a fresh profile on this device",
     "ls.visual": "👁 Visual",
     "ls.auditory": "🔊 Auditory",
     "ls.kinesthetic": "✋ Kinesthetic",
@@ -5615,6 +6936,8 @@ const en = {
     "onb.errTaken": "An account with that email already exists — sign in instead.",
     "onb.errCreds": "Email or password is incorrect.",
     "onb.errName": "Please enter a name.",
+    "onb.errTooMany": "Too many tries from this network. Wait a few minutes, then try again.",
+    "onb.errIngress": "Sign-in is not available from this connection — ask your school or network administrator.",
     "onb.signedInAs": "Signed in as",
     "onb.signOut": "Sign out",
     "onb.claim": "Bring this device's progress with me",
@@ -6582,6 +7905,9 @@ const es = {
     "onb.subjectsNote": "Materias: Matemáticas (puedes añadir más luego). No hace falta elegir nada más ahora.",
     "onb.needSubject": "Elige al menos una asignatura: tu plan se construye a partir de ellas.",
     "onb.errCreate": "No se pudo crear tu perfil — revisa tu conexión e inténtalo de nuevo.",
+    "onb.errRefused": "El servidor rechazó este cambio de perfil: no es tu conexión. El código de abajo es el motivo.",
+    "onb.errNotYours": "Ya no se puede escribir en el perfil guardado en este dispositivo: su secreto no coincide. No se borró nada; este navegador solo no puede llegar a ese registro. Inicia sesión con la cuenta que lo posee o empieza un perfil nuevo aquí.",
+    "onb.freshStart": "Empezar un perfil nuevo en este dispositivo",
     "ls.visual": "👁 Visual",
     "ls.auditory": "🔊 Auditivo",
     "ls.kinesthetic": "✋ Kinestésico",
@@ -7121,6 +8447,8 @@ const es = {
     "onb.errTaken": "Ya existe una cuenta con ese correo; inicia sesión.",
     "onb.errCreds": "El correo o la contraseña no son correctos.",
     "onb.errName": "Escribe un nombre.",
+    "onb.errTooMany": "Demasiados intentos desde esta red. Espera unos minutos e inténtalo de nuevo.",
+    "onb.errIngress": "No se puede iniciar sesión desde esta conexión; pregunta a tu centro o a tu administrador de red.",
     "onb.signedInAs": "Sesión iniciada como",
     "onb.signOut": "Cerrar sesión",
     "onb.claim": "Llevar el progreso de este dispositivo",
@@ -8089,6 +9417,9 @@ const fr = {
     "onb.subjectsNote": "Matières : Mathématiques (tu pourras en ajouter plus tard). Rien d'autre à choisir pour l'instant.",
     "onb.needSubject": "Choisis au moins une matière — ton plan se construit à partir de celles-ci.",
     "onb.errCreate": "Impossible de créer ton profil — vérifie ta connexion et réessaie.",
+    "onb.errRefused": "Le serveur a refusé cette modification du profil — ce n'est pas ta connexion. Le code ci-dessous en donne la raison.",
+    "onb.errNotYours": "Le profil enregistré sur cet appareil n'est plus accessible en écriture — son secret ne correspond pas. Rien n'a été effacé ; ce navigateur ne peut simplement pas atteindre cet enregistrement. Connecte-toi au compte qui le possède, ou commence un nouveau profil ici.",
+    "onb.freshStart": "Commencer un nouveau profil sur cet appareil",
     "ls.visual": "👁 Visuel",
     "ls.auditory": "🔊 Auditif",
     "ls.kinesthetic": "✋ Kinesthésique",
@@ -8628,6 +9959,8 @@ const fr = {
     "onb.errTaken": "Un compte existe déjà avec cet e-mail — connectez-vous.",
     "onb.errCreds": "E-mail ou mot de passe incorrect.",
     "onb.errName": "Veuillez saisir un nom.",
+    "onb.errTooMany": "Trop de tentatives depuis ce réseau. Attends quelques minutes, puis réessaie.",
+    "onb.errIngress": "La connexion n'est pas disponible depuis ce réseau — demande à ton établissement ou à ton administrateur réseau.",
     "onb.signedInAs": "Connecté en tant que",
     "onb.signOut": "Se déconnecter",
     "onb.claim": "Emporter la progression de cet appareil",
@@ -9596,6 +10929,9 @@ const pt = {
     "onb.subjectsNote": "Matérias: Matemática (podes acrescentar mais depois). Não precisas de escolher mais nada agora.",
     "onb.needSubject": "Escolhe pelo menos uma disciplina — o teu plano é construído a partir delas.",
     "onb.errCreate": "Não foi possível criar o teu perfil — verifica a ligação e tenta de novo.",
+    "onb.errRefused": "O servidor recusou esta alteração do perfil — não é a tua ligação. O código abaixo indica o motivo.",
+    "onb.errNotYours": "Já não é possível escrever no perfil guardado neste dispositivo — o segredo não corresponde. Nada foi apagado; este navegador apenas não chega a esse registo. Entra na conta que o possui ou começa um perfil novo aqui.",
+    "onb.freshStart": "Começar um perfil novo neste dispositivo",
     "ls.visual": "👁 Visual",
     "ls.auditory": "🔊 Auditivo",
     "ls.kinesthetic": "✋ Cinestésico",
@@ -10135,6 +11471,8 @@ const pt = {
     "onb.errTaken": "Já existe uma conta com esse e-mail — entre.",
     "onb.errCreds": "E-mail ou senha incorretos.",
     "onb.errName": "Digite um nome.",
+    "onb.errTooMany": "Demasiadas tentativas nesta rede. Espera alguns minutos e tenta de novo.",
+    "onb.errIngress": "Não é possível iniciar sessão a partir desta ligação — fala com a tua escola ou com o administrador da rede.",
     "onb.signedInAs": "Conectado como",
     "onb.signOut": "Sair",
     "onb.claim": "Levar o progresso deste aparelho",
@@ -11103,6 +12441,9 @@ const ar = {
     "onb.subjectsNote": "المواد: الرياضيات (يمكن إضافة المزيد لاحقًا). لا حاجة لاختيار شيء آخر الآن.",
     "onb.needSubject": "اختر مادة واحدة على الأقل — خطتك تُبنى من هذه المواد.",
     "onb.errCreate": "تعذر إنشاء ملفك — تحقق من الاتصال وحاول مجددًا.",
+    "onb.errRefused": "رفض الخادم هذا التغيير في الملف — ليست مشكلة اتصالك. الرمز أدناه هو السبب.",
+    "onb.errNotYours": "لم يعد بالإمكان الكتابة في الملف المحفوظ على هذا الجهاز — السرّ لا يطابقه. لم يُحذف شيء؛ هذا المتصفح لا يستطيع الوصول إلى ذلك السجل فقط. سجّل الدخول إلى الحساب الذي يملكه، أو ابدأ ملفًا جديدًا هنا.",
+    "onb.freshStart": "ابدأ ملفًا جديدًا على هذا الجهاز",
     "ls.visual": "👁 بصري",
     "ls.auditory": "🔊 سمعي",
     "ls.kinesthetic": "✋ حركي",
@@ -11642,6 +12983,8 @@ const ar = {
     "onb.errTaken": "يوجد حساب بهذا البريد — سجّل الدخول.",
     "onb.errCreds": "البريد أو كلمة المرور غير صحيحة.",
     "onb.errName": "أدخل اسمًا.",
+    "onb.errTooMany": "محاولات كثيرة جدًا من هذه الشبكة. انتظر بضع دقائق ثم حاول مجددًا.",
+    "onb.errIngress": "تسجيل الدخول غير متاح من هذا الاتصال — اسأل مدرستك أو مسؤول الشبكة.",
     "onb.signedInAs": "مسجل الدخول باسم",
     "onb.signOut": "تسجيل الخروج",
     "onb.claim": "نقل تقدم هذا الجهاز معي",
@@ -12610,6 +13953,9 @@ const sw = {
     "onb.subjectsNote": "Masomo: Hisabati (unaweza kuongeza baadaye). Hakuna haja ya kuchagua nyingine sasa.",
     "onb.needSubject": "Chagua somo moja au zaidi — mpango wako unajengwa kutoka kwa haya.",
     "onb.errCreate": "Imeshindikana kuunda wasifu wako — angalia mtandao ujaribu tena.",
+    "onb.errRefused": "Seva ilikataa mabadiliko haya ya wasifu — hii si mtandao wako. Msimbo ulio hapa chini ndio sababu.",
+    "onb.errNotYours": "Wasifu uliohifadhiwa kwenye kifaa hiki hauwezi kuandikwa tena — siri yake hailingani. Hakuna kilichofutwa; kivinjari hiki hakiwezi kufikia rekodi hiyo tu. Ingia kwenye akaunti inayoimiliki, au anza wasifu mpya hapa.",
+    "onb.freshStart": "Anza wasifu mpya kwenye kifaa hiki",
     "ls.visual": "👁 Kuona",
     "ls.auditory": "🔊 Kusikia",
     "ls.kinesthetic": "✋ Kugusa",
@@ -13149,6 +14495,8 @@ const sw = {
     "onb.errTaken": "Akaunti yenye barua pepe hii ipo — ingia.",
     "onb.errCreds": "Barua pepe au nenosiri si sahihi.",
     "onb.errName": "Tafadhali weka jina.",
+    "onb.errTooMany": "Majaribio mengi mno kutoka mtandao huu. Subiri dakika chache, kisha ujaribu tena.",
+    "onb.errIngress": "Kuingia hakuwezekani kutoka mtandao huu — uliza shule yako au msimamizi wa mtandao.",
     "onb.signedInAs": "Umeingia kama",
     "onb.signOut": "Toka",
     "onb.claim": "Chukua maendeleo ya kifaa hiki",
@@ -14117,6 +15465,9 @@ const hi = {
     "onb.subjectsNote": "विषय: गणित (बाद में और जोड़ सकते हैं)। अभी और चुनने की ज़रूरत नहीं।",
     "onb.needSubject": "कम से कम एक विषय चुनिए — आपकी योजना इन्हीं से बनती है।",
     "onb.errCreate": "प्रोफ़ाइल नहीं बनी — कनेक्शन जाँचें और फिर कोशिश करें।",
+    "onb.errRefused": "सर्वर ने प्रोफ़ाइल में यह बदलाव अस्वीकार किया — यह आपका कनेक्शन नहीं है। नीचे दिया कोड कारण है।",
+    "onb.errNotYours": "इस डिवाइस पर सहेजी गई प्रोफ़ाइल में अब लिखा नहीं जा सकता — उसका सीक्रेट मेल नहीं खाता। कुछ मिटाया नहीं गया; यह ब्राउज़र बस उस रिकॉर्ड तक नहीं पहुँच सकता। जिस खाते का यह है उसमें साइन इन करें, या यहाँ नई प्रोफ़ाइल शुरू करें।",
+    "onb.freshStart": "इस डिवाइस पर नई प्रोफ़ाइल शुरू करें",
     "ls.visual": "👁 देखकर",
     "ls.auditory": "🔊 सुनकर",
     "ls.kinesthetic": "✋ करके",
@@ -14656,6 +16007,8 @@ const hi = {
     "onb.errTaken": "इस ईमेल से खाता पहले से है — साइन इन करें।",
     "onb.errCreds": "ईमेल या पासवर्ड गलत है।",
     "onb.errName": "कृपया नाम दर्ज करें।",
+    "onb.errTooMany": "इस नेटवर्क से बहुत ज़्यादा कोशिशें। कुछ मिनट रुककर फिर कोशिश करें।",
+    "onb.errIngress": "इस कनेक्शन से साइन इन उपलब्ध नहीं है — अपने स्कूल या नेटवर्क व्यवस्थापक से पूछें।",
     "onb.signedInAs": "इस रूप में साइन इन:",
     "onb.signOut": "साइन आउट",
     "onb.claim": "इस डिवाइस की प्रगति साथ ले चलें",
@@ -15625,6 +16978,9 @@ const id = {
     "onb.subjectsNote": "Pelajaran: Matematika (bisa menambah nanti). Tak perlu memilih lainnya sekarang.",
     "onb.needSubject": "Pilih minimal satu mata pelajaran — rencanamu dibangun dari ini.",
     "onb.errCreate": "Gagal membuat profilmu — periksa koneksi dan coba lagi.",
+    "onb.errRefused": "Server menolak perubahan profil ini — ini bukan koneksimu. Kode di bawah adalah alasannya.",
+    "onb.errNotYours": "Profil yang tersimpan di perangkat ini tidak bisa ditulis lagi — rahasianya tidak cocok. Tidak ada yang dihapus; peramban ini hanya tidak bisa menjangkau catatan itu. Masuk ke akun yang memilikinya, atau mulai profil baru di sini.",
+    "onb.freshStart": "Mulai profil baru di perangkat ini",
     "ls.visual": "👁 Visual",
     "ls.auditory": "🔊 Auditori",
     "ls.kinesthetic": "✋ Kinestetik",
@@ -16163,6 +17519,8 @@ const id = {
     "onb.errTaken": "Akun dengan email itu sudah ada — masuk saja.",
     "onb.errCreds": "Email atau kata sandi salah.",
     "onb.errName": "Masukkan nama.",
+    "onb.errTooMany": "Terlalu banyak percobaan dari jaringan ini. Tunggu beberapa menit, lalu coba lagi.",
+    "onb.errIngress": "Masuk tidak tersedia dari koneksi ini — tanyakan ke sekolah atau admin jaringanmu.",
     "onb.signedInAs": "Masuk sebagai",
     "onb.signOut": "Keluar",
     "onb.claim": "Bawa kemajuan perangkat ini",
@@ -17132,6 +18490,9 @@ const tl = {
     "onb.subjectsNote": "Asignatura: Matematika (pwedeng magdagdag mamaya). Walang ibang pipiliin ngayon.",
     "onb.needSubject": "Pumili ng kahit isang asignatura — mula rito binubuo ang plano mo.",
     "onb.errCreate": "Hindi nagawa ang profile — tingnan ang koneksyon at subukang muli.",
+    "onb.errRefused": "Tinanggihan ng server ang pagbabagong ito sa profile — hindi ito ang koneksyon mo. Ang code sa ibaba ang dahilan.",
+    "onb.errNotYours": "Hindi na maisusulat ang profile na naka-save sa device na ito — hindi tugma ang sikreto nito. Walang nabura; hindi lang maabot ng browser na ito ang rekord na iyon. Mag-sign in sa account na may-ari nito, o magsimula ng bagong profile dito.",
+    "onb.freshStart": "Magsimula ng bagong profile sa device na ito",
     "ls.visual": "👁 Pandama",
     "ls.auditory": "🔊 Pandinig",
     "ls.kinesthetic": "✋ Pandama",
@@ -17670,6 +19031,8 @@ const tl = {
     "onb.errTaken": "May account na ang email na iyon — mag-sign in.",
     "onb.errCreds": "Mali ang email o password.",
     "onb.errName": "Maglagay ng pangalan.",
+    "onb.errTooMany": "Masyadong maraming pagsubok mula sa network na ito. Maghintay ng ilang minuto, pagkatapos subukan muli.",
+    "onb.errIngress": "Hindi available ang pag-sign in mula sa koneksyong ito — tanungin ang iyong paaralan o network administrator.",
     "onb.signedInAs": "Naka-sign in bilang",
     "onb.signOut": "Mag-sign out",
     "onb.claim": "Isama ang progreso sa device na ito",
@@ -18640,6 +20003,9 @@ const de = {
     "onb.subjectsNote": "Fächer: Mathematik (später erweiterbar). Mehr muss jetzt nicht gewählt werden.",
     "onb.needSubject": "Wähle mindestens ein Fach — daraus entsteht dein Plan.",
     "onb.errCreate": "Profil konnte nicht erstellt werden — prüfe die Verbindung und versuch es erneut.",
+    "onb.errRefused": "Der Server hat diese Profiländerung abgelehnt — das ist nicht deine Verbindung. Der Code unten nennt den Grund.",
+    "onb.errNotYours": "Das auf diesem Gerät gespeicherte Profil lässt sich nicht mehr beschreiben — sein Secret passt nicht. Nichts wurde gelöscht; dieser Browser erreicht diesen Datensatz nur nicht. Melde dich beim Konto an, dem er gehört, oder beginne hier ein neues Profil.",
+    "onb.freshStart": "Neues Profil auf diesem Gerät beginnen",
     "ls.visual": "👁 Visuell",
     "ls.auditory": "🔊 Auditiv",
     "ls.kinesthetic": "✋ Motorisch",
@@ -19237,6 +20603,8 @@ const de = {
     "onb.errTaken": "Mit dieser E-Mail gibt es schon ein Konto — melde dich an.",
     "onb.errCreds": "E-Mail oder Passwort ist falsch.",
     "onb.errName": "Bitte gib einen Namen ein.",
+    "onb.errTooMany": "Zu viele Versuche aus diesem Netzwerk. Warte ein paar Minuten und versuche es dann erneut.",
+    "onb.errIngress": "Anmeldung ist über diese Verbindung nicht möglich — wende dich an deine Schule oder deine Netzwerkverwaltung.",
     "onb.signedInAs": "Angemeldet als",
     "onb.signOut": "Abmelden",
     "onb.claim": "Fortschritt dieses Geräts mitnehmen",
@@ -20206,6 +21574,9 @@ const ja = {
     "onb.subjectsNote": "教科：数学（後で追加できます）。今は他を選ぶ必要はありません。",
     "onb.needSubject": "少なくとも1つ科目を選んでください。あなたの計画はここから作られます。",
     "onb.errCreate": "プロフィールを作成できません — 接続を確認してもう一度。",
+    "onb.errRefused": "サーバーがこのプロフィール変更を拒否しました — 接続の問題ではありません。理由は下のコードです。",
+    "onb.errNotYours": "この端末に保存されたプロフィールには書き込めません — シークレットが一致しません。何も消去されていません。このブラウザーがその記録に届かないだけです。所有するアカウントでサインインするか、ここで新しいプロフィールを始めてください。",
+    "onb.freshStart": "この端末で新しいプロフィールを始める",
     "ls.visual": "👁 見て学ぶ",
     "ls.auditory": "🔊 聞いて学ぶ",
     "ls.kinesthetic": "✋ 体で学ぶ",
@@ -20803,6 +22174,8 @@ const ja = {
     "onb.errTaken": "このメールのアカウントは既にあります。ログインしてください。",
     "onb.errCreds": "メールかパスワードが違います。",
     "onb.errName": "名前を入力してください。",
+    "onb.errTooMany": "このネットワークからの試行が多すぎます。数分待ってからもう一度お試しください。",
+    "onb.errIngress": "この接続からはサインインできません。学校またはネットワーク管理者に問い合わせてください。",
     "onb.signedInAs": "ログイン中:",
     "onb.signOut": "ログアウト",
     "onb.claim": "この端末の学習記録を引き継ぐ",
@@ -21772,6 +23145,9 @@ const zh = {
     "onb.subjectsNote": "科目：数学（以后可添加）。现在无需选择其他。",
     "onb.needSubject": "至少选择一门科目——你的计划由此生成。",
     "onb.errCreate": "无法创建档案——检查网络后重试。",
+    "onb.errRefused": "服务器拒绝了这次档案修改——这不是网络问题。下方代码即为原因。",
+    "onb.errNotYours": "无法再写入此设备上保存的档案——它的密钥不匹配。没有任何内容被删除，只是这个浏览器无法访问那条记录。请登录拥有它的账号，或在此开始新档案。",
+    "onb.freshStart": "在此设备上开始新档案",
     "ls.visual": "👁 视觉型",
     "ls.auditory": "🔊 听觉型",
     "ls.kinesthetic": "✋ 动手型",
@@ -22279,6 +23655,8 @@ const zh = {
     "onb.errTaken": "该邮箱已有账户——请直接登录。",
     "onb.errCreds": "邮箱或密码不正确。",
     "onb.errName": "请输入姓名。",
+    "onb.errTooMany": "来自此网络的尝试次数过多。请等待几分钟后再试。",
+    "onb.errIngress": "此连接无法登录——请联系你的学校或网络管理员。",
     "onb.signedInAs": "已登录为",
     "onb.signOut": "退出登录",
     "onb.claim": "带上这台设备的进度",
@@ -23248,6 +24626,9 @@ const fa = {
     "onb.subjectsNote": "موضوع‌ها: ریاضی (بعداً می‌توان اضافه کرد). فعلاً چیز دیگری لازم نیست.",
     "onb.needSubject": "دست‌کم یک درس را انتخاب کنید — برنامهٔ شما از همین‌ها ساخته می‌شود.",
     "onb.errCreate": "ساخت پروفایل ناموفق — اتصال را بررسی کن و دوباره تلاش کن.",
+    "onb.errRefused": "سرور این تغییر پروفایل را رد کرد — این مشکل اتصال تو نیست. کد زیر دلیل آن است.",
+    "onb.errNotYours": "پروفایل ذخیره‌شده روی این دستگاه دیگر قابل نوشتن نیست — کلید آن مطابقت ندارد. چیزی پاک نشده است؛ فقط این مرورگر به آن رکورد دسترسی ندارد. به حسابی که مالک آن است وارد شو، یا اینجا پروفایل تازه‌ای آغاز کن.",
+    "onb.freshStart": "آغاز پروفایل تازه روی این دستگاه",
     "ls.visual": "👁 دیداری",
     "ls.auditory": "🔊 شنیداری",
     "ls.kinesthetic": "✋ حرکتی",
@@ -23755,6 +25136,8 @@ const fa = {
     "onb.errTaken": "حسابی با این ایمیل وجود دارد — وارد شوید.",
     "onb.errCreds": "ایمیل یا گذرواژه نادرست است.",
     "onb.errName": "نامی وارد کنید.",
+    "onb.errTooMany": "تلاش‌های بیش از حد از این شبکه. چند دقیقه صبر کنید و دوباره تلاش کنید.",
+    "onb.errIngress": "ورود از این اتصال ممکن نیست — از مدرسه یا مدیر شبکه بپرسید.",
     "onb.signedInAs": "وارد شده به‌عنوان",
     "onb.signOut": "خروج",
     "onb.claim": "پیشرفت این دستگاه را همراه ببر",
@@ -24724,6 +26107,9 @@ const ur = {
     "onb.subjectsNote": "مضامین: ریاضی (بعد میں مزید شامل کرسکتے ہیں)۔ ابھی اور منتخب کرنے کی ضرورت نہیں۔",
     "onb.needSubject": "کم از کم ایک مضمون منتخب کریں — آپ کا منصوبہ اسی سے بنتا ہے۔",
     "onb.errCreate": "پروفائل نہیں بن سکا — کنکشن چیک کریں اور دوبارہ کوشش کریں۔",
+    "onb.errRefused": "سرور نے پروفائل کی یہ تبدیلی مسترد کر دی — یہ آپ کا کنکشن نہیں ہے۔ نیچے دیا گیا کوڈ وجہ ہے۔",
+    "onb.errNotYours": "اس ڈیوائس پر محفوظ پروفائل میں اب لکھا نہیں جا سکتا — اس کا سیکرٹ میل نہیں کھاتا۔ کچھ مٹایا نہیں گیا؛ یہ براؤزر صرف اس ریکارڈ تک نہیں پہنچ سکتا۔ جس اکاؤنٹ کا یہ ہے اس میں سائن اِن کریں، یا یہاں نیا پروفائل شروع کریں۔",
+    "onb.freshStart": "اس ڈیوائس پر نیا پروفائل شروع کریں",
     "ls.visual": "👁 دیکھ کر",
     "ls.auditory": "🔊 سن کر",
     "ls.kinesthetic": "✋ کر کے",
@@ -25231,6 +26617,8 @@ const ur = {
     "onb.errTaken": "اس ای میل سے اکاؤنٹ موجود ہے — سائن ان کریں۔",
     "onb.errCreds": "ای میل یا پاس ورڈ غلط ہے۔",
     "onb.errName": "براہ کرم نام لکھیں۔",
+    "onb.errTooMany": "اس نیٹ ورک سے بہت زیادہ کوششیں۔ چند منٹ انتظار کریں، پھر دوبارہ کوشش کریں۔",
+    "onb.errIngress": "اس کنکشن سے سائن ان دستیاب نہیں — اپنے اسکول یا نیٹ ورک ایڈمنسٹر سے پوچھیں۔",
     "onb.signedInAs": "بطور سائن ان",
     "onb.signOut": "سائن آؤٹ",
     "onb.claim": "اس ڈیوائس کی پیش رفت ساتھ لے جائیں",
@@ -26222,6 +27610,9 @@ exports.bn = {
     "onb.subjectsNote": "বিষয়: গণিত (পরে যোগ করা যাবে)। এখন আর কিছু বাছাই লাগবে না।",
     "onb.needSubject": "অন্তত একটি বিষয় বেছে নিন — এগুলো থেকেই আপনার পরিকল্পনা তৈরি হয়।",
     "onb.errCreate": "প্রোফাইল তৈরি হয়নি — সংযোগ দেখে আবার চেষ্টা করুন।",
+    "onb.errRefused": "সার্ভার এই প্রোফাইল পরিবর্তন প্রত্যাখ্যান করেছে — এটি আপনার সংযোগের সমস্যা নয়। নিচের কোডটিই কারণ।",
+    "onb.errNotYours": "এই ডিভাইসে সংরক্ষিত প্রোফাইলে আর লেখা যাবে না — এর সিক্রেট মেলে না। কিছু মুছে ফেলা হয়নি; শুধু এই ব্রাউজার ওই রেকর্ডে পৌঁছাতে পারে না। যে অ্যাকাউন্টের এটি, তাতে সাইন ইন করুন, অথবা এখানে নতুন প্রোফাইল শুরু করুন।",
+    "onb.freshStart": "এই ডিভাইসে নতুন প্রোফাইল শুরু করুন",
     "ls.visual": "👁 দেখে",
     "ls.auditory": "🔊 শুনে",
     "ls.kinesthetic": "✋ করে",
@@ -26789,6 +28180,8 @@ exports.bn = {
     "onb.errTaken": "এই ইমেইলে অ্যাকাউন্ট আছে — সাইন ইন করুন।",
     "onb.errCreds": "ইমেইল বা পাসওয়ার্ড ভুল।",
     "onb.errName": "একটি নাম লিখুন।",
+    "onb.errTooMany": "এই নেটওয়ার্ক থেকে অনেকবার চেষ্টা হয়েছে। কয়েক মিনিট অপেক্ষা করে আবার চেষ্টা করুন।",
+    "onb.errIngress": "এই সংযোগ থেকে সাইন ইন করা যাচ্ছে না — আপনার স্কুল বা নেটওয়ার্ক প্রশাসককে জিজ্ঞাসা করুন।",
     "onb.signedInAs": "সাইন ইন করা আছে",
     "onb.signOut": "সাইন আউট",
     "onb.claim": "এই ডিভাইসের অগ্রগতি সঙ্গে নিন",
@@ -27162,6 +28555,34 @@ exports.bn = {
 exports.DICTS = {
     en, es, fr, pt, ar, sw, hi, id, tl, ur, fa, de, ja, zh, bn: exports.bn,
 };
+// THE RECOVERY VOCABULARY, merged rather than pasted fifteen times into the
+// dictionaries above. One feature, one reviewable block (lib/i18n-recovery.ts),
+// and the SAME dictionary afterwards — `t()`, the English fallback and the suite's
+// key-parity assertion all read DICTS, so a language that missed a key still fails
+// `npm run verify` exactly as it would have. Merge is last so nothing overwrites a
+// key the product already owned.
+// Each source is merged SEPARATELY. Spreading two language maps into one object
+// would keep only the second map's entry for a language both define — the
+// failure is silent and it removes keys that were already working.
+for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS]) {
+    for (const [code, extra] of Object.entries(source)) {
+        const dict = exports.DICTS[code];
+        if (!dict)
+            continue;
+        for (const [key, value] of Object.entries(extra)) {
+            if (!(key in dict))
+                dict[key] = value;
+        }
+    }
+}
+// `en` is the fallback for a missing key, so it must carry them even if a caller
+// reaches it directly rather than through DICTS.
+for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS]) {
+    for (const [key, value] of Object.entries(source.en)) {
+        if (!(key in en))
+            en[key] = value;
+    }
+}
 exports.LANG_CODES = exports.LANGS.map((l) => l.code);
 function langMeta(code) {
     return exports.LANGS.find((l) => l.code === code) ?? exports.LANGS[0];
@@ -27221,6 +28642,109 @@ exports.COUNTRIES = [
     { code: "NI", name: "Nicaragua" }, { code: "SV", name: "El Salvador" }, { code: "DO", name: "Dominican Republic" },
     { code: "XX", name: "Prefer not to say" },
 ];
+
+});
+__def("kiosk-session.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// THE DEVICE'S MEMORY OF "A LESSON IS RUNNING HERE", AND WHY IT IS A MARKER.
+//
+// A classroom handset needs one control on EVERY page: "finish and hand back".
+// If it lived only on the kiosk screen, a learner who walked to a lesson and then
+// a dashboard would have no way out — and a hand-back nobody can find is a
+// hand-back that does not happen, which is how the next learner inherits screen
+// one's session. So the marker is what the shell reads to render that control.
+//
+// WHAT THIS IS NOT: a credential. The token lives in the same two identity keys
+// every route reads (`openmind:profileId` / `openmind:profileSecret`); this record
+// holds only what a page needs to SAY — the class, the handle, and when the
+// server will stop accepting the token. A forged marker buys a screen; it cannot
+// buy a session, because the server decides that (`kiosk-sessions.json`).
+//
+// IT IS ALSO NOT THE ROSTER. `lib/device-roster.ts` remembers a learner's
+// PERMANENT capability for household switching; a classroom session is the
+// opposite kind of thing (short-lived, revocable, issued for one lesson), so it is
+// remembered nowhere. `clearIdentity` removes this marker for that reason: a
+// device that has forgotten its learner must not still claim a class.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.KIOSK_EVENT = exports.KIOSK_KEY = void 0;
+exports.readKioskSession = readKioskSession;
+exports.markKioskSession = markKioskSession;
+exports.clearKioskSession = clearKioskSession;
+exports.KIOSK_KEY = "openmind:kioskSession";
+/** The event the shell listens for. `lib/api/identity.ts` announces identity
+ *  changes through an in-module subscription (transport code has no window), so
+ *  this module needs its own — and it must be a DOM event, because the only
+ *  listener is a component that mounted before the marker existed. */
+exports.KIOSK_EVENT = "openmind:kiosk";
+function announce() {
+    try {
+        if (typeof window !== "undefined")
+            window.dispatchEvent(new Event(exports.KIOSK_EVENT));
+    }
+    catch {
+        // A listener that throws is not a reason to fail a sign-in.
+    }
+}
+function store() {
+    try {
+        return typeof window === "undefined" ? null : window.localStorage;
+    }
+    catch {
+        return null;
+    }
+}
+/** The active classroom lesson, or null. A malformed record reads as null rather
+ *  than throwing: a half-written entry must not break the shell of every page. */
+function readKioskSession() {
+    const s = store();
+    if (!s)
+        return null;
+    const raw = s.getItem(exports.KIOSK_KEY);
+    if (!raw)
+        return null;
+    try {
+        const v = JSON.parse(raw);
+        if (typeof v.classId !== "string" || !v.classId ||
+            typeof v.className !== "string" ||
+            typeof v.handle !== "string" ||
+            typeof v.expiresAt !== "number") {
+            return null;
+        }
+        return { classId: v.classId, className: v.className, handle: v.handle, expiresAt: v.expiresAt };
+    }
+    catch {
+        return null;
+    }
+}
+function markKioskSession(marker) {
+    const s = store();
+    if (!s)
+        return;
+    try {
+        s.setItem(exports.KIOSK_KEY, JSON.stringify(marker));
+    }
+    catch {
+        // A full or disabled storage must not turn a successful sign-in into a
+        // failed one. The lesson still works; only the hand-back control is missing,
+        // and `/kiosk` still offers it.
+    }
+    announce();
+}
+function clearKioskSession() {
+    const s = store();
+    if (!s)
+        return;
+    try {
+        s.removeItem(exports.KIOSK_KEY);
+    }
+    catch {
+        // Nothing to do: a marker that cannot be removed is removed by the next
+        // successful hand-back or by the identity being cleared.
+    }
+    announce();
+}
 
 });
 __def("learner-model.js", function (module, exports, require) {
@@ -28790,8 +30314,10 @@ function buildFlare(state, conceptId, misconceptionId, revealTestHook = false, l
     };
 }
 /** Grade a submitted micro-check and persist the classification. Runs inside
- *  the store's profile lock via updateProfile. Returns the classification, or
- *  null when the submission doesn't correspond to a standing flare. */
+ *  the learner transaction the route opened (`withLearnerState`), and the answer
+ *  it produces goes on the ledger through that transaction's own context.
+ *  Returns the classification, or null when the submission doesn't correspond
+ *  to a standing flare. */
 function gradeMicroCheck(state, conceptId, misconceptionId, questionId, choiceIndex) {
     const m = misconceptions_1.MISCONCEPTIONS_BY_ID[misconceptionId];
     const p = state.progress[conceptId];
@@ -35611,19 +37137,27 @@ exports.DEEP_GENS = {
         const l = r.int(21, 89) / 10;
         const w = r.int(21, 89) / 10;
         const maxArea = (l + 0.05) * (w + 0.05);
-        const correct = `${deepNum(maxArea, 4)} cm²`;
+        // EVERY OPTION IS PRINTED TO THE SAME PRECISION, and the prompt states it.
+        // These options used to be `deepNum(x, 4)`, which TRIMS trailing zeros — so
+        // the key, a product of two 1-dp bounds, was the only option with four
+        // decimals (55.9475 cm² beside 56.7 and 15.6) and picking the longest string
+        // scored 100% on this concept. Fixed-width formatting removes the cue and is
+        // the truthful presentation: four decimal places of a centimetre-squared
+        // computed from 0.1 cm measurements is precision the data cannot support.
+        const f2 = (x) => x.toFixed(2);
+        const correct = `${f2(maxArea)} cm²`;
         return {
-            prompt: `A rectangle measures ${deepNum(l, 1)} cm by ${deepNum(w, 1)} cm, each measured to the nearest 0.1 cm. What is the largest possible value of its area?`,
+            prompt: `A rectangle measures ${deepNum(l, 1)} cm by ${deepNum(w, 1)} cm, each measured to the nearest 0.1 cm. What is the largest possible value of its area, in cm²? Give your answer to 2 decimal places.`,
             correct,
             wrongs: pickDistinct(correct, [
-                `${deepNum(l * w, 4)} cm²`,
-                `${deepNum((l + 0.1) * (w + 0.1), 4)} cm²`,
-                `${deepNum(2 * (l + 0.05) + 2 * (w + 0.05), 4)} cm²`,
-                `${deepNum((l + 0.05) * (w - 0.05), 4)} cm²`,
-                `${deepNum(l * w + 0.1, 4)} cm²`,
+                `${f2(l * w)} cm²`,
+                `${f2((l + 0.1) * (w + 0.1))} cm²`,
+                `${f2(2 * (l + 0.05) + 2 * (w + 0.05))} cm²`,
+                `${f2((l + 0.05) * (w - 0.05))} cm²`,
+                `${f2(l * w + 0.1)} cm²`,
             ]),
             tags: ["round-half"],
-            explanation: `To the nearest 0.1 cm, the true length is at most ${deepNum(l + 0.05, 2)} cm and the true width at most ${deepNum(w + 0.05, 2)} cm. The largest area uses BOTH upper bounds: ${deepNum(l + 0.05, 2)} × ${deepNum(w + 0.05, 2)} = ${deepNum(maxArea, 4)} cm². Using the measurements as written (${deepNum(l * w, 4)}) ignores the rounding altogether, and adding the whole 0.1 step assumes twice the real uncertainty.`,
+            explanation: `To the nearest 0.1 cm, the true length is at most ${deepNum(l + 0.05, 2)} cm and the true width at most ${deepNum(w + 0.05, 2)} cm. The largest area uses BOTH upper bounds: ${deepNum(l + 0.05, 2)} × ${deepNum(w + 0.05, 2)} = ${f2(maxArea)} cm². Using the measurements as written (${f2(l * w)}) ignores the rounding altogether, and adding the whole 0.1 step assumes twice the real uncertainty.`,
             difficulty: 0.78 + r.next() * 0.06,
         };
     },
@@ -36854,8 +38388,8 @@ exports.DEEP_GENS = {
             prompt: `A microscope shows a cell about ${width} μm wide:\n· green disks are visible inside it: ${chloro ? "yes" : "no"}\n· a dark rounded shape is visible: ${nucleus ? "yes" : "no"}\nThe cell is most likely which, and why?`,
             correct: `${name} — ${nucleus ? "a nucleus is present" : "no nucleus is present"}${chloro ? " and chloroplasts show" : " and no chloroplasts show"}`,
             wrongs: pickDistinct(`${name} — ${nucleus ? "a nucleus is present" : "no nucleus is present"}${chloro ? " and chloroplasts show" : " and no chloroplasts show"}`, [
-                `${nucleus ? "A fungus cell — no nucleus is present" : "An animal cell — a nucleus is present"}`,
-                `${chloro ? "An animal cell — chloroplasts show" : "A plant cell — chloroplasts show"}`,
+                `${nucleus ? "A fungus cell — no nucleus is present, which the dark rounded shape inside rules out" : "An animal cell — a nucleus is present, which the featureless interior rules out"}`,
+                `${chloro ? "An animal cell — chloroplasts show, and animal cells keep chloroplasts in their skin" : "A plant cell — chloroplasts show, and every plant cell is green all through"}`,
                 `A bacterium — the width fits`,
             ]),
             tags: [],
@@ -36876,11 +38410,19 @@ exports.DEEP_GENS = {
             return {
                 prompt: `An enzyme's reaction rate was measured at five temperatures:\n${table.join("\n")}\nWhat happens ABOVE the peak temperature, and why?`,
                 correct: "The rate falls sharply — the enzyme's active site denatures",
-                wrongs: pickDistinct("The rate falls sharply — the enzyme's active site denatures", [
+                // FIVE CANDIDATES, THREE SERVED — see the note on `ai-basics`. A fixed
+                // option set carries a fixed length rank, so a row whose key is the
+                // longest string is a certain win for a learner who reads nothing. More
+                // candidates than options, chosen per draw, is what makes the key's rank
+                // vary; every candidate here is wrong for this table in its own way, and
+                // each is stated as fully as the key so length stops carrying the answer.
+                wrongs: pickDistinct("The rate falls sharply — the enzyme's active site denatures", r.shuffle([
                     "The rate stays at the peak — more heat cannot help or harm",
-                    "The rate keeps rising — heat always speeds reactions",
-                    "The rate falls gently — the substrate runs out",
-                ]),
+                    "The rate keeps rising — heat always speeds up reactions",
+                    "The rate falls gently — the substrate has run out",
+                    "The rate falls to zero at once and stays there, because heat destroys an enzyme completely and instantly",
+                    "The rate rises again after a dip, because the enzyme rebuilds its own active site and recovers",
+                ])),
                 tags: [],
                 explanation: `Below the peak, heat gives molecules more kinetic energy — more successful collisions. Above it the protein vibrates so hard its three-dimensional shape warps: the active site no longer fits the substrate, so the rate COLLAPSES (in this table, from 100% to ${opt === 37 ? "90%" : "25%"} and below). Heat speeds chemistry but destroys protein shape — two effects fighting, and shape loses.`,
                 difficulty: 0.72,
@@ -36911,11 +38453,13 @@ exports.DEEP_GENS = {
         return {
             prompt: `Two enzymes' optimum pH:\n· Pepsin (stomach): pH ${pepsin === 1 ? 2 : pepsin === 3 ? 1 : 3}\n· Amylase (mouth): pH ${amylase}\nThe same amylase sample is placed at pH 2. What happens, and what does the comparison show?`,
             correct: "Activity falls to near zero — the sample denatures far from its optimum; optimum pH differs by location",
-            wrongs: pickDistinct("Activity falls to near zero — the sample denatures far from its optimum; optimum pH differs by location", [
-                "Activity doubles — acids activate enzymes",
-                "Activity is unchanged — pH only matters for pepsin",
-                "The amylase works better because pH 2 is lower, and lower is faster",
-            ]),
+            wrongs: pickDistinct("Activity falls to near zero — the sample denatures far from its optimum; optimum pH differs by location", r.shuffle([
+                "The amylase works better at pH 2, because a lower pH means more hydrogen ions and therefore a faster reaction",
+                "Activity is unchanged — pH only shapes pepsin, and amylase keeps working at whatever pH it is placed in",
+                "Activity doubles — stomach acid activates digestive enzymes, so moving an enzyme to a lower pH always speeds it up",
+                "Activity keeps rising for a while, then settles back to the rate it had at pH 7, because enzymes buffer themselves",
+                "Activity falls slightly, but only because the sample has been diluted by the stomach contents",
+            ])),
             tags: [],
             explanation: `An enzyme works only near its optimum pH. Amylase's is ${amylase}; at pH 2 the ionic bonds holding its shape break, the active site warps, and activity collapses — the same denaturation heat causes, by a different route. Pepsin's optimum near pH 2 is why protein digestion works in the stomach but not the mouth: the enzymes are matched to their location's chemistry.`,
             difficulty: 0.76,
@@ -36931,9 +38475,13 @@ exports.DEEP_GENS = {
             return {
                 prompt: `Pondweed bubbles per minute against light intensity:${table}\nWhy does the count stop rising beyond 20 a.u.?`,
                 correct: "A different factor (CO₂ or temperature) is now limiting",
+                // The key was the longest option here; it is now the second-longest,
+                // with one misconception stated more fully than the key and two in
+                // brief — so "pick the longest" scores nothing. See the note on
+                // `ai-basics` for why a single option set has a floor at 50%.
                 wrongs: pickDistinct("A different factor (CO₂ or temperature) is now limiting", [
+                    "Chlorophyll stops working at high light, so the leaf stops absorbing any more of it",
                     "The plant has used up all its light",
-                    "Chlorophyll stops working at high light",
                     "The plant is photosynthesising less as light rises",
                 ]),
                 tags: [],
@@ -37010,9 +38558,9 @@ exports.DEEP_GENS = {
             prompt: `A fermentation flask of yeast in sugar solution is kept at ${yeast} °C:\n· limewater in the outlet turns cloudy\n· the solution smells of alcohol\nWhich process, and what do the two observations show?`,
             correct: "Anaerobic respiration — CO₂ (limewater) and ethanol (the smell) are its products",
             wrongs: pickDistinct("Anaerobic respiration — CO₂ (limewater) and ethanol (the smell) are its products", [
-                "Aerobic respiration — CO₂ and alcohol are its products",
+                "Aerobic respiration — CO₂ and alcohol are its products, since yeast respires fully whenever sugar is in the flask",
                 "Photosynthesis — yeast makes sugar from CO₂",
-                "Denaturation — the yeast is breaking down at ${yeast} °C",
+                `Denaturation — the yeast is breaking down at ${yeast} °C`,
             ]),
             tags: [],
             explanation: `Yeast without oxygen: glucose → ethanol + CO₂. Cloudy limewater is the standard test for CO₂; the alcohol smell is the ethanol. The temperature matters too: warm speeds fermentation, but far above ~40 °C the yeast enzymes denature and it stops.`,
@@ -37046,9 +38594,9 @@ exports.DEEP_GENS = {
             prompt: `Pancreatic lipase works in the small intestine at around pH 7–8. ${acid === "HCl (stomach acid)" ? "Stomach contents entering the intestine are pH 2." : "Fat entering the intestine is in large oily drops."}\nHow does bile make fat digestion faster?`,
             correct: "It emulsifies fat into tiny droplets — more surface for lipase — and neutralises stomach acid",
             wrongs: pickDistinct("It emulsifies fat into tiny droplets — more surface for lipase — and neutralises stomach acid", [
+                "It raises the temperature of the intestine so that lipase works faster, and it also washes the fat along the gut wall",
                 "It digests fat itself, so lipase only finishes the job",
                 "It adds water to the fat, diluting it into submission",
-                "It raises the fat's temperature so lipase works faster",
             ]),
             tags: [],
             explanation: `Bile is not an enzyme — it changes the CONDITIONS. Emulsification chops big drops into tiny ones, multiplying the surface lipase can attack (rate ∝ surface area). It is also alkaline, neutralising the pH 2 stomach acid so the intestinal enzymes can work. Two effects, one secretion.`,
@@ -37532,6 +39080,7 @@ exports.DEEP_GENS = {
             prompt: `Two users choose the SAME password. The server stores:\n· ${u1}: hash(pw + salt1)\n· ${u2}: hash(pw + salt2), salt1 ≠ salt2\nWhy the different salts?`,
             correct: "Equal passwords produce different hashes, so a stolen table cannot reveal who shares a password",
             wrongs: pickDistinct("Equal passwords produce different hashes, so a stolen table cannot reveal who shares a password", [
+                "Salts are added so the same password is stored at a different length for each user, which stops a stolen table from matching either row",
                 "Salts make the login faster for the server",
                 "Salts are needed because hashing is reversible without them",
                 "Each salt replaces the user's password before hashing",
@@ -37742,7 +39291,7 @@ exports.DEEP_GENS = {
             prompt: `The same mass of magnesium ribbon reacts with the same acid:\n· at ${t1} °C, 100 cm³ of gas collects in 80 s\n· at ${t2} °C, 100 cm³ collects in 40 s\nWhat does the comparison show about rate and temperature?`,
             correct: `The rate at ${t2} °C is double — a 10 °C rise roughly doubles the rate of many reactions`,
             wrongs: pickDistinct(`The rate at ${t2} °C is double — a 10 °C rise roughly doubles the rate of many reactions`, [
-                `The rate quadrupled — rate scales with the square of temperature`,
+                `The rate quadrupled — a rise from ${t1} °C to ${t2} °C squares the temperature, so the rate at ${t2} °C is about 4 × the rate at ${t1} °C`,
                 `The final volume doubles at the higher temperature`,
                 `Temperature has no real effect until the acid boils`,
             ]),
@@ -38206,6 +39755,7 @@ exports.DEEP_GENS = {
             prompt: `${obs} The molecules all get heavier down the series. Why does the boiling point rise?`,
             correct: "Bigger molecules have stronger intermolecular forces — more surface for attraction between neighbours",
             wrongs: pickDistinct("Bigger molecules have stronger intermolecular forces — more surface for attraction between neighbours", [
+                "Heavier molecules sink towards the bottom of the flask, and the pressure down there raises the boiling point of the liquid",
                 "The covalent bonds inside the molecules get stronger down the series",
                 "Heavier molecules sink, and pressure at the bottom raises the boiling point",
                 "Bigger molecules have more electrons free to conduct, which heats them",
@@ -38665,10 +40215,10 @@ exports.DEEP_GENS = {
         }
         const rows = [
             ["White light enters a prism and emerges spread into red through violet.", "Violet slows most and refracts most — each wavelength has its own refractive index",
-                ["The prism adds colour to white light — white light contains no colours until then",
+                ["The prism adds colour to white light — white light contains no colours at all until the glass pulls them apart out of nothing",
                     "Red slows most, bending the most", "The spread is a reflection effect at the far face"]],
             ["A ray diagram shows the refracted ray labelled at 35° to the SURFACE, with the incident ray at 25° to the surface.", "The angles are misread — refracted angles are measured from the normal, so the true angles are 55° and 65°",
-                ["The diagram is fine — refraction angles are measured from the surface",
+                ["The diagram is fine — refraction angles are measured from the surface, so the labelled 35° and 25° are the angles the formula needs",
                     "The ray bends away from the normal because 35 > 25",
                     "The ray could not refract with those numbers"]],
         ];
@@ -39028,11 +40578,11 @@ exports.DEEP_GENS = {
         }
         const features = [
             ["alveoli are folded into millions of tiny spheres", "Enormous total surface area for the rate of diffusion",
-                ["They trap dust before it reaches the blood", "The folding stores spare air between breaths", "Spherical shapes are strongest under pressure"]],
+                ["They trap dust before it reaches the blood", "The folding stores spare air between breaths, so the alveoli refill themselves during the pause", "Spherical shapes are strongest under pressure"]],
             ["each alveolus is wrapped in a dense capillary network", "A steep concentration gradient is maintained — blood constantly removes oxygen and delivers CO₂",
-                ["The capillaries structurally support the alveoli's shape", "They warm the incoming air before it is used", "They carry oxygen to the alveoli to be exhaled"]],
+                ["The capillaries structurally support the alveoli's shape", "They warm the incoming air before it is used, and warm air diffuses into the blood faster than cold air", "They carry oxygen to the alveoli to be exhaled"]],
             ["the alveolus wall and capillary wall are each a single flattened cell thick", "A very short diffusion distance — gases cross in a fraction of a millimetre",
-                ["The thin walls filter bacteria out of the air", "Being thin lets the alveoli expand without muscle", "Thickness matters only for liquid exchange, not gases"]],
+                ["The thin walls filter bacteria out of the air before it can reach the bloodstream", "Being thin lets the alveoli expand without muscle", "Thickness matters only for liquid exchange, not gases"]],
         ];
         const [feature, answer, wrong] = features[r.int(0, features.length - 1)];
         return {
@@ -39099,7 +40649,7 @@ exports.DEEP_GENS = {
             correct: "Caffeine is associated with faster reactions in this sample — but repeat with more participants and a control (placebo) to rule out expectation",
             wrongs: pickDistinct("Caffeine is associated with faster reactions in this sample — but repeat with more participants and a control (placebo) to rule out expectation", [
                 "Caffeine PROVES faster reactions — the mean is decisive",
-                "No conclusion is possible from any number of trials of one person",
+                "No conclusion is possible from any number of trials of one person, because reaction time varies so much between people that a mean from one participant says nothing at all",
                 "The faster mean shows the nervous system's synapses were eliminated",
             ]),
             tags: [],
@@ -39241,14 +40791,25 @@ exports.DEEP_GENS = {
         const gen = r.pick([2, 3, 4]);
         const fit = 0.9;
         const survivors = deepNum(n0 * Math.pow(fit, gen), 0);
+        const answer = `About ${survivors} sensitive cells — ${Math.round(fit * 100)}% of the population survives each generation, so ${n0} × (0.9)^${gen}`;
         return {
             prompt: `A sensitive bacterium population starts at ${n0} cells. Each generation of antibiotic treatment, only ${Math.round(fit * 100)}% survive (the rest are resistant already and all survive). Estimate the sensitive cells remaining after ${gen} generations.`,
-            correct: `About ${survivors} sensitive cells — ${Math.round(fit * 100)}% of the population survives each generation, so ${n0} × (0.9)^${gen}`,
-            wrongs: pickDistinct(`About ${survivors} sensitive cells — ${Math.round(fit * 100)}% of the population survives each generation, so ${n0} × (0.9)^${gen}`, [
+            correct: answer,
+            // MORE CANDIDATES THAN OPTIONS, chosen per draw (see the note on
+            // `ai-basics`). The key here was both the longest string and the one with
+            // the most digits on every draw, which made it a certain win for a learner
+            // reading nothing — a compounding estimate quotes more numbers than a
+            // one-step slip does. Several of these candidates carry a fuller, more
+            // digit-heavy statement of a DIFFERENT misconception, so neither cue pays.
+            wrongs: pickDistinct(answer, r.shuffle([
                 `${n0} × ${gen} × 0.9 = ${deepNum(n0 * gen * fit, 0)} — the generational effect was added, not compounded`,
                 `Zero — any antibiotic treatment kills all sensitive cells in one step`,
                 `${deepNum(n0 * Math.pow(fit, gen - 1), 0)} — the count stops one generation early`,
-            ]),
+                `About ${deepNum(n0 - n0 * 0.1 * gen, 0)} sensitive cells — each generation removes a tenth of the ORIGINAL ${n0}, so the same ${deepNum(n0 * 0.1, 0)} cells die every time`,
+                `About ${deepNum(n0 * fit, 0)} sensitive cells — only the final generation counts, because the earlier deaths were replaced by new growth`,
+                `About ${deepNum(n0 * Math.pow(fit, gen) * 1.1, 0)} sensitive cells — the survivors each divide once between doses, so the count recovers by a tenth`,
+                `About ${deepNum(n0 * Math.pow(fit, gen) + n0 * 0.1, 0)} sensitive cells — ${n0} × (0.9)^${gen} leaves ${survivors}, and the ${deepNum(n0 * 0.1, 0)} already-resistant cells are added back on`,
+            ])),
             tags: [],
             explanation: `Survival compounds multiplicatively: each generation's survivors are 0.9 × the last, giving ${n0} × 0.9^${gen} ≈ ${survivors}. Meanwhile the resistant cells face NO such decline — their share of the population climbs every generation, which is exactly why courses must be finished and why resistance spreads so fast.`,
             difficulty: 0.75,
@@ -39382,13 +40943,13 @@ exports.DEEP_GENS = {
         }
         const rows = [
             ["A river survey: mayfly larvae drop from 200 to 20 per m² downstream of a farm outfall; dissolved oxygen is unchanged.", "A specific pollutant (likely pesticide or nutrient-driven food web change) harms the mayflies — oxygen alone cannot explain the drop",
-                ["The river's oxygen must have fallen — no other factor affects larvae",
+                ["The river's oxygen must have fallen — no other factor can affect larvae, and any oxygen reading at the outfall was simply taken after the mayflies had already gone",
                     "Mayflies migrated upstream to escape the farm",
                     "The count error is too large — real populations never change 10-fold"]],
             ["Two woods: Wood A has 4 tree species and 30 invertebrate species; Wood B has 12 tree species and 90 invertebrate species.", "Wood B is more biodiverse — plant species richness supports more of the food web above it",
                 ["Wood A is equally biodiverse — invertebrates do not count in biodiversity",
                     "Wood A is more biodiverse — fewer species means less competition",
-                    "The woods cannot be compared without knowing the woods' areas"]],
+                    "The woods cannot be compared without knowing the woods' areas, because a bigger wood always holds more species whatever its variety"]],
         ];
         const [obs, answer, wrong] = rows[r.int(0, rows.length - 1)];
         return {
@@ -39459,9 +41020,10 @@ exports.DEEP_GENS = {
             prompt: `For a highly contagious disease, roughly ${threshold}% of a population must be vaccinated for herd protection. A town vaccinates ${threshold - 10}% and an outbreak follows. Explain why unvaccinated AND vaccinated people were affected.`,
             correct: `Below the ${threshold}% threshold the disease still spreads — vaccinated individuals mostly avoid illness, but the outbreak exposes gaps; no vaccine is 100% effective, so some vaccinated people remain susceptible`,
             wrongs: pickDistinct(`Below the ${threshold}% threshold the disease still spreads — vaccinated individuals mostly avoid illness, but the outbreak exposes gaps; no vaccine is 100% effective, so some vaccinated people remain susceptible`, [
-                "The vaccine failed entirely — vaccinated people should never catch the disease",
+                "The vaccine failed entirely — vaccinated people should never catch the disease, and a single infection among them proves the jab does nothing at all, so the threshold should be raised to 100 % before an outbreak can be called a surprise",
                 "Unvaccinated people were the only ones affected; the report must be in error",
-                "The threshold is a legal minimum, not a scientific one — the outbreak was coincidence",
+                `${threshold - 10}% of the town is vaccinated and that is almost 100 %, so the ${threshold}% target is only advisory and the outbreak was mere coincidence`,
+                "The threshold is a legal minimum, not a scientific one",
             ]),
             tags: [],
             explanation: `Herd immunity is a population-level effect: transmission chains break when too few susceptible hosts remain. ${threshold}% is the threshold for THIS disease's contagion; below it, chains survive. Vaccinated individuals are far less likely to be ill (that is the point), but protection is probabilistic, not absolute — which is why the percentage matters so much.`,
@@ -39581,11 +41143,11 @@ exports.DEEP_GENS = {
         }
         const rows = [
             ["A cube of agar at 1 cm³ colours in 2 minutes; the same volume cut into 27 tiny cubes colours in 20 seconds.", "Cutting raises the surface-area-to-volume ratio — diffusion only enters through the surface, so more surface per volume means faster colouring throughout",
-                ["The small cubes are lighter, so the dye reaches them faster",
+                ["The small cubes are lighter, so the dye reaches them faster: each piece weighs a fraction of the original cube, and gravity pulls the dye into a light piece at a greater speed than into a heavy one",
                     "Cutting opens the agar's structure, letting dye flow through channels",
                     "Total surface area is unchanged by cutting — the rate must be an error"]],
             ["A cell that is long and thin absorbs oxygen faster than a sphere of the same volume.", "The elongated shape maximises surface area for diffusion while keeping every interior point close to the membrane — short distance, big area",
-                ["The elongated cell is thinner-walled, so oxygen leaks in faster",
+                ["The elongated cell is thinner-walled, so oxygen leaks in faster: a long thin cell cannot build thick walls, and a thin wall lets oxygen through with less resistance than a thick one",
                     "Long cells have stronger membranes that pull oxygen in",
                     "Shape does not affect diffusion — volume alone decides the rate"]],
         ];
@@ -39654,8 +41216,8 @@ exports.DEEP_GENS = {
         }
         const rows = [
             ["A bicycle dynamo spins a magnet near a coil as the wheel turns. The lamp glows brighter as the cyclist pedals faster.", "Faster rotation changes the flux more quickly — larger induced voltage — and brightness reports that voltage",
-                ["Faster pedalling pushes more pre-made current from the dynamo's stored charge",
-                    "The lamp's resistance falls at speed, drawing more current from a fixed voltage",
+                ["Faster pedalling pushes more pre-made current out of the dynamo's stored charge",
+                    "The lamp's resistance falls at speed, drawing more current from a fixed voltage, because the filament heats up and conducts better the faster the wheel turns",
                     "Brightness follows the magnet's strength, which grows with speed"]],
             ["A power station generator and a laboratory motor are the same device run in opposite directions.", "The generator converts motion to electrical energy (right-hand rule); the motor converts electrical energy to motion (left-hand rule) — mirror processes",
                 ["They differ in construction — generators cannot be run as motors",
@@ -39730,11 +41292,11 @@ exports.DEEP_GENS = {
             ["Melting points: Na 98 °C, Mg 650 °C, Al 660 °C — rising across the period.", "More delocalised electrons per atom and higher ionic charge strengthen the metallic bonding — more energy to pull the lattice apart",
                 ["Heavier atoms need more energy to melt, and mass rises across the period",
                     "The atoms shrink, so their nuclei are easier to separate",
-                    "Across the period the metals become more covalent, and covalent bonds are stronger"]],
+                    "Across the period the metals become more covalent, and covalent bonds are stronger than metallic ones, so more energy is needed to break the lattice apart"]],
             ["Mercury melts at −39 °C while tungsten melts at 3 422 °C — both are metals.", "Both have delocalised electrons (both conduct), but the STRENGTH of the metallic bonding differs enormously — bonding strength, not 'metal or not', sets the melting point",
                 ["Mercury is not a true metal — only conductors with high melting points are",
                     "Mercury's low melting point shows its electron sea is absent",
-                    "Tungsten's high melting point proves it conducts by ion flow instead"]],
+                    "Tungsten's high melting point proves it conducts by ion flow instead, because a lattice that holds its ions so tightly must move charge through those ions rather than through free electrons"]],
         ];
         const [obs, answer, wrong] = rows[r.int(0, rows.length - 1)];
         return {
@@ -39857,22 +41419,28 @@ exports.DEEP_GENS = {
             };
         }
         if (variant < 0.67) {
+            // The same three-rank spread as the block below: this variant is served
+            // too (a handful of draws at the 0.75 target), and its key was the longest
+            // option in all three scenes.
             const flaws = [
+                // key = shortest (rank 4)
                 ["A student proves x = 1 = 2 by dividing both sides of (x − 1)(x − 2) = 0 by (x − 1). The flaw is…",
                     "Dividing by (x − 1) is dividing by zero when x = 1 — the case being proved",
-                    ["The expansion of (x − 1)(x − 2) was wrong",
-                        "Two numbers cannot be equal and unequal at once",
-                        "Quadratics have two roots, so x must have two values"]],
+                    ["The expansion of (x − 1)(x − 2) was wrong — the product should read x² − 3x + 3",
+                        "Two numbers cannot be equal and unequal at the same time, so x = 1 = 2 is nonsense",
+                        "Quadratics have two roots, so x must be able to equal two different numbers at once"]],
+                // key = longest (rank 1)
                 ["A student proves \"all roses are red\" by exhibiting three red roses. The flaw is…",
                     "Three examples are not all roses — a universal claim needs a general argument or a definition",
-                    ["Roses come in shades, and shades are not colours",
-                        "The examples were not chosen randomly enough",
+                    ["Roses come in many shades, and a shade is not the same thing as a colour",
+                        "The examples were not chosen randomly enough to stand for all roses",
                         "Nothing — inductive proof over examples is valid for universals"]],
+                // key = second-longest (rank 2)
                 ["A student proves the angles of a triangle sum to 180° by measuring five triangles and averaging. The flaw is…",
                     "Measurement error plus finitely many cases — averaging observations is evidence, not proof",
-                    ["The average of five angles cannot represent all triangles",
-                        "Triangles must be measured in radians for the sum to be exact",
-                        "Nothing — five is the smallest sample that proves a universal"]],
+                    ["The average of five angles cannot represent all triangles, because five is not a large enough sample",
+                        "Triangles must be measured in radians for the sum to be exactly 180 degrees",
+                        "Nothing — five is the smallest sample that proves a universal claim"]],
             ];
             const [q, answer, wrong] = flaws[r.int(0, flaws.length - 1)];
             return {
@@ -39884,22 +41452,31 @@ exports.DEEP_GENS = {
                 difficulty: 0.62,
             };
         }
+        // THREE SCENES, THREE LENGTH RANKS — the note on `ai-basics` applies, and it
+        // matters more here because a fixed option set carries a fixed rank: every
+        // scene used to put the key in the longest option, so picking the longest
+        // string scored 100% on `proof` against a 25% chance line. The scenes are
+        // served in roughly equal thirds, so each one holds a different rank —
+        // longest, shortest, second-longest — and the cue stops paying.
         const scenes = [
+            // key = longest (rank 1)
             ["\"Every perfect square ends in 0, 1, 4, 5, 6 or 9.\"",
                 "Exhaustion over the last digit of n (0–9), squaring each case — a finite list checked completely",
-                ["Algebra: expand (10a + b)² and inspect",
-                    "Counterexample: find a square ending in 2",
-                    "Contradiction: assume a square ends in 2 and derive 0 = 1"]],
+                ["Algebra: expand (10a + b)² and read the last digit off the expansion",
+                    "Counterexample: find a square that ends in 2 — one case would settle it",
+                    "Contradiction: assume a square ends in 2, then derive 0 = 1 from it"]],
+            // key = shortest (rank 4)
             ["\"√2 is irrational.\"",
                 "Contradiction — assume a/b in lowest terms, show both a and b must be even, contradicting lowest terms",
-                ["Exhaustion — check denominators up to some bound",
-                    "Induction on the continued-fraction expansion",
-                    "Counterexample — exhibit the fraction it equals"]],
+                ["Exhaustion — check the decimal expansion of √2 block by block, and conclude from the repeat you are bound to find",
+                    "Counterexample — exhibit the exact fraction √2 equals, since a number is irrational only when no such fraction exists",
+                    "Induction on the denominator — show the claim for small a/b, then inherit it for larger ones as the fraction grows"]],
+            // key = second-longest (rank 2)
             ["\"The sum of the first n odd numbers is n².\"",
-                "Induction — verify n = 1, then show the (k + 1)th step adds 2k + 1, completing the square",
-                ["Exhaustion over n up to 100",
-                    "Contradiction — assume the sum is never n²",
-                    "Counterexample is impossible, so the claim is self-evident"]],
+                "Induction — verify n = 1, then show that adding the next odd number 2k + 1 grows k² into (k + 1)²",
+                ["Exhaustion — add the first hundred sums and read the pattern off the table, which is proof enough for a rule that never fails",
+                    "Contradiction — assume one value of n breaks the rule, then derive 0 = 1 from it",
+                    "Counterexample — hunt for one n where the sum misses n², since a single case decides it"]],
         ];
         const [claim, answer, wrong] = scenes[r.int(0, scenes.length - 1)];
         return {
@@ -40079,17 +41656,17 @@ exports.DEEP_GENS = {
                 "The triangle formed by the centre and a chord is isosceles (two radii), so its base angles are equal — and the inscribed angle on the same arc is half the centre angle",
                 ["The triangle is equilateral — all radii are equal, so all angles are",
                     "The base angles are right angles — radii meet chords at 90°",
-                    "The inscribed angle equals the centre angle — same chord"]],
+                    "The inscribed angle equals the centre angle whenever both stand on the same chord, so the two are interchangeable in every question of this type and no halving is needed at any point"]],
             ["A diameter is drawn, and a point on the circumference joined to BOTH ends of it.",
                 "The angle at that point is exactly 90° — the angle in a semicircle — so the triangle is right-angled",
                 ["The angle equals half the diameter's central angle of 360°, so 180°",
-                    "The angle varies with where the point sits on the semicircle",
+                    "The angle varies with where the point sits on the semicircle, so the 90° only holds when the point is directly above the diameter's centre",
                     "The two angles at the diameter's ends are equal to 90° each"]],
             ["Two tangents are drawn from an external point; the angle BETWEEN them at that point is 70°.",
                 "The radii meet the tangents at 90° each, so the angle at the centre between the radii is 180° − 70° = 110°",
                 ["The centre angle is 70° — it equals the angle between the tangents",
                     "The centre angle is 290° — the reflex angle is always the answer",
-                    "The tangents meet the radii at 70°, so the centre angle is 40°"]],
+                    "The tangents meet the radii at 70°, so the centre angle is 40°, because the two right angles subtract from the 70° between the tangents"]],
         ];
         const [obs, answer, wrong] = scenes[r.int(0, scenes.length - 1)];
         return {
@@ -49681,6 +51258,90 @@ const CM_BAC = {
         { id: "terminale", tier: "advanced", name: "Terminale · Baccalauréat", stages: [0, 4], difficulty: 0.75 },
     ],
 };
+// Three coverage windows, so a row says which kind of course it is rather than
+// restating five subject windows 51 times. Every national course below teaches
+// all five subjects in some form — that is why none of them omits a subject, and
+// the curriculum gate refuses a pathway whose year has no course for a subject.
+const COV_LOWER = {
+    maths: [0, 3], physics: [1, 2], chemistry: [0, 2], biology: [0, 2], computing: [0, 2],
+};
+const COV_SECONDARY = {
+    maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3],
+};
+const COV_UPPER = {
+    maths: [0, 5], physics: [1, 4], chemistry: [0, 4], biology: [0, 4], computing: [0, 4],
+};
+const junior = (id, name, difficulty = 0.42) => [id, "junior", name, [0, 2], difficulty];
+const middle = (id, name, stages = [0, 3], difficulty = 0.52) => [id, "foundation", name, stages, difficulty];
+const senior = (id, name, stages = [0, 4], difficulty = 0.66) => [id, "higher", name, stages, difficulty];
+const final = (id, name, stages = [0, 4], difficulty = 0.8) => [id, "advanced", name, stages, difficulty];
+const NATIONAL_COURSES = [
+    // ── Africa ────────────────────────────────────────────────────────────────
+    { id: "et-esslce", country: "ET", board: "ethiopian", name: "Ethiopian School Leaving Certificate (ESSLCE)", coverage: COV_SECONDARY, levels: [middle("grade-10", "Grade 10", [0, 3], 0.48), final("grade-12", "Grade 12", [0, 4], 0.7)] },
+    { id: "eg-thanaweya", country: "EG", board: "egyptian", name: "Thanaweya Amma (General Secondary Certificate)", coverage: COV_SECONDARY, levels: [middle("grade-11", "Grade 11", [0, 3], 0.5), final("grade-12", "Grade 12", [0, 3], 0.68)] },
+    { id: "ma-college", country: "MA", board: "moroccan", name: "Brevet (3e année collège)", coverage: COV_LOWER, levels: [middle("3ac", "3AC", [0, 2], 0.45)] },
+    { id: "ma-bac", country: "MA", board: "moroccan", name: "Baccalauréat marocain", coverage: COV_UPPER, levels: [senior("1bac", "1re année Bac", [0, 4], 0.68), final("2bac", "2e année Bac", [0, 4], 0.8)] },
+    { id: "rw-o-level", country: "RW", board: "rwandan", name: "Ordinary Level (REB)", coverage: COV_SECONDARY, levels: [middle("s3", "S3", [0, 3], 0.48)] },
+    { id: "rw-a-level", country: "RW", board: "rwandan", name: "Advanced Level (REB)", coverage: COV_UPPER, levels: [senior("s5", "S5", [0, 4], 0.74), final("s6", "S6", [0, 4], 0.84)] },
+    { id: "zm-school-certificate", country: "ZM", board: "zambian", name: "School Certificate (ECZ)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9 (Junior Secondary)", [0, 2], 0.45), senior("grade-12", "Grade 12", [0, 3], 0.62)] },
+    { id: "zw-o-level", country: "ZW", board: "zimsec", name: "ZIMSEC Ordinary Level", coverage: COV_SECONDARY, levels: [senior("form-4", "Form 4", [0, 3], 0.58)] },
+    { id: "zw-a-level", country: "ZW", board: "zimsec", name: "ZIMSEC Advanced Level", coverage: COV_UPPER, levels: [final("upper-sixth", "Upper Sixth", [0, 4], 0.82)] },
+    { id: "mw-msce", country: "MW", board: "malawian", name: "Malawi School Certificate of Education (MSCE)", coverage: COV_SECONDARY, levels: [senior("form-4", "Form 4", [0, 3], 0.58)] },
+    { id: "ml-bac", country: "ML", board: "malian", name: "Baccalauréat malien", coverage: COV_SECONDARY, levels: [middle("3e", "3e (DEF)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.64)] },
+    { id: "sn-bac", country: "SN", board: "senegalese", name: "Baccalauréat sénégalais", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BFEM)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.64)] },
+    { id: "ci-bac", country: "CI", board: "ivorian", name: "Baccalauréat ivoirien", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BEPC)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.64)] },
+    { id: "ne-bac", country: "NE", board: "nigerien", name: "Baccalauréat nigérien", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BEPC)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.62)] },
+    { id: "bf-bac", country: "BF", board: "burkinabe", name: "Baccalauréat burkinabè", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BEPC)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.62)] },
+    { id: "so-form-4", country: "SO", board: "somali", name: "Form 4 National Examination", coverage: COV_SECONDARY, levels: [senior("form-4", "Form 4", [0, 3], 0.55)] },
+    { id: "sd-school-certificate", country: "SD", board: "sudanese", name: "Sudan School Certificate", coverage: COV_SECONDARY, levels: [senior("secondary-3", "Secondary 3", [0, 3], 0.6)] },
+    // ── Asia & the Middle East ────────────────────────────────────────────────
+    { id: "vn-thpt", country: "VN", board: "vietnamese", name: "THPT Quốc gia (National High School Examination)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-12", "Grade 12", [0, 4], 0.76)] },
+    { id: "tr-yks", country: "TR", board: "turkish", name: "YKS (TYT / AYT)", coverage: COV_SECONDARY, levels: [middle("grade-8", "Grade 8 (LGS)", [0, 2], 0.45), final("grade-12", "Grade 12", [0, 4], 0.72)] },
+    { id: "ir-konkur", country: "IR", board: "iranian", name: "Konkur (university entrance)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-12", "Grade 12", [0, 4], 0.74)] },
+    { id: "af-baccalaureate", country: "AF", board: "afghan", name: "Baccalaureate (Kankor entry)", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.55)] },
+    { id: "cn-gaokao", country: "CN", board: "chinese", name: "Gaokao (National College Entrance Examination)", coverage: COV_UPPER, levels: [middle("grade-9", "Grade 9 (Zhongkao)", [0, 3], 0.6), final("grade-12", "Grade 12 (Gaokao)", [0, 4], 0.86)] },
+    { id: "jp-nyushi", country: "JP", board: "japanese", name: "Daigaku Nyushi (university entrance)", coverage: COV_UPPER, levels: [middle("junior-high-3", "Junior High 3", [0, 3], 0.6), final("high-school-3", "High School 3", [0, 4], 0.8)] },
+    { id: "kr-csat", country: "KR", board: "korean", name: "Suneung (CSAT)", coverage: COV_UPPER, levels: [middle("middle-3", "Middle 3", [0, 3], 0.62), final("high-3", "High 3", [0, 4], 0.86)] },
+    { id: "ye-general-secondary", country: "YE", board: "yemeni", name: "General Secondary Certificate", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.55)] },
+    { id: "iq-preparatory", country: "IQ", board: "iraqi", name: "Sixth Preparatory Certificate", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.58)] },
+    { id: "sy-baccalaureate", country: "SY", board: "syrian", name: "Al-Shahada Al-Thanawiyya (Baccalaureate)", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.58)] },
+    { id: "jo-tawjihi", country: "JO", board: "jordanian", name: "Tawjihi (General Secondary Certificate)", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 3], 0.62)] },
+    { id: "lb-baccalaureate", country: "LB", board: "lebanese", name: "Lebanese Baccalaureate", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 4], 0.68)] },
+    { id: "np-see", country: "NP", board: "nepali", name: "Secondary Education Examination (SEE)", coverage: COV_LOWER, levels: [middle("grade-10", "Grade 10", [0, 2], 0.5)] },
+    { id: "np-neb", country: "NP", board: "nepali", name: "NEB Grade 12", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 3], 0.62)] },
+    { id: "lk-o-level", country: "LK", board: "srilankan", name: "GCE Ordinary Level (Sri Lanka)", coverage: COV_LOWER, levels: [middle("grade-11", "Grade 11", [0, 2], 0.5)] },
+    { id: "lk-a-level", country: "LK", board: "srilankan", name: "GCE Advanced Level (Sri Lanka)", coverage: COV_SECONDARY, levels: [final("grade-13", "Grade 13", [0, 4], 0.78)] },
+    { id: "mm-matriculation", country: "MM", board: "myanmar", name: "Matriculation Examination", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.56)] },
+    { id: "kh-baccalaureate", country: "KH", board: "cambodian", name: "Baccalauréat (Cambodia)", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.56)] },
+    { id: "la-upper-secondary", country: "LA", board: "lao", name: "Upper Secondary Completion", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.55)] },
+    { id: "mn-eesh", country: "MN", board: "mongolian", name: "ЭЕШ (University Entrance Examination)", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 3], 0.6)] },
+    { id: "kz-unt", country: "KZ", board: "kazakh", name: "ҰБТ (Unified National Testing)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-11", "Grade 11", [0, 4], 0.72)] },
+    { id: "uz-entrance", country: "UZ", board: "uzbek", name: "University entrance examinations", coverage: COV_SECONDARY, levels: [senior("grade-11", "Grade 11", [0, 3], 0.6)] },
+    // ── Europe ────────────────────────────────────────────────────────────────
+    { id: "es-eso", country: "ES", board: "spanish", name: "Educación Secundaria Obligatoria (ESO)", coverage: COV_LOWER, levels: [junior("1-eso", "1º ESO", 0.4), middle("4-eso", "4º ESO", [0, 2], 0.5)] },
+    { id: "es-bachillerato", country: "ES", board: "spanish", name: "Bachillerato (EBAU)", coverage: COV_UPPER, levels: [senior("1-bachillerato", "1º Bachillerato", [0, 4], 0.7), final("2-bachillerato", "2º Bachillerato", [0, 4], 0.8)] },
+    { id: "fr-college", country: "FR", board: "french", name: "Diplôme national du brevet", coverage: COV_LOWER, levels: [middle("3e", "3e", [0, 2], 0.5)] },
+    { id: "fr-bac", country: "FR", board: "french", name: "Baccalauréat", coverage: COV_UPPER, levels: [senior("1re", "1re", [0, 4], 0.74), final("terminale", "Terminale", [0, 4], 0.84)] },
+    { id: "de-msa", country: "DE", board: "german", name: "Mittlerer Schulabschluss", coverage: COV_LOWER, levels: [middle("klasse-10", "Klasse 10", [0, 2], 0.5)] },
+    { id: "de-abi", country: "DE", board: "german", name: "Abitur", coverage: COV_UPPER, levels: [senior("klasse-11", "Klasse 11", [0, 4], 0.72), final("klasse-12", "Klasse 12", [0, 4], 0.86)] },
+    { id: "it-media", country: "IT", board: "italian", name: "Licenza media", coverage: COV_LOWER, levels: [middle("3-media", "3ª media", [0, 2], 0.45)] },
+    { id: "it-maturita", country: "IT", board: "italian", name: "Esame di Stato (Maturità)", coverage: COV_UPPER, levels: [senior("4-superiore", "4ª superiore", [0, 4], 0.7), final("5-superiore", "5ª superiore", [0, 4], 0.8)] },
+    { id: "pl-osmoklasisty", country: "PL", board: "polish", name: "Egzamin ósmoklasisty", coverage: COV_LOWER, levels: [middle("klasa-8", "Klasa 8", [0, 2], 0.5)] },
+    { id: "pl-matura", country: "PL", board: "polish", name: "Matura", coverage: COV_UPPER, levels: [senior("liceum-3", "Liceum 3", [0, 4], 0.7), final("liceum-4", "Liceum 4", [0, 4], 0.82)] },
+    { id: "ua-nmt", country: "UA", board: "ukrainian", name: "НМТ (National Multi-subject Test)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-12", "Grade 12", [0, 4], 0.75)] },
+    // ── The Americas ──────────────────────────────────────────────────────────
+    { id: "co-saber-11", country: "CO", board: "colombian", name: "Saber 11", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.45), final("grade-11", "Grade 11", [0, 3], 0.65)] },
+    { id: "ar-secundaria", country: "AR", board: "argentine", name: "Secundaria · Título de Bachiller", coverage: COV_SECONDARY, levels: [senior("6-ano", "6º año", [0, 3], 0.6)] },
+    { id: "pe-secundaria", country: "PE", board: "peruvian", name: "Educación Secundaria (EBR)", coverage: COV_SECONDARY, levels: [senior("5-secundaria", "5º secundaria", [0, 3], 0.6)] },
+    { id: "ht-bac", country: "HT", board: "haitian", name: "Baccalauréat (Haïti)", coverage: COV_SECONDARY, levels: [middle("3e-af", "3e AF", [0, 2], 0.44), final("philo", "Philo (Terminale)", [0, 3], 0.6)] },
+    { id: "bo-bachillerato", country: "BO", board: "bolivian", name: "Bachillerato (Bolivia)", coverage: COV_SECONDARY, levels: [senior("6-secundaria", "6º de secundaria", [0, 3], 0.58)] },
+    { id: "ec-bachillerato", country: "EC", board: "ecuadorian", name: "Bachillerato (Ecuador)", coverage: COV_SECONDARY, levels: [middle("10-egb", "10º EGB", [0, 2], 0.45), senior("3-bachillerato", "3º bachillerato", [0, 3], 0.65)] },
+    { id: "gt-diversificado", country: "GT", board: "guatemalan", name: "Diversificado", coverage: COV_SECONDARY, levels: [senior("5-diversificado", "5º diversificado", [0, 3], 0.56)] },
+    { id: "hn-bachillerato", country: "HN", board: "honduran", name: "Bachillerato (Honduras)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
+    { id: "ni-bachillerato", country: "NI", board: "nicaraguan", name: "Bachillerato (Nicaragua)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
+    { id: "sv-bachillerato", country: "SV", board: "salvadoran", name: "Bachillerato (El Salvador)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
+    { id: "do-bachillerato", country: "DO", board: "dominican", name: "Bachillerato (República Dominicana)", coverage: COV_SECONDARY, levels: [senior("6-secundaria", "6º de secundaria", [0, 3], 0.6)] },
+];
 const INDEPENDENT = {
     id: "any-independent", country: "XX", board: "state", name: "Independent · skills pathway",
     coverage: { maths: [0, 5], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
@@ -49697,6 +51358,16 @@ exports.SPECIFICATIONS = [
     // fallback for the other, and the learner's pathway (lib/curricula/registry)
     // is what decides which set their qualification picker offers.
     CM_GCE_O, CM_GCE_A, CM_BEPC, CM_PROBATOIRE, CM_BAC,
+    // Every country the picker offers now has a course of its own. Expanded from
+    // the compact table above so one row per country stays one row.
+    ...NATIONAL_COURSES.map((c) => ({
+        id: c.id,
+        country: c.country,
+        board: c.board,
+        name: c.name,
+        coverage: c.coverage,
+        levels: c.levels.map(([id, tier, name, stages, difficulty]) => ({ id, tier, name, stages, difficulty })),
+    })),
 ];
 // ── The two counts, kept apart on purpose ────────────────
 //
@@ -50003,12 +51674,14 @@ function courseGaps(profile, subject) {
     // always fallen back to the international qualifications for ANY country it
     // has no national entry for, under the comment "Never leave a country with no
     // route." The two disagreed, and the disagreement was a dead end: 53 of the
-    // 70 countries the picker offers (France, Germany, Italy, Spain, Japan,
-    // China, Vietnam, Colombia, …) are not modelled, so `country` was reported as
-    // missing, the qualification step's own gate (`courseGaps.length === 0`)
-    // could never be satisfied, and `Next` stayed disabled for ever. Measured
-    // live: a learner could create an account and then never leave step 4 of 6 —
-    // which reads exactly like "sign-up does not work".
+    // 70 countries the picker then offered (France, Germany, Italy, Spain, Japan,
+    // China, Vietnam, Colombia, …) had no national course, so `country` was
+    // reported as missing, the qualification step's own gate
+    // (`courseGaps.length === 0`) could never be satisfied, and `Next` stayed
+    // disabled for ever. Measured live: a learner could create an account and then
+    // never leave step 4 of 6 — which reads exactly like "sign-up does not work".
+    // Those countries have courses now (see NATIONAL_COURSES, which is why this
+    // fallback is reached only by a code the picker does not offer at all).
     //
     // The independent pathway IS a course — the rule this function's own doc
     // states — and it carries real grades (Foundations / Core / Advanced) and
@@ -50552,7 +52225,23 @@ function isRetryable(status) {
  */
 async function postAnswer(url, req) {
     const deviceAt = typeof req.deviceAt === "number" && Number.isFinite(req.deviceAt) ? req.deviceAt : Date.now();
-    const body = { ...req.body, submissionId: req.submissionId, deviceAt };
+    // THE CLAIM IS SENT WITH THE REPLAY, NEVER WITH THE LIVE ATTEMPT.
+    //
+    // `deviceAt` is what makes a learner's own record say "recorded offline" — it
+    // is the marker of an answer the server did not watch being given. This module
+    // used to put it on EVERY answer, including the one that went out over a live
+    // connection, so every ordinary practice row was disclosed as unverified
+    // (lib/evidence.ts#isDeviceReported, read by /api/evidence-summary and the
+    // progress page). The disclosure was therefore always on and told the truth
+    // about nothing.
+    //
+    // The distinction the ledger needs is not "does a client clock exist" — of
+    // course it does — but "did this answer wait in the device's queue". So the
+    // live body carries only the submission token, and the HELD body (written by
+    // `enqueueAnswer`, and posted verbatim by the flush) carries the claim. A
+    // first attempt that fails still records `deviceAt` on the entry, which is
+    // exactly when the claim becomes true.
+    const body = { ...req.body, submissionId: req.submissionId };
     let res;
     try {
         res = await wire(url, {
@@ -51063,7 +52752,7 @@ function canTransfer(conceptId) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 58 },
+      meta: { modules: 64 },
     };
   });
   return __req("__entry__.js");

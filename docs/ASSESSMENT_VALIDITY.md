@@ -113,6 +113,45 @@ These two are recorded as backlog, not claimed as fixed. That is why the gate
 scores all eight strategies separately: a combined figure would have reported a
 repair that a learner can still exploit.
 
+## 4b. The 2026-10 pass — the longest-key tier, and why 50% is a floor
+
+A learner reported this in the plainest possible words: *"sometimes the longest
+answer is always right"*. Measured on the served surface before the pass: **28 of
+135 concepts had the key in the longest option at ≥90% of draws, 6 of them at
+exactly 100%** (`bounds`, `enzymes`, `evolution`, `indices-intro`, `proof`,
+`trig-rule`), and 19 concepts at ≥90% on text length alone. The complaint was
+accurate, and the symptom is a certain win: read nothing, pick the longest
+string, score 100%.
+
+Twenty concepts were rewritten — every one above 89% on text length except
+`indices-intro`, `trig-rule` and `fraction-ops`, whose tell is digit/magnitude and
+which belong to the numeric workstream below. Mean best-of-eight for the twenty:
+**96.0% → 46.2%**; longest-text above 60% across the bank: **28 concepts → 8**.
+
+| concept | before | after | how |
+|---|---:|---:|---|
+| `bounds` | 100% | **25%** | every area printed to a stated 2 dp (`55.9475` beside `56.7` was the whole cue) |
+| `proof` | 100% | **38%** | three scenes, three length ranks — longest, shortest, second-longest |
+| `enzymes` | 100% | **38%** | parallel clauses + six candidates, three served per draw |
+| `evolution` | 100% | **42%** | same, with a digit-heavy statement of a different misconception |
+| `photosynthesis` · `respiration` · `digestion` · `diffusion` · `biodiversity` · `breathing-gas` · `covalent-bonding` · `metallic-bonding` · `rates-reaction` · `light-optics` · `circle-geometry-adv` · `cybersecurity` · `nervous-system` · `immune-health` · `em-induction` | 89–99% | **37–47%** | parallel clauses, one misconception stated more fully than the key |
+| `cells` | 95% | 63% | at the floor (below) |
+
+**(c) THE FLOOR OF A FOUR-OPTION ITEM IS 50%, AND IT IS ARITHMETIC.** With one
+key and three distractors, some strategy always wins: if the key is neither
+longest nor shortest, `middles` scores 1/2; if it is an extreme, `longest` or
+`shortest` scores 100% and `extremes` 50%. **No single fixed option set can score
+below 50%**, and the only way under it is variation *across the items a concept
+serves* — which is what `proof`'s three scenes and `r.shuffle` over more
+candidates than options provide. This is why `cells` sits at 63% and is recorded
+as such instead of being claimed as fixed, and why the bank-wide `middles` floor
+rose from 8.46% to 14.14% with this pass: a middle-length key is where a repaired
+item lands, and it is the better of the two choices available.
+
+Held-out seeds (`--prefix=held-out:opt-bias`) reproduced every figure inside 0.05
+points, so the movement is a property of the option sets and not of the 60 draws
+the wording was chosen against.
+
 ## 5. The gate
 
 `npm run gate:options` (in CI as the `Option-length gate` step, and in
@@ -120,7 +159,8 @@ repair that a learner can still exploit.
 scores the eight strategies, and:
 
 - asserts absolutely that each concept whose repair HELD at the served level stays
-  under its ceiling (`REPAIRED` — currently `ai-basics` ≤ 45%);
+  under its ceiling (`REPAIRED` — `ai-basics` ≤ 45% plus the twenty concepts of
+  §4b, each at measured + 0.04);
 - holds EVERY other concept at its recorded floor in
   `audit/option-bias-baseline.json`, so the frontier cannot widen unnoticed;
 - holds the bank-wide figure for each of the eight strategies separately;
