@@ -34,6 +34,21 @@ const nextConfig = (phase) => ({
   // node_modules. This is what makes the Docker image small enough for a
   // school laptop and the deployment a single `docker compose up -d`.
   output: "standalone",
+
+  // ── WHICH HOST MAY LOAD DEV ASSETS ────────────────────────────────────────
+  // DEV ONLY, and it became load-bearing in Next 16. A development request
+  // whose Host is not declared here is treated as cross-origin and its client
+  // chunks are refused, so the page server-renders and NEVER HYDRATES: the
+  // Suspense fallback stays on screen for good. Measured after the upgrade —
+  // `/onboarding` reached its wizard in 2.4 s over `localhost` and was still
+  // reading "Loading…" after 18 s over `127.0.0.1`, with no exception and no
+  // failed request to point at (only a refused HMR socket). That matters here
+  // because `scripts/ui-walk.mjs` defaults to http://127.0.0.1:4173 and
+  // `npm run verify:ui` is a CI gate, so the walk would report a working
+  // wizard as broken. Declaring both spellings fixes the cause; pointing one
+  // harness at a friendlier hostname would leave the next caller to rediscover
+  // it. Production is unaffected — this option is not read by a build.
+  allowedDevOrigins: ["localhost", "127.0.0.1", "[::1]"],
 });
 
 export default nextConfig;

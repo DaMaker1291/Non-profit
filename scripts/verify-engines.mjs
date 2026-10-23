@@ -9578,13 +9578,55 @@ console.log("▸ AI explains, never records");
   // `levels[0]`: that is Foundation for the GCSE, the silent easier enrolment
   // that made learners too easy to teach.
   const curSrc = fs.readFileSync("app/curriculum/page.tsx", "utf8");
-  ok(/const needsLevel = Boolean\(chosenSpec\) && chosenSpec!\.levels\.length > 1 && !levelId && !gradeLevel;/.test(curSrc),
-    "choosing a qualification does not enrol the learner at the qualification's first tier");
+  // THE TIER GATE, REWRITTEN AFTER IT WAS MEASURED WRONG. It counted only
+  // `levelId` — the select's own value, EMPTY until the control is touched — so a
+  // learner whose course was already saved as "Cambridge IGCSE · Extended"
+  // reopened this page to "⚠ Still to choose: Level", a prompt in a box over
+  // their own tier, and a dead Save. Every visit. A stored tier is an ANSWER,
+  // exactly as a stored qualification already was (`needsSpec` has always said
+  // so); `!specId` is what keeps the never-seeded rule intact — choosing a
+  // DIFFERENT qualification is a new course and asks for its tier again.
+  ok(/const needsLevel = Boolean\(chosenSpec\) && chosenSpec!\.levels\.length > 1 && !levelAnswer;/.test(curSrc) &&
+     /const storedLevel = chosenSpec && !specId \? levelOf\(chosenSpec, storedCourse\?\.specLevel\) : null;/.test(curSrc) &&
+     /const levelAnswer = pickedLevel \?\? storedLevel \?\? gradeLevel;/.test(curSrc),
+    "a tier is the learner's answer whether they picked it here or it is already stored, so choosing a qualification never enrols them at its first tier");
+  // AND A TIER CHANGED ON ITS OWN MUST REACH THE COURSE THAT IS SAVED. `active`
+  // used to read `if (specId)`: the qualification select first, the tier only
+  // then. With the qualification already filled by a stored course, changing only
+  // the tier took the other branch — the control snapped back to the stored tier
+  // and Save wrote it again (measured live: "Foundation · Core" over a stored
+  // "Extended" left the select reading "Extended" and wrote `extended`). A screen
+  // that accepts an answer and discards it is worse than one that refuses it.
+  ok(curSrc.includes("if (chosenSpec && chosenLevel) return { spec: chosenSpec, level: chosenLevel };"),
+    "and a changed tier is the selection the coverage panel and Save read, not only a changed qualification");
+  // THE EDUCATION SYSTEM IS NOT DECLARED ON THE LEARNER'S BEHALF. `pathway` is
+  // the pathway in FORCE — a resolved default for most countries, so the lists
+  // can be scoped — and POSTing that back declared a choice nobody had made. For
+  // a profile that predates pathways (the live store holds a UK learner on
+  // Cambridge IGCSE) the resolved UK system does not offer that course, so a tier
+  // change was refused 400 `pathway_does_not_offer_int-igcse` — and the page said
+  // nothing at all.
+  ok(/const declaredPathway = pathwayId \?\? profile\?\.pathway \?\? "";/.test(curSrc) &&
+     /\.\.\.\(declaredPathway \? \{ pathway: declaredPathway \} : \{\}\)/.test(curSrc),
+    "and the learner's education system is only declared when they chose it, so an old course is not refused for a choice they never made");
+  // A REFUSED SAVE MUST NOT BE SILENT. It used to `catch { return; }`: the learner
+  // pressed Save, nothing moved, and nothing was said — indistinguishable from a
+  // dead button, which is how a server refusal gets reported as "it wouldn't
+  // work".
+  ok(/setSaveError\(\{/.test(curSrc) && /saveError\.code/.test(curSrc) && /e instanceof api\.ApiError/.test(curSrc),
+    "and a refused save names the server's reason on screen instead of doing nothing");
   ok(curSrc.includes('<option value="" disabled>{t("onb.pickLevel")}</option>'),
     "and an unchosen tier says so, rather than painting the first tier as the learner's own answer");
-  ok(/const canSave = Boolean\(chosenSpec\) && !needsLevel;/.test(curSrc) &&
+  ok(/const canSave = Boolean\(chosenSpec\) && !needsLevel && !needsGrade;/.test(curSrc) &&
     /if \(!id \|\| !canSave\) return;/.test(curSrc),
     "and a course the learner never chose cannot be saved, even though the page resolves one to display");
+  // THE YEAR GROUP IS PART OF THE COURSE, the gate that sends learners here says
+  // so (`courseGaps` → "grade"), so Save waits for it too. It did not: a learner
+  // could answer the qualification and the tier, read "Saved ✓", and be told
+  // "needs: year group" by Home — the same loop, one field along.
+  ok(/const needsGrade = route\.grades\.length > 0 && !route\.grades\.includes\(grade\);/.test(curSrc) &&
+     curSrc.includes("FIELD_LABEL[missingField]"),
+    "and Save waits for the year group the same course gate reports missing");
   // AN UNCHOSEN QUALIFICATION MUST BE EXPRESSIBLE. Driving it live found the
   // other half: both selects were driven by the RESOLVED course, so when the
   // fallback already equalled the course the learner wanted, choosing it fired

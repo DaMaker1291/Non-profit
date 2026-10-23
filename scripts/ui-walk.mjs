@@ -233,6 +233,18 @@ async function main() {
     const tier = tierInfo.options.includes("foundation") ? "foundation" : tierInfo.options[0];
     await p.pick(`document.querySelector("#curr-level")`, tier, "the maths tier");
     check(await p.valueOf(`document.querySelector("#curr-level")`) === tier, `and the tier belongs to that qualification (${tier})`);
+    // THE YEAR GROUP IS PART OF THE COURSE, so Save waits for it too. It did
+    // not: a learner could answer the qualification and the tier, read "Saved ✓"
+    // and be told "needs: year group" by Home — a save that leaves the course
+    // still incomplete is the loop this screen exists to close.
+    const beforeGrade = await p.evaluate(`const b = ${saveCourse}; return { disabled: b ? b.disabled : null, why: (document.querySelector("main .field-error")?.textContent || "").trim() };`);
+    check(beforeGrade.disabled === true && /Year|Grade/i.test(beforeGrade.why),
+      `and Save waits for the year group the course also needs (${beforeGrade.why})`);
+    // The tier this learner ends the walk on. It starts as the one chosen here
+    // and moves if the check below changes it — the stored-profile section reads
+    // the SERVER, so it has to compare against the last thing the walk chose, not
+    // against the first.
+    let mathsTier = tier;
 
     // The year group is asked HERE, beside the course it describes.
     await p.waitFor(`return [...(${p.selectUnder("Your grade level")}?.options ?? [])].some(o => o.value === "Year 10");`, "the country's year groups");
@@ -244,6 +256,42 @@ async function main() {
     await p.clickExpr(saveCourse, "Save my course");
     await p.waitFor(`return [...document.querySelectorAll("main button")].some(b => /Saved/i.test(b.textContent || ""));`, "the course to be saved", 10000);
     check(true, "and the screen confirms the save rather than claiming it silently");
+
+    // ── A COURSE ALREADY CHOSEN IS NOT ASKED FOR AGAIN ──────────────────────
+    //
+    // The report this pins: "⚠ Still to choose: Level" over a course that HAS a
+    // tier, on every visit — the gate counted only the select's own value, which
+    // is empty until the control is touched, and forgot that the learner had
+    // already answered. Driving only the first save could never see it, because
+    // the state it fails in is the state AFTER a save.
+    section("A tier already chosen is not asked for again");
+    await p.goto(`${BASE}/curriculum`);
+    await p.waitFor(`return !!document.querySelector("#curr-level");`, "the course screen to reopen after the save", 20000);
+    const reopened = await p.evaluate(`const l = document.querySelector("#curr-level"); const s = document.querySelector("#curr-spec"); return { spec: s.value, tier: l.value, shown: l.selectedOptions[0].textContent.trim(), why: (document.querySelector("main .field-error")?.textContent || "").trim(), disabled: document.querySelector("main .actions button")?.disabled };`);
+    check(reopened.spec === gbSpec && reopened.tier === tier,
+      `the course saved a moment ago comes back chosen (${reopened.shown})`);
+    check(!/Still to choose|needs/i.test(reopened.why),
+      `and the screen does not ask for the tier again (${reopened.why || "no warning"})`);
+    check(reopened.disabled === false, "so Save is open without the learner re-answering anything");
+
+    // AND A TIER CHANGED ON ITS OWN IS THE TIER THAT IS SAVED. The page read the
+    // qualification select first and the tier only when that had been touched, so
+    // with a stored course filling it the new tier was dropped: the control
+    // snapped back and Save wrote the old one.
+    const otherTier = (await p.evaluate(`return [...document.querySelector("#curr-level").options].map(o => o.value).filter(Boolean);`)).find((v) => v !== tier);
+    check(Boolean(otherTier), `the qualification offers a second tier to change to (${otherTier})`);
+    if (otherTier) {
+      await p.pick(`document.querySelector("#curr-level")`, otherTier, "the other tier");
+      check(await p.valueOf(`document.querySelector("#curr-level")`) === otherTier,
+        `a change of tier is kept by the control (${otherTier})`);
+      await p.clickExpr(saveCourse, "Save the changed tier");
+      await p.waitFor(`return [...document.querySelectorAll("main button")].some(b => /Saved/i.test(b.textContent || ""));`, "the changed tier to save", 10000);
+      await p.goto(`${BASE}/curriculum`);
+      await p.waitFor(`return !!document.querySelector("#curr-level");`, "the course screen to reopen", 20000);
+      const kept = await p.valueOf(`document.querySelector("#curr-level")`);
+      check(kept === otherTier, `and the changed tier is what comes back after a reload (${kept})`);
+      mathsTier = otherTier;
+    }
 
     // The second subject has its OWN course control, chosen separately. The
     // "Saved ✓" badge is timed (2.5s), so wait for the button to offer itself
@@ -297,7 +345,7 @@ async function main() {
     check(prof.grade === "Year 10", `and the year group they deferred, then chose with the course (${prof.grade})`);
     check((prof.subjects ?? []).includes("physics") && (prof.subjects ?? []).includes("maths"), `both subjects are stored (${(prof.subjects ?? []).join(", ")})`);
     check(prof.subjectCourses?.maths?.spec === gbSpec, `the first subject's qualification is the one chosen (${prof.subjectCourses?.maths?.spec})`);
-    check(prof.subjectCourses?.maths?.specLevel === tier, `with the tier chosen beside it (${prof.subjectCourses?.maths?.specLevel})`);
+    check(prof.subjectCourses?.maths?.specLevel === mathsTier, `with the tier chosen beside it (${prof.subjectCourses?.maths?.specLevel})`);
     check(prof.subjectCourses?.physics?.spec === gbSpec,
       `and the second subject has its OWN course, not the first one's silence (${JSON.stringify(prof.subjectCourses?.physics)})`);
     check(prof.spec === gbSpec, `the single-course mirror follows the first subject (${prof.spec})`);

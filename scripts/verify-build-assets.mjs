@@ -53,12 +53,34 @@ if (!fs.existsSync(path.join(DIST, "BUILD_ID"))) {
   pass(`${DIST} is a production build (BUILD_ID ${fs.readFileSync(path.join(DIST, "BUILD_ID"), "utf8").trim()})`);
 }
 
+// WHERE THE STYLESHEET LIVES IS THE BUNDLER'S BUSINESS, NOT THIS GATE'S.
+// This used to read `dist/static/css` and die with a raw ENOENT when the
+// directory was not there — which is what happened the moment the build moved
+// from webpack to Turbopack, where the sheet is emitted as
+// `static/chunks/<hash>.css`. The gate then reported a perfectly styled build as
+// unservable, and did it with a stack trace instead of a measurement. So it
+// searches the static tree instead: the question is "did this build produce a
+// stylesheet at all", and the answer must not depend on a directory convention.
+const cssUnder = (root) => {
+  const out = [];
+  const walk = (d) => {
+    if (!fs.existsSync(d)) return;
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name.endsWith(".css")) out.push(path.relative(root, p));
+    }
+  };
+  walk(root);
+  return out;
+};
+
 const staticDir = path.join(DIST, "static");
 if (!fs.existsSync(staticDir)) {
   fail(`${staticDir} does not exist — nothing can be served`);
 } else {
-  const css = fs.readdirSync(path.join(staticDir, "css")).filter((f) => f.endsWith(".css"));
-  if (!css.length) fail("no built stylesheet in dist/static/css");
+  const css = cssUnder(staticDir);
+  if (!css.length) fail(`no built stylesheet anywhere under ${staticDir} — nothing can style the page`);
   else pass(`built stylesheet(s): ${css.join(", ")}`);
 }
 
@@ -77,8 +99,8 @@ if (fs.existsSync(path.join(standalone, "server.js"))) {
   if (!fs.existsSync(bundled)) {
     fail(`standalone/server.js exists but ${bundled} is missing — this build will serve UNSTYLED HTML`);
   } else {
-    const n = fs.existsSync(path.join(bundled, "css")) ? fs.readdirSync(path.join(bundled, "css")).length : 0;
-    if (!n) fail("standalone static tree has no css/ directory");
+    const n = cssUnder(bundled).length;
+    if (!n) fail(`the standalone static tree at ${bundled} carries no stylesheet — this build serves UNSTYLED HTML`);
     else pass(`standalone ships its own static tree (${n} css file(s))`);
   }
 } else {

@@ -306,8 +306,8 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Concepts independently re-derived from the prompt | 5 | circle-area-arc, completing-square, fractions, mixture-problems, surds | `audit/verification-coverage.json` |
 |  | Concepts checked for structure only | 130 | an item no matcher recognises is an item nobody has verified | `audit/verification-coverage.json` |
 |  | Concepts reviewed by a qualified person | 0 | nobody has reviewed any item yet — the honest figure, and the one this project would most like to change | `audit/item-reviews.json` |
-| **Assessment validity** | Concepts with an option-length tell above the line | 84 of 135 | a learner who never reads the question should not beat chance | `audit/options-gate.json` |
-|  | Best bank-wide length strategy | 34.0% | chance is 25% | `audit/options-gate.json` |
+| **Assessment validity** | Concepts with an option-length tell above the line | 64 of 135 | a learner who never reads the question should not beat chance | `audit/options-gate.json` |
+|  | Best bank-wide length strategy | 25.2% | chance is 25% | `audit/options-gate.json` |
 |  | Course × subject rows audited for depth | 311 | every subject's target depth is reachable, by some generator in its course | `audit/content-coverage.json` |
 | **Storage** | Lock tables in lib/ and app/ | 1 | one, in lib/server/store.ts — two tables means two writers with no common serialisation point | `source scan` |
 |  | Owners of where learning data lives | 1 | one, in lib/server/store.ts; lib/env.ts reports the variable and resolves nothing, so it is exempt | `source scan` |
@@ -317,10 +317,10 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Items awaiting human review | 110 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
 |  | Cluster concepts with no named misconception to probe | 1 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |
 | **Curriculum** | Country codes offered in enrolment | 71 |  | `lib/i18n.ts` |
-|  | Countries with a recorded national route | 19 | asserted equal to the published count by `npm run curriculum-gate` | `lib/curricula/registry.ts` |
-|  | National pathways | 20 | Cameroon runs two systems, so this exceeds the country count | `lib/curricula/registry.ts` |
-|  | Offerings without a national route | 52 | offered the international programmes and the skills pathway, explicitly | `lib/curricula/registry.ts` |
-|  | Specifications | 30 | 27 national · 2 international · 1 independent | `lib/specifications.ts` |
+|  | Countries with a recorded national route | 70 | asserted equal to the published count by `npm run curriculum-gate` | `lib/curricula/registry.ts` |
+|  | National pathways | 71 | Cameroon runs two systems, so this exceeds the country count | `lib/curricula/registry.ts` |
+|  | Offerings without a national route | 1 | offered the international programmes and the skills pathway, explicitly | `lib/curricula/registry.ts` |
+|  | Specifications | 91 | 88 national · 2 international · 1 independent | `lib/specifications.ts` |
 |  | Pathways with no structural source on file | 18 | named on every `curriculum-gate` run rather than hidden | `lib/curricula/registry.ts` |
 |  | Pathways whose syllabus mapping has been reviewed | 0 | every mapping is currently OpenMind's own | `lib/curricula/registry.ts` |
 

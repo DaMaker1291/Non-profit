@@ -55,3 +55,6 @@ openmind-data
 # 1.8 GB artefact dump.
 tmp/
 var/
+/freebuff-sites-build/
+/.open-next/
+/.wrangler/

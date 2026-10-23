@@ -67,6 +67,13 @@ export default function CurriculumPage() {
   // touched, so the field shows what is actually in force.
   const [pathwayId, setPathwayId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // A REFUSED SAVE HAS TO SAY SOMETHING. It used to `catch { return; }` — the
+  // learner pressed Save, nothing moved, nothing was said, and the screen went on
+  // describing the course they had just chosen, which is indistinguishable from
+  // a dead button. Measured on this very page: a tier change POSTed a pathway the
+  // learner never chose, the server answered `400
+  // pathway_does_not_offer_int-igcse`, and the whole interaction was silent.
+  const [saveError, setSaveError] = useState<{ message: string; code: string } | null>(null);
   // WHICH SUBJECT'S COURSE is being edited. A learner sits GCSE Maths (Higher)
   // and A-Level Physics at the same time, so "your course" is not one thing and
   // this page must not pretend it is.
@@ -83,6 +90,17 @@ export default function CurriculumPage() {
   const subject: SubjectId = picked && declared.includes(picked) ? picked : declared[0];
   const noNationalRoute = nationalPathwaysFor(country).length === 0;
   const reviewKey = mappingReviewKey(pathwayForCountry(country, pathway) ?? defaultPathwayFor(country));
+  // The country's route, read HERE because the save gate below needs to know
+  // which year groups exist. `courseGaps` treats a year group as part of the
+  // course, so Save must not write a course that the gate which sends learners
+  // here still calls incomplete — that is a loop (this screen says "saved", Home
+  // says "needs: year group") and the same class of defect as the tier gate
+  // beside it.
+  // The same fallback the course gate uses: a country this product does not
+  // model still has the independent pathway, and it still has grades to choose
+  // from. Without it the grade control here was a placeholder with an empty
+  // list — a course that could never be completed for 53 of the 70 countries.
+  const route = routeForPathwayId(country, pathway) ?? curriculumFor(country) ?? INDEPENDENT_ROUTE;
   // Only the qualifications that actually contain THIS subject — offering a
   // maths-only paper as a Biology course would be a choice that cannot be saved —
   // AND only those the chosen education system leads to.
@@ -90,17 +108,79 @@ export default function CurriculumPage() {
     () => specOptionsFor(country, subject, pathway || undefined),
     [country, subject, pathway],
   );
+  // ── A COURSE ALREADY ON THE PROFILE IS AN ANSWER, TOO ───────────────────
+  //
+  // `needsSpec` has always treated a stored qualification as the learner's own
+  // choice. The tier beside it did not: it counted only `levelId` — the select's
+  // own value, which is EMPTY until the control is touched — plus a year group
+  // that happens to map to a tier. So a learner whose course was already saved as
+  // "Cambridge IGCSE · Extended" opened this page to a tier select reading
+  // "Choose a tier", a disabled Save and "⚠ Still to choose: Level" over a
+  // course they had chosen, on every visit. That is the report "I inputted level
+  // but it wouldn't work", and it is literally true: the page forgot who
+  // answered.
+  //
+  // The stored tier therefore counts exactly as the stored qualification does,
+  // and only while the qualification is untouched (`!specId`). Choosing a
+  // DIFFERENT qualification is a new course, and its tier is asked for again —
+  // the never-seeded rule this block exists to protect.
+  //
+  // The order is the learner's answers, most explicit first: what they picked on
+  // this screen → the tier stored for this qualification → the tier their year
+  // group sits → nothing, in which case the select asks and Save waits.
+  const storedCourse = profile?.subjectCourses?.[subject];
+  const hasStoredCourse = Boolean(storedCourse?.spec && storedCourse?.specLevel);
+  // AN UNCHOSEN QUALIFICATION HAS TO BE EXPRESSIBLE. The select is driven by the
+  // RESOLVED course, so when the fallback for this country happens to be the one
+  // the learner wants, choosing it fired no `change` at all — the page went on
+  // saying "still to choose: qualification" above a box that already showed it,
+  // and Save stayed dead. Null until touched (or a stored course), so the empty
+  // option is a prompt and picking the fallback is a real choice.
+  const needsSpec = !specId && !hasStoredCourse;
+  const chosenSpec = specId
+    ? (specById(specId) ?? baseChoices[0] ?? null)
+    : hasStoredCourse ? (specById(storedCourse!.spec!) ?? null) : null;
+  const pickedLevel = chosenSpec ? levelOf(chosenSpec, levelId ?? undefined) : null;
+  const storedLevel = chosenSpec && !specId ? levelOf(chosenSpec, storedCourse?.specLevel) : null;
+  const gradeLevel = chosenSpec ? levelForGrade(chosenSpec, profile?.grade ?? "") : null;
+  const levelAnswer = pickedLevel ?? storedLevel ?? gradeLevel;
+  const chosenLevel = levelAnswer ?? chosenSpec?.levels[0] ?? null;
+  const needsLevel = Boolean(chosenSpec) && chosenSpec!.levels.length > 1 && !levelAnswer;
+  // THE YEAR GROUP IS PART OF THE COURSE (`courseGaps` says so), so it is part of
+  // this gate too. It was not: a learner could answer the qualification and the
+  // tier, press Save, read "Saved ✓" — and Home would still say "needs: year
+  // group", with nothing on this screen having asked. Named in the same sentence
+  // as the other gaps, in the order a learner answers them.
+  const needsGrade = route.grades.length > 0 && !route.grades.includes(grade);
+  const missingField: "spec" | "specLevel" | "grade" = !chosenSpec ? "spec" : needsLevel ? "specLevel" : "grade";
+  const canSave = Boolean(chosenSpec) && !needsLevel && !needsGrade;
+  // ── THE SELECTION IS THE COURSE, IN BOTH HALVES ─────────────────────────
+  //
+  // This page chooses two things — WHICH qualification, at WHICH tier — and both
+  // must reach `active`, the value the coverage panel, the depth line and Save
+  // all read.
+  //
+  // It used to read `if (specId)`: the qualification select first, and the tier
+  // only then. A learner whose course is already stored FILLS that select, so
+  // changing ONLY the tier took the other branch — the control snapped back to
+  // the stored tier (its value came from `active.level`) and Save wrote that same
+  // tier again. Measured on a scratch store: choosing "Foundation · Core" over a
+  // stored "Extended" left the select reading "Extended", and the save wrote
+  // `extended`. A screen that accepts an answer and discards it is worse than one
+  // that refuses it.
+  //
+  // A tier is still CHOSEN, never seeded: when nothing has answered it, `chosenLevel`
+  // falls back to `levels[0]` for DISPLAY only, `needsLevel` is true, the select
+  // shows its prompt and Save refuses — the behaviour the assertion in
+  // `npm run verify` pins.
   const active: ActiveSpec = useMemo(() => {
-    if (specId) {
-      const spec = specById(specId) ?? baseChoices[0];
-      const level = levelOf(spec, levelId ?? undefined) ?? levelForGrade(spec, profile?.grade) ?? spec.levels[0];
-      return { spec, level };
-    }
-    // The pathway the learner has picked in THIS session is part of the course
-    // it resolves: otherwise the page would keep resolving a course from the
+    if (chosenSpec && chosenLevel) return { spec: chosenSpec, level: chosenLevel };
+    // Nothing chosen yet — this is the DISPLAY course (the coverage panel must
+    // say something). The pathway the learner picked in THIS session is part of
+    // the course it resolves, or the page would keep resolving a course from the
     // system they just moved away from.
     return specForProfile({ ...(profile ?? {}), pathway: pathway || undefined }, subject);
-  }, [specId, levelId, baseChoices, profile, subject, pathway]);
+  }, [chosenSpec, chosenLevel, profile, subject, pathway]);
   // The mapping the ACTIVE COURSE has, if one has been written — the evidence under
   // the status sentence above, and the only thing allowed to put a document's name
   // beside a course. Read AFTER `active`, because it is derived from it.
@@ -114,34 +194,9 @@ export default function CurriculumPage() {
     () => (baseChoices.some((s) => s.id === active.spec.id) ? baseChoices : [active.spec, ...baseChoices]),
     [baseChoices, active.spec],
   );
-  // ── A TIER IS CHOSEN, NEVER SEEDED, AND HERE IS WHERE THAT MATTERS ──────
-  //
-  // This page is now where a deferred course is chosen, and its `active` memo
-  // falls back to `spec.levels[0]` for a qualification the learner just picked.
-  // For the GCSE that is FOUNDATION — the exact silent enrolment that made the
-  // old wizard's learners too easy to teach. So the fallback stays as a DISPLAY
-  // value (the coverage panel must say something), while the level SELECT shows
-  // a prompt until the learner answers, and Save refuses until they do.
-  //
-  // The same guard closes a second hole: pressing Save without choosing anything
-  // used to write the resolved fallback course (country → first listing) onto a
-  // learner who had never picked one. A course is saved only when it is theirs —
-  // an explicit choice here, or a COMPLETE course already on the profile.
-  const storedCourse = profile?.subjectCourses?.[subject];
-  const hasStoredCourse = Boolean(storedCourse?.spec && storedCourse?.specLevel);
-  // AN UNCHOSEN QUALIFICATION HAS TO BE EXPRESSIBLE. The select is driven by the
-  // RESOLVED course, so when the fallback for this country happens to be the one
-  // the learner wants, choosing it fired no `change` at all — the page went on
-  // saying "still to choose: qualification" above a box that already showed it,
-  // and Save stayed dead. Null until touched (or a stored course), so the empty
-  // option is a prompt and picking the fallback is a real choice.
-  const needsSpec = !specId && !hasStoredCourse;
-  const chosenSpec = specId
-    ? (specById(specId) ?? baseChoices[0] ?? null)
-    : hasStoredCourse ? (specById(storedCourse!.spec!) ?? null) : null;
-  const gradeLevel = chosenSpec ? levelForGrade(chosenSpec, profile?.grade ?? "") : null;
-  const needsLevel = Boolean(chosenSpec) && chosenSpec!.levels.length > 1 && !levelId && !gradeLevel;
-  const canSave = Boolean(chosenSpec) && !needsLevel;
+  // A course is saved only when it is theirs — an explicit choice here, or a
+  // COMPLETE course already on the profile (the rule the block above this memo
+  // spells out).
   const gaps = useMemo(() => incompleteSubjects(profile ?? {}), [profile]);
 
   // THE TICKET THIS PAGE WAS OPENED WITH, if the guard sent the learner here
@@ -150,11 +205,6 @@ export default function CurriculumPage() {
   // Suspense boundary for one string that is only needed after a click.
   const router = useRouter();
   const report = useMemo(() => coverageReport(active), [active]);
-  // The same fallback the course gate uses: a country this product does not
-  // model still has the independent pathway, and it still has grades to choose
-  // from. Without it the grade control here was a placeholder with an empty
-  // list — a course that could never be completed for 53 of the 70 countries.
-  const route = routeForPathwayId(country, pathway) ?? curriculumFor(country) ?? INDEPENDENT_ROUTE;
   const terms = termsFor(active.spec.board);
   const inSpec = report.covered;
 
@@ -170,6 +220,21 @@ export default function CurriculumPage() {
     // "AQA GCSE Mathematics Higher" watched the page redraw from a payload that
     // never contained a profile, and their course looked unset again. One write,
     // one read, the thing that actually changed.
+    // THE SYSTEM IS SENT ONLY WHEN IT IS THE LEARNER'S ANSWER.
+    //
+    // `pathway` above is the one in FORCE — for most countries a resolved
+    // default, which exists so the lists can be scoped. Sending that back
+    // declared a choice nobody had made. For a learner whose stored course
+    // predates pathways (the live store holds one: a UK learner on Cambridge
+    // IGCSE) the resolved UK system does not offer that qualification, so
+    // changing ONLY the tier posted a pathway they never chose and the server
+    // refused the entire course — `pathway_does_not_offer_int-igcse`, measured
+    // here. The profile's own stored system is re-sent only if it already has
+    // one; a country with a single system needs none, and asking the server to
+    // enforce a system the learner never picked is how a real course gets
+    // deleted by a rule about a choice that was never made.
+    const declaredPathway = pathwayId ?? profile?.pathway ?? "";
+    setSaveError(null);
     let fresh: ProfileState;
     try {
       fresh = await api.saveProfile({
@@ -179,15 +244,21 @@ export default function CurriculumPage() {
         // server-side (a blank one is simply ignored, never stored).
         ...(countryId ? { country: countryId } : {}),
         ...(grade ? { grade } : {}),
-        // The education system, when one is in force. Changing it server-side
-        // drops a course that belonged to the old system, which is why the
-        // course is saved in the SAME request: the learner ends this save with a
-        // course that belongs to the system they chose.
-        ...(pathway ? { pathway } : {}),
+        // Changing the system server-side drops a course that belonged to the
+        // old one, which is why the course is saved in the SAME request: the
+        // learner ends this save with a course that belongs to the system they
+        // chose.
+        ...(declaredPathway ? { pathway: declaredPathway } : {}),
       }, id);
-    } catch {
+    } catch (e) {
       // Refused writes leave the selection alone: clearing it would look like a
       // save that did not happen, which is the one thing this screen must not do.
+      // The reason is now on screen with the server's own code, because silence
+      // is what made this look like a broken button.
+      setSaveError({
+        message: t("onb.errRefused"),
+        code: e instanceof api.ApiError ? (e.code || `http_${e.status}`) : "unreachable",
+      });
       return;
     }
     set(fresh);
@@ -352,6 +423,12 @@ export default function CurriculumPage() {
             style={{ width: "100%", marginTop: 6 }}
             value={needsLevel ? "" : active.level.id}
             onChange={(e) => setLevelId(e.target.value)}
+            // A TIER OF WHAT? With no qualification chosen there is no course to
+            // pick a tier of, so the control is shown (its list is the resolved
+            // course's, which is why it is not empty) but cannot be answered —
+            // the alternative is a select that accepts a choice and drops it,
+            // the exact defect this page just had one layer up.
+            disabled={!chosenSpec}
           >
             {/* A prompt, not an answer: the first tier used to be painted as the
                 learner's own choice. */}
@@ -366,9 +443,14 @@ export default function CurriculumPage() {
         <div className="actions" style={{ marginTop: 12 }}>
           <button className="btn" onClick={save} disabled={!canSave}>{saved ? t("curr.saved") : t("curr.save")}</button>
         </div>
+        {saveError && (
+          <p className="field-error" role="status">
+            ⚠ {saveError.message} <span className="mono">{saveError.code}</span>
+          </p>
+        )}
         {!canSave && (
           <p className="field-error" role="status">
-            ⚠ {fill(t("onb.needFields"), { fields: t(FIELD_LABEL[chosenSpec ? "specLevel" : "spec"] as Parameters<typeof t>[0]) })}
+            ⚠ {fill(t("onb.needFields"), { fields: t(FIELD_LABEL[missingField] as Parameters<typeof t>[0]) })}
           </p>
         )}
       </section>

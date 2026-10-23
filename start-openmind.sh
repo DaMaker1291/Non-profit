@@ -57,7 +57,12 @@ fi
 build_is_servable() {
   [ -f "$DIST/BUILD_ID" ] || return 1
   [ -f "$DIST/standalone/server.js" ] || return 1
-  [ -n "$(ls "$DIST"/static/css/*.css 2>/dev/null)" ] || return 1
+  # WHERE THE STYLESHEET LIVES IS THE BUNDLER'S BUSINESS. This asked for
+  # `static/css/*.css`, which is where webpack puts it; Turbopack emits
+  # `static/chunks/<hash>.css`, so a correct build failed this guard and the
+  # launcher rebuilt in a loop, then refused to serve a page that was fine. The
+  # question is "did this build produce a stylesheet", so ask it that way.
+  [ -n "$(find "$DIST/static" -name '*.css' -print -quit 2>/dev/null)" ] || return 1
   return 0
 }
 
@@ -95,7 +100,7 @@ if [ "$NEEDS_BUILD" = "1" ]; then
   if [ -d "$DIST" ] && [ ! -f "$DIST/BUILD_ID" ]; then
     echo "Existing $DIST is a DEVELOPMENT dist dir, not a production build."
     echo "Serving it renders as unstyled HTML. Rebuilding…"
-  elif [ -f "$DIST/standalone/server.js" ] && [ ! -n "$(ls "$DIST"/static/css/*.css 2>/dev/null)" ]; then
+  elif [ -f "$DIST/standalone/server.js" ] && [ -z "$(find "$DIST/static" -name '*.css' -print -quit 2>/dev/null)" ]; then
     echo "Existing build has a server but no stylesheet to serve it with."
     echo "That build would render as unstyled HTML. Rebuilding…"
   fi

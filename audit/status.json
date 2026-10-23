@@ -11,8 +11,8 @@
     "Content verification · Concepts independently re-derived from the prompt": 5,
     "Content verification · Concepts checked for structure only": 130,
     "Content verification · Concepts reviewed by a qualified person": 0,
-    "Assessment validity · Concepts with an option-length tell above the line": "84 of 135",
-    "Assessment validity · Best bank-wide length strategy": "34.0%",
+    "Assessment validity · Concepts with an option-length tell above the line": "64 of 135",
+    "Assessment validity · Best bank-wide length strategy": "25.2%",
     "Assessment validity · Course × subject rows audited for depth": 311,
     "Storage · Lock tables in lib/ and app/": 1,
     "Storage · Owners of where learning data lives": 1,
@@ -22,10 +22,10 @@
     "Pilot (UK GCSE maths) · Items awaiting human review": 110,
     "Pilot (UK GCSE maths) · Cluster concepts with no named misconception to probe": 1,
     "Curriculum · Country codes offered in enrolment": 71,
-    "Curriculum · Countries with a recorded national route": 19,
-    "Curriculum · National pathways": 20,
-    "Curriculum · Offerings without a national route": 52,
-    "Curriculum · Specifications": 30,
+    "Curriculum · Countries with a recorded national route": 70,
+    "Curriculum · National pathways": 71,
+    "Curriculum · Offerings without a national route": 1,
+    "Curriculum · Specifications": 91,
     "Curriculum · Pathways with no structural source on file": 18,
     "Curriculum · Pathways whose syllabus mapping has been reviewed": 0
   },
@@ -94,14 +94,14 @@
     {
       "section": "Assessment validity",
       "label": "Concepts with an option-length tell above the line",
-      "value": "84 of 135",
+      "value": "64 of 135",
       "source": "audit/options-gate.json",
       "note": "a learner who never reads the question should not beat chance"
     },
     {
       "section": "Assessment validity",
       "label": "Best bank-wide length strategy",
-      "value": "34.0%",
+      "value": "25.2%",
       "source": "audit/options-gate.json",
       "note": "chance is 25%"
     },
@@ -170,30 +170,30 @@
     {
       "section": "Curriculum",
       "label": "Countries with a recorded national route",
-      "value": 19,
+      "value": 70,
       "source": "lib/curricula/registry.ts",
       "note": "asserted equal to the published count by `npm run curriculum-gate`"
     },
     {
       "section": "Curriculum",
       "label": "National pathways",
-      "value": 20,
+      "value": 71,
       "source": "lib/curricula/registry.ts",
       "note": "Cameroon runs two systems, so this exceeds the country count"
     },
     {
       "section": "Curriculum",
       "label": "Offerings without a national route",
-      "value": 52,
+      "value": 1,
       "source": "lib/curricula/registry.ts",
       "note": "offered the international programmes and the skills pathway, explicitly"
     },
     {
       "section": "Curriculum",
       "label": "Specifications",
-      "value": 30,
+      "value": 91,
       "source": "lib/specifications.ts",
-      "note": "27 national · 2 international · 1 independent"
+      "note": "88 national · 2 international · 1 independent"
     },
     {
       "section": "Curriculum",

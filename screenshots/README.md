@@ -36,15 +36,28 @@ dev server (Chromium via the repo's own CDP harness, `scripts/browser.mjs`).
 | `29-hub.png` | `/hub` — the local-Wi-Fi hub counts |
 | `30-onboarding.png` | `/onboarding` — step 1 of 3, as a new learner sees it |
 | `31-teacher.png` | `/teacher` — a teacher account holding one class |
+| `32-hub.png` | `/hub` — the same hub as the teacher sees it, with their class |
 
 ## How these were taken
 
 - Viewport 1440 × 900, capture 1×, full page up to 6000 px tall.
+- A page counts as **settled** only when `<main>` holds real content, no
+  `.skeleton` is on screen and **no bare `Loading…` line survives anywhere
+  inside `<main>`** — tested per line, not against the whole page. Before that
+  test the rule required the ENTIRE page to read `Loading…`, so a heading that
+  had rendered over a panel that had not passed as settled: three committed
+  frames were photographs of pages mid-load (`/solve` without its stylesheet,
+  `/try` and the concept page showing `Loading…`). The comparison of successive
+  polls is digit-insensitive, because the concept page's session clock ticks and
+  its text would otherwise never repeat.
+- Every route is visited once and thrown away before the pass that saves frames,
+  so the first-request compile (measured: `/try` takes ~4.5 s cold because it
+  compiles `/api/profile` and `/api/progress`) is never on the capture's clock.
 - The learner behind most of them is a seeded **GCSE Higher, Year 10** profile
   studying all five subjects, who sat the mathematics baseline diagnostic and a
   dozen practice questions — so `/dashboard`, `/progress` and `/mistakes` show
   evidence rather than empty states.
-- `/teacher` is a separate **teacher account** with one class created through
-  the API; the rest are that learner's own pages.
+- `/teacher` and `32-hub` are a separate **teacher account** with one class
+  created through the API; the rest are that learner's own pages.
 - Everything ran against a throwaway `OPENMIND_DATA_DIR` in `/tmp`. No real
   learner record was read or written to produce these.

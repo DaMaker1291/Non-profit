@@ -71,10 +71,28 @@ try {
   group("R2 · typography is not the browser default");
   // A page with no stylesheet renders in the UA default serif. The design system
   // sets a deliberate stack; this asserts the rule that prevents that fallback.
-  const bodyRule = css.match(/(^|[},])\s*body\s*\{([^}]*)\}/);
-  ok(!!bodyRule, "the stylesheet has a body rule");
-  const bodyDecls = bodyRule ? bodyRule[2] : "";
-  const font = (bodyDecls.match(/font-family\s*:\s*([^;]+);/) || [])[1] || "";
+  //
+  // READ EVERY RULE FOR A SELECTOR, NOT THE FIRST ONE. Minifiers differ in how
+  // they order declarations and in how many rules a selector ends up in: webpack
+  // emitted one `body` rule carrying the design system, Turbopack emits a reset
+  // (`body{margin:0;padding:0}`) and the themed rule separately, in the opposite
+  // order. A first-match regex therefore read the reset and reported "the body
+  // rule sets font-family — none" for a page whose typography was correct. The
+  // same mistake, one level down, is requiring `display:flex` to appear BEFORE
+  // `flex-direction:column` in `.shell-main` — true of webpack's output and false
+  // of Turbopack's, for identical styles. So the declarations are merged per
+  // selector and each property is asserted on its own.
+  const declsFor = (sel) => {
+    const rx = /([^{}]+)\{([^{}]*)\}/g;
+    let m, out = "";
+    while ((m = rx.exec(css))) {
+      if (m[1].split(",").map((s) => s.trim()).includes(sel)) out += ";" + m[2];
+    }
+    return out;
+  };
+  const ruleDecls = declsFor("body");
+  ok(ruleDecls.length > 0, "the stylesheet has a body rule");
+  const font = (ruleDecls.match(/font-family\s*:\s*([^;]+)/) || [])[1] || "";
   ok(font.length > 0, "the body rule sets font-family", font || "none");
   ok(!/^\s*(serif|Times|sans-serif)\s*$/i.test(font.trim()) || /system-ui|-apple-system/.test(font),
      "the body font is the project's stack, not a bare generic", font.trim().slice(0, 60));
@@ -111,14 +129,15 @@ try {
   ok(bottomShown, "and the bottom nav becomes the visible one on a phone");
 
   group("R4 · the footer is pushed to the bottom of the layout");
-  ok(/\.shell\s*\{[^}]*display\s*:\s*grid/.test(css), ".shell is a grid (the two-column shell)");
-  ok(/\.shell-main\s*\{[^}]*display\s*:\s*flex[^}]*flex-direction\s*:\s*column/.test(css),
+  const declares = (sel, prop, valueRx) => new RegExp(`${prop}\\s*:\\s*${valueRx}`).test(declsFor(sel));
+  ok(declares(".shell", "display", "grid"), ".shell is a grid (the two-column shell)");
+  ok(declares(".shell-main", "display", "flex") && declares(".shell-main", "flex-direction", "column"),
      ".shell-main is a column flex box, so main content grows and the footer sinks");
-  ok(/\.shell-main\s*\{[^}]*min-height\s*:\s*(100|100vh|100dvh)/.test(css) ||
-     /\.shell\s*\{[^}]*min-height\s*:\s*(100|100vh|100dvh)/.test(css) ||
-     /\.shell-main\s*\{[^}]*flex\s*:\s*1/.test(css),
+  ok(declares(".shell-main", "min-height", "(100|100vh|100dvh)") ||
+     declares(".shell", "min-height", "(100|100vh|100dvh)") ||
+     declares(".shell-main", "flex", "1"),
      "the shell/main has a min-height or flex-grow so a short page still pushes the footer down");
-  ok(/\.footer\s*\{[^}]*margin-top\s*:\s*auto/.test(css), "the footer carries margin-top:auto (the actual bottom-push)");
+  ok(declares(".footer", "margin-top", "auto"), "the footer carries margin-top:auto (the actual bottom-push)");
   // …and structurally, the footer is the last child of the main column.
   const shellMain = home.slice(home.indexOf('class="shell-main"'));
   const fi = shellMain.lastIndexOf("<footer");
