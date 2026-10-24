@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { splitPrompt } from "@/lib/prompt";
+import MathText from "@/components/math-text";
 import QuestionFigure from "@/components/question-figure";
 import type { FigureSpec } from "@/lib/types";
 
@@ -39,7 +40,12 @@ export default function PromptText({ text, figure }: { text: string; figure?: Fi
             <code>{seg.text}</code>
           </pre>
         ) : (
-          <span key={i}>{seg.text}</span>
+          // PROSE GOES THROUGH THE MATHS FORMATTER. The split decides prose from
+          // code; inside prose, `5/6`, `10^4` and `sqrt(18)` are still the
+          // notation an author types, and this is the one place a question's
+          // words become the maths they name. Code is left exactly as written —
+          // a Python `n * fact(n - 1)` is not a product to typeset.
+          <span key={i}><MathText text={seg.text} /></span>
         ),
       )}
     </>

@@ -4,8 +4,15 @@ import { useEffect, useState } from "react";
 import { listenOnce, recognitionSupported } from "@/lib/voice";
 import { useI18n } from "@/lib/client";
 
-/** Mic button: speech → text into the parent field. Hidden when unsupported. */
-export default function VoiceInput({ onText, lang }: { onText: (t: string) => void; lang?: string }) {
+/** Mic button: speech → text into the parent field. Hidden when unsupported.
+ *
+ *  `compact` drops the word and keeps the glyph. The tutor composer is 360px
+ *  wide and shares its row with an "Ask" button, so the labelled version
+ *  measured 151px of a 337px row and left the textarea it is meant to feed
+ *  with **41px** — a box one character wide. The word was the bug; the mic
+ *  still carries an accessible name, because `aria-label` is what a screen
+ *  reader reads and it was never the visible label's job. */
+export default function VoiceInput({ onText, lang, compact }: { onText: (t: string) => void; lang?: string; compact?: boolean }) {
   const { t, lang: uiLang } = useI18n();
   const [busy, setBusy] = useState(false);
   // Mount gate (same hydration reason as SpeakButton): server renders null.
@@ -29,7 +36,7 @@ export default function VoiceInput({ onText, lang }: { onText: (t: string) => vo
         }
       }}
     >
-      {busy ? "… 🎙" : `🎙 ${t("voice.speak")}`}
+      {busy ? "… 🎙" : compact ? "🎙" : `🎙 ${t("voice.speak")}`}
     </button>
   );
 }

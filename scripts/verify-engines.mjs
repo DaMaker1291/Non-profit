@@ -43,6 +43,10 @@ const subjectsMod = require("../.verify/subjects.js");
 // asserted here on the REAL question bank rather than by reading a renderer's
 // source for a string — which is what a page-source regex has to do.
 const promptFmt = require("../.verify/prompt.js");
+// Maths formatting (`5/6`, `10^4`, `sqrt(18)`, `x_{n+1}` → what a textbook
+// prints). Asserted on the real bank below, because the claim is about what a
+// learner READS, which no source read can establish.
+const mathFmt = require("../.verify/math-text.js");
 const matcher = require("../.verify/matcher.js");
 const retention = require("../.verify/retention.js");
 const hints = require("../.verify/hints.js");
@@ -393,6 +397,101 @@ console.log("▸ Prompt formatting + anti-repetition");
   }
   ok(!mathsCode,
     "a maths question holding two equations under a prose heading is NOT set as code (first line is a sentence, not an assignment)");
+
+  // (a2) A QUESTION PRINTS MATHS, NOT NOTATION.
+  //
+  // The bank is authored in ASCII, so a prompt could say `5/6`, `10^4`,
+  // `sqrt(18)` and `x_{n+1}` and the learner was shown exactly that — the report
+  // "some still use / or * or ^ instead of actually showing them". Measured
+  // before the formatter existed: 61 of the 135 concepts printed raw notation
+  // somewhere, in the prompt, an option or the marking explanation.
+  //
+  // The claim asserted here is therefore about the SERVED ITEM, not about one
+  // concept that was fixed: draw every generator and require that no prompt,
+  // option or explanation still holds notation after formatting. Two exemptions
+  // are named and tested in both directions — an IPv4 CIDR block is a prefix
+  // length rather than a division, and a date is a date — and a third is
+  // deliberate: `dy/dx`, `mol/dm³` and `m/s` stay inline, because a derivative
+  // and a unit are read inline and stacking them is not an improvement.
+  console.log("▸ A question prints maths, not notation");
+  const RAW = [/\^/, /\bsqrt\(/, /\d\s*\/\s*[\d(]/, /[0-9A-Za-z)\]]\s*\*\s*[0-9A-Za-z(]/];
+  const NOT_MATHS = /\b\d{1,3}(?:\.\d{1,3}){3}\/\d{1,2}\b|\b\d{1,4}\/\d{1,2}\/\d{1,4}\b/g;
+  const notationLeft = (text, found) => {
+    const t = text.replace(NOT_MATHS, "\u00b7");
+    for (const span of mathFmt.mathSpans(t)) {
+      if (span.kind === "text") {
+        for (const re of RAW) if (re.test(span.text)) found.push(`${re} in "${span.text.slice(0, 90)}"`);
+      } else if (span.kind === "sup" || span.kind === "sub" || span.kind === "radical") {
+        notationLeft(span.text, found);
+      } else if (span.kind === "frac") {
+        notationLeft(span.numerator, found);
+        notationLeft(span.denominator, found);
+      }
+    }
+    return found;
+  };
+  const rawLeft = [];
+  const lost = [];
+  const strip = (x) => x.replace(/[{}]/g, "").replace(/\s*\/\s*/g, "/");
+  let surfaces = 0;
+  for (const cid of genIds) {
+    for (let i = 0; i < 24; i++) {
+      const q = questions.generateQuestion(cid, `maths-${cid}-${i}`);
+      if (!q) continue;
+      const fields = [["prompt", q.prompt], ...(q.choices ?? []).map((c, j) => [`option ${j + 1}`, String(c)]), ["explanation", q.explanation]];
+      for (const [where, value] of fields) {
+        if (typeof value !== "string") continue;
+        surfaces++;
+        const found = notationLeft(value, []);
+        for (const f of found) if (rawLeft.length < 8) rawLeft.push(`${cid} ${where}: ${f}`);
+        if (strip(mathFmt.mathNotation(mathFmt.mathSpans(value))) !== strip(value) && lost.length < 8) {
+          lost.push(`${cid} ${where}: ${value.slice(0, 90)}`);
+        }
+      }
+    }
+  }
+  ok(rawLeft.length === 0,
+    `no prompt, option or explanation prints ^, *, sqrt( or a numeric a/b (${surfaces} surfaces; e.g. ${rawLeft.slice(0, 3).join(" | ")})`);
+  ok(lost.length === 0,
+    `and the formatter edits NOTHING it does not understand (${surfaces} surfaces; e.g. ${lost.slice(0, 2).join(" | ")})`);
+
+  // The four shapes, drawn. Each is a real string from the bank, so a generator
+  // that starts writing `3/4` again cannot pass by matching a fixture.
+  const shape = (text) => mathFmt.mathSpans(text).map((s) => (s.kind === "frac" ? `frac(${s.numerator}/${s.denominator})` : s.kind === "radical" ? `rad(${s.text})` : s.kind === "sup" ? `sup(${s.text})` : s.kind === "sub" ? `sub(${s.text})` : s.kind === "times" ? "times" : s.kind === "approx" ? "approx" : s.text)).join("|");
+  const drawn = [
+    ["Work out 5/6 − 3/10.", ["frac(5/6)", "frac(3/10)"]],
+    ["A number is written as 5 × 10^4.", ["sup(4)"]],
+    ["x_{n+1} = (x_n + 5/x_n)/2", ["sub(n+1)", "frac((x_n + 5/x_n)/2)"]],
+    ["θ is acute and sin θ = 5/13.", ["frac(5/13)"]],
+    ["sqrt(18) ÷ 3, roughly ~90% of the time", ["rad(18)", "approx"]],
+    ["3 * 4 = 12", ["times"]],
+  ];
+  for (const [text, wants] of drawn) {
+    const got = shape(text);
+    ok(wants.every((w) => got.includes(w)), `"${text}" draws ${wants.join(" + ")} (${got})`);
+  }
+  // …and the notation that must NOT be turned into maths.
+  for (const text of ["10.0.4.0/30", "24/10/2026 on the 3rd", "dy/dx at x = 5", "1 × 10^−2 mol/dm³"]) {
+    const got = shape(text);
+    ok(!got.includes("frac("), `"${text}" is not read as a fraction (${got})`);
+  }
+  // The layering that keeps a PROGRAM a program: the `*` in `i * 2` lives in a
+  // code segment, which PromptText prints verbatim, so the maths formatter can
+  // never reach it however many products a generator writes.
+  // The `sawStar` half is what makes this evidence rather than a tautology: a
+  // loop that happens to use `+` proves nothing about where a `*` is drawn.
+  let starInProse = 0;
+  let sawStar = 0;
+  for (let i = 0; i < 12; i++) {
+    const q = questions.generateQuestion("loops", `loops-maths-${i}`);
+    if (!q) continue;
+    if (!q.prompt.includes("*")) continue;
+    sawStar++;
+    const segs = promptFmt.splitPrompt(q.prompt);
+    if (segs.some((s) => s.kind === "prose" && s.text.includes("*"))) starInProse++;
+  }
+  ok(sawStar > 0 && starInProse === 0,
+    `a program's \`*\` stays inside the code block, where no maths formatter reaches it (${sawStar} prompts with a *, ${starInProse} with one in prose)`);
 
   // (b) A sitting must not loop on one item. Serve each concept a whole
   // session's worth, passing the bounded exclude list exactly as the route does

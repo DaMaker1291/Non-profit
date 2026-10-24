@@ -11,6 +11,7 @@ import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { SUBJECT_IDS, SUBJECT_LABELS, subjectFromParam } from "@/lib/subjects";
 import { ctitle, mcName, mcCoaching } from "@/lib/content-i18n";
 import PromptText from "@/components/prompt-text";
+import MathText from "@/components/math-text";
 import { fill } from "@/lib/i18n";
 import type { DiagnosticResult, SubjectId } from "@/lib/types";
 import type { QuestionView } from "@/lib/questions";
@@ -469,7 +470,7 @@ export default function DiagnosticPage() {
                 disabled={!!graded}
                 onClick={() => answer(i)}
               >
-                <span className="letter">{String.fromCharCode(65 + i)}</span>{c}
+                <span className="letter">{String.fromCharCode(65 + i)}</span><MathText text={c} />
               </button>
             ))}
           </div>
@@ -477,7 +478,7 @@ export default function DiagnosticPage() {
           {graded && (
             <div className={`marking ${graded.correct ? "good" : "bad"}`}>
               <span className="mark" aria-hidden="true">{graded.correct ? "✓" : "✗"}</span>
-              <p>{graded.explanation}</p>
+              <p><MathText text={graded.explanation} /></p>
             </div>
           )}
           <div className="actions">

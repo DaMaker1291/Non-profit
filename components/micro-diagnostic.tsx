@@ -14,6 +14,7 @@ import { useI18n } from "@/lib/client";
 import { anonMicroCheck } from "@/lib/anon-practice";
 import { mcName, mcCoaching } from "@/lib/content-i18n";
 import PromptText from "@/components/prompt-text";
+import MathText from "@/components/math-text";
 import type { FlarePayload } from "@/lib/microdiag";
 
 export default function MicroDiagnostic({ flare, lang }: { flare: FlarePayload; lang: string }) {
@@ -64,7 +65,7 @@ export default function MicroDiagnostic({ flare, lang }: { flare: FlarePayload; 
                 onClick={() => void answer(i)}
               >
                 <span className="mark" data-idx={String.fromCharCode(65 + i)} />
-                <span className="choice-text">{ch}</span>
+                <span className="choice-text"><MathText text={ch} /></span>
               </button>
             ))}
           </div>
@@ -76,7 +77,7 @@ export default function MicroDiagnostic({ flare, lang }: { flare: FlarePayload; 
           <span className="verdict">
             {result.correct ? `✓ ${t("micro.procedural")}` : `⚠ ${t("micro.conceptual")}`}
           </span>
-          {result.explanation}
+          <MathText text={result.explanation} />
           <span className="small" style={{ display: "block", marginTop: 6 }}>
             {result.correct ? t("micro.proceduralNote") : t("micro.conceptualNote")}
           </span>

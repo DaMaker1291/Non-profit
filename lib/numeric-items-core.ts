@@ -1037,10 +1037,18 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
   "compounds-mixtures": (r) => {
     const a = r.int(1, 4), b = r.int(1, 4);
     return {
-      prompt: `A compound forms from element X (valency ${a}) and element Y (valency ${b}). In the formula XₚY_q, what is p + q when they are in their simplest whole-number ratio?`,
+      // BOTH INDICES IN ONE NOTATION, AND BRACED: this read `XₚY_q` — a unicode
+      // subscript on one letter and an underscore on the next — while the
+      // explanation printed `X4Y3` with no indices at all. Three spellings of one
+      // formula in three lines. `X_{p}Y_{q}` is the form lib/math-text.ts draws as
+      // a subscript in BOTH places, so the formula on the page is the formula in
+      // the working. (Braced rather than `X_pY_q` because a bare `_p` directly
+      // followed by another letter is left alone on purpose — that is how an
+      // identifier like `data_dir` stays an identifier.)
+      prompt: `A compound forms from element X (valency ${a}) and element Y (valency ${b}). In the formula X_{p}Y_{q}, what is p + q when they are in their simplest whole-number ratio?`,
       value: (b / gcd(a, b)) + (a / gcd(a, b)), wrongs: [a + b, a * b, 2],
       tags: [], difficulty: 0.6,
-      explanation: `Swap the valencies: X takes Y's valency (${b}) and Y takes X's (${a}), giving X${b / gcd(a, b)}Y${a / gcd(a, b)}. So p + q = ${(b / gcd(a, b)) + (a / gcd(a, b))}. The total charge must cancel.`,
+      explanation: `Swap the valencies: X takes Y's valency (${b}) and Y takes X's (${a}), giving X_{${b / gcd(a, b)}}Y_{${a / gcd(a, b)}}. So p + q = ${(b / gcd(a, b)) + (a / gcd(a, b))}. The total charge must cancel.`,
     };
   },
 

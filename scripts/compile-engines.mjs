@@ -244,6 +244,11 @@ export const ENGINE_SOURCES = [
   // so the suite can assert the split on the REAL questions rather than reading
   // a regex over a renderer's source.
   "lib/prompt.ts",
+  // Maths formatting (`5/6`, `10^4`, `sqrt(18)`, `x_{n+1}` → what a textbook
+  // prints). Compiled with the rest for the same reason: the suite draws EVERY
+  // generator and asserts no served prompt, option or explanation still prints
+  // the notation an author typed, which is a claim about the real bank.
+  "lib/math-text.ts",
   // The AI layer's grounding. It belongs in the same mirror for the same
   // reason: the suite asserts that the tutor's input IS the decision the
   // surfaces display, and that nothing on the AI path can write. Both claims

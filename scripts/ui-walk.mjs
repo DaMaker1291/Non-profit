@@ -404,6 +404,45 @@ async function main() {
     const flagged = await p.evaluate(`const b = document.querySelector("[data-flag-control]"); return { pressed: b?.getAttribute("aria-pressed"), label: (b?.textContent || "").trim(), marked: [...document.querySelectorAll("[data-question-grid] button")].some(x => x.getAttribute("data-flagged") === "1") };`);
     check(flagged.pressed === "true" && flagged.marked, `flagging marks the question to come back to (${flagged.label})`);
 
+    // ── §stage: ONE STAGE OF A CONCEPT PAGE AT A TIME ──────────────────────
+    // The concept page stacked the status card, the lesson, the teach-back, the
+    // trap list, the evidence, the question, the tutor and the packs: measured
+    // 2,542px on a 1,215px screen, so the question sat two screens below where a
+    // learner arrived and the tutor sat beside a card they had to scroll to
+    // find. The chips at the top already said "1. Read · 2. Practise"; they did
+    // not switch anything. They do now.
+    //
+    // The tutor's composer is the second half of the same report ("the ask the
+    // tutor box is so small"): it measured 41px WIDE, because it was the only
+    // shrinkable item in a row it shared with two buttons.
+    section("A concept page shows one stage at a time");
+    await p.goto(`${BASE}/learn/maths/fractions`);
+    await p.waitFor(`return !!document.querySelector("nav button.chip");`, "the stage chips to render", 25000);
+    const stageOne = await p.evaluate(`
+      const chips = [...document.querySelectorAll("nav button.chip")].map(b => ({ text: (b.textContent || "").trim(), pressed: b.getAttribute("aria-pressed") }));
+      return { chips, question: !!document.querySelector(".qprompt"), lesson: !!document.querySelector(".reading"), docH: document.documentElement.scrollHeight, viewH: innerHeight };
+    `);
+    check(stageOne.chips.length === 2 && stageOne.chips[0].pressed === "true",
+      `the page opens on Read, and the stage on screen says so (${stageOne.chips.map((c) => `${c.text}:${c.pressed}`).join(" · ")})`);
+    check(stageOne.lesson && !stageOne.question,
+      "with the lesson on screen and NO question under it — the session opens in the background and must not hijack the page");
+
+    await p.clickExpr(`[...document.querySelectorAll("nav button.chip")].find(b => /Practise/.test(b.textContent || ""))`, "the Practise chip");
+    await p.waitFor(`return !!document.querySelector(".qprompt") && !document.querySelector(".reading");`, "the question to replace the lesson", 20000);
+    const stageTwo = await p.evaluate(`
+      const ta = document.querySelector(".tutor-form textarea");
+      const panel = document.querySelector(".tutor-panel");
+      const chip = [...document.querySelectorAll("nav button.chip")].find(b => /Practise/.test(b.textContent || ""));
+      return { ta: ta ? Math.round(ta.getBoundingClientRect().width) : 0, taH: ta ? Math.round(ta.getBoundingClientRect().height) : 0, panel: panel ? Math.round(panel.getBoundingClientRect().height) : 0, pressed: chip?.getAttribute("aria-pressed"), docH: document.documentElement.scrollHeight };
+    `);
+    check(stageTwo.pressed === "true", `pressing Practise switches the page to the session (${stageTwo.docH}px: the question, not the reading)`);
+    check(stageTwo.ta >= 240, `and the tutor's box is a box, not a sliver (${stageTwo.ta}×${stageTwo.taH}px; measured 41px wide before this)`);
+    check(stageTwo.panel >= 400, `with a panel tall enough to hold a conversation in (${stageTwo.panel}px)`);
+
+    await p.clickExpr(`[...document.querySelectorAll("nav button.chip")].find(b => /Read/.test(b.textContent || ""))`, "the Read chip");
+    await p.waitFor(`return !!document.querySelector(".reading") && !document.querySelector(".qprompt");`, "the lesson to come back", 10000);
+    check(true, "and Read brings the lesson back, so the switch is not one-way");
+
     // §20: the shell names the learner's COURSE, not just the page. The whole
     // experience changes with it — curriculum map, questions, papers, vocabulary
     // — and none of that was visible from the chrome, which showed a subject

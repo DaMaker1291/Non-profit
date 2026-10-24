@@ -19,6 +19,7 @@ import type { AnonPracticeQ } from "@/lib/anon-practice";
 import MicroDiagnostic from "@/components/micro-diagnostic";
 import SpeakButton from "@/components/speak-button";
 import PromptText from "@/components/prompt-text";
+import MathText from "@/components/math-text";
 import NumericAnswer from "@/components/numeric-answer";
 import MarkedPanel from "@/components/marked-panel";
 import WorkSheet from "@/components/work-sheet";
@@ -141,7 +142,7 @@ export default function TryConceptPage() {
                 return (
                   <button key={i} className={`choice ${cls}`} disabled={picked !== null || busy} onClick={() => void submit({ choiceIndex: i })}>
                     <span className="mark" data-idx={String.fromCharCode(65 + i)} />
-                    <span className="choice-text">{ch}</span>
+                    <span className="choice-text"><MathText text={ch} /></span>
                   </button>
                 );
               })}

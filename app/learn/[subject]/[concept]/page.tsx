@@ -25,6 +25,7 @@ import { HINT_LEVELS } from "@/lib/hints";
 import MicroDiagnostic from "@/components/micro-diagnostic";
 import SpeakButton from "@/components/speak-button";
 import PromptText from "@/components/prompt-text";
+import MathText from "@/components/math-text";
 import NumericAnswer from "@/components/numeric-answer";
 import WorkSheet from "@/components/work-sheet";
 import ListenFirst from "@/components/listen-first";
@@ -72,6 +73,24 @@ export default function ConceptPage() {
   const [err, setErr] = useState("");
   const [why, setWhy] = useState<ServeTarget | null>(null);
   const [stage_, setStage_] = useState<"lesson" | "practise" | "transfer">("lesson");
+  /**
+   * WHICH STAGE OF THIS PAGE IS ON SCREEN — read, or practise.
+   *
+   * The page used to stack all of it: the status card, the lesson, "teach
+   * someone else", the misconceptions, the evidence, the question and the tutor,
+   * then the study packs. Measured on a 1,215px screen it ran 2,542px, so the
+   * question was two screens below the point where a learner arrived and the
+   * tutor sat beside a card they had to scroll to find. The four chips at the
+   * top (1 Read · 2 Practise · 3 Prove · 4 Transfer) already told a learner this
+   * page HAS stages; they simply did not switch anything. They switch now, and
+   * the two of them that are views are buttons.
+   *
+   * Prove and Transfer are NOT views: they are stages of the session the SERVER
+   * drives (a marked answer, then a re-framed one), so they stay status chips —
+   * a chip that could be pressed to show a question that has not been staged
+   * would be a control that lies about what it does.
+   */
+  const [view, setView] = useState<"read" | "practise">("read");
   /**
    * Did the transfer serve achieve a genuinely different surface?
    *
@@ -484,6 +503,14 @@ export default function ConceptPage() {
     transfer: stage_ === "transfer",
   };
 
+  /** The stage actually on screen: the learner's own choice, and nothing else.
+   *  It deliberately does NOT follow `phase`. The session opens on mount (so a
+   *  dropped connection resumes rather than restarts), which means `phase` is
+   *  already `"active"` the instant the page renders — a view derived from it
+   *  would drop every learner onto a question before they had read the lesson,
+   *  on a page whose first chip says "1. Read". */
+  const showing: "read" | "practise" = view;
+
   // WHICH QUESTION THE LEARNER IS LOOKING AT, in one place.
   //
   // `count` is how many answers the server has graded, and it advances on
@@ -520,6 +547,48 @@ export default function ConceptPage() {
         </p>
       )}
 
+      {/* Learning path: what you do next on this concept.
+          The first two chips are the page's two stages, so they SWITCH it; the
+          last two report the session's own progress. Everything below belongs
+          to exactly one of the stages. */}
+      <nav aria-label={t("path.aria")} style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "14px 0 20px" }}>
+        {(["lesson", "practise", "prove", "transfer"] as const).map((s, i) => {
+          const done = stageDone[s];
+          const label =
+            <>{i + 1}. {s === "lesson" ? t("path.read") : s === "practise" ? t("path.practise") : s === "prove" ? t("path.prove") : transferable === false ? t("next.title.stretch") : t("path.transfer")}{done && " ✓"}</>;
+          // THE TWO STAGES THAT ARE PAGES, AS BUTTONS. Read and Practise are
+          // what this screen can SHOW, so they are the two a learner can press;
+          // Prove and Transfer are what the session is doing, so they are the two
+          // that report. `aria-pressed` is what says which one is on screen —
+          // the `.on` class is the same fact for a sighted learner.
+          const tab = s === "lesson" ? "read" as const : s === "practise" ? "practise" as const : null;
+          if (!tab) {
+            return (
+              <span key={s} className={`chip ${stageActive[s] ? "on" : ""} ${done ? "ok" : ""}`}>
+                {label}
+              </span>
+            );
+          }
+          return (
+            <button
+              key={s}
+              type="button"
+              className={`chip ${showing === tab ? "on" : ""} ${done ? "ok" : ""}`}
+              aria-pressed={showing === tab}
+              onClick={() => setView(tab)}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* ── STAGE ONE: READ ─────────────────────────────────────────────────
+          What OpenMind knows here, the lesson, the teach-back, the traps, the
+          evidence and the community packs. Nothing on this stage is the
+          session, so nothing here competes with a question. */}
+      {showing === "read" && (
+        <>
       {/* STATUS FIRST (§concept page): what OpenMind actually knows here,
           before the lesson text. Four dimensions and an honest dash, from the
           ledger — so a learner who has never been measured on transfer is told
@@ -536,20 +605,6 @@ export default function ConceptPage() {
           </div>
         )}
       </section>
-
-      {/* Learning path: what you do next on this concept */}
-      <nav aria-label={t("path.aria")} style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "14px 0 20px" }}>
-        {["lesson", "practise", "prove", "transfer"].map((s, i) => {
-          const active = stageActive[s];
-          const done = stageDone[s];
-          return (
-            <span key={s} className={`chip ${active ? "on" : ""} ${done ? "ok" : ""}`}>
-              {i + 1}. {s === "lesson" ? t("path.read") : s === "practise" ? t("path.practise") : s === "prove" ? t("path.prove") : transferable === false ? t("next.title.stretch") : t("path.transfer")}
-              {done && " ✓"}
-            </span>
-          );
-        })}
-      </nav>
 
       {prereqs.length > 0 && (
         <p className="small muted" style={{ marginBottom: 14 }}>
@@ -650,7 +705,15 @@ export default function ConceptPage() {
           )}
         </section>
       )}
+        </>
+      )}
 
+      {/* ── STAGE TWO: PRACTISE ─────────────────────────────────────────────
+          The session, and only the session: the exercise header, the question
+          and the tutor beside it. This is the screen the learner is meant to
+          work on, so it gets the whole page rather than the bottom of one. */}
+      {showing === "practise" && (
+        <>
       {/* THE EXERCISE HEADER. Sticky, so the learner never loses which idea
           they are working on, which question of the set it is, or how long
           they have been at it — the three facts a paper sheet gives you for
@@ -778,7 +841,7 @@ export default function ConceptPage() {
                       onClick={() => answer(i)}
                     >
                       <span className="mark" data-idx={String.fromCharCode(65 + i)} />
-                      <span className="choice-text">{choice}</span>
+                      <span className="choice-text"><MathText text={choice} /></span>
                     </button>
                   );
                 })}
@@ -813,7 +876,7 @@ export default function ConceptPage() {
                     {hint && (
                       <div className="note" style={{ marginTop: 10 }}>
                         <strong>{t("learn.hint")} · {hintLevel}</strong>
-                        <span>{hint}</span>
+                        <span><MathText text={hint} /></span>
                       </div>
                     )}
                   </div>
@@ -842,7 +905,7 @@ export default function ConceptPage() {
                 {graded.correct || showWhy ? (
                   <>
                     <span className="why-title">{t("learn.explain")}</span>
-                    {graded.explanation}
+                    <MathText text={graded.explanation} />
                   </>
                 ) : (
                   <button type="button" className="linkish" onClick={() => setShowWhy(true)}>
@@ -922,7 +985,10 @@ export default function ConceptPage() {
           onToggle={() => setTutorOpen((v) => !v)}
         />
       </div>
+        </>
+      )}
 
+      {showing === "read" && (
       <section className="ruled" style={{ borderTop: "2px solid var(--ink)", paddingTop: 18, marginTop: 8, marginBottom: 30 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
           <p className="eyebrow" style={{ margin: 0 }}><span className="no">✎</span> {t("pack.title")}</p>
@@ -979,6 +1045,7 @@ export default function ConceptPage() {
           </div>
         ))}
       </section>
+      )}
 
       <div className="actions" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 20 }}>
         <Link href={`/learn/${subject}`} className="btn ghost small">← {t("subj.title")}</Link>

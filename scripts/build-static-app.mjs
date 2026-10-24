@@ -85,6 +85,9 @@ const ENTRY = {
   // Prompt formatting (prose vs code), shared with the React surfaces so both
   // builds set a code question the same way.
   prompt: "prompt",
+  // Maths formatting, for the same reason: a fraction is drawn stacked on both
+  // builds or the published twin sets questions the app does not.
+  mathText: "math-text",
   // The answer rule, so the offline build grades a typed number by the SAME
   // tolerance the server would — the two kits must not disagree about whether
   // 0.75 is right.

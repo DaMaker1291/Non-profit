@@ -26,6 +26,7 @@ import { fill } from "@/lib/i18n";
 import { ctitle } from "@/lib/content-i18n";
 import { disclosureKey } from "@/lib/tutor-context";
 import VoiceInput from "@/components/voice-input";
+import MathText from "@/components/math-text";
 
 interface Turn {
   role: "you" | "tutor";
@@ -126,9 +127,9 @@ export default function TutorPanel({
         </div>
 
         {questionText && (
-          <p className="small muted" style={{ margin: 0, padding: "10px var(--s2) 0" }}>
+          <p className="small muted tutor-asking" style={{ margin: 0, padding: "10px var(--s2) 0" }}>
             {questionNumber && <span className="mono">{questionNumber} · </span>}
-            {questionText.length > 90 ? `${questionText.slice(0, 90)}…` : questionText}
+            <MathText text={questionText.length > 90 ? `${questionText.slice(0, 90)}…` : questionText} />
           </p>
         )}
 
@@ -169,7 +170,7 @@ export default function TutorPanel({
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(text); }
             }}
           />
-          <VoiceInput onText={(v) => setText((p) => (p ? `${p} ${v}` : v))} lang={lang} />
+          <VoiceInput compact onText={(v) => setText((p) => (p ? `${p} ${v}` : v))} lang={lang} />
           <button type="submit" className="btn" disabled={busy || !text.trim()}>{t("learn.ask")}</button>
         </form>
       </aside>

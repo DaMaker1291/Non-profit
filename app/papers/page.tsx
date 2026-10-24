@@ -10,6 +10,7 @@ import { fill } from "@/lib/i18n";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import PaperAnalysisPanel, { type PaperAnalysisShape } from "@/components/paper-analysis";
 import PromptText from "@/components/prompt-text";
+import MathText from "@/components/math-text";
 import OwnPaper, { type OwnPaperConcept } from "@/components/own-paper";
 import { coverageOf, specForProfile } from "@/lib/specifications";
 import type { BoardId, FigureSpec, ProfileState, SubjectId } from "@/lib/types";
@@ -415,7 +416,7 @@ export default function PapersPage() {
                       checked={chosen === ci}
                       onChange={() => setAnswers((a) => ({ ...a, [q.id]: ci }))}
                     />
-                    <span>{c}</span>
+                    <span><MathText text={c} /></span>
                   </label>
                 ))}
               </div>
@@ -510,7 +511,7 @@ export default function PapersPage() {
                       <b className="tag">{`△ ${t("pp.checkIdea")}: ${mcName(lang, tag, MISCONCEPTIONS_BY_ID[tag].name)}`}</b>
                     </p>
                   )}
-                  <p className="small" style={{ margin: "6px 0 0" }}>{q.explanation}</p>
+                  <p className="small" style={{ margin: "6px 0 0" }}><MathText text={q.explanation} /></p>
                 </div>
               );
             })}

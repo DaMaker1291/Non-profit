@@ -729,6 +729,24 @@ details.evidence li { margin-bottom: 0.25rem; }
   white-space: pre;
 }
 
+/* ── MATHS, SET AS MATHS (lib/math-text.ts, mathHtml in app.js) ────────────
+   The bank is authored in ASCII — `5/6`, `10^4`, `sqrt(18)` — and this is what a
+   learner reads instead. Scoped under `.math` so a superscript formed by the
+   formatter is the only superscript these rules touch, and no colour or weight
+   is changed: a fraction inside an option marked wrong is wrong with it. */
+.math sup, .math sub { font-size: 0.72em; line-height: 0; }
+.math sup { vertical-align: super; }
+.math sub { vertical-align: sub; }
+.math .mfrac {
+  display: inline-flex; flex-direction: column; align-items: stretch;
+  vertical-align: -0.42em; margin: 0 0.16em;
+  font-size: 0.94em; line-height: 1.14; text-align: center;
+}
+.math .mfrac-n { padding: 0 0.24em; }
+.math .mfrac-d { padding: 0 0.24em; border-top: 1px solid currentColor; }
+.math .mrad > .mrad-sign { padding-right: 0.02em; }
+.math .mrad > .mrad-body { border-top: 1px solid currentColor; padding: 0 0.14em 0 0.06em; }
+
 /* ── The answer box (§6) ────────────────────────────────────────────────────
    For a question that is NOT multiple choice. Deliberately the same visual weight
    as the four options it replaces: a typed answer must not read as a harder or

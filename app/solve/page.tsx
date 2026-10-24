@@ -18,6 +18,7 @@ import { anonServe, anonServeTransfer, anonAnswer } from "@/lib/anon-practice";
 import type { AnonPracticeQ } from "@/lib/anon-practice";
 import MicroDiagnostic from "@/components/micro-diagnostic";
 import PromptText from "@/components/prompt-text";
+import MathText from "@/components/math-text";
 import SpeakButton from "@/components/speak-button";
 import VoiceInput from "@/components/voice-input";
 import StarterMode from "@/components/starter-mode";
@@ -298,7 +299,7 @@ export default function SolvePage() {
         {hint && (
           <div className="note" style={{ marginTop: 16 }}>
             <strong>{t("tutor.title")}</strong>
-            <span>{hint}</span>
+            <span><MathText text={hint} /></span>
           </div>
         )}
         <button className="btn ghost small" style={{ marginTop: 26 }} onClick={() => { setStage("ask"); setText(""); setHint(null); setConceptId(null); setUnsure(false); }}>
@@ -345,7 +346,7 @@ export default function SolvePage() {
                 return (
                   <button key={i} className={`choice ${cls}`} disabled={picked !== null || busy} onClick={() => void submit({ choiceIndex: i })}>
                     <span className="mark" data-idx={String.fromCharCode(65 + i)} />
-                    <span className="choice-text">{ch}</span>
+                    <span className="choice-text"><MathText text={ch} /></span>
                   </button>
                 );
               })}
@@ -419,7 +420,7 @@ export default function SolvePage() {
                 return (
                   <button key={i} className={`choice ${cls}`} disabled={picked !== null || busy} onClick={() => void submit({ choiceIndex: i })}>
                     <span className="mark" data-idx={String.fromCharCode(65 + i)} />
-                    <span className="choice-text">{ch}</span>
+                    <span className="choice-text"><MathText text={ch} /></span>
                   </button>
                 );
               })}

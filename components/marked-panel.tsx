@@ -29,6 +29,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState } from "react";
+import MathText from "@/components/math-text";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { mcName, mcCoaching } from "@/lib/content-i18n";
 import { proofLabelKey, proofSentenceKey, type ProofVerdict } from "@/lib/proof";
@@ -95,7 +96,7 @@ export default function MarkedPanel({
       <span className="verdict">{correct ? `✓ ${correctLabel}` : `✗ ${wrongLabel}`}</span>
       {right && (
         <p style={{ margin: "0 0 8px" }}>
-          <b>{answerLabel}</b> <span className="mono">{right}</span>
+          <b>{answerLabel}</b> <span className="mono"><MathText text={right} /></span>
         </p>
       )}
       {miscName && (
@@ -108,7 +109,7 @@ export default function MarkedPanel({
         whyShown ? (
           <>
             <span className="why-title">{explainLabel}</span>
-            {explanation}
+            <MathText text={explanation} />
           </>
         ) : (
           <button type="button" className="linkish" onClick={() => setShowWhy(true)}>

@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState } from "react";
+import MathText from "@/components/math-text";
 import { useI18n } from "@/lib/client";
 import { anonStarter, anonStarterPick } from "@/lib/anon-practice";
 import type { StarterReveal } from "@/lib/starter";
@@ -134,7 +135,7 @@ export default function StarterMode({
                 onClick={() => void pickConnector(i)}
               >
                 <span className="mark" data-idx={String.fromCharCode(65 + i)} />
-                <span className="choice-text">{ch}</span>
+                <span className="choice-text"><MathText text={ch} /></span>
               </button>
             ))}
           </div>

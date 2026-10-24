@@ -302,12 +302,36 @@
     });
   }
 
+  /** MATHS, DRAWN — the same spans the React surfaces draw (lib/math-text.ts).
+   *  `5/6`, `10^4`, `sqrt(18)` and `x_{n+1}` are what an author can type; this is
+   *  what a learner reads. The payloads recurse, because `1/2^3` has a power in
+   *  its denominator. */
+  function mathHtml(raw) {
+    return E.mathText.mathSpans(String(raw == null ? "" : raw)).map(function (span) {
+      switch (span.kind) {
+        case "text": return esc(span.text);
+        case "sup": return "<sup>" + mathHtml(span.text) + "</sup>";
+        case "sub": return "<sub>" + mathHtml(span.text) + "</sub>";
+        case "times": return "\u00d7";
+        case "approx": return "\u2248";
+        case "radical":
+          return '<span class="mrad"><span class="mrad-sign" aria-hidden="true">\u221a</span>' +
+            '<span class="mrad-body">' + mathHtml(span.text) + "</span></span>";
+        case "frac":
+          return '<span class="mfrac"><span class="mfrac-n">' + mathHtml(span.numerator) +
+            '</span><span class="sr-only">/</span><span class="mfrac-d">' + mathHtml(span.denominator) + "</span></span>";
+      }
+      return "";
+    }).join("");
+  }
+
   /** A prompt drawn as what it is: prose in the question's voice, a code block
    *  in monospace. The split is the same one the React surfaces use
-   *  (lib/prompt.ts), so both builds set a code question identically. */
+   *  (lib/prompt.ts), so both builds set a code question identically — and the
+   *  prose inside it is set as maths by the same formatter. */
   function promptHtml(text) {
     return E.prompt.splitPrompt(String(text == null ? "" : text)).map(function (seg) {
-      return seg.kind === "code" ? '<pre class="qcode">' + esc(seg.text) + "</pre>" : esc(seg.text);
+      return seg.kind === "code" ? '<pre class="qcode">' + esc(seg.text) + "</pre>" : mathHtml(seg.text);
     }).join("");
   }
   function el(tag, attrs, html) {
@@ -649,7 +673,7 @@
       '<div class="q">' + promptHtml(prompt) + "</div>" +
       '<div class="choices" id="choices">' +
       view.choices.map(function (c, i) {
-        return '<button class="choice" data-act="diag-answer" data-i="' + i + '"><span class="k">' + "ABCD".charAt(i) + "</span><span>" + esc(c) + "</span></button>";
+        return '<button class="choice" data-act="diag-answer" data-i="' + i + '"><span class="k">' + "ABCD".charAt(i) + "</span><span>" + mathHtml(c) + "</span></button>";
       }).join("") +
       "</div>" +
       '<p><button class="quiet" data-act="diag-skip">' + esc(t("diag.skip")) + "</button> " +
@@ -971,7 +995,7 @@
       (q.responseKind === "numeric" ? numericAnswerHtml(q) :
         '<div class="choices" id="choices">' +
         view.choices.map(function (c, i) {
-          return '<button class="choice" data-act="answer" data-i="' + i + '"><span class="k">' + "ABCD".charAt(i) + "</span><span>" + esc(c) + "</span></button>";
+          return '<button class="choice" data-act="answer" data-i="' + i + '"><span class="k">' + "ABCD".charAt(i) + "</span><span>" + mathHtml(c) + "</span></button>";
         }).join("") +
         "</div>") +
       '<div id="hint-slot"></div>' +
@@ -1090,7 +1114,7 @@
     var box = '<div class="verdict ' + (correct ? "good" : "bad") + '">' +
       '<p class="head">' + esc(correct ? t("learn.correct") : t("learn.wrong")) + "</p>" +
       (!correct ? '<p class="small">' + esc(t("sb.correctWas")) + ": <b class=\"mono\">" + esc(q.choices[q.answer]) + "</b></p>" : "") +
-      '<p class="expl">' + esc(explanation) + "</p>" +
+      '<p class="expl">' + mathHtml(explanation) + "</p>" +
       (second ? '<p class="small muted"><b>' + esc(t(secondLabel)) + ":</b> " + esc(second) +
         (coaching ? " — " + esc(coaching) : "") + "</p>" : "") +
       (usedHints > 0 ? '<p class="small muted">' + esc(t("sb.hintGuided")) + "</p>" : "") +
