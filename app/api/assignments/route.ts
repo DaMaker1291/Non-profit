@@ -60,8 +60,11 @@ interface AssignedWork {
 
 /** GET /api/assignments?me=...&secret=... — a learner's work, scoped to them.
  *  `assigned` is their own rows for classes they are a member of; `monitor` is
- *  the per-member view for classes they OWN. A teacher is a member of their own
- *  class, so the two are split by ownership rather than by role string. */
+ *  the per-member view for classes they OWN. The two are split by OWNERSHIP, and
+ *  therefore by neither membership alone nor a role string: a teacher is not a
+ *  member of their own class (its rows are learners; the creator is its owner),
+ *  so a listing that began with "classes I am in" would leave a teacher's own
+ *  class out of their work panel and out of the monitor. */
 export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
   const auth = await authorizeLearner(searchParams.get("me"), searchParams.get("secret"));
@@ -73,7 +76,25 @@ export async function GET(req: Request): Promise<NextResponse> {
   // every member's evidence through this door's sibling checks).
   const teaching = await teachingAccountOf(req);
 
-  const mineClasses = (await listClasses()).filter((cls) => isMemberOf(cls, me));
+  // ── MINE = THE CLASSES I AM IN, PLUS THE CLASSES I ADMINISTER ────────
+  //
+  // ONE RULE, TWO DOORS. GET /api/classes already lists a teaching account's
+  // classes whether or not that account's profile is on the roster (“a class is
+  // a roster of learners; the teacher's own profile is not required in it”).
+  // This door began with `filter(isMemberOf)`, which was invisible while the
+  // creator was enrolled as their class's first student — and became a teacher
+  // whose work panel offered no class to set work on the moment they weren't.
+  // The administration check is the same `canAdminister` the write doors use, so
+  // a listed class is one the server would accept work for.
+  const administered = new Map<string, boolean>();
+  const mineClasses: Awaited<ReturnType<typeof listClasses>> = [];
+  for (const cls of await listClasses()) {
+    const carries = isMemberOf(cls, me);
+    const admin = await canAdminister(cls, teaching?.id ?? null);
+    if (!carries && !admin) continue;
+    mineClasses.push(cls);
+    administered.set(cls.id, admin);
+  }
   const assigned: AssignedWork[] = [];
   const monitor: AssignmentMonitor[] = [];
   let ownLedger: LedgerEvents | null = null;
@@ -83,8 +104,6 @@ export async function GET(req: Request): Promise<NextResponse> {
   // the one rule rather than rebuilding it (and a picker cannot offer a concept
   // the door would refuse). A class that has declared no subject offers
   // nothing and says so — no default curriculum is substituted.
-  const administered = new Map<string, boolean>();
-  for (const cls of mineClasses) administered.set(cls.id, await canAdminister(cls, teaching?.id ?? null));
   const owned = mineClasses
     .filter((cls) => administered.get(cls.id) === true)
     .map((cls) => ({

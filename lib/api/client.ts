@@ -109,6 +109,31 @@ export interface SignUpInput {
   claim?: { profileId: string; secret: string } | null;
 }
 
+/** What this deployment can KEEP, as it states it itself (`/api/health`).
+ *
+ *  The judgement is `lib/env.ts#storeReadiness`, and it is the ONE owner of the
+ *  question — a screen that decided for itself whether a store looked durable
+ *  would be a second opinion about a filesystem, which is exactly the kind of
+ *  guess two live drills already disproved. `ephemeral` here means the operator
+ *  has declared that this instance may lose everything it writes, so a surface
+ *  may say so; `durable` and `unknown` are not disclosures a learner needs.
+ */
+export interface DeploymentHealth {
+  status: string;
+  service: string;
+  version: string;
+  store: {
+    kind: string;
+    durability: "durable" | "ephemeral" | "unknown";
+    mode: string;
+    writesPermitted: boolean;
+  };
+}
+
+export function deploymentHealth(): Promise<DeploymentHealth> {
+  return send<DeploymentHealth>("/api/health");
+}
+
 export function signUp(input: SignUpInput): Promise<AccountSession> {
   return send<AccountSession>("/api/auth/signup", { method: "POST", body: { ...input } });
 }

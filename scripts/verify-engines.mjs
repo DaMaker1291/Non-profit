@@ -2,6 +2,7 @@
 // Usage: npm run verify  (compiles lib/ to .verify/ then runs these assertions)
 import { createRequire } from "node:module";
 import fs from "node:fs";
+import path from "node:path";
 // Used by the storage section to prove the BACKEND REFUSAL at import time: a
 // deployment configured for a backend this build cannot serve must fail when the
 // store is loaded, and a claim like that is only worth making if a real process
@@ -2740,6 +2741,98 @@ console.log("▸ The shell names the learner's course");
   ok(stripKeyCount === 15, `the strip's accessible name is authored in all 15 dictionaries (${stripKeyCount})`);
 }
 
+// ── The app can be INSTALLED, and both surfaces agree about what it is ──────
+//
+// An installable web app is the cheapest answer this product has to "it costs
+// money to host": the learner's phone keeps the app, and opening it needs no
+// request at all. But installability is not a tag in a document — the browser
+// checks a specific list and silently declines everything else, and the learner
+// is never told why. Chrome requires a manifest with a name, a short name, a
+// start_url, `display` other than `browser`, a 192 AND a 512 icon, and a
+// registered service worker with a fetch handler; iOS ignores the manifest for
+// its icon and takes `apple-touch-icon` instead.
+//
+// So each of those is asserted against the files that ship, and the SUBTLE one
+// is the RELATIVE URLs. One manifest serves two homes — mounted at the origin
+// root by the Next app, and published under a project subpath by the static
+// twin — and an absolute `/icons/icon-192.png` 404s on exactly one of them
+// while the other looks perfect in a browser.
+//
+// The published TWIN's copy of all this (that the build really copied it, and
+// that the shipped PNGs are what the site's mark renders to) is
+// `npm run verify:static`; this half is the served app's wiring.
+console.log("▸ The app installs, and both surfaces agree about what it is");
+{
+  const manifestPath = "public/manifest.json";
+  ok(fs.existsSync(manifestPath), "one manifest, in public/, is the app's declaration");
+  let manifest = null;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  } catch (e) {
+    ok(false, `the manifest parses (${e.message})`);
+  }
+  ok(Boolean(manifest), "the manifest is valid JSON");
+  if (manifest) {
+    ok(Boolean(manifest.name) && Boolean(manifest.short_name),
+      "it has a name and a short name — a launcher needs both, one for the store and one for the tile");
+    ok(manifest.display === "standalone",
+      `an installed app opens without browser chrome (display=${manifest.display})`);
+    ok(typeof manifest.start_url === "string" && !manifest.start_url.startsWith("/") &&
+        typeof manifest.scope === "string" && !manifest.scope.startsWith("/"),
+      `start_url and scope are relative (${manifest.start_url}, ${manifest.scope}) so ONE manifest works at the origin root and under the published subpath`);
+    ok(/^#[0-9a-f]{6}$/i.test(manifest.background_color ?? "") && /^#[0-9a-f]{6}$/i.test(manifest.theme_color ?? ""),
+      "the splash colours are declared, so the install is not a white flash over a cream app");
+    const icons = manifest.icons ?? [];
+    const anyAt = (size) => icons.some((i) => i.sizes === size && (i.purpose ?? "any").split(" ").includes("any"));
+    ok(anyAt("192x192") && anyAt("512x512"),
+      "it offers both sizes Chrome requires (192 and 512) — one of each is not enough");
+    ok(icons.some((i) => (i.purpose ?? "").includes("maskable")),
+      "and a maskable icon, because a launcher that crops the `any` artwork cuts the mark's corners off");
+    ok(icons.every((i) => i.type === "image/png" && typeof i.src === "string" && !i.src.startsWith("/")),
+      "every icon is a relative PNG URL");
+    // The declared SIZE is checked against the file's real header: a manifest
+    // that calls a 192 image "512x512" installs on some launchers and is refused
+    // by others, and nothing in a browser shows it.
+    for (const icon of icons) {
+      const file = path.join("public", icon.src);
+      if (!fs.existsSync(file)) {
+        ok(false, `the manifest names an icon that does not exist (public/${icon.src})`);
+        continue;
+      }
+      const png = fs.readFileSync(file);
+      const real = `${png.readUInt32BE(16)}x${png.readUInt32BE(20)}`;
+      ok(png.subarray(1, 4).toString() === "PNG" && real === icon.sizes,
+        `public/${icon.src} is a PNG of the size the manifest declares (${real})`);
+    }
+  }
+  // The layout is what turns the file into a <link rel="manifest">; a manifest
+  // nothing references is a manifest no browser reads.
+  const layout = fs.readFileSync("app/layout.tsx", "utf8");
+  ok(/manifest:\s*"\/manifest\.json"/.test(layout),
+    "the layout declares it, so the served HTML carries the link");
+  // MEASURED, NOT ASSUMED: Next's `appleWebApp.capable` does NOT reach the HTML
+  // (the served head carried the title and status-bar-style and nothing else),
+  // so the tag has to come from `other`. iOS < 16.4 reads only this tag — with
+  // the manifest's `display` alone, the installed icon opens inside Safari.
+  ok(/other:\s*\{[^}]*"apple-mobile-web-app-capable":\s*"yes"/s.test(layout),
+    "and emits apple-mobile-web-app-capable itself — Next drops `appleWebApp.capable`, so an older iPhone would open the installed app inside Safari");
+  const appleMatch = layout.match(/url:\s*"(\/icons\/[^"]*apple[^"]*)"/);
+  ok(Boolean(appleMatch) && fs.existsSync(path.join("public", appleMatch[1])),
+    `and names an apple-touch-icon that ships (${appleMatch ? appleMatch[1] : "MISSING — iOS would install a blank tile"})`);
+
+  // The OTHER half of installability, and the one that makes the installed app
+  // usable on a data-paid phone: a registered worker with a fetch handler.
+  // Chrome refuses to offer the install without it, and without a cache the app
+  // opens to a network error the moment the learner is offline.
+  const servedSw = fs.readFileSync("public/sw.js", "utf8");
+  ok(/addEventListener\("fetch"/.test(servedSw), "the served app ships a worker with a fetch handler (Chrome requires one to offer an install)");
+  ok(/startsWith\("\/api\/"\)/.test(servedSw),
+    "the worker refuses to cache API routes — a cached grade would be a lie");
+  const offlineBar = fs.readFileSync("components/offline-bar.tsx", "utf8");
+  ok(/serviceWorker\.register\("\/sw\.js"\)/.test(offlineBar), "and the shell registers it");
+  ok(/<OfflineBar \/>/.test(layout), "from OUTSIDE the route guard, so a boot screen still registers it");
+}
+
 // ── M9a. The client/API credential contract ─────────────────────────────────
 // Every guarded endpoint requires the profile's capability secret, and a call
 // site that forgets it fails only in a real browser (the e2e suite injects the
@@ -3028,6 +3121,44 @@ console.log("▸ The serve has one owner");
     "the published page attributes through it too");
   ok(!/mode: [A-Za-z0-9_.]*hints > 0 \? "guided"/.test(page2),
     "instead of asking its own view counter whether it had helped");
+}
+
+// ── A DIAGNOSTIC THAT MEASURED NOTHING MUST NOT BE RECOMMENDED AGAIN ────────
+// Measured live on the Render deployment: a first-time learner on a phone went
+// enrolment → curriculum → baseline diagnostic → Home, and Home led with "Find
+// your starting point — a 3-minute diagnostic" and a button back into the
+// sitting they had just finished. The cause is structural, not a one-off: a
+// learner who answers "I don't know" leaves no per-concept attempt, so
+// `snap.touched` is 0 while `diagnostics` holds a COMPLETED run, and those two
+// facts used to resolve to "you have not been measured" for ever.
+console.log("▸ A diagnostic that measured nothing is not a reason to sit it again");
+{
+  const { decideNext } = nextEngine;
+  const learner = (over = {}) => ({
+    secret: "beg-secret", progress: {}, diagnostics: {}, masteries: {},
+    ...over,
+    profile: {
+      id: "beg", handle: "beg", country: "GB", birthYear: null, language: "en", goal: "",
+      intent: "", subjects: ["maths"], createdAt: 0, ...(over.profile ?? {}),
+    },
+  });
+
+  const never = decideNext(learner({}), 1)[0];
+  ok(never.href === "/diagnostic/maths", `an unmeasured learner is sent to the diagnostic (${never.href})`);
+  const physics = decideNext(learner({ profile: { subjects: ["physics"] } }), 1)[0];
+  ok(physics.href === "/diagnostic/physics",
+    `and to the diagnostic in THEIR subject, not maths for everyone (${physics.href})`);
+
+  // The measured defect: a completed baseline, no per-concept evidence.
+  const after = decideNext(learner({ diagnostics: { "maths:baseline": { at: 1, answered: 4, measured: 0 } } }), 1)[0];
+  ok(!String(after.href).startsWith("/diagnostic"),
+    `after a diagnostic that measured nothing, Home does not offer the same sitting again (${after.href})`);
+  const firstMaths = genome.bySubject("maths")[0];
+  ok(after.conceptId === firstMaths.id,
+    `it starts at the first idea of the course instead (${after.conceptId})`);
+  ok(after.kind === "EXPLAIN", "and teaches it rather than testing it again");
+  ok(after.reason.includes(firstMaths.title),
+    "the card names the concept it is sending them to, so the step is not a blank");
 }
 
 // ── M9. The closed learning loop ────────────────────────────────────────────
@@ -8588,6 +8719,16 @@ console.log("▸ Assigned work is derived, not counted");
     "while a learner who already has a row keeps it — the numbered one the roster gave them, not the other learner's");
   ok(cm.freeHandle({ students: { Alex: {} }, membersById: {}, members: [] }, "Alex", "stu_c") === "Alex 2",
     "and a row with no identity is not handed to a new joiner either");
+  // ── ONE PERSON, ONE SIDE OF THE DESK ───────────────────────────────────
+  // The console offered "create a class" and "join a class" to the same
+  // person, and the door took either, so a teaching account's own profile could
+  // be a pupil on a roster. The refusal is the ACCOUNT'S ROLE — checked at the
+  // door, not by hiding a button — and a class's creator is its owner, never its
+  // first student.
+  ok(joinSrc.includes("teacher_account_cannot_join") && joinSrc.includes("isTeachingRole(owner.role)"),
+    "a teaching account cannot join a class, and the refusal is the role's — asked at the door");
+  ok(/students: \{\},\s*\n\s*members: \[\],/.test(joinSrc) && !/students: \{ \[h\]: \{\} \}/.test(joinSrc),
+    "and creating one enrols nobody: the teacher is its owner (ownerId/teacherAccountId), not its first student");
   // THE RESIDUE: a member whose row the old join rebound onto somebody else.
   // Their id is in `members` (identity recorded) but no row points at them, so
   // the teacher's table could not show them. Reconciliation writes the row.
@@ -8616,10 +8757,33 @@ console.log("▸ Assigned work is derived, not counted");
   // the class list is gated on it instead of being rendered empty.
   ok(teacherSrc.includes("loading } = useProfile()"),
     "the teacher's page reads the profile's LOADING state from the hook");
-  ok(teacherSrc.includes("<Loading") && /\{\s*loading\s*\?/.test(teacherSrc),
+  ok(teacherSrc.includes("<Loading") && /\{\s*loading\s*(\?|&&)/.test(teacherSrc),
     "and shows a loading state while the profile is in flight");
-  ok(!teacherSrc.includes("{classes.map((cls) => {") && teacherSrc.includes("{!loading && classes.map((cls) => {"),
-    "with the class list (and everything derived from it) rendered only once it has landed");
+  // EVERY view of the class list is gated on the profile having landed: the
+  // index's cards (`!openClassId && !loading`) and the one-class view
+  // (`!loading && classes.filter(...)`). Asserted as the two gates rather than
+  // one literal line, because the console now has two lists — and asserted to be
+  // the ONLY ungated `classes.map` by forbidding a bare one.
+  // The two lists the console now has — the index's cards and the one-class
+  // view — are EACH gated on `loading`, and there is no third place a class is
+  // rendered. (An earlier version of this assertion forbade a bare
+  // `{classes.map(`; the index legitimately has one, INSIDE its gate, so the
+  // gate is what is asserted now.)
+  ok(/\{!openClassId && !loading && \(/.test(teacherSrc) && /\{!loading && classes\.filter\(/.test(teacherSrc)
+    && teacherSrc.split("{!openClassId && !loading && (").length === 2
+    && teacherSrc.split("{!loading && classes.filter(").length === 2,
+    "with the class list (and everything derived from it) rendered only once it has landed — in exactly one place per view");
+  // ── THE CONSOLE IS A LIST, THEN ONE CLASS ──────────────────────────────
+  // The page rendered every class in full, one under another, so a teacher
+  // with four classes read ~eleven screens to reach one. The shape it has now
+  // is the one a classroom product is expected to have: an index of classes,
+  // then the chosen class with its three jobs behind tabs.
+  ok(/\^#class-\(\.\+\)\$/.test(teacherSrc) && teacherSrc.includes("window.addEventListener(\"hashchange\""),
+    "the class a teacher opens is chosen by the URL hash — so Back leaves it, a link still opens it, and a refresh keeps it");
+  ok(teacherSrc.includes('tab === "roster"') && teacherSrc.includes('tab === "work"') && teacherSrc.includes('tab === "plan"'),
+    "and that class's roster, work and week are three tabs rather than one long page");
+  ok(!/action: "join"/.test(teacherSrc) && !teacherSrc.includes('t("acct.class")'),
+    "a teaching console offers no join-a-class box: a teacher administers classes, a learner joins them");
   ok(teacherSrc.includes("setReadErr(") && teacherSrc.includes("<ErrorState") && teacherSrc.includes("\"teach.readFailed\""),
     "and the failure reaches the shared error state with a retry, in the teacher's own language");
   for (const code of ["en", "es", "fr", "de", "ar", "hi", "ja", "zh", "bn", "sw", "id", "tl", "pt", "ur", "fa"]) {
@@ -10454,12 +10618,38 @@ console.log("▸ A refused save is not a connection problem");
   // English string would pass that and still show English.
   const lit = require("../.verify/i18n.js");
   const EN = lit.DICTS.en;
-  for (const key of ["onb.errRefused", "onb.errNotYours", "onb.freshStart"]) {
+  for (const key of ["onb.errRefused", "onb.errNotYours", "onb.freshStart", "onb.ephemeral"]) {
     const missing = lit.LANG_CODES.filter((c) => !lit.DICTS[c] || !lit.DICTS[c][key]);
     ok(missing.length === 0, `${key} is authored in all ${lit.LANG_CODES.length} languages (missing: ${missing.join(",") || "none"})`);
     const english = lit.LANG_CODES.filter((c) => c !== "en" && lit.DICTS[c][key] === EN[key]);
     ok(english.length === 0, `${key} is not the English sentence in a translation (${english.join(",") || "none"})`);
   }
+
+  // ── A DEPLOYMENT THAT KEEPS NOTHING MAY NOT TAKE AN ACCOUNT QUIETLY ───────
+  //
+  // Measured on a live Render service: the operator had declared
+  // OPENMIND_ALLOW_EPHEMERAL_STORE, the store was /tmp inside the instance, and
+  // a learner who created an account there came back after the free tier's
+  // fifteen-minute sleep to "wrong email or password" — which is what a bug in
+  // the sign-in form looks like, and was not one. The declaration exists to
+  // permit the write; this is the other half of the same decision, and both
+  // halves are asserted: the notice reads the DEPLOYMENT'S judgement (so it is
+  // off on a real disk), and it is rendered on the account step where the
+  // password is typed (so it is not a footnote nowhere near the harm).
+  ok(onb.includes("storeDurability()") && /word === "ephemeral"/.test(onb) && onb.includes('t("onb.ephemeral")'),
+    "a demo store (accepted-ephemeral) tells the learner at the point of sign-up that the account will not survive a restart");
+  const ephAt = onb.indexOf('t("onb.ephemeral")');
+  const ephGuard = ephAt < 0 ? "" : onb.slice(Math.max(0, ephAt - 220), ephAt);
+  ok(ephGuard.includes("ephemeralStore &&") && ephGuard.includes('mode !== "guest"'),
+    `and only there, and only when the deployment reports it (guard ${ephGuard.includes("ephemeralStore &&") ? "present" : "MISSING"})`);
+  // WHERE THE ANSWER COMES FROM is part of the claim: the deployment's own
+  // judgement, through the ONE transport — not a `fetch` in a page (which is how
+  // a client module ends up with its own idea of a door) and not a guess from
+  // the hostname. And the probe must be unable to break the form it describes.
+  ok(client.includes("export async function storeDurability") && /catch \{\s*return "unknown";\s*\}/.test(client),
+    "the durability probe answers `unknown` on any failure, so it cannot block a sign-up");
+  ok(/export function deploymentHealth\(\)[\s\S]{0,120}\/api\/health/.test(fs.readFileSync("lib/api/client.ts", "utf8")),
+    "and it is an OPERATION on the shared client, so the page never names a door");
 }
 
 console.log("▸ A finished diagnostic is a change to where the learner belongs");
@@ -11141,6 +11331,18 @@ console.log("▸ Home: one day, one decision");
     "an unfinished session is offered as the concrete continue-where-you-left-off");
   ok(home.includes("<AssignmentsPanel"),
     "and work a teacher set is on Home with its deadline (nothing when none was set)");
+  // ── WHAT I OWE, BEFORE WHAT THE ENGINE RECOMMENDS ─────────────────────
+  //
+  // MEASURED against the products a UK learner already uses: Educake opens on
+  // the teacher-set quizzes with their due dates and one tap starts one; the EEF
+  // requires feedback to give a pupil a way to act on it. This page used to put
+  // the assignment panel at the FOOT, below the decision, the day and four
+  // counts, so homework due tomorrow was read last. The ordering IS the design
+  // decision, so it is asserted rather than trusted to a comment.
+  ok(home.indexOf("<AssignmentsPanel") < home.indexOf("<NextStep"),
+    "and it is read BEFORE the engine's recommendation — an obligation with a deadline outranks a suggestion");
+  ok(home.split("<AssignmentsPanel").length === 2,
+    "rendered once, so the same work is never listed twice on one page");
 
   // What was removed, and why: each of these is the same information once more,
   // or a number nobody can act on. Every one is reachable on its own page.

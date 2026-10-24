@@ -10,7 +10,8 @@ import {
 } from "@/lib/server/store";
 import { authorizeLearner } from "@/lib/server/capability";
 import { authorisedProfile } from "@/lib/server/auth";
-import { canAdminister, teacherCaller, teacherOfClass, teachingAccountOf } from "@/lib/server/authority";
+import { canAdminister, isTeachingRole, teacherCaller, teacherOfClass, teachingAccountOf } from "@/lib/server/authority";
+import { accountOwningProfile } from "@/lib/server/store";
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { freeHandle, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
 import {
@@ -58,7 +59,15 @@ export async function GET(req: Request): Promise<NextResponse> {
   if (id) {
     const cls = await getClass(id);
     if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
-    if (!isMemberOf(cls, me)) return NextResponse.json({ error: "not a member" }, { status: 403 });
+    // MEMBERSHIP OR ADMINISTRATION — the same pair the listing uses. A class no
+    // longer carries its teacher as a member (the creator is its OWNER), so a
+    // membership-only door would refuse the one person entitled to read every
+    // row of it: the teacher opening a student's evidence, or their own class by
+    // id. A learner's membership still buys exactly what it bought before —
+    // their own row, and never a peer's.
+    if (!isMemberOf(cls, me) && !(await canAdminister(cls, teaching?.id ?? null))) {
+      return NextResponse.json({ error: "not a member" }, { status: 403 });
+    }
     // ── ONE MEMBER'S EVIDENCE IS THE TEACHER'S TO READ, AND ONLY THEIRS ──────
     //
     // The roster is the class's own material: a member reads it, which is how
@@ -231,7 +240,6 @@ export async function POST(req: Request): Promise<NextResponse> {
         // `classes_join_code_live_key` unique index, and the same loop is where
         // that index's answer is honoured. See `newId`/`createClass` in
         // lib/server/store.ts, and F-4 of docs/STORAGE_SPEC.md §13.
-        const h = (teacher.profile.profile.handle ?? "teacher").slice(0, 24);
         const cls: ClassRoster = await createClass((joinCode) => ({
           id: newId("cls"),
           name: (body.name ?? "Untitled class").slice(0, 60),
@@ -241,11 +249,19 @@ export async function POST(req: Request): Promise<NextResponse> {
           conceptIds: (body.conceptIds ?? []).slice(0, 12),
           subject: body.subject as SubjectId | undefined,
           specificationId: course,
-          // The creator is the class's first member: they will read their own
-          // roster, and the plan engine needs their evidence like anyone's.
-          students: { [h]: {} },
-          membersById: { [h]: teacher.profileId },
-          members: [teacher.profileId],
+          // ── THE TEACHER IS NOT A MEMBER OF THEIR OWN CLASS ──────────────
+          //
+          // They used to be enrolled as the first student, which made one
+          // person both the roster's owner and a row on it. The live view hid
+          // the row again (class-view#resolveMembers) so the table looked
+          // right, but the RECORD said the teacher was a learner in their own
+          // class: `isMemberOf` answered yes, the listing counted them as a
+          // member before adding them as an administrator, and their evidence
+          // was read as a pupil's. A class is a roster of learners; the person
+          // who owns it is named by `ownerId`/`teacherAccountId`, which is a
+          // different fact and is where it belongs.
+          students: {},
+          members: [],
           createdAt: Date.now(),
           // WHOSE PROFILE the class belongs to (a display fact and the storage
           // key), and SEPARATELY the ACCOUNT that may administer it. Two fields
@@ -260,6 +276,25 @@ export async function POST(req: Request): Promise<NextResponse> {
         // The branch above only skips the capability check for teacher actions;
         // this one needs the caller's identity, and says so rather than asserting.
         if (!caller) return NextResponse.json({ error: "missing id" }, { status: 400 });
+        // ── ONE PERSON, ONE SIDE OF THE DESK ────────────────────────────────
+        //
+        // A teaching ACCOUNT may not join a class. The console used to offer
+        // both boxes side by side — "create a class" and "join a class" — for
+        // the same person, and the server took either: a teacher's own learner
+        // profile could join their colleague's class (or their own, by code), so
+        // one identity was simultaneously a class's administrator and a pupil on
+        // a roster. Every screen then had to answer "which one is this?" from a
+        // flat profile, and the product's answer to a person was "both".
+        //
+        // The rule is the ACCOUNT'S ROLE, not the shape of the request: a
+        // teaching account administers classes, a student account joins them.
+        // The refusal is named so an API client hears the reason rather than a
+        // generic 403 — and it is checked HERE rather than in the console, so a
+        // hidden button is not what enforces it.
+        const owner = await accountOwningProfile(caller.profile.id);
+        if (owner && isTeachingRole(owner.role)) {
+          return NextResponse.json({ error: "teacher_account_cannot_join" }, { status: 403 });
+        }
         const upd = await updateClassByCode(body.joinCode ?? "", (cls) => {
           // A HANDLE IS A LABEL, NOT A KEY INTO SOMEONE ELSE'S ROW.
           // This used to write `membersById[h] = caller` unconditionally, so two

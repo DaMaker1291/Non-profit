@@ -177,6 +177,24 @@ export interface SignUpInput {
   claimCurrent?: boolean;
 }
 
+/** HOW MUCH OF WHAT THIS SCREEN WRITES WILL BE HERE TOMORROW.
+ *
+ *  Asked of the deployment itself (`/api/health` → `lib/env.ts`) rather than
+ *  inferred from the URL or the host name: only the process knows what its
+ *  operator declared, and a second opinion about a filesystem is how a site
+ *  once reported "durable" while a canary learner vanished on the next deploy.
+ *
+ *  Never throws, and `unknown` on any failure. This is a disclosure a surface
+ *  may show; it must not be able to break the form it is describing.
+ */
+export async function storeDurability(): Promise<"durable" | "ephemeral" | "unknown"> {
+  try {
+    return (await api.deploymentHealth()).store.durability;
+  } catch {
+    return "unknown";
+  }
+}
+
 export async function signUp(input: SignUpInput): Promise<AccountSession> {
   const claim = input.claimCurrent ? currentGuestClaim() : null;
   try {

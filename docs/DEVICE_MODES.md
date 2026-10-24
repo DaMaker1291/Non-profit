@@ -16,6 +16,26 @@ that they do not borrow each other's credentials.
 | Hand-back | switch learner from the roster | not applicable | "Finish and hand back" on every page; **the server ends the session** |
 | Revocation | re-enrol / erase (see below) | sign out of the account | `POST /api/classes {action:"revoke"}` kills the PIN **and** its sessions |
 
+## One person, one side of the desk
+
+The two credentials in that table are not two modes of one person; they are two
+roles. A **teaching account** administers classes and is not a member of one: the
+class records its creator as `ownerId`/`teacherAccountId` and enrols nobody, and
+the join door refuses a teaching account by name (`teacher_account_cannot_join`,
+`app/api/classes/route.ts`). A **learner account** joins a class with its code and
+never creates one.
+
+This is a rule about the DOOR, not about a hidden button. The console used to
+offer "create a class" and "join a class" side by side to the same person, and
+the server accepted either, so one identity could be a class's administrator and
+a pupil on another class's roster at once — which left every screen downstream
+answering "which one is this?" from a flat profile, and the answer was "both".
+A class's roster is its learners; the person who owns it is a different fact
+(`ownerId`), and every door that used to ask "is this profile on the roster?" now
+asks "is this profile on the roster **or** the class's administrator?"
+(`GET /api/classes`, the per-member evidence read, and `GET /api/assignments`,
+whose listing began with membership alone).
+
 ## Classroom kiosk
 
 1. **The teacher provisions — from the class card.** `POST /api/classes

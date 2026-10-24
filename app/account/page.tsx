@@ -333,6 +333,26 @@ export default function AccountPage() {
               </>
             )}
 
+            {/* ── JOINING IS A LEARNER'S ACTION ──────────────────────────
+
+                This box was here for everybody, and a teaching account used it:
+                the same person who administers classes could also enrol in one
+                by code, so one identity was a class's teacher and a pupil on a
+                roster at the same time. The door refuses that now
+                (`teacher_account_cannot_join`) and the console no longer asks
+                for it, so the account page does not dangle a control whose
+                only possible answer is a refusal. A teacher's classes are on
+                the teaching console, which is a different job rather than a
+                different mode of this one. */}
+            {session.account.role !== "student" ? (
+              <>
+                <h3 style={{ marginTop: 24 }}>{t("nav.teach")}</h3>
+                <p className="small" style={{ marginTop: 4 }}>
+                  <Link href="/teacher">{t("teach.title")} →</Link>
+                </p>
+              </>
+            ) : (
+              <>
             <h3 style={{ marginTop: 24 }}>{t("acct.class")}</h3>
             <p className="small muted" style={{ marginTop: 4 }}>{t("acct.classNote")}</p>
             <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
@@ -352,6 +372,8 @@ export default function AccountPage() {
             </div>
             {joinedMsg && <p className="small marking good" style={{ padding: "8px 12px", marginTop: 10 }}><span className="mark" aria-hidden="true">✓</span> {joinedMsg}</p>}
             {joinErr && <p className="small marking bad" style={{ padding: "8px 12px", marginTop: 10 }}><span className="mark" aria-hidden="true">✗</span> {joinErr}</p>}
+              </>
+            )}
 
             <h3 style={{ marginTop: 24 }}>{t("acct.privacyTitle")}</h3>
             <p className="small muted" style={{ marginTop: 4 }}>{t("acct.privacyNote")}</p>

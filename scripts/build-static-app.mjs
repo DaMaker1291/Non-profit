@@ -566,8 +566,72 @@ self.addEventListener("fetch", (event) => {
   console.log("static-host marker: docs/.nojekyll (serve docs/ verbatim)");
 }
 
+// ── THE INSTALLABLE FACE OF THE TWIN ────────────────────────────────────────
+//
+// The static app has been OPENABLE offline since the worker landed, but it could
+// not be INSTALLED: there was no manifest and no icon, so a phone offered a
+// bookmark shortcut rather than an app — and a learner who has to keep visiting
+// a URL pays for the visit even though every byte of it is already on their
+// device.
+//
+// THE FILES ARE COPIED, NOT RE-DECLARED. `public/manifest.json` and
+// `public/icons/` are the ONE copy — the Next app serves exactly these — and
+// this build copies them into `docs/` because the twin is published on its own
+// from that directory. The list of icons comes from the MANIFEST ITSELF rather
+// than from a list here: a manifest that names an icon the build does not copy
+// is a broken install, and two lists is how that happens.
+//
+// They are deliberately NOT in the service worker's shell. The worker's cache
+// list is also its version key, so putting static files there would evict every
+// returning learner's cached engine when an icon is re-rendered. The icons are
+// read by the launcher at INSTALL time, not by the app at open time; the app
+// itself still opens offline with only the shell.
+const INSTALL_META = ["manifest.json", "icons/apple-touch-icon.png"];
+
+function installAssets() {
+  const manifest = JSON.parse(fs.readFileSync(path.join("public", "manifest.json"), "utf8"));
+  const fromManifest = (manifest.icons ?? []).map((i) => i.src);
+  return [...new Set([...INSTALL_META, ...fromManifest])];
+}
+
+function emitInstallAssets() {
+  const wanted = installAssets();
+  for (const rel of wanted) {
+    const src = path.join("public", rel);
+    if (!fs.existsSync(src)) {
+      throw new Error(
+        `install asset missing: ${src}. The manifest names it, so an install would fetch a 404 — ` +
+          "regenerate the icons with `node scripts/generate-app-icons.mjs`.",
+      );
+    }
+    const dest = path.join("docs", rel);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(src, dest);
+  }
+
+  // Sweep icons this build did not want, so a renamed or re-rendered icon cannot
+  // linger under its old URL for a launcher that cached it.
+  const iconDir = path.join("docs", "icons");
+  const keep = new Set(wanted.filter((r) => r.startsWith("icons/")).map((r) => path.basename(r)));
+  for (const f of fs.readdirSync(iconDir)) {
+    if (!keep.has(f)) fs.rmSync(path.join(iconDir, f), { force: true });
+  }
+
+  // The page and the manifest must agree about being installable, or a learner
+  // is offered an app that no browser will install. Checked here rather than
+  // trusted, because the head of index.html is hand-written.
+  const html = fs.readFileSync(path.join("docs", "index.html"), "utf8");
+  for (const needle of ['rel="manifest" href="manifest.json"', 'rel="apple-touch-icon"']) {
+    if (!html.includes(needle)) {
+      throw new Error(`docs/index.html does not declare ${needle} — the app would not be installable`);
+    }
+  }
+  console.log(`install assets: ${wanted.length} copied to docs/ (${wanted.join(", ")})`);
+}
+
 function main() {
   compile();
+  emitInstallAssets();
   const reachable = closure();
   const code = bundle(reachable);
   const kb = (Buffer.byteLength(code) / 1024).toFixed(1);

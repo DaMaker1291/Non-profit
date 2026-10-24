@@ -41,6 +41,9 @@
 # that starts is not a deployment that works:
 #   curl -fsS https://<app>.fly.dev/api/health     # liveness
 #   curl -fsS https://<app>.fly.dev/api/ready      # storage writable, config OK
+#   OPENMIND_BASE=https://<app>.fly.dev npm run verify:persistence -- --write
+#     (then `fly apps restart`, then `--verify`: the one measurement that can
+#      answer "does this disk survive a restart", because it outlives it)
 #   OPENMIND_BASE=https://<app>.fly.dev npm run smoke
 #   OPENMIND_BASE=https://<app>.fly.dev npm run verify:permissions
 #   OPENMIND_BASE=https://<app>.fly.dev npm run verify:sync
@@ -68,6 +71,16 @@ primary_region = "lhr"
   # The Dockerfile sets these too; repeated so this deployment's shape is
   # readable from one file. `PORT` must match `internal_port` below.
   OPENMIND_DATA_DIR = "/data"
+  # AND THAT THE PATH IS A DISK, which is a SEPARATE declaration and the one this
+  # file used to be missing. `OPENMIND_DATA_DIR` names a path; `lib/env.ts` refuses
+  # learner-record writes on a host that discards its filesystem (`FLY_APP_NAME` is
+  # one of the names it recognises) until the deployment says the path survives,
+  # and no statistic the process can take decides that — a container's own app
+  # directory is a mount of its own too. Without this line a deploy from this file
+  # came up 503 `durability_unknown` and refused every learner write, with the
+  # volume sitting there attached. The claim is only worth what the restart drill
+  # says, which is why it is in the sequence below.
+  OPENMIND_DATA_DIR_DURABLE = "1"
   PORT = "4173"
   # OPENMIND_DEPLOYMENT_ID is what `/api/health` reports, so you can tell which
   # artefact a learner was on. Set it per release — the commit SHA is the obvious

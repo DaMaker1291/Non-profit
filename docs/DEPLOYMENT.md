@@ -452,6 +452,20 @@ with volumes, or `OPENMIND_ALLOW_EPHEMERAL_STORE=1` and calling it a demo. The
 last of those is a legitimate answer — it is the one that keeps the public
 instance usable without anybody being told their history is safe.
 
+**…and a demo says so WHERE A LEARNER MAKES AN ACCOUNT, not only in this file.**
+That last option was measured being mistaken for a working deployment: an
+instance declared `OPENMIND_ALLOW_EPHEMERAL_STORE`, its store was `/tmp` inside
+the instance, the free tier slept after fifteen idle minutes, and the account made
+that morning came back as "wrong email or password" — which is what a bug in the
+sign-in form looks like and was not one. The permission to write on a host that
+discards its filesystem was declared; the disclosure was not.
+`app/onboarding/page.tsx` now asks the deployment for its own judgement
+(`storeDurability()` → `/api/health` → `lib/env.ts`) and, when it is
+`ephemeral`, prints `onb.ephemeral` on the account step beside the password
+field, in all fifteen dictionaries. A `durable` or `unknown` store prints
+nothing — it is a disclosure, never a banner — and the probe answers `unknown`
+rather than throwing, so it cannot be the reason a sign-up fails.
+
 **Publish readiness on the right endpoint.** Because a store the host discards
 is a `data_dir_not_durable` PROBLEM, `/api/ready` answers **503** on such a
 deployment while serving every request perfectly — which is the honest answer

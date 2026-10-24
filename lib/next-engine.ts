@@ -622,14 +622,50 @@ export function decideNext(
   // 7. REST — nothing due, nothing weak: honest completion, not a streak trap.
   if (out.length === 0) {
     if (snap.touched === 0) {
-      push({
-        kind: "EXPLAIN", conceptId: null,
-        title: t("next.title.startPoint"),
-        reason: t("next.reason.startPoint"),
-        evidence: t("next.ev.noEvidence"),
-        minutes: 3,
-      });
-      out[0].href = "/diagnostic/maths";
+      // ── A DIAGNOSTIC THAT MEASURED NOTHING IS NOT A REASON TO SIT IT AGAIN ──
+      //
+      // Measured on the live site, first-time learner, phone: enrol → curriculum
+      // → the baseline diagnostic → Home, which led with "Find your starting
+      // point — a 3-minute diagnostic maps what you actually know" and a button
+      // back into the sitting just finished. It is not a rare state: a learner
+      // who answers "I don't know" (the honest answer for the separation-of-
+      // variables question a 13-year-old is shown first) leaves no per-concept
+      // attempt behind, so `snap.touched` is 0 while `diagnostics` holds a
+      // COMPLETED run — and the two facts together used to resolve to "you have
+      // not been measured", forever. The learner could see the report saying
+      // it had measured nothing and then the Home card asking them to produce
+      // that report again; the only way out was to ignore the product's one
+      // recommendation and find the curriculum themselves.
+      //
+      // The honest next step for someone the diagnostic could not place is the
+      // FIRST idea of the course they chose, taught rather than tested: the
+      // concept their own subject order starts with. Nothing about the
+      // measurement is claimed — the card says the sitting did not place them,
+      // which is what the report in front of them already said.
+      const subj = state.profile.subjects[0] ?? "maths";
+      const measuredBefore = Object.keys(state.diagnostics ?? {}).some((k) => k.split(":")[0] === subj);
+      const first = measuredBefore ? bySubject(subj)[0] : undefined;
+      if (first) {
+        push({
+          kind: "EXPLAIN", conceptId: first.id,
+          title: `${t("next.title.begin")}: ${name(first.id)}`,
+          reason: fill(t("next.reason.begin"), { concept: name(first.id) }),
+          evidence: t("next.ev.noEvidence"),
+          minutes: 8,
+        });
+      } else {
+        push({
+          kind: "EXPLAIN", conceptId: null,
+          title: t("next.title.startPoint"),
+          reason: t("next.reason.startPoint"),
+          evidence: t("next.ev.noEvidence"),
+          minutes: 3,
+        });
+        // The diagnostic the card promises, in the learner's own subject — this
+        // was the literal "/diagnostic/maths" for every learner, so a physics
+        // student's "find your starting point" opened a maths sitting.
+        out[0].href = `/diagnostic/${subj}`;
+      }
     } else {
       push({ kind: "REST", conceptId: null, title: t("next.title.caughtUp"), reason: t("next.reason.rest"), evidence: `${snap.strong} ${t("next.ev.strong")} · ${snap.dueCount} ${t("next.ev.due")}`, minutes: 0 });
     }
@@ -691,6 +727,8 @@ export const EN_NEXT: Record<string, string> = {
   "next.reason.transfer": "Straightforward questions are solid — now the same idea in unfamiliar wording.",
   "next.reason.project": " concepts strong — apply them in a project.",
   "next.reason.startPoint": "A 3-minute diagnostic maps what you actually know.",
+  "next.title.begin": "Start at the beginning",
+  "next.reason.begin": "The diagnostic did not place you yet, so start with the first idea in your course: {concept}.",
   "next.reason.rest": "Nothing due. Rest — retrieval will resurface items on schedule.",
   "next.ev.attempts": "attempts", "next.ev.attemptsOne": "attempt", "next.ev.mastery": "mastery", "next.ev.sameSlip": "same slip",
   // Scaffolding demand as the LEDGER records it: answers that took help, not a

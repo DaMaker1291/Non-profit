@@ -1054,6 +1054,18 @@ ul.items .meta { font-size: var(--t0-82); color: var(--text-muted); white-space:
 
 </style>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232454d4'/%3E%3Cpath d='M16 6.5 25 24H7z' fill='none' stroke='white' stroke-width='2.4' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='19.5' r='2.1' fill='white'/%3E%3C/svg%3E">
+<!-- Installed, not bookmarked. See public/manifest.json: the same bytes are
+     served by the Next app, and scripts/build-static-app.mjs copies them here so
+     the offline twin installs to a home screen with the same icon and opens
+     without browser chrome. iOS ignores the manifest for its icon, so the
+     apple-touch-icon and the two capable/title meta tags are its half.
+     Everything is RELATIVE, because this directory is published under a subpath. -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="OpenMind">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
 <a class="sr-only" href="#view">Skip to content</a>
@@ -1533,6 +1545,7 @@ __def("api/client.js", function (module, exports, require) {
 // ─────────────────────────────────────────────────────────────────────────────
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ensureSecret = exports.EMPTY_SESSION = exports.ApiError = void 0;
+exports.deploymentHealth = deploymentHealth;
 exports.signUp = signUp;
 exports.signIn = signIn;
 exports.signOut = signOut;
@@ -1595,6 +1608,9 @@ const identity_1 = require("./identity");
 Object.defineProperty(exports, "ensureSecret", { enumerable: true, get: function () { return identity_1.ensureSecret; } });
 const kiosk_session_1 = require("../kiosk-session");
 exports.EMPTY_SESSION = { account: null, profile: null, secret: null };
+function deploymentHealth() {
+    return (0, transport_1.send)("/api/health");
+}
 function signUp(input) {
     return (0, transport_1.send)("/api/auth/signup", { method: "POST", body: { ...input } });
 }
@@ -7245,6 +7261,8 @@ const en = {
     "next.reason.transfer": "Straightforward questions are solid — now the same idea in unfamiliar wording.",
     "next.reason.project": " concepts strong — apply them in a project.",
     "next.reason.startPoint": "A 3-minute diagnostic maps what you actually know.",
+    "next.title.begin": "Start at the beginning",
+    "next.reason.begin": "The diagnostic did not place you yet, so start with the first idea in your course: {concept}.",
     "next.reason.rest": "Nothing due. Rest — retrieval will resurface items on schedule.",
     "next.ev.attempts": "attempts",
     "next.ev.mastery": "mastery",
@@ -8034,6 +8052,15 @@ const en = {
     "onb.errCreds": "Email or password is incorrect.",
     "onb.errName": "Please enter a name.",
     "onb.errTooMany": "Too many tries from this network. Wait a few minutes, then try again.",
+    // A DEPLOYMENT THAT KEEPS NOTHING SAYS SO BEFORE IT TAKES AN ACCOUNT. This is
+    // the "labelled" half of an accepted-ephemeral store: the operator declaring
+    // OPENMIND_ALLOW_EPHEMERAL_STORE is the app's permission to write on a host
+    // that discards its filesystem, and a learner who creates an account there is
+    // trusting it with something the instance is expected to lose on its next
+    // restart. Unlabelled, that trust is spent silently — and the symptom is
+    // exactly "my password stopped working", which is indistinguishable from a
+    // bug until somebody reads the host's disk.
+    "onb.ephemeral": "Demo deployment: this account is kept on this instance only, so it disappears when the instance restarts — signing in later will not find it.",
     "onb.errIngress": "Sign-in is not available from this connection — ask your school or network administrator.",
     "onb.signedInAs": "Signed in as",
     "onb.signOut": "Sign out",
@@ -8864,6 +8891,8 @@ const es = {
     "next.reason.transfer": "Las preguntas directas son sólidas — ahora la misma idea en formulación no familiar.",
     "next.reason.project": " conceptos fuertes — aplícalos en un proyecto.",
     "next.reason.startPoint": "Un diagnóstico de 3 minutos mapea lo que realmente sabes.",
+    "next.title.begin": "Empezar por el principio",
+    "next.reason.begin": "El diagnóstico aún no te ha situado, así que empieza por la primera idea de tu curso: {concept}.",
     "next.reason.rest": "Nada pendiente. Descansa — el repaso reprogramará los temas a tiempo.",
     "next.ev.attempts": "intentos",
     "next.ev.mastery": "dominio",
@@ -9545,6 +9574,7 @@ const es = {
     "onb.errCreds": "El correo o la contraseña no son correctos.",
     "onb.errName": "Escribe un nombre.",
     "onb.errTooMany": "Demasiados intentos desde esta red. Espera unos minutos e inténtalo de nuevo.",
+    "onb.ephemeral": "Despliegue de demostración: esta cuenta solo se guarda en esta instancia, así que desaparece cuando la instancia se reinicia; si vuelves a iniciar sesión más tarde, no la encontrarás.",
     "onb.errIngress": "No se puede iniciar sesión desde esta conexión; pregunta a tu centro o a tu administrador de red.",
     "onb.signedInAs": "Sesión iniciada como",
     "onb.signOut": "Cerrar sesión",
@@ -10376,6 +10406,8 @@ const fr = {
     "next.reason.transfer": "Les questions directes sont solides — maintenant la même idée sous un wording inédit.",
     "next.reason.project": " concepts solides — applique-les dans un projet.",
     "next.reason.startPoint": "Un diagnostic de 3 minutes cartographie ce que tu sais vraiment.",
+    "next.title.begin": "Commencer par le début",
+    "next.reason.begin": "Le diagnostic ne t’a pas encore situé : commence par la première idée de ton cours — {concept}.",
     "next.reason.rest": "Rien à faire. Repose-toi — la révision reviendra à temps.",
     "next.ev.attempts": "essais",
     "next.ev.mastery": "maîtrise",
@@ -11057,6 +11089,7 @@ const fr = {
     "onb.errCreds": "E-mail ou mot de passe incorrect.",
     "onb.errName": "Veuillez saisir un nom.",
     "onb.errTooMany": "Trop de tentatives depuis ce réseau. Attends quelques minutes, puis réessaie.",
+    "onb.ephemeral": "Déploiement de démonstration : ce compte n'est conservé que sur cette instance ; il disparaît lorsqu'elle redémarre, et la connexion ne le retrouvera pas plus tard.",
     "onb.errIngress": "La connexion n'est pas disponible depuis ce réseau — demande à ton établissement ou à ton administrateur réseau.",
     "onb.signedInAs": "Connecté en tant que",
     "onb.signOut": "Se déconnecter",
@@ -11888,6 +11921,8 @@ const pt = {
     "next.reason.transfer": "As questões diretas estão sólidas — agora a mesma ideia em formulação inédita.",
     "next.reason.project": " conceitos fortes — aplica-os num projeto.",
     "next.reason.startPoint": "Um diagnóstico de 3 minutos mapeia o que realmente sabes.",
+    "next.title.begin": "Começar pelo início",
+    "next.reason.begin": "O diagnóstico ainda não te situou, por isso começa pela primeira ideia do teu curso: {concept}.",
     "next.reason.rest": "Nada pendente. Descansa — a revisão voltará a tempo.",
     "next.ev.attempts": "tentativas",
     "next.ev.mastery": "domínio",
@@ -12569,6 +12604,7 @@ const pt = {
     "onb.errCreds": "E-mail ou senha incorretos.",
     "onb.errName": "Digite um nome.",
     "onb.errTooMany": "Demasiadas tentativas nesta rede. Espera alguns minutos e tenta de novo.",
+    "onb.ephemeral": "Implantação de demonstração: esta conta fica guardada apenas nesta instância, por isso desaparece quando a instância reinicia — mais tarde, entrar na conta não a vai encontrar.",
     "onb.errIngress": "Não é possível iniciar sessão a partir desta ligação — fala com a tua escola ou com o administrador da rede.",
     "onb.signedInAs": "Conectado como",
     "onb.signOut": "Sair",
@@ -13400,6 +13436,8 @@ const ar = {
     "next.reason.transfer": "الأسئلة المباشرة راسخة — الآن الفكرة نفسها بصياغة غير مألوفة.",
     "next.reason.project": " مفاهيم قوية — طبّقها في مشروع.",
     "next.reason.startPoint": "تشخيص من 3 دقائق يرسم ما تعرفه فعلًا.",
+    "next.title.begin": "ابدأ من البداية",
+    "next.reason.begin": "لم يحدد التشخيص مستواك بعد، فابدأ بالفكرة الأولى في مقررك: {concept}.",
     "next.reason.rest": "لا شيء مستحق. ارتح — الاسترجاع سيعيد الجدولة في وقته.",
     "next.ev.attempts": "محاولات",
     "next.ev.mastery": "إتقان",
@@ -14081,6 +14119,7 @@ const ar = {
     "onb.errCreds": "البريد أو كلمة المرور غير صحيحة.",
     "onb.errName": "أدخل اسمًا.",
     "onb.errTooMany": "محاولات كثيرة جدًا من هذه الشبكة. انتظر بضع دقائق ثم حاول مجددًا.",
+    "onb.ephemeral": "نشر تجريبي: يُحفظ هذا الحساب في هذه النسخة فقط، لذا يختفي عند إعادة تشغيلها — ولن يجد تسجيل الدخول لاحقًا هذا الحساب.",
     "onb.errIngress": "تسجيل الدخول غير متاح من هذا الاتصال — اسأل مدرستك أو مسؤول الشبكة.",
     "onb.signedInAs": "مسجل الدخول باسم",
     "onb.signOut": "تسجيل الخروج",
@@ -14912,6 +14951,8 @@ const sw = {
     "next.reason.transfer": "Maswali ya moja kwa moja ni imara — sasa wazo lile lile kwa uandishi mpya.",
     "next.reason.project": " dhana imara — zitumie katika mradi.",
     "next.reason.startPoint": "Uchunguzi wa dakika 3 unaonyesha unachojua kweli.",
+    "next.title.begin": "Anza mwanzo",
+    "next.reason.begin": "Utambuzi haujakupanga bado, kwa hiyo anza na wazo la kwanza katika kozi yako: {concept}.",
     "next.reason.rest": "Hakuna lililopunguza. Pumzika — kurudia kutakuja wakati wake.",
     "next.ev.attempts": "jaribio",
     "next.ev.mastery": "umahiri",
@@ -15593,6 +15634,7 @@ const sw = {
     "onb.errCreds": "Barua pepe au nenosiri si sahihi.",
     "onb.errName": "Tafadhali weka jina.",
     "onb.errTooMany": "Majaribio mengi mno kutoka mtandao huu. Subiri dakika chache, kisha ujaribu tena.",
+    "onb.ephemeral": "Utekelezaji wa onyesho: akaunti hii huhifadhiwa kwenye kipengele hiki tu, kwa hiyo hupotea kipengele kinapowashwa upya — ukiingia baadaye hutaipata.",
     "onb.errIngress": "Kuingia hakuwezekani kutoka mtandao huu — uliza shule yako au msimamizi wa mtandao.",
     "onb.signedInAs": "Umeingia kama",
     "onb.signOut": "Toka",
@@ -16424,6 +16466,8 @@ const hi = {
     "next.reason.transfer": "सीधे प्रश्न मज़बूत हैं — अब वही विचार अपरिचित शब्दों में।",
     "next.reason.project": " विचार मज़बूत — उन्हें प्रोजेक्ट में लगाएँ।",
     "next.reason.startPoint": "3 मिनट का निदान बताता है आप वास्तव में क्या जानते हैं।",
+    "next.title.begin": "शुरुआत से शुरू करें",
+    "next.reason.begin": "निदान ने अभी आपको स्थान नहीं दिया है, इसलिए अपने पाठ्यक्रम के पहले विचार से शुरू करें: {concept}.",
     "next.reason.rest": "कुछ बाकी नहीं। आराम करें — पुनरावृत्ति समय पर लौटेगी।",
     "next.ev.attempts": "प्रयास",
     "next.ev.mastery": "दक्षता",
@@ -17105,6 +17149,7 @@ const hi = {
     "onb.errCreds": "ईमेल या पासवर्ड गलत है।",
     "onb.errName": "कृपया नाम दर्ज करें।",
     "onb.errTooMany": "इस नेटवर्क से बहुत ज़्यादा कोशिशें। कुछ मिनट रुककर फिर कोशिश करें।",
+    "onb.ephemeral": "डेमो परिनियोजन: यह खाता केवल इसी इंस्टेंस पर रखा जाता है, इसलिए इंस्टेंस के फिर से शुरू होने पर यह मिट जाता है — बाद में साइन इन करने पर यह नहीं मिलेगा।",
     "onb.errIngress": "इस कनेक्शन से साइन इन उपलब्ध नहीं है — अपने स्कूल या नेटवर्क व्यवस्थापक से पूछें।",
     "onb.signedInAs": "इस रूप में साइन इन:",
     "onb.signOut": "साइन आउट",
@@ -17937,6 +17982,8 @@ const id = {
     "next.reason.transfer": "Soal langsung sudah kuat — kini ide yang sama dalam susunan kata baru.",
     "next.reason.project": " konsep kuat — terapkan dalam sebuah proyek.",
     "next.reason.startPoint": "Diagnostik 3 menit memetakan apa yang benar-benar kamu ketahui.",
+    "next.title.begin": "Mulai dari awal",
+    "next.reason.begin": "Diagnostik belum menempatkanmu, jadi mulailah dari gagasan pertama di kursusmu: {concept}.",
     "next.reason.rest": "Tidak ada yang jatuh tempo. Istirahat — pengulangan akan kembali tepat waktu.",
     "next.ev.attempts": "percobaan",
     "next.ev.mastery": "penguasaan",
@@ -18617,6 +18664,7 @@ const id = {
     "onb.errCreds": "Email atau kata sandi salah.",
     "onb.errName": "Masukkan nama.",
     "onb.errTooMany": "Terlalu banyak percobaan dari jaringan ini. Tunggu beberapa menit, lalu coba lagi.",
+    "onb.ephemeral": "Penerapan demo: akun ini hanya disimpan pada instans ini, jadi akun ini hilang saat instans dimulai ulang — masuk lagi nanti tidak akan menemukannya.",
     "onb.errIngress": "Masuk tidak tersedia dari koneksi ini — tanyakan ke sekolah atau admin jaringanmu.",
     "onb.signedInAs": "Masuk sebagai",
     "onb.signOut": "Keluar",
@@ -19449,6 +19497,8 @@ const tl = {
     "next.reason.transfer": "Matibay na ang direkta — ngayon ang ideyang iyon sa bagong ayos ng salita.",
     "next.reason.project": " konseptong matibay — gamitin sa isang proyekto.",
     "next.reason.startPoint": "3-minutong diagnostic ang nagmamapa ng talagang alam mo.",
+    "next.title.begin": "Magsimula sa simula",
+    "next.reason.begin": "Hindi ka pa naiaayos ng diagnostic, kaya magsimula sa unang ideya sa iyong kurso: {concept}.",
     "next.reason.rest": "Walang nakakansela. Magpahinga — babalik ang pagbabalik-aral sa takdang oras.",
     "next.ev.attempts": "pagsusumikap",
     "next.ev.mastery": "kasanayan",
@@ -20129,6 +20179,7 @@ const tl = {
     "onb.errCreds": "Mali ang email o password.",
     "onb.errName": "Maglagay ng pangalan.",
     "onb.errTooMany": "Masyadong maraming pagsubok mula sa network na ito. Maghintay ng ilang minuto, pagkatapos subukan muli.",
+    "onb.ephemeral": "Demo deployment: ang account na ito ay nakaimbak lamang sa instance na ito, kaya nawawala ito kapag nag-restart ang instance — hindi na ito mahahanap kapag nag-sign in muli.",
     "onb.errIngress": "Hindi available ang pag-sign in mula sa koneksyong ito — tanungin ang iyong paaralan o network administrator.",
     "onb.signedInAs": "Naka-sign in bilang",
     "onb.signOut": "Mag-sign out",
@@ -20962,6 +21013,8 @@ const de = {
     "next.reason.transfer": "Einfache Aufgaben sitzen — jetzt dieselbe Idee in neuer Formulierung.",
     "next.reason.project": " Konzepte stark — wende sie in einem Projekt an.",
     "next.reason.startPoint": "Ein 3-Minuten-Diagnostik kartiert, was du wirklich kannst.",
+    "next.title.begin": "Von vorne beginnen",
+    "next.reason.begin": "Die Diagnose hat dich noch nicht eingeordnet — beginne mit der ersten Idee in deinem Kurs: {concept}.",
     "next.reason.rest": "Nichts fällig. Ruhe — die Wiederholung kommt rechtzeitig zurück.",
     "next.ev.attempts": "Versuche",
     "next.ev.mastery": "Beherrschung",
@@ -21701,6 +21754,7 @@ const de = {
     "onb.errCreds": "E-Mail oder Passwort ist falsch.",
     "onb.errName": "Bitte gib einen Namen ein.",
     "onb.errTooMany": "Zu viele Versuche aus diesem Netzwerk. Warte ein paar Minuten und versuche es dann erneut.",
+    "onb.ephemeral": "Demo-Bereitstellung: Dieses Konto wird nur auf dieser Instanz gespeichert und verschwindet, sobald die Instanz neu startet — eine spätere Anmeldung findet es nicht mehr.",
     "onb.errIngress": "Anmeldung ist über diese Verbindung nicht möglich — wende dich an deine Schule oder deine Netzwerkverwaltung.",
     "onb.signedInAs": "Angemeldet als",
     "onb.signOut": "Abmelden",
@@ -22533,6 +22587,8 @@ const ja = {
     "next.reason.transfer": "基本問題は固い — 今度は同じ考えを初見の言葉で。",
     "next.reason.project": " 個の概念が固い — プロジェクトで活かしましょう。",
     "next.reason.startPoint": "3分の診断があなたの理解を可視化します。",
+    "next.title.begin": "最初から始める",
+    "next.reason.begin": "診断ではまだ位置づけができていません。コースの最初の考えから始めましょう：{concept}。",
     "next.reason.rest": "やることはありません。休みましょう — 復習は予定通り戻ります。",
     "next.ev.attempts": "回の挑戦",
     "next.ev.mastery": "習熟",
@@ -23272,6 +23328,7 @@ const ja = {
     "onb.errCreds": "メールかパスワードが違います。",
     "onb.errName": "名前を入力してください。",
     "onb.errTooMany": "このネットワークからの試行が多すぎます。数分待ってからもう一度お試しください。",
+    "onb.ephemeral": "デモ環境：このアカウントはこのインスタンス内にのみ保存されるため、インスタンスが再起動すると消えます。あとでサインインしても見つかりません。",
     "onb.errIngress": "この接続からはサインインできません。学校またはネットワーク管理者に問い合わせてください。",
     "onb.signedInAs": "ログイン中:",
     "onb.signOut": "ログアウト",
@@ -24104,6 +24161,8 @@ const zh = {
     "next.reason.transfer": "直接题已扎实——现在用陌生的表述考同一个想法。",
     "next.reason.project": " 个概念已扎实——在项目里运用它们。",
     "next.reason.startPoint": "3分钟诊断会画出你真实掌握的地图。",
+    "next.title.begin": "从头开始",
+    "next.reason.begin": "诊断还没有给你定位，先从课程里的第一个概念开始：{concept}。",
     "next.reason.rest": "没有到期的任务。休息——复习会按时回来。",
     "next.ev.attempts": "次尝试",
     "next.ev.mastery": "掌握度",
@@ -24753,6 +24812,7 @@ const zh = {
     "onb.errCreds": "邮箱或密码不正确。",
     "onb.errName": "请输入姓名。",
     "onb.errTooMany": "来自此网络的尝试次数过多。请等待几分钟后再试。",
+    "onb.ephemeral": "演示部署：此账号只保存在当前实例上，实例重启后即会消失，之后登录将找不到它。",
     "onb.errIngress": "此连接无法登录——请联系你的学校或网络管理员。",
     "onb.signedInAs": "已登录为",
     "onb.signOut": "退出登录",
@@ -25585,6 +25645,8 @@ const fa = {
     "next.reason.transfer": "سؤال‌های ساده محکم‌اند — حالا همان ایده در قالبی ناآشنا.",
     "next.reason.project": " مفهوم محکم — در یک پروژه به کار بگیر.",
     "next.reason.startPoint": "تشخیص ۳ دقیقه‌ای نقشه دانسته‌های واقعی‌ات را می‌کشد.",
+    "next.title.begin": "از آغاز شروع کن",
+    "next.reason.begin": "ارزیابی هنوز جایگاه تو را مشخص نکرده است، پس با نخستین مفهوم درس خود شروع کن: {concept}.",
     "next.reason.rest": "چیزی نمانده. استراحت — مرور سر وقت برمی‌گردد.",
     "next.ev.attempts": "تلاش",
     "next.ev.mastery": "تسلط",
@@ -26234,6 +26296,7 @@ const fa = {
     "onb.errCreds": "ایمیل یا گذرواژه نادرست است.",
     "onb.errName": "نامی وارد کنید.",
     "onb.errTooMany": "تلاش‌های بیش از حد از این شبکه. چند دقیقه صبر کنید و دوباره تلاش کنید.",
+    "onb.ephemeral": "استقرار نمایشی: این حساب فقط روی همین نمونه نگهداری می‌شود، پس با راه‌اندازی دوبارهٔ نمونه از بین می‌رود — ورود بعدی آن را پیدا نمی‌کند.",
     "onb.errIngress": "ورود از این اتصال ممکن نیست — از مدرسه یا مدیر شبکه بپرسید.",
     "onb.signedInAs": "وارد شده به‌عنوان",
     "onb.signOut": "خروج",
@@ -27066,6 +27129,8 @@ const ur = {
     "next.reason.transfer": "سیدھے سوالات مضبوط ہیں — اب وہی تصور غیر واقف انداز میں۔",
     "next.reason.project": " تصورات مضبوط — انہیں منصوبے میں لگائیں۔",
     "next.reason.startPoint": "3 منٹ کا جائزہ بتاتا ہے آپ واقعی کیا جانتے ہیں۔",
+    "next.title.begin": "شروع سے آغاز کریں",
+    "next.reason.begin": "تشخیص نے ابھی آپ کی جگہ متعین نہیں کی، اس لیے اپنے کورس کے پہلے تصور سے شروع کریں: {concept}.",
     "next.reason.rest": "کچھ باقی نہیں۔ آرام کریں — دہرائیں وقت پر لوٹے گی۔",
     "next.ev.attempts": "کوششیں",
     "next.ev.mastery": "مہارت",
@@ -27715,6 +27780,7 @@ const ur = {
     "onb.errCreds": "ای میل یا پاس ورڈ غلط ہے۔",
     "onb.errName": "براہ کرم نام لکھیں۔",
     "onb.errTooMany": "اس نیٹ ورک سے بہت زیادہ کوششیں۔ چند منٹ انتظار کریں، پھر دوبارہ کوشش کریں۔",
+    "onb.ephemeral": "ڈیمو تعیناتی: یہ اکاؤنٹ صرف اسی انسٹینس پر محفوظ ہے، اس لیے انسٹینس دوبارہ شروع ہونے پر یہ ختم ہو جاتا ہے — بعد میں سائن اِن کرنے پر یہ نہیں ملے گا۔",
     "onb.errIngress": "اس کنکشن سے سائن ان دستیاب نہیں — اپنے اسکول یا نیٹ ورک ایڈمنسٹر سے پوچھیں۔",
     "onb.signedInAs": "بطور سائن ان",
     "onb.signOut": "سائن آؤٹ",
@@ -28574,6 +28640,8 @@ exports.bn = {
     "next.reason.transfer": "সরাসরি প্রশ্ন শক্ত — এবার একই ধারণা অপরিচিত ভঙ্গিতে।",
     "next.reason.project": " টি ধারণা শক্ত — প্রকল্পে প্রয়োগ করুন।",
     "next.reason.startPoint": "৩ মিনিটের রোগনির্ণয় আপনি আসলে কী জানেন তা দেখায়।",
+    "next.title.begin": "শুরু থেকে শুরু করুন",
+    "next.reason.begin": "রোগনির্ণয় এখনও আপনাকে স্থাপন করেনি, তাই আপনার কোর্সের প্রথম ধারণা দিয়ে শুরু করুন: {concept}.",
     "next.reason.rest": "কিছু বাকি নেই। বিশ্রাম নিন — পুনরালোচনা সময়মতো ফিরবে।",
     "next.ev.attempts": "প্রচেষ্টা",
     "next.ev.mastery": "দখল",
@@ -29278,6 +29346,7 @@ exports.bn = {
     "onb.errCreds": "ইমেইল বা পাসওয়ার্ড ভুল।",
     "onb.errName": "একটি নাম লিখুন।",
     "onb.errTooMany": "এই নেটওয়ার্ক থেকে অনেকবার চেষ্টা হয়েছে। কয়েক মিনিট অপেক্ষা করে আবার চেষ্টা করুন।",
+    "onb.ephemeral": "ডেমো ডিপ্লয়মেন্ট: এই অ্যাকাউন্ট শুধু এই ইনস্ট্যান্সেই রাখা হয়, তাই ইনস্ট্যান্স পুনরায় চালু হলে এটি মুছে যায় — পরে সাইন ইন করলে এটি পাওয়া যাবে না।",
     "onb.errIngress": "এই সংযোগ থেকে সাইন ইন করা যাচ্ছে না — আপনার স্কুল বা নেটওয়ার্ক প্রশাসককে জিজ্ঞাসা করুন।",
     "onb.signedInAs": "সাইন ইন করা আছে",
     "onb.signOut": "সাইন আউট",
@@ -32447,14 +32516,51 @@ function decideNext(state, max = 4, tt, title, now = Date.now(), evidence) {
     // 7. REST — nothing due, nothing weak: honest completion, not a streak trap.
     if (out.length === 0) {
         if (snap.touched === 0) {
-            push({
-                kind: "EXPLAIN", conceptId: null,
-                title: t("next.title.startPoint"),
-                reason: t("next.reason.startPoint"),
-                evidence: t("next.ev.noEvidence"),
-                minutes: 3,
-            });
-            out[0].href = "/diagnostic/maths";
+            // ── A DIAGNOSTIC THAT MEASURED NOTHING IS NOT A REASON TO SIT IT AGAIN ──
+            //
+            // Measured on the live site, first-time learner, phone: enrol → curriculum
+            // → the baseline diagnostic → Home, which led with "Find your starting
+            // point — a 3-minute diagnostic maps what you actually know" and a button
+            // back into the sitting just finished. It is not a rare state: a learner
+            // who answers "I don't know" (the honest answer for the separation-of-
+            // variables question a 13-year-old is shown first) leaves no per-concept
+            // attempt behind, so `snap.touched` is 0 while `diagnostics` holds a
+            // COMPLETED run — and the two facts together used to resolve to "you have
+            // not been measured", forever. The learner could see the report saying
+            // it had measured nothing and then the Home card asking them to produce
+            // that report again; the only way out was to ignore the product's one
+            // recommendation and find the curriculum themselves.
+            //
+            // The honest next step for someone the diagnostic could not place is the
+            // FIRST idea of the course they chose, taught rather than tested: the
+            // concept their own subject order starts with. Nothing about the
+            // measurement is claimed — the card says the sitting did not place them,
+            // which is what the report in front of them already said.
+            const subj = state.profile.subjects[0] ?? "maths";
+            const measuredBefore = Object.keys(state.diagnostics ?? {}).some((k) => k.split(":")[0] === subj);
+            const first = measuredBefore ? (0, genome_1.bySubject)(subj)[0] : undefined;
+            if (first) {
+                push({
+                    kind: "EXPLAIN", conceptId: first.id,
+                    title: `${t("next.title.begin")}: ${name(first.id)}`,
+                    reason: (0, i18n_1.fill)(t("next.reason.begin"), { concept: name(first.id) }),
+                    evidence: t("next.ev.noEvidence"),
+                    minutes: 8,
+                });
+            }
+            else {
+                push({
+                    kind: "EXPLAIN", conceptId: null,
+                    title: t("next.title.startPoint"),
+                    reason: t("next.reason.startPoint"),
+                    evidence: t("next.ev.noEvidence"),
+                    minutes: 3,
+                });
+                // The diagnostic the card promises, in the learner's own subject — this
+                // was the literal "/diagnostic/maths" for every learner, so a physics
+                // student's "find your starting point" opened a maths sitting.
+                out[0].href = `/diagnostic/${subj}`;
+            }
         }
         else {
             push({ kind: "REST", conceptId: null, title: t("next.title.caughtUp"), reason: t("next.reason.rest"), evidence: `${snap.strong} ${t("next.ev.strong")} · ${snap.dueCount} ${t("next.ev.due")}`, minutes: 0 });
@@ -32516,6 +32622,8 @@ exports.EN_NEXT = {
     "next.reason.transfer": "Straightforward questions are solid — now the same idea in unfamiliar wording.",
     "next.reason.project": " concepts strong — apply them in a project.",
     "next.reason.startPoint": "A 3-minute diagnostic maps what you actually know.",
+    "next.title.begin": "Start at the beginning",
+    "next.reason.begin": "The diagnostic did not place you yet, so start with the first idea in your course: {concept}.",
     "next.reason.rest": "Nothing due. Rest — retrieval will resurface items on schedule.",
     "next.ev.attempts": "attempts", "next.ev.attemptsOne": "attempt", "next.ev.mastery": "mastery", "next.ev.sameSlip": "same slip",
     // Scaffolding demand as the LEDGER records it: answers that took help, not a

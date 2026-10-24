@@ -80,8 +80,8 @@ export default function TeacherPage() {
   // Optional: "whole subject" is the ordinary case for a class that is not
   // teaching towards one paper.
   const [course, setCourse] = useState<string>("");
-  const [joinCode, setJoinCode] = useState("");
   const [notice, setNotice] = useState("");
+
   const [err, setErr] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
   // Assignments: what each owned class may be set (server-computed), and the
@@ -103,6 +103,38 @@ export default function TeacherPage() {
   // this child demonstrate?", and two of them open at once is a dashboard
   // again — the thing this page was reorganised out of.
   const [openStudent, setOpenStudent] = useState<Record<string, string | null>>({});
+
+  // ── ONE CLASS AT A TIME, CHOSEN FROM A LIST ────────────────
+  //
+  // THE COMPLAINT THIS ANSWERS, measured: this page rendered EVERY class it
+  // knew, each with its roster, its misconception table, its learning needs,
+  // its work panel and its week — so a teacher with four classes read one page
+  // of about eleven screens, and the thing they came for (one class, today) was
+  // somewhere in it. The pattern the good classroom products use is the one a
+  // person already expects: a LIST of classes, then ONE class opened, with its
+  // jobs behind tabs. Nothing here is a new feature; it is the same panels, with
+  // the page answering "which class?" before "what about it?".
+  //
+  // THE SELECTION IS THE URL HASH, not a state flag, so the browser's back
+  // button leaves a class, a link to `#class-<id>` still opens that class (the
+  // attention rows below link that way), and a refresh keeps the teacher where
+  // they were. `#classes` is the index, and unknown hashes are the index too.
+  const [openClassId, setOpenClassId] = useState<string | null>(null);
+  const [tab, setTab] = useState<"roster" | "work" | "plan">("roster");
+  const [creating, setCreating] = useState(false);
+  useEffect(() => {
+    const read = (): void => {
+      const m = /^#class-(.+)$/.exec(window.location.hash);
+      setOpenClassId(m ? decodeURIComponent(m[1]) : null);
+    };
+    read();
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
+  }, []);
+  // A class opens on its roster. Carrying the last tab across classes is how a
+  // teacher looking at one class's week lands on another class's week without
+  // asking for it.
+  useEffect(() => { setTab("roster"); }, [openClassId]);
 
   // A NEED HANDED TO THE BUILDER (§8). A finding the teacher chose to act on
   // opens the class's own work panel — the SAME four steps, pre-populated with
@@ -167,10 +199,17 @@ export default function TeacherPage() {
         action: "create", id: meId(), name: name.trim(), subject,
         specificationId: course || null, handle: state?.profile.handle ?? "teacher",
       });
+      const made = j.cls as ClassRoster;
       setName("");
       setSubject("");
       setCourse("");
-      setNotice(`${t("teach.invite")}: ${(j.cls as ClassRoster).joinCode}`);
+      setNotice(`${t("teach.invite")}: ${made.joinCode}`);
+      // CREATING A CLASS LANDS YOU IN IT. The first thing a teacher does with a
+      // new class is enrol it, and the credentials are on the class — leaving
+      // them on an index with a toast that names a code they cannot act on is
+      // one screen of dead end.
+      setCreating(false);
+      window.location.hash = `#class-${made.id}`;
     } catch (e) {
       setErr(e instanceof ApiError ? courseErrText(e.code, e.status) : t("common.error"));
       return;
@@ -240,29 +279,16 @@ export default function TeacherPage() {
     await refreshWork();
   }
 
-  async function join() {
-    setErr("");
-    setNotice("");
-    try {
-      await api.classAction({ action: "join", id: meId(), joinCode, handle: state?.profile.handle });
-    } catch (e) {
-      setErr(e instanceof ApiError && e.code
-        ? e.code
-        : (joinCode ? `${joinCode} — ${t("common.error").toLowerCase()}` : t("common.error")));
-      return;
-    }
-    // report current mastery snapshot for the roster
-    if (state) {
-      const mastery: Record<string, number> = {};
-      for (const [cid, p] of Object.entries(state.progress)) mastery[cid] = p.mastery;
-      await api.classAction({
-        action: "report", id: meId(), joinCode,
-        handle: state.profile.handle, conceptMastery: mastery,
-      }).catch(() => { /* the roster report is a bonus; joining already happened */ });
-    }
-    setNotice(`${joinCode.toUpperCase()} ✓`);
-    void refresh();
-  }
+  // ── THERE IS NO "JOIN A CLASS" ON THIS PAGE, ON PURPOSE ────────────────
+  //
+  // It used to sit beside "create a class", offering one person both halves of
+  // the same question. A teacher's account administers classes; a learner's
+  // joins them; the door (`POST /api/classes {action:"join"}`) refuses a
+  // teaching account by name (`teacher_account_cannot_join`), so removing the
+  // box is not what enforces the rule — it is what stops the console from
+  // ASKING for something the server will not do. A person who wants to be in a
+  // class as a learner uses a learner account, which is a different side of the
+  // desk rather than a second mode of one.
 
   // ── A TEACHER WITH NO PROFILE GETS A DOOR, NOT A PAGE OF DEAD CONTROLS ──
   //
@@ -323,33 +349,49 @@ export default function TeacherPage() {
     );
   }
 
+  /** How many things wait on the teacher in one class: the same intervention
+   *  rows the class's work panel lists, counted so the index can say WHICH
+   *  class to open without opening any of them. */
+  const needsOf = (clsId: string): number =>
+    monitor.filter((m) => m.assignment.clsId === clsId).reduce((n, m) => n + m.interventions.length, 0);
+
   return (
     <main className="container" style={{ paddingTop: 36 }}>
-      <p className="eyebrow">{t("teach.title")}</p>
-      <h1 className="visually-small">{t("teach.title")}</h1>
-      <p className="lead">{t("teach.sub")}</p>
+      {openClassId ? (
+        // ── ONE CLASS, OPENED FROM THE LIST ────────────────────────────────
+        //
+        // The way back is the LIST, and it is a link rather than a button so
+        // the browser's own history keeps working: opening a class is a hash
+        // change (`#class-<id>`), so Back leaves the class, Forward returns to
+        // it, and a link to one class still opens that class — which is what
+        // the attention rows below have always used.
+        <a className="small" href="#classes" style={{ display: "inline-block", marginBottom: 6 }}>
+          ← {t("teach.title")}
+        </a>
+      ) : (
+        <>
+          <p className="eyebrow">{t("teach.title")}</p>
+          <h1 className="visually-small">{t("teach.title")}</h1>
+          <p className="lead">{t("teach.sub")}</p>
 
-      {/* ── TODAY, BEFORE THE TOOLS THAT ACT ON IT (§teacher home) ─────────
+          {/* ── TODAY, BEFORE THE TOOLS THAT ACT ON IT (§teacher home) ─────
 
-          The page opened on a control panel: create a class, join a class, then
-          every class read in full. A teacher arriving with one question — what
-          needs me? — had to read all of it to find out. This answers that
-          question first and points at the panel that fixes it.
+              The page opened on a control panel: create a class, then every
+              class read in full. A teacher arriving with one question — what
+              needs me? — had to read all of it to find out. This answers that
+              question first and points at the class that fixes it.
 
-          RENDERED ONLY ON A GOOD READ. A failed read has its own state below
-          (components/states.tsx, with Retry), and an action centre that said
-          "nothing is waiting" because the class list did not load would be a
-          failed request dressed as good news — on the one screen whose job is
-          to say who needs help. When it cannot be read, it is absent and the
-          error says why. */}
-      {!loading && !readErr.classes && !readErr.work && (
-        <TeacherHome classes={classes} monitors={monitor} />
+              RENDERED ONLY ON A GOOD READ. A failed read has its own state
+              below (components/states.tsx, with Retry), and an action centre
+              that said "nothing is waiting" because the class list did not load
+              would be a failed request dressed as good news — on the one screen
+              whose job is to say who needs help. When it cannot be read, it is
+              absent and the error says why. */}
+          {!loading && !readErr.classes && !readErr.work && (
+            <TeacherHome classes={classes} monitors={monitor} />
+          )}
+        </>
       )}
-
-      <div style={{ marginTop: 16 }}>
-        <HubStatus />
-        <p className="small muted"><Link href="/hub">{t("teach.hubView")} →</Link></p>
-      </div>
 
       {notice && <div className="alert" style={{ marginTop: 16 }}>{t("teach.invite")}: <b className="mono">{notice.split(": ").pop()}</b></div>}
       {err && <div className="feedback no" style={{ marginTop: 16 }}><span className="verdict">✗</span>{err}</div>}
@@ -362,75 +404,112 @@ export default function TeacherPage() {
         </div>
       )}
 
-      <div className="grid cols2" style={{ marginTop: 22, marginBottom: 22 }}>
-        <div className="card">
-          <p className="eyebrow"><span className="no">＋</span> {t("teach.createClass")}</p>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <input type="text" placeholder={t("teach.name")} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} />
-            {/* The subject is a real choice, not a default: work is assigned
-                from the curriculum the class declares, so the declaration is
-                made where the class is made. */}
-            <select value={subject} onChange={(e) => { setSubject(e.target.value as SubjectId | ""); setCourse(""); }} aria-label={t("teach.pickSubject")}>
-              <option value="">{t("teach.pickSubject")}</option>
-              {SUBJECT_IDS.map((s) => <option key={s} value={s}>{t(SUBJECT_LABELS[s])}</option>)}
-            </select>
-            {/* The qualification sits BESIDE the subject, not instead of it: a
-                class is one subject taught towards one paper, or towards none. */}
-            <CoursePicker
-              country={state?.profile.country ?? ""}
-              subject={subject || null}
-              value={course}
-              onChange={setCourse}
-              label={t("teach.pickCourse")}
-            />
-            <button className="btn" onClick={create} disabled={!name.trim() || !subject}>{t("teach.createClass")}</button>
-          </div>
-          <p className="muted small" style={{ marginBottom: 0 }}>
-            {t("teach.createHint")}
-          </p>
-        </div>
-        <div className="card">
-          {/* The heading names the ACTION, not the result. It used to read
-              "Class roster" over a code-entry box, which is what a teacher
-              would take as "my class list" — and the list is the table below,
-              where the label now sits. */}
-          <p className="eyebrow"><span className="no">→</span> {t("acct.class")}</p>
-          <div style={{ display: "flex", gap: 10 }}>
-            <input type="text" placeholder="ABC123" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase())} maxLength={6} className="mono" />
-            <button className="btn ghost" onClick={join}>{t("rooms.join")}</button>
-          </div>
-          <p className="muted small" style={{ marginBottom: 0 }}>
-            {t("teach.joinHint")}
-          </p>
-        </div>
-      </div>
-
-      {/* MY CLASSES: the index first (§teacher home). A teacher with five
-          classes needs to see all five and their size before reading any one of
-          them in detail, so the list is a row of cards that jump to the class
-          below — not a second copy of the dashboard. Rendered only when there
-          is more than one class to choose between. */}
-      {loading ? (
-        <div style={{ marginBottom: "var(--s3)" }}>
+      {loading && (
+        <div style={{ marginTop: 20, marginBottom: "var(--s3)" }}>
           <Loading lines={3} />
         </div>
-      ) : null}
-
-      {!loading && classes.length > 1 && (
-        <section style={{ marginBottom: "var(--s3)" }} aria-label={t("teach.title")}>
-          <p className="eyebrow"><span className="no">≡</span> {t("teach.title")}</p>
-          <div className="grid cols3">
-            {classes.map((cls) => (
-              <a key={cls.id} href={`#class-${cls.id}`} className="class-card">
-                <b>{cls.name}</b>
-                <span className="class-sub">{Object.keys(cls.students).length} {t(Object.keys(cls.students).length === 1 ? "teach.studentsOne" : "teach.students")}</span>
-              </a>
-            ))}
-          </div>
-        </section>
       )}
 
-      {!loading && classes.map((cls) => {
+      {/* ── THE INDEX: CLASSES, AND THE ONE ACTION THAT MAKES ONE ─────────
+
+          A LIST, then a class. This is the shape the classroom products people
+          already use have, and it is the shape the page's own content asks
+          for: "which class?" is a question with four answers, and it used to
+          be answered by rendering all four in full, one under another.
+
+          THE CREATE FORM IS BEHIND ONE BUTTON, except for a teacher with no
+          classes at all — for whom the form IS the page, and opening it would
+          be a click with only one possible answer. */}
+      {!openClassId && !loading && (
+        <>
+          <div className="card" style={{ marginTop: 20 }}>
+            <p className="eyebrow"><span className="no">＋</span> {t("teach.createClass")}</p>
+            {creating || classes.length === 0 ? (
+              <>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <input type="text" placeholder={t("teach.name")} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} />
+                  {/* The subject is a real choice, not a default: work is
+                      assigned from the curriculum the class declares, so the
+                      declaration is made where the class is made. */}
+                  <select value={subject} onChange={(e) => { setSubject(e.target.value as SubjectId | ""); setCourse(""); }} aria-label={t("teach.pickSubject")}>
+                    <option value="">{t("teach.pickSubject")}</option>
+                    {SUBJECT_IDS.map((s) => <option key={s} value={s}>{t(SUBJECT_LABELS[s])}</option>)}
+                  </select>
+                  {/* The qualification sits BESIDE the subject, not instead of
+                      it: a class is one subject taught towards one paper, or
+                      towards none. */}
+                  <CoursePicker
+                    country={state?.profile.country ?? ""}
+                    subject={subject || null}
+                    value={course}
+                    onChange={setCourse}
+                    label={t("teach.pickCourse")}
+                  />
+                  <button className="btn" onClick={create} disabled={!name.trim() || !subject}>{t("teach.createClass")}</button>
+                  {classes.length > 0 && (
+                    <button className="btn ghost" onClick={() => setCreating(false)}>{t("common.close")}</button>
+                  )}
+                </div>
+                <p className="muted small" style={{ marginBottom: 0 }}>
+                  {t("teach.createHint")}
+                </p>
+              </>
+            ) : (
+              <button className="btn" onClick={() => setCreating(true)}>{t("teach.createClass")}</button>
+            )}
+          </div>
+
+          {classes.length > 0 && (
+            <section id="classes" style={{ marginTop: "var(--s3)", scrollMarginTop: "var(--topbar-h)" }} aria-label={t("teach.classes")}>
+              <p className="eyebrow"><span className="no">≡</span> {t("teach.classes")}</p>
+              <div className="grid cols3">
+                {classes.map((cls) => {
+                  const n = Object.keys(cls.students).length;
+                  const measured = Object.values(cls.live ?? {}).filter((m) => Object.keys(m.concepts).length > 0).length;
+                  const waiting = needsOf(cls.id);
+                  return (
+                    <a key={cls.id} href={`#class-${cls.id}`} className="class-card">
+                      <b>{cls.name}</b>
+                      {/* The two facts a teacher picks a class BY: how many
+                          learners are on it, and how much of it is measured.
+                          "0 measured" is absent rather than drawn, for the
+                          same reason no rate is drawn from an absence. */}
+                      <span className="class-sub">
+                        {n} {t(n === 1 ? "teach.studentsOne" : "teach.students")}
+                        {measured > 0 && <> · {measured}/{n} {t("teach.measured")}</>}
+                      </span>
+                      {waiting > 0 && (
+                        // The LABEL first, the count after it: "2 needs your
+                        // attention" is what a count-first label produces, and
+                        // lower-casing a translated sentence is not a plural
+                        // rule in any of the fifteen.
+                        <span className="chip warn" style={{ alignSelf: "flex-start" }}>
+                          {t("teach.needsAttention")} · {waiting}
+                        </span>
+                      )}
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          <div style={{ marginTop: 20 }}>
+            <HubStatus />
+            <p className="small muted"><Link href="/hub">{t("teach.hubView")} →</Link></p>
+          </div>
+        </>
+      )}
+
+      {/* ── ONE CLASS ─────────────────────────────────────────────────────
+
+          The list chose WHICH class; this is it, and only it. Every panel below
+          is the same panel it always was — the difference is that a teacher no
+          longer reads four classes' worth to reach the one they opened. A class
+          whose id is no longer in the list (a stale hash) renders nothing: the
+          back link above is the way out, and there is no class to say anything
+          true about. */}
+      {!loading && classes.filter((c) => c.id === openClassId).map((cls) => {
         // The LIVE view is the ledger talking: each member's independent-work
         // rates, derived server-side from their own evidence. The stored
         // `students` map is only a last self-report and is deliberately not
@@ -463,7 +542,7 @@ export default function TeacherPage() {
         return (
           <div key={cls.id} id={`class-${cls.id}`} className="card" style={{ marginBottom: 16, scrollMarginTop: "var(--topbar-h)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, alignItems: "baseline" }}>
-              <h2 className="section" style={{ margin: 0 }}>{cls.name}</h2>
+              <h1 className="section" style={{ margin: 0 }}>{cls.name}</h1>
               <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
                 <span className="chip red">{t("teach.invite")}: <span className="mono">{cls.joinCode}</span></span>
                 <button
@@ -499,6 +578,33 @@ export default function TeacherPage() {
               />
               <span>· {t("teach.prov")}</span>
             </p>
+
+            {/* ── THE CLASS'S THREE JOBS, AS THREE TABS ──────────────────
+
+                Roster, work and week are genuinely different questions — who is
+                in this class and how are they doing; what have I set and what
+                should I set; what does the week teach — and a teacher arrives
+                with ONE of them. Stacking all three made a class about three
+                screens tall for every teacher who wanted the first.
+
+                Buttons with `aria-pressed`, not a `tablist`: these are three
+                views of one record read at a glance, and the panels stay in the
+                document rather than being swapped out of an ARIA tab widget a
+                screen reader would then have to navigate around. */}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "0 0 12px", borderBottom: "1px solid var(--line)", paddingBottom: 10 }}>
+              {([["roster", "teach.tabStudents"], ["work", "teach.tabWork"], ["plan", "teach.tabWeek"]] as const).map(([id, key]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`chip ${tab === id ? "warn" : ""}`}
+                  aria-pressed={tab === id}
+                  onClick={() => setTab(id)}
+                >{t(key)}</button>
+              ))}
+            </div>
+
+            {tab === "roster" && (
+              <>
             {/* THE CLASSROOM'S CREDENTIALS, issued here — and OUTSIDE the
                 roster's own conditional, because the first thing a teacher does
                 with a new class is enroll it. A panel that only appeared once
@@ -617,6 +723,11 @@ export default function TeacherPage() {
                 onClose={() => setOpenStudent((s) => ({ ...s, [cls.id]: null }))}
               />
             )}
+              </>
+            )}
+
+            {tab === "work" && (
+              <>
             {/* LEARNING NEEDS (§8): the panel between the class's evidence and
                 its work. Setting work on a finding still goes through the
                 WorkPanel's own four steps below — the launch state only
@@ -629,9 +740,13 @@ export default function TeacherPage() {
                 // One launch at a time per class; the panel itself opens below.
                 setLaunch((l) => ({ ...l, [cls.id]: n }));
                 setOpenStudent((s) => ({ ...s, [openStudentKey(cls.id)]: null }));
+                // AND THE BUILDER IS ON THE WORK TAB. A finding hands its
+                // concept and learners to the builder, which lives below — so
+                // pressing "prepare targeted work" must bring the tab that
+                // holds it into view, or the press looks like nothing happened.
+                setTab("work");
               }}
             />
-            <WeeklyPlanPanel cls={cls} />
             <WorkPanel
               cls={cls}
               owned={owned.find((o) => o.id === cls.id)}
@@ -641,6 +756,12 @@ export default function TeacherPage() {
               launch={launch[cls.id] ?? null}
               onLaunchConsumed={() => setLaunch((l) => ({ ...l, [cls.id]: null }))}
             />
+              </>
+            )}
+
+            {/* THE WEEK, from the same engine the printed offline pack uses —
+                so the plan on screen and the plan on paper cannot disagree. */}
+            {tab === "plan" && <WeeklyPlanPanel cls={cls} />}
           </div>
         );
       })}

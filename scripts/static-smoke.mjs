@@ -36,6 +36,7 @@
 // Run: node scripts/static-smoke.mjs      (npm run verify:static)
 // ─────────────────────────────────────────────────────────────────────────────
 import crypto from "node:crypto";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -511,6 +512,91 @@ async function main() {
   ok(modules > 0 && defs === modules + 1,
     `every module in the bundle is defined once (${defs} definitions for ${modules} modules + the entry)`);
   ok(fs.existsSync(path.join(ROOT, "docs", "openmind.html")), "the single-file build exists too");
+
+  // ── INSTALLABLE, NOT MERELY OPENABLE ─────────────────────────────────────
+  //
+  // THE GAP THIS CLOSES, stated as the learner met it: the twin worked offline,
+  // but it could not be INSTALLED. There was no manifest and there was no icon,
+  // so a phone offered a bookmark shortcut rather than an app — and a learner
+  // who has to find the URL and visit it pays for the visit even though every
+  // byte of the app is already on their device. For this audience that is the
+  // whole product argument: install once on the shared handset, revise for
+  // nothing afterwards.
+  //
+  // A MANIFEST IS A PROMISE THE INSTALLER ACTS ON, so its claims are checked
+  // against the published tree rather than read: every icon URL it names must
+  // resolve, and its declared `sizes` must be the PNG's REAL dimensions. A
+  // manifest that says 512 over a 192 image installs on some launchers and is
+  // rejected by others, with the site looking fine in a browser either way.
+  section("The twin is installable, not just openable");
+  const manifestPath = path.join(DOCS, "manifest.json");
+  ok(fs.existsSync(manifestPath), "a manifest is published (docs/manifest.json)");
+  let manifest = null;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    ok(true, "and it parses");
+  } catch (e) {
+    ok(false, `the manifest parses (${e.message})`);
+  }
+  if (manifest) {
+    ok(Boolean(manifest.name && manifest.short_name), "it names the app and a name a launcher can render");
+    ok(manifest.display === "standalone",
+      `it asks to open WITHOUT browser chrome (display=${manifest.display}) — a bookmark opens the browser, which is not an app`);
+    // Relative URLs are the reason ONE manifest can serve both surfaces: the
+    // Next app mounts it at the origin root, this directory is published under
+    // a project subpath, and an absolute "/icons/..." would 404 on exactly one
+    // of them.
+    ok(manifest.start_url === "./" && manifest.scope === "./",
+      `start_url and scope are relative (${manifest.start_url}, ${manifest.scope}) so it works at the root and under the published subpath`);
+    const icons = manifest.icons ?? [];
+    // Chrome installs only if the manifest offers a 192 AND a 512 icon; both
+    // sizes are required, not either.
+    for (const size of ["192x192", "512x512"]) {
+      ok(icons.some((i) => i.sizes === size && (i.purpose ?? "any").split(" ").includes("any")),
+        `it offers a ${size} icon a launcher can draw as-is`);
+    }
+    ok(icons.some((i) => (i.purpose ?? "").includes("maskable")),
+      "it offers a MASKABLE icon — a launcher that crops the `any` artwork cuts the triangle's corners, which is what that purpose exists to prevent");
+    for (const icon of icons) {
+      const file = path.join(DOCS, icon.src);
+      const resolves = fs.existsSync(file);
+      ok(resolves, `the icon it names resolves (docs/${icon.src})`);
+      if (!resolves) continue;
+      const png = fs.readFileSync(file);
+      const [width, height] = [png.readUInt32BE(16), png.readUInt32BE(20)];
+      ok(png.subarray(1, 4).toString() === "PNG", `docs/${icon.src} is really a PNG`);
+      ok(`${width}x${height}` === icon.sizes,
+        `and its real size is the size the manifest declares (${width}x${height} vs ${icon.sizes})`);
+    }
+  }
+  // iOS takes its home-screen icon from this link and NOT from the manifest, so
+  // a manifest alone installs a blank tile on an iPhone.
+  const appleIcon = path.join(DOCS, "icons", "apple-touch-icon.png");
+  ok(fs.existsSync(appleIcon), "the apple-touch-icon iOS will actually use is published");
+  ok(shippedHtml.includes('rel="manifest" href="manifest.json"'),
+    "index.html links the manifest — a manifest nothing references is not an install");
+  ok(shippedHtml.includes('rel="apple-touch-icon"'), "index.html declares the apple-touch-icon");
+  ok(/name="apple-mobile-web-app-capable" content="yes"/.test(shippedHtml),
+    "and asks iOS to open it without browser chrome");
+  // The worker is what makes the installed app OPEN offline — and what Chrome
+  // requires before it offers an install at all.
+  ok(/serviceWorker" in navigator/.test(fs.readFileSync(path.join(ROOT, "docs", "app.js"), "utf8")),
+    "the page registers the worker, which is the other half of installability (the app must open with no network after it is installed)");
+
+  // THE ICONS ARE DERIVED FROM THE MARK THE SITE DRAWS, and this is the check
+  // that keeps them derived. A hand-exported PNG drifts the moment the mark
+  // changes and no test that reads the DOM would notice; `--check` re-renders
+  // from the artwork and compares the bytes.
+  const iconCheck = spawnSync(process.execPath, [path.join(ROOT, "scripts", "generate-app-icons.mjs"), "--check"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  ok(iconCheck.status === 0,
+    `the shipped icons are exactly what the site's own mark renders to (${(iconCheck.stderr || "").trim().split("\n")[0] || "ok"})`);
+  // The build COPIES the manifest from public/; if someone edits the published
+  // copy by hand, the two surfaces stop agreeing about the app's name.
+  ok(fs.readFileSync(path.join(ROOT, "public", "manifest.json"), "utf8") === fs.readFileSync(manifestPath, "utf8"),
+    "the published manifest is the one copy in public/ (the build copies it, it is not a second file)");
 
   // ── 9. The landing page's claims, which are the first thing a visitor reads.
   //

@@ -507,8 +507,23 @@ export default function CurriculumPage() {
         </section>
       )}
 
+      {/* WHERE "CONTINUE" GOES DEPENDS ON WHETHER ANYTHING HAS BEEN MEASURED.
+          It was a hardcoded `/learn` for everybody, and measured live — a
+          first-time learner on a phone chose KCSE Form 3 here, pressed
+          "Continue learning", and landed on the concept picker: the baseline
+          diagnostic the whole product is built on (onboarding → course →
+          diagnostic → home) was silently skipped by the one button this screen
+          offers, because `/learn` is allowed to an onboarded learner and the
+          guard therefore had nothing to refuse. Every other door into the
+          product insists on the measurement; this one has to as well, and it is
+          the door a new learner reaches first. */}
       <div className="actions">
-        <Link href="/learn" className="btn">{t("curr.start")} →</Link>
+        <Link
+          href={Object.keys(state?.diagnostics ?? {}).length > 0
+            ? "/learn"
+            : `/diagnostic/${profile?.subjects[0] ?? "maths"}`}
+          className="btn"
+        >{t("curr.start")} →</Link>
         <Link href="/access" className="btn ghost">{t("curr.change")}</Link>
       </div>
       {/* The number comes FROM THE DATA, not from the sentence, and it counts

@@ -12,6 +12,45 @@ export const metadata: Metadata = {
   title: "OpenMind — learn anything, your way",
   description:
     "Free, open-source, multilingual learning network: adaptive diagnostics, unlimited server-graded practice, misconception tracking and a Socratic tutor — in your language, on any phone.",
+  /**
+   * THE SAME MANIFEST THE STATIC TWIN PUBLISHES, deliberately — one file in
+   * `public/`, not one per surface. It is what makes the app installable: with
+   * a manifest naming a 192 and a 512 icon and `display: standalone`, a phone
+   * offers "Add to home screen" and then opens the app without browser chrome.
+   *
+   * That matters more here than it does for a product with a support desk. The
+   * learner this is for pays for data by the megabyte and shares one handset;
+   * an icon that opens straight into their own record is the difference between
+   * "a website I looked at once" and "the thing I use to revise". The URLs inside
+   * it are RELATIVE on purpose, so the same bytes work at the root of a domain
+   * and under a project subpath (docs/ on GitHub Pages).
+   */
+  manifest: "/manifest.json",
+  /**
+   * iOS does not install from the manifest alone: `apple-touch-icon` is the icon
+   * it puts on the home screen, and it must be opaque (iOS composites it over
+   * black if it carries transparency), which is why that PNG is full-bleed.
+   */
+  icons: {
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: {
+    title: "OpenMind",
+    statusBarStyle: "default",
+  },
+  /**
+   * `apple-mobile-web-app-capable` HAS TO BE EMITTED BY HAND, and Next's own
+   * `appleWebApp.capable` is not enough: measured on the served HTML of this
+   * layout, Next emits `apple-mobile-web-app-title` and
+   * `-status-bar-style` and silently drops `capable`. iOS 16.4+ opens a
+   * home-screen app standalone from the manifest's `display`, but an older
+   * handset (an iPhone 8 on iOS 15 is not a hypothetical here) only looks at
+   * this tag — without it the same icon opens inside Safari, address bar and
+   * all, which is the thing an install was supposed to get rid of.
+   */
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {

@@ -13,11 +13,12 @@
 // learner uses it:
 //
 //   1. WHO AM I / WHAT AM I STUDYING?  → the course line and the greeting
-//   2. WHAT SHOULD I DO NOW?           → the one dominant decision card
-//   3. WHAT IS TODAY?                  → the day's checklist, from the engine
-//   4. AM I ACTUALLY GETTING ANYWHERE? → four counts, each from the record
-//   5. WHAT HAVE I DONE?               → the answers themselves
-//   6. WHAT IS COMING?                 → exam, teacher's work, work in progress
+//   2. WHAT DO I OWE?                  → teacher-set work and its deadline
+//   3. WHAT SHOULD I DO NOW?           → the one dominant decision card
+//   4. WHAT IS TODAY?                  → the day's checklist, from the engine
+//   5. AM I ACTUALLY GETTING ANYWHERE? → four counts, each from the record
+//   6. WHAT HAVE I DONE?               → the answers themselves
+//   7. WHAT IS COMING?                 → the exam, and work already in progress
 //
 // Two rules this page keeps:
 //
@@ -37,7 +38,8 @@ import { useEffect, useState } from "react";
 import { useI18n, useProfile, loadLocalProfileId, loadLocalProfileSecret } from "@/lib/client";
 import { hasRecordedWork, loadLedger, type LedgerFetch } from "@/lib/evidence-view";
 import { pathFor, sessionState } from "@/lib/api/client";
-import { dueLabel, fill } from "@/lib/i18n";
+import { COUNTRIES, dueLabel, fill } from "@/lib/i18n";
+import { boardName } from "@/lib/curriculum";
 import { reasonKey } from "@/lib/session";
 import { proofLabelKey, strongestProof } from "@/lib/proof";
 import { bySubject, getConcept } from "@/lib/genome";
@@ -179,16 +181,50 @@ export default function LearnerHome() {
       {/* The course, then the person. The course line is mono and quiet — a
           label on the exercise book, not a heading — so the only large text on
           Home is the learner's own name and the decision under it. */}
-      {(p.country !== "XX" || p.board || p.exam) && (
-        <p className="courseline">
-          {p.country !== "XX" ? p.country : ""}
-          {p.board && `${p.country !== "XX" ? " · " : ""}${p.board}`}
-          {p.exam && ` · ${p.exam}`}
-        </p>
-      )}        <h1 className="greeting">
+      {/* THE LINE NAMES THE LEARNER'S COURSE IN WORDS.
+       *
+       *  It printed the stored CODES — `p.country` and `p.board` are ids, so a
+       *  Kenyan learner's Home opened with "KE" over their own name, and anyone
+       *  whose profile carried a board read "GB · aqa". Measured on the rendered
+       *  page (`.courseline` → "KE"). The two resolvers already exist and every
+       *  other surface uses them: COUNTRIES for the country (`context-strip.tsx`
+       *  and `/curriculum` both name it in full) and `boardName` for the
+       *  awarding body ("AQA", "Kenya National Examinations (KNEC)"). A code is
+       *  not a label a learner reads; it is what the record stores. */}
+      {(() => {
+        const country = p.country === "XX" ? "" : COUNTRIES.find((c) => c.code === p.country)?.name ?? "";
+        const board = p.board ? boardName(p.board) : "";
+        const parts = [country, board, p.exam ?? ""].filter((x) => x.trim().length > 0);
+        if (parts.length === 0) return null;
+        return <p className="courseline">{parts.join(" · ")}</p>;
+      })()}        <h1 className="greeting">
           {t(hasRecordedWork(state) ? "dash.hi" : "dash.hello")}
           {p.handle ? `, ${p.handle}` : ""}
         </h1>
+
+      {/* 1b: WHAT I OWE — before what the engine recommends.
+
+          MEASURED, against the products a UK learner already uses: Educake opens
+          on the teacher-set quizzes, each labelled with subject, name, teacher
+          and due date, and one tap starts one (help.educake.co.uk/how-do-i-find-
+          my-homework); Satchel One calls the same list its to-do list. The EEF's
+          feedback guidance is the reason it is not merely a layout preference:
+          feedback has to give a pupil a way to ACT on it, and a deadline somebody
+          else set is the most actionable thing on this page
+          (educationendowmentfoundation.org.uk — feedback).
+
+          This panel used to sit at the FOOT of Home, below the decision, the
+          day's plan, four counts, the goal and the answer history — so a learner
+          with homework due tomorrow read five sections before meeting it, and
+          the engine's own suggestion came first as though the obligation were
+          optional. It renders NOTHING when no work was set (`if (!work ||
+          work.length === 0) return null`), so a learner without homework sees
+          exactly the page they saw before: no empty box, no new heading.
+
+          The decision card stays the page's ONLY primary action and stays
+          directly under this — the settlement is ordering, not a second
+          dashboard. */}
+      <AssignmentsPanel />
 
       {/* 2: what to do, why, and the one button that starts it. This is the
           only primary action on the page. */}
@@ -293,9 +329,10 @@ export default function LearnerHome() {
         </p>
       </section>
 
-      {/* 6: what is coming — the learner's own exam, work a teacher set, and
-          work already in progress. Each of these renders nothing at all when
-          there is nothing to say, rather than an empty box. */}
+      {/* 6: what is coming — the learner's own exam, and work already in
+          progress. (Work a teacher set is at the TOP of the page now: see 1b.)
+          Each of these renders nothing at all when there is nothing to say,
+          rather than an empty box. */}
       <section className="home-coming">
         {/* No heading here on purpose: the countdown and the assignment panel
             each carry their own label and render nothing when they have
@@ -311,10 +348,6 @@ export default function LearnerHome() {
         )}
       </section>
 
-      {/* Work a teacher actually set, with its deadline, as a selectable
-          task — and nothing at all when none was set. Opening it takes the
-          ordinary concept page, so the answer lands on the ordinary ledger. */}
-      <AssignmentsPanel />
     </main>
   );
 }

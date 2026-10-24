@@ -52,6 +52,7 @@
     "backup:verify": "node scripts/backup-store.mjs --verify",
     "restore-drill": "node scripts/restore-drill.mjs",
     "build:static": "node scripts/build-static-app.mjs",
+    "icons": "node scripts/generate-app-icons.mjs",
     "verify:static": "node scripts/static-smoke.mjs",
     "ai-stub": "node scripts/ai-stub.mjs",
     "superiority-test": "node scripts/superiority-test.mjs",

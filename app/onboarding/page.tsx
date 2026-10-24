@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   claimGuestProfile, clearSession, createProfile, currentGuestClaim, loadLocalProfileId, recoverAccount, returnTarget, saveProfilePatch,
-  signIn, signOut, signUp, useAccount, useI18n, useProfile,
+  signIn, signOut, signUp, storeDurability, useAccount, useI18n, useProfile,
 } from "@/lib/client";
 import { courseIsReady, settlementTarget } from "@/lib/app-state";
 import { COUNTRIES, LANGS } from "@/lib/i18n";
@@ -179,6 +179,29 @@ function OnboardingFlow() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [handle, setHandle] = useState("");
+  /** DOES THIS DEPLOYMENT KEEP WHAT IT IS ABOUT TO BE GIVEN?
+   *
+   *  An instance that declared `OPENMIND_ALLOW_EPHEMERAL_STORE` is permitted to
+   *  write a learner's record, and it is expected to lose every one of them when
+   *  it restarts — Render's free tier sleeps after fifteen idle minutes and
+   *  comes back with an empty /tmp, so an account made at nine in the morning is
+   *  gone by lunchtime. The learner is the one who pays for that, and until this
+   *  probe existed nobody told them: the failure they saw was "my email and
+   *  password are not recognised", which is indistinguishable from a bug in the
+   *  sign-in form.
+   *
+   *  Read from /api/health because that is the cheap, public, already-documented
+   *  statement of the durability judgement (lib/env.ts owns the rule). A failed
+   *  probe leaves the notice off rather than guessing — it is a disclosure, not
+   *  a gate, and it must never be the reason the form does not work. */
+  const [ephemeralStore, setEphemeralStore] = useState(false);
+  useEffect(() => {
+    let live = true;
+    storeDurability().then((word) => {
+      if (live && word === "ephemeral") setEphemeralStore(true);
+    });
+    return () => { live = false; };
+  }, []);
 
   // THREE THINGS, AND NOTHING ELSE. Country (which decides the curriculum),
   // language (which decides how every screen after this one speaks), and the
@@ -814,6 +837,14 @@ function OnboardingFlow() {
                 <input type="checkbox" checked={claim} onChange={(e) => setClaim(e.target.checked)} />
                 {t("onb.claim")}
               </label>
+            )}
+
+            {/* THE DISCLOSURE SITS WHERE THE ACCOUNT IS MADE. A demo instance is
+                allowed to keep nothing — that is what its operator declared —
+                but it may not be QUIET about it while a learner types a
+                password it will forget. */}
+            {ephemeralStore && mode !== "guest" && (
+              <p className="alert small" style={{ marginTop: 12 }}>⚠ {t("onb.ephemeral")}</p>
             )}
 
             <p className="small muted" style={{ marginTop: 12 }}>
