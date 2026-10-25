@@ -456,9 +456,38 @@ console.log("▸ Prompt formatting + anti-repetition");
   ok(lost.length === 0,
     `and the formatter edits NOTHING it does not understand (${surfaces} surfaces; e.g. ${lost.slice(0, 2).join(" | ")})`);
 
+  // The matrix half of the same claim, on the same draws. A `[[…], […]]` left in
+  // PROSE reaches the learner as typed text, which is what the matrices family
+  // did — and CODE is exempt by the same rule that keeps a Python list literal
+  // written as Python, so the split decides here exactly as it does on the page.
+  const arraysInProse = [];
+  for (const cid of genIds) {
+    for (let i = 0; i < 24; i++) {
+      const q = questions.generateQuestion(cid, `matrix-prose-${cid}-${i}`);
+      if (!q) continue;
+      const probe = (field, fromPrompt) => {
+        if (typeof field !== "string") return;
+        // What the RENDERER will print: the prose segments, then the spans they
+        // become. Checking the authored string would fail on every matrix in the
+        // bank while saying nothing about the page — which is what the first cut
+        // of this assertion did.
+        const drawn = fromPrompt
+          ? promptFmt.splitPrompt(field).filter((seg) => seg.kind === "prose").map((seg) => seg.text).join(" ")
+          : field;
+        const left = mathFmt.mathSpans(drawn).some((span) => span.kind === "text" && span.text.includes("[["));
+        if (left && arraysInProse.length < 8) arraysInProse.push(`${cid}: ${field.slice(0, 90)}`);
+      };
+      probe(q.prompt, true);
+      for (const c of q.choices ?? []) probe(String(c), false);
+      probe(q.explanation, false);
+    }
+  }
+  ok(arraysInProse.length === 0,
+    `and no question leaves a [[row], [row]] for the learner to read as text (e.g. ${arraysInProse.slice(0, 2).join(" | ")})`);
+
   // The four shapes, drawn. Each is a real string from the bank, so a generator
   // that starts writing `3/4` again cannot pass by matching a fixture.
-  const shape = (text) => mathFmt.mathSpans(text).map((s) => (s.kind === "frac" ? `frac(${s.numerator}/${s.denominator})` : s.kind === "radical" ? `rad(${s.text})` : s.kind === "sup" ? `sup(${s.text})` : s.kind === "sub" ? `sub(${s.text})` : s.kind === "times" ? "times" : s.kind === "approx" ? "approx" : s.text)).join("|");
+  const shape = (text) => mathFmt.mathSpans(text).map((s) => (s.kind === "frac" ? `frac(${s.numerator}/${s.denominator})` : s.kind === "matrix" ? `matrix(${s.rows.map((row) => row.join(",")).join(";")})` : s.kind === "radical" ? `rad(${s.text})` : s.kind === "sup" ? `sup(${s.text})` : s.kind === "sub" ? `sub(${s.text})` : s.kind === "times" ? "times" : s.kind === "approx" ? "approx" : s.text)).join("|");
   const drawn = [
     ["Work out 5/6 − 3/10.", ["frac(5/6)", "frac(3/10)"]],
     ["A number is written as 5 × 10^4.", ["sup(4)"]],
@@ -466,6 +495,12 @@ console.log("▸ Prompt formatting + anti-repetition");
     ["θ is acute and sin θ = 5/13.", ["frac(5/13)"]],
     ["sqrt(18) ÷ 3, roughly ~90% of the time", ["rad(18)", "approx"]],
     ["3 * 4 = 12", ["times"]],
+    // A MATRIX IS A GRID, NOT A ROW OF NUMBERS. The two strings below are the
+    // family's OWN prompts: before this, a learner was asked about the product
+    // of `A = [[5, 1], [0, 1]]` with the rows still spelled as square brackets,
+    // which is the one item where reading the rows correctly IS the question.
+    ["A = [[5, 1], [0, 1]] and B = [[3, -1], [-1, 5]].", ["matrix(5,1;0,1)", "matrix(3,-1;-1,5)"]],
+    ["For the matrix [[2, 3], [4, 5]], what is the determinant ad − bc?", ["matrix(2,3;4,5)"]],
   ];
   for (const [text, wants] of drawn) {
     const got = shape(text);
@@ -475,6 +510,42 @@ console.log("▸ Prompt formatting + anti-repetition");
   for (const text of ["10.0.4.0/30", "24/10/2026 on the 3rd", "dy/dx at x = 5", "1 × 10^−2 mol/dm³"]) {
     const got = shape(text);
     ok(!got.includes("frac("), `"${text}" is not read as a fraction (${got})`);
+  }
+  // THE DRAWING IS SCOPED, SO BOTH RENDERERS HAVE TO EMIT THE SCOPE. Every rule
+  // that sets a fraction stacked, a radical's vinculum or a matrix's brackets is
+  // written under `.math` on purpose — that is what stops a formatter from
+  // restyling a superscript somewhere else in the product. The consequence is
+  // that a renderer which emits the spans WITHOUT that wrapper draws nothing the
+  // rules describe, silently, and that is what the published twin did: `.mfrac`
+  // computed `display: inline` in a browser, so every fraction there was `5` `/`
+  // `6` on one line while the app stacked it. A scope no element satisfies is a
+  // promise the CSS makes and the markup does not keep.
+  {
+    const reactMath = fs.readFileSync("components/math-text.tsx", "utf8");
+    ok(/className="math"/.test(reactMath), "the React renderer wraps its maths in the `.math` scope");
+    const twin = fs.readFileSync("docs/app.js", "utf8");
+    ok(/function mathHtml\(raw\) \{\s*return '<span class="math">'/.test(twin),
+      "and the published twin wraps it too, at the one place its HTML is produced");
+    for (const sheet of ["app/globals.css", "docs/app.css"]) {
+      const css = fs.readFileSync(sheet, "utf8");
+      for (const cls of ["mfrac", "mrad", "mmatrix"]) {
+        ok(new RegExp(`\\.math \\.${cls}\\b`).test(css), `${sheet} scopes .${cls} under .math`);
+      }
+    }
+  }
+  // …and the bracketed shapes that are NOT a matrix: one row, ragged rows, a
+  // cell that is a word, and the square brackets an array literal uses with no
+  // rows at all. Each is left exactly as the author wrote it rather than drawn
+  // as a grid that says something the string does not.
+  for (const text of ["[1, 2]", "[[1, 2]]", "[[1, 2], [3]]", "[[a, b], [c, d]]", "[[[1, 2]]]"]) {
+    const got = shape(text);
+    ok(!got.includes("matrix("), `"${text}" is not read as a matrix (${got})`);
+  }
+  // The round-trip on the matrix, because a grid is drawn from parsed rows and
+  // the assertion has to catch a redraw that loses a space or a sign.
+  for (const text of ["[[5, 1], [0, 1]]", "[[-3, 12], [7, -45]]", "[[ 1, 2 ], [ 3, 4 ]]"]) {
+    ok(mathFmt.mathNotation(mathFmt.mathSpans(text)) === text,
+      `a matrix round-trips character for character ("${text}")`);
   }
   // The layering that keeps a PROGRAM a program: the `*` in `i * 2` lives in a
   // code segment, which PromptText prints verbatim, so the maths formatter can

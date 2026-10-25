@@ -6633,9 +6633,13 @@ const en = {
     "rooms.tutorNote": "The tutor replies with guiding questions, never answers.",
     "rooms.focusAsk": "Which idea are you working on?",
     "teach.title": "Teacher tools",
+    "teach.classes": "Your classes",
     "teach.sub": "Create a class, share the join code, and see per-concept mastery — anonymised by design. Works with one shared device or thirty.",
+    "teach.tabStudents": "Students",
     "teach.createClass": "Create a class",
+    "teach.tabWork": "Work",
     "teach.name": "Class name",
+    "teach.tabWeek": "This week",
     "teach.roster": "Class roster",
     "teach.avg": "Class average",
     "teach.students": "students",
@@ -8165,9 +8169,13 @@ const es = {
     "rooms.tutorNote": "El tutor responde con preguntas guía, nunca con respuestas.",
     "rooms.focusAsk": "¿En qué idea estás trabajando?",
     "teach.title": "Herramientas docentes",
+    "teach.classes": "Tus clases",
     "teach.sub": "Crea una clase, comparte el código y mira el dominio por concepto — anonimizado por diseño. Funciona con un dispositivo compartido o treinta.",
+    "teach.tabStudents": "Estudiantes",
     "teach.createClass": "Crear una clase", "teach.name": "Nombre de la clase", "teach.roster": "Lista de la clase", "teach.avg": "Promedio de la clase",
+    "teach.tabWork": "Trabajo",
     "teach.students": "estudiantes", "teach.concepts": "Conceptos asignados", "teach.invite": "Código para unirse",
+    "teach.tabWeek": "Esta semana",
     "teach.studentsOne": "estudiante",
     "teach.readFailed": "No hemos podido leer tus clases ahora mismo.",
     "map.title": "El Genoma del Conocimiento", "map.sub": "Cada concepto es un nodo con prerrequisitos. Entra por cualquier parte: el grafo encuentra tu ruta.",
@@ -9680,9 +9688,13 @@ const fr = {
     "rooms.tutorNote": "Le tuteur répond par des questions guides, jamais par des réponses.",
     "rooms.focusAsk": "Sur quelle notion travailles-tu ?",
     "teach.title": "Outils enseignants",
+    "teach.classes": "Vos classes",
     "teach.sub": "Créez une classe, partagez le code et suivez la maîtrise par concept — anonymisé par conception. Un appareil partagé ou trente.",
+    "teach.tabStudents": "Élèves",
     "teach.createClass": "Créer une classe", "teach.name": "Nom de la classe", "teach.roster": "Liste de la classe", "teach.avg": "Moyenne de la classe",
+    "teach.tabWork": "Travail",
     "teach.students": "élèves", "teach.concepts": "Concepts assignés", "teach.invite": "Code d'accès",
+    "teach.tabWeek": "Cette semaine",
     "teach.studentsOne": "élève",
     "teach.readFailed": "Nous n'avons pas pu lire vos classes pour le moment.",
     "map.title": "Le Génome du Savoir", "map.sub": "Chaque concept est un nœud avec prérequis. Entrez n'importe où — le graphe trouve votre route.",
@@ -11195,9 +11207,13 @@ const pt = {
     "rooms.tutorNote": "O tutor responde com perguntas-guia, nunca com respostas.",
     "rooms.focusAsk": "Em que ideia estás a trabalhar?",
     "teach.title": "Ferramentas do professor",
+    "teach.classes": "As suas turmas",
     "teach.sub": "Crie uma turma, compartilhe o código e veja o domínio por conceito — anônimo por padrão. Funciona com um aparelho compartilhado ou trinta.",
+    "teach.tabStudents": "Alunos",
     "teach.createClass": "Criar uma turma", "teach.name": "Nome da turma", "teach.roster": "Lista da turma", "teach.avg": "Média da turma",
+    "teach.tabWork": "Trabalho",
     "teach.students": "alunos", "teach.concepts": "Conceitos atribuídos", "teach.invite": "Código de acesso",
+    "teach.tabWeek": "Esta semana",
     "teach.studentsOne": "aluno",
     "teach.readFailed": "Não foi possível ler as suas turmas agora.",
     "map.title": "O Genoma do Conhecimento", "map.sub": "Cada conceito é um nó com pré-requisitos. Entre por qualquer ponto — o grafo acha sua rota.",
@@ -12710,9 +12726,13 @@ const ar = {
     "rooms.tutorNote": "يجيب المدرّس بأسئلة موجّهة، لا بالإجابات.",
     "rooms.focusAsk": "ما الفكرة التي تعمل عليها؟",
     "teach.title": "أدوات المعلم",
+    "teach.classes": "صفوفك",
     "teach.sub": "أنشئ صفًا، وشارك رمز الانضمام، وشاهد الإتقان لكل مفهوم — مجهول الهوية بالتصميم. يعمل بجهاز مشترك واحد أو ثلاثين.",
+    "teach.tabStudents": "الطلاب",
     "teach.createClass": "أنشئ صفًا", "teach.name": "اسم الصف", "teach.roster": "قائمة الصف", "teach.avg": "متوسط الصف",
+    "teach.tabWork": "العمل",
     "teach.students": "طلاب", "teach.concepts": "المفاهيم المعيّنة", "teach.invite": "رمز الانضمام",
+    "teach.tabWeek": "هذا الأسبوع",
     "teach.studentsOne": "طالب",
     "teach.readFailed": "لم نتمكن من قراءة فصولك الآن.",
     "map.title": "جينوم المعرفة", "map.sub": "كل مفهوم عقدة لها متطلبات سابقة. ادخل من أي مكان — سيرسم الرسم مسارك.",
@@ -14225,9 +14245,13 @@ const sw = {
     "rooms.tutorNote": "Mwalimu hujibu kwa maswali ya kuongoza, si majibu.",
     "rooms.focusAsk": "Unashughulikia wazo gani?",
     "teach.title": "Zana za mwalimu",
+    "teach.classes": "Madarasa yako",
     "teach.sub": "Anzisha darasa, washirikishe kodi ya kujiunga, na uone umilisi kwa dhana — bila majina kwa makusudi. Hufanya kazi kwa kifaa kimoja au thelathini.",
+    "teach.tabStudents": "Wanafunzi",
     "teach.createClass": "Anzisha darasa", "teach.name": "Jina la darasa", "teach.roster": "Orodha ya darasa", "teach.avg": "Wastani wa darasa",
+    "teach.tabWork": "Kazi",
     "teach.students": "wanafunzi", "teach.concepts": "Dhana zilizopewa", "teach.invite": "Kodi ya kujiunga",
+    "teach.tabWeek": "Wiki hii",
     "teach.studentsOne": "mwanafunzi",
     "teach.readFailed": "Hatukuweza kusoma madarasa yako sasa hivi.",
     "map.title": "Jenomu ya Maarifa", "map.sub": "Kila dhana ni nodi yenye mahitaji ya awali. Ingia popote — grafu hupata njia yako.",
@@ -15740,9 +15764,13 @@ const hi = {
     "rooms.tutorNote": "ट्यूटर मार्गदर्शक प्रश्न पूछता है, उत्तर नहीं देता।",
     "rooms.focusAsk": "आप किस विचार पर काम कर रहे हैं?",
     "teach.title": "शिक्षक उपकरण",
+    "teach.classes": "आपकी कक्षाएँ",
     "teach.sub": "कक्षा बनाएँ, जॉइन-कोड साझा करें, और हर अवधारणा की महारत देखें — डिज़ाइन से गुमनाम। एक साझा डिवाइस या तीस, दोनों पर चलता है।",
+    "teach.tabStudents": "छात्र",
     "teach.createClass": "कक्षा बनाएँ", "teach.name": "कक्षा का नाम", "teach.roster": "कक्षा सूची", "teach.avg": "कक्षा औसत",
+    "teach.tabWork": "कार्य",
     "teach.students": "छात्र", "teach.concepts": "निर्धारित अवधारणाएँ", "teach.invite": "जॉइन-कोड",
+    "teach.tabWeek": "इस सप्ताह",
     "teach.studentsOne": "छात्र",
     "teach.readFailed": "हम अभी आपकी कक्षाएँ पढ़ नहीं सके।",
     "map.title": "ज्ञान जीनोम", "map.sub": "हर अवधारणा पूर्व-आवश्यकताओं वाली नोड है। कहीं से भी प्रवेश करें — ग्राफ़ आपका रास्ता खोज लेगा।",
@@ -17256,9 +17284,13 @@ const id = {
     "rooms.tutorNote": "Tutor membalas dengan pertanyaan pemandu, bukan jawaban.",
     "rooms.focusAsk": "Ide mana yang sedang kamu kerjakan?",
     "teach.title": "Perangkat guru",
+    "teach.classes": "Kelas Anda",
     "teach.sub": "Buat kelas, bagikan kode gabung, dan lihat penguasaan per konsep — anonim sejak desain. Bekerja dengan satu perangkat bersama atau tiga puluh.",
+    "teach.tabStudents": "Siswa",
     "teach.createClass": "Buat kelas", "teach.name": "Nama kelas", "teach.roster": "Daftar kelas", "teach.avg": "Rata-rata kelas",
+    "teach.tabWork": "Tugas",
     "teach.students": "siswa", "teach.concepts": "Konsep yang ditugaskan", "teach.invite": "Kode gabung",
+    "teach.tabWeek": "Minggu ini",
     "teach.studentsOne": "siswa",
     "teach.readFailed": "Kami tidak dapat membaca kelas Anda saat ini.",
     "map.title": "Genom Pengetahuan", "map.sub": "Setiap konsep adalah simpul dengan prasyarat. Masuk dari mana saja — graf menemukan rute Anda.",
@@ -18771,9 +18803,13 @@ const tl = {
     "rooms.tutorNote": "Tumugon ang tutor sa pamamagitan ng gabay na tanong, hindi sagot.",
     "rooms.focusAsk": "Aling ideya ang ginagawa mo ngayon?",
     "teach.title": "Mga kagamitan ng guro",
+    "teach.classes": "Iyong mga klase",
     "teach.sub": "Gumawa ng klase, ibahagi ang join code, at makita ang mastery bawat konsepto — anonymized by design. Gumagana sa isang shared device o tatlumpu.",
+    "teach.tabStudents": "Mga mag-aaral",
     "teach.createClass": "Gumawa ng klase", "teach.name": "Pangalan ng klase", "teach.roster": "Listahan ng klase", "teach.avg": "Average ng klase",
+    "teach.tabWork": "Gawain",
     "teach.students": "mag-aaral", "teach.concepts": "Itinalagang konsepto", "teach.invite": "Join code",
+    "teach.tabWeek": "Ngayong linggo",
     "teach.studentsOne": "mag-aaral",
     "teach.readFailed": "Hindi namin mabasa ang iyong mga klase ngayon.",
     "map.title": "Ang Knowledge Genome", "map.sub": "Bawat konsepto ay node na may prerequisites. Pumasok kahit saan — hahanapin ng graph ang ruta mo.",
@@ -20335,9 +20371,13 @@ const de = {
     "rooms.tutorNote": "Der Tutor antwortet mit Leitfragen, nie mit Lösungen.",
     "rooms.focusAsk": "An welcher Idee arbeitest du gerade?",
     "teach.title": "Werkzeuge für Lehrkräfte",
+    "teach.classes": "Deine Klassen",
     "teach.sub": "Klasse erstellen, Beitrittscode teilen und die Beherrschung pro Konzept sehen — von Grund auf anonym. Funktioniert mit einem geteilten Gerät oder mit dreißig.",
+    "teach.tabStudents": "Schüler",
     "teach.createClass": "Klasse erstellen",
+    "teach.tabWork": "Aufgaben",
     "teach.name": "Klassenname",
+    "teach.tabWeek": "Diese Woche",
     "teach.roster": "Klassenliste",
     "teach.avg": "Klassendurchschnitt",
     "teach.students": "Schüler",
@@ -21909,9 +21949,13 @@ const ja = {
     "rooms.tutorNote": "家庭教師は導く質問で答え、答えそのものは言いません。",
     "rooms.focusAsk": "どの考え方に取り組んでいますか？",
     "teach.title": "先生向けツール",
+    "teach.classes": "あなたのクラス",
     "teach.sub": "クラスを作り、参加コードを共有し、概念ごとの習得度を確認 — 設計上、匿名。端末1台でも30台でも動きます。",
+    "teach.tabStudents": "生徒",
     "teach.createClass": "クラスを作成",
+    "teach.tabWork": "課題",
     "teach.name": "クラス名",
+    "teach.tabWeek": "今週",
     "teach.roster": "クラス名簿",
     "teach.avg": "クラス平均",
     "teach.students": "名の生徒",
@@ -23436,9 +23480,13 @@ const zh = {
     "rooms.focusAsk": "你正在学习哪个概念？",
     "rooms.hello": "打个招呼吧——谁提问，导师都会帮忙。",
     "teach.title": "教师工具",
+    "teach.classes": "你的班级",
     "teach.sub": "创建班级、分享加入码，查看每个概念的掌握度——设计上完全匿名。一台共享设备或三十台都行。",
+    "teach.tabStudents": "学生",
     "teach.createClass": "创建班级", "teach.name": "班级名称", "teach.roster": "班级名册", "teach.avg": "班级平均",
+    "teach.tabWork": "作业",
     "teach.students": "名学生", "teach.concepts": "已布置概念", "teach.invite": "加入码",
+    "teach.tabWeek": "本周",
     "teach.studentsOne": "名学生",
     "teach.readFailed": "暂时无法读取你的班级。",
     "teach.empty": "还没有学生——分享加入码吧。",
@@ -24920,9 +24968,13 @@ const fa = {
     "rooms.focusAsk": "روی کدام مفهوم کار می‌کنی؟",
     "rooms.hello": "سلام کن — هر کس بپرسد، معلم کمک می‌کند.",
     "teach.title": "ابزارهای معلم",
+    "teach.classes": "کلاس‌های شما",
     "teach.sub": "کلاس بساز، کد را به اشتراک بگذار و تسلط هر مفهوم را ببین — از پایه ناشناس. با یک دستگاه مشترک یا سی دستگاه کار می‌کند.",
+    "teach.tabStudents": "دانش‌آموزان",
     "teach.createClass": "ساخت کلاس", "teach.name": "نام کلاس", "teach.roster": "فهرست کلاس", "teach.avg": "میانگین کلاس",
+    "teach.tabWork": "کار",
     "teach.students": "دانش‌آموز", "teach.concepts": "مفاهیم محول‌شده", "teach.invite": "کد عضویت",
+    "teach.tabWeek": "این هفته",
     "teach.studentsOne": "دانش‌آموز",
     "teach.readFailed": "هیچ‌اکنون نتوانستیم کلاس‌های شما را بخوانیم.",
     "teach.empty": "هنوز دانش‌آموزی نیست — کد را به اشتراک بگذار.",
@@ -26404,9 +26456,13 @@ const ur = {
     "rooms.focusAsk": "آپ کس خیال پر کام کر رہے ہیں؟",
     "rooms.hello": "سلام کہیں — جو پوچھے گا، اُستاد مدد کرے گا۔",
     "teach.title": "اساتذہ کے اوزار",
+    "teach.classes": "آپ کی کلاسیں",
     "teach.sub": "جماعت بنائیں، کوڈ شیئر کریں، اور ہر تصور کی مہارت دیکھیں — ڈیزائن سے گمنام۔ ایک مشترکہ ڈیوائس یا تیس، دونوں پر چلتا ہے۔",
+    "teach.tabStudents": "طلبہ",
     "teach.createClass": "جماعت بنائیں", "teach.name": "جماعت کا نام", "teach.roster": "جماعت کی فہرست", "teach.avg": "جماعت کی اوسط",
+    "teach.tabWork": "کام",
     "teach.students": "طالب علم", "teach.concepts": "مختص تصورات", "teach.invite": "شامل ہونے کا کوڈ",
+    "teach.tabWeek": "اس ہفتے",
     "teach.studentsOne": "طالب علم",
     "teach.readFailed": "ہم ابھی آپ کی کلاسز نہیں پڑھ سکے۔",
     "teach.empty": "ابھی کوئی طالب علم نہیں — کوڈ شیئر کریں۔",
@@ -27955,9 +28011,13 @@ exports.bn = {
     "rooms.focusAsk": "তুমি কোন ধারণাটি নিয়ে কাজ করছ?",
     "rooms.hello": "একটি হ্যালো বলুন — যে কেউ জিজ্ঞেস করলে টিউটর সাহায্য করবে।",
     "teach.title": "শিক্ষকের সরঞ্জাম",
+    "teach.classes": "আপনার ক্লাস",
     "teach.sub": "একটি ক্লাস তৈরি করুন, জয়েন কোড শেয়ার করুন, এবং প্রতি ধারণায় দক্ষতা দেখুন — ডিজাইনেই নাম-পরিচয় ছাড়া। একটি শেয়ার করা ডিভাইসে বা ত্রিশটিতে কাজ করে।",
+    "teach.tabStudents": "শিক্ষার্থী",
     "teach.name": "ক্লাসের নাম",
+    "teach.tabWork": "কাজ",
     "teach.roster": "ক্লাসের তালিকা",
+    "teach.tabWeek": "এই সপ্তাহে",
     "teach.avg": "ক্লাসের গড়",
     "teach.students": "শিক্ষার্থী",
     "teach.studentsOne": "শিক্ষার্থী",
@@ -30279,7 +30339,15 @@ __def("math-text.js", function (module, exports, require) {
 //     below are what stop the formatter from turning either into a fraction,
 //     and they were written after MEASURING the bank, not imagined;
 //   · a code block is never touched (that is lib/prompt.ts's job — a Python
-//     `n * fact(n - 1)` must stay exactly what it is).
+//     `n * fact(n - 1)` must stay exactly what it is);
+//   · a MATRIX (`[[5, 1], [0, 1]]`) is drawn as a bracketed grid. It was the
+//     one shape this file still printed as the author typed it, so a matrices
+//     question read as a list of numbers between square brackets — and the
+//     learner had to reconstruct the rows themselves. A 2×2 product is exactly
+//     the item where the rows are the question. The reader refuses anything that
+//     is not a rectangle of plain values (a single row, rows of different
+//     lengths, any bracketed text), so an array in prose cannot be drawn as a
+//     matrix by accident.
 //
 // LOSSLESS. The spans carry the authored characters, not a rewritten copy: read
 // them back through `mathNotation` and you get the input again, character for
@@ -30395,6 +30463,80 @@ function readNumber(s, i) {
             j += 1;
     }
     return { text: s.slice(i, j), end: j };
+}
+/** A matrix cell this formatter will draw: a plain value with an optional sign
+ *  and optional decimal or fraction part. Deliberately narrow — a cell holding a
+ *  word, an operator or another bracket is not a matrix this bank writes, and
+ *  drawing it as one would be a guess about what the author meant. */
+const MATRIX_CELL = /^[−-]?[0-9]+(?:\.[0-9]+)?(?:\/[0-9]+)?$/;
+/** Skip the spaces and tabs INSIDE a matrix (`[[5, 1], [0, 1]]` is one), so the
+ *  authored padding reaches the drawing as padding rather than as an error. */
+function skipInnerSpace(s, i) {
+    let j = i;
+    while (s[j] === " " || s[j] === "\t")
+        j += 1;
+    return j;
+}
+/**
+ * Read a matrix STARTING AT `i` (which must be the first `[` of `[[`), or null.
+ *
+ * Every refusal here is a shape the bank does not write and this formatter
+ * therefore must not invent:
+ *   · a single row (`[1, 2]`) is a vector or a plain list, not a matrix;
+ *   · rows of different lengths cannot be set as a grid without saying something
+ *     false about the columns;
+ *   · a cell that is not a plain value (a word, a bracket, an expression) is
+ *     left exactly as the author wrote it.
+ */
+function readMatrix(s, i) {
+    if (s[i] !== "[" || s[i + 1] !== "[")
+        return null;
+    const rows = [];
+    let j = i + 1;
+    for (;;) {
+        if (s[j] !== "[")
+            return null;
+        j = skipInnerSpace(s, j + 1);
+        const cells = [];
+        for (;;) {
+            const start = j;
+            while (j < s.length && s[j] !== "," && s[j] !== "]" && s[j] !== "[")
+                j += 1;
+            const cell = s.slice(start, j).trim();
+            if (!MATRIX_CELL.test(cell))
+                return null;
+            cells.push(cell);
+            j = skipInnerSpace(s, j);
+            if (s[j] === ",") {
+                j = skipInnerSpace(s, j + 1);
+                continue;
+            }
+            if (s[j] === "]") {
+                j += 1;
+                break;
+            }
+            return null;
+        }
+        // A one-cell row is not a matrix, and neither is a row that ended empty.
+        if (cells.length < 2)
+            return null;
+        rows.push(cells);
+        j = skipInnerSpace(s, j);
+        if (s[j] === ",") {
+            j = skipInnerSpace(s, j + 1);
+            continue;
+        }
+        if (s[j] === "]") {
+            j += 1;
+            break;
+        }
+        return null;
+    }
+    if (rows.length < 2)
+        return null;
+    if (rows.some((row) => row.length !== rows[0].length))
+        return null;
+    return { rows, end: j };
 }
 /** A denominator that is a variable, possibly subscripted (`x_n`, `x_{n+1}`):
  *  `5/x_n` is a fraction, `mg/100 ml` is a unit rate and stays linear. */
@@ -30525,6 +30667,18 @@ function mathSpans(input) {
                 continue;
             }
         }
+        // `[[…], […]]` → a bracketed grid. Before the fraction branch, because a
+        // cell may itself be written `1/2`: the matrix is the outer shape and the
+        // cell is drawn by the same formatter the row is.
+        if (ch === "[") {
+            const matrix = readMatrix(s, i);
+            if (matrix) {
+                flush();
+                spans.push({ kind: "matrix", rows: matrix.rows, raw: s.slice(i, matrix.end) });
+                i = matrix.end;
+                continue;
+            }
+        }
         if (ch === "^" || ch === "_") {
             const atom = readAtom(s, i + 1, ch);
             if (atom) {
@@ -30592,6 +30746,10 @@ function mathNotation(spans) {
                 return "*";
             case "approx":
                 return "~";
+            case "matrix":
+                // The authored slice, not a rebuilt one: spacing inside the brackets
+                // is the author's, and the round-trip is asserted on every draw.
+                return span.raw;
         }
     })
         .join("");

@@ -306,23 +306,46 @@
    *  `5/6`, `10^4`, `sqrt(18)` and `x_{n+1}` are what an author can type; this is
    *  what a learner reads. The payloads recurse, because `1/2^3` has a power in
    *  its denominator. */
-  function mathHtml(raw) {
+  function mathSpansHtml(raw) {
     return E.mathText.mathSpans(String(raw == null ? "" : raw)).map(function (span) {
       switch (span.kind) {
         case "text": return esc(span.text);
-        case "sup": return "<sup>" + mathHtml(span.text) + "</sup>";
-        case "sub": return "<sub>" + mathHtml(span.text) + "</sub>";
+        case "sup": return "<sup>" + mathSpansHtml(span.text) + "</sup>";
+        case "sub": return "<sub>" + mathSpansHtml(span.text) + "</sub>";
         case "times": return "\u00d7";
         case "approx": return "\u2248";
         case "radical":
           return '<span class="mrad"><span class="mrad-sign" aria-hidden="true">\u221a</span>' +
-            '<span class="mrad-body">' + mathHtml(span.text) + "</span></span>";
+            '<span class="mrad-body">' + mathSpansHtml(span.text) + "</span></span>";
+        case "matrix":
+          // A grid, the same drawing the React surface makes: a column of rows
+          // inside drawn brackets (see the .mmatrix rules in app.css). The
+          // accessible name is the authored form, because a row boundary is not
+          // something a reader can hear from the cells in order.
+          return '<span class="mmatrix" role="img" aria-label="' + esc(span.raw) + '">' +
+            '<span class="mmatrix-body">' + span.rows.map(function (row) {
+              return '<span class="mmatrix-row">' + row.map(function (cell) {
+                return '<span class="mmatrix-cell">' + mathSpansHtml(cell) + "</span>";
+              }).join("") + "</span>";
+            }).join("") + "</span></span>";
         case "frac":
-          return '<span class="mfrac"><span class="mfrac-n">' + mathHtml(span.numerator) +
-            '</span><span class="sr-only">/</span><span class="mfrac-d">' + mathHtml(span.denominator) + "</span></span>";
+          return '<span class="mfrac"><span class="mfrac-n">' + mathSpansHtml(span.numerator) +
+            '</span><span class="sr-only">/</span><span class="mfrac-d">' + mathSpansHtml(span.denominator) + "</span></span>";
       }
       return "";
     }).join("");
+  }
+
+  /** …AND SCOPED UNDER `.math`, WHICH IS WHAT MAKES THE DRAWING APPLY. The rules
+   *  that set a fraction stacked, a radical's vinculum or a matrix's brackets are
+   *  written under `.math` so they cannot restyle a superscript elsewhere in the
+   *  page; the React renderer supplies that wrapper itself
+   *  (components/math-text.tsx), and this build did not: on the published twin
+   *  every fraction was drawn as `5` `/` `6` on one line while the app stacked
+   *  it (measured in a browser: `.mfrac` computed `display: inline`).
+   *  One wrapper, at the one place the HTML is produced, is the fix. */
+  function mathHtml(raw) {
+    return '<span class="math">' + mathSpansHtml(raw) + "</span>";
   }
 
   /** A prompt drawn as what it is: prose in the question's voice, a code block

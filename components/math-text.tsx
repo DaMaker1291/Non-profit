@@ -54,6 +54,28 @@ export default function MathText({ text }: { text: string }) {
                 <span className="mrad-body">{payload(span.text)}</span>
               </span>
             );
+          case "matrix":
+            // A GRID, not a row of numbers. The bracket strokes are CSS on
+            // `.mmatrix` (border on the sides, serifs on the caps), so a matrix
+            // inside an option marked wrong is struck through with it.
+            //
+            // The accessible name is the AUTHORED form: a reader who cannot see
+            // the brackets has no way to tell where one row ends and the next
+            // begins from "5 1 0 1", and `role="img"` makes that the only thing
+            // announced rather than reading the cells twice.
+            return (
+              <span key={i} className="mmatrix" role="img" aria-label={span.raw}>
+                <span className="mmatrix-body">
+                  {span.rows.map((row, ri) => (
+                    <span className="mmatrix-row" key={ri}>
+                      {row.map((cell, ci) => (
+                        <span className="mmatrix-cell" key={ci}>{payload(cell)}</span>
+                      ))}
+                    </span>
+                  ))}
+                </span>
+              </span>
+            );
           case "frac":
             // Numerator, then a slash for whoever is LISTENING, then the
             // denominator. A reader hears "3 slash 4" — the way a fraction is

@@ -28,7 +28,15 @@
 //     below are what stop the formatter from turning either into a fraction,
 //     and they were written after MEASURING the bank, not imagined;
 //   · a code block is never touched (that is lib/prompt.ts's job — a Python
-//     `n * fact(n - 1)` must stay exactly what it is).
+//     `n * fact(n - 1)` must stay exactly what it is);
+//   · a MATRIX (`[[5, 1], [0, 1]]`) is drawn as a bracketed grid. It was the
+//     one shape this file still printed as the author typed it, so a matrices
+//     question read as a list of numbers between square brackets — and the
+//     learner had to reconstruct the rows themselves. A 2×2 product is exactly
+//     the item where the rows are the question. The reader refuses anything that
+//     is not a rectangle of plain values (a single row, rows of different
+//     lengths, any bracketed text), so an array in prose cannot be drawn as a
+//     matrix by accident.
 //
 // LOSSLESS. The spans carry the authored characters, not a rewritten copy: read
 // them back through `mathNotation` and you get the input again, character for
@@ -57,7 +65,13 @@ export type MathSpan =
   /** A `*` standing between two operands: drawn as ×. */
   | { kind: "times" }
   /** A `~` immediately before a number: drawn as ≈. */
-  | { kind: "approx" };
+  | { kind: "approx" }
+  /** A matrix, `[[5, 1], [0, 1]]`, drawn as a bracketed grid. `raw` is the
+   *  authored slice, character for character: the drawing is rows and columns,
+   *  but the round-trip has to give the string back, and the accessible name is
+   *  the authored form — a reader who cannot see the brackets needs to know
+   *  where a row ends, and "5, 1, 0, 1" does not say it. */
+  | { kind: "matrix"; rows: string[][]; raw: string };
 
 /** A character that can sit beside an operator as an operand. Deliberately
  *  narrow: `*` between `)` and `3` is multiplication, `*` between two spaces in
@@ -147,6 +161,75 @@ function readNumber(s: string, i: number): { text: string; end: number } | null 
     while (/[0-9]/.test(s[j] ?? "")) j += 1;
   }
   return { text: s.slice(i, j), end: j };
+}
+
+/** A matrix cell this formatter will draw: a plain value with an optional sign
+ *  and optional decimal or fraction part. Deliberately narrow — a cell holding a
+ *  word, an operator or another bracket is not a matrix this bank writes, and
+ *  drawing it as one would be a guess about what the author meant. */
+const MATRIX_CELL = /^[−-]?[0-9]+(?:\.[0-9]+)?(?:\/[0-9]+)?$/;
+
+/** Skip the spaces and tabs INSIDE a matrix (`[[5, 1], [0, 1]]` is one), so the
+ *  authored padding reaches the drawing as padding rather than as an error. */
+function skipInnerSpace(s: string, i: number): number {
+  let j = i;
+  while (s[j] === " " || s[j] === "\t") j += 1;
+  return j;
+}
+
+/**
+ * Read a matrix STARTING AT `i` (which must be the first `[` of `[[`), or null.
+ *
+ * Every refusal here is a shape the bank does not write and this formatter
+ * therefore must not invent:
+ *   · a single row (`[1, 2]`) is a vector or a plain list, not a matrix;
+ *   · rows of different lengths cannot be set as a grid without saying something
+ *     false about the columns;
+ *   · a cell that is not a plain value (a word, a bracket, an expression) is
+ *     left exactly as the author wrote it.
+ */
+function readMatrix(s: string, i: number): { rows: string[][]; end: number } | null {
+  if (s[i] !== "[" || s[i + 1] !== "[") return null;
+  const rows: string[][] = [];
+  let j = i + 1;
+  for (;;) {
+    if (s[j] !== "[") return null;
+    j = skipInnerSpace(s, j + 1);
+    const cells: string[] = [];
+    for (;;) {
+      const start = j;
+      while (j < s.length && s[j] !== "," && s[j] !== "]" && s[j] !== "[") j += 1;
+      const cell = s.slice(start, j).trim();
+      if (!MATRIX_CELL.test(cell)) return null;
+      cells.push(cell);
+      j = skipInnerSpace(s, j);
+      if (s[j] === ",") {
+        j = skipInnerSpace(s, j + 1);
+        continue;
+      }
+      if (s[j] === "]") {
+        j += 1;
+        break;
+      }
+      return null;
+    }
+    // A one-cell row is not a matrix, and neither is a row that ended empty.
+    if (cells.length < 2) return null;
+    rows.push(cells);
+    j = skipInnerSpace(s, j);
+    if (s[j] === ",") {
+      j = skipInnerSpace(s, j + 1);
+      continue;
+    }
+    if (s[j] === "]") {
+      j += 1;
+      break;
+    }
+    return null;
+  }
+  if (rows.length < 2) return null;
+  if (rows.some((row) => row.length !== rows[0].length)) return null;
+  return { rows, end: j };
 }
 
 /** A denominator that is a variable, possibly subscripted (`x_n`, `x_{n+1}`):
@@ -272,6 +355,19 @@ export function mathSpans(input: string): MathSpan[] {
       }
     }
 
+    // `[[…], […]]` → a bracketed grid. Before the fraction branch, because a
+    // cell may itself be written `1/2`: the matrix is the outer shape and the
+    // cell is drawn by the same formatter the row is.
+    if (ch === "[") {
+      const matrix = readMatrix(s, i);
+      if (matrix) {
+        flush();
+        spans.push({ kind: "matrix", rows: matrix.rows, raw: s.slice(i, matrix.end) });
+        i = matrix.end;
+        continue;
+      }
+    }
+
     if (ch === "^" || ch === "_") {
       const atom = readAtom(s, i + 1, ch);
       if (atom) {
@@ -345,6 +441,10 @@ export function mathNotation(spans: readonly MathSpan[]): string {
           return "*";
         case "approx":
           return "~";
+        case "matrix":
+          // The authored slice, not a rebuilt one: spacing inside the brackets
+          // is the author's, and the round-trip is asserted on every draw.
+          return span.raw;
       }
     })
     .join("");

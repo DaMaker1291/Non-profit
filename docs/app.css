@@ -746,6 +746,28 @@ details.evidence li { margin-bottom: 0.25rem; }
 .math .mfrac-d { padding: 0 0.24em; border-top: 1px solid currentColor; }
 .math .mrad > .mrad-sign { padding-right: 0.02em; }
 .math .mrad > .mrad-body { border-top: 1px solid currentColor; padding: 0 0.14em 0 0.06em; }
+/* A MATRIX — the same drawing as the React surface (components/math-text.tsx).
+   Brackets are strokes rather than characters so they grow with the rows, and a
+   column of rows is what makes the columns line up. */
+.math .mmatrix {
+  display: inline-flex; align-items: stretch; vertical-align: middle;
+  margin: 0 0.16em; font-size: 0.94em; line-height: 1.22;
+}
+.math .mmatrix-body {
+  position: relative; display: inline-flex; flex-direction: column;
+  gap: 0.1em; padding: 0.12em 0.44em;
+  border-left: 1.5px solid currentColor; border-right: 1.5px solid currentColor;
+}
+.math .mmatrix-body::before, .math .mmatrix-body::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 1.5px;
+  background:
+    linear-gradient(currentColor, currentColor) left / 0.3em 100% no-repeat,
+    linear-gradient(currentColor, currentColor) right / 0.3em 100% no-repeat;
+}
+.math .mmatrix-body::before { top: 0; }
+.math .mmatrix-body::after { bottom: 0; }
+.math .mmatrix-row { display: flex; gap: 0.75em; justify-content: space-between; }
+.math .mmatrix-cell { min-width: 1.1em; text-align: right; font-variant-numeric: tabular-nums; }
 
 /* ── The answer box (§6) ────────────────────────────────────────────────────
    For a question that is NOT multiple choice. Deliberately the same visual weight

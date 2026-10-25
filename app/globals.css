@@ -758,6 +758,31 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
 .math .mfrac-d { padding: 0 0.24em; border-top: 1px solid currentColor; }
 .math .mrad > .mrad-sign { padding-right: 0.02em; }
 .math .mrad > .mrad-body { border-top: 1px solid currentColor; padding: 0 0.14em 0 0.06em; }
+/* A MATRIX (lib/math-text.ts#readMatrix). The brackets are drawn, not typed: a
+   full-height rule down each side with a short serif at each corner is what a
+   printed [ ] looks like, and `currentColor` keeps it the question's own colour
+   (a wrong option's matrix is struck through as one thing). The grid is a
+   column of rows so the columns line up whatever the cell widths are — which is
+   the whole reason a matrix is not printed as `[[5, 1], [0, 1]]`. */
+.math .mmatrix {
+  display: inline-flex; align-items: stretch; vertical-align: middle;
+  margin: 0 0.16em; font-size: 0.94em; line-height: 1.22;
+}
+.math .mmatrix-body {
+  position: relative; display: inline-flex; flex-direction: column;
+  gap: 0.1em; padding: 0.12em 0.44em;
+  border-left: 1.5px solid currentColor; border-right: 1.5px solid currentColor;
+}
+.math .mmatrix-body::before, .math .mmatrix-body::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 1.5px;
+  background:
+    linear-gradient(currentColor, currentColor) left / 0.3em 100% no-repeat,
+    linear-gradient(currentColor, currentColor) right / 0.3em 100% no-repeat;
+}
+.math .mmatrix-body::before { top: 0; }
+.math .mmatrix-body::after { bottom: 0; }
+.math .mmatrix-row { display: flex; gap: 0.75em; justify-content: space-between; }
+.math .mmatrix-cell { min-width: 1.1em; text-align: right; font-variant-numeric: tabular-nums; }
 /* A DIAGRAM inside a question (components/question-figure.tsx). It sits ABOVE
    the words, the way a textbook plate does, and it is drawn on the question's
    own surface rather than in a card of its own: the picture is part of the
