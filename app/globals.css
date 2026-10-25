@@ -471,8 +471,13 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    width: all fifteen names on one control is 200px of chrome. Was an inline
    `style` on the component, which no rule here could override. */
 .lang-compact { max-width: 150px; }
+/* In the INTERFACE face, not the data face. A language name is a label a
+   learner reads to find their own language, not a value in a table: monospace
+   set "English" wider than the 80px the phone can give it (it clipped to
+   "Englis"), and a mono chain is the wrong voice for العربية or हिन्दी — this
+   stack falls back to the script's own Noto face, a mono does not. */
 .topbar select {
-  font-family: var(--mono); font-size: var(--t13);
+  font-family: var(--font); font-size: var(--t13);
   background: transparent; color: var(--text);
   border: 1.5px solid var(--line); border-radius: var(--radius-btn); padding: 7px 8px;
 }
