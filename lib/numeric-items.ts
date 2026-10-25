@@ -64,7 +64,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `Write ${n.toLocaleString("en-GB")} in standard form A × 10ⁿ. What is the value of n?`,
         value: String(n).length - 1, wrongs: [String(String(n).length), String(String(n).length - 2), "1"],
         tags: [], difficulty: 0.3,
-        explanation: `${n} = ${Number(n).toExponential(1).replace("e+", " × 10^")}, so n = ${String(n).length - 1}: the decimal point moves ${String(n).length - 1} places to sit just after the first digit.`,
+        explanation: `Standard form puts the decimal point just after the first digit, and the power of ten counts how far that point had to travel. In ${n} it travels ${String(n).length - 1} places to the left, giving ${Number(n).toExponential(1).replace("e+", " × 10^")}, so n = ${String(n).length - 1}. Counting how far the point moved is the whole step: ${String(n).length} moves it one place too far, and ${String(n).length - 2} one place too few.`,
       };
     }
     if (v === 1) {
@@ -74,7 +74,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `Write ${n} in standard form A × 10ⁿ. What is the value of n?`,
         value: e, wrongs: [String(-e), String(e + 1), String(e - 1)],
         tags: [], difficulty: 0.35,
-        explanation: `For a number below 1, the power is negative. ${n} = ${n.toExponential(1).replace("e", " × 10^")}, so n = ${e}.`,
+        explanation: `For a number smaller than 1 the decimal point has to move to the RIGHT to sit just after the first non-zero digit, and a rightward move gives a negative power. ${n} becomes ${n.toExponential(1).replace("e", " × 10^")}, so n = ${e}. Answering ${-e} keeps the size of the move but loses the sign that makes a small number small.`,
       };
     }
     if (v === 2) {
@@ -83,7 +83,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `Work out (${a} × 10^${b}) × (${c} × 10^${c}), giving your answer as A × 10ⁿ. What is n?`,
         value: b + c, wrongs: [String(b * c), String(b + c + 1), String(b - c)],
         tags: [], difficulty: 0.5,
-        explanation: `Multiply the A's and ADD the powers: 10^${b} × 10^${c} = 10^${b + c}. So n = ${b + c}.`,
+        explanation: `Multiplying two standard-form numbers multiplies the front numbers and ADDS the powers, because each power of ten is another factor of ten. So 10^${b} × 10^${c} = 10^${b + c}, and n = ${b + c}. Multiplying the powers (${b * c}) is the rule for a power of a power, not for a product of two numbers.`,
       };
     }
     const m = r.int(2, 9);
@@ -91,7 +91,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       prompt: `A number is written as ${m} × 10^4. What is its value as an ordinary number?`,
       value: m * 10000, wrongs: [String(m * 1000), String(m * 100000), String(m * 40000)],
       tags: [], difficulty: 0.3,
-      explanation: `× 10⁴ shifts the digits four places: ${m} × 10^4 = ${m * 10000}.`,
+      explanation: `A positive power of ten shifts the digits that many places to the LEFT, with zeros filling the gaps. So ${m} × 10^4 moves ${m} four places, which is ${m * 10000}. Shifting it one place too few (${m * 1000}) or one too many (${m * 100000}) is a miscount of the zeros: 10^4 is ten thousand, not a thousand.`,
     };
   },
 
@@ -104,7 +104,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `Evaluate ${a}x + ${b}y when x = ${x} and y = ${y}.`,
         value: a * x + b * y, wrongs: [String(a * x + b * y + 2), String(a * x - b * y), String((a + b) * (x + y))],
         tags: ["like-terms"], difficulty: 0.35,
-        explanation: `Substitute, keeping the multiplication: ${a}(${x}) + ${b}(${y}) = ${a * x} + ${b * y} = ${a * x + b * y}.`,
+        explanation: `Evaluating an expression means replacing each letter with its value and keeping the multiplication that was implied: ${a}x + ${b}y becomes ${a} × ${x} + ${b} × ${y} = ${a * x} + ${b * y} = ${a * x + b * y}. Adding the letters first (${(a + b) * (x + y)}) multiplies two quantities that were only ever added.`,
       };
     }
     if (v === 1) {
@@ -113,7 +113,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `Evaluate ${a}x² − ${b}x when x = ${x}.`,
         value: a * x * x - b * x, wrongs: [String(a * x * x - b), String((a * x - b) * (a * x - b)), String(a * x * 2 - b * x)],
         tags: ["like-terms"], difficulty: 0.45,
-        explanation: `Square first, then multiply: ${a}(${x}²) = ${a * x * x}, minus ${b}(${x}) = ${b * x}. So ${a * x * x} − ${b * x} = ${a * x * x - b * x}.`,
+        explanation: `Work through the power before the multiplication: ${x}² = ${x * x}, so ${a}x² is ${a} × ${x * x} = ${a * x * x}, and ${b}x is ${b} × ${x} = ${b * x}. Subtracting leaves ${a * x * x} − ${b * x} = ${a * x * x - b * x}. Squaring the product as a whole (${(a * x - b) * (a * x - b)}) is a different expression, and ${a * x * x - b} leaves the second term unmultiplied.`,
       };
     }
     const k = r.int(2, 5), a = r.int(2, 6);
@@ -121,7 +121,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       prompt: `A rectangle has length ${a}w and width ${k}w. What is its area when w = ${x}?`,
       value: a * k * x * x, wrongs: [String(a * k * x), String((a + k) * x), String(a * k * x * x + k)],
       tags: ["like-terms"], difficulty: 0.5,
-      explanation: `Area = ${a}w × ${k}w = ${a * k}w². With w = ${x}: ${a * k}(${x}²) = ${a * k * x * x}.`,
+      explanation: `The area of a rectangle is length times width, so the two w terms multiply as well: ${a}w × ${k}w = ${a * k}w². Substituting w = ${x} then gives ${a * k} × ${x * x} = ${a * k * x * x}. Adding the sides instead of multiplying them (${(a + k) * x}) would only be right for a square, and ${a * k * x} forgets that w is squared.`,
     };
   },
 
@@ -140,7 +140,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `Expand (x + ${p})(x + ${q}). The result is x² + bx + c. What is the value of b?`,
         value: p + q, wrongs: [String(p * q), String(p + q + 1), String(Math.abs(p - q))],
         tags: ["sign-slip"], difficulty: 0.45,
-        explanation: `The x-terms are ${p}x + ${q}x = ${p + q}x, so b = ${p + q}. (And c = ${p} × ${q} = ${p * q}.)`,
+        explanation: `Expanding means every term in the first bracket multiplies every term in the second, and the two x terms then combine: x × x gives x², ${p}x and ${q}x add to ${p + q}x, and the constants multiply to ${p * q}. So b, the coefficient of x, is ${p + q}. Multiplying instead of adding (${p * q}) gives c, the constant term, and ${p + q + 1} counts one of the x terms twice.`,
       };
     }
     if (v === 1) {
@@ -149,7 +149,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `Expand (x − ${p})(x + ${q}). The result is x² + bx + c. What is the value of c?`,
         value: -p * q, wrongs: [String(p * q), String(q - p), String(-(p + q))],
         tags: ["sign-slip"], difficulty: 0.5,
-        explanation: `The constants multiply with their signs: (−${p}) × (+${q}) = −${p * q}, so c = ${-p * q}.`,
+        explanation: `The constant term is the two constants multiplied, and it carries their signs: (−${p}) × (${q}) = −${p * q}, so c = ${-p * q}. Writing ${p * q} drops the minus, which is the whole point of the bracket, and ${q - p} adds the constants instead of multiplying them.`,
       };
     }
     const a = r.int(2, 4), p = r.int(2, 6), q = r.int(2, 6);
@@ -157,7 +157,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       prompt: `Expand (${a}x + ${p})(x + ${q}). The result is ${a}x² + bx + c. What is the value of b?`,
       value: a * q + p, wrongs: [String(a * p + q), String(p * q), String(a * q - p)],
       tags: ["sign-slip"], difficulty: 0.6,
-      explanation: `The x-terms come from ${a}x × ${q} and ${p} × x: ${a * q}x + ${p}x = ${a * q + p}x, so b = ${a * q + p}.`,
+      explanation: `The x term has two sources, because either term of the first bracket can meet the x in the second: ${a}x × ${q} = ${a * q}x, and ${p} × x = ${p}x. Adding those gives ${a * q + p}x, so b = ${a * q + p}. The other pairing, ${a}x with ${p}, is a term in x², and ${p} × ${q} = ${p * q} is the constant.`,
     };
   },
 
@@ -169,7 +169,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `Solve ${a}x + ${b} = ${a * x + b}.`,
         value: x, wrongs: [String(x + 1), String(x - 1), String(Math.round((a * x + b) / a))],
         tags: ["bal-slip"], difficulty: 0.35,
-        explanation: `Subtract ${b} from both sides: ${a}x = ${a * x}. Divide by ${a}: x = ${x}.`,
+        explanation: `Solve by undoing the operations in reverse order, and every step is done to both sides. Subtract ${b} first, leaving ${a}x = ${a * x}, then divide both sides by ${a} to reach x = ${x}. Dividing before subtracting (${Math.round((a * x + b) / a)}) divides the constant as well as the x term, which is why it comes out too big.`,
       };
     }
     if (v === 1) {
@@ -178,7 +178,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `Solve ${a}x − ${b} = ${a * x - b}.`,
         value: x, wrongs: [String(x + 1), String(x - 1), String(Math.round((a * x - b) / a))],
         tags: ["bal-slip"], difficulty: 0.35,
-        explanation: `Add ${b} to both sides: ${a}x = ${a * x}. Divide by ${a}: x = ${x}.`,
+        explanation: `Undo the subtraction first by adding ${b} to both sides, which leaves ${a}x = ${a * x}, then divide both sides by ${a} to reach x = ${x}. Dividing first (${Math.round((a * x - b) / a)}) shares the ${b} out as well, and that is not a legal move because only the ${a}x is being divided by ${a}.`,
       };
     }
     if (v === 2) {
@@ -190,7 +190,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `Solve ${a}x + ${b} = ${c}x + ${d}.`,
         value: x, wrongs: [String(x + 1), String(x - 1), String(d - b)],
         tags: ["bal-slip"], difficulty: 0.55,
-        explanation: `Collect the x's on one side: ${a - c}x = ${d - b}, so x = ${x}. Checking: ${a}(${x}) + ${b} = ${c}(${x}) + ${d}.`,
+        explanation: `With x on both sides, collect it on one side first: subtracting ${c}x leaves ${a - c}x + ${b} = ${d}, and subtracting ${b} leaves ${a - c}x = ${d - b}, so dividing by ${a - c} gives x = ${x}. Substituting back confirms it, since both sides then agree. Stopping at ${d - b} leaves the coefficient of x unused, so the value is not yet the solution.`,
       };
     }
     const a = r.int(2, 6), b = r.int(1, 5), x = r.int(2, 8);
@@ -198,7 +198,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       prompt: `Solve ${a}(x + ${b}) = ${a * (x + b)}.`,
       value: x, wrongs: [String(x + b), String(x - b), String(Math.round(a * (x + b) / (a + b)))],
       tags: ["bal-slip"], difficulty: 0.5,
-      explanation: `Divide both sides by ${a}: x + ${b} = ${x + b}, so x = ${x}. (Expanding first works too: ${a}x + ${a * b} = ${a * (x + b)}.)`,
+      explanation: `The whole bracket is multiplied by ${a}, so dividing both sides by ${a} undoes it and leaves x + ${b} = ${x + b}; subtracting ${b} then gives x = ${x}. Expanding first reaches the same place, because ${a}x + ${a * b} = ${a * (x + b)}. Dividing by ${a + b} instead (${Math.round((a * (x + b)) / (a + b))}) divides by a number that is not what multiplies the bracket.`,
     };
   },
 
@@ -210,15 +210,21 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `Solve ${a}x + ${b} > ${a * x + b}. What is the smallest whole number that works?`,
         value: x + 1, wrongs: [String(x), String(x - 1), String(x + 2)],
         tags: ["ineq-flip"], difficulty: 0.5,
-        explanation: `Subtract ${b}: ${a}x > ${a * x}, so x > ${x}. The smallest whole number strictly greater than ${x} is ${x + 1} — ${x} itself does NOT satisfy a strict inequality.`,
+        explanation: `Solve it the way an equation is solved, one operation at a time on both sides: subtracting ${b} leaves ${a}x > ${a * x}, and dividing by ${a} gives x > ${x}. The question asks for the smallest WHOLE number of all, and a strict inequality excludes ${x} itself, so the answer is ${x + 1}.`,
       };
     }
     const n = r.int(2, 5);
     return {
       prompt: `Solve −${n}x < ${-n * x}. What is the smallest whole number that works?`,
-      value: x, wrongs: [String(x - 1), String(-x), String(x + 1)],
+      // THE KEY WAS OFF BY ONE, and the explanation asserted the wrong answer
+      // with confidence. Dividing −${n}x < −${n}·x by −${n} reverses the sign to
+      // x > ${x}, so ${x} itself makes the two sides EQUAL and fails the strict
+      // inequality; the smallest whole number that works is one more. The old key
+      // was the boundary, and its own explanation said "the smallest whole number
+      // is ${x} (not ${x-1})" — a false sentence a learner would have believed.
+      value: x + 1, wrongs: [String(x), String(x - 1), String(-x)],
       tags: ["ineq-flip"], difficulty: 0.6,
-      explanation: `Dividing by a negative REVERSES the inequality: x > ${x}. The smallest whole number is ${x} (not ${x - 1} — the flip is the whole question).`,
+      explanation: `Dividing both sides by a negative number REVERSES the inequality: dividing −${n}x < ${-n * x} by −${n} gives x > ${x}. The smallest whole number strictly greater than ${x} is ${x + 1}, and ${x} itself fails because it makes the two sides equal. Forgetting the reversal is the mistake the question is built to catch, and it produces ${x - 1}.`,
     };
   },
 
@@ -232,7 +238,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `A fair ${d}-sided die is rolled once. Give P(score ≤ ${k}) as a decimal.`,
         value: k / d, tolerance: { abs: 0.005, display: String(Number((k / d).toFixed(4))) }, wrongs: [String(Number((1 / d).toFixed(4))), String(Number((k / (d - k)).toFixed(4))), String(Number((k / d + 0.1).toFixed(4)))],
         tags: ["sum-one"], difficulty: 0.4,
-        explanation: `${k} of the ${d} equally likely scores are ${k} or less, so P = ${k}/${d} = ${Number((k / d).toFixed(4))}.`,
+        explanation: `Probability is the number of outcomes you want over the number of equally likely outcomes there are. Scores of ${k} or less are ${k} of the ${d} faces, so the probability is ${k}/${d} = ${Number((k / d).toFixed(4))}. Counting only one face out of the total (${Number((1 / d).toFixed(4))}) throws away the other scores the question asked about.`,
       };
     }
     const red = r.int(2, 6), blue = r.int(2, 6);
@@ -240,7 +246,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       prompt: `A bag holds ${red} red and ${blue} blue counters. One is taken at random. Give P(red) as a decimal.`,
       value: red / (red + blue), tolerance: { abs: 0.005, display: String(Number((red / (red + blue)).toFixed(4))) }, wrongs: [String(Number((blue / (red + blue)).toFixed(4))), String(Number((red / blue).toFixed(4))), String(Number((1 / (red + blue)).toFixed(4)))],
       tags: ["sum-one"], difficulty: 0.4,
-      explanation: `P(red) = red ÷ total = ${red}/${red + blue} = ${Number((red / (red + blue)).toFixed(4))}. Probabilities are out of the WHOLE bag, not the other colour.`,
+      explanation: `The bottom of the fraction is the WHOLE bag, not the other colour, so it is ${red} + ${blue} = ${red + blue} counters in total. That makes P(red) = ${red}/${red + blue} = ${Number((red / (red + blue)).toFixed(4))}. Comparing the two colours (${Number((red / blue).toFixed(4))}) describes the mix but is not the chance of drawing red, and a probability of ${Number((1 / (red + blue)).toFixed(4))} would treat red as a single counter.`,
     };
   },
 
@@ -252,7 +258,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       prompt: `Two independent events each have probability ${a}/${b}. Give the probability that BOTH happen, as a decimal.`,
       value: both, tolerance: { abs: 0.005 }, wrongs: [String(Number((a / b + a / b).toFixed(4))), String(Number((1 - both).toFixed(4))), String(Number((a / b).toFixed(4)))],
       tags: ["ind-dep"], difficulty: 0.5,
-      explanation: `Multiply ALONG the branches when the events are independent: ${a}/${b} × ${a}/${b} = ${Number(both.toFixed(4))}. Adding them would be for "either", not "both".`,
+      explanation: `For independent events the probabilities MULTIPLY along the branches, because both outcomes have to happen and the second does not depend on the first: ${a}/${b} × ${a}/${b} = ${Number(both.toFixed(4))}. Adding the two (${Number((a / b + a / b).toFixed(4))}) answers "either one or the other", and ${Number((1 - both).toFixed(4))} is the chance that neither happens.`,
     };
   },
 
@@ -264,7 +270,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `y = x² − ${2 * h}x + ${h * h - 3}. At what value of x is the minimum?`,
         value: h, wrongs: [String(2 * h), String(-h), String(h * h - 3)],
         tags: ["b-half"], difficulty: 0.55,
-        explanation: `The turning point is at x = −b/2a = ${2 * h}/2 = ${h} (completing the square gives (x − ${h})² − 3).`,
+        explanation: `For a parabola in the form y = ax² + bx + c the turning point sits at x = −b ÷ 2a, which here is ${2 * h} ÷ 2 = ${h}. Completing the square shows the same point, because the expression becomes (x − ${h})² − 3 and a square is never negative. Using the coefficient of x unchanged (${2 * h}) forgets to halve it.`,
       };
     }
     if (v === 1) {
@@ -273,7 +279,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `y = (x − ${p})(x + ${q}). The graph crosses the x-axis at two points. What is the POSITIVE root?`,
         value: p, wrongs: [String(-q), String(q), String(p + q)],
         tags: ["b-half"], difficulty: 0.5,
-        explanation: `A product is zero when a factor is zero: x − ${p} = 0 gives x = ${p}, and x + ${q} = 0 gives x = −${q}. The positive root is ${p}.`,
+        explanation: `The graph crosses the x-axis where y = 0, and a product is zero when either factor is zero. Setting x − ${p} = 0 gives x = ${p}, and x + ${q} = 0 gives x = −${q}. The positive root is ${p}; ${q} takes the sign of the factor rather than of the root, which is why it is not one.`,
       };
     }
     const k = r.int(1, 6);
@@ -281,7 +287,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       prompt: `y = x² + ${k}. What is the y-intercept of the graph?`,
       value: k, wrongs: ["0", String(-k), String(k * k)],
       tags: [], difficulty: 0.35,
-      explanation: `Set x = 0: y = 0² + ${k} = ${k}. The y-intercept is the constant term when the equation is in this form.`,
+      explanation: `The y-intercept is where the graph crosses the vertical axis, which happens when x = 0. Substituting gives y = 0² + ${k} = ${k}, so the intercept is ${k}. In this form it is the constant term, and ${-k} would flip its sign while ${k * k} squares it.`,
     };
   },
 
@@ -293,7 +299,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `The sum of the first n whole numbers is n(n + 1)/2. What is the sum of the first ${n} whole numbers?`,
         value: (n * (n + 1)) / 2, wrongs: [String(n * n), String(n * (n + 1)), String((n * (n + 1)) / 2 + n)],
         tags: [], difficulty: 0.45,
-        explanation: `n(n + 1)/2 = ${n} × ${n + 1} ÷ 2 = ${(n * (n + 1)) / 2}. This is the pairing argument: ${n} terms pair to ${n + 1} each, and there are ${n}/2 pairs.`,
+        explanation: `The formula adds the first ${n} whole numbers by pairing them up, and each pair adds to ${n + 1}: ${n} × ${n + 1} ÷ 2 = ${(n * (n + 1)) / 2}. Half of ${n * (n + 1)} is what turns the integers 1 to ${n} into that total. Using the product without halving (${n * (n + 1)}) counts every pair twice, and ${n * n} is the sum of the first ${n} ODD numbers, not of the first ${n} whole numbers.`,
       };
     }
     if (v === 1) {
@@ -302,7 +308,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `An odd number has the form 2n + 1. Using n = ${k}, what is the odd number?`,
         value: 2 * k + 1, wrongs: [String(2 * k), String(2 * k + 2), String(k * k)],
         tags: [], difficulty: 0.4,
-        explanation: `2n + 1 with n = ${k} gives 2(${k}) + 1 = ${2 * k + 1}. The form is what makes a proof about ALL odd numbers possible.`,
+        explanation: `Every odd number is one more than an even one, which is what 2n + 1 says: two times a whole number, plus one. With n = ${k} that is ${2 * k} + 1 = ${2 * k + 1}. Using ${2 * k} gives an even number and ${2 * k + 2} the next even number, so neither answers a question about odd numbers.`,
       };
     }
     const a = r.int(3, 9), b = r.int(3, 9);
@@ -310,7 +316,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       prompt: `Show (a + b)² = a² + 2ab + b². Using a = ${a} and b = ${b}, what is the value of 2ab?`,
       value: 2 * a * b, wrongs: [String(a * b), String(a * a + b * b), String(a + b)],
       tags: [], difficulty: 0.5,
-      explanation: `2ab = 2 × ${a} × ${b} = ${2 * a * b}. The cross term is the whole content of the identity — a² + b² alone would miss it.`,
+      explanation: `Squaring a sum is not squaring each part: (a + b)² = a² + 2ab + b², and the two identical cross terms are what make the middle coefficient 2ab. With a = ${a} and b = ${b}, that cross term is 2 × ${a} × ${b} = ${2 * a * b}. Writing a² + b² alone (${a * a + b * b}) is the classic error — it drops the cross term entirely.`,
     };
   },
 
@@ -321,7 +327,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `In Boolean algebra, "1" means true and "0" means false. What is the value of A AND (NOT A)?`,
         value: 0, wrongs: ["1", "2", "-1"],
         tags: [], difficulty: 0.4,
-        explanation: `A statement cannot be both true and false, so A AND NOT A is always false = 0. It is the contradiction, whatever A is.`,
+        explanation: `AND is true only when both of its inputs are true, and NOT A is true exactly when A is false, so the two can never be true together. Whatever A is, A AND (NOT A) comes out false, which the question records as 0. It is a contradiction rather than a calculation about the letters.`,
       };
     }
     if (v === 1) {
@@ -329,7 +335,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `In Boolean algebra, "1" means true and "0" means false. What is the value of A OR (NOT A)?`,
         value: 1, wrongs: ["0", "2", "-1"],
         tags: [], difficulty: 0.4,
-        explanation: `Either A is true or it is not — one of the two always holds, so A OR NOT A is always true = 1.`,
+        explanation: `A is either true or false, and NOT A is whichever of the two it is not, so one of them always holds. OR needs only one true input, which makes A OR (NOT A) true whatever A is: 1. It is a tautology, and replying 0 would say neither ever holds.`,
       };
     }
     const a = r.int(0, 1), b = r.int(0, 1);
@@ -337,7 +343,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       prompt: `In Boolean algebra, 1 = true and 0 = false. Given A = ${a} and B = ${b}, what is A AND B?`,
       value: a & b, wrongs: [String(a | b), String(a ^ b), String(1 - (a & b))],
       tags: [], difficulty: 0.35,
-      explanation: `AND is 1 only when BOTH inputs are 1. Here ${a} AND ${b} = ${a & b}.`,
+      explanation: `AND is 1 only when BOTH inputs are 1, so a single 0 anywhere makes the result 0. Here A is ${a} and B is ${b}, so ${a} AND ${b} = ${a & b}. OR would give ${a | b} instead, because OR is happy when either input is 1.`,
     };
   },
 
@@ -350,7 +356,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `What is the bearing of a direction ${name}, in degrees?`,
         value: deg, wrongs: [String((deg + 90) % 360), String((deg + 180) % 360), String(deg === 0 ? 360 : 0)],
         tags: [], difficulty: 0.3,
-        explanation: `Bearings are measured CLOCKWISE from due north: north = 0°, east = 90°, south = 180°, west = 270°. So ${name} is ${deg}°.`,
+        explanation: `Bearings are always measured clockwise from due north, which is 0°: east is 90°, south is 180° and west is 270°. A direction ${name} therefore has the bearing ${deg}°. The neighbouring points are 90° away (${(deg + 90) % 360}°) and half a turn away (${(deg + 180) % 360}°), and north is written as 0° rather than 360°.`,
       };
     }
     const d = r.pick([30, 40, 50, 60]);
@@ -358,7 +364,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       prompt: `A bearing is ${d}°. Measured the other way (anticlockwise from north), the same direction is 360 − ${d}. What is it, in degrees?`,
       value: 360 - d, wrongs: [String(d), String(180 - d), String(360 + d)],
       tags: [], difficulty: 0.35,
-      explanation: `A full turn is 360°, so the opposite reading is 360 − ${d} = ${360 - d}°.`,
+      explanation: `Bearings go all the way round clockwise from north, and a full turn is 360°, so the same direction measured the other way is 360 − ${d} = ${360 - d}°. Reporting ${d} again repeats the first reading rather than the reverse one, and ${180 - d} measures from south instead of completing the circle.`,
     };
   },
 
@@ -370,7 +376,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `A circle has radius ${radius} cm. Its area is kπ cm². What is the value of k?`,
         value: radius * radius, tolerance: { unit: "cm²" }, wrongs: [String(2 * radius), String(radius), String(radius * radius * 2)],
         tags: [], difficulty: 0.4,
-        explanation: `Area = πr² = π × ${radius}² = ${radius * radius}π cm², so k = ${radius * radius}. The k is r², not r.`,
+        explanation: `The area of a circle is π multiplied by the radius squared, so here it is π × ${radius}² = ${radius * radius}π cm² and k, the number in front of π, is ${radius * radius}. The radius is squared, so ${2 * radius} belongs to the circumference — a length, not an area — and ${radius} on its own is one power of the radius short.`,
       };
     }
     if (v === 1) {
@@ -378,7 +384,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `A circle has radius ${radius} cm. Its circumference is kπ cm. What is the value of k?`,
         value: 2 * radius, tolerance: { unit: "cm" }, wrongs: [String(radius), String(radius * radius), String(4 * radius)],
         tags: [], difficulty: 0.35,
-        explanation: `Circumference = 2πr = 2π × ${radius} = ${2 * radius}π cm, so k = ${2 * radius}. Circumference is a LENGTH (one r); area has two.`,
+        explanation: `Circumference is one trip round the circle: π times the diameter, which is the same as 2πr. With r = ${radius} that is 2π × ${radius} = ${2 * radius}π cm, so k = ${2 * radius}. Circumference uses the radius once and is a length; ${radius * radius} is the area coefficient, and ${4 * radius} counts the diameter twice over.`,
       };
     }
     const deg = r.pick([60, 90, 120, 180]);
@@ -387,7 +393,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       prompt: `A sector of a circle of radius ${radius} cm has angle ${deg}°. Its area is kπ cm². What is the value of k?`,
       value: num, tolerance: { abs: 0.01, unit: "cm²", display: String(Number(num.toFixed(2))) }, wrongs: [String(Number((radius * radius).toFixed(2))), String(Number(((deg / 180) * radius * radius).toFixed(2))), String(Number(((deg / 360) * 2 * radius).toFixed(2)))],
       tags: [], difficulty: 0.55,
-      explanation: `A sector is the fraction ${deg}/360 of the whole: (${deg}/360) × π${radius}² = ${Number(num.toFixed(2))}π cm².`,
+      explanation: `A sector is the same fraction of the circle's area as its angle is of a full turn, so take ${deg}/360 of πr²: (${deg}/360) × π × ${radius}² = ${Number(num.toFixed(2))}π cm², making k = ${Number(num.toFixed(2))}. Using ${deg}/180 (${Number(((deg / 180) * radius * radius).toFixed(2))}) is only right for a semicircle, and using one radius instead of two gives an arc length rather than an area.`,
     };
   },
 
@@ -400,7 +406,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `A right-angled triangle has legs ${a} cm and ${b} cm. How long is the hypotenuse, in cm?`,
         value: c, tolerance: { unit: "cm" }, wrongs: [String(a + b), String(c + 1), String(c - 1)],
         tags: ["cos-amb"], difficulty: 0.45,
-        explanation: `Pythagoras: ${a}² + ${b}² = ${a * a} + ${b * b} = ${c * c}, so the hypotenuse is √${c * c} = ${c} cm.`,
+        explanation: `Pythagoras' theorem links the two shorter sides to the longest one: the squares of the legs add to the square of the hypotenuse. So ${a}² + ${b}² = ${a * a} + ${b * b} = ${c * c}, and the hypotenuse is √${c * c} = ${c} cm. Adding the two legs as they stand (${a + b}) skips the squaring step, which is exactly what makes the hypotenuse the longest side.`,
       };
     }
     if (v === 1) {
@@ -410,7 +416,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `In a right-angled triangle the hypotenuse is ${c} cm and one leg is ${a} cm. How long is the other leg, in cm?`,
         value: b, tolerance: { unit: "cm" }, wrongs: [String(c - a), String(b + 1), String(a + c)],
         tags: ["cos-amb"], difficulty: 0.5,
-        explanation: `Rearrange Pythagoras for a leg: ${c}² − ${a}² = ${c * c} − ${a * a} = ${b * b}, so the leg is √${b * b} = ${b} cm.`,
+        explanation: `Rearranged Pythagoras: take the square of the known leg away from the square of the hypotenuse and the remainder is the square of the missing leg. ${c}² − ${a}² = ${c * c} − ${a * a} = ${b * b}, so that leg is √${b * b} = ${b} cm. Subtracting the lengths themselves (${c - a}) is not the theorem, and ${a + c} would make the other leg longer than the hypotenuse, which it can never be.`,
       };
     }
     const angle = r.pick([30, 45, 60]);
@@ -421,7 +427,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
         prompt: `In a right-angled triangle the hypotenuse is ${hyp} cm and one angle is 30°. How long is the side OPPOSITE that angle, in cm?`,
         value: hyp / 2, tolerance: { unit: "cm" }, wrongs: [String(hyp), String(Math.round(hyp * 0.866)), String(Math.round(hyp / 3))],
         tags: ["cos-amb"], difficulty: 0.5,
-        explanation: `sin 30° = 0.5, and sin = opposite/hypotenuse, so opposite = 0.5 × ${hyp} = ${hyp / 2} cm.`,
+        explanation: `Sine relates the side opposite the angle to the hypotenuse, and sin 30° is exactly 0.5. So the opposite side is half the hypotenuse: 0.5 × ${hyp} = ${hyp / 2} cm. Using the cosine (${Math.round(hyp * 0.866)}) picks the adjacent side instead, and ${hyp} gives the hypotenuse back — the longest side, never the opposite one.`,
       };
     }
     return {
@@ -430,7 +436,7 @@ const OPENING_GENS: Record<string, NumericGen> = {
       tolerance: { abs: 0.05, unit: "cm" },
       wrongs: [String(Number((hyp * Math.sin((angle * Math.PI) / 180)).toFixed(1))), String(hyp), String(Number((hyp / 2).toFixed(1)))],
       tags: ["cos-amb"], difficulty: 0.55,
-      explanation: `cos ${angle}° = adjacent/hypotenuse, so adjacent = ${hyp} × cos ${angle}° = ${Number((hyp * Math.cos((angle * Math.PI) / 180)).toFixed(1))} cm.`,
+      explanation: `Cosine is the adjacent side over the hypotenuse, so the adjacent side is the hypotenuse multiplied by cos ${angle}°: ${hyp} × cos ${angle}° = ${Number((hyp * Math.cos((angle * Math.PI) / 180)).toFixed(1))} cm. Using the sine (${Number((hyp * Math.sin((angle * Math.PI) / 180)).toFixed(1))}) swaps the two shorter sides, and answering ${hyp} gives back the hypotenuse.`,
     };
   },
 

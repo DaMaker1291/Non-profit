@@ -30,7 +30,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `In the number ${n}, what is the VALUE of the ${which} digit?`,
       value, wrongs: [String(which === "tens" ? t : which === "hundreds" ? h : o), String(value * 10), String(value / 10)],
       tags: [], difficulty: 0.35,
-      explanation: `The ${which} column is worth ${which === "tens" ? "10" : which === "hundreds" ? "100" : "1"} each, so the digit contributes ${value}. The digit itself (${which === "tens" ? t : which === "hundreds" ? h : o}) is not its value — the column is.`,
+      explanation: `In ${n} the columns are worth 100, 10 and 1 from the left, so every digit is scaled by the column it sits in. The ${h} hundreds are worth ${h * 100}, the ${t} tens are worth ${t * 10} and the ${o} ones are worth ${o}, and those add back to ${n}. The ${which} digit on its own is ${which === "tens" ? t : which === "hundreds" ? h : o}, but its VALUE is ${value} — writing the digit instead of the value is the usual slip, and ${value * 10} would be one column further left.`,
     };
   },
 
@@ -40,7 +40,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Work out ${a} + ${b}.`,
       value: a + b, wrongs: [String(a + b + 10), String(a + b - 10), String(a + b + 100)],
       tags: [], difficulty: 0.3,
-      explanation: `${a} + ${b} = ${a + b}. Add the hundreds, then the tens, then the ones, and carry where a column reaches 10.`,
+      explanation: `Write the two numbers in columns and add from the right: the ones first, then the tens, then the hundreds, carrying a ten into the next column whenever one column reaches 10. ${a} + ${b} comes to ${a + b}. The answers ${a + b + 10} and ${a + b - 10} are what a single column does when its carry is added twice or dropped.`,
     };
   },
 
@@ -50,7 +50,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Work out ${a} − ${b}.`,
       value: a - b, wrongs: [String(a - b + 10), String(a - b - 10), String(b - a)],
       tags: [], difficulty: 0.3,
-      explanation: `${a} − ${b} = ${a - b}. ${b - a} would be the wrong way round — the answer must be positive because ${a} is bigger.`,
+      explanation: `Take ${b} away from ${a} column by column, borrowing one ten from the next column whenever the digit on top is smaller than the digit below it. Working that through, ${a} − ${b} = ${a - b}. Swapping the order gives ${b - a}, a negative amount that no longer answers "how many are left", and ${a - b + 10} is what one column produces when the borrow is added instead of taken.`,
     };
   },
 
@@ -60,7 +60,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Work out ${a} × ${b}.`,
       value: a * b, wrongs: [String(a * b + a), String(a * b - b), String(a + b)],
       tags: [], difficulty: 0.35,
-      explanation: `${a} × ${b} = ${a * b}. Split ${b} into tens and ones if it helps: ${a} × 10 = ${a * 10}, then add ${a} × ${b - 10 >= 0 ? b - 10 : b}.`,
+      explanation: `${a} × ${b} means ${b} lots of ${a}, which comes to ${a * b}. Multiplying in two steps is the reliable way to get there: ${a} × ${b - 1} = ${a * (b - 1)}, and one more ${a} takes it to ${a * b}. Adding the two numbers instead (${a + b}) is the commonest slip, and it is not multiplication at all — ${b} lots of ${a} is far more than the two numbers added together.`,
     };
   },
 
@@ -71,7 +71,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Work out ${a} ÷ ${b}.`,
       value: q, wrongs: [String(q + 1), String(q - 1), String(b)],
       tags: [], difficulty: 0.35,
-      explanation: `${a} ÷ ${b} = ${q}, because ${b} × ${q} = ${a}. Division is multiplication read backwards — check by multiplying.`,
+      explanation: `${a} ÷ ${b} asks how many groups of ${b} fit into ${a}. Since ${b} × ${q} = ${a}, the answer is ${q}, and multiplying back is the check that catches a slip. The options ${q + 1} and ${q - 1} are one group too many and one group too few, and ${b} is the size of the group rather than how many of them there are.`,
     };
   },
 
@@ -83,7 +83,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         prompt: `Work out ${a} + ${b}.`,
         value: a + b, wrongs: [String(a - b), String(-(a + b)), String(Math.abs(a) + b)],
         tags: ["neg-slip"], difficulty: 0.35,
-        explanation: `${a} + ${b} = ${a + b}. Starting at ${a} and moving ${b} to the right on the number line.`,
+        explanation: `Start at ${a} on the number line and move ${b} places to the right, because adding a positive number always moves right. That lands on ${a + b}. Subtracting ${b} instead (${a - b}) moves the wrong way, and ${-(a + b)} flips the sign of the answer as though the sum were a distance from zero rather than a position.`,
       };
     }
     if (v === 1) {
@@ -92,7 +92,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         prompt: `Work out ${a} − (${b}).`,
         value: a - b, wrongs: [String(a + b), String(b - a), String(-(a - b))],
         tags: ["neg-slip"], difficulty: 0.45,
-        explanation: `Subtracting a negative is ADDING: ${a} − (${b}) = ${a} + ${Math.abs(b)} = ${a - b}. Taking away a debt leaves you richer.`,
+        explanation: `Taking away a negative is the same as adding the positive version of it, because removing a debt increases what you have: ${a} − (${b}) = ${a} + ${Math.abs(b)} = ${a - b}. Adding the negative instead (${a + b}) keeps the sign it was supposed to remove, and subtracting the other way round (${b - a}) changes which number is being taken away.`,
       };
     }
     const a = r.int(-6, -2), b = r.int(-6, -2);
@@ -100,7 +100,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Work out (${a}) × (${b}).`,
       value: a * b, wrongs: [String(a * b * -1), String(a + b), String(Math.abs(a * b))],
       tags: ["neg-slip"], difficulty: 0.45,
-      explanation: `Two negatives multiply to a POSITIVE: (${a}) × (${b}) = ${a * b}. The opposite of the opposite is the original direction.`,
+      explanation: `Multiplying two negative numbers gives a POSITIVE, because the opposite of the opposite points back where you started: (${a}) × (${b}) = ${a * b}. Negating the product (${a * b * -1}) keeps one sign too many, and adding the two numbers (${a + b}) is a different operation — a product of ${Math.abs(a)} and ${Math.abs(b)} cannot be that small.`,
     };
   },
 
@@ -121,7 +121,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       // = bigger slice' keeps recurring" to someone who cannot yet find 3/4 of
       // 12 at all — a named cause where the record says the idea is unbuilt.
       tags: [], difficulty: 0.4,
-      explanation: `Divide by the denominator first: ${d * k} ÷ ${d} = ${k}, then multiply by the numerator: ${k} × ${n} = ${n * k}.`,
+      explanation: `Finding ${n}/${d} of ${d * k} means splitting ${d * k} into ${d} equal parts and then taking ${n} of them. One part is ${d * k} ÷ ${d} = ${k}, so ${n} parts come to ${k} × ${n} = ${n * k}. Multiplying by the denominator (${n * d}) skips the split altogether, and stopping once the division is done (${k}) takes one part when the question asks for ${n} of them.`,
     };
   },
 
@@ -134,7 +134,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: Number((num / den).toFixed(2)), tolerance: { abs: 0.01 },
       wrongs: [String(Number(((a + c) / (b + d)).toFixed(2))), String(Number((a / b).toFixed(2))), String(Number((num / den + 0.1).toFixed(2)))],
       tags: ["denom-add"], difficulty: 0.55,
-      explanation: `A common denominator: ${a}/${b} + ${c}/${d} = ${a * d}/${den} + ${c * b}/${den} = ${num}/${den} = ${Number((num / den).toFixed(2))}. Adding tops and bottoms (${a + c}/${b + d}) is the classic error — the answer must be BIGGER than either fraction.`,
+      explanation: `Fractions can only be added once the pieces are the same size, so both are rewritten over the common denominator ${den}: ${a}/${b} = ${a * d}/${den} and ${c}/${d} = ${c * b}/${den}. Adding the numerators then gives ${num}/${den} = ${Number((num / den).toFixed(2))}. Adding the tops and the bottoms (${a + c}/${b + d}) is the classic error, and it can even produce a fraction smaller than one of the originals — which a sum never is.`,
     };
   },
 
@@ -145,7 +145,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: Number((a * b).toFixed(4)), tolerance: { abs: 0.005 },
       wrongs: [String(Number((a * b * 10).toFixed(4))), String(Number((a * b / 10).toFixed(4))), String(Number((a + b).toFixed(4)))],
       tags: [], difficulty: 0.45,
-      explanation: `${a} × ${b} = ${Number((a * b).toFixed(4))}. Multiply as if the points were not there (${Math.round(a * 10)} × ${Math.round(b * 10)} = ${Math.round(a * 10) * Math.round(b * 10)}), then put back the two decimal places.`,
+      explanation: `Decimals multiply by ignoring the points, multiplying the whole numbers, and then restoring the places: ${Math.round(a * 10)} × ${Math.round(b * 10)} = ${Math.round(a * 10) * Math.round(b * 10)}, and two decimal places go back on at the end, giving ${Number((a * b).toFixed(4))}. Adding the two numbers instead (${Number((a + b).toFixed(4))}) is a different operation, and shifting one place too far (${Number((a * b * 10).toFixed(4))}) is a miscount of the places rather than a wrong multiplication.`,
     };
   },
 
@@ -158,7 +158,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         value: (pct * amount) / 100, tolerance: { abs: 0.01 },
         wrongs: [String((pct * amount) / 10), String(amount - (pct * amount) / 100), String(pct * amount)],
         tags: ["pct-base"], difficulty: 0.4,
-        explanation: `${pct}% means ${pct}/100, so ${pct}% of ${amount} = ${amount} × ${pct}/100 = ${(pct * amount) / 100}.`,
+        explanation: `A percentage is a fraction of a hundred, so ${pct}% means ${pct}/100. Of ${amount} that is ${amount} × ${pct}/100 = ${(pct * amount) / 100}. Dividing by 10 instead (${(pct * amount) / 10}) treats the percentage as a tenth, and ${pct * amount} forgets to divide by 100 at all.`,
       };
     }
     if (v === 1) {
@@ -168,7 +168,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         value: amount * (1 + pct / 100), tolerance: { abs: 0.01 },
         wrongs: [String(amount + pct), String((amount * pct) / 100), String(amount * (1 - pct / 100))],
         tags: ["pct-base"], difficulty: 0.45,
-        explanation: `A ${pct}% rise is a multiplier of ${1 + pct / 100}: ${amount} × ${1 + pct / 100} = ${amount * (1 + pct / 100)}. Adding ${pct} would be adding ${pct} pounds, not ${pct} percent.`,
+        explanation: `A rise of ${pct}% is one multiplication by ${1 + pct / 100}, because the new price is the whole original price plus the extra part of it. So ${amount} × ${1 + pct / 100} = ${amount * (1 + pct / 100)}. Adding ${pct} to the price (${amount + pct}) treats the percentage as ${pct} pounds, and ${(amount * pct) / 100} is only the increase, not the new price.`,
       };
     }
     const pct = r.pick([20, 25, 40]), amount = r.pick([80, 120, 200]);
@@ -177,7 +177,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: amount * (1 - pct / 100), tolerance: { abs: 0.01 },
       wrongs: [String(amount - pct), String(amount * (1 + pct / 100)), String((amount * pct) / 100)],
       tags: ["pct-base"], difficulty: 0.45,
-      explanation: `A ${pct}% fall is a multiplier of ${1 - pct / 100}: ${amount} × ${1 - pct / 100} = ${amount * (1 - pct / 100)}.`,
+      explanation: `A fall of ${pct}% leaves ${100 - pct}% of the price, so the whole calculation is one multiplication by ${1 - pct / 100}: ${amount} × ${1 - pct / 100} = ${amount * (1 - pct / 100)}. Subtracting ${pct} from the price treats the percentage as ${pct} pounds, and multiplying by ${1 + pct / 100} applies a rise instead of a cut.`,
     };
   },
 
@@ -195,7 +195,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `£${total} is shared in the ratio ${a}:${b}. What is the SMALLER share?`,
       value: Math.min(a, b) * k, wrongs: [String(Math.max(a, b) * k), String(total / 2), String(Math.min(a, b) * (k + 1))],
       tags: [], difficulty: 0.5,
-      explanation: `There are ${a + b} parts, each worth ${total} ÷ ${a + b} = ${k}. The smaller share is ${Math.min(a, b)} parts = ${Math.min(a, b) * k}.`,
+      explanation: `A ratio of ${a}:${b} splits the total into ${a + b} equal parts, and only then shares them out. One part is £${total} ÷ ${a + b} = £${k}, so ${Math.min(a, b)} parts — the smaller share — come to ${Math.min(a, b)} × £${k} = £${Math.min(a, b) * k}. Halving the total (${total / 2}) assumes the two shares are equal, and ${Math.max(a, b) * k} is the larger share, which the question did not ask for.`,
     };
   },
 
@@ -206,7 +206,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: m * cost, tolerance: { abs: 0.01, unit: "£" },
       wrongs: [String(n * cost), String(cost), String(m * cost + cost)],
       tags: ["inv-prop"], difficulty: 0.45,
-      explanation: `Find the UNIT price first: £${n * cost} ÷ ${n} = £${cost} each. Then ${m} × £${cost} = £${m * cost}. This is direct proportion — more pens, more money.`,
+      explanation: `Direct proportion goes through one unit, because the price of a single pen is what the two situations share. £${n * cost} buys ${n} pens, so each costs £${cost}, and ${m} pens therefore cost ${m} × £${cost} = £${m * cost}. Multiplying the original total by the new number of pens (${n * cost}) leaves ${n} in the answer, and £${cost} is the price of one pen rather than of ${m}.`,
     };
   },
 
@@ -219,7 +219,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         value: Number(n.toFixed(1)), tolerance: { abs: 0.001 },
         wrongs: [String(Number(n.toFixed(2))), String(Math.round(n)), String(Number((n - 0.1).toFixed(1)))],
         tags: ["round-half"], difficulty: 0.4,
-        explanation: `Look at the second decimal (${String(n).split(".")[1]?.[1] ?? 0}): 5 or more rounds up, below 5 rounds down. So ${n} → ${Number(n.toFixed(1))}.`,
+        explanation: `Rounding to one decimal place looks at the NEXT digit along, because that digit is the part being dropped and it decides which way to go. Here the second decimal is ${String(n).split(".")[1]?.[1] ?? 0}, so ${n} rounds to ${Number(n.toFixed(1))}. Keeping both decimals (${Number(n.toFixed(2))}) is not rounding at all, and ${Math.round(n)} rounds to a whole number instead.`,
       };
     }
     if (v === 1) {
@@ -228,7 +228,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         prompt: `Round ${n} to the nearest 100.`,
         value: Math.round(n / 100) * 100, wrongs: [Math.round(n / 10) * 10, Math.round(n / 1000) * 1000, n - 100],
         tags: ["round-half"], difficulty: 0.4,
-        explanation: `The tens digit decides: ${n} sits between ${Math.floor(n / 100) * 100} and ${Math.ceil(n / 100) * 100}, nearer ${Math.round(n / 100) * 100}.`,
+        explanation: `Rounding to the nearest 100 puts ${n} on one of the hundreds either side of it, ${Math.floor(n / 100) * 100} and ${Math.ceil(n / 100) * 100}, and the tens digit decides which. Here the tens digit is ${Math.floor((n % 100) / 10)}, so ${n} is nearer ${Math.round(n / 100) * 100}. Rounding to the nearest 10 or 1000 (${Math.round(n / 10) * 10}, ${Math.round(n / 1000) * 1000}) answers a different question.`,
       };
     }
     const sf = r.pick([2, 3]);
@@ -238,7 +238,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Round ${n} to ${sf} significant figures.`,
       value: rounded, wrongs: [Number(n.toPrecision(sf + 1)), Number(n.toPrecision(sf - 1)), Math.round(n / 1000) * 1000],
       tags: ["round-half"], difficulty: 0.5,
-      explanation: `Significant figures count from the first non-zero digit. ${n} to ${sf} s.f. is ${rounded}.`,
+      explanation: `Significant figures count from the first non-zero digit, not from the decimal point or the left-hand zeros. ${n} keeps its first ${sf} significant digits and the rest become place-holding zeros, giving ${rounded}. Keeping one more figure (${Number(n.toPrecision(sf + 1))}) is not rounding at all, and keeping one fewer (${Number(n.toPrecision(sf - 1))}) throws away a digit the question asked for.`,
     };
   },
 
@@ -248,7 +248,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Work out ${a} + ${b} × ${c}.`,
       value: a + b * c, wrongs: [(a + b) * c, a * b + c, a + b + c],
       tags: ["order-ops"], difficulty: 0.4,
-      explanation: `Multiplication binds tighter than addition: ${b} × ${c} = ${b * c} first, then ${a} + ${b * c} = ${a + b * c}. Working left to right gives ${(a + b) * c}, which is wrong.`,
+      explanation: `Multiplication binds tighter than addition, so the product is worked out before the sum: ${b} × ${c} = ${b * c} comes first, and then ${a} + ${b * c} = ${a + b * c}. Working left to right instead (${(a + b) * c}) adds before multiplying, which is a different expression — it is exactly why ${a} + ${b} × ${c} is not ${(a + b) * c}.`,
     };
   },
 
@@ -265,7 +265,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         // belief the item could not test"). The negative-index draw below still
         // carries `neg-exp`, so the concept's belief stays reachable.
         tags: [], difficulty: 0.4,
-        explanation: `${b}^${e} means ${b} multiplied by itself ${e} times = ${Math.pow(b, e)}. It is NOT ${b} × ${e}.`,
+        explanation: `A positive index means repeated multiplication, so ${b}^${e} is ${b} written as a factor ${e} times, which multiplies out to ${Math.pow(b, e)}. Multiplying the base by the index instead (${b * e}) is the classic error: ${b}^${e} is not ${b} × ${e}, and the two answers grow at completely different rates.`,
       };
     }
     if (v === 1) {
@@ -275,7 +275,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         value: Number((1 / Math.pow(b, e)).toFixed(3)), tolerance: { abs: 0.002 },
         wrongs: [String(-Math.pow(b, e)), String(Number((-b / e).toFixed(3))), String(Number((1 / (b * e)).toFixed(3)))],
         tags: ["neg-exp"], difficulty: 0.55,
-        explanation: `A negative index flips into a fraction: ${b}^${-e} = 1/${b}^${e} = 1/${Math.pow(b, e)} = ${Number((1 / Math.pow(b, e)).toFixed(3))}. The answer is POSITIVE — the sign of the index never changes the sign of the value.`,
+        explanation: `A negative index means the reciprocal of the positive power: ${b}^${-e} is 1 divided by ${b}^${e}, which is 1/${Math.pow(b, e)} = ${Number((1 / Math.pow(b, e)).toFixed(3))}. Building the power and then turning it upside down is the whole rule. The answer is POSITIVE — the minus sign moves the value below 1 and never makes it negative, so replying ${-Math.pow(b, e)} changes a sign that was never there.`,
       };
     }
     const b = r.int(2, 4), e = r.int(2, 3);
@@ -287,7 +287,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       // here shows — the slip is "add the indices instead of multiplying", which
       // this concept's catalogue does not name.
       tags: [], difficulty: 0.5,
-      explanation: `A power of a power MULTIPLIES the indices: (${b}^${e})² = ${b}^${e * 2} = ${Math.pow(b, e * 2)}.`,
+      explanation: `A power raised to another power MULTIPLIES the indices, because the factors are themselves repeated: (${b}^${e})² means ${b}^${e} written twice, which is ${e} + ${e} = ${e * 2} factors of ${b}. So the value is ${b}^${e * 2} = ${Math.pow(b, e * 2)}. Adding the indices instead (${b}^${e + 2} = ${Math.pow(b, e + 2)}) is the rule for multiplying powers, not for raising one to a power, and doubling the value of ${b}^${e} (${Math.pow(b, e) * 2}) is not a power at all.`,
     };
   },
 
@@ -302,7 +302,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Solve the simultaneous equations:\n${a}x + ${b}y = ${e1}\n${c}x + ${d}y = ${e2}\nWhat is x?`,
       value: x, wrongs: [y, x + 1, x - 1],
       tags: ["sub-sign"], difficulty: 0.6,
-      explanation: `Eliminate one variable by matching coefficients, then substitute back. Here x = ${x} (and y = ${y}). Always check BOTH equations with your pair.`,
+      explanation: `Solving a pair means removing one variable: scale an equation so the coefficients of one variable match, add or subtract to cancel it, and solve for what is left. Doing that here gives x = ${x}, and substituting back gives y = ${y}. Checking both values in BOTH original equations is the last step, because an elimination slip satisfies one equation and fails the other.`,
     };
   },
 
@@ -313,7 +313,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `A line has equation y = ${m}x ${c < 0 ? "− " + Math.abs(c) : "+ " + c}. What is y when x = ${x}?`,
       value: m * x + c, wrongs: [m * x, m * x - c, (m + c) * x],
       tags: ["grad-run"], difficulty: 0.45,
-      explanation: `Substitute: y = ${m}(${x}) ${c < 0 ? "− " + Math.abs(c) : "+ " + c} = ${m * x} ${c < 0 ? "− " + Math.abs(c) : "+ " + c} = ${m * x + c}.`,
+      explanation: `The equation gives y in terms of x, so finding y when x is ${x} means putting ${x} wherever x appears. ${m} × ${x} = ${m * x}, and then ${c < 0 ? "subtracting " + Math.abs(c) : "adding " + c} gives ${m * x + c}. Dropping the ${c < 0 ? Math.abs(c) : c} altogether (${m * x}) forgets that the line does not pass through the origin, and getting its sign the other way round (${m * x - c}) puts the intercept on the wrong side.`,
     };
   },
 
@@ -323,7 +323,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Solve x² − ${p + q}x + ${p * q} = 0. What is the LARGER root?`,
       value: Math.max(p, q), wrongs: [Math.min(p, q), p + q, p * q],
       tags: ["lost-root"], difficulty: 0.55,
-      explanation: `Factorise: (x − ${p})(x − ${q}) = 0, so x = ${p} or x = ${q}. The larger root is ${Math.max(p, q)}. Both roots are real answers — a quadratic normally has two.`,
+      explanation: `A quadratic is solved by writing it as a product, since a product is zero when either factor is: x² − ${p + q}x + ${p * q} factorises to (x − ${p})(x − ${q}), so x = ${p} or x = ${q}. The question asks for the larger of the two, which is ${Math.max(p, q)}. The other root (${Math.min(p, q)}) is a real answer to the equation but not to the question — a quadratic normally has two roots, and the stem says which one it wants.`,
     };
   },
 
@@ -336,7 +336,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         prompt: `A sequence starts ${a}, ${a + d}, ${a + 2 * d}, … What is the ${n}th term?`,
         value: a + (n - 1) * d, wrongs: [a + n * d, a * n, a + (n - 1) * (d + 1)],
         tags: ["nth-term"], difficulty: 0.5,
-        explanation: `The nth term is a + (n − 1)d = ${a} + ${n - 1} × ${d} = ${a + (n - 1) * d}. Using n rather than n − 1 gives ${a + n * d} — an off-by-one that fails at the first term.`,
+        explanation: `The nth term of an arithmetic sequence is the first term plus the common difference added one fewer time than the term number, because the first term has the difference added zero times. So term ${n} is ${a} + ${n - 1} × ${d} = ${a + (n - 1) * d}. Adding the difference ${n} times instead (${a + n * d}) is the classic off-by-one, and it fails on the very first term, where the answer must be ${a}.`,
       };
     }
     const n = r.int(5, 10);
@@ -344,7 +344,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `A sequence has nth term ${d}n + ${a}. What is the ${n}th term?`,
       value: d * n + a, wrongs: [d * n, d * n + a * n, d * (n + 1) + a],
       tags: ["nth-term"], difficulty: 0.45,
-      explanation: `Substitute n = ${n}: ${d}(${n}) + ${a} = ${d * n} + ${a} = ${d * n + a}.`,
+      explanation: `The nth term is a rule written in n, so finding the ${n}th term means putting ${n} where n is. ${d} × ${n} = ${d * n}, and adding ${a} gives ${d * n + a}. Leaving out the +${a} (${d * n}) drops the constant term, and ${d * (n + 1) + a} uses the next term number — which is why an off-by-one always fails on the very first term.`,
     };
   },
 
@@ -354,7 +354,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `f(x) = ${a}x + ${b}. What is f(${x})?`,
       value: a * x + b, wrongs: [a * (x + b), a * x, (a + b) * x],
       tags: [], difficulty: 0.4,
-      explanation: `Substitute x = ${x}: f(${x}) = ${a}(${x}) + ${b} = ${a * x} + ${b} = ${a * x + b}.`,
+      explanation: `f(${x}) means "apply the rule to the input ${x}", so every x in ${a}x + ${b} becomes ${x}. That gives ${a} × ${x} + ${b} = ${a * x} + ${b} = ${a * x + b}. Adding before multiplying (${a * (x + b)}) changes the order of operations and multiplies the ${b} as well, and leaving the +${b} out (${a * x}) drops the constant.`,
     };
   },
 
@@ -367,7 +367,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Simplify √${n} as a√b where a is as large as possible. What is a?`,
       value: outside, wrongs: [outside + 1, k, Number(Math.sqrt(n).toFixed(3))],
       tags: ["sqrt-prod"], difficulty: 0.55,
-      explanation: `√${n} = √(${sq} × ${k}) = √${sq} × √${k} = ${outside}√${k}. Take out the largest perfect square — here ${sq}.`,
+      explanation: `A surd simplifies by finding the largest perfect square that divides the number under the root, because √(m × n) = √m × √n. Here ${n} = ${sq} × ${k}, so √${n} = √${sq} × √${k} = ${outside}√${k}, and ${sq} is the largest square available. Replying ${k} takes the number still under the root rather than the one drawn out of it, and ${Number(Math.sqrt(n).toFixed(3))} is the decimal value — an approximation, not the simplified surd the question asks for.`,
     };
   },
 
@@ -377,7 +377,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Write x² + ${2 * h}x + ${h * h + 5} in the form (x + p)² + q. What is q?`,
       value: 5, wrongs: [h * h + 5, -h, h * h],
       tags: ["b-half"], difficulty: 0.6,
-      explanation: `Halve the x coefficient: p = ${h}, so (x + ${h})² = x² + ${2 * h}x + ${h * h}. The constant was ${h * h + 5}, so q = ${h * h + 5} − ${h * h} = 5. Forgetting to subtract the added ${h * h} is the classic error.`,
+      explanation: `Completing the square starts from the x coefficient: half of ${2 * h} is ${h}, and (x + ${h})² expands to x² + ${2 * h}x + ${h * h}. The expression's constant is ${h * h + 5}, which is ${h * h} more than the square supplies, so the leftover is q = ${h * h + 5} − ${h * h} = 5. Forgetting to subtract the ${h * h} that completing the square added (answering ${h * h + 5}) is the classic error.`,
     };
   },
 
@@ -405,7 +405,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         money(p * (1 + rate / 100) * years),
       ],
       tags: ["simple-cp"], difficulty: 0.6,
-      explanation: `Compound means interest on interest: A = P(1 + r)ⁿ = ${p}(1 + ${rate / 100})^${years} = ${money(amount)}. Simple interest would give ${money(p * (1 + (rate * years) / 100))} — the gap IS the compounding.`,
+      explanation: `Compound interest means each year's interest earns interest in the years after it, so the multiplier ${1 + rate / 100} is applied once for every year rather than once in total. After ${years} years that is £${p} × ${1 + rate / 100} raised to the power ${years}, which comes to £${money(amount)}. Simple interest — one year's interest multiplied by ${years} — gives £${money(p * (1 + (rate * years) / 100))}, and the gap between the two IS the compounding; £${money(p * Math.pow(1 + rate / 100, years - 1))} applies the multiplier one year too few.`,
     };
   },
 
@@ -417,7 +417,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: interest, tolerance: { abs: 0.01, unit: "£" },
       wrongs: [p + interest, (p * rate) / 100, interest * years],
       tags: ["simple-cp"], difficulty: 0.5,
-      explanation: `Simple interest = P × r × n ÷ 100 = ${p} × ${rate} × ${years} ÷ 100 = £${interest}. The interest is the EXTRA, not the total (${p + interest}).`,
+      explanation: `Simple interest is a fixed percentage of the ORIGINAL amount, charged once for each year, so it is one multiplication: ${p} × ${rate} × ${years} ÷ 100 = £${interest}. The question asks for the interest alone, so £${p + interest} — the interest added back to the money already there — answers a different question. ${(p * rate) / 100} is one year's interest when ${years} years were asked for.`,
     };
   },
 
@@ -429,7 +429,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: Number((n + half).toFixed(3)), tolerance: { abs: 0.001, unit: "cm" },
       wrongs: [Number((n - half).toFixed(3)), n, Number((n + half * 2).toFixed(3))],
       tags: ["round-half"], difficulty: 0.55,
-      explanation: `Rounding to 1 d.p. means the true value could be up to half a unit of the last place higher: ${n} + 0.05 = ${Number((n + half).toFixed(2))} cm.`,
+      explanation: `Rounding a measurement to one decimal place means the true value could be up to half of that last place either side of what was written down, because anything inside that band rounds to the same figure. Half of 0.1 is 0.05, so the upper bound is ${n} + 0.05 = ${Number((n + half).toFixed(2))} cm. ${Number((n - half).toFixed(2))} is the LOWER bound rather than the upper one, and ${Number((n + half * 2).toFixed(2))} uses a whole place value instead of half of one.`,
     };
   },
 
@@ -439,7 +439,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Simplify (x² + ${a + b}x + ${a * b}) / (x + ${a}). At x = ${a + 1}, what is the simplified expression's value?`,
       value: a + 1 + b, wrongs: [a + 1, a + b, a * b],
       tags: ["cancel-term"], difficulty: 0.7,
-      explanation: `Factorise the top: (x + ${a})(x + ${b}), so the fraction is x + ${b}. At x = ${a + 1} that is ${a + 1 + b}. Cancelling term-by-term without factorising first is the error this asks you to avoid.`,
+      explanation: `A fraction can only be cancelled once the top is written as a product, so factorise before cancelling: x² + ${a + b}x + ${a * b} = (x + ${a})(x + ${b}). The factor (x + ${a}) then cancels with the denominator, leaving x + ${b}, and at x = ${a + 1} that expression is worth ${a + 1 + b}. Cancelling an x from the squared term against the single x below — the mistake this question is built to catch — is not the same as cancelling a shared FACTOR, and ${a + 1} is what that route produces.`,
     };
   },
 
@@ -451,7 +451,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `In a class of ${total}, ${both + onlyA} study French, ${both + onlyB} study Spanish and ${both} study both. How many study NEITHER?`,
       value: neither, wrongs: [both, total - (both + onlyA) - (both + onlyB), 0],
       tags: ["sum-one"], difficulty: 0.55,
-      explanation: `The overlap is counted twice, so subtract it once: |F ∪ S| = ${both + onlyA} + ${both + onlyB} − ${both} = ${both + onlyA + onlyB}. Neither = ${total} − ${both + onlyA + onlyB} = ${neither}.`,
+      explanation: `Adding the two subject totals counts the learners who study both languages twice, so the overlap has to be taken off once: ${both + onlyA} + ${both + onlyB} − ${both} = ${both + onlyA + onlyB} study at least one of them. Taking that from the class of ${total} leaves ${neither} who study neither. Forgetting to remove the overlap (${total - (both + onlyA) - (both + onlyB)}) counts those learners twice and makes the answer too small.`,
     };
   },
 
@@ -470,7 +470,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         prompt: `What is the decimal (base 10) value of the binary number ${bits}₂?`,
         value: n, wrongs: [bits.length, n + 2, n - 1],
         tags: [], difficulty: 0.55,
-        explanation: `${bits}₂ = ${bits.split("").map((b, i) => (b === "1" ? Math.pow(2, bits.length - 1 - i) : 0)).filter((x) => x > 0).join(" + ")} = ${n}. Each position is worth a power of 2, read right to left.`,
+        explanation: `Every position in a binary number is worth a power of 2, and the powers are counted from 1 on the right, so the leftmost digit is worth much more than the last one. In ${bits}₂ the 1s stand for ${bits.split("").map((b, i) => (b === "1" ? Math.pow(2, bits.length - 1 - i) : 0)).filter((x) => x > 0).join(" + ")}, which add to ${n}. Counting the digits instead (${bits.length}) answers how long the number is, not what it is worth.`,
       };
     }
     const n = r.int(10, 60);
@@ -479,7 +479,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `What is the decimal (base 10) value of the octal number ${oct}₈?`,
       value: n, wrongs: [Number(oct), n + 8, n - 8],
       tags: [], difficulty: 0.55,
-      explanation: `${oct}₈ = ${n}. Each octal position is worth a power of 8, so it is NOT the same as the decimal number ${Number(oct)}.`,
+      explanation: `Each position in an octal number is worth a power of 8, counted from 1 on the right, so the same digits mean different amounts from the decimal version. ${oct}₈ works out to ${n}. Reading the digits as though they were decimal (${Number(oct)}) is the mistake this question is aimed at, and adding or subtracting 8 (${n + 8}, ${n - 8}) treats the base as a single place value rather than the whole numbering system.`,
     };
   },
 
@@ -489,7 +489,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `For the matrix [[${a}, ${b}], [${c}, ${d}]], what is the determinant ad − bc?`,
       value: a * d - b * c, wrongs: [a * d + b * c, a + d, b * c - a * d],
       tags: [], difficulty: 0.6,
-      explanation: `Determinant = ad − bc = ${a}×${d} − ${b}×${c} = ${a * d} − ${b * c} = ${a * d - b * c}. It is zero exactly when the matrix has no inverse.`,
+      explanation: `The determinant of the 2×2 matrix [[${a}, ${b}], [${c}, ${d}]] is the product of its leading diagonal minus the product of its other diagonal, which is why it is written ad − bc. The leading diagonal runs from ${a} to ${d}, giving ${a} × ${d} = ${a * d}; the other runs from ${b} to ${c}, giving ${b} × ${c} = ${b * c}. Subtracting gives ${a * d} − ${b * c} = ${a * d - b * c}, and adding the two products instead (${a * d + b * c}) is the commonest slip — it is not a determinant of anything, and only the subtraction is zero when the matrix has no inverse.`,
     };
   },
 
@@ -500,7 +500,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: Math.pow(x, 3) + a * x * x - b * x + a * b,
       wrongs: [Math.pow(x, 3) + a * x * x - b * x, Math.pow(x, 3) + a * x - b + a * b, Math.pow(x, 3) + a * x * x + b * x + a * b],
       tags: [], difficulty: 0.65,
-      explanation: `Substitute x = ${x} term by term: ${x}³ = ${Math.pow(x, 3)}, +${a}(${x}²) = ${a * x * x}, −${b}(${x}) = ${b * x}, +${a * b}. Total ${Math.pow(x, 3) + a * x * x - b * x + a * b}. Keep every sign with its term.`,
+      explanation: `p(${x}) means putting ${x} in place of every x, and each term is then worked out with its own power and its own sign. ${x}³ = ${Math.pow(x, 3)}; ${a}x² becomes ${a} × ${x}² = ${a * x * x}; the −${b}x term is ${b} × ${x} = ${b * x}, which is subtracted; and the constant is ${a * b}. Adding those gives ${Math.pow(x, 3) + a * x * x - b * x + a * b}. Dropping the constant (${Math.pow(x, 3) + a * x * x - b * x}) and turning the subtracted term into an added one (${Math.pow(x, 3) + a * x * x + b * x + a * b}) are the two slips the options hold.`,
     };
   },
 
@@ -514,7 +514,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `In the expansion of (1 + ${a}x)^${n}, what is the coefficient of x^${k}?`,
       value: coeff, wrongs: [Math.pow(a, k), comb(n, k), coeff + a],
       tags: ["row-n"], difficulty: 0.7,
-      explanation: `The x^${k} term is C(${n},${k}) × (${a}x)^${k} = ${comb(n, k)} × ${Math.pow(a, k)}x^${k}, so the coefficient is ${coeff}.`,
+      explanation: `Each term of the expansion comes from choosing ${k} of the ${n} brackets to supply the x, and there are ${comb(n, k)} ways to make that choice. Each chosen bracket contributes ${a}x, so the term's coefficient is ${comb(n, k)} × ${a} to the power ${k} = ${coeff}. Counting the choices without raising ${a} to the power (${comb(n, k)}) is only right when ${a} is 1, and ${Math.pow(a, k)} forgets how many ways the term can be made.`,
     };
   },
 
@@ -524,7 +524,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Solve y = x² and y = ${p + q}x − ${p * q}. The line meets the curve at two points. What is the LARGER x?`,
       value: Math.max(p, q), wrongs: [Math.min(p, q), p + q, p * q],
       tags: ["lost-root"], difficulty: 0.65,
-      explanation: `Set them equal: x² − ${p + q}x + ${p * q} = 0, so (x − ${p})(x − ${q}) = 0. The larger x is ${Math.max(p, q)}. Two solutions, because a line can cut a parabola twice.`,
+      explanation: `The line and the curve meet where their y values agree, so set the right-hand sides equal: x² = ${p + q}x − ${p * q}, which rearranges to x² − ${p + q}x + ${p * q} = 0. Factorising gives (x − ${p})(x − ${q}) = 0, so x = ${p} or x = ${q}, and the larger is ${Math.max(p, q)}. Giving the smaller root (${Math.min(p, q)}) drops the fact that a line can cut a parabola twice.`,
     };
   },
 
@@ -537,7 +537,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: Number(next.toFixed(4)), tolerance: { abs: 0.001 },
       wrongs: [Number((a + start).toFixed(4)), Number((start + a / start).toFixed(4)), Number(Math.sqrt(a).toFixed(4))],
       tags: [], difficulty: 0.6,
-      explanation: `Feed the current value back in: x₁ = √(${a} + ${start}) = √${a + start} = ${Number(next.toFixed(4))}. Repeat and the digits settle on the solution.`,
+      explanation: `An iteration feeds the current value back into the formula to produce the next one, so x₁ comes from putting x₀ = ${start} on the right-hand side. That gives √(${a} + ${start}) = √${a + start} = ${Number(next.toFixed(4))}, and repeating it settles on the value the formula converges to. Forgetting the root (${a + start}) answers a different question, and ${Number((start + a / start).toFixed(4))} is a step of a different iteration.`,
     };
   },
 
@@ -549,7 +549,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         prompt: `What is log base ${b} of ${Math.pow(b, e)}?`,
         value: e, wrongs: [Math.pow(b, e), b * e, e - 1],
         tags: [], difficulty: 0.5,
-        explanation: `log base ${b} asks "what power of ${b} gives this?" Since ${b}^${e} = ${Math.pow(b, e)}, the answer is ${e}.`,
+        explanation: `log base ${b} asks "what power of ${b} gives this?" Since ${b} multiplied by itself ${e} times is ${Math.pow(b, e)}, the answer is ${e}, because the logarithm is the number of times the base is repeated. Replying with the number itself (${Math.pow(b, e)}) or with ${b} × ${e} both answer something other than the power.`,
       };
     }
     const b = r.pick([2, 3, 10]), e1 = r.int(2, 4), e2 = r.int(2, 3);
@@ -557,7 +557,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `What is log base ${b} of ${Math.pow(b, e1)} plus log base ${b} of ${Math.pow(b, e2)}?`,
       value: e1 + e2, wrongs: [e1 * e2, Math.pow(b, e1) + Math.pow(b, e2), e1 - e2],
       tags: [], difficulty: 0.6,
-      explanation: `Adding logs multiplies the arguments: log${b}(${Math.pow(b, e1)} × ${Math.pow(b, e2)}) = log${b}(${Math.pow(b, e1 + e2)}) = ${e1 + e2}.`,
+      explanation: `Adding two logarithms with the same base multiplies their arguments, because the powers add. Here the first log is ${e1} and the second is ${e2}, so the sum is ${e1 + e2}, and multiplying the arguments confirms it: log${b}(${Math.pow(b, e1)} × ${Math.pow(b, e2)}) = log${b}(${Math.pow(b, e1 + e2)}). Multiplying the two logs (${e1 * e2}) applies the rule for a power to a sum, and adding the arguments as ordinary numbers (${Math.pow(b, e1) + Math.pow(b, e2)}) is not what the rule does.`,
     };
   },
 
@@ -570,7 +570,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         value: hyp / 2, tolerance: { unit: "cm" },
         wrongs: [hyp, Number((hyp * 0.866).toFixed(2)), Math.round(hyp / 3)],
         tags: ["hyp-leg-trig"], difficulty: 0.5,
-        explanation: `sin 30° = 0.5 = opposite/hypotenuse, so opposite = 0.5 × ${hyp} = ${hyp / 2} cm.`,
+        explanation: `Sine links the side OPPOSITE the angle to the hypotenuse, and sin 30° is exactly 0.5, so the opposite side is half the hypotenuse: 0.5 × ${hyp} = ${hyp / 2} cm. Using the cosine instead (${Number((hyp * 0.866).toFixed(2))}) picks out the adjacent side, and the hypotenuse itself (${hyp}) is the longest side — it cannot be the one opposite the angle.`,
       };
     }
     const adj = r.pick([6, 8, 9, 12]), angle = r.pick([30, 45, 60]);
@@ -580,7 +580,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: Number(hyp.toFixed(1)), tolerance: { abs: 0.1, unit: "cm" },
       wrongs: [Number((adj * Math.cos((angle * Math.PI) / 180)).toFixed(1)), Number((adj / Math.sin((angle * Math.PI) / 180)).toFixed(1)), adj],
       tags: ["hyp-leg-trig"], difficulty: 0.55,
-      explanation: `cos ${angle}° = adjacent/hypotenuse, so hypotenuse = ${adj} ÷ cos ${angle}° = ${Number(hyp.toFixed(1))} cm. Dividing by the cosine (not multiplying) is the whole step.`,
+      explanation: `Cosine is the adjacent side over the hypotenuse, so the hypotenuse is the adjacent side DIVIDED by cos ${angle}°, not multiplied by it: ${adj} ÷ cos ${angle}° = ${Number(hyp.toFixed(1))} cm. Dividing by the sine instead (${Number((adj / Math.sin((angle * Math.PI) / 180)).toFixed(1))}) pairs the given side with the wrong ratio, and ${adj} leaves the side unchanged — but the hypotenuse is the longest side, so it cannot equal the adjacent one.`,
     };
   },
 
@@ -595,7 +595,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       // shows both given sides and a `?` for the side being asked for.
       figure: { kind: "right-triangle", legA: a, legB: b, unit: " cm", labelA: true, labelB: true },
       tags: ["hyp-leg"], difficulty: 0.45,
-      explanation: `a² + b² = c²: ${a}² + ${b}² = ${a * a} + ${b * b} = ${c * c}, so c = √${c * c} = ${c} cm.`,
+      explanation: `Pythagoras' theorem links the two shorter sides to the longest one: the squares of the legs add to the square of the hypotenuse. So ${a}² + ${b}² = ${a * a} + ${b * b} = ${c * c}, which makes the hypotenuse √${c * c} = ${c} cm. Adding the legs without squaring them (${a + b}) is the commonest error, and it always comes out too small, because squaring is what makes the hypotenuse the longest side.`,
     };
   },
 
@@ -605,7 +605,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Two angles on a straight line are ${a}° and x°. What is x, in degrees?`,
       value: 180 - a, wrongs: [a, 360 - a, 90 - a],
       tags: ["alt-corr"], difficulty: 0.35,
-      explanation: `Angles on a straight line sum to 180°: x = 180 − ${a} = ${180 - a}°.`,
+      explanation: `The angles along a straight line fill a half turn, which is 180°, so the two angles must add up to 180. That makes x = 180 − ${a} = ${180 - a}°. The value ${a} is the angle already given, and ${360 - a} would only be right if the angles completed a full turn instead of a half.`,
     };
   },
 
@@ -617,7 +617,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         prompt: `A rectangle is ${l} cm by ${w} cm. What is its AREA, in cm²?`,
         value: l * w, tolerance: { unit: "cm²" }, wrongs: [2 * (l + w), l + w, l * w + l],
         tags: [], difficulty: 0.35,
-        explanation: `Area = length × width = ${l} × ${w} = ${l * w} cm². The answer is in SQUARE centimetres, and ${2 * (l + w)} is the perimeter, not the area.`,
+        explanation: `Area counts the square centimetres that fit inside the rectangle, so it is length multiplied by width: ${l} × ${w} = ${l * w} cm². Going round the edge instead (${2 * (l + w)}) measures the perimeter, which is a distance, and ${l + w} is only half of that.`,
       };
     }
     if (v === 1) {
@@ -625,7 +625,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         prompt: `A rectangle is ${l} cm by ${w} cm. What is its PERIMETER, in cm?`,
         value: 2 * (l + w), tolerance: { unit: "cm" }, wrongs: [l * w, l + w, 2 * l + w],
         tags: [], difficulty: 0.35,
-        explanation: `Perimeter = 2(length + width) = 2(${l} + ${w}) = ${2 * (l + w)} cm. It is a LENGTH; ${l * w} would be the area.`,
+        explanation: `Perimeter is the distance all the way round the rectangle, which is two lengths plus two widths: 2 × (${l} + ${w}) = ${2 * (l + w)} cm. It is a length, so it is measured in centimetres; ${l * w} is the area in square centimetres and answers a different question, and ${l + w} is only one length and one width.`,
       };
     }
     const t = r.int(3, 12), h = r.int(2, 10);
@@ -633,7 +633,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `A triangle has base ${t} cm and perpendicular height ${h} cm. What is its area, in cm²?`,
       value: (t * h) / 2, tolerance: { abs: 0.01, unit: "cm²" }, wrongs: [t * h, t + h, (t * h) / 4],
       tags: [], difficulty: 0.4,
-      explanation: `Area = ½ × base × height = ½ × ${t} × ${h} = ${(t * h) / 2} cm². Forgetting the ½ doubles the answer.`,
+      explanation: `A triangle is half of the rectangle that would surround it, which is why the formula halves the product of base and height: ½ × ${t} × ${h} = ${(t * h) / 2} cm². Forgetting the ½ doubles the answer (${t * h}), and ${t + h} adds the two lengths instead of multiplying them.`,
     };
   },
 
@@ -645,7 +645,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         prompt: `A cuboid is ${l} cm × ${w} cm × ${h} cm. What is its volume, in cm³?`,
         value: l * w * h, tolerance: { unit: "cm³" }, wrongs: [2 * (l * w + w * h + l * h), l + w + h, l * w],
         tags: [], difficulty: 0.4,
-        explanation: `Volume = ${l} × ${w} × ${h} = ${l * w * h} cm³. Three lengths multiplied give a CUBIC unit — ${2 * (l * w + w * h + l * h)} is the surface area.`,
+        explanation: `Volume counts cubic centimetres, so it takes three lengths multiplied together: ${l} × ${w} × ${h} = ${l * w * h} cm³. The surface area of the box (${2 * (l * w + w * h + l * h)}) is measured in square centimetres and answers a different question, and adding the three lengths (${l + w + h}) is neither an area nor a volume.`,
       };
     }
     const radius = r.int(2, 6);
@@ -653,7 +653,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `A cylinder has radius ${radius} cm and height ${h} cm. Its volume is kπ cm³. What is k?`,
       value: radius * radius * h, tolerance: { unit: "cm³" }, wrongs: [2 * radius * h, radius * h, radius * radius],
       tags: [], difficulty: 0.5,
-      explanation: `V = πr²h = π × ${radius}² × ${h} = ${radius * radius * h}π cm³. The radius is SQUARED; 2r is the circumference factor, not this one.`,
+      explanation: `A cylinder is a stack of circular slices, so its volume is the area of the circle multiplied by the height: π × ${radius}² × ${h} = ${radius * radius * h}π cm³, which makes k = ${radius * radius * h}. The radius is squared — using 2r instead (${2 * radius * h}) gives the circumference times the height, a curved surface area rather than a volume.`,
     };
   },
 
@@ -663,7 +663,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Vector a = (${a1}, ${a2}) and b = (${b1}, ${b2}). What is the x-component of a + b?`,
       value: a1 + b1, wrongs: [a1 - b1, a1 * b1, a2 + b2],
       tags: ["vec-dir"], difficulty: 0.45,
-      explanation: `Vectors add component by component: x = ${a1} + ${b1} = ${a1 + b1}. Direction is half the information — keep the signs.`,
+      explanation: `Vectors add component by component, so the x-components are added separately from the y-components. ${a1} + ${b1} = ${a1 + b1}, and that is the new x-component. Subtracting instead (${a1 - b1}) reverses one of them, and ${a2 + b2} is the y-component — the other row of the same addition.`,
     };
   },
 
@@ -678,7 +678,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         value: Number((sum / nums.length).toFixed(2)), tolerance: { abs: 0.01 },
         wrongs: [sum, sorted[2], Number((sum / (nums.length - 1)).toFixed(2))],
         tags: ["outlier-mean"], difficulty: 0.4,
-        explanation: `Add them (${sum}) and divide by how many there are (${nums.length}): ${Number((sum / nums.length).toFixed(2))}.`,
+        explanation: `The mean shares the total equally among the values, so add them and divide by how many there are: ${sum} ÷ ${nums.length} = ${Number((sum / nums.length).toFixed(2))}. The sum on its own (${sum}) is not an average, the median (${sorted[2]}) is a different kind of middle, and dividing by ${nums.length - 1} divides by one fewer value than there are.`,
       };
     }
     if (v === 1) {
@@ -686,14 +686,14 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
         prompt: `What is the MEDIAN of ${nums.join(", ")}?`,
         value: sorted[2], wrongs: [Number((nums.reduce((s, n) => s + n, 0) / nums.length).toFixed(2)), sorted[0], sorted[4]],
         tags: ["outlier-mean"], difficulty: 0.4,
-        explanation: `Put them in order: ${sorted.join(", ")}. With five values the median is the middle one, ${sorted[2]}.`,
+        explanation: `The median is the middle value once the numbers are put in order, not the value in the middle of the list as it was written. In order they are ${sorted.join(", ")}, so with five values the third is the median: ${sorted[2]}. The mean (${Number((nums.reduce((s, n) => s + n, 0) / nums.length).toFixed(2))}) is a different average, and the smallest or largest value is an end, not a middle.`,
       };
     }
     return {
       prompt: `What is the RANGE of ${nums.join(", ")}?`,
       value: sorted[4] - sorted[0], wrongs: [sorted[4], sorted[0], sorted[2]],
       tags: [], difficulty: 0.35,
-      explanation: `Range = largest − smallest = ${sorted[4]} − ${sorted[0]} = ${sorted[4] - sorted[0]}. It measures spread, not position.`,
+      explanation: `The range measures how spread out the data is: the largest value minus the smallest, ${sorted[4]} − ${sorted[0]} = ${sorted[4] - sorted[0]}. The largest value by itself (${sorted[4]}) says where the data ends rather than how widely it is spread, and the median (${sorted[2]}) is a middle value.`,
     };
   },
 
@@ -704,7 +704,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `A bar chart shows four categories with values ${values.join(", ")}. What is the TOTAL of the four bars?`,
       value: total, wrongs: [Math.round(total / 4), total + values[0], Math.max(...values)],
       tags: [], difficulty: 0.35,
-      explanation: `Add the bars: ${values.join(" + ")} = ${total}. ${Math.round(total / 4)} would be the mean, which the question did not ask for.`,
+      explanation: `The total of a bar chart is the sum of its bars, so add them: ${values.join(" + ")} = ${total}. The value ${Math.round(total / 4)} is the MEAN of the four bars, which the question did not ask for, and ${Math.max(...values)} is only the tallest single bar.`,
     };
   },
 
@@ -716,7 +716,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Five points on a scatter graph are (1, 2), (2, 4), (3, 6), (4, 8) and (5, 10). Using the line of best fit y = 2x, what is the predicted y when x = ${x}?`,
       value: 2 * x, wrongs: [x, x + 2, 2 * x + 2],
       tags: ["corr-cause"], difficulty: 0.4,
-      explanation: `Substitute into the line of best fit: y = 2 × ${x} = ${2 * x}. Every point lies exactly on it, which is why the correlation here is perfect — real data rarely is.`,
+      explanation: `Substitute the x value into the equation of the line of best fit: y = 2 × ${x} = ${2 * x}. That is what the line PREDICTS — a point need not sit exactly there — and here all five points do lie on it, so the correlation is perfect, which real data almost never is. Reading the x value back as the answer (${x}) or adding two to it (${x + 2}) does not use the line at all.`,
     };
   },
 
@@ -726,7 +726,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `y is directly proportional to x, and y = ${k * 3} when x = 3. What is y when x = ${x}?`,
       value: k * x, wrongs: [k * 3, k + x, Math.round(k / x * 10) / 10],
       tags: ["inv-prop"], difficulty: 0.5,
-      explanation: `Direct proportion means y = kx. Find k first: k = ${k * 3} ÷ 3 = ${k}. Then y = ${k} × ${x} = ${k * x}.`,
+      explanation: `Direct proportion means the two quantities are linked by a single multiplier, y = kx, so the pair given finds k first: k = ${k * 3} ÷ 3 = ${k}. Then at x = ${x} the value is ${k} × ${x} = ${k * x}. Reusing ${k * 3} leaves x where it was, and ${k + x} adds the multiplier to x instead of multiplying by it.`,
     };
   },
 
@@ -737,7 +737,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: k * k * l * l, tolerance: { unit: "cm²" },
       wrongs: [k * l * l, k * l, k * k * l],
       tags: ["sf-area"], difficulty: 0.55,
-      explanation: `Lengths scale by ${k}, so areas scale by ${k}² = ${k * k}: new area = ${k * k} × ${l}² = ${k * k * l * l} cm². Scaling the area by ${k} instead is the classic error.`,
+      explanation: `An enlargement scales every length by the scale factor, so a side of ${l} cm becomes ${k * l} cm. Area is two lengths multiplied, which is why it scales by the factor twice: ${k} × ${k} = ${k * k}, giving ${k * k} × ${l}² = ${k * k * l * l} cm². Scaling the area by ${k} once (${k * l * l}) is the classic error — the factor is applied to each dimension, not to the result.`,
     };
   },
 
@@ -747,7 +747,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `An angle at the circumference is ${angle}°, standing on a particular arc. What is the angle at the CENTRE standing on the SAME arc, in degrees?`,
       value: 2 * angle, wrongs: [angle, 180 - angle, 90 - angle],
       tags: ["same-seg"], difficulty: 0.5,
-      explanation: `The angle at the centre is TWICE the angle at the circumference on the same arc: 2 × ${angle} = ${2 * angle}°. The "same arc" is the condition that makes it true.`,
+      explanation: `The angle at the centre is TWICE the angle at the circumference on the same arc: 2 × ${angle} = ${2 * angle}°. The "same arc" is the condition that makes the doubling valid — an angle anywhere else on the circle would not be double the centre angle. Answering ${angle} treats both angles as if they were at the circumference, and ${180 - angle} is the supplement, which belongs to cyclic quadrilaterals rather than to this theorem.`,
     };
   },
 
@@ -757,7 +757,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `A tangent and a chord meet at ${angle}°. By the alternate segment theorem, what is the angle in the alternate segment, in degrees?`,
       value: angle, wrongs: [2 * angle, 180 - angle, 90 - angle],
       tags: ["alt-seg"], difficulty: 0.55,
-      explanation: `The tangent–chord angle EQUALS the angle in the alternate segment: ${angle}°. Doubling it (${2 * angle}°) would be the centre rule, which is a different theorem.`,
+      explanation: `The angle between a tangent and a chord equals the angle that chord subtends in the alternate segment, so the answer is the same ${angle}°. Doubling it (${2 * angle}°) applies the centre rule, which needs an angle at the centre, and ${180 - angle} supplements it — neither is what the alternate segment theorem says.`,
     };
   },
 
@@ -768,7 +768,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: u + a * t, tolerance: { unit: "m/s" },
       wrongs: [u * t, a * t, u + a],
       tags: [], difficulty: 0.45,
-      explanation: `v = u + at = ${u} + ${a} × ${t} = ${u + a * t} m/s.`,
+      explanation: `Final velocity is the velocity it started with plus however much the acceleration has added, and an acceleration of ${a} m/s² adds that many m/s in every second. So v = ${u} + ${a} × ${t} = ${u + a * t} m/s. Multiplying the starting speed by the time (${u * t}) gives the distance covered at a steady speed, and ${a * t} is only the change in velocity — it leaves out the speed it started from.`,
     };
   },
 
@@ -779,7 +779,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: a * n * Math.pow(x, n - 1),
       wrongs: [a * Math.pow(x, n), a * n * Math.pow(x, n), a * n],
       tags: [], difficulty: 0.65,
-      explanation: `Differentiate by the power rule: dy/dx = ${a * n}x^${n - 1}. At x = ${x}: ${a * n} × ${x}^${n - 1} = ${a * n * Math.pow(x, n - 1)}.`,
+      explanation: `Differentiating ${a}x^${n} uses the power rule: multiply by the old power and drop the power by one, giving ${a * n}x^${n - 1}. At x = ${x} that is ${a * n} × ${x} to the power ${n - 1}, which is ${a * n * Math.pow(x, n - 1)}. Stopping before substituting (${a * n}) leaves the gradient function rather than the gradient at a point, and ${a * Math.pow(x, n)} is the value of y itself, not its rate of change.`,
     };
   },
 
@@ -791,7 +791,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: Number(upper.toFixed(3)), tolerance: { abs: 0.01 },
       wrongs: [a * Math.pow(x, n), a * Math.pow(x, n) * (n + 1), Number((upper * (n + 1)).toFixed(3))],
       tags: [], difficulty: 0.7,
-      explanation: `Integrate: ${a}x^${n} → ${a}x^${n + 1}/${n + 1}. Evaluate from 0 to ${x}: ${Number(upper.toFixed(3))}. The power goes UP by one and the new power divides.`,
+      explanation: `Integrating raises the power by one and divides by the new power, so ${a}x^${n} integrates to ${a}x^${n + 1}/${n + 1}. Evaluating that between 0 and ${x} means the value at ${x} minus the value at 0, which is nothing, giving ${Number(upper.toFixed(3))}. Dividing by the OLD power (${Number((upper * (n + 1)).toFixed(3))}) is like differentiating twice, and ${a * Math.pow(x, n)} is the original expression rather than its integral.`,
     };
   },
 
@@ -1608,7 +1608,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: (x1 + x2) / 2, tolerance: { abs: 0.01 },
       wrongs: [(y1 + y2) / 2, x1 + x2, x2 - x1],
       tags: [], difficulty: 0.5,
-      explanation: `The midpoint averages each coordinate: x = (${x1} + ${x2})/2 = ${(x1 + x2) / 2}. Averaging the y's would give the other coordinate.`,
+      explanation: `The midpoint sits exactly halfway between the two points, so each coordinate is the mean of the two: x = (${x1} + ${x2}) ÷ 2 = ${(x1 + x2) / 2}. Averaging the y values instead (${(y1 + y2) / 2}) gives the midpoint's other coordinate, and adding the x values without halving (${x1 + x2}) measures the run between the points rather than the middle of it.`,
     };
   },
 
@@ -1635,7 +1635,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: d, tolerance: { unit: "cm" },
       wrongs: [d * 2, d / 2, d * d],
       tags: [], difficulty: 0.4,
-      explanation: `Every point at distance ${d} from the centre lies on a circle of radius ${d} cm. Doubling would give the diameter.`,
+      explanation: `A locus is the set of every point that satisfies a single condition, and the points a fixed distance from one point trace out a circle. That distance IS the radius, ${d} cm, because every point on the circle is exactly ${d} from the centre. Doubling it (${d * 2}) describes the diameter instead, and ${d * d} squares the distance, which is not a length at all.`,
     };
   },
 
@@ -1648,7 +1648,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: Number(val.toFixed(3)), tolerance: { abs: 0.01 },
       wrongs: [0, 2, Number(Math.sin(rad).toFixed(3))],
       tags: [], difficulty: 0.45,
-      explanation: `The identity holds for EVERY angle, so the value is 1 (here ${Number(val.toFixed(3))}, the tiny gap being floating-point rounding). It follows from the unit circle.`,
+      explanation: `sin²θ + cos²θ = 1 is an identity: it holds for EVERY angle, not as a fact about ${theta}° in particular, because the sine and cosine are the legs of a right-angled triangle whose hypotenuse is 1. Substituting gives ${Number(val.toFixed(3))}, and the tiny difference from 1 is floating-point rounding in the calculation, not in the identity. Replying 0 would mean the two were opposites, and 2 would mean the identity had been applied twice.`,
     };
   },
 
@@ -1660,7 +1660,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: Number(((a * x + b * y) / (a + b)).toFixed(2)), tolerance: { abs: 0.01, unit: "£" },
       wrongs: [Number(((x + y) / 2).toFixed(2)), Number((a * x + b * y).toFixed(2)), Number(((a * y + b * x) / (a + b)).toFixed(2))],
       tags: [], difficulty: 0.6,
-      explanation: `Total cost ÷ total mass: (${a}×${x} + ${b}×${y}) ÷ (${a}+${b}) = ${a * x + b * y} ÷ ${a + b} = £${Number(((a * x + b * y) / (a + b)).toFixed(2))} per kg. The plain average of the two prices (${Number(((x + y) / 2).toFixed(2))}) is wrong because the masses differ.`,
+      explanation: `The cost of a mixture per kilogram is the TOTAL cost divided by the TOTAL mass, never the average of the two prices. The nuts cost ${a} × £${x} = £${a * x} and the raisins ${b} × £${y} = £${b * y}, so £${a * x + b * y} spread over ${a + b} kg is £${Number(((a * x + b * y) / (a + b)).toFixed(2))} per kg. The plain average of the two prices (${Number(((x + y) / 2).toFixed(2))}) would only be right if the two masses were equal, which is exactly what the question varies.`,
     };
   },
 
@@ -1671,7 +1671,7 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       value: u * t + 0.5 * a * t * t, tolerance: { abs: 0.01, unit: "m" },
       wrongs: [u * t, 0.5 * a * t * t, (u + a * t) * t],
       tags: [], difficulty: 0.6,
-      explanation: `s = ut + ½at² = ${u}(${t}) + ½(${a})(${t}²) = ${u * t + 0.5 * a * t * t} m. The ½ is why the acceleration term is not simply at².`,
+      explanation: `The distance has two parts: the steady travel at the starting speed, plus what the acceleration adds on top. The acceleration part carries a ½ because the speed rises steadily from ${u} rather than jumping, so its average contribution is half of ${a} × ${t}². Adding up, s = ${u} × ${t} + ½ × ${a} × ${t}² = ${u * t + 0.5 * a * t * t} m; using ${u * t} alone assumes no acceleration, and ${(u + a * t) * t} assumes the final speed for the whole journey.`,
     };
   },
 };

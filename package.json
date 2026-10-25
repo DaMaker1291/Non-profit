@@ -1,7 +1,7 @@
 {
   "name": "openmind",
   "version": "1.0.0",
-  "description": "OpenMind — a free, open-source, multilingual learning network. Adaptive learning with optional AI assistance: the diagnostic, the question bank, the grader, the learner model and the tutor are all deterministic and work with no model configured, so the AI is an extra rather than the product. `npm run verify` proves the engines, `npm run verify:q` proves every generated question is answerable, `npm run e2e` proves the API end to end. `npm run benchmark` measures what the decision engine actually decides for adversarial learner states — and, deliberately, does not measure learning.",
+  "description": "OpenMind \u2014 a free, open-source, multilingual learning network. Adaptive learning with optional AI assistance: the diagnostic, the question bank, the grader, the learner model and the tutor are all deterministic and work with no model configured, so the AI is an extra rather than the product. `npm run verify` proves the engines, `npm run verify:q` proves every generated question is answerable, `npm run e2e` proves the API end to end. `npm run benchmark` measures what the decision engine actually decides for adversarial learner states \u2014 and, deliberately, does not measure learning.",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -54,6 +54,7 @@
     "build:static": "node scripts/build-static-app.mjs",
     "icons": "node scripts/generate-app-icons.mjs",
     "verify:static": "node scripts/static-smoke.mjs",
+    "explain:audit": "node scripts/explanation-audit.mjs",
     "ai-stub": "node scripts/ai-stub.mjs",
     "superiority-test": "node scripts/superiority-test.mjs",
     "product-benchmark": "node scripts/run-product-benchmark.mjs",

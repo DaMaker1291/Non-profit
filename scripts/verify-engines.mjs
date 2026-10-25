@@ -14125,5 +14125,101 @@ console.log("▸ Every door that costs money or CPU names its bound");
     "and signing in clears any classroom marker, so the hand-back control cannot follow a session that already ended");
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ▸ A marking explanation is prose, not shorthand
+//
+// The measured defect this pins: 81% of maths explanations were under 25 words
+// and whole families were a formula with no sentence in them — `Substitute:
+// y = 4(2) + 0 = 8 + 0 = 8.` names no operation in words and never says why the
+// tempting option tempts. A learner who got it wrong reads a derivation they
+// already failed to produce. The unit here is WORDS of prose, because the
+// shorthand problem is symbols crowding the words out — a chain of equalities can
+// be 50 characters and contain one word.
+//
+// Three claims, and the second is the one that makes the first durable:
+//   1. the NUMERIC layer of every MATHS concept is at the standard, absolutely —
+//      that layer is the one whose text was worst (1–13 words) and it is the one
+//      this pass rewrote;
+//   2. no concept anywhere falls below its committed floor
+//      (audit/explanation-standard.json), so nothing can be shortened back
+//      silently — the floor is regenerated with `npm run explain:audit --
+//      --write-baseline` and the diff is the review;
+//   3. the share of maths draws still under the standard is at or below its
+//      committed ceiling, so the composed families that remain (measured, named,
+//      NOT yet rewritten) can only improve.
+//
+// Both branches are probed. `generateQuestion` picks the numeric family OR the
+// composed one from the seed, so a sweep of one measures half the surface — the
+// mistake the ceiling gate already paid for (see AGENTS.md).
+{
+  console.log("▸ A marking explanation is prose, not shorthand");
+  const numericItems = require("../.verify/numeric-items.js");
+  const proseWords = (s) => (s.replace(/[^A-Za-z]+/g, " ").match(/[A-Za-z]{2,}/g) ?? []).length;
+  const STD = 25;
+  const mathsIds = genome.CONCEPTS.filter((c) => c.subject === "maths").map((c) => c.id);
+  const mathsSet = new Set(mathsIds);
+
+  // 1 · THE NUMERIC LAYER, ABSOLUTELY.
+  let numDraws = 0;
+  const numBad = [];
+  for (const id of Object.keys(numericItems.NUMERIC_GENS)) {
+    if (!mathsSet.has(id)) continue;
+    for (let i = 0; i < 12; i++) {
+      const item = numericItems.NUMERIC_GENS[id](new questions.Rng(questions.hashSeed(`verify-explain:${id}:${i}`)));
+      numDraws++;
+      const w = proseWords(item.explanation);
+      if (w < STD) numBad.push(`${id} ${w}w`);
+    }
+  }
+  ok(numDraws > 300, `the numeric maths layer is measured at the served level (${numDraws} draws)`);
+  ok(numBad.length === 0, `every numeric maths explanation is at least ${STD} words of prose (${numBad.slice(0, 4).join(", ") || "all clear"})`);
+
+  // 2 · NO CONCEPT BELOW ITS FLOOR.
+  const floorDoc = JSON.parse(fs.readFileSync("audit/explanation-standard.json", "utf8"));
+  const worst = new Map();
+  const measure = (id, text) => {
+    if (!text) return;
+    const w = proseWords(text);
+    if (!worst.has(id) || w < worst.get(id)) worst.set(id, w);
+  };
+  // THE SAME SEEDS THE BASELINE WAS MEASURED ON. The floors are the minimum over
+  // 12 draws of BOTH families, so a 10-draw sample of the same streams can never
+  // land below them — a different prefix here would have made the check fail on
+  // a seed set the baseline never saw, which is a false failure rather than a
+  // regression.
+  for (const c of genome.CONCEPTS) {
+    for (let i = 0; i < 10; i++) {
+      const q = questions.generateQuestion(c.id, `explain:${c.id}:${i}`);
+      if (q) measure(c.id, q.explanation);
+    }
+    const gen = numericItems.NUMERIC_GENS[c.id];
+    if (gen) {
+      for (let i = 0; i < 10; i++) {
+        try { measure(c.id, gen(new questions.Rng(questions.hashSeed(`explain-numeric:${c.id}:${i}`))).explanation); } catch { /* draw refused */ }
+      }
+    }
+  }
+  const below = [...worst.entries()].filter(([id, w]) => id in floorDoc.floors && w < floorDoc.floors[id]);
+  ok(below.length === 0,
+    `no concept's explanation is terser than its committed floor (${below.slice(0, 4).map(([id, w]) => `${id} ${w}<${floorDoc.floors[id]}`).join(", ") || `${worst.size} concepts checked`})`);
+
+  // 3 · THE REMAINING BACKLOG CAN ONLY SHRINK.
+  const CEILING = 0.30;
+  let mathsDraws = 0, terse = 0;
+  for (const id of mathsIds) {
+    for (let i = 0; i < 10; i++) {
+      const q = questions.generateQuestion(id, `explain:${id}:${i}`);
+      if (!q) continue;
+      mathsDraws++;
+      if (proseWords(q.explanation) < STD) terse++;
+    }
+  }
+  const share = mathsDraws ? terse / mathsDraws : 1;
+  ok(share <= CEILING,
+    `the maths serve is at or below its committed terse ceiling (${(share * 100).toFixed(1)}% under ${STD} words, ceiling ${(CEILING * 100).toFixed(0)}%)`);
+  ok(mathsSet.size > 60, "…measured over every maths concept in the genome, not a sample of the ones this pass touched");
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
+
 process.exit(fail ? 1 : 0);
