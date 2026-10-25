@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LanguagePicker, useAccount, useAppState, useI18n, useProfile } from "@/lib/client";
 import { ContextStrip } from "@/components/context-strip";
+import { Icon, type IconName } from "@/components/icons";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ctitle } from "@/lib/content-i18n";
 import { CONCEPTS } from "@/lib/genome";
@@ -21,12 +22,12 @@ import type { SubjectId } from "@/lib/types";
  *  Projects is a learning surface (a project produces evidence like any other
  *  work), so it sits in the primary set — not in the overflow with About. */
 const PRIMARY = [
-  { href: "/dashboard", key: "nav.home", glyph: "⌂" },
-  { href: "/learn", key: "nav.learn", glyph: "✎" },
-  { href: "/papers", key: "nav.papers", glyph: "▤" },
-  { href: "/progress", key: "prog.nav", glyph: "≡" },
-  { href: "/mind", key: "mm.yourKnowledge", glyph: "◍" },
-  { href: "/projects", key: "proj.eyebrow", glyph: "❖" },
+  { href: "/dashboard", key: "nav.home", icon: "home" as IconName },
+  { href: "/learn", key: "nav.learn", icon: "learn" as IconName },
+  { href: "/papers", key: "nav.papers", icon: "papers" as IconName },
+  { href: "/progress", key: "prog.nav", icon: "progress" as IconName },
+  { href: "/mind", key: "mm.yourKnowledge", icon: "mind" as IconName },
+  { href: "/projects", key: "proj.eyebrow", icon: "projects" as IconName },
 ];
 
 /**
@@ -48,7 +49,7 @@ const PRIMARY = [
  * subtracting them would be its own kind of wrong.
  */
 const TEACHER_PRIMARY = [
-  { href: "/teacher", key: "teach.title", glyph: "◆" },
+  { href: "/teacher", key: "teach.title", icon: "teach" as IconName },
   ...PRIMARY.filter((i) => i.href !== "/dashboard"),
 ];
 
@@ -71,8 +72,8 @@ const UTILITY = [
 
 /** The two at the bottom, on their own, always visible. */
 const FOOT = [
-  { href: "/help", key: "nav.help", glyph: "?" },
-  { href: "/account", key: "acct.title", glyph: "◑" },
+  { href: "/help", key: "nav.help", icon: "help" as IconName },
+  { href: "/account", key: "acct.title", icon: "account" as IconName },
 ];
 
 /**
@@ -122,7 +123,7 @@ export function Nav() {
         <nav className="sidebar-nav" aria-label={t("nav.mainAria")}>
           {primary.map((item) => (
             <Link key={item.href} href={item.href} className={`sidebar-link ${active(item.href)}`}>
-              <span className="glyph" aria-hidden="true">{item.glyph}</span>
+              <span className="glyph" aria-hidden="true"><Icon name={item.icon} /></span>
               {t(item.key)}
             </Link>
           ))}
@@ -139,7 +140,7 @@ export function Nav() {
           {courses.length > 0 ? (
             courses.map((s: SubjectId) => (
               <Link key={s} href={`/learn/${s}`} className={`sidebar-link ${active(`/learn/${s}`)}`}>
-                <span className="glyph" aria-hidden="true">·</span>
+                <span className="glyph" aria-hidden="true"><i className="course-dot" /></span>
                 {t(SUBJECT_LABELS[s] ?? `subj.${s}`)}
               </Link>
             ))
@@ -157,12 +158,15 @@ export function Nav() {
         <nav className="sidebar-nav" aria-label={t("nav.help")}>
           {FOOT.map((item) => (
             <Link key={item.href} href={item.href} className={`sidebar-link ${active(item.href)}`}>
-              <span className="glyph" aria-hidden="true">{item.glyph}</span>
+              <span className="glyph" aria-hidden="true"><Icon name={item.icon} /></span>
               {t(item.key)}
             </Link>
           ))}
           <details className="nav-overflow">
-            <summary aria-label={t("nav.moreAria")}>⋯ {t("nav.more")}</summary>
+            <summary aria-label={t("nav.moreAria")}>
+              <span className="glyph" aria-hidden="true"><Icon name="more" /></span>
+              {t("nav.more")}
+            </summary>
             <div className="nav-overflow-menu">
               {utility.map((item) => (
                 <Link key={item.href} href={item.href} className={active(item.href)}>{t(item.key)}</Link>
@@ -183,13 +187,13 @@ export function Nav() {
       <nav className="bottomnav" aria-label={t("nav.bottomAria")}>
         {phone.map((item) => (
           <Link key={item.href} href={item.href} className={active(item.href)}>
-            <span className="glyph" aria-hidden="true">{item.glyph}</span>
+            <span className="glyph" aria-hidden="true"><Icon name={item.icon} /></span>
             {t(item.key)}
           </Link>
         ))}
         <details className="nav-overflow">
           <summary aria-label={t("nav.moreAria")}>
-            <span className="glyph" aria-hidden="true">⋯</span>
+            <span className="glyph" aria-hidden="true"><Icon name="more" /></span>
             {t("nav.more")}
           </summary>
           <div className="nav-overflow-menu">
@@ -246,6 +250,23 @@ export function Topbar() {
         : path.startsWith("/mind") ? t("mm.yourKnowledge")
           : path.startsWith("/teacher") ? t("nav.teach")              : path.startsWith("/learn") ? t("nav.subjects")
               : "";
+  /* On a CONCEPT page the subject is the parent, and naming it is what turns a
+     bare title into a position: "Mathematics / Quadratics" locates the learner
+     in the curriculum; "Quadratics" alone is a word floating in a header. It is
+     the only parent shown — a two-item trail, because a full breadcrumb in a
+     62px bar is chrome pretending to be content. */
+  // The subject comes from the CONCEPT, never from the URL segment. The route
+  // accepts either spelling (`/learn/mathematics/quadratics` is what a learner
+  // links to, `/learn/maths/...` is what the sidebar emits), and reading the
+  // segment gave `subj.mathematics` — a missing dictionary key printed as its own
+  // name across the top of the page. The concept knows which subject it is.
+  const parent = path.startsWith("/learn/")
+    ? (() => {
+      const conceptId = path.split("/")[3] ?? "";
+      const s = CONCEPTS.find((c) => c.id === conceptId)?.subject;
+      return s ? t(SUBJECT_LABELS[s] ?? `subj.${s}`) : "";
+    })()
+    : "";
 
 
   return (
@@ -255,6 +276,12 @@ export function Topbar() {
       {/* Not just "Fractions": a learner sent here by the engine should be able
           to see WHICH course this is being taught as, without opening anything. */}
       <div className="topbar-where">
+        {parent && (
+          <span className="crumb-sec">
+            {parent}
+            <span className="crumb-sep" aria-hidden="true">/</span>
+          </span>
+        )}
         {here && <b>{here}</b>}
         {/* WHICH COURSE this is being taught as — country, qualification, board,
             year and subject · tier. It used to be a bare subject name and a

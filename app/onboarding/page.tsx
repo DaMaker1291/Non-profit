@@ -653,7 +653,7 @@ function OnboardingFlow() {
   if (recoveryCode) {
     return (
       <main className="container narrow page">
-        <p className="eyebrow"><span className="no">◉</span> {t("rec.title")}</p>
+        <p className="eyebrow">{t("rec.title")}</p>
         <h1>{t(recoveryFresh ? "rec.new" : "rec.title")}</h1>
         <p className="lead">{t("rec.lead")}</p>
         <div className="card" style={{ marginTop: 16, textAlign: "center" }}>
@@ -692,7 +692,7 @@ function OnboardingFlow() {
   return (
     <main className="container narrow page">
       <p className="eyebrow">
-        <span className="no">◉</span> {t(isTeacherAccount ? "teach.entryTitle" : "onb.title")}
+        {t(isTeacherAccount ? "teach.entryTitle" : "onb.title")}
       </p>
       {/* Where am I, and how much is left. A learner part-way through setup
           needs both, and needs them before they start reading the form —
@@ -724,7 +724,7 @@ function OnboardingFlow() {
           and what happens next; standing here unexplained is how a first run
           loses someone. */}
       {pending && (
-        <p className="small muted" style={{ margin: "0 0 4px" }}>💬 {t("state.newLearner")}</p>
+        <p className="small muted" style={{ margin: "0 0 4px" }}> {t("state.newLearner")}</p>
       )}
 
       {signedIn && (
@@ -1027,9 +1027,7 @@ function OnboardingFlow() {
           printed twice), and on the steps after it the sentence is stale — it
           names Mathematics while the learner has just chosen two subjects. */}
       {current === "account" && (
-        <p className="small muted" style={{ marginTop: 12 }}>
-          🎓 {t("onb.subjectsNote")}
-        </p>
+        <p className="small muted" style={{ marginTop: 12 }}>{t("onb.subjectsNote")}</p>
       )}
     </main>
   );

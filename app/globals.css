@@ -70,21 +70,28 @@
   --s6: 56px;
 
   /* ── THE TYPE STEPS ──────────────────────────────────────────────────────
-     Every fixed font-size this stylesheet renders, as a token whose value is
-     EXACTLY what the product renders today. This is a VOCABULARY, not yet a
-     scale, and that is deliberate: the steps below sit as little as 0.5px apart
-     (13px beside 13.5px, 14 beside 14.5), which is a real inconsistency — but
-     collapsing them changes what a learner sees, so it is a separate change
-     with its own before/after, never a silent tidy-up inside a refactor. Named
-     by their own value, so how close the steps are is legible from this list
-     alone. The fluid `clamp()` display sizes are NOT tokenised: each is used
-     once, by one heading, and a token with a single caller is a rename, not a
-     system. */
-  --t9-5: 9.5px;
-  --t10: 10px;
-  --t10-5: 10.5px;
-  --t11: 11px;
-  --t11-5: 11.5px;
+     Every fixed font-size this stylesheet renders, named by its own value, so
+     how close the steps are is legible from this list alone. The fluid
+     `clamp()` display sizes are NOT tokenised: each is used once, by one
+     heading, and a token with a single caller is a rename, not a system.
+
+     WHAT WAS 9.5px IS NOW 12px, AND THAT IS THE FLOOR. The small end of this
+     scale was doing work no screen can carry: eyebrow labels, the "FREE"
+     stamp, the sidebar group headings, the phone bar's captions and the band
+     chip all sat between 9.5 and 11.5px, which on a 1080p laptop is under
+     0.75rem and on a projector in a classroom is unreadable. Professional
+     learning platforms (Seneca, Sparx, Dr Frost) never set a label below 12px,
+     because a label a learner has to lean in for has stopped being a label.
+     Collapsing five micro steps onto one floor also removes the 0.5px
+     adjacencies that made the old scale arbitrary — a range this narrow is not
+     a hierarchy, it is noise. Anything that genuinely needs to be subordinate
+     now does it with COLOUR and WEIGHT, which is what the muted semantic token
+     is for. */
+  --t9-5: 12px;
+  --t10: 12px;
+  --t10-5: 12px;
+  --t11: 12px;
+  --t11-5: 12px;
   --t12: 12px;
   --t12-5: 12.5px;
   --t13: 13px;
@@ -177,39 +184,18 @@
    meaning it.
 
    WHICH theme is in force is decided in exactly one place, and it is not here.
-   `components/theme-toggle.tsx` writes `<html data-theme>`, and an ABSENT
-   attribute means "follow the machine" — which is what a learner whose phone is
-   already dark expects on their first visit, before they have chosen anything.
-   The inline script in `app/layout.tsx` applies the stored choice before the
-   first paint; without it a dark-mode learner gets a white flash on every load.
+   `components/theme-toggle.tsx` writes `<html data-theme>` and the inline
+   script in `app/layout.tsx` applies the stored choice before the first paint,
+   so a learner who chose dark never sees a white flash.
 
-   The rule is duplicated rather than merged because the two cases are genuinely
-   different: a media query cannot be negated by an attribute, so `:root:not(
-   [data-theme="light"])` is what lets an explicit LIGHT choice beat a dark
-   machine. Getting that backwards is how a toggle appears to do nothing. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #101216;
-    --paper-deep: #171a20;
-    --surface: #1a1e25;
-    --grid: #22262e;
-    --ink: #eef0f3;
-    --ink-soft: #c6cad2;
-    --pencil: #99a0ac;
-    --line: #2c323b;
-    --line-soft: #232830;
-    --margin-red: #f08a80;
-    --tick-green: #6fd39b;
-    --amber: #e8ba6a;
-    --accent: #9db4ea;
-    --accent-ink: #b9c9f4;
-    --accent-soft: #1d2740;
-    --accent-line: #3a4a70;
-    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
-  }
-}
-
+   THERE IS NO `prefers-color-scheme` QUERY, DELIBERATELY. It used to retheme
+   the whole product for anyone whose phone was in dark mode, before they had
+   chosen anything — a learning site arriving dark because of a system setting,
+   while the page being studied beside it is paper and the classroom is lit.
+   Light is the product's identity and now also its default; dark is one press
+   away and is remembered. A media query that can override the DEFAULT is a
+   theme the learner never picked, so the machine is not consulted at all:
+   `[data-theme="dark"]` is the only way this product goes dark. */
 :root[data-theme="dark"] {
   --paper: #101216;
   --paper-deep: #171a20;
@@ -266,6 +252,22 @@ a { color: var(--text); text-decoration-color: var(--accent-line); text-decorati
 a:hover { color: var(--accent-ink); }
 
 :focus-visible { outline: 2.5px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+/* ── FORM CONTROLS INHERIT THE PRODUCT'S TYPE ───────────────────────────────
+   A <select> or <input> with no class renders in the BROWSER's default UI face
+   at the browser's own 13.3333px — a size that appears nowhere in this file, so
+   the language picker and the search box were set in a value the design system
+   had never chosen, and in a face the page does not use on Windows and some
+   Linux builds. A label at 13px beside a control at 13.3333px is off by a
+   fraction that reads as carelessness rather than as a decision.
+
+   `:where()` gives these rules ZERO specificity, so every class in the file
+   still wins. This is a floor for unclassed controls, never an override. */
+:where(button, select, input, textarea) { font-family: inherit; letter-spacing: inherit; }
+:where(button, select, input:not([type="checkbox"]):not([type="radio"]), textarea) {
+  font-size: var(--t14);
+  line-height: 1.35;
+}
 
 /* A step heading is a focus TARGET, not a control: the wizard moves focus to it
    so a screen reader hears which screen it just arrived on. It cannot be tabbed
@@ -341,7 +343,20 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
   min-height: 44px;
 }
 .sidebar-link:hover { color: var(--text); background: var(--surface-sunken); text-decoration: none; }
-.sidebar-link .glyph { flex: none; width: 20px; text-align: center; font-size: var(--t15); opacity: 0.85; }
+/* A DRAWN ICON, NOT A TYPED GLYPH. The glyph slot is a 20px box so every label
+   in the list starts at the same x whatever its icon is — the alignment the
+   text characters never had, because `⌂` and `❖` are drawn by different fonts
+   at different widths. The stroke inherits the link's colour, so the icon is
+   muted with the label and takes the accent with it on the active row. */
+.sidebar-link .glyph { flex: none; width: 20px; height: 20px; display: grid; place-items: center; opacity: 0.9; }
+.sidebar-link .glyph svg { width: 20px; height: 20px; display: block; }
+/* A course is a smaller thing than a destination, and it is marked by a dot for
+   the same reason: it is an entry in the learner's own list, not a surface. */
+.sidebar-link .course-dot {
+  width: 6px; height: 6px; border-radius: 50%; display: block;
+  background: var(--ui-muted); opacity: 0.55;
+}
+.sidebar-link.active .course-dot { background: var(--accent); opacity: 1; }
 /* Where the learner IS is the one place the accent is allowed to appear in the
    chrome. It used to be the marking red, which meant "you are here" was drawn
    in the same colour as "this is wrong". */
@@ -384,8 +399,20 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    one element that has to move, because on a phone there is no sidebar. */
 .topbar-logo { display: none; font-weight: 800; font-size: var(--t18); letter-spacing: -0.02em; text-decoration: none; }
 .topbar-where { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
-.topbar-where b { font-size: var(--t15); font-weight: 700; white-space: nowrap; }
+.topbar-where b { font-size: var(--t15); font-weight: 700; white-space: nowrap; min-width: 0; }
 .topbar-where span { font-family: var(--mono); font-size: var(--t11); color: var(--text-muted); }
+/* THE TRAIL. A page name on its own is a word in a bar; the subject above it
+   makes it a POSITION — "Mathematics / Quadratics" says where in the course
+   this sits, which is the question a learner opening a lesson actually has. Set
+   in the interface face at label size with a mono slash, so the hierarchy is
+   carried by weight and colour rather than by another font size: parent quiet
+   and regular, current page bold and in ink. */
+.topbar-where .crumb-sec {
+  display: inline-flex; align-items: baseline; gap: 8px;
+  font-family: var(--font); font-size: var(--t13); font-weight: 600;
+  color: var(--text-muted); white-space: nowrap;
+}
+.topbar-where .crumb-sep { font-family: var(--mono); font-size: var(--t12); opacity: 0.5; }
 /* The learner's course context (country · course · board · year · subject tier).
    It truncates rather than pushing the search box off the bar, because it is a
    fact to glance at, not a control to reach for. */
@@ -431,24 +458,31 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    one thing built to truncate was the one thing that refused to. The strip
    ellipsises by design; the switch does not. */
 .topbar > .theme-btn { flex: none; }
+/* The icon follows the ATTRIBUTE and nothing else. It used to follow
+   `prefers-color-scheme` in the no-attribute case, which was right while the
+   product took its theme from the machine — and is now a lie: a dark-mode
+   phone shows the light theme, so a moon in the control would claim the page is
+   dark when it is not. */
 .theme-btn .i-sun { display: block; }
 .theme-btn .i-moon { display: none; }
 :root[data-theme="dark"] .theme-btn .i-sun { display: none; }
 :root[data-theme="dark"] .theme-btn .i-moon { display: block; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .theme-btn .i-sun { display: none; }
-  :root:not([data-theme]) .theme-btn .i-moon { display: block; }
-}
 .topbar select {
-  font-family: var(--mono); font-size: var(--t12);
+  font-family: var(--mono); font-size: var(--t13);
   background: transparent; color: var(--text);
   border: 1.5px solid var(--line); border-radius: var(--radius-btn); padding: 7px 8px;
 }
 /* Search: a real input, one line, never a placeholder for a feature we do not
    have. It filters the learner's own curriculum (the concept index). */
-.topbar-search { position: relative; }
+/* The search box does not shrink. It is the one control in the bar with a
+   PLACEHOLDER — a sentence that has to fit inside it — and as a flex item it was
+   giving up width to everything else, so at 1280px the box was 130px and the
+   placeholder read "Search conc". A field you cannot read the label of is a
+   field a learner has to guess at. The course strip beside it is the thing built
+   to truncate, and it still is. */
+.topbar-search { position: relative; flex: 0 0 auto; }
 .topbar-search input {
-  width: 200px; padding: 8px 12px; font-size: var(--t14);
+  width: 240px; padding: 8px 12px; font-size: var(--t14);
   border: 1.5px solid var(--line); border-radius: var(--radius-input);
   background: var(--surface);
 }
@@ -480,7 +514,8 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
   text-decoration: none; cursor: pointer;
 }
 .bottomnav a:hover, .bottomnav summary:hover { color: var(--text); text-decoration: none; }
-.bottomnav .glyph { font-size: var(--t17); line-height: 1; }
+.bottomnav .glyph { display: grid; place-items: center; width: 22px; height: 22px; }
+.bottomnav .glyph svg { width: 22px; height: 22px; display: block; }
 .bottomnav a.active { color: var(--text); }
 .bottomnav a.active .glyph { color: var(--accent); }
 .bottomnav .nav-overflow { flex: 1; position: static; }
@@ -488,10 +523,30 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 /* Utility pages fold into a ⋯ overflow: the bar stays a learning bar. A
    native <details> — no JS state, keyboard and screen-reader support free. */
 .nav-overflow { position: relative; }
+/* It is a row of the sidebar, so it is laid out as one: the same 20px icon box,
+   the same 12px gap, the same 44px target as every link above it. Previously it
+   was a text run at a different padding from the list it belonged to. */
 .nav-overflow summary {
   list-style: none; cursor: pointer;
-  font-size: var(--t15); font-weight: 700; color: var(--text-muted);
-  padding: 6px 12px; border-radius: var(--radius-btn); user-select: none;
+  display: flex; align-items: center; gap: 12px;
+  font-size: var(--t15); font-weight: 600; color: var(--text-muted);
+  padding: 10px 12px; min-height: 44px;
+  border-radius: var(--radius-btn); user-select: none;
+}
+.nav-overflow summary .glyph { flex: none; width: 20px; height: 20px; display: grid; place-items: center; opacity: 0.9; }
+.nav-overflow summary .glyph svg { width: 20px; height: 20px; display: block; }
+/* …and it is a TAB of the phone bar, which stacks. Same markup, opposite axis,
+   so the override is explicit rather than an accident of source order.
+
+   IT MUST BE THE SAME HEIGHT AS ITS FOUR NEIGHBOURS. A `<details>` is a flex
+   item, but its summary was sized by `min-height` alone, so "More" measured
+   56px beside four tabs stretched to 76px by the bar — the last tab sat 20px
+   short of the row it belongs to, which reads as a broken bar. The wrapper
+   stretches, and the summary fills the wrapper. */
+.bottomnav .nav-overflow { display: flex; }
+.bottomnav .nav-overflow summary {
+  flex: 1; flex-direction: column; gap: 2px;
+  padding: 8px 2px 6px; min-height: 56px; font-size: var(--t10-5);
 }
 .nav-overflow summary::-webkit-details-marker { display: none; }
 .nav-overflow summary:hover { color: var(--text); background: var(--surface-sunken); }
@@ -641,7 +696,38 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
 .btn:disabled { opacity: 0.4; cursor: wait; }
 .btn.ghost { background: transparent; color: var(--text); border-color: var(--line); box-shadow: none; }
 .btn.ghost:hover { background: var(--surface-sunken); color: var(--text); border-color: var(--ui-muted); box-shadow: none; }
-.btn.small { padding: 10px 16px; font-size: var(--t14); min-height: 42px; }
+/* 44px, the smallest target a finger hits reliably. `small` means "secondary in
+   a dense row", never "smaller than a touchscreen can take". */
+.btn.small { padding: 9px 16px; font-size: var(--t14); min-height: 44px; }
+/* A button may carry an icon. Sized here so no caller has to remember to, and
+   `flex: none` so a label that wraps never squashes it. */
+.btn svg { flex: none; width: 18px; height: 18px; }
+/* CHOSEN, IN A ROW OF CHOICES. `.btn.sel` was referenced by the hint-level
+   buttons and had no rule at all, so "which level did I ask for?" was
+   unanswerable: all four looked identical after the press. The accent is the
+   right mark here — this is the learner's own selection, not a verdict. */
+.btn.sel, .btn.ghost.sel {
+  border-color: var(--accent); background: var(--accent-soft);
+  color: var(--accent-ink); box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+.btn.sel:hover, .btn.ghost.sel:hover {
+  border-color: var(--accent-ink); background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+/* THE FOUR HELP LEVELS, AS A STRENGTH METER. These were four emoji circles —
+   green, amber, orange, red — which had two problems. A ring drawn by the
+   device's emoji font is a different size and palette on every platform, so a
+   row of four controls had four differently-sized bulges; and the ramp ended in
+   the MARKING RED, which in this product means "wrong". Asking to be walked
+   through a question is not an error, and colouring it as one teaches a learner
+   to read help as failure. One hue, four fill levels: the length of the bar IS
+   the amount of help, which is what the label beside it says. */
+.hint-dot { flex: none; display: inline-flex; gap: 2px; }
+.hint-dot i {
+  width: 4px; height: 10px; border-radius: 1px;
+  border: 1px solid var(--ui-muted); opacity: 0.75;
+}
+.hint-dot i.on { background: var(--mark-caution); border-color: var(--mark-caution); opacity: 1; }
 .btn.wide { width: 100%; }
 
 /* ── Workings: the boxed area where a question lives ── */
@@ -690,7 +776,18 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
   border: 1.5px solid var(--line); border-radius: 6px; color: var(--text-on-strong);
 }
 .choice .mark::before { content: attr(data-idx); color: var(--text-muted); font-size: var(--t12); }
-.choice.sel { border-color: var(--ui-strong); border-width: 2px; }
+/* A chosen answer is a state, not a hover: ink edge, a ring inside it so the
+   box does not jump when the border thickens, and a wash of the accent so the
+   choice reads as "this one is mine" at a glance down a column. The old rule
+   only recoloured the border, which at 1.5px to 2px is a shift a learner can
+   miss on a phone in daylight. */
+.choice.sel {
+  border-color: var(--ui-strong); border-width: 2px;
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.choice.sel .mark { background: var(--ui-strong); border-color: var(--ui-strong); }
+.choice.sel .mark::before { color: var(--text-on-strong); }
 .choice.ok { border-color: var(--mark-correct); background: color-mix(in srgb, var(--mark-correct) 8%, var(--surface)); }
 .choice.ok .mark { background: var(--mark-correct); border-color: var(--mark-correct); }
 .choice.ok .mark::before { content: "✓"; color: var(--text-on-strong); }
@@ -1035,7 +1132,16 @@ button.chip[aria-pressed="false"] { background: transparent; }
   font-size: var(--t13); color: var(--text-soft);
 }
 .whyq .why-label { font-family: var(--mono); font-size: var(--t10); letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-muted); }
-.whyq .band { font-family: var(--mono); font-size: var(--t11); color: var(--text-muted); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; }
+/* The band chip sits at the END of the line rather than after the sentence: it
+   is a value the eye should find in the same place on every question, and a
+   "Level 4 of 5" that floats wherever the reason's last word ends is a badge
+   dropped into a paragraph. Tabular figures so 3 and 4 occupy one width. */
+.whyq .band {
+  margin-inline-start: auto; font-family: var(--mono); font-size: var(--t11);
+  font-variant-numeric: tabular-nums; color: var(--text-muted);
+  border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px;
+  white-space: nowrap;
+}
 .whyq .scaffold { color: var(--mark-caution); font-weight: 600; }
 
 /* ── The exercise header: concept, position in the set, clock. Sticky, so the
@@ -1322,21 +1428,17 @@ html.access-contrast {
 
 /* High contrast ON dark, which is not the same preference as either one alone.
    The dark block above outranks `html.access-contrast` on specificity (it is
-   `:root[data-theme="dark"]`, one attribute more), so without these two rules a
-   learner who asked for high contrast AND runs a dark device would silently get
-   the ordinary dark palette — their accessibility preference would stop working
-   at the moment it started mattering. Contrast in the dark direction means ink
+   `:root[data-theme="dark"]`, one attribute more), so without this rule a
+   learner who asked for high contrast AND chose dark would silently get the
+   ordinary dark palette — their accessibility preference would stop working at
+   the moment it started mattering. Contrast in the dark direction means ink
    goes to pure white and the structural rules brighten, the mirror of what the
-   light rules above do. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]).access-contrast {
-    --ink: #ffffff;
-    --ink-soft: #e6e9ee;
-    --pencil: #c2c8d2;
-    --line: #5a6472;
-    --line-soft: #48505c;
-  }
-}
+   light rules above do.
+
+   This used to be a PAIR with a `prefers-color-scheme` twin, and the twin had to
+   go when the theme stopped following the machine: it would have brightened the
+   rules for a dark-mode phone whose page is light. The theme is `data-theme`,
+   so the high-contrast dark palette is `data-theme` too. */
 :root[data-theme="dark"].access-contrast {
   --ink: #ffffff;
   --ink-soft: #e6e9ee;
@@ -1737,8 +1839,12 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
      arrow glyph it does not need on a phone. */
   .topbar { gap: var(--s1); padding: 0 14px; }
   .topbar-logo { font-size: var(--t16); }
-  .topbar select { max-width: 5.75rem; padding: 6px; }
-  .topbar > .btn { padding: 9px 12px; font-size: var(--t13); min-height: 40px; }
+  /* One row, one height. Measured at 390px: the language picker stood 48px tall
+     beside a 42px switch and a 42px button, three controls that are the same
+     kind of thing drawn at three heights. The select was also still set in the
+     old 12px mono while everything else in the bar is 13–16px. */
+  .topbar select { max-width: 5.75rem; padding: 6px; height: 42px; min-height: 42px; }
+  .topbar > .btn { padding: 9px 12px; font-size: var(--t13); min-height: 42px; }
   .topbar > .btn .btn-arrow { display: none; }
 
   /* ── THREE MEASURED DEFECTS, ALL OF THEM SPACING ──────────────────────

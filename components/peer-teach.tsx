@@ -13,7 +13,7 @@ export default function PeerTeach({ lesson, conceptTitle, conceptId }: { lesson:
   const [fb, setFb] = useState<string | null>(null);
   return (
     <section className="card soft" style={{ marginTop: 18 }}>
-      <p className="eyebrow" style={{ margin: 0 }}><span className="no">🧑‍🤝‍🧑</span> {t("peer.eyebrow")} · {conceptTitle}</p>
+      <p className="eyebrow" style={{ margin: 0 }}>{t("peer.eyebrow")} · {conceptTitle}</p>
       <p className="small muted">{t("peer.prompt")}</p>
       <textarea
         rows={3}

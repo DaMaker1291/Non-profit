@@ -17,6 +17,7 @@ import MathText from "@/components/math-text";
 import { useI18n } from "@/lib/client";
 import { anonStarter, anonStarterPick } from "@/lib/anon-practice";
 import type { StarterReveal } from "@/lib/starter";
+import { Icon } from "@/components/icons";
 
 export default function StarterMode({
   conceptId,
@@ -70,7 +71,8 @@ export default function StarterMode({
     return (
       <div style={{ marginTop: 14 }}>
         <button className="btn ghost small" disabled={busy} onClick={() => void start()}>
-          🧭 {t("starter.open")}
+          <Icon name="compass" />
+          {t("starter.open")}
         </button>
         {failed && <p className="small muted" style={{ marginTop: 6 }}>{t("starter.unavailable")}</p>}
       </div>
@@ -79,7 +81,7 @@ export default function StarterMode({
 
   return (
     <div className="note" style={{ marginTop: 16 }}>
-      <strong>🧭 {t("starter.title")}</strong>
+      <strong><Icon name="compass" /> {t("starter.title")}</strong>
 
       {step === 1 && (
         <>

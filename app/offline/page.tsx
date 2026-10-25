@@ -33,7 +33,7 @@ export default function OfflinePage() {
   }, []);
   return (
     <main className="container narrow" style={{ paddingTop: 40 }}>
-      <p className="eyebrow"><span className="no">📴</span> {t("off.eyebrow")}</p>
+      <p className="eyebrow">{t("off.eyebrow")}</p>
       <h1>{t("off.title")}</h1>
       {/* The pack download lives HERE, not on Home: it is the thing that makes
           this page useful with no connection, and Home is for today's work. */}

@@ -9979,8 +9979,14 @@ console.log("▸ AI explains, never records");
   // The guard has to be attached to THIS render: `current === "account"` appears
   // three times in the file, so asserting the string exists proves nothing about
   // whether the note is the thing guarded.
-  const noteAt = onb.indexOf('🎓 {t("onb.subjectsNote")}');
-  const noteGuard = noteAt < 0 ? "" : onb.slice(Math.max(0, noteAt - 160), noteAt);
+  // The anchor was the 🎓 in front of the sentence. The picture is gone — a
+  // decorative emoji opening a sentence of prose is exactly the cue that made
+  // the enrolment screen read as a consumer app rather than a school one — so
+  // the pin now anchors on the sentence itself, and still reads the guard BEFORE
+  // it. `lastIndexOf` is deliberate: the earlier use is the subjects step's own
+  // lead, and the one this asserts is the guarded reassurance further down.
+  const noteAt = onb.lastIndexOf('{t("onb.subjectsNote")}');
+  const noteGuard = noteAt < 0 ? "" : onb.slice(Math.max(0, noteAt - 200), noteAt);
   ok(noteUses === 2 && noteGuard.includes('current === "account" && ('),
     `"Subjects: Mathematics" is the account step's reassurance only — as the subjects step's lead and nowhere else (${noteUses} uses, guard ${noteGuard.includes('current === "account" && (') ? "present" : "MISSING"})`);
 

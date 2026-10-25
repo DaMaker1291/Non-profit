@@ -15,7 +15,7 @@ export default function HubStatus() {
   if (!s) return null;
   return (
     <div className="card soft" style={{ padding: 16 }}>
-      <p className="eyebrow" style={{ margin: 0 }}><span className="no">🛜</span> {t("hub.local")}</p>
+      <p className="eyebrow" style={{ margin: 0 }}>{t("hub.local")}</p>
       <p className="small muted" style={{ margin: "6px 0 0" }}>
         {s.learners} {t("hub.learners")} · {s.rooms} {t("hub.rooms")} · {s.classes} {t("hub.classes")} {t("hub.localNote")}
       </p>

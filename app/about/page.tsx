@@ -25,13 +25,13 @@ export default function About() {
 
       <div className="grid cols2" style={{ marginTop: 24 }}>
         <div className="card">
-          <p className="eyebrow"><span className="no">🌍</span> {t("about.chapters").split(":")[0]}</p>
+          <p className="eyebrow">{t("about.chapters").split(":")[0]}</p>
           <p className="muted small" style={{ margin: 0 }}>
             {t("about.chaptersBody")}
           </p>
         </div>
         <div className="card">
-          <p className="eyebrow"><span className="no">🤝</span> {t("about.contributeTitle")}</p>
+          <p className="eyebrow">{t("about.contributeTitle")}</p>
           <p className="muted small" style={{ margin: 0 }}>
             {t("about.contribute")}
           </p>
@@ -41,7 +41,7 @@ export default function About() {
           <p className="muted small" style={{ margin: 0 }}>{t("about.license")}</p>
         </div>
         <div className="card">
-          <p className="eyebrow"><span className="no">🔒</span> {t("about.privacyTitle")}</p>
+          <p className="eyebrow">{t("about.privacyTitle")}</p>
           <p className="muted small" style={{ margin: 0 }}>
             {t("about.privacyBody")}
           </p>
@@ -55,7 +55,7 @@ export default function About() {
           read as telemetry about a real student. A visitor is not asking for
           our sample record, so it belongs on the page a reviewer opens. */}
       <div className="card soft" style={{ marginTop: 20 }}>
-        <p className="eyebrow"><span className="no">🔍</span> {t("home.worked")}</p>
+        <p className="eyebrow">{t("home.worked")}</p>
         <div style={{ marginTop: 12 }}>
           <WorkedExample />
         </div>
@@ -63,7 +63,7 @@ export default function About() {
       </div>
 
       <div className="card soft" style={{ marginTop: 20, marginBottom: 40 }}>
-        <p className="eyebrow"><span className="no">🧬</span> {t("about.genomeTitle")}</p>
+        <p className="eyebrow">{t("about.genomeTitle")}</p>
         <p className="muted small" style={{ margin: 0 }}>
           {t("about.genomeBody")}
         </p>

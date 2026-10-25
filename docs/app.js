@@ -372,16 +372,16 @@
   }
 
   // ── Theme ────────────────────────────────────────────────────────────────
-  // Stored on <html data-theme>; absent means "follow the system". Applied
-  // before first paint of every view so a dark learner never sees a white
-  // flash between pages.
+  // Stored on <html data-theme>; absent means LIGHT, which is the product's own
+  // default (the app in app/globals.css ships the same way). Applied before
+  // first paint of every view so a dark learner never sees a white flash.
   function applyTheme() {
     var theme = db.ui.theme || "";
     if (theme) document.documentElement.setAttribute("data-theme", theme);
     else document.documentElement.removeAttribute("data-theme");
   }
   function toggleTheme() {
-    var current = db.ui.theme || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    var current = db.ui.theme || "light";
     db.ui.theme = current === "dark" ? "light" : "dark";
     save();
     applyTheme();

@@ -24,6 +24,7 @@ import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { HINT_LEVELS } from "@/lib/hints";
 import MicroDiagnostic from "@/components/micro-diagnostic";
 import SpeakButton from "@/components/speak-button";
+import { Icon } from "@/components/icons";
 import PromptText from "@/components/prompt-text";
 import MathText from "@/components/math-text";
 import NumericAnswer from "@/components/numeric-answer";
@@ -540,8 +541,7 @@ export default function ConceptPage() {
         </p>
       )}
       {state?.profile?.learningStyle && (
-        <p className="small muted" style={{ marginTop: -10, marginBottom: 14 }}>
-          🧠 {t("onb.learningStyle")}: <strong>{state.profile.learningStyle === "reading-writing" ? t("ls.reading") : t(`ls.${state.profile.learningStyle}`)}</strong>
+        <p className="small muted" style={{ marginTop: -10, marginBottom: 14 }}> {t("onb.learningStyle")}: <strong>{state.profile.learningStyle === "reading-writing" ? t("ls.reading") : t(`ls.${state.profile.learningStyle}`)}</strong>
           {state.profile.board && <> · {t("onb.board")}: {state.profile.board}</>}
           {state.profile.exam && <> · {t("learn.exam")}: {state.profile.exam}</>}
         </p>
@@ -628,7 +628,7 @@ export default function ConceptPage() {
           const culture = state?.profile.examples ?? "neutral";
           const ex = exampleFor(conceptId, culture);
           if (!ex || culture === "neutral") return null;
-          return <p className="small muted" style={{ marginTop: 8 }}>🌎 {t("learn.think")}: {t(ex)}.</p>;
+          return <p className="small muted" style={{ marginTop: 8 }}> {t("learn.think")}: {t(ex)}.</p>;
         })()}
       </div>
 
@@ -654,7 +654,7 @@ export default function ConceptPage() {
       {evidence && (
         <section className="card soft" style={{ marginBottom: 18 }} aria-label={t("ev.eyebrow")}>
           <p className="eyebrow" style={{ margin: 0 }}>
-            <span className="no">📊</span> {t("ev.eyebrow")} · {ctitle(lang, conceptId)}
+            {t("ev.eyebrow")} · {ctitle(lang, conceptId)}
           </p>
           {evidence.attempts === 0 ? (
             <p className="small muted" style={{ margin: "6px 0 0" }}>{t("ev.none")}</p>
@@ -856,7 +856,10 @@ export default function ConceptPage() {
             {q && !graded && !saved && (
               <div style={{ marginTop: 14 }}>
                 {!stuck ? (
-                  <button className="btn ghost small" onClick={() => setStuck(true)}>{t("hint.stuck")}</button>
+                  <button className="btn ghost small" onClick={() => setStuck(true)}>
+                    <Icon name="stuck" />
+                    {t("hint.stuck")}
+                  </button>
                 ) : (
                   <div className="card soft" style={{ padding: 14, marginBottom: 0 }}>
                     <p className="small" style={{ margin: "0 0 10px", fontWeight: 600 }}>{t("hint.howMuch")}</p>
@@ -869,7 +872,16 @@ export default function ConceptPage() {
                           title={t(h.descKey)}
                           onClick={() => void askHint(h.level)}
                         >
-                          {h.level === 1 ? "🟢" : h.level === 2 ? "🟡" : h.level === 3 ? "🟠" : "🔴"} {t(h.labelKey)}
+                          {/* How much help this level is, as a filled meter of
+                              four. Drawn rather than typed: the emoji dots this
+                              replaces were set by the device's own emoji font,
+                              so the row of controls disagreed about size, and
+                              the ramp ended in the marking red — which marks a
+                              wrong answer, not a learner asking for help. */}
+                          <span className="hint-dot" aria-hidden="true">
+                            {[1, 2, 3, 4].map((n) => <i key={n} className={n <= h.level ? "on" : ""} />)}
+                          </span>
+                          {t(h.labelKey)}
                         </button>
                       ))}
                     </div>

@@ -48,7 +48,7 @@ export default function ProjectsPage() {
   };
   return (
     <main className="container" style={{ paddingTop: 40 }}>
-      <p className="eyebrow"><span className="no">🛠️</span> {t("proj.eyebrow")}</p>
+      <p className="eyebrow">{t("proj.eyebrow")}</p>
       <h1>{t("proj.title")}</h1>
       <p className="lead">{t("proj.lead")}</p>
       {TEMPLATES.map((p) => {

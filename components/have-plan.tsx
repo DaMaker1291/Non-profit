@@ -48,7 +48,7 @@ export default function HavePlan({ state, ledger }: { state: ProfileState; ledge
   if (resources.includes("internet-sometimes")) steps.push({ t: t("have.download"), href: "/offline", label: t("have.offlineTag") });
   return (
     <section className="card" style={{ marginBottom: 20 }}>
-      <p className="eyebrow" style={{ margin: 0 }}><span className="no">🌱</span> {t("have.eyebrow")}</p>
+      <p className="eyebrow" style={{ margin: 0 }}>{t("have.eyebrow")}</p>
       <ol style={{ margin: "8px 0", paddingLeft: 20 }}>
         {steps.map((s, i) => (
           <li key={i} className="small" style={{ margin: "4px 0" }}>

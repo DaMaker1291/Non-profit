@@ -19,11 +19,15 @@ import { useI18n } from "@/lib/client";
  * FIRST paint, before any JavaScript has run, and the component never has to
  * guess.
  *
- * The stored value is a preference, not a state: absent means "follow the
- * machine", which CSS honours through `prefers-color-scheme`. A learner whose
- * phone is dark gets dark on their first visit, without choosing anything —
- * and choosing light afterwards still wins, because an explicit
- * `data-theme="light"` is excluded from the media query by `:not()`.
+ * The stored value is a preference, not a state: absent means LIGHT, which is
+ * what this product ships as. It used to follow the machine's
+ * `prefers-color-scheme`, so a learner whose phone happened to be in dark mode
+ * met a dark product on their first visit, having chosen nothing — and a
+ * learning site is read by daylight, in classrooms, beside a printed page. The
+ * dark theme still exists and is still one press away; it is now a choice
+ * rather than a surprise. (`data-theme="light"` is the default, `"dark"` the
+ * stored alternative; no media query can produce a theme the learner did not
+ * ask for.)
  *
  * The icon shows the theme IN FORCE rather than the one the press will produce,
  * so the control reads as what it currently is. That is the convention the
@@ -34,11 +38,9 @@ import { useI18n } from "@/lib/client";
 const KEY = "openmind:theme";
 type Theme = "dark" | "light";
 
-/** What is in force RIGHT NOW: an explicit choice, else the device's. */
+/** What is in force RIGHT NOW: the attribute, else the product's own default. */
 function currentTheme(): Theme {
-  const attr = document.documentElement.getAttribute("data-theme");
-  if (attr === "dark" || attr === "light") return attr;
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
 }
 
 export function ThemeToggle() {

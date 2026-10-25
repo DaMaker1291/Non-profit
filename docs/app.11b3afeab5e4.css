@@ -170,32 +170,13 @@
 }
 
 /* ── Dark theme ──
-   Chosen explicitly, or left to the system: an absent `data-theme` means "follow
-   the machine", which is what a learner who has set their phone to dark expects.
-   The accent LIGHTENS here rather than staying put — a deep indigo that reads as
-   calm on paper disappears against a dark surface. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #101216;
-    --paper-deep: #171a20;
-    --surface: #1a1e25;
-    --ink: #eef0f3;
-    --ink-soft: #c6cad2;
-    --pencil: #99a0ac;
-    --line: #2c323b;
-    --line-soft: #232830;
-    --margin-red: #f08a80;
-    --tick-green: #6fd39b;
-    --amber: #e8ba6a;
-    --accent: #9db4ea;
-    --accent-deep: #b9c9f4;
-    --accent-soft: #1d2740;
-    --accent-line: #3a4a70;
-    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
-  }
-}
-
+   CHOSEN, never inherited. This used to follow `prefers-color-scheme` when no
+   attribute was set, so a phone in dark mode opened the published page dark,
+   having been asked nothing — while the app in this repository ships light.
+   The two surfaces are one product and must not disagree about their default.
+   The dark theme is one press away and is remembered; the machine is not
+   consulted. The accent LIGHTENS here rather than staying put — a deep indigo
+   that reads as calm on paper disappears against a dark surface. */
 :root[data-theme="dark"] {
   --paper: #101216;
   --paper-deep: #171a20;
@@ -390,15 +371,13 @@ select.lang {
 .theme-btn:hover { background: var(--surface-sunken); color: var(--text); }
 .theme-btn svg { width: 1.05rem; height: 1.05rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 /* The icon shows the state that is IN FORCE, so the control reads as what it
-   will turn off rather than what it will turn on. */
+   will turn off rather than what it will turn on — and it reads it from the
+   ATTRIBUTE. The `prefers-color-scheme` case is gone with the theme default:
+   on a dark-mode phone the page is light, and a moon here would say otherwise. */
 .theme-btn .i-sun { display: block; }
 .theme-btn .i-moon { display: none; }
 :root[data-theme="dark"] .theme-btn .i-sun { display: none; }
 :root[data-theme="dark"] .theme-btn .i-moon { display: block; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .theme-btn .i-sun { display: none; }
-  :root:not([data-theme]) .theme-btn .i-moon { display: block; }
-}
 
 /* ── Chrome: the desktop rail ─────────────────────────────────────────────
    From 900px up the destinations stop being a row above the work and become the

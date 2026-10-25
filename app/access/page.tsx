@@ -93,7 +93,7 @@ export default function AccessPage() {
       <p className="lead">{t("acc.lead")}</p>
 
       <section className="card" style={{ marginBottom: 16 }}>
-        <p className="eyebrow" style={{ margin: 0 }}>🌐 {t("acc.language")}</p>
+        <p className="eyebrow" style={{ margin: 0 }}> {t("acc.language")}</p>
         {/* Interface language is configuration and lives here, with the rest of
             the settings — it must not compete with learning decisions on Home. */}
         <label className="field" style={{ maxWidth: 260 }}>
@@ -118,7 +118,7 @@ export default function AccessPage() {
       </section>
 
       <section className="card" style={{ marginBottom: 16 }}>
-        <p className="eyebrow" style={{ margin: 0 }}>🔊 {t("acc.readingVoice")}</p>
+        <p className="eyebrow" style={{ margin: 0 }}> {t("acc.readingVoice")}</p>
         <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
           <Toggle on={prefs.readAloud} label={`🔊 ${t("acc.readAloud")}`} onClick={() => set({ readAloud: !prefs.readAloud })} />
           <Toggle on={prefs.preferSpeech} label={`🎙 ${t("acc.preferSpeech")}`} onClick={() => set({ preferSpeech: !prefs.preferSpeech })} />
@@ -129,7 +129,7 @@ export default function AccessPage() {
       </section>
 
       <section className="card" style={{ marginBottom: 16 }}>
-        <p className="eyebrow" style={{ margin: 0 }}>📴 {t("acc.connectivity")}</p>
+        <p className="eyebrow" style={{ margin: 0 }}> {t("acc.connectivity")}</p>
         <p className="small muted">{pending === 0 ? t("acc.syncedAll") : `🟡 ${pending} ${t("acc.pendingSync")}`} <Link href="/offline">{t("acc.offlinePlan")} →</Link></p>
         <Toggle on={continuity} label={t("acc.continuity")} onClick={() => { const n = !continuity; setContinuityMode(n); setCont(n); }} />
       </section>
@@ -144,7 +144,7 @@ export default function AccessPage() {
       </section>
 
       <section className="card" style={{ marginBottom: 16 }}>
-        <p className="eyebrow" style={{ margin: 0 }}>📚 {t("acc.boardExam")}</p>
+        <p className="eyebrow" style={{ margin: 0 }}> {t("acc.boardExam")}</p>
         <p className="small muted">{t("acc.boardNote")}</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
           {[["cbse", "acc.b.cbse"], ["icse", "acc.b.icse"], ["igcse", "acc.b.igcse"], ["state", "acc.b.state"], ["matric", "acc.b.matric"], ["nigerian", "acc.b.nigerian"], ["kenyan", "acc.b.kenyan"], ["philippine", "acc.b.philippine"], ["bangladeshi", "acc.b.bangladeshi"], ["indonesian", "acc.b.indonesian"], ["brazilian", "acc.b.brazilian"], ["mexican", "acc.b.mexican"]].map(([id, key]) => (
@@ -158,7 +158,7 @@ export default function AccessPage() {
       </section>
 
       <section className="card" style={{ marginBottom: 16 }}>
-        <p className="eyebrow" style={{ margin: 0 }}>🧠 {t("onb.learningStyle")}</p>
+        <p className="eyebrow" style={{ margin: 0 }}> {t("onb.learningStyle")}</p>
         <p className="small muted">{t("acc.howTeachNote")}</p>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
           {[["visual", "ls.visual"], ["auditory", "ls.auditory"], ["kinesthetic", "ls.kinesthetic"], ["reading-writing", "ls.reading"]].map(([id, label]) => (

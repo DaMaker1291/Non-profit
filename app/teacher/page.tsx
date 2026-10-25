@@ -1570,8 +1570,7 @@ function WeeklyPlanPanel({ cls }: { cls: ClassRoster }) {
           who pressed Print. `me` names the member; the capability rides beside
           it, exactly as the roster fetch above does it. */}
       <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-        <a className="btn ghost small" href={classPackUrl(cls.id, loadLocalProfileId() ?? "", "html")} target="_blank" rel="noreferrer">
-          🖨 {t("plan.print")}
+        <a className="btn ghost small" href={classPackUrl(cls.id, loadLocalProfileId() ?? "", "html")} target="_blank" rel="noreferrer"> {t("plan.print")}
         </a>
         <a className="btn ghost small" href={classPackUrl(cls.id, loadLocalProfileId() ?? "", "json")} target="_blank" rel="noreferrer">
           ⤓ {t("plan.export")}

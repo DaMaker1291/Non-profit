@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { listenOnce, recognitionSupported } from "@/lib/voice";
 import { useI18n } from "@/lib/client";
+import { Icon } from "@/components/icons";
 
 /** Mic button: speech → text into the parent field. Hidden when unsupported.
  *
@@ -36,7 +37,8 @@ export default function VoiceInput({ onText, lang, compact }: { onText: (t: stri
         }
       }}
     >
-      {busy ? "… 🎙" : compact ? "🎙" : `🎙 ${t("voice.speak")}`}
+      {busy ? "…" : <Icon name="mic" />}
+      {!busy && !compact && ` ${t("voice.speak")}`}
     </button>
   );
 }

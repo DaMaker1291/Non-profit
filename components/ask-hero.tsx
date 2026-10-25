@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useI18n } from "@/lib/client";
 import { matchText } from "@/lib/api/client";
 import VoiceInput from "@/components/voice-input";
+import { Icon } from "@/components/icons";
 
 /** Calm companion entry (§home): one huge ask box, photo-of-question entry,
  *  voice-first. No intimidation, one obvious next action. */
@@ -54,7 +55,8 @@ export default function AskHero() {
           {guessing ? t("ask.reading") : t("ask.whatTesting")}
         </button>
         <label className="btn ghost small" style={{ cursor: "pointer" }}>
-          📷 {t("ask.takePhoto")}
+          <Icon name="camera" />
+          {t("ask.takePhoto")}
           <input
             type="file"
             accept="image/*"

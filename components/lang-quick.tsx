@@ -14,7 +14,7 @@ export default function LangQuick({ profileLang }: { profileLang?: string }) {
   return (
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
       <label className="field" style={{ minWidth: 120 }}>
-        <span className="small">🌐 {t("lq.teaching")}</span>
+        <span className="small"> {t("lq.teaching")}</span>
         <select value={langs.teaching} onChange={(e) => set({ teaching: e.target.value })}>
           {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
         </select>
@@ -27,7 +27,7 @@ export default function LangQuick({ profileLang }: { profileLang?: string }) {
         </select>
       </label>
       <label className="field" style={{ minWidth: 120 }}>
-        <span className="small">📚 {t("lq.school")}</span>
+        <span className="small"> {t("lq.school")}</span>
         <select value={langs.school} onChange={(e) => set({ school: e.target.value })}>
           {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
         </select>

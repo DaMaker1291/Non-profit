@@ -18,6 +18,7 @@ import type { AccessPrefs } from "@/lib/access";
 import { chooseTier, probeWhenIdle, refusedBiggerModel, tierNoteKey } from "@/lib/local-ai";
 import type { LocalAiPlan } from "@/lib/local-ai";
 import { useI18n } from "@/lib/client";
+import { Icon } from "@/components/icons";
 
 interface AccessCtx {
   prefs: AccessPrefs;
@@ -104,7 +105,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
         title={t("access.open")}
         onClick={() => setOpen((o) => !o)}
       >
-        ♿
+        <Icon name="access" />
       </button>
       {open && (
         <div className="access-panel" role="dialog" aria-label={t("access.title")}>
@@ -115,15 +116,14 @@ export function AccessProvider({ children }: { children: ReactNode }) {
           <Toggle on={prefs.highContrast} label={`🎨 ${t("access.highContrast")}`} onClick={() => set({ highContrast: !prefs.highContrast })} />
           <Toggle on={prefs.reduceMotion} label={`🧠 ${t("access.reduceMotion")}`} onClick={() => set({ reduceMotion: !prefs.reduceMotion })} />
           <Toggle on={prefs.preferSpeech} label={`🎙 ${t("access.preferSpeech")}`} onClick={() => set({ preferSpeech: !prefs.preferSpeech })} />
-          {!speechOk && <p className="small muted" style={{ margin: "8px 0 0" }}>📵 {t("access.noSpeech")}</p>}
-          {speechOk && !voiceOk && <p className="small muted" style={{ margin: "8px 0 0" }}>🌐 {t("access.noVoice")}</p>}
+          {!speechOk && <p className="small muted" style={{ margin: "8px 0 0" }}> {t("access.noSpeech")}</p>}
+          {speechOk && !voiceOk && <p className="small muted" style={{ margin: "8px 0 0" }}> {t("access.noVoice")}</p>}
           {plan && (
-            <p className="small muted" style={{ margin: "8px 0 0" }}>
-              ⚙ {t("ai.localTitle")}: {t(tierNoteKey(plan))}
+            <p className="small muted" style={{ margin: "8px 0 0" }}> {t("ai.localTitle")}: {t(tierNoteKey(plan))}
               {refusedBiggerModel(plan) ? ` · ${t("ai.note.refused")}` : ""}
             </p>
           )}
-          <p className="small muted" style={{ margin: "8px 0 0" }}>🔒 {t("access.localNote")}</p>
+          <p className="small muted" style={{ margin: "8px 0 0" }}> {t("access.localNote")}</p>
         </div>
       )}
     </Ctx.Provider>

@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import { speak, speakableText, speechSupported, stopSpeaking } from "@/lib/access";
 import { useAccess } from "@/components/access-provider";
+import { Icon } from "@/components/icons";
 import { useI18n } from "@/lib/client";
 
 export default function SpeakButton({ text, auto }: { text: string; auto?: boolean }) {
@@ -38,7 +39,7 @@ export default function SpeakButton({ text, auto }: { text: string; auto?: boole
       title={t("speak.aria")}
       onClick={() => speak(clean, lang)}
     >
-      🔈
+      <Icon name="sound" />
     </button>
   );
 }

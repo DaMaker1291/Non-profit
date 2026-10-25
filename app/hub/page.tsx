@@ -21,7 +21,7 @@ export default function HubPage() {
   }, []);
   return (
     <main className="container narrow" style={{ paddingTop: 40 }}>
-      <p className="eyebrow"><span className="no">🛜</span> {t("hub.eyebrow")}</p>
+      <p className="eyebrow">{t("hub.eyebrow")}</p>
       <h1>{t("hub.title")}</h1>
       <p className="lead">
         {s ? `${s.learners} ${t("hub.learners")} · ${s.rooms} ${t("hub.rooms")} · ${s.classes} ${t("hub.classes")}` : t("hub.loading")}
