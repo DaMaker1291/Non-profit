@@ -63,6 +63,9 @@ interface PaperListEntry {
   minutes: number;
   marks: number;
   calculator: boolean;
+  /** The awarding body's own code, when this is one board's paper. Two boards
+   *  publish identically named GCSE papers, so the picker must name it. */
+  board?: string | null;
   authored: boolean;
 }
 
@@ -255,9 +258,11 @@ export default function PapersPage() {
             {ai.enabled
               ? `${t("ai.on")} · ${ai.provider}${ai.model ? ` (${ai.model})` : ""}`
               : t("ai.off"        )}
-            {!ai.enabled && <> — {t("ai.note")}</>}
-            {" "}
-            {ai.enabled && <span>{t("ai.note")}</span>}
+            {/* The deployment note ("add an API key on the server") used to
+                print under this line. It is an OPERATOR's sentence on a
+                learner's exam page — the learner's question is what the marking
+                means, not how the deployment is configured. That line lives in
+                docs/DEPLOYMENT.md, where the person who can act on it reads. */}
           </p>
         </>
       )}
@@ -277,8 +282,11 @@ export default function PapersPage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600 }}>{p.name}</div>
                     {/* No subject here: an authored paper's name already carries
-                        it, and a specification-built paper IS the subject. */}
+                        it, and a specification-built paper IS the subject. The
+                        BOARD is there, because it is the only thing that tells
+                        two identically named GCSE papers apart. */}
                     <div className="small muted">
+                      {p.board ? `${boardName(p.board)} · ` : ""}
                       {p.marks} {t("pp.marks")} · {p.minutes} {t("pp.min")} · {p.calculator ? t("pp.calc") : t("pp.noCalc")}
                     </div>
                   </div>

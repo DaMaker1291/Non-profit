@@ -53,6 +53,11 @@ export interface PaperTemplate {
    *  specification layer — a paper cannot name a qualification that does not
    *  exist). */
   specs: string[];
+  /** The awarding body whose paper this is, when it is one board's paper rather
+   *  than a qualification's. AQA and Edexcel both publish a "GCSE Mathematics —
+   *  Paper 1 (non-calculator)"; without this field the picker listed that name
+   *  twice and a learner had no way to know which was theirs. */
+  board?: BoardId;
 }
 
 /** Section totals must add up to the declared paper total, or the paper lies
@@ -75,7 +80,7 @@ const GCSE_BOUNDARIES: GradeBoundary[] = [
 export const PAPERS: PaperTemplate[] = [
   paper({
     id: "aqa-gcse-maths-p1", name: "GCSE Mathematics — Paper 1 (non-calculator)",
-    subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    board: "aqa", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 10, marksEach: 2, difficulty: 0.4 },
       { name: "Section B", count: 12, marksEach: 4, difficulty: 0.55 },
@@ -84,7 +89,7 @@ export const PAPERS: PaperTemplate[] = [
   }),
   paper({
     id: "edexcel-gcse-maths-p1", name: "GCSE Mathematics — Paper 1 (non-calculator)",
-    subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    board: "edexcel", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 12, marksEach: 2, difficulty: 0.4 },
       { name: "Section B", count: 11, marksEach: 4, difficulty: 0.55 },
@@ -93,7 +98,7 @@ export const PAPERS: PaperTemplate[] = [
   }),
   paper({
     id: "aqa-alevel-maths-p1", name: "A-Level Mathematics — Paper 1 (Pure)",
-    subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"],
+    board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"],
     boundaries: [{ grade: "A*", pct: 0.80 }, { grade: "A", pct: 0.70 }, { grade: "B", pct: 0.60 }, { grade: "C", pct: 0.50 }],
     sections: [
       { name: "Section A", count: 10, marksEach: 4, difficulty: 0.78 },
@@ -167,7 +172,7 @@ export const PAPERS: PaperTemplate[] = [
   }),
   paper({
     id: "aqa-gcse-physics", name: "GCSE Physics — Paper 1",
-    subject: "physics", minutes: 75, calculator: true, specs: ["uk-gcse"],
+    board: "aqa", subject: "physics", minutes: 75, calculator: true, specs: ["uk-gcse"],
     boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 10, marksEach: 3, difficulty: 0.45 },
@@ -176,7 +181,7 @@ export const PAPERS: PaperTemplate[] = [
   }),
   paper({
     id: "aqa-gcse-chemistry", name: "GCSE Chemistry — Paper 1",
-    subject: "chemistry", minutes: 75, calculator: true, specs: ["uk-gcse"],
+    board: "aqa", subject: "chemistry", minutes: 75, calculator: true, specs: ["uk-gcse"],
     boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 10, marksEach: 3, difficulty: 0.45 },
@@ -185,7 +190,7 @@ export const PAPERS: PaperTemplate[] = [
   }),
   paper({
     id: "aqa-gcse-biology", name: "GCSE Biology — Paper 1",
-    subject: "biology", minutes: 75, calculator: false, specs: ["uk-gcse"],
+    board: "aqa", subject: "biology", minutes: 75, calculator: false, specs: ["uk-gcse"],
     boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 10, marksEach: 2, difficulty: 0.42 },

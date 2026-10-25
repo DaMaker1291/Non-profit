@@ -126,8 +126,6 @@ export default function OwnPaper({ concepts, board }: { concepts: OwnPaperConcep
     } catch { /* reopening one paper failing must not clear the panel */ }
   }
 
-  const input = { padding: "8px 10px", border: "1px solid var(--rule, #e5e7eb)", borderRadius: 8, fontSize: 14 } as const;
-
   return (
     <section className="exercise" style={{ marginTop: 20 }} aria-label={t("own.title")}>
       <p className="eyebrow" style={{ margin: 0 }}><span className="no">✎</span> {t("own.title")}</p>
@@ -148,29 +146,33 @@ export default function OwnPaper({ concepts, board }: { concepts: OwnPaperConcep
       <div style={{ marginTop: 16 }}>
         <label className="small" style={{ display: "block" }}>
           {t("own.paperTitle")}
-          <input style={{ ...input, width: "100%", marginTop: 4 }} value={title} placeholder={t("own.paperTitlePh")} onChange={(e) => setTitle(e.target.value)} />
+          <input style={{ marginTop: 4 }} value={title} placeholder={t("own.paperTitlePh")} onChange={(e) => setTitle(e.target.value)} />
         </label>
         <label className="small" style={{ display: "block", marginTop: 8 }}>
           {t("own.year")}
-          <input style={{ ...input, width: 160, display: "block", marginTop: 4 }} value={year} onChange={(e) => setYear(e.target.value)} />
+          <input style={{ width: 160, display: "block", marginTop: 4 }} value={year} onChange={(e) => setYear(e.target.value)} />
         </label>
       </div>
 
       <div style={{ marginTop: 14 }}>
-        <div className="small muted" style={{ display: "flex", gap: 8 }}>
+        <div className="own-row-head small muted">
           <span style={{ flex: "0 0 70px" }}>{t("own.q")}</span>
           <span style={{ flex: "0 0 70px" }}>{t("own.marks")}</span>
           <span style={{ flex: "0 0 70px" }}>{t("own.awarded")}</span>
           <span style={{ flex: 1 }}>{t("own.concept")}</span>
         </div>
+        {/* SIZED BY THE DESIGN SYSTEM, LAID OUT BY `.own-row`. These three boxes
+            and the concept select each carried an ad-hoc `input` style (8px
+            padding, 14px type) that set them apart from every other field in
+            the product, and the select carried `flex: 1`, which is what let it
+            be squeezed to 22px on a phone. The grid decides the widths now. */}
         {rows.map((row, i) => (
-          <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
-            <input aria-label={t("own.q")} style={{ ...input, flex: "0 0 70px" }} value={row.number} onChange={(e) => setRow(i, { number: e.target.value })} />
-            <input aria-label={t("own.marks")} style={{ ...input, flex: "0 0 70px" }} inputMode="numeric" value={row.marks} onChange={(e) => setRow(i, { marks: e.target.value })} />
-            <input aria-label={t("own.awarded")} style={{ ...input, flex: "0 0 70px" }} inputMode="numeric" value={row.awarded} onChange={(e) => setRow(i, { awarded: e.target.value })} />
+          <div key={i} className="own-row" style={{ marginTop: 6 }}>
+            <input aria-label={t("own.q")} value={row.number} onChange={(e) => setRow(i, { number: e.target.value })} />
+            <input aria-label={t("own.marks")} inputMode="numeric" value={row.marks} onChange={(e) => setRow(i, { marks: e.target.value })} />
+            <input aria-label={t("own.awarded")} inputMode="numeric" value={row.awarded} onChange={(e) => setRow(i, { awarded: e.target.value })} />
             <select
               aria-label={t("own.concept")}
-              style={{ ...input, flex: 1, minWidth: 0 }}
               value={row.conceptId}
               onChange={(e) => setRow(i, { conceptId: e.target.value })}
             >

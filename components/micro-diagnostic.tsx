@@ -75,7 +75,7 @@ export default function MicroDiagnostic({ flare, lang }: { flare: FlarePayload; 
       {result && (
         <div className={`feedback ${result.correct ? "ok" : "no"}`} style={{ marginTop: 12 }}>
           <span className="verdict">
-            {result.correct ? `✓ ${t("micro.procedural")}` : `⚠ ${t("micro.conceptual")}`}
+            {result.correct ? `✓ ${t("micro.procedural")}` : t("micro.conceptual")}
           </span>
           <MathText text={result.explanation} />
           <span className="small" style={{ display: "block", marginTop: 6 }}>

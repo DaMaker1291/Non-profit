@@ -382,16 +382,20 @@ export default function CurriculumPage() {
         <div className="checks" style={{ flexWrap: "wrap", marginTop: 10 }}>
           {declared.map((s) => {
             const gap = gaps.find((g) => g.subject === s);
+            // A subject still without a course says so in WORDS to anyone who
+            // cannot see the caution colour: the glyph that used to carry it
+            // was ⚠, which the platform draws from its emoji font.
             return (
               <button
                 key={s}
                 type="button"
-                className={`chip ${s === subject ? "on" : ""}`}
+                className={`chip ${s === subject ? "on" : ""} ${gap ? "warn" : "ok"}`}
                 onClick={() => { setPicked(s); setSpecId(null); setLevelId(null); }}
                 style={{ cursor: "pointer", border: s === subject ? "1px solid var(--line)" : undefined }}
                 title={gap ? t("onb.courseNeed") : undefined}
+                aria-label={gap ? `${t(SUBJECT_LABELS[s] as Parameters<typeof t>[0])} — ${t("onb.courseNeed")}` : undefined}
               >
-                {gap ? "⚠ " : "✓ "}{t(SUBJECT_LABELS[s] as Parameters<typeof t>[0])}
+                {gap ? "" : "✓ "}{t(SUBJECT_LABELS[s] as Parameters<typeof t>[0])}
               </button>
             );
           })}
@@ -445,12 +449,12 @@ export default function CurriculumPage() {
         </div>
         {saveError && (
           <p className="field-error" role="status">
-            ⚠ {saveError.message} <span className="mono">{saveError.code}</span>
+            {saveError.message} <span className="mono">{saveError.code}</span>
           </p>
         )}
         {!canSave && (
           <p className="field-error" role="status">
-            ⚠ {fill(t("onb.needFields"), { fields: t(FIELD_LABEL[missingField] as Parameters<typeof t>[0]) })}
+            {fill(t("onb.needFields"), { fields: t(FIELD_LABEL[missingField] as Parameters<typeof t>[0]) })}
           </p>
         )}
       </section>

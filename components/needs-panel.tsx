@@ -168,7 +168,7 @@ export default function NeedsPanel({ me, clsId, tick = 0, onLaunch }: { me: stri
 
   return (
     <div style={{ marginTop: 16, borderTop: "1px solid var(--line)", paddingTop: 14 }} data-needs-panel>
-      <p className="eyebrow" style={{ margin: 0 }}><span className="no">⚠</span> {t("need.title")}</p>
+      <p className="eyebrow" style={{ margin: 0 }}>{t("need.title")}</p>
       <p className="muted small" style={{ margin: "2px 0 0" }}>{t("need.lead")}</p>
 
       {err && <p className="small" style={{ color: "var(--margin-red)" }}>{err}</p>}
@@ -205,7 +205,7 @@ export default function NeedsPanel({ me, clsId, tick = 0, onLaunch }: { me: stri
               ))}
             </p>
           )}
-          {open.thin && <p className="small" style={{ margin: "0 0 6px" }}>⚠ {t("need.thin")}</p>}
+          {open.thin && <p className="small" style={{ margin: "0 0 6px" }}>{t("need.thin")}</p>}
           {openRecord && (
             <p className="small" style={{ margin: "0 0 6px" }}>
               {t(openRecord.status === "proposed" ? "need.status.proposed" : openRecord.status === "assigned" ? "need.alreadyAssigned" : "need.alreadyRead")}

@@ -88,7 +88,7 @@ export default function AccessPage() {
 
   return (
     <main className="container narrow" style={{ paddingTop: 40 }}>
-      <p className="eyebrow"><span className="no">♿</span> {t("acc.eyebrow")}</p>
+      <p className="eyebrow">{t("acc.eyebrow")}</p>
       <h1>{t("acc.title")}</h1>
       <p className="lead">{t("acc.lead")}</p>
 
@@ -120,17 +120,27 @@ export default function AccessPage() {
       <section className="card" style={{ marginBottom: 16 }}>
         <p className="eyebrow" style={{ margin: 0 }}> {t("acc.readingVoice")}</p>
         <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-          <Toggle on={prefs.readAloud} label={`🔊 ${t("acc.readAloud")}`} onClick={() => set({ readAloud: !prefs.readAloud })} />
-          <Toggle on={prefs.preferSpeech} label={`🎙 ${t("acc.preferSpeech")}`} onClick={() => set({ preferSpeech: !prefs.preferSpeech })} />
-          <Toggle on={prefs.largeText} label={`👁 ${t("acc.largeText")}`} onClick={() => set({ largeText: !prefs.largeText })} />
-          <Toggle on={prefs.highContrast} label={`🎨 ${t("acc.highContrast")}`} onClick={() => set({ highContrast: !prefs.highContrast })} />
-          <Toggle on={prefs.reduceMotion} label={`🧠 ${t("acc.calmScreen")}`} onClick={() => set({ reduceMotion: !prefs.reduceMotion })} />
+          {/* WORDS, NOT EMOJI. These five toggles were labelled 🔊 🎙 👁 🎨 🧠 —
+              five characters drawn by the platform's emoji font, which is the
+              one thing on the page the product cannot set in its own ink, its
+              own weight or its own size, and which a cheap Android renders as
+              tofu. The label is the word; the state is `aria-pressed` and the
+              ✓ the Toggle already prints, so the emoji carried nothing the
+              control did not say twice. */}
+          <Toggle on={prefs.readAloud} label={t("acc.readAloud")} onClick={() => set({ readAloud: !prefs.readAloud })} />
+          <Toggle on={prefs.preferSpeech} label={t("acc.preferSpeech")} onClick={() => set({ preferSpeech: !prefs.preferSpeech })} />
+          <Toggle on={prefs.largeText} label={t("acc.largeText")} onClick={() => set({ largeText: !prefs.largeText })} />
+          <Toggle on={prefs.highContrast} label={t("acc.highContrast")} onClick={() => set({ highContrast: !prefs.highContrast })} />
+          <Toggle on={prefs.reduceMotion} label={t("acc.calmScreen")} onClick={() => set({ reduceMotion: !prefs.reduceMotion })} />
         </div>
       </section>
 
       <section className="card" style={{ marginBottom: 16 }}>
         <p className="eyebrow" style={{ margin: 0 }}> {t("acc.connectivity")}</p>
-        <p className="small muted">{pending === 0 ? t("acc.syncedAll") : `🟡 ${pending} ${t("acc.pendingSync")}`} <Link href="/offline">{t("acc.offlinePlan")} →</Link></p>
+        {/* Pending work is a NUMBER, not a yellow circle: the colour said
+            "something is waiting" only to a learner who could see it, and said
+            nothing at all to a screen reader. */}
+        <p className="small muted">{pending === 0 ? t("acc.syncedAll") : `${pending} ${t("acc.pendingSync")}`} <Link href="/offline">{t("acc.offlinePlan")} →</Link></p>
         <Toggle on={continuity} label={t("acc.continuity")} onClick={() => { const n = !continuity; setContinuityMode(n); setCont(n); }} />
       </section>
 

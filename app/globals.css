@@ -399,7 +399,14 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    one element that has to move, because on a phone there is no sidebar. */
 .topbar-logo { display: none; font-weight: 800; font-size: var(--t18); letter-spacing: -0.02em; text-decoration: none; }
 .topbar-where { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
-.topbar-where b { font-size: var(--t15); font-weight: 700; white-space: nowrap; min-width: 0; }
+/* THE NAME NEVER SHRINKS; THE STRIP BESIDE IT DOES. `min-width: 0` was added
+   here to let a long page name give way, and it did exactly that — the bold
+   name was squeezed to 66px while its glyphs kept drawing at full width, so on
+   a page with a long course strip "Exam papers" printed straight through
+   "United Kingdom" (measured at 1280px: name 264–330, strip 340–662, glyphs
+   overlapping to ~352). A flex item below its content width does not clip its
+   text, it overflows it. The strip is the element built to truncate. */
+.topbar-where b { flex: none; font-size: var(--t15); font-weight: 700; white-space: nowrap; }
 .topbar-where span { font-family: var(--mono); font-size: var(--t11); color: var(--text-muted); }
 /* THE TRAIL. A page name on its own is a word in a bar; the subject above it
    makes it a POSITION — "Mathematics / Quadratics" says where in the course
@@ -408,7 +415,7 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    carried by weight and colour rather than by another font size: parent quiet
    and regular, current page bold and in ink. */
 .topbar-where .crumb-sec {
-  display: inline-flex; align-items: baseline; gap: 8px;
+  display: inline-flex; align-items: baseline; gap: 8px; flex: none;
   font-family: var(--font); font-size: var(--t13); font-weight: 600;
   color: var(--text-muted); white-space: nowrap;
 }
@@ -416,14 +423,20 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 /* The learner's course context (country · course · board · year · subject tier).
    It truncates rather than pushing the search box off the bar, because it is a
    fact to glance at, not a control to reach for. */
-.context-strip { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The one element in the header that gives ground, and it gives it down to a
+   readable stub before the row breaks elsewhere. */
+.context-strip { flex: 0 1 auto; min-width: 4.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-spacer { flex: 1; }
 /* A control, not a paragraph. At 390px the sign-up button shrank and wrapped
    its own label onto THREE lines, which made the whole header 92px tall and
    left the bar looking broken on every phone. It may truncate a long learner
    name; it may never wrap. Measured after: one line, header back to its own
    height. */
-.topbar > .btn { flex: 0 1 auto; min-width: 0; white-space: nowrap; }
+/* AND THE PRIMARY ACTION NEVER TRUNCATES. It was allowed to shrink, so at
+   1280px — with the search, the picker and the strip all asking for room — the
+   product's sign-up button rendered as "Create …". A control whose label is cut
+   is not a smaller control, it is an unreadable one. */
+.topbar > .btn { flex: none; white-space: nowrap; }
 .topbar > .btn > .btn-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── The theme switch ──────────────────────────────────────────────────────
@@ -1327,7 +1340,17 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: var(--t14); }
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);
 }
 .field > span .req { color: var(--text-muted); text-transform: none; letter-spacing: 0; font-family: var(--font); font-size: var(--t12); }
-input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select, textarea {
+/* ── A FIELD IS A FIELD, WITH OR WITHOUT A `type` ATTRIBUTE ────────────────
+   `input[type="text"]` matches an ATTRIBUTE, and `<input value=… />` without
+   one has none — the DOM's default type is not an attribute. So every input
+   written the short way fell outside this rule entirely and rendered as the
+   browser's own control: measured on /papers and /access at 390px, a bare
+   input was 25px tall with the UA font, beside 48px siblings that the
+   product had styled. A form is judged by its least-styled field, so the
+   rule also catches the inputs that name no type at all. */
+input:not([type]),
+input[type="text"], input[type="email"], input[type="password"], input[type="number"],
+input[type="date"], input[type="search"], input[type="tel"], input[type="url"], select, textarea {
   width: 100%; background: var(--surface); color: var(--text);
   border: 1.5px solid var(--line); border-radius: var(--radius-input);
   padding: 12px 13px; font-size: var(--t15-5); font-family: var(--font);
@@ -1953,3 +1976,26 @@ html.low-power .card { box-shadow: none; }
   text-transform: none; letter-spacing: 0.02em; font-family: var(--mono);
 }
 .topic > div .concept-row:last-child { border-bottom: 0; }
+
+/* ── A ROW OF FIELDS MAKES ROOM ON A PHONE ─────────────────────────────────
+   Marking your own paper is one row of four controls: question, marks,
+   awarded, then the concept the question tests. The three numbers are fixed
+   70px boxes, so at 390px — three boxes and three gaps into a 316px column —
+   the concept select measured 22px wide: a control holding a concept's whole
+   name, showing nothing, beside a Remove button. So the row is a GRID, not a
+   flex line: the three numbers take one row, the concept takes the row below
+   at full width, and the column headings step aside because they no longer
+   line up. Every field carries its own accessible name, so nothing is lost
+   with the header. From 640px the five columns sit on one line, and 70+70+70
+   plus three 8px gaps puts the concept column exactly where the heading's
+   `flex: 1` label starts. */
+.own-row-head { display: flex; gap: 8px; }
+.own-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 8px; align-items: center; margin-top: 6px; }
+.own-row > select { grid-column: 1 / -1; min-width: 0; }
+@media (min-width: 640px) {
+  .own-row { grid-template-columns: 70px 70px 70px minmax(0, 1fr) auto; }
+  .own-row > select { grid-column: auto; }
+}
+@media (max-width: 639px) {
+  .own-row-head { display: none; }
+}

@@ -111,11 +111,14 @@ export function AccessProvider({ children }: { children: ReactNode }) {
         <div className="access-panel" role="dialog" aria-label={t("access.title")}>
           <strong>{t("access.title")}</strong>
           <p className="small muted" style={{ margin: "4px 0 10px" }}>{t("access.lead")}</p>
-          <Toggle on={prefs.readAloud} label={`🔊 ${t("access.readAloud")}`} onClick={() => set({ readAloud: !prefs.readAloud })} />
-          <Toggle on={prefs.largeText} label={`👁 ${t("access.largeText")}`} onClick={() => set({ largeText: !prefs.largeText })} />
-          <Toggle on={prefs.highContrast} label={`🎨 ${t("access.highContrast")}`} onClick={() => set({ highContrast: !prefs.highContrast })} />
-          <Toggle on={prefs.reduceMotion} label={`🧠 ${t("access.reduceMotion")}`} onClick={() => set({ reduceMotion: !prefs.reduceMotion })} />
-          <Toggle on={prefs.preferSpeech} label={`🎙 ${t("access.preferSpeech")}`} onClick={() => set({ preferSpeech: !prefs.preferSpeech })} />
+          {/* The same five labels as /access, and the same decision: each one
+              was prefixed with an emoji-drawn character (🔊 👁 🎨 🧠 🎙) that
+              the platform, not the product, sets. The word is the label. */}
+          <Toggle on={prefs.readAloud} label={t("access.readAloud")} onClick={() => set({ readAloud: !prefs.readAloud })} />
+          <Toggle on={prefs.largeText} label={t("access.largeText")} onClick={() => set({ largeText: !prefs.largeText })} />
+          <Toggle on={prefs.highContrast} label={t("access.highContrast")} onClick={() => set({ highContrast: !prefs.highContrast })} />
+          <Toggle on={prefs.reduceMotion} label={t("access.reduceMotion")} onClick={() => set({ reduceMotion: !prefs.reduceMotion })} />
+          <Toggle on={prefs.preferSpeech} label={t("access.preferSpeech")} onClick={() => set({ preferSpeech: !prefs.preferSpeech })} />
           {!speechOk && <p className="small muted" style={{ margin: "8px 0 0" }}> {t("access.noSpeech")}</p>}
           {speechOk && !voiceOk && <p className="small muted" style={{ margin: "8px 0 0" }}> {t("access.noVoice")}</p>}
           {plan && (

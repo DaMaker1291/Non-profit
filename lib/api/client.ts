@@ -725,6 +725,10 @@ export interface PaperListEntry {
   minutes: number;
   marks: number;
   calculator: boolean;
+  /** The awarding body, when this is one board's paper. AQA and Edexcel publish
+   *  identically named GCSE maths papers, so without it the picker showed two
+   *  rows a learner could not tell apart. */
+  board?: string | null;
   authored: boolean;
 }
 

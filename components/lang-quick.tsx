@@ -21,7 +21,7 @@ export default function LangQuick({ profileLang }: { profileLang?: string }) {
         <span className="small muted" style={{ display: "block", maxWidth: 320, marginTop: 2 }}>{t("lq.teachNote")}</span>
       </label>
       <label className="field" style={{ minWidth: 120 }}>
-        <span className="small">✍️ {t("lq.answer")}</span>
+        <span className="small"> {t("lq.answer")}</span>
         <select value={langs.answer} onChange={(e) => set({ answer: e.target.value })}>
           {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
         </select>

@@ -844,7 +844,7 @@ function OnboardingFlow() {
                 but it may not be QUIET about it while a learner types a
                 password it will forget. */}
             {ephemeralStore && mode !== "guest" && (
-              <p className="alert small" style={{ marginTop: 12 }}>⚠ {t("onb.ephemeral")}</p>
+              <p className="alert small" style={{ marginTop: 12 }}>{t("onb.ephemeral")}</p>
             )}
 
             <p className="small muted" style={{ marginTop: 12 }}>

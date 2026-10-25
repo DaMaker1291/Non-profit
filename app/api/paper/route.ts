@@ -59,15 +59,23 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   // ?list=1 — what papers exist for this qualification.
   if (searchParams.get("list") === "1") {
-    const authored = papersForSpec(active.spec.id).map((p) => ({
-      id: p.id, name: p.name, subject: p.subject, minutes: p.minutes, marks: p.marks,
-      calculator: p.calculator, authored: true as const,
-    }));
+    // THE LEARNER'S OWN BOARD COMES FIRST, and every row says which board it is.
+    // Two GCSE maths papers (AQA and Edexcel) carry the same published name, so
+    // an unordered list of them read as the same paper listed twice — and an AQA
+    // learner's "first" paper was whichever happened to be declared first in
+    // lib/papers.ts. The ordering is explicit and the label is on the row.
+    const mine = active.spec.board;
+    const authored = papersForSpec(active.spec.id)
+      .map((p) => ({
+        id: p.id, name: p.name, subject: p.subject, minutes: p.minutes, marks: p.marks,
+        calculator: p.calculator, board: p.board ?? null, authored: true as const,
+      }))
+      .sort((a, b) => (a.board === mine ? 0 : 1) - (b.board === mine ? 0 : 1));
     const list = authored.length
       ? authored
       : SUBJECTS.filter((s) => active.spec.coverage[s]).map((s) => {
         const g = genericPaper(active, s, lang);
-        return { id: g.id, name: g.name, subject: s, minutes: g.minutes, marks: g.marks, calculator: g.calculator, authored: false as const };
+        return { id: g.id, name: g.name, subject: s, minutes: g.minutes, marks: g.marks, calculator: g.calculator, board: null, authored: false as const };
       });
     return NextResponse.json({
       qualification: active.spec.name,
