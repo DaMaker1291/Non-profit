@@ -467,6 +467,10 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 .theme-btn .i-moon { display: none; }
 :root[data-theme="dark"] .theme-btn .i-sun { display: none; }
 :root[data-theme="dark"] .theme-btn .i-moon { display: block; }
+/* The topbar's language picker is capped rather than allowed its natural
+   width: all fifteen names on one control is 200px of chrome. Was an inline
+   `style` on the component, which no rule here could override. */
+.lang-compact { max-width: 150px; }
 .topbar select {
   font-family: var(--mono); font-size: var(--t13);
   background: transparent; color: var(--text);
@@ -510,7 +514,15 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 .bottomnav a, .bottomnav summary {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
   padding: 8px 2px 6px; min-height: 56px;
-  font-size: var(--t10-5); font-weight: 650; color: var(--text-muted);
+  /* THE ONE CAPTION BELOW THE 12px FLOOR, deliberately. Five destinations in
+     390px is 78px each, and at 12px "Exam papers" measured 76px against the
+     75px inside the cell's padding — so it wrapped to two lines while its four
+     neighbours stayed on one, and the bar read as broken. 11px is the size a
+     system tab bar uses (iOS 10, Material 12) for exactly this reason: the label
+     is a caption under a 22px icon, its full name is the link's accessible name,
+     and one line for all five is worth more than half a pixel of height. */
+  font-size: 11px; line-height: 1.15;
+  font-weight: 650; color: var(--text-muted);
   text-decoration: none; cursor: pointer;
 }
 .bottomnav a:hover, .bottomnav summary:hover { color: var(--text); text-decoration: none; }
@@ -1843,8 +1855,18 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
      beside a 42px switch and a 42px button, three controls that are the same
      kind of thing drawn at three heights. The select was also still set in the
      old 12px mono while everything else in the bar is 13–16px. */
-  .topbar select { max-width: 5.75rem; padding: 6px; height: 42px; min-height: 42px; }
-  .topbar > .btn { padding: 9px 12px; font-size: var(--t13); min-height: 42px; }
+  /* `min-width: 0` is load-bearing. As a flex item the select's automatic
+     minimum is its own content, and MIN-WIDTH BEATS MAX-WIDTH in CSS — so the
+     cap was ignored, the picker sat at 139px, and the "Create account" button
+     beside it was squeezed to 62px and rendered its label as "Cre…". With the
+     floor removed the cap applies, and at 390px the button gets its label. */
+  .topbar select { max-width: 5rem; min-width: 0; padding: 6px; height: 42px; min-height: 42px; }
+  /* The ONE label in the bar that must not be cut. Measured at 390px: the button
+     was left 121px for a 97px label plus 24px of padding, so "Create account"
+     ellipsised to "Cre…" — the product's primary action, unreadable. The padding
+     and the step down to 12.5px (still above the 12px floor) buy the 8px it
+     needed without shortening what the button says in fifteen languages. */
+  .topbar > .btn { padding: 9px 10px; font-size: var(--t12-5); min-height: 42px; }
   .topbar > .btn .btn-arrow { display: none; }
 
   /* ── THREE MEASURED DEFECTS, ALL OF THEM SPACING ──────────────────────

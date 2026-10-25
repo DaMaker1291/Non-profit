@@ -635,7 +635,13 @@ export function LanguagePicker({ compact }: { compact?: boolean }) {
       aria-label={t("common.language")}
       value={lang}
       onChange={(e) => setLang(e.target.value)}
-      style={compact ? { maxWidth: 150 } : undefined}
+      /* A CLASS, NOT AN INLINE STYLE. This was `style={{ maxWidth: 150 }}`, and
+         an inline style outranks every rule in `app/globals.css` — `min-width:
+         0` and the phone's own `5.75rem` cap were both silently ignored, so at
+         390px the picker stayed 139px, the "Create account" button beside it was
+         squeezed to 62px and rendered its label as "Cre…". The width belongs to
+         the stylesheet that also knows the width of the bar. */
+      className={compact ? "lang-compact" : undefined}
     >
       {LANGS.map((l) => (
         <option key={l.code} value={l.code}>
