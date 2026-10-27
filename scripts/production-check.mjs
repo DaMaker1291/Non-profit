@@ -198,6 +198,16 @@ record("content release version", releaseOk, "the served content matches the pub
 const curriculumOk = runScript("curriculum-gate");
 record("curriculum integrity", curriculumOk, "npm run curriculum-gate — every country gets its own curriculum, or is told there is none");
 
+// The paper-shape audit. `curriculum-gate` judges the ROUTE (which country is
+// offered which curriculum); this judges the PAPERS that route then hands over —
+// whether each one's shape is the awarding body's published structure or
+// OpenMind's own, whether every claim about another country's exam names its
+// source, and how many countries are still waiting for a shape at all. A paper
+// that says it mirrors a board's format when no such format is on file is a
+// false statement to a learner, and this is the step that refuses it.
+const paperShapesOk = runScript("paper-audit");
+record("paper shapes", paperShapesOk, "npm run paper-audit — every paper says what its shape is, and no uncited claim about another country's exam");
+
 // The assessment-validity gate. `verify:q` proves every generated item is
 // ANSWERABLE; this proves it is not answerable from the OPTION LENGTHS alone, on
 // the surface a learner meets. Both are content claims and they fail for

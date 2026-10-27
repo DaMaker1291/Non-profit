@@ -16,6 +16,7 @@
     "reliability": "node scripts/north-star.mjs",
     "content-check": "node scripts/content-check.mjs",
     "curriculum-gate": "node scripts/curriculum-gate.mjs",
+    "paper-audit": "node scripts/paper-audit.mjs",
     "verify:q": "node scripts/verify-questions.mjs",
     "gate:ceiling": "node scripts/ceiling-gate.mjs",
     "gate:options": "node scripts/gate-options.mjs",

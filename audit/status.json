@@ -27,7 +27,11 @@
     "Curriculum · Offerings without a national route": 1,
     "Curriculum · Specifications": 91,
     "Curriculum · Pathways with no structural source on file": 18,
-    "Curriculum · Pathways whose syllabus mapping has been reviewed": 0
+    "Curriculum · Pathways whose syllabus mapping has been reviewed": 0,
+    "Papers · Countries whose paper shape is the awarding body's own": 12,
+    "Papers · Paper blueprints with a citation on file": "10 of 33",
+    "Papers · Countries whose assessment shape was researched and NOT found": 7,
+    "Papers · Papers a learner can be offered": 447
   },
   "rows": [
     {
@@ -208,6 +212,34 @@
       "value": 0,
       "source": "lib/curricula/registry.ts",
       "note": "every mapping is currently OpenMind's own"
+    },
+    {
+      "section": "Papers",
+      "label": "Countries whose paper shape is the awarding body's own",
+      "value": 12,
+      "source": "audit/paper-shape-coverage.json",
+      "note": "60 countries are shown a practice set that says it is one"
+    },
+    {
+      "section": "Papers",
+      "label": "Paper blueprints with a citation on file",
+      "value": "10 of 33",
+      "source": "audit/paper-shape-coverage.json",
+      "note": "the rest were authored from a board's structure before citations were collected, and are named by `npm run paper-audit`"
+    },
+    {
+      "section": "Papers",
+      "label": "Countries whose assessment shape was researched and NOT found",
+      "value": 7,
+      "source": "audit/paper-shape-coverage.json",
+      "note": "each listed with the reason, so the gap is a queue rather than a silence"
+    },
+    {
+      "section": "Papers",
+      "label": "Papers a learner can be offered",
+      "value": 447,
+      "source": "audit/paper-shape-coverage.json",
+      "note": "33 with a shape read from an awarding body, 414 OpenMind's own shape at the course's band"
     }
   ]
 }

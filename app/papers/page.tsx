@@ -53,6 +53,11 @@ interface Paper {
   marks: number;
   calculator: boolean;
   boundaries: Array<{ grade: string; pct: number }>;
+  /** Carried on the sitting itself, so the result screen can still say what the
+   *  paper was after the library changes. */
+  basis?: "published" | "modelled";
+  shapeSource?: string | null;
+  shapeNote?: string | null;
   sections: PaperSection[];
   questionCount: number;
 }
@@ -68,6 +73,16 @@ interface PaperListEntry {
    *  publish identically named GCSE papers, so the picker must name it. */
   board?: string | null;
   authored: boolean;
+  /** "published" — the awarding body publishes this shape; "modelled" —
+   *  OpenMind built it to the course's band. Said on every row: these two look
+   *  identical otherwise, and only one of them is the learner's exam. */
+  basis?: "published" | "modelled";
+  /** The URL the published shape was read from, where one is on file. */
+  shapeSource?: string | null;
+  /** A caveat about the shape, where it needs one. */
+  shapeNote?: string | null;
+  /** Built from this learner's own record (see lib/papers#needsReading). */
+  needs?: boolean;
 }
 
 interface MarkResult {
@@ -310,6 +325,29 @@ export default function PapersPage() {
                           {p.board ? `${boardName(p.board)} · ` : ""}
                           {p.marks} {t("pp.marks")} · {p.minutes} {t("pp.min")} · {p.calculator ? t("pp.calc") : t("pp.noCalc")}
                         </div>
+                        {/* WHAT THIS PAPER IS. Seven qualifications had a shape
+                            read from their awarding body and every other one had
+                            a shape OpenMind built — and both were shown under a
+                            single sentence claiming the learner's board
+                            "specification and format". Which of the two this row
+                            is, is the difference between a mock of their exam
+                            and a practice set, so it is said here, per row. */}
+                        <div className="small muted">
+                          {p.basis === "published" ? t("pp.mirrors") : t("pp.practiceSet")}
+                          {p.shapeSource && (
+                            <>{" · "}<a href={p.shapeSource} target="_blank" rel="noreferrer">{t("pp.shapeSource")}</a></>
+                          )}
+                        </div>
+                        {/* The caveat only exists on shapes that need one: a body
+                            that publishes its papers and hours but not its item
+                            counts. Data, not translation — it names another
+                            country's document, so it is shown as written. */}
+                        {p.shapeNote && <div className="small muted">{p.shapeNote}</div>}
+                        {/* WHAT MAKES THIS PAPER DIFFERENT, SAID OUT LOUD. Its
+                            name names it; only the record explains it, and a
+                            paper that claims to be for this learner without
+                            saying why is a claim rather than a reason. */}
+                        {p.needs && <div className="small muted">{t("pp.needsWhy")}</div>}
                       </div>
                       <button className="btn small" disabled={busy} onClick={() => startPaper(p.id, p.subject)}>
                         {t("pp.start")}
@@ -512,10 +550,19 @@ export default function PapersPage() {
               </div>
               <p className="small muted" style={{ marginTop: 8 }}>{t("pp.recorded")}</p>
 
-              <h3>{t("pp.boundary")}</h3>
-              <div className="small muted">
-                {paper.boundaries.map((b) => `${gradeLabel(b.grade)}: ${Math.round(b.pct * 100)}%`).join(" · ")}
-              </div>
+              {/* NO BOUNDARIES, NO BLOCK. A heading over an empty div is a
+                  promise with nothing behind it, and some awarding bodies grade
+                  nothing: Guatemala's Graduandos reports achievement in two
+                  areas and publishes no cut scores, so its mock has none and
+                  says so by omission rather than by inventing a table. */}
+              {paper.boundaries.length > 0 && (
+                <>
+                  <h3>{t("pp.boundary")}</h3>
+                  <div className="small muted">
+                    {paper.boundaries.map((b) => `${gradeLabel(b.grade)}: ${Math.round(b.pct * 100)}%`).join(" · ")}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* What the paper actually measured, and what to do next. */}

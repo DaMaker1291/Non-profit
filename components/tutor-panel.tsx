@@ -36,12 +36,30 @@ interface Turn {
 }
 
 /** The grounding line, rendered from the payload — the client never composes
- *  the reason a decision was made. */
+ *  the reason a decision was made.
+ *
+ *  IT IS ABOUT THE QUESTION ON SCREEN, so it is built from the FOCUS and the
+ *  serve reason, not from the learner's NEXT STEP. It used to read
+ *  `decision.title`/`decision.reason`, and on a live screen those are usually —
+ *  but not always — the same concept. Measured on the linear-equations panel of
+ *  a learner whose next step was quadratics, the line under every reply read
+ *  "OpenMind put **Quadratic equations** in front of you because: …" while the
+ *  screen was solving 3x + 5 = 20. The payload keeps the two apart deliberately
+ *  (lib/server/tutor.ts: focus = what they opened, decision = the next step), and
+ *  the sentence "put X in front of you" is a claim about the screen, so it must
+ *  not borrow the next step's subject. The next step is a card on Home and in the
+ *  session result; it is not this line's business. */
 function whyLine(grounding: unknown, t: (k: string) => string, conceptTitle: string): string | undefined {
-  const g = grounding as { decision?: { reason?: string; title?: string } } | null;
-  const reason = g?.decision?.reason;
+  const g = grounding as { focus?: { title?: string }; serveReason?: string | null } | null;
+  const reason = g?.serveReason;
   if (!reason) return undefined;
-  return fill(t("tutor.whyThis"), { concept: g?.decision?.title || conceptTitle, reason });
+  // THE REASON IS A KEY, NOT A SENTENCE. `serveReason` is one of
+  // fresh/steady/stretch/repair, and this line interpolated it raw — so the
+  // panel read "because: fresh" while the strip beside the question read "your
+  // course level — nothing has been measured on this idea yet" in the same
+  // breath. It is the same field the strip translates, so it is translated the
+  // same way; the panel and the strip must never word one reason two ways.
+  return fill(t("tutor.whyThis"), { concept: g?.focus?.title || conceptTitle, reason: t(`target.${reason}`) });
 }
 
 export default function TutorPanel({

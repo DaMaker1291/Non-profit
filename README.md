@@ -323,6 +323,10 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Specifications | 91 | 88 national · 2 international · 1 independent | `lib/specifications.ts` |
 |  | Pathways with no structural source on file | 18 | named on every `curriculum-gate` run rather than hidden | `lib/curricula/registry.ts` |
 |  | Pathways whose syllabus mapping has been reviewed | 0 | every mapping is currently OpenMind's own | `lib/curricula/registry.ts` |
+| **Papers** | Countries whose paper shape is the awarding body's own | 12 | 60 countries are shown a practice set that says it is one | `audit/paper-shape-coverage.json` |
+|  | Paper blueprints with a citation on file | 10 of 33 | the rest were authored from a board's structure before citations were collected, and are named by `npm run paper-audit` | `audit/paper-shape-coverage.json` |
+|  | Countries whose assessment shape was researched and NOT found | 7 | each listed with the reason, so the gap is a queue rather than a silence | `audit/paper-shape-coverage.json` |
+|  | Papers a learner can be offered | 447 | 33 with a shape read from an awarding body, 414 OpenMind's own shape at the course's band | `audit/paper-shape-coverage.json` |
 
 <!-- status:end -->
 

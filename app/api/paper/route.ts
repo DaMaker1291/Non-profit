@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import {
-  buildPaper, defaultPaperFor, genericPapers, markPaper, paperConceptsTested, paperById, PAPERS,
-  papersForSpec, type BuiltPaperAnswerKey,
+  buildPaper, defaultPaperFor, genericPapers, markPaper, needsPaper, needsPaperId, needsReading,
+  paperConceptsTested, paperById, PAPERS, papersForSpec, type BuiltPaperAnswerKey, type PaperBasis,
 } from "@/lib/papers";
 import { specById, specForProfile, levelOf, type ActiveSpec, type CourseFields } from "@/lib/specifications";
-import { cacheGet, cacheSet, getStoredPaper, saveStoredPaper } from "@/lib/server/store";
+import { cacheGet, cacheSet, getProfile, getStoredPaper, saveStoredPaper } from "@/lib/server/store";
 // The learner transaction, through the port-facing door (lib/server/transaction.ts).
 import { withLearnerState } from "@/lib/server/transaction";
 import { authorisedProfile } from "@/lib/server/auth";
@@ -65,10 +65,19 @@ export async function GET(req: Request): Promise<NextResponse> {
     // learner's "first" paper was whichever happened to be declared first in
     // lib/papers.ts. The ordering is explicit and the label is on the row.
     const mine = active.spec.board;
+    // WHAT THE PAPER IS travels with every row: a blueprint read from the
+    // awarding body's own structure says so and cites it, and the shape
+    // OpenMind built to the qualification's band says that instead. Before this,
+    // both were presented under one sentence that claimed the learner's board
+    // "specification and format" — true for the boards and false for everyone
+    // else, which is the one thing a picker must not do.
     const authored = papersForSpec(active.spec.id)
       .map((p) => ({
         id: p.id, name: p.name, subject: p.subject, minutes: p.minutes, marks: p.marks,
         calculator: p.calculator, board: p.board ?? null, authored: true as const,
+        basis: (p.basis ?? "published") as PaperBasis,
+        shapeSource: p.shapeSource ?? null,
+        shapeNote: p.shapeNote ?? null,
       }))
       .sort((a, b) => (a.board === mine ? 0 : 1) - (b.board === mine ? 0 : 1));
     // SPECIFICATION-BUILT PAPERS, FOR EVERY SUBJECT THE QUALIFICATION TEACHES.
@@ -83,8 +92,38 @@ export async function GET(req: Request): Promise<NextResponse> {
       .flatMap((s) => genericPapers(active, s, lang).map((g) => ({
         id: g.id, name: g.name, subject: s, minutes: g.minutes, marks: g.marks,
         calculator: g.calculator, board: null, authored: false as const,
+        basis: "modelled" as const, shapeSource: null, shapeNote: null,
       })));
-    const list = [...authored, ...built];
+    // ── THE PAPER BUILT FROM THIS LEARNER'S OWN RECORD ────────────────────
+    // Offered only where the record actually says something: a learner who has
+    // established everything they have met is not handed a paper "for their weak
+    // ideas", because there are none. Read with `getProfile` — a READ — so
+    // opening the picker never writes the learner's record, and read ONCE for
+    // every subject rather than once per subject. The row's length is the
+    // paper's real length, so the marks and minutes shown are the ones sat.
+    const record = profile ? await getProfile(profile.profile.id) : null;
+    const needs = record
+      ? SUBJECTS.filter((s) => active.spec.coverage[s])
+        .map((s) => ({ subject: s, reading: needsReading(record, active, s) }))
+        .filter((x) => x.reading.weak.length > 0)
+        .map((x) => {
+          const tpl = needsPaper(active, x.subject, lang, x.reading.slots);
+          return {
+            id: tpl.id, name: tpl.name, subject: x.subject, minutes: tpl.minutes,
+            marks: tpl.marks, calculator: tpl.calculator, board: null,
+            authored: false as const, needs: true as const,
+            basis: "modelled" as const, shapeSource: null, shapeNote: null,
+          };
+        })
+      : [];
+    // ORDER, and it is a decision: the board's own paper leads, because that is
+    // the one a learner actually sits (the picker is grouped by subject and keeps
+    // this order inside each group), then the paper built from their own record —
+    // more theirs than anything below it — and only then the specification's
+    // generic sets. A record-built paper can be SHORT (it is as long as the
+    // unfinished work it is about), so leading with it would open a learner's
+    // papers page on a two-question paper above a real mock.
+    const list = [...authored, ...needs, ...built];
     return NextResponse.json({
       qualification: active.spec.name,
       level: active.level.name || active.level.id,
@@ -94,15 +133,33 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
 
   const templateId = searchParams.get("templateId") ?? searchParams.get("template");
+  // THE RECORD-BUILT PAPER IS READ, NOT LOOKED UP. It is in neither PAPERS nor
+  // the built set — its length follows the learner's own record — so it is
+  // recognised by its id, and when it is asked for the record is the only thing
+  // that can say what the paper is about.
+  const wantsNeeds = templateId !== null && templateId === needsPaperId(active, subject);
+  const book = wantsNeeds && profile ? await getProfile(profile.profile.id) : null;
+  const needsRead = book ? needsReading(book, active, subject) : null;
+  if (wantsNeeds && (!needsRead || needsRead.weak.length === 0)) {
+    // Asked for by name, but this record holds nothing to target. Refused rather
+    // than quietly answered with the ordinary paper: the learner asked for their
+    // own weak ground, and a generic mock is not that.
+    return NextResponse.json({ error: "no_evidence_to_target" }, { status: 400 });
+  }
   const template =
-    (templateId ? paperById(templateId) : null)
+    (needsRead ? needsPaper(active, subject, lang, needsRead.slots) : null)
+    ?? (templateId ? paperById(templateId) : null)
     // A specification-built paper's id is DERIVED from the qualification, so it
     // is not in PAPERS — and without this lookup every choice in the picker
     // built Paper 1, whatever the learner had chosen.
     ?? (templateId ? genericPapers(active, subject, lang).find((p) => p.id === templateId) ?? null : null)
     ?? defaultPaperFor(active, subject, lang);
 
-  let built = buildPaper({ active, subject, seed, lang, template });
+  let built = buildPaper({
+    active, subject, seed, lang, template,
+    // The record's own candidates, in its own order, for the record-built paper.
+    ...(needsRead ? { concepts: needsRead.candidates } : {}),
+  });
   let aiUsed = 0;
   const status = aiStatus();
 

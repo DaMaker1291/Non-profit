@@ -100,6 +100,7 @@ const reviews = readJson("audit/item-reviews.json")?.reviews ?? [];
 const optionsGate = readJson("audit/options-gate.json");
 const contentCoverage = readJson("audit/content-coverage.json");
 const pilotPack = readJson("audit/pilot-pack.json");
+const paperShapes = readJson("audit/paper-shape-coverage.json");
 
 const bySubject = {};
 for (const c of G.CONCEPTS) bySubject[c.subject] = (bySubject[c.subject] ?? 0) + 1;
@@ -142,6 +143,16 @@ const rows = [
   { section: "Curriculum", label: "Specifications", value: S.SPECIFICATIONS.length, source: "lib/specifications.ts", note: `${S.SPECIFICATIONS.filter((s) => s.country !== "INT" && s.country !== "XX").length} national · 2 international · 1 independent` },
   { section: "Curriculum", label: "Pathways with no structural source on file", value: R.allPathways().filter((p) => p.sourceUrls.length === 0).length, source: "lib/curricula/registry.ts", note: "named on every `curriculum-gate` run rather than hidden" },
   { section: "Curriculum", label: "Pathways whose syllabus mapping has been reviewed", value: R.allPathways().filter((p) => R.reviewAtLeast(p.mappingReview, "reviewed")).length, source: "lib/curricula/registry.ts", note: "every mapping is currently OpenMind's own" },
+
+  // WHAT THE PAPERS ARE. The papers page used to tell every learner "each paper
+  // is written to your board's specification and format", which was true for the
+  // seven qualifications with a blueprint read from an awarding body and false
+  // for everyone else. These four rows are the honest replacement, and they come
+  // from the audit's own report rather than from a count typed here.
+  { section: "Papers", label: "Countries whose paper shape is the awarding body's own", value: paperShapes?.counts?.countriesWithAPublishedShape ?? "MISSING", source: "audit/paper-shape-coverage.json", note: `${paperShapes?.counts?.countriesModelledOnly ?? "?"} countries are shown a practice set that says it is one` },
+  { section: "Papers", label: "Paper blueprints with a citation on file", value: paperShapes ? `${paperShapes.counts.blueprintsWithACitation} of ${paperShapes.counts.paperBlueprints}` : "MISSING", source: "audit/paper-shape-coverage.json", note: "the rest were authored from a board's structure before citations were collected, and are named by `npm run paper-audit`" },
+  { section: "Papers", label: "Countries whose assessment shape was researched and NOT found", value: paperShapes ? Object.keys(paperShapes.researchedNotDeclared).length : "MISSING", source: "audit/paper-shape-coverage.json", note: "each listed with the reason, so the gap is a queue rather than a silence" },
+  { section: "Papers", label: "Papers a learner can be offered", value: paperShapes?.counts?.qualificationSubjectOffers ?? "MISSING", source: "audit/paper-shape-coverage.json", note: `${paperShapes?.counts?.authoredOffers ?? "?"} with a shape read from an awarding body, ${paperShapes?.counts?.modelledOffers ?? "?"} OpenMind's own shape at the course's band` },
 ];
 
 const bySection = {};

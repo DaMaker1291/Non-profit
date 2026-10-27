@@ -209,6 +209,12 @@ export default function DiagnosticPage() {
   // ── the report ─────────────────────────────────────────────────────────────
   if (done) {
     const probed = done.scores.filter((s) => s.asked > 0);
+    // The strengths/gaps list is ONE list with two kinds of row, so its heading
+    // has to name the kinds it actually contains: below the plan's 0.65 line
+    // there is a gap to close, above it there is a strength. (The same line the
+    // strongest-evidence check uses, so one report cannot call a concept strong
+    // in one place and a gap in another.)
+    const hasGap = probed.some((s) => s.mastery < 0.65);
     // "What we found" is derived, never invented: the strongest and weakest
     // demand levels the bank actually measured, the levels it did NOT measure,
     // and any band the diagnostic skipped because it was already demonstrated.
@@ -246,7 +252,12 @@ export default function DiagnosticPage() {
             confident right answer and a half-guessed one identically; this is
             the one line that tells them apart, and it is only shown when there
             is something to say — never as an empty reassurance. */}
-        {done.certainty && done.certainty.unsureCorrect > 0 && (
+        {/* …AND ONLY WHEN THERE IS A CONTRAST TO DRAW. With a single correct
+            answer the sentence rendered "You were unsure on 1 of the 1 answers
+            you got right", which is a claim about nothing stated clumsily: the
+            note exists to say a learner's accuracy OVERSTATES their grip, and
+            that needs at least two right answers to mean anything. */}
+        {done.certainty && done.certainty.unsureCorrect > 0 && nCorrect >= 2 && (
           <p className="note" data-certainty-note>
             <span>{fill(t("diag.certaintyNote"), { u: done.certainty.unsureCorrect, n: nCorrect })}</span>
           </p>
@@ -310,11 +321,12 @@ export default function DiagnosticPage() {
             {done.skills.some((sk) => sk.inBank && !sk.reachable) && (
               <p className="small muted" style={{ marginTop: 4 }}>{t("diag.unreachableNote")}</p>
             )}
-            {/* The third honesty, and the one placement alone can state: the
-                sitting started above this level, so it was never asked. */}
-            {notAsked.length > 0 && (
-              <p className="small muted" style={{ marginTop: 4 }}>{t("diag.notAskedNote")}</p>
-            )}
+            {/* The third honesty — a level the sitting started above — is stated
+                ONCE, in "What we found" below, where it names the band ("Recall
+                sits below where your course starts you"). It used to be printed
+                here as a general paragraph AND there as a specific line, so the
+                same explanation appeared twice on one screen with one of them
+                adding nothing. `notAsked` still gates that block. */}
           </section>
         )}
 
@@ -352,7 +364,11 @@ export default function DiagnosticPage() {
         )}
 
         <section className="ruled">
-          <p className="eyebrow">{t("map.strengths")} / {t("map.gaps")}</p>
+          {/* NAMED FOR WHAT IT HOLDS. The heading always read "Strengths / Gaps
+              to close", and a sitting where every probed concept landed above
+              the bar printed it over a list of strengths alone — a title
+              promising a second list that is not there. */}
+          <p className="eyebrow">{hasGap ? `${t("map.strengths")} / ${t("map.gaps")}` : t("map.strengths")}</p>
           {probed.map((s) => (
             <Link key={s.conceptId} href={`/learn/${subject}/${s.conceptId}`} className="rowline">
               <span className={`mark ${s.mastery >= 0.65 ? "good" : "bad"}`} aria-hidden="true">
@@ -370,8 +386,25 @@ export default function DiagnosticPage() {
               belongs, as `asked: 0` coverage. */}
         </section>
 
+        {/* Diagnostic → plan → Home: the measured learner is handed to the
+            next-step engine, which is the only thing Home is for. These come
+            FIRST: they are what the report is for. */}
+        <div className="actions">
+          <Link href="/dashboard" className="btn">{t("nav.home")} →</Link>
+          <Link href={`/learn/${subject}`} className="btn ghost">{t("dash.continue")}</Link>
+          <Link href="/papers" className="btn ghost">{t("pp.title")}</Link>
+        </div>
+
         {/* Diagnose another subject without going back through the map — the
-            maths-only path made the other four subjects look empty. */}
+            maths-only path made the other four subjects look empty.
+
+            UNDER A LABEL, AND AFTER THE ACTIONS. Five pills sat here unlabelled
+            and ABOVE the primary buttons: on screen they read as a tab bar whose
+            selection was already made, and two stacked rows of pills doing
+            different jobs with nothing saying which was which. The label is
+            `nav.subjects` — a noun every dictionary already has — so the row
+            announces itself as navigation and the actions keep the eye first. */}
+        <p className="small muted" style={{ margin: "18px 0 6px" }}>{t("nav.subjects")}</p>
         <div className="actions" style={{ marginBottom: 4 }}>
           {SUBJECT_IDS.map((s) => (
             <Link
@@ -383,14 +416,6 @@ export default function DiagnosticPage() {
               {t(`subj.${s}`)}
             </Link>
           ))}
-        </div>
-
-        {/* Diagnostic → plan → Home: the measured learner is handed to the
-            next-step engine, which is the only thing Home is for. */}
-        <div className="actions">
-          <Link href="/dashboard" className="btn">{t("nav.home")} →</Link>
-          <Link href={`/learn/${subject}`} className="btn ghost">{t("dash.continue")}</Link>
-          <Link href="/papers" className="btn ghost">{t("pp.title")}</Link>
         </div>
       </main>
     );

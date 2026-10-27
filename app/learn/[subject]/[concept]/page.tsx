@@ -742,11 +742,14 @@ export default function ConceptPage() {
         <div className="work-main">
       <div className="card" style={{ marginBottom: 18 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+          {/* The eyebrow names the session and NOTHING ELSE. It used to append
+              "· Question 1 of 5" directly beneath the sticky bar's own
+              "Question 1 of 5" — the same fact twice, one line apart, beside a
+              third "of 5" on the level chip. The bar owns the position and stays
+              on screen while the learner scrolls, so repeating it here was noise
+              rather than reinforcement. */}
           <p className="eyebrow" style={{ margin: 0 }}>
             <span className="no">Q</span> {t("sess.eyebrow")}
-            {!result && (
-              <>{" · "}<span className="mono">{fill(t("sess.qOf"), { n: qOrdinal, m: target })}</span></>
-            )}
           </p>
           {progress && (
             <span className="mono small">
@@ -1066,7 +1069,12 @@ export default function ConceptPage() {
 
       <div className="actions" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 20 }}>
         <Link href={`/learn/${subject}`} className="btn ghost small">← {t(SUBJECT_LABELS[subject])}</Link>
-        <Link href={`/tutor/${c.id}`} className="btn small">{t("learn.ask")} →</Link>
+        {/* ONE DOOR TO THE TUTOR. This linked to the old standalone tutor PAGE
+            while the panel sat beside the question on this very screen — two
+            affordances for one thing, and the button navigated a learner AWAY
+            from the question to ask about it. The panel is the tutor now (§tutor)
+            and the page it pointed at is reachable only by URL; this is the
+            duplicate the reviewer saw at the bottom of the page. */}
       </div>
     </main>
   );

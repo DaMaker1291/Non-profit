@@ -75,8 +75,40 @@ function isExplain(lower: string): boolean {
  */
 function isExample(lower: string): boolean {
   return ["worked example", "example", "for instance", "show me how", "show me an example",
+    // The panel's SECOND starter chip is "work it through", which used to reach
+    // no branch at all and fell to the "tell me which step you are on" reply.
+    // A request to be walked through is a request for a worked example.
+    "work it through", "work through", "walk me through", "walk through", "go through it",
     "ejemplo", "exemple", "beispiel", "esempio", "exemplo", "örnek", "例題", "举例",
     "مثال", "उदाहरण", "contoh", "halimbawa", "misali", "উদাহরণ",
+  ].some((w) => lower.includes(w));
+}
+
+/**
+ * "What is this testing?" — the panel's FIRST starter chip, and therefore the
+ * most-clicked sentence the tutor ever receives.
+ *
+ * It reached no branch: "testing" appears nowhere in a concept's lesson text, so
+ * the off-topic test judged it unrelated and a learner's very first interaction
+ * with the tutor was told to name the step they were on. Asking what an item
+ * examines is a request to say the idea once, which is the `explain` move — not
+ * a reason to hand the question back.
+ *
+ * These are keyword PHRASES, not UI copy: a phrase that never matches costs
+ * nothing (the message falls through to the existing behaviour), and the lists
+ * cover the languages the dictionaries ship in.
+ */
+function asksWhatThisTests(lower: string): boolean {
+  return [
+    "what is this testing", "what does this test", "what is this about", "what am i practising",
+    "what am i practicing", "what is being tested", "what are we testing", "what is this question testing",
+    "qué se evalúa", "que se evalua", "de qué trata", "de que trata", "qué estoy practicando",
+    "sur quoi porte", "ce que ça teste", "qu'est-ce que ça teste",
+    "was wird hier geprüft", "worum geht es", "cosa si verifica", "di cosa parla",
+    "o que isto testa", "do que se trata", "apa yang diuji", "ini tentang apa",
+    "ano ang sinusubok", "tungkol saan ito", "यह क्या जाँचता है", "यह किस बारे में है",
+    "এটা কী পরীক্ষা করে", "یہ کیا جانچتا ہے", "ماذا يقيس هذا", "عن ماذا هذا",
+    "これは何をテスト", "これは何について", "这是在测试什么", "这是关于什么的",
   ].some((w) => lower.includes(w));
 }
 
@@ -224,6 +256,9 @@ function intentOf(message: string, lower: string): "answer" | "stuck" | "why" | 
   // (and gets the `why` move); only a bare "what's the answer" is a request to
   // hand it over.
   if (isWhy(lower)) return "why";
+  // Before `wantsAnswer`: "what is this testing" asks for the IDEA, and the
+  // explain move gives it once and then asks for it back.
+  if (asksWhatThisTests(lower)) return "explain";
   if (wantsAnswer(lower)) return "answer";
   // EXPLAIN and EXAMPLE sit between "give me the answer" and "give me a hint":
   // both are explicit asks for teaching, and both have real moves here — the
@@ -343,8 +378,16 @@ export interface GroundedContext {
  *  context gets exactly the concept-grounded replies it always did. */
 function groundedLines(lang: string, g: GroundedContext): string[] {
   const parts: string[] = [];
+  // ── THE QUESTION IS NOT READ BACK ─────────────────────────────────────────
+  // It was, on every single turn: "Look at the question on your screen: …" sat
+  // under every reply, so eight different questions produced eight replies that
+  // were the same paragraph with a different first sentence — which a learner
+  // reads, correctly, as a tutor with one answer. The panel's own header already
+  // names the question and the page shows it directly above the panel, so a
+  // reply only has to be ABOUT it. What still has to know the question is the
+  // off-topic test (`touchesThisScreen`), and `q` stays for the reason rule below
+  // and for callers that have no screen at all.
   const q = (g.question ?? "").trim();
-  if (q) parts.push(`${line(lang, "soc.onScreen", "Look at the question on your screen")}: ${q}`);
   const reason = (g.serveReason ?? "").trim();
   const hitIds = (g.hitIds ?? []).filter((id) => !!MISCONCEPTIONS_BY_ID[id]).slice(0, 2);
   // A grounded turn always says WHY this question is on screen: a live screen
@@ -417,7 +460,13 @@ export function socraticReply(
   // the concept definition into every response"). The definition survives
   // exactly where it is the only thing there is to say — a concept-only turn
   // with no screen context, which is how rooms and the offline card call it.
-  const contextLine = grounded.length > 0 ? "" : conceptLine;
+  // …and nor is the DEFINITION, on a live screen. Suppressing it only when
+  // something grounded was said meant that once the question echo went away
+  // every panel reply led with the concept's definition instead — the same
+  // canned paragraph, one sentence over. A learner looking at the question and
+  // the lesson is not helped by either being restated at them.
+  const liveScreen = !!(ctx.question ?? "").trim();
+  const contextLine = grounded.length > 0 || liveScreen ? "" : conceptLine;
   // Nothing to question: say what is needed instead of teaching a concept the
   // learner never mentioned. Checked AFTER intent, so a keyword that decided
   // still decides ("help" stays the stuck scaffold even on its own).
@@ -557,7 +606,7 @@ export function socraticReply(
       // 3x = 15", which reads as the tutor coaching someone else's working.
       // Own hits keep their coaching: that one is inside `grounded`, and it is
       // about this learner rather than about the catalogue.
-      contextLine || (grounded.length > 0 ? "" : coaching),
+      contextLine,
       line(lang, "soc.whyQ", "Here's a question: if you changed ONE number in your working, which change would make everything click?"),
     ]);
   }

@@ -484,7 +484,15 @@ const NATIONAL_COURSES: NationalCourse[] = [
   { id: "ht-bac", country: "HT", board: "haitian", name: "Baccalauréat (Haïti)", coverage: COV_SECONDARY, levels: [middle("3e-af", "3e AF", [0, 2], 0.44), final("philo", "Philo (Terminale)", [0, 3], 0.6)] },
   { id: "bo-bachillerato", country: "BO", board: "bolivian", name: "Bachillerato (Bolivia)", coverage: COV_SECONDARY, levels: [senior("6-secundaria", "6º de secundaria", [0, 3], 0.58)] },
   { id: "ec-bachillerato", country: "EC", board: "ecuadorian", name: "Bachillerato (Ecuador)", coverage: COV_SECONDARY, levels: [middle("10-egb", "10º EGB", [0, 2], 0.45), senior("3-bachillerato", "3º bachillerato", [0, 3], 0.65)] },
-  { id: "gt-diversificado", country: "GT", board: "guatemalan", name: "Diversificado", coverage: COV_SECONDARY, levels: [senior("5-diversificado", "5º diversificado", [0, 3], 0.56)] },
+  // GUATEMALA IS NOT A FIVE-SUBJECT GCSE. The national exit assessment is two
+  // computer-based tests, Lectura and Matemática, so declaring five subjects here
+  // simulated an examination that does not exist — a learner was offered physics,
+  // chemistry, biology and computing papers for a maths-and-reading test. OpenMind
+  // teaches maths and has no reading subject, so this names the test it prepares
+  // for and covers the area it can honestly teach. The precedent is the Digital
+  // SAT, which is the same situation (two areas) and also declares maths alone.
+  // Lectura is NOT faked into a subject: it is simply absent, which is the truth.
+  { id: "gt-diversificado", country: "GT", board: "guatemalan", name: "Evaluación Graduandos — Matemática", coverage: { maths: [0, 4] }, levels: [senior("5-diversificado", "5º diversificado", [0, 3], 0.56)] },
   { id: "hn-bachillerato", country: "HN", board: "honduran", name: "Bachillerato (Honduras)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
   { id: "ni-bachillerato", country: "NI", board: "nicaraguan", name: "Bachillerato (Nicaragua)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
   { id: "sv-bachillerato", country: "SV", board: "salvadoran", name: "Bachillerato (El Salvador)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
@@ -820,7 +828,16 @@ export function specForProfile(profile: CourseFields, subject?: SubjectId): Acti
   // otherwise the country's first listing (often a maths paper) becomes the
   // fallback course for every other subject.
   const eligible = subject ? candidates.filter((s) => coversSubject(s, subject)) : candidates;
-  const pool = eligible.length > 0 ? eligible : candidates;
+  // A SUBJECT THE COUNTRY HAS NO QUALIFICATION FOR FALLS TO THE INDEPENDENT
+  // PATHWAY — never to the country's first listing. `pool = candidates` was safe
+  // only while every national course covered all five subjects, and the moment
+  // one did not it handed back a qualification that does not teach the subject:
+  // Guatemala's Graduandos can be a maths course only (its assessment is Lectura
+  // and Matemática), so a learner asking for physics under it was answered with
+  // "gt-diversificado" — a course with no physics in it. `any-independent` reaches
+  // every concept, which is the one course that can honestly carry a subject the
+  // national assessment does not examine.
+  const pool = eligible.length > 0 ? eligible : subject ? [INDEPENDENT] : candidates;
   const byBoard = p.board ? pool.filter((s) => s.board === p.board) : [];
   const byExam = p.exam
     ? pool.filter((s) => s.board === p.board || s.id.includes(p.exam!.toLowerCase()))

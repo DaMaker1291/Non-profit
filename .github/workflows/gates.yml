@@ -86,6 +86,22 @@ jobs:
       - name: Curriculum integrity
         run: npm run curriculum-gate
 
+      # The paper-shape audit. `curriculum-gate` proves every country is offered
+      # its OWN curriculum; this proves the papers it is then handed say what
+      # they are. Seven qualification sets had a shape read from an awarding
+      # body; every other one had three shapes OpenMind built and both were shown
+      # under one sentence claiming the learner's board "specification and
+      # format" — false for most of the world, and nothing said so. It fails on
+      # an item count declared as an awarding body's with no citation, a source
+      # that is not an absolute https URL, a blueprint naming a qualification
+      # that does not exist, or a course with no paper to sit. It writes
+      # audit/paper-shape-coverage.json and prints how many countries have a
+      # published shape, how many are modelled, and the researched countries
+      # whose shape was NOT found, with the reason — so the gap is a queue, not a
+      # silence.
+      - name: Paper shapes
+        run: npm run paper-audit
+
       - name: Question audit
         run: npm run verify:q
 

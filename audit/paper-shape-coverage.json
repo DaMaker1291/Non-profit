@@ -1,0 +1,930 @@
+{
+  "generatedBy": "scripts/paper-audit.mjs",
+  "counts": {
+    "paperBlueprints": 33,
+    "publishedBlueprints": 33,
+    "blueprintsWithACitation": 10,
+    "uncitedBlueprints": 23,
+    "qualificationSubjectOffers": 447,
+    "authoredOffers": 33,
+    "modelledOffers": 414,
+    "countries": 72,
+    "countriesWithAPublishedShape": 12,
+    "countriesModelledOnly": 60,
+    "researchedButNotDeclared": 7
+  },
+  "countries": [
+    {
+      "countryCode": "AF",
+      "countryName": "Afghanistan",
+      "specifications": [
+        "af-baccalaureate"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "af-baccalaureate"
+      ]
+    },
+    {
+      "countryCode": "AR",
+      "countryName": "Argentina",
+      "specifications": [
+        "ar-secundaria"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ar-secundaria"
+      ]
+    },
+    {
+      "countryCode": "AU",
+      "countryName": "Australia",
+      "specifications": [
+        "au-acara"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "au-acara"
+      ]
+    },
+    {
+      "countryCode": "BD",
+      "countryName": "Bangladesh",
+      "specifications": [
+        "bd-ssc"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "bd-ssc"
+      ]
+    },
+    {
+      "countryCode": "BF",
+      "countryName": "Burkina Faso",
+      "specifications": [
+        "bf-bac"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "bf-bac"
+      ]
+    },
+    {
+      "countryCode": "BO",
+      "countryName": "Bolivia",
+      "specifications": [
+        "bo-bachillerato"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "bo-bachillerato"
+      ]
+    },
+    {
+      "countryCode": "BR",
+      "countryName": "Brazil",
+      "specifications": [
+        "br-enem"
+      ],
+      "withPublishedShape": [
+        "br-enem"
+      ],
+      "modelledOnly": [
+        "br-enem"
+      ]
+    },
+    {
+      "countryCode": "CA",
+      "countryName": "Canada",
+      "specifications": [
+        "ca-provincial"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ca-provincial"
+      ]
+    },
+    {
+      "countryCode": "CI",
+      "countryName": "Côte d'Ivoire",
+      "specifications": [
+        "ci-bac"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ci-bac"
+      ]
+    },
+    {
+      "countryCode": "CM",
+      "countryName": "Cameroon",
+      "specifications": [
+        "cm-bac",
+        "cm-bepc",
+        "cm-gce-a",
+        "cm-gce-o",
+        "cm-probatoire"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "cm-bac",
+        "cm-bepc",
+        "cm-gce-a",
+        "cm-gce-o",
+        "cm-probatoire"
+      ]
+    },
+    {
+      "countryCode": "CN",
+      "countryName": "China",
+      "specifications": [
+        "cn-gaokao"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "cn-gaokao"
+      ]
+    },
+    {
+      "countryCode": "CO",
+      "countryName": "Colombia",
+      "specifications": [
+        "co-saber-11"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "co-saber-11"
+      ]
+    },
+    {
+      "countryCode": "DE",
+      "countryName": "Germany",
+      "specifications": [
+        "de-abi",
+        "de-msa"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "de-abi",
+        "de-msa"
+      ]
+    },
+    {
+      "countryCode": "DO",
+      "countryName": "Dominican Republic",
+      "specifications": [
+        "do-bachillerato"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "do-bachillerato"
+      ]
+    },
+    {
+      "countryCode": "EC",
+      "countryName": "Ecuador",
+      "specifications": [
+        "ec-bachillerato"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ec-bachillerato"
+      ]
+    },
+    {
+      "countryCode": "EG",
+      "countryName": "Egypt",
+      "specifications": [
+        "eg-thanaweya"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "eg-thanaweya"
+      ]
+    },
+    {
+      "countryCode": "ES",
+      "countryName": "Spain",
+      "specifications": [
+        "es-bachillerato",
+        "es-eso"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "es-bachillerato",
+        "es-eso"
+      ]
+    },
+    {
+      "countryCode": "ET",
+      "countryName": "Ethiopia",
+      "specifications": [
+        "et-esslce"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "et-esslce"
+      ]
+    },
+    {
+      "countryCode": "FR",
+      "countryName": "France",
+      "specifications": [
+        "fr-bac",
+        "fr-college"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "fr-bac",
+        "fr-college"
+      ]
+    },
+    {
+      "countryCode": "GB",
+      "countryName": "United Kingdom",
+      "specifications": [
+        "uk-alevel",
+        "uk-gcse"
+      ],
+      "withPublishedShape": [
+        "uk-alevel",
+        "uk-gcse"
+      ],
+      "modelledOnly": [
+        "uk-alevel",
+        "uk-gcse"
+      ]
+    },
+    {
+      "countryCode": "GH",
+      "countryName": "Ghana",
+      "specifications": [
+        "gh-wassce"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "gh-wassce"
+      ]
+    },
+    {
+      "countryCode": "GT",
+      "countryName": "Guatemala",
+      "specifications": [
+        "gt-diversificado"
+      ],
+      "withPublishedShape": [
+        "gt-diversificado"
+      ],
+      "modelledOnly": []
+    },
+    {
+      "countryCode": "HN",
+      "countryName": "Honduras",
+      "specifications": [
+        "hn-bachillerato"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "hn-bachillerato"
+      ]
+    },
+    {
+      "countryCode": "HT",
+      "countryName": "Haiti",
+      "specifications": [
+        "ht-bac"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ht-bac"
+      ]
+    },
+    {
+      "countryCode": "ID",
+      "countryName": "Indonesia",
+      "specifications": [
+        "id-merdeka"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "id-merdeka"
+      ]
+    },
+    {
+      "countryCode": "IE",
+      "countryName": "Ireland",
+      "specifications": [
+        "ie-junior"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ie-junior"
+      ]
+    },
+    {
+      "countryCode": "IN",
+      "countryName": "India",
+      "specifications": [
+        "in-cbse",
+        "in-icse"
+      ],
+      "withPublishedShape": [
+        "in-cbse"
+      ],
+      "modelledOnly": [
+        "in-cbse",
+        "in-icse"
+      ]
+    },
+    {
+      "countryCode": "INT",
+      "countryName": "INT",
+      "specifications": [
+        "int-ib",
+        "int-igcse"
+      ],
+      "withPublishedShape": [
+        "int-ib",
+        "int-igcse"
+      ],
+      "modelledOnly": [
+        "int-ib",
+        "int-igcse"
+      ]
+    },
+    {
+      "countryCode": "IQ",
+      "countryName": "Iraq",
+      "specifications": [
+        "iq-preparatory"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "iq-preparatory"
+      ]
+    },
+    {
+      "countryCode": "IR",
+      "countryName": "Iran",
+      "specifications": [
+        "ir-konkur"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ir-konkur"
+      ]
+    },
+    {
+      "countryCode": "IT",
+      "countryName": "Italy",
+      "specifications": [
+        "it-maturita",
+        "it-media"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "it-maturita",
+        "it-media"
+      ]
+    },
+    {
+      "countryCode": "JO",
+      "countryName": "Jordan",
+      "specifications": [
+        "jo-tawjihi"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "jo-tawjihi"
+      ]
+    },
+    {
+      "countryCode": "JP",
+      "countryName": "Japan",
+      "specifications": [
+        "jp-nyushi"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "jp-nyushi"
+      ]
+    },
+    {
+      "countryCode": "KE",
+      "countryName": "Kenya",
+      "specifications": [
+        "ke-kcse"
+      ],
+      "withPublishedShape": [
+        "ke-kcse"
+      ],
+      "modelledOnly": [
+        "ke-kcse"
+      ]
+    },
+    {
+      "countryCode": "KH",
+      "countryName": "Cambodia",
+      "specifications": [
+        "kh-baccalaureate"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "kh-baccalaureate"
+      ]
+    },
+    {
+      "countryCode": "KR",
+      "countryName": "South Korea",
+      "specifications": [
+        "kr-csat"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "kr-csat"
+      ]
+    },
+    {
+      "countryCode": "KZ",
+      "countryName": "Kazakhstan",
+      "specifications": [
+        "kz-unt"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "kz-unt"
+      ]
+    },
+    {
+      "countryCode": "LA",
+      "countryName": "Laos",
+      "specifications": [
+        "la-upper-secondary"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "la-upper-secondary"
+      ]
+    },
+    {
+      "countryCode": "LB",
+      "countryName": "Lebanon",
+      "specifications": [
+        "lb-baccalaureate"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "lb-baccalaureate"
+      ]
+    },
+    {
+      "countryCode": "LK",
+      "countryName": "Sri Lanka",
+      "specifications": [
+        "lk-a-level",
+        "lk-o-level"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "lk-a-level",
+        "lk-o-level"
+      ]
+    },
+    {
+      "countryCode": "MA",
+      "countryName": "Morocco",
+      "specifications": [
+        "ma-bac",
+        "ma-college"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ma-bac",
+        "ma-college"
+      ]
+    },
+    {
+      "countryCode": "ML",
+      "countryName": "Mali",
+      "specifications": [
+        "ml-bac"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ml-bac"
+      ]
+    },
+    {
+      "countryCode": "MM",
+      "countryName": "Myanmar",
+      "specifications": [
+        "mm-matriculation"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "mm-matriculation"
+      ]
+    },
+    {
+      "countryCode": "MN",
+      "countryName": "Mongolia",
+      "specifications": [
+        "mn-eesh"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "mn-eesh"
+      ]
+    },
+    {
+      "countryCode": "MW",
+      "countryName": "Malawi",
+      "specifications": [
+        "mw-msce"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "mw-msce"
+      ]
+    },
+    {
+      "countryCode": "MX",
+      "countryName": "Mexico",
+      "specifications": [
+        "mx-sep"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "mx-sep"
+      ]
+    },
+    {
+      "countryCode": "NE",
+      "countryName": "Niger",
+      "specifications": [
+        "ne-bac"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ne-bac"
+      ]
+    },
+    {
+      "countryCode": "NG",
+      "countryName": "Nigeria",
+      "specifications": [
+        "ng-waec"
+      ],
+      "withPublishedShape": [
+        "ng-waec"
+      ],
+      "modelledOnly": [
+        "ng-waec"
+      ]
+    },
+    {
+      "countryCode": "NI",
+      "countryName": "Nicaragua",
+      "specifications": [
+        "ni-bachillerato"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ni-bachillerato"
+      ]
+    },
+    {
+      "countryCode": "NP",
+      "countryName": "Nepal",
+      "specifications": [
+        "np-neb",
+        "np-see"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "np-neb",
+        "np-see"
+      ]
+    },
+    {
+      "countryCode": "PE",
+      "countryName": "Peru",
+      "specifications": [
+        "pe-secundaria"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "pe-secundaria"
+      ]
+    },
+    {
+      "countryCode": "PH",
+      "countryName": "Philippines",
+      "specifications": [
+        "ph-deped"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ph-deped"
+      ]
+    },
+    {
+      "countryCode": "PK",
+      "countryName": "Pakistan",
+      "specifications": [
+        "pk-matric"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "pk-matric"
+      ]
+    },
+    {
+      "countryCode": "PL",
+      "countryName": "Poland",
+      "specifications": [
+        "pl-matura",
+        "pl-osmoklasisty"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "pl-matura",
+        "pl-osmoklasisty"
+      ]
+    },
+    {
+      "countryCode": "RW",
+      "countryName": "Rwanda",
+      "specifications": [
+        "rw-a-level",
+        "rw-o-level"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "rw-a-level",
+        "rw-o-level"
+      ]
+    },
+    {
+      "countryCode": "SD",
+      "countryName": "Sudan",
+      "specifications": [
+        "sd-school-certificate"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "sd-school-certificate"
+      ]
+    },
+    {
+      "countryCode": "SN",
+      "countryName": "Senegal",
+      "specifications": [
+        "sn-bac"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "sn-bac"
+      ]
+    },
+    {
+      "countryCode": "SO",
+      "countryName": "Somalia",
+      "specifications": [
+        "so-form-4"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "so-form-4"
+      ]
+    },
+    {
+      "countryCode": "SV",
+      "countryName": "El Salvador",
+      "specifications": [
+        "sv-bachillerato"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "sv-bachillerato"
+      ]
+    },
+    {
+      "countryCode": "SY",
+      "countryName": "Syria",
+      "specifications": [
+        "sy-baccalaureate"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "sy-baccalaureate"
+      ]
+    },
+    {
+      "countryCode": "TR",
+      "countryName": "Turkey",
+      "specifications": [
+        "tr-yks"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "tr-yks"
+      ]
+    },
+    {
+      "countryCode": "TZ",
+      "countryName": "Tanzania",
+      "specifications": [
+        "tz-csee"
+      ],
+      "withPublishedShape": [
+        "tz-csee"
+      ],
+      "modelledOnly": [
+        "tz-csee"
+      ]
+    },
+    {
+      "countryCode": "UA",
+      "countryName": "Ukraine",
+      "specifications": [
+        "ua-nmt"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ua-nmt"
+      ]
+    },
+    {
+      "countryCode": "UG",
+      "countryName": "Uganda",
+      "specifications": [
+        "ug-uce"
+      ],
+      "withPublishedShape": [
+        "ug-uce"
+      ],
+      "modelledOnly": [
+        "ug-uce"
+      ]
+    },
+    {
+      "countryCode": "US",
+      "countryName": "United States",
+      "specifications": [
+        "us-ap",
+        "us-core",
+        "us-sat"
+      ],
+      "withPublishedShape": [
+        "us-sat"
+      ],
+      "modelledOnly": [
+        "us-ap",
+        "us-core"
+      ]
+    },
+    {
+      "countryCode": "UZ",
+      "countryName": "Uzbekistan",
+      "specifications": [
+        "uz-entrance"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "uz-entrance"
+      ]
+    },
+    {
+      "countryCode": "VN",
+      "countryName": "Vietnam",
+      "specifications": [
+        "vn-thpt"
+      ],
+      "withPublishedShape": [
+        "vn-thpt"
+      ],
+      "modelledOnly": [
+        "vn-thpt"
+      ]
+    },
+    {
+      "countryCode": "XX",
+      "countryName": "Prefer not to say",
+      "specifications": [
+        "any-independent"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "any-independent"
+      ]
+    },
+    {
+      "countryCode": "YE",
+      "countryName": "Yemen",
+      "specifications": [
+        "ye-general-secondary"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "ye-general-secondary"
+      ]
+    },
+    {
+      "countryCode": "ZA",
+      "countryName": "South Africa",
+      "specifications": [
+        "za-nsc"
+      ],
+      "withPublishedShape": [
+        "za-nsc"
+      ],
+      "modelledOnly": [
+        "za-nsc"
+      ]
+    },
+    {
+      "countryCode": "ZM",
+      "countryName": "Zambia",
+      "specifications": [
+        "zm-school-certificate"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "zm-school-certificate"
+      ]
+    },
+    {
+      "countryCode": "ZW",
+      "countryName": "Zimbabwe",
+      "specifications": [
+        "zw-a-level",
+        "zw-o-level"
+      ],
+      "withPublishedShape": [],
+      "modelledOnly": [
+        "zw-a-level",
+        "zw-o-level"
+      ]
+    }
+  ],
+  "uncitedBlueprints": [
+    "aqa-gcse-maths-p1",
+    "edexcel-gcse-maths-p1",
+    "aqa-alevel-maths-p1",
+    "cambridge-igcse-maths-extended",
+    "ib-maths-sl-p1",
+    "cbse-class12-physics",
+    "digital-sat-math",
+    "digital-sat-math-2",
+    "kcse-maths-p2",
+    "caps-maths-p1",
+    "caps-maths-p2",
+    "aqa-gcse-physics",
+    "aqa-gcse-chemistry",
+    "aqa-gcse-biology",
+    "aqa-gcse-maths-p2",
+    "aqa-gcse-maths-p3",
+    "edexcel-gcse-maths-p2",
+    "edexcel-gcse-maths-p3",
+    "aqa-gcse-physics-p2",
+    "aqa-gcse-chemistry-p2",
+    "aqa-gcse-biology-p2",
+    "aqa-alevel-maths-p2",
+    "aqa-alevel-maths-p3"
+  ],
+  "uncitedBoundaries": [
+    "aqa-gcse-maths-p1",
+    "edexcel-gcse-maths-p1",
+    "aqa-alevel-maths-p1",
+    "cambridge-igcse-maths-extended",
+    "ib-maths-sl-p1",
+    "cbse-class12-physics",
+    "digital-sat-math",
+    "digital-sat-math-2",
+    "kcse-maths-p2",
+    "caps-maths-p1",
+    "caps-maths-p2",
+    "aqa-gcse-physics",
+    "aqa-gcse-chemistry",
+    "aqa-gcse-biology",
+    "aqa-gcse-maths-p2",
+    "aqa-gcse-maths-p3",
+    "edexcel-gcse-maths-p2",
+    "edexcel-gcse-maths-p3",
+    "aqa-gcse-physics-p2",
+    "aqa-gcse-chemistry-p2",
+    "aqa-gcse-biology-p2",
+    "aqa-alevel-maths-p2",
+    "aqa-alevel-maths-p3"
+  ],
+  "researchedNotDeclared": {
+    "BD": "Bangladesh: the only official document found was a marks-distribution notice dated AFTER the 2025 SSC sitting, so it is not evidence for the sitting it would describe. No item count or paper structure was verifiable.",
+    "PH": "Philippines: DepEd's NAT G10/G12 are exit assessments but the mathematics subtest's item count and duration are not published in any notice that could be read; the Grade 10 NCAE is a career assessment, not a leaving exam, and is not a substitute.",
+    "PK": "Pakistan: SSC structures are board-specific. The only readable structure was FBISE's own federal model paper, and naming it for a Punjab or Sindh candidate would be another country's paper wearing theirs — see the note that a board's shape needs a board of its own.",
+    "MX": "Mexico: the documented mathematics structure found (Ceneval EXANI-II, 30 items) belongs to a higher-education ADMISSIONS exam that institutions opt into, not to a national upper-secondary exit assessment.",
+    "ID": "Indonesia: the national leaving exam was replaced by the Asesmen Nasional, which is a sampled system assessment rather than an individual examination — there is no per-learner paper to model, and inventing one would be the original defect.",
+    "CO": "Colombia: ICFES's own orientation guide was identifiable but returned 403 to every read, so the 25+25 split across two 270-minute sessions could not be confirmed at first hand, and the session time is not a mathematics paper's time.",
+    "GH": "Ghana: the paper components and times rest on the general WASSCE structure rather than a readable Ghanaian mathematics document, so the components could not be confirmed for Core Mathematics in particular."
+  }
+}

@@ -1831,8 +1831,15 @@ console.log("▸ Internationalisation");
     const grounded = soc.socraticReply("place-value", "What is this?", "en", screen);
     ok(!grounded.includes("Place value:"),
       "a grounded turn does NOT repeat the concept definition — the lesson is on the page behind the panel");
-    ok(grounded.includes("873"),
-      "it speaks about the question actually on screen instead");
+    // …AND IT DOES NOT READ THE QUESTION BACK.
+    // It always did: "Look at the question on your screen: <prompt>" rode under
+    // every reply, so eight different questions produced eight replies that were
+    // the same paragraph with a different first sentence — measured through
+    // /api/tutor, and exactly what a learner describes as "one answer". The panel
+    // names the question in its own header and the page shows it directly above,
+    // so the reply has to be ABOUT the question rather than recite it.
+    ok(!grounded.includes("873"),
+      "and it does not read the question back — it is on screen beside the reply, and reciting it every turn is what made the tutor read as scripted");
     const hinted = soc.socraticReply("place-value", "Give me a hint", "en", screen);
     ok(/hint/i.test(hinted) && !hinted.includes("Place value:"),
       `asking for a hint points at the hint ladder, not at the definition (${hinted.slice(0, 70)}…)`);
@@ -2699,6 +2706,141 @@ console.log("▸ Paper analysis");
   ok(enName !== arName, `a built paper's name follows the learner's language (${enName} / ${arName})`);
   const authoredName = papers.papersForSpec("uk-gcse", "maths")[0].name;
   ok(/Mathematics/.test(authoredName), "an authored paper keeps the awarding body's own name");
+}
+
+// ── M9d. A PAPER BUILT FROM THE LEARNER'S OWN RECORD ──────────────────────
+// EVERY other paper is the same for every learner: the candidates are the
+// qualification's whole coverage and the draw takes a uniform pick from it, so
+// one learner who has failed linear equations six times and one who has never
+// met them are asked about them EQUALLY. This is the paper that is theirs — and
+// the assertions below are what stop it being a name over the ordinary draw:
+// the target set, the order inside it, course membership, the length, and the
+// questions the assembly actually asks.
+console.log("▸ A paper built from the learner's own record");
+{
+  const spec = require("../.verify/specifications.js");
+  const lm = require("../.verify/learner-model.js");
+  const uk = spec.specById("uk-gcse");
+  const active = { spec: uk, level: uk.levels[uk.levels.length - 1] };
+  const course = papers.paperConcepts(active, "maths");
+  ok(course.length > 6, `the qualification offers concepts to target (${course.length})`);
+
+  // THREE RECORDS, built through the REAL grading path, so the paper is judged
+  // on exactly the evidence every other surface reads:
+  //   · one the learner is failing — six answers, one right, the slip twice;
+  //   · one they are part-way through — four right answers, nothing wrong;
+  //   · one they have PROVED and TRANSFERRED — which must not be in the paper.
+  const record = progress.recordAnswer;
+  const state = store.newProfileState("needs-paper", { country: "GB", subjects: ["maths"] });
+  const answer = (conceptId, n, correct, meta = {}, tags = []) => {
+    for (let i = 0; i < n; i++) record(state, conceptId, `${conceptId}-${i}`, correct ? 0 : 1, correct, "", tags, meta, 1000 + i);
+  };
+  const stalled = course[0];
+  const midway = course.find((id) => id !== stalled && transferMod.canTransfer(id)) ?? course[1];
+  const finished = course.find((id) => id !== stalled && id !== midway) ?? course[2];
+  const SLIP = (genome.CONCEPTS_BY_ID[stalled]?.misconceptions ?? [])[0];
+  answer(stalled, 1, true);
+  answer(stalled, 5, false, {}, SLIP ? [SLIP] : []);
+  answer(midway, 4, true);
+  answer(finished, 8, true);
+  answer(finished, 1, true, { mode: "transfer" });
+
+  const reading = papers.needsReading(state, active, "maths");
+  const evOf = (id) => lm.evidenceFor(state, id);
+  ok(reading.weak[0] === stalled, `the idea this learner is failing leads the paper (${reading.weak[0]})`);
+  ok(reading.weak.includes(midway), "and one they are only part-way through is in it as well");
+  ok(!reading.weak.includes(finished), "while a concept they have proved and transferred is left out");
+  ok(reading.weak.every((id) => course.includes(id)),
+    "every concept it targets is one their own qualification teaches");
+  // THE ORDER IS THE ENGINE'S OWN FIRST TIER: a concept `stuckOn` — measured,
+  // below the bar, with an answer actually wrong — precedes one that is merely
+  // unfinished, so the paper and the next-step card cannot disagree about which
+  // idea is in trouble.
+  const stuck = reading.weak.filter((id) => lm.stuckOn(evOf(id)));
+  ok(stuck.length >= 1, `the record has something the engine calls stuck (${stuck.length})`);
+  ok(reading.weak.slice(0, stuck.length).every((id) => lm.stuckOn(evOf(id))),
+    "and the stuck work is ordered ahead of the rest of it");
+  // THE CANDIDATE SET IS THE WEAK SET, and this is the assertion that keeps the
+  // row's promise honest. The first version of this failed it in a way that read
+  // as correct: it topped a thin set back up to eight with in-course concepts the
+  // record had never met, so a learner who had sat ONLY the baseline diagnostic
+  // was handed 8 questions of which 1–4 came from their record — measured live at
+  // computing 1 of 8 and maths 4 of 8 — while its row said "built from your
+  // record" and its panel said every question came from their weakest ideas.
+  ok(reading.candidates.join(",") === reading.weak.join(","),
+    `the candidate set is exactly the unfinished ideas, nothing topped up from the course (${reading.candidates.length} of ${reading.weak.length})`);
+  ok(reading.slots === Math.max(papers.NEEDS_PAPER_SLOTS.min, reading.weak.length),
+    `and the sitting is as long as that work rather than padded out (${reading.slots} slots for ${reading.weak.length} ideas)`);
+  ok(reading.candidates.every((id) => course.includes(id)), "with nothing outside the qualification in it");
+
+  const tpl = papers.needsPaper(active, "maths", "en", reading.slots);
+  ok(tpl.id === papers.needsPaperId(active, "maths"), "the record-built paper's id is derived from the qualification");
+  ok(tpl.id === papers.needsPaper(active, "maths", "ar", reading.slots).id,
+    "and does not depend on the learner's language, or switching it would lose the paper");
+  ok(tpl.name !== papers.needsPaper(active, "maths", "ar", reading.slots).name && !/\bmaths\b/i.test(tpl.name),
+    `a translated page names it in the learner's own language ("${tpl.name}")`);
+
+  const built = papers.buildPaper({ active, subject: "maths", seed: "needs-1", template: tpl, concepts: reading.candidates });
+  const asked = built.key.questions.map((q) => q.conceptId);
+  ok(asked.length === reading.slots, `the sitting is exactly as long as the record asked for (${asked.length})`);
+  ok(asked.every((id) => reading.weak.includes(id)),
+    "EVERY question is drawn from the ideas the record calls weakest — none from the rest of the course");
+  ok(asked.includes(stalled), "and the one it is failing is examined");
+  ok(built.paper.sections.every((s) => s.questions.length > 0), "no section of it is empty");
+  ok(built.key.questions.every((q) => q.prompt.length > 0 && q.answer !== undefined),
+    "and every slot has a real question and the key to mark it");
+  const again = papers.buildPaper({ active, subject: "maths", seed: "needs-1", template: tpl, concepts: reading.candidates });
+  ok(again.paper.id === built.paper.id && again.key.questions.map((q) => q.id).join(",") === built.key.questions.map((q) => q.id).join(","),
+    "the same seed rebuilds the same paper, so a sitting can be resumed and marked");
+
+  // A RECORD WITH ONE UNFINISHED IDEA makes a two-question paper. The floor
+  // exists so each SECTION has something in it and for no other reason: the
+  // questions come from that one idea, asked twice, rather than from ground
+  // nobody has evidence about.
+  const ans = (st, conceptId, n, correct) => {
+    for (let i = 0; i < n; i++) record(st, conceptId, `${conceptId}#${i}`, correct ? 0 : 1, correct, "", [], {}, 1000 + i);
+  };
+  const one = store.newProfileState("needs-one", { country: "GB", subjects: ["maths"] });
+  ans(one, stalled, 2, false);
+  const oneRead = papers.needsReading(one, active, "maths");
+  ok(oneRead.weak.length === 1 && oneRead.candidates.length === 1,
+    `a record with one unfinished idea has exactly that to target (${oneRead.weak.length})`);
+  ok(oneRead.slots === papers.NEEDS_PAPER_SLOTS.min,
+    `and its paper is the floor, not a padded mock (${oneRead.slots} slots)`);
+  const oneTpl = papers.needsPaper(active, "maths", "en", oneRead.slots);
+  const oneBuilt = papers.buildPaper({ active, subject: "maths", seed: "needs-one", template: oneTpl, concepts: oneRead.candidates });
+  const oneAsked = oneBuilt.key.questions.map((q) => q.conceptId);
+  ok(oneAsked.length === oneRead.slots && oneAsked.every((id) => id === stalled),
+    "every question asks about that idea rather than filling the sitting with other ground");
+  ok(oneBuilt.paper.sections.every((s) => s.questions.length > 0),
+    "and both sections still hold a question, which is the only reason for a floor");
+
+  // A RECORD WITH MORE UNFINISHED WORK THAN A PAPER HOLDS keeps the ranking's
+  // first ceiling's worth: the cap discards the neediest-last, never the neediest.
+  const wide = store.newProfileState("needs-wide", { country: "GB", subjects: ["maths"] });
+  const CAP = papers.NEEDS_PAPER_SLOTS.max;
+  const many = course.slice(0, CAP + 3);
+  ok(many.length > CAP, `the course is long enough to over-fill the ceiling (${many.length} concepts)`);
+  for (const id of many) ans(wide, id, 2, false);
+  const wideRead = papers.needsReading(wide, active, "maths");
+  ok(wideRead.weak.length > CAP, `a record can hold more unfinished work than one paper (${wideRead.weak.length})`);
+  ok(wideRead.candidates.length === CAP, `and the paper is built from the ceiling's worth of it (${wideRead.candidates.length})`);
+  ok(wideRead.candidates.join(",") === wideRead.weak.slice(0, CAP).join(","),
+    "keeping the ranking's own neediest first, not an arbitrary slice");
+  const wideBuilt = papers.buildPaper({ active, subject: "maths", seed: "needs-wide", template: papers.needsPaper(active, "maths", "en", wideRead.slots), concepts: wideRead.candidates });
+  ok(wideBuilt.key.questions.length === CAP && wideBuilt.key.questions.every((q) => wideRead.weak.includes(q.conceptId)),
+    `and every one of its ${CAP} questions is still the learner's own unfinished ground`);
+
+  // NO EVIDENCE, NO PAPER: a learner with a record to their name is not handed
+  // "your weakest ideas", and an empty list neither disables the paper's subject
+  // nor becomes the only paper by omission.
+  const empty = store.newProfileState("needs-empty", { country: "GB", subjects: ["maths"] });
+  ok(papers.needsReading(empty, active, "maths").weak.length === 0,
+    "a learner with no record has nothing to target, so no paper is offered");
+  ok(papers.needsReading(empty, active, "maths").candidates.length === 0,
+    "and nothing is offered to draw from either, so no filler can be invented");
+  ok(papers.buildPaper({ active, subject: "maths", seed: "needs-1", template: tpl }).key.questions.length === reading.slots,
+    "and an empty candidate list falls back to the qualification's coverage");
 }
 
 // ── M9c. A paper is SAT like an exam, not scrolled like a worksheet ─────────
@@ -9317,8 +9459,16 @@ console.log("▸ AI explains, never records");
     const groundedTurn = await tutorMod.tutorTurn(turnIn);
     ok(groundedTurn.answerSource === "offline",
       "3c runs with no model configured — the fallback IS the feature under test");
-    ok(groundedTurn.reply.includes(served.prompt),
-      `the offline reply is grounded in the question ON THE SCREEN (${JSON.stringify(served.prompt.slice(0, 40))}…)`);
+    ok(!groundedTurn.reply.includes(served.prompt),
+      `the offline reply does not read the question back (${JSON.stringify(served.prompt.slice(0, 40))}… — it is on screen beside the reply)`);
+    // …and it still KNOWS the screen, which is the half that must not be lost
+    // with the echo: the off-topic test reads the question, so the same message
+    // is answered differently when one is in front of the learner than when the
+    // caller has no screen at all (a room, the offline card).
+    const offTopicWith = (await tutorMod.tutorTurn({ ...turnIn, message: "What is the capital of France?" })).reply;
+    const offTopicWithout = (await tutorMod.tutorTurn({ ...turnIn, questionText: null, message: "What is the capital of France?" })).reply;
+    ok(offTopicWith !== offTopicWithout,
+      "and an off-topic message is still answered against the screen it was given — the question is known without being recited");
     // The reason is spoken ONLY where it is the only grounding there is. When
     // the caller is a surface that already renders the decision's reason under
     // the reply (the exercise panel fills `grounding` into tutor.whyThis),
@@ -9559,6 +9709,29 @@ console.log("▸ AI explains, never records");
     ok(!app.includes('practice.info.target.reason === "stretch"'),
       "no second derivation of the practice reason remains for the two surfaces to disagree through");
   }
+  // ── 4c. The panel's why-line is about the QUESTION ON SCREEN ─────────────
+  // FOUND LIVE, on the linear-equations panel of a learner whose next step was
+  // quadratics: every reply ended "OpenMind put Quadratic equations in front of
+  // you because: …" while the screen was solving 3x + 5 = 20 — and the reason
+  // printed as its raw key ("because: fresh") beside a strip saying the same
+  // thing in words. The payload keeps `focus` (what they opened) and `decision`
+  // (their next step) apart on purpose; "put X in front of you" is a claim about
+  // the screen, so it may only use the focus and the serve reason.
+  {
+    // COMMENTS ARE STRIPPED FIRST, and it is not fastidiousness: the first cut of
+    // this assertion failed on the file's own explanation of the defect (it names
+    // `decision.title` to say why it is not used). A guard that punishes a file
+    // for documenting the bug it avoided teaches the next author to delete the
+    // explanation, which is the opposite of what is wanted.
+    const panel = stripComments(fs.readFileSync("components/tutor-panel.tsx", "utf8"));
+    ok(/serveReason\?:/.test(panel) && panel.includes("g?.serveReason"),
+      "the panel's why-line is built from the serve reason, not from the learner's next step");
+    ok(panel.includes("focus?.title") && !/decision\?\.title|decision\.title/.test(panel),
+      "and names the concept the panel is on — never the decision's concept, which is usually but not always the same one");
+    ok(panel.includes("t(`target.${reason}`)"),
+      "and translates the reason with the same key the practice strip uses, so one reason is never worded two ways");
+  }
+
   ok(!i18n.LANG_CODES.filter((code) => code !== "en").some((code) => {
     const tr = i18n.translator(code);
     return tr("tutor.fallbackNote") === i18n.translator("en")("tutor.fallbackNote");
@@ -10027,8 +10200,12 @@ console.log("▸ The exercise header counts what is on screen");
   // off "feedback", so a phase-based counter under-reports by one after a retry.
   ok(conceptPage.includes("{graded && (") && !/qOrdinal = Math\.min\(phase/.test(conceptPage),
     "and it reads the same fact the feedback UI is gated on, not a phase that can lag it");
+  // TWO sites, not three: the eyebrow printed the counter directly beneath the
+  // sticky bar's own copy of it — the same fact twice, one line apart — and that
+  // duplicate was removed rather than kept to satisfy a count. The claim (every
+  // printing site reads the one value) is unchanged.
   const qFills = conceptPage.match(/fill\(t\("sess\.qOf"\), \{[^}]*\}\)/g) ?? [];
-  ok(qFills.length >= 3 && qFills.every((f) => f.includes("n: qOrdinal")),
+  ok(qFills.length >= 2 && qFills.every((f) => f.includes("n: qOrdinal")),
     `and every place that prints it reads that one value (${qFills.length} sites)`);
 }
 
@@ -10613,6 +10790,27 @@ console.log("▸ A reload mid-diagnostic resumes the sitting instead of replacin
       const count = (i18nSrc.match(new RegExp(`"${key}":`, "g")) ?? []).length;
       ok(count === 15, `${key} is authored in all 15 dictionaries (${count})`);
     }
+  }
+
+  // ── A REPORT THAT DOES NOT SAY ONE THING TWICE ──────────────────────────
+  // FOUND BY READING THE RENDERED SCREEN, not the code. A sitting with one right
+  // answer printed "You were unsure on 1 of the 1 answers you got right"; the same
+  // "sits below where your course starts you" explanation appeared twice, once as
+  // a general paragraph and once naming the band; five unlabelled subject pills
+  // sat ABOVE the primary actions and read as a tab bar whose selection was already
+  // made; and "STRENGTHS / GAPS TO CLOSE" headed a list of strengths alone.
+  {
+    const report = stripComments(fs.readFileSync("app/diagnostic/[subject]/page.tsx", "utf8"));
+    ok(/done\.certainty\.unsureCorrect > 0 && nCorrect >= 2 && \(/.test(report),
+      "the right-but-unsure note waits for two right answers — '1 of the 1' is a claim about nothing");
+    ok(!report.includes("diag.notAskedNote"),
+      "the level the sitting started above is explained once, by the line that names the band");
+    ok(report.indexOf('t("nav.subjects")') > 0 && report.indexOf('t("nav.subjects")') < report.indexOf("SUBJECT_IDS.map"),
+      "the subject links sit under a label, so the row does not read as a tab bar");
+    ok(report.indexOf('t("nav.home")') < report.indexOf("SUBJECT_IDS.map"),
+      "and the report's own actions come first, ahead of that navigation");
+    ok(report.includes("hasGap") && !/\{t\("map\.strengths"\)\} \/ \{t\("map\.gaps"\)\}/.test(report),
+      "and the strengths heading names only the lists the sitting actually produced");
   }
 
   // FOUND WHILE PLAYTESTING THE SAME RUN. The concept page's eyebrow rendered
@@ -12028,6 +12226,162 @@ console.log("▸ A session cookie is Secure over HTTPS and usable over plain HTT
 // This block declares ONE course and asserts each layer reads it, so a
 // regression in a single link fails here instead of surfacing as a Year 11
 // being served primary arithmetic.
+// ── A national assessment is modelled as it is really examined ─────────────
+// FOUND BY A LEARNER FROM GUATEMALA. The defect was structural, not a typo: the
+// national-routes pass gave every added country COV_SECONDARY — all five of
+// OpenMind's subjects, three papers each — so a Guatemalan learner was offered
+// physics, chemistry, biology and computing papers for an assessment that is two
+// computer-based tests, Lectura and Matemática. A simulation of an examination
+// nobody sits is worse than an empty shelf: the learner who trusts it studies the
+// wrong thing. The fix is the Digital SAT's shape (name the test, declare the one
+// area we teach) plus a paper in the ministry's own form — and this block is what
+// stops the generic default coming back for this course.
+console.log("▸ A national assessment is modelled as it is really examined");
+{
+  const S = require("../.verify/specifications.js");
+  const pm = require("../.verify/papers.js");
+  const gt = S.specById("gt-diversificado");
+  const gtActive = { spec: gt, level: gt.levels[gt.levels.length - 1] };
+  const gtSubjects = Object.keys(gt.coverage).sort();
+  ok(gtSubjects.length === 1 && gtSubjects[0] === "maths",
+    `Guatemala's Graduandos examines Lectura and Matemática, so its course covers the area we can teach and only that (${gtSubjects.join(", ")})`);
+  const mathsOnly = new Set(genome.bySubject("maths").map((c) => c.id));
+  const gtCovered = S.coverageOf(gtActive);
+  ok(gtCovered.length > 0 && gtCovered.every((c) => mathsOnly.has(c.id)),
+    `and everything it teaches is mathematics, with nothing smuggled in by a default (${gtCovered.length} concepts)`);
+  // The qualification is named for the TEST, not the school phase: choosing
+  // "Diversificado" named a phase and handed the learner a paper.
+  ok(/Graduandos/.test(gt.name), `the course names the assessment a learner actually sits ("${gt.name}")`);
+  const gtPapers = pm.papersForSpec("gt-diversificado");
+  ok(gtPapers.length === 1 && gtPapers.every((p) => p.subject === "maths"),
+    `its own blueprint is maths only, so no other subject has a paper (${gtPapers.map((p) => p.subject).join(", ") || "none"})`);
+  const grad = gtPapers[0] ?? { id: "", minutes: 0, marks: 0, sections: [], boundaries: [] };
+  ok(grad.id === "gt-graduandos-matematica" && grad.minutes === 90,
+    `and it is the Graduandos Matemática sitting, on that test's clock (${grad.id}, ${grad.minutes} min)`);
+  // The administered form: one run of single-mark multiple-choice items. A
+  // three-section written mock would be an AQA paper wearing another country's
+  // name — the same class of defect, one layer down.
+  ok(grad.sections.length === 1 && grad.sections[0].count === 45 && grad.sections[0].marksEach === 1 && grad.marks === 45,
+    `as one run of 45 single-mark items (${grad.sections.map((s) => s.count).join("+")}, ${grad.marks} marks)`);
+  ok(pm.defaultPaperFor(gtActive, "maths").id === grad.id,
+    "so a Guatemalan learner's default paper is that one, not a generic mock");
+  // A national assessment that grades nothing must not be handed invented cut
+  // scores: DIGEDUCA reports achievement in the two areas and publishes none.
+  ok(grad.boundaries.length === 0,
+    "and it carries no grade boundaries, because the ministry publishes none to carry");
+  const gtBuilt = pm.buildPaper({ active: gtActive, subject: "maths", seed: "gt-1", template: grad });
+  const gtMarked = pm.markPaper(gtBuilt.key, {});
+  ok(gtMarked.grade === null && gtMarked.total === 45,
+    `so marking it reports the mark and NO grade rather than an invented one (${gtMarked.raw}/${gtMarked.total}, grade=${gtMarked.grade})`);
+}
+
+// ── What a paper IS, said on the paper ──────────────────────────────────────
+// The defect this pins: the papers page told every learner "each paper is
+// written to your board's specification and format", and for 65 of 72 countries
+// there was no board format in the product at all — the paper was one of three
+// shapes OpenMind built to the qualification's difficulty band. Two different
+// objects, one sentence, and the sentence was false for most of the world.
+console.log("▸ A paper says whether its shape is the awarding body's");
+{
+  const pm = require("../.verify/papers.js");
+  const S = require("../.verify/specifications.js");
+  const rightsMod = require("../.verify/content-rights.js");
+  const uk = S.specById("uk-gcse");
+  const ukActive = { spec: uk, level: uk.levels[0] };
+
+  // 1. THE SET EVERY COUNTRY WITHOUT A BLUEPRINT RECEIVES says what it is.
+  const builtSet = pm.genericPapers(ukActive, "computing", "en");
+  ok(builtSet.length === 3 && builtSet.every((p) => p.basis === "modelled"),
+    `the papers built for a course with no blueprint say they are OpenMind's own (${builtSet.map((p) => p.basis).join(",")})`);
+  ok(builtSet.every((p) => !p.shapeSource),
+    "and cite no source, because there is no awarding body's structure behind them");
+  ok(pm.needsPaper(ukActive, "maths", "en", 4).basis === "modelled",
+    "the record-built paper is OpenMind's own shape as well");
+
+  // 2. THE SITTING REMEMBERS WHAT IT WAS — on the paper AND on the stored key,
+  //    because the key is what marking reads later.
+  const gtTpl = pm.papersForSpec("gt-diversificado")[0];
+  ok(gtTpl.basis === "published" && /^https:\/\//.test(gtTpl.shapeSource ?? ""),
+    `Guatemala's blueprint is the ministry's own shape and cites where it was read (${gtTpl.shapeSource})`);
+  const gt = S.specById("gt-diversificado");
+  const gtActive = { spec: gt, level: gt.levels[gt.levels.length - 1] };
+  const gtBuilt = pm.buildPaper({ active: gtActive, subject: "maths", seed: "shape-1", template: gtTpl });
+  ok(gtBuilt.paper.basis === "published" && gtBuilt.paper.shapeSource === gtTpl.shapeSource && gtBuilt.key.basis === "published",
+    "and both the built paper and its answer key carry that basis, so a sitting can say what it was");
+  ok(gtBuilt.paper.shapeNote === gtTpl.shapeNote && typeof gtBuilt.paper.shapeNote === "string",
+    "including the one line of caveat the shape needs");
+  const modelledBuilt = pm.buildPaper({ active: ukActive, subject: "computing", seed: "shape-2", template: builtSet[0] });
+  ok(modelledBuilt.paper.basis === "modelled" && modelledBuilt.paper.shapeNote === null,
+    "while a modelled paper carries no caveat, because it makes no claim that would need one");
+
+  // 3. A COUNT DECLARED AS AN AWARDING BODY'S MUST BE CITED. This is the rule the
+  //    item counts were introduced for: without it "45 items" is
+  //    indistinguishable from a number somebody liked the look of.
+  const uncited = pm.PAPERS.filter((t) => t.itemCounts === "published" && !/^https:\/\//.test(t.shapeSource ?? ""));
+  ok(uncited.length === 0,
+    `no paper claims an awarding body's own item counts without a source (${uncited.map((t) => t.id).join(", ") || "none"})`);
+  const badSource = pm.PAPERS.filter((t) => t.shapeSource !== undefined && !/^https:\/\/\S+$/.test(t.shapeSource));
+  ok(badSource.length === 0, "and every citation on file is an absolute https URL");
+  // THE TWO NOTIONS OF "WHERE THIS CAME FROM" MUST NOT CROSS. `source` on a paper
+  // is its CONTENT ORIGIN (lib/content-rights.ts), which the licence model and
+  // the rights gate read; `shapeSource` is where the SHAPE was read. The first
+  // cut of this work put a URL in `source` and tripped "no bundled paper claims an
+  // official origin without a licence on file" — the check that exists for
+  // exactly that confusion.
+  const crossed = pm.PAPERS.filter((t) => t.shapeSource !== undefined && rightsMod.isContentOrigin(t.shapeSource));
+  ok(crossed.length === 0,
+    `no shape citation is a content origin, and the two fields stay distinct (${crossed.map((t) => t.id).join(", ") || "none"})`);
+
+  // 4. THE RESEARCHED SHAPES ARE THE ONES THAT WERE READ, number by number.
+  const byId = (id) => pm.paperById(id);
+  const vn = byId("vn-thpt-mathematics");
+  ok(!!vn && vn.minutes === 90 && vn.sections.reduce((n, s) => n + s.count, 0) === 34,
+    `Vietnam is the ministry's 34 prompts in 90 minutes (${vn && vn.sections.reduce((n, s) => n + s.count, 0)} in ${vn && vn.minutes})`);
+  const tz = byId("csee-basic-mathematics");
+  ok(!!tz && tz.minutes === 180 && tz.sections.map((s) => s.count).join("+") === "10+4",
+    `Tanzania is NECTA's one three-hour paper in two sections (${tz && tz.sections.map((s) => s.count).join("+")}, ${tz && tz.minutes} min)`);
+  const ng = pm.papersForSpec("ng-waec").map((p) => p.minutes).sort((a, b) => a - b);
+  ok(ng.join(",") === "105,150", `Nigeria is its two components, objective and written (${ng.join("+")} min)`);
+  const ug = pm.papersForSpec("ug-uce");
+  ok(ug.length === 2 && ug.every((p) => p.minutes === 150),
+    `Uganda is two UCE papers of two and a half hours (${ug.map((p) => p.minutes).join("+")})`);
+  const br = byId("enem-matematica");
+  ok(!!br && br.sections[0].count === 45 && br.itemCounts === "published",
+    `Brazil is ENEM's own 45 mathematics items, cited as the item counts (${br && br.sections[0].count})`);
+  const cbse = byId("cbse-class10-maths-standard");
+  ok(!!cbse && cbse.sections.reduce((n, s) => n + s.count, 0) === 38 && cbse.marks === 80,
+    `India's blueprint already landed on CBSE's published 38 questions and 80 marks (${cbse && cbse.sections.reduce((n, s) => n + s.count, 0)} q, ${cbse && cbse.marks} marks)`);
+
+  // 5. A COUNTRY WITH NO SHAPE STILL GETS A PAPER — labelled, never absent. These
+  //    are the countries whose assessment was researched and NOT found (Pakistan
+  //    because SSC structures are board-specific, Indonesia because the national
+  //    exam was replaced by a sampled survey), so the honest answer there is a
+  //    practice set that says it is one.
+  for (const code of ["bd-ssc", "ph-deped", "pk-matric", "mx-sep", "id-merdeka", "co-saber-11"]) {
+    const s = S.specById(code);
+    const p = pm.defaultPaperFor({ spec: s, level: s.levels[s.levels.length - 1] }, "maths", "en");
+    ok(!!p && p.basis === "modelled",
+      `${code}: no shape on file, so the learner is handed a labelled practice set (${p && p.basis})`);
+  }
+
+  // 6. THE SCREEN AND THE WIRE SAY WHICH — per row, not in a footnote.
+  const route = fs.readFileSync("app/api/paper/route.ts", "utf8");
+  ok(route.includes("basis: (p.basis ?? \"published\")") && route.includes('basis: "modelled" as const'),
+    "the papers route sends each row's basis, authored and modelled alike");
+  const papersPage = fs.readFileSync("app/papers/page.tsx", "utf8");
+  ok(papersPage.includes('t("pp.mirrors")') && papersPage.includes('t("pp.practiceSet")'),
+    "and the picker tells the learner which of the two each paper is");
+  // The sentence that was wrong for 65 countries, and the three that replaced it.
+  const paperI18n = fs.readFileSync("lib/i18n.ts", "utf8");
+  for (const key of ["pp.mirrors", "pp.practiceSet", "pp.shapeSource"]) {
+    const count = (paperI18n.match(new RegExp(`"${key}":`, "g")) ?? []).length;
+    ok(count === 15, `${key} is authored in all 15 dictionaries (${count})`);
+  }
+  const envelope = JSON.parse(fs.readFileSync("package.json", "utf8"));
+  ok(typeof envelope.scripts["paper-audit"] === "string",
+    "and the audit that counts how much of the catalogue is modelled is a wired script");
+}
+
 console.log("▸ One declared course drives every layer");
 {
   const S = require("../.verify/specifications.js");

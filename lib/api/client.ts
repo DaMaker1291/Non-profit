@@ -730,6 +730,22 @@ export interface PaperListEntry {
    *  rows a learner could not tell apart. */
   board?: string | null;
   authored: boolean;
+  /** WHAT THE SHAPE IS (lib/papers#PaperBasis): "published" means the awarding
+   *  body publishes this structure and `source` cites it; "modelled" means
+   *  OpenMind built it to the qualification's band and no board structure is
+   *  claimed. The picker says which, per row, because the two are otherwise
+   *  identical on screen and only one of them is the learner's exam. */
+  basis?: "published" | "modelled";
+  /** The URL a published shape was read from, where one is on file. NOT `source`
+   *  — that is the CONTENT ORIGIN the licence model reads (lib/content-rights.ts). */
+  shapeSource?: string | null;
+  /** One line of caveat about the shape, where it needs one (a body that
+   *  publishes its papers and hours but not its item counts). */
+  shapeNote?: string | null;
+  /** Built from THIS learner's own record — the one paper on the list whose
+   *  questions depend on what they have answered, so the picker says so rather
+   *  than leaving its name to carry the whole claim. */
+  needs?: boolean;
 }
 
 export interface PaperListBundle {
