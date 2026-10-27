@@ -20,6 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import Link from "next/link";
 import { useI18n } from "@/lib/client";
+import { localeFor } from "@/lib/i18n";
 import { daysUntil } from "@/lib/deadline";
 
 export default function ExamCountdown({ exam, examDate }: { exam?: string; examDate?: string }) {
@@ -27,7 +28,7 @@ export default function ExamCountdown({ exam, examDate }: { exam?: string; examD
   const days = daysUntil(examDate);
   if (!examDate || days === null) return null;
 
-  const when = new Date(`${examDate}T00:00:00`).toLocaleDateString(lang === "en" ? undefined : lang, {
+  const when = new Date(`${examDate}T00:00:00`).toLocaleDateString(localeFor(lang), {
     day: "numeric", month: "short", year: "numeric",
   });
   const line = days < 0

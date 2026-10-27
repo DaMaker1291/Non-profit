@@ -302,8 +302,11 @@ export default function SolvePage() {
             <span><MathText text={hint} /></span>
           </div>
         )}
+        {/* NO BACK ARROW. This starts the flow again with a fresh question; the
+            arrow pointed backwards at the only control on the screen that moves
+            forwards. */}
         <button className="btn ghost small" style={{ marginTop: 26 }} onClick={() => { setStage("ask"); setText(""); setHint(null); setConceptId(null); setUnsure(false); }}>
-          ← {t("solve.another")}
+          {t("solve.another")} →
         </button>
       </main>
     );

@@ -48,11 +48,22 @@ export function bandKey(band: KnowledgeRow["band"]): string {
  * always available one tap away, and repeating it everywhere turns a knowledge
  * map back into a dashboard.
  */
-export function Dims({ rows, showRate = false }: { rows: KnowledgeRow[]; showRate?: boolean }) {
+export function Dims({ rows, showRate = false, collapse = false }: { rows: KnowledgeRow[]; showRate?: boolean; collapse?: boolean }) {
   const { t } = useI18n();
+  /* ONE LINE FOR WHAT HAS NOT BEEN MEASURED, where a card is a glance rather
+     than a record. A Mind map of eight concepts printed "Transfer — Not yet
+     measured" and "Long-term retention — Not yet measured" sixteen times: the
+     same two absences repeated as if they were eight findings each. Collapsed,
+     they are one muted line per card — the honesty rule (unknown is stated,
+     never drawn as a zero) is kept, and the rows that ARE measured get the
+     space. A concept with nothing measured keeps all four rows, because there
+     the absence is the whole answer and naming each dimension is the point. */
+  const measured = rows.filter((r) => !r.unmeasured);
+  const absent = rows.filter((r) => r.unmeasured);
+  const shown = collapse && measured.length > 0 ? measured : rows;
   return (
     <div className="dims">
-      {rows.map((r) => (
+      {shown.map((r) => (
         <div className="dim" key={`${r.from}-${r.key}`}>
           <span className="dim-k">{r.label}</span>
           <Meter rate={r.rate ? r.rate.correct / r.rate.asked : null} />
@@ -71,6 +82,12 @@ export function Dims({ rows, showRate = false }: { rows: KnowledgeRow[]; showRat
           </span>
         </div>
       ))}
+      {collapse && measured.length > 0 && absent.length > 0 && (
+        <div className="dim dim-absent">
+          <span className="dim-k">{t("teach.unmeasured")}</span>
+          <span className="dim-v empty">{absent.map((r) => r.label).join(" · ")}</span>
+        </div>
+      )}
     </div>
   );
 }

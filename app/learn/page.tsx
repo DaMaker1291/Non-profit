@@ -78,9 +78,11 @@ export default function LearnIndexPage() {
   return (
     <main className="container page">
       <div className="page-head">
-        <p className="eyebrow">
-          {t("nav.subjects")} <span className="mono">{touchedAll}/{totalAll}</span>
-        </p>
+        {/* NO EYEBROW ABOVE ITS OWN TITLE. This page opened with the word
+            "Subjects" twice — once as a mono label, once as its heading — and the
+            label carried a fraction (`6/122`) with nothing saying what it
+            counted. The heading is the subject index's only title; the counts
+            belong on the rows, which each carry their own. */}
         <h1>{t("nav.subjects")}</h1>
         <p className="lead" style={{ marginBottom: 0 }}>
           {/* Three states, in the order a learner meets them: nothing chosen yet,
@@ -89,6 +91,14 @@ export default function LearnIndexPage() {
             : touchedAll === 0 ? t("learn.notStarted")
               : t("learn.pickSubject")}
         </p>
+        {/* The fraction the eyebrow used to carry, in the place the subject page
+            prints the same figure and WITH its noun: "6/122 concepts" says what
+            is counted, where a bare `6/122` beside a label said nothing. */}
+        {declared.length > 0 && (
+          <p className="small muted mono" style={{ margin: "8px 0 0" }}>
+            {touchedAll}/{totalAll} {t("map.concepts")}
+          </p>
+        )}
       </div>
 
       {rows.map(({ subject, counted, touched, gaps, active }) => (
@@ -112,7 +122,12 @@ export default function LearnIndexPage() {
                   )}
             </span>
           </span>
-          <span className="state">
+          {/* `concept-state`, not `state`. `.state` is the whole-page empty-state
+              panel — dashed border, surface fill, 24px of padding — so five
+              little chips were each drawn inside a 170×60 dashed box, and the
+              index read as five empty slots waiting to be filled. This is a chip
+              cell, and it uses the class the concept lists already use for one. */}
+          <span className="concept-state">
             {touched > 0
               ? <span className="chip good">{touched} {t("next.ev.touched")}</span>
               : <span className="chip">{t("evv.unmeasured")}</span>}

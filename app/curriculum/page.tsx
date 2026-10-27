@@ -289,8 +289,7 @@ export default function CurriculumPage() {
   if (!profile) {
     return (
       <main className="container narrow" style={{ paddingTop: 48 }}>
-        <p className="eyebrow">{t("curr.title")}</p>
-        <h1 className="visually-small">{t("curr.title")}</h1>
+        <h1>{t("curr.title")}</h1>
         <p className="lead">{t("curr.noProfile")}</p>
         <div className="actions">
           <Link href="/onboarding" className="btn">{t("onb.start")} →</Link>
@@ -302,8 +301,7 @@ export default function CurriculumPage() {
 
   return (
     <main className="container" style={{ paddingTop: 40 }}>
-      <p className="eyebrow">{t("curr.title")}</p>
-      <h1 className="visually-small">{t("curr.title")}</h1>
+      <h1>{t("curr.title")}</h1>
       <p className="lead">{t("curr.sub")}</p>
 
       {/* What the country's system looks like, and which course is in force. */}
@@ -400,8 +398,13 @@ export default function CurriculumPage() {
             );
           })}
         </div>
-        <p className="small muted" style={{ marginTop: 10 }}>
-          <strong>{t(SUBJECT_LABELS[subject])}</strong> · {t("curr.course")}
+        {/* WHICH SUBJECT'S COURSE THE FIELD BELOW EDITS — and nothing else. It
+            read "Mathematics · Course / qualification" immediately above a field
+            labelled "Course / qualification", so the same four words appeared
+            twice in a row and the subject had to be picked out of the pair. The
+            field's own label names the value; this line names the subject. */}
+        <p className="small" style={{ marginTop: 10 }}>
+          <strong>{t(SUBJECT_LABELS[subject])}</strong>
         </p>
         <div className="rowline" style={{ marginTop: 10, display: "block" }}>
           <label className="small muted" htmlFor="curr-spec">{t("curr.course")}</label>

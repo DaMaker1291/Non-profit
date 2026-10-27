@@ -16,7 +16,6 @@ export default function About() {
   const { t, lang } = useI18n();
   return (
     <main className="container narrow" style={{ paddingTop: 40 }}>
-      <p className="eyebrow">{t("about.title")}</p>
       <h1>{t("about.title")}</h1>
       <p className="lead" style={{ fontSize: 17.5 }}>
         {t("about.mission")}

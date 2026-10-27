@@ -39,7 +39,9 @@ import { useI18n, useProfile, loadLocalProfileId, loadLocalProfileSecret } from 
 import { hasRecordedWork, loadLedger, type LedgerFetch } from "@/lib/evidence-view";
 import { pathFor, sessionState } from "@/lib/api/client";
 import { COUNTRIES, dueLabel, fill } from "@/lib/i18n";
+import { levelLabel } from "@/lib/content-i18n";
 import { boardName } from "@/lib/curriculum";
+import { coverageOf, specForProfile } from "@/lib/specifications";
 import { reasonKey } from "@/lib/session";
 import { proofLabelKey, strongestProof } from "@/lib/proof";
 import { bySubject, getConcept } from "@/lib/genome";
@@ -130,7 +132,27 @@ export default function LearnerHome() {
   const independent = entries.filter(([, pr]) => (pr.independent?.correct ?? 0) > 0).length;
   const transfer = entries.filter(([, pr]) => (pr.transfer?.correct ?? 0) > 0).length;
   const mastered = entries.filter(([, pr]) => (pr.mastery ?? 0) >= 0.9).length;
-  const curriculumSize = new Set(p.subjects.flatMap((s) => bySubject(s).map((c) => c.id))).size;
+  // THE DENOMINATOR IS THE LEARNER'S COURSE, NOT THE WHOLE GENOME.
+  //
+  // It was every concept in every declared subject — 135 for a five-subject GCSE
+  // learner — so Home greeted them with "0/135" for work that is not on their
+  // syllabus at all. A count a learner cannot finish is not progress; it is a
+  // reminder of how much is missing. Each subject contributes the concepts its
+  // OWN course covers, and a subject whose course is not yet chosen falls back
+  // to that subject's whole list rather than to nothing.
+  const courseConcepts = (() => {
+    const ids = new Set<string>();
+    for (const s of p.subjects) {
+      try {
+        const active = specForProfile(p, s);
+        for (const c of coverageOf(active)) if (c.subject === s) ids.add(c.id);
+      } catch {
+        for (const c of bySubject(s)) ids.add(c.id);
+      }
+    }
+    return ids.size;
+  })();
+  const curriculumSize = courseConcepts || 1;
   const due = dueReviews(state);
 
   // ── YOUR PROGRESS, as concepts and not only as counts (§home-progress).
@@ -191,13 +213,8 @@ export default function LearnerHome() {
        *  and `/curriculum` both name it in full) and `boardName` for the
        *  awarding body ("AQA", "Kenya National Examinations (KNEC)"). A code is
        *  not a label a learner reads; it is what the record stores. */}
-      {(() => {
-        const country = p.country === "XX" ? "" : COUNTRIES.find((c) => c.code === p.country)?.name ?? "";
-        const board = p.board ? boardName(p.board) : "";
-        const parts = [country, board, p.exam ?? ""].filter((x) => x.trim().length > 0);
-        if (parts.length === 0) return null;
-        return <p className="courseline">{parts.join(" · ")}</p>;
-      })()}        <h1 className="greeting">
+      <CourseCard p={p} />
+      <h1 className="greeting">
           {t(hasRecordedWork(state) ? "dash.hi" : "dash.hello")}
           {p.handle ? `, ${p.handle}` : ""}
         </h1>
@@ -259,14 +276,25 @@ export default function LearnerHome() {
             ))}
           </div>
         )}
+        {/* HOW MUCH OF THE COURSE HAS BEEN MEASURED, as a bar and a fraction.
+            Four counts under a bar is a record; four counts on their own were a
+            wall of zeros on day one. */}
+        <div className="coverage-bar" aria-hidden="true">
+          <span style={{ width: `${Math.min(100, Math.round((measured / curriculumSize) * 100))}%` }} />
+        </div>
         <div className="home-metrics">
           <Metric label={t("evv.dim.recalled")} value={`${measured}/${curriculumSize}`} />
           <Metric label={t("prog.independent")} value={String(independent)} />
           <Metric label={t("prog.transfer")} value={String(transfer)} />
           <Metric label={t("learn.mastered")} value={String(mastered)} />
         </div>
+        {/* ONLY THE LINK. This line used to read `{t("map.concepts")} · link`,
+            i.e. the bare word "Concepts" followed by a link — a label whose value
+            was never written, because the count had already moved into the
+            `Recall 9/122` metric above. A caption that says one word and then
+            points somewhere reads as a rendering bug, not as a footer. */}
         <p className="small muted home-foot">
-          {t("map.concepts")} · <Link href="/progress">{t("prog.title")} →</Link>
+          <Link href="/progress">{t("prog.title")} →</Link>
         </p>
       </section>
 
@@ -349,6 +377,46 @@ export default function LearnerHome() {
       </section>
 
     </main>
+  );
+}
+
+/** THE COURSE CARD.
+ *
+ *  A learner's first question on their own home is "what am I being taught as?",
+ *  and the page answered it with one quiet mono line of country · board · exam
+ *  in the eyebrow position — where it read as metadata rather than as the thing
+ *  that decides every question, paper and word on the page.
+ *
+ *  So it is a card, in the register a school platform uses for the same fact:
+ *  the country, the qualification, the tier and the year group, with the way to
+ *  change it. Resolved through `specForProfile`, so it can only name a course the
+ *  record actually resolves; a course still being chosen renders nothing here
+ *  and the page's own gate says what is missing. */
+function CourseCard({ p }: { p: ProfileState["profile"] }) {
+  const { t, lang } = useI18n();
+  const subject = p.subjects?.[0];
+  if (!subject) return null;
+  let active: ReturnType<typeof specForProfile> | null = null;
+  try {
+    active = specForProfile(p, subject);
+  } catch {
+    active = null;
+  }
+  if (!active) return null;
+  const country = p.country === "XX" ? "" : COUNTRIES.find((c) => c.code === p.country)?.name ?? "";
+  const board = p.board ? boardName(p.board) : "";
+  const tier = active.level ? levelLabel(lang, active.level.tier, active.level.name) : "";
+  const parts = [country, active.spec.name, tier, board, p.grade ?? ""].filter((x) => x && x.trim().length > 0);
+  if (parts.length === 0) return null;
+  return (
+    <section className="course-card">
+      <p className="eyebrow flush" style={{ margin: 0 }}>{t("nav.currTitle")}</p>
+      <p className="course-card-line">{parts.join(" · ")}</p>
+      <p className="small muted course-card-foot">
+        {p.subjects.map((s) => t(`subj.${s}`)).join(" · ")}
+        {" · "}<Link href="/curriculum">{t("curr.title")} →</Link>
+      </p>
+    </section>
   );
 }
 

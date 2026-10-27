@@ -86,6 +86,18 @@ export default function NextStep({
           dictionary can translate, and the title already opens with the
           translated verb — "Learn:", "Practise:", "Fix:". */}
       <p className="eyebrow flush"><span className="no">→</span> {t("next.eyebrow")}</p>
+      {/* THE ACTION FIRST, THE EVIDENCE FOR IT UNDERNEATH. This card's own name
+          for itself is the next title — "Learn: Rounding & estimation" — and it
+          used to be printed BELOW two rows of demonstrated/not-yet chips, so the
+          largest text in the page's only primary card was a status list and the
+          thing to do was third. A learner reading top-down met "you have
+          demonstrated Recall, Application" before being told what to do about
+          it. The order is now: what to do, why, then what the record shows — the
+          proof supports the recommendation instead of introducing it. */}
+      <p className="next-title">
+        <Link href={top.href}>{top.title}</Link>
+      </p>
+      <p className="small next-reason">{top.reason}</p>
       {showSplit && split && (
         <div className="next-split">
           <p className="small flush">
@@ -110,10 +122,6 @@ export default function NextStep({
           )}
         </div>
       )}
-      <p className="next-title">
-        <Link href={top.href}>{top.title}</Link>
-      </p>
-      <p className="small next-reason">{top.reason}</p>
 
       {/* The single primary action. `next.ctaStart` names the verb AND its
           object — "Start this session" — because the card sits inside a page

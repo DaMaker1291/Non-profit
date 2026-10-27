@@ -91,8 +91,7 @@ export default function MindPage() {
   if (ledger.status === "loading") {
     return (
       <main className="container narrow" style={{ paddingTop: 44 }}>
-        <p className="eyebrow">{t("mm.yourKnowledge")}</p>
-        <h1 className="visually-small">{t("mm.yourKnowledge")}</h1>
+        <h1>{t("mm.yourKnowledge")}</h1>
         <p className="muted">{t("common.loading")}</p>
       </main>
     );
@@ -103,8 +102,7 @@ export default function MindPage() {
   if (ledger.status === "failed") {
     return (
       <main className="container narrow" style={{ paddingTop: 44 }}>
-        <p className="eyebrow">{t("mm.yourKnowledge")}</p>
-        <h1 className="visually-small">{t("mm.yourKnowledge")}</h1>
+        <h1>{t("mm.yourKnowledge")}</h1>
         <p className="small">{t("evv.ledgerFailed")}</p>
         <div className="actions">
           <button type="button" className="btn ghost" onClick={retry}>{t("evv.ledgerRetry")}</button>
@@ -117,8 +115,7 @@ export default function MindPage() {
   if (!data || data.events === 0) {
     return (
       <main className="container narrow" style={{ paddingTop: 48 }}>
-        <p className="eyebrow">{t("mm.yourKnowledge")}</p>
-        <h1 className="visually-small">{t("mm.yourKnowledge")}</h1>
+        <h1>{t("mm.yourKnowledge")}</h1>
         <p className="lead">{t("prog.empty")}</p>
         <div className="actions">
           {((state.profile.subjects ?? []) as SubjectId[]).map((s) => (
@@ -131,8 +128,7 @@ export default function MindPage() {
 
   return (
     <main className="container" style={{ paddingTop: 40 }}>
-      <p className="eyebrow">{t("mm.yourKnowledge")}</p>
-      <h1 className="visually-small">{t("mm.yourKnowledge")}</h1>
+      <h1>{t("mm.yourKnowledge")}</h1>
       {/* The honesty line the whole page rests on: everything here is counted
           from answers the learner actually gave. */}
       <p className="lead">{t("prog.sub")}</p>
@@ -160,7 +156,7 @@ export default function MindPage() {
                     rate, or an em-dash and the words "not yet measured" — a
                     dash must never read as a zero (§map). */}
                 <div style={{ marginTop: 6 }}>
-                  <Dims rows={dims(r)} showRate />
+                  <Dims rows={dims(r)} showRate collapse />
                 </div>
               </div>
             );

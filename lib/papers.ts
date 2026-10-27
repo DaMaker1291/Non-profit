@@ -19,6 +19,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { bySubject, getConcept } from "./genome";
+import { fill, translator } from "./i18n";
 import { subjectLabel } from "./subjects";
 import { coverageOf, specById, type ActiveSpec } from "./specifications";
 import { generateQuestion, generateQuestionNear, hasGenerator, hashSeed, serveView, type QuestionView } from "./questions";
@@ -76,6 +77,18 @@ const GCSE_BOUNDARIES: GradeBoundary[] = [
   { grade: "9", pct: 0.80 }, { grade: "8", pct: 0.70 }, { grade: "7", pct: 0.62 },
   { grade: "6", pct: 0.53 }, { grade: "5", pct: 0.44 }, { grade: "4", pct: 0.34 },
 ];
+const ALEVEL_BOUNDARIES: GradeBoundary[] = [
+  { grade: "A*", pct: 0.80 }, { grade: "A", pct: 0.70 }, { grade: "B", pct: 0.60 }, { grade: "C", pct: 0.50 },
+];
+const SAT_BOUNDARIES: GradeBoundary[] = [
+  { grade: "800", pct: 0.96 }, { grade: "700", pct: 0.85 }, { grade: "600", pct: 0.72 }, { grade: "500", pct: 0.58 },
+];
+const KCSE_BOUNDARIES: GradeBoundary[] = [
+  { grade: "A", pct: 0.8 }, { grade: "B", pct: 0.65 }, { grade: "C", pct: 0.5 }, { grade: "D", pct: 0.35 },
+];
+const NSC_BOUNDARIES: GradeBoundary[] = [
+  { grade: "7", pct: 0.8 }, { grade: "6", pct: 0.7 }, { grade: "5", pct: 0.6 }, { grade: "4", pct: 0.5 }, { grade: "3", pct: 0.4 },
+];
 
 export const PAPERS: PaperTemplate[] = [
   paper({
@@ -99,7 +112,7 @@ export const PAPERS: PaperTemplate[] = [
   paper({
     id: "aqa-alevel-maths-p1", name: "A-Level Mathematics — Paper 1 (Pure)",
     board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"],
-    boundaries: [{ grade: "A*", pct: 0.80 }, { grade: "A", pct: 0.70 }, { grade: "B", pct: 0.60 }, { grade: "C", pct: 0.50 }],
+    boundaries: ALEVEL_BOUNDARIES,
     sections: [
       { name: "Section A", count: 10, marksEach: 4, difficulty: 0.78 },
       { name: "Section B", count: 6, marksEach: 10, difficulty: 0.9 },
@@ -149,25 +162,46 @@ export const PAPERS: PaperTemplate[] = [
   paper({
     id: "digital-sat-math", name: "Digital SAT — Math module",
     subject: "maths", minutes: 35, calculator: true, specs: ["us-sat"],
-    boundaries: [{ grade: "800", pct: 0.96 }, { grade: "700", pct: 0.85 }, { grade: "600", pct: 0.72 }, { grade: "500", pct: 0.58 }],
+    boundaries: SAT_BOUNDARIES,
     sections: [{ name: "Module", count: 22, marksEach: 1, difficulty: 0.62 }],
+  }),
+  paper({
+    id: "digital-sat-math-2", name: "Digital SAT — Math module 2 (harder)",
+    subject: "maths", minutes: 35, calculator: true, specs: ["us-sat"], boundaries: SAT_BOUNDARIES,
+    sections: [{ name: "Module", count: 22, marksEach: 1, difficulty: 0.7 }],
   }),
   paper({
     id: "kcse-maths-p1", name: "KCSE Mathematics — Paper 1",
     subject: "maths", minutes: 150, calculator: false, specs: ["ke-kcse"],
-    boundaries: [{ grade: "A", pct: 0.8 }, { grade: "B", pct: 0.65 }, { grade: "C", pct: 0.5 }, { grade: "D", pct: 0.35 }],
+    boundaries: KCSE_BOUNDARIES,
     sections: [
       { name: "Section I", count: 16, marksEach: 2, difficulty: 0.45 },
       { name: "Section II", count: 5, marksEach: 10, difficulty: 0.7 },
     ],
   }),
   paper({
+    id: "kcse-maths-p2", name: "KCSE Mathematics — Paper 2",
+    subject: "maths", minutes: 150, calculator: false, specs: ["ke-kcse"], boundaries: KCSE_BOUNDARIES,
+    sections: [
+      { name: "Section I", count: 16, marksEach: 2, difficulty: 0.5 },
+      { name: "Section II", count: 5, marksEach: 10, difficulty: 0.78 },
+    ],
+  }),
+  paper({
     id: "caps-maths-p1", name: "NSC Mathematics — Paper 1 (CAPS)",
     subject: "maths", minutes: 180, calculator: true, specs: ["za-nsc"],
-    boundaries: [{ grade: "7", pct: 0.8 }, { grade: "6", pct: 0.7 }, { grade: "5", pct: 0.6 }, { grade: "4", pct: 0.5 }, { grade: "3", pct: 0.4 }],
+    boundaries: NSC_BOUNDARIES,
     sections: [
       { name: "Section A", count: 10, marksEach: 5, difficulty: 0.5 },
       { name: "Section B", count: 5, marksEach: 20, difficulty: 0.72 },
+    ],
+  }),
+  paper({
+    id: "caps-maths-p2", name: "NSC Mathematics — Paper 2 (CAPS)",
+    subject: "maths", minutes: 180, calculator: true, specs: ["za-nsc"], boundaries: NSC_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 10, marksEach: 5, difficulty: 0.55 },
+      { name: "Section B", count: 5, marksEach: 20, difficulty: 0.78 },
     ],
   }),
   paper({
@@ -197,6 +231,95 @@ export const PAPERS: PaperTemplate[] = [
       { name: "Section B", count: 6, marksEach: 5, difficulty: 0.6 },
     ],
   }),
+
+  // ── THE PAPERS AFTER PAPER 1 ────────────────────────────────────────────────
+  // A board's maths GCSE is THREE papers and a separate science is TWO, so a
+  // candidate who could only sit Paper 1 was practising a third or a half of
+  // their exam — and the two halves are not interchangeable: Paper 1 forbids a
+  // calculator and Paper 2 requires one, and Paper 2 is where the multi-step
+  // work and the required practicals live. These are the shapes the awarding
+  // bodies PUBLISH (marks, time, calculator rule, section weighting, tier);
+  // every question in them is still OpenMind's own, written to the
+  // specification — see the note at the top of this file.
+  paper({
+    id: "aqa-gcse-maths-p2", name: "GCSE Mathematics — Paper 2 (calculator)",
+    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 10, marksEach: 2, difficulty: 0.42 },
+      { name: "Section B", count: 12, marksEach: 4, difficulty: 0.58 },
+      { name: "Section C", count: 2, marksEach: 6, difficulty: 0.74 },
+    ],
+  }),
+  paper({
+    id: "aqa-gcse-maths-p3", name: "GCSE Mathematics — Paper 3 (calculator)",
+    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 12, marksEach: 2, difficulty: 0.45 },
+      { name: "Section B", count: 10, marksEach: 4, difficulty: 0.6 },
+      { name: "Section C", count: 2, marksEach: 8, difficulty: 0.76 },
+    ],
+  }),
+  paper({
+    id: "edexcel-gcse-maths-p2", name: "GCSE Mathematics — Paper 2 (calculator)",
+    board: "edexcel", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 12, marksEach: 2, difficulty: 0.42 },
+      { name: "Section B", count: 11, marksEach: 4, difficulty: 0.58 },
+      { name: "Section C", count: 2, marksEach: 6, difficulty: 0.74 },
+    ],
+  }),
+  paper({
+    id: "edexcel-gcse-maths-p3", name: "GCSE Mathematics — Paper 3 (calculator)",
+    board: "edexcel", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 12, marksEach: 2, difficulty: 0.46 },
+      { name: "Section B", count: 12, marksEach: 4, difficulty: 0.62 },
+      { name: "Section C", count: 1, marksEach: 8, difficulty: 0.78 },
+    ],
+  }),
+  paper({
+    id: "aqa-gcse-physics-p2", name: "GCSE Physics — Paper 2",
+    board: "aqa", subject: "physics", minutes: 105, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 20, marksEach: 2, difficulty: 0.5 },
+      { name: "Section B", count: 10, marksEach: 4, difficulty: 0.65 },
+      { name: "Section C", count: 4, marksEach: 5, difficulty: 0.78 },
+    ],
+  }),
+  paper({
+    id: "aqa-gcse-chemistry-p2", name: "GCSE Chemistry — Paper 2",
+    board: "aqa", subject: "chemistry", minutes: 105, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 20, marksEach: 2, difficulty: 0.48 },
+      { name: "Section B", count: 10, marksEach: 4, difficulty: 0.63 },
+      { name: "Section C", count: 4, marksEach: 5, difficulty: 0.76 },
+    ],
+  }),
+  paper({
+    id: "aqa-gcse-biology-p2", name: "GCSE Biology — Paper 2",
+    board: "aqa", subject: "biology", minutes: 105, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 20, marksEach: 2, difficulty: 0.45 },
+      { name: "Section B", count: 10, marksEach: 4, difficulty: 0.62 },
+      { name: "Section C", count: 4, marksEach: 5, difficulty: 0.74 },
+    ],
+  }),
+  paper({
+    id: "aqa-alevel-maths-p2", name: "A-Level Mathematics — Paper 2",
+    board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], boundaries: ALEVEL_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 10, marksEach: 4, difficulty: 0.8 },
+      { name: "Section B", count: 5, marksEach: 12, difficulty: 0.9 },
+    ],
+  }),
+  paper({
+    id: "aqa-alevel-maths-p3", name: "A-Level Mathematics — Paper 3",
+    board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], boundaries: ALEVEL_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 8, marksEach: 5, difficulty: 0.82 },
+      { name: "Section B", count: 4, marksEach: 15, difficulty: 0.92 },
+    ],
+  }),
 ];
 
 /** Papers available for a qualification (by spec id), optionally one subject. */
@@ -205,34 +328,77 @@ export function papersForSpec(specId: string, subject?: SubjectId): PaperTemplat
 }
 
 /**
- * A paper for a qualification that has no authored blueprint. Built from the
- * REAL difficulty band and coverage of that qualification's tier, and labelled
- * as what it is: an exam-style paper to the specification, not a board mock.
+ * Papers for a qualification that has no authored board blueprint. A SET, not
+ * one paper: a learner revising for an exam needs more than a single mock, and
+ * three was the smallest number that gives them a first pass, a harder pass and
+ * a full-length sitting. Every paper is built from the REAL difficulty band and
+ * coverage of that qualification's tier, and labelled as what it is: an
+ * exam-style paper to the specification, not a board mock.
+ *
+ * The three differ in SHAPE, not only in seed — a paper that merely drew
+ * different questions from the same sections would not be a different paper:
+ *
+ *   Paper 1  short answers — recall and one-step work, the first pass
+ *   Paper 2  extended response — fewer, longer questions at a higher target
+ *   Paper 3  full mock — the mixed length and breadth of a real sitting
  */
-export function genericPaper(active: ActiveSpec, subject: SubjectId, lang?: string): PaperTemplate {
+export function genericPapers(active: ActiveSpec, subject: SubjectId, lang?: string): PaperTemplate[] {
   const d = active.level.difficulty;
   const count = subject === "maths" ? 20 : 14;
-  return paper({
-    id: `spec-${active.spec.id}-${active.level.id}-${subject}`,
-    // The name is the translated subject, and nothing else: the qualification
-    // and tier are already the heading, so spelling out the raw subject id
-    // here is how "— maths paper" used to leak English into a translated UI.
-    name: subjectLabel(subject, lang),
-    subject,
-    minutes: Math.max(30, Math.round(count * 3.5)),
-    calculator: true,
-    specs: [active.spec.id],
-    boundaries: [
-      { grade: "A", pct: d + 0.15 },
-      { grade: "B", pct: d + 0.02 },
-      { grade: "C", pct: Math.max(0.3, d - 0.12) },
-      { grade: "Pass", pct: Math.max(0.2, d - 0.28) },
-    ],
-    sections: [
-      { name: "Short answers", count: Math.round(count * 0.6), marksEach: 2, difficulty: Math.max(0.2, d - 0.15) },
-      { name: "Longer questions", count: count - Math.round(count * 0.6), marksEach: 5, difficulty: d },
-    ],
-  });
+  // The NAME is UI, not data: the translated subject plus the paper's number,
+  // both of which the learner's language already has. Spelling out the raw
+  // subject id here is how "— maths paper" used to leak English into a
+  // translated page, and a hard-coded "Paper 2" would leak it again.
+  const label = subjectLabel(subject, lang);
+  const t = translator(lang ?? "en");
+  const named = (n: number) => `${label} · ${fill(t("pp.paper"), { n })}`;
+  const base = `spec-${active.spec.id}-${active.level.id}-${subject}`;
+  const boundaries: GradeBoundary[] = [
+    { grade: "A", pct: d + 0.15 },
+    { grade: "B", pct: d + 0.02 },
+    { grade: "C", pct: Math.max(0.3, d - 0.12) },
+    { grade: "Pass", pct: Math.max(0.2, d - 0.28) },
+  ];
+  const common = { subject, calculator: true, specs: [active.spec.id], boundaries };
+  const shortCount = Math.round(count * 0.6);
+  return [
+    paper({
+      ...common,
+      id: `${base}-p1`,
+      name: named(1),
+      minutes: Math.max(30, Math.round(count * 3)),
+      sections: [
+        { name: "Short answers", count: Math.round(count * 0.7), marksEach: 2, difficulty: Math.max(0.2, d - 0.2) },
+        { name: "Working", count: count - Math.round(count * 0.7), marksEach: 4, difficulty: Math.max(0.2, d - 0.08) },
+      ],
+    }),
+    paper({
+      ...common,
+      id: `${base}-p2`,
+      name: named(2),
+      minutes: Math.max(30, Math.round(count * 3.5)),
+      sections: [
+        { name: "Short answers", count: Math.round(count * 0.5), marksEach: 3, difficulty: Math.max(0.2, d - 0.1) },
+        { name: "Extended response", count: count - Math.round(count * 0.5), marksEach: 6, difficulty: Math.min(1, d + 0.1) },
+      ],
+    }),
+    paper({
+      ...common,
+      id: `${base}-p3`,
+      name: named(3),
+      minutes: Math.max(30, Math.round(count * 4)),
+      sections: [
+        { name: "Short answers", count: shortCount, marksEach: 2, difficulty: Math.max(0.2, d - 0.15) },
+        { name: "Longer questions", count: count - shortCount, marksEach: 5, difficulty: d },
+      ],
+    }),
+  ];
+}
+
+/** The first of the set, for callers that need exactly one paper: the default
+ *  offer, and the name/language contract the engine tests assert. */
+export function genericPaper(active: ActiveSpec, subject: SubjectId, lang?: string): PaperTemplate {
+  return genericPapers(active, subject, lang)[0];
 }
 
 /** The paper a student should be offered first: an authored board paper when

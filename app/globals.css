@@ -51,6 +51,20 @@
   --amber: #a9610a;
   --line: #dcdcd6;
   --line-soft: #e9e9e4;
+  /* `--rule` IS AN ALIAS, and it exists because a dozen components reached for
+     `var(--rule, #e5e7eb)` / `var(--rule, #ddd)` in inline styles — a token that
+     was never declared. The fallback is a LIGHT grey baked into the markup, so
+     in the dark palette those hairlines stayed bright white against a dark
+     surface, and in the light one they were a third grey the design system does
+     not use. Declaring the name once makes every one of those call sites read the
+     theme's own line colour, including the ones nobody remembers are there. */
+  --rule: var(--line);
+
+  /* --ui-stroke: a subtle stroke used on focused/selected elements.
+     It is kept pale so it never competes with the accent, and it is applied
+     as a border or ring rather than a colour change so it degrades gracefully.
+     One token so every component follows the same visual language. */
+  --ui-stroke: var(--line);
 
   /* Soft, restrained elevation. Two levels only: a surface resting on paper, and
      a surface lifted off another surface. Anything more and a dashboard starts
@@ -251,7 +265,10 @@ a { color: var(--text); text-decoration-color: var(--accent-line); text-decorati
    pointer. A link that changes colour on hover is decoration, not meaning. */
 a:hover { color: var(--accent-ink); }
 
-:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+:focus-visible { outline: 2px solid var(--ui-stroke); outline-offset: 2px; border-radius: var(--radius-btn); box-shadow: 0 0 0 2px var(--accent-soft); }
+
+/* Focus ring that appears WITH the accent ring for clear keyboard focus */
+:focus-visible.focus-accent { outline: 2px solid var(--ui-stroke); outline-offset: 2px; box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 4px var(--accent); }
 
 /* ── FORM CONTROLS INHERIT THE PRODUCT'S TYPE ───────────────────────────────
    A <select> or <input> with no class renders in the BROWSER's default UI face
@@ -315,6 +332,13 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 .sidebar::after {
   content: ""; position: absolute; inset-block: 0;
   inset-inline-end: 0; width: 2px; background: var(--accent);
+  box-shadow: 0 0 2px rgba(47, 74, 138, 0.3);
+}
+
+/* Subtle accent wash on the sidebar edge for depth - the exercise book
+   margin has a soft indigo tint that becomes part of the page's atmosphere */
+.sidebar {
+  /* This is already set via the ::after rule above */
 }
 
 .sidebar-logo {
@@ -382,6 +406,18 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 .sidebar .course-line b { display: block; font-size: var(--t14); }
 .sidebar .course-line span { display: block; font-size: var(--t12); color: var(--text-muted); }
 .sidebar .course-line:hover { border-color: var(--ui-strong); text-decoration: none; }
+/* The course card's second line: the subjects it covers, as a single quiet row
+   rather than one navigation entry each. It is a SUMMARY of what the course
+   contains and a link to the page that lists them, so it reads at caption
+   weight — a learner should be able to see their course without the sidebar
+   turning into a second curriculum map. */
+.sidebar-course { display: grid; gap: 2px; }
+.sidebar-subjects {
+  display: block; padding: 2px 12px 0;
+  font-size: var(--t12); color: var(--text-muted);
+  text-decoration: none;
+}
+.sidebar-subjects:hover { color: var(--text); }
 
 .shell-main { min-width: 0; display: flex; flex-direction: column; }
 
@@ -426,6 +462,26 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 /* The one element in the header that gives ground, and it gives it down to a
    readable stub before the row breaks elsewhere. */
 .context-strip { flex: 0 1 auto; min-width: 4.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* THE STRIP DROPS PARTS; IT DOES NOT CUT WORDS. The ellipsis above is a last
+   resort, because what it produced was "Mathematics Higher tier · GCSE · AQA ·
+   Year 10 · United Kingd…" — a fragment of a fact presented as a fact. The
+   parts are ordered by value (see components/context-strip.tsx), so the bar can
+   spend its width on the ones that tell a learner the most and retire the rest
+   at widths measured on the real header: at 1440 the country is the part that
+   does not fit, at 1280 the board goes too, and below 1120 there is not room
+   for a whole fact, so the strip steps aside exactly as it already does on a
+   phone. Every version ends on something true. */
+@media (max-width: 1559px) { .context-strip [data-ctx="country"] { display: none; } }
+/* 1399, not 1319: at 1280 the board and the year together were still 45px too
+   wide and the strip answered with "Year …" — measured in the header, after the
+   first version of this rule had already retired the country. The tier and the
+   qualification are the two parts the sidebar card does not say per subject;
+   they are the last two to go. */
+@media (max-width: 1399px) {
+  .context-strip [data-ctx="board"],
+  .context-strip [data-ctx="grade"] { display: none; }
+}
+@media (max-width: 1119px) { .context-strip { display: none; } }
 .topbar-spacer { flex: 1; }
 /* A control, not a paragraph. At 390px the sign-up button shrank and wrapped
    its own label onto THREE lines, which made the whole header 92px tall and
@@ -436,7 +492,15 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    1280px — with the search, the picker and the strip all asking for room — the
    product's sign-up button rendered as "Create …". A control whose label is cut
    is not a smaller control, it is an unreadable one. */
-.topbar > .btn { flex: none; white-space: nowrap; }
+.topbar > .btn { flex: none; white-space: nowrap; border-radius: var(--radius-btn) var(--radius-btn) 0 0; }
+
+/* Subtle bottom bar accent on phones - the exercise book's bottom navigation
+   gets a thin accent line that ties it to the sidebar's margin rule */
+.bottomnav {
+  border-top: 1.5px solid var(--line);
+  /* Subtle accent underline for visual grounding - ties bottom nav to sidebar margin */
+  border-image: var(--accent) 1 fill;
+}
 .topbar > .btn > .btn-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── The theme switch ──────────────────────────────────────────────────────
@@ -624,11 +688,29 @@ main { display: block; }
    by 700 with a hair of positive tracking. Hierarchy now comes from SIZE and
    SPACE, not from heaviness, which is also what keeps a page with twenty
    sections on it from turning into a wall. */
-.display, h1, h2.section, h3, h2.h2 {
+/* ── WHERE THE SERIF LIVES ─────────────────────────────────────────────────
+   The reading face is the product's signature, and it earns its place on the
+   things that are READ: page titles, section headings in prose, the marketing
+   headline, and lesson paragraphs (`.reading`). It was also setting every card
+   title and every sub-heading in the app — "Hello, …", "Your evidence", a
+   dashboard panel — which is a book's voice doing an interface's job. A learner
+   scanning a dashboard is not reading a page; a sans is quicker to scan and the
+   serif stops reading as decoration once it is used for reading alone.
+
+   So: h1 and h2.section stay serif (they open a page and its sections), and
+   h3/h2.h2 — which are card and panel titles — are set in the interface face. */
+.display, h1, h2.section {
   font-family: var(--font-read);
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.2;
+  color: var(--text);
+}
+h3, h2.h2 {
+  font-family: var(--font);
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  line-height: 1.25;
   color: var(--text);
 }
 /* A page title, not a billboard. The landing page asks for something louder and
@@ -722,8 +804,43 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
   transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
 }
 .btn:hover { background: var(--accent-ink); border-color: var(--accent-ink); color: var(--text-on-strong); text-decoration: none; box-shadow: var(--shadow-2); }
-.btn:active { box-shadow: var(--shadow-1); }
-.btn:disabled { opacity: 0.4; cursor: wait; }
+/* Subtle hover lift for primary buttons — professional learning sites have gentle elevation */
+.btn:hover { box-shadow: var(--shadow-2); }
+.btn:focus-visible {
+  outline: 2px solid var(--ui-stroke);
+  outline-offset: 2px;
+  border-radius: var(--radius-btn);
+  box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 4px var(--accent);
+}
+.btn:focus-visible.focus-accent {
+  outline: 2px solid var(--ui-stroke);
+  outline-offset: 2px;
+  border-radius: var(--radius-btn);
+  box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 4px var(--accent);
+}
+.btn:active { box-shadow: var(--shadow-1) inset 0 1px 3px rgba(0, 0, 0, 0.1); }
+/* A DISABLED BUTTON IS NOT A LOADING ONE. `opacity: 0.4` over the accent turned
+   the primary action into a washed lilac — on /solve, "Work out what I need" with
+   an empty box looked like a failed render, and on the enrolment wizard the
+   step's only action was a pale bar — while `cursor: wait` told the learner the
+   system was busy when the truth was that a field was empty. Neutral fill, muted
+   but legible label, and a cursor that says "not yet". */
+.btn:disabled {
+  cursor: not-allowed; opacity: 1;
+  background: var(--surface-sunken); color: var(--text-muted);
+  border-color: var(--line); box-shadow: none;
+}
+/* A DISABLED BUTTON IS NOT A LOADING ONE. `opacity: 0.4` over the accent turned
+   the primary action into a washed lilac — on /solve, "Work out what I need" with
+   an empty box looked like a failed render, and on the enrolment wizard the
+   step's only action was a pale bar — while `cursor: wait` told the learner the
+   system was busy when the truth was that a field was empty. Neutral fill, muted
+   but legible label, and a cursor that says "not yet". */
+.btn:disabled {
+  cursor: not-allowed; opacity: 1;
+  background: var(--surface-sunken); color: var(--text-muted);
+  border-color: var(--line); box-shadow: none;
+}
 .btn.ghost { background: transparent; color: var(--text); border-color: var(--line); box-shadow: none; }
 .btn.ghost:hover { background: var(--surface-sunken); color: var(--text); border-color: var(--ui-muted); box-shadow: none; }
 /* 44px, the smallest target a finger hits reliably. `small` means "secondary in
@@ -767,8 +884,16 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
   border-radius: var(--radius-card);
   padding: var(--s3);
   box-shadow: var(--shadow-1);
+  transition: border-color 0.1s ease, box-shadow 0.1s ease;
 }
-.card.soft { background: var(--surface-sunken); box-shadow: none; }
+.card:hover:not(.flat):not(.soft) {
+  border-color: var(--ui-strong);
+  box-shadow: var(--shadow-2);
+}
+.card.soft { background: var(--surface-sunken); box-shadow: none; transition: box-shadow 0.1s ease; }
+.card.soft:hover {
+  box-shadow: var(--shadow-1);
+}
 .card.flat { box-shadow: none; }
 /* The one card on a page that dominates it. Home has exactly one.
    It earns that by size and by the accent edge, not by a heavy border — the
@@ -779,9 +904,20 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
   padding: var(--s4);
   box-shadow: var(--shadow-2);
   background: linear-gradient(180deg, var(--accent-soft) 0%, var(--surface) 120px);
+  transition: box-shadow 0.1s ease;
 }
+.card.primary:hover {
+  box-shadow: var(--shadow-3);
+}
+/* Subtle elevation on focus for keyboard accessibility */
+.card:focus-visible { outline: var(--accent-line); outline-offset: 2px; box-shadow: 0 0 0 2px var(--accent-soft); }
 
 .grid { display: grid; gap: var(--s2); }
+
+/* Card subtle lift on hover - professional learning sites have gentle elevation */
+.card:not(.flat):not(.soft):hover {
+  box-shadow: var(--shadow-2);
+}
 .grid.cols2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .grid.cols3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .grid.cols4 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
@@ -818,6 +954,8 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
 }
 .choice.sel .mark { background: var(--ui-strong); border-color: var(--ui-strong); }
 .choice.sel .mark::before { color: var(--text-on-strong); }
+/* Subtle selection glow when an option is revealed correct - professional touch */
+.choice.reveal.sel { box-shadow: 0 0 0 3px var(--accent-soft) inset; }
 .choice.ok { border-color: var(--mark-correct); background: color-mix(in srgb, var(--mark-correct) 8%, var(--surface)); }
 .choice.ok .mark { background: var(--mark-correct); border-color: var(--mark-correct); }
 .choice.ok .mark::before { content: "✓"; color: var(--text-on-strong); }
@@ -994,13 +1132,31 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
 @media (max-width: 560px) { .work-paper { min-height: 120px; } }
 
 /* ── The exercise sheet: the diagnostic's and the session's workings box ── */
+/* THE PANEL AND THE ANSWER BOOK ARE TWO DIFFERENT THINGS, and this class was
+   doing both jobs. The 2px near-black frame, the hard drop shadow and the 72px
+   left gutter exist for a NUMBERED exam question — the ruled-paper margin the
+   number sits in. Twelve other places borrowed the class as a plain panel: the
+   enrolment form, the account summary, the paper picker, the teacher's class
+   form. Each of those was framed like a question and inset 72px from a margin
+   that had no number in it, so a form field started a third of the way across a
+   card for no reason a learner could see (measured on /onboarding: card edge
+   507px, first field 578px, nothing drawn in the 71px between).
+
+   So the numbered question keeps the book's own shape — and ONLY a numbered
+   question gets it, decided by the presence of the number itself rather than by
+   a second class every caller would have to remember to add. */
 .exercise {
   position: relative;
-  border: 2px solid var(--ui-strong); border-radius: var(--radius-card);
-  background: var(--surface); box-shadow: 0 3px 0 rgba(23, 41, 59, 0.12);
+  border: 1px solid var(--line); border-radius: var(--radius-card);
+  background: var(--surface); box-shadow: var(--shadow-1);
+  padding: var(--s3);
+}
+.exercise:has(.qnum) {
+  border: 2px solid var(--ui-strong);
+  box-shadow: 0 3px 0 rgba(23, 41, 59, 0.12);
   padding: var(--s3) var(--s3) var(--s3) 72px;
 }
-[dir="rtl"] .exercise { padding: var(--s3) 72px var(--s3) var(--s3); }
+[dir="rtl"] .exercise:has(.qnum) { padding: var(--s3) 72px var(--s3) var(--s3); }
 .exercise .qnum {
   position: absolute; inset-inline-start: 22px; top: var(--s3);
   font-size: var(--t15); font-weight: 700; color: var(--text-muted);
@@ -1112,7 +1268,39 @@ button.chip[aria-pressed="false"] { background: transparent; }
 .concept-row .grow { flex: 1; min-width: 0; }
 .concept-row b { display: block; font-size: var(--t16); }
 .concept-row .blurb { color: var(--text-muted); font-size: var(--t13-5); }
-.concept-row .state { flex: none; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 300px; }
+/* THE ROW'S STATUS CELL, and NOT `.state`. It borrowed that class name, which
+   the product also uses for a whole-page empty state — an element with a dashed
+   border, a surface fill and 24px of padding. So every concept row in the list
+   drew a small dashed panel beside it, empty on most rows, and the list read as
+   broken rather than as a series of rows. Own class, own rule. */
+.concept-row .concept-state { flex: none; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 300px; }
+
+/* ── The subject's own summary, above its list ────────────────────────────
+   How much of the course is measured, and the one idea to start with. The
+   count is a fraction of the learner's COURSE, not of the platform, and the bar
+   is the same device Home uses for the same fact — one reading, one look. */
+/* The title and the page's one action, on one line; the action wraps under the
+   title on a narrow screen rather than competing with it. */
+.page-title-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s2); flex-wrap: wrap;
+}
+.subject-summary { margin: var(--s2) 0 var(--s3); }
+.subject-summary > div:first-child { max-width: 520px; }
+.subject-count {
+  margin: 0; font-size: var(--t15); font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.subject-count .num { font-size: var(--t22); font-weight: 750; letter-spacing: -0.02em; }
+.subject-summary .coverage-bar { margin: 8px 0 0; }
+.subject-next { flex: none; }
+/* The course line under the summary: the qualification's chips and how much of
+   this list it covers, on one line. It wraps under them on a phone rather than
+   shrinking the chips to unreadable stubs. */
+.subject-course-line {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 0 0 var(--s3);
+}
 
 /* ── The stage band headings on Learn ── */
 .stage-label {
@@ -1268,8 +1456,52 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: var(--t14); }
    a section — several components had reached for `margin: 0` inline to say so. */
 .flush { margin: 0; }
 
+/* ── THE COURSE CARD ──────────────────────────────────────────────────────
+   The fact every question, paper and word on Home follows from, in the place a
+   school platform puts it: above the greeting, on one line, with the way to
+   change it. It used to be three codes in the eyebrow position — country, board
+   and exam as metadata — which is where a learner looks for a label, not a
+   course.
+
+   IT IS THE NO-SIDEBAR HEADER. From 901px up the same course is already named
+   twice in the shell — the sidebar's own course card, and the course strip in
+   the topbar — so Home was opening with "YOUR CURRICULUM / United Kingdom · GCSE
+   · Higher tier · Year 10" in a bordered box, directly beneath the same sentence
+   in the topbar and beside the same sentence in the sidebar, before the
+   learner's own name. The card's job is to carry the course where the shell
+   cannot: below 900px there is no sidebar and no strip (both switched off at
+   that breakpoint, for the same reason), so Home is the one place that names it.
+   The page leads with the greeting wherever the shell can answer, and with the
+   course wherever it cannot. */
+.course-card {
+  border: 1.5px solid var(--line); border-radius: var(--radius-card);
+  background: var(--surface); padding: 12px 16px; margin: 0 0 var(--s3);
+}
+@media (min-width: 901px) { .course-card { display: none; } }
+.course-card-line {
+  margin: 4px 0 2px; font-size: var(--t16); font-weight: 700;
+  letter-spacing: -0.005em;
+}
+.course-card-foot { margin: 0; }
+
 /* One panel of Home. Three of them share this: the record, the goal, the day. */
 .home-panel { padding: 18px; margin: 0 0 16px; }
+/* HOW MUCH OF THE COURSE IS MEASURED, as a bar under the counts. It has to read
+   as a quantity rather than as a score out of a hundred: the fill is the
+   learner's own recorded work, the track is the course they enrolled on. */
+/* THE TROUGH HAS TO BE VISIBLE, OR THE BAR READS AS A STRAY TICK. The track was
+   `--surface-sunken` with a `--line-soft` edge, and the panel it lives in is
+   `--surface-sunken` too — so at 7% fill (a learner with 9 of 122 concepts) the
+   only thing on screen was a short dark dash floating between two rows, which
+   looks like a rendering fault rather than a quantity. Surface + the theme's own
+   line colour gives it a trough on paper and on a soft panel alike. */
+.coverage-bar {
+  height: 6px; border-radius: 3px; margin: 12px 0 2px;
+  background: var(--surface); border: 1px solid var(--line);
+  overflow: hidden;
+}
+.coverage-bar span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+
 /* The up-to-three proved concepts, held 10px below the heading. */
 .home-rows { margin: 10px 0 2px; }
 /* The four counts, 8px under whatever precedes them. */
@@ -1307,13 +1539,24 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: var(--t14); }
    from this sentence on purpose: the accent tripwire counts a mention in a
    comment the same as a use in a rule, which is the conservative reading.) */
 .card.next-rest { border-left: 4px solid var(--mark-correct); }
-.card.primary.next-head { border-left: 4px solid var(--mark-wrong); }
+/* THE DECISION CARD IS NOT AN ERROR. It was edged in `--mark-wrong` — the
+   marking red, which this stylesheet reserves for a wrong answer and says so —
+   so the one card a learner should read first was framed in the colour the rest
+   of the product uses to say "you got it wrong". The accent is the colour of
+   "this is yours to do", and the 4px edge is what makes it the page's focal
+   point; the red was neither.
+
+   `border-inline-start`, not `border-left`, for the same reason every other
+   edge rule uses it: in RTL the margin is on the other side. */
+.card.primary.next-head { border-inline-start: 4px solid var(--accent); }
 /* The caught-up card's one line of reason. */
 .next-rest-reason { margin: 8px 0 0; }
-/* What the record has shown, and what it has not. */
-.next-split { margin: 10px 0 2px; }
+/* What the record has shown, and what it has not — now BELOW the action it
+   supports (see components/next-step.tsx), so it only needs to hold the CTA off
+   its own last line. */
+.next-split { margin: 0 0 16px; }
 .next-pending { margin: 6px 0 0; }
-.next-chip { margin-left: 6px; }
+.next-chip { margin-inline-start: 6px; }
 /* The action's own name, at the size of a decision rather than a paragraph. */
 .next-title { margin: 10px 0 6px; font-size: var(--t22); font-weight: 700; letter-spacing: -0.01em; }
 .next-reason { margin: 0 0 14px; }
@@ -1358,6 +1601,13 @@ input[type="date"], input[type="search"], input[type="tel"], input[type="url"], 
 }
 input:focus, select:focus, textarea:focus { outline: 2.5px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--mark-wrong); }
+/* A CONTROL HAS A MEASURE. These are `width: 100%`, which is right inside a
+   narrow form and wrong on a 1100px page: /curriculum's three selects were each
+   eleven hundred pixels wide to hold "GCSE", so the field read as a banner and
+   the eye had to travel the whole page to find the value. 520px is wider than
+   any option in the product (the longest is a country + system pair) and short
+   enough to scan. Textareas are exempt — a box you write in may use the room. */
+.field > input, .field > select, .card > input, .card > select { max-width: 520px; }
 .field-error { display: block; margin-top: 6px; font-size: var(--t13); color: var(--mark-wrong); }
 /* The wizard's own "what Next is waiting for" line. A disabled button with no
    sentence beside it is a wall; this sits immediately above the button row so
@@ -1443,6 +1693,16 @@ input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--ma
   color: var(--text-muted); font-size: var(--t13-5);
 }
 .footer .container { display: flex; gap: var(--s2); flex-wrap: wrap; justify-content: space-between; align-items: center; }
+/* THE ♿ CONTROL IS FIXED, SO THE FOOTER HAS TO KEEP OUT OF ITS CORNER. It is
+   46px wide at 14px from the edge, and the footer's right-hand sentence ran
+   under it: measured at 1440px the line ended at 1416 and the button spanned
+   1380–1426, so the last thing a learner read at the bottom of every page was
+   "15 languag" with a circle drawn over it. The lane is reserved only where the
+   control actually sits in the corner — at ≤900px it is lifted clear of the
+   phone bar (see that block) and the footer stacks. */
+@media (min-width: 901px) {
+  .footer .container { padding-inline-end: 64px; }
+}
 
 /* ── Sample question beside the pitch (landing only) ── */
 .sample-wrap { display: grid; gap: var(--s3); grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
@@ -1637,6 +1897,10 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
 .dim-k { font-size: var(--t14); color: var(--text-soft); }
 .dim-v { font-size: var(--t14); font-weight: 650; }
 .dim-v.empty, .dim-v.gap { color: var(--text-muted); font-weight: 500; font-style: italic; }
+/* The unmeasured dimensions of a concept in ONE line (see components/dims.tsx):
+   two columns, because there is no meter to sit between the label and the
+   names. */
+.dim.dim-absent { grid-template-columns: minmax(96px, 132px) minmax(0, 1fr); }
 .meter { display: inline-flex; gap: 3px; align-items: center; min-width: 74px; }
 .meter i {
   width: 11px; height: 11px; border-radius: 3px;
@@ -1685,10 +1949,108 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
    Three devices, all borrowed from the exercise book rather than from a
    dashboard: the loop as a ruled line across the page, the figures in the
    margin beside the working, and every claim set beside its source. ── */
+/* ── THE FRONT PAGE'S OWN DEVICES ──────────────────────────────────────────
+   A visitor's page may say more than a working page does, but it still answers
+   in the product's own materials: measured figures, ruled rows, one margin
+   label. Nothing here is a marketing tile with a drop shadow. */
+
+/* THE PROOF STRIP: four measured facts. The number is the largest thing and the
+   label is its caption, because the number is the claim — not a friendly icon
+   with a slogan under it. */
+.proof-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--s2); margin: var(--s3) 0 0;
+  border-block: 1px solid var(--line-soft); padding: var(--s2) 0;
+}
+.proof-strip dt {
+  font-family: var(--font); font-size: clamp(26px, 3vw, 34px); font-weight: 750;
+  letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.proof-strip dd {
+  margin: 6px 0 0; font-family: var(--mono); font-size: var(--t11);
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted);
+}
+/* THREE FACTS ON A PHONE, NOT TWO AND AN ORPHAN. `auto-fit` fits two 150px
+   tracks into 390px, so the third figure dropped to a row of its own beside an
+   empty cell and its label — "Course / qualification", the only two-word one —
+   wrapped to two lines in a 118px column. The third takes the full width of its
+   own row instead, which is a deliberate band rather than a leftover. */
+@media (max-width: 640px) {
+  .proof-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .proof-strip > div:last-child { grid-column: 1 / -1; }
+  .proof-strip dd { font-size: var(--t10-5); }
+}
+
+/* THE LOOP, AS STEPS. The number is real order — read, practise, prove,
+   transfer is the sequence the product actually asks for — so it earns its
+   place, and the band reads as a process rather than four nouns. */
 .loopband {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  list-style: none;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--s2);
   border-block: 1px solid var(--line-soft);
-  padding: var(--s2) 0; margin: 0 0 var(--s4);
+  padding: var(--s3) 0; margin: 0;
+}
+.loopband .loop-step {
+  display: flex; align-items: baseline; gap: 10px;
+  font-size: var(--t16); font-weight: 650;
+}
+.loopband .loop-n {
+  font-family: var(--mono); font-size: var(--t11); letter-spacing: 0.12em;
+  color: var(--text-muted); font-weight: 500;
+}
+
+/* FIVE CARDS, TWO FULL ROWS. `.cols2` is `auto-fit minmax(280px, 1fr)` — a name
+   that promises two columns and draws THREE at a desktop width — so the fifth
+   card sat alone against an empty third of its row, which reads as a card that
+   failed to load. Six tracks with two-wide cards puts three on the first row and
+   two half-width ones on the second: both rows are full, and no card is
+   stretched to fake it. */
+.front-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--s2); }
+.front-grid > * { grid-column: span 2; }
+.front-grid > :nth-child(4), .front-grid > :nth-child(5) { grid-column: span 3; }
+@media (max-width: 900px) {
+  .front-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .front-grid > *, .front-grid > :nth-child(4), .front-grid > :nth-child(5) { grid-column: span 1; }
+}
+@media (max-width: 560px) {
+  .front-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* A sitemap card: title, why, and where it goes. The link is the whole card, so
+   the "go" line is a label rather than a second target. */
+.feature-card {
+  display: flex; flex-direction: column; gap: 6px;
+  text-decoration: none; min-height: 132px;
+}
+.feature-card b { font-size: var(--t16); }
+.feature-card .blurb { color: var(--text-muted); font-size: var(--t13-5); flex: 1; }
+.feature-card .go {
+  font-family: var(--mono); font-size: var(--t11); letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.feature-card:hover { border-color: var(--ui-strong); text-decoration: none; }
+
+/* THE COVERAGE TABLE. A school reads numbers in a table, and a table also makes
+   the claim scannable: subject, how many ideas, how deep the practice goes. */
+.coverage { width: 100%; border-collapse: collapse; }
+.coverage th, .coverage td {
+  text-align: start; padding: 11px 4px;
+  border-bottom: 1px solid var(--line-soft); font-size: var(--t15);
+}
+.coverage thead th {
+  font-family: var(--mono); font-size: var(--t11); font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted);
+  border-bottom: 1px solid var(--line);
+}
+.coverage tbody th { font-weight: 650; }
+.coverage .num { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.coverage tbody tr:last-child th, .coverage tbody tr:last-child td { border-bottom: none; }
+/* The depth column is the SAME figure on every row (every subject's bank reaches
+   the deepest band), so on a phone it costs a third of the table's width to say
+   one thing five times. The claim stays on the widths that can afford it. */
+@media (max-width: 640px) {
+  .coverage thead th:last-child, .coverage tbody td:last-child { display: none; }
 }
 
 /* The working on one side, the figures you used beside it — the layout of a
@@ -1808,6 +2170,15 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
   .shell { grid-template-columns: minmax(0, 1fr); }
   .sidebar { display: none; }
   .bottomnav { display: flex; }
+  /* NO SIDEBAR, SO NO STRIP — ONE STATEMENT OF THE COURSE PER SCREEN.
+     The strip exists because the sidebar cannot be moved onto a phone; while the
+     sidebar IS on screen, the same course is already named in it, and Home adds
+     a third copy. Below this width the shell's own course card is the thing that
+     names it (and Home's course card is switched on at the same breakpoint, see
+     `.course-card`). Measured at 800px before this rule: the strip had been
+     squeezed to a single "United Kingdom…", which is a fragment of a fact rather
+     than the fact — the same defect the ≤640px block records. */
+  .context-strip { display: none; }
   /* The tutor becomes a sheet over the question (§tutor): one tap to open,
      the question still there behind it, never a separate page. */
   .work { grid-template-columns: minmax(0, 1fr); }
@@ -1856,8 +2227,9 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
      returns 22px to the text; the RTL rule mirrors it, so the margin is still on
      the side the script starts from. Scope is the ≤640px block only: desktop
      sizing is deliberately untouched. */
-  .exercise { padding: 18px 18px 18px 40px; }
-  [dir="rtl"] .exercise { padding: 18px 40px 18px 18px; }
+  .exercise { padding: 18px; }
+  .exercise:has(.qnum) { padding: 18px 18px 18px 40px; }
+  [dir="rtl"] .exercise:has(.qnum) { padding: 18px 40px 18px 18px; }
   /* The run-in number is ABSOLUTE, so it does not push the text: it has to END
      before the text column BEGINS, or it prints through the first line. It is
      MONOSPACE and always three glyphs (`String(n).padStart(2, "0")` + "." —
@@ -1870,7 +2242,7 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
   .exercise .qnum { inset-inline-start: 8px; font-size: var(--t13); }
   .topbar-search { display: none; }
   .concept-row { align-items: flex-start; flex-direction: column; gap: 6px; }
-  .concept-row .state { justify-content: flex-start; }
+  .concept-row .concept-state { justify-content: flex-start; }
   .wizard-progress .dots i { height: 3px; }
   /* The phone's header, sized to fit ONE line. Measured at 390px before this:
      brand 87 + language picker 97 + theme 42 + a button that would not shrink
@@ -1990,11 +2362,19 @@ html.low-power .card { box-shadow: none; }
    plus three 8px gaps puts the concept column exactly where the heading's
    `flex: 1` label starts. */
 .own-row-head { display: flex; gap: 8px; }
-.own-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 8px; align-items: center; margin-top: 6px; }
+.own-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 8px; align-items: end; margin-top: 6px; }
 .own-row > select { grid-column: 1 / -1; min-width: 0; }
+/* A LABEL PER BOX ON THE PHONE, because the column headings are the thing that
+   goes when the concept takes its own row. Hiding the heading alone left three
+   bare boxes reading "1 / 1 / 0" — a learner could not tell the question number
+   from the marks from the mark awarded, which is exactly what this form asks. */
+.own-cell { display: grid; gap: 3px; min-width: 0; }
+.own-cell > span { font-size: var(--t11); color: var(--text-muted); }
 @media (min-width: 640px) {
-  .own-row { grid-template-columns: 70px 70px 70px minmax(0, 1fr) auto; }
+  .own-row { grid-template-columns: 70px 70px 70px minmax(0, 1fr) auto; align-items: center; }
   .own-row > select { grid-column: auto; }
+  .own-cell { display: block; }
+  .own-cell > span { display: none; }
 }
 @media (max-width: 639px) {
   .own-row-head { display: none; }

@@ -10,6 +10,15 @@ import { peerMark } from "@/lib/api/client";
 export default function PeerTeach({ lesson, conceptTitle, conceptId }: { lesson: string; conceptTitle: string; conceptId: string }) {
   const { t } = useI18n();
   const [text, setText] = useState("");
+  // THE EXAMPLE MUST BE ABOUT THE THING ON SCREEN. This box carried one authored
+  // placeholder for the whole product — "e.g. Photosynthesis is how plants turn
+  // light into food…" — so a fractions lesson showed a stranger's biology
+  // sentence as the model answer for explaining fractions, and every one of the
+  // 119 non-biology concepts did the same. The one place that sentence is right
+  // is the concept it describes; everywhere else the prompt names the concept
+  // being explained, which is the only honest hint available without translating
+  // an example for every concept into fifteen languages.
+  const placeholder = conceptId === "photosynthesis" ? t("peer.placeholder") : conceptTitle;
   const [fb, setFb] = useState<string | null>(null);
   return (
     <section className="card soft" style={{ marginTop: 18 }}>
@@ -19,7 +28,7 @@ export default function PeerTeach({ lesson, conceptTitle, conceptId }: { lesson:
         rows={3}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={t("peer.placeholder")}
+        placeholder={placeholder}
         style={{ width: "100%" }}
       />
       <button

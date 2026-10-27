@@ -24,7 +24,14 @@
 //                                                down exist AND the footer is the
 //                                                last child of .shell-main
 //   · curriculum has neither content nor a
-//     proper empty state                       → asserted on the served markup
+//     proper empty state                       → the served document must be the
+//                                                app's BOOT state (the page is a
+//                                                client component, so that is all a
+//                                                fetch can see), the route's render
+//                                                path must hold a content branch and
+//                                                an honest no-record one, and the
+//                                                RENDERED page is walked in a real
+//                                                browser by scripts/ui-walk.mjs
 //
 // LAYERS, and what each is allowed to prove. This script runs over the PRODUCTION
 // build and checks the served bytes: the markup, and the stylesheet that the
@@ -148,14 +155,32 @@ try {
   group("R5 · curriculum shows content or a real empty state");
   const curr = await (await fetch(`${BASE}/curriculum`)).text();
   const ct = text(curr);
-  const mainOnly = ct.slice(ct.indexOf("curriculum") > -1 ? 0 : 0);
-  const hasRealContent = /concept|stage|subject|specification|qualification|board|course/i.test(mainOnly);
-  const hasEmptyState = /(set up|choose|start learning|get started|no .*yet|add |pick )/i.test(mainOnly);
-  ok(hasRealContent || hasEmptyState, "curriculum shows curriculum content or a useful empty state");
-  // A bare spinner is NOT an empty state. The gate is on the words, not the markup.
-  ok(!/^\s*(loading|please wait|…)\s*$/i.test(mainOnly.trim().slice(0, 200)) || hasRealContent || hasEmptyState,
-     "curriculum is not left on a bare loading message");
-  ok(ct.length > 200, "curriculum serves real copy", `${ct.length} chars`);
+  // CORRECTED INSTRUMENT, and this was the whole of the defect. `/curriculum` is
+  // a CLIENT page, so the bytes the server sends are the route guard's BOOT state
+  // — `<p class="muted">Loading…</p>` inside its main — for a visitor and a
+  // learner alike, because the guard cannot decide before the session probe
+  // answers. This assertion scraped that text for /concept|subject|board|course/
+  // and so passed on the VISITOR SIDEBAR's own words ("Subjects", the platform's
+  // subject list): it was reading the shell and calling it the page. It began
+  // failing the moment the visitor's navigation stopped listing subjects — a
+  // correction to the shell, with the curriculum screen itself unchanged and
+  // still rendering. So the served document is asserted to BE the boot state, and
+  // the route's own render path is asserted to hold both a content branch and an
+  // honest no-record one. The RENDERED page is a browser's answer and is claimed
+  // there: scripts/ui-walk.mjs opens /curriculum, waits for the course control
+  // and drives it (asserted in the UI walk, not here).
+  ok(/role="status"/.test(curr) && /<main/.test(curr),
+     "curriculum serves the app's boot state, not an error page or an empty body");
+  const currSrc = fs.readFileSync("app/curriculum/page.tsx", "utf8");
+  ok(/coverageReport\(active\)|curr\.sub/.test(currSrc),
+     "the curriculum route renders a content branch — the course, its tiers and the coverage panel");
+  ok(/curr\.noProfile/.test(currSrc) && /href="\/onboarding"/.test(currSrc),
+     "and an honest empty state for a learner with no record, carrying the way in");
+  // A bare "Loading…" DOCUMENT is not a page: the shell (nav, footer) must be
+  // there around the boot state, which is what says the app served rather than
+  // threw. The gate is on the words, not the markup.
+  ok(ct.length > 200 && !/^(loading|please wait|…)/i.test(ct.trim()),
+     "curriculum serves the whole shell around the boot state, not a bare loading message", `${ct.length} chars`);
 
   // R5b · every design token a surface uses must actually EXIST.
   // `var(--accent)` was used once with no fallback and is not a token this design

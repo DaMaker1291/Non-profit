@@ -211,7 +211,15 @@ export default function AccountPage() {
 
   return (
     <main className="container narrow" style={{ paddingTop: 32, maxWidth: 720 }}>
-      <p className="eyebrow"><span className="no">◉</span> {t("acct.title")}</p>
+      {/* NO EYEBROW ABOVE A HEADING THAT REPEATS IT. Every no-account branch
+          below sets its own <h1> to `acct.title`, so "◉ Your account" over
+          "Your account" stated the page's name twice in two sizes — the same
+          duplication the rest of the shell was scrubbed of. The label is kept
+          for the signed-in page, where the <h1> is the learner's own address
+          and the eyebrow is the only thing naming the page. */}
+      {ready && session.account && (
+        <p className="eyebrow"><span className="no">◉</span> {t("acct.title")}</p>
+      )}
 
       {/* Whose work is this screen showing, and who else uses this phone. It
           renders nothing when there is only one learner on the device. */}

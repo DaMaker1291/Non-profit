@@ -1060,6 +1060,7 @@ const en: Dict = {
   "pp.prev": "Previous",
   "pp.next": "Next",
   "pp.grid": "Jump to a question",
+  "pp.paper": "Paper {n}",
   "pp.correct": "Correct",
   "pp.incorrect": "Incorrect",
   "pp.blank": "Not attempted",
@@ -2579,6 +2580,7 @@ const es: Dict = {
   "pp.prev": "Anterior",
   "pp.next": "Siguiente",
   "pp.grid": "Ir a una pregunta",
+  "pp.paper": "Examen {n}",
   "pp.correct": "Correcta",
   "pp.incorrect": "Incorrecta",
   "pp.blank": "Sin responder",
@@ -4099,6 +4101,7 @@ const fr: Dict = {
   "pp.prev": "Précédent",
   "pp.next": "Suivant",
   "pp.grid": "Aller à une question",
+  "pp.paper": "Sujet {n}",
   "pp.correct": "Correct",
   "pp.incorrect": "Incorrect",
   "pp.blank": "Non tentée",
@@ -5619,6 +5622,7 @@ const pt: Dict = {
   "pp.prev": "Anterior",
   "pp.next": "Seguinte",
   "pp.grid": "Ir para uma questão",
+  "pp.paper": "Prova {n}",
   "pp.correct": "Correta",
   "pp.incorrect": "Incorreta",
   "pp.blank": "Não respondida",
@@ -7139,6 +7143,7 @@ const ar: Dict = {
   "pp.prev": "السابق",
   "pp.next": "التالي",
   "pp.grid": "انتقل إلى سؤال",
+  "pp.paper": "ورقة {n}",
   "pp.correct": "صحيح",
   "pp.incorrect": "خطأ",
   "pp.blank": "لم تُحل",
@@ -8659,6 +8664,7 @@ const sw: Dict = {
   "pp.prev": "Iliyotangulia",
   "pp.next": "Ifuatayo",
   "pp.grid": "Rukia swali",
+  "pp.paper": "Mtihani {n}",
   "pp.correct": "Sahihi",
   "pp.incorrect": "Si sahihi",
   "pp.blank": "Haijajibiwa",
@@ -10179,6 +10185,7 @@ const hi: Dict = {
   "pp.prev": "पिछला",
   "pp.next": "अगला",
   "pp.grid": "किसी प्रश्न पर जाएँ",
+  "pp.paper": "पेपर {n}",
   "pp.correct": "सही",
   "pp.incorrect": "गलत",
   "pp.blank": "अनुत्तरित",
@@ -11699,6 +11706,7 @@ const id: Dict = {
   "pp.prev": "Sebelumnya",
   "pp.next": "Berikutnya",
   "pp.grid": "Lompat ke soal",
+  "pp.paper": "Kertas {n}",
   "pp.correct": "Benar",
   "pp.incorrect": "Salah",
   "pp.blank": "Tidak dijawab",
@@ -13220,6 +13228,7 @@ const tl: Dict = {
   "pp.prev": "Nakaraan",
   "pp.next": "Susunod",
   "pp.grid": "Pumunta sa isang tanong",
+  "pp.paper": "Papel {n}",
   "pp.correct": "Tama",
   "pp.incorrect": "Mali",
   "pp.blank": "Hindi sinagutan",
@@ -14800,6 +14809,7 @@ const de: Dict = {
   "pp.prev": "Zurück",
   "pp.next": "Weiter",
   "pp.grid": "Zu einer Aufgabe springen",
+  "pp.paper": "Klausur {n}",
   "pp.correct": "Richtig",
   "pp.incorrect": "Falsch",
   "pp.blank": "Nicht bearbeitet",
@@ -16379,6 +16389,7 @@ const ja: Dict = {
   "pp.prev": "前へ",
   "pp.next": "次へ",
   "pp.grid": "問題へ移動",
+  "pp.paper": "第{n}回",
   "pp.correct": "正解",
   "pp.incorrect": "不正解",
   "pp.blank": "未解答",
@@ -17868,6 +17879,7 @@ const zh: Dict = {
   "pp.prev": "上一题",
   "pp.next": "下一题",
   "pp.grid": "跳到某题",
+  "pp.paper": "第{n}套",
   "pp.correct": "正确",
   "pp.incorrect": "错误",
   "pp.blank": "未作答",
@@ -19357,6 +19369,7 @@ const fa: Dict = {
   "pp.prev": "قبلی",
   "pp.next": "بعدی",
   "pp.grid": "رفتن به یک پرسش",
+  "pp.paper": "برگه {n}",
   "pp.correct": "درست",
   "pp.incorrect": "نادرست",
   "pp.blank": "بی‌پاسخ",
@@ -20846,6 +20859,7 @@ const ur: Dict = {
   "pp.prev": "پچھلا",
   "pp.next": "اگلا",
   "pp.grid": "کسی سوال پر جائیں",
+  "pp.paper": "پرچہ {n}",
   "pp.correct": "درست",
   "pp.incorrect": "غلط",
   "pp.blank": "جواب نہیں دیا",
@@ -22418,6 +22432,7 @@ export const bn: Dict = {
   "pp.prev": "আগের",
   "pp.next": "পরের",
   "pp.grid": "একটি প্রশ্নে যান",
+  "pp.paper": "প্রশ্নপত্র {n}",
   "pp.correct": "সঠিক",
   "pp.incorrect": "ভুল",
   "pp.blank": "উত্তর দেওয়া হয়নি",
@@ -22778,12 +22793,37 @@ export function fill(s: string, vars: Record<string, string | number>): string {
   );
 }
 
+/** THE UI'S LANGUAGE ID IS NOT A LOCALE, and this is the ONE place that is
+ *  decided. A dictionary code names a LANGUAGE, not a region, and `Intl`
+ *  resolves a bare `en` to the AMERICAN default — so `toLocaleDateString("en")`
+ *  printed `10/26/2026`, month first, on a product built around UK
+ *  qualifications, and `toLocaleDateString(undefined)` printed whatever the
+ *  device's browser was set to. Both read as a bug to a UK school, and neither
+ *  is fixable by authoring anything: a date format is not a translated string.
+ *  Each dictionary is therefore mapped to a locale that HAS a region (English
+ *  is en-GB — the product's qualification base, and the reason a deadline reads
+ *  "26 Oct" and a service slot reads "14:05"), the longest-supported locale for
+ *  the rest. An unknown code falls back to en-GB rather than to a device
+ *  default nobody chose. */
+const LOCALES: Record<string, string> = {
+  en: "en-GB", es: "es-ES", fr: "fr-FR", pt: "pt-PT", ar: "ar-EG", sw: "sw-KE",
+  hi: "hi-IN", id: "id-ID", tl: "fil-PH", ur: "ur-PK", fa: "fa-IR", de: "de-DE",
+  ja: "ja-JP", zh: "zh-CN", bn: "bn-BD",
+};
+
+export function localeFor(lang: string | undefined): string {
+  const code = (lang ?? "en").trim();
+  // A caller that already holds a full locale keeps it; only a bare language
+  // code (the shape both the picker and the profile store) is mapped.
+  return LOCALES[code] ?? (code.includes("-") ? code : "en-GB");
+}
+
 /** A short date in the reader's own language — the ONE format a deadline (or a
  *  recorded answer's day) is shown in, so two surfaces cannot disagree about
  *  what day the same work is due. Never throws on an unknown locale. */
 export function dueLabel(lang: string | undefined, at: number): string {
   try {
-    return new Date(at).toLocaleDateString(lang ?? "en", { day: "numeric", month: "short" });
+    return new Date(at).toLocaleDateString(localeFor(lang), { day: "numeric", month: "short" });
   } catch {
     return new Date(at).toLocaleDateString();
   }

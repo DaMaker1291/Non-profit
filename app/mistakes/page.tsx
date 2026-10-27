@@ -19,6 +19,7 @@ import { useMemo } from "react";
 import { useI18n, useProfile } from "@/lib/client";
 import { ctitle, mcCoaching, mcName } from "@/lib/content-i18n";
 import { getConcept } from "@/lib/genome";
+import { localeFor } from "@/lib/i18n";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { SUBJECT_LABELS } from "@/lib/subjects";
 
@@ -91,10 +92,15 @@ export default function MistakesPage() {
     );
   }
 
+  // THE ONE ACTION ON THE PAGE, and it belongs to the slip that has recurred
+  // most — the list is already sorted by that. A filled button on every card is
+  // not one primary action, it is three, and the learner has to decide which of
+  // three identical "Practise this" buttons is the one to press.
+  const primaryCid = bySubject[0]?.[1]?.[0]?.conceptId;
+
   return (
     <main className="container" style={{ paddingTop: 40 }}>
-      <p className="eyebrow"><span className="no">✗</span> {t("err.eyebrow")}</p>
-      <h1 className="visually-small">{t("err.eyebrow")}</h1>
+      <h1>{t("err.eyebrow")}</h1>
       <p className="lead">{t("err.lead")}</p>
 
       {rows.length === 0 ? (
@@ -136,12 +142,20 @@ export default function MistakesPage() {
                   )}
                   {r.lastSeen > 0 && (
                     <p className="small muted" style={{ margin: "4px 0 0" }}>
-                      {t("err.last")}: {new Date(r.lastSeen).toLocaleDateString(lang)}
+                      {/* A DAY, MONTH AND YEAR, in the reader's own order. A bare
+                          `toLocaleDateString(lang)` passes a LANGUAGE code where
+                          `Intl` wants a locale, and a bare `en` resolves to the
+                          AMERICAN default — month first, on a UK qualification.
+                          `localeFor` is the one place that mapping lives. */}
+                      {t("err.last")}: {new Date(r.lastSeen).toLocaleDateString(localeFor(lang), { day: "numeric", month: "short", year: "numeric" })}
                     </p>
                   )}
 
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
-                    <Link href={`/learn/${subjectPath}/${r.conceptId}?intent=REMEDIATE`} className="btn small">
+                    <Link
+                      href={`/learn/${subjectPath}/${r.conceptId}?intent=REMEDIATE`}
+                      className={r.conceptId === primaryCid ? "btn small" : "btn ghost small"}
+                    >
                       {t("err.practise")} →
                     </Link>
                     <Link href={`/learn/${subjectPath}/${r.conceptId}`} className="btn ghost small">
@@ -156,7 +170,10 @@ export default function MistakesPage() {
       )}
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10, marginBottom: 40 }}>
-        <Link href="/dashboard" className="btn ghost small">← {t("next.eyebrow")}</Link>
+        {/* `next.eyebrow` is "Your next step" — a card heading on Home, used
+            here as the name of a way OUT of this page. The label says where it
+            leads. */}
+        <Link href="/dashboard" className="btn ghost small">← {t("nav.home")}</Link>
         <Link href="/papers" className="btn ghost small">{t("pp.title")}</Link>
       </div>
     </main>

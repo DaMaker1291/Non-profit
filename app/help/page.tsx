@@ -42,7 +42,6 @@ export default function Help() {
 
   return (
     <main className="container narrow page">
-      <p className="eyebrow">{t("nav.help")}</p>
       <h1>{t("nav.help")}</h1>
       <p className="lead">{t("next.oneThing")}</p>
 

@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useI18n, loadLocalProfileId, useProfile } from "@/lib/client";
+import { localeFor } from "@/lib/i18n";
 import DownloadPack from "@/components/download-pack";
 
 interface Snap {
@@ -50,7 +51,8 @@ export default function OfflinePage() {
         <>
           <p className="lead">
             {snap.summary?.activities ?? snap.today.length} {t("off.activities")} · {snap.summary?.due ?? 0} {t("off.reviews")} ·{" "}
-            {snap.weakAreas.length} {t("off.weakAreas")} · {t("off.synced")} {new Date(snap.at).toLocaleString()}
+            {snap.weakAreas.length} {t("off.weakAreas")} · {t("off.synced")}{" "}
+            {new Date(snap.at).toLocaleString(localeFor(lang), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
           </p>
           {snap.today[0] && (
             <section className="card" style={{ borderLeft: "4px solid var(--margin-red)" }}>

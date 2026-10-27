@@ -15,7 +15,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { loadLocalProfileId, useI18n } from "@/lib/client";
 import { ApiError, myPaperAction, myPapers } from "@/lib/api/client";
 import { ctitle } from "@/lib/content-i18n";
@@ -168,9 +167,25 @@ export default function OwnPaper({ concepts, board }: { concepts: OwnPaperConcep
             be squeezed to 22px on a phone. The grid decides the widths now. */}
         {rows.map((row, i) => (
           <div key={i} className="own-row" style={{ marginTop: 6 }}>
-            <input aria-label={t("own.q")} value={row.number} onChange={(e) => setRow(i, { number: e.target.value })} />
-            <input aria-label={t("own.marks")} inputMode="numeric" value={row.marks} onChange={(e) => setRow(i, { marks: e.target.value })} />
-            <input aria-label={t("own.awarded")} inputMode="numeric" value={row.awarded} onChange={(e) => setRow(i, { awarded: e.target.value })} />
+            {/* EACH BOX IS LABELLED, not just named for a screen reader. The
+                column headings step aside on a phone (the concept moves to its
+                own row), and what was left was three unlabelled "1 / 1 / 0"
+                boxes: a sighted learner could not tell marks from awarded —
+                which is the one distinction this form exists to record. The
+                labels are hidden again from 640px, where the heading row above
+                does the job. */}
+            <label className="own-cell">
+              <span>{t("own.q")}</span>
+              <input aria-label={t("own.q")} value={row.number} onChange={(e) => setRow(i, { number: e.target.value })} />
+            </label>
+            <label className="own-cell">
+              <span>{t("own.marks")}</span>
+              <input aria-label={t("own.marks")} inputMode="numeric" value={row.marks} onChange={(e) => setRow(i, { marks: e.target.value })} />
+            </label>
+            <label className="own-cell">
+              <span>{t("own.awarded")}</span>
+              <input aria-label={t("own.awarded")} inputMode="numeric" value={row.awarded} onChange={(e) => setRow(i, { awarded: e.target.value })} />
+            </label>
             <select
               aria-label={t("own.concept")}
               value={row.conceptId}
@@ -225,9 +240,10 @@ export default function OwnPaper({ concepts, board }: { concepts: OwnPaperConcep
         </div>
       )}
 
-      <p className="small muted" style={{ marginTop: 14 }}>
-        <Link href="/dashboard">{t("nav.home")}</Link>
-      </p>
+      {/* No "Home" link here: the page's own footer line under this panel is
+          "Learn · Home", so the panel ended with the same destination printed
+          twice within 40px — and a link that closes a panel is what a learner
+          reads as "this is the end of the page", which it was not. */}
     </section>
   );
 }

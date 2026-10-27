@@ -112,28 +112,22 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
             {ctitle(lang, c.id)}
           </b>
           {!s?.proved && !here && <span className="blurb">{cblurb(lang, c.id)}</span>}
-          {here && s && (
+          {here && s && (s.pending.length > 0 || s.blockedBy.length > 0) && (
             <span className="standing" style={{ display: "block", marginTop: 4 }}>
-              {/* What you know → what is uncertain → prerequisite. The first
-                  rung not yet earned carries the CURRENT marker, which is what
-                  makes it the next action rather than a fourth sentence
-                  repeating the third. */}
-              {s.demonstrated.length > 0 && (
-                <span style={{ display: "block" }} className="small">
-                  <span className="muted">{t("next.haveDemonstrated")}</span>{" "}
-                  {s.demonstrated.map((d) => (
-                    <span key={d} className="chip good" style={{ marginInlineStart: 6 }}>✓ {t(demonstratedLabelKey(d))}</span>
-                  ))}
-                </span>
-              )}
+              {/* ONE RUNG, NOT FOUR. This row used to carry the whole proof
+                  breakdown — "You have demonstrated: Recall, Application" and
+                  "You haven't yet demonstrated: Transfer, Long-term retention"
+                  — which is four chips of a card's worth of detail inside one
+                  line of a fifty-five-row index, and it repeated what the row's
+                  own proof chip already says about what IS known. What the row
+                  adds is the ONE rung the next session is aimed at; the rest is
+                  on Home, where it belongs. */}
               {s.pending.length > 0 && (
-                <span style={{ display: "block", marginTop: 4 }} className="small">
+                <span className="small">
                   <span className="muted">{t("next.notYetDemonstrated")}</span>{" "}
-                  {s.pending.map((d, i) => (
-                    <span key={d} className={`chip${i === 0 ? " on" : ""}`} style={{ marginInlineStart: 6 }}>
-                      △ {t(demonstratedLabelKey(d))}
-                    </span>
-                  ))}
+                  <span className="chip on" style={{ marginInlineStart: 6 }}>
+                    △ {t(demonstratedLabelKey(s.pending[0]))}
+                  </span>
                 </span>
               )}
               {s.blockedBy.length > 0 && (
@@ -144,16 +138,24 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
             </span>
           )}
         </span>
-        <span className="state">
-          {s?.proved && (
-            <span className={`chip ${s.proved !== "supported" ? "good" : ""}`}>{t(proofLabelKey(s.proved))}</span>
-          )}
-          {s?.unmeasured && <span className="chip">{t("evv.unmeasured")}</span>}
-          {pr && pr.attempts > 0 && (
-            <span className="mono small muted">{pr.correct}/{pr.attempts}</span>
-          )}
-        </span>
-        <span className="muted" aria-hidden="true">→</span>
+        {/* THE CELL SAYS SOMETHING, OR NOTHING. Every row used to carry a grey
+            "Not yet measured" pill, so 55 identical pills were the loudest thing
+            on the page and none of them told a learner anything the row's own ○
+            did not. A row now reports only when the record has something to
+            report: the strongest proof it has, and the answers behind it. */}
+        {(s?.proved || (pr && pr.attempts > 0)) && (
+          <span className="concept-state">
+            {s?.proved && (
+              <span className={`chip ${s.proved !== "supported" ? "good" : ""}`}>{t(proofLabelKey(s.proved))}</span>
+            )}
+            {pr && pr.attempts > 0 && (
+              <span className="mono small muted">{pr.correct}/{pr.attempts}</span>
+            )}
+          </span>
+        )}
+        {/* NO PER-ROW ARROW. Every row IS a link, and 55 identical "→" down the
+            right edge is a column of decoration that says the same thing 55
+            times — the pointer and the full-row target already say it. */}
       </Link>
     );
   };
@@ -170,24 +172,63 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
   return (
     <main className="container page">
       <div className="page-head">
-        <p className="eyebrow">
-          {t("nav.subjects")} <span className="mono">{touched}/{listed.length}</span>
-        </p>
-        <h1>{label}</h1>
-        <p className="lead" style={{ marginBottom: 0 }}>
-          {listed.length} {t("map.concepts")} · <Link href={`/diagnostic/${subject}`}>{t("dash.diagnose")} →</Link>
-        </p>
+        <p className="eyebrow">{t("nav.subjects")}</p>
+        {/* THE PAGE'S ONE ACTION SITS BESIDE ITS TITLE, not at the far end of a
+            wrap-around row. It was the second child of the summary below, with
+            the summary pushed apart by `space-between`, so on a 1440px screen
+            "Start: Negative numbers" floated ~870px to the right of the count it
+            belongs to, alone against the margin. A page action belongs on the
+            title's line; the counts belong under it. */}
+        <div className="page-title-row">
+          <h1>{label}</h1>
+          {currentId && (
+            <Link href={`/learn/${subject}/${currentId}`} className="btn subject-next">
+              {t("next.start")}: {ctitle(lang, currentId)} →
+            </Link>
+          )}
+        </div>
+        {/* WHAT THE LIST ADDS UP TO, before the list: how much of the course has
+            been measured. Without this the page opened with 55 rows of identical
+            "not yet measured" and no answer to "so what should I do?". */}
+        <div className="subject-summary">
+          <div>
+            {/* ONE FRACTION, ONE FIGURE. `8` and `/ 55` were two text runs in
+                two sizes, which reads as a number followed by punctuation; the
+                pair is set as a single figure and the noun is the caption. */}
+            <p className="subject-count">
+              <span className="num">{touched}/{listed.length}</span>{" "}
+              <span className="muted">{t("map.concepts")}</span>
+            </p>
+            <div className="coverage-bar" role="img" aria-label={`${touched} / ${listed.length} ${t("map.concepts")}`}>
+              <span style={{ width: `${listed.length ? Math.round((touched / listed.length) * 100) : 0}%` }} />
+            </div>
+            {/* The count is ALREADY above the bar — this line used to repeat it
+                ("55 concepts · Take a diagnostic →"), so the same number was
+                printed twice in three lines and neither copy was the one the
+                learner could act on. It carries the action only. */}
+            <p className="small muted" style={{ margin: "8px 0 0" }}>
+              <Link href={`/diagnostic/${subject}`}>{t("dash.diagnose")} →</Link>
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Which course this is, in the learner's own terms. Nothing here is
-          defaulted: an unresolved course shows the honest gap sentence. */}
-      {active && (
-        <p style={{ margin: "0 0 var(--s2)" }}>
-          <span className="chip">{active.spec.name}</span>
-          <span className="chip" style={{ marginInlineStart: 8 }}>{t(`lvl.${active.level.tier}`)}</span>
+      {/* Which course this is, in the learner's own terms, and how much of this
+          list it covers — ONE line, because they are one fact: the qualification
+          and its extent. Two paragraphs here stacked three lines of metadata
+          between the header and the first concept. Nothing is defaulted: an
+          unresolved course shows the honest gap sentence instead. */}
+      {(active || courseNote) && (
+        <p className="subject-course-line">
+          {active && (
+            <>
+              <span className="chip">{active.spec.name}</span>
+              <span className="chip" style={{ marginInlineStart: 8 }}>{t(`lvl.${active.level.tier}`)}</span>
+            </>
+          )}
+          {courseNote && <span className="small muted">{courseNote}</span>}
         </p>
       )}
-      {courseNote && <p className="small muted" style={{ marginBottom: "var(--s3)" }}>{courseNote}</p>}
 
       {touched === 0 && listed.length > 0 && (
         <p className="small muted" style={{ marginBottom: 4 }}>{t("learn.notStarted")}</p>
@@ -206,15 +247,14 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
           <details key={topic.stage} className="topic" open={topic.concepts.some((c) => askedOf(c.id) > 0)}>
             <summary>
               <span className="roman">{stage}</span> · {t(`stage.${stage}`)}
-              <span className="mono" style={{ marginInlineStart: 8 }}>
-                {topic.concepts.filter((c) => askedOf(c.id) > 0).length}/{topic.concepts.length}
-              </span>
-              {d.rate ? (
+              {/* A bare `1/2` beside a stage name reads as a score. The band
+                  chip below already carries the same numbers with the word for
+                  what they mean, so the fraction is dropped rather than
+                  repeated without one. */}
+              {d.rate && (
                 <span className={`chip ${d.band === "strong" ? "good" : ""}`} style={{ marginInlineStart: 8 }}>
                   {t(bandKey(d.band))} <span className="mono">{d.rate.correct}/{d.rate.asked}</span>
                 </span>
-              ) : (
-                <span className="chip" style={{ marginInlineStart: 8 }}>{t("teach.unmeasured")}</span>
               )}
             </summary>
             <div>{topic.concepts.map(row)}</div>

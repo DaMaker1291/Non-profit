@@ -1,61 +1,40 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// THE LANDING PAGE: what this is, in one screen, with ONE primary action.
+// THE FRONT PAGE: what this is, who it is for, and one way in.
 //
-// §landing is explicit about the shape, and each part of it fixes a specific
-// failure the page used to have:
+// The shape follows what a UK department actually looks for before they will put
+// a product in front of a class — a statement of what it is, evidence that the
+// practice is real, what the syllabus coverage is, and what teachers get — in
+// that order, on one page, with no more than one primary action per audience.
 //
-//   · the header is the product's NAME and one sentence about it — not a
-//     billboard headline. It used to claim "every student deserves a world-class
-//     tutor", which is a promise no software can keep;
-//   · exactly TWO doors, and they are different people: [Start learning] and
-//     [I'm a teacher]. Six equally-weighted buttons is the same as none;
-//   · the loop (Learn → Practise → Evidence → Next step) is drawn with the
-//     product's own surface names, so what a visitor reads here is what they
-//     will find in the navigation;
-//   · five sections — Students, Teachers, Curricula, Offline, Languages — each
-//     one linking to the surface that does the thing, so the page is a map
-//     rather than a brochure.
+// What it used to be: a visitor's first screen carried the LEARNER's shell (Home,
+// My evidence, Your knowledge, a subject list they had never chosen), a
+// "Continue where you left off" card whose only content was "your course and
+// subjects are not set yet", and a panel headed "About you: not measured" with an
+// empty square in it. Every one of those was true and every one of them told a
+// stranger they had arrived in the middle of somebody else's account.
 //
-// This pass adds the thing a page of claims cannot do: it SHOWS one. The
-// centrepiece is a real decision, composed by the real engine over a real
-// ledger (lib/example-decision.ts), with the record it was read from in the
-// margin beside it and the answer that decided it named underneath. A reader who
-// does not believe "every recommendation is traceable to a recorded answer"
-// should not have to take it on faith, and a hand-written example would have
-// gone stale the first time the engine changed its mind.
+// Three rules hold this page:
 //
-//   · the artifact is rendered only if the engine composed it. If the concept or
-//     the decision were missing, the section is ABSENT rather than filled with a
-//     plausible-looking card — a fabricated example is the one thing this page
-//     may not do;
-//   · every figure in the margin is read from the folded model, and the card's
-//     four lines are the engine's own `next.*` keys, so the whole artifact is
-//     translated everywhere the rest of the product is;
-//   · the claims at the foot each carry where they were counted, because a
-//     number on a marketing page that cannot be checked is decoration;
-//   · the last thing on the page is what the product does NOT know yet, drawn as
-//     an empty square. "Unknown ≠ zero" is the rule the whole product is built
-//     on, so it belongs on the front page rather than in a footnote.
-//
-// Every number here is measured from the genome and the question bank at module
-// load (concept counts and the deepest band the bank can serve per subject).
-// There is no hardcoded claim that can go stale.
+//   · ONE PRIMARY ACTION PER AUDIENCE. A learner presses Start; a teacher presses
+//     the secondary door beside it. Nothing else on the page is a filled button.
+//   · EVERY FIGURE IS MEASURED, at module load, from the genome, the question
+//     bank and the specification list — never typed in. A number on a marketing
+//     page that cannot be checked is decoration.
+//   · A LEARNER WHO IS ALREADY PLACED NEVER SEES IT. The state machine redirects
+//     them to their own home; this page is for people who are not in yet.
 // ─────────────────────────────────────────────────────────────────────────────
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
-import { useAppState, useI18n } from "@/lib/client";
-import { fill } from "@/lib/i18n";
-import { bySubject } from "@/lib/genome";
+import { useAppState, useI18n, useProfile } from "@/lib/client";
+import { CONCEPTS, bySubject } from "@/lib/genome";
+import { SPECIFICATIONS } from "@/lib/specifications";
 import { bankDepth, hasGenerator } from "@/lib/questions";
 import { difficultyBandFor } from "@/lib/question-bank";
 import type { SubjectId } from "@/lib/types";
 
-// Counts and depth come from the genome and the bank themselves — never a
-// hardcoded number that can go stale as concepts are added (the maths tile once
-// claimed 72 when there were 67).
 const SUBJECTS: { href: string; label: string; id: SubjectId }[] = [
   { href: "/learn/maths", label: "subj.maths", id: "maths" },
   { href: "/learn/physics", label: "subj.physics", id: "physics" },
@@ -67,7 +46,7 @@ const SUBJECTS: { href: string; label: string; id: SubjectId }[] = [
 /**
  * How deep the practice actually goes, per subject, measured from the bank.
  *
- * A subject tile that says "18 concepts" tells a student nothing about whether
+ * A subject row that says "18 concepts" tells a student nothing about whether
  * the work there is real. The deepest band the bank can serve for that subject
  * does — said on the row rather than discovered by a disappointed student.
  */
@@ -78,40 +57,37 @@ const SUBJECT_LEVEL: Record<string, { concepts: number; band: number }> = Object
   }),
 );
 
-/** The margin's four labels, by the fact they name. The figures come from the
- *  engine; the words for them are this page's, because a learner reads them out
- *  of context ("6 answers") and the engine's own labels are written to sit
- *  inside a composed sentence. */
-export default function Home() {
-  const { t, lang } = useI18n();
-  const router = useRouter();
-  // State-derived, not page-derived: someone who is part-way through setup gets
-  // "continue where you left off", never the first-time pitch again.
-  const { appState, ready, lifecycle } = useAppState();
-  const resuming = ready && appState !== null && appState.stage !== "welcome";
+/** The top of the depth scale, measured from the bank rather than typed in — the
+ *  table says "3 / 5" because five is the deepest band any subject reaches. */
+const BAND_MAX = difficultyBandFor(
+  bankDepth(CONCEPTS.filter((c) => hasGenerator(c.id)).map((c) => c.id)),
+);
 
-  // Somebody the system has already placed belongs on their Home, not on the
-  // marketing page — a state transition, never a conclusion drawn while the
-  // session is still being probed (`ready` is false until then).
-  //
-  // `appState.route`, NOT a hardcoded "/dashboard": that address is the LEARNER's
-  // home, and a teacher's is their class list (lib/app-state.ts#homeRouteFor).
-  // Hardcoding it here sent a signed-in teacher to the learner dashboard, where
-  // the first thing they read was "your next step: find your starting point — a
-  // 3-minute diagnostic", in a subject they may not teach.
+export default function Home() {
+  const { t } = useI18n();
+  const router = useRouter();
+  const { appState, ready, lifecycle } = useAppState();
+  // WHOSE PAGE THIS IS. A visitor has no record, so there is nothing to resume
+  // and no course to name. `appState.stage !== "welcome"` alone was not enough:
+  // a first-time visitor's stage is "onboarding" (the product knows what the
+  // NEXT step is), so the page greeted them with "Continue where you left off"
+  // over a setup they had not started.
+  const { state } = useProfile();
+  const resuming = ready && appState !== null && appState.stage !== "welcome" && Boolean(state?.profile);
+
+  // Somebody the system has already placed belongs on their own home, not on the
+  // marketing page. `appState.route`, NOT a hardcoded "/dashboard": a teacher's
+  // home is their class list (lib/app-state.ts#homeRouteFor).
   useEffect(() => {
     if (ready && appState?.stage === "home") router.replace(appState.route);
   }, [ready, appState, router]);
 
-  // The loop the whole product implements, named with the product's own surface
-  // names — so what a visitor reads here is what they will find in the nav.
+  // The loop the product implements, named with the product's own surface names,
+  // so what a visitor reads here is what they find in the navigation.
   const loop = ["nav.learn", "learn.practice", "evv.theEvidence", "next.eyebrow"];
 
-  /** The five sections. A visitor finds their own reason to be here in one of
-   *  them, and each one is a link away from the surface that does the thing —
-   *  so the page is a map rather than a brochure. Values are i18n KEYS, resolved
-   *  through `t` at render, which is why this page is translated everywhere the
-   *  rest of the product is. */
+  /** The five things the product does, each one a link to the surface that does
+   *  it — so the page is a map rather than a brochure. Values are i18n KEYS. */
   const contents: { href: string; title: string; body: string; go: string }[] = [
     { href: "/onboarding", title: "home.secStudents", body: "home.feat.nextDesc", go: "home.start" },
     { href: "/teacher", title: "nav.teach", body: "teach.sub", go: "teach.title" },
@@ -120,111 +96,137 @@ export default function Home() {
     { href: "/access", title: "nav.accessTitle", body: "acc.lead", go: "acc.title" },
   ];
 
+  /** THE PROOF STRIP. Four facts, each counted here rather than asserted. */
+  const proof = useMemo(
+    () => [
+      { n: String(CONCEPTS.length), label: t("home.concepts") },
+      { n: String(SUBJECTS.length), label: t("nav.subjects") },
+      { n: String(SPECIFICATIONS.length), label: t("curr.course") },
+    ],
+    [t],
+  );
+
   return (
-    <main className="container" style={{ paddingTop: 40 }}>
-      <p className="eyebrow"><span className="no">◉</span> OpenMind</p>
-      <h1>{t("home.tagline")}</h1>
-      <p className="lead" style={{ fontSize: 17.5 }}>{t("home.sub")}</p>
+    <main className="container page">
+      <div className="hero">
+        <p className="eyebrow"><span className="no">◉</span> OpenMind</p>
+        <h1>{t("home.tagline")}</h1>
+        <p className="lead">{t("home.sub")}</p>
 
-      {/* Exactly two actions, and they are different people. The learner
-          starts (or resumes); the teacher has their own platform. */}
-      {resuming && appState ? (
-        <div className="card soft" style={{ padding: "var(--s3)", margin: "var(--s3) 0 var(--s2)", maxWidth: 620 }}>
-          <p className="eyebrow" style={{ marginBottom: 6 }}>{t("state.resume")}</p>
-          <p style={{ margin: "0 0 var(--s2)" }}>{t(appState.reasonKey)}</p>
-          <Link href={appState.route} className="btn">
-            {/* The button names where it goes. "Home" is a learner's word for a
-                mastery dashboard; a teacher's home is their class list, and that
-                is what their platform is called everywhere else in the app. */}
-            {appState.stage === "home" ? (lifecycle.isTeacher ? t("teach.title") : t("nav.home")) : t("common.next")} →
-          </Link>
-        </div>
-      ) : (
-        <div className="actions" style={{ margin: "var(--s3) 0 10px" }}>
-          <Link href="/onboarding" className="btn" style={{ fontSize: 17, padding: "14px 26px" }}>
-            {t("home.start")} →
-          </Link>
-          <Link href="/teacher" className="btn ghost" style={{ fontSize: 17, padding: "14px 26px" }}>
-            {t("home.teacherCta")}
-          </Link>
-        </div>
-      )}
-      <p className="small muted">
-        {t("home.haveProfile")} <Link href="/dashboard">{t("home.goDash")} →</Link>
-        {" · "}<Link href="/onboarding?mode=signin">{t("onb.signIn")}</Link>
-      </p>
-
-      {/* The loop the whole product implements, ruled across the page rather
-          than boxed in a card: it is a line of the book, not a panel. */}
-      <div className="loopband" aria-label={t("nav.how")}>
-        {loop.map((key, i) => (
-          <span key={key} style={{ display: "contents" }}>
-            <span className="loop-step">{t(key)}</span>
-            {i < loop.length - 1 && <span className="loop-arrow" aria-hidden="true">→</span>}
-          </span>
-        ))}
+        {/* One primary action per audience, and they are different people: the
+            learner starts (or resumes), the teacher has their own platform. */}
+        {resuming && appState ? (
+          <div className="actions">
+            <Link href={appState.route} className="btn">
+              {appState.stage === "home" ? (lifecycle.isTeacher ? t("teach.title") : t("nav.home")) : t("common.next")} →
+            </Link>
+          </div>
+        ) : (
+          <div className="actions">
+            <Link href="/onboarding" className="btn" style={{ fontSize: 17, padding: "14px 26px" }}>
+              {t("home.start")} →
+            </Link>
+            <Link href="/teacher" className="btn ghost" style={{ fontSize: 17, padding: "14px 26px" }}>
+              {t("home.teacherCta")}
+            </Link>
+          </div>
+        )}
+        <p className="small muted">
+          {t("home.haveProfile")} <Link href="/dashboard">{t("home.goDash")} →</Link>
+          {" · "}<Link href="/onboarding?mode=signin">{t("onb.signIn")}</Link>
+        </p>
       </div>
 
-      {/* The five sections. A visitor finds their own reason to be here in one
-          of them, and each one is a link away from the surface that does it. */}
-      <section style={{ marginBottom: "var(--s4)" }}>
-        <h2 className="eyebrow">{t("home.whatDoes")}</h2>
-        {contents.map((d) => (
-          <Link key={d.href} href={d.href} className="content-row">
-            <span className="grow">
-              <b>{t(d.title)}</b>
-              <span className="blurb">{t(d.body)}</span>
-            </span>
-            <span className="go">{t(d.go)} →</span>
-          </Link>
+      {/* THE PROOF STRIP. A visitor's first question is "is this real?", and the
+          answer is four numbers nobody typed in: the ideas in the map, the
+          subjects they are taught as, the qualifications mapped against them,
+          and the languages the product speaks. */}
+      <dl className="proof-strip">
+        {proof.map((f) => (
+          <div key={f.label}>
+            <dt>{f.n}</dt>
+            <dd>{f.label}</dd>
+          </div>
         ))}
+      </dl>
+
+      {/* HOW IT WORKS. The loop, in the product's own words — and now drawn as
+          steps rather than a run of text, which is what it was: `.loop-step` was
+          only ever styled underneath `.loop`, and this band is `.loopband`, so
+          four steps rendered as four plain words with arrows between them. */}
+      <section className="section-block">
+        <h2 className="eyebrow">{t("nav.how")}</h2>
+        <ol className="loopband">
+          {loop.map((key, i) => (
+            <li key={key} className="loop-step">
+              <span className="loop-n" aria-hidden="true">{i + 1}</span>
+              {t(key)}
+            </li>
+          ))}
+        </ol>
       </section>
 
-      {/* What is taught, and how far the practice actually goes — measured
-          from the genome and the bank, so the figures cannot go stale.
+      {/* WHAT YOU GET, as five cards rather than five rows: a visitor should be
+          able to find their own reason to be here at a glance. */}
+      <section className="section-block">
+        <h2 className="eyebrow">{t("home.whatDoes")}</h2>
+        <div className="grid front-grid">
+          {contents.map((d) => (
+            <Link key={d.href} href={d.href} className="card feature-card">
+              <b>{t(d.title)}</b>
+              <span className="blurb">{t(d.body)}</span>
+              <span className="go">{t(d.go)} →</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
-          This section used to be an engineering ledger titled "every claim on
-          this page, and where it was counted": the five subjects, then three
-          claims about the product each with its source, then a panel about what
-          OpenMind had not measured about the reader. Every figure was true and
-          every one was a receipt for the person who built the page — not for
-          the learner reading it, who should be left thinking "it knows what I
-          need", never "this system has an evidence ledger". The subject list
-          stays because it is the one thing a visitor needs before starting
-          (what can I study, and is the practice there real); a single honest
-          sentence about unknown-not-zero stays because that rule is the product. */}
-      <section>
+      {/* WHAT IS TAUGHT, and how far the practice goes, in a table — the form a
+          school reads numbers in. Both columns are measured from the genome and
+          the bank, so neither can go stale. */}
+      <section className="section-block">
         <h2 className="eyebrow">{t("home.subjects")}</h2>
-        <div className="ledger">
-          <div className="ledger-group">
+        <table className="coverage">
+          <thead>
+            <tr>
+              <th scope="col"><span className="visually-hidden">{t("nav.subjects")}</span></th>
+              <th scope="col">{t("home.concepts")}</th>
+              <th scope="col">{t("curr.depth")}</th>
+            </tr>
+          </thead>
+          <tbody>
             {SUBJECTS.map((s) => {
               const level = SUBJECT_LEVEL[s.id];
               return (
-                <Link key={s.href} href={s.href} className="ledger-row" style={{ textDecoration: "none" }}>
-                  <span className="ledger-k">{t(s.label)}</span>
-                  {/* One text node, and a separator between the claim and its
-                      figure: element boundaries have no whitespace in them, so
-                      a screen reader announced this row as "Mathematics
-                      67concepts" — a number glued to the noun it counts. */}
-                  {" "}
-                  <span className="ledger-v">{`${level.concepts} ${t("home.concepts")} · ${fill(t("home.practice"), { n: level.band })}`}</span>
-                </Link>
+                <tr key={s.id}>
+                  <th scope="row"><Link href={s.href}>{t(s.label)}</Link></th>
+                  <td className="num">{level.concepts}</td>
+                  {/* "3 / 5", not "Practice available to level 3 of 5" five
+                      times: the sentence form put the same clause on every
+                      line and read as a disclaimer rather than a fact. */}
+                  <td className="num">{level.band} / {BAND_MAX}</td>
+                </tr>
               );
             })}
-          </div>
-        </div>
-        {/* Unknown is not zero, ON THE FRONT PAGE. The last thing a visitor
-            reads is the rule the whole engine is built on, drawn as an empty
-            ruled square rather than a figure — so "we have not measured this"
-            can never be mistaken for a zero. */}
-        <p className="ledger-h" style={{ marginTop: "var(--s3)" }}>
+          </tbody>
+        </table>
+      </section>
+
+      {/* UNKNOWN IS NOT ZERO, ON THE FRONT PAGE. The last thing a visitor reads
+          before the small print is the rule the whole engine is built on, drawn
+          as an empty ruled square rather than a figure — so "we have not
+          measured this" can never be read as a zero. It is the one square on the
+          page with no number in it, deliberately: a visitor has answered
+          nothing, and this page must not imply otherwise. */}
+      <section className="section-block">
+        <p className="ledger-h">
           <span className="unmeasured" aria-hidden="true" />
           {t("home.notMeasured")}
         </p>
         <p className="ledger-note">{t("home.notMeasuredNote")}</p>
       </section>
 
-      <p className="small muted" style={{ marginTop: "var(--s3)" }}>
+      <p className="small muted">
         <Link href="/help">{t("nav.help")} →</Link>
         {" · "}<Link href="/about">{t("about.title")} →</Link>
       </p>

@@ -13,6 +13,7 @@ import PromptText from "@/components/prompt-text";
 import MathText from "@/components/math-text";
 import OwnPaper, { type OwnPaperConcept } from "@/components/own-paper";
 import { coverageOf, specForProfile } from "@/lib/specifications";
+import { subjectLabel } from "@/lib/subjects";
 import type { BoardId, FigureSpec, ProfileState, SubjectId } from "@/lib/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -222,6 +223,22 @@ export default function PapersPage() {
     }
   }, [profile]);
 
+  /** The picker is GROUPED BY SUBJECT. It used to hold a handful of board
+   *  papers; every qualification now offers a three-paper set per subject, so a
+   *  flat list mixed four subjects and twenty rows and the learner had to read
+   *  every name to find their own. Grouping keeps the page scannable and keeps
+   *  the server's order inside each subject — a board paper stays above the
+   *  built papers, because the board's is the one the learner actually sits. */
+  const grouped = useMemo(() => {
+    const by = new Map<SubjectId, PaperListEntry[]>();
+    for (const p of list) {
+      const rows = by.get(p.subject);
+      if (rows) rows.push(p);
+      else by.set(p.subject, [p]);
+    }
+    return [...by.entries()];
+  }, [list]);
+
   /** The whole paper in sitting order. The sitting shows ONE question, but the
    *  counter, the grid and the flags all work over the flat list. */
   const flat = useMemo(
@@ -276,26 +293,32 @@ export default function PapersPage() {
             <h2 style={{ marginTop: 0 }}>{t("pp.pick")}</h2>
             <p className="small muted">{t("pp.pickLead")}</p>
             {list.length === 0 && <p className="muted">{t("pp.empty")}</p>}
-            <div style={{ display: "grid", gap: 10 }}>
-              {list.map((p) => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: "1px solid var(--rule, #e5e7eb)", borderRadius: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>{p.name}</div>
-                    {/* No subject here: an authored paper's name already carries
-                        it, and a specification-built paper IS the subject. The
-                        BOARD is there, because it is the only thing that tells
-                        two identically named GCSE papers apart. */}
-                    <div className="small muted">
-                      {p.board ? `${boardName(p.board)} · ` : ""}
-                      {p.marks} {t("pp.marks")} · {p.minutes} {t("pp.min")} · {p.calculator ? t("pp.calc") : t("pp.noCalc")}
+            {grouped.map(([subject, rows]) => (
+              <section key={subject} style={{ marginTop: 14 }}>
+                <h3 className="small" style={{ margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  {subjectLabel(subject, lang)}
+                </h3>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {rows.map((p) => (
+                    <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", border: "1px solid var(--rule, #e5e7eb)", borderRadius: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600 }}>{p.name}</div>
+                        {/* No subject here: the heading above names it. The
+                            BOARD is, because it is the only thing that tells
+                            two identically named GCSE papers apart. */}
+                        <div className="small muted">
+                          {p.board ? `${boardName(p.board)} · ` : ""}
+                          {p.marks} {t("pp.marks")} · {p.minutes} {t("pp.min")} · {p.calculator ? t("pp.calc") : t("pp.noCalc")}
+                        </div>
+                      </div>
+                      <button className="btn small" disabled={busy} onClick={() => startPaper(p.id, p.subject)}>
+                        {t("pp.start")}
+                      </button>
                     </div>
-                  </div>
-                  <button className="btn small" disabled={busy} onClick={() => startPaper(p.id, p.subject)}>
-                    {t("pp.start")}
-                  </button>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </section>
+            ))}
             {ai.enabled && (
               <label className="checks" style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 14 }}>
                 <input type="checkbox" checked={withAi} onChange={(e) => setWithAi(e.target.checked)} />

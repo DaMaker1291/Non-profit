@@ -14,6 +14,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { isDeviceReported, type AnswerSubmitted, type EvidenceEvent, type LearnerProjection } from "./evidence";
+import { localeFor } from "./i18n";
 import { retentionState, type RetentionState } from "./proof";
 import { ledger } from "./api/client";
 
@@ -103,7 +104,14 @@ export function citationsFor(
     if (e.type !== "answer_submitted") continue;
     out.push({
       id: e.id,
-      when: new Date(e.at).toLocaleDateString(opts.locale, { day: "numeric", month: "short" }),
+      // THE DATE IS FORMATTED IN A LOCALE WITH A REGION, not in whatever the
+      // device happens to be set to. `opts.locale` arrives as a bare LANGUAGE
+      // code ("en"), and `toLocaleDateString("en")` is American month-first — so
+      // a citation read "10/26/2026" on a US machine and "26 Oct" on a UK one,
+      // the same record formatted two ways. `localeFor` is the ONE mapping from
+      // a dictionary code to a locale (lib/i18n.ts); it also keeps a caller's
+      // full locale, so nothing is lost.
+      when: new Date(e.at).toLocaleDateString(localeFor(opts.locale), { day: "numeric", month: "short" }),
       concept: e.conceptId ? opts.titleFor(e.conceptId) : "",
       kind: opts.t(`evv.source.${e.source}`),
       correct: e.correct,

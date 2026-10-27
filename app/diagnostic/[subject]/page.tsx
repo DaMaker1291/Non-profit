@@ -399,8 +399,15 @@ export default function DiagnosticPage() {
   // ── the ladder ─────────────────────────────────────────────────────────────
   return (
     <main className="container narrow" style={{ paddingTop: 44 }}>
+      {/* THE TITLE IS THE SUBJECT, THE EYEBROW IS THE SHELF. The h1 here used
+          to BE the guidance sentence ("A few questions per concept…"), so the
+          page's largest text printed a paragraph and the learner had to reach
+          the grey line to find out what they were sitting. Same shape as
+          /learn/<subject>: a shelf label, then the subject, then the sentence
+          that explains the task. */}
       <p className="eyebrow"><span className="no">{String(n).padStart(2, "0")}</span> {t("diag.title")} · {t(`subj.${subject}`)}</p>
-      <h1 className="visually-small">{t("diag.sub")}</h1>
+      <h1>{t(`subj.${subject}`)}</h1>
+      <p className="lead">{t("diag.sub")}</p>
 
       {/* HOW LONG THIS IS, AND A WAY OUT. The only number on this screen used
           to be a bare `01.`, with no total and no exit, so the sitting read as
@@ -417,6 +424,17 @@ export default function DiagnosticPage() {
         </span>
         <Link href={`/learn/${subject}`} className="small muted">{t("diag.leave")}</Link>
       </div>
+      {/* HOW FAR THROUGH, AS A BAR. The counter above says "question 3 of about
+          16", which a learner has to read and divide; a sitting is a bounded
+          piece of work and every platform a school uses draws it. It is the same
+          device the subject page uses for the same idea (`.coverage-bar`), so
+          "how much of this is done" looks the same everywhere. Decorative to a
+          screen reader — the counter beside it is already announced. */}
+      {estimate > 0 && (
+        <div className="coverage-bar" aria-hidden="true" style={{ margin: "0 0 10px" }}>
+          <span style={{ width: `${Math.min(100, Math.round((Math.min(n, estimate) / estimate) * 100))}%` }} />
+        </div>
+      )}
       {/* It measures a starting point; it is not a grade. One line, already
           authored in every dictionary, shown on the FIRST question of a fresh
           sitting only — a resumed sitting is past being introduced to itself,

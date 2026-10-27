@@ -8,6 +8,7 @@ import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { confidenceOf } from "@/lib/retention";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
 import { ctitle, mcName, mcCoaching } from "@/lib/content-i18n";
+import { localeFor } from "@/lib/i18n";
 import { loadLedgerState, conceptKnowledge, type LedgerLoad } from "@/lib/evidence-view";
 // The one verdict rule and its four short names, shared with the sentence under
 // the mark, the session headline and the teacher's monitor.
@@ -79,7 +80,7 @@ export default function ProgressPage() {
         : d.scores;
       const avg = probed.length ? probed.reduce((n, s) => n + s.mastery, 0) / probed.length : 0;
       const arr = diagRuns.get(subject) ?? [];
-      arr.push({ date: new Date(d.startedAt).toLocaleDateString(), asked: d.asked, misc: d.misconceptions.length, avg, at: d.startedAt });
+      arr.push({ date: new Date(d.startedAt).toLocaleDateString(localeFor(lang), { day: "numeric", month: "short" }), asked: d.asked, misc: d.misconceptions.length, avg, at: d.startedAt });
       diagRuns.set(subject, arr);
     }
     for (const arr of diagRuns.values()) arr.sort((a, b) => a.at - b.at);
@@ -101,7 +102,7 @@ export default function ProgressPage() {
       .reverse();
 
     return { entries, totalAttempts, accuracy, mastered, misconceptions, diagRuns, bySubject, events, state };
-  }, [state]);
+  }, [state, lang]);
 
   if (loading) {
     // The record this page is ABOUT has not arrived. A skeleton says that;
@@ -128,8 +129,7 @@ export default function ProgressPage() {
             )}
           </p>
         )}
-        <p className="eyebrow">{t("prog.title")}</p>
-        <h1 className="visually-small">{t("prog.title")}</h1>
+        <h1>{t("prog.title")}</h1>
         <p className="lead">{t("prog.empty")}</p>
         {/* Every subject gets a diagnostic from here. Offering only maths made
             the other four subjects look like they did not exist. */}
@@ -145,8 +145,7 @@ export default function ProgressPage() {
 
   return (
     <main className="container" style={{ paddingTop: 40 }}>
-      <p className="eyebrow">{t("prog.title")}</p>
-      <h1 className="visually-small">{t("prog.title")}</h1>
+      <h1>{t("prog.title")}</h1>
       <p className="lead">{t("prog.sub")}</p>
 
       <div className="grid cols3" style={{ margin: "18px 0 30px" }}>
@@ -212,7 +211,7 @@ export default function ProgressPage() {
             {data.events.map((ev, i) => (
               <li key={`${ev.at}-${i}`}>
                 <span className="tl-date">
-                  {new Date(ev.at).toLocaleDateString(lang, { day: "numeric", month: "short" })}
+                  {new Date(ev.at).toLocaleDateString(localeFor(lang), { day: "numeric", month: "short" })}
                 </span>
                 <div className="tl-body">
                   <Link href={`/learn/${getConcept(ev.conceptId)?.subject ?? "maths"}/${ev.conceptId}`} style={{ fontWeight: 650 }}>
@@ -223,7 +222,7 @@ export default function ProgressPage() {
                       {ev.correct ? "✓" : "✗"} {ev.correct ? t("learn.correct") : t("learn.wrong")}
                     </span>
                     <span className="small muted mono">
-                      {new Date(ev.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(ev.at).toLocaleTimeString(localeFor(lang), { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
                 </div>
@@ -302,7 +301,7 @@ export default function ProgressPage() {
                       one learner. `showRate` adds the exact fraction here,
                       because this is the page where the record is inspected. */}
                   <div style={{ marginTop: 6 }}>
-                    <Dims rows={conceptKnowledge(ready.projection, c.conceptId, t).rows} showRate />
+                    <Dims rows={conceptKnowledge(ready.projection, c.conceptId, t).rows} showRate collapse />
                   </div>
                 </div>
               ))}
@@ -418,7 +417,11 @@ export default function ProgressPage() {
       )}
 
       <div className="actions" style={{ marginBottom: 44 }}>
-        <Link href="/dashboard" className="btn ghost">← {t("dash.hi")}</Link>
+        {/* THE LABEL IS THE DESTINATION, NOT A GREETING. It read "← Welcome back"
+            over a link to Home: `dash.hi` is the heading a learner is greeted
+            with on their dashboard, and a greeting does not tell anyone where a
+            control goes. */}
+        <Link href="/dashboard" className="btn ghost">← {t("nav.home")}</Link>
       </div>
     </main>
   );

@@ -21,8 +21,7 @@ export default function GenomeMap() {
 
   return (
     <main className="container" style={{ paddingTop: 36 }}>
-      <p className="eyebrow">{t("map.title")}</p>
-      <h1 className="visually-small">{t("map.title")}</h1>
+      <h1>{t("map.title")}</h1>
       <p className="lead">{t("map.sub")}</p>
 
       <div className="checks" style={{ margin: "18px 0 8px" }}>

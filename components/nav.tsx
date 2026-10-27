@@ -7,8 +7,9 @@ import { LanguagePicker, useAccount, useAppState, useI18n, useProfile } from "@/
 import { ContextStrip } from "@/components/context-strip";
 import { Icon, type IconName } from "@/components/icons";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ctitle } from "@/lib/content-i18n";
+import { ctitle, levelLabel } from "@/lib/content-i18n";
 import { CONCEPTS } from "@/lib/genome";
+import { specForProfile } from "@/lib/specifications";
 import { SUBJECT_LABELS } from "@/lib/subjects";
 import type { SubjectId } from "@/lib/types";
 
@@ -56,6 +57,29 @@ const TEACHER_PRIMARY = [
 /** The four the phone shows without opening anything, plus More. */
 const phoneOf = (list: typeof PRIMARY) => list.slice(0, 4);
 
+/**
+ * A VISITOR'S NAVIGATION IS NOT A LEARNER'S, AND IT IS NOT EMPTY.
+ *
+ * The front page is a visitor's page, so it used to carry the learner's sidebar:
+ * Home, Learn, Exam papers, My evidence, Your knowledge, Projects and a list of
+ * subjects they had never chosen, above a course card reading "Subjects · Set
+ * up". A stranger reads that as "I am logged into somebody's account", which is
+ * the opposite of the thing the page is trying to say — and every one of those
+ * links is behind the route guard, so four of the six bounced them back to
+ * enrolment.
+ *
+ * What a visitor actually needs is the four public questions: what the syllabus
+ * is, what teachers get, how accessibility works, and what this is. They all sit
+ * under the final link, About, and the enrolment action is a button rather than
+ * the sixth item in a menu.
+ */
+const VISITOR_PRIMARY = [
+  { href: "/curriculum", key: "nav.currTitle", icon: "mind" as IconName },
+  { href: "/teacher", key: "nav.teach", icon: "teach" as IconName },
+  { href: "/access", key: "nav.accessTitle", icon: "access" as IconName },
+  { href: "/help", key: "nav.help", icon: "help" as IconName },
+];
+
 /** Everything that is a place, but not a daily destination. Help and Account
  *  are NOT here: §shell puts them at the foot of the sidebar, in the same
  *  place on every page, because they are the two links a learner reaches for
@@ -93,11 +117,8 @@ export function Nav() {
   const { state } = useProfile();
   const path = usePathname();
   const active = (p: string) => (path === p || path.startsWith(p + "/") ? "active" : "");
-  // The learner's OWN courses. Absent while the profile is in flight, and
-  // absent for a visitor — in which case the sidebar shows the subjects the
-  // platform teaches rather than claiming courses this person never chose.
-  const courses = state?.profile.subjects ?? [];
-  const board = state?.profile.board;
+  // The learner's own declared subjects, for the one-line summary under the
+  // course card. Absent while the profile is in flight and for a visitor.
   // WHOSE APP THIS IS. The role is the account's, so it is read from the
   // session-shaped lifecycle rather than from the profile — a profile cannot
   // know it teaches, and `deriveLifecycle` already carries the answer.
@@ -108,6 +129,48 @@ export function Nav() {
   // `/teacher` is already the first item of a teacher's own list; leaving it in
   // the overflow as well would offer the same door twice under two names.
   const utility = isTeacher ? UTILITY.filter((i) => i.href !== "/teacher") : UTILITY;
+  // A VISITOR is offered only doors that open. `state` is null for a stranger,
+  // and the learner's list replaces this one the moment a record arrives.
+  const visitor = !state?.profile;
+  const items = visitor ? VISITOR_PRIMARY : primary;
+  const phoneItems = visitor ? VISITOR_PRIMARY.slice(0, 3) : phone;
+  /** ONE DESTINATION, ONE ENTRY. A menu that repeats a row already visible above
+   *  it makes the learner read the same label twice and — because React keys on
+   *  the href — logged two errors per render once the visitor's Help was both a
+   *  navigation row and an overflow row. */
+  const unique = <T extends { href: string }>(list: T[]): T[] =>
+    list.filter((it, i, arr) => arr.findIndex((x) => x.href === it.href) === i);
+  const sidebarOverflow = unique(utility).filter((i) => !items.some((x) => x.href === i.href));
+  const phoneOverflow = unique([...items.slice(visitor ? 3 : 4), ...FOOT, ...utility]);
+
+  /** THE COURSE, AS ONE CARD.
+   *
+   *  The sidebar used to list one row per declared subject under "Your
+   *  curriculum" — five rows that said the same thing as the Learn page, in the
+   *  navigation, on every screen. A learner reads that once and then never again;
+   *  what they need from this corner of the shell is the course they are being
+   *  taught, named once (GCSE · Higher tier · Year 10), and a way to change it.
+   *  A subject list belongs on the page that is about subjects.
+   *
+   *  Resolved through `specForProfile`, so the card can only ever name a course
+   *  the learner's own record resolves — a course still being chosen falls back
+   *  to the setup prompt rather than to a guess. */
+  const course = useMemo(() => {
+    const p = state?.profile;
+    const subject = p?.subjects?.[0];
+    if (!p || !subject) return null;
+    try {
+      const active = specForProfile(p, subject);
+      return {
+        subject: t(SUBJECT_LABELS[subject] ?? `subj.${subject}`),
+        course: active.spec.name,
+        tier: active.level ? levelLabel(lang, active.level.tier, active.level.name) : "",
+        grade: p.grade ?? "",
+      };
+    } catch {
+      return null;
+    }
+  }, [state, lang, t]);
 
   return (
     <>
@@ -121,7 +184,7 @@ export function Nav() {
         </Link>
 
         <nav className="sidebar-nav" aria-label={t("nav.mainAria")}>
-          {primary.map((item) => (
+          {items.map((item) => (
             <Link key={item.href} href={item.href} className={`sidebar-link ${active(item.href)}`}>
               <span className="glyph" aria-hidden="true"><Icon name={item.icon} /></span>
               {t(item.key)}
@@ -129,34 +192,40 @@ export function Nav() {
           ))}
         </nav>
 
-        {/* A teacher with nothing recorded of their own has no course to name,
-            and "Subjects · Set up" under "YOUR CURRICULUM" would be the
-            learner's setup prompt handed to the person who teaches. Their
-            curricula are declared per CLASS, on the class itself. Absence is the
-            true statement; a teacher who also studies gets their own courses
-            named below like anybody else. */}
-        <div style={isTeacher && courses.length === 0 ? { display: "none" } : undefined}>
-          <p className="sidebar-group">{t("nav.currTitle")}</p>
-          {courses.length > 0 ? (
-            courses.map((s: SubjectId) => (
-              <Link key={s} href={`/learn/${s}`} className={`sidebar-link ${active(`/learn/${s}`)}`}>
-                <span className="glyph" aria-hidden="true"><i className="course-dot" /></span>
-                {t(SUBJECT_LABELS[s] ?? `subj.${s}`)}
-              </Link>
-            ))
-          ) : (
-            <Link href="/learn" className="course-line">
-              <b>{t("nav.subjects")}</b>
-              <span>{board ? String(board).toUpperCase() : t("nav.setup")}</span>
+        {/* ONE CARD FOR THE COURSE, not one row per subject. See `course`
+            above. A teacher with nothing recorded of their own has no course to
+            name — their curricula are declared per class — so it is absent for
+            them rather than showing the learner's setup prompt. */}
+        {/* NOTHING HERE FOR A VISITOR. A launcher used to sit in this corner as
+            well as in the hero — two calls to the same action on one screen,
+            which is what "one primary action" means not doing. The hero owns
+            it, and this space stays empty rather than repeating the hero's own
+            sentence in the margin. */}
+        {visitor ? null : !(isTeacher && !course) ? (
+          <div className="sidebar-course">
+            <p className="sidebar-group">{t("nav.currTitle")}</p>
+            <Link href="/curriculum" className={`course-line ${active("/curriculum")}`}>
+              <b>{course ? course.subject : t("nav.subjects")}</b>
+              <span>
+                {course
+                  ? [course.course, course.tier, course.grade].filter((x) => x && x.trim().length > 0).join(" · ")
+                  : t("nav.setup")}
+              </span>
             </Link>
-          )}
-        </div>
+            <Link href="/learn" className="sidebar-subjects">
+              {(state?.profile.subjects ?? []).map((s: SubjectId) => t(SUBJECT_LABELS[s] ?? `subj.${s}`)).join(" · ")}
+              {" →"}
+            </Link>
+          </div>
+        ) : null}
 
         <div className="sidebar-spacer" />
 
         {/* The foot of the sidebar: Help and Account, spelled out. */}
         <nav className="sidebar-nav" aria-label={t("nav.help")}>
-          {FOOT.map((item) => (
+          {/* A visitor already has Help in the list above, so the foot carries
+              the one destination that list does not: their account. */}
+          {(visitor ? FOOT.filter((i) => i.href !== "/help") : FOOT).map((item) => (
             <Link key={item.href} href={item.href} className={`sidebar-link ${active(item.href)}`}>
               <span className="glyph" aria-hidden="true"><Icon name={item.icon} /></span>
               {t(item.key)}
@@ -168,7 +237,7 @@ export function Nav() {
               {t("nav.more")}
             </summary>
             <div className="nav-overflow-menu">
-              {utility.map((item) => (
+              {sidebarOverflow.map((item) => (
                 <Link key={item.href} href={item.href} className={active(item.href)}>{t(item.key)}</Link>
               ))}
             </div>
@@ -185,7 +254,7 @@ export function Nav() {
           stylesheet. Two landmarks called "Main menu" are two places the user
           cannot tell apart. `nav.bottomAria` names this one for what it is. */}
       <nav className="bottomnav" aria-label={t("nav.bottomAria")}>
-        {phone.map((item) => (
+        {phoneItems.map((item) => (
           <Link key={item.href} href={item.href} className={active(item.href)}>
             <span className="glyph" aria-hidden="true"><Icon name={item.icon} /></span>
             {t(item.key)}
@@ -197,7 +266,7 @@ export function Nav() {
             {t("nav.more")}
           </summary>
           <div className="nav-overflow-menu">
-            {[...primary.slice(4), ...FOOT, ...utility].map((item) => (
+            {phoneOverflow.map((item) => (
               <Link key={item.href} href={item.href} className={active(item.href)}>{t(item.key)}</Link>
             ))}
           </div>
@@ -291,6 +360,11 @@ export function Topbar() {
       </div>
       <div className="topbar-spacer" />
 
+      {/* A STRANGER HAS NOTHING TO SEARCH. The box filters the concept graph a
+          learner can open, and every result behind it is a gated page — so on
+          the front page it was a control whose only outcomes were a bounce back
+          to enrolment. It appears with the record it searches. */}
+      {state && (
       <div className="topbar-search" ref={box} role="search"
         onBlur={(e) => { if (!box.current?.contains(e.relatedTarget as Node)) setOpen(false); }}>
         <input
@@ -317,6 +391,7 @@ export function Topbar() {
           </div>
         )}
       </div>
+      )}
 
       <LanguagePicker compact />
       {/* Beside the language control, not at the far edge: both are preferences
@@ -340,18 +415,29 @@ export function Topbar() {
           <span className="btn-label">{session.account.name || session.account.email}</span>
           <span className="btn-arrow" aria-hidden="true">→</span>
         </Link>
-      ) : (
+      ) : state ? (
         // A GUEST ALREADY HAS A PROFILE, and "Create account" has to lead
         // somewhere that MAKES one. It went to /onboarding, which reads this
         // device's remembered account choice — "continue without an account" —
         // and opened on the guest step: a learner pressing "Create account" was
         // handed the screen that declines one, and pressing it twice did the
         // same thing twice. The account page is where an existing device's work
-        // is shown and attached in one step (components/attach-account.tsx), so
-        // that is where a guest is sent; a visitor with nothing here yet still
-        // gets the enrolment page, which is what they need.
-        <Link href={state ? "/account" : "/onboarding"} className="btn small">
+        // is shown and attached in one step (components/attach-account.tsx).
+        //
+        // AND IT IS QUIET NOW. A learner mid-session was reading this as the
+        // loudest control on their page — a filled button, beside the work they
+        // came to do, asking them to make an account. The capability (it opens
+        // /account and does the attach) is unchanged; the rank is not.
+        <Link href="/account" className="btn small ghost">
           <span className="btn-label">{t("onb.createAcct")}</span>
+          <span className="btn-arrow" aria-hidden="true">→</span>
+        </Link>
+      ) : (
+        // A visitor's one action on every marketing page is the one the front
+        // page leads with. It used to read "Create account" on a product whose
+        // whole promise is that an account is optional.
+        <Link href="/onboarding" className="btn small">
+          <span className="btn-label">{t("home.start")}</span>
           <span className="btn-arrow" aria-hidden="true">→</span>
         </Link>
       )}

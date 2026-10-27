@@ -7,7 +7,7 @@ import { useI18n, useProfile, loadLocalProfileId, loadLocalProfileSecret, fetchP
 import * as api from "@/lib/api/client";
 import { ApiError, answerQuestion } from "@/lib/api/client";
 import { ctitle, cblurb, mcName, mcCoaching } from "@/lib/content-i18n";
-import { dueLabel, fill } from "@/lib/i18n";
+import { dueLabel, fill, localeFor } from "@/lib/i18n";
 import { isNextKind, type NextAction, type NextKind } from "@/lib/next-engine";
 import { decideOne, decisionContextFrom } from "@/lib/decision";
 import { loadLedger, conceptKnowledge, type LedgerFetch } from "@/lib/evidence-view";
@@ -20,6 +20,7 @@ import SessionResultPanel from "@/components/session-result";
 import { Dims } from "@/components/dims";
 import TutorPanel from "@/components/tutor-panel";
 import { getConcept, ancestorsOf } from "@/lib/genome";
+import { SUBJECT_LABELS } from "@/lib/subjects";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { HINT_LEVELS } from "@/lib/hints";
 import MicroDiagnostic from "@/components/micro-diagnostic";
@@ -320,7 +321,11 @@ export default function ConceptPage() {
       <main className="container narrow" style={{ paddingTop: 48 }}>
         <p className="eyebrow"><span className="no">!</span> 404</p>
         <h1 className="visually-small">{t("learn.notFound")}</h1>
-        <Link href={`/learn/${subject}`} className="btn ghost">← {t("subj.title")}</Link>
+        {/* THE LABEL NAMES WHERE IT GOES. It read "Five subjects, one Knowledge
+            Genome" — that is /learn's own heading — on a link that returns to
+            ONE subject. A back link whose words describe a different page is a
+            learner's cue to expect the wrong screen. */}
+        <Link href={`/learn/${subject}`} className="btn ghost">← {t(SUBJECT_LABELS[subject])}</Link>
       </main>
     );
   }
@@ -682,7 +687,7 @@ export default function ConceptPage() {
                 <span className="mono">{evidence.hintedAnswers}</span>
                 {evidence.lastSeen > 0 && (
                   <>
-                    {" · "}{t("ev.lastSeen")}: {new Date(evidence.lastSeen).toLocaleDateString(lang)}
+                    {" · "}{t("ev.lastSeen")}: {new Date(evidence.lastSeen).toLocaleDateString(localeFor(lang), { day: "numeric", month: "short", year: "numeric" })}
                   </>
                 )}
               </p>
@@ -1060,7 +1065,7 @@ export default function ConceptPage() {
       )}
 
       <div className="actions" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 20 }}>
-        <Link href={`/learn/${subject}`} className="btn ghost small">← {t("subj.title")}</Link>
+        <Link href={`/learn/${subject}`} className="btn ghost small">← {t(SUBJECT_LABELS[subject])}</Link>
         <Link href={`/tutor/${c.id}`} className="btn small">{t("learn.ask")} →</Link>
       </div>
     </main>

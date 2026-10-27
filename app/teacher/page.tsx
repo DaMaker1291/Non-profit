@@ -7,7 +7,7 @@ import * as api from "@/lib/api/client";
 import { ApiError, classPackUrl } from "@/lib/api/client";
 import { getConcept } from "@/lib/genome";
 import { ctitle } from "@/lib/content-i18n";
-import { dueLabel, fill } from "@/lib/i18n";
+import { dueLabel, fill, localeFor } from "@/lib/i18n";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { buildWeeklyPlan, classSubject } from "@/lib/teacher-plan";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
@@ -317,8 +317,7 @@ export default function TeacherPage() {
   if (!loading && !bootingTeacher && (!state || !consoleFor)) {
     return (
       <main className="container" style={{ paddingTop: 36 }}>
-        <p className="eyebrow">{t("teach.title")}</p>
-        <h1 className="visually-small">{t("teach.title")}</h1>
+        <h1>{t("teach.title")}</h1>
         <p className="lead">{t("teach.sub")}</p>
         <div className="exercise" style={{ marginTop: 20, maxWidth: 620 }}>
           <h2 className="section" style={{ marginTop: 0 }}>{t("teach.entryTitle")}</h2>
@@ -370,8 +369,7 @@ export default function TeacherPage() {
         </a>
       ) : (
         <>
-          <p className="eyebrow">{t("teach.title")}</p>
-          <h1 className="visually-small">{t("teach.title")}</h1>
+          <h1>{t("teach.title")}</h1>
           <p className="lead">{t("teach.sub")}</p>
 
           {/* ── TODAY, BEFORE THE TOOLS THAT ACT ON IT (§teacher home) ─────
@@ -1485,7 +1483,7 @@ function StudentEvidence({
                       )}
                     </span>
                     <span className="mono small muted" style={{ width: 62, textAlign: "end" }}>
-                      {new Date(r.at).toLocaleDateString(lang === "en" ? undefined : lang, { day: "numeric", month: "short" })}
+                      {new Date(r.at).toLocaleDateString(localeFor(lang), { day: "numeric", month: "short" })}
                     </span>
                   </div>
                 );

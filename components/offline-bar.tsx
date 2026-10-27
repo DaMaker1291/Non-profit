@@ -34,7 +34,36 @@ export function OfflineBar() {
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      void navigator.serviceWorker.register("/sw.js");
+      if (process.env.NODE_ENV === "production") {
+        void navigator.serviceWorker.register("/sw.js");
+      } else {
+        // THE OFFLINE SHELL IS A PRODUCTION FEATURE, AND IN DEVELOPMENT IT IS
+        // POISON. The worker is network-first, but it CACHES every page and
+        // chunk a dev visit touches — and a dev server replaces those on the
+        // next compile (a restart renames every hashed chunk). The tab is then
+        // served cached HTML that points at assets which no longer exist: it
+        // renders nothing and keeps retrying, which reads as "the site keeps
+        // reloading". Measured on this checkout: one dev session left 1,467
+        // entries (including webpack-era hot-update files) in `openmind-v2`.
+        // So a dev build UNREGISTERS the worker instead of adding to that pile,
+        // and clears the cache it filled. The reload is how the unregistration
+        // takes effect — a page already controlled stays controlled until it
+        // navigates — and it can happen only once, because the next load finds
+        // no registration left to remove.
+        void (async () => {
+          try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            const removed = await Promise.all(regs.map((r) => r.unregister()));
+            if (removed.some(Boolean)) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((k) => caches.delete(k)));
+              window.location.reload();
+            }
+          } catch {
+            /* no worker support is a usable browser, not an error */
+          }
+        })();
+      }
     }
     const stopPower = watchPower();
     setOnline(navigator.onLine);

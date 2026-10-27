@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import {
-  buildPaper, defaultPaperFor, genericPaper, markPaper, paperConceptsTested, paperById, PAPERS,
+  buildPaper, defaultPaperFor, genericPapers, markPaper, paperConceptsTested, paperById, PAPERS,
   papersForSpec, type BuiltPaperAnswerKey,
 } from "@/lib/papers";
 import { specById, specForProfile, levelOf, type ActiveSpec, type CourseFields } from "@/lib/specifications";
@@ -71,12 +71,20 @@ export async function GET(req: Request): Promise<NextResponse> {
         calculator: p.calculator, board: p.board ?? null, authored: true as const,
       }))
       .sort((a, b) => (a.board === mine ? 0 : 1) - (b.board === mine ? 0 : 1));
-    const list = authored.length
-      ? authored
-      : SUBJECTS.filter((s) => active.spec.coverage[s]).map((s) => {
-        const g = genericPaper(active, s, lang);
-        return { id: g.id, name: g.name, subject: s, minutes: g.minutes, marks: g.marks, calculator: g.calculator, board: null, authored: false as const };
-      });
+    // SPECIFICATION-BUILT PAPERS, FOR EVERY SUBJECT THE QUALIFICATION TEACHES.
+    // This branch used to be the FALLBACK for a qualification with no authored
+    // paper at all, which left two real holes: a UK GCSE computing learner was
+    // offered NOTHING (the GCSE has authored maths/physics/chemistry/biology
+    // papers, so `authored` was non-empty and no built paper was ever added),
+    // and every other curriculum got exactly one paper per subject. Now every
+    // subject gets the three-paper set, and a board paper — where one exists —
+    // still comes first.
+    const built = SUBJECTS.filter((s) => active.spec.coverage[s])
+      .flatMap((s) => genericPapers(active, s, lang).map((g) => ({
+        id: g.id, name: g.name, subject: s, minutes: g.minutes, marks: g.marks,
+        calculator: g.calculator, board: null, authored: false as const,
+      })));
+    const list = [...authored, ...built];
     return NextResponse.json({
       qualification: active.spec.name,
       level: active.level.name || active.level.id,
@@ -86,7 +94,13 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
 
   const templateId = searchParams.get("templateId") ?? searchParams.get("template");
-  const template = (templateId ? paperById(templateId) : null) ?? defaultPaperFor(active, subject, lang);
+  const template =
+    (templateId ? paperById(templateId) : null)
+    // A specification-built paper's id is DERIVED from the qualification, so it
+    // is not in PAPERS — and without this lookup every choice in the picker
+    // built Paper 1, whatever the learner had chosen.
+    ?? (templateId ? genericPapers(active, subject, lang).find((p) => p.id === templateId) ?? null : null)
+    ?? defaultPaperFor(active, subject, lang);
 
   let built = buildPaper({ active, subject, seed, lang, template });
   let aiUsed = 0;
