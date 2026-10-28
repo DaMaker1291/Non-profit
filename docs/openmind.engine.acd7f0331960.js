@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 65 modules compiled from lib/ by that script, wired
+ * Source: 67 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -461,6 +461,7 @@ exports.hint = hint;
 exports.microCheck = microCheck;
 exports.starterView = starterView;
 exports.starterPick = starterPick;
+exports.workedExample = workedExample;
 exports.peerMark = peerMark;
 exports.nextTask = nextTask;
 exports.pathFor = pathFor;
@@ -768,6 +769,15 @@ function starterPick(id, conceptId, questionId, choiceIndex) {
         method: "POST",
         body: { action: "starterPick", id, conceptId, questionId, choiceIndex },
     });
+}
+/** ONE ITEM, WORKED IN FULL, for the lesson's worked example.
+ *
+ *  Profile-less and ungraded on purpose: it returns the key and the explanation
+ *  because that is what a worked example IS, and it takes no seed so it cannot
+ *  be turned into an oracle for the question on screen. The route
+ *  (app/api/worked-example/route.ts) carries the reasoning. */
+function workedExample(conceptId, lang, target) {
+    return (0, transport_1.send)("/api/worked-example", { query: { conceptId, lang, target } });
 }
 /** A peer's own words about whether they can explain this concept. */
 function peerMark(id, conceptId, strong) {
@@ -2270,7 +2280,16 @@ const ADDED_ROUTES = [
     { code: "HT", system: "Haïti · Collège / Lycée", grades: ["7e AF", "6e AF", "5e AF", "4e AF", "3e AF", "Seconde", "Rhéto", "Philo"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ht-bac"], sources: ["https://www.menfp.gouv.ht/"], recordReview: "researched", qualifications: [{ id: "bac", name: "Baccalauréat (Haïti)", stage: "End of Philo", specIds: ["ht-bac"] }], boards: [{ id: "haitian", name: "Ministère de l'Éducation Nationale (Haïti)", exams: ["Baccalauréat"] }] },
     { code: "BO", system: "Bolivia · Secundaria", grades: ["1º de secundaria", "2º de secundaria", "3º de secundaria", "4º de secundaria", "5º de secundaria", "6º de secundaria"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["bo-bachillerato"], sources: ["https://www.minedu.gob.bo/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 6º de secundaria", specIds: ["bo-bachillerato"] }], boards: [{ id: "bolivian", name: "Ministerio de Educación (Bolivia)", exams: ["Bachillerato"] }] },
     { code: "EC", system: "Ecuador · EGB / Bachillerato", grades: ["8º EGB", "9º EGB", "10º EGB", "1º bachillerato", "2º bachillerato", "3º bachillerato"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ec-bachillerato"], sources: ["https://educacion.gob.ec/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 3º bachillerato", specIds: ["ec-bachillerato"] }], boards: [{ id: "ecuadorian", name: "Ministerio de Educación (Ecuador)", exams: ["Bachillerato"] }] },
-    { code: "GT", system: "Guatemala · Básico / Diversificado", grades: ["1º básico", "2º básico", "3º básico", "4º diversificado", "5º diversificado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["gt-diversificado"], sources: ["https://www.minedu.gob.gt/"], recordReview: "researched", qualifications: [{ id: "diversificado", name: "Diversificado", stage: "End of 5º diversificado", specIds: ["gt-diversificado"] }], boards: [{ id: "guatemalan", name: "Ministerio de Educación (Guatemala)", exams: ["Diversificado"] }] },
+    // The exit assessment is "Evaluación Graduandos", run by MINEDUC's DIGEDUCA in two
+    // areas (Lectura, Matemática) — so the qualification is named for the TEST, not
+    // for the phase, and the source is the ministry's own domain plus DIGEDUCA's page
+    // on that assessment. The URL this route used to carry, minedu.gob.gt, was a
+    // MISSING LETTER in Guatemala's own domain (the ministry is mineduc.gob.gt) — a
+    // dead link, not a foreign ministry's. Checked before correcting this comment,
+    // because the first version of it claimed the wrong thing and a comment that
+    // accuses a citation of being somebody else's is one an author might delete the
+    // citation over.
+    { code: "GT", system: "Guatemala · Básico / Diversificado", grades: ["1º básico", "2º básico", "3º básico", "4º diversificado", "5º diversificado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["gt-diversificado"], sources: ["https://www.mineduc.gob.gt/", "https://digeduca.wordpress.com/sobre-la-evaluacion-graduandos/"], recordReview: "researched", qualifications: [{ id: "diversificado", name: "Evaluación Graduandos — Matemática", stage: "End of 5º diversificado", specIds: ["gt-diversificado"] }], boards: [{ id: "guatemalan", name: "Ministerio de Educación (MINEDUC), DIGEDUCA", exams: ["Evaluación Graduandos"] }] },
     { code: "HN", system: "Honduras · Secundaria", grades: ["7º grado", "8º grado", "9º grado", "10º grado", "11º grado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["hn-bachillerato"], sources: ["https://se.gob.hn/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 11º grado", specIds: ["hn-bachillerato"] }], boards: [{ id: "honduran", name: "Secretaría de Educación (Honduras)", exams: ["Bachillerato"] }] },
     { code: "NI", system: "Nicaragua · Secundaria", grades: ["7º grado", "8º grado", "9º grado", "10º grado", "11º grado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["ni-bachillerato"], sources: ["https://www.mined.gob.ni/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 11º grado", specIds: ["ni-bachillerato"] }], boards: [{ id: "nicaraguan", name: "Ministerio de Educación (Nicaragua)", exams: ["Bachillerato"] }] },
     { code: "SV", system: "El Salvador · Secundaria", grades: ["7º grado", "8º grado", "9º grado", "10º grado", "11º grado"], entry: ["fractions", "linear-equations", "algebra-expressions"], specs: ["sv-bachillerato"], sources: ["https://www.mined.gob.sv/"], recordReview: "researched", qualifications: [{ id: "bachillerato", name: "Bachillerato", stage: "End of 11º grado", specIds: ["sv-bachillerato"] }], boards: [{ id: "salvadoran", name: "Ministerio de Educación (El Salvador)", exams: ["Bachillerato"] }] },
@@ -3878,6 +3897,7 @@ exports.recentAnswers = recentAnswers;
 exports.hasRecordedWork = hasRecordedWork;
 exports.conceptAnswers = conceptAnswers;
 const evidence_1 = require("./evidence");
+const i18n_1 = require("./i18n");
 const proof_1 = require("./proof");
 const client_1 = require("./api/client");
 /**
@@ -3926,7 +3946,14 @@ function citationsFor(evidenceIds, events, opts) {
             continue;
         out.push({
             id: e.id,
-            when: new Date(e.at).toLocaleDateString(opts.locale, { day: "numeric", month: "short" }),
+            // THE DATE IS FORMATTED IN A LOCALE WITH A REGION, not in whatever the
+            // device happens to be set to. `opts.locale` arrives as a bare LANGUAGE
+            // code ("en"), and `toLocaleDateString("en")` is American month-first — so
+            // a citation read "10/26/2026" on a US machine and "26 Oct" on a UK one,
+            // the same record formatted two ways. `localeFor` is the ONE mapping from
+            // a dictionary code to a locale (lib/i18n.ts); it also keeps a caller's
+            // full locale, so nothing is lost.
+            when: new Date(e.at).toLocaleDateString((0, i18n_1.localeFor)(opts.locale), { day: "numeric", month: "short" }),
             concept: e.conceptId ? opts.titleFor(e.conceptId) : "",
             kind: opts.t(`evv.source.${e.source}`),
             correct: e.correct,
@@ -5048,17 +5075,54 @@ exports.STAGE_NAMES = {
 });
 __def("hints.js", function (module, exports, require) {
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.HINT_LEVELS = void 0;
+exports.buildHint = buildHint;
 // ─────────────────────────────────────────────────────────────────────────────
 // The "I'm stuck" ladder. A student never gets the answer for free — they
 // choose how much scaffolding they want, and each request is recorded.
 //
 // Hints are returned as i18n keys + optional curriculum text. The generic
 // nudge/strategy lines are fully translated; anything drawn from the question
-// itself (the explanation) stays curriculum content, like the questions are.
+// itself (the explanation, or a repair's own step) stays curriculum content,
+// like the questions are.
+//
+// ── WHAT WAS WRONG WITH THIS FILE, AND WHY IT IS NOT JUST COPY ──────────────
+//
+// The ladder was rung-shaped but not learner-shaped. Rungs 1 and 2 returned a
+// fixed sentence for all 135 concepts, so a learner stuck on a negative-number
+// item and a learner stuck on a poem read the same two lines; and rung 3 cut the
+// explanation at its first full stop, `explanation.split(".")[0]`, which reports
+// `13 ÷ 5 = 2` for a question whose answer is `2.6`. Both were live: the same
+// split had already been fixed for the lesson's fade (lib/lesson-plans.ts
+// `firstMoveOf`, whose guards are measured on every concept's explanations), and
+// this file was still doing it by hand.
+//
+// ── THE TWO THINGS THAT ARE NOW DIFFERENT ───────────────────────────────────
+//
+// 1. RUNGS 3 AND 4 ASK THE SAME MODULE THE LESSON DOES where the first move
+//    comes from, so the two surfaces cannot disagree about where a sentence
+//    ends, and a decimal is not mistaken for a full stop.
+//
+// 2. A LEARNER WITH A CURRENT SLIP GETS HELP WITH THAT SLIP. `currentSlip`
+//    (lib/learner-model.ts) is the product's one rule for "this belief is still
+//    live" — three clean answers retire it — and `lib/repair.ts` already holds
+//    authored content per slip: what the move reveals, the contrast that decides
+//    the case, and the corrected step. A hint on a concept where that rule says
+//    a slip is current now says the slip's own sentence instead of a nudge
+//    written for everyone. That is the difference between "help" and "help with
+//    what went wrong" — and it is the rung the strategy note calls *the hint
+//    should target the actual difficulty* (Orient → Select → Scaffold → Explain).
+//
+// WHAT IT STILL CANNOT DO, said here rather than discovered later: without a
+// slip, rungs 1 and 2 are still the translated generic lines. Making those
+// question-specific needs authored per-concept hint text, and there are 135
+// concepts; writing 135 × 2 sentences of scaffolding is a content job this file
+// must not fake by generating prose. The slip branch is where learner state
+// genuinely changes the answer, and that is the branch that exists.
 // ─────────────────────────────────────────────────────────────────────────────
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.HINT_LEVELS = void 0;
-exports.buildHint = buildHint;
+const lesson_plans_1 = require("./lesson-plans");
+const repair_1 = require("./repair");
 exports.HINT_LEVELS = [
     { level: 1, labelKey: "hint.tiny", descKey: "hint.tinyDesc" },
     { level: 2, labelKey: "hint.strong", descKey: "hint.strongDesc" },
@@ -5066,21 +5130,40 @@ exports.HINT_LEVELS = [
     { level: 4, labelKey: "hint.walkthrough", descKey: "hint.walkthroughDesc" },
 ];
 /** Build the hint for a question at a given ladder level from the question's
- *  own explanation and misconception tags. Deterministic, no external calls:
- *  the ladder must work offline. */
-function buildHint(q, level) {
+ *  own explanation, the learner's current slip, and misconception tags.
+ *  Deterministic, no external calls: the ladder must work offline. */
+function buildHint(q, level, ctx = {}) {
     if (level <= 1) {
-        // Tiny hint: point at the goal, never the method.
+        // Tiny hint: point at the goal, never the method. Unchanged — this is the
+        // rung a learner takes when they do not yet know what is stopping them, and
+        // naming a slip here would hand over a diagnosis they have not asked for.
         return { key: "hint.body.tiny" };
     }
+    // The repair for the CURRENT slip, when one is live and authored, AND the pair
+    // inside it that describes the shape of THIS item. A slip with two moves has
+    // no pair for a third shape (`-9 + 6` is neither `5 − (−3)` nor `(−2) × (−4)`),
+    // and `contrastFor` answers null there — so the ladder says something general
+    // instead of giving an instruction about a move the item does not contain.
+    const plan = ctx.slip && ctx.conceptId ? (0, repair_1.repairFor)(ctx.conceptId, ctx.slip) : null;
+    const pair = plan ? (0, repair_1.contrastFor)(plan, q.prompt) : null;
     if (level <= 2) {
-        // Strong hint: the first methodological move.
+        if (plan && pair) {
+            // Select: what the move reveals, so the learner knows which step to watch
+            // before they start — not the corrected step yet.
+            return { key: "hint.body.yourSlip", text: plan.reveals };
+        }
         return { key: "hint.body.strong" };
     }
     if (level <= 3) {
-        // First step: the opening move, spelled out — plus the translated strategy line.
-        const first = q.explanation.split(".")[0];
-        return { key: "hint.body.strong", text: first ? `${first}.` : undefined };
+        if (pair) {
+            // Scaffold: the corrected step FOR THE MOVE THIS ITEM IS ABOUT.
+            return { key: "hint.body.yourSlip", text: pair.move };
+        }
+        // First step: the opening move, spelled out. Split by the lesson's own
+        // measured rule, never by `split(".")` — that cut `13 ÷ 5 = 2.6.` in half
+        // and reported "13 ÷ 5 = 2" as the first step.
+        const { first } = (0, lesson_plans_1.firstMoveOf)(q.explanation);
+        return { key: "hint.body.strong", text: first || undefined };
     }
     // Level 4: full walkthrough = the explanation itself (curriculum content).
     return { text: q.explanation };
@@ -5987,15 +6070,32 @@ exports.langMeta = langMeta;
 exports.isRtl = isRtl;
 exports.translator = translator;
 exports.fill = fill;
+exports.localeFor = localeFor;
 exports.dueLabel = dueLabel;
 const i18n_recovery_1 = require("./i18n-recovery");
 const i18n_curriculum_1 = require("./i18n-curriculum");
 const i18n_device_1 = require("./i18n-device");
 const i18n_kiosk_1 = require("./i18n-kiosk");
 const en = {
+    "target.slipCheck": "This one is built to catch that slip.",
+    "repair.title": "Let's fix this",
+    "repair.works": "This works",
+    "repair.fails": "This breaks",
+    "repair.diff": "The one difference",
+    "repair.move": "The move",
+    "plan.can": "By the end you can",
+    "plan.start": "Start here",
+    "plan.together": "Let's do one together",
+    "plan.guidedLead": "I'll take the first step — you finish it, then check.",
+    "plan.firstStep": "Show the first step",
+    "plan.rest": "Show the rest",
+    "plan.finishIt": "Finish it in your head first, then check.",
+    "plan.traps": "Where this goes wrong",
+    "plan.reviewed": "Checked by a subject teacher",
+    "plan.unreviewed": "Not yet checked by a subject teacher",
     "cur.covers": "{n} of the {total} concepts here belong to your course.",
     "cur.outside": "Not in your course",
-    "cur.outsideNote": "{n} concepts here sit outside {spec}. They stay open to read, but they are not your syllabus.",
+    "cur.outsideNote": "{n} concepts here are outside {spec}. You can still read them, but they are not part of your syllabus.",
     "mc.neg-slip": "Sign slip with negatives",
     "mc.frac-slice": "Bigger denominator = bigger slice",
     "mc.denom-add": "Adds denominators",
@@ -6185,11 +6285,11 @@ const en = {
     "q.calculate": "Calculate",
     "q.share": "Share",
     "q.balance": "Balance",
-    "res.textbook": "📕 One textbook",
-    "res.worksheets": "📄 School worksheets",
-    "res.phone": "📱 This phone",
-    "res.internet": "🛜 Internet sometimes",
-    "res.teacher": "👩‍🏫 Teacher twice a week",
+    "res.textbook": "One textbook",
+    "res.worksheets": "School worksheets",
+    "res.phone": "This phone",
+    "res.internet": "Internet sometimes",
+    "res.teacher": "Teacher twice a week",
     "res.advice.internet": "Internet comes and goes — keep a fresh offline pack.",
     "res.advice.offlinePlan": "Offline plan",
     "res.advice.teacher": "A teacher is available — bring the printable week plan.",
@@ -6197,10 +6297,20 @@ const en = {
     "res.advice.paper": "You have paper materials — photograph a question to find its concept.",
     "res.advice.identify": "Identify a question",
     "res.advice.phone": "Just this phone is enough — start with the diagnostic.",
+    "learn.idea": "The idea",
+    "learn.buildsOn": "What this builds on",
+    "worked.another": "Another one, harder",
+    "worked.eyebrow": "Worked example",
+    "worked.lead": "One question, done in full first, before you try your own.",
+    "worked.show": "Show me how",
+    "worked.answer": "this is the answer",
+    "worked.err": "The example could not load. Check your connection, then try again.",
+    "worked.next": "Now your turn",
+    "peer.ideas": "Key ideas from this concept",
     "peer.eyebrow": "Teach someone else",
-    "peer.prompt": "Explain it in your own words — OpenMind checks what you covered.",
+    "peer.prompt": "Explain it in your own words. Nothing here is marked — it is how you check your own thinking.",
     "peer.placeholder": "e.g. Photosynthesis is how plants turn light into food…",
-    "peer.checkBtn": "Check my explanation",
+    "peer.checkBtn": "Look it over",
     "peer.strong": "Great explanation — correct and complete enough to teach someone else.",
     "peer.goodPre": "Good — you covered the main idea. Missing one thread: ",
     "peer.goodPost": ".",
@@ -6268,7 +6378,11 @@ const en = {
     "onb.setup": "Set up your learning",
     "onb.lead": "Tell us a few things and OpenMind adapts: teaching language, examples, difficulty and your learning path. An account saves this everywhere — or continue without one.",
     "onb.name": "Your name",
+    "onb.nameNeeded": "Choose a name to continue — a nickname is fine.",
     "onb.where": "Where you are",
+    "onb.region": "Province / state / region",
+    "onb.pickRegion": "Choose one (optional)",
+    "onb.regionNote": "Sets the lesson language below — change it if it is wrong.",
     "onb.lang": "Language",
     "onb.pathway": "Education system",
     "onb.pickPathway": "Choose your education system",
@@ -6283,10 +6397,10 @@ const en = {
     "onb.errRefused": "The server refused this profile change — this is not your connection. The code below is the reason.",
     "onb.errNotYours": "This device's saved profile can no longer be written to — its secret does not match it. Nothing was erased; this browser simply cannot reach that record. Sign in to the account that owns it, or start a fresh profile here.",
     "onb.freshStart": "Start a fresh profile on this device",
-    "ls.visual": "👁 Visual",
-    "ls.auditory": "🔊 Auditory",
-    "ls.kinesthetic": "✋ Kinesthetic",
-    "ls.reading": "📖 Reading",
+    "ls.visual": "Visual",
+    "ls.auditory": "Auditory",
+    "ls.kinesthetic": "Kinesthetic",
+    "ls.reading": "Reading",
     "cult.neutral": "Neutral",
     "cult.agriculture": "Farming, markets, transport",
     "cult.urban": "City life, shops, buses",
@@ -6474,7 +6588,7 @@ const en = {
     "hint.walkthrough": "Walk me through it",
     "hint.walkthroughDesc": "The full reasoning, step by step.",
     "hint.body.tiny": "Look carefully at what the question is actually asking for.",
-    "hint.body.strong": "Start from what the question gives you, and write the relationship you know that connects it to what is asked.",
+    "hint.body.yourSlip": "Your last answers here slipped on this step — keep it in view:", "hint.body.strong": "Start from what the question gives you, and write the relationship you know that connects it to what is asked.",
     "retention.title": "Ready for review",
     "retention.sub": "You answered these correctly before. A quick look now — today, next week, next month — is what makes them stick.",
     "retention.review": "Review",
@@ -6696,14 +6810,15 @@ const en = {
     "home.examPast": "Your exam date has passed — update it in settings",
     "prog.gainPts": "points gained",
     "prog.gainHint": "Retake the diagnostic to measure your progress.",
-    "pack.title": "Study packs",
-    "pack.none": "No packs yet — write the first note for this concept.",
-    "pack.add": "Add a pack",
-    "pack.fork": "Fork",
+    "pack.title": "Learner notes",
+    "pack.lead": "Short notes from other learners on this idea. Write one, mark one helpful, or copy one and make it your own.",
+    "pack.none": "No notes on this concept yet. A trick or a warning in your own words helps the next person.",
+    "pack.add": "Write a note",
+    "pack.fork": "Copy and edit",
     "pack.helpful": "Helpful",
-    "pack.phTitle": "Pack title",
+    "pack.phTitle": "Note title",
     "pack.phBody": "What should a friend know? A trick, a warning, your language…",
-    "pack.forkOf": "fork of",
+    "pack.forkOf": "based on",
     "goal.title": "Your goal",
     "goal.step": "Step",
     "goal.now": "Now",
@@ -6813,20 +6928,20 @@ const en = {
     "acc.highContrast": "High contrast",
     "acc.calmScreen": "Calm screen",
     "acc.connectivity": "Connectivity",
-    "acc.syncedAll": "🟢 Everything synced.",
+    "acc.syncedAll": "Everything synced.",
     "acc.pendingSync": "answers waiting to sync.",
     "acc.offlinePlan": "Offline plan",
-    "acc.continuity": "🆘 Easier questions when it's hard",
-    "acc.have": "🌱 What I have",
+    "acc.continuity": "Easier questions when it's hard",
+    "acc.have": "What I have",
     "acc.howTeachNote": "OpenMind adjusts examples and presentation to this.",
     "acc.saved": "✓ Saved",
-    "acc.stayLocal": "🔒 Access choices stay on your device until you save them to your profile.",
+    "acc.stayLocal": "Access choices stay on your device until you save them to your profile.",
     "acc.examPh": "e.g. WAEC SSSCE, KCSE Form 4, AISSCE",
     "hub.local": "OpenMind Hub · local",
     "hub.localNote": "on this hub. No student needs internet — the hub syncs when it gets it.",
     "pack.packing": "Packing…",
-    "pack.download": "📴 Download my learning pack",
-    "pack.ready": "🟢 Offline-ready — keep learning with no internet.",
+    "pack.download": "Download my learning pack",
+    "pack.ready": "Offline-ready — keep learning with no internet.",
     "dash.anonNote": "— no email, no password, 30 seconds.",
     "dash.langLead": "Explanations in",
     "dash.langMid": "· terms in",
@@ -6964,7 +7079,7 @@ const en = {
     "onb.verifyNote": "OpenMind sends no verification emails — your address is only used to sign in.",
     "pp.title": "Exam papers",
     "pp.lead": "Sit a full paper under its own time limit and mark rules, then read the mark scheme and your grade estimate.",
-    "pp.honest": "Each paper is written to your board's specification and format by OpenMind — it is not a reproduction of a copyrighted past paper.",
+    "pp.honest": "Every question is written by OpenMind — none is a copy of a copyrighted past paper. Each row says whether the paper's shape is your awarding body's own or an OpenMind practice set.",
     "pp.pick": "Choose a paper",
     "pp.pickLead": "Pick your subject, then sit the whole paper in one sitting.",
     "pp.empty": "No paper is available for this qualification yet.",
@@ -7026,6 +7141,12 @@ const en = {
     "pp.prev": "Previous",
     "pp.next": "Next",
     "pp.grid": "Jump to a question",
+    "pp.paper": "Paper {n}",
+    "pp.needs": "Built from your record",
+    "pp.mirrors": "Your awarding body's published paper structure",
+    "pp.practiceSet": "OpenMind practice set for your course — not your awarding body's paper",
+    "pp.shapeSource": "Source",
+    "pp.needsWhy": "Every question here comes from the ideas your own record says are weakest.",
     "pp.correct": "Correct",
     "pp.incorrect": "Incorrect",
     "pp.blank": "Not attempted",
@@ -7327,9 +7448,25 @@ const en = {
     "acct.class": "Join a class",
 };
 const es = {
+    "target.slipCheck": "Esta está pensada para pillar ese fallo.",
+    "repair.title": "Vamos a corregirlo",
+    "repair.works": "Aquí funciona",
+    "repair.fails": "Aquí falla",
+    "repair.diff": "La única diferencia",
+    "repair.move": "El paso",
+    "plan.can": "Al terminar podrás",
+    "plan.start": "Empieza aquí",
+    "plan.together": "Hagamos uno juntos",
+    "plan.guidedLead": "Yo hago el primer paso; tú terminas el resto y luego compruebas.",
+    "plan.firstStep": "Ver el primer paso",
+    "plan.rest": "Ver el resto",
+    "plan.finishIt": "Termínalo primero en tu cabeza y luego comprueba.",
+    "plan.traps": "Aquí es donde se falla",
+    "plan.reviewed": "Revisado por un profesor de la materia",
+    "plan.unreviewed": "Aún no revisado por un profesor de la materia",
     "cur.covers": "{n} de los {total} conceptos de aquí forman parte de tu curso.",
     "cur.outside": "Fuera de tu curso",
-    "cur.outsideNote": "Aquí hay {n} conceptos fuera de {spec}. Siguen abiertos para leer, pero no son tu temario.",
+    "cur.outsideNote": "{n} conceptos de aquí quedan fuera de {spec}. Puedes leerlos igualmente, pero no forman parte de tu temario.",
     "curr.unmapped": "El curso nacional de tu país aún no está mapeado: se muestran las rutas internacionales.",
     "nav.currTitle": "Tu currículo",
     "curr.title": "Tu currículo",
@@ -7826,11 +7963,11 @@ const es = {
     "q.calculate": "Calcula",
     "q.share": "Reparte",
     "q.balance": "Balancea",
-    "res.textbook": "📕 Un libro de texto",
-    "res.worksheets": "📄 Fichas escolares",
-    "res.phone": "📱 Este teléfono",
-    "res.internet": "🛜 Internet a veces",
-    "res.teacher": "👩‍🏫 Docente dos veces por semana",
+    "res.textbook": "Un libro de texto",
+    "res.worksheets": "Fichas escolares",
+    "res.phone": "Este teléfono",
+    "res.internet": "Internet a veces",
+    "res.teacher": "Docente dos veces por semana",
     "res.advice.internet": "Internet va y viene — mantén un paquete sin conexión al día.",
     "res.advice.offlinePlan": "Plan sin conexión",
     "res.advice.teacher": "Hay un docente disponible — lleva el plan semanal imprimible.",
@@ -7838,10 +7975,20 @@ const es = {
     "res.advice.paper": "Tienes materiales en papel — fotografía una pregunta para hallar su concepto.",
     "res.advice.identify": "Identificar una pregunta",
     "res.advice.phone": "Solo este teléfono basta — empieza con el diagnóstico.",
+    "learn.idea": "La idea",
+    "learn.buildsOn": "En qué se apoya",
+    "worked.another": "Otra, más difícil",
+    "worked.eyebrow": "Ejemplo resuelto",
+    "worked.lead": "Primero una pregunta resuelta del todo, antes de que pruebes la tuya.",
+    "worked.show": "Enséñame cómo",
+    "worked.answer": "esta es la respuesta",
+    "worked.err": "No se pudo cargar el ejemplo. Revisa tu conexión e inténtalo de nuevo.",
+    "worked.next": "Ahora te toca",
+    "peer.ideas": "Ideas clave de este concepto",
     "peer.eyebrow": "Enséñaselo a otra persona",
-    "peer.prompt": "Explícalo con tus palabras — OpenMind revisa qué cubriste.",
+    "peer.prompt": "Explícalo con tus palabras. Aquí no se califica nada: es para revisar tu propio razonamiento.",
     "peer.placeholder": "p. ej. La fotosíntesis es cómo las plantas convierten la luz en alimento…",
-    "peer.checkBtn": "Revisar mi explicación",
+    "peer.checkBtn": "Revisarlo",
     "peer.strong": "Gran explicación — correcta y completa como para enseñársela a otro.",
     "peer.goodPre": "Bien — cubriste la idea principal. Falta un hilo: ",
     "peer.goodPost": ".",
@@ -7909,7 +8056,11 @@ const es = {
     "onb.setup": "Configura tu aprendizaje",
     "onb.lead": "Cuéntanos unas cosas y OpenMind se adapta: idioma de enseñanza, ejemplos, dificultad y tu ruta. Una cuenta lo guarda en todas partes; o sigue sin cuenta.",
     "onb.name": "Tu nombre",
+    "onb.nameNeeded": "Elige un nombre para continuar; un apodo vale.",
     "onb.where": "Dónde estás",
+    "onb.region": "Provincia / estado / región",
+    "onb.pickRegion": "Elige una (opcional)",
+    "onb.regionNote": "Ajusta el idioma de las lecciones de abajo; cámbialo si no es el tuyo.",
     "onb.lang": "Idioma",
     "onb.teachingLang": "Idioma de enseñanza (explicaciones)",
     "onb.understandLang": "Entiendo mejor en",
@@ -7929,10 +8080,10 @@ const es = {
     "onb.errRefused": "El servidor rechazó este cambio de perfil: no es tu conexión. El código de abajo es el motivo.",
     "onb.errNotYours": "Ya no se puede escribir en el perfil guardado en este dispositivo: su secreto no coincide. No se borró nada; este navegador solo no puede llegar a ese registro. Inicia sesión con la cuenta que lo posee o empieza un perfil nuevo aquí.",
     "onb.freshStart": "Empezar un perfil nuevo en este dispositivo",
-    "ls.visual": "👁 Visual",
-    "ls.auditory": "🔊 Auditivo",
-    "ls.kinesthetic": "✋ Kinestésico",
-    "ls.reading": "📖 Lectura",
+    "ls.visual": "Visual",
+    "ls.auditory": "Auditivo",
+    "ls.kinesthetic": "Kinestésico",
+    "ls.reading": "Lectura",
     "cult.neutral": "Neutro",
     "cult.agriculture": "Campo, mercados, transporte",
     "cult.urban": "Vida urbana, tiendas, buses",
@@ -8073,7 +8224,7 @@ const es = {
     "hint.walkthrough": "Guíame paso a paso",
     "hint.walkthroughDesc": "El razonamiento completo, paso a paso.",
     "hint.body.tiny": "Fíjate bien en lo que la pregunta realmente pide.",
-    "hint.body.strong": "Parte de lo que la pregunta te da y escribe la relación que conoces que lo conecta con lo que se pide.",
+    "hint.body.yourSlip": "Tus últimas respuestas aquí fallaron en este paso — tenlo a la vista:", "hint.body.strong": "Parte de lo que la pregunta te da y escribe la relación que conoces que lo conecta con lo que se pide.",
     "retention.title": "Listo para repasar",
     "retention.sub": "Antes respondiste estos correctamente. Un vistazo rápido ahora — hoy, la próxima semana, el próximo mes — es lo que hace que se queden.",
     "retention.review": "Repasar",
@@ -8221,14 +8372,15 @@ const es = {
     "home.examPast": "La fecha de tu examen ya pasó — actualízala en los ajustes",
     "prog.gainPts": "puntos ganados",
     "prog.gainHint": "Repite el diagnóstico para medir tu avance.",
-    "pack.title": "Fichas de estudio",
-    "pack.none": "Aún no hay fichas — escribe la primera.",
-    "pack.add": "Añadir ficha",
-    "pack.fork": "Bifurcar",
+    "pack.title": "Notas de otros estudiantes",
+    "pack.lead": "Notas breves de otros estudiantes sobre esta idea. Escribe una, marca una como útil, o copia una y hazla tuya.",
+    "pack.none": "Todavía no hay notas sobre este concepto. Un truco o una advertencia con tus palabras ayuda al siguiente.",
+    "pack.add": "Escribir una nota",
+    "pack.fork": "Copiar y editar",
     "pack.helpful": "Útil",
-    "pack.phTitle": "Título de la ficha",
+    "pack.phTitle": "Título de la nota",
     "pack.phBody": "¿Qué debe saber un compañero? Un truco, un aviso, su idioma…",
-    "pack.forkOf": "bifurcación de",
+    "pack.forkOf": "basada en",
     "goal.title": "Tu meta",
     "goal.step": "Paso",
     "goal.now": "Ahora",
@@ -8339,20 +8491,20 @@ const es = {
     "acc.highContrast": "Alto contraste",
     "acc.calmScreen": "Pantalla tranquila",
     "acc.connectivity": "Conectividad",
-    "acc.syncedAll": "🟢 Todo sincronizado.",
+    "acc.syncedAll": "Todo sincronizado.",
     "acc.pendingSync": "respuestas esperando sincronizarse.",
     "acc.offlinePlan": "Plan sin conexión",
-    "acc.continuity": "🆘 Preguntas más fáciles cuando cuesta",
-    "acc.have": "🌱 Lo que tengo",
+    "acc.continuity": "Preguntas más fáciles cuando cuesta",
+    "acc.have": "Lo que tengo",
     "acc.howTeachNote": "OpenMind ajusta los ejemplos y la presentación a esto.",
     "acc.saved": "✓ Guardado",
-    "acc.stayLocal": "🔒 Las opciones de accesibilidad se quedan en tu dispositivo hasta que las guardes en tu perfil.",
+    "acc.stayLocal": "Las opciones de accesibilidad se quedan en tu dispositivo hasta que las guardes en tu perfil.",
     "acc.examPh": "p. ej. WAEC SSSCE, KCSE Form 4, AISSCE",
     "hub.local": "Centro OpenMind · local",
     "hub.localNote": "en este centro. Ningún estudiante necesita internet: el centro se sincroniza cuando la tiene.",
     "pack.packing": "Empaquetando…",
-    "pack.download": "📴 Descargar mi paquete de aprendizaje",
-    "pack.ready": "🟢 Listo sin conexión: sigue aprendiendo sin internet.",
+    "pack.download": "Descargar mi paquete de aprendizaje",
+    "pack.ready": "Listo sin conexión: sigue aprendiendo sin internet.",
     "dash.anonNote": "— sin correo, sin contraseña, 30 segundos.",
     "dash.langLead": "Explicaciones en",
     "dash.langMid": "· términos en",
@@ -8482,7 +8634,7 @@ const es = {
     "onb.verifyNote": "OpenMind no envía correos de verificación; tu dirección solo se usa para iniciar sesión.",
     "pp.title": "Exámenes oficiales",
     "pp.lead": "Resuelve un examen completo con su tiempo y criterios, y luego revisa el solucionario y tu nota estimada.",
-    "pp.honest": "Cada examen lo redacta OpenMind según la especificación y el formato de tu Junta; no reproduce un examen oficial con derechos de autor.",
+    "pp.honest": "Todas las preguntas las redacta OpenMind: ninguna copia un examen oficial con derechos de autor. Cada fila indica si la estructura del examen es la de tu organismo examinador o una práctica de OpenMind.",
     "pp.pick": "Elige un examen",
     "pp.pickLead": "Elige tu materia y resuelve el examen entero de una vez.",
     "pp.empty": "Aún no hay examen para esta titulación.",
@@ -8544,6 +8696,12 @@ const es = {
     "pp.prev": "Anterior",
     "pp.next": "Siguiente",
     "pp.grid": "Ir a una pregunta",
+    "pp.paper": "Examen {n}",
+    "pp.needs": "Hecho a partir de tu historial",
+    "pp.mirrors": "Estructura publicada por tu organismo examinador",
+    "pp.practiceSet": "Práctica de OpenMind para tu curso, no el examen de tu organismo",
+    "pp.shapeSource": "Fuente",
+    "pp.needsWhy": "Todas las preguntas salen de las ideas que tu propio historial señala como más flojas.",
     "pp.correct": "Correcta",
     "pp.incorrect": "Incorrecta",
     "pp.blank": "Sin responder",
@@ -8846,9 +9004,25 @@ const es = {
     "acct.class": "Unirse a una clase",
 };
 const fr = {
+    "target.slipCheck": "Celle-ci est faite pour piéger cette erreur.",
+    "repair.title": "Réparons ça",
+    "repair.works": "Ici, ça marche",
+    "repair.fails": "Ici, ça casse",
+    "repair.diff": "La seule différence",
+    "repair.move": "Le geste",
+    "plan.can": "À la fin, tu sauras",
+    "plan.start": "Commence ici",
+    "plan.together": "Faisons-en un ensemble",
+    "plan.guidedLead": "Je fais la première étape ; tu termines, puis tu vérifies.",
+    "plan.firstStep": "Voir la première étape",
+    "plan.rest": "Voir la suite",
+    "plan.finishIt": "Termine-le d'abord dans ta tête, puis vérifie.",
+    "plan.traps": "Là où ça se trompe",
+    "plan.reviewed": "Vérifié par un professeur de la matière",
+    "plan.unreviewed": "Pas encore vérifié par un professeur de la matière",
     "cur.covers": "{n} des {total} concepts d'ici font partie de ton parcours.",
     "cur.outside": "Hors de ton parcours",
-    "cur.outsideNote": "{n} concepts d'ici sont en dehors de {spec}. Ils restent consultables, mais ils ne font pas partie de ton programme.",
+    "cur.outsideNote": "{n} concepts d'ici sont hors de {spec}. Tu peux quand même les lire, mais ils ne font pas partie de ton programme.",
     "curr.unmapped": "Le cursus national de ton pays n'est pas encore relié : les parcours internationaux sont affichés.",
     "nav.currTitle": "Ton programme",
     "curr.title": "Ton programme",
@@ -9345,11 +9519,11 @@ const fr = {
     "q.calculate": "Calcule",
     "q.share": "Partage",
     "q.balance": "Équilibre",
-    "res.textbook": "📕 Un manuel",
-    "res.worksheets": "📄 Fiches d'exercices",
-    "res.phone": "📱 Ce téléphone",
-    "res.internet": "🛜 Internet parfois",
-    "res.teacher": "👩‍🏫 Un·e enseignant·e deux fois par semaine",
+    "res.textbook": "Un manuel",
+    "res.worksheets": "Fiches d'exercices",
+    "res.phone": "Ce téléphone",
+    "res.internet": "Internet parfois",
+    "res.teacher": "Un·e enseignant·e deux fois par semaine",
     "res.advice.internet": "Internet va et vient — garde un pack hors ligne à jour.",
     "res.advice.offlinePlan": "Plan hors ligne",
     "res.advice.teacher": "Un·e enseignant·e est disponible — apporte le plan de semaine imprimable.",
@@ -9357,10 +9531,20 @@ const fr = {
     "res.advice.paper": "Tu as des supports papier — photographie une question pour trouver son concept.",
     "res.advice.identify": "Identifier une question",
     "res.advice.phone": "Ce téléphone suffit — commence par le diagnostic.",
+    "learn.idea": "L'idée",
+    "learn.buildsOn": "Sur quoi cela s'appuie",
+    "worked.another": "Une autre, plus difficile",
+    "worked.eyebrow": "Exemple corrigé",
+    "worked.lead": "D'abord une question entièrement résolue, avant d'essayer la tienne.",
+    "worked.show": "Montre-moi comment",
+    "worked.answer": "voici la réponse",
+    "worked.err": "L'exemple n'a pas pu se charger. Vérifie ta connexion, puis réessaie.",
+    "worked.next": "À toi",
+    "peer.ideas": "Idées clés de ce concept",
     "peer.eyebrow": "Explique-le à quelqu'un",
-    "peer.prompt": "Explique avec tes mots — OpenMind vérifie ce que tu as couvert.",
+    "peer.prompt": "Explique-le avec tes mots. Rien n'est noté ici : c'est pour vérifier ton propre raisonnement.",
     "peer.placeholder": "p. ex. La photosynthèse, c'est comme les plantes transforment la lumière en nourriture…",
-    "peer.checkBtn": "Vérifier mon explication",
+    "peer.checkBtn": "Relire",
     "peer.strong": "Superbe explication — correcte et assez complète pour l'enseigner.",
     "peer.goodPre": "Bien — l'idée principale est là. Il manque un fil : ",
     "peer.goodPost": ".",
@@ -9428,7 +9612,11 @@ const fr = {
     "onb.setup": "Configure ton apprentissage",
     "onb.lead": "Dites-nous quelques choses et OpenMind s'adapte : langue d'enseignement, exemples, difficulté et votre parcours. Un compte enregistre tout — ou continuez sans compte.",
     "onb.name": "Ton prénom",
+    "onb.nameNeeded": "Choisis un nom pour continuer — un surnom suffit.",
     "onb.where": "Où es-tu",
+    "onb.region": "Province / État / région",
+    "onb.pickRegion": "Choisis-en une (facultatif)",
+    "onb.regionNote": "Cela règle la langue des leçons ci-dessous — change-la si ce n'est pas la bonne.",
     "onb.lang": "Langue",
     "onb.teachingLang": "Langue d'enseignement (explications)",
     "onb.understandLang": "Je comprends mieux en",
@@ -9448,10 +9636,10 @@ const fr = {
     "onb.errRefused": "Le serveur a refusé cette modification du profil — ce n'est pas ta connexion. Le code ci-dessous en donne la raison.",
     "onb.errNotYours": "Le profil enregistré sur cet appareil n'est plus accessible en écriture — son secret ne correspond pas. Rien n'a été effacé ; ce navigateur ne peut simplement pas atteindre cet enregistrement. Connecte-toi au compte qui le possède, ou commence un nouveau profil ici.",
     "onb.freshStart": "Commencer un nouveau profil sur cet appareil",
-    "ls.visual": "👁 Visuel",
-    "ls.auditory": "🔊 Auditif",
-    "ls.kinesthetic": "✋ Kinesthésique",
-    "ls.reading": "📖 Lecture",
+    "ls.visual": "Visuel",
+    "ls.auditory": "Auditif",
+    "ls.kinesthetic": "Kinesthésique",
+    "ls.reading": "Lecture",
     "cult.neutral": "Neutre",
     "cult.agriculture": "Champs, marchés, transport",
     "cult.urban": "Ville, boutiques, bus",
@@ -9592,7 +9780,7 @@ const fr = {
     "hint.walkthrough": "Guide-moi pas à pas",
     "hint.walkthroughDesc": "Le raisonnement complet, étape par étape.",
     "hint.body.tiny": "Regarde bien ce que la question demande vraiment.",
-    "hint.body.strong": "Pars de ce que la question te donne et écris la relation que tu connais qui le relie à ce qu'on demande.",
+    "hint.body.yourSlip": "Tes dernières réponses ici ont buté sur cette étape — garde-la en tête :", "hint.body.strong": "Pars de ce que la question te donne et écris la relation que tu connais qui le relie à ce qu'on demande.",
     "retention.title": "Prêt à réviser",
     "retention.sub": "Tu avais déjà bien répondu. Un coup d'œil rapide maintenant — aujourd'hui, la semaine prochaine, le mois prochain — c'est ce qui fait tenir.",
     "retention.review": "Réviser",
@@ -9740,14 +9928,15 @@ const fr = {
     "home.examPast": "La date de ton examen est passée — mets-la à jour dans les réglages",
     "prog.gainPts": "points gagnés",
     "prog.gainHint": "Repasse le diagnostic pour mesurer tes progrès.",
-    "pack.title": "Fiches d'étude",
-    "pack.none": "Pas encore de fiche — écris la première.",
-    "pack.add": "Ajouter une fiche",
-    "pack.fork": "Dupliquer",
+    "pack.title": "Notes des élèves",
+    "pack.lead": "Des notes courtes d'autres élèves sur cette idée. Écris-en une, marque-en une comme utile, ou copie-en une et adapte-la.",
+    "pack.none": "Pas encore de note sur ce concept. Une astuce ou un piège, avec tes mots, aide la personne suivante.",
+    "pack.add": "Écrire une note",
+    "pack.fork": "Copier et modifier",
     "pack.helpful": "Utile",
-    "pack.phTitle": "Titre de la fiche",
+    "pack.phTitle": "Titre de la note",
     "pack.phBody": "Que doit savoir un camarade ? Une astuce, un piège, sa langue…",
-    "pack.forkOf": "copie de",
+    "pack.forkOf": "d'après",
     "goal.title": "Ton objectif",
     "goal.step": "Étape",
     "goal.now": "Maintenant",
@@ -9858,20 +10047,20 @@ const fr = {
     "acc.highContrast": "Contraste élevé",
     "acc.calmScreen": "Écran apaisé",
     "acc.connectivity": "Connectivité",
-    "acc.syncedAll": "🟢 Tout est synchronisé.",
+    "acc.syncedAll": "Tout est synchronisé.",
     "acc.pendingSync": "réponses en attente de synchronisation.",
     "acc.offlinePlan": "Plan hors ligne",
-    "acc.continuity": "🆘 Questions plus faciles quand c'est difficile",
-    "acc.have": "🌱 Ce que j'ai",
+    "acc.continuity": "Questions plus faciles quand c'est difficile",
+    "acc.have": "Ce que j'ai",
     "acc.howTeachNote": "OpenMind adapte les exemples et la présentation à ce choix.",
     "acc.saved": "✓ Enregistré",
-    "acc.stayLocal": "🔒 Les réglages d'accessibilité restent sur ton appareil jusqu'à ce que tu les enregistres dans ton profil.",
+    "acc.stayLocal": "Les réglages d'accessibilité restent sur ton appareil jusqu'à ce que tu les enregistres dans ton profil.",
     "acc.examPh": "p. ex. WAEC SSSCE, KCSE Form 4, AISSCE",
     "hub.local": "Hub OpenMind · local",
     "hub.localNote": "sur ce hub. Aucun élève n'a besoin d'internet : le hub se synchronise quand il en a.",
     "pack.packing": "Préparation…",
-    "pack.download": "📴 Télécharger mon pack d'apprentissage",
-    "pack.ready": "🟢 Prêt hors ligne : continue à apprendre sans internet.",
+    "pack.download": "Télécharger mon pack d'apprentissage",
+    "pack.ready": "Prêt hors ligne : continue à apprendre sans internet.",
     "dash.anonNote": "— pas d'e-mail, pas de mot de passe, 30 secondes.",
     "dash.langLead": "Explications en",
     "dash.langMid": "· termes en",
@@ -10001,7 +10190,7 @@ const fr = {
     "onb.verifyNote": "OpenMind n'envoie pas d'e-mail de vérification ; votre adresse sert uniquement à vous connecter.",
     "pp.title": "Sujets d'examen",
     "pp.lead": "Faites un sujet complet avec sa durée et ses barèmes, puis lisez le corrigé et votre note estimée.",
-    "pp.honest": "Chaque sujet est rédigé par OpenMind selon le programme et le format de votre examen ; ce n'est pas une reproduction d'un sujet protégé.",
+    "pp.honest": "Chaque question est rédigée par OpenMind — aucune ne reproduit une épreuve protégée par le droit d'auteur. Chaque ligne précise si la structure de l'épreuve est celle de votre organisme ou un entraînement OpenMind.",
     "pp.pick": "Choisissez un sujet",
     "pp.pickLead": "Choisissez votre matière, puis faites le sujet entier d'un seul tenant.",
     "pp.empty": "Aucun sujet n'est encore disponible pour ce diplôme.",
@@ -10063,6 +10252,12 @@ const fr = {
     "pp.prev": "Précédent",
     "pp.next": "Suivant",
     "pp.grid": "Aller à une question",
+    "pp.paper": "Sujet {n}",
+    "pp.needs": "Composé d'après ton suivi",
+    "pp.mirrors": "Structure publiée par votre organisme d'examen",
+    "pp.practiceSet": "Entraînement OpenMind pour votre cours — pas l'épreuve de votre organisme",
+    "pp.shapeSource": "Source",
+    "pp.needsWhy": "Chaque question vient des notions que ton suivi donne comme les plus fragiles.",
     "pp.correct": "Correct",
     "pp.incorrect": "Incorrect",
     "pp.blank": "Non tentée",
@@ -10365,9 +10560,25 @@ const fr = {
     "acct.class": "Rejoindre une classe",
 };
 const pt = {
+    "target.slipCheck": "Esta é feita para apanhar esse erro.",
+    "repair.title": "Vamos corrigir isto",
+    "repair.works": "Aqui funciona",
+    "repair.fails": "Aqui falha",
+    "repair.diff": "A única diferença",
+    "repair.move": "O passo",
+    "plan.can": "No fim, vais conseguir",
+    "plan.start": "Começa aqui",
+    "plan.together": "Vamos fazer um juntos",
+    "plan.guidedLead": "Eu faço o primeiro passo; tu terminas e depois confirmas.",
+    "plan.firstStep": "Ver o primeiro passo",
+    "plan.rest": "Ver o resto",
+    "plan.finishIt": "Termina primeiro de cabeça e só depois confirma.",
+    "plan.traps": "É aqui que se erra",
+    "plan.reviewed": "Revisto por um professor da disciplina",
+    "plan.unreviewed": "Ainda não revisto por um professor da disciplina",
     "cur.covers": "{n} dos {total} conceitos aqui pertencem ao teu curso.",
     "cur.outside": "Fora do teu curso",
-    "cur.outsideNote": "{n} conceitos aqui ficam fora de {spec}. Continuam disponíveis para ler, mas não são o teu programa.",
+    "cur.outsideNote": "{n} conceitos daqui ficam fora de {spec}. Podes lê-los à mesma, mas não fazem parte do teu programa.",
     "curr.unmapped": "O curso nacional do teu país ainda não está mapeado — mostram-se os percursos internacionais.",
     "nav.currTitle": "O teu currículo",
     "curr.title": "O teu currículo",
@@ -10864,11 +11075,11 @@ const pt = {
     "q.calculate": "Calcula",
     "q.share": "Divide",
     "q.balance": "Equilibra",
-    "res.textbook": "📕 Um manual",
-    "res.worksheets": "📄 Fichas escolares",
-    "res.phone": "📱 Este telefone",
-    "res.internet": "🛜 Internet às vezes",
-    "res.teacher": "👩‍🏫 Professor duas vezes por semana",
+    "res.textbook": "Um manual",
+    "res.worksheets": "Fichas escolares",
+    "res.phone": "Este telefone",
+    "res.internet": "Internet às vezes",
+    "res.teacher": "Professor duas vezes por semana",
     "res.advice.internet": "A internet vai e vem — mantém um pacote offline atualizado.",
     "res.advice.offlinePlan": "Plano offline",
     "res.advice.teacher": "Há professor disponível — traz o plano semanal imprimível.",
@@ -10876,10 +11087,20 @@ const pt = {
     "res.advice.paper": "Tens materiais em papel — fotografa uma questão para achar o conceito.",
     "res.advice.identify": "Identificar uma questão",
     "res.advice.phone": "Só este telefone basta — começa pelo diagnóstico.",
+    "learn.idea": "A ideia",
+    "learn.buildsOn": "Em que se apoia",
+    "worked.another": "Outra, mais difícil",
+    "worked.eyebrow": "Exemplo resolvido",
+    "worked.lead": "Primeiro uma pergunta resolvida do início ao fim, antes de tentares a tua.",
+    "worked.show": "Mostra-me como",
+    "worked.answer": "esta é a resposta",
+    "worked.err": "Não foi possível carregar o exemplo. Verifica a ligação e tenta outra vez.",
+    "worked.next": "Agora tu",
+    "peer.ideas": "Ideias-chave deste conceito",
     "peer.eyebrow": "Ensina a outra pessoa",
-    "peer.prompt": "Explica com as tuas palavras — o OpenMind verifica o que cobriste.",
+    "peer.prompt": "Explica-o por palavras tuas. Aqui nada é avaliado: serve para verificares o teu próprio raciocínio.",
     "peer.placeholder": "p. ex. A fotossíntese é como as plantas transformam a luz em alimento…",
-    "peer.checkBtn": "Verificar a minha explicação",
+    "peer.checkBtn": "Rever",
     "peer.strong": "Ótima explicação — correta e completa para ensinar outra pessoa.",
     "peer.goodPre": "Boa — cobriste a ideia principal. Falta um fio: ",
     "peer.goodPost": ".",
@@ -10947,7 +11168,11 @@ const pt = {
     "onb.setup": "Configura a tua aprendizagem",
     "onb.lead": "Diga algumas coisas e o OpenMind se adapta: idioma de ensino, exemplos, dificuldade e seu caminho. Uma conta guarda tudo — ou continue sem conta.",
     "onb.name": "O teu nome",
+    "onb.nameNeeded": "Escolhe um nome para continuar — uma alcunha serve.",
     "onb.where": "Onde estás",
+    "onb.region": "Província / estado / região",
+    "onb.pickRegion": "Escolhe uma (opcional)",
+    "onb.regionNote": "Isto define a língua das lições abaixo — muda-a se estiver errada.",
     "onb.lang": "Língua",
     "onb.teachingLang": "Idioma de ensino (explicações)",
     "onb.understandLang": "Entendo melhor em",
@@ -10967,10 +11192,10 @@ const pt = {
     "onb.errRefused": "O servidor recusou esta alteração do perfil — não é a tua ligação. O código abaixo indica o motivo.",
     "onb.errNotYours": "Já não é possível escrever no perfil guardado neste dispositivo — o segredo não corresponde. Nada foi apagado; este navegador apenas não chega a esse registo. Entra na conta que o possui ou começa um perfil novo aqui.",
     "onb.freshStart": "Começar um perfil novo neste dispositivo",
-    "ls.visual": "👁 Visual",
-    "ls.auditory": "🔊 Auditivo",
-    "ls.kinesthetic": "✋ Cinestésico",
-    "ls.reading": "📖 Leitura",
+    "ls.visual": "Visual",
+    "ls.auditory": "Auditivo",
+    "ls.kinesthetic": "Cinestésico",
+    "ls.reading": "Leitura",
     "cult.neutral": "Neutro",
     "cult.agriculture": "Campos, mercados, transporte",
     "cult.urban": "Cidade, lojas, autocarros",
@@ -11111,7 +11336,7 @@ const pt = {
     "hint.walkthrough": "Me guie passo a passo",
     "hint.walkthroughDesc": "O raciocínio completo, passo a passo.",
     "hint.body.tiny": "Olhe com atenção o que a pergunta realmente pede.",
-    "hint.body.strong": "Comece pelo que a pergunta dá e escreva a relação que você conhece que liga isso ao que é pedido.",
+    "hint.body.yourSlip": "As tuas últimas respostas aqui falharam neste passo — tem isso à vista:", "hint.body.strong": "Comece pelo que a pergunta dá e escreva a relação que você conhece que liga isso ao que é pedido.",
     "retention.title": "Pronto para revisar",
     "retention.sub": "Você já respondeu isso certo antes. Uma olhada rápida agora — hoje, na próxima semana, no próximo mês — é o que faz fixar.",
     "retention.review": "Revisar",
@@ -11259,14 +11484,15 @@ const pt = {
     "home.examPast": "A data do teu exame já passou — atualiza-a nas definições",
     "prog.gainPts": "pontos ganados",
     "prog.gainHint": "Repete o diagnóstico para medir o teu progresso.",
-    "pack.title": "Fichas de estudo",
-    "pack.none": "Ainda não há fichas — escreve a primeira.",
-    "pack.add": "Adicionar ficha",
-    "pack.fork": "Bifurcar",
+    "pack.title": "Notas de outros alunos",
+    "pack.lead": "Notas curtas de outros alunos sobre esta ideia. Escreve uma, marca uma como útil, ou copia uma e torna-a tua.",
+    "pack.none": "Ainda não há notas sobre este conceito. Um truque ou um aviso, pelas tuas palavras, ajuda quem vem a seguir.",
+    "pack.add": "Escrever uma nota",
+    "pack.fork": "Copiar e editar",
     "pack.helpful": "Útil",
-    "pack.phTitle": "Título da ficha",
+    "pack.phTitle": "Título da nota",
     "pack.phBody": "O que um colega deve saber? Um truque, um aviso, o idioma…",
-    "pack.forkOf": "bifurcação de",
+    "pack.forkOf": "baseada em",
     "goal.title": "O teu objetivo",
     "goal.step": "Passo",
     "goal.now": "Agora",
@@ -11377,20 +11603,20 @@ const pt = {
     "acc.highContrast": "Alto contraste",
     "acc.calmScreen": "Tela calma",
     "acc.connectivity": "Conectividade",
-    "acc.syncedAll": "🟢 Tudo sincronizado.",
+    "acc.syncedAll": "Tudo sincronizado.",
     "acc.pendingSync": "respostas aguardando sincronização.",
     "acc.offlinePlan": "Plano offline",
-    "acc.continuity": "🆘 Perguntas mais fáceis quando estiver difícil",
-    "acc.have": "🌱 O que eu tenho",
+    "acc.continuity": "Perguntas mais fáceis quando estiver difícil",
+    "acc.have": "O que eu tenho",
     "acc.howTeachNote": "O OpenMind ajusta exemplos e apresentação a isso.",
     "acc.saved": "✓ Salvo",
-    "acc.stayLocal": "🔒 As escolhas de acesso ficam no seu aparelho até você salvá-las no perfil.",
+    "acc.stayLocal": "As escolhas de acesso ficam no seu aparelho até você salvá-las no perfil.",
     "acc.examPh": "p. ex. WAEC SSSCE, KCSE Form 4, AISSCE",
     "hub.local": "Hub OpenMind · local",
     "hub.localNote": "neste hub. Nenhum estudante precisa de internet — o hub sincroniza quando consegue.",
     "pack.packing": "Preparando…",
-    "pack.download": "📴 Baixar meu pacote de estudos",
-    "pack.ready": "🟢 Pronto para offline — continue aprendendo sem internet.",
+    "pack.download": "Baixar meu pacote de estudos",
+    "pack.ready": "Pronto para offline — continue aprendendo sem internet.",
     "dash.anonNote": "— sem e-mail, sem senha, 30 segundos.",
     "dash.langLead": "Explicações em",
     "dash.langMid": "· termos em",
@@ -11520,7 +11746,7 @@ const pt = {
     "onb.verifyNote": "O OpenMind não envia e-mails de verificação; seu endereço serve apenas para entrar.",
     "pp.title": "Provas oficiais",
     "pp.lead": "Faça uma prova completa com seu tempo e critérios, depois veja o gabarito e a nota estimada.",
-    "pp.honest": "Cada prova é escrita pelo OpenMind conforme a especificação e o formato da sua banca; não é reprodução de prova protegida por direitos autorais.",
+    "pp.honest": "Todas as perguntas são redigidas pelo OpenMind — nenhuma reproduz um exame protegido por direitos de autor. Cada linha indica se a estrutura do exame é a do seu organismo examinador ou um conjunto de prática do OpenMind.",
     "pp.pick": "Escolha uma prova",
     "pp.pickLead": "Escolha a matéria e faça a prova inteira de uma vez.",
     "pp.empty": "Ainda não há prova para esta qualificação.",
@@ -11582,6 +11808,12 @@ const pt = {
     "pp.prev": "Anterior",
     "pp.next": "Seguinte",
     "pp.grid": "Ir para uma questão",
+    "pp.paper": "Prova {n}",
+    "pp.needs": "Feito a partir do teu registo",
+    "pp.mirrors": "Estrutura publicada pelo seu organismo examinador",
+    "pp.practiceSet": "Conjunto de prática do OpenMind para o seu curso — não o exame do seu organismo",
+    "pp.shapeSource": "Fonte",
+    "pp.needsWhy": "Todas as perguntas vêm das ideias que o teu próprio registo aponta como mais fracas.",
     "pp.correct": "Correta",
     "pp.incorrect": "Incorreta",
     "pp.blank": "Não respondida",
@@ -11884,9 +12116,25 @@ const pt = {
     "acct.class": "Entrar numa turma",
 };
 const ar = {
+    "target.slipCheck": "هذا السؤال مصمَّم ليكشف ذلك الخطأ.",
+    "repair.title": "لنُصلح هذا",
+    "repair.works": "هنا يعمل",
+    "repair.fails": "هنا يفشل",
+    "repair.diff": "الفرق الوحيد",
+    "repair.move": "الخطوة",
+    "plan.can": "في النهاية ستستطيع",
+    "plan.start": "ابدأ من هنا",
+    "plan.together": "لنحلّ واحدًا معًا",
+    "plan.guidedLead": "سأبدأ بالخطوة الأولى، وأكمِل أنت الباقي ثم تحقّق.",
+    "plan.firstStep": "أظهر الخطوة الأولى",
+    "plan.rest": "أظهر الباقي",
+    "plan.finishIt": "أكمِله في ذهنك أولًا ثم تحقّق.",
+    "plan.traps": "هنا يقع الخطأ",
+    "plan.reviewed": "راجعه مدرّس المادة",
+    "plan.unreviewed": "لم يراجعه مدرّس المادة بعد",
     "cur.covers": "{n} من أصل {total} مفهومًا هنا تنتمي إلى مسارك.",
     "cur.outside": "خارج مسارك الدراسي",
-    "cur.outsideNote": "هناك {n} مفهومًا هنا خارج {spec}. تبقى متاحة للقراءة، لكنها ليست منهجك.",
+    "cur.outsideNote": "{n} مفهومًا هنا خارج {spec}؛ يمكنك قراءتها، لكنها ليست جزءًا من منهجك.",
     "curr.unmapped": "لم يُرسم بعد المسار الوطني لبلدك — تُعرض المسارات الدولية بدلاً منه.",
     "nav.currTitle": "منهجك الدراسي",
     "curr.title": "منهجك الدراسي",
@@ -12383,11 +12631,11 @@ const ar = {
     "q.calculate": "احسب",
     "q.share": "وزّع",
     "q.balance": "وازن",
-    "res.textbook": "📕 كتاب مدرسي",
-    "res.worksheets": "📄 أوراق عمل مدرسية",
-    "res.phone": "📱 هذا الهاتف",
-    "res.internet": "🛜 إنترنت أحيانًا",
-    "res.teacher": "👩‍🏫 معلم مرتان أسبوعيًا",
+    "res.textbook": "كتاب مدرسي",
+    "res.worksheets": "أوراق عمل مدرسية",
+    "res.phone": "هذا الهاتف",
+    "res.internet": "إنترنت أحيانًا",
+    "res.teacher": "معلم مرتان أسبوعيًا",
     "res.advice.internet": "الإنترنت يقطع ويوصل — حافظ على حزمة دون اتصال حديثة.",
     "res.advice.offlinePlan": "خطة دون اتصال",
     "res.advice.teacher": "يوجد معلم — أحضر خطة الأسبوع المطبوعة.",
@@ -12395,10 +12643,20 @@ const ar = {
     "res.advice.paper": "لديك مواد ورقية — صوّر سؤالًا لإيجاد مفهومه.",
     "res.advice.identify": "تحديد سؤال",
     "res.advice.phone": "هذا الهاتف يكفي — ابدأ بالتشخيص.",
+    "learn.idea": "الفكرة",
+    "learn.buildsOn": "على ماذا يبني",
+    "worked.another": "مثال آخر، أصعب",
+    "worked.eyebrow": "مثال محلول",
+    "worked.lead": "أولًا سؤال محلول بالكامل، قبل أن تجرّب سؤالك.",
+    "worked.show": "أرني الطريقة",
+    "worked.answer": "هذا هو الجواب",
+    "worked.err": "تعذّر تحميل المثال. تحقّق من اتصالك ثم أعد المحاولة.",
+    "worked.next": "دورك الآن",
+    "peer.ideas": "الأفكار الأساسية في هذا المفهوم",
     "peer.eyebrow": "علّم شخصًا آخر",
-    "peer.prompt": "اشرح بكلماتك — يراجع OpenMind ما غطيته.",
+    "peer.prompt": "اشرحه بكلماتك. لا شيء هنا يُقيَّم أو يُصحَّح، بل هي طريقة لمراجعة تفكيرك.",
     "peer.placeholder": "مثل: البناء الضوئي هو كيف تحوّل النباتات الضوء إلى غذاء…",
-    "peer.checkBtn": "تحقق من شرحي",
+    "peer.checkBtn": "راجعه",
     "peer.strong": "شرح رائع — صحيح وكافٍ ليُعلَّم لغيرك.",
     "peer.goodPre": "جيد — غطيت الفكرة الرئيسة. ينقص خيط: ",
     "peer.goodPost": ".",
@@ -12466,7 +12724,11 @@ const ar = {
     "onb.setup": "اضبط تعلمك",
     "onb.lead": "أخبرنا بأمور قليلة ليتكيّف OpenMind: لغة التدريس، الأمثلة، الصعوبة ومسارك. الحساب يحفظ ذلك في كل مكان — أو تابع بدون حساب.",
     "onb.name": "اسمك",
+    "onb.nameNeeded": "اختر اسمًا للمتابعة — يمكنك استخدام اسم مستعار.",
     "onb.where": "أين أنت",
+    "onb.region": "المحافظة / الولاية / المنطقة",
+    "onb.pickRegion": "اختر واحدة (اختياري)",
+    "onb.regionNote": "هذا يحدد لغة الدروس أدناه — غيّرها إن لم تكن مناسبة.",
     "onb.lang": "اللغة",
     "onb.teachingLang": "لغة التدريس (الشرح)",
     "onb.understandLang": "أفهم أفضل بـ",
@@ -12486,10 +12748,10 @@ const ar = {
     "onb.errRefused": "رفض الخادم هذا التغيير في الملف — ليست مشكلة اتصالك. الرمز أدناه هو السبب.",
     "onb.errNotYours": "لم يعد بالإمكان الكتابة في الملف المحفوظ على هذا الجهاز — السرّ لا يطابقه. لم يُحذف شيء؛ هذا المتصفح لا يستطيع الوصول إلى ذلك السجل فقط. سجّل الدخول إلى الحساب الذي يملكه، أو ابدأ ملفًا جديدًا هنا.",
     "onb.freshStart": "ابدأ ملفًا جديدًا على هذا الجهاز",
-    "ls.visual": "👁 بصري",
-    "ls.auditory": "🔊 سمعي",
-    "ls.kinesthetic": "✋ حركي",
-    "ls.reading": "📖 قراءة",
+    "ls.visual": "بصري",
+    "ls.auditory": "سمعي",
+    "ls.kinesthetic": "حركي",
+    "ls.reading": "قراءة",
     "cult.neutral": "محايد",
     "cult.agriculture": "حقول وأسواق ومواصلات",
     "cult.urban": "مدينة ومتاجر وحافلات",
@@ -12630,7 +12892,7 @@ const ar = {
     "hint.walkthrough": "اشرح لي خطوة بخطوة",
     "hint.walkthroughDesc": "الاستدلال الكامل، خطوة بخطوة.",
     "hint.body.tiny": "انظر بدقق إلى ما يطلبه السؤال حقًا.",
-    "hint.body.strong": "ابدأ مما يعطيك إياه السؤال، واكتب العلاقة التي تعرفها التي تصل بينه وبين المطلوب.",
+    "hint.body.yourSlip": "أخطأت إجاباتك الأخيرة هنا في هذه الخطوة — أبقِها في نظرك:", "hint.body.strong": "ابدأ مما يعطيك إياه السؤال، واكتب العلاقة التي تعرفها التي تصل بينه وبين المطلوب.",
     "retention.title": "جاهز للمراجعة",
     "retention.sub": "أجبت عن هذه بشكل صحيح من قبل. نظرة سريعة الآن — اليوم، والأسبوع القادم، والشهر القادم — هي ما يجعلها راسخة.",
     "retention.review": "مراجعة",
@@ -12778,14 +13040,15 @@ const ar = {
     "home.examPast": "انقضى موعد اختبارك — حدّثه من الإعدادات",
     "prog.gainPts": "نقطة مكسب",
     "prog.gainHint": "أعد الاختبار التشخيصي لقياس تقدمك.",
-    "pack.title": "بطاقات دراسية",
-    "pack.none": "لا بطاقات بعد — اكتب الأولى.",
-    "pack.add": "أضف بطاقة",
-    "pack.fork": "تفريع",
+    "pack.title": "ملاحظات المتعلمين",
+    "pack.lead": "ملاحظات قصيرة من متعلمين آخرين عن هذه الفكرة. اكتب واحدة، أو اعتبر واحدة مفيدة، أو انسخ واحدة واجعلها خاصتك.",
+    "pack.none": "لا ملاحظات على هذا المفهوم بعد. حيلة أو تحذير بكلماتك يساعد من يأتي بعدك.",
+    "pack.add": "اكتب ملاحظة",
+    "pack.fork": "انسخ وعدّل",
     "pack.helpful": "مفيد",
-    "pack.phTitle": "عنوان البطاقة",
+    "pack.phTitle": "عنوان الملاحظة",
     "pack.phBody": "ماذا يجب أن يعرف زميلك؟ حيلة، تنبيه، أو لغتك…",
-    "pack.forkOf": "تفريع من",
+    "pack.forkOf": "مبنية على",
     "goal.title": "هدفك",
     "goal.step": "خطوة",
     "goal.now": "الآن",
@@ -12896,20 +13159,20 @@ const ar = {
     "acc.highContrast": "تباين عالٍ",
     "acc.calmScreen": "شاشة هادئة",
     "acc.connectivity": "الاتصال",
-    "acc.syncedAll": "🟢 تمت مزامنة كل شيء.",
+    "acc.syncedAll": "تمت مزامنة كل شيء.",
     "acc.pendingSync": "إجابات في انتظار المزامنة.",
     "acc.offlinePlan": "خطة دون اتصال",
-    "acc.continuity": "🆘 أسئلة أسهل عندما تكون صعبة",
-    "acc.have": "🌱 ما لديّ",
+    "acc.continuity": "أسئلة أسهل عندما تكون صعبة",
+    "acc.have": "ما لديّ",
     "acc.howTeachNote": "يضبط OpenMind الأمثلة والعرض وفقًا لذلك.",
     "acc.saved": "✓ تم الحفظ",
-    "acc.stayLocal": "🔒 تبقى خيارات الوصول على جهازك حتى تحفظها في ملفك.",
+    "acc.stayLocal": "تبقى خيارات الوصول على جهازك حتى تحفظها في ملفك.",
     "acc.examPh": "مثل WAEC SSSCE أو KCSE Form 4 أو AISSCE",
     "hub.local": "مركز OpenMind · محلي",
     "hub.localNote": "في هذا المركز. لا يحتاج أي طالب للإنترنت — يتزامن المركز عند توفره.",
     "pack.packing": "جارٍ التجهيز…",
-    "pack.download": "📴 نزّل حزمة تعلّمي",
-    "pack.ready": "🟢 جاهز دون اتصال — تابع التعلّم بلا إنترنت.",
+    "pack.download": "نزّل حزمة تعلّمي",
+    "pack.ready": "جاهز دون اتصال — تابع التعلّم بلا إنترنت.",
     "dash.anonNote": "— بلا بريد، بلا كلمة مرور، 30 ثانية.",
     "dash.langLead": "الشرح بـ",
     "dash.langMid": "· والمصطلحات بـ",
@@ -13039,7 +13302,7 @@ const ar = {
     "onb.verifyNote": "لا يرسل OpenMind رسائل تحقق — يُستخدم بريدك لتسجيل الدخول فقط.",
     "pp.title": "أوراق الامتحانات",
     "pp.lead": "احضر ورقة كاملة بوقتها ومعايير تصحيحها، ثم اقرأ نموذج الإجابة وتقدير درجتك.",
-    "pp.honest": "كل ورقة يكتبها OpenMind وفق مواصفات مجلسك وصيغته — وليست نسخًا لورقة امتحان محمية بحقوق النشر.",
+    "pp.honest": "كل سؤال من إعداد OpenMind، ولا نسخة من ورقة امتحان محمية بحقوق النشر. ويوضّح كل سطر إن كانت بنية الورقة من هيئة الامتحانات الخاصة بك أم تدريبًا من OpenMind.",
     "pp.pick": "اختر ورقة",
     "pp.pickLead": "اختر مادتك ثم أكمل الورقة كاملة في جلسة واحدة.",
     "pp.empty": "لا توجد ورقة لهذا المؤهل بعد.",
@@ -13101,6 +13364,12 @@ const ar = {
     "pp.prev": "السابق",
     "pp.next": "التالي",
     "pp.grid": "انتقل إلى سؤال",
+    "pp.paper": "ورقة {n}",
+    "pp.needs": "مبنيّ على سجلك",
+    "pp.mirrors": "البنية المنشورة من هيئة الامتحانات الخاصة بك",
+    "pp.practiceSet": "تدريب من OpenMind لمقررك — وليس ورقة امتحان هيئتك",
+    "pp.shapeSource": "المصدر",
+    "pp.needsWhy": "كل سؤال هنا مأخوذ من الأفكار التي يبيّن سجلك أنها الأضعف.",
     "pp.correct": "صحيح",
     "pp.incorrect": "خطأ",
     "pp.blank": "لم تُحل",
@@ -13403,9 +13672,25 @@ const ar = {
     "acct.class": "الانضمام إلى صف",
 };
 const sw = {
+    "target.slipCheck": "Hili limeundwa kukamata kosa hilo.",
+    "repair.title": "Turekebishe hili",
+    "repair.works": "Hapa inafanya kazi",
+    "repair.fails": "Hapa inashindikana",
+    "repair.diff": "Tofauti moja",
+    "repair.move": "Hatua",
+    "plan.can": "Mwishoni utaweza",
+    "plan.start": "Anza hapa",
+    "plan.together": "Tufanye moja pamoja",
+    "plan.guidedLead": "Nitaanza hatua ya kwanza; wewe maliza, kisha hakiki.",
+    "plan.firstStep": "Onyesha hatua ya kwanza",
+    "plan.rest": "Onyesha mengine",
+    "plan.finishIt": "Maliza kichwani mwako kwanza, kisha hakiki.",
+    "plan.traps": "Hapa ndipo makosa yanatokea",
+    "plan.reviewed": "Imepitiwa na mwalimu wa somo",
+    "plan.unreviewed": "Bado haijapitiwa na mwalimu wa somo",
     "cur.covers": "{n} kati ya jumla ya {total} hapa yana sehemu ya kozi yako.",
     "cur.outside": "Nje ya kozi yako",
-    "cur.outsideNote": "Kuna dhana {n} hapa zilizo nje ya {spec}. Zinabaki kufunguliwa kusoma, lakini si muhtasari wako.",
+    "cur.outsideNote": "Dhana {n} hizi ziko nje ya {spec}. Bado unaweza kuzisoma, lakini si sehemu ya mtaala wako.",
     "curr.unmapped": "Kozi ya kitaifa ya nchi yako haijapangwa bado — kozi za kimataifa zinaonyeshwa.",
     "nav.currTitle": "Mtaala wako",
     "curr.title": "Mtaala wako",
@@ -13902,11 +14187,11 @@ const sw = {
     "q.calculate": "Kokotoa",
     "q.share": "Gawanya",
     "q.balance": "Dhibiti usawa",
-    "res.textbook": "📕 Kitabu cha shule",
-    "res.worksheets": "📄 Karatasi za shule",
-    "res.phone": "📱 Simu hii",
-    "res.internet": "🛜 Intaneti wakati mwingine",
-    "res.teacher": "👩‍🏫 Mwalimu mara mbili kwa wiki",
+    "res.textbook": "Kitabu cha shule",
+    "res.worksheets": "Karatasi za shule",
+    "res.phone": "Simu hii",
+    "res.internet": "Intaneti wakati mwingine",
+    "res.teacher": "Mwalimu mara mbili kwa wiki",
     "res.advice.internet": "Intaneti inakatika — weka furusha ya nje ya mtandao mpya.",
     "res.advice.offlinePlan": "Mpango wa nje ya mtandao",
     "res.advice.teacher": "Kuna mwalimu — chukua mpango wa wiki unaochapishwa.",
@@ -13914,10 +14199,20 @@ const sw = {
     "res.advice.paper": "Unazo vifaa vya karatasi — piga picha swali kupata dhana yake.",
     "res.advice.identify": "Tambua swali",
     "res.advice.phone": "Simu hii inatosha — anza na uchunguzi.",
+    "learn.idea": "Wazo kuu",
+    "learn.buildsOn": "Kina cha kuendelea",
+    "worked.another": "Mfano mwingine, mgumu zaidi",
+    "worked.eyebrow": "Mfano uliotatuliwa",
+    "worked.lead": "Kwanza swali moja lililotatuliwa kikamilifu, kabla ya kujaribu lako.",
+    "worked.show": "Nionyeshe jinsi",
+    "worked.answer": "hili ndilo jibu",
+    "worked.err": "Mfano haukuweza kupakiwa. Angalia mtandao wako, kisha ujaribu tena.",
+    "worked.next": "Sasa ni zamu yako",
+    "peer.ideas": "Mawazo muhimu ya dhana hii",
     "peer.eyebrow": "Mfundishe mwingine",
-    "peer.prompt": "Eleza kwa maneno yako — OpenMind huangalia ulichofunika.",
+    "peer.prompt": "Eleza kwa maneno yako mwenyewe. Hakuna kinachopimwa hapa — ni njia ya kukagua fikira zako.",
     "peer.placeholder": "k.mf. Usanishaji ni jinsi mimea inavyogeua mwanga kuwa chakula…",
-    "peer.checkBtn": "Angalia maelezo yangu",
+    "peer.checkBtn": "Ipitiye",
     "peer.strong": "Maelezo bora — sahihi na kamili ya kumfundisha mwingine.",
     "peer.goodPre": "Nzuri — ulifunika wazo kuu. Kuna linalokosekana: ",
     "peer.goodPost": ".",
@@ -13985,7 +14280,11 @@ const sw = {
     "onb.setup": "Sanidi kujifunza kwako",
     "onb.lead": "Tuambie mambo machache na OpenMind ibadilike: lugha ya kufundisha, mifano, ugumu na njia yako. Akaunti huhifadhi kila mahali — au endelea bila akaunti.",
     "onb.name": "Jina lako",
+    "onb.nameNeeded": "Chagua jina ili kuendelea — jina la utani linatosha.",
     "onb.where": "Uko wapi",
+    "onb.region": "Mkoa",
+    "onb.pickRegion": "Chagua mmoja (si lazima)",
+    "onb.regionNote": "Hii huweka lugha ya masomo hapa chini — ibadilishe ikiwa si sahihi.",
     "onb.lang": "Lugha",
     "onb.teachingLang": "Lugha ya kufundisha (maelezo)",
     "onb.understandLang": "Naelewa vizuri zaidi kwa",
@@ -14005,10 +14304,10 @@ const sw = {
     "onb.errRefused": "Seva ilikataa mabadiliko haya ya wasifu — hii si mtandao wako. Msimbo ulio hapa chini ndio sababu.",
     "onb.errNotYours": "Wasifu uliohifadhiwa kwenye kifaa hiki hauwezi kuandikwa tena — siri yake hailingani. Hakuna kilichofutwa; kivinjari hiki hakiwezi kufikia rekodi hiyo tu. Ingia kwenye akaunti inayoimiliki, au anza wasifu mpya hapa.",
     "onb.freshStart": "Anza wasifu mpya kwenye kifaa hiki",
-    "ls.visual": "👁 Kuona",
-    "ls.auditory": "🔊 Kusikia",
-    "ls.kinesthetic": "✋ Kugusa",
-    "ls.reading": "📖 Kusoma",
+    "ls.visual": "Kuona",
+    "ls.auditory": "Kusikia",
+    "ls.kinesthetic": "Kugusa",
+    "ls.reading": "Kusoma",
     "cult.neutral": "Wastani",
     "cult.agriculture": "Mashamba, masoko, usafiri",
     "cult.urban": "Mjini, maduka, mabasi",
@@ -14149,7 +14448,7 @@ const sw = {
     "hint.walkthrough": "Niongoze hatua kwa hatua",
     "hint.walkthroughDesc": "Mawazo yote, hatua kwa hatua.",
     "hint.body.tiny": "Angalia kwa makini swali linachotaka hasa.",
-    "hint.body.strong": "Anza na swali linachokupa, andika uhusiano unaojua unaounganisha na kinachotafutwa.",
+    "hint.body.yourSlip": "Majibu yako ya mwisho hapa yalikosea hatua hii — iwe machoni mwako:", "hint.body.strong": "Anza na swali linachokupa, andika uhusiano unaojua unaounganisha na kinachotafutwa.",
     "retention.title": "Tayari kwa marudio",
     "retention.sub": "Uliwahi kujibu hivi kwa usahihi. Kuangalia haraka sasa — leo, wiki ijayo, mwezi ujao — ndicho kinachofanya yakae.",
     "retention.review": "Rudia",
@@ -14297,14 +14596,15 @@ const sw = {
     "home.examPast": "Tarehe ya mtihani wako imepita — isahihishe kwenye mipangilio",
     "prog.gainPts": "pointi zimeongezeka",
     "prog.gainHint": "Rudia upimaji kupima maendeleo yako.",
-    "pack.title": "Kadi za kujifunza",
-    "pack.none": "Hakuna kadi bado — andika ya kwanza.",
-    "pack.add": "Ongeza kadi",
-    "pack.fork": "Tengeneza nakala",
+    "pack.title": "Maelezo ya wanafunzi",
+    "pack.lead": "Maelezo mafupi kutoka kwa wanafunzi wengine kuhusu wazo hili. Andika moja, onesha moja kuwa muhimu, au nakili moja na uifanye yako.",
+    "pack.none": "Bado hakuna maelezo kuhusu dhana hii. Mbinu au tahadhari kwa maneno yako itamsaidia anayefuata.",
+    "pack.add": "Andika maelezo",
+    "pack.fork": "Nakili na uhariri",
     "pack.helpful": "Inasaidia",
-    "pack.phTitle": "Kichwa cha kadi",
+    "pack.phTitle": "Kichwa cha maelezo",
     "pack.phBody": "Mwenzi yako ajue nini? Mbinu, onyo, au lugha yako…",
-    "pack.forkOf": "nakala ya",
+    "pack.forkOf": "kutokana na",
     "goal.title": "Lengo lako",
     "goal.step": "Hatua",
     "goal.now": "Sasa",
@@ -14415,20 +14715,20 @@ const sw = {
     "acc.highContrast": "Utofautishaji mkubwa",
     "acc.calmScreen": "Skrini tulivu",
     "acc.connectivity": "Muunganisho",
-    "acc.syncedAll": "🟢 Kila kitu kimesawazishwa.",
+    "acc.syncedAll": "Kila kitu kimesawazishwa.",
     "acc.pendingSync": "majibu yanasubiri kusawazishwa.",
     "acc.offlinePlan": "Mpango wa nje ya mtandao",
-    "acc.continuity": "🆘 Maswali rahisi zaidi yanapokuwa magumu",
-    "acc.have": "🌱 Nilicho nacho",
+    "acc.continuity": "Maswali rahisi zaidi yanapokuwa magumu",
+    "acc.have": "Nilicho nacho",
     "acc.howTeachNote": "OpenMind hurekebisha mifano na uwasilishaji kwa hili.",
     "acc.saved": "✓ Imehifadhiwa",
-    "acc.stayLocal": "🔒 Chaguo za ufikivu zinabaki kwenye kifaa chako hadi uzihifadhi kwenye wasifu wako.",
+    "acc.stayLocal": "Chaguo za ufikivu zinabaki kwenye kifaa chako hadi uzihifadhi kwenye wasifu wako.",
     "acc.examPh": "mf. WAEC SSSCE, KCSE Form 4, AISSCE",
     "hub.local": "Kituo cha OpenMind · ndani",
     "hub.localNote": "kwenye kituo hiki. Hakuna mwanafunzi anayehitaji mtandao — kituo husawazisha kinapoupata.",
     "pack.packing": "Inaandaa…",
-    "pack.download": "📴 Pakua pakiti yangu ya kujifunza",
-    "pack.ready": "🟢 Tayari nje ya mtandao — endelea kujifunza bila mtandao.",
+    "pack.download": "Pakua pakiti yangu ya kujifunza",
+    "pack.ready": "Tayari nje ya mtandao — endelea kujifunza bila mtandao.",
     "dash.anonNote": "— bila barua pepe, bila nenosiri, sekunde 30.",
     "dash.langLead": "Maelezo kwa",
     "dash.langMid": "· maneno kwa",
@@ -14558,7 +14858,7 @@ const sw = {
     "onb.verifyNote": "OpenMind hutatuma barua pepe za uthibitisho — anwani yako inatumika kuingia tu.",
     "pp.title": "Mitihani ya kitaifa",
     "pp.lead": "Fanya mtihani kamili kwa muda wake na kanuni zake, kisha soma mwongozo wa alama na kadirio la daraja lako.",
-    "pp.honest": "Kila mtihani umeandikwa na OpenMind kulingana na mtaala na muundo wa bodi yako — si nakala ya mtihani wa awali wenye hakimiliki.",
+    "pp.honest": "Kila swali limeandikwa na OpenMind — hakuna linalonakiliwa kutoka karatasi ya mitihani yenye hakimiliki. Kila mstari hueleza kama muundo wa karatasi ni wa bodi yako au mazoezi ya OpenMind.",
     "pp.pick": "Chagua mtihani",
     "pp.pickLead": "Chagua somo lako, kisha fanya mtihani wote kwa mkupuo mmoja.",
     "pp.empty": "Hakuna mtihani wa qualification hii bado.",
@@ -14620,6 +14920,12 @@ const sw = {
     "pp.prev": "Iliyotangulia",
     "pp.next": "Ifuatayo",
     "pp.grid": "Rukia swali",
+    "pp.paper": "Mtihani {n}",
+    "pp.needs": "Imeundwa kutoka rekodi yako",
+    "pp.mirrors": "Muundo uliochapishwa na bodi yako ya mitihani",
+    "pp.practiceSet": "Mazoezi ya OpenMind kwa kozi yako — si karatasi ya bodi yako",
+    "pp.shapeSource": "Chanzo",
+    "pp.needsWhy": "Kila swali hapa linatokana na mawazo ambayo rekodi yako yenyewe inasema ni dhaifu zaidi.",
     "pp.correct": "Sahihi",
     "pp.incorrect": "Si sahihi",
     "pp.blank": "Haijajibiwa",
@@ -14922,9 +15228,25 @@ const sw = {
     "acct.class": "Jiunge na darasa",
 };
 const hi = {
+    "target.slipCheck": "यह प्रश्न उसी गलती को पकड़ने के लिए बना है।",
+    "repair.title": "इसे ठीक करें",
+    "repair.works": "यहाँ सही है",
+    "repair.fails": "यहाँ गलत है",
+    "repair.diff": "एक ही अंतर",
+    "repair.move": "कदम",
+    "plan.can": "अंत में आप कर पाएँगे",
+    "plan.start": "यहाँ से शुरू करें",
+    "plan.together": "एक साथ एक हल करें",
+    "plan.guidedLead": "पहला कदम मैं लेता हूँ; बाकी आप पूरा करें, फिर जाँचें।",
+    "plan.firstStep": "पहला कदम दिखाएँ",
+    "plan.rest": "बाकी दिखाएँ",
+    "plan.finishIt": "पहले मन में पूरा करें, फिर जाँचें।",
+    "plan.traps": "यहाँ गलती होती है",
+    "plan.reviewed": "विषय शिक्षक द्वारा जाँचा गया",
+    "plan.unreviewed": "अभी विषय शिक्षक द्वारा जाँचा नहीं गया",
     "cur.covers": "यहाँ के {total} में से {n} अवधारणाएँ आपके पाठ्यक्रम में हैं।",
     "cur.outside": "आपके पाठ्यक्रम से बाहर",
-    "cur.outsideNote": "यहाँ {n} अवधारणाएँ {spec} से बाहर हैं। वे पढ़ने के लिए उपलब्ध रहती हैं, पर आपकी पाठ्यक्रम सूची नहीं हैं।",
+    "cur.outsideNote": "यहाँ {n} अवधारणाएँ {spec} से बाहर हैं। आप इन्हें पढ़ सकते हैं, पर ये आपके पाठ्यक्रम का हिस्सा नहीं हैं।",
     "curr.unmapped": "आपके देश का राष्ट्रीय पाठ्यक्रम अभी जुड़ा नहीं है — अंतरराष्ट्रीय मार्ग दिखाए जा रहे हैं।",
     "nav.currTitle": "आपका पाठ्यक्रम",
     "curr.title": "आपका पाठ्यक्रम",
@@ -15421,11 +15743,11 @@ const hi = {
     "q.calculate": "गणना करें",
     "q.share": "बाँटें",
     "q.balance": "संतुलित करें",
-    "res.textbook": "📕 एक पाठ्यपुस्तक",
-    "res.worksheets": "📄 स्कूल की वर्कशीट",
-    "res.phone": "📱 यही फ़ोन",
-    "res.internet": "🛜 इंटरनेट कभी-कभी",
-    "res.teacher": "👩‍🏫 सप्ताह में दो बार शिक्षक",
+    "res.textbook": "एक पाठ्यपुस्तक",
+    "res.worksheets": "स्कूल की वर्कशीट",
+    "res.phone": "यही फ़ोन",
+    "res.internet": "इंटरनेट कभी-कभी",
+    "res.teacher": "सप्ताह में दो बार शिक्षक",
     "res.advice.internet": "इंटरनेट आता-जाता है — ऑफ़लाइन पैक ताज़ा रखें।",
     "res.advice.offlinePlan": "ऑफ़लाइन योजना",
     "res.advice.teacher": "शिक्षक उपलब्ध हैं — छपी हुई साप्ताहिक योजना लाएँ।",
@@ -15433,10 +15755,20 @@ const hi = {
     "res.advice.paper": "आपके पास काग़ज़ी सामग्री है — प्रश्न की तस्वीर लें, विचार मिलेगा।",
     "res.advice.identify": "प्रश्न पहचानें",
     "res.advice.phone": "बस यही फ़ोन काफ़ी है — निदान से शुरू करें।",
+    "learn.idea": "मूल विचार",
+    "learn.buildsOn": "यह किस पर आधारित है",
+    "worked.another": "एक और, थोड़ा कठिन",
+    "worked.eyebrow": "हल किया हुआ उदाहरण",
+    "worked.lead": "पहले एक प्रश्न पूरा हल करके देखिए, फिर अपना आज़माइए।",
+    "worked.show": "तरीका दिखाइए",
+    "worked.answer": "यही उत्तर है",
+    "worked.err": "उदाहरण लोड नहीं हो सका। कनेक्शन जाँचिए, फिर कोशिश कीजिए।",
+    "worked.next": "अब आपकी बारी",
+    "peer.ideas": "इस अवधारणा के मुख्य विचार",
     "peer.eyebrow": "किसी और को सिखाएँ",
-    "peer.prompt": "अपने शब्दों में समझाएँ — OpenMind देखेगा कि आपने क्या ढका।",
+    "peer.prompt": "अपने शब्दों में समझाइए। यहाँ कुछ भी जाँचा या अंकित नहीं होता — यह अपनी सोच परखने का तरीका है।",
     "peer.placeholder": "जैसे: प्रकाश-संश्लेषण वह प्रक्रिया है जिसमें पौधे प्रकाश को भोजन में बदलते हैं…",
-    "peer.checkBtn": "मेरी व्याख्या जाँचें",
+    "peer.checkBtn": "एक बार देखिए",
     "peer.strong": "शानदार व्याख्या — सही और किसी और को सिखाने लायक।",
     "peer.goodPre": "अच्छा — मुख्य विचार आ गया। एक धागा बाकी: ",
     "peer.goodPost": ".",
@@ -15504,7 +15836,11 @@ const hi = {
     "onb.setup": "अपनी सीख सेट करें",
     "onb.lead": "कुछ बताइए और OpenMind ढल जाता है: पढ़ाने की भाषा, उदाहरण, कठिनाई और आपका पथ। खाता सब जगह सहेजता है — या बिना खाते जारी रखें।",
     "onb.name": "आपका नाम",
+    "onb.nameNeeded": "आगे बढ़ने के लिए एक नाम चुनें — कोई भी छोटा नाम चलेगा।",
     "onb.where": "आप कहाँ हैं",
+    "onb.region": "प्रांत / राज्य / क्षेत्र",
+    "onb.pickRegion": "एक चुनें (वैकल्पिक)",
+    "onb.regionNote": "यह नीचे पाठ की भाषा तय करता है — गलत हो तो बदल दें।",
     "onb.lang": "भाषा",
     "onb.teachingLang": "शिक्षा की भाषा (व्याख्या)",
     "onb.understandLang": "मैं बेहतर समझता हूँ",
@@ -15524,10 +15860,10 @@ const hi = {
     "onb.errRefused": "सर्वर ने प्रोफ़ाइल में यह बदलाव अस्वीकार किया — यह आपका कनेक्शन नहीं है। नीचे दिया कोड कारण है।",
     "onb.errNotYours": "इस डिवाइस पर सहेजी गई प्रोफ़ाइल में अब लिखा नहीं जा सकता — उसका सीक्रेट मेल नहीं खाता। कुछ मिटाया नहीं गया; यह ब्राउज़र बस उस रिकॉर्ड तक नहीं पहुँच सकता। जिस खाते का यह है उसमें साइन इन करें, या यहाँ नई प्रोफ़ाइल शुरू करें।",
     "onb.freshStart": "इस डिवाइस पर नई प्रोफ़ाइल शुरू करें",
-    "ls.visual": "👁 देखकर",
-    "ls.auditory": "🔊 सुनकर",
-    "ls.kinesthetic": "✋ करके",
-    "ls.reading": "📖 पढ़कर",
+    "ls.visual": "देखकर",
+    "ls.auditory": "सुनकर",
+    "ls.kinesthetic": "करके",
+    "ls.reading": "पढ़कर",
     "cult.neutral": "सामान्य",
     "cult.agriculture": "खेत, बाज़ार, यातायात",
     "cult.urban": "शहर, दुकानें, बसें",
@@ -15668,7 +16004,7 @@ const hi = {
     "hint.walkthrough": "पूरा हल चलकर समझाएँ",
     "hint.walkthroughDesc": "पूरा तर्क, कदम दर कदम।",
     "hint.body.tiny": "ध्यान से देखें कि प्रश्न वास्तव में क्या पूछ रहा है।",
-    "hint.body.strong": "प्रश्न जो देता है उसी से शुरू करें, और वह संबंध लिखें जो आप जानते हैं जो उसे पूछी गई चीज़ से जोड़ता है।",
+    "hint.body.yourSlip": "यहाँ आपके पिछले उत्तर इसी चरण पर चूके — इसे ध्यान में रखें:", "hint.body.strong": "प्रश्न जो देता है उसी से शुरू करें, और वह संबंध लिखें जो आप जानते हैं जो उसे पूछी गई चीज़ से जोड़ता है।",
     "retention.title": "दोहराने के लिए तैयार",
     "retention.sub": "आपने ये पहले सही बताए थे। अभी एक त्वरित नज़र — आज, अगले हफ़्ते, अगले महीने — यही इन्हें स्थायी बनाता है।",
     "retention.review": "दोहराएँ",
@@ -15816,14 +16152,15 @@ const hi = {
     "home.examPast": "तुम्हारी परीक्षा की तारीख निकल गई — इसे सेटिंग्स में बदलो",
     "prog.gainPts": "अंक बढ़े",
     "prog.gainHint": "प्रगति मापने के लिए निदान दोबारा करो।",
-    "pack.title": "स्टडी कार्ड",
-    "pack.none": "अभी कोई कार्ड नहीं — पहला लिखो।",
-    "pack.add": "कार्ड जोड़ो",
-    "pack.fork": "फोर्क करो",
+    "pack.title": "सीखने वालों के नोट",
+    "pack.lead": "इस विचार पर दूसरे सीखने वालों के छोटे नोट। एक लिखें, किसी को उपयोगी बताएँ, या किसी की नकल कर के अपना बनाएँ।",
+    "pack.none": "इस अवधारणा पर अभी कोई नोट नहीं। अपने शब्दों में एक तरकीब या चेतावनी अगले व्यक्ति की मदद करेगी।",
+    "pack.add": "नोट लिखें",
+    "pack.fork": "नकल करें और बदलें",
     "pack.helpful": "उपयोगी",
-    "pack.phTitle": "कार्ड का शीर्षक",
+    "pack.phTitle": "नोट का शीर्षक",
     "pack.phBody": "साथी को क्या पता होना चाहिए? एक तरकीब, एक चेतावनी, अपनी भाषा…",
-    "pack.forkOf": "की फोर्क",
+    "pack.forkOf": "पर आधारित",
     "goal.title": "तुम्हारा लक्ष्य",
     "goal.step": "चरण",
     "goal.now": "अभी",
@@ -15934,20 +16271,20 @@ const hi = {
     "acc.highContrast": "उच्च कंट्रास्ट",
     "acc.calmScreen": "शांत स्क्रीन",
     "acc.connectivity": "कनेक्टिविटी",
-    "acc.syncedAll": "🟢 सब कुछ समन्वयित।",
+    "acc.syncedAll": "सब कुछ समन्वयित।",
     "acc.pendingSync": "उत्तर समन्वय की प्रतीक्षा में।",
     "acc.offlinePlan": "ऑफ़लाइन योजना",
-    "acc.continuity": "🆘 आसान सवाल जब मुश्किल हो",
-    "acc.have": "🌱 मेरे पास क्या है",
+    "acc.continuity": "आसान सवाल जब मुश्किल हो",
+    "acc.have": "मेरे पास क्या है",
     "acc.howTeachNote": "OpenMind इसके अनुसार उदाहरण और प्रस्तुति बदलता है।",
     "acc.saved": "✓ सहेजा गया",
-    "acc.stayLocal": "🔒 पहुँच विकल्प तब तक आपके डिवाइस पर रहते हैं जब तक आप उन्हें प्रोफ़ाइल में सहेजते हैं।",
+    "acc.stayLocal": "पहुँच विकल्प तब तक आपके डिवाइस पर रहते हैं जब तक आप उन्हें प्रोफ़ाइल में सहेजते हैं।",
     "acc.examPh": "जैसे WAEC SSSCE, KCSE Form 4, AISSCE",
     "hub.local": "OpenMind हब · स्थानीय",
     "hub.localNote": "इस हब पर। किसी छात्र को इंटरनेट नहीं चाहिए — हब को मिलने पर समन्वय करता है।",
     "pack.packing": "तैयार हो रहा है…",
-    "pack.download": "📴 मेरा लर्निंग पैक डाउनलोड करें",
-    "pack.ready": "🟢 ऑफ़लाइन तैयार — बिना इंटरनेट सीखते रहें।",
+    "pack.download": "मेरा लर्निंग पैक डाउनलोड करें",
+    "pack.ready": "ऑफ़लाइन तैयार — बिना इंटरनेट सीखते रहें।",
     "dash.anonNote": "— न बिना ईमेल, न पासवर्ड, 30 सेकंड।",
     "dash.langLead": "व्याख्या इसमें:",
     "dash.langMid": "· शब्द इसमें:",
@@ -16077,7 +16414,7 @@ const hi = {
     "onb.verifyNote": "OpenMind सत्यापन ईमेल नहीं भेजता — पता केवल साइन इन के लिए है।",
     "pp.title": "परीक्षा पत्र",
     "pp.lead": "पूरा पेपर उसी समय-सीमा और मूल्यांकन नियमों से हल करें, फिर उत्तर-योजना और अनुमानित ग्रेड देखें।",
-    "pp.honest": "हर पेपर आपके बोर्ड की विशिष्टता और प्रारूप के अनुसार OpenMind द्वारा लिखा गया है — यह कॉपीराइट वाले पुराने पेपर की प्रतिलिपि नहीं है।",
+    "pp.honest": "हर प्रश्न OpenMind लिखता है — कोई भी कॉपीराइट वाले पुराने पेपर की नकल नहीं है। हर पंक्ति बताती है कि पेपर की संरचना आपके बोर्ड की है या OpenMind का अभ्यास सेट।",
     "pp.pick": "पेपर चुनें",
     "pp.pickLead": "अपना विषय चुनें, फिर पूरा पेपर एक ही बैठक में हल करें।",
     "pp.empty": "इस योग्यता के लिए अभी कोई पेपर उपलब्ध नहीं।",
@@ -16139,6 +16476,12 @@ const hi = {
     "pp.prev": "पिछला",
     "pp.next": "अगला",
     "pp.grid": "किसी प्रश्न पर जाएँ",
+    "pp.paper": "पेपर {n}",
+    "pp.needs": "आपके रिकॉर्ड से बना",
+    "pp.mirrors": "आपके परीक्षा बोर्ड की प्रकाशित पेपर संरचना",
+    "pp.practiceSet": "आपके कोर्स के लिए OpenMind अभ्यास सेट — आपके बोर्ड का पेपर नहीं",
+    "pp.shapeSource": "स्रोत",
+    "pp.needsWhy": "यहाँ हर सवाल उन्हीं विचारों से है जिन्हें आपका रिकॉर्ड सबसे कमजोर बताता है।",
     "pp.correct": "सही",
     "pp.incorrect": "गलत",
     "pp.blank": "अनुत्तरित",
@@ -16441,9 +16784,25 @@ const hi = {
     "acct.class": "कक्षा में शामिल हों",
 };
 const id = {
+    "target.slipCheck": "Soal ini dibuat untuk menangkap kesalahan itu.",
+    "repair.title": "Mari kita perbaiki",
+    "repair.works": "Di sini berhasil",
+    "repair.fails": "Di sini gagal",
+    "repair.diff": "Satu-satunya beda",
+    "repair.move": "Langkahnya",
+    "plan.can": "Di akhir, kamu bisa",
+    "plan.start": "Mulai di sini",
+    "plan.together": "Ayo kerjakan satu bersama",
+    "plan.guidedLead": "Saya ambil langkah pertama; kamu selesaikan, lalu periksa.",
+    "plan.firstStep": "Tampilkan langkah pertama",
+    "plan.rest": "Tampilkan sisanya",
+    "plan.finishIt": "Selesaikan dulu di kepalamu, lalu periksa.",
+    "plan.traps": "Di sinilah kesalahan terjadi",
+    "plan.reviewed": "Diperiksa guru mata pelajaran",
+    "plan.unreviewed": "Belum diperiksa guru mata pelajaran",
     "cur.covers": "{n} dari {total} konsep di sini termasuk dalam kursusmu.",
     "cur.outside": "Di luar kursusmu",
-    "cur.outsideNote": "Ada {n} konsep di sini yang berada di luar {spec}. Semuanya tetap terbuka untuk dibaca, tetapi bukan silabusmu.",
+    "cur.outsideNote": "Ada {n} konsep di sini di luar {spec}. Kamu tetap bisa membacanya, tetapi itu bukan bagian dari silabusmu.",
     "curr.unmapped": "Kurikulum nasional negaramu belum dipetakan — rute internasional ditampilkan.",
     "nav.currTitle": "Kurikulummu",
     "curr.title": "Kurikulummu",
@@ -16941,11 +17300,11 @@ const id = {
     "q.calculate": "Hitung",
     "q.share": "Bagikan",
     "q.balance": "Seimbangkan",
-    "res.textbook": "📕 Satu buku pelajaran",
-    "res.worksheets": "📄 Lembar kerja sekolah",
-    "res.phone": "📱 Ponsel ini",
-    "res.internet": "🛜 Internet kadang ada",
-    "res.teacher": "👩‍🏫 Guru dua kali seminggu",
+    "res.textbook": "Satu buku pelajaran",
+    "res.worksheets": "Lembar kerja sekolah",
+    "res.phone": "Ponsel ini",
+    "res.internet": "Internet kadang ada",
+    "res.teacher": "Guru dua kali seminggu",
     "res.advice.internet": "Internet naik-turun — simpan paket luring yang segar.",
     "res.advice.offlinePlan": "Rencana luring",
     "res.advice.teacher": "Ada guru — bawa rencana mingguan yang bisa dicetak.",
@@ -16953,10 +17312,20 @@ const id = {
     "res.advice.paper": "Kamu punya bahan kertas — foto sebuah soal untuk menemukan konsepnya.",
     "res.advice.identify": "Identifikasi soal",
     "res.advice.phone": "Ponsel ini saja cukup — mulai dari diagnostik.",
+    "learn.idea": "Idenya",
+    "learn.buildsOn": "Berdasarkan apa ini",
+    "worked.another": "Satu lagi, lebih sulit",
+    "worked.eyebrow": "Contoh yang dikerjakan",
+    "worked.lead": "Satu soal dikerjakan penuh lebih dulu, sebelum kamu mencoba punyamu.",
+    "worked.show": "Tunjukkan caranya",
+    "worked.answer": "inilah jawabannya",
+    "worked.err": "Contoh gagal dimuat. Periksa koneksimu, lalu coba lagi.",
+    "worked.next": "Sekarang giliranmu",
+    "peer.ideas": "Ide kunci konsep ini",
     "peer.eyebrow": "Ajarkan ke orang lain",
-    "peer.prompt": "Jelaskan dengan kata-katamu — OpenMind memeriksa cakupanmu.",
+    "peer.prompt": "Jelaskan dengan kata-katamu sendiri. Tidak ada yang dinilai di sini — ini cara memeriksa pemahamanmu sendiri.",
     "peer.placeholder": "mis. Fotosintesis adalah cara tumbuhan mengubah cahaya menjadi makanan…",
-    "peer.checkBtn": "Periksa penjelasan saya",
+    "peer.checkBtn": "Periksa lagi",
     "peer.strong": "Penjelasan bagus — benar dan cukup lengkap untuk diajarkan.",
     "peer.goodPre": "Bagus — ide utamanya tercakup. Satu benang hilang: ",
     "peer.goodPost": ".",
@@ -17024,7 +17393,11 @@ const id = {
     "onb.setup": "Atur belajarmu",
     "onb.lead": "Beri tahu sedikit dan OpenMind menyesuaikan: bahasa pengantar, contoh, tingkat kesulitan dan jalur belajarmu. Akun menyimpannya di mana saja — atau lanjut tanpa akun.",
     "onb.name": "Namamu",
+    "onb.nameNeeded": "Pilih nama untuk melanjutkan — nama panggilan juga boleh.",
     "onb.where": "Di mana kamu",
+    "onb.region": "Provinsi / negara bagian / wilayah",
+    "onb.pickRegion": "Pilih satu (opsional)",
+    "onb.regionNote": "Ini mengatur bahasa pelajaran di bawah — ubah jika tidak sesuai.",
     "onb.lang": "Bahasa",
     "onb.teachingLang": "Bahasa pengajaran (penjelasan)",
     "onb.understandLang": "Saya lebih paham dalam",
@@ -17044,10 +17417,10 @@ const id = {
     "onb.errRefused": "Server menolak perubahan profil ini — ini bukan koneksimu. Kode di bawah adalah alasannya.",
     "onb.errNotYours": "Profil yang tersimpan di perangkat ini tidak bisa ditulis lagi — rahasianya tidak cocok. Tidak ada yang dihapus; peramban ini hanya tidak bisa menjangkau catatan itu. Masuk ke akun yang memilikinya, atau mulai profil baru di sini.",
     "onb.freshStart": "Mulai profil baru di perangkat ini",
-    "ls.visual": "👁 Visual",
-    "ls.auditory": "🔊 Auditori",
-    "ls.kinesthetic": "✋ Kinestetik",
-    "ls.reading": "📖 Membaca",
+    "ls.visual": "Visual",
+    "ls.auditory": "Auditori",
+    "ls.kinesthetic": "Kinestetik",
+    "ls.reading": "Membaca",
     "cult.neutral": "Netral",
     "cult.agriculture": "Pertanian, pasar, transportasi",
     "cult.urban": "Kota, toko, bus",
@@ -17188,7 +17561,7 @@ const id = {
     "hint.walkthrough": "Bimbing saya langkah demi langkah",
     "hint.walkthroughDesc": "Penalaran lengkap, langkah demi langkah.",
     "hint.body.tiny": "Perhatikan baik-baik apa yang sebenarnya diminta soal.",
-    "hint.body.strong": "Mulai dari apa yang diberikan soal, dan tuliskan hubungan yang Anda tahu yang menghubungkannya dengan yang ditanyakan.",
+    "hint.body.yourSlip": "Jawaban terakhirmu di sini keliru pada langkah ini — perhatikan:", "hint.body.strong": "Mulai dari apa yang diberikan soal, dan tuliskan hubungan yang Anda tahu yang menghubungkannya dengan yang ditanyakan.",
     "retention.title": "Siap untuk diulang",
     "retention.sub": "Anda pernah menjawab ini dengan benar. Sekilas sekarang — hari ini, minggu depan, bulan depan — itulah yang membuatnya melekat.",
     "retention.review": "Ulangi",
@@ -17336,14 +17709,15 @@ const id = {
     "home.examPast": "Tanggal ujianmu sudah lewat — perbarui di pengaturan",
     "prog.gainPts": "poin bertambah",
     "prog.gainHint": "Ulangi diagnostik untuk mengukur kemajuan.",
-    "pack.title": "Kartu belajar",
-    "pack.none": "Belum ada kartu — tulis yang pertama.",
-    "pack.add": "Tambah kartu",
-    "pack.fork": "Fork",
+    "pack.title": "Catatan pelajar",
+    "pack.lead": "Catatan singkat dari pelajar lain tentang ide ini. Tulis satu, tandai satu sebagai membantu, atau salin satu dan jadikan milikmu.",
+    "pack.none": "Belum ada catatan tentang konsep ini. Trik atau peringatan dengan kata-katamu sendiri membantu orang berikutnya.",
+    "pack.add": "Tulis catatan",
+    "pack.fork": "Salin dan ubah",
     "pack.helpful": "Membantu",
-    "pack.phTitle": "Judul kartu",
+    "pack.phTitle": "Judul catatan",
     "pack.phBody": "Apa yang perlu diketahui teman? Trik, peringatan, atau bahasamu…",
-    "pack.forkOf": "fork dari",
+    "pack.forkOf": "berdasarkan",
     "goal.title": "Tujuanmu",
     "goal.step": "Langkah",
     "goal.now": "Sekarang",
@@ -17453,20 +17827,20 @@ const id = {
     "acc.highContrast": "Kontras tinggi",
     "acc.calmScreen": "Layar tenang",
     "acc.connectivity": "Konektivitas",
-    "acc.syncedAll": "🟢 Semua tersinkron.",
+    "acc.syncedAll": "Semua tersinkron.",
     "acc.pendingSync": "jawaban menunggu sinkron.",
     "acc.offlinePlan": "Rencana offline",
-    "acc.continuity": "🆘 Pertanyaan lebih mudah saat sulit",
-    "acc.have": "🌱 Yang saya punya",
+    "acc.continuity": "Pertanyaan lebih mudah saat sulit",
+    "acc.have": "Yang saya punya",
     "acc.howTeachNote": "OpenMind menyesuaikan contoh dan penyajian dengan ini.",
     "acc.saved": "✓ Tersimpan",
-    "acc.stayLocal": "🔒 Pilihan akses tetap di perangkatmu sampai kamu simpan ke profil.",
+    "acc.stayLocal": "Pilihan akses tetap di perangkatmu sampai kamu simpan ke profil.",
     "acc.examPh": "mis. WAEC SSSCE, KCSE Form 4, AISSCE",
     "hub.local": "Hub OpenMind · lokal",
     "hub.localNote": "di hub ini. Tidak ada pelajar yang butuh internet — hub menyinkron saat mendapatkannya.",
     "pack.packing": "Menyiapkan…",
-    "pack.download": "📴 Unduh paket belajarku",
-    "pack.ready": "🟢 Siap offline — lanjut belajar tanpa internet.",
+    "pack.download": "Unduh paket belajarku",
+    "pack.ready": "Siap offline — lanjut belajar tanpa internet.",
     "dash.anonNote": "— tanpa email, tanpa kata sandi, 30 detik.",
     "dash.langLead": "Penjelasan dalam",
     "dash.langMid": "· istilah dalam",
@@ -17596,7 +17970,7 @@ const id = {
     "onb.verifyNote": "OpenMind tidak mengirim email verifikasi — alamatmu hanya dipakai untuk masuk.",
     "pp.title": "Kertas ujian",
     "pp.lead": "Kerjakan satu kertas penuh dengan batas waktu dan aturan penilaiannya, lalu baca kunci jawaban dan perkiraan nilaimu.",
-    "pp.honest": "Setiap kertas ditulis OpenMind sesuai spesifikasi dan format board-mu — bukan salinan kertas ujian berhak cipta.",
+    "pp.honest": "Setiap soal ditulis oleh OpenMind — tidak ada yang menyalin kertas ujian berhak cipta. Setiap baris menyebutkan apakah struktur kertas itu milik badan ujian Anda atau set latihan OpenMind.",
     "pp.pick": "Pilih kertas",
     "pp.pickLead": "Pilih mata pelajaranmu, lalu kerjakan seluruh kertas dalam satu sesi.",
     "pp.empty": "Belum ada kertas untuk kualifikasi ini.",
@@ -17658,6 +18032,12 @@ const id = {
     "pp.prev": "Sebelumnya",
     "pp.next": "Berikutnya",
     "pp.grid": "Lompat ke soal",
+    "pp.paper": "Kertas {n}",
+    "pp.needs": "Disusun dari catatanmu",
+    "pp.mirrors": "Struktur kertas yang diterbitkan badan ujian Anda",
+    "pp.practiceSet": "Set latihan OpenMind untuk kursus Anda — bukan kertas badan ujian Anda",
+    "pp.shapeSource": "Sumber",
+    "pp.needsWhy": "Setiap soal di sini diambil dari gagasan yang menurut catatanmu sendiri paling lemah.",
     "pp.correct": "Benar",
     "pp.incorrect": "Salah",
     "pp.blank": "Tidak dijawab",
@@ -17960,9 +18340,25 @@ const id = {
     "acct.class": "Gabung kelas",
 };
 const tl = {
+    "target.slipCheck": "Ginawa ito para mahuli ang pagkakamaling iyon.",
+    "repair.title": "Ayusin natin ito",
+    "repair.works": "Dito tama",
+    "repair.fails": "Dito mali",
+    "repair.diff": "Ang nag-iisang pagkakaiba",
+    "repair.move": "Ang galaw",
+    "plan.can": "Sa dulo, kaya mong",
+    "plan.start": "Magsimula rito",
+    "plan.together": "Gawin natin ang isa nang sabay",
+    "plan.guidedLead": "Ako ang gagawa ng unang hakbang; tapusin mo ang natitira, saka mo suriin.",
+    "plan.firstStep": "Ipakita ang unang hakbang",
+    "plan.rest": "Ipakita ang natitira",
+    "plan.finishIt": "Tapusin mo muna sa isip mo, saka mo suriin.",
+    "plan.traps": "Dito nagkakamali",
+    "plan.reviewed": "Sinuri ng guro ng asignatura",
+    "plan.unreviewed": "Hindi pa sinuri ng guro ng asignatura",
     "cur.covers": "{n} sa {total} na konsepto rito ay bahagi ng iyong kurso.",
     "cur.outside": "Hindi sa iyong kurso",
-    "cur.outsideNote": "{n} konsepto rito ang nasa labas ng {spec}. Nananatiling bukas para basahin, ngunit hindi ito ang iyong syllabus.",
+    "cur.outsideNote": "May {n} konseptong nasa labas ng {spec}. Mababasa mo pa rin ang mga ito, pero hindi sila bahagi ng iyong silabus.",
     "curr.unmapped": "Hindi pa naka-map ang pambansang kurikulum ng bansa mo — mga internasyonal na ruta ang ipinapakita.",
     "nav.currTitle": "Kurikulum mo",
     "curr.title": "Kurikulum mo",
@@ -18460,11 +18856,11 @@ const tl = {
     "q.calculate": "Kalkulahin",
     "q.share": "Hatian",
     "q.balance": "Timbangin",
-    "res.textbook": "📕 Isang aklat",
-    "res.worksheets": "📄 Mga worksheet ng paaralan",
-    "res.phone": "📱 Ang teleponong ito",
-    "res.internet": "🛜 Internet paminsan-minsan",
-    "res.teacher": "👩‍🏫 Guro dalawang beses kada linggo",
+    "res.textbook": "Isang aklat",
+    "res.worksheets": "Mga worksheet ng paaralan",
+    "res.phone": "Ang teleponong ito",
+    "res.internet": "Internet paminsan-minsan",
+    "res.teacher": "Guro dalawang beses kada linggo",
     "res.advice.internet": "Papasok-labas ang internet — panatilihing sariwa ang offline pack.",
     "res.advice.offlinePlan": "Offline na plano",
     "res.advice.teacher": "May guro — dalhin ang mai-print na linggong plano.",
@@ -18472,10 +18868,20 @@ const tl = {
     "res.advice.paper": "May papel ka — kuhanan ng litrato ang tanong para mahanap ang konsepto.",
     "res.advice.identify": "Kilalanin ang tanong",
     "res.advice.phone": "Sapat na ang teleponong ito — magsimula sa diagnostic.",
+    "learn.idea": "Ang ideya",
+    "learn.buildsOn": "Ano ang pinagbabatayan nito",
+    "worked.another": "Isa pa, mas mahirap",
+    "worked.eyebrow": "Halimbawang nasagot",
+    "worked.lead": "Isang tanong muna ang sasagutin nang buo, bago mo subukan ang sarili mo.",
+    "worked.show": "Ipakita sa akin kung paano",
+    "worked.answer": "ito ang sagot",
+    "worked.err": "Hindi nag-load ang halimbawa. Tingnan ang koneksyon, tapos subukan muli.",
+    "worked.next": "Ikaw naman",
+    "peer.ideas": "Mahahalagang ideya sa konseptong ito",
     "peer.eyebrow": "Ituro sa iba",
-    "peer.prompt": "Ipaliwanag sa sariling salita — susuriin ng OpenMind ang natampan mo.",
+    "peer.prompt": "Ipaliwanag ito sa sariling salita. Walang sinusuri rito — paraan ito para tingnan ang sariling pag-unawa.",
     "peer.placeholder": "hal. Ang photosynthesis ay kung paano ginagawang pagkain ng halaman ang liwanag…",
-    "peer.checkBtn": "Suriin ang paliwanag ko",
+    "peer.checkBtn": "Suriin muli",
     "peer.strong": "Magandang paliwanag — tama at sapat nang ituro sa iba.",
     "peer.goodPre": "Magaling — nasakop ang pangunahing ideya. Kulang ang isang sinulid: ",
     "peer.goodPost": ".",
@@ -18543,7 +18949,11 @@ const tl = {
     "onb.setup": "I-set up ang pagkatuto mo",
     "onb.lead": "Sabihin ang ilang bagay at mag-aangkop ang OpenMind: wika ng pagtuturo, halimbawa, hirap at landas mo. Sine-save ng account — o magpatuloy nang walang account.",
     "onb.name": "Pangalan mo",
+    "onb.nameNeeded": "Pumili ng pangalan para magpatuloy — ayos lang ang palayaw.",
     "onb.where": "Nasaan ka",
+    "onb.region": "Probinsya / estado / rehiyon",
+    "onb.pickRegion": "Pumili ng isa (opsyonal)",
+    "onb.regionNote": "Ito ang nagtatakda ng wika ng mga aralin sa ibaba — palitan kung mali.",
     "onb.lang": "Wika",
     "onb.teachingLang": "Wika ng pagtuturo (mga paliwanag)",
     "onb.understandLang": "Mas nauunawaan ko sa",
@@ -18563,10 +18973,10 @@ const tl = {
     "onb.errRefused": "Tinanggihan ng server ang pagbabagong ito sa profile — hindi ito ang koneksyon mo. Ang code sa ibaba ang dahilan.",
     "onb.errNotYours": "Hindi na maisusulat ang profile na naka-save sa device na ito — hindi tugma ang sikreto nito. Walang nabura; hindi lang maabot ng browser na ito ang rekord na iyon. Mag-sign in sa account na may-ari nito, o magsimula ng bagong profile dito.",
     "onb.freshStart": "Magsimula ng bagong profile sa device na ito",
-    "ls.visual": "👁 Pandama",
-    "ls.auditory": "🔊 Pandinig",
-    "ls.kinesthetic": "✋ Pandama",
-    "ls.reading": "📖 Pagbasa",
+    "ls.visual": "Pandama",
+    "ls.auditory": "Pandinig",
+    "ls.kinesthetic": "Pandama",
+    "ls.reading": "Pagbasa",
     "cult.neutral": "Neutral",
     "cult.agriculture": "Bukid, palengke, transportasyon",
     "cult.urban": "Lungsod, tindahan, bus",
@@ -18707,7 +19117,7 @@ const tl = {
     "hint.walkthrough": "Gabayan mo ako hakbang-hakbang",
     "hint.walkthroughDesc": "Ang buong katwiran, hakbang-hakbang.",
     "hint.body.tiny": "Tingnang mabuti kung ano talaga ang hiniling ng tanong.",
-    "hint.body.strong": "Magsimula sa ibinibigay ng tanong, at isulat ang relasyong alam mo na nag-uugnay dito sa hinahanap.",
+    "hint.body.yourSlip": "Nagkamali ang huling mga sagot mo rito sa hakbang na ito — tandaan:", "hint.body.strong": "Magsimula sa ibinibigay ng tanong, at isulat ang relasyong alam mo na nag-uugnay dito sa hinahanap.",
     "retention.title": "Handa nang balikan",
     "retention.sub": "Nasagot mo nang tama ang mga ito noon. Ang mabilis na tingin ngayon — ngayon, sa susunod na linggo, sa susunod na buwan — ang gumagawa nitong pumirmi.",
     "retention.review": "Balikan",
@@ -18855,14 +19265,15 @@ const tl = {
     "home.examPast": "Lumipas na ang petsa ng pagsusulit mo — baguhin ito sa mga setting",
     "prog.gainPts": "puntos na nakamit",
     "prog.gainHint": "Ulitin ang diagnostic para masukat ang progreso.",
-    "pack.title": "Mga study pack",
-    "pack.none": "Wala pang pack — isulat ang una.",
-    "pack.add": "Magdagdag ng pack",
-    "pack.fork": "I-fork",
+    "pack.title": "Mga tala ng mag-aaral",
+    "pack.lead": "Maiikling tala mula sa ibang mag-aaral tungkol sa ideyang ito. Sumulat ng isa, markahan ang isa bilang nakatulong, o kopyahin ang isa at gawing sarili.",
+    "pack.none": "Wala pang tala sa konseptong ito. Ang isang paraan o babala sa sariling salita ay makakatulong sa susunod.",
+    "pack.add": "Sumulat ng tala",
+    "pack.fork": "Kopyahin at baguhin",
     "pack.helpful": "Nakatulong",
-    "pack.phTitle": "Pamagat ng pack",
+    "pack.phTitle": "Pamagat ng tala",
     "pack.phBody": "Ano ang dapat malaman ng kaibigan? Isang trick, babala, o wika mo…",
-    "pack.forkOf": "fork ng",
+    "pack.forkOf": "batay sa",
     "goal.title": "Ang layunin mo",
     "goal.step": "Hakbang",
     "goal.now": "Ngayon",
@@ -18972,20 +19383,20 @@ const tl = {
     "acc.highContrast": "Mataas na contrast",
     "acc.calmScreen": "Kalmadong screen",
     "acc.connectivity": "Koneksyon",
-    "acc.syncedAll": "🟢 Naka-sync lahat.",
+    "acc.syncedAll": "Naka-sync lahat.",
     "acc.pendingSync": "sagot na naghihintay ng sync.",
     "acc.offlinePlan": "Plano offline",
-    "acc.continuity": "🆘 Mas madaling tanong kapag mahirap",
-    "acc.have": "🌱 Ang mayroon ako",
+    "acc.continuity": "Mas madaling tanong kapag mahirap",
+    "acc.have": "Ang mayroon ako",
     "acc.howTeachNote": "Iniaangkop ng OpenMind ang mga halimbawa at presentasyon dito.",
     "acc.saved": "✓ Nai-save",
-    "acc.stayLocal": "🔒 Nananatili sa device mo ang mga access option hanggang i-save mo sa profile mo.",
+    "acc.stayLocal": "Nananatili sa device mo ang mga access option hanggang i-save mo sa profile mo.",
     "acc.examPh": "hal. WAEC SSSCE, KCSE Form 4, AISSCE",
     "hub.local": "Hub ng OpenMind · lokal",
     "hub.localNote": "sa hub na ito. Walang mag-aaral ang nangangailangan ng internet — nag-sync ang hub kapag mayroon na.",
     "pack.packing": "Iniimpake…",
-    "pack.download": "📴 I-download ang learning pack ko",
-    "pack.ready": "🟢 Offline-ready — magpatuloy sa pag-aaral nang walang internet.",
+    "pack.download": "I-download ang learning pack ko",
+    "pack.ready": "Offline-ready — magpatuloy sa pag-aaral nang walang internet.",
     "dash.anonNote": "— walang email, walang password, 30 segundo.",
     "dash.langLead": "Paliwanag sa",
     "dash.langMid": "· termino sa",
@@ -19115,7 +19526,7 @@ const tl = {
     "onb.verifyNote": "Walang verification email ang OpenMind — ginagamit lang ang address para makapasok.",
     "pp.title": "Mga exam paper",
     "pp.lead": "Sagutan ang buong papel sa sarili nitong oras at panuntunan, tapos tingnan ang mark scheme at tantyang grado.",
-    "pp.honest": "Ang bawat papel ay isinulat ng OpenMind ayon sa espesipikasyon at format ng board mo — hindi ito kopya ng past paper na may copyright.",
+    "pp.honest": "Isinulat ng OpenMind ang bawat tanong — walang kinopya sa papel na may karapatang-ari. Sinasabi ng bawat hanay kung ang istruktura ng papel ay ng inyong board o pang-ensayong set ng OpenMind.",
     "pp.pick": "Pumili ng papel",
     "pp.pickLead": "Piliin ang asignatura, tapos sagutan ang buong papel sa isang upuan.",
     "pp.empty": "Wala pang papel para sa kwalipikasyong ito.",
@@ -19177,6 +19588,12 @@ const tl = {
     "pp.prev": "Nakaraan",
     "pp.next": "Susunod",
     "pp.grid": "Pumunta sa isang tanong",
+    "pp.paper": "Papel {n}",
+    "pp.needs": "Gawa mula sa iyong talaan",
+    "pp.mirrors": "Nakalathalang istruktura ng papel ng inyong board",
+    "pp.practiceSet": "Pang-ensayong set ng OpenMind para sa inyong kurso — hindi ang papel ng inyong board",
+    "pp.shapeSource": "Pinagmulan",
+    "pp.needsWhy": "Ang bawat tanong dito ay galing sa mga ideyang sinasabing pinakamahina ng iyong sariling talaan.",
     "pp.correct": "Tama",
     "pp.incorrect": "Mali",
     "pp.blank": "Hindi sinagutan",
@@ -19480,9 +19897,25 @@ const tl = {
 };
 // ── Draft languages: core learning loop translated; English fills the rest. ─
 const de = {
+    "target.slipCheck": "Diese Aufgabe ist darauf gebaut, genau diesen Fehler zu treffen.",
+    "repair.title": "Das reparieren wir",
+    "repair.works": "Hier geht es auf",
+    "repair.fails": "Hier geht es schief",
+    "repair.diff": "Der eine Unterschied",
+    "repair.move": "Der Schritt",
+    "plan.can": "Am Ende kannst du",
+    "plan.start": "Hier anfangen",
+    "plan.together": "Machen wir eine zusammen",
+    "plan.guidedLead": "Ich mache den ersten Schritt – du machst den Rest, dann prüfst du.",
+    "plan.firstStep": "Ersten Schritt zeigen",
+    "plan.rest": "Den Rest zeigen",
+    "plan.finishIt": "Rechne es zuerst im Kopf zu Ende, dann prüfe.",
+    "plan.traps": "Hier geht es schief",
+    "plan.reviewed": "Von einer Fachlehrkraft geprüft",
+    "plan.unreviewed": "Noch nicht von einer Fachlehrkraft geprüft",
     "cur.covers": "{n} der {total} Konzepte hier gehören zu deinem Kurs.",
     "cur.outside": "Nicht in deinem Kurs",
-    "cur.outsideNote": "{n} Konzepte hier liegen außerhalb von {spec}. Sie bleiben zum Lesen offen, sind aber nicht dein Lehrplan.",
+    "cur.outsideNote": "{n} Konzepte hier gehören nicht zu {spec}. Du kannst sie trotzdem lesen, sie sind aber nicht Teil deines Lehrplans.",
     "curr.unmapped": "Der nationale Lehrplan deines Landes ist noch nicht abgebildet — es werden internationale Wege gezeigt.",
     "nav.currTitle": "Dein Lehrplan",
     "curr.title": "Dein Lehrplan",
@@ -19980,11 +20413,11 @@ const de = {
     "q.calculate": "Berechne",
     "q.share": "Teile auf",
     "q.balance": "Gleiche aus",
-    "res.textbook": "📕 Ein Lehrbuch",
-    "res.worksheets": "📄 Arbeitsblätter",
-    "res.phone": "📱 Dieses Handy",
-    "res.internet": "🛜 Internet manchmal",
-    "res.teacher": "👩‍🏫 Lehrkraft zweimal pro Woche",
+    "res.textbook": "Ein Lehrbuch",
+    "res.worksheets": "Arbeitsblätter",
+    "res.phone": "Dieses Handy",
+    "res.internet": "Internet manchmal",
+    "res.teacher": "Lehrkraft zweimal pro Woche",
     "res.advice.internet": "Internet kommt und geht — halte ein Offline-Paket frisch.",
     "res.advice.offlinePlan": "Offline-Plan",
     "res.advice.teacher": "Eine Lehrkraft ist da — bring den druckbaren Wochenplan mit.",
@@ -19992,10 +20425,20 @@ const de = {
     "res.advice.paper": "Du hast Papier-Material — fotografiere eine Aufgabe, um ihr Konzept zu finden.",
     "res.advice.identify": "Aufgabe erkennen",
     "res.advice.phone": "Dieses Handy reicht — starte mit der Diagnostik.",
+    "learn.idea": "Die Idee",
+    "learn.buildsOn": "Worauf das aufbaut",
+    "worked.another": "Noch eine, schwerer",
+    "worked.eyebrow": "Vorgerechnetes Beispiel",
+    "worked.lead": "Zuerst eine Aufgabe vollständig vorgerechnet, bevor du deine eigene versuchst.",
+    "worked.show": "Zeig mir, wie",
+    "worked.answer": "das ist die Lösung",
+    "worked.err": "Das Beispiel konnte nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.",
+    "worked.next": "Jetzt du",
+    "peer.ideas": "Kernideen dieses Konzepts",
     "peer.eyebrow": "Erkläre es jemandem",
-    "peer.prompt": "Erkläre es in deinen Worten — OpenMind prüft, was du abgedeckt hast.",
+    "peer.prompt": "Erklär es in deinen eigenen Worten. Hier wird nichts bewertet — es ist eine Möglichkeit, dein eigenes Denken zu prüfen.",
     "peer.placeholder": "z. B. Photosynthese ist, wie Pflanzen Licht in Nahrung umwandeln…",
-    "peer.checkBtn": "Meine Erklärung prüfen",
+    "peer.checkBtn": "Nochmal ansehen",
     "peer.strong": "Starke Erklärung — korrekt und vollständig genug zum Weiterlehren.",
     "peer.goodPre": "Gut — die Hauptidee ist drin. Es fehlt ein Faden: ",
     "peer.goodPost": ".",
@@ -20063,7 +20506,11 @@ const de = {
     "onb.setup": "Richte dein Lernen ein",
     "onb.lead": "Sag uns ein paar Dinge und OpenMind passt sich an: Unterrichtssprache, Beispiele, Schwierigkeit und dein Lernweg. Ein Konto speichert das überall — oder mach ohne Konto weiter.",
     "onb.name": "Dein Name",
+    "onb.nameNeeded": "Wähle einen Namen, um fortzufahren — ein Spitzname genügt.",
     "onb.where": "Wo du bist",
+    "onb.region": "Provinz / Bundesstaat / Region",
+    "onb.pickRegion": "Eine wählen (optional)",
+    "onb.regionNote": "Das legt die Sprache der Lektionen unten fest — ändere sie, wenn sie nicht passt.",
     "onb.lang": "Sprache",
     "onb.teachingLang": "Unterrichtssprache (Erklärungen)",
     "onb.understandLang": "Ich verstehe besser auf",
@@ -20083,10 +20530,10 @@ const de = {
     "onb.errRefused": "Der Server hat diese Profiländerung abgelehnt — das ist nicht deine Verbindung. Der Code unten nennt den Grund.",
     "onb.errNotYours": "Das auf diesem Gerät gespeicherte Profil lässt sich nicht mehr beschreiben — sein Secret passt nicht. Nichts wurde gelöscht; dieser Browser erreicht diesen Datensatz nur nicht. Melde dich beim Konto an, dem er gehört, oder beginne hier ein neues Profil.",
     "onb.freshStart": "Neues Profil auf diesem Gerät beginnen",
-    "ls.visual": "👁 Visuell",
-    "ls.auditory": "🔊 Auditiv",
-    "ls.kinesthetic": "✋ Motorisch",
-    "ls.reading": "📖 Lesen",
+    "ls.visual": "Visuell",
+    "ls.auditory": "Auditiv",
+    "ls.kinesthetic": "Motorisch",
+    "ls.reading": "Lesen",
     "cult.neutral": "Neutral",
     "cult.agriculture": "Felder, Märkte, Verkehr",
     "cult.urban": "Stadt, Läden, Busse",
@@ -20227,7 +20674,7 @@ const de = {
     "hint.walkthrough": "Führe mich Schritt für Schritt",
     "hint.walkthroughDesc": "Die vollständige Überlegung, Schritt für Schritt.",
     "hint.body.tiny": "Schau genau hin, was die Aufgabe eigentlich verlangt.",
-    "hint.body.strong": "Beginne mit dem, was die Aufgabe dir gibt, und schreibe die Beziehung auf, die du kennst und die sie mit dem Gefragten verbindet.",
+    "hint.body.yourSlip": "Deine letzten Antworten hier sind an diesem Schritt gescheitert — behalte ihn im Blick:", "hint.body.strong": "Beginne mit dem, was die Aufgabe dir gibt, und schreibe die Beziehung auf, die du kennst und die sie mit dem Gefragten verbindet.",
     "retention.title": "Bereit zur Wiederholung",
     "retention.sub": "Das hattest du schon richtig beantwortet. Ein kurzer Blick jetzt — heute, nächste Woche, nächsten Monat — dafür bleibt es hängen.",
     "retention.review": "Wiederholen",
@@ -20434,14 +20881,15 @@ const de = {
     "home.examPast": "Dein Prüfungstermin ist vorbei — ändere ihn in den Einstellungen",
     "prog.gainPts": "Punkte dazugewonnen",
     "prog.gainHint": "Wiederhole die Diagnostik, um deinen Fortschritt zu messen.",
-    "pack.title": "Lernpakete",
-    "pack.none": "Noch keine Pakete — schreib die erste Notiz zu diesem Konzept.",
-    "pack.add": "Paket hinzufügen",
-    "pack.fork": "Forken",
+    "pack.title": "Notizen von Lernenden",
+    "pack.lead": "Kurze Notizen anderer Lernender zu dieser Idee. Schreib eine, markiere eine als hilfreich oder kopiere eine und mach sie zu deiner.",
+    "pack.none": "Noch keine Notiz zu diesem Konzept. Ein Trick oder eine Warnung in deinen Worten hilft der nächsten Person.",
+    "pack.add": "Notiz schreiben",
+    "pack.fork": "Kopieren und ändern",
     "pack.helpful": "Hilfreich",
-    "pack.phTitle": "Pakettitel",
+    "pack.phTitle": "Titel der Notiz",
     "pack.phBody": "Was sollte ein Freund wissen? Ein Trick, eine Warnung, in deiner Sprache…",
-    "pack.forkOf": "Fork von",
+    "pack.forkOf": "nach",
     "goal.title": "Dein Ziel",
     "goal.step": "Schritt",
     "goal.now": "Jetzt",
@@ -20551,20 +20999,20 @@ const de = {
     "acc.highContrast": "Hoher Kontrast",
     "acc.calmScreen": "Ruhiger Bildschirm",
     "acc.connectivity": "Verbindung",
-    "acc.syncedAll": "🟢 Alles synchronisiert.",
+    "acc.syncedAll": "Alles synchronisiert.",
     "acc.pendingSync": "Antworten warten auf Synchronisierung.",
     "acc.offlinePlan": "Offline-Plan",
-    "acc.continuity": "🆘 Leichtere Fragen, wenn es schwer ist",
-    "acc.have": "🌱 Was ich habe",
+    "acc.continuity": "Leichtere Fragen, wenn es schwer ist",
+    "acc.have": "Was ich habe",
     "acc.howTeachNote": "OpenMind passt Beispiele und Darstellung daran an.",
     "acc.saved": "✓ Gespeichert",
-    "acc.stayLocal": "🔒 Zugangsoptionen bleiben auf deinem Gerät, bis du sie im Profil speicherst.",
+    "acc.stayLocal": "Zugangsoptionen bleiben auf deinem Gerät, bis du sie im Profil speicherst.",
     "acc.examPh": "z. B. WAEC SSSCE, KCSE Form 4, AISSCE",
     "hub.local": "OpenMind-Hub · lokal",
     "hub.localNote": "auf diesem Hub. Kein Schüler braucht Internet — der Hub synchronisiert, sobald er es hat.",
     "pack.packing": "Wird gepackt…",
-    "pack.download": "📴 Mein Lernpaket herunterladen",
-    "pack.ready": "🟢 Offline bereit — lerne weiter ohne Internet.",
+    "pack.download": "Mein Lernpaket herunterladen",
+    "pack.ready": "Offline bereit — lerne weiter ohne Internet.",
     "dash.anonNote": "— keine E-Mail, kein Passwort, 30 Sekunden.",
     "dash.langLead": "Erklärungen auf",
     "dash.langMid": "· Begriffe auf",
@@ -20694,7 +21142,7 @@ const de = {
     "onb.verifyNote": "OpenMind sendet keine Bestätigungs-E-Mails — die Adresse dient nur zur Anmeldung.",
     "pp.title": "Prüfungspapiere",
     "pp.lead": "Schreibe eine ganze Klausur mit ihrer Zeit und ihren Regeln, dann lies den Erwartungshorizont und deine geschätzte Note.",
-    "pp.honest": "Jede Klausur wird von OpenMind nach Spezifikation und Format deines Prüfungsausschusses geschrieben — keine Kopie eines urheberrechtlich geschützten Altpapiers.",
+    "pp.honest": "Jede Aufgabe wird von OpenMind geschrieben — keine ist eine Kopie einer urheberrechtlich geschützten Prüfung. Jede Zeile sagt, ob die Struktur der Prüfung von Ihrer Prüfungsbehörde stammt oder ein OpenMind-Übungssatz ist.",
     "pp.pick": "Wähle eine Klausur",
     "pp.pickLead": "Wähle dein Fach und schreibe die ganze Klausur in einem Zug.",
     "pp.empty": "Für diesen Abschluss gibt es noch keine Klausur.",
@@ -20756,6 +21204,12 @@ const de = {
     "pp.prev": "Zurück",
     "pp.next": "Weiter",
     "pp.grid": "Zu einer Aufgabe springen",
+    "pp.paper": "Klausur {n}",
+    "pp.needs": "Aus deinem Verlauf gebaut",
+    "pp.mirrors": "Die veröffentlichte Prüfungsstruktur Ihrer Prüfungsbehörde",
+    "pp.practiceSet": "OpenMind-Übungssatz für Ihren Kurs — nicht die Prüfung Ihrer Behörde",
+    "pp.shapeSource": "Quelle",
+    "pp.needsWhy": "Jede Aufgabe hier stammt aus den Themen, die dein eigener Verlauf als am schwächsten ausweist.",
     "pp.correct": "Richtig",
     "pp.incorrect": "Falsch",
     "pp.blank": "Nicht bearbeitet",
@@ -21058,9 +21512,25 @@ const de = {
     "acct.class": "Einer Klasse beitreten",
 };
 const ja = {
+    "target.slipCheck": "この問題は、そのつまずきを突くために作られています。",
+    "repair.title": "ここを直そう",
+    "repair.works": "ここでは正しい",
+    "repair.fails": "ここでは崩れる",
+    "repair.diff": "違うのは一点だけ",
+    "repair.move": "進め方",
+    "plan.can": "この単元の最後には",
+    "plan.start": "ここから始めよう",
+    "plan.together": "一緒に一問やってみよう",
+    "plan.guidedLead": "最初のステップは私がやります。残りは自分でやってから確認しましょう。",
+    "plan.firstStep": "最初のステップを見る",
+    "plan.rest": "続きを見る",
+    "plan.finishIt": "まず頭の中で最後までやってから、答え合わせをしよう。",
+    "plan.traps": "つまずきやすいところ",
+    "plan.reviewed": "教科の先生が確認済み",
+    "plan.unreviewed": "教科の先生による確認はまだです",
     "cur.covers": "ここにある {total} 概念のうち {n} があなたのコースに含まれます。",
     "cur.outside": "コースの対象外",
-    "cur.outsideNote": "ここに {n} 件の概念は {spec} の外にあります。読むことはできますが、カリキュラムではありません。",
+    "cur.outsideNote": "ここにある {n} 件の概念は {spec} の範囲外です。読むことはできますが、あなたのカリキュラムには含まれません。",
     "curr.unmapped": "お住まいの国の国内カリキュラムはまだ対応していません — 国際資格のコースを表示します。",
     "nav.currTitle": "あなたのカリキュラム",
     "curr.title": "あなたのカリキュラム",
@@ -21558,11 +22028,11 @@ const ja = {
     "q.calculate": "計算しなさい",
     "q.share": "分けなさい",
     "q.balance": "均衡を取りなさい",
-    "res.textbook": "📕 教科書1冊",
-    "res.worksheets": "📄 学校のプリント",
-    "res.phone": "📱 このスマホ",
-    "res.internet": "🛜 インターネットは時々",
-    "res.teacher": "👩‍🏫 週2回先生",
+    "res.textbook": "教科書1冊",
+    "res.worksheets": "学校のプリント",
+    "res.phone": "このスマホ",
+    "res.internet": "インターネットは時々",
+    "res.teacher": "週2回先生",
     "res.advice.internet": "ネットは不安定 — オフラインパックを新しく保ちましょう。",
     "res.advice.offlinePlan": "オフライン計画",
     "res.advice.teacher": "先生がいます — 印刷できる週間計画を持っていきましょう。",
@@ -21570,10 +22040,20 @@ const ja = {
     "res.advice.paper": "紙の教材があります — 問題を撮影すれば概念が見つかります。",
     "res.advice.identify": "問題を特定",
     "res.advice.phone": "このスマホだけで十分 — 診断から始めましょう。",
+    "learn.idea": "考え方",
+    "learn.buildsOn": "前提となる考え方",
+    "worked.another": "もう1問、少し難しく",
+    "worked.eyebrow": "解答例",
+    "worked.lead": "まず1問、最初から最後まで解いた例を見てから、自分の問題に取り組みましょう。",
+    "worked.show": "解き方を見る",
+    "worked.answer": "これが答えです",
+    "worked.err": "例を読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "worked.next": "では、あなたの番です",
+    "peer.ideas": "この概念の要点",
     "peer.eyebrow": "誰かに教える",
-    "peer.prompt": "自分の言葉で説明 — OpenMindがカバー範囲を確認します。",
+    "peer.prompt": "自分の言葉で説明してみましょう。ここでは採点しません。自分の理解を確かめるためのものです。",
     "peer.placeholder": "例：光合成は植物が光を食べ物に変える仕組みです…",
-    "peer.checkBtn": "説明をチェックする",
+    "peer.checkBtn": "見直す",
     "peer.strong": "素晴らしい説明 — 正確で人に教えられる完成度です。",
     "peer.goodPre": "Good — 中心の考えはカバー。1本の糸が未達: ",
     "peer.goodPost": "。",
@@ -21641,7 +22121,11 @@ const ja = {
     "onb.setup": "学習をセットアップ",
     "onb.lead": "いくつか教えてください。OpenMind は指導言語・例・難易度・学習経路を合わせます。アカウントならどこでも保存され、なくても続けられます。",
     "onb.name": "名前",
+    "onb.nameNeeded": "続けるには名前を入力してください。ニックネームでかまいません。",
     "onb.where": "現在地",
+    "onb.region": "州・県・地域",
+    "onb.pickRegion": "選択してください（任意）",
+    "onb.regionNote": "下の授業の言語が決まります。違う場合は変更してください。",
     "onb.lang": "言語",
     "onb.teachingLang": "教える言語(説明)",
     "onb.understandLang": "よくわかる言語",
@@ -21661,10 +22145,10 @@ const ja = {
     "onb.errRefused": "サーバーがこのプロフィール変更を拒否しました — 接続の問題ではありません。理由は下のコードです。",
     "onb.errNotYours": "この端末に保存されたプロフィールには書き込めません — シークレットが一致しません。何も消去されていません。このブラウザーがその記録に届かないだけです。所有するアカウントでサインインするか、ここで新しいプロフィールを始めてください。",
     "onb.freshStart": "この端末で新しいプロフィールを始める",
-    "ls.visual": "👁 見て学ぶ",
-    "ls.auditory": "🔊 聞いて学ぶ",
-    "ls.kinesthetic": "✋ 体で学ぶ",
-    "ls.reading": "📖 読んで学ぶ",
+    "ls.visual": "見て学ぶ",
+    "ls.auditory": "聞いて学ぶ",
+    "ls.kinesthetic": "体で学ぶ",
+    "ls.reading": "読んで学ぶ",
     "cult.neutral": "標準",
     "cult.agriculture": "農業・市場・交通",
     "cult.urban": "都会・店・バス",
@@ -21805,7 +22289,7 @@ const ja = {
     "hint.walkthrough": "最後まで付き合って",
     "hint.walkthroughDesc": "考え方のすべてを、一歩ずつ。",
     "hint.body.tiny": "問題が何を尋ねているのか、よく見てください。",
-    "hint.body.strong": "問題が与えているものから始めて、求められているものにつなげる関係を書き出しましょう。",
+    "hint.body.yourSlip": "ここでの前回の解答はこの手順でつまずきました。気にかけておいてください：", "hint.body.strong": "問題が与えているものから始めて、求められているものにつなげる関係を書き出しましょう。",
     "retention.title": "復習のタイミング",
     "retention.sub": "以前正解した問題です。今ちょっと見直す — 今日、来週、来月 — それが定着の鍵です。",
     "retention.review": "復習する",
@@ -22012,14 +22496,15 @@ const ja = {
     "home.examPast": "試験日を過ぎています — 設定で更新してください",
     "prog.gainPts": "ポイント向上",
     "prog.gainHint": "診断をもう一度受けて、進歩を測りましょう。",
-    "pack.title": "学習パック",
-    "pack.none": "まだパックがありません — この概念の最初のメモを書きましょう。",
-    "pack.add": "パックを追加",
-    "pack.fork": "フォーク",
+    "pack.title": "学習者のメモ",
+    "pack.lead": "この考えについて、他の学習者が書いた短いメモです。書く・役に立ったを押す・コピーして自分用に直す、どれもできます。",
+    "pack.none": "この概念のメモはまだありません。自分の言葉でコツや注意点を書くと、次に学ぶ人の助けになります。",
+    "pack.add": "メモを書く",
+    "pack.fork": "コピーして編集",
     "pack.helpful": "役に立った",
-    "pack.phTitle": "パックのタイトル",
+    "pack.phTitle": "メモのタイトル",
     "pack.phBody": "友人に何を伝えたい？コツ、注意点、あなたの言葉で…",
-    "pack.forkOf": "フォーク元",
+    "pack.forkOf": "もとに",
     "goal.title": "あなたの目標",
     "goal.step": "ステップ",
     "goal.now": "現在",
@@ -22129,20 +22614,20 @@ const ja = {
     "acc.highContrast": "ハイコントラスト",
     "acc.calmScreen": "落ち着いた画面",
     "acc.connectivity": "接続",
-    "acc.syncedAll": "🟢 すべて同期済み。",
+    "acc.syncedAll": "すべて同期済み。",
     "acc.pendingSync": "同期待ちの回答。",
     "acc.offlinePlan": "オフライン計画",
-    "acc.continuity": "🆘 つらいときはやさしい問題",
-    "acc.have": "🌱 持っているもの",
+    "acc.continuity": "つらいときはやさしい問題",
+    "acc.have": "持っているもの",
     "acc.howTeachNote": "OpenMindは例と提示方法をこれに合わせます。",
     "acc.saved": "✓ 保存しました",
-    "acc.stayLocal": "🔒 アクセス設定は、プロフィールに保存するまで端末に残ります。",
+    "acc.stayLocal": "アクセス設定は、プロフィールに保存するまで端末に残ります。",
     "acc.examPh": "例: WAEC SSSCE、KCSE Form 4、AISSCE",
     "hub.local": "OpenMind ハブ · ローカル",
     "hub.localNote": "このハブで。生徒にインターネットは不要 — ハブはつながったときに同期します。",
     "pack.packing": "準備中…",
-    "pack.download": "📴 学習パックをダウンロード",
-    "pack.ready": "🟢 オフライン対応 — ネットなしで学習を続けられます。",
+    "pack.download": "学習パックをダウンロード",
+    "pack.ready": "オフライン対応 — ネットなしで学習を続けられます。",
     "dash.anonNote": "— メール不要、パスワード不要、30秒。",
     "dash.langLead": "説明の言語:",
     "dash.langMid": "· 用語:",
@@ -22272,7 +22757,7 @@ const ja = {
     "onb.verifyNote": "OpenMind は確認メールを送りません。アドレスはログインだけに使います。",
     "pp.title": "過去問・模試",
     "pp.lead": "本番と同じ時間・採点基準で1枚解き、模範解答と推定評価を確認します。",
-    "pp.honest": "各紙はあなたの試験機関の仕様・形式に沿って OpenMind が作成したものです。著作権のある過去問の複製ではありません。",
+    "pp.honest": "すべての問題は OpenMind が作成したもので、著作権のある過去問の複製ではありません。各行に、その構成が受験機関のものか OpenMind の練習セットかを示します。",
     "pp.pick": "紙を選ぶ",
     "pp.pickLead": "科目を選び、紙全体を一度に解きます。",
     "pp.empty": "この資格の紙はまだありません。",
@@ -22334,6 +22819,12 @@ const ja = {
     "pp.prev": "前へ",
     "pp.next": "次へ",
     "pp.grid": "問題へ移動",
+    "pp.paper": "第{n}回",
+    "pp.needs": "記録から作成",
+    "pp.mirrors": "受験機関が公表している問題構成",
+    "pp.practiceSet": "あなたのコース向けの OpenMind 練習セット（受験機関の問題ではありません）",
+    "pp.shapeSource": "出典",
+    "pp.needsWhy": "ここに出る問題はすべて、あなたの記録がいちばん弱いと示した考えから出ています。",
     "pp.correct": "正解",
     "pp.incorrect": "不正解",
     "pp.blank": "未解答",
@@ -22636,9 +23127,25 @@ const ja = {
     "acct.class": "クラスに参加",
 };
 const zh = {
+    "target.slipCheck": "这道题就是用来抓住那个错误的。",
+    "repair.title": "来修正这一点",
+    "repair.works": "这样是对的",
+    "repair.fails": "这样会出错",
+    "repair.diff": "唯一的区别",
+    "repair.move": "做法",
+    "plan.can": "学完后你能",
+    "plan.start": "从这里开始",
+    "plan.together": "一起做一道",
+    "plan.guidedLead": "第一步我来做；剩下的你完成，然后核对。",
+    "plan.firstStep": "显示第一步",
+    "plan.rest": "显示其余步骤",
+    "plan.finishIt": "先在脑中做完，再核对。",
+    "plan.traps": "这里最容易出错",
+    "plan.reviewed": "已由学科教师检查",
+    "plan.unreviewed": "尚未经学科教师检查",
     "cur.covers": "这里的 {total} 个概念中，有 {n} 个属于你的课程。",
     "cur.outside": "不在你的课程内",
-    "cur.outsideNote": "这里有 {n} 个概念在 {spec} 之外。它们仍可阅读，但不属于你的教学大纲。",
+    "cur.outsideNote": "这里有 {n} 个概念不在 {spec} 之内。你仍然可以阅读它们，但它们不属于你的教学大纲。",
     "curr.unmapped": "你所在国家的国家课程尚未接入——当前显示国际课程路径。",
     "nav.currTitle": "你的课程体系",
     "curr.title": "你的课程体系",
@@ -23136,11 +23643,11 @@ const zh = {
     "q.calculate": "计算",
     "q.share": "按比例分配",
     "q.balance": "配平",
-    "res.textbook": "📕 一本课本",
-    "res.worksheets": "📄 学校的练习纸",
-    "res.phone": "📱 这部手机",
-    "res.internet": "🛜 偶尔有网络",
-    "res.teacher": "👩‍🏫 每周两次老师",
+    "res.textbook": "一本课本",
+    "res.worksheets": "学校的练习纸",
+    "res.phone": "这部手机",
+    "res.internet": "偶尔有网络",
+    "res.teacher": "每周两次老师",
     "res.advice.internet": "网络时断时续——保持离线包新鲜。",
     "res.advice.offlinePlan": "离线计划",
     "res.advice.teacher": "有老师——带上可打印的周计划。",
@@ -23148,10 +23655,20 @@ const zh = {
     "res.advice.paper": "你有纸质材料——拍下问题即可找到概念。",
     "res.advice.identify": "识别问题",
     "res.advice.phone": "这部手机就够——从诊断开始。",
+    "learn.idea": "核心思路",
+    "learn.buildsOn": "基础概念",
+    "worked.another": "再来一道难一点的",
+    "worked.eyebrow": "例题精讲",
+    "worked.lead": "先看一道从头到尾做完整的题，再动手做你自己的。",
+    "worked.show": "看我怎么解",
+    "worked.answer": "这就是答案",
+    "worked.err": "例题没能加载。请检查网络，然后重试。",
+    "worked.next": "轮到你了",
+    "peer.ideas": "这个概念的关键要点",
     "peer.eyebrow": "教给别人",
-    "peer.prompt": "用自己的话解释——OpenMind 会检查你覆盖了什么。",
+    "peer.prompt": "用你自己的话解释一遍。这里不打分——它是用来检查你自己思路的。",
     "peer.placeholder": "例如：光合作用是植物把光变成食物的过程……",
-    "peer.checkBtn": "检查我的解释",
+    "peer.checkBtn": "再看看",
     "peer.strong": "解释得很好——正确且完整，足以教别人。",
     "peer.goodPre": "不错——主要思想覆盖了。还差一条线： ",
     "peer.goodPost": "。",
@@ -23219,7 +23736,11 @@ const zh = {
     "onb.setup": "设置你的学习",
     "onb.lead": "告诉我们几件事，OpenMind 就会适配：教学语言、例子、难度和学习路径。账户可随处保存，也可以不注册直接开始。",
     "onb.name": "你的名字",
+    "onb.nameNeeded": "请填写一个名字以继续 — 昵称也可以。",
     "onb.where": "你在哪里",
+    "onb.region": "省 / 州 / 地区",
+    "onb.pickRegion": "请选择（可选）",
+    "onb.regionNote": "这会设定下方课程的语言——不合适可以更改。",
     "onb.lang": "语言",
     "onb.teachingLang": "教学语言(讲解)",
     "onb.understandLang": "我用……理解得更清楚",
@@ -23239,10 +23760,10 @@ const zh = {
     "onb.errRefused": "服务器拒绝了这次档案修改——这不是网络问题。下方代码即为原因。",
     "onb.errNotYours": "无法再写入此设备上保存的档案——它的密钥不匹配。没有任何内容被删除，只是这个浏览器无法访问那条记录。请登录拥有它的账号，或在此开始新档案。",
     "onb.freshStart": "在此设备上开始新档案",
-    "ls.visual": "👁 视觉型",
-    "ls.auditory": "🔊 听觉型",
-    "ls.kinesthetic": "✋ 动手型",
-    "ls.reading": "📖 阅读型",
+    "ls.visual": "视觉型",
+    "ls.auditory": "听觉型",
+    "ls.kinesthetic": "动手型",
+    "ls.reading": "阅读型",
     "cult.neutral": "通用",
     "cult.agriculture": "农田、集市、交通",
     "cult.urban": "城市、商店、公交",
@@ -23383,7 +23904,7 @@ const zh = {
     "hint.walkthrough": "一步步讲给我听",
     "hint.walkthroughDesc": "完整的推理，一步一步。",
     "hint.body.tiny": "仔细看题目到底在问什么。",
-    "hint.body.strong": "从题目给出的条件出发，写出你知道的、能把它和所求联系起来的关系。",
+    "hint.body.yourSlip": "你在这里的前几次作答都错在这一步——请留意：", "hint.body.strong": "从题目给出的条件出发，写出你知道的、能把它和所求联系起来的关系。",
     "retention.title": "该复习了",
     "retention.sub": "这些你以前答对过。现在快速回顾 — 今天、下周、下个月 — 这正是记牢的方法。",
     "retention.review": "复习",
@@ -23529,10 +24050,11 @@ const zh = {
     "home.examNear": "你的考试在今天或明天",
     "home.examPast": "考试日期已过 — 请在设置中更新",
     "prog.gainPts": "分提高", "prog.gainHint": "重做一次诊断来衡量你的进步。",
-    "pack.title": "学习笔记包", "pack.none": "还没有笔记包——为这个概念写下第一条吧。",
-    "pack.add": "添加笔记包", "pack.fork": "分叉", "pack.helpful": "有用",
-    "pack.phTitle": "笔记包标题", "pack.phBody": "朋友应该知道什么？一个技巧、一个提醒、你的语言……",
-    "pack.forkOf": "分叉自",
+    "pack.title": "学习者笔记", "pack.none": "这个概念还没有笔记。用你自己的话写一个窍门或一个提醒，能帮到下一个人。",
+    "pack.lead": "其他学习者关于这个想法的简短笔记。你可以写一条、把一条标记为有用，或复制一条改成自己的。",
+    "pack.add": "写一条笔记", "pack.fork": "复制并修改", "pack.helpful": "有用",
+    "pack.phTitle": "笔记标题", "pack.phBody": "朋友应该知道什么？一个技巧、一个提醒、你的语言……",
+    "pack.forkOf": "基于",
     "goal.title": "你的目标", "goal.step": "步骤", "goal.now": "现在", "goal.done": "已完成",
     "goal.none": "做一次数学诊断来规划你的路线。",
     "path.practice": "练习",
@@ -23617,20 +24139,20 @@ const zh = {
     "acc.highContrast": "高对比度",
     "acc.calmScreen": "安静屏幕",
     "acc.connectivity": "网络连接",
-    "acc.syncedAll": "🟢 全部已同步。",
+    "acc.syncedAll": "全部已同步。",
     "acc.pendingSync": "个答案等待同步。",
     "acc.offlinePlan": "离线计划",
-    "acc.continuity": "🆘 吃力时用更简单的题",
-    "acc.have": "🌱 我有什么",
+    "acc.continuity": "吃力时用更简单的题",
+    "acc.have": "我有什么",
     "acc.howTeachNote": "OpenMind 会据此调整例子和呈现方式。",
     "acc.saved": "✓ 已保存",
-    "acc.stayLocal": "🔒 无障碍选项会留在你的设备上，直到你保存到个人资料。",
+    "acc.stayLocal": "无障碍选项会留在你的设备上，直到你保存到个人资料。",
     "acc.examPh": "例如 WAEC SSSCE、KCSE Form 4、AISSCE",
     "hub.local": "OpenMind 节点 · 本地",
     "hub.localNote": "在这个节点上。学生无需网络——节点联网时自动同步。",
     "pack.packing": "打包中…",
-    "pack.download": "📴 下载我的学习包",
-    "pack.ready": "🟢 已可离线——无需网络继续学习。",
+    "pack.download": "下载我的学习包",
+    "pack.ready": "已可离线——无需网络继续学习。",
     "dash.anonNote": "——无需邮箱、无需密码，30 秒。",
     "dash.langLead": "讲解语言：",
     "dash.langMid": "· 术语：",
@@ -23760,7 +24282,7 @@ const zh = {
     "onb.verifyNote": "OpenMind 不发送验证邮件——邮箱仅用于登录。",
     "pp.title": "考试试卷",
     "pp.lead": "按考试的时间和评分规则完整做一套卷，然后看评分标准和预估成绩。",
-    "pp.honest": "每套卷由 OpenMind 依据你所报考体系的考纲和格式编写，并非受版权保护真题的复制。",
+    "pp.honest": "每道题都由 OpenMind 编写，并非复制受版权保护的试卷。每行标明该试卷的结构来自你的考试机构，还是 OpenMind 的练习卷。",
     "pp.pick": "选择试卷",
     "pp.pickLead": "选择科目，然后一次性完成整份试卷。",
     "pp.empty": "该考试体系暂时还没有试卷。",
@@ -23822,6 +24344,12 @@ const zh = {
     "pp.prev": "上一题",
     "pp.next": "下一题",
     "pp.grid": "跳到某题",
+    "pp.paper": "第{n}套",
+    "pp.needs": "根据你的记录生成",
+    "pp.mirrors": "你的考试机构公布的试卷结构",
+    "pp.practiceSet": "针对你课程的 OpenMind 练习卷——不是考试机构的试卷",
+    "pp.shapeSource": "来源",
+    "pp.needsWhy": "这里的每道题都来自你自己的记录显示最薄弱的那些知识点。",
     "pp.correct": "正确",
     "pp.incorrect": "错误",
     "pp.blank": "未作答",
@@ -24124,9 +24652,25 @@ const zh = {
     "acct.class": "加入班级",
 };
 const fa = {
+    "target.slipCheck": "این پرسش برای گرفتن همان خطا ساخته شده است.",
+    "repair.title": "بیایید این را درست کنیم",
+    "repair.works": "اینجا درست است",
+    "repair.fails": "اینجا خراب می‌شود",
+    "repair.diff": "تنها تفاوت",
+    "repair.move": "گام",
+    "plan.can": "در پایان میتوانی",
+    "plan.start": "از اینجا شروع کن",
+    "plan.together": "یکی را با هم حل کنیم",
+    "plan.guidedLead": "گام اول را من میروم؛ بقیه را تو تمام کن، بعد بررسی کن.",
+    "plan.firstStep": "نمایش گام اول",
+    "plan.rest": "نمایش بقیه",
+    "plan.finishIt": "اول در ذهنت تمامش کن، بعد بررسی کن.",
+    "plan.traps": "اینجا اشتباه میشود",
+    "plan.reviewed": "بررسیشده توسط دبیر درس",
+    "plan.unreviewed": "هنوز توسط دبیر درس بررسی نشده",
     "cur.covers": "{n} از {total} مفهوم اینجا در دورهٔ شما می‌گنجد.",
     "cur.outside": "خارج از دورهٔ شما",
-    "cur.outsideNote": "{n} مفهوم اینجا بیرون از {spec} هستند. برای خواندن در دسترس می‌مانند، اما برنامهٔ درسی تو نیستند.",
+    "cur.outsideNote": "{n} مفهوم اینجا جزء {spec} نیست. می‌توانی آن‌ها را بخوانی، اما بخشی از برنامهٔ درسی‌ات نیستند.",
     "curr.unmapped": "برنامهٔ ملی کشور شما هنوز نگاشت نشده است — مسیرهای بین‌المللی نمایش داده می‌شود.",
     "nav.currTitle": "برنامهٔ درسی شما",
     "curr.title": "برنامهٔ درسی شما",
@@ -24624,11 +25168,11 @@ const fa = {
     "q.calculate": "محاسبه کن",
     "q.share": "تقسیم کن",
     "q.balance": "موازنه کن",
-    "res.textbook": "📕 یک کتاب درسی",
-    "res.worksheets": "📄 برگه‌های مدرسه",
-    "res.phone": "📱 همین گوشی",
-    "res.internet": "🛜 اینترنت گاه‌وبیگاه",
-    "res.teacher": "👩‍🏫 معلم دو بار در هفته",
+    "res.textbook": "یک کتاب درسی",
+    "res.worksheets": "برگه‌های مدرسه",
+    "res.phone": "همین گوشی",
+    "res.internet": "اینترنت گاه‌وبیگاه",
+    "res.teacher": "معلم دو بار در هفته",
     "res.advice.internet": "اینترنت قطع‌ووصل می‌شود — بسته آفلاین را تازه نگه دار.",
     "res.advice.offlinePlan": "برنامه آفلاین",
     "res.advice.teacher": "معلم در دسترس است — برنامه چاپی هفته را همراه ببر.",
@@ -24636,10 +25180,20 @@ const fa = {
     "res.advice.paper": "مواد کاغذی داری — از یک مسئله عکس بگیر تا مفهومش پیدا شود.",
     "res.advice.identify": "شناسایی مسئله",
     "res.advice.phone": "همین گوشی کافی است — با تشخیص شروع کن.",
+    "learn.idea": "ایدهٔ اصلی",
+    "learn.buildsOn": "بر چه چیزی بنا شده",
+    "worked.another": "یکی دیگر، سخت‌تر",
+    "worked.eyebrow": "مثال حل‌شده",
+    "worked.lead": "اول یک تمرین کاملاً حل‌شده را ببین، بعد تمرین خودت را امتحان کن.",
+    "worked.show": "نشانم بده چطور",
+    "worked.answer": "این جواب است",
+    "worked.err": "مثال بارگذاری نشد. اتصالت را بررسی کن و دوباره امتحان کن.",
+    "worked.next": "حالا نوبت توست",
+    "peer.ideas": "ایده‌های کلیدی این مفهوم",
     "peer.eyebrow": "به دیگری یاد بده",
-    "peer.prompt": "به زبان خودت توضیح بده — OpenMind بررسی می‌کند چه چیزی را پوشش دادی.",
+    "peer.prompt": "با زبان خودت توضیح بده. اینجا چیزی نمره داده نمی‌شود — راهی است برای سنجیدن فهم خودت.",
     "peer.placeholder": "مثلاً: فتوسنتز یعنی گیاهان چگونه نور را به غذا تبدیل می‌کنند…",
-    "peer.checkBtn": "توضیح من را بررسی کن",
+    "peer.checkBtn": "یک بار دیگر ببین",
     "peer.strong": "توضیح عالی — درست و به‌قدر کافی برای یاد دادن به دیگری.",
     "peer.goodPre": "خوب — ایده اصلی پوشش داده شد. یک رشته کم است: ",
     "peer.goodPost": ".",
@@ -24707,7 +25261,11 @@ const fa = {
     "onb.setup": "یادگیری‌ات را تنظیم کن",
     "onb.lead": "چند نکته بگویید تا OpenMind هماهنگ شود: زبان آموزش، مثال‌ها، سطح دشواری و مسیر یادگیری. حساب همه‌جا ذخیره می‌کند — یا بدون حساب ادامه دهید.",
     "onb.name": "اسمت",
+    "onb.nameNeeded": "برای ادامه یک نام انتخاب کنید — یک نام مستعار هم کافی است.",
     "onb.where": "کجایی",
+    "onb.region": "استان / ایالت / منطقه",
+    "onb.pickRegion": "یکی را انتخاب کنید (اختیاری)",
+    "onb.regionNote": "این زبان درس‌های پایین را تعیین می‌کند — اگر درست نیست تغییرش بده.",
     "onb.lang": "زبان",
     "onb.teachingLang": "زبان آموزش (توضیح‌ها)",
     "onb.understandLang": "بهتر می‌فهمم با",
@@ -24727,10 +25285,10 @@ const fa = {
     "onb.errRefused": "سرور این تغییر پروفایل را رد کرد — این مشکل اتصال تو نیست. کد زیر دلیل آن است.",
     "onb.errNotYours": "پروفایل ذخیره‌شده روی این دستگاه دیگر قابل نوشتن نیست — کلید آن مطابقت ندارد. چیزی پاک نشده است؛ فقط این مرورگر به آن رکورد دسترسی ندارد. به حسابی که مالک آن است وارد شو، یا اینجا پروفایل تازه‌ای آغاز کن.",
     "onb.freshStart": "آغاز پروفایل تازه روی این دستگاه",
-    "ls.visual": "👁 دیداری",
-    "ls.auditory": "🔊 شنیداری",
-    "ls.kinesthetic": "✋ حرکتی",
-    "ls.reading": "📖 خوانداری",
+    "ls.visual": "دیداری",
+    "ls.auditory": "شنیداری",
+    "ls.kinesthetic": "حرکتی",
+    "ls.reading": "خوانداری",
     "cult.neutral": "خنثی",
     "cult.agriculture": "کشت‌وزرع، بازار، حمل‌ونقل",
     "cult.urban": "شهر، مغازه‌ها، اتوبوس",
@@ -24871,7 +25429,7 @@ const fa = {
     "hint.walkthrough": "قدم‌به‌قدم راهنمایی کن",
     "hint.walkthroughDesc": "کل استدلال، قدم به قدم.",
     "hint.body.tiny": "دقت کن سؤال واقعاً چه می‌خواهد.",
-    "hint.body.strong": "از چیزی که سؤال داده شروع کن و رابطه‌ای را که می‌دانی بنویس که آن را به خواسته وصل می‌کند.",
+    "hint.body.yourSlip": "پاسخ‌های قبلی‌ات در اینجا روی همین گام لغزیدند — آن را در نظر داشته باش:", "hint.body.strong": "از چیزی که سؤال داده شروع کن و رابطه‌ای را که می‌دانی بنویس که آن را به خواسته وصل می‌کند.",
     "retention.title": "آماده مرور",
     "retention.sub": "این‌ها را قبلاً درست جواب دادی. یک نگاه سریع حالا — امروز، هفته بعد، ماه بعد — همان چیزی است که ماندگارشان می‌کند.",
     "retention.review": "مرور",
@@ -25017,10 +25575,11 @@ const fa = {
     "home.examNear": "آزمون تو امروز یا فردا است",
     "home.examPast": "تاریخ آزمون تو گذشته است — آن را در تنظیمات بهروز کن",
     "prog.gainPts": "امتیاز پیشرفت", "prog.gainHint": "برای سنجش پیشرفتت، سنجش را دوباره بده.",
-    "pack.title": "بسته‌های یادگیری", "pack.none": "هنوز بسته‌ای نیست — نخستین یادداشت را برای این مفهوم بنویس.",
-    "pack.add": "افزودن بسته", "pack.fork": "انشعاب", "pack.helpful": "مفید بود",
-    "pack.phTitle": "عنوان بسته", "pack.phBody": "دوستت باید چه بداند؟ یک ترفند، یک هشدار، زبان خودت…",
-    "pack.forkOf": "انشعاب از",
+    "pack.title": "یادداشت‌های یادگیرندگان", "pack.none": "هنوز یادداشتی برای این مفهوم نیست. یک ترفند یا هشدار با زبان خودت به نفر بعدی کمک می‌کند.",
+    "pack.lead": "یادداشت‌های کوتاه یادگیرندگان دیگر دربارهٔ این ایده. یکی بنویس، یکی را مفید علامت بزن، یا یکی را کپی کن و از خودت کن.",
+    "pack.add": "یادداشت بنویس", "pack.fork": "کپی و ویرایش", "pack.helpful": "مفید بود",
+    "pack.phTitle": "عنوان یادداشت", "pack.phBody": "دوستت باید چه بداند؟ یک ترفند، یک هشدار، زبان خودت…",
+    "pack.forkOf": "بر پایهٔ",
     "goal.title": "هدفت", "goal.step": "گام", "goal.now": "اکنون", "goal.done": "انجام شد",
     "goal.none": "برای رسم مسیرت، سنجش ریاضی را بده.",
     "path.practice": "تمرین",
@@ -25105,20 +25664,20 @@ const fa = {
     "acc.highContrast": "کنتراست بالا",
     "acc.calmScreen": "صفحه آرام",
     "acc.connectivity": "اتصال",
-    "acc.syncedAll": "🟢 همهچیز همگام شد.",
+    "acc.syncedAll": "همهچیز همگام شد.",
     "acc.pendingSync": "پاسخ در انتظار همگامسازی.",
     "acc.offlinePlan": "برنامه آفلاین",
-    "acc.continuity": "🆘 وقتی سخت است، سؤال آسان‌تر",
-    "acc.have": "🌱 آنچه دارم",
+    "acc.continuity": "وقتی سخت است، سؤال آسان‌تر",
+    "acc.have": "آنچه دارم",
     "acc.howTeachNote": "OpenMind مثالها و نحوه ارائه را با این هماهنگ میکند.",
     "acc.saved": "✓ ذخیره شد",
-    "acc.stayLocal": "🔒 گزینههای دسترسی تا وقتی در نمایه ذخیرهشان نکنی روی دستگاهت میمانند.",
+    "acc.stayLocal": "گزینههای دسترسی تا وقتی در نمایه ذخیرهشان نکنی روی دستگاهت میمانند.",
     "acc.examPh": "مثلاً WAEC SSSCE، KCSE Form 4، AISSCE",
     "hub.local": "مرکز OpenMind · محلی",
     "hub.localNote": "روی این مرکز. هیچ دانشآموزی به اینترنت نیاز ندارد — مرکز وقتی اینترنت گرفت همگام میشود.",
     "pack.packing": "در حال آمادهسازی…",
-    "pack.download": "📴 بسته یادگیری من را دانلود کن",
-    "pack.ready": "🟢 آماده آفلاین — بدون اینترنت به یادگیری ادامه بده.",
+    "pack.download": "بسته یادگیری من را دانلود کن",
+    "pack.ready": "آماده آفلاین — بدون اینترنت به یادگیری ادامه بده.",
     "dash.anonNote": "— بدون ایمیل، بدون رمز، ۳۰ ثانیه.",
     "dash.langLead": "توضیح به",
     "dash.langMid": "· اصطلاحها به",
@@ -25248,7 +25807,7 @@ const fa = {
     "onb.verifyNote": "OpenMind ایمیل تأیید نمی‌فرستد — نشانی شما فقط برای ورود استفاده می‌شود.",
     "pp.title": "آزمون‌های رسمی",
     "pp.lead": "یک برگه کامل را با زمان و قواعد تصحیح خودش بدهید، سپس کلید پاسخ و نمره تخمینی را ببینید.",
-    "pp.honest": "هر برگه را OpenMind بر پایه مشخصات و قالب هیئت آزمون شما نوشته است — بازنشر برگه کپی‌رایتی گذشته نیست.",
+    "pp.honest": "هر پرسش را OpenMind مینویسد و هیچکدام رونوشت برگهای با حق نشر نیست. هر سطر میگوید ساختار برگه از سازمان آزمون شماست یا مجموعهٔ تمرین OpenMind.",
     "pp.pick": "یک برگه انتخاب کنید",
     "pp.pickLead": "درس خود را انتخاب کنید، سپس کل برگه را در یک نشست پاسخ دهید.",
     "pp.empty": "هنوز برگه‌ای برای این مدرک موجود نیست.",
@@ -25310,6 +25869,12 @@ const fa = {
     "pp.prev": "قبلی",
     "pp.next": "بعدی",
     "pp.grid": "رفتن به یک پرسش",
+    "pp.paper": "برگه {n}",
+    "pp.needs": "ساختهشده از کارنامهٔ تو",
+    "pp.mirrors": "ساختار منتشرشدهٔ اوراق از سوی سازمان آزمون شما",
+    "pp.practiceSet": "مجموعهٔ تمرین OpenMind برای درس شما — نه برگهٔ سازمان آزمون شما",
+    "pp.shapeSource": "منبع",
+    "pp.needsWhy": "هر پرسش اینجا از ایدههایی است که کارنامهٔ خودت ضعیفترینشان میداند.",
     "pp.correct": "درست",
     "pp.incorrect": "نادرست",
     "pp.blank": "بی‌پاسخ",
@@ -25612,9 +26177,25 @@ const fa = {
     "acct.class": "به یک کلاس بپیوندید",
 };
 const ur = {
+    "target.slipCheck": "یہ سوال اسی غلطی کو پکڑنے کے لیے بنایا گیا ہے۔",
+    "repair.title": "آئیے اسے درست کریں",
+    "repair.works": "یہاں درست ہے",
+    "repair.fails": "یہاں غلط ہے",
+    "repair.diff": "صرف ایک فرق",
+    "repair.move": "طریقہ",
+    "plan.can": "آخر میں آپ یہ کر سکیں گے",
+    "plan.start": "یہاں سے شروع کریں",
+    "plan.together": "ایک ساتھ مل کر حل کریں",
+    "plan.guidedLead": "پہلا قدم میں لیتا ہوں؛ باقی آپ مکمل کریں، پھر جانچیں۔",
+    "plan.firstStep": "پہلا قدم دکھائیں",
+    "plan.rest": "باقی دکھائیں",
+    "plan.finishIt": "پہلے ذہن میں مکمل کریں، پھر جانچیں۔",
+    "plan.traps": "یہاں غلطی ہوتی ہے",
+    "plan.reviewed": "مضمون کے استاد نے جانچا",
+    "plan.unreviewed": "ابھی مضمون کے استاد نے نہیں جانچا",
     "cur.covers": "یہاں کے {total} میں سے {n} تصورات آپ کے کورس کے حصے ہیں۔",
     "cur.outside": "آپ کے کورس سے باہر",
-    "cur.outsideNote": "یہاں {n} تصورات {spec} سے باہر ہیں۔ یہ پڑھنے کے لیے کھلے رہتے ہیں، مگر آپ کا نصاب نہیں ہیں۔",
+    "cur.outsideNote": "یہاں {n} تصورات {spec} سے باہر ہیں۔ آپ انہیں پڑھ سکتے ہیں، مگر یہ آپ کے نصاب کا حصہ نہیں ہیں۔",
     "curr.unmapped": "آپ کے ملک کا قومی نصاب ابھی نقشے پر نہیں — بین الاقوامی راستے دکھائے جا رہے ہیں۔",
     "nav.currTitle": "آپ کا نصاب",
     "curr.title": "آپ کا نصاب",
@@ -26112,11 +26693,11 @@ const ur = {
     "q.calculate": "حساب کریں",
     "q.share": "تقسیم کریں",
     "q.balance": "توازن کریں",
-    "res.textbook": "📕 ایک نصابی کتاب",
-    "res.worksheets": "📄 اسکول کی ورک شیٹ",
-    "res.phone": "📱 یہی فون",
-    "res.internet": "🛜 انٹرنیٹ کبھی کبھی",
-    "res.teacher": "👩‍🏫 ہفتے میں دو بار استاد",
+    "res.textbook": "ایک نصابی کتاب",
+    "res.worksheets": "اسکول کی ورک شیٹ",
+    "res.phone": "یہی فون",
+    "res.internet": "انٹرنیٹ کبھی کبھی",
+    "res.teacher": "ہفتے میں دو بار استاد",
     "res.advice.internet": "انٹرنیٹ آتا جاتا ہے — آف لائن پیک تازہ رکھیں۔",
     "res.advice.offlinePlan": "آف لائن منصوبہ",
     "res.advice.teacher": "استاد دستیاب ہیں — چھپی ہوئی ہفتہ وار منصوبہ لے جائیں۔",
@@ -26124,10 +26705,20 @@ const ur = {
     "res.advice.paper": "کاغذی مواد موجود ہے — سوال کی تصویر لیں، تصور ملے گا۔",
     "res.advice.identify": "سوال پہچانیں",
     "res.advice.phone": "بس یہی فون کافی ہے — جائزے سے شروع کریں۔",
+    "learn.idea": "بنیادی خیال",
+    "learn.buildsOn": "یہ کس پر مبنی ہے",
+    "worked.another": "ایک اور، ذرا مشکل",
+    "worked.eyebrow": "حل شدہ مثال",
+    "worked.lead": "پہلے ایک سوال پورا حل کر کے دیکھیں، پھر اپنا آزمائیں۔",
+    "worked.show": "طریقہ دکھائیں",
+    "worked.answer": "یہی جواب ہے",
+    "worked.err": "مثال لوڈ نہیں ہو سکی۔ اپنا کنکشن دیکھیں، پھر دوبارہ کوشش کریں۔",
+    "worked.next": "اب آپ کی باری",
+    "peer.ideas": "اس تصور کے اہم نکات",
     "peer.eyebrow": "کسی اور کو سکھائیں",
-    "peer.prompt": "اپنے الفاظ میں سمجھائیں — OpenMind دیکھے گا آپ نے کیا کیا ڈھانپا۔",
+    "peer.prompt": "اپنے الفاظ میں سمجھائیں۔ یہاں کچھ جانچا یا نمبر نہیں دیا جاتا — یہ اپنی سمجھ پرکھنے کا طریقہ ہے۔",
     "peer.placeholder": "مثلاً: ضیائی تالیف وہ عمل ہے جس میں پودے روشنی کو خوراک بناتے ہیں…",
-    "peer.checkBtn": "میری وضاحت چیک کریں",
+    "peer.checkBtn": "ایک بار پھر دیکھیں",
     "peer.strong": "زبردست وضاحت — درست اور کسی اور کو سکھانے کے قابل۔",
     "peer.goodPre": "اچھا — مرکزی خیال آ گیا۔ ایک دھاگہ باقی: ",
     "peer.goodPost": "۔",
@@ -26195,7 +26786,11 @@ const ur = {
     "onb.setup": "اپنی سیکھ کا انتظام",
     "onb.lead": "کچھ باتیں بتائیں تو OpenMind ڈھل جاتا ہے: تدریس کی زبان، مثالیں، دشواری اور آپ کا راستہ۔ اکاؤنٹ ہر جگہ محفوظ رکھتا ہے — یا بغیر اکاؤنٹ جاری رکھیں۔",
     "onb.name": "آپ کا نام",
+    "onb.nameNeeded": "جاری رکھنے کے لیے ایک نام منتخب کریں — عرفیت بھی چلے گی۔",
     "onb.where": "آپ کہاں ہیں",
+    "onb.region": "صوبہ / ریاست / علاقہ",
+    "onb.pickRegion": "ایک منتخب کریں (اختیاری)",
+    "onb.regionNote": "یہ نیچے کے اسباق کی زبان متعین کرتا ہے — غلط ہو تو بدل دیں۔",
     "onb.lang": "زبان",
     "onb.teachingLang": "تدریس کی زبان (وضاحتیں)",
     "onb.understandLang": "مجھے بہتر سمجھ آتی ہے",
@@ -26215,10 +26810,10 @@ const ur = {
     "onb.errRefused": "سرور نے پروفائل کی یہ تبدیلی مسترد کر دی — یہ آپ کا کنکشن نہیں ہے۔ نیچے دیا گیا کوڈ وجہ ہے۔",
     "onb.errNotYours": "اس ڈیوائس پر محفوظ پروفائل میں اب لکھا نہیں جا سکتا — اس کا سیکرٹ میل نہیں کھاتا۔ کچھ مٹایا نہیں گیا؛ یہ براؤزر صرف اس ریکارڈ تک نہیں پہنچ سکتا۔ جس اکاؤنٹ کا یہ ہے اس میں سائن اِن کریں، یا یہاں نیا پروفائل شروع کریں۔",
     "onb.freshStart": "اس ڈیوائس پر نیا پروفائل شروع کریں",
-    "ls.visual": "👁 دیکھ کر",
-    "ls.auditory": "🔊 سن کر",
-    "ls.kinesthetic": "✋ کر کے",
-    "ls.reading": "📖 پڑھ کر",
+    "ls.visual": "دیکھ کر",
+    "ls.auditory": "سن کر",
+    "ls.kinesthetic": "کر کے",
+    "ls.reading": "پڑھ کر",
     "cult.neutral": "عام",
     "cult.agriculture": "کھیت، منڈی، سفر",
     "cult.urban": "شہر، دکانیں، بسیں",
@@ -26359,7 +26954,7 @@ const ur = {
     "hint.walkthrough": "قدم بہ قدم سمجھائیں",
     "hint.walkthroughDesc": "پوری سوچ، قدم بہ قدم۔",
     "hint.body.tiny": "غور سے دیکھیں سوال اصل میں کیا پوچھ رہا ہے۔",
-    "hint.body.strong": "سوال جو دیتا ہے اسی سے شروع کریں، اور وہ تعلق لکھیں جو آپ جانتے ہیں جو اسے پوچھے گئی چیز سے جوڑتا ہے۔",
+    "hint.body.yourSlip": "یہاں آپ کے پچھلے جواب اسی قدم پر غلط ہوئے — اسے نظر میں رکھیں:", "hint.body.strong": "سوال جو دیتا ہے اسی سے شروع کریں، اور وہ تعلق لکھیں جو آپ جانتے ہیں جو اسے پوچھے گئی چیز سے جوڑتا ہے۔",
     "retention.title": "دہرائی کے لیے تیار",
     "retention.sub": "آپ نے یہ پہلے صحیح کیا تھا۔ ابھی ایک تیز نظر — آج، اگلے ہفتے، اگلے مہینے — یہی انہیں مضبوط بناتا ہے۔",
     "retention.review": "دہرائیں",
@@ -26505,10 +27100,11 @@ const ur = {
     "home.examNear": "آپ کا امتحان آج یا کل ہے",
     "home.examPast": "آپ کے امتحان کی تاریخ گزر گئی — اسے سیٹنگز میں بدلیں",
     "prog.gainPts": "پوائنٹ اضافہ", "prog.gainHint": "اپنی ترقی ناپنے کے لیے جانچ دوبارہ دیں۔",
-    "pack.title": "مطالعہ پیک", "pack.none": "ابھی کوئی پیک نہیں — اس تصور کے لیے پہلا نوٹ لکھیں۔",
-    "pack.add": "پیک شامل کریں", "pack.fork": "فورک", "pack.helpful": "مددگار",
-    "pack.phTitle": "پیک کا عنوان", "pack.phBody": "دوست کو کیا جاننا چاہیے؟ ایک ترکیب، ایک تنبیہ، آپ کی زبان…",
-    "pack.forkOf": "فورک از",
+    "pack.title": "سیکھنے والوں کے نوٹس", "pack.none": "اس تصور پر ابھی کوئی نوٹ نہیں۔ اپنے الفاظ میں ایک ترکیب یا انتباہ اگلے شخص کی مدد کرے گا۔",
+    "pack.lead": "اس خیال پر دوسرے سیکھنے والوں کے مختصر نوٹس۔ ایک لکھیں، کسی کو مفید قرار دیں، یا کسی کی نقل کر کے اپنا بنائیں۔",
+    "pack.add": "نوٹ لکھیں", "pack.fork": "نقل کریں اور بدلیں", "pack.helpful": "مددگار",
+    "pack.phTitle": "نوٹ کا عنوان", "pack.phBody": "دوست کو کیا جاننا چاہیے؟ ایک ترکیب، ایک تنبیہ، آپ کی زبان…",
+    "pack.forkOf": "کی بنیاد پر",
     "goal.title": "آپ کا ہدف", "goal.step": "قدم", "goal.now": "ابھی", "goal.done": "مکمل",
     "goal.none": "اپنا راستہ بنانے کے لیے ریاضی کی جانچ دیں۔",
     "path.practice": "مشق",
@@ -26593,20 +27189,20 @@ const ur = {
     "acc.highContrast": "زیادہ تضاد",
     "acc.calmScreen": "پرسکون اسکرین",
     "acc.connectivity": "کنیکٹیویٹی",
-    "acc.syncedAll": "🟢 سب کچھ ہم آہنگ۔",
+    "acc.syncedAll": "سب کچھ ہم آہنگ۔",
     "acc.pendingSync": "جوابات ہم آہنگی کے منتظر۔",
     "acc.offlinePlan": "آف لائن منصوبہ",
-    "acc.continuity": "🆘 مشکل لگے تو آسان سوال",
-    "acc.have": "🌱 جو میرے پاس ہے",
+    "acc.continuity": "مشکل لگے تو آسان سوال",
+    "acc.have": "جو میرے پاس ہے",
     "acc.howTeachNote": "OpenMind اس کے مطابق مثالیں اور انداز بدلتا ہے۔",
     "acc.saved": "✓ محفوظ",
-    "acc.stayLocal": "🔒 رسائی کے انتخاب آپ کے ڈیوائس پر رہتے ہیں جب تک آپ پروفائل میں محفوظ نہ کریں۔",
+    "acc.stayLocal": "رسائی کے انتخاب آپ کے ڈیوائس پر رہتے ہیں جب تک آپ پروفائل میں محفوظ نہ کریں۔",
     "acc.examPh": "مثلاً WAEC SSSCE، KCSE Form 4، AISSCE",
     "hub.local": "OpenMind مرکز · مقامی",
     "hub.localNote": "اس مرکز پر۔ کسی طالب علم کو انٹرنیٹ کی ضرورت نہیں — مرکز ملنے پر ہم آہنگ ہوتا ہے۔",
     "pack.packing": "پیک ہو رہا ہے…",
-    "pack.download": "📴 میرا لرننگ پیک ڈاؤن لوڈ کریں",
-    "pack.ready": "🟢 آف لائن تیار — بغیر انٹرنیٹ سیکھتے رہیں۔",
+    "pack.download": "میرا لرننگ پیک ڈاؤن لوڈ کریں",
+    "pack.ready": "آف لائن تیار — بغیر انٹرنیٹ سیکھتے رہیں۔",
     "dash.anonNote": "— نہ ای میل، نہ پاس ورڈ، 30 سیکنڈ۔",
     "dash.langLead": "وضاحت بزبان",
     "dash.langMid": "· اصطلاحات بزبان",
@@ -26736,7 +27332,7 @@ const ur = {
     "onb.verifyNote": "OpenMind تصدیقی ای میل نہیں بھیجتا — پتہ صرف سائن ان کے لیے ہے۔",
     "pp.title": "امتحانی پرچے",
     "pp.lead": "پورا پرچہ اپنے وقت اور اصولوں کے مطابق حل کریں، پھر جواب اور اندازہ گریڈ دیکھیں۔",
-    "pp.honest": "ہر پرچہ OpenMind نے آپ کے بورڈ کی خصوصیات اور فارمیٹ کے مطابق لکھا ہے — یہ کاپی رائٹ شدہ پرانے پرچے کی نقل نہیں۔",
+    "pp.honest": "ہر سوال OpenMind لکھتا ہے — کوئی بھی کاپی رائٹ پرچے کی نقل نہیں۔ ہر سطر بتاتی ہے کہ پرچے کی ساخت آپ کے بورڈ کی ہے یا OpenMind کا مشقی سیٹ۔",
     "pp.pick": "پرچہ منتخب کریں",
     "pp.pickLead": "اپنا مضمون منتخب کریں، پھر پورا پرچہ ایک ہی نشست میں حل کریں۔",
     "pp.empty": "اس قابلیت کے لیے ابھی کوئی پرچہ نہیں۔",
@@ -26798,6 +27394,12 @@ const ur = {
     "pp.prev": "پچھلا",
     "pp.next": "اگلا",
     "pp.grid": "کسی سوال پر جائیں",
+    "pp.paper": "پرچہ {n}",
+    "pp.needs": "آپ کے ریکارڈ سے بنایا گیا",
+    "pp.mirrors": "آپ کے امتحانی بورڈ کی شائع کردہ پرچہ ساخت",
+    "pp.practiceSet": "آپ کے کورس کے لیے OpenMind مشقی سیٹ — آپ کے بورڈ کا پرچہ نہیں",
+    "pp.shapeSource": "ماخذ",
+    "pp.needsWhy": "یہاں ہر سوال اُس خیال سے ہے جسے آپ کا اپنا ریکارڈ سب سے کمزور بتاتا ہے۔",
     "pp.correct": "درست",
     "pp.incorrect": "غلط",
     "pp.blank": "جواب نہیں دیا",
@@ -27117,9 +27719,25 @@ exports.LANGS = [
     { code: "bn", name: "Bengali", native: "বাংলা", dir: "ltr", status: "full", sample: "Bangladesh, West Bengal" },
 ];
 exports.bn = {
+    "target.slipCheck": "এই প্রশ্নটি ওই ভুলটাই ধরার জন্য তৈরি।",
+    "repair.title": "এটা ঠিক করি",
+    "repair.works": "এখানে ঠিক হয়",
+    "repair.fails": "এখানে ভুল হয়",
+    "repair.diff": "শুধু একটা পার্থক্য",
+    "repair.move": "ধাপ",
+    "plan.can": "শেষে তুমি পারবে",
+    "plan.start": "এখান থেকে শুরু করো",
+    "plan.together": "চলো একটা একসাথে করি",
+    "plan.guidedLead": "প্রথম ধাপ আমি করছি; বাকিটা তুমি করো, তারপর মিলিয়ে নাও।",
+    "plan.firstStep": "প্রথম ধাপ দেখাও",
+    "plan.rest": "বাকিটা দেখাও",
+    "plan.finishIt": "আগে মাথায় শেষ করো, তারপর মিলিয়ে নাও।",
+    "plan.traps": "এখানেই ভুল হয়",
+    "plan.reviewed": "বিষয় শিক্ষক দেখেছেন",
+    "plan.unreviewed": "বিষয় শিক্ষক এখনো দেখেননি",
     "cur.covers": "এখানকার {total}টি ধারণার মধ্যে {n}টি আপনার কোর্সের অন্তর্ভুক্ত।",
     "cur.outside": "আপনার কোর্সের বাইরে",
-    "cur.outsideNote": "এখানে {n}টি ধারণা {spec}-এর বাইরে। পড়ার জন্য সেগুলো খোলা থাকে, কিন্তু সেগুলো আপনার পাঠ্যসূচি নয়।",
+    "cur.outsideNote": "এখানে {n}টি ধারণা {spec} এর বাইরে। আপনি সেগুলো পড়তে পারেন, তবে সেগুলো আপনার পাঠ্যসূচির অংশ নয়।",
     "curr.unmapped": "আপনার দেশের জাতীয় পাঠ্যক্রম এখনো যুক্ত হয়নি — আন্তর্জাতিক পথ দেখানো হচ্ছে।",
     "nav.currTitle": "আপনার পাঠ্যক্রম",
     "curr.title": "আপনার পাঠ্যক্রম",
@@ -27519,7 +28137,7 @@ exports.bn = {
     "hint.walkthrough": "ধাপে ধাপে শেখাও",
     "hint.walkthroughDesc": "পুরো যুক্তি, ধাপে ধাপে।",
     "hint.body.tiny": "প্রশ্নটি আসলে কী চায়, ভালো করে দেখো।",
-    "hint.body.strong": "প্রশ্ন যা দেয় সেখান থেকে শুরু করো, আর যে সম্পর্কটা জানো তা লেখো — সেটাই উত্তরের সঙ্গে যুক্ত করে।",
+    "hint.body.yourSlip": "এখানে আপনার আগের উত্তরগুলি এই ধাপেই ভুল হয়েছে — এটি খেয়াল রাখুন:", "hint.body.strong": "প্রশ্ন যা দেয় সেখান থেকে শুরু করো, আর যে সম্পর্কটা জানো তা লেখো — সেটাই উত্তরের সঙ্গে যুক্ত করে।",
     "tr.story0": "একটি জিম যোগদান ফি ",
     "tr.story1": " নেয় এবং প্রতি মাসে একই অঙ্ক। ",
     "tr.story2": " মাস পরে মোট প্রদত্ত ",
@@ -27627,11 +28245,11 @@ exports.bn = {
     "q.calculate": "গণনা করুন",
     "q.share": "ভাগ করুন",
     "q.balance": "সমতা করুন",
-    "res.textbook": "📕 একটি পাঠ্যবই",
-    "res.worksheets": "📄 স্কুলের ওয়ার্কশিট",
-    "res.phone": "📱 এই ফোন",
-    "res.internet": "🛜 মাঝেমধ্যে ইন্টারনেট",
-    "res.teacher": "👩‍🏫 সপ্তাহে দুবার শিক্ষক",
+    "res.textbook": "একটি পাঠ্যবই",
+    "res.worksheets": "স্কুলের ওয়ার্কশিট",
+    "res.phone": "এই ফোন",
+    "res.internet": "মাঝেমধ্যে ইন্টারনেট",
+    "res.teacher": "সপ্তাহে দুবার শিক্ষক",
     "res.advice.internet": "ইন্টারনেট আসে-যায় — অফলাইন প্যাক তাজা রাখুন।",
     "res.advice.offlinePlan": "অফলাইন পরিকল্পনা",
     "res.advice.teacher": "শিক্ষক আছেন — ছাপানো সাপ্তাহিক পরিকল্পনা নিয়ে যান।",
@@ -27639,10 +28257,20 @@ exports.bn = {
     "res.advice.paper": "কাগজের উপকরণ আছে — প্রশ্নের ছবি তুলুন, ধারণা পাওয়া যাবে।",
     "res.advice.identify": "প্রশ্ন চিহ্নিত করুন",
     "res.advice.phone": "শুধু এই ফোনই যথেষ্ট — রোগনির্ণয় দিয়ে শুরু করুন।",
+    "learn.idea": "মূল ধারণা",
+    "learn.buildsOn": "যার ওপর এটি দাঁড়িয়ে",
+    "worked.another": "আরেকটি, একটু কঠিন",
+    "worked.eyebrow": "সমাধান করা উদাহরণ",
+    "worked.lead": "প্রথমে একটি প্রশ্ন পুরোটা সমাধান করে দেখুন, তারপর নিজেরটা চেষ্টা করুন।",
+    "worked.show": "কীভাবে, দেখান",
+    "worked.answer": "এটাই উত্তর",
+    "worked.err": "উদাহরণটি লোড হয়নি। সংযোগ দেখে আবার চেষ্টা করুন।",
+    "worked.next": "এবার আপনার পালা",
+    "peer.ideas": "এই ধারণার মূল বিষয়গুলো",
     "peer.eyebrow": "অন্যকে শেখান",
-    "peer.prompt": "নিজের ভাষায় ব্যাখ্যা করুন — OpenMind দেখবে কী ঢেকেছেন।",
+    "peer.prompt": "নিজের ভাষায় বুঝিয়ে বলুন। এখানে কিছুই যাচাই বা নম্বর দেওয়া হয় না — এটি নিজের বোঝাটা যাচাই করার উপায়।",
     "peer.placeholder": "যেমন: সালোকসংশ্লেষ হলো গাছ কীভাবে আলোকে খাদ্যে পরিণত করে…",
-    "peer.checkBtn": "আমার ব্যাখ্যা পরীক্ষা করুন",
+    "peer.checkBtn": "আরেকবার দেখুন",
     "peer.strong": "দুর্দান্ত ব্যাখ্যা — সঠিক এবং অন্যকে শেখানোর মতো পূর্ণ।",
     "peer.goodPre": "ভালো — মূল ধারণা এসেছে। একটি সুতো বাকি: ",
     "peer.goodPost": "।",
@@ -27710,7 +28338,11 @@ exports.bn = {
     "onb.setup": "আপনার শেখা সাজান",
     "onb.lead": "কয়েকটি বিষয় বলুন, OpenMind নিজেকে মানিয়ে নেবে: পড়ানোর ভাষা, উদাহরণ, কঠিনতা ও আপনার পথ। অ্যাকাউন্ট সব জায়গায় সংরক্ষণ করে — অথবা অ্যাকাউন্ট ছাড়াই চালিয়ে যান।",
     "onb.name": "আপনার নাম",
+    "onb.nameNeeded": "চালিয়ে যেতে একটি নাম বেছে নিন — ডাকনাম হলেও চলবে।",
     "onb.where": "আপনি কোথায়",
+    "onb.region": "প্রদেশ / রাজ্য / অঞ্চল",
+    "onb.pickRegion": "একটি বেছে নিন (ঐচ্ছিক)",
+    "onb.regionNote": "এটি নিচের পাঠের ভাষা ঠিক করে — ভুল হলে বদলে নিন।",
     "onb.lang": "ভাষা",
     "onb.pathway": "শিক্ষা ব্যবস্থা",
     "onb.pickPathway": "তোমার শিক্ষা ব্যবস্থা বেছে নাও",
@@ -27725,10 +28357,10 @@ exports.bn = {
     "onb.errRefused": "সার্ভার এই প্রোফাইল পরিবর্তন প্রত্যাখ্যান করেছে — এটি আপনার সংযোগের সমস্যা নয়। নিচের কোডটিই কারণ।",
     "onb.errNotYours": "এই ডিভাইসে সংরক্ষিত প্রোফাইলে আর লেখা যাবে না — এর সিক্রেট মেলে না। কিছু মুছে ফেলা হয়নি; শুধু এই ব্রাউজার ওই রেকর্ডে পৌঁছাতে পারে না। যে অ্যাকাউন্টের এটি, তাতে সাইন ইন করুন, অথবা এখানে নতুন প্রোফাইল শুরু করুন।",
     "onb.freshStart": "এই ডিভাইসে নতুন প্রোফাইল শুরু করুন",
-    "ls.visual": "👁 দেখে",
-    "ls.auditory": "🔊 শুনে",
-    "ls.kinesthetic": "✋ করে",
-    "ls.reading": "📖 পড়ে",
+    "ls.visual": "দেখে",
+    "ls.auditory": "শুনে",
+    "ls.kinesthetic": "করে",
+    "ls.reading": "পড়ে",
     "cult.neutral": "সাধারণ",
     "cult.agriculture": "ক্ষেত, বাজার, যাতায়াত",
     "cult.urban": "শহর, দোকান, বাস",
@@ -28052,14 +28684,15 @@ exports.bn = {
     "home.examPast": "পরীক্ষার তারিখ পেরিয়ে গেছে — সেটিংসে ঠিক করো",
     "prog.gainPts": "পয়েন্ট অর্জিত",
     "prog.gainHint": "আপনার অগ্রগতি মাপতে আবার রোগনির্ণয় করুন।",
-    "pack.title": "স্টাডি প্যাক",
-    "pack.none": "এখনো কোনো প্যাক নেই — এই ধারণার জন্য প্রথম নোটটি লিখুন।",
-    "pack.add": "একটি প্যাক যোগ করুন",
-    "pack.fork": "ফর্ক",
+    "pack.title": "শিক্ষার্থীদের নোট",
+    "pack.lead": "এই ধারণা নিয়ে অন্য শিক্ষার্থীদের ছোট নোট। একটি লিখুন, একটি কাজে লেগেছে বলে চিহ্নিত করুন, বা একটি কপি করে নিজের বানিয়ে নিন।",
+    "pack.none": "এই ধারণায় এখনো কোনো নোট নেই। নিজের ভাষায় একটি কৌশল বা সতর্কতা পরের জনকে সাহায্য করবে।",
+    "pack.add": "নোট লিখুন",
+    "pack.fork": "কপি করে সম্পাদনা",
     "pack.helpful": "সহায়ক",
-    "pack.phTitle": "প্যাকের শিরোনাম",
+    "pack.phTitle": "নোটের শিরোনাম",
     "pack.phBody": "একজন বন্ধুর কী জানা দরকার? একটি কৌশল, একটি সতর্কতা, আপনার ভাষা…",
-    "pack.forkOf": "এর ফর্ক",
+    "pack.forkOf": "এর ভিত্তিতে",
     "goal.title": "আপনার লক্ষ্য",
     "goal.step": "ধাপ",
     "goal.now": "এখন",
@@ -28163,20 +28796,20 @@ exports.bn = {
     "acc.highContrast": "উচ্চ কনট্রাস্ট",
     "acc.calmScreen": "শান্ত স্ক্রিন",
     "acc.connectivity": "সংযোগ",
-    "acc.syncedAll": "🟢 সবকিছু সিঙ্ক হয়েছে।",
+    "acc.syncedAll": "সবকিছু সিঙ্ক হয়েছে।",
     "acc.pendingSync": "উত্তর সিঙ্কের অপেক্ষায়।",
     "acc.offlinePlan": "অফলাইন পরিকল্পনা",
-    "acc.continuity": "🆘 কঠিন হলে সহজ প্রশ্ন",
-    "acc.have": "🌱 আমার যা আছে",
+    "acc.continuity": "কঠিন হলে সহজ প্রশ্ন",
+    "acc.have": "আমার যা আছে",
     "acc.howTeachNote": "OpenMind এর অনুযায়ী উদাহরণ ও উপস্থাপন বদলে নেয়।",
     "acc.saved": "✓ সংরক্ষিত",
-    "acc.stayLocal": "🔒 অ্যাক্সেসের পছন্দ আপনার ডিভাইসেই থাকে, যতক্ষণ না প্রোফাইলে সংরক্ষণ করেন।",
+    "acc.stayLocal": "অ্যাক্সেসের পছন্দ আপনার ডিভাইসেই থাকে, যতক্ষণ না প্রোফাইলে সংরক্ষণ করেন।",
     "acc.examPh": "যেমন WAEC SSSCE, KCSE Form 4, AISSCE",
     "hub.local": "OpenMind হাব · স্থানীয়",
     "hub.localNote": "এই হাবে। কোনো শিক্ষার্থীর ইন্টারনেট লাগে না — হাব ইন্টারনেট পেলে সিঙ্ক করে।",
     "pack.packing": "প্রস্তুত হচ্ছে…",
-    "pack.download": "📴 আমার লার্নিং প্যাক ডাউনলোড করুন",
-    "pack.ready": "🟢 অফলাইন প্রস্তুত — ইন্টারনেট ছাড়াই শেখা চালিয়ে যান।",
+    "pack.download": "আমার লার্নিং প্যাক ডাউনলোড করুন",
+    "pack.ready": "অফলাইন প্রস্তুত — ইন্টারনেট ছাড়াই শেখা চালিয়ে যান।",
     "dash.anonNote": "— ইমেল নেই, পাসওয়ার্ড নেই, ৩০ সেকেন্ড।",
     "dash.langLead": "ব্যাখ্যা",
     "dash.langMid": "· পদ",
@@ -28306,7 +28939,7 @@ exports.bn = {
     "onb.verifyNote": "OpenMind কোনো যাচাইকরণ ইমেইল পাঠায় না — ঠিকানা শুধু সাইন ইনেই ব্যবহৃত হয়।",
     "pp.title": "পরীক্ষার প্রশ্নপত্র",
     "pp.lead": "নিজের সময় ও নম্বরের নিয়মে পুরো প্রশ্নপত্র দিন, তারপর মার্ক স্কিম ও আনুমানিক গ্রেড দেখুন।",
-    "pp.honest": "প্রতিটি প্রশ্নপত্র OpenMind আপনার বোর্ডের স্পেসিফিকেশন ও ফরম্যাট অনুযায়ী লিখেছে — এটি কপিরাইটযুক্ত পুরোনো প্রশ্নের নকল নয়।",
+    "pp.honest": "প্রতিটি প্রশ্ন OpenMind লেখে — কোনোটিই কপিরাইটযুক্ত আগের প্রশ্নপত্রের নকল নয়। প্রতিটি সারি বলে দেয় প্রশ্নপত্রের গঠন আপনার বোর্ডের, না কি OpenMind-এর অনুশীলন সেট।",
     "pp.pick": "একটি প্রশ্নপত্র বাছুন",
     "pp.pickLead": "বিষয় বাছুন, তারপর পুরো প্রশ্নপত্র এক বসায় শেষ করুন।",
     "pp.empty": "এই যোগ্যতার জন্য এখনো প্রশ্নপত্র নেই।",
@@ -28368,6 +29001,12 @@ exports.bn = {
     "pp.prev": "আগের",
     "pp.next": "পরের",
     "pp.grid": "একটি প্রশ্নে যান",
+    "pp.paper": "প্রশ্নপত্র {n}",
+    "pp.needs": "তোমার রেকর্ড থেকে তৈরি",
+    "pp.mirrors": "আপনার পরীক্ষা বোর্ডের প্রকাশিত প্রশ্নপত্রের গঠন",
+    "pp.practiceSet": "আপনার কোর্সের জন্য OpenMind অনুশীলন সেট — আপনার বোর্ডের প্রশ্নপত্র নয়",
+    "pp.shapeSource": "সূত্র",
+    "pp.needsWhy": "এখানে প্রতিটি প্রশ্ন আসছে সেই ধারণাগুলো থেকে, যেগুলোকে তোমার নিজের রেকর্ড দুর্বলতম বলছে।",
     "pp.correct": "সঠিক",
     "pp.incorrect": "ভুল",
     "pp.blank": "উত্তর দেওয়া হয়নি",
@@ -28721,12 +29360,35 @@ function translator(code) {
 function fill(s, vars) {
     return s.replace(/\{(\w+)\}/g, (whole, k) => Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : whole);
 }
+/** THE UI'S LANGUAGE ID IS NOT A LOCALE, and this is the ONE place that is
+ *  decided. A dictionary code names a LANGUAGE, not a region, and `Intl`
+ *  resolves a bare `en` to the AMERICAN default — so `toLocaleDateString("en")`
+ *  printed `10/26/2026`, month first, on a product built around UK
+ *  qualifications, and `toLocaleDateString(undefined)` printed whatever the
+ *  device's browser was set to. Both read as a bug to a UK school, and neither
+ *  is fixable by authoring anything: a date format is not a translated string.
+ *  Each dictionary is therefore mapped to a locale that HAS a region (English
+ *  is en-GB — the product's qualification base, and the reason a deadline reads
+ *  "26 Oct" and a service slot reads "14:05"), the longest-supported locale for
+ *  the rest. An unknown code falls back to en-GB rather than to a device
+ *  default nobody chose. */
+const LOCALES = {
+    en: "en-GB", es: "es-ES", fr: "fr-FR", pt: "pt-PT", ar: "ar-EG", sw: "sw-KE",
+    hi: "hi-IN", id: "id-ID", tl: "fil-PH", ur: "ur-PK", fa: "fa-IR", de: "de-DE",
+    ja: "ja-JP", zh: "zh-CN", bn: "bn-BD",
+};
+function localeFor(lang) {
+    const code = (lang ?? "en").trim();
+    // A caller that already holds a full locale keeps it; only a bare language
+    // code (the shape both the picker and the profile store) is mapped.
+    return LOCALES[code] ?? (code.includes("-") ? code : "en-GB");
+}
 /** A short date in the reader's own language — the ONE format a deadline (or a
  *  recorded answer's day) is shown in, so two surfaces cannot disagree about
  *  what day the same work is due. Never throws on an unknown locale. */
 function dueLabel(lang, at) {
     try {
-        return new Date(at).toLocaleDateString(lang ?? "en", { day: "numeric", month: "short" });
+        return new Date(at).toLocaleDateString(localeFor(lang), { day: "numeric", month: "short" });
     }
     catch {
         return new Date(at).toLocaleDateString();
@@ -29387,6 +30049,295 @@ function commitAndProject(learnerId, state, events, store) {
     const after = accepted.size ? [...before, ...events.filter((e) => accepted.has(e.id))] : before;
     projectFromLedger(state, after);
     return result;
+}
+
+});
+__def("lesson-plans.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LESSON_PLANS = void 0;
+exports.planFor = planFor;
+exports.planWordCount = planWordCount;
+exports.firstMoveOf = firstMoveOf;
+exports.plannedConceptIds = plannedConceptIds;
+exports.orphanPlans = orphanPlans;
+// ─────────────────────────────────────────────────────────────────────────────
+// STRUCTURED LESSONS — a concept's teaching, as a SEQUENCE rather than a
+// paragraph.
+//
+// The genome gives every concept a `lesson` field of two to four sentences. That
+// is enough to remind someone, and not enough to teach someone who has never met
+// the idea — which is the learner this product exists for. The read stage was
+// therefore a paragraph followed by a question, and the first item a learner met
+// was also the first they had to do unaided.
+//
+// This module is the missing half: an authored plan per concept that the lesson
+// page renders in the order a classroom uses.
+//
+//   1. objective   — what you will be able to DO by the end (not a topic name)
+//   2. intuition   — a concrete situation the idea already lives in, before any
+//                    terminology, so the words have something to attach to
+//   3. idea        — the formal teaching, one paragraph per idea, several of
+//                    them: this is the part that was one sentence long
+//   4. worked      — a real item from the concept's own generator, solved (the
+//                    page composes this from the live bank; see
+//                    app/api/worked-example/route.ts, so it can never drift
+//                    from what the practice serves)
+//   5. together    — the same, faded: the first step is shown, the learner
+//                    supplies the rest, then checks
+//   6. traps       — the wrong moves a learner actually makes here, each with
+//                    WHY it fails, because "don't do that" teaches nothing
+//   7. your turn   — the door into practice
+//
+// WHY THIS IS A SEPARATE FILE AND NOT A GENOME FIELD. The genome's rows are a
+// compact tuple table with 135 entries; a structured lesson does not fit in a
+// tuple, and reshaping that table to carry one would have touched every row and
+// every gate that reads it. Keeping plans keyed by concept id also makes the
+// coverage honest and countable: `planFor` answers null for a concept nobody has
+// written a plan for, and the page then renders the prose it always did. There is
+// no generated filler standing in for teaching nobody wrote.
+//
+// PROVENANCE IS PART OF THE CONTENT (§3 of the strategy note: authored ≠
+// reviewed ≠ pilot-tested). Every plan states its review state, and the page
+// PRINTS it. A lesson written by the team and never read by a subject teacher
+// must say so on the screen, not just in a document.
+// ─────────────────────────────────────────────────────────────────────────────
+const genome_1 = require("./genome");
+/**
+ * THE AUTHORED PLANS.
+ *
+ * Deliberately a small set, and deliberately the START of the GCSE pilot
+ * cluster rather than its end: these are the stage 0–1 concepts (negatives,
+ * order of operations, expressions, coordinates, indices, equations) that every
+ * later concept in the pathway stands on, and they are the concepts whose
+ * one-paragraph lessons were thinnest. The rest of the pilot's 11 concepts, and
+ * the other 124, still render the prose.
+ */
+exports.LESSON_PLANS = {
+    negatives: {
+        conceptId: "negatives",
+        objective: "Read, compare and calculate with numbers below zero — and know which way the answer goes.",
+        intuition: "An underground car park already uses this idea. You are parked on level −2 and you drive up four floors. You do not arrive at 5: you arrive at 3, because you started below street level and passing zero changes nothing about the counting. Every rule about negatives is that one picture — a number line where zero is not a wall you stop at, but a line you can walk straight past.",
+        idea: [
+            "A negative number is an amount below zero. −4 sits the same distance from zero as 4 does, on the other side, which is why the sign is the only thing separating them: the distance of −4 from zero is 4, exactly as it is for 4. The sign says direction, not size.",
+            "Adding and subtracting are moves along the line. Adding a negative moves left: 6 + (−4) = 2. Subtracting a negative needs a second look, because it takes away a leftward move, which leaves you further right: 5 − (−3) = 5 + 3 = 8. You do not have to memorise that. 5 − (−3) asks \"what number added to −3 gives 5?\", and only 8 does.",
+            "Multiplying is repeated addition, so signs follow the moves. (−3) × 4 is four jumps of three to the left: −12. (−3) × (−4) reverses direction twice — taking away four debts of 3 leaves you 12 better off — so the answer is positive. One negative gives a negative answer; two negatives give a positive one.",
+            "Comparing catches people out because the line runs the other way from the numbers: −2 is greater than −5, even though 5 is greater than 2. Rightwards is larger. That single fact is also why an inequality flips sign the moment you multiply or divide by a negative.",
+        ],
+        traps: [
+            {
+                move: "Turning 5 − (−3) into 5 − 3 = 2.",
+                why: "The minus in front acts on a value that is already negative; it does not cancel the subtraction. On the line, subtracting a leftward move of three has to take you further right, and 5 + 3 = 8 is the only value for which 8 + (−3) comes back to 5.",
+            },
+            {
+                move: "Saying −8 is bigger than −3 because 8 is bigger than 3.",
+                why: "Distance from zero is not size. −3 sits three steps to the RIGHT of −8, and rightwards is larger, so −3 > −8. Learners who reorder numbers this way later read inequalities backwards, which is why this one is worth fixing now.",
+            },
+            {
+                move: "Working out (−2) × (−3) as −6.",
+                why: "Both signs reverse the direction, so the result points back to the positive side. Test it against the rule you already trust: (−2) × 3 = −6, so (−2) × (−3) must be the opposite of that, which is 6.",
+            },
+        ],
+        usedFor: "Coordinates, gradients and inequalities all stand on this: a point below the axis, a line falling to the right, or any inequality you multiply by −1.",
+        review: "unreviewed",
+    },
+    "order-ops": {
+        conceptId: "order-ops",
+        objective: "Evaluate any arithmetic expression the way the rest of the world does, and explain why that order is the one.",
+        intuition: "3 + 4 × 2 is 11, not 14 — and the reason is not that 11 is the more pleasing answer. Multiplication is repeated addition, so 4 × 2 is a single quantity: eight. The expression reads \"three, plus the object eight\". It never says \"three plus four, and then double it\".",
+        idea: [
+            "Brackets are a request to act early. They do not change the rules; they say \"work this out first\": 3 × (4 + 2) = 18, where 3 × 4 + 2 = 14.",
+            "Indices come next because a power is already a finished multiplication: 3² means 3 × 3. So 2 + 3² is 2 + 9 = 11, and someone who reads it left to right gets 25 from squaring (2 + 3).",
+            "Multiplication and division have the SAME rank, as do addition and subtraction. Equal ranks are worked left to right: 12 ÷ 4 × 3 = 9, because 12 ÷ 4 = 3 and 3 × 3 = 9. Reading it right to left gives 1, which is a different sum.",
+            "The order is a shared convention, not a law of mathematics — without it, one written expression would have several values and nobody could check anybody's work. It is also what makes formulae predictable later: in 3x² with x = 4, the power belongs to x, so the value is 3 × 16 = 48.",
+        ],
+        traps: [
+            {
+                move: "Working straight through from left to right.",
+                why: "That gives 14 for 3 + 4 × 2. The 4 × 2 is one quantity — eight — and quantities are finished before they are joined to anything.",
+            },
+            {
+                move: "Doing multiplication before division because M comes first in BIDMAS.",
+                why: "They share a rank, so 12 ÷ 4 × 3 is 9. Taking the multiplication first makes 12 ÷ 12 = 1. The letters are a memory aid, not three separate ranks.",
+            },
+            {
+                move: "Reading −3² as 9.",
+                why: "The power binds to 3 alone and the minus is applied afterwards: −(3²) = −9. If the negative is meant to be squared, it has to be bracketed as (−3)², which is why that bracket gets written.",
+            },
+        ],
+        usedFor: "Every formula you meet later — substituting into 3x² + 2, evaluating a physics equation, simplifying an expression — is this order applied to letters instead of numbers.",
+        review: "unreviewed",
+    },
+    "algebra-expressions": {
+        conceptId: "algebra-expressions",
+        objective: "Write an expression for a situation, simplify it by collecting like terms, and evaluate it for a given value.",
+        intuition: "A letter is a label on a box you have not opened. \"3x + 2\" says: three boxes of the same size, and two loose counters. You can merge boxes with boxes — 2x + 3x is five boxes — but a box cannot be added to a counter, which is exactly why 3x + 2y stays as it is.",
+        idea: [
+            "A term is built from a coefficient and a letter part: in 5x the 5 multiplies the x. 5x means x + x + x + x + x. It does not mean 5 followed by x, and it does not mean 5 + x.",
+            "Like terms have exactly the same letter part. 3x + 2x = 5x, and 7x − 4x = 3x. 3x + 2x² does not simplify: x and x² are different sizes of thing, a box and a square of boxes, so their counts cannot be added.",
+            "Multiplying is not adding. 3x × 2x = 6x², because the coefficients multiply (3 × 2) and the letter parts multiply as well (x × x = x²). The commonest error in this topic is doing the multiplying rule on an adding question.",
+            "Substituting means replacing the letter with a number, and a negative value goes in BRACKETS so the sign travels with it: x = −2 in 3x + 2 gives 3(−2) + 2 = −6 + 2 = −4.",
+            "Expanding reverses the brackets: 3(x + 4) = 3x + 12, because the whole bracket is one quantity being tripled, so every term inside is tripled. Missing the second term is what leaves 3x + 4.",
+        ],
+        traps: [
+            {
+                move: "3x + 2y = 5xy.",
+                why: "Adding counts how many of one thing you have; x and y are different things, so their counts cannot merge. 5xy is a product — five times x times y — which is a different quantity altogether, and you can see it: with x = y = 2, the left side is 10 and 5xy is 20.",
+            },
+            {
+                move: "3 + 2x = 5x.",
+                why: "The 3 is a number and the 2x is a count of boxes; joining them invents a box that was never there. Substitute to check: with x = 3, 3 + 2x = 9 while 5x = 15.",
+            },
+            {
+                move: "Reading 2x² as (2x)².",
+                why: "The power belongs to x alone. With x = 3, 2x² = 2 × 9 = 18, while (2x)² = 36. Whenever the coefficient is meant to be squared too, the bracket has to be written.",
+            },
+        ],
+        usedFor: "Solving equations, expanding and factorising, and every formula in science: once you can read 3x + 2 as a quantity, the rest of algebra is the same language.",
+        review: "unreviewed",
+    },
+    coordinates: {
+        conceptId: "coordinates",
+        objective: "Plot and read points on a grid, and read an equation as the shape it draws.",
+        intuition: "A map reference works like this: go along the corridor, then up the stairs. Coordinates always give the horizontal move first. (3, 2) and (2, 3) are two different places, which is why the order is not a detail you can shrug at.",
+        idea: [
+            "The axes cross at the origin (0, 0). x counts to the right, with negatives to the left; y counts upwards, with negatives downwards. The grid is four regions — the quadrants — and each is defined by the signs of its points.",
+            "A point is written (x, y) — along, then up. So (3, −2) is three right and two down, which puts it in the bottom-right quadrant. (−3, 2) is a different point on the other side.",
+            "An equation is a rule for which points belong. y = 2x + 1 says: pick an x, double it, add one, and that is the y. Choosing x = 0, 1, 2 gives (0, 1), (1, 3), (2, 5).",
+            "Joining those points gives a straight line, and the straightness is information: a constant step in x producing a constant step in y is what \"linear\" means. A curve on a linear equation is evidence of an arithmetic slip in the table, not a discovery.",
+            "Reading a graph and solving an equation are the same fact in two languages. Where two lines cross, that point's coordinates satisfy both equations at once — which is what solving a pair of equations simultaneously is.",
+        ],
+        traps: [
+            {
+                move: "Plotting (3, −2) as three up and two left.",
+                why: "The pair is x then y, the same order as the alphabet. Swapping them puts the point in a different place entirely — it reflects the point in the line y = x — and every gradient and distance read from that point then comes out wrong.",
+            },
+            {
+                move: "Reading a y-value off the horizontal axis.",
+                why: "The horizontal axis is x. A point that sits ON the x-axis has y = 0, which is why its coordinates look like (4, 0) and why an intercept on that axis is where the graph crosses zero.",
+            },
+            {
+                move: "Freehand-joining plotted points into a wobbly curve.",
+                why: "Two points are enough to fix a straight line, so a curve on a linear equation means a mistake in the table. Checking one plotted point by substituting its x into the equation catches it before the line is drawn.",
+            },
+        ],
+        usedFor: "Straight-line graphs, gradients, quadratics and every graph in science: this is where algebra becomes something you can see.",
+        review: "unreviewed",
+    },
+    "indices-intro": {
+        conceptId: "indices-intro",
+        objective: "Use the index laws to multiply, divide and simplify powers — and say why each law is true.",
+        intuition: "a³ is shorthand, not a new operation: it is a × a × a. Almost every index law is just counting how many copies of a you have written down, which is why the laws are simple — multiplying two powers does not need a rule so much as a tally.",
+        idea: [
+            "aᵐ means m copies of a multiplied together, so a⁵ = a × a × a × a × a. The base is the a; the index is the 5. The index counts copies, and it is not a value — a⁵ is not 5a.",
+            "Multiplying adds the counts: a² × a³ = (a × a)(a × a × a) = a⁵. Dividing subtracts them: a⁵ ÷ a² cancels two copies and leaves a³. Neither law needs memorising if you are willing to write the copies out once.",
+            "a⁰ = 1 follows from the subtraction law: aⁿ ÷ aⁿ = a⁰, and a quantity divided by itself is 1. It is not a special case bolted on — it is what the pattern forces.",
+            "Negative indices carry the same pattern downwards: a² ÷ a⁴ = a⁻², and that division is 1/a². So a⁻² means the reciprocal of a².",
+            "Fractional indices are roots, and the reason is the multiplication law turned around: a^(1/2) × a^(1/2) = a¹, so a^(1/2) must be the number that squares to a — the square root.",
+            "The laws hold only for the SAME base. 2³ × 2² = 2⁵, but 2³ × 3² stays as it is, because the copies are of different things.",
+        ],
+        traps: [
+            {
+                move: "a² × a³ = a⁶.",
+                why: "That multiplies the indices, but multiplying powers ADDS how many copies you have. The multiplication sign has already done the combining; squaring the index would count every copy twice.",
+            },
+            {
+                move: "a² + a³ = a⁵.",
+                why: "The laws are for multiplying and dividing only. Adding powers means adding their VALUES: with a = 2, that is 4 + 8 = 12, not 32.",
+            },
+            {
+                move: "Reading 2a³ as (2a)³.",
+                why: "The power binds to the a alone, and the 2 is not inside it. With a = 2, 2a³ is 2 × 8 = 16, while (2a)³ is 2 × 2 × 2 × 8 = 64 — so a bracket has to be written whenever the coefficient was meant to be cubed too.",
+            },
+        ],
+        usedFor: "Standard form, growth and decay, surds and quadratic formulae all rest on these laws — and they are the difference between manipulating algebra and guessing at it.",
+        review: "unreviewed",
+    },
+    "linear-equations": {
+        conceptId: "linear-equations",
+        objective: "Solve one- and two-step equations, including with unknowns on both sides, and check the answer.",
+        intuition: "The equals sign is a balance beam. 3x + 5 = 20 says: three identical bags plus five weights balance twenty weights. Whatever you take off one pan you must take off the other, or the beam tips and the two sides are no longer equal — which is the whole reason the rules of solving work.",
+        idea: [
+            "An equation is a claim: these two expressions are equal. Solving means finding the value of x that makes the claim true. A value that breaks the balance is not a solution, however tidy the working looked.",
+            "Undo the operations in the reverse order to the one that built the expression. x was multiplied by 3 and then had 5 added; undo the addition first. Subtract 5 from both sides: 3x = 15. Then divide both sides by 3: x = 5.",
+            "Both sides, always. Subtracting 5 from the left only breaks the balance, and the value you end up with will not satisfy the original equation — which is what the check at the end is for.",
+            "Unknowns on both sides reduce to the same discipline: 5x = 2x + 9. Subtract 2x from both sides — that is a move performed on the whole of each side — leaving 3x = 9, so x = 3.",
+            "Brackets can be expanded (3(x + 2) = 15 → 3x + 6 = 15 → x = 3) or divided away first (x + 2 = 5 → x = 3). Both routes are correct; picking the shorter one is a judgement, not a rule.",
+            "Finish by substituting your answer back into the ORIGINAL equation: with x = 5, the left side is 3(5) + 5 = 20, which is what the right side says. The check takes five seconds and it is the one step that catches the sign slip the algebra hid — an answer that came from broken working still has to survive being put back.",
+        ],
+        traps: [
+            {
+                move: "Subtracting 5 from only the left-hand side.",
+                why: "That tips the balance, so the two sides stop being equal and any x you read off afterwards is answering a different question. Every operation is applied to a whole side — which is also why dividing \"the 3x by 3\" and leaving the +5 alone is the same mistake in a different disguise.",
+            },
+            {
+                move: "Moving 2x across the equals sign to get 7x = 9 on 5x = 2x + 9.",
+                why: "Changing sides is not an operation; subtracting is. Subtract 2x from both sides and 5x − 2x = 9 gives 3x = 9. \"Moves across and changes sign\" happens to give the same result for added terms, which is why it survives — but it stops being true for multiplication, and it hides what is actually being done.",
+            },
+            {
+                move: "Reporting x = 3 from 3(x + 2) = 15 without expanding correctly.",
+                why: "The 3 multiplies both terms inside the bracket, so the left side is 3x + 6, not 3x + 2. Missing it gives 3x + 2 = 15, x = 13/3 — an answer that a single check by substitution would have refused.",
+            },
+        ],
+        usedFor: "Formulae, simultaneous equations, rearranging, and every \"find the value of\" question in maths and science; also the discipline of checking an answer by substituting it back.",
+        review: "unreviewed",
+    },
+};
+/** The plan for a concept, or null when nobody has written one. Null is a real
+ *  answer, not an error: the page falls back to the genome's prose, so a concept
+ *  without a plan renders what it always did rather than an empty shell. */
+function planFor(conceptId) {
+    return exports.LESSON_PLANS[conceptId] ?? null;
+}
+/** Words of authored teaching in a plan, for the coverage report and the
+ *  assertion that a plan is longer than the paragraph it replaces. Counts the
+ *  objective, intuition, idea paragraphs and trap explanations — the teaching —
+ *  and not the internal ids. */
+function planWordCount(plan) {
+    const text = [
+        plan.objective,
+        plan.intuition,
+        ...plan.idea,
+        ...plan.traps.flatMap((tr) => [tr.move, tr.why]),
+        plan.usedFor,
+    ].join(" ");
+    return text.split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length;
+}
+/** The FIRST MOVE of a marking explanation, and the rest of the working.
+ *
+ *  This is what makes the faded "we do" stage possible without authoring a
+ *  second item: the bank's explanation already opens with the first thing to do
+ *  ("Multiply the numerators: 3 × 2 = 6, then the denominators. The answer is
+ *  6/15."), so the opening sentence is the part the learner is shown and the
+ *  remainder is the part they have to reach themselves.
+ *
+ *  THE TWO GUARDS ARE THE WHOLE POINT, and both are measured in `npm run
+ *  verify`:
+ *   - a full stop only ends a sentence when WHITESPACE follows it, so a decimal
+ *     ("13 ÷ 5 = 2.6. The answer is 2.6.") is not cut at "2.";
+ *   - the next character must be a capital letter or an opening bracket, so an
+ *     abbreviation ("e.g.", "i.e.") does not end the move.
+ *  A one-sentence explanation has no rest: the learner then sees the whole
+ *  method on the first press, which is still a fade relative to the worked
+ *  example above it, because they had to start it.
+ */
+function firstMoveOf(explanation) {
+    const m = explanation.match(/^(.+?[.!?])\s+([A-Z(].*)$/s);
+    if (m)
+        return { first: m[1], rest: m[2] };
+    return { first: explanation, rest: "" };
+}
+/** Which concepts have a plan. Reported, never asserted to be 135: a coverage
+ *  number that lies is worse than a small honest one. */
+function plannedConceptIds() {
+    return Object.keys(exports.LESSON_PLANS);
+}
+/** Concepts a plan names that the genome does not hold. Must be empty — a plan
+ *  filed under a typo'd id would render for nobody, silently. Exported so the
+ *  suite can assert it rather than trusting the table above. */
+function orphanPlans() {
+    const ids = new Set(genome_1.CONCEPTS.map((c) => c.id));
+    return plannedConceptIds().filter((id) => !ids.has(id));
 }
 
 });
@@ -31826,7 +32777,23 @@ exports.CORE_NUMERIC_GENS = {
             // = bigger slice' keeps recurring" to someone who cannot yet find 3/4 of
             // 12 at all — a named cause where the record says the idea is unbuilt.
             tags: [], difficulty: 0.4,
-            explanation: `Finding ${n}/${d} of ${d * k} means splitting ${d * k} into ${d} equal parts and then taking ${n} of them. One part is ${d * k} ÷ ${d} = ${k}, so ${n} parts come to ${k} × ${n} = ${n * k}. Multiplying by the denominator (${n * d}) skips the split altogether, and stopping once the division is done (${k}) takes one part when the question asks for ${n} of them.`,
+            // THE PROSE WAS WRONG IN TWO WAYS A LEARNER WOULD HAVE READ:
+            //   · "so 1 parts come to …" — the draw takes n = 1 one time in seven, and
+            //     the sentence was written for the plural only;
+            //   · "Multiplying by the denominator (${n * d})" — for n = 2, d = 5 it
+            //     printed "the denominator (10)" beside a denominator of 5. The number
+            //     it printed is the numerator-times-denominator DISTRACTOR, so the
+            //     sentence named the right wrong option with the wrong words.
+            // The split below also drops the "stopping after the division" trap when
+            // n = 1, because there stopping after the division IS the answer — a
+            // warning against the correct method is worse than no warning.
+            explanation: [
+                `Finding ${n}/${d} of ${d * k} means cutting ${d * k} into ${d} equal parts and taking ${n} of them.`,
+                `Each part is ${d * k} ÷ ${d} = ${k}.`,
+                n === 1 ? `Taking one part gives ${k}.` : `Taking ${n} of them gives ${k} × ${n} = ${n * k}.`,
+                `Multiplying the numerator by the denominator (${n * d}) is not a step in this method.`,
+                n === 1 ? "" : `Nor is stopping after the division (${k}) — that takes one part, and the question asks for ${n}.`,
+            ].filter(Boolean).join(" "),
         };
     },
     "fraction-ops": (r) => {
@@ -34103,7 +35070,7 @@ __def("operations.js", function (module, exports, require) {
 // live in one caller and be forgotten by the other.
 // ─────────────────────────────────────────────────────────────────────────────
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SERVED_KEEP = exports.PRACTICE_DRAW_ATTEMPTS = void 0;
+exports.SLIP_DRAW_ATTEMPTS = exports.SERVED_KEEP = exports.PRACTICE_DRAW_ATTEMPTS = void 0;
 exports.practiceAim = practiceAim;
 exports.noteHint = noteHint;
 exports.answerDisposition = answerDisposition;
@@ -34112,6 +35079,7 @@ const answer_1 = require("./answer");
 const genome_1 = require("./genome");
 const question_bank_1 = require("./question-bank");
 const questions_1 = require("./questions");
+const learner_model_1 = require("./learner-model");
 const retention_1 = require("./retention");
 const specifications_1 = require("./specifications");
 const transfer_1 = require("./transfer");
@@ -34127,6 +35095,21 @@ exports.PRACTICE_DRAW_ATTEMPTS = 40;
  *  after this many the learner has long since seen everything the generator
  *  makes. The list is OLDEST FIRST, so a repeat still rotates to the back. */
 exports.SERVED_KEEP = 12;
+/** How many EXTRA draws a REPAIR serve spends looking for an item that
+ *  discriminates the learner's live slip.
+ *
+ *  A repair serve used to do one thing: aim twelve points lower. That steadies
+ *  the numbers without ever testing the belief — a learner who thinks a minus
+ *  sign is decoration got easier questions about the same idea, answered them, and
+ *  the slip stayed exactly where it was. The bank already tags each item with the
+ *  misconception it discriminates, so a repair can now ask for an item that
+ *  CHECKS the belief instead of only lowering the bar.
+ *
+ *  Five draws, not forty: an item family usually produces the tagged item within a
+ *  couple of seeds, and the budget has to stay small because it multiplies the
+ *  serve's own 40-attempt band search. When no tagged item turns up the first draw
+ *  stands — a repair that cannot test the slip is still a repair. */
+exports.SLIP_DRAW_ATTEMPTS = 8;
 /**
  * The aim for one concept, from the learner's own record.
  *
@@ -34209,6 +35192,29 @@ function answerDisposition(state, conceptId, questionId) {
  * never recorded (served twice) or record a key whose item was never staged
  * (unanswerable).
  */
+/** Draw one practice item, preferring one the learner's live slip would trip over.
+ *
+ *  `first` is the ordinary draw and is always the answer when no slip is asked
+ *  for, or when no tagged item turns up inside the budget. The extra draws are
+ *  the whole change: same aim, same exclusion list, different seed, and the first
+ *  candidate whose tags include the slip wins.
+ *
+ *  `targeted` is returned with the item, not re-derived by the caller: "did this
+ *  draw test the slip" is a fact about the draw, and a caller that recomputed it
+ *  would have to know the tag rule (and could quietly disagree). */
+function drawPractice(conceptId, seed, aim, served, slip) {
+    const first = (0, questions_1.generateQuestionNear)(conceptId, seed, aim, exports.PRACTICE_DRAW_ATTEMPTS, served);
+    if (!slip || !first)
+        return { question: first, targeted: false };
+    if ((first.misconceptionTags ?? []).includes(slip))
+        return { question: first, targeted: true };
+    for (let i = 1; i <= exports.SLIP_DRAW_ATTEMPTS; i++) {
+        const q = (0, questions_1.generateQuestionNear)(conceptId, `${seed}#slip:${i}`, aim, exports.PRACTICE_DRAW_ATTEMPTS, served);
+        if (q && (q.misconceptionTags ?? []).includes(slip))
+            return { question: q, targeted: true };
+    }
+    return { question: first, targeted: false };
+}
 function servePractice(input) {
     const { state, conceptId } = input;
     const subject = (0, genome_1.getConcept)(conceptId)?.subject;
@@ -34219,6 +35225,9 @@ function servePractice(input) {
     const aim = practiceAim(state, conceptId);
     let question;
     let surface = "direct";
+    /** Default false: a transfer, a plain draw and a retention check are not claims
+     *  about the slip, so only the repair branch can set it. */
+    let slipCheck = false;
     if (isTransfer) {
         // Genuine transfer is a re-framing the serve can really deliver, and what
         // counts as one — plus which draw delivers it — is decided in
@@ -34232,10 +35241,16 @@ function servePractice(input) {
         surface = served.surface;
     }
     else {
-        const drawn = (0, questions_1.generateQuestionNear)(conceptId, seed, aim.aim, exports.PRACTICE_DRAW_ATTEMPTS, state.servedPractice?.[conceptId] ?? []);
-        if (!drawn)
+        // A REPAIR AIMS AT THE SLIP, NOT JUST LOWER.
+        // `currentSlip` is the same rule the next-step engine uses to decide whether a
+        // slip is still actionable (three clean answers retire it), so a serve cannot
+        // chase a belief the rest of the product has already considered repaired.
+        const slip = aim.target.reason === "repair" ? (0, learner_model_1.currentSlip)(state.progress?.[conceptId])?.id ?? null : null;
+        const drawn = drawPractice(conceptId, seed, aim.aim, state.servedPractice?.[conceptId] ?? [], slip);
+        if (!drawn.question)
             return { ok: false, error: "no_question" };
-        question = drawn;
+        question = drawn.question;
+        slipCheck = drawn.targeted;
     }
     // Record the served item so the NEXT serve on this concept skips it. Always
     // appended, even a repeat: the list rotates, so the most recently served key
@@ -34266,6 +35281,7 @@ function servePractice(input) {
             reframed: isTransfer ? surface !== "direct" : false,
             transferable: (0, transfer_1.canTransfer)(conceptId),
             isTransfer,
+            slipCheck,
         },
     };
 }
@@ -34293,10 +35309,14 @@ __def("papers.js", function (module, exports, require) {
 // estimate, because real boundaries move every series.
 // ─────────────────────────────────────────────────────────────────────────────
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PAPERS = void 0;
+exports.NEEDS_PAPER_SLOTS = exports.PAPERS = void 0;
 exports.papersForSpec = papersForSpec;
+exports.genericPapers = genericPapers;
 exports.genericPaper = genericPaper;
 exports.defaultPaperFor = defaultPaperFor;
+exports.needsReading = needsReading;
+exports.needsPaperId = needsPaperId;
+exports.needsPaper = needsPaper;
 exports.paperConcepts = paperConcepts;
 exports.buildPaper = buildPaper;
 exports.markPaper = markPaper;
@@ -34304,9 +35324,15 @@ exports.paperConceptsTested = paperConceptsTested;
 exports.paperById = paperById;
 exports.specNameFor = specNameFor;
 const genome_1 = require("./genome");
+const i18n_1 = require("./i18n");
 const subjects_1 = require("./subjects");
 const specifications_1 = require("./specifications");
 const questions_1 = require("./questions");
+// The one model of "what does this learner need" (lib/learner-model), asked by
+// the record-built paper. Read, never re-derived: a second notion of "weak"
+// here is a paper that disagrees with the next-step card about the same learner.
+const learner_model_1 = require("./learner-model");
+const transfer_1 = require("./transfer");
 /** Section totals must add up to the declared paper total, or the paper lies
  *  about its own length. Checked here at module load, loudly. */
 function paper(t) {
@@ -34314,16 +35340,40 @@ function paper(t) {
     if (t.marks !== undefined && t.marks !== total) {
         throw new Error(`paper ${t.id}: declared ${t.marks} marks but sections total ${total}`);
     }
-    return { ...t, marks: total };
+    return { ...t, basis: t.basis ?? "published", marks: total };
 }
 const GCSE_BOUNDARIES = [
     { grade: "9", pct: 0.80 }, { grade: "8", pct: 0.70 }, { grade: "7", pct: 0.62 },
     { grade: "6", pct: 0.53 }, { grade: "5", pct: 0.44 }, { grade: "4", pct: 0.34 },
 ];
+const ALEVEL_BOUNDARIES = [
+    { grade: "A*", pct: 0.80 }, { grade: "A", pct: 0.70 }, { grade: "B", pct: 0.60 }, { grade: "C", pct: 0.50 },
+];
+const SAT_BOUNDARIES = [
+    { grade: "800", pct: 0.96 }, { grade: "700", pct: 0.85 }, { grade: "600", pct: 0.72 }, { grade: "500", pct: 0.58 },
+];
+const KCSE_BOUNDARIES = [
+    { grade: "A", pct: 0.8 }, { grade: "B", pct: 0.65 }, { grade: "C", pct: 0.5 }, { grade: "D", pct: 0.35 },
+];
+const NSC_BOUNDARIES = [
+    { grade: "7", pct: 0.8 }, { grade: "6", pct: 0.7 }, { grade: "5", pct: 0.6 }, { grade: "4", pct: 0.5 }, { grade: "3", pct: 0.4 },
+];
+/** The bands a specification-BUILT paper is estimated against. An awarding
+ *  body's own table is data (above); a built paper has no published one, so it
+ *  is measured against the tier's own difficulty — and the grade it reports is
+ *  labelled an estimate wherever it is shown. */
+function builtBoundaries(d) {
+    return [
+        { grade: "A", pct: d + 0.15 },
+        { grade: "B", pct: d + 0.02 },
+        { grade: "C", pct: Math.max(0.3, d - 0.12) },
+        { grade: "Pass", pct: Math.max(0.2, d - 0.28) },
+    ];
+}
 exports.PAPERS = [
     paper({
         id: "aqa-gcse-maths-p1", name: "GCSE Mathematics — Paper 1 (non-calculator)",
-        subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        board: "aqa", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
         sections: [
             { name: "Section A", count: 10, marksEach: 2, difficulty: 0.4 },
             { name: "Section B", count: 12, marksEach: 4, difficulty: 0.55 },
@@ -34332,7 +35382,7 @@ exports.PAPERS = [
     }),
     paper({
         id: "edexcel-gcse-maths-p1", name: "GCSE Mathematics — Paper 1 (non-calculator)",
-        subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        board: "edexcel", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
         sections: [
             { name: "Section A", count: 12, marksEach: 2, difficulty: 0.4 },
             { name: "Section B", count: 11, marksEach: 4, difficulty: 0.55 },
@@ -34341,8 +35391,8 @@ exports.PAPERS = [
     }),
     paper({
         id: "aqa-alevel-maths-p1", name: "A-Level Mathematics — Paper 1 (Pure)",
-        subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"],
-        boundaries: [{ grade: "A*", pct: 0.80 }, { grade: "A", pct: 0.70 }, { grade: "B", pct: 0.60 }, { grade: "C", pct: 0.50 }],
+        board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"],
+        boundaries: ALEVEL_BOUNDARIES,
         sections: [
             { name: "Section A", count: 10, marksEach: 4, difficulty: 0.78 },
             { name: "Section B", count: 6, marksEach: 10, difficulty: 0.9 },
@@ -34369,6 +35419,12 @@ exports.PAPERS = [
     paper({
         id: "cbse-class10-maths-standard", name: "CBSE Class 10 Mathematics (Standard)",
         subject: "maths", minutes: 180, calculator: false, specs: ["in-cbse"],
+        // THE COUNTS ARE CBSE'S OWN, section by section, and they land exactly on the
+        // paper's published 80 marks: Section A 20 one-mark items (18 multiple choice
+        // and 2 assertion-reason), B 5 two-mark, C 6 three-mark, D 4 five-mark, E 3
+        // case-study — 38 questions in 180 minutes.
+        itemCounts: "published",
+        shapeSource: "https://cbseacademic.nic.in/web_material/CurriculumMain26/Sec/Maths_Sec_2025-26.pdf",
         boundaries: [{ grade: "A1", pct: 0.9 }, { grade: "A2", pct: 0.8 }, { grade: "B1", pct: 0.7 }, { grade: "B2", pct: 0.6 }, { grade: "Pass", pct: 0.33 }],
         sections: [
             { name: "Section A", count: 20, marksEach: 1, difficulty: 0.35 },
@@ -34392,30 +35448,188 @@ exports.PAPERS = [
     paper({
         id: "digital-sat-math", name: "Digital SAT — Math module",
         subject: "maths", minutes: 35, calculator: true, specs: ["us-sat"],
-        boundaries: [{ grade: "800", pct: 0.96 }, { grade: "700", pct: 0.85 }, { grade: "600", pct: 0.72 }, { grade: "500", pct: 0.58 }],
+        boundaries: SAT_BOUNDARIES,
         sections: [{ name: "Module", count: 22, marksEach: 1, difficulty: 0.62 }],
+    }),
+    paper({
+        id: "digital-sat-math-2", name: "Digital SAT — Math module 2 (harder)",
+        subject: "maths", minutes: 35, calculator: true, specs: ["us-sat"], boundaries: SAT_BOUNDARIES,
+        sections: [{ name: "Module", count: 22, marksEach: 1, difficulty: 0.7 }],
+    }),
+    // ── GUATEMALA · Evaluaci\u00f3n Graduandos ──────────────────────────────────
+    // The graduation assessment is TWO computer-based tests — Lectura and
+    // Matem\u00e1tica — of multiple-choice items, not a suite of subject papers. This is
+    // the Matem\u00e1tica one, in the form the ministry administers it: one run of
+    // single-mark multiple-choice items on a clock, no written section.
+    //
+    // THE COUNTS ARE DIGEDUCA'S OWN, from the guides it published for the 2024
+    // sitting (Matemática 45 items in 90 minutes; Lectura 45-50 in 60) — not from
+    // a complete past form, because DIGEDUCA publishes study guides and example
+    // items rather than historic papers. So the SHAPE is the ministry's and the
+    // questions are OpenMind's, which is what `basis: "published"` says.
+    //
+    // NO GRADE BOUNDARIES ON PURPOSE. DIGEDUCA reports achievement in the two
+    // areas; it does not publish cut scores for grades, and inventing an A/B/C
+    // table would be a claim about another country's examination that nothing
+    // supports. The result screen shows the mark and no grade rather than a
+    // fabricated one (markPaper returns null, and the boundaries block is not
+    // rendered when there is nothing to render).
+    paper({
+        id: "gt-graduandos-matematica", name: "Evaluación Graduandos — Matemática",
+        board: "guatemalan", subject: "maths", minutes: 90, calculator: false,
+        specs: ["gt-diversificado"], boundaries: [],
+        itemCounts: "published",
+        shapeSource: "https://edu.mineduc.gob.gt/DIGEDUCA/documents/2024/Contenido-Matematica-GRAD-2024.pdf",
+        shapeNote: "DIGEDUCA administers Graduandos as two computer-based tests, Lectura and Matemática; this is the Matemática one (45 multiple-choice items, 90 minutes). It reports achievement in four levels rather than grades, so no grade is shown here.",
+        sections: [{ name: "Multiple choice", count: 45, marksEach: 1, difficulty: 0.56 }],
+    }),
+    // ── VIETNAM · tot nghiep THPT ────────────────────────────────────────────
+    // ONE mathematics test, 90 minutes, and the ministry publishes its own item
+    // structure: 12 four-option multiple-choice questions, four true/false groups
+    // of four statements each, and six short-answer questions written on the answer
+    // sheet. The ministry counts 22 question GROUPS and 34 prompts, because each
+    // true/false group carries four statements; this paper is 34 items for the same
+    // reason. It also states that the construction of a given sitting may be
+    // adjusted, so the counts are cited rather than asserted as fixed.
+    paper({
+        id: "vn-thpt-mathematics", name: "Tốt nghiệp THPT — Mathematics",
+        subject: "maths", minutes: 90, calculator: false, specs: ["vn-thpt"], boundaries: [],
+        itemCounts: "published",
+        shapeSource: "https://vqa.moet.gov.vn/vi/news/thong-bao/cau-truc-dinh-dang-de-thi-tot-nghiep-thpt-tu-nam-2025-74.html",
+        shapeNote: "Vietnam's Ministry of Education and Training publishes this structure — 12 multiple choice, 4 true/false groups of 4 statements, 6 short answer, 34 prompts in 90 minutes — and states that a given sitting's construction may be adjusted.",
+        sections: [
+            { name: "Part I · multiple choice", count: 12, marksEach: 2, difficulty: 0.5 },
+            { name: "Part II · true/false groups", count: 16, marksEach: 1, difficulty: 0.66 },
+            { name: "Part III · short answer", count: 6, marksEach: 3, difficulty: 0.76 },
+        ],
+    }),
+    // ── TANZANIA · CSEE ─────────────────────────────────────────────────────
+    // ONE paper of three hours, not two: NECTA sets Basic Mathematics as a single
+    // sitting in two sections, and its own performance analysis describes 14
+    // questions — 10 in Section A and 4 in Section B. The CSEE timetable places it
+    // at 8:00-11:00. Section B questions carry more of the paper's marks, which is
+    // why the two sections are weighted differently here.
+    paper({
+        id: "csee-basic-mathematics", name: "CSEE Basic Mathematics",
+        subject: "maths", minutes: 180, calculator: true, specs: ["tz-csee"], boundaries: [],
+        itemCounts: "published",
+        shapeSource: "https://www.necta.go.tz/pages/csee",
+        shapeNote: "NECTA sets one three-hour Basic Mathematics paper in two sections (10 questions in Section A, 4 in Section B).",
+        sections: [
+            { name: "Section A", count: 10, marksEach: 5, difficulty: 0.5 },
+            { name: "Section B", count: 4, marksEach: 10, difficulty: 0.72 },
+        ],
+    }),
+    // ── NIGERIA · SSCE ─────────────────────────────────────────────────────
+    // TWO components, which both Nigerian examining bodies set: an objective paper
+    // and a written one. The TIMES are NECO's, read from its own published
+    // timetable — objective 1 hour 45, essay 2 hours 30 — because that is the
+    // document that could be read in full; WAEC's own timetable gives the same two
+    // components at 1 hour 30 and 2 hours 30. Neither body's document states item
+    // counts, so `itemCounts: "paced"` and the question counts below are OpenMind's
+    // pace to the stated time, not a claim about the Nigerian paper.
+    paper({
+        id: "ssce-mathematics-objective", name: "SSCE Mathematics — Paper 1 (objective)",
+        subject: "maths", minutes: 105, calculator: false, specs: ["ng-waec"], boundaries: [],
+        itemCounts: "paced",
+        shapeSource: "https://neco.gov.ng/2025%20SSCE%20INTERNAL%20TIMETABLE.pdf",
+        shapeNote: "Nigerian SSCE mathematics is two papers: an objective paper and a written one. The times here are NECO's own (1 hour 45 and 2 hours 30); WAEC sets the same two components at 1 hour 30 and 2 hours 30. Neither publishes an item count, so the number of questions is OpenMind's pace to the stated time.",
+        sections: [{ name: "Objective", count: 40, marksEach: 1, difficulty: 0.45 }],
+    }),
+    paper({
+        id: "ssce-mathematics-essay", name: "SSCE Mathematics — Paper 2 (essay)",
+        subject: "maths", minutes: 150, calculator: true, specs: ["ng-waec"], boundaries: [],
+        itemCounts: "paced",
+        shapeSource: "https://neco.gov.ng/2025%20SSCE%20INTERNAL%20TIMETABLE.pdf",
+        sections: [
+            { name: "Section A · answer all", count: 8, marksEach: 5, difficulty: 0.5 },
+            { name: "Section B · longer answers", count: 6, marksEach: 10, difficulty: 0.72 },
+        ],
+    }),
+    // ── UGANDA · UCE ────────────────────────────────────────────────────────
+    // TWO papers, Mathematics 456/1 and 456/2, each two and a half hours in UNEB's
+    // own transitional timetable — and no objective component appears in it, so
+    // both are written papers here. UNEB's published paper format was not readable,
+    // so the item counts are paced, not claimed.
+    paper({
+        id: "uce-mathematics-1", name: "UCE Mathematics — Paper 1 (456/1)",
+        subject: "maths", minutes: 150, calculator: true, specs: ["ug-uce"], boundaries: [],
+        itemCounts: "paced",
+        shapeSource: "https://ereg.uneb.ac.ug/files/uce_transitional_timetable_2024.pdf",
+        shapeNote: "UNEB sets two UCE Mathematics papers (456/1 and 456/2), each two and a half hours, with no objective component. The number of questions here is OpenMind's pace to that time.",
+        sections: [
+            { name: "Section A · short questions", count: 12, marksEach: 4, difficulty: 0.48 },
+            { name: "Section B · longer questions", count: 5, marksEach: 10, difficulty: 0.7 },
+        ],
+    }),
+    paper({
+        id: "uce-mathematics-2", name: "UCE Mathematics — Paper 2 (456/2)",
+        subject: "maths", minutes: 150, calculator: true, specs: ["ug-uce"], boundaries: [],
+        itemCounts: "paced",
+        shapeSource: "https://ereg.uneb.ac.ug/files/uce_transitional_timetable_2024.pdf",
+        sections: [
+            { name: "Section A · short questions", count: 12, marksEach: 4, difficulty: 0.55 },
+            { name: "Section B · longer questions", count: 5, marksEach: 10, difficulty: 0.78 },
+        ],
+    }),
+    // ── BRAZIL · ENEM ───────────────────────────────────────────────────────
+    // ENEM HAS NO MATHEMATICS PAPER. It is one exam in two days of areas, and the
+    // second day carries 90 objective questions in 300 minutes — 45 of them
+    // "Matemática e suas Tecnologias" and 45 natural sciences. So the ITEM COUNT is
+    // the ministry's (45, published in its own booklet) while the TIME here is that
+    // count's share of the day (150 of 300 minutes for 45 of 90 items), because
+    // there is no maths-only sitting to copy a time from and dividing the day is
+    // the only honest way to give a learner a clock. Both facts are stated on the
+    // paper rather than left in this comment.
+    paper({
+        id: "enem-matematica", name: "ENEM — Matemática e suas Tecnologias",
+        subject: "maths", minutes: 150, calculator: false, specs: ["br-enem"], boundaries: [],
+        itemCounts: "published",
+        shapeSource: "https://download.inep.gov.br/enem/provas_e_gabaritos/2025_PV_impresso_D2_CD5.pdf",
+        shapeNote: "ENEM is one exam in two days; the second day has 90 objective questions in 300 minutes, 45 of them mathematics. This is the mathematics half, so the item count is INEP's and the time is that half of the day.",
+        sections: [{ name: "Objective", count: 45, marksEach: 1, difficulty: 0.62 }],
     }),
     paper({
         id: "kcse-maths-p1", name: "KCSE Mathematics — Paper 1",
         subject: "maths", minutes: 150, calculator: false, specs: ["ke-kcse"],
-        boundaries: [{ grade: "A", pct: 0.8 }, { grade: "B", pct: 0.65 }, { grade: "C", pct: 0.5 }, { grade: "D", pct: 0.35 }],
+        boundaries: KCSE_BOUNDARIES,
+        // KNEC's own regulations state the two papers and their times; its PDF could
+        // not be read in full, so the item counts are NOT claimed and the citation is
+        // named as the structure's source rather than as proof of its counts.
+        shapeSource: "https://knec.ac.ke/wp-content/uploads/2026/01/KCSE_Regulations_2024.pdf",
         sections: [
             { name: "Section I", count: 16, marksEach: 2, difficulty: 0.45 },
             { name: "Section II", count: 5, marksEach: 10, difficulty: 0.7 },
         ],
     }),
     paper({
+        id: "kcse-maths-p2", name: "KCSE Mathematics — Paper 2",
+        subject: "maths", minutes: 150, calculator: false, specs: ["ke-kcse"], boundaries: KCSE_BOUNDARIES,
+        sections: [
+            { name: "Section I", count: 16, marksEach: 2, difficulty: 0.5 },
+            { name: "Section II", count: 5, marksEach: 10, difficulty: 0.78 },
+        ],
+    }),
+    paper({
         id: "caps-maths-p1", name: "NSC Mathematics — Paper 1 (CAPS)",
         subject: "maths", minutes: 180, calculator: true, specs: ["za-nsc"],
-        boundaries: [{ grade: "7", pct: 0.8 }, { grade: "6", pct: 0.7 }, { grade: "5", pct: 0.6 }, { grade: "4", pct: 0.5 }, { grade: "3", pct: 0.4 }],
+        boundaries: NSC_BOUNDARIES,
         sections: [
             { name: "Section A", count: 10, marksEach: 5, difficulty: 0.5 },
             { name: "Section B", count: 5, marksEach: 20, difficulty: 0.72 },
         ],
     }),
     paper({
+        id: "caps-maths-p2", name: "NSC Mathematics — Paper 2 (CAPS)",
+        subject: "maths", minutes: 180, calculator: true, specs: ["za-nsc"], boundaries: NSC_BOUNDARIES,
+        sections: [
+            { name: "Section A", count: 10, marksEach: 5, difficulty: 0.55 },
+            { name: "Section B", count: 5, marksEach: 20, difficulty: 0.78 },
+        ],
+    }),
+    paper({
         id: "aqa-gcse-physics", name: "GCSE Physics — Paper 1",
-        subject: "physics", minutes: 75, calculator: true, specs: ["uk-gcse"],
+        board: "aqa", subject: "physics", minutes: 75, calculator: true, specs: ["uk-gcse"],
         boundaries: GCSE_BOUNDARIES,
         sections: [
             { name: "Section A", count: 10, marksEach: 3, difficulty: 0.45 },
@@ -34424,7 +35638,7 @@ exports.PAPERS = [
     }),
     paper({
         id: "aqa-gcse-chemistry", name: "GCSE Chemistry — Paper 1",
-        subject: "chemistry", minutes: 75, calculator: true, specs: ["uk-gcse"],
+        board: "aqa", subject: "chemistry", minutes: 75, calculator: true, specs: ["uk-gcse"],
         boundaries: GCSE_BOUNDARIES,
         sections: [
             { name: "Section A", count: 10, marksEach: 3, difficulty: 0.45 },
@@ -34433,11 +35647,99 @@ exports.PAPERS = [
     }),
     paper({
         id: "aqa-gcse-biology", name: "GCSE Biology — Paper 1",
-        subject: "biology", minutes: 75, calculator: false, specs: ["uk-gcse"],
+        board: "aqa", subject: "biology", minutes: 75, calculator: false, specs: ["uk-gcse"],
         boundaries: GCSE_BOUNDARIES,
         sections: [
             { name: "Section A", count: 10, marksEach: 2, difficulty: 0.42 },
             { name: "Section B", count: 6, marksEach: 5, difficulty: 0.6 },
+        ],
+    }),
+    // ── THE PAPERS AFTER PAPER 1 ────────────────────────────────────────────────
+    // A board's maths GCSE is THREE papers and a separate science is TWO, so a
+    // candidate who could only sit Paper 1 was practising a third or a half of
+    // their exam — and the two halves are not interchangeable: Paper 1 forbids a
+    // calculator and Paper 2 requires one, and Paper 2 is where the multi-step
+    // work and the required practicals live. These are the shapes the awarding
+    // bodies PUBLISH (marks, time, calculator rule, section weighting, tier);
+    // every question in them is still OpenMind's own, written to the
+    // specification — see the note at the top of this file.
+    paper({
+        id: "aqa-gcse-maths-p2", name: "GCSE Mathematics — Paper 2 (calculator)",
+        board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        sections: [
+            { name: "Section A", count: 10, marksEach: 2, difficulty: 0.42 },
+            { name: "Section B", count: 12, marksEach: 4, difficulty: 0.58 },
+            { name: "Section C", count: 2, marksEach: 6, difficulty: 0.74 },
+        ],
+    }),
+    paper({
+        id: "aqa-gcse-maths-p3", name: "GCSE Mathematics — Paper 3 (calculator)",
+        board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        sections: [
+            { name: "Section A", count: 12, marksEach: 2, difficulty: 0.45 },
+            { name: "Section B", count: 10, marksEach: 4, difficulty: 0.6 },
+            { name: "Section C", count: 2, marksEach: 8, difficulty: 0.76 },
+        ],
+    }),
+    paper({
+        id: "edexcel-gcse-maths-p2", name: "GCSE Mathematics — Paper 2 (calculator)",
+        board: "edexcel", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        sections: [
+            { name: "Section A", count: 12, marksEach: 2, difficulty: 0.42 },
+            { name: "Section B", count: 11, marksEach: 4, difficulty: 0.58 },
+            { name: "Section C", count: 2, marksEach: 6, difficulty: 0.74 },
+        ],
+    }),
+    paper({
+        id: "edexcel-gcse-maths-p3", name: "GCSE Mathematics — Paper 3 (calculator)",
+        board: "edexcel", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        sections: [
+            { name: "Section A", count: 12, marksEach: 2, difficulty: 0.46 },
+            { name: "Section B", count: 12, marksEach: 4, difficulty: 0.62 },
+            { name: "Section C", count: 1, marksEach: 8, difficulty: 0.78 },
+        ],
+    }),
+    paper({
+        id: "aqa-gcse-physics-p2", name: "GCSE Physics — Paper 2",
+        board: "aqa", subject: "physics", minutes: 105, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        sections: [
+            { name: "Section A", count: 20, marksEach: 2, difficulty: 0.5 },
+            { name: "Section B", count: 10, marksEach: 4, difficulty: 0.65 },
+            { name: "Section C", count: 4, marksEach: 5, difficulty: 0.78 },
+        ],
+    }),
+    paper({
+        id: "aqa-gcse-chemistry-p2", name: "GCSE Chemistry — Paper 2",
+        board: "aqa", subject: "chemistry", minutes: 105, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        sections: [
+            { name: "Section A", count: 20, marksEach: 2, difficulty: 0.48 },
+            { name: "Section B", count: 10, marksEach: 4, difficulty: 0.63 },
+            { name: "Section C", count: 4, marksEach: 5, difficulty: 0.76 },
+        ],
+    }),
+    paper({
+        id: "aqa-gcse-biology-p2", name: "GCSE Biology — Paper 2",
+        board: "aqa", subject: "biology", minutes: 105, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        sections: [
+            { name: "Section A", count: 20, marksEach: 2, difficulty: 0.45 },
+            { name: "Section B", count: 10, marksEach: 4, difficulty: 0.62 },
+            { name: "Section C", count: 4, marksEach: 5, difficulty: 0.74 },
+        ],
+    }),
+    paper({
+        id: "aqa-alevel-maths-p2", name: "A-Level Mathematics — Paper 2",
+        board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], boundaries: ALEVEL_BOUNDARIES,
+        sections: [
+            { name: "Section A", count: 10, marksEach: 4, difficulty: 0.8 },
+            { name: "Section B", count: 5, marksEach: 12, difficulty: 0.9 },
+        ],
+    }),
+    paper({
+        id: "aqa-alevel-maths-p3", name: "A-Level Mathematics — Paper 3",
+        board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], boundaries: ALEVEL_BOUNDARIES,
+        sections: [
+            { name: "Section A", count: 8, marksEach: 5, difficulty: 0.82 },
+            { name: "Section B", count: 4, marksEach: 15, difficulty: 0.92 },
         ],
     }),
 ];
@@ -34446,40 +35748,196 @@ function papersForSpec(specId, subject) {
     return exports.PAPERS.filter((p) => p.specs.includes(specId) && (!subject || p.subject === subject));
 }
 /**
- * A paper for a qualification that has no authored blueprint. Built from the
- * REAL difficulty band and coverage of that qualification's tier, and labelled
- * as what it is: an exam-style paper to the specification, not a board mock.
+ * Papers for a qualification that has no authored board blueprint. A SET, not
+ * one paper: a learner revising for an exam needs more than a single mock, and
+ * three was the smallest number that gives them a first pass, a harder pass and
+ * a full-length sitting. Every paper is built from the REAL difficulty band and
+ * coverage of that qualification's tier, and labelled as what it is: an
+ * exam-style paper to the specification, not a board mock.
+ *
+ * The three differ in SHAPE, not only in seed — a paper that merely drew
+ * different questions from the same sections would not be a different paper:
+ *
+ *   Paper 1  short answers — recall and one-step work, the first pass
+ *   Paper 2  extended response — fewer, longer questions at a higher target
+ *   Paper 3  full mock — the mixed length and breadth of a real sitting
  */
-function genericPaper(active, subject, lang) {
+function genericPapers(active, subject, lang) {
     const d = active.level.difficulty;
     const count = subject === "maths" ? 20 : 14;
-    return paper({
-        id: `spec-${active.spec.id}-${active.level.id}-${subject}`,
-        // The name is the translated subject, and nothing else: the qualification
-        // and tier are already the heading, so spelling out the raw subject id
-        // here is how "— maths paper" used to leak English into a translated UI.
-        name: (0, subjects_1.subjectLabel)(subject, lang),
-        subject,
-        minutes: Math.max(30, Math.round(count * 3.5)),
-        calculator: true,
-        specs: [active.spec.id],
-        boundaries: [
-            { grade: "A", pct: d + 0.15 },
-            { grade: "B", pct: d + 0.02 },
-            { grade: "C", pct: Math.max(0.3, d - 0.12) },
-            { grade: "Pass", pct: Math.max(0.2, d - 0.28) },
-        ],
-        sections: [
-            { name: "Short answers", count: Math.round(count * 0.6), marksEach: 2, difficulty: Math.max(0.2, d - 0.15) },
-            { name: "Longer questions", count: count - Math.round(count * 0.6), marksEach: 5, difficulty: d },
-        ],
-    });
+    // The NAME is UI, not data: the translated subject plus the paper's number,
+    // both of which the learner's language already has. Spelling out the raw
+    // subject id here is how "— maths paper" used to leak English into a
+    // translated page, and a hard-coded "Paper 2" would leak it again.
+    const label = (0, subjects_1.subjectLabel)(subject, lang);
+    const t = (0, i18n_1.translator)(lang ?? "en");
+    const named = (n) => `${label} · ${(0, i18n_1.fill)(t("pp.paper"), { n })}`;
+    const base = `spec-${active.spec.id}-${active.level.id}-${subject}`;
+    const boundaries = builtBoundaries(d);
+    const common = {
+        subject, calculator: true, specs: [active.spec.id], boundaries,
+        // THE SET EVERY COUNTRY WITHOUT A BLUEPRINT RECEIVES. It is OpenMind's own
+        // shape at the qualification's band, so it says so on every row that shows
+        // it — the one thing it must never do is pass for the learner's exam.
+        basis: "modelled",
+    };
+    const shortCount = Math.round(count * 0.6);
+    return [
+        paper({
+            ...common,
+            id: `${base}-p1`,
+            name: named(1),
+            minutes: Math.max(30, Math.round(count * 3)),
+            sections: [
+                { name: "Short answers", count: Math.round(count * 0.7), marksEach: 2, difficulty: Math.max(0.2, d - 0.2) },
+                { name: "Working", count: count - Math.round(count * 0.7), marksEach: 4, difficulty: Math.max(0.2, d - 0.08) },
+            ],
+        }),
+        paper({
+            ...common,
+            id: `${base}-p2`,
+            name: named(2),
+            minutes: Math.max(30, Math.round(count * 3.5)),
+            sections: [
+                { name: "Short answers", count: Math.round(count * 0.5), marksEach: 3, difficulty: Math.max(0.2, d - 0.1) },
+                { name: "Extended response", count: count - Math.round(count * 0.5), marksEach: 6, difficulty: Math.min(1, d + 0.1) },
+            ],
+        }),
+        paper({
+            ...common,
+            id: `${base}-p3`,
+            name: named(3),
+            minutes: Math.max(30, Math.round(count * 4)),
+            sections: [
+                { name: "Short answers", count: shortCount, marksEach: 2, difficulty: Math.max(0.2, d - 0.15) },
+                { name: "Longer questions", count: count - shortCount, marksEach: 5, difficulty: d },
+            ],
+        }),
+    ];
+}
+/** The first of the set, for callers that need exactly one paper: the default
+ *  offer, and the name/language contract the engine tests assert. */
+function genericPaper(active, subject, lang) {
+    return genericPapers(active, subject, lang)[0];
 }
 /** The paper a student should be offered first: an authored board paper when
  *  their qualification has one, otherwise the specification-built paper. */
 function defaultPaperFor(active, subject, lang) {
     const authored = papersForSpec(active.spec.id, subject)[0];
     return authored ?? genericPaper(active, subject, lang);
+}
+// ── A PAPER BUILT FROM THE LEARNER'S OWN RECORD ─────────────────────────────
+//
+// EVERY OTHER PAPER IS THE SAME FOR EVERY LEARNER. `paperConcepts` hands the
+// assembly the qualification's whole coverage and the draw takes a uniform pick
+// from it, so one learner who has failed linear equations six times and one who
+// has never met them are asked the same NUMBER of questions about them. The
+// difficulty is the course's and the shape is the awarder's, but the CONTENT is
+// nobody's in particular.
+//
+// This is the paper that is theirs. Its candidates come from the learner model
+// the rest of the product already decides with (lib/learner-model — mastery, the
+// raw correct/attempts counts, the live slip), restricted to concepts their OWN
+// qualification teaches — and they are the WHOLE candidate set. No question here
+// is drawn from ground the record has not spoken about: the moment most of the
+// questions come from elsewhere, the paper is the ordinary one wearing a
+// different name. Its length is therefore the size of the work it is about, and
+// the row's promise — every question from the ideas this record calls weakest —
+// is true of every paper it builds.
+//
+// MEASURED, because the first version of this was wrong in a way that read as
+// correct: it topped a thin set back up to eight with in-course concepts the
+// record had never met. Against a learner who had sat ONLY the baseline
+// diagnostic, the finished paper was 8 questions of which 1–4 came from their own
+// record — computing 1 of 8, maths 4 of 8 — while its row said "built from your
+// record" and its panel said every question came from their weakest ideas. That
+// is the ordinary paper under a personal name, which is worse than no paper.
+//
+// THE RANKING IS THE ENGINE'S OWN FIRST TIER. `stuckOn` — measured, below the
+// established bar, and with at least one answer wrong — is the predicate
+// `decideNext` puts first, so the paper and the next-step card cannot disagree
+// about which idea is in trouble. Below it, weakest mastery first, and among
+// equals the LEAST RECENTLY SEEN, because that is the one most likely to have
+// gone. The draw from the set is a uniform pick (`pick` indexes the list by a
+// hash), so this ORDER is not prominence: it decides which ideas a CAP-length
+// paper keeps, and nothing else.
+//
+// WHAT IT DELIBERATELY IS NOT: a diagnostic. A concept nobody has asked about
+// has no evidence of need, so it is not in the paper at all — which is why a
+// learner who has answered nothing is offered nothing.
+/** How long a record-built paper may be. The floor is one question in EACH
+ *  section — a section with nothing in it is not a section, which is what makes
+ *  the floor 2 rather than 1 — and the ceiling is the most a learner will finish
+ *  in one go. */
+exports.NEEDS_PAPER_SLOTS = { min: 2, max: 24 };
+/**
+ * What THIS learner's record says the paper should be about.
+ *
+ * Pure — the state in, the reading out — so the suite can pin the ranking on a
+ * synthetic record instead of trusting a live one.
+ */
+function needsReading(state, active, subject) {
+    const course = paperConcepts(active, subject);
+    if (course.length === 0)
+        return { weak: [], candidates: [], slots: exports.NEEDS_PAPER_SLOTS.min };
+    // COURSE MEMBERSHIP IS THE FILTER, and it is not cosmetic: a learner who
+    // changed qualification carries evidence on concepts their NEW course does not
+    // contain, and a paper that asked about those would be examining them on work
+    // they are no longer being taught.
+    const inCourse = new Set(course);
+    const seen = (0, learner_model_1.buildSnapshot)(state).evidence.filter((e) => inCourse.has(e.conceptId));
+    const need = (a, b) => Number((0, learner_model_1.stuckOn)(b)) - Number((0, learner_model_1.stuckOn)(a)) || a.mastery - b.mastery || a.lastSeen - b.lastSeen;
+    const weak = seen
+        .filter((e) => !(0, learner_model_1.conceptDone)(e, transfer_1.canTransfer))
+        .sort(need)
+        .map((e) => e.conceptId);
+    const slots = Math.min(exports.NEEDS_PAPER_SLOTS.max, Math.max(exports.NEEDS_PAPER_SLOTS.min, weak.length));
+    // THE PAPER IS THE WEAK SET, CAPPED — never topped up. A record with more than
+    // the ceiling's worth keeps the ranking's own first `max`; one with less than a
+    // floor's worth gets a paper over what little is known, which is short, true,
+    // and grows as they work.
+    const candidates = weak.slice(0, exports.NEEDS_PAPER_SLOTS.max);
+    return { weak, candidates, slots };
+}
+/** The record-built paper's id, derived exactly as every other built paper's is
+ *  — exposed so a caller can RECOGNISE it without building the template (the
+ *  template's length, unlike its id, depends on the record). */
+function needsPaperId(active, subject) {
+    return `spec-${active.spec.id}-${active.level.id}-${subject}-needs`;
+}
+/**
+ * The record-built paper's SHAPE: the full mock's sections, as long as the work
+ * it is about.
+ *
+ * The name is UI, exactly as `genericPapers`' is — the translated subject and a
+ * translated phrase — so a translated page never shows an English paper name.
+ * (The ID carries no language, or a learner switching language would be sent to
+ * a paper that does not exist.)
+ */
+function needsPaper(active, subject, lang, slots = exports.NEEDS_PAPER_SLOTS.max) {
+    const d = active.level.difficulty;
+    const count = Math.min(exports.NEEDS_PAPER_SLOTS.max, Math.max(exports.NEEDS_PAPER_SLOTS.min, Math.round(slots)));
+    const label = (0, subjects_1.subjectLabel)(subject, lang);
+    const t = (0, i18n_1.translator)(lang ?? "en");
+    const shortCount = Math.round(count * 0.6);
+    return paper({
+        id: needsPaperId(active, subject),
+        name: `${label} · ${t("pp.needs")}`,
+        subject,
+        calculator: true,
+        specs: [active.spec.id],
+        basis: "modelled",
+        itemCounts: "paced",
+        // Scaled to the sitting, because this paper can be SHORT — the house floor of
+        // 30 minutes is for a mock of a mock's length, and printing 20 minutes over
+        // two questions would be one more claim the paper cannot keep.
+        minutes: Math.max(7, Math.round(count * 3.5)),
+        boundaries: builtBoundaries(d),
+        sections: [
+            { name: "Short answers", count: shortCount, marksEach: 2, difficulty: Math.max(0.2, d - 0.15) },
+            { name: "Longer questions", count: count - shortCount, marksEach: 5, difficulty: Math.min(1, d + 0.05) },
+        ],
+    });
 }
 /** Concepts in this qualification that have a generator to draw from. */
 function paperConcepts(active, subject) {
@@ -34516,7 +35974,7 @@ function drawFor(candidates, seed, target) {
 }
 function buildPaper(opts) {
     const template = opts.template ?? defaultPaperFor(opts.active, opts.subject, opts.lang);
-    const candidates = paperConcepts(opts.active, opts.subject);
+    const candidates = opts.concepts?.length ? opts.concepts : paperConcepts(opts.active, opts.subject);
     const id = `pap_${(0, questions_1.hashSeed)(`${template.id}:${opts.seed}`).toString(36)}${(0, questions_1.hashSeed)(opts.seed).toString(36)}`;
     const sections = [];
     const key = [];
@@ -34568,6 +36026,9 @@ function buildPaper(opts) {
         marks,
         calculator: template.calculator,
         boundaries: template.boundaries,
+        basis: template.basis ?? "published",
+        shapeSource: template.shapeSource ?? null,
+        shapeNote: template.shapeNote ?? null,
         sections,
         questionCount: key.length,
     };
@@ -34582,6 +36043,7 @@ function buildPaper(opts) {
             subject: opts.subject,
             minutes: template.minutes,
             calculator: template.calculator,
+            basis: template.basis ?? "published",
             boundaries: template.boundaries,
             createdAt: Date.now(),
             questions: key,
@@ -50414,6 +51876,238 @@ function generatorSubject(conceptId) {
 }
 
 });
+__def("repair.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.REPAIRS = void 0;
+exports.contrastFor = contrastFor;
+exports.repairFor = repairFor;
+exports.repairKey = repairKey;
+exports.orphanRepairs = orphanRepairs;
+exports.thinRepairs = thinRepairs;
+// ─────────────────────────────────────────────────────────────────────────────
+// TARGETED REPAIR — the teaching that follows a SPECIFIC wrong move.
+//
+// The defect this exists for is one line of the concept page. On a wrong answer
+// it printed:
+//
+//     <misconception name> — {coaching.split(".")[0]}.
+//
+// so a learner who broke a balance and a learner who added denominators read the
+// same truncated sentence, and the sentence they read was the FIRST sentence of a
+// paragraph written for a different purpose. The catalogue's `coaching` text is
+// good, but it is one paragraph per belief, shown the same way to everybody, and
+// cut at its first full stop.
+//
+// WHAT THIS ADDS, and why each part is here:
+//
+//   1. `reveals`   — what the wrong move shows about the idea, in the second
+//                    person, so the learner recognises the move rather than the
+//                    label. (A label is a verdict; a description is a diagnosis.)
+//   2. `contrast`  — THE CONTRAST PAIR: two near-identical items, one in which
+//                    the tempting move gives the right answer and one in which
+//                    the very same move fails. This is the intervention the
+//                    strategy note names twice, and it is the only one here that
+//                    can change what a learner BELIEVES rather than what they
+//                    remember: the pair isolates the single difference that
+//                    decides the case.
+//   3. `move`      — the corrected step as one instruction they can carry out,
+//                    not a rule to recite.
+//   4. `check`     — how to prove it independently, which is the only thing that
+//                    turns a repair into evidence.
+//
+// HONESTY ABOUT ATTRIBUTION, which is a design decision and not a caveat. The
+// bank tags an ITEM with the misconception it discriminates (`misconceptionTags`,
+// one id per item); it does not tag each distractor, so the product cannot say
+// "you chose the option that adds the denominators" — only "this question was
+// built to catch this slip". The card therefore says what it knows: this is the
+// slip the question was watching for. It never claims to have watched the
+// learner's specific option.
+//
+// REVIEW STATE IS PART OF THE CONTENT (`plan.reviewed` / `plan.unreviewed` are
+// reused on screen), because a repair written by the team and never read by a
+// subject teacher must say so where the learner reads it.
+// ─────────────────────────────────────────────────────────────────────────────
+const misconceptions_1 = require("./misconceptions");
+/**
+ * THE AUTHORED REPAIRS — one per misconception on the six concepts that carry a
+ * lesson plan, plus the two slips whose items the bank itself discriminates most
+ * often. A misconception with no entry answers null and the page falls back to
+ * the coaching sentence it always showed, so nothing renders empty.
+ */
+exports.REPAIRS = {
+    "neg-slip@negatives": {
+        misconceptionId: "neg-slip",
+        conceptId: "negatives",
+        reveals: "A minus sign was treated as decoration — dropped, or acted on only once — so the result points the wrong way. This slip shows up in two different moves, one about taking away and one about multiplying: read the pair that matches the question you were just asked, then the other.",
+        contrasts: [
+            {
+                works: "5 − 3 = 2",
+                worksNote: "Here the number after the minus is positive, so subtracting really does take 3 away and move you left.",
+                fails: "5 − (−3) = 8, not 2",
+                failsNote: "The number after the minus is itself negative, so you are taking away a deficit — removing a debt leaves you better off, and the move is to the RIGHT.",
+                difference: "The sign of the number being subtracted. A minus touching a positive takes you left; a minus touching a negative takes you right.",
+                move: "Read the sign in front of the bracket aloud before you calculate: \"subtract a negative\" becomes \"add\", and the move is to the right.",
+            },
+            {
+                works: "2 × 4 = 8",
+                worksNote: "Two positive numbers multiply to a positive product — nothing reverses the direction here.",
+                fails: "(−2) × (−4) = 8, not −8",
+                failsNote: "Each negative reverses the direction once, and two reversals cancel: the product of two negative numbers is positive. (−2) × 4 = −8 would be the one-negative case.",
+                difference: "How many of the two numbers are negative. One negative gives a negative product; two give a positive one.",
+                move: "Count the minus signs before multiplying: two of them cancel and the product is positive, one of them stays and the product is negative.",
+            },
+        ],
+        check: "Answer four questions unaided from this idea — two where a negative is subtracted and two where two negatives are multiplied — and check each one on a number line.",
+        review: "unreviewed",
+    },
+    "order-ops@order-ops": {
+        misconceptionId: "order-ops",
+        conceptId: "order-ops",
+        reveals: "The expression was worked straight through from left to right, so a multiplication that had not been finished yet got joined to the number in front of it.",
+        contrasts: [
+            {
+                works: "3 × 4 + 2 = 14",
+                worksNote: "Left to right happens to give the right answer here, because the multiplication was written first anyway — the order did not have to be decided.",
+                fails: "3 + 4 × 2 = 11, not 14",
+                failsNote: "Here the multiplication is written second, and it still binds tighter than the addition: 4 × 2 is one quantity (8) before anything is joined to it.",
+                difference: "Whether the multiplication appears before or after the addition in the written expression. Where it appears does not change its rank.",
+                move: "Circle every multiplication and division before you touch anything else, then evaluate what you circled.",
+            },
+        ],
+        check: "Evaluate five mixed expressions unaided, writing the circled operation out first each time, and check the hardest one with a calculator run in the same order.",
+        review: "unreviewed",
+    },
+    "like-terms@algebra-expressions": {
+        misconceptionId: "like-terms",
+        conceptId: "algebra-expressions",
+        reveals: "The counts and the letters were added together, which merges two things that are counted separately — a number of boxes and a number of counters.",
+        contrasts: [
+            {
+                works: "3x + 2x = 5x",
+                worksNote: "Both terms are the same size of thing, so their counts add and the letter part is unchanged: five boxes.",
+                fails: "3x + 2y stays 3x + 2y, and 3x + 2x² stays as it is",
+                failsNote: "x, y and x² are different things. Adding counts how many you have of each, so they can only be counted within their own family.",
+                difference: "Whether the letter part is identical. Identical parts add; different parts sit side by side.",
+                move: "Sort the terms into families by letter part first, then add the numbers in front of each family separately.",
+            },
+        ],
+        check: "Simplify four expressions that mix x, x² and y without hints, then test one by substituting a value into both the original and your answer.",
+        review: "unreviewed",
+    },
+    "bal-slip@linear-equations": {
+        misconceptionId: "bal-slip",
+        conceptId: "linear-equations",
+        reveals: "An operation was applied to one side of the equation and not the other, so the two sides stopped being equal and the value you read off answers a different question.",
+        contrasts: [
+            {
+                works: "3x + 5 = 20 → subtract 5 from both sides → 3x = 15 → x = 5",
+                worksNote: "The same operation on both pans keeps the balance, and the check confirms it: 3(5) + 5 = 20.",
+                fails: "3x + 5 = 20 → 3x = 25",
+                failsNote: "The 5 moved across without changing sign, which is the same as adding 5 to one side only. Testing x = 8 gives 29 ≠ 20, so it was never a solution.",
+                difference: "Whether the operation was performed on the whole of both sides. A term that crosses the equals sign must change sign because subtracting it is what moves it.",
+                move: "Write the operation on its own line under both sides — \"subtract 5 from both sides\" — before doing anything to either one.",
+            },
+        ],
+        check: "Solve three two-step equations with unknowns on both sides, and substitute every answer back into the ORIGINAL equation.",
+        review: "unreviewed",
+    },
+    "neg-exp@indices-intro": {
+        misconceptionId: "neg-exp",
+        conceptId: "indices-intro",
+        reveals: "A negative index was read as a negative value. The index counts copies and picks the direction — it never tells you the sign of the answer.",
+        contrasts: [
+            {
+                works: "2³ = 8",
+                worksNote: "A positive index counts copies of the base: three 2s multiplied together.",
+                fails: "2⁻³ = 1/8, not −8",
+                failsNote: "A negative index means the reciprocal — one over the same power. The value stays positive, which is why the answer is smaller than 1 rather than below zero.",
+                difference: "The sign of the INDEX chooses between multiplying and taking the reciprocal. It says nothing about whether the answer is positive or negative.",
+                move: "Rewrite any negative index as a fraction — a⁻ⁿ → 1/aⁿ — before you calculate anything.",
+            },
+        ],
+        check: "Rewrite five negative indices as fractions unaided, and check one by dividing the powers out longhand (a² ÷ a⁵).",
+        review: "unreviewed",
+    },
+};
+/** THE PAIR THAT MATCHES THE ITEM IN FRONT OF THE LEARNER.
+ *
+ *  The card prints every pair, because a repair is read after the fact and a
+ *  slip with two moves is best understood by seeing both. A HINT cannot: it is
+ *  one short instruction, read BEFORE the answer, and an instruction written for
+ *  "take away a negative" handed to a learner facing (−4) × (−5) is wrong advice
+ *  about the move in front of them — the defect the card's two-move list was
+ *  fixed for, one surface over.
+ *
+ *  So a hint asks this function which pair the item is about, and the answer can
+ *  be NULL: null means "this repair does not describe the shape of this item",
+ *  and a caller must then say something general rather than hand over an
+ *  instruction about a move that is not on the screen.
+ *
+ *  THAT NULL WAS FOUND LIVE, not reasoned about. The first version of this rule
+ *  fell back to the first pair, and a served `-9 + 6` gave the learner "read the
+ *  sign in front of the bracket aloud" — an item with no bracket, in a repair
+ *  written for `5 − (−3)`. The same mistake the card's single-move instruction
+ *  made, one level down.
+ *
+ *  A SINGLE-PAIR PLAN IS ALWAYS ITS OWN PAIR: those moves are shape-independent
+ *  ("circle every multiplication", "rewrite a negative index as a fraction"), so
+ *  a match would only reject correct advice. */
+const MUL = /[×*]|\btimes\b/;
+/** A minus meeting a minus: `5 − (−3)`, `− −3`, `-(-3)`. NOT any minus — an
+ *  addition like `-9 + 6` is a third shape this repair does not describe. */
+const NESTED_MINUS = /[−-]\s*\(\s*[−-]|[−-]\s*[−-]/;
+function contrastFor(plan, prompt) {
+    if (plan.contrasts.length === 1)
+        return plan.contrasts[0];
+    // Multiplication is tested FIRST and deliberately: `(-4) × (-5)` contains a
+    // minus as well, and it is a multiplication question.
+    const want = MUL.test(prompt) ? MUL : NESTED_MINUS.test(prompt) ? NESTED_MINUS : null;
+    const hit = want ? plan.contrasts.find((c) => want.test(c.fails)) : undefined;
+    return hit ?? null;
+}
+/** The repair for one learner's specific slip, or null when nobody has written
+ *  one. Null is the normal answer outside the authored set, and the page then
+ *  shows the catalogue's coaching sentence as it always did. */
+function repairFor(conceptId, misconceptionId) {
+    if (!misconceptionId)
+        return null;
+    return exports.REPAIRS[`${misconceptionId}@${conceptId}`] ?? null;
+}
+/** The key a repair is filed under, so the suite and the callers agree on the
+ *  shape rather than re-deriving it. */
+function repairKey(misconceptionId, conceptId) {
+    return `${misconceptionId}@${conceptId}`;
+}
+/** Every repair whose misconception does not actually list its concept — a pair
+ *  that can never co-occur, which would be a card that never renders. Empty is
+ *  the only acceptable answer, and `npm run verify` asserts it. */
+function orphanRepairs() {
+    return Object.values(exports.REPAIRS)
+        .filter((r) => {
+        const m = misconceptions_1.MISCONCEPTIONS_BY_ID[r.misconceptionId];
+        return !m || !m.concepts.includes(r.conceptId);
+    })
+        .map((r) => repairKey(r.misconceptionId, r.conceptId));
+}
+/** Repairs with no author, or with text too thin to teach from. Measured in the
+ *  suite rather than trusted. */
+function thinRepairs() {
+    const words = (s) => s.split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length;
+    return Object.values(exports.REPAIRS)
+        .filter((r) => {
+        const thinPlan = words(r.reveals) < 12 || words(r.check) < 8 || r.contrasts.length === 0;
+        const thinPair = r.contrasts.some((c) => words(c.move) < 5 ||
+            words(c.worksNote) < 8 ||
+            words(c.failsNote) < 12 ||
+            words(c.difference) < 8 ||
+            c.works === c.fails);
+        return thinPlan || thinPair;
+    })
+        .map((r) => repairKey(r.misconceptionId, r.conceptId));
+}
+
+});
 __def("replay.js", function (module, exports, require) {
 "use strict";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51073,8 +52767,39 @@ function isExplain(lower) {
  */
 function isExample(lower) {
     return ["worked example", "example", "for instance", "show me how", "show me an example",
+        // The panel's SECOND starter chip is "work it through", which used to reach
+        // no branch at all and fell to the "tell me which step you are on" reply.
+        // A request to be walked through is a request for a worked example.
+        "work it through", "work through", "walk me through", "walk through", "go through it",
         "ejemplo", "exemple", "beispiel", "esempio", "exemplo", "örnek", "例題", "举例",
         "مثال", "उदाहरण", "contoh", "halimbawa", "misali", "উদাহরণ",
+    ].some((w) => lower.includes(w));
+}
+/**
+ * "What is this testing?" — the panel's FIRST starter chip, and therefore the
+ * most-clicked sentence the tutor ever receives.
+ *
+ * It reached no branch: "testing" appears nowhere in a concept's lesson text, so
+ * the off-topic test judged it unrelated and a learner's very first interaction
+ * with the tutor was told to name the step they were on. Asking what an item
+ * examines is a request to say the idea once, which is the `explain` move — not
+ * a reason to hand the question back.
+ *
+ * These are keyword PHRASES, not UI copy: a phrase that never matches costs
+ * nothing (the message falls through to the existing behaviour), and the lists
+ * cover the languages the dictionaries ship in.
+ */
+function asksWhatThisTests(lower) {
+    return [
+        "what is this testing", "what does this test", "what is this about", "what am i practising",
+        "what am i practicing", "what is being tested", "what are we testing", "what is this question testing",
+        "qué se evalúa", "que se evalua", "de qué trata", "de que trata", "qué estoy practicando",
+        "sur quoi porte", "ce que ça teste", "qu'est-ce que ça teste",
+        "was wird hier geprüft", "worum geht es", "cosa si verifica", "di cosa parla",
+        "o que isto testa", "do que se trata", "apa yang diuji", "ini tentang apa",
+        "ano ang sinusubok", "tungkol saan ito", "यह क्या जाँचता है", "यह किस बारे में है",
+        "এটা কী পরীক্ষা করে", "یہ کیا جانچتا ہے", "ماذا يقيس هذا", "عن ماذا هذا",
+        "これは何をテスト", "これは何について", "这是在测试什么", "这是关于什么的",
     ].some((w) => lower.includes(w));
 }
 function isWhy(lower) {
@@ -51218,6 +52943,10 @@ function intentOf(message, lower) {
     // hand it over.
     if (isWhy(lower))
         return "why";
+    // Before `wantsAnswer`: "what is this testing" asks for the IDEA, and the
+    // explain move gives it once and then asks for it back.
+    if (asksWhatThisTests(lower))
+        return "explain";
     if (wantsAnswer(lower))
         return "answer";
     // EXPLAIN and EXAMPLE sit between "give me the answer" and "give me a hint":
@@ -51311,9 +53040,16 @@ function stuckShape(lang, conceptLine) {
  *  context gets exactly the concept-grounded replies it always did. */
 function groundedLines(lang, g) {
     const parts = [];
+    // ── THE QUESTION IS NOT READ BACK ─────────────────────────────────────────
+    // It was, on every single turn: "Look at the question on your screen: …" sat
+    // under every reply, so eight different questions produced eight replies that
+    // were the same paragraph with a different first sentence — which a learner
+    // reads, correctly, as a tutor with one answer. The panel's own header already
+    // names the question and the page shows it directly above the panel, so a
+    // reply only has to be ABOUT it. What still has to know the question is the
+    // off-topic test (`touchesThisScreen`), and `q` stays for the reason rule below
+    // and for callers that have no screen at all.
     const q = (g.question ?? "").trim();
-    if (q)
-        parts.push(`${line(lang, "soc.onScreen", "Look at the question on your screen")}: ${q}`);
     const reason = (g.serveReason ?? "").trim();
     const hitIds = (g.hitIds ?? []).filter((id) => !!misconceptions_1.MISCONCEPTIONS_BY_ID[id]).slice(0, 2);
     // A grounded turn always says WHY this question is on screen: a live screen
@@ -51375,7 +53111,13 @@ function socraticReply(conceptId, message, lang = "en", ctx = {}) {
     // the concept definition into every response"). The definition survives
     // exactly where it is the only thing there is to say — a concept-only turn
     // with no screen context, which is how rooms and the offline card call it.
-    const contextLine = grounded.length > 0 ? "" : conceptLine;
+    // …and nor is the DEFINITION, on a live screen. Suppressing it only when
+    // something grounded was said meant that once the question echo went away
+    // every panel reply led with the concept's definition instead — the same
+    // canned paragraph, one sentence over. A learner looking at the question and
+    // the lesson is not helped by either being restated at them.
+    const liveScreen = !!(ctx.question ?? "").trim();
+    const contextLine = grounded.length > 0 || liveScreen ? "" : conceptLine;
     // Nothing to question: say what is needed instead of teaching a concept the
     // learner never mentioned. Checked AFTER intent, so a keyword that decided
     // still decides ("help" stays the stuck scaffold even on its own).
@@ -51518,7 +53260,7 @@ function socraticReply(conceptId, message, lang = "en", ctx = {}) {
             // 3x = 15", which reads as the tutor coaching someone else's working.
             // Own hits keep their coaching: that one is inside `grounded`, and it is
             // about this learner rather than about the catalogue.
-            contextLine || (grounded.length > 0 ? "" : coaching),
+            contextLine,
             line(lang, "soc.whyQ", "Here's a question: if you changed ONE number in your working, which change would make everything click?"),
         ]);
     }
@@ -51955,7 +53697,15 @@ const NATIONAL_COURSES = [
     { id: "ht-bac", country: "HT", board: "haitian", name: "Baccalauréat (Haïti)", coverage: COV_SECONDARY, levels: [middle("3e-af", "3e AF", [0, 2], 0.44), final("philo", "Philo (Terminale)", [0, 3], 0.6)] },
     { id: "bo-bachillerato", country: "BO", board: "bolivian", name: "Bachillerato (Bolivia)", coverage: COV_SECONDARY, levels: [senior("6-secundaria", "6º de secundaria", [0, 3], 0.58)] },
     { id: "ec-bachillerato", country: "EC", board: "ecuadorian", name: "Bachillerato (Ecuador)", coverage: COV_SECONDARY, levels: [middle("10-egb", "10º EGB", [0, 2], 0.45), senior("3-bachillerato", "3º bachillerato", [0, 3], 0.65)] },
-    { id: "gt-diversificado", country: "GT", board: "guatemalan", name: "Diversificado", coverage: COV_SECONDARY, levels: [senior("5-diversificado", "5º diversificado", [0, 3], 0.56)] },
+    // GUATEMALA IS NOT A FIVE-SUBJECT GCSE. The national exit assessment is two
+    // computer-based tests, Lectura and Matemática, so declaring five subjects here
+    // simulated an examination that does not exist — a learner was offered physics,
+    // chemistry, biology and computing papers for a maths-and-reading test. OpenMind
+    // teaches maths and has no reading subject, so this names the test it prepares
+    // for and covers the area it can honestly teach. The precedent is the Digital
+    // SAT, which is the same situation (two areas) and also declares maths alone.
+    // Lectura is NOT faked into a subject: it is simply absent, which is the truth.
+    { id: "gt-diversificado", country: "GT", board: "guatemalan", name: "Evaluación Graduandos — Matemática", coverage: { maths: [0, 4] }, levels: [senior("5-diversificado", "5º diversificado", [0, 3], 0.56)] },
     { id: "hn-bachillerato", country: "HN", board: "honduran", name: "Bachillerato (Honduras)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
     { id: "ni-bachillerato", country: "NI", board: "nicaraguan", name: "Bachillerato (Nicaragua)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
     { id: "sv-bachillerato", country: "SV", board: "salvadoran", name: "Bachillerato (El Salvador)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
@@ -52246,7 +53996,16 @@ function specForProfile(profile, subject) {
     // otherwise the country's first listing (often a maths paper) becomes the
     // fallback course for every other subject.
     const eligible = subject ? candidates.filter((s) => coversSubject(s, subject)) : candidates;
-    const pool = eligible.length > 0 ? eligible : candidates;
+    // A SUBJECT THE COUNTRY HAS NO QUALIFICATION FOR FALLS TO THE INDEPENDENT
+    // PATHWAY — never to the country's first listing. `pool = candidates` was safe
+    // only while every national course covered all five subjects, and the moment
+    // one did not it handed back a qualification that does not teach the subject:
+    // Guatemala's Graduandos can be a maths course only (its assessment is Lectura
+    // and Matemática), so a learner asking for physics under it was answered with
+    // "gt-diversificado" — a course with no physics in it. `any-independent` reaches
+    // every concept, which is the one course that can honestly carry a subject the
+    // national assessment does not examine.
+    const pool = eligible.length > 0 ? eligible : subject ? [INDEPENDENT] : candidates;
     const byBoard = p.board ? pool.filter((s) => s.board === p.board) : [];
     const byExam = p.exam
         ? pool.filter((s) => s.board === p.board || s.id.includes(p.exam.toLowerCase()))
@@ -53372,7 +55131,7 @@ function canTransfer(conceptId) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 65 },
+      meta: { modules: 67 },
     };
   });
   return __req("__entry__.js");
