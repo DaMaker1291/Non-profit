@@ -121,7 +121,23 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       // = bigger slice' keeps recurring" to someone who cannot yet find 3/4 of
       // 12 at all — a named cause where the record says the idea is unbuilt.
       tags: [], difficulty: 0.4,
-      explanation: `Finding ${n}/${d} of ${d * k} means splitting ${d * k} into ${d} equal parts and then taking ${n} of them. One part is ${d * k} ÷ ${d} = ${k}, so ${n} parts come to ${k} × ${n} = ${n * k}. Multiplying by the denominator (${n * d}) skips the split altogether, and stopping once the division is done (${k}) takes one part when the question asks for ${n} of them.`,
+      // THE PROSE WAS WRONG IN TWO WAYS A LEARNER WOULD HAVE READ:
+      //   · "so 1 parts come to …" — the draw takes n = 1 one time in seven, and
+      //     the sentence was written for the plural only;
+      //   · "Multiplying by the denominator (${n * d})" — for n = 2, d = 5 it
+      //     printed "the denominator (10)" beside a denominator of 5. The number
+      //     it printed is the numerator-times-denominator DISTRACTOR, so the
+      //     sentence named the right wrong option with the wrong words.
+      // The split below also drops the "stopping after the division" trap when
+      // n = 1, because there stopping after the division IS the answer — a
+      // warning against the correct method is worse than no warning.
+      explanation: [
+        `Finding ${n}/${d} of ${d * k} means cutting ${d * k} into ${d} equal parts and taking ${n} of them.`,
+        `Each part is ${d * k} ÷ ${d} = ${k}.`,
+        n === 1 ? `Taking one part gives ${k}.` : `Taking ${n} of them gives ${k} × ${n} = ${n * k}.`,
+        `Multiplying the numerator by the denominator (${n * d}) is not a step in this method.`,
+        n === 1 ? "" : `Nor is stopping after the division (${k}) — that takes one part, and the question asks for ${n}.`,
+      ].filter(Boolean).join(" "),
     };
   },
 

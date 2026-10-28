@@ -241,6 +241,29 @@ export interface Question {
   figure?: FigureSpec;
 }
 
+/** ONE ITEM WORKED IN FULL, for the lesson's worked example ("I do" before "you
+ *  do"). It is deliberately NOT a QuestionView: a served question withholds its
+ *  key, while a worked example's whole purpose is to hand it over — so the two
+ *  shapes are separate types rather than one shape with a flag, or the compiler
+ *  would let a served question be rendered as a solved one.
+ *
+ *  Declared here, not in the route: the client module and the route both need
+ *  it, and a wire shape that lives in a route file drags the route's server
+ *  imports into the browser bundle. */
+export interface WorkedExampleView {
+  conceptId: string;
+  prompt: string;
+  choices: string[];
+  figure?: FigureSpec;
+  responseKind: ResponseKind;
+  /** The index of the correct choice — the point of a worked example. */
+  answerIndex: number;
+  /** The item's own explanation, which IS the working. */
+  explanation: string;
+  /** The misconception this item discriminates, when it names one. */
+  misconceptionId: string | null;
+}
+
 export interface Misconception {
   id: string;
   /** Short English name, e.g. "Sign slip on negative coefficients". */
@@ -350,6 +373,16 @@ export interface StudentProfile {
    *  never required — a tutor working alone has no school and is not asked. */
   school?: string;
   country: string; // ISO-3166 alpha-2, "XX" = unspecified
+  /** WHICH PART OF THAT COUNTRY, when the part itself decides the language
+   *  (lib/regions.ts: Quebec, Cameroon's Anglophone regions, the Indian states).
+   *  An id from `regionsFor(country)`, validated against the country at the
+   *  door, so a record can never carry "quebec" on a learner in France.
+   *
+   *  Absent for every country whose division does not decide anything — which
+   *  is most of them. It is stored because it is the learner's own answer
+   *  about where they are, and re-asking it on the next visit is the behaviour
+   *  a saved profile exists to avoid; it is NOT a second course selector. */
+  region?: string;
   birthYear: number | null;
   language: string; // interface language (menus, buttons) — BCP-47-ish tag
   /** Language explanations are taught in. Defaults to `language`. */

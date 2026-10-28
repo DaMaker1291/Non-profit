@@ -209,7 +209,7 @@ md.push("");
 md.push("```json");
 md.push(JSON.stringify({
   conceptId: "surds",
-  reviewer: "A. Teacher",
+  reviewer: "R. Okafor (GCSE maths lead)",
   reviewedOn: "2026-11-02",
   checklistVersion: 1,
   scope: `all ${concepts.find((c) => c.id === "surds")?.items.length ?? 0} draws below, every explanation read`,
@@ -217,7 +217,7 @@ md.push(JSON.stringify({
 }, null, 2));
 md.push("```");
 md.push("");
-md.push("Entries live in [audit/item-reviews.json](../audit/item-reviews.json) and `npm run verify:q` copies them into the coverage record, so the published \"human reviewed\" figure has exactly one source. An entry without a reviewer and a date fails the audit — that is checked by planting one.");
+md.push("Entries live in [audit/item-reviews.json](../audit/item-reviews.json) and `npm run verify:q` copies them into the coverage record, so the published \"human reviewed\" figure has exactly one source. An entry without a reviewer and a date fails the audit, and so does a placeholder name such as \"A. Teacher\" — the shape that was once recorded for ten concepts nobody had read. Use the name you would want printed beside the claim.");
 md.push("");
 md.push("## What the reviewer is NOT given");
 md.push("");

@@ -1,5 +1,5 @@
 {
-  "pass": 31,
+  "pass": 34,
   "fail": 0,
   "failures": [],
   "bank": {
@@ -15,5 +15,6 @@
     "last": 0.24481481481481482
   },
   "offenders": 64,
+  "repaired": 21,
   "concepts": 135
 }

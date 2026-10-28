@@ -26,7 +26,7 @@ A concept counts as reviewed only when every item type in it has been read. The 
 ```json
 {
   "conceptId": "surds",
-  "reviewer": "A. Teacher",
+  "reviewer": "R. Okafor (GCSE maths lead)",
   "reviewedOn": "2026-11-02",
   "checklistVersion": 1,
   "scope": "all 11 draws below, every explanation read",
@@ -34,7 +34,7 @@ A concept counts as reviewed only when every item type in it has been read. The 
 }
 ```
 
-Entries live in [audit/item-reviews.json](../audit/item-reviews.json) and `npm run verify:q` copies them into the coverage record, so the published "human reviewed" figure has exactly one source. An entry without a reviewer and a date fails the audit — that is checked by planting one.
+Entries live in [audit/item-reviews.json](../audit/item-reviews.json) and `npm run verify:q` copies them into the coverage record, so the published "human reviewed" figure has exactly one source. An entry without a reviewer and a date fails the audit, and so does a placeholder name such as "A. Teacher" — the shape that was once recorded for ten concepts nobody had read. Use the name you would want printed beside the claim.
 
 ## What the reviewer is NOT given
 
@@ -77,7 +77,7 @@ B. -9
 **C. 20** ✓ key
 D. 21
 
-- Explanation given: Two negatives multiply to a POSITIVE: (-4) × (-5) = 20. The opposite of the opposite is the original direction.
+- Explanation given: Multiplying two negative numbers gives a POSITIVE, because the opposite of the opposite points back where you started: (-4) × (-5) = 20. Negating the product (-20) keeps one sign too many, and adding the two numbers (-9) is a different operation — a product of 4 and 5 cannot be that small.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:negatives:foundation:0` at the foundation target
 
@@ -88,7 +88,7 @@ A. -1
 C. 16
 D. -15
 
-- Explanation given: Subtracting a negative is ADDING: 7 − (-8) = 7 + 8 = 15. Taking away a debt leaves you richer.
+- Explanation given: Taking away a negative is the same as adding the positive version of it, because removing a debt increases what you have: 7 − (-8) = 7 + 8 = 15. Adding the negative instead (-1) keeps the sign it was supposed to remove, and subtracting the other way round (-15) changes which number is being taken away.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:negatives:foundation:1` at the foundation target
 
@@ -99,7 +99,7 @@ A. 9
 C. -6
 D. -8
 
-- Explanation given: Two negatives multiply to a POSITIVE: (-4) × (-2) = 8. The opposite of the opposite is the original direction.
+- Explanation given: Multiplying two negative numbers gives a POSITIVE, because the opposite of the opposite points back where you started: (-4) × (-2) = 8. Negating the product (-8) keeps one sign too many, and adding the two numbers (-6) is a different operation — a product of 4 and 2 cannot be that small.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:negatives:foundation:2` at the foundation target
 
@@ -110,7 +110,7 @@ B. 10
 C. -9
 D. -3
 
-- Explanation given: Subtracting a negative is ADDING: 3 − (-6) = 3 + 6 = 9. Taking away a debt leaves you richer.
+- Explanation given: Taking away a negative is the same as adding the positive version of it, because removing a debt increases what you have: 3 − (-6) = 3 + 6 = 9. Adding the negative instead (-3) keeps the sign it was supposed to remove, and subtracting the other way round (-9) changes which number is being taken away.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:negatives:foundation:3` at the foundation target
 
@@ -121,7 +121,7 @@ B. -7
 C. 8
 **D. 7** ✓ key
 
-- Explanation given: Subtracting a negative is ADDING: 4 − (-3) = 4 + 3 = 7. Taking away a debt leaves you richer.
+- Explanation given: Taking away a negative is the same as adding the positive version of it, because removing a debt increases what you have: 4 − (-3) = 4 + 3 = 7. Adding the negative instead (1) keeps the sign it was supposed to remove, and subtracting the other way round (-7) changes which number is being taken away.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:negatives:foundation:4` at the foundation target
 
@@ -132,7 +132,7 @@ A. -3
 C. -15
 D. 16
 
-- Explanation given: Subtracting a negative is ADDING: 6 − (-9) = 6 + 9 = 15. Taking away a debt leaves you richer.
+- Explanation given: Taking away a negative is the same as adding the positive version of it, because removing a debt increases what you have: 6 − (-9) = 6 + 9 = 15. Adding the negative instead (-3) keeps the sign it was supposed to remove, and subtracting the other way round (-15) changes which number is being taken away.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:negatives:foundation:5` at the foundation target
 
@@ -154,7 +154,7 @@ B. 12
 C. 10
 D. 14
 
-- Explanation given: Multiplication binds tighter than addition: 2 × 2 = 4 first, then 5 + 4 = 9. Working left to right gives 14, which is wrong.
+- Explanation given: Multiplication binds tighter than addition, so the product is worked out before the sum: 2 × 2 = 4 comes first, and then 5 + 4 = 9. Working left to right instead (14) adds before multiplying, which is a different expression — it is exactly why 5 + 2 × 2 is not 14.
 - Difficulty as served: 0.40 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:order-ops:foundation:0` at the foundation target
 
@@ -165,7 +165,7 @@ B. 112
 **C. 70** ✓ key
 D. 71
 
-- Explanation given: Multiplication binds tighter than addition: 9 × 7 = 63 first, then 7 + 63 = 70. Working left to right gives 112, which is wrong.
+- Explanation given: Multiplication binds tighter than addition, so the product is worked out before the sum: 9 × 7 = 63 comes first, and then 7 + 63 = 70. Working left to right instead (112) adds before multiplying, which is a different expression — it is exactly why 7 + 9 × 7 is not 112.
 - Difficulty as served: 0.40 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:order-ops:foundation:1` at the foundation target
 
@@ -176,7 +176,7 @@ B. 44
 C. 22
 D. 15
 
-- Explanation given: Multiplication binds tighter than addition: 9 × 4 = 36 first, then 2 + 36 = 38. Working left to right gives 44, which is wrong.
+- Explanation given: Multiplication binds tighter than addition, so the product is worked out before the sum: 9 × 4 = 36 comes first, and then 2 + 36 = 38. Working left to right instead (44) adds before multiplying, which is a different expression — it is exactly why 2 + 9 × 4 is not 44.
 - Difficulty as served: 0.40 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:order-ops:foundation:2` at the foundation target
 
@@ -187,7 +187,7 @@ B. 14
 C. 48
 D. 21
 
-- Explanation given: Multiplication binds tighter than addition: 5 × 6 = 30 first, then 3 + 30 = 33. Working left to right gives 48, which is wrong.
+- Explanation given: Multiplication binds tighter than addition, so the product is worked out before the sum: 5 × 6 = 30 comes first, and then 3 + 30 = 33. Working left to right instead (48) adds before multiplying, which is a different expression — it is exactly why 3 + 5 × 6 is not 48.
 - Difficulty as served: 0.40 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:order-ops:foundation:3` at the foundation target
 
@@ -198,7 +198,7 @@ B. 135
 C. 24
 **D. 63** ✓ key
 
-- Explanation given: Multiplication binds tighter than addition: 6 × 9 = 54 first, then 9 + 54 = 63. Working left to right gives 135, which is wrong.
+- Explanation given: Multiplication binds tighter than addition, so the product is worked out before the sum: 6 × 9 = 54 comes first, and then 9 + 54 = 63. Working left to right instead (135) adds before multiplying, which is a different expression — it is exactly why 9 + 6 × 9 is not 135.
 - Difficulty as served: 0.40 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:order-ops:foundation:4` at the foundation target
 
@@ -209,7 +209,7 @@ B. 60
 **C. 35** ✓ key
 D. 31
 
-- Explanation given: Multiplication binds tighter than addition: 5 × 6 = 30 first, then 5 + 30 = 35. Working left to right gives 60, which is wrong.
+- Explanation given: Multiplication binds tighter than addition, so the product is worked out before the sum: 5 × 6 = 30 comes first, and then 5 + 30 = 35. Working left to right instead (60) adds before multiplying, which is a different expression — it is exactly why 5 + 5 × 6 is not 60.
 - Difficulty as served: 0.40 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:order-ops:foundation:5` at the foundation target
 
@@ -231,7 +231,7 @@ B. 48
 **C. 168** ✓ key
 D. 178
 
-- Explanation given: Square first, then multiply: 5(6²) = 180, minus 2(6) = 12. So 180 − 12 = 168.
+- Explanation given: Work through the power before the multiplication: 6² = 36, so 5x² is 5 × 36 = 180, and 2x is 2 × 6 = 12. Subtracting leaves 180 − 12 = 168. Squaring the product as a whole (784) is a different expression, and 178 leaves the second term unmultiplied.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:algebra-expressions:foundation:0` at the foundation target
 
@@ -242,7 +242,7 @@ B. 13
 C. 16
 **D. 12** ✓ key
 
-- Explanation given: Square first, then multiply: 5(2²) = 20, minus 4(2) = 8. So 20 − 8 = 12.
+- Explanation given: Work through the power before the multiplication: 2² = 4, so 5x² is 5 × 4 = 20, and 4x is 4 × 2 = 8. Subtracting leaves 20 − 8 = 12. Squaring the product as a whole (36) is a different expression, and 16 leaves the second term unmultiplied.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:algebra-expressions:foundation:1` at the foundation target
 
@@ -253,7 +253,7 @@ A. 16
 C. 13
 D. 6
 
-- Explanation given: Square first, then multiply: 2(3²) = 18, minus 2(3) = 6. So 18 − 6 = 12.
+- Explanation given: Work through the power before the multiplication: 3² = 9, so 2x² is 2 × 9 = 18, and 2x is 2 × 3 = 6. Subtracting leaves 18 − 6 = 12. Squaring the product as a whole (16) is a different expression, and 16 leaves the second term unmultiplied.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:algebra-expressions:foundation:2` at the foundation target
 
@@ -264,7 +264,7 @@ B. 93
 C. 36
 D. 441
 
-- Explanation given: Square first, then multiply: 6(4²) = 96, minus 3(4) = 12. So 96 − 12 = 84.
+- Explanation given: Work through the power before the multiplication: 4² = 16, so 6x² is 6 × 16 = 96, and 3x is 3 × 4 = 12. Subtracting leaves 96 − 12 = 84. Squaring the product as a whole (441) is a different expression, and 93 leaves the second term unmultiplied.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:algebra-expressions:foundation:3` at the foundation target
 
@@ -275,7 +275,7 @@ A. 729
 C. 177
 D. 42
 
-- Explanation given: Square first, then multiply: 5(6²) = 180, minus 3(6) = 18. So 180 − 18 = 162.
+- Explanation given: Work through the power before the multiplication: 6² = 36, so 5x² is 5 × 36 = 180, and 3x is 3 × 6 = 18. Subtracting leaves 180 − 18 = 162. Squaring the product as a whole (729) is a different expression, and 177 leaves the second term unmultiplied.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:algebra-expressions:foundation:4` at the foundation target
 
@@ -286,7 +286,7 @@ B. 92
 C. 32
 **D. 80** ✓ key
 
-- Explanation given: Square first, then multiply: 6(4²) = 96, minus 4(4) = 16. So 96 − 16 = 80.
+- Explanation given: Work through the power before the multiplication: 4² = 16, so 6x² is 6 × 16 = 96, and 4x is 4 × 4 = 16. Subtracting leaves 96 − 16 = 80. Squaring the product as a whole (400) is a different expression, and 92 leaves the second term unmultiplied.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:algebra-expressions:foundation:5` at the foundation target
 
@@ -551,7 +551,7 @@ B. 257
 C. 32
 **D. 256** ✓ key
 
-- Explanation given: A power of a power MULTIPLIES the indices: (4^2)² = 4^4 = 256.
+- Explanation given: A power raised to another power MULTIPLIES the indices, because the factors are themselves repeated: (4^2)² means 4^2 written twice, which is 2 + 2 = 4 factors of 4. So the value is 4^4 = 256. Adding the indices instead (4^4 = 256) is the rule for multiplying powers, not for raising one to a power, and doubling the value of 4^2 (32) is not a power at all.
 - Difficulty as served: 0.50 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:indices-intro:foundation:0` at the foundation target
 
@@ -562,7 +562,7 @@ B. 243
 C. 216
 D. 54
 
-- Explanation given: A power of a power MULTIPLIES the indices: (3^3)² = 3^6 = 729.
+- Explanation given: A power raised to another power MULTIPLIES the indices, because the factors are themselves repeated: (3^3)² means 3^3 written twice, which is 3 + 3 = 6 factors of 3. So the value is 3^6 = 729. Adding the indices instead (3^5 = 243) is the rule for multiplying powers, not for raising one to a power, and doubling the value of 3^3 (54) is not a power at all.
 - Difficulty as served: 0.50 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:indices-intro:foundation:1` at the foundation target
 
@@ -573,7 +573,7 @@ B. 82
 **C. 81** ✓ key
 D. 18
 
-- Explanation given: A power of a power MULTIPLIES the indices: (3^2)² = 3^4 = 81.
+- Explanation given: A power raised to another power MULTIPLIES the indices, because the factors are themselves repeated: (3^2)² means 3^2 written twice, which is 2 + 2 = 4 factors of 3. So the value is 3^4 = 81. Adding the indices instead (3^4 = 81) is the rule for multiplying powers, not for raising one to a power, and doubling the value of 3^2 (18) is not a power at all.
 - Difficulty as served: 0.50 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:indices-intro:foundation:2` at the foundation target
 
@@ -584,7 +584,7 @@ A. 32
 C. 16
 D. 65
 
-- Explanation given: A power of a power MULTIPLIES the indices: (2^3)² = 2^6 = 64.
+- Explanation given: A power raised to another power MULTIPLIES the indices, because the factors are themselves repeated: (2^3)² means 2^3 written twice, which is 3 + 3 = 6 factors of 2. So the value is 2^6 = 64. Adding the indices instead (2^5 = 32) is the rule for multiplying powers, not for raising one to a power, and doubling the value of 2^3 (16) is not a power at all.
 - Difficulty as served: 0.50 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:indices-intro:foundation:5` at the foundation target
 
@@ -696,7 +696,7 @@ A. 9
 C. 6
 D. 10
 
-- Explanation given: Divide both sides by 3: x + 2 = 10, so x = 8. (Expanding first works too: 3x + 6 = 30.)
+- Explanation given: The whole bracket is multiplied by 3, so dividing both sides by 3 undoes it and leaves x + 2 = 10; subtracting 2 then gives x = 8. Expanding first reaches the same place, because 3x + 6 = 30. Dividing by 5 instead (6) divides by a number that is not what multiplies the bracket.
 - Difficulty as served: 0.50 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:linear-equations:foundation:0` at the foundation target
 
@@ -707,7 +707,7 @@ A. 10
 C. 0
 D. 6
 
-- Explanation given: Divide both sides by 6: x + 5 = 10, so x = 5. (Expanding first works too: 6x + 30 = 60.)
+- Explanation given: The whole bracket is multiplied by 6, so dividing both sides by 6 undoes it and leaves x + 5 = 10; subtracting 5 then gives x = 5. Expanding first reaches the same place, because 6x + 30 = 60. Dividing by 11 instead (5) divides by a number that is not what multiplies the bracket.
 - Difficulty as served: 0.50 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:linear-equations:foundation:1` at the foundation target
 
@@ -718,7 +718,7 @@ B. 12
 **C. 2** ✓ key
 D. 1
 
-- Explanation given: Divide both sides by 3: x + 1 = 3, so x = 2. (Expanding first works too: 3x + 3 = 9.)
+- Explanation given: The whole bracket is multiplied by 3, so dividing both sides by 3 undoes it and leaves x + 1 = 3; subtracting 1 then gives x = 2. Expanding first reaches the same place, because 3x + 3 = 9. Dividing by 4 instead (2) divides by a number that is not what multiplies the bracket.
 - Difficulty as served: 0.50 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:linear-equations:foundation:2` at the foundation target
 
@@ -729,7 +729,7 @@ B. 3
 **C. 2** ✓ key
 D. 1
 
-- Explanation given: Divide both sides by 4: x + 1 = 3, so x = 2. (Expanding first works too: 4x + 4 = 12.)
+- Explanation given: The whole bracket is multiplied by 4, so dividing both sides by 4 undoes it and leaves x + 1 = 3; subtracting 1 then gives x = 2. Expanding first reaches the same place, because 4x + 4 = 12. Dividing by 5 instead (2) divides by a number that is not what multiplies the bracket.
 - Difficulty as served: 0.50 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:linear-equations:foundation:3` at the foundation target
 
@@ -740,7 +740,7 @@ B. 6
 **C. 4** ✓ key
 D. 2
 
-- Explanation given: Divide both sides by 3: x + 2 = 6, so x = 4. (Expanding first works too: 3x + 6 = 18.)
+- Explanation given: The whole bracket is multiplied by 3, so dividing both sides by 3 undoes it and leaves x + 2 = 6; subtracting 2 then gives x = 4. Expanding first reaches the same place, because 3x + 6 = 18. Dividing by 5 instead (4) divides by a number that is not what multiplies the bracket.
 - Difficulty as served: 0.50 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:linear-equations:foundation:4` at the foundation target
 
@@ -751,7 +751,7 @@ B. 9
 C. 3
 D. -1
 
-- Explanation given: Divide both sides by 3: x + 5 = 9, so x = 4. (Expanding first works too: 3x + 15 = 27.)
+- Explanation given: The whole bracket is multiplied by 3, so dividing both sides by 3 undoes it and leaves x + 5 = 9; subtracting 5 then gives x = 4. Expanding first reaches the same place, because 3x + 15 = 27. Dividing by 8 instead (3) divides by a number that is not what multiplies the bracket.
 - Difficulty as served: 0.50 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:linear-equations:foundation:5` at the foundation target
 
@@ -839,7 +839,7 @@ A. 14
 C. 40
 D. 3
 
-- Explanation given: The x-terms are 5x + 8x = 13x, so b = 13. (And c = 5 × 8 = 40.)
+- Explanation given: Expanding means every term in the first bracket multiplies every term in the second, and the two x terms then combine: x × x gives x², 5x and 8x add to 13x, and the constants multiply to 40. So b, the coefficient of x, is 13. Multiplying instead of adding (40) gives c, the constant term, and 14 counts one of the x terms twice.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:algebra-expand:foundation:0` at the foundation target
 
@@ -861,7 +861,7 @@ A. 18
 C. 72
 D. 1
 
-- Explanation given: The x-terms are 9x + 8x = 17x, so b = 17. (And c = 9 × 8 = 72.)
+- Explanation given: Expanding means every term in the first bracket multiplies every term in the second, and the two x terms then combine: x × x gives x², 9x and 8x add to 17x, and the constants multiply to 72. So b, the coefficient of x, is 17. Multiplying instead of adding (72) gives c, the constant term, and 18 counts one of the x terms twice.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:algebra-expand:foundation:2` at the foundation target
 
@@ -894,7 +894,7 @@ B. 1
 C. 18
 D. 72
 
-- Explanation given: The x-terms are 8x + 9x = 17x, so b = 17. (And c = 8 × 9 = 72.)
+- Explanation given: Expanding means every term in the first bracket multiplies every term in the second, and the two x terms then combine: x × x gives x², 8x and 9x add to 17x, and the constants multiply to 72. So b, the coefficient of x, is 17. Multiplying instead of adding (72) gives c, the constant term, and 18 counts one of the x terms twice.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:algebra-expand:foundation:5` at the foundation target
 
@@ -905,7 +905,7 @@ B. 2
 **C. 14** ✓ key
 D. 16
 
-- Explanation given: The x-terms come from 2x × 4 and 6 × x: 8x + 6x = 14x, so b = 14.
+- Explanation given: The x term has two sources, because either term of the first bracket can meet the x in the second: 2x × 4 = 8x, and 6 × x = 6x. Adding those gives 14x, so b = 14. The other pairing, 2x with 6, is a term in x², and 6 × 4 = 24 is the constant.
 - Difficulty as served: 0.60 (tier target 0.65) · answered by typing a number
 - Reproduce it: `pilot:algebra-expand:higher:0` at the higher target
 
@@ -984,7 +984,7 @@ B. 19
 **C. 29** ✓ key
 D. 54
 
-- Explanation given: Substitute: y = 4(6) + 5 = 24 + 5 = 29.
+- Explanation given: The equation gives y in terms of x, so finding y when x is 6 means putting 6 wherever x appears. 4 × 6 = 24, and then adding 5 gives 29. Dropping the 5 altogether (24) forgets that the line does not pass through the origin, and getting its sign the other way round (19) puts the intercept on the wrong side.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:straight-lines:foundation:0` at the foundation target
 
@@ -995,7 +995,7 @@ B. 5
 C. 2
 D. 3
 
-- Explanation given: Substitute: y = 3(1) + 1 = 3 + 1 = 4.
+- Explanation given: The equation gives y in terms of x, so finding y when x is 1 means putting 1 wherever x appears. 3 × 1 = 3, and then adding 1 gives 4. Dropping the 1 altogether (3) forgets that the line does not pass through the origin, and getting its sign the other way round (2) puts the intercept on the wrong side.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:straight-lines:foundation:1` at the foundation target
 
@@ -1006,7 +1006,7 @@ B. 12
 **C. 9** ✓ key
 D. 15
 
-- Explanation given: Substitute: y = 4(3) − 3 = 12 − 3 = 9.
+- Explanation given: The equation gives y in terms of x, so finding y when x is 3 means putting 3 wherever x appears. 4 × 3 = 12, and then subtracting 3 gives 9. Dropping the 3 altogether (12) forgets that the line does not pass through the origin, and getting its sign the other way round (15) puts the intercept on the wrong side.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:straight-lines:foundation:2` at the foundation target
 
@@ -1017,7 +1017,7 @@ A. 0
 C. 15
 D. 20
 
-- Explanation given: Substitute: y = 5(3) − 5 = 15 − 5 = 10.
+- Explanation given: The equation gives y in terms of x, so finding y when x is 3 means putting 3 wherever x appears. 5 × 3 = 15, and then subtracting 5 gives 10. Dropping the 5 altogether (15) forgets that the line does not pass through the origin, and getting its sign the other way round (20) puts the intercept on the wrong side.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:straight-lines:foundation:3` at the foundation target
 
@@ -1028,7 +1028,7 @@ B. 5
 C. 3
 D. 14
 
-- Explanation given: Substitute: y = 1(4) + 0 = 4 + 0 = 4.
+- Explanation given: The equation gives y in terms of x, so finding y when x is 4 means putting 4 wherever x appears. 1 × 4 = 4, and then adding 0 gives 4. Dropping the 0 altogether (4) forgets that the line does not pass through the origin, and getting its sign the other way round (4) puts the intercept on the wrong side.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:straight-lines:foundation:4` at the foundation target
 
@@ -1039,7 +1039,7 @@ B. 42
 **C. 12** ✓ key
 D. 0
 
-- Explanation given: Substitute: y = 1(6) + 6 = 6 + 6 = 12.
+- Explanation given: The equation gives y in terms of x, so finding y when x is 6 means putting 6 wherever x appears. 1 × 6 = 6, and then adding 6 gives 12. Dropping the 6 altogether (6) forgets that the line does not pass through the origin, and getting its sign the other way round (0) puts the intercept on the wrong side.
 - Difficulty as served: 0.45 (tier target 0.45) · answered by typing a number
 - Reproduce it: `pilot:straight-lines:foundation:5` at the foundation target
 
@@ -1142,7 +1142,7 @@ B. 1
 C. 6
 D. -1
 
-- Explanation given: Halve the x coefficient: p = 1, so (x + 1)² = x² + 2x + 1. The constant was 6, so q = 6 − 1 = 5. Forgetting to subtract the added 1 is the classic error.
+- Explanation given: Completing the square starts from the x coefficient: half of 2 is 1, and (x + 1)² expands to x² + 2x + 1. The expression's constant is 6, which is 1 more than the square supplies, so the leftover is q = 6 − 1 = 5. Forgetting to subtract the 1 that completing the square added (answering 6) is the classic error.
 - Difficulty as served: 0.60 (tier target 0.65) · answered by typing a number
 - Reproduce it: `pilot:completing-square:higher:1` at the higher target
 

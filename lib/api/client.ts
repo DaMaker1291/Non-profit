@@ -33,7 +33,7 @@ import { readKioskSession } from "../kiosk-session";
 import type {
   Assignment, AssignmentMemberProgress, AssignmentMonitor, ClassMemberEvidence,
   ClassRoster, ConceptProgress, DiagnosticResult, PathStep, ProfileState,
-  PublicAccount, Question, StudyPack, StudyRoom, SubjectCourse, SubjectId,
+  PublicAccount, Question, StudyPack, StudyRoom, SubjectCourse, SubjectId, WorkedExampleView,
 } from "../types";
 import type { MatchResult } from "../matcher";
 import type { QuestionView } from "../questions";
@@ -385,6 +385,19 @@ export interface ServeTarget {
   reason: "fresh" | "steady" | "stretch" | "repair";
   band: number;
   scaffold: boolean;
+  /** DID THIS DRAW ACTUALLY TEST THE LEARNER'S LIVE SLIP?
+   *
+   *  `reason: "repair"` says the rung was lowered; it does not say the item tests
+   *  the belief. Since lib/operations.ts#servePractice started preferring an item
+   *  tagged with the learner's live slip, the page can tell the learner that too -
+   *  but only when it really happened, which is why this is a fact the SERVE
+   *  reports rather than something the page infers from the reason.
+   *
+   *  A BOOLEAN, NOT THE MISCONCEPTION ID. The tag names the trap the item holds, and
+   *  the serve withholds tags with the answer key on purpose (QuestionView); sending
+   *  the id would hand the learner a hint about which wrong option is the planted
+   *  one. "This one is built to catch your slip" is the part they may know. */
+  slipCheck: boolean;
 }
 
 export interface ServedQuestionResponse {
@@ -547,6 +560,16 @@ export function starterPick(id: string, conceptId: string, questionId: string, c
     method: "POST",
     body: { action: "starterPick", id, conceptId, questionId, choiceIndex },
   });
+}
+
+/** ONE ITEM, WORKED IN FULL, for the lesson's worked example.
+ *
+ *  Profile-less and ungraded on purpose: it returns the key and the explanation
+ *  because that is what a worked example IS, and it takes no seed so it cannot
+ *  be turned into an oracle for the question on screen. The route
+ *  (app/api/worked-example/route.ts) carries the reasoning. */
+export function workedExample(conceptId: string, lang: string, target?: number): Promise<WorkedExampleView> {
+  return send<WorkedExampleView>("/api/worked-example", { query: { conceptId, lang, target } });
 }
 
 /** A peer's own words about whether they can explain this concept. */

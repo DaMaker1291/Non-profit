@@ -243,8 +243,16 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
         const a = topic.concepts.reduce((n, c) => n + askedOf(c.id), 0);
         const k = topic.concepts.reduce((n, c) => n + correctOf(c.id), 0);
         const d = dimensionFor("recalled", t(`stage.${stage}`), a > 0 ? { asked: a, correct: k } : null);
+        // OPEN WHERE THE WORK IS. A stage opens when the learner has answered
+        // something in it — and also when it holds the concept the ONE decision
+        // door points at, because closing the out-of-course list (below) would
+        // otherwise leave a new learner on a page of nothing but five closed
+        // headings and no visible place to start.
         return (
-          <details key={topic.stage} className="topic" open={topic.concepts.some((c) => askedOf(c.id) > 0)}>
+          <details key={topic.stage}
+            className="topic"
+            open={topic.concepts.some((c) => askedOf(c.id) > 0) || topic.concepts.some((c) => c.id === currentId)}
+          >
             <summary>
               <span className="roman">{stage}</span> · {t(`stage.${stage}`)}
               {/* A bare `1/2` beside a stage name reads as a score. The band
@@ -262,17 +270,29 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
         );
       })}
 
-      {/* Not in the course — named, counted, and still reachable. */}
+      {/* Not in the course — named, counted, still reachable, and CLOSED.
+          Every stage above sits inside a collapsed <details>, while this section
+          rendered its rows unconditionally — so on a first visit the ONLY
+          concepts a learner could see and click were the ones that are not in
+          their syllabus, under the least prominent heading on the page and
+          explained in a note beneath it. Reported by a learner: "I would not
+          have read that small text and would have just done those topics, which
+          aren't even in my syllabus." The rows are now behind a disclosure whose
+          summary carries the exclusion itself, so it is read BEFORE the list
+          rather than after its heading — and a learner who came to work cannot
+          mistake 19 out-of-course rows for the place to start. */}
       {outside.length > 0 && (
-        <section>
-          <div className="stage-label">
-            {t("cur.outside")} <span className="mono">{outside.length}</span>
-          </div>
-          <p className="small muted">
-            {fill(t("cur.outsideNote"), { n: String(outside.length), spec: active ? active.spec.name : "" })}
-          </p>
+        <details className="topic outside-course">
+          <summary>
+            <span>
+              {t("cur.outside")} <span className="mono">{outside.length}</span>
+            </span>
+            <span className="outside-note">
+              {fill(t("cur.outsideNote"), { n: String(outside.length), spec: active ? active.spec.name : "" })}
+            </span>
+          </summary>
           <div>{outside.map(row)}</div>
-        </section>
+        </details>
       )}
 
       <div style={{ height: "var(--s4)" }} />

@@ -206,17 +206,49 @@ distinct options, and 84 (0.009%) with a zero-valued distractor.
 
 ## 7. What remains (the named backlog)
 
-On the served surface, **82 of 135 concepts are still above the 35% line**, 30 of
-them above 40% on the pooled measure. The worst, with the cue that beats them:
+Measured by `npm run gate:options` on the served@0.75 surface (60 draws each, 40
+attempts — the call `app/api/progress/route.ts` makes): **64 of 135 concepts are
+still above the 35% reporting line**, and **21 are repaired and asserted
+absolutely** at their served level. Bank-wide, the best of the eight strategies
+is **25.23%** against a 25% chance line, so no single strategy beats chance
+across the bank; what remains is per concept.
 
-`trig-rule` 100% (digits) · `circle-geometry-adv` 98.9% (longest) ·
-`light-optics` 98.3% (longest) · `photosynthesis` 98.3% (longest) ·
-`volume` 98.3% (magnitude) · `diffusion` 97.5% · `biodiversity` 96.7% ·
-`breathing-gas` 96.7% · `rates-reaction` 96.7% (digits 86.7%) · `cells` 95.0% ·
-`covalent-bonding` 95.0% · `functions-code` 95.0% (magnitude) ·
-`metallic-bonding` 95.0% · `cybersecurity` 93.8% · `digestion` 93.3% ·
-`respiration` 93.3% · `iteration` 92.5% (digits) · `complexity` 92.1% (digits) ·
-`fraction-ops` 91.7% (magnitude) · `nervous-system` 91.7%
+This section replaces an earlier figure of **82 of 135**. That number was true
+when it was written and is kept here only as a record of direction: most of the
+concepts it named as backlog — `cells`, `digestion`, `diffusion`, `biodiversity`,
+`breathing-gas`, `covalent-bonding`, `metallic-bonding`, `cybersecurity`,
+`light-optics`, `circle-geometry-adv`, `photosynthesis`, `rates-reaction`,
+`nervous-system`, `respiration` — have since been repaired and are now asserted
+absolutely, `cells` the worst of them at 63.3% against a 67% ceiling. A report
+that still lists them as outstanding overstates the fault and misleads the next
+author about where the work is.
+
+The current queue, with the cue that beats each concept. The gate prints the worst
+25; the count is what `audit/options-gate.json` stores (`offenders`), so the
+per-concept rows below are the command's own output rather than a figure kept
+anywhere by hand:
+
+`indices-intro` 100.0% (magnitude) · `trig-rule` 100.0% (digits) ·
+`volume` 98.3% (magnitude) · `functions-code` 95.0% (magnitude) ·
+`iteration` 92.5% (digits) · `complexity` 92.1% (digits) ·
+`fraction-ops` 91.7% (magnitude) · `thermal-physics` 91.7% (shortest) ·
+`vectors` 91.7% (digits) · `sound-acoustics` 88.8% (digits) ·
+`gravity-fields` 88.3% (digits) · `energy-changes` 86.7% (shortest) ·
+`circulation` 85.8% (longest) · `acids-bases` 83.9% (shortest) ·
+`analysis-tests` 83.8% (longest) · `hormones` 82.5% (digits) ·
+`microscopy` 82.5% (middles) · `ionic-bonding` 81.3% (digits) ·
+`astrophysics` 80.0% (longest) · `equations-stoich` 79.4% (shortest) ·
+`energy-conservation` 78.3% (shortest) · `surds` 76.9% (shortest) ·
+`periodic-table` 76.7% (longest) · `logic-maths` 73.3% (digits) ·
+`data-charts` 71.7% (magnitude)
+
+Two of those the gate records as **rewritten but not fixed**, and they are the
+clearest illustration of the cue-substitution trap: `gravity-fields` reads 88.3%
+on the digit strategy because its served field-strength key is the only option
+containing a number, and `hormones` reads 82.5% the same way because its served
+feedback-sequence key is the only option quoting the set point. The length repair
+worked, and handed the cue to a different strategy — which is why §4 insists on
+checking all eight.
 
 Two distinct workstreams are visible in that list and should not be confused:
 

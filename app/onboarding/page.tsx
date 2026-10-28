@@ -8,6 +8,10 @@ import {
 } from "@/lib/client";
 import { courseIsReady, settlementTarget } from "@/lib/app-state";
 import { COUNTRIES, LANGS } from "@/lib/i18n";
+// WHERE WITHIN THE COUNTRY, for the countries where the division decides the
+// language. The same module the server validates against, so the picker cannot
+// offer a region the door would refuse.
+import { languageForRegion, regionsFor } from "@/lib/regions";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
 import { type ProfileState, type SubjectId } from "@/lib/types";
 import { Loading } from "@/components/states";
@@ -210,6 +214,53 @@ function OnboardingFlow() {
   // asked later, on `/curriculum` and `/access`, where the learner has seen what
   // a plan looks like and can answer them with something to go on.
   const [country, setCountry] = useState("XX");
+  /** The province / state / region, EMPTY unless the country's own division
+   *  decides the language. It exists for one job — selecting the language below
+   *  — and a learner can always change that select afterwards, so this is a
+   *  shortcut rather than a second gate.
+   *
+   *  Reset whenever the country changes: a region is a fact about one country,
+   *  and carrying "quebec" onto an Irish profile would be a stored value no
+   *  picker shows and no reader should trust (the server drops it too — see
+   *  app/api/profile, "A COUNTRY WITH NO REGIONS CANNOT HOLD ONE"). */
+  const [region, setRegion] = useState("");
+  const regions = regionsFor(country);
+  /** A RETURNING LEARNER'S OWN ANSWERS, FILLED ONCE, INTO FIELDS THEY HAVE NOT
+   *  TOUCHED.
+   *
+   *  This form starts from empty defaults — country "prefer not to say", no
+   *  region, no name — and then writes all three back. That was survivable while
+   *  every field was optional (`body.handle` falsy is ignored by the door, so a
+   *  blank name left the stored one alone), and it stopped being survivable for
+   *  TWO reasons at once: the name is now REQUIRED to pass this step, so a
+   *  returning learner must retype it and the value they type replaces the one
+   *  they had; and a country sent back as "XX" now drops their region with it,
+   *  because the server refuses to keep a region for a country that has none.
+   *
+   *  A `useRef` latch, not a dependency on the profile: `session.profile` changes
+   *  identity after a save (line ~470 re-reads it deliberately), and a second
+   *  fill would overwrite whatever the learner chose on screen in the meantime.
+   *  Only a field still at its initial value is written. */
+  const prefilled = useRef(false);
+  useEffect(() => {
+    const stored = session.profile?.profile;
+    if (prefilled.current || !ready || !stored) return;
+    prefilled.current = true;
+    setCountry((c) => (c === "XX" ? stored.country || c : c));
+    setRegion((r) => (r ? r : stored.region ?? r));
+    setHandle((h) => (h.trim() ? h : stored.handle ?? h));
+  }, [ready, session.profile]);
+  /** Picking a region sets the language it implies — the whole reason the field
+   *  exists — and never forces it: the select beside it still wins if the
+   *  learner disagrees, which is the difference between a helpful default and a
+   *  guessed one. The interface language changes with it, because the region's
+   *  label is written in that language and a picker that switches under the
+   *  labels it is describing is the confusing version of this. */
+  const chooseRegion = (id: string) => {
+    setRegion(id);
+    const suggested = languageForRegion(country, id);
+    if (suggested) setLang(suggested);
+  };
   const [subjects, setSubjects] = useState<SubjectId[]>(["maths"]);
 
   const [step, setStep] = useState(0);
@@ -335,6 +386,10 @@ function OnboardingFlow() {
     return {
       handle: handle.trim() || undefined,
       country,
+      // Omitted when the country offers no regions, or when the learner did not
+      // pick one: `undefined` leaves a stored value alone, which is what a
+      // sign-in pass over this form must do.
+      region: region || undefined,
       language: lang,
       // The three taught/answered/school languages follow the one the learner
       // just chose, because the screens that could have differed are deferred and
@@ -621,6 +676,13 @@ function OnboardingFlow() {
 
   const canAdvance = (): boolean => {
     if (current === "account") return mode === "guest" ? true : acctIssue === null;
+    // EACH STEP CHECKS ITS OWN FIELDS. This returned `true` for every step that
+    // was not the account or the subject list, so a learner could pass "About
+    // you" with the name empty and only find out that something was missing at
+    // the end of the flow. A step that asks for something now holds `Next` for
+    // it, and prints the reason beside the field rather than in a summary nobody
+    // scrolls back to.
+    if (current === "about") return handle.trim().length > 0;
     // At least one subject, because the next screen is a diagnostic IN one. The
     // sentence beside the button is the same one the screen's lead prints when
     // the list is empty, so the gate and its explanation cannot disagree.
@@ -928,23 +990,70 @@ function OnboardingFlow() {
               your learning path" — to somebody who is here to teach. */}
           <p className="lead">{isTeacherAccount ? t("teach.entryBody") : t("onb.lead")}</p>
           <div className="exercise" style={{ marginTop: 20 }}>
+            {/* A NAME IS ASKED FOR, AND SAID TO BE NEEDED, BEFORE THE BUTTON IS
+                PRESSED. This field used to be optional, so `Next` stayed enabled
+                with it empty and the learner met the requirement later — at the
+                end of the flow, when choosing a subject — which is the complaint
+                that produced this gate: "the onboarding should have some fields
+                which are required, like name before you press next, instead of
+                checking all requirements at the end". The sentence sits under the
+                box while it is empty, so the gate is never a dead button with no
+                reason beside it. It asks for a NAME, not a real one: the promise
+                in lib/types (`handle` — "no real names required") is kept by
+                saying a nickname is fine. */}
             <label className="field">
               <span>{t("onb.name")}</span>
-              <input type="text" value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="amina_k" maxLength={24} />
+              <input
+                type="text"
+                value={handle}
+                onChange={(e) => setHandle(e.target.value)}
+                placeholder="amina_k"
+                maxLength={24}
+                required
+                aria-required="true"
+                aria-invalid={handle.trim().length === 0 ? true : undefined}
+              />
+              {handle.trim().length === 0 && (
+                <span className="small muted" role="status" style={{ display: "block", marginTop: 4 }}>
+                  {t("onb.nameNeeded")}
+                </span>
+              )}
             </label>
             {/* WHERE THEY ARE AND WHAT THEY READ. Country decides the
                 curriculum, the grades and the boards this learner will be
-                offered LATER on /curriculum; language is the one the product
-                speaks to them in from the next screen on. Two selects, both
-                with a true default, so the screen can be passed without a tap
-                if neither is wrong. */}
+                offered LATER on /curriculum; the region decides the LANGUAGE,
+                in the countries where the country's own internal division does
+                (lib/regions.ts); the language select speaks from the next
+                screen on. All three carry a true default, so the screen can be
+                passed without a tap when nothing shown is wrong.
+
+                THE REGION FIELD IS CONDITIONAL, AND THAT IS THE POINT. It is
+                rendered only for the three countries whose regions decide a
+                language we ship, and it says what changing it did — a picker
+                that quietly rewrites the language select below is the sort of
+                silent behaviour a learner blames themselves for not noticing. */}
             <div className="grid cols2">
               <label className="field">
                 <span>{t("onb.where")}</span>
-                <select value={country} onChange={(e) => setCountry(e.target.value)}>
+                <select
+                  value={country}
+                  onChange={(e) => { setCountry(e.target.value); setRegion(""); }}
+                >
                   {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
                 </select>
               </label>
+              {regions.length > 0 && (
+                <label className="field">
+                  <span>{t("onb.region")}</span>
+                  <select value={region} onChange={(e) => chooseRegion(e.target.value)}>
+                    <option value="">{t("onb.pickRegion")}</option>
+                    {regions.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+                  </select>
+                  <span className="small muted" style={{ display: "block", marginTop: 4 }}>
+                    {t("onb.regionNote")}
+                  </span>
+                </label>
+              )}
               <label className="field">
                 <span>{t("onb.language")}</span>
                 <select value={lang} onChange={(e) => setLang(e.target.value)}>

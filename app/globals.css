@@ -754,6 +754,99 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
    the reading voice to; it has one now, and the next reading surface reuses it
    rather than inventing a second rule. */
 .reading { font-family: var(--font-read); line-height: 1.7; }
+/* THE LESSON ITSELF, SET TO BE READ. It was 16.5px/1.7 inside a card — the size
+   of body copy, in a page whose whole job is to teach one idea — and it ran the
+   full width of the card on a laptop, which is roughly 100 characters a line.
+   Both are the reasons a learner skims a lesson and presses the button. This is
+   one step up from body copy, at a measure a reader can track, with a line
+   height that separates the lines instead of letting them blur. */
+.lesson-text {
+  font-size: 1.1875rem;
+  line-height: 1.8;
+  max-width: 34em;
+  text-wrap: pretty;
+  color: var(--text);
+}
+@media (max-width: 520px) {
+  .lesson-text { font-size: 1.0625rem; line-height: 1.75; }
+}
+/* THE LESSON'S FIRST SENTENCE, SET AS THE CLAIM IT IS. Every authored lesson
+   opens with the sentence that states the whole idea; at body weight inside a
+   paragraph it is the sentence a skimmer skips. Larger, tighter, and separated
+   from the working that follows, so the shape of the idea is visible before the
+   reading starts. */
+.lesson-lead {
+  font-size: 1.375rem;
+  line-height: 1.55;
+  font-weight: 600;
+  margin: 0 0 10px;
+  max-width: 30em;
+  text-wrap: pretty;
+}
+@media (max-width: 520px) {
+  .lesson-lead { font-size: 1.1875rem; }
+}
+/* A STRUCTURED LESSON IS SEVERAL PARAGRAPHS, NOT ONE.
+   The authored plans (lib/lesson-plans.ts) give the idea three to six
+   paragraphs; `.lesson-text` carries no vertical rhythm because it was written
+   for a single paragraph under the lead. Without this rule the paragraphs run
+   together into exactly the wall the measure was chosen to avoid. */
+.lesson-text + .lesson-text { margin-top: 14px; }
+/* WHAT THE LESSON IS FOR — the objective, set as a statement rather than as a
+   card of body copy, so it reads before the reading starts. The left rule is the
+   same accent the evidence card uses for "this is about you". */
+.plan-objective { border-left: 4px solid var(--accent); }
+.plan-objective .eyebrow { color: var(--text-muted); }
+/* THE REPAIR CARD'S CONTRAST PAIR.
+   Two cases of the same move, one that works and one that breaks. They are set
+   side by side because the PAIR is the teaching: read one under the other they
+   are two unrelated facts, and the single difference that decides the case is
+   exactly what a learner is meant to see. On a narrow screen they stack, which
+   is the same reading order a column gives — never a carousel, never a toggle,
+   because hiding one half turns the contrast back into a rule. */
+.repair { border-left: 4px solid var(--mark-caution); padding-left: 12px; }
+.repair-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.repair-side { padding: 10px 12px; border-radius: var(--radius-input); background: var(--surface-sunken); }
+.repair-side.ok { border-left: 3px solid var(--mark-correct); }
+.repair-side.no { border-left: 3px solid var(--mark-wrong); }
+.repair-side .eyebrow { color: var(--text-muted); }
+/* The item itself, at reading size — it is the sentence being compared, not a
+   caption for the note under it. */
+.repair-item { margin: 6px 0 0; font-size: 1.0625rem; line-height: 1.5; }
+@media (max-width: 620px) {
+  .repair-pair { grid-template-columns: 1fr; }
+}
+/* WHAT THIS BUILDS ON — a list of ideas, each with the reason it is needed.
+   Generous line height because these are read as sentences, not as a menu. */
+.lesson-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.lesson-list li { font-size: 0.9375rem; line-height: 1.5; }
+/* A WORKED EXAMPLE'S OPTIONS, WHICH ARE NOT BUTTONS. Dashed, where a real
+   choice is solid: the difference has to be visible at a glance, because the one
+   thing this list must never do is look like the question the learner is about
+   to answer. The correct row follows the same green marking as a graded answer,
+   so the page teaches one visual language for "this is the right one". */
+.worked-choices { list-style: none; margin: 12px 0 14px; padding: 0; display: grid; gap: 8px; }
+.worked-choices li {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius-input);
+  background: var(--surface-sunken);
+  font-size: var(--t16); font-weight: 600;
+}
+.worked-choices .mark {
+  flex: none; width: 24px; height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-weight: 700; font-size: var(--t14);
+  border: 1.5px solid var(--line); border-radius: 6px;
+}
+.worked-choices .mark::before { content: attr(data-idx); color: var(--text-muted); font-size: var(--t12); }
+.worked-choices li.worked-correct {
+  border-style: solid; border-color: var(--mark-correct);
+  background: color-mix(in srgb, var(--mark-correct) 8%, var(--surface));
+}
+.worked-choices li.worked-correct .mark { background: var(--mark-correct); border-color: var(--mark-correct); }
+.worked-choices li.worked-correct .mark::before { content: "✓"; color: var(--text-on-strong); }
 .muted { color: var(--text-muted); }
 .small { font-size: var(--t13-5); }
 .tiny { font-size: var(--t12); }
@@ -2348,6 +2441,25 @@ html.low-power .card { box-shadow: none; }
   text-transform: none; letter-spacing: 0.02em; font-family: var(--mono);
 }
 .topic > div .concept-row:last-child { border-bottom: 0; }
+
+/* ── The out-of-course list on Learn ─────────────────────────────────────────
+   It is a disclosure like a topic, because its rows must not be the first thing
+   a learner meets — but unlike a topic its summary carries a SENTENCE, so the
+   summary stops being an uppercase mono label and the note is set as prose. The
+   exclusion has to be read before the list; it was a note under the heading, in
+   muted body text, and a learner reported skipping it and working the topics. */
+.outside-course > summary { display: block; }
+.outside-course > summary .outside-note {
+  display: block;
+  margin-top: 4px;
+  font-family: inherit;
+  font-size: var(--t15);
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+}
 
 /* ── A ROW OF FIELDS MAKES ROOM ON A PHONE ─────────────────────────────────
    Marking your own paper is one row of four controls: question, marks,

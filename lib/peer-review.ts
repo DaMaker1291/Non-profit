@@ -1,38 +1,74 @@
-// Peer teach review (§13/§35): offline keyword-coverage check. Honest about
-// being a coverage heuristic — feedback strings are translatable via peer.*.
-import type { NextT } from "./next-engine";
+// ── "EXPLAIN IT IN YOUR OWN WORDS": WHAT THIS CAN AND CANNOT SAY ────────────
+//
+// This module used to score an explanation. It lowercased the concept's lesson
+// text, kept every word longer than four characters, checked which of those
+// appeared in the learner's sentences, and turned the ratio into a verdict:
+// "strong" above 60%, "thin" below 20%. That verdict was written into the
+// learner's record as `peer.strong`, and the learner was TOLD it — "Your
+// explanation covers the key ideas"; "That is too thin to count as teaching".
+//
+// It was wrong in four ways that matter, and each one is a reason the verdict is
+// gone rather than tuned:
+//
+//   1. IT MEASURED VOCABULARY, NOT UNDERSTANDING. A correct explanation in a
+//      learner's own words — "you times the outside bits and add the insides" —
+//      scores zero against a lesson that says "multiply the coefficients". The
+//      better the learner's own phrasing, the worse this marked them.
+//   2. IT PUNISHED A DIFFERENT ROUTE TO THE SAME IDEA, which is the normal case
+//      in a classroom, not an edge case. Somebody explaining a fraction by
+//      sharing a pizza and somebody explaining it by division are both right,
+//      and only one of them matched the lesson's nouns.
+//   3. IT WAS AN ENGLISH-ONLY MEASURE applied to every learner. The lesson text
+//      it compares against is English (lib/genome), so a learner writing in
+//      Spanish, Hindi or Swahili scored near zero however well they explained it.
+//      A verdict that depends on which language you write in is not a measurement
+//      of the idea.
+//   4. NOBODY EVER READ IT. The verdict was presented as a check, and the thing
+//      it claimed to check — whether the explanation is right — is exactly what a
+//      keyword matcher cannot see and no human in this pipeline looked at.
+//
+// What is left is the part that IS true and useful: the concept's lesson names
+// certain ideas, and listing which of them the learner actually used is a fair
+// prompt to look again. So this now returns a CHECKLIST, never a score: no
+// verdict, no percentage, no threshold, nothing written to the learner's record
+// as evidence of understanding. The component that renders it says plainly that
+// it is not marked — see components/peer-teach.tsx.
 
-export interface PeerVerdict {
-  coverage: number;
+export interface ExplanationReview {
+  /** Ideas from the concept's own lesson that the explanation names. */
+  covered: string[];
+  /** The rest of them, offered as "worth a mention", never as a failure. */
   missing: string[];
-  verdict: "strong" | "good" | "partial" | "thin";
-  feedback: string;
 }
 
-function keywordsOf(lesson: string): string[] {
-  return [...new Set(
-    lesson
-      .toLowerCase()
-      .replace(/[^a-zà-ÿа-я一-鿿à-ʼ\s]/g, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 4),
-  )];
+/** How many ideas to put on the checklist. Short on purpose: ten items is a
+ *  checklist nobody reads, and the point is a second look at the idea rather
+ *  than an exhaustive audit of the paragraph. */
+const MAX_IDEAS = 5;
+
+/** The lesson's own key words, longest first, capped.
+ *
+ *  Longest first because the distinctive words in a lesson are the long ones
+ *  ("denominator", "coefficient", "gradient") while the short ones are the glue —
+ *  and a five-item checklist of "which, when, their" teaches nothing. Words of
+ *  four letters or fewer are dropped for the same reason. */
+export function keyIdeasOf(lesson: string): string[] {
+  const words = lesson
+    .toLowerCase()
+    .replace(/[^a-zà-ÿа-я一-鿿à-ʼ\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 4);
+  const unique = [...new Set(words)];
+  unique.sort((a, b) => b.length - a.length);
+  return unique.slice(0, MAX_IDEAS);
 }
 
-export function reviewExplanation(lesson: string, explanation: string, tt?: NextT): PeerVerdict {
-  const t: NextT = tt ?? ((k) => k);
-  const keys = keywordsOf(lesson);
-  const expl = explanation.toLowerCase();
-  const missing = keys.filter((k) => !expl.includes(k));
-  const coverage = keys.length ? 1 - missing.length / keys.length : 0;
-  const verdict = coverage >= 0.6 ? "strong" : coverage >= 0.4 ? "good" : coverage >= 0.2 ? "partial" : "thin";
-  const feedback =
-    verdict === "strong"
-      ? t("peer.strong")
-      : verdict === "good"
-        ? `${t("peer.goodPre")}${missing.slice(0, 2).join(", ") || t("peer.aDetail")}${t("peer.goodPost")}`
-        : verdict === "partial"
-          ? `${t("peer.partialPre")}${missing.slice(0, 3).join(", ")}${t("peer.partialPost")}`
-          : t("peer.thin");
-  return { coverage, missing: missing.slice(0, 5), verdict, feedback };
+/** Which of the lesson's key ideas the explanation names — and nothing more. */
+export function reviewExplanation(lesson: string, explanation: string): ExplanationReview {
+  const ideas = keyIdeasOf(lesson);
+  const written = explanation.toLowerCase();
+  return {
+    covered: ideas.filter((idea) => written.includes(idea)),
+    missing: ideas.filter((idea) => !written.includes(idea)),
+  };
 }

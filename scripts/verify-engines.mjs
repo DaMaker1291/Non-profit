@@ -2098,6 +2098,71 @@ console.log("▸ Hint ladder");
   ok(l4.text === q.explanation && !l4.key, "level 4 is the full walkthrough");
   ok(!JSON.stringify(l1).includes("x = 5") && !JSON.stringify(l2).includes("x = 5"), "levels 1-2 never leak the answer");
   ok(hints.HINT_LEVELS.length === 4, "four rungs on the ladder");
+
+  // A DECIMAL IS NOT A FULL STOP. Rung 3 used `explanation.split(".")[0]`, so a
+  // question whose method runs `13 ÷ 5 = 2.6.` was handed "13 ÷ 5 = 2" as its
+  // first step — the exact defect lib/lesson-plans.ts#firstMoveOf already had
+  // guards for, still live in this file. It now asks that module.
+  const dec = hints.buildHint(
+    { prompt: "Work out 13 ÷ 5.", explanation: "13 ÷ 5 = 2.6. The answer is 2.6 as a decimal." },
+    3,
+  );
+  ok(dec.text === "13 ÷ 5 = 2.6.",
+    `a decimal does not end the first move (rung 3 says ${JSON.stringify(dec.text)})`);
+
+  // ── A HINT ON A CONCEPT THE LEARNER HAS SLIPPED ON AIMED AT THAT SLIP ──
+  const slipQ = { prompt: "Work out (-4) × (-5).", explanation: "Two negatives multiply to a positive: (−4) × (−5) = 20." };
+  const s2 = hints.buildHint(slipQ, 2, { conceptId: "negatives", slip: "neg-slip" });
+  const s3 = hints.buildHint(slipQ, 3, { conceptId: "negatives", slip: "neg-slip" });
+  const negPlan = require("../.verify/repair.js").REPAIRS["neg-slip@negatives"];
+  ok(s2.key === "hint.body.yourSlip" && s2.text === negPlan.reveals,
+    "rung 2 on a live slip says what the slip is, not a nudge written for everyone");
+  ok(s3.text === negPlan.contrasts[1].move,
+    "rung 3 gives the corrected step FOR THE MOVE THIS ITEM IS ABOUT (multiplication)");
+  ok(s3.text !== negPlan.contrasts[0].move,
+    "and not the other move's instruction — wrong advice about the item on screen");
+  const subQ = { prompt: "Work out 5 − (−3).", explanation: "Subtracting a negative adds: 5 − (−3) = 8." };
+  ok(hints.buildHint(subQ, 3, { conceptId: "negatives", slip: "neg-slip" }).text === negPlan.contrasts[0].move,
+    "a subtraction item gets the subtraction pair's step");
+  // A THIRD SHAPE GETS NO PAIR. Found live, not reasoned about: `-9 + 6` was
+  // handed "read the sign in front of the bracket aloud" — an item with no
+  // bracket, in a repair written for `5 − (−3)`. Reaching for a pair the repair
+  // does not describe is the wrong-advice defect, one level down.
+  const thirdQ = { prompt: "Work out -9 + 6.", explanation: "Adding a negative moves left: -9 + 6 = -3." };
+  const third = hints.buildHint(thirdQ, 3, { conceptId: "negatives", slip: "neg-slip" });
+  ok(third.key === "hint.body.strong" && !/bracket/.test(third.text || ""),
+    `an item the repair does not describe gets the general ladder, not a bracket instruction (${JSON.stringify(third.text)})`);
+  ok(hints.buildHint(subQ, 2, { conceptId: "negatives", slip: "neg-slip" }).key === "hint.body.yourSlip",
+    "and a described shape still talks about the slip at rung 2");
+  ok(!hints.buildHint(slipQ, 1, { conceptId: "negatives", slip: "neg-slip" }).text,
+    "rung 1 still names nothing — a slip is not handed over as a diagnosis unless asked for");
+  // A slip nobody has authored a repair for keeps the general ladder rather than
+  // inventing a sentence: `frac-slice` is a real misconception with no repair.
+  const noRepair = hints.buildHint(q, 2, { conceptId: "fractions", slip: "frac-slice" });
+  ok(noRepair.key === "hint.body.strong" && !noRepair.text,
+    "a slip with no authored repair falls back to the general ladder");
+
+  // THE ROUTE PASSES THE LEARNER'S SLIP, AND THE PAGE COMPOSES KEY-FIRST. Both
+  // are one-line source facts that a later refactor would undo silently — the
+  // route reverting to a two-argument call renders the generic ladder for a
+  // learner whose slip the product knows all about.
+  const routeSrc = fs.readFileSync("app/api/progress/route.ts", "utf8");
+  ok(/currentSlip\(state_\.progress\?\.\[conceptId\]\)/.test(routeSrc) &&
+    /buildHint\(q, level, \{ conceptId, slip \}\)/.test(routeSrc),
+    "the hint route resolves the learner's current slip and hands it to the ladder");
+  const pageSrc = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(/\[h\.key \? t\(h\.key\) : "", h\.text\]/.test(pageSrc),
+    "the page puts the translated lead-in before the question's own text, as the published twin does");
+
+  // THE NEW LEAD-IN IS TRANSLATED, NOT ENGLISH. A key present in no dictionary
+  // renders its raw name; a key present only in English reads as English abroad.
+  const missingSlip = i18n.LANG_CODES.filter((code) => i18n.translator(code)("hint.body.yourSlip") === "hint.body.yourSlip");
+  ok(missingSlip.length === 0,
+    `hint.body.yourSlip is authored in all ${i18n.LANG_CODES.length} dictionaries (missing: ${missingSlip.join(",") || "none"})`);
+  const englishSlip = i18n.translator("en")("hint.body.yourSlip");
+  const untranslated = i18n.LANG_CODES.filter((code) => code !== "en" && i18n.translator(code)("hint.body.yourSlip") === englishSlip);
+  ok(untranslated.length === 0,
+    `and not left as English in ${untranslated.length} of them (${untranslated.join(",") || "none"})`);
 }
 
 // ── 12. Teacher weekly plan ─────────────────────────────────────────────────
@@ -10383,7 +10448,33 @@ console.log("▸ Learn shows the learner's own curriculum, with a status per top
   }
 
   // ── THE SENTENCES EXIST, IN EVERY LANGUAGE ────────────────────────────────
-  const learnKeys = ["cur.covers", "cur.outside", "cur.outsideNote"];
+  // The enrolment keys are here for the same two reasons as the curriculum
+  // ones, and are named in the same list rather than checked by a second loop:
+  // a missing key falls back to English and reads perfectly, and a language
+  // that merely copied the English is caught by comparing the two. The region
+  // label is the one field a learner reads BEFORE the interface language it
+  // describes, so an English string left in the Hindi dictionary is exactly the
+  // defect that would never be noticed by an English speaker.
+  const learnKeys = [
+    "cur.covers", "cur.outside", "cur.outsideNote",
+    "onb.region", "onb.pickRegion", "onb.regionNote",
+    // The lesson's own sentences. These are checked HERE for a reason that
+    // happened on the day they were written: a script that anchored on a line
+    // shape put Spanish text in the German dictionary, because most dictionaries
+    // pack several keys onto one line and only four of them looked like the
+    // anchor. This block is what turns that from invisible into a failure.
+    "learn.idea", "worked.eyebrow", "worked.lead", "worked.show",
+    "worked.answer", "worked.err", "worked.next", "peer.ideas",
+    "learn.buildsOn", "worked.another",
+    // The notes section's lead sentence: it read as "Study packs / Add a pack /
+    // Fork", which named a teacher's printable pack and two pieces of developer
+    // vocabulary, so a learner could not tell what the section was for. Only the
+    // LEAD is listed: the other notes strings are packed several-to-a-line in at
+    // least one dictionary (Urdu), where the line-placement assertion below
+    // cannot apply — and quietly restructuring that dictionary to satisfy a
+    // check would be the check dictating the file.
+    "pack.lead",
+  ];
   const learnGaps = [];
   const english = i18n.translator("en");
   for (const l of i18n.LANGS) {
@@ -10396,7 +10487,7 @@ console.log("▸ Learn shows the learner's own curriculum, with a status per top
     }
   }
   ok(learnGaps.length === 0,
-    `every sentence the curriculum screen adds is translated in all ${i18n.LANGS.length} languages (${learnGaps.slice(0, 4).join(", ") || "none missing"})`);
+    `every sentence the curriculum and enrolment screens add is translated in all ${i18n.LANGS.length} languages (${learnGaps.slice(0, 4).join(", ") || "none missing"})`);
   // And the same, for the one-shot script that wrote them: it has to put each
   // language's own text INSIDE that language's dictionary. The sibling script
   // that anchored on a key inside the block put Persian and Urdu into the
@@ -10417,7 +10508,151 @@ console.log("▸ Learn shows the learner's own curriculum, with a status per top
       }
     }
     ok(misplaced.length === 0,
-      `each language's curriculum strings live inside that language's own dictionary (${misplaced.slice(0, 4).join(", ") || "all 15 correct"})`);
+      `each language's curriculum and enrolment strings live inside that language's own dictionary (${misplaced.slice(0, 4).join(", ") || "all 15 correct"})`);
+  }
+
+  // ── A REGION SELECTS A LANGUAGE WE SHIP, OR IT IS NOT OFFERED ─────────────
+  // The region table is data a person edits by hand, and every way it can go
+  // wrong is silent: a language code this build does not ship turns the
+  // interface into a fallback nobody chose, a duplicated id makes two regions
+  // indistinguishable in a stored record, and a Hindi label copied from English
+  // leaves a Hindi-speaking learner reading a Latin-script name in a Hindi
+  // picker. None of the three throws, so each is asserted.
+  {
+    const regions = require("../.verify/regions.js");
+    const shipped = new Set(i18n.LANGS.map((l) => l.code));
+    const broken = [];
+    for (const [country, list] of Object.entries(regions.REGIONS)) {
+      const ids = new Set();
+      for (const r of list) {
+        if (!shipped.has(r.language)) broken.push(`${country}/${r.id}: language ${r.language} is not shipped`);
+        if (ids.has(r.id)) broken.push(`${country}: duplicate id ${r.id}`);
+        ids.add(r.id);
+        if (!r.label || !r.label.trim()) broken.push(`${country}/${r.id}: no label`);
+      }
+    }
+    ok(broken.length === 0,
+      `every region selects a language lib/i18n ships, with a unique id and a label (${broken.slice(0, 3).join("; ") || "all fine"})`);
+
+    // The label is written IN the language it selects — the one convention that
+    // avoids a 15 × 59 name table. Only checkable where the scripts differ: a
+    // region that selects Hindi or Bengali must not be labelled in Latin letters
+    // (and an English one must not carry a Devanagari name).
+    const mislabelled = [];
+    for (const [country, list] of Object.entries(regions.REGIONS)) {
+      for (const r of list) {
+        const latin = /^[\x20-\x7F]+$/.test(r.label);
+        if ((r.language === "hi" || r.language === "bn") && latin) mislabelled.push(`${country}/${r.id} selects ${r.language} but is labelled "${r.label}"`);
+        if (r.language === "en" && !latin) mislabelled.push(`${country}/${r.id} selects English but is labelled "${r.label}"`);
+      }
+    }
+    ok(mislabelled.length === 0,
+      `a region's label is written in the language it selects (${mislabelled.slice(0, 2).join("; ") || "all three conventions hold"})`);
+
+    // The question is asked only where the answer differs.
+    ok(regions.hasRegions("CA") && regions.hasRegions("cm") && regions.hasRegions("IN")
+      && !regions.hasRegions("FR") && !regions.hasRegions("XX") && !regions.hasRegions(""),
+      "a region is asked for only where the country's own division decides a language — not for France, not for \"prefer not to say\", and case-insensitively");
+    ok(regions.languageForRegion("CA", "quebec") === "fr" && regions.languageForRegion("CA", "ontario") === "en"
+      && regions.languageForRegion("IN", "uttar-pradesh") === "hi" && regions.languageForRegion("IN", "west-bengal") === "bn"
+      && regions.languageForRegion("IN", "tamil-nadu") === "en",
+      "the table decides the language, province by state by region — Quebec French, Ontario English, Uttar Pradesh Hindi, West Bengal Bengali, Tamil Nadu English");
+    ok(regions.languageForRegion("FR", "quebec") === null && regions.languageForRegion("CA", "bavaria") === null
+      && regions.languageForRegion("CA", "") === null && regions.languageForRegion(null, "quebec") === null,
+      "and a region that does not belong to the country selects NOTHING — never a default language, which would be the product guessing where the learner lives");
+
+    // ── THE WIRING, IN BOTH DIRECTIONS ────────────────────────────────────
+    const onb = fs.readFileSync("app/onboarding/page.tsx", "utf8");
+    const profileRoute = fs.readFileSync("app/api/profile/route.ts", "utf8");
+    ok(onb.includes("regionsFor(country)") && onb.includes("languageForRegion(country, id)") && !onb.includes("REGIONS["),
+      "the picker and the language it sets come from the ONE region table, so the screen cannot offer a region the door refuses");
+    ok(onb.includes("regions.length > 0 && ("),
+      "the field is rendered only for a country whose regions decide a language, so every other country's screen is unchanged");
+    ok(onb.includes("setCountry(e.target.value); setRegion(\"\")"),
+      "changing the country clears the region that no longer applies to it");
+    ok(onb.includes("region: region || undefined"),
+      "enrolment sends the region, and sends NOTHING when none was chosen — an absent field must not overwrite a stored one");
+    // THE FORM WRITES BACK EVERY FIELD IT SHOWS, so a returning learner must see
+    // their own answers in it. This became load-bearing when the name turned
+    // required: a learner who retypes nothing cannot pass, and the value they are
+    // forced to type replaces the stored one. Filled ONCE, through a latch — a
+    // second fill would overwrite what they chose on screen after the save.
+    ok(onb.includes("const prefilled = useRef(false)") && onb.includes("if (prefilled.current || !ready || !stored) return")
+      && onb.includes("stored.region ?? r") && onb.includes("stored.handle ?? h"),
+      "a returning learner's own country, region and name are prefilled once, so re-entering enrolment cannot overwrite the record it was shown");
+    ok(profileRoute.includes("unknown_region") && profileRoute.includes("hasRegions(p.country)"),
+      "the door refuses a region of another country by name, and drops one when the country has no regions left to hold it");
+    ok(/KIOSK_LOCKED_FIELDS = \[[\s\S]{0,900}?"region"/.test(profileRoute),
+      "and a classroom PIN cannot change it, because it decides what language a provisioned class is taught in");
+  }
+
+  // ── A LESSON TEACHES BEFORE IT ASKS, AND DOES NOT MARK THE ESSAY ────────
+  // Three complaints, three claims about ORDER and about what may be claimed,
+  // and none of them is visible in a screenshot of the finished page:
+  //   · the teach-back box asked a learner to explain an idea BEFORE any question
+  //     on it, so the only way to fill it was to re-word the paragraph above;
+  //   · the lesson was one paragraph of prose, so the first item a learner met
+  //     was also the first one they had to do unaided;
+  //   · that teach-back was SCORED by a keyword matcher into the learner's
+  //     record, and told the learner the verdict.
+  {
+    const lesson = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+    const peerAt = lesson.indexOf("<PeerTeach");
+    const resultAt = lesson.indexOf("<SessionResultPanel");
+    ok(peerAt > 0 && resultAt > 0 && peerAt > resultAt,
+      "the teach-back is asked AFTER the session result, not before the practice — explaining an idea you have not used is a re-wording exercise");
+    ok((lesson.match(/<PeerTeach/g) ?? []).length === 1,
+      "and it appears exactly once, so a second copy cannot creep back into the reading stage");
+    const workedAt = lesson.indexOf("<LessonWorkedExample");
+    const miscAt = lesson.indexOf("{c.misconceptions");
+    ok(workedAt > 0 && miscAt > 0 && workedAt < miscAt,
+      "a worked example sits between the idea and the misconceptions — \"I do\" before \"you do\", not a paragraph and a button");
+
+    // THE CHECKER STOPPED SCORING — asserted on its BEHAVIOUR, because the shape
+    // of the return value is the thing that let a verdict be read as a mark.
+    const peerReview = require("../.verify/peer-review.js");
+    const text = "A fraction shows part of a whole; the denominator counts the equal parts.";
+    const named = peerReview.reviewExplanation(text, "The denominator counts the equal parts.");
+    // Deliberately shares NO word with the lesson above ("whole", "parts" and
+    // "equal" would each be matched): the first version of this fixture said
+    // "the whole was cut into", which is a word from the lesson, so it passed
+    // the scan and failed the point.
+    const otherWords = peerReview.reviewExplanation(text, "Bottom number says how many slices it was cut into.");
+    ok(named.covered.length > 0 && named.missing.every((m) => !named.covered.includes(m)),
+      "a key idea the explanation names is listed as covered, and the two lists never overlap");
+    ok(otherWords.covered.length === 0,
+      "a RIGHT answer in different words is listed as covering nothing — measured, so the honest limit of a vocabulary scan is pinned rather than believed");
+    ok(!("verdict" in named) && !("coverage" in named) && !("score" in named),
+      "and no verdict, percentage or score is returned for any explanation, so no caller can turn this into a mark");
+
+    // THE WORKED EXAMPLE: profile-less, seedless, and ungraded.
+    // COMMENTS ARE STRIPPED FIRST, the rule this suite already learned once: a
+    // guard that fails a file for DOCUMENTING the thing it avoids is worse than
+    // no guard, because the cheapest way to satisfy it is to delete the
+    // explanation. This route says "no profile, no secret" in prose, and the
+    // first version of this assertion failed on exactly that sentence.
+    const worked = fs.readFileSync("app/api/worked-example/route.ts", "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    ok(!/getProfile|withLearnerState|saveProfile|secret/.test(worked),
+      "the worked example touches no learner record and needs no capability — it cannot mark anything");
+    ok(!/get\("seed"\)/.test(worked),
+      "and it accepts no seed, so it cannot be asked for the seed of the live question — which would make it an answer oracle");
+    ok(worked.includes("answerIndex") && worked.includes("explanation"),
+      "it returns the key and the working, because that is what a worked example IS");
+    ok(worked.includes("targetFrom") && worked.includes("WORKED_CEILING"),
+      "a worked example can be asked for at rising depth — and is clamped below the practice ceiling, because a stretch item belongs in the practice");
+
+    // A LESSON THAT IS LONGER BECAUSE IT TEACHES MORE, not because it is padded:
+    // a prerequisite now carries its own explanation, and the idea is split into
+    // its leading claim and the working that follows.
+    ok(lesson.includes('t("learn.buildsOn")') && lesson.includes("cblurb(lang, p)"),
+      "each prerequisite carries its own one-line explanation, so a learner who is lost knows which earlier idea to fix");
+    ok(lesson.includes("lesson-lead") && lesson.includes('c.lesson.indexOf(". ")'),
+      "the lesson's first sentence is set as its claim and the rest as the working, from the authored text rather than a heading invented over it");
+    const workedClient = fs.readFileSync("components/lesson-worked-example.tsx", "utf8");
+    ok(!workedClient.includes("fetch(") && workedClient.includes("workedExample("),
+      "and the surface asks the operation rather than a URL, like every other call in this product");
   }
 
   // ── AND THE BAND RULE IS ONE RULE ───────────────────────────────────────
@@ -14578,6 +14813,339 @@ console.log("▸ Every door that costs money or CPU names its bound");
   ok(share <= CEILING,
     `the maths serve is at or below its committed terse ceiling (${(share * 100).toFixed(1)}% under ${STD} words, ceiling ${(CEILING * 100).toFixed(0)}%)`);
   ok(mathsSet.size > 60, "…measured over every maths concept in the genome, not a sample of the ones this pass touched");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ▸ A lesson is a sequence, not a paragraph
+//
+// The defect this pins is the one the owner reported twice: a concept's teaching
+// was two to four sentences of prose, so the read stage was a paragraph followed
+// by a question, and the first item a learner met was also the first they had to
+// do unaided. lib/lesson-plans.ts carries the authored sequence (objective →
+// intuition → idea paragraphs → worked → one-with-me → traps → your turn).
+//
+// Five claims, and the fifth is the one that keeps the others honest:
+//   1. the plans that exist name real concepts, and none is filed under a typo;
+//   2. each plan carries a real sequence, not a relabelled paragraph — measured
+//      in WORDS per section, because "longer" is the claim being made;
+//   3. each plan is materially longer than the genome prose it replaces (2×);
+//   4. the fade's split of a marking explanation is LOSSLESS and cannot cut a
+//      decimal or an abbreviation, proved on real bank explanations;
+//   5. the review state is printed ON THE SCREEN, and every heading exists in all
+//      fifteen dictionaries — an authored lesson nobody can read in their own
+//      language is an English lesson with translated buttons.
+{
+  console.log("▸ A lesson is a sequence, not a paragraph");
+  const plans = require("../.verify/lesson-plans.js");
+  const words = (s) => (String(s).split(/\s+/).filter((w) => /[A-Za-z]/.test(w))).length;
+  const ids = plans.plannedConceptIds();
+
+  // 1 · EVERY PLAN NAMES A REAL CONCEPT.
+  ok(plans.orphanPlans().length === 0,
+    `every authored plan names a concept the genome holds (${plans.orphanPlans().join(", ") || "none orphaned"})`);
+  ok(ids.length > 0, `there are authored plans to check (${ids.length} of ${genome.CONCEPTS.length} concepts)`);
+  ok(plans.planFor("not-a-concept") === null,
+    "a concept with no plan answers null, so the page falls back to the prose instead of drawing an empty lesson");
+
+  // 1b · THE PLANS ARE THE START OF THE PATHWAY, NOT A SET CHOSEN BY TASTE.
+  const pilot = JSON.parse(fs.readFileSync("audit/pilot-pack.json", "utf8"));
+  const pilotIds = new Set(pilot.concepts.map((c) => c.id));
+  const outside = ids.filter((id) => !pilotIds.has(id));
+  ok(outside.length === 0,
+    `every authored plan is in the reviewed pilot pathway (outside: ${outside.join(", ") || "none"})`);
+
+  // 2 · EACH PLAN IS A SEQUENCE WITH REAL TEACHING IN EVERY PART.
+  const thin = [];
+  for (const id of ids) {
+    const p = plans.planFor(id);
+    const reasons = [];
+    if (words(p.objective) < 5) reasons.push(`objective ${words(p.objective)}w`);
+    if (words(p.intuition) < 25) reasons.push(`intuition ${words(p.intuition)}w`);
+    if (p.idea.length < 4) reasons.push(`${p.idea.length} idea paragraphs`);
+    const shortestIdea = Math.min(...p.idea.map(words));
+    if (shortestIdea < 20) reasons.push(`shortest idea ${shortestIdea}w`);
+    if (p.traps.length < 2) reasons.push(`${p.traps.length} traps`);
+    // A trap's MOVE is measured in characters, not words: "a² × a³ = a⁶" is a
+    // complete wrong move written almost entirely in notation, and a word count
+    // would call it empty. The WHY is measured in words, because that is the
+    // half that has to explain rather than assert.
+    const thinTrap = p.traps.find((tr) => tr.move.trim().length < 12 || words(tr.why) < 15);
+    if (thinTrap) reasons.push(`thin trap (${thinTrap.move.slice(0, 24)})`);
+    if (words(p.usedFor) < 8) reasons.push(`usedFor ${words(p.usedFor)}w`);
+    if (p.review !== "unreviewed" && p.review !== "subject-reviewed") reasons.push("unknown review state");
+    if (reasons.length) thin.push(`${id}: ${reasons.join(", ")}`);
+  }
+  ok(thin.length === 0,
+    `every plan carries an objective, an intuition, 4+ idea paragraphs, 2+ traps with reasons, and where it is used next (${thin.slice(0, 3).join(" | ") || "all complete"})`);
+
+  // 3 · LONGER THAN THE PARAGRAPH IT REPLACES — by a margin, not by a word.
+  const notLonger = [];
+  for (const id of ids) {
+    const p = plans.planFor(id);
+    const prose = genome.CONCEPTS.find((c) => c.id === id)?.lesson ?? "";
+    const ratio = plans.planWordCount(p) / Math.max(1, words(prose));
+    if (ratio < 2) notLonger.push(`${id} ${ratio.toFixed(1)}×`);
+  }
+  ok(notLonger.length === 0,
+    `every plan teaches at least twice as much as the genome paragraph it replaces (${notLonger.join(", ") || "all above 2×"})`);
+
+  // 4 · THE FADE IS LOSSLESS, AND CANNOT CUT A DECIMAL OR AN ABBREVIATION.
+  const s1 = plans.firstMoveOf("Multiply 3 × 2 = 6, then add. The answer is 8.");
+  ok(s1.first === "Multiply 3 × 2 = 6, then add." && s1.rest === "The answer is 8.",
+    "the first move is the opening sentence and the rest is the working");
+  const dec = plans.firstMoveOf("Divide 13 by 5: 13 ÷ 5 = 2.6. The answer is 2.6.");
+  ok(dec.first === "Divide 13 by 5: 13 ÷ 5 = 2.6.",
+    `a decimal does not end the first move (cut at ${JSON.stringify(dec.first.slice(-12))})`);
+  const abbr = plans.firstMoveOf("Use a unit fraction, e.g. 1/5. Then multiply by 3.");
+  ok(abbr.first === "Use a unit fraction, e.g. 1/5.",
+    `an abbreviation does not end the first move (cut at ${JSON.stringify(abbr.first.slice(-12))})`);
+  const one = plans.firstMoveOf("Multiply both sides by 3.");
+  ok(one.first === "Multiply both sides by 3." && one.rest === "",
+    "a one-sentence explanation has no rest, rather than an empty remainder being shown");
+  // …AND ON THE REAL BANK, where the strings were not authored for this test.
+  let faded = 0;
+  const fadeBad = [];
+  for (const c of genome.CONCEPTS) {
+    for (let i = 0; i < 3; i++) {
+      const q = questions.generateQuestion(c.id, `fade:${c.id}:${i}`);
+      if (!q?.explanation) continue;
+      const { first, rest } = plans.firstMoveOf(q.explanation);
+      faded++;
+      const rebuilt = rest ? `${first} ${rest}` : first;
+      if (!first || rebuilt !== q.explanation) fadeBad.push(`${c.id} (${rebuilt.length}/${q.explanation.length})`);
+      // The first move must not end on the integer part of a decimal: "2." is a
+      // cut inside a number, and the learner would read half a value as the step.
+      if (/\d\.$/.test(first) && /^\d/.test(rest)) fadeBad.push(`${c.id} cut a decimal`);
+    }
+  }
+  ok(faded > 200, `the fade is measured on real explanations (${faded} draws)`);
+  ok(fadeBad.length === 0,
+    `splitting a real explanation loses nothing and never cuts inside a number (${fadeBad.slice(0, 3).join(", ") || `${faded} clean`})`);
+
+  // 5 · THE REVIEW STATE IS ON THE SCREEN, AND THE HEADINGS EXIST EVERYWHERE.
+  const page = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(/plan\.review === "subject-reviewed" \? "plan\.reviewed" : "plan\.unreviewed"/.test(page),
+    "the lesson prints whether a subject teacher has checked it, where the learner reads it");
+  ok(/<LessonWorkedExample conceptId=\{conceptId\} mode="guided" \/>/.test(page),
+    "and the faded \"we do\" stage is rendered after the worked example");
+  ok(/plan\s*\?\s*\(/.test(page),
+    "the plan sections are conditional, so a concept without one falls back rather than rendering empty headings");
+  ok(/import \{ planFor \} from "@\/lib\/lesson-plans"/.test(page),
+    "and the page reads plans from the one format module rather than keeping a copy of the content");
+  const litp = require("../.verify/i18n.js");
+  const PLAN_KEYS = ["plan.can", "plan.start", "plan.together", "plan.guidedLead", "plan.firstStep",
+    "plan.rest", "plan.finishIt", "plan.traps", "plan.reviewed", "plan.unreviewed"];
+  for (const key of PLAN_KEYS) {
+    const missing = litp.LANG_CODES.filter((c) => !litp.DICTS[c] || !litp.DICTS[c][key]);
+    ok(missing.length === 0, `${key} is authored in all ${litp.LANG_CODES.length} languages (missing: ${missing.join(",") || "none"})`);
+    const english = litp.LANG_CODES.filter((c) => c !== "en" && litp.DICTS[c][key] === litp.DICTS.en[key]);
+    ok(english.length === 0, `${key} is not the English sentence in a translation (${english.join(",") || "none"})`);
+  }
+  const css = fs.readFileSync("app/globals.css", "utf8");
+  ok(/\.lesson-text \+ \.lesson-text \{/.test(css) && /\.plan-objective \{/.test(css),
+    "several lesson paragraphs have vertical rhythm and the objective has its own treatment (without the first, the plan renders as the wall it exists to break)");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ▸ A wrong answer gets the repair for THAT slip
+//
+// The defect this pins is one line of the concept page: on a wrong answer it
+// printed the misconception's name and `coaching.split(".")[0]` — the first
+// sentence of a paragraph written for every learner at once, cut at its first
+// full stop. Two learners who broke different ideas read the same words.
+// lib/repair.ts carries the targeted response (what the move reveals, a contrast
+// pair, the corrected move, an independent check).
+//
+// The claims worth asserting are the ones that would fail SILENTLY:
+//   1. every repair is filed against a misconception that really lists that
+//      concept, so the pair can co-occur at all;
+//   2. every repair is one the BANK can actually trigger — its concept's items
+//      carry the tag on real draws, or the card is unreachable;
+//   3. both branches of the render exist: the card when a repair is authored and
+//      the old one-liner when it is not;
+//   4. the five headings are authored in all fifteen languages.
+{
+  console.log("▸ A wrong answer gets the repair for THAT slip");
+  const repair = require("../.verify/repair.js");
+  const keys = Object.keys(repair.REPAIRS);
+  ok(keys.length > 0, `there are authored repairs to check (${keys.length})`);
+  ok(repair.orphanRepairs().length === 0,
+    `every repair names a misconception that lists its concept (orphans: ${repair.orphanRepairs().join(", ") || "none"})`);
+  ok(repair.thinRepairs().length === 0,
+    `every repair explains the move, both sides of the contrast pair, the difference and the check (thin: ${repair.thinRepairs().join(", ") || "none"})`);
+  ok(repair.repairFor("negatives", null) === null && repair.repairFor("fractions", "neg-slip") === null,
+    "a pair with no authored repair answers null, so the page falls back instead of drawing an empty card");
+
+  // 2 · THE BANK CAN ACTUALLY TRIGGER IT.
+  const unreachable = [];
+  const triggered = [];
+  for (const key of keys) {
+    const plan = repair.REPAIRS[key];
+    let hits = 0;
+    for (let i = 0; i < 30; i++) {
+      const item = questions.generateQuestion(plan.conceptId, `repair:${plan.conceptId}:${i}`);
+      if (item && (item.misconceptionTags ?? []).includes(plan.misconceptionId)) hits++;
+    }
+    triggered.push(`${plan.conceptId} ${hits}/30`);
+    if (hits === 0) unreachable.push(key);
+  }
+  ok(unreachable.length === 0,
+    `every repair is one the served bank can actually reveal (unreachable: ${unreachable.join(", ") || "none"}) — ${triggered.join(", ")}`);
+  ok(repair.repairFor("negatives", "neg-slip")?.misconceptionId === "neg-slip",
+    "and the lookup is by the PAIR, so the same slip on another concept cannot borrow this repair");
+  // A SLIP WITH TWO MOVES SHOWS BOTH. Measured live: `neg-slip` covers both
+  // "subtracting a negative" and "multiplying two negatives", the item served was
+  // `(-2) × (-4)`, and the card answered it with a contrast about subtraction —
+  // confident, correct arithmetic about a move the learner had not made. The
+  // pair list is what makes that expressible; this pins that it stays used.
+  const negSlip = repair.REPAIRS["neg-slip@negatives"];
+  ok(negSlip && negSlip.contrasts.length >= 2 &&
+     negSlip.contrasts.some((c) => c.fails.includes("×")) && negSlip.contrasts.some((c) => c.fails.includes("− (")),
+    `a slip with two distinct moves carries a pair for EACH (${negSlip ? negSlip.contrasts.length : 0} pairs: ${negSlip ? negSlip.contrasts.map((c) => c.fails.slice(0, 14)).join(" / ") : "none"})`);
+
+  // 3 · BOTH BRANCHES OF THE RENDER.
+  const conceptPage = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(/import \{ repairFor \} from "@\/lib\/repair"/.test(conceptPage),
+    "the concept page reads repairs from the one module");
+  ok(/const repair = repairFor\(conceptId, graded\.misconceptionId\)/.test(conceptPage) &&
+     /<RepairCard plan=\{repair\} \/>/.test(conceptPage),
+    "and renders the card for an authored slip");
+  ok(/coaching\.split\("\."\)\[0\]/.test(conceptPage),
+    "…while keeping the one-line fallback for every slip nobody has written a repair for");
+  const card = fs.readFileSync("components/repair-card.tsx", "utf8");
+  ok(card.includes('t("repair.works")') && card.includes('t("repair.fails")') &&
+     /<MathText text=\{c\.works\} \/>/.test(card) && /<MathText text=\{c\.fails\} \/>/.test(card) &&
+     card.includes("c.worksNote") && card.includes("c.failsNote"),
+    "the card draws BOTH sides of the contrast pair, each with its reason (one side alone is a rule, not a contrast — and a pair with no reasons is two unexplained sums)");
+  ok(!/useState|fetch\(|\.then\(/.test(card),
+    "and the card is inert: no state, no request — it is feedback on an answer already marked");
+
+  // 4 · THE HEADINGS, EVERYWHERE.
+  const litr = require("../.verify/i18n.js");
+  for (const key of ["repair.title", "repair.works", "repair.fails", "repair.diff", "repair.move"]) {
+    const missing = litr.LANG_CODES.filter((c) => !litr.DICTS[c] || !litr.DICTS[c][key]);
+    ok(missing.length === 0, `${key} is authored in all ${litr.LANG_CODES.length} languages (missing: ${missing.join(",") || "none"})`);
+    const english = litr.LANG_CODES.filter((c) => c !== "en" && litr.DICTS[c][key] === litr.DICTS.en[key]);
+    ok(english.length === 0, `${key} is not the English sentence in a translation (${english.join(",") || "none"})`);
+  }
+  const cssR = fs.readFileSync("app/globals.css", "utf8");
+  ok(/\.repair-pair \{/.test(cssR) && /max-width: 620px[\s\S]{0,120}\.repair-pair \{ grid-template-columns: 1fr; \}/.test(cssR),
+    "the pair sits side by side and stacks on a phone rather than hiding one half");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ▸ A repair serve tests the slip, not only the difficulty
+//
+// A repair serve used to do exactly one thing: aim twelve points lower. That
+// steadies the numbers without ever testing the belief, so a learner who thinks a
+// minus sign is decoration answered easier questions about the same idea, passed
+// them, and kept the belief. The bank tags each item with the misconception it
+// discriminates, so the serve can now ask for one that CHECKS the slip — and
+// `indices-intro` is the concept that makes the difference measurable, because
+// only ~1 item in 5 there carries its tag.
+//
+// The gating is asserted too: `currentSlip` retires a slip after REPAIR_STREAK
+// clean answers, so a serve cannot chase a belief the rest of the product has
+// already considered repaired.
+{
+  console.log("▸ A repair serve tests the slip, not only the difficulty");
+  const ops = require("./../.verify/operations.js");
+  const lm = require("./../.verify/learner-model.js");
+  const build = (id, misconceptions, streak) => {
+    const s = store.newProfileState(id, {
+      country: "GB", subjects: ["maths"],
+      subjectCourses: { maths: { spec: "uk-gcse", specLevel: "foundation" } },
+      spec: "uk-gcse", specLevel: "foundation",
+    });
+    s.progress = {
+      "indices-intro": {
+        attempts: 4, correct: 1, streak, mastery: 0.2, lastSeen: Date.now(), misconceptions,
+      },
+    };
+    return s;
+  };
+  const SLIP = "neg-exp";
+  const withSlip = build("slip-serve", { [SLIP]: 3 }, 0);
+  const withoutSlip = build("no-slip-serve", {}, 0);
+
+  // Both must reach a repair aim, or the comparison would be measuring the aim.
+  const aimA = ops.practiceAim(withSlip, "indices-intro");
+  const aimB = ops.practiceAim(withoutSlip, "indices-intro");
+  ok(aimA.target.reason === "repair" && aimB.target.reason === "repair",
+    `both learners are in a repair (${aimA.target.reason}/${aimB.target.reason})`);
+  ok(lm.currentSlip(withSlip.progress["indices-intro"])?.id === SLIP &&
+     lm.currentSlip(withoutSlip.progress["indices-intro"]) === null,
+    "and only one of them still has a live slip, decided by the same rule the next-step engine uses");
+
+  // MEASURED OVER THE REPAIR WINDOW, WHICH IS FOUR SERVES. The rotation that
+  // stops a concept repeating one item also means a tagged item, once served, is
+  // skipped — so a run of twenty serves decays towards the ordinary rate and
+  // would understate the effect a learner actually meets. `REPAIR_STREAK` is
+  // three clean answers, so a live slip is repaired inside four serves anyway.
+  const window = (state, tag) => {
+    let hit = 0;
+    for (let run = 0; run < 10; run++) {
+      for (let i = 0; i < 4; i++) {
+        const r = ops.servePractice({ state, conceptId: "indices-intro", seed: `slip-${tag}-${run}:${i}` });
+        if (r.ok && (r.served.question.misconceptionTags ?? []).includes(SLIP)) hit++;
+      }
+      // A fresh run needs a fresh record; the rotation is per learner.
+      state.servedPractice = {};
+    }
+    return hit;
+  };
+  const taggedA = window(withSlip, "a");
+  const taggedB = window(withoutSlip, "b");
+  ok(taggedA >= 34 && taggedA > taggedB,
+    `a repair serve hands out items that discriminate the live slip (${taggedA}/40 in the repair window, ${taggedB}/40 without a slip)`);
+
+  // THE GATE: a retired slip gets the ordinary draw, not the chase.
+  const retired = build("slip-retired", { [SLIP]: 9 }, 3);
+  ok(lm.currentSlip(retired.progress["indices-intro"]) === null,
+    "a slip repaired by three clean answers (lib/learner-model#REPAIR_STREAK) is no longer live");
+  const taggedRetired = window(retired, "r");
+  ok(taggedRetired < taggedA,
+    `and a retired slip is not chased, so the repair cannot become permanent (${taggedRetired}/40 vs ${taggedA}/40)`);
+
+  // THE BUDGET IS BOUNDED. A serve is the hottest path in the product and the
+  // chase multiplies its 40-draw band search, so the constant must stay small.
+  ok(ops.SLIP_DRAW_ATTEMPTS > 0 && ops.SLIP_DRAW_ATTEMPTS <= 12,
+    `the extra draws stay bounded (${ops.SLIP_DRAW_ATTEMPTS} beyond the ordinary draw)`);
+
+  // ── AND THE SERVE SAYS WHETHER IT ACTUALLY TESTED THE SLIP ─────────────
+  // `reason: "repair"` is a statement about the rung, not about the item. The
+  // page prints "this one is built to catch that slip" only when the draw really
+  // landed on a tagged item, so the flag has to be TRUE for a targeted draw and
+  // FALSE when no slip was asked for — even if that draw happens to land on a
+  // tagged item, which is why the control below uses one.
+  const fresh = { ...build("slip-flag", {}, 0), servedPractice: {} };
+  const slipped = { ...build("slip-flag-a", { [SLIP]: 3 }, 0), servedPractice: {} };
+  let sawTrue = false, sawFalseWithTag = false, sawFalseWithout = false;
+  for (let i = 0; i < 12; i++) {
+    const a = ops.servePractice({ state: slipped, conceptId: "indices-intro", seed: `flag-a-${i}` });
+    if (a.ok && a.served.slipCheck) sawTrue = true;
+    const b = ops.servePractice({ state: fresh, conceptId: "indices-intro", seed: `flag-b-${i}` });
+    if (b.ok && !b.served.slipCheck) {
+      sawFalseWithout = true;
+      if ((b.served.question.misconceptionTags ?? []).includes(SLIP)) sawFalseWithTag = true;
+    }
+  }
+  ok(sawTrue, "a repair serve reports `slipCheck: true` when it landed on the slip's item");
+  ok(sawFalseWithout && sawFalseWithTag,
+    "and `false` when no slip was being chased — including on a draw that happens to be tagged, because the flag reports the CHASE, not the tag");
+
+  // …AND THE THREE PLACES THAT CARRY IT TO THE SCREEN.
+  const routeSrc = fs.readFileSync("app/api/progress/route.ts", "utf8");
+  ok(/slipCheck,/.test(routeSrc) && /\bslipCheck: boolean\b/.test(fs.readFileSync("lib/api/client.ts", "utf8")),
+    "the serve's payload carries the flag, typed on the client's own response shape");
+  const pageSrc = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(/why\.reason === "repair" && why\.slipCheck && <span>\{t\("target\.slipCheck"\)\}<\/span>/.test(pageSrc),
+    "and the concept page prints it only for a repair that really tested the slip");
+  const litS = require("../.verify/i18n.js");
+  const missS = litS.LANG_CODES.filter((c) => !litS.DICTS[c] || !litS.DICTS[c]["target.slipCheck"]);
+  ok(missS.length === 0, `target.slipCheck is authored in all ${litS.LANG_CODES.length} languages (missing: ${missS.join(",") || "none"})`);
+  const engS = litS.LANG_CODES.filter((c) => c !== "en" && litS.DICTS[c]["target.slipCheck"] === litS.DICTS.en["target.slipCheck"]);
+  ok(engS.length === 0, `and not left as the English sentence (${engS.join(",") || "none"})`);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

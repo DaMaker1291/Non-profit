@@ -12,6 +12,7 @@ import { emptyProgress, isRetentionEvidence } from "@/lib/progress";
 // genuinely its own: the capability, the persistence of the staging, and what
 // crosses the wire.
 import { answerDisposition, noteHint, servePractice, type ServeState } from "@/lib/operations";
+import { currentSlip } from "@/lib/learner-model";
 import { generateQuestion, hasGenerator, serveView } from "@/lib/questions";
 import { gradeChoice, gradeNumeric, parseNumericInput } from "@/lib/answer";
 import { difficultyBandFor } from "@/lib/question-bank";
@@ -161,7 +162,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           lang: body.lang,
         });
         if (!served.ok) return { error: "no question" as const };
-        const { question: q, aim, reframed, transferable } = served.served;
+        const { question: q, aim, reframed, transferable, slipCheck } = served.served;
         const due = aim.due;
         // Answers never leave the server before grading. The only exception is
         // an explicit test-hook request on a non-production server, which the
@@ -189,6 +190,11 @@ export async function POST(req: Request): Promise<NextResponse> {
             reason: aim.target.reason,
             band: difficultyBandFor(q.difficulty),
             scaffold: aim.target.scaffold,
+            // Did this draw land on an item that discriminates the learner's
+            // live slip? Reported by the operation, never inferred here: the
+            // page prints "this one is built to catch that slip" only when the
+            // draw really did, so the sentence cannot outrun the evidence.
+            slipCheck,
           },
         };
       });
@@ -510,7 +516,14 @@ export async function POST(req: Request): Promise<NextResponse> {
         try {
           await ctx.appendEvents([hintEvent]);
         } catch { /* the hint was served; the action log gap is reported, not hidden */ }
-        return { hint: buildHint(q, level), level };
+        // A HINT ON A CONCEPT THE LEARNER HAS SLIPPED ON TALKS ABOUT THAT SLIP.
+        // `currentSlip` is the product's one rule for "this belief is still
+        // live" — the same rule the serve chases and the repair card renders —
+        // and the repair catalogue holds the authored sentences the hint then
+        // prints. A slip with no authored repair falls back to the general
+        // ladder inside buildHint, so this can never invent a diagnosis.
+        const slip = currentSlip(state_.progress?.[conceptId])?.id ?? null;
+        return { hint: buildHint(q, level, { conceptId, slip }), level };
       });
       if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
       const r = upd.result as { error?: string };

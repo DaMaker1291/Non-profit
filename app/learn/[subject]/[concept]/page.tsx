@@ -32,6 +32,10 @@ import NumericAnswer from "@/components/numeric-answer";
 import WorkSheet from "@/components/work-sheet";
 import ListenFirst from "@/components/listen-first";
 import PeerTeach from "@/components/peer-teach";
+import LessonWorkedExample from "@/components/lesson-worked-example";
+import RepairCard from "@/components/repair-card";
+import { repairFor } from "@/lib/repair";
+import { planFor } from "@/lib/lesson-plans";
 import { exampleFor } from "@/lib/culture";
 import type { FlarePayload } from "@/lib/microdiag";
 import { subjectFromParam } from "@/lib/subjects";
@@ -54,13 +58,17 @@ type AnswerEvidence = { mode: "guided" | "independent" | "transfer"; hints: numb
  *  rule fired, the band the item actually falls in, and whether the learner
  *  needs support. The client renders it — it never computes it, because a
  *  browser that could compute its own reason could also invent one. */
-type ServeTarget = { reason: "fresh" | "steady" | "stretch" | "repair"; band: number; scaffold: boolean };
+type ServeTarget = { reason: "fresh" | "steady" | "stretch" | "repair"; band: number; scaffold: boolean; slipCheck?: boolean };
 
 export default function ConceptPage() {
   const params = useParams<{ subject: string; concept: string }>();
   const subject = subjectFromParam(params?.subject);
   const conceptId = params?.concept ?? "";
   const c = getConcept(conceptId);
+  /** THE AUTHORED LESSON, IF THIS CONCEPT HAS ONE. Null is the normal answer for
+   *  most of the genome today, and every plan-only section is skipped rather than
+   *  drawn empty — a card with a heading and no teaching is worse than no card. */
+  const plan = planFor(conceptId);
   const { t, lang } = useI18n();
   const { state, set: setState } = useProfile();
   // The SERVED view, not the bank's Question: the answer is not on the wire,
@@ -467,7 +475,13 @@ export default function ConceptPage() {
       }
       const h = body.hint;
       if (h && (typeof h === "string" || typeof h.key === "string" || typeof h.text === "string")) {
-        setHint(typeof h === "string" ? h : [h.text, h.key ? t(h.key) : ""].filter(Boolean).join(" "));
+        // KEY FIRST, THEN THE QUESTION'S OWN TEXT — the published twin composes
+        // it in this order (docs/app.js) and this page used to do it the other
+        // way round, so a rung that says "Subtract 5 from both sides" after
+        // "Start from what the question gives you" read back to front. It
+        // matters now that a rung can open with a translated sentence and follow
+        // it with a repair's step: the lead-in has to come first.
+        setHint(typeof h === "string" ? h : [h.key ? t(h.key) : "", h.text].filter(Boolean).join(" "));
         setHintLevel(level);
       } else {
         setErr(t("common.error"));
@@ -611,23 +625,103 @@ export default function ConceptPage() {
         )}
       </section>
 
+      {/* WHAT THIS BUILDS ON, WITH THE REASON EACH ONE MATTERS.
+
+          This was one muted line of links — "Prerequisites: Fractions · Place
+          value" — which tells a learner nothing they can act on. A prerequisite
+          is a claim about what this idea needs, so each one now carries its own
+          one-line explanation and its own link: if a learner is lost here, this
+          section is where they find out which earlier idea to go and fix, in the
+          same words the earlier lesson opens with. */}
       {prereqs.length > 0 && (
-        <p className="small muted" style={{ marginBottom: 14 }}>
-          {t("common.prereqs")}:{" "}
-          {prereqs.map((p, i) => (
-            <span key={p}>
-              {i > 0 && " · "}
-              <Link href={`/learn/${subject}/${p}`}>{ctitle(lang, p)}</Link>
-            </span>
-          ))}
-        </p>
+        <section className="card soft" style={{ marginBottom: 18 }} aria-label={t("learn.buildsOn")}>
+          <p className="eyebrow" style={{ margin: 0 }}>{t("learn.buildsOn")}</p>
+          <ul className="lesson-list">
+            {prereqs.map((p) => (
+              <li key={p}>
+                <Link href={`/learn/${subject}/${p}`}>{ctitle(lang, p)}</Link>
+                <span className="small muted"> — {cblurb(lang, p)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
+      {/* THE LESSON, THEN A WORKED EXAMPLE — "I do" before "you do".
+
+          It used to be one paragraph of prose and then straight to the session,
+          so the first item a learner met was also the first one they had to do
+          unaided, and the reading stage asked them to EXPLAIN the idea before
+          they had answered anything about it (the teach-back box used to live
+          here; it is below the session result now). The order this page follows
+          is the one a classroom uses: the idea in words, one item worked in
+          full, the misconceptions to watch for, then practice. */}
+      {/* WHAT THE LESSON IS FOR, BEFORE THE LESSON.
+
+          A learner opening a concept is asking "what will I be able to do?", and
+          a topic name does not answer it. The objective is action-first and comes
+          from the authored plan (lib/lesson-plans.ts), so it is written for this
+          concept rather than generated from its title. */}
+      {plan && (
+        <section className="card plan-objective" style={{ marginBottom: 18 }} aria-label={t("plan.can")}>
+          <p className="eyebrow" style={{ margin: 0 }}>{t("plan.can")}</p>
+          <p className="reading lesson-lead" style={{ marginBottom: 0 }}>{plan.objective}</p>
+        </section>
+      )}
+
+      {/* START HERE — THE INTUITION BEFORE THE TERMINOLOGY.
+
+          A definition landing on a learner who has no picture for it is a
+          sentence to memorise. The plan's intuition is a concrete situation the
+          idea already lives in (a lift in an underground car park; three bags and
+          five weights on a balance), so the formal paragraph after it has
+          something to attach to. */}
+      {plan && (
+        <section className="card" style={{ marginBottom: 18 }} aria-label={t("plan.start")}>
+          <p className="eyebrow" style={{ margin: 0 }}>{t("plan.start")}</p>
+          <p className="reading lesson-text" style={{ marginTop: 10 }}>{plan.intuition}</p>
+        </section>
+      )}
+
+      {/* THE IDEA, WITH ITS FIRST SENTENCE AS THE CLAIM.
+
+          Every authored lesson opens with the sentence that states the whole
+          thing ("Linear search checks each item — works on anything, slow on big
+          data."); the sentences after it are the working. Rendered as one block
+          they read as a wall, and the wall is why a lesson gets skimmed. The
+          first sentence is set as a lead and the rest as the explanation, which
+          is structure from the text we have rather than a heading invented over
+          it.
+
+          WITH A PLAN, EACH IDEA IS ITS OWN PARAGRAPH. That is the difference
+          between teaching an idea and mentioning it: 3–6 paragraphs, in the order
+          the idea has to land, instead of two-to-four sentences doing all of it at
+          once. Concepts without a plan keep the split-prose rendering below, so
+          nothing regressed into an empty card. */}
       <div className="card" style={{ marginBottom: 18 }}>
-        <p className="eyebrow">{t("learn.lesson")}</p>
-        <p className="reading" style={{ margin: 0, fontSize: 16.5, lineHeight: 1.7 }}>
-          {c.lesson}
-          <SpeakButton text={c.lesson} />
+        <p className="eyebrow">{t("learn.idea")}</p>
+        {plan ? (
+          <>
+            <p className="reading lesson-lead">{plan.idea[0]}</p>
+            {plan.idea.slice(1).map((para, i) => (
+              <p key={i} className="reading lesson-text">{para}</p>
+            ))}
+          </>
+        ) : (
+          (() => {
+            const cut = c.lesson.indexOf(". ");
+            const head = cut > 0 ? c.lesson.slice(0, cut + 1) : c.lesson;
+            const rest = cut > 0 ? c.lesson.slice(cut + 2) : "";
+            return (
+              <>
+                <p className="reading lesson-lead">{head}</p>
+                {rest && <p className="reading lesson-text">{rest}</p>}
+              </>
+            );
+          })()
+        )}
+        <p style={{ margin: "10px 0 0" }}>
+          <SpeakButton text={plan ? [plan.intuition, ...plan.idea].join(" ") : c.lesson} />
         </p>
         {(() => {
           const culture = state?.profile.examples ?? "neutral";
@@ -637,8 +731,37 @@ export default function ConceptPage() {
         })()}
       </div>
 
-      <ListenFirst lesson={c.lesson} />
-      <PeerTeach lesson={c.lesson} conceptTitle={ctitle(lang, c.id)} conceptId={conceptId} />
+      <LessonWorkedExample conceptId={conceptId} />
+
+      {/* "WE DO" — THE SAME ITEM, FADED.
+
+          A worked example teaches a method by showing it whole; the next step is
+          one the learner starts and does not finish, which is where the method
+          actually transfers. Only plans carry this stage, because it is the plan
+          that says the concept is ready for it. */}
+      {plan && <LessonWorkedExample conceptId={conceptId} mode="guided" />}
+
+      <ListenFirst lesson={plan ? [plan.intuition, ...plan.idea].join(" ") : c.lesson} />
+
+      {/* WHERE THIS GOES WRONG — the authored traps, then the named
+          misconceptions.
+
+          The named misconception says WHAT the learner does ("bigger denominator
+          = bigger slice"); the authored trap adds WHY it fails, because a rule a
+          learner cannot see through is one they have to memorise. Both are kept:
+          the names are what the evidence panel and the teacher's view refer to,
+          and they are translated into every language the product ships. */}
+      {plan && plan.traps.length > 0 && (
+        <section className="card soft" style={{ marginBottom: 18 }} aria-label={t("plan.traps")}>
+          <p className="eyebrow" style={{ margin: 0 }}><span className="no">!</span> {t("plan.traps")}</p>
+          {plan.traps.map((trap, i) => (
+            <div key={i} style={{ margin: "10px 0 0" }}>
+              <p style={{ margin: 0 }}><strong>{trap.move}</strong></p>
+              <p className="small muted" style={{ margin: "2px 0 0" }}>{trap.why}</p>
+            </div>
+          ))}
+        </section>
+      )}
 
       {c.misconceptions && c.misconceptions.length > 0 && (
         <div className="card soft" style={{ marginBottom: 18 }}>
@@ -654,6 +777,32 @@ export default function ConceptPage() {
             );
           })}
         </div>
+      )}
+
+      {/* THE ONE THING THIS STAGE ASKS FOR. Everything above is reading, and a
+          reading stage that ends without a door to the practice is how a learner
+          reads the lesson, feels informed, and leaves. It is also the "we do"
+          hand-off: the worked example has just shown one, this starts one they
+          answer with the hint ladder beside it. */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: plan ? 8 : 20 }}>
+        <button className="btn" onClick={() => setView("practise")}>
+          {t("worked.next")} →
+        </button>
+      </div>
+
+      {/* WHERE IT IS USED NEXT, AND WHO WROTE THIS.
+
+          Two facts a learner is entitled to. The first stops a concept being an
+          island — "this is the thing gradients were built on" is why the effort
+          is worth it. The second is the honesty rule from the content strategy:
+          a lesson written by the team and never read by a subject teacher says
+          so ON THE SCREEN, not only in a document, because the screen is where a
+          learner decides how much to trust it. */}
+      {plan && (
+        <p className="small muted" style={{ margin: "0 0 20px" }}>
+          {plan.usedFor}{" "}
+          <span className="tag">{t(plan.review === "subject-reviewed" ? "plan.reviewed" : "plan.unreviewed")}</span>
+        </p>
       )}
 
       {evidence && (
@@ -770,6 +919,14 @@ export default function ConceptPage() {
         {result && (
           <div style={{ marginTop: 14 }}>
             <SessionResultPanel result={result} next={nextAction} />
+            {/* TELL IT BACK — AFTER THE PRACTICE, WHICH IS WHERE AN EXPLANATION
+                BELONGS. In the reading stage it asked a learner to explain an
+                idea they had not yet used, so the box could only be filled by
+                re-wording the paragraph above it. Once they have answered
+                questions about it, an explanation is a real check on their own
+                understanding — and it is not marked: see
+                components/peer-teach.tsx and lib/peer-review.ts. */}
+            <PeerTeach lesson={c.lesson} conceptTitle={ctitle(lang, c.id)} />
           </div>
         )}
 
@@ -784,6 +941,14 @@ export default function ConceptPage() {
               <p className="whyq">
                 <span className="why-label">{t("target.why")}</span>
                 <span>{t(`target.${why.reason}`)}</span>
+                {/* AND WHETHER THIS ONE TESTS THE SLIP.
+                    `repair` says the rung was lowered; it does not say the item
+                    checks the belief, and the serve only sometimes finds one that
+                    does. So the second sentence is printed only when the SERVE
+                    reports `slipCheck` — the page never infers it from the reason,
+                    because "this is built to catch your slip" is a claim about the
+                    item and the learner is entitled to it being true. */}
+                {why.reason === "repair" && why.slipCheck && <span>{t("target.slipCheck")}</span>}
                 <span className="band">{fill(t("target.level"), { n: why.band })}</span>
                 {why.scaffold && <span className="scaffold">{t("target.scaffold")}</span>}
               </p>
@@ -916,12 +1081,33 @@ export default function ConceptPage() {
                     top of it, because three paragraphs of algebra arriving the
                     instant an answer is marked is how feedback stops being
                     read at all. */}
-                {graded.misconceptionId && MISCONCEPTIONS_BY_ID[graded.misconceptionId] && (
-                  <p style={{ margin: "0 0 8px" }}>
-                    <b className="tag">{mcName(lang, graded.misconceptionId, MISCONCEPTIONS_BY_ID[graded.misconceptionId]?.name ?? graded.misconceptionId)}</b>
-                    {" — "}{MISCONCEPTIONS_BY_ID[graded.misconceptionId].coaching.split(".")[0]}.
-                  </p>
-                )}
+                {graded.misconceptionId && MISCONCEPTIONS_BY_ID[graded.misconceptionId] && (() => {
+                  // A TARGETED REPAIR WHEN ONE EXISTS, and the old one-liner when
+                  // it does not. The fallback used to be the ONLY behaviour: the
+                  // name of the belief, then the first sentence of its coaching
+                  // paragraph — the same sentence for every learner who made any
+                  // mistake on this concept. `repairFor` answers null outside the
+                  // authored set, so nothing renders as an empty card.
+                  const repair = repairFor(conceptId, graded.misconceptionId);
+                  if (repair) {
+                    return (
+                      <div style={{ margin: "0 0 10px" }}>
+                        <p style={{ margin: "0 0 8px" }}>
+                          <b className="tag">
+                            {mcName(lang, graded.misconceptionId!, MISCONCEPTIONS_BY_ID[graded.misconceptionId!]?.name ?? graded.misconceptionId)}
+                          </b>
+                        </p>
+                        <RepairCard plan={repair} />
+                      </div>
+                    );
+                  }
+                  return (
+                    <p style={{ margin: "0 0 8px" }}>
+                      <b className="tag">{mcName(lang, graded.misconceptionId!, MISCONCEPTIONS_BY_ID[graded.misconceptionId!]?.name ?? graded.misconceptionId)}</b>
+                      {" — "}{MISCONCEPTIONS_BY_ID[graded.misconceptionId!].coaching.split(".")[0]}.
+                    </p>
+                  );
+                })()}
                 {graded.correct || showWhy ? (
                   <>
                     <span className="why-title">{t("learn.explain")}</span>
@@ -1011,7 +1197,14 @@ export default function ConceptPage() {
       {showing === "read" && (
       <section className="ruled" style={{ borderTop: "2px solid var(--ink)", paddingTop: 18, marginTop: 8, marginBottom: 30 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
+          {/* WHAT THIS SECTION IS, IN ONE SENTENCE. It was called "Study
+              packs" with a button reading "Add a pack" and a "Fork" action
+              under each note — the same word the product already uses for a
+              teacher's PRINTABLE weekly pack, and two pieces of developer
+              vocabulary describing a shared note board. A learner had no way to
+              know what they were looking at, which is exactly how it read. */}
           <p className="eyebrow" style={{ margin: 0 }}><span className="no">✎</span> {t("pack.title")}</p>
+          <p className="small muted" style={{ margin: "4px 0 0" }}>{t("pack.lead")}</p>
           <button className="btn ghost small" onClick={() => setComposing((v) => !v)}>{t("pack.add")}</button>
         </div>
 

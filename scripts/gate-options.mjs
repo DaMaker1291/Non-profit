@@ -334,6 +334,34 @@ if (attemptedRows.length) {
     console.log(`      ${ATTEMPTED[id]}`);
   }
 }
+// ── THE PUBLISHED REPORT MUST AGREE WITH THIS RUN ───────────────────────────────
+// docs/ASSESSMENT_VALIDITY.md is prose: nothing generated it and, until this
+// block existed, nothing read it. Measured drift: §7 said "82 of 135" while this
+// gate's own artefact said 64, and the disagreeement was invisible until a reader
+// compared the two by hand — in a document whose stated rule is "one reproducible
+// measurement source, with every claim checked against it". The document is the
+// surface a school, a reviewer or a funder actually reads, so its headline figures
+// are asserted HERE, where the numbers are produced. Each anchor is a phrase
+// unique to the CURRENT-figure sentence, so the historical "82" the report keeps
+// on purpose is not matched. An anchor that cannot be found is a FAILURE, not a
+// skip: a report that stops stating its figure has stopped being checkable, and a
+// guard that silently passes on a reworded document is the silence this gate
+// exists to prevent.
+const REPORT_DOC = "docs/ASSESSMENT_VALIDITY.md";
+if (fs.existsSync(REPORT_DOC)) {
+  const doc = fs.readFileSync(REPORT_DOC, "utf8").replace(/\s+/g, " ");
+  const claim = (re, name, expected) => {
+    const m = doc.match(re);
+    if (!m) return ok(false, `${name}: the report no longer states this figure`, REPORT_DOC);
+    ok(Number(m[1]) === expected, `${name} matches this run (${expected})`, `the report says ${m[1]}`);
+  };
+  claim(/\*\*(\d+) of \d+ concepts are still above the 35% reporting line\*\*/, "the report's offender count", offenders.length);
+  claim(/\*\*(\d+) are repaired and asserted absolutely\*\*/, "the report's repaired count", Object.keys(REPAIRED).length);
+  claim(/best of the eight strategies is \*\*([\d.]+)%\*\*/, "the report's bank-wide best-of-eight", Number((100 * bank.best).toFixed(2)));
+} else {
+  ok(false, "the assessment-validity report is missing", REPORT_DOC);
+}
+
 console.log(`\n${"─".repeat(60)}`);
 console.log(`PASS ${pass}   FAIL ${failures.length}`);
 if (failures.length) {
@@ -344,6 +372,7 @@ fs.writeFileSync("audit/options-gate.json", JSON.stringify({
   pass, fail: failures.length, failures,
   bank: { best: bank.best, n: bank.n, ...Object.fromEntries(STRATEGIES.map((k) => [k, bank[k] / bank.n])) },
   offenders: offenders.length,
+  repaired: Object.keys(REPAIRED).length,
   concepts: ids.length,
 }, null, 2));
 process.exit(failures.length ? 1 : 0);

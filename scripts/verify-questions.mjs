@@ -417,6 +417,21 @@ for (const conceptId of GENERATED_CONCEPT_IDS) {
 // nobody signed is indistinguishable from decoration, which is the failure mode
 // this whole file exists to prevent.
 const REVIEWS_PATH = "audit/item-reviews.json";
+// A NAME IS NOT A SIGNATURE, AND THE SCHEMA'S OWN EXAMPLE IS NOT A PERSON.
+// The schema has always said "a name or a stable handle, never 'the team'", but
+// nothing enforced it: a name and a date were all this audit asked for, so the
+// placeholder `A. Teacher` that teaches the file's own format was accepted as a
+// qualified reviewer. Measured: ten records so invented moved the published
+// "reviewed by a qualified person" figure from 0 to 10 while docs/PILOT_SCOPE.md
+// still read "no reviewer has been recruited". The check below is the rule the
+// schema states, finally enforced — it is deliberately unable to distinguish a
+// determined liar from a teacher, and does not try; it refuses the shapes that
+// occur when nobody reviewed anything.
+const PLACEHOLDER_REVIEWERS = new Set([
+  "a. teacher", "a teacher", "the teacher", "teacher", "the team", "team",
+  "reviewer", "the reviewer", "tbd", "tbc", "todo", "pending", "n/a", "na",
+  "none", "example", "the example", "someone", "anonymous", "unknown", "owner",
+]);
 const reviews = (() => {
   // THREE STATES, THREE SEVERITIES. An ABSENT registry is not a fault: it says
   // nobody has recorded a review, which the coverage line already reports as 0
@@ -447,6 +462,10 @@ for (const r of reviews) {
   }
   if (typeof r.reviewer !== "string" || !r.reviewer.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(r.reviewedOn ?? "")) {
     add(r.conceptId, "review claim without a reviewer or a date", JSON.stringify(r).slice(0, 120));
+    continue;
+  }
+  if (PLACEHOLDER_REVIEWERS.has(r.reviewer.trim().toLowerCase().replace(/\s+/g, " "))) {
+    add(r.conceptId, "reviewer is a placeholder, not a person — a review nobody signed is not evidence", r.reviewer);
     continue;
   }
   reviewedIds.add(r.conceptId);

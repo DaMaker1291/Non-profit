@@ -69,6 +69,17 @@ export const ENGINE_SOURCES = [
   "lib/teacher-plan.ts",
   "lib/microdiag.ts",
   "lib/starter.ts",
+  // THE LESSON FORMAT. Compiled with the engines because the read stage renders
+  // it and the suite MEASURES it: every plan must name a real concept, carry a
+  // real sequence, and be longer than the prose paragraph it replaces. A plan
+  // table that no test compiles is a table nobody has checked.
+  "lib/lesson-plans.ts",
+  // THE TARGETED REPAIR. Compiled with the engines because the suite checks the
+  // claims it makes AGAINST the bank: every authored repair must be attached to
+  // a misconception that really lists its concept, and that concept's items must
+  // really carry the tag — a repair for a slip no item can reveal is a card that
+  // never renders, which is indistinguishable from a broken feature.
+  "lib/repair.ts",
   "lib/access.ts",
   "lib/mastery.ts",
   // The curriculum REGISTRY (§7): the country → education-system → years →
@@ -78,6 +89,18 @@ export const ENGINE_SOURCES = [
   // unmapped country is never handed a national course of another country)
   // rather than reading the data file for a string.
   "lib/curricula/registry.ts",
+  // WHICH PART OF A COUNTRY DECIDES THE LANGUAGE (lib/regions.ts). Compiled
+  // because the suite asserts the table against the fifteen languages
+  // lib/i18n.ts actually ships — a region pointing at a language this build
+  // does not have is a silent fallback, not an error, and it is data a person
+  // edits by hand.
+  "lib/regions.ts",
+  // THE EXPLANATION CHECKER, ungraded (lib/peer-review.ts). Compiled because the
+  // suite asserts the thing that cannot be seen in the UI: that its return value
+  // carries no verdict, percentage or score — and, measured, that a correct
+  // explanation in different words matches nothing, which is why it may not be
+  // turned back into a mark.
+  "lib/peer-review.ts",
   // The syllabus mappings: the data a ministry can audit, compiled with the
   // registry that reports on it so the gate compares the two in one place.
   "lib/curricula/mappings.ts",

@@ -15,6 +15,10 @@ import { isBoardId, type ProfileState, type StudentProfile, type SubjectCourse, 
 import { coversSubject, incompleteSubjects, specById, specsFor } from "@/lib/specifications";
 import { pathwayForCountry } from "@/lib/curricula/registry";
 import { COUNTRIES } from "@/lib/i18n";
+// WHICH PART OF THE COUNTRY, where the part itself decides the language. The
+// table is the one owner of that rule and the client reads the same one, so a
+// region accepted here is a region the picker can offer and vice versa.
+import { hasRegions, regionFor } from "@/lib/regions";
 
 const SUBJECTS: SubjectId[] = ["maths", "physics", "chemistry", "biology", "computing"];
 
@@ -155,6 +159,12 @@ export async function GET(req: Request): Promise<NextResponse> {
  *  here, once, rather than filtered in four places. */
 const KIOSK_LOCKED_FIELDS = [
   "country", "pathway", "board", "grade", "spec", "specLevel", "subjectCourses", "exam", "examDate",
+  // A REGION IS ON THIS LIST BECAUSE IT CHANGES THE LANGUAGE. It is not the
+  // learner's course — but it is the field that decides what language every
+  // lesson is written in, and a learner at a PIN must not quietly turn a class
+  // provisioned in English into French. It travels with the fields that
+  // describe where the learner sits, not with the preferences they own.
+  "region",
 ] as const;
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -200,6 +210,28 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
       p.country = body.country;
     }
+    // ── WHERE THEY ARE WITHIN THAT COUNTRY (lib/regions.ts) ─────────────────
+    // Validated against the country for the same reason a pathway is: a region
+    // is a fact about one country, so "quebec" on a learner in France is a
+    // record nothing can act on. Three outcomes, all stated:
+    //   · a string is checked and refused BY NAME if it is not this country's;
+    //   · `null` clears it (the learner went back to "prefer not to say");
+    //   · absent leaves it alone, so a PATCH that changes only a goal does not
+    //     silently drop the region.
+    if (body.region === null) {
+      delete p.region;
+    } else if (typeof body.region === "string" && body.region.length > 0) {
+      if (!regionFor(p.country, body.region)) {
+        return NextResponse.json({ error: "unknown_region", field: "region" }, { status: 400 });
+      }
+      p.region = body.region;
+    }
+    // A COUNTRY WITH NO REGIONS CANNOT HOLD ONE. Moving a Quebec learner to
+    // Ireland leaves a stored "quebec" that no picker will ever show again, and
+    // a later surface reading `profile.region` would take it for a fact about a
+    // country it is not about. Derived rather than checked at each write site,
+    // so there is no path that forgets.
+    if (p.region && !hasRegions(p.country)) delete p.region;
     // ── WHICH EDUCATION SYSTEM (§7) ─────────────────────────────────────────
     // Optional, because most countries run one general secondary system and
     // asking a UK learner to confirm they follow the UK system is a question

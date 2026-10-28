@@ -1,56 +1,82 @@
 "use client";
 
 import { useState } from "react";
-import { reviewExplanation } from "@/lib/peer-review";
-import { loadLocalProfileId, useI18n } from "@/lib/client";
-import { peerMark } from "@/lib/api/client";
+import { reviewExplanation, type ExplanationReview } from "@/lib/peer-review";
+import { useI18n } from "@/lib/client";
 
-/** Peer teach (§13): "explain it in your own words" — checked offline for
- *  correctness coverage, clarity gaps and missing threads. */
-export default function PeerTeach({ lesson, conceptTitle, conceptId }: { lesson: string; conceptTitle: string; conceptId: string }) {
+/**
+ * TEACH IT BACK — after the questions, and never marked.
+ *
+ * Two things changed here, and both were complaints about the same box:
+ *
+ * 1. IT MOVED TO THE END. It used to sit in the reading stage, above the
+ *    practice: a learner was asked to explain a concept they had not been served
+ *    a single question on, so the only way to fill the box was to re-word the
+ *    lesson paragraph. Explanation is a way to find out whether you can use an
+ *    idea, so it now comes after using it — the concept page renders this below
+ *    the session result, not before the session.
+ *
+ * 2. IT STOPPED SCORING. `reviewExplanation` (lib/peer-review.ts) no longer
+ *    returns a verdict, and nothing is written into the learner's record from
+ *    here. What is left is a checklist: which of the concept's own key ideas the
+ *    explanation named. That is checkable by a keyword scan honestly, whereas
+ *    "is this explanation correct" is not — see the four reasons listed at the
+ *    top of lib/peer-review.ts.
+ *
+ * The component says so out loud rather than implying a mark with a tick: a
+ * learner who writes something good, gets a shorter checklist than they expect
+ * and believes a machine judged them wrong is worse off than one who is told
+ * plainly that this is for their own thinking.
+ */
+export default function PeerTeach({ lesson, conceptTitle }: { lesson: string; conceptTitle: string }) {
   const { t } = useI18n();
   const [text, setText] = useState("");
-  // THE EXAMPLE MUST BE ABOUT THE THING ON SCREEN. This box carried one authored
-  // placeholder for the whole product — "e.g. Photosynthesis is how plants turn
-  // light into food…" — so a fractions lesson showed a stranger's biology
-  // sentence as the model answer for explaining fractions, and every one of the
-  // 119 non-biology concepts did the same. The one place that sentence is right
-  // is the concept it describes; everywhere else the prompt names the concept
-  // being explained, which is the only honest hint available without translating
-  // an example for every concept into fifteen languages.
-  const placeholder = conceptId === "photosynthesis" ? t("peer.placeholder") : conceptTitle;
-  const [fb, setFb] = useState<string | null>(null);
+  const [review, setReview] = useState<ExplanationReview | null>(null);
   return (
     <section className="card soft" style={{ marginTop: 18 }}>
-      <p className="eyebrow" style={{ margin: 0 }}>{t("peer.eyebrow")} · {conceptTitle}</p>
+      <p className="eyebrow" style={{ margin: 0 }}>
+        {t("peer.eyebrow")} · {conceptTitle}
+      </p>
       <p className="small muted">{t("peer.prompt")}</p>
       <textarea
-        rows={3}
+        rows={4}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={placeholder}
+        /* THE EXAMPLE IS THE CONCEPT'S OWN NAME. It used to be one authored
+           sentence about photosynthesis, printed for all 135 concepts, so a
+           fractions lesson showed a stranger's biology answer as the model. */
+        placeholder={conceptTitle}
+        aria-label={t("peer.eyebrow")}
         style={{ width: "100%" }}
       />
       <button
         className="btn small"
         style={{ marginTop: 8 }}
         disabled={text.trim().length < 20}
-        onClick={async () => {
-          const v = reviewExplanation(lesson, text, t);
-          setFb(v.feedback);
-          // Teaching is evidence: record the check (strong or not) so Next
-          // Step can consume it — every action feeds the same learner model.
-          const id = loadLocalProfileId();
-          if (id) {
-            try {
-              await peerMark(id, conceptId, v.verdict === "strong");
-            } catch { /* evidence is bonus; the feedback already landed */ }
-          }
-        }}
+        onClick={() => setReview(reviewExplanation(lesson, text))}
       >
         {t("peer.checkBtn")}
       </button>
-      {fb && <p className="small" style={{ marginTop: 8 }}>{fb}</p>}
+      {review && (
+        <div style={{ marginTop: 12 }} role="status">
+          <p className="small" style={{ margin: 0 }}>
+            <strong>{t("peer.ideas")}</strong>
+          </p>
+          {/* BOTH LISTS, SIDE BY SIDE IN ONE COLUMN, WITH NO TALLY. A count
+              ("3 of 5") is a score whatever it is called, and a learner who
+              covered four of five ideas understands the concept. The marker is
+              a tick or a dot, not a right or a wrong. */}
+          <ul className="small" style={{ margin: "6px 0 0 18px", padding: 0 }}>
+            {[...review.covered.map((idea) => ({ idea, used: true })), ...review.missing.map((idea) => ({ idea, used: false }))]
+              .map(({ idea, used }) => (
+                <li key={idea} style={{ marginBottom: 2, opacity: used ? 1 : 0.65 }}>
+                  <span aria-hidden="true">{used ? "✓" : "○"}</span>{" "}
+                  <span className="mono">{idea}</span>
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }

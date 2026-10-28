@@ -35,6 +35,7 @@ import { answerKey } from "./answer";
 import { getConcept } from "./genome";
 import { practiceTarget, type PracticeTarget } from "./question-bank";
 import { generateQuestionNear } from "./questions";
+import { currentSlip } from "./learner-model";
 import { isRetentionDue } from "./retention";
 import { difficultyFor, specForProfile } from "./specifications";
 import { serveTransfer, canTransfer, type Surface } from "./transfer";
@@ -53,6 +54,22 @@ export const PRACTICE_DRAW_ATTEMPTS = 40;
  *  after this many the learner has long since seen everything the generator
  *  makes. The list is OLDEST FIRST, so a repeat still rotates to the back. */
 export const SERVED_KEEP = 12;
+
+/** How many EXTRA draws a REPAIR serve spends looking for an item that
+ *  discriminates the learner's live slip.
+ *
+ *  A repair serve used to do one thing: aim twelve points lower. That steadies
+ *  the numbers without ever testing the belief — a learner who thinks a minus
+ *  sign is decoration got easier questions about the same idea, answered them, and
+ *  the slip stayed exactly where it was. The bank already tags each item with the
+ *  misconception it discriminates, so a repair can now ask for an item that
+ *  CHECKS the belief instead of only lowering the bar.
+ *
+ *  Five draws, not forty: an item family usually produces the tagged item within a
+ *  couple of seeds, and the budget has to stay small because it multiplies the
+ *  serve's own 40-attempt band search. When no tagged item turns up the first draw
+ *  stands — a repair that cannot test the slip is still a repair. */
+export const SLIP_DRAW_ATTEMPTS = 8;
 
 /** The part of a learner's state a serve writes: what is staged, what has been
  *  handed out, and what the staged item will earn when it is answered. A
@@ -143,6 +160,11 @@ export interface ServedPractice {
    *  the concept, not a claim about this draw. */
   transferable: boolean;
   isTransfer: boolean;
+  /** Did THIS draw actually land on an item that discriminates the learner's live
+   *  slip? A repair can fail to find one (the concept may have none, or the
+   *  budget may run out), so this is reported rather than assumed: the page tells
+   *  the learner "this one is built to catch that slip" only when it is true. */
+  slipCheck: boolean;
 }
 
 export type ServeResult =
@@ -243,6 +265,33 @@ export function answerDisposition(
  * never recorded (served twice) or record a key whose item was never staged
  * (unanswerable).
  */
+/** Draw one practice item, preferring one the learner's live slip would trip over.
+ *
+ *  `first` is the ordinary draw and is always the answer when no slip is asked
+ *  for, or when no tagged item turns up inside the budget. The extra draws are
+ *  the whole change: same aim, same exclusion list, different seed, and the first
+ *  candidate whose tags include the slip wins.
+ *
+ *  `targeted` is returned with the item, not re-derived by the caller: "did this
+ *  draw test the slip" is a fact about the draw, and a caller that recomputed it
+ *  would have to know the tag rule (and could quietly disagree). */
+function drawPractice(
+  conceptId: string,
+  seed: string,
+  aim: number,
+  served: readonly string[],
+  slip: string | null,
+): { question: Question | null; targeted: boolean } {
+  const first = generateQuestionNear(conceptId, seed, aim, PRACTICE_DRAW_ATTEMPTS, served);
+  if (!slip || !first) return { question: first, targeted: false };
+  if ((first.misconceptionTags ?? []).includes(slip)) return { question: first, targeted: true };
+  for (let i = 1; i <= SLIP_DRAW_ATTEMPTS; i++) {
+    const q = generateQuestionNear(conceptId, `${seed}#slip:${i}`, aim, PRACTICE_DRAW_ATTEMPTS, served);
+    if (q && (q.misconceptionTags ?? []).includes(slip)) return { question: q, targeted: true };
+  }
+  return { question: first, targeted: false };
+}
+
 export function servePractice(input: ServeInput): ServeResult {
   const { state, conceptId } = input;
   const subject = getConcept(conceptId)?.subject;
@@ -253,6 +302,9 @@ export function servePractice(input: ServeInput): ServeResult {
 
   let question: Question;
   let surface: Surface = "direct";
+  /** Default false: a transfer, a plain draw and a retention check are not claims
+   *  about the slip, so only the repair branch can set it. */
+  let slipCheck = false;
   if (isTransfer) {
     // Genuine transfer is a re-framing the serve can really deliver, and what
     // counts as one — plus which draw delivers it — is decided in
@@ -264,15 +316,21 @@ export function servePractice(input: ServeInput): ServeResult {
     question = served.question;
     surface = served.surface;
   } else {
-    const drawn = generateQuestionNear(
+    // A REPAIR AIMS AT THE SLIP, NOT JUST LOWER.
+    // `currentSlip` is the same rule the next-step engine uses to decide whether a
+    // slip is still actionable (three clean answers retire it), so a serve cannot
+    // chase a belief the rest of the product has already considered repaired.
+    const slip = aim.target.reason === "repair" ? currentSlip(state.progress?.[conceptId])?.id ?? null : null;
+    const drawn = drawPractice(
       conceptId,
       seed,
       aim.aim,
-      PRACTICE_DRAW_ATTEMPTS,
       state.servedPractice?.[conceptId] ?? [],
+      slip,
     );
-    if (!drawn) return { ok: false, error: "no_question" };
-    question = drawn;
+    if (!drawn.question) return { ok: false, error: "no_question" };
+    question = drawn.question;
+    slipCheck = drawn.targeted;
   }
 
   // Record the served item so the NEXT serve on this concept skips it. Always
@@ -307,6 +365,7 @@ export function servePractice(input: ServeInput): ServeResult {
       reframed: isTransfer ? surface !== "direct" : false,
       transferable: canTransfer(conceptId),
       isTransfer,
+      slipCheck,
     },
   };
 }
