@@ -388,10 +388,26 @@ async function main() {
     // reach the learner only after a sitting, in the diagnostic report, and the
     // marks reached no surface at all. The record is lib/question-bank
     // #declareQuestion's — the same rule the React question screen draws.
-    check(/what is this testing/i.test(question),
-      `the item declares what it is testing before it is answered ("${(question.match(/[^·]*testing[^·]*/i) || ["?"])[0].trim().slice(0, 70)}")`);
-    check(/recall|application|multi-step|data & graphs/i.test(question),
-      `naming the demand level in the dictionary's own words ("${(question.match(/Recall|Application|Multi-step|Data & graphs/i) || ["?"])[0]}")`);
+    //
+    // READ FROM THE DECLARATION, NOT FROM THE SCREEN'S PROSE. The two checks
+    // here used to look for the sentence "what is this testing" and for a demand
+    // word in the page's visible text, and neither exists on either surface: the
+    // line reads `<label> <concept>` (label = `ask.whatTesting`, "Skill") and the
+    // demand and marks are METADATA on the element, deliberately — naming the
+    // trap before the answer would be a hint. So the gate failed on a claim the
+    // product does not make, twice, on every run. The hook below is the claim it
+    // does make, and both renderers carry it (`data-declaration`), so an item
+    // that declares nothing still fails this.
+    const declared = await p.evaluate(`
+      const el = document.querySelector("main [data-declaration]");
+      return el ? { text: (el.innerText || "").replace(/\\s+/g, " ").trim(), title: el.getAttribute("title") || "" } : null;`);
+    // `startsWith`, not `/^skill\b/`: inside a template literal the backslash
+    // double-escapes into the regex SOURCE, so the check looked for a literal
+    // backslash and failed on a line that reads "SKILL Decimals".
+    check(!!declared && declared.text.toLowerCase().startsWith("skill ") && declared.text.length > "skill ".length + 2,
+      `the item declares what it is testing before it is answered ("${declared?.text ?? "missing"}")`);
+    check(!!declared && /recall|application|multi-step|data & graphs/i.test(declared.title) && /marks/i.test(declared.title),
+      `naming the demand level and the marks in the dictionary's own words ("${declared?.title ?? "missing"}")`);
 
     // TAKE THE HINT FIRST, so the answer that follows is guided work — and the
     // claim the product makes about it can be compared with the claim the ledger

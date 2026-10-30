@@ -96,7 +96,23 @@ export async function launchChrome(opts = {}) {
   }
   if (!target) {
     proc.kill("SIGKILL");
-    throw new Error(`Chrome did not expose a page target on :${port}.\n${stderr.slice(-600)}`);
+    try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
+    // ONE SLOW START MUST NOT FAIL A RELEASE. A cold CI runner can take longer
+    // than the 20s above to bring Chrome up, and the gates workflow treats this
+    // throw as a red build — measured on a public run: "Chrome did not expose a
+    // page target on :9622", with nothing wrong with the page it was about to
+    // walk. Retrying on a fresh profile (and a fresh port, unless the caller
+    // pinned one) is bounded and honest: if Chrome genuinely cannot start, the
+    // third failure still reports it, with the stderr of the LAST attempt.
+    const attempt = (opts.attempt ?? 1) + 1;
+    if (attempt <= 3) {
+      return launchChrome({
+        ...opts,
+        attempt,
+        port: Object.prototype.hasOwnProperty.call(opts, "port") ? opts.port : undefined,
+      });
+    }
+    throw new Error(`Chrome did not expose a page target on :${port} after 3 attempts.\n${stderr.slice(-600)}`);
   }
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => {

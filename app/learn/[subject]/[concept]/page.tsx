@@ -1458,6 +1458,7 @@ function QuestionDeclaration({ q, t, conceptTitle }: { q: Parameters<typeof decl
   return (
     <p
       className="small muted"
+      data-declaration="1"
       style={{ margin: "6px 0 0" }}
       title={`${t(`skill.${declared.skill}`)} · ${t("own.marks")}: ${declared.marks}`}
     >

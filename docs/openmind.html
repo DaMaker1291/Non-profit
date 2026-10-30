@@ -60911,7 +60911,7 @@ function canTransfer(conceptId) {
    *  cannot use. The demand and marks stay as metadata on the element. */
   function declarationHtml(q) {
     var d = E.questionBank.declareQuestion(q);
-    return '<p class="small muted" style="margin:.35rem 0 0" title="' +
+    return '<p class="small muted" data-declaration="1" style="margin:.35rem 0 0" title="' +
       esc(t("skill." + d.skill) + " · " + t("own.marks") + ": " + d.marks) + '">' +
       '<span class="why-label">' + esc(t("ask.whatTesting")) + "</span> " +
       esc(ctitle(q.conceptId)) + "</p>";
