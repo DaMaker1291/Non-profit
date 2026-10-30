@@ -448,6 +448,16 @@ async function main() {
     // contains two of them and the old predicate could never be satisfied when
     // switching back. `.qbar` exists only in the practise stage.
     await p.waitFor(`return !!document.querySelector(".qbar") && !document.querySelector(".reading");`, "the question to replace the lesson", 20000);
+    // AND THE ITEM ITSELF, WHICH THE BAR DOES NOT WAIT FOR. `.qbar` is the
+    // stage's header and renders as soon as the stage is chosen; the prompt
+    // arrives with the serve, one or two requests later. This walk measured
+    // the prompt IMMEDIATELY after the bar appeared, so it asserted on a card
+    // that was legitimately still fetching (measured here and in CI: "the
+    // question on screen beneath the bar" failed while the other 72 assertions
+    // passed). Waiting is the honest instrument — the claim being tested is
+    // that the question IS on screen, and if it never arrives this wait fails
+    // the same way the check did. The page shows a skeleton in the meantime.
+    await p.waitFor(`return !!document.querySelector(".qprompt");`, "the question itself to arrive", 20000);
     // ON THE PRACTICE SCREEN THE FOUR STEPS ARE A STATUS, NOT A CONTENTS PAGE.
     // Four chips wrapped to two rows at 390px and sat under the sticky header, so
     // the strip a learner read before every question was a navigation menu they

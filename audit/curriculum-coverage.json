@@ -2138,7 +2138,8 @@
           "recordReview": "researched",
           "mappingReview": "mapped",
           "sourceUrls": [
-            "https://www.minedu.gob.gt/"
+            "https://www.mineduc.gob.gt/",
+            "https://digeduca.wordpress.com/sobre-la-evaluacion-graduandos/"
           ]
         }
       ],
@@ -2146,7 +2147,7 @@
         "gt-diversificado"
       ],
       "recordReview": "researched",
-      "sourcesOnFile": 1
+      "sourcesOnFile": 2
     },
     {
       "countryCode": "HN",
@@ -3351,7 +3352,7 @@
       "pathwayType": "national",
       "years": 5,
       "qualifications": [
-        "Diversificado"
+        "Evaluación Graduandos — Matemática"
       ],
       "specificationIds": [
         "gt-diversificado"
@@ -3359,7 +3360,8 @@
       "recordReview": "researched",
       "mappingReview": "mapped",
       "sourceUrls": [
-        "https://www.minedu.gob.gt/"
+        "https://www.mineduc.gob.gt/",
+        "https://digeduca.wordpress.com/sobre-la-evaluacion-graduandos/"
       ]
     },
     {

@@ -24,6 +24,7 @@ import { SUBJECT_LABELS } from "@/lib/subjects";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { HINT_LEVELS } from "@/lib/hints";
 import MicroDiagnostic from "@/components/micro-diagnostic";
+import { Loading } from "@/components/states";
 import SpeakButton from "@/components/speak-button";
 import { Icon } from "@/components/icons";
 import PromptText from "@/components/prompt-text";
@@ -1092,6 +1093,17 @@ export default function ConceptPage() {
             <button className="btn ghost small" onClick={() => void start()}>{t("sess.eyebrow")}</button>
           </div>
         )}
+
+        {/* THE CARD IS NEVER BLANK WHILE THE ITEM IS IN FLIGHT. Opening the
+            session and serving the item are two requests on mount, so a learner
+            who taps Practise straight after reading arrives before either has
+            answered — and this card used to render NOTHING in that window: no
+            prompt, no spinner, no sentence. On a slow connection that is a
+            blank screen under a sticky bar, which reads as a broken practice
+            stage rather than as an item being fetched. `npm run verify:ui`
+            caught it as "the question is not visible beneath the bar"; the
+            skeleton is the same fact said to the learner. */}
+        {!result && !q && !err && <Loading lines={2} />}
 
         {result && (
           <div style={{ marginTop: 14 }}>
