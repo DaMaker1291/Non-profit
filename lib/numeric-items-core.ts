@@ -142,7 +142,23 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
   },
 
   "fraction-ops": (r) => {
-    const a = r.int(1, 5), b = r.int(2, 7), c = r.int(1, 5), d = r.int(2, 7);
+    // ── BOTH OPERANDS ARE PROPER FRACTIONS ───────────────────────────────
+    //
+    // The old draw range let a numerator equal its denominator (`4/4 + 1/7`)
+    // or exceed it (`5/2 + 1/3`), so 1 or a whole number was being written as a
+    // fraction. It is the same defect the composed family had — found by the
+    // invariant added to `npm run verify`, on THIS layer first, which is why the
+    // rule is enforced in both places rather than only where the screenshot
+    // came from. `0 < a < b` also keeps the item about adding same-size pieces,
+    // which is what its explanation and its `denom-add` tag are about.
+    const proper = (n: number, d: number): boolean => n > 0 && n < d;
+    let a = 1, b = 3, c = 1, d = 4;
+    for (let attempt = 0; attempt < 40; attempt++) {
+      a = r.int(1, 5); b = r.int(2, 7); c = r.int(1, 5); d = r.int(2, 7);
+      if (proper(a, b) && proper(c, d)) break;
+    }
+    if (!proper(a, b)) { a = 1; b = 3; }
+    if (!proper(c, d)) { c = 1; d = 4; }
     const num = a * d + c * b;
     const den = b * d;
     return {
@@ -160,7 +176,10 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
       prompt: `Work out ${a} × ${b}.`,
       value: Number((a * b).toFixed(4)), tolerance: { abs: 0.005 },
       wrongs: [String(Number((a * b * 10).toFixed(4))), String(Number((a * b / 10).toFixed(4))), String(Number((a + b).toFixed(4)))],
-      tags: [], difficulty: 0.45,
+      // Every wrong option here is the point moved, not the multiplication
+      // wrong — which is exactly the belief, so a typed answer that lands on one
+      // of them can be answered with the repair for it.
+      tags: ["dec-point"], difficulty: 0.45,
       explanation: `Decimals multiply by ignoring the points, multiplying the whole numbers, and then restoring the places: ${Math.round(a * 10)} × ${Math.round(b * 10)} = ${Math.round(a * 10) * Math.round(b * 10)}, and two decimal places go back on at the end, giving ${Number((a * b).toFixed(4))}. Adding the two numbers instead (${Number((a + b).toFixed(4))}) is a different operation, and shifting one place too far (${Number((a * b * 10).toFixed(4))}) is a miscount of the places rather than a wrong multiplication.`,
     };
   },

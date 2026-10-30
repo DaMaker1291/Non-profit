@@ -82,9 +82,22 @@ const ENTRY = {
   nextEngine: "next-engine",
   learnerModel: "learner-model",
   evidenceView: "evidence-view",
+  // ── THE TEACHING, IN THE OFFLINE BUILD TOO ──────────────────────────────
+  // The authored lesson plans (lib/lesson-plans.ts) were reachable only from the
+  // React page, so the published twin — the product a low-connectivity learner
+  // actually uses — went straight from a concept to a question. That is the
+  // exact defect the plan format was written to fix, still present in the one
+  // artefact that exists for the hardest learners. The bundle now carries the
+  // same plan objects, so the twin reads the SAME authored text rather than a
+  // second copy of it.
+  lessonPlans: "lesson-plans",
   // Prompt formatting (prose vs code), shared with the React surfaces so both
   // builds set a code question the same way.
   prompt: "prompt",
+  // The figure GEOMETRY (`lib/figures.ts`): the very layout functions the React
+  // renderer draws from, so the twin's parabola crosses at its own roots and its
+  // area model cannot print 34 for 3 × 4. What app.js adds is the SVG markup.
+  figures: "figures",
   // Maths formatting, for the same reason: a fraction is drawn stacked on both
   // builds or the published twin sets questions the app does not.
   mathText: "math-text",

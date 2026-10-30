@@ -74,6 +74,13 @@ export const ENGINE_SOURCES = [
   // real sequence, and be longer than the prose paragraph it replaces. A plan
   // table that no test compiles is a table nobody has checked.
   "lib/lesson-plans.ts",
+  // FIGURE GEOMETRY. Compiled with the engines because the claims a diagram
+  // makes are arithmetic: a number line's arrow must travel the way the sign
+  // says, a balance's pans must hold what the equation says, an area model's
+  // cells must be labelled with the PRODUCT of their bands. The renderer maps
+  // these numbers to SVG, so this is the only place they can be checked without
+  // looking at a picture.
+  "lib/figures.ts",
   // THE TARGETED REPAIR. Compiled with the engines because the suite checks the
   // claims it makes AGAINST the bank: every authored repair must be attached to
   // a misconception that really lists its concept, and that concept's items must
@@ -156,6 +163,18 @@ export const ENGINE_SOURCES = [
   "lib/operations.ts",
   "lib/next-engine.ts",
   "lib/session.ts",
+  // THE MOTIVATIONAL FOLD (lib/momentum.ts). Compiled with the engines because
+  // what it claims is a FACT ABOUT THE RECORD — which days hold an answer, and
+  // which answer crossed a milestone — and neither is visible in a rendered
+  // page. A streak that counted a login, or a milestone dated the day the panel
+  // was opened, would look identical on screen; only drawing events with a known
+  // clock can tell them apart.
+  "lib/momentum.ts",
+  // THE MISTAKES FOLD (lib/mistakes.ts). It decides what a wrong answer is
+  // worth telling a learner, and the rule that matters — a miss with no named
+  // belief still counts — is invisible in a rendered page: an empty list and a
+  // list of unnamed rows look equally "worked" until you draw the record.
+  "lib/mistakes.ts",
   "lib/papers.ts",
   "lib/paper-analysis.ts",
   "lib/content-i18n.ts",

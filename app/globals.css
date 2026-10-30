@@ -1028,6 +1028,24 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
   transition: border-color 0.1s ease, background 0.1s ease;
 }
 .choice:hover:not(:disabled) { border-color: var(--ui-strong); background: var(--surface-sunken); }
+/* HOVER IS NOT FOCUS, AND NEITHER IS A CHOICE.
+   The four states a learner can see on this control are hover (a pointer is
+   over it), focus (the keyboard is on it), chosen (this is the one I picked) and
+   marked (the server's verdict). They are drawn differently on purpose: hover
+   and focus move the BORDER, selection adds the accent wash and the inner ring,
+   and marking replaces the border with the tick or the cross. The specific bug
+   this rule closes is that a choice had no focus ring of its own — the global
+   `:focus-visible` rule gave it a rounded outline sized for a 44px button, and
+   at 1.5px on a white card it was nearly invisible. A learner tabbing through
+   four options could not see where they were. */
+.choice:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+/* Nothing is preselected, and nothing LOOKS preselected: the first option used
+   to sit under the pointer and read as "the default" in a screenshot, which is
+   what a learner assumes an emphasised first row means. No rule here gives
+   `:first-child` anything. */
 .choice .mark {
   flex: none; width: 24px; height: 24px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -1109,7 +1127,17 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
 .math sub { vertical-align: sub; }
 .math .mfrac {
   display: inline-flex; flex-direction: column; align-items: stretch;
-  vertical-align: -0.42em; margin: 0 0.16em;
+  /* THE BAR GOES ON THE MATHS AXIS, WHICH MEANS THE BOX IS CENTRED, NOT
+     BASELINE-ALIGNED. An inline-flex box takes its baseline from its FIRST flex
+     item — the numerator — so `vertical-align: -0.42em` did not nudge the bar
+     down a little, it put the NUMERATOR on the text baseline: measured in a
+     browser, the bar landed 12.3px BELOW the baseline where the axis is ~5px
+     above it, so the denominators dangled under the line and the ÷ sign floated
+     above the bars (reported as "some of these questions look broken").
+     `middle` centres the box on the parent's half-x-height, which IS the maths
+     axis: the same measurement gives the bar 6.1px above the baseline at 21px
+     text, and it stays right at every size the product sets maths in. */
+  vertical-align: middle; margin: 0 0.16em;
   font-size: 0.94em; line-height: 1.14; text-align: center;
 }
 .math .mfrac-n { padding: 0 0.24em; }
@@ -1153,8 +1181,34 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
   border-radius: var(--radius-input);
 }
 .qfigure svg { display: block; width: 100%; height: auto; overflow: visible; }
+/* ── WHAT THE DRAWING SHOWS, IN WORDS ──────────────────────────────────────
+   The SVG is aria-hidden, so this sentence is the picture for a learner using a
+   screen reader — and the only reading of it in a greyscale print. Body size in
+   the muted ink, under the chart, wrapped at the frame's width: a caption set
+   smaller than the options is a caption read after them, and this one has to be
+   read BEFORE the question it belongs to. */
+.qfigure-cap {
+  margin-top: 8px; font-size: 0.94rem; line-height: 1.5;
+  color: var(--text-muted); max-width: 40em;
+}
 .qfigure[data-figure="axes"], .qfigure[data-figure="pie"] { max-width: 356px; }
 .qfigure[data-figure="right-triangle"] { max-width: 380px; }
+/* ── THE LESSON'S OWN PICTURE ───────────────────────────────────────────────
+   A plan carries a figure only where the drawing shows something the prose
+   would otherwise have to assert, so it sits in the reading column, at reading
+   width, rather than floating beside the text: on a phone and in the printed
+   pack there is one column, and a figure that assumed a second one would be
+   the part that got crushed. The caption is set at body size, in the muted ink,
+   because it is where the point is actually stated \u2014 the SVG is aria-hidden. */
+.lesson-figure {
+  margin: 0 0 18px; padding: 10px 12px 12px;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  border-radius: var(--radius-input); max-width: 34em;
+}
+.lesson-figure svg { display: block; width: 100%; height: auto; overflow: visible; }
+.lesson-figure figcaption { margin-top: 8px; }
+.qfigure[data-figure="number-line"], .qfigure[data-figure="balance"] { max-width: 380px; }
+.qfigure[data-figure="rectangle"] { max-width: 340px; }
 /* ── THE ANSWER BOX (§6) ──────────────────────────────────────────────────
    The control for a question that is NOT multiple choice. It is deliberately
    the same visual weight as the four options it replaces: a learner must not
@@ -1198,15 +1252,50 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
    overridden — the shared `textarea:focus` rule owns it, so this field is
    reachable by keyboard exactly like every other one. */
 .work-sheet { margin: 16px 0 12px; }
+/* COLLAPSED, the sheet is ONE QUIET ROW: a button that says what it is and a
+   sentence about who can see it. Open, the row is the label, that same sentence
+   at the end, and a way to close it again. The row is a grid rather than a
+   flex `space-between` so the note keeps its reading position whether or not the
+   close control appears. */
 .work-sheet-head {
-  display: flex; align-items: baseline; justify-content: space-between;
-  gap: 10px; flex-wrap: wrap; margin-bottom: 6px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline; gap: 10px 14px;
+  margin-bottom: 6px;
 }
+.work-sheet[data-open="false"] .work-sheet-head { grid-template-columns: auto minmax(0, 1fr); }
 .work-sheet-label {
   font-family: var(--mono); font-size: var(--t11); letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--text-muted);
 }
-.work-sheet-note { text-align: end; }
+/* The disclosure is a real control: 44px of touch target, the accent only on
+   the icon so the row stays quieter than the question above it. */
+.work-sheet-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 10px 0 0; margin-inline-start: -10px;
+  background: none; border: 0; cursor: pointer;
+  font-family: var(--mono); font-size: var(--t11); letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.work-sheet-toggle:hover { color: var(--text); }
+.work-sheet-plus {
+  display: inline-grid; place-items: center;
+  width: 20px; height: 20px; border-radius: 6px;
+  border: 1.5px dashed var(--line);
+  font-size: var(--t13); line-height: 1; letter-spacing: 0;
+}
+.work-sheet-toggle:hover .work-sheet-plus { border-color: var(--accent); color: var(--accent-ink); }
+.work-sheet-hide {
+  background: none; border: 0; padding: 0 0 0 4px; cursor: pointer;
+  min-height: 32px; color: var(--text-muted); text-decoration: underline;
+  text-underline-offset: 3px; text-decoration-thickness: 1px;
+}
+.work-sheet-hide:hover { color: var(--text); }
+.work-sheet-note { text-align: end; min-width: 0; }
+@media (max-width: 560px) {
+  .work-sheet-head, .work-sheet[data-open="false"] .work-sheet-head { grid-template-columns: minmax(0, 1fr); }
+  .work-sheet-note, .work-sheet-hide, .work-sheet-label { text-align: start; }
+  .work-sheet-hide { justify-self: start; }
+}
 .work-paper {
   --rule: 28px;
   display: block; width: 100%; min-height: 140px; resize: vertical;
@@ -1436,13 +1525,34 @@ button.chip[aria-pressed="false"] { background: transparent; }
 
 /* ── "Why this question": one quiet line above the prompt. It states the
    reason and the item's own band, and never the internal difficulty score. ── */
+/* A DISCLOSURE, SO THE BOX IS A BLOCK. `.whyq` was a one-line flex row of
+   spans; it is now a <details>, and a flex CONTAINER makes the summary and the
+   revealed paragraph two flex ITEMS — which sit beside each other until the
+   line happens to run out. The row's own layout lives on `summary` (below), so
+   the box itself is a plain block and the extra sentence opens underneath. */
 .whyq {
-  display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline;
   border-inline-start: 2px solid var(--line);
   padding: 2px 0 2px 10px; margin: 0 0 14px;
   font-size: var(--t13); color: var(--text-soft);
 }
 .whyq .why-label { font-family: var(--mono); font-size: var(--t10); letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-muted); }
+/* THE REASON IS ONE LINE, AND THE REST IS BEHIND A DISCLOSURE.
+   `.whyq` is a <details> now, so its `summary` is the strip: a marker, the
+   reason, and the band chip pushed to the end. The marker is the affordance —
+   drawn as a small chevron rather than the platform triangle, which at this size
+   sat on the baseline of a 13px line and read as a stray glyph. */
+.whyq > summary {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px;
+  cursor: pointer; list-style: none; min-height: 32px;
+}
+.whyq > summary::-webkit-details-marker { display: none; }
+.whyq > summary::before {
+  content: "▸"; flex: none; color: var(--text-muted); font-size: var(--t11);
+  transition: transform 0.12s ease; display: inline-block;
+}
+.whyq[open] > summary::before { transform: rotate(90deg); }
+.whyq[open] > summary { margin-bottom: 4px; }
+.whyq > .scaffold { margin: 0 0 4px 22px; color: var(--mark-caution); }
 /* The band chip sits at the END of the line rather than after the sentence: it
    is a value the eye should find in the same place on every question, and a
    "Level 4 of 5" that floats wherever the reason's last word ends is a badge
@@ -1455,19 +1565,78 @@ button.chip[aria-pressed="false"] { background: transparent; }
 }
 .whyq .scaffold { color: var(--mark-caution); font-weight: 600; }
 
+/* ── THE PRACTICE SCREEN'S OWN HEADER: the concept, and one step of four. ──
+   The markup for this row was written before these rules were, so the concept
+   name and the way back to the lesson stacked as two blocks and the step line
+   sat under them as ordinary body text — 71px of header, wrapping at 390px,
+   for a name and a back control that belong on ONE line. The four-block meter
+   is the compact form of the Read / Practise / Prove / Transfer path: while
+   practising, the four chips are a status, and a status belongs on a strip. */
+.sess-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin: 0 0 6px;
+}
+.sess-name {
+  margin: 0; font-size: var(--t15); font-weight: 700; letter-spacing: -0.01em;
+  min-width: 0; overflow-wrap: anywhere;
+}
+.sess-back {
+  flex: none; background: none; border: 0; padding: 0;
+  color: var(--text-muted); cursor: pointer; font: inherit;
+}
+.sess-back:hover { color: var(--text); }
+.sess-step-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 0 0 var(--s2);
+}
+.sess-step-text {
+  font-family: var(--mono); font-size: var(--t11); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.sess-step-meter { display: inline-flex; gap: 3px; }
+.sess-step-meter i { display: block; width: 22px; height: 3px; border-radius: 2px; background: var(--line); }
+.sess-step-meter i.on { background: var(--accent); }
+
 /* ── The exercise header: concept, position in the set, clock. Sticky, so the
    learner never loses which question they are on while scrolling working. ── */
 .qbar {
   position: sticky; top: var(--topbar-h); z-index: 30;
-  display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap;
+  display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; row-gap: 2px;
   padding: 12px var(--s3);
   background: var(--paper);
   border-bottom: 1px solid var(--line-soft);
   margin: 0 calc(-1 * var(--s3)) var(--s3);
 }
-.qbar b { font-size: var(--t16); }
-.qbar .where { color: var(--text-muted); font-family: var(--mono); font-size: var(--t12); }
-.qbar .clock { margin-inline-start: auto; font-family: var(--mono); font-size: var(--t13); color: var(--text-soft); }
+/* THE TITLE YIELDS; THE POSITION DOES NOT. At 320px the concept name and
+   "Question 3 of 5" together are wider than the bar, and without this the row
+   wrapped to four lines (measured at 375px: 154px of a 780px screen, sticky, on
+   every question). The name ellipsises instead, which is a truncated word rather
+   than a lost fact — the same name is the page's H1 and the topbar's crumb. */
+.qbar b {
+  font-size: var(--t16);
+  flex: 0 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qbar .where { color: var(--text-muted); font-family: var(--mono); font-size: var(--t12); white-space: nowrap; }
+.qbar .qof { flex: none; }
+.qbar .stage { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.qbar .clock { margin-inline-start: auto; flex: none; font-family: var(--mono); font-size: var(--t13); color: var(--text-soft); }
+/* The tutor's door in the bar. Hidden on a laptop, where the panel is already a
+   column beside the question — two doors to one room. */
+.qbar-tutor { display: none; }
+@media (max-width: 1180px) {
+  .qbar-tutor {
+    display: inline-flex; align-items: center; gap: 6px; flex: none;
+    min-height: 36px; padding: 0 12px; cursor: pointer;
+    font-family: var(--font); font-size: var(--t13); font-weight: 650;
+    color: var(--text); background: var(--surface);
+    border: 1.5px solid var(--line); border-radius: var(--radius-chip);
+  }
+  .qbar-tutor:hover { border-color: var(--ui-strong); background: var(--surface-sunken); }
+  /* …and the floating pill stands down on this screen, because the bar already
+     carries the door and the pill was covering an answer option. */
+  .session-page .tutor-fab { display: none; }
+}
 
 /* ── Progress: the day's plan, as a checklist ── */
 .today { list-style: none; margin: 0; padding: 0; }
@@ -1594,6 +1763,52 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: var(--t14); }
   overflow: hidden;
 }
 .coverage-bar span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+
+/* ── MOMENTUM: the run of days, and the next milestone ───────────────────────
+   The only motivating surface in the product, so it is drawn in the same
+   register as everything else: a row of marks on a rule, not a flame badge.
+   Seven columns that each take an equal share, because the strip has to fit a
+   320-px screen (7 × 40 px is already the whole card's inner width) and a fixed
+   dot width would push the last day off it. */
+.momentum-week {
+  list-style: none; margin: 12px 0 6px; padding: 0;
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px; align-items: end;
+}
+.momentum-day {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 4px 0 2px; border-radius: 4px;
+}
+/* A DAY WITH WORK IS FILLED; one without is an empty ring, which is the same
+   "unknown ≠ zero" drawing the meter uses — a hollow mark says the record holds
+   nothing for that day, not that the learner failed it. */
+.momentum-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 1.5px solid var(--line); background: var(--surface);
+}
+.momentum-dot.on { background: var(--mark-correct); border-color: var(--mark-correct); }
+/* TODAY IS OUTLINED WHATEVER ITS STATE, so "this is the one still open" is
+   visible without reading the date range. */
+.momentum-day.today .momentum-dot { box-shadow: 0 0 0 2px var(--accent-soft); }
+.momentum-day.today .momentum-letter { color: var(--text); font-weight: 700; }
+.momentum-letter {
+  font-family: var(--mono); font-size: var(--t11-5); line-height: 1;
+  letter-spacing: 0.04em; color: var(--text-muted); text-transform: uppercase;
+}
+.momentum-line { margin: 6px 0 0; }
+.momentum-nudge { margin: 2px 0 0; }
+.momentum-next { margin: 12px 0 0; }
+/* The bar is the SHARED one; only its spacing is the panel's. */
+.momentum-bar { margin: 8px 0 0; }
+/* Today's target, above the run: a label and a count, then the one bar in the
+   panel. 12px above it separates it from the week strip without adding a rule. */
+.momentum-goal { margin: 12px 0 0; }
+.momentum-earned {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0;
+}
+.momentum-chip { gap: 6px; }
+.momentum-date { font-size: var(--t11-5); opacity: 0.7; }
+.momentum-foot { margin: 10px 0 0; }
 
 /* The up-to-three proved concepts, held 10px below the heading. */
 .home-rows { margin: 10px 0 2px; }
@@ -1901,9 +2116,17 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
    reach. Either way the question is never replaced by a chat window — the
    thing being asked about is always on screen.
    ═════════════════════════════════════════════════════════════════════════ */
+/* THE QUESTION GETS THE ROOM; THE TUTOR IS A COMPANION, NOT A COLUMN.
+   The tutor's track was `minmax(300px, 360px)` from 901px up, and the sidebar
+   is 240px until 900 — so at 1,024px the QUESTION was 352px wide beside a 360px
+   tutor, i.e. the chat panel was the larger column and the item being answered
+   was the smaller one. Measured at 1,009px: question 337, tutor 360. The track
+   is now capped below the question's own minimum comfort width, and below
+   1,180px the tutor stops being a column at all and becomes the drawer a phone
+   already gets — see the media block under this rule. */
 .work {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
   gap: var(--s3);
   align-items: start;
 }
@@ -2222,6 +2445,19 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
 @media (max-width: 560px) {
   .ledger-row { flex-direction: column; align-items: flex-start; gap: 2px; }
   .ledger-v { flex: 1 1 auto; text-align: start; min-width: 0; }
+  /* A DIMENSION IS TWO SHORT LINES ON A PHONE.
+     The three-column form — name, five-step meter, value — reserves 96 px for
+     the name and 74 px for the meter before the value gets a pixel, which is
+     more than a 320-px phone has to give: measured in a browser, `.dims` was
+     50 px wider than its card and the whole LESSON PAGE scrolled sideways by
+     13 px (333 vs 320) on every one of the nine pilot lessons. Name and meter
+     share the first line, the value takes the second, so nothing is squeezed
+     out of the screen and nothing is truncated to a stub. */
+  .dim { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; }
+  .dim-k { font-size: var(--t13); }
+  .dim-v { grid-column: 1 / -1; }
+  .dim.dim-absent { grid-template-columns: minmax(0, 1fr); }
+  .meter { min-width: 0; }
 }
 
 /* Unmeasured, drawn as a blank ruled square: what is not yet written down is
@@ -2257,6 +2493,55 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
 .linkish:hover { color: var(--text-soft); }
 
 /* ═════════════════════════════════════════════════════════════════════════
+   TABLET: THE TUTOR BECOMES A DRAWER, NOT A SECOND COLUMN.
+
+   This breakpoint is 1,180 — not the phone's 900 — because that is where the
+   two columns stop being able to hold their own. The sidebar is 240px until
+   900, so at 1,009px the work area was 769px wide and the grid split it 337 / 360:
+   the tutor was the LARGER column and the question the smaller one, with the
+   item's own options wrapping to buy the chat panel its width. Side by side is
+   only a good idea while the question keeps the majority of the space, so below
+   this width the tutor is the sheet the phone already gets: one tap to open, the
+   question still behind it, never a separate page.
+
+   The media block is above the 900 block on purpose — the phone rules below
+   override only the chrome (padding, the bottom bar), never this layout. */
+@media (max-width: 1180px) {
+  .work { grid-template-columns: minmax(0, 1fr); }
+  .tutor-panel {
+    position: fixed; inset-inline: 0; bottom: 0; z-index: 80;
+    top: auto; height: auto; max-height: 78vh;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    border-inline: 0; border-bottom: 0;
+    box-shadow: 0 -10px 30px rgba(16, 24, 32, 0.18);
+    transform: translateY(101%); transition: transform 0.18s ease;
+    /* A CLOSED DRAWER IS NOT IN THE TAB ORDER. `transform` slides it off screen
+       but leaves every control inside it focusable and announced, so a keyboard
+       learner tabbing through the question would land on an invisible
+       composer and "Ask the tutor" button below the fold, with no focus ring in
+       sight. `visibility: hidden` removes it from the tab order and the
+       accessibility tree; the delayed transition keeps the slide-out visible
+       while it plays (the delay is 0 when OPENING, so the panel is never
+       invisible for the first frame of its entrance). */
+    visibility: hidden;
+    transition: transform 0.18s ease, visibility 0s linear 0.18s;
+  }
+  .tutor-panel[data-open="true"] {
+    transform: translateY(0); visibility: visible;
+    transition: transform 0.18s ease, visibility 0s;
+  }
+  .tutor-head .tutor-close { display: inline-flex; align-items: center; }
+  .tutor-fab {
+    display: inline-flex; position: fixed; z-index: 70;
+    inset-inline-end: 14px; bottom: calc(72px + env(safe-area-inset-bottom));
+    align-items: center; gap: var(--s1);
+    background: var(--ui-strong); color: var(--text-on-strong); border: 2px solid var(--ui-strong);
+    border-radius: 999px; padding: 12px 18px; font-size: var(--t15); font-weight: 700;
+    cursor: pointer; min-height: 48px;
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
    The phone: no sidebar, a bottom bar instead, and the content re-flows.
    ═════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
@@ -2272,29 +2557,15 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
      squeezed to a single "United Kingdom…", which is a fragment of a fact rather
      than the fact — the same defect the ≤640px block records. */
   .context-strip { display: none; }
-  /* The tutor becomes a sheet over the question (§tutor): one tap to open,
-     the question still there behind it, never a separate page. */
-  .work { grid-template-columns: minmax(0, 1fr); }
-  .tutor-panel {
-    position: fixed; inset-inline: 0; bottom: 0; z-index: 80;
-    top: auto; height: auto; max-height: 78vh;
-    border-radius: var(--radius-card) var(--radius-card) 0 0;
-    border-inline: 0; border-bottom: 0;
-    box-shadow: 0 -10px 30px rgba(16, 24, 32, 0.18);
-    transform: translateY(101%); transition: transform 0.18s ease;
-  }
-  .tutor-panel[data-open="true"] { transform: translateY(0); }
-  .tutor-head .tutor-close { display: inline-flex; align-items: center; }
-  .tutor-fab {
-    display: inline-flex; position: fixed; z-index: 70;
-    inset-inline-end: 14px; bottom: calc(72px + env(safe-area-inset-bottom));
-    align-items: center; gap: var(--s1);
-    background: var(--ui-strong); color: var(--text-on-strong); border: 2px solid var(--ui-strong);
-    border-radius: 999px; padding: 12px 18px; font-size: var(--t15); font-weight: 700;
-    cursor: pointer; min-height: 48px;
-  }
+  /* The tutor's sheet, its close control and its floating door are declared in
+     the ≤1,180px block above (that is where the second column stops working).
+     Only the phone's own chrome belongs here. */
   .shell-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   .container { padding: 0 18px; }
+  /* THE SESSION OPENS NEARER THE TOP. 40px of page padding is right for a
+     page whose H1 is the content; on the practice screen the content is the
+     question, and every pixel above it is one the learner scrolls past. */
+  .session-page { padding-top: 18px !important; }
   .topbar { padding: 0 18px; gap: 12px; }
   /* The ♿ control is fixed into the very corner the phone bar occupies, so it
      sat ON TOP of the bar's last destination — measured at 390px, the button
@@ -2306,10 +2577,31 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
   .search-results { width: min(320px, calc(100vw - 36px)); }
   .sample-wrap { grid-template-columns: 1fr; }
   .qbar { margin: 0 -18px var(--s2); padding: 10px 18px; top: 0; }
+  /* The stage takes its own row here rather than squeezing between the title
+     and the clock: it is a whole sentence ("Transfer — same idea, unfamiliar
+     wording"), and a sentence truncated to "Transf…" tells a learner nothing. */
+  .qbar .stage { flex: 1 1 100%; order: 9; }
+}
+
+@media (max-width: 560px) {
+  /* ON A PHONE THE BAR KEEPS THE THREE FACTS THAT ARE ONLY HERE.
+     The concept's name is the H1 a few lines above and the card's own header;
+     the position in the set, the clock and the tutor's door are not on screen
+     anywhere else while the working is scrolled. Dropping the name is what lets
+     those three sit on ONE 47px row instead of two 85px rows, and the bar is
+     sticky — so the saving is paid on every question, all the way down. */
+  .qbar b { display: none; }
 }
 
 @media (max-width: 640px) {
   .hero { padding: var(--s3) 0 var(--s2); }
+  /* THE BREADCRUMB STEPS ASIDE ON A PHONE. It is a flex item with `min-width: 0`
+     and it was collapsed to 12px at 375 — "Mathematics /" printed into a sliver
+     while the page name it belongs to sat in the H1 a few lines below. Measured
+     before: `.topbar-where` 12px wide with its contents overflowing. The crumb
+     earns its place on a laptop, where it is the only thing that says where in
+     the course a page sits; on a phone it is a duplicate of the title. */
+  .topbar-where { display: none; }
   .msg { max-width: 94%; }
   .card { padding: 18px; }
   .card.primary { padding: var(--s3); }

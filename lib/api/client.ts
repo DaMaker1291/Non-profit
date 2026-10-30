@@ -430,6 +430,10 @@ export interface AnswerVerdict {
   streak?: number;
   mastery?: number;
   misconceptionId: string | null;
+  /** What the option the learner PICKED represents, when the question family
+   *  authored a note for it. Absent for a padded near-miss, for a family nobody
+   *  has written for, and always absent on a correct answer. */
+  choiceNote?: string | null;
   flare?: FlarePayload | null;
   demonstrated?: { mode?: string; hints?: number; source?: string; retained?: boolean };
   /** The ledger already holds this submission (a replayed offline answer).
@@ -507,6 +511,7 @@ export async function answerQuestion(
       streak: typeof j.streak === "number" ? j.streak : undefined,
       mastery: typeof j.mastery === "number" ? j.mastery : undefined,
       misconceptionId: typeof j.misconceptionId === "string" ? j.misconceptionId : null,
+      choiceNote: typeof j.choiceNote === "string" ? j.choiceNote : null,
       flare: (j.flare as FlarePayload | null) ?? null,
       demonstrated: j.demonstrated as AnswerVerdict["demonstrated"],
     },

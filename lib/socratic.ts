@@ -59,6 +59,11 @@ function isExplain(lower: string): boolean {
   return ["explain", "explícame", "explica", "explique", "erkläre", "erklär", "spiega",
     "explica-me", "açıkla", "説明して", "解释一下", "اشرح", "وضّح", "समझाओ", "समझाइए",
     "jelaskan", "ipaliwanag", "سمجھاؤ", "বুঝিয়ে দাও", "বুঝাও",
+    // The panel's `ask.explainQ` starter chip, in the two languages whose
+    // wording the list above does not already cover. A chip the tutor cannot
+    // recognise is worse than no chip: it is the learner's first sentence, and
+    // it would receive the "tell me which step you are on" reply.
+    "eleza", "توضیح",
   ].some((w) => lower.includes(w));
 }
 
@@ -81,6 +86,16 @@ function isExample(lower: string): boolean {
     "work it through", "work through", "walk me through", "walk through", "go through it",
     "ejemplo", "exemple", "beispiel", "esempio", "exemplo", "örnek", "例題", "举例",
     "مثال", "उदाहरण", "contoh", "halimbawa", "misali", "উদাহরণ",
+    // …AND THE THIRD CHIP'S OWN TRANSLATIONS, which is the chip that used to
+    // reach no branch at all. The lists above caught the English phrase and the
+    // WORD for "example" in each language, but the panel sends the whole chip
+    // ("Resuélvelo paso a paso", "Résous-le étape par étape"), which contains
+    // neither — so in eleven languages the chip still fell through to "tell me
+    // which step you are on". Measured by `npm run verify`, which sends the chip
+    // through the real tutor in all fifteen languages.
+    "resuélvelo", "résous", "resolve", "isuluhishe", "कदम-दर-कदम", "kerjakan",
+    "lutasin", "قدم بہ قدم", "قدم‌به‌قدم", "ধাপে ধাপে", "schritt für schritt",
+    "順を追って", "一步步", "خطوة بخطوة",
   ].some((w) => lower.includes(w));
 }
 
@@ -133,6 +148,9 @@ function isHint(lower: string): boolean {
   return ["hint", "clue", "pista", "indice", "índice", "hinweis", "dica",
     "petunjuk", "cabhitaan", "hiw", "sugerencia", "संकेत", "सुराग", "ヒント", "提示",
     "تلميح", "اشارہ", "راهنم", "ইঙ্গিত", "подсказ",
+    // `ask.hint` (the panel's first starter chip) in Swahili, which the list
+    // above did not reach — see the note in isExplain.
+    "kidokezo",
   ].some((w) => lower.includes(w));
 }
 

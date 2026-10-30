@@ -6,562 +6,562 @@
     "uk-alevel|as|maths": {
       "declared": 0.75,
       "concepts": 39,
-      "median": 0.91998070867965,
+      "median": 0.9199134878348559,
       "belowTarget": 0,
-      "servedMedian": 0.780826421091333
+      "servedMedian": 0.7428713127598167
     },
     "uk-alevel|as|physics": {
       "declared": 0.75,
       "concepts": 14,
-      "median": 0.78,
-      "belowTarget": 4,
-      "servedMedian": 0.735
+      "median": 0.9546372331841849,
+      "belowTarget": 0,
+      "servedMedian": 0.7453716635331511
     },
     "uk-alevel|as|chemistry": {
       "declared": 0.75,
       "concepts": 12,
-      "median": 0.745,
-      "belowTarget": 6,
-      "servedMedian": 0.745
+      "median": 0.9574341877014376,
+      "belowTarget": 0,
+      "servedMedian": 0.7489462954516057
     },
     "uk-alevel|as|biology": {
       "declared": 0.75,
       "concepts": 8,
-      "median": 0.75,
-      "belowTarget": 3,
-      "servedMedian": 0.75
+      "median": 0.958241487282794,
+      "belowTarget": 0,
+      "servedMedian": 0.7475362938130274
     },
     "uk-alevel|as|computing": {
       "declared": 0.75,
       "concepts": 10,
-      "median": 0.61,
-      "belowTarget": 10,
-      "servedMedian": 0.61
+      "median": 0.9553247042372823,
+      "belowTarget": 0,
+      "servedMedian": 0.7202960600028746
     },
     "uk-alevel|a2|maths": {
       "declared": 0.9,
       "concepts": 43,
-      "median": 0.9210940365865826,
-      "belowTarget": 0,
-      "servedMedian": 0.9000785919558256
+      "median": 0.920160884486977,
+      "belowTarget": 3,
+      "servedMedian": 0.9000859056971967
     },
     "uk-alevel|a2|physics": {
       "declared": 0.9,
       "concepts": 14,
-      "median": 0.78,
-      "belowTarget": 14,
-      "servedMedian": 0.78
+      "median": 0.9546372331841849,
+      "belowTarget": 1,
+      "servedMedian": 0.9050236234813929
     },
     "uk-alevel|a2|chemistry": {
       "declared": 0.9,
       "concepts": 12,
-      "median": 0.745,
-      "belowTarget": 12,
-      "servedMedian": 0.745
+      "median": 0.9574341877014376,
+      "belowTarget": 1,
+      "servedMedian": 0.9051489767292515
     },
     "uk-alevel|a2|biology": {
       "declared": 0.9,
       "concepts": 8,
-      "median": 0.75,
-      "belowTarget": 8,
-      "servedMedian": 0.75
+      "median": 0.958241487282794,
+      "belowTarget": 0,
+      "servedMedian": 0.9038324129465036
     },
     "uk-alevel|a2|computing": {
       "declared": 0.9,
       "concepts": 10,
-      "median": 0.61,
-      "belowTarget": 10,
-      "servedMedian": 0.61
+      "median": 0.9553247042372823,
+      "belowTarget": 0,
+      "servedMedian": 0.9015031174011529
     },
     "int-ib|sl|maths": {
       "declared": 0.7,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 21,
-      "servedMedian": 0.659941290281713
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.6957893611863255
     },
     "int-ib|sl|physics": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 3,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
       "servedMedian": 0.7
     },
     "int-ib|sl|chemistry": {
       "declared": 0.7,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 3,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
       "servedMedian": 0.75
     },
     "int-ib|sl|biology": {
       "declared": 0.7,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 4,
-      "servedMedian": 0.735
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.7387004390801304
     },
     "int-ib|sl|computing": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 15,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7027868845220655
     },
     "int-ib|hl|maths": {
       "declared": 0.9,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 24,
-      "servedMedian": 0.8985112689062953
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 19,
+      "servedMedian": 0.8969204310886562
     },
     "int-ib|hl|physics": {
       "declared": 0.9,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 18,
-      "servedMedian": 0.78
+      "median": 0.9530840203980915,
+      "belowTarget": 5,
+      "servedMedian": 0.9018137603346259
     },
     "int-ib|hl|chemistry": {
       "declared": 0.9,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 16,
-      "servedMedian": 0.75
+      "median": 0.9563669693749398,
+      "belowTarget": 5,
+      "servedMedian": 0.9041230679699219
     },
     "int-ib|hl|biology": {
       "declared": 0.9,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 16,
-      "servedMedian": 0.75
+      "median": 0.9552912648185157,
+      "belowTarget": 4,
+      "servedMedian": 0.9027628803136758
     },
     "int-ib|hl|computing": {
       "declared": 0.9,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 18,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.9014258445054293
     },
     "us-ap|ap|maths": {
       "declared": 0.85,
       "concepts": 43,
-      "median": 0.9210940365865826,
+      "median": 0.920160884486977,
       "belowTarget": 0,
-      "servedMedian": 0.8625747344922274
+      "servedMedian": 0.8673751985328272
     },
     "us-ap|ap|physics": {
       "declared": 0.85,
       "concepts": 14,
-      "median": 0.78,
-      "belowTarget": 14,
-      "servedMedian": 0.78
+      "median": 0.9546372331841849,
+      "belowTarget": 1,
+      "servedMedian": 0.9033063340676017
     },
     "us-ap|ap|chemistry": {
       "declared": 0.85,
       "concepts": 12,
-      "median": 0.745,
-      "belowTarget": 12,
-      "servedMedian": 0.745
+      "median": 0.9574341877014376,
+      "belowTarget": 0,
+      "servedMedian": 0.903110117088072
     },
     "us-ap|ap|biology": {
       "declared": 0.85,
       "concepts": 8,
-      "median": 0.75,
-      "belowTarget": 8,
-      "servedMedian": 0.75
+      "median": 0.958241487282794,
+      "belowTarget": 0,
+      "servedMedian": 0.9028636664128862
     },
     "us-ap|ap|computing": {
       "declared": 0.85,
       "concepts": 10,
-      "median": 0.61,
-      "belowTarget": 10,
-      "servedMedian": 0.61
+      "median": 0.9553247042372823,
+      "belowTarget": 0,
+      "servedMedian": 0.884499089801684
     },
     "au-acara|senior|maths": {
       "declared": 0.7,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 21,
-      "servedMedian": 0.658464167304337
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.6999941127933562
     },
     "au-acara|senior|physics": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 3,
-      "servedMedian": 0.7
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.72
     },
     "au-acara|senior|chemistry": {
       "declared": 0.7,
       "concepts": 15,
-      "median": 0.75,
-      "belowTarget": 3,
-      "servedMedian": 0.75
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
+      "servedMedian": 0.7
     },
     "au-acara|senior|biology": {
       "declared": 0.7,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 4,
-      "servedMedian": 0.735
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.745644737535622
     },
     "au-acara|senior|computing": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 15,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7004294070322066
     },
     "ie-junior|senior|maths": {
       "declared": 0.7,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 21,
-      "servedMedian": 0.666644635782577
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7009479346498847
     },
     "ie-junior|senior|physics": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 3,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
       "servedMedian": 0.7
     },
     "ie-junior|senior|chemistry": {
       "declared": 0.7,
       "concepts": 15,
-      "median": 0.75,
-      "belowTarget": 3,
-      "servedMedian": 0.75
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
+      "servedMedian": 0.74
     },
     "ie-junior|senior|biology": {
       "declared": 0.7,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 4,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
       "servedMedian": 0.735
     },
     "ie-junior|senior|computing": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 15,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.6996521599031984
     },
     "in-cbse|class11-12|maths": {
       "declared": 0.85,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 24,
-      "servedMedian": 0.8511027203127742
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 15,
+      "servedMedian": 0.8600532594928518
     },
     "in-cbse|class11-12|physics": {
       "declared": 0.85,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 18,
-      "servedMedian": 0.78
+      "median": 0.9530840203980915,
+      "belowTarget": 2,
+      "servedMedian": 0.9015851312689483
     },
     "in-cbse|class11-12|chemistry": {
       "declared": 0.85,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 16,
-      "servedMedian": 0.75
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.9015630546980538
     },
     "in-cbse|class11-12|biology": {
       "declared": 0.85,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 16,
-      "servedMedian": 0.75
+      "median": 0.9552912648185157,
+      "belowTarget": 1,
+      "servedMedian": 0.9016161805693992
     },
     "in-cbse|class11-12|computing": {
       "declared": 0.85,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 18,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8887704372871668
     },
     "in-icse|isc|maths": {
       "declared": 0.85,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 24,
-      "servedMedian": 0.8500828704354353
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 15,
+      "servedMedian": 0.8599390120874159
     },
     "in-icse|isc|physics": {
       "declared": 0.85,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 18,
-      "servedMedian": 0.78
+      "median": 0.9530840203980915,
+      "belowTarget": 2,
+      "servedMedian": 0.9036857591941952
     },
     "in-icse|isc|chemistry": {
       "declared": 0.85,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 16,
-      "servedMedian": 0.75
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.9015661521535367
     },
     "in-icse|isc|biology": {
       "declared": 0.85,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 16,
-      "servedMedian": 0.75
+      "median": 0.9552912648185157,
+      "belowTarget": 1,
+      "servedMedian": 0.9017389601608738
     },
     "in-icse|isc|computing": {
       "declared": 0.85,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 18,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.882805882031098
     },
     "pk-matric|inter|maths": {
       "declared": 0.75,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 21,
-      "servedMedian": 0.68
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7521411701850593
     },
     "pk-matric|inter|physics": {
       "declared": 0.75,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 4,
-      "servedMedian": 0.75
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.735
     },
     "pk-matric|inter|chemistry": {
       "declared": 0.75,
       "concepts": 15,
-      "median": 0.75,
-      "belowTarget": 6,
-      "servedMedian": 0.75
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
+      "servedMedian": 0.74
     },
     "pk-matric|inter|biology": {
       "declared": 0.75,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 6,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
       "servedMedian": 0.75
     },
     "pk-matric|inter|computing": {
       "declared": 0.75,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 18,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.72
     },
     "bd-ssc|hsc|maths": {
       "declared": 0.78,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 21,
-      "servedMedian": 0.68
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7646730042574927
     },
     "bd-ssc|hsc|physics": {
       "declared": 0.78,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 6,
-      "servedMedian": 0.75
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.7258953470434062
     },
     "bd-ssc|hsc|chemistry": {
       "declared": 0.78,
       "concepts": 15,
-      "median": 0.75,
-      "belowTarget": 13,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
       "servedMedian": 0.75
     },
     "bd-ssc|hsc|biology": {
       "declared": 0.78,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 14,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
       "servedMedian": 0.75
     },
     "bd-ssc|hsc|computing": {
       "declared": 0.78,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 18,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.749197083079489
     },
     "ke-kcse|form4|maths": {
       "declared": 0.7,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 21,
-      "servedMedian": 0.6687019840115681
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7
     },
     "ke-kcse|form4|physics": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 3,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
       "servedMedian": 0.7
     },
     "ke-kcse|form4|chemistry": {
       "declared": 0.7,
       "concepts": 15,
-      "median": 0.75,
-      "belowTarget": 3,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
       "servedMedian": 0.75
     },
     "ke-kcse|form4|biology": {
       "declared": 0.7,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 4,
-      "servedMedian": 0.72
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.7123882794799283
     },
     "ke-kcse|form4|computing": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 15,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7023180002253503
     },
     "ng-waec|sss|maths": {
       "declared": 0.7,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 21,
-      "servedMedian": 0.6658164980541914
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7
     },
     "ng-waec|sss|physics": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 3,
-      "servedMedian": 0.7
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.69
     },
     "ng-waec|sss|chemistry": {
       "declared": 0.7,
       "concepts": 15,
-      "median": 0.75,
-      "belowTarget": 3,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
       "servedMedian": 0.75
     },
     "ng-waec|sss|biology": {
       "declared": 0.7,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 4,
-      "servedMedian": 0.735
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.72
     },
     "ng-waec|sss|computing": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 15,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.6997645616251975
     },
     "br-enem|medio|maths": {
       "declared": 0.7,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 21,
-      "servedMedian": 0.6680195537698455
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7
     },
     "br-enem|medio|physics": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 3,
-      "servedMedian": 0.7
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.7136535532702692
     },
     "br-enem|medio|chemistry": {
       "declared": 0.7,
       "concepts": 15,
-      "median": 0.75,
-      "belowTarget": 3,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
       "servedMedian": 0.75
     },
     "br-enem|medio|biology": {
       "declared": 0.7,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 4,
-      "servedMedian": 0.735
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.75
     },
     "br-enem|medio|computing": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 15,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7040008886298165
     },
     "mx-sep|prepa|maths": {
       "declared": 0.7,
-      "concepts": 63,
-      "median": 0.9171637673396617,
-      "belowTarget": 21,
-      "servedMedian": 0.6603803014941514
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7
     },
     "mx-sep|prepa|physics": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 3,
-      "servedMedian": 0.71
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.72
     },
     "mx-sep|prepa|chemistry": {
       "declared": 0.7,
       "concepts": 15,
-      "median": 0.75,
-      "belowTarget": 3,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
       "servedMedian": 0.75
     },
     "mx-sep|prepa|biology": {
       "declared": 0.7,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 4,
-      "servedMedian": 0.735
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.72
     },
     "mx-sep|prepa|computing": {
       "declared": 0.7,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 15,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.705803675642237
     },
     "any-independent|advanced|maths": {
       "declared": 0.8,
-      "concepts": 67,
-      "median": 0.917837413046509,
-      "belowTarget": 21,
-      "servedMedian": 0.843502518623136
+      "concepts": 59,
+      "median": 0.9185790118994192,
+      "belowTarget": 0,
+      "servedMedian": 0.8601936173508875
     },
     "any-independent|advanced|physics": {
       "declared": 0.8,
       "concepts": 18,
-      "median": 0.78,
-      "belowTarget": 14,
-      "servedMedian": 0.78
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.9029089535353706
     },
     "any-independent|advanced|chemistry": {
       "declared": 0.8,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 16,
-      "servedMedian": 0.75
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.9013245970266871
     },
     "any-independent|advanced|biology": {
       "declared": 0.8,
       "concepts": 16,
-      "median": 0.75,
-      "belowTarget": 16,
-      "servedMedian": 0.75
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.9027191815339028
     },
     "any-independent|advanced|computing": {
       "declared": 0.8,
       "concepts": 18,
-      "median": 0.565,
-      "belowTarget": 18,
-      "servedMedian": 0.565
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8836258905753493
     },
     "cm-gce-a|lower6|maths": {
       "declared": 0.78,
@@ -667,6 +667,846 @@
       "median": 0.9533456578291952,
       "belowTarget": 0,
       "servedMedian": 0.738284586132504
+    },
+    "et-esslce|grade-12|maths": {
+      "declared": 0.7,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7
+    },
+    "et-esslce|grade-12|physics": {
+      "declared": 0.7,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.7
+    },
+    "et-esslce|grade-12|chemistry": {
+      "declared": 0.7,
+      "concepts": 15,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "et-esslce|grade-12|biology": {
+      "declared": 0.7,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.735
+    },
+    "et-esslce|grade-12|computing": {
+      "declared": 0.7,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7078746501961724
+    },
+    "ma-bac|2bac|maths": {
+      "declared": 0.8,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.860411925856024
+    },
+    "ma-bac|2bac|physics": {
+      "declared": 0.8,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.9027670390508138
+    },
+    "ma-bac|2bac|chemistry": {
+      "declared": 0.8,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.902006263411604
+    },
+    "ma-bac|2bac|biology": {
+      "declared": 0.8,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.9010835356148892
+    },
+    "ma-bac|2bac|computing": {
+      "declared": 0.8,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8833123849984259
+    },
+    "rw-a-level|s5|maths": {
+      "declared": 0.74,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7482450567977503
+    },
+    "rw-a-level|s5|physics": {
+      "declared": 0.74,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "rw-a-level|s5|chemistry": {
+      "declared": 0.74,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.738780753465835
+    },
+    "rw-a-level|s5|biology": {
+      "declared": 0.74,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "rw-a-level|s5|computing": {
+      "declared": 0.74,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.725913239333313
+    },
+    "rw-a-level|s6|maths": {
+      "declared": 0.84,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 14,
+      "servedMedian": 0.8609592769807205
+    },
+    "rw-a-level|s6|physics": {
+      "declared": 0.84,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 2,
+      "servedMedian": 0.9033271861821414
+    },
+    "rw-a-level|s6|chemistry": {
+      "declared": 0.84,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.9037038812530227
+    },
+    "rw-a-level|s6|biology": {
+      "declared": 0.84,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.9016558571951464
+    },
+    "rw-a-level|s6|computing": {
+      "declared": 0.84,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8883981081098318
+    },
+    "zw-a-level|upper-sixth|maths": {
+      "declared": 0.82,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 9,
+      "servedMedian": 0.8615959940198809
+    },
+    "zw-a-level|upper-sixth|physics": {
+      "declared": 0.82,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 2,
+      "servedMedian": 0.9014612819859757
+    },
+    "zw-a-level|upper-sixth|chemistry": {
+      "declared": 0.82,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.9010803409991786
+    },
+    "zw-a-level|upper-sixth|biology": {
+      "declared": 0.82,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.9049376813904383
+    },
+    "zw-a-level|upper-sixth|computing": {
+      "declared": 0.82,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8872024357225746
+    },
+    "vn-thpt|grade-12|maths": {
+      "declared": 0.76,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7601537074660882
+    },
+    "vn-thpt|grade-12|physics": {
+      "declared": 0.76,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.7345823205844499
+    },
+    "vn-thpt|grade-12|chemistry": {
+      "declared": 0.76,
+      "concepts": 15,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "vn-thpt|grade-12|biology": {
+      "declared": 0.76,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "vn-thpt|grade-12|computing": {
+      "declared": 0.76,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7435312489699573
+    },
+    "tr-yks|grade-12|maths": {
+      "declared": 0.72,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7183468118216843
+    },
+    "tr-yks|grade-12|physics": {
+      "declared": 0.72,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.72
+    },
+    "tr-yks|grade-12|chemistry": {
+      "declared": 0.72,
+      "concepts": 15,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
+      "servedMedian": 0.74
+    },
+    "tr-yks|grade-12|biology": {
+      "declared": 0.72,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.741176523603499
+    },
+    "tr-yks|grade-12|computing": {
+      "declared": 0.72,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.72
+    },
+    "ir-konkur|grade-12|maths": {
+      "declared": 0.74,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "ir-konkur|grade-12|physics": {
+      "declared": 0.74,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "ir-konkur|grade-12|chemistry": {
+      "declared": 0.74,
+      "concepts": 15,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "ir-konkur|grade-12|biology": {
+      "declared": 0.74,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.7445579160237685
+    },
+    "ir-konkur|grade-12|computing": {
+      "declared": 0.74,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7330120191536844
+    },
+    "cn-gaokao|grade-12|maths": {
+      "declared": 0.86,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 16,
+      "servedMedian": 0.8608732468029484
+    },
+    "cn-gaokao|grade-12|physics": {
+      "declared": 0.86,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 5,
+      "servedMedian": 0.9049445054470562
+    },
+    "cn-gaokao|grade-12|chemistry": {
+      "declared": 0.86,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 5,
+      "servedMedian": 0.902825066135265
+    },
+    "cn-gaokao|grade-12|biology": {
+      "declared": 0.86,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 4,
+      "servedMedian": 0.9019595143664629
+    },
+    "cn-gaokao|grade-12|computing": {
+      "declared": 0.86,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8874280715361238
+    },
+    "jp-nyushi|high-school-3|maths": {
+      "declared": 0.8,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.8637953655840829
+    },
+    "jp-nyushi|high-school-3|physics": {
+      "declared": 0.8,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.9022194075607695
+    },
+    "jp-nyushi|high-school-3|chemistry": {
+      "declared": 0.8,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.9023980938177556
+    },
+    "jp-nyushi|high-school-3|biology": {
+      "declared": 0.8,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.9028170743538066
+    },
+    "jp-nyushi|high-school-3|computing": {
+      "declared": 0.8,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8877462942618877
+    },
+    "kr-csat|high-3|maths": {
+      "declared": 0.86,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 16,
+      "servedMedian": 0.8610485165752471
+    },
+    "kr-csat|high-3|physics": {
+      "declared": 0.86,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 5,
+      "servedMedian": 0.9027617259300315
+    },
+    "kr-csat|high-3|chemistry": {
+      "declared": 0.86,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 5,
+      "servedMedian": 0.9025557588064113
+    },
+    "kr-csat|high-3|biology": {
+      "declared": 0.86,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 4,
+      "servedMedian": 0.903015876179561
+    },
+    "kr-csat|high-3|computing": {
+      "declared": 0.86,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8873738801386207
+    },
+    "lk-a-level|grade-13|maths": {
+      "declared": 0.78,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7698434782144614
+    },
+    "lk-a-level|grade-13|physics": {
+      "declared": 0.78,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.7666370769357309
+    },
+    "lk-a-level|grade-13|chemistry": {
+      "declared": 0.78,
+      "concepts": 15,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "lk-a-level|grade-13|biology": {
+      "declared": 0.78,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "lk-a-level|grade-13|computing": {
+      "declared": 0.78,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7317324475641362
+    },
+    "kz-unt|grade-11|maths": {
+      "declared": 0.72,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.721098993010819
+    },
+    "kz-unt|grade-11|physics": {
+      "declared": 0.72,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.72
+    },
+    "kz-unt|grade-11|chemistry": {
+      "declared": 0.72,
+      "concepts": 15,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "kz-unt|grade-11|biology": {
+      "declared": 0.72,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "kz-unt|grade-11|computing": {
+      "declared": 0.72,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.72
+    },
+    "es-bachillerato|1-bachillerato|maths": {
+      "declared": 0.7,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7015007152361795
+    },
+    "es-bachillerato|1-bachillerato|physics": {
+      "declared": 0.7,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.7
+    },
+    "es-bachillerato|1-bachillerato|chemistry": {
+      "declared": 0.7,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.735
+    },
+    "es-bachillerato|1-bachillerato|biology": {
+      "declared": 0.7,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.72
+    },
+    "es-bachillerato|1-bachillerato|computing": {
+      "declared": 0.7,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7120433111814782
+    },
+    "es-bachillerato|2-bachillerato|maths": {
+      "declared": 0.8,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.8538980833929963
+    },
+    "es-bachillerato|2-bachillerato|physics": {
+      "declared": 0.8,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.9014224879327231
+    },
+    "es-bachillerato|2-bachillerato|chemistry": {
+      "declared": 0.8,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.9013125730049797
+    },
+    "es-bachillerato|2-bachillerato|biology": {
+      "declared": 0.8,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.9034026598767377
+    },
+    "es-bachillerato|2-bachillerato|computing": {
+      "declared": 0.8,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8866681816987694
+    },
+    "fr-bac|1re|maths": {
+      "declared": 0.74,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7457206836901605
+    },
+    "fr-bac|1re|physics": {
+      "declared": 0.74,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.765
+    },
+    "fr-bac|1re|chemistry": {
+      "declared": 0.74,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "fr-bac|1re|biology": {
+      "declared": 0.74,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "fr-bac|1re|computing": {
+      "declared": 0.74,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7396478017908521
+    },
+    "fr-bac|terminale|maths": {
+      "declared": 0.84,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 14,
+      "servedMedian": 0.8599217798374593
+    },
+    "fr-bac|terminale|physics": {
+      "declared": 0.84,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 2,
+      "servedMedian": 0.9013974993349985
+    },
+    "fr-bac|terminale|chemistry": {
+      "declared": 0.84,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.9010693963849917
+    },
+    "fr-bac|terminale|biology": {
+      "declared": 0.84,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.9045099751534873
+    },
+    "fr-bac|terminale|computing": {
+      "declared": 0.84,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8872676681727172
+    },
+    "de-abi|klasse-11|maths": {
+      "declared": 0.72,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7300000849366188
+    },
+    "de-abi|klasse-11|physics": {
+      "declared": 0.72,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.7420605107559822
+    },
+    "de-abi|klasse-11|chemistry": {
+      "declared": 0.72,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.7466205446724781
+    },
+    "de-abi|klasse-11|biology": {
+      "declared": 0.72,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "de-abi|klasse-11|computing": {
+      "declared": 0.72,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7167412974708713
+    },
+    "de-abi|klasse-12|maths": {
+      "declared": 0.86,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 16,
+      "servedMedian": 0.862839627051726
+    },
+    "de-abi|klasse-12|physics": {
+      "declared": 0.86,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 5,
+      "servedMedian": 0.9024964190111495
+    },
+    "de-abi|klasse-12|chemistry": {
+      "declared": 0.86,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 5,
+      "servedMedian": 0.9006978076812812
+    },
+    "de-abi|klasse-12|biology": {
+      "declared": 0.86,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 4,
+      "servedMedian": 0.9030211076815613
+    },
+    "de-abi|klasse-12|computing": {
+      "declared": 0.86,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.885638459790498
+    },
+    "it-maturita|4-superiore|maths": {
+      "declared": 0.7,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.6996609625779092
+    },
+    "it-maturita|4-superiore|physics": {
+      "declared": 0.7,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.7015321987215429
+    },
+    "it-maturita|4-superiore|chemistry": {
+      "declared": 0.7,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.745
+    },
+    "it-maturita|4-superiore|biology": {
+      "declared": 0.7,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "it-maturita|4-superiore|computing": {
+      "declared": 0.7,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.6952609094465152
+    },
+    "it-maturita|5-superiore|maths": {
+      "declared": 0.8,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.8593973301071673
+    },
+    "it-maturita|5-superiore|physics": {
+      "declared": 0.8,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.9028154697362334
+    },
+    "it-maturita|5-superiore|chemistry": {
+      "declared": 0.8,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.9025534120551311
+    },
+    "it-maturita|5-superiore|biology": {
+      "declared": 0.8,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.9040910593187437
+    },
+    "it-maturita|5-superiore|computing": {
+      "declared": 0.8,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8849630380235612
+    },
+    "pl-matura|liceum-3|maths": {
+      "declared": 0.7,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.7
+    },
+    "pl-matura|liceum-3|physics": {
+      "declared": 0.7,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.7
+    },
+    "pl-matura|liceum-3|chemistry": {
+      "declared": 0.7,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "pl-matura|liceum-3|biology": {
+      "declared": 0.7,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.735
+    },
+    "pl-matura|liceum-3|computing": {
+      "declared": 0.7,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.6986708367406391
+    },
+    "pl-matura|liceum-4|maths": {
+      "declared": 0.82,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 9,
+      "servedMedian": 0.8600699781207367
+    },
+    "pl-matura|liceum-4|physics": {
+      "declared": 0.82,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 2,
+      "servedMedian": 0.9041584630776197
+    },
+    "pl-matura|liceum-4|chemistry": {
+      "declared": 0.82,
+      "concepts": 16,
+      "median": 0.9563669693749398,
+      "belowTarget": 0,
+      "servedMedian": 0.9033309407229535
+    },
+    "pl-matura|liceum-4|biology": {
+      "declared": 0.82,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.9021267573558726
+    },
+    "pl-matura|liceum-4|computing": {
+      "declared": 0.82,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.8867394547257572
+    },
+    "ua-nmt|grade-12|maths": {
+      "declared": 0.75,
+      "concepts": 55,
+      "median": 0.9179497254500165,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "ua-nmt|grade-12|physics": {
+      "declared": 0.75,
+      "concepts": 18,
+      "median": 0.9530840203980915,
+      "belowTarget": 0,
+      "servedMedian": 0.7422129935934209
+    },
+    "ua-nmt|grade-12|chemistry": {
+      "declared": 0.75,
+      "concepts": 15,
+      "median": 0.9556780987791718,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "ua-nmt|grade-12|biology": {
+      "declared": 0.75,
+      "concepts": 16,
+      "median": 0.9552912648185157,
+      "belowTarget": 0,
+      "servedMedian": 0.75
+    },
+    "ua-nmt|grade-12|computing": {
+      "declared": 0.75,
+      "concepts": 18,
+      "median": 0.9533456578291952,
+      "belowTarget": 0,
+      "servedMedian": 0.7272526268102228
     }
   }
 }

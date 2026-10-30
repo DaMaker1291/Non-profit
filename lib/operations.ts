@@ -285,8 +285,24 @@ function drawPractice(
   const first = generateQuestionNear(conceptId, seed, aim, PRACTICE_DRAW_ATTEMPTS, served);
   if (!slip || !first) return { question: first, targeted: false };
   if ((first.misconceptionTags ?? []).includes(slip)) return { question: first, targeted: true };
+  // ── THE SEARCH WIDENS DOWNWARDS, BECAUSE A TAG CAN LIVE BELOW THE AIM ────
+  //
+  // This loop used to spend all eight extra draws at the SAME aim, which is no
+  // search at all when the family that discriminates the belief sits elsewhere:
+  // `generateQuestionNear` returns the draw nearest the target, so at a
+  // foundation aim every seed landed on the same numeric family and the tagged
+  // item was never reached (measured on `fractions`: 0/40 tagged at aim 0.33,
+  // 12/40 at 0.25 — the belief is only revealed by the comparison item, which
+  // lives lower). A repair that cannot be served is a card a learner never sees.
+  //
+  // So the aims descend: the tier target first, then two steps below it. What a
+  // learner gets is still an item ON their slip, which is the whole purpose of a
+  // repair serve, and the serve REPORTS the band it actually landed in
+  // (`servePractice` reads it off the item), so nothing claims the climb moved.
+  const aims = [aim, Math.max(0.1, aim - 0.1), Math.max(0.1, aim - 0.2)];
   for (let i = 1; i <= SLIP_DRAW_ATTEMPTS; i++) {
-    const q = generateQuestionNear(conceptId, `${seed}#slip:${i}`, aim, PRACTICE_DRAW_ATTEMPTS, served);
+    const tryAim = aims[i % aims.length];
+    const q = generateQuestionNear(conceptId, `${seed}#slip:${i}`, tryAim, PRACTICE_DRAW_ATTEMPTS, served);
     if (q && (q.misconceptionTags ?? []).includes(slip)) return { question: q, targeted: true };
   }
   return { question: first, targeted: false };

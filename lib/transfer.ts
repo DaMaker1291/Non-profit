@@ -32,7 +32,7 @@
 // never bought by loosening the rule.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { translator } from "./i18n";
+import { fill, translator } from "./i18n";
 import { generateQuestion, generateQuestionAt } from "./questions";
 import type { Question } from "./types";
 
@@ -198,13 +198,171 @@ function readableOption(prompt: string): boolean {
 
 const fmt = (n: number): string => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
 
+/**
+ * THE ONE LETTER AN EQUATION IS SOLVED FOR, or null when the prompt is not a
+ * single-unknown equation.
+ *
+ * The inverse surface used to be framed generically — "3 — which of these
+ * questions gives this answer?" — and that sentence is grammatical but not
+ * teachable: it asks a learner to read four equations, solve all four, and
+ * compare, without ever saying that this is what the item wants. When the four
+ * options ARE equations, the question the item is asking has a name, and this
+ * finds it so the prompt can say it.
+ *
+ * Only SINGLE-LETTER runs count, because the prompts are sentences ("Solve
+ * 3(x + 3) = 30.") and the word "Solve" contains five letters that are not a
+ * variable. The letter must also be a plausible unknown — one letter, and the
+ * same one in every option — so a prompt with several variables (a formula such
+ * as `v = u + at`) is refused and keeps the generic wording rather than being
+ * told it has "a solution for v" when it has three unknowns.
+ */
+export function equationVariable(prompt: string): string | null {
+  if (typeof prompt !== "string" || !prompt.includes("=")) return null;
+  const singles = (prompt.match(/(?<![A-Za-z])[A-Za-z](?![A-Za-z])/g) ?? []).map((s) => s.toLowerCase());
+  const distinct = [...new Set(singles)];
+  if (distinct.length !== 1) return null;
+  return distinct[0];
+}
+
+/**
+ * THE SOLUTION OF A ONE-UNKNOWN EQUATION, read straight off the prompt.
+ *
+ * This exists to make a CLAIM CHECKABLE rather than to serve an item. The
+ * inverse frame asserts "only one of these equations has that solution", and
+ * that assertion is only true if the bank's own answer for each option is the
+ * equation's own solution. Those are two different facts that happen to agree
+ * today — a generator that printed `Solve 2(x + 3) = 18` and keyed 6.5 would
+ * break both the item and the claim — so the frame is offered only when this
+ * function and the option's answer key agree, and `npm run verify` re-derives
+ * it from the served item rather than trusting this file.
+ *
+ * Deliberately STRICTER about shape and LAXER about signs than `parseLinear`:
+ * the story surface needs a fee it can word as a fee, while a solution is a
+ * solution whether the constant is added or subtracted.
+ */
+export function equationSolution(prompt: string): number | null {
+  if (typeof prompt !== "string" || !prompt.includes("=")) return null;
+  const clean = prompt.replace(/\u2212/g, "-");
+  const two = clean.match(/(-?\d*\.?\d*)\s*x\s*([+\-])\s*(\d+(?:\.\d+)?)\s*=\s*(-?\d*\.?\d*)\s*x\s*([+\-])\s*(\d+(?:\.\d+)?)/);
+  if (two) {
+    const A = two[1] === "-" ? -1 : two[1] === "" ? 1 : parseFloat(two[1]);
+    const B = (two[2] === "-" ? -1 : 1) * parseFloat(two[3]);
+    const C = two[4] === "-" ? -1 : two[4] === "" ? 1 : parseFloat(two[4]);
+    const D = (two[5] === "-" ? -1 : 1) * parseFloat(two[6]);
+    return A === C ? null : (D - B) / (A - C);
+  }
+  const bracket = clean.match(/(-?\d*\.?\d*)\s*\(\s*x\s*([+\-])\s*(\d+(?:\.\d+)?)\s*\)\s*=\s*(-?\d*\.?\d*)/);
+  if (bracket) {
+    const A = bracket[1] === "-" ? -1 : bracket[1] === "" ? 1 : parseFloat(bracket[1]);
+    const inner = (bracket[2] === "-" ? -1 : 1) * parseFloat(bracket[3]);
+    const rhs = parseFloat(bracket[4]);
+    if (!A) return null;
+    return rhs / A - inner;
+  }
+  const plain = clean.match(/(-?\d*\.?\d*)\s*x\s*([+\-])\s*(\d+(?:\.\d+)?)\s*=\s*(-?\d+(?:\.\d+)?)/);
+  if (plain) {
+    const a = plain[1] === "-" ? -1 : plain[1] === "" ? 1 : parseFloat(plain[1]);
+    const b = (plain[2] === "-" ? -1 : 1) * parseFloat(plain[3]);
+    const rhs = parseFloat(plain[4]);
+    if (!a) return null;
+    return (rhs - b) / a;
+  }
+  return null;
+}
+
+/** Two values agree to the precision a printed answer carries. */
+function sameValue(a: number, b: number): boolean {
+  return Math.abs(a - b) < 1e-9;
+}
+
+/**
+ * IS THIS FOUR-OPTION SET AN EQUATION SET, and if so what does it ask?
+ *
+ * Answers null unless every option is a one-unknown equation whose OWN answer
+ * is its own solution — the condition under which "which equation has x = 3 as
+ * its solution" is true of the item rather than merely worded about it. The
+ * variables must agree across the four options, because a frame naming `x`
+ * beside an option in `y` would be naming something the learner cannot see.
+ */
+export function equationFrame(
+  prompts: string[],
+  answers: string[],
+  correctIndex: number,
+): { variable: string; value: number } | null {
+  if (prompts.length === 0 || prompts.length !== answers.length) return null;
+  if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= prompts.length) return null;
+  const vars = prompts.map(equationVariable);
+  const first = vars[0];
+  if (!first || vars.some((v) => v !== first)) return null;
+  const solutions: number[] = [];
+  for (let i = 0; i < prompts.length; i++) {
+    const solved = equationSolution(prompts[i]);
+    const own = answerValueKey(answers[i]);
+    if (solved === null || own === null) return null;
+    // The option's own answer must BE its solution, to the printed tolerance:
+    // one is what the bank keyed, the other is what the equation means.
+    const ownNum = Number(own.replace(`${first}=`, ""));
+    if (!Number.isFinite(ownNum) || !sameValue(ownNum, solved)) return null;
+    solutions.push(ownNum);
+  }
+  // THE STATED VALUE IS THE CORRECT OPTION'S, not the first one's: the frame
+  // names the value that exactly one option solves to, and the caller's answer
+  // index is the only thing that says which that is. A second exact match would
+  // make two options right, so it is refused here rather than shipped.
+  const value = solutions[correctIndex];
+  if (!Number.isFinite(value)) return null;
+  if (solutions.filter((s) => sameValue(s, value)).length !== 1) return null;
+  return { variable: first, value };
+}
+
 /** Story surface: the equation ax + b = rhs retold as fixed fee + repeated
  *  amount. The monthly amount IS the original unknown — same skill, new
  *  world. Choice list and answer index are untouched. */
-function storyQuestion(q: Question, lang: string, a: number, b: number, rhs: number): Question {
+function storyQuestion(q: Question, lang: string, a: number, b: number, rhs: number): Question | null {
   const t = translator(lang);
   // `b` needs no absolute value here: `parseLinear` refuses a negative
   // constant precisely because this sentence can only state a fee.
+  //
+  // AND A ONE-MONTH STORY IS REFUSED, for the same reason: the sentence says
+  // "After {n} months", which is grammatical for every count except one — and a
+  // real draw at band 0.7 printed "After 1 months the total paid is 7", read out
+  // of the served bank rather than imagined. The count is the unknown, so it can
+  // be 1. The template has no singular form (adding one would mean fifteen more
+  // sentences that differ by one letter), and the honest alternative is to let
+  // this draw take another surface — `inverse` or `direct` — rather than print a
+  // sentence a learner can see is wrong. Coverage is not bought by wording a
+  // learner has to forgive.
+  // THE NUMBER IN THE SENTENCE IS `a`, THE COEFFICIENT — which IS the number of
+  // months, because the story is exactly `fee + months × monthly = total`. It is
+  // NOT the solution: `(rhs − b) / a` is the unknown, and printing that into the
+  // prompt would hand the learner the answer on a plate.
+  if (Math.abs(a - 1) < 1e-9) return null;
+  // ── AND THE STORY MUST BE A TRUE RE-TELLING, WHICH IS FOUR CONDITIONS ──
+  // `parseLinear` is a shape match, and a shape match on a fragment of a prompt
+  // that is not a one-step equation produces a sentence that is grammatical and
+  // false. Measured on the served bank before these guards: `quadratics` was
+  // offered "A gym charges a joining fee of 4 plus the same amount every month.
+  // After 4 months the total paid is 0" — a total of zero after four monthly
+  // payments of a fee that was already paid, and a monthly amount of −1, which
+  // this template cannot state (it has no way to say "we take 1 off you each
+  // month"). So:
+  //   1. the unknown has to be POSITIVE — a negative or zero payment is the
+  //      "discount" case the plain pattern already refuses by design;
+  //   2. the item's own keyed answer has to BE that unknown, so the re-told story
+  //      asks for the same number the original marks;
+  //   3. the answer has to be a VALUE, not prose (`answerValueKey`) — a story
+  //      whose four options are still a parabola's crossings is not re-framed;
+  //   4. the sentence needs a plural, which `a === 1` does not have.
+  const unknown = (rhs - b) / a;
+  if (!Number.isFinite(unknown) || unknown <= 0) return null;
+  // An answer keyed as "x = 6" is the number 6 — `answerValueKey` keeps the
+  // variable because the OTHER surfaces print it that way, so it is stripped
+  // here rather than treated as prose. Without this the story surface silently
+  // collapsed to almost no items, which is a worse outcome than a wrong sentence
+  // only because it is quieter.
+  const keyed = answerValueKey(String(q.choices[q.answer] ?? ""));
+  const keyedNum = keyed === null ? NaN : Number(keyed.replace(/^[a-z]\s*=\s*/, ""));
+  if (!Number.isFinite(keyedNum) || Math.abs(keyedNum - unknown) > 1e-9) return null;
   const prompt = [
     t("tr.story0"), fmt(b),
     t("tr.story1"), fmt(a),
@@ -261,16 +419,45 @@ function inverseFromDraws(
     used.push(q);
   }
   if (used.length < 3) return null;
-  const lead = translator(lang)("tr.whichAnswer");
+  const t = translator(lang);
   const { items, answer } = shuffleWithAnswer([target.prompt, ...used.map((d) => d.prompt)], 0, seed);
+  // ── THE QUESTION SAYS WHAT IT IS ASKING ────────────────────────────────
+  //
+  // The prompt used to be `${value} — which of these questions gives this
+  // answer?`: a bare number, an em dash and a fragment. It is grammatical and it
+  // is nearly unanswerable — a learner reads four equations, is told a number, and
+  // has to work out from the shape of the sentence that the task is "solve all
+  // four and find the one that comes to 3". The product's own reviewer asked why
+  // the question was worded that way, which is the only evidence a prompt needs.
+  //
+  // Where the four options really are one-unknown equations, the task has a name
+  // and this says it: "Which equation has x = 3 as its solution?" That frame is
+  // used ONLY when `equationFrame` can re-derive it from what is on screen — every
+  // option a solvable equation, every option's own keyed answer equal to its own
+  // solution, one variable shared, exactly one option solving to the stated value.
+  // Otherwise the generic sentence stays, because it is true of any four questions
+  // and the equation sentence would not be.
+  //
+  // The stated value is printed WITHOUT a leading variable when the frame already
+  // names one ("x = 3", not "x = x=3"), and the answer strings are the bank's own
+  // answer keys for those four draws — the same keys the grader uses.
+  // The answers travel with their prompts THROUGH the shuffle: `items` is
+  // re-ordered and `answer` follows it, so a list read straight off `used` would
+  // be checked against the wrong option. The prompts are unique by construction
+  // above (a duplicate option would be a second correct answer), which is what
+  // makes this lookup exact rather than a guess.
+  const source = [target.prompt, ...used.map((d) => d.prompt)];
+  const answerOf = [target.choices[target.answer] ?? "", ...used.map((d) => d.choices[d.answer] ?? "")];
+  const answers = items.map((p) => answerOf[source.indexOf(p)]);
+  const frame = equationFrame(items, answers, answer);
+  const prompt = frame
+    ? fill(t("tr.whichSolution"), { var: frame.variable, v: fmt(frame.value) })
+    : fill(t("tr.whichAnswer"), { v: value });
   return {
     question: {
       ...target,
       id: `${target.id}:rev`,
-      // The value reads FIRST, so the frame is a lowercase fragment in every
-      // language — `tr.whichAnswer` is authored that way (see
-      // scripts/i18n-transfer.mjs) and appended here exactly as documented.
-      prompt: `${value} — ${lead}?`,
+      prompt,
       choices: items,
       answer,
       difficulty: Math.min(0.95, target.difficulty + 0.05),

@@ -1,17 +1,17 @@
 {
   "generatedBy": "scripts/paper-audit.mjs",
   "counts": {
-    "paperBlueprints": 33,
-    "publishedBlueprints": 33,
-    "blueprintsWithACitation": 10,
-    "uncitedBlueprints": 23,
+    "paperBlueprints": 67,
+    "publishedBlueprints": 67,
+    "blueprintsWithACitation": 53,
+    "uncitedBlueprints": 14,
     "qualificationSubjectOffers": 447,
-    "authoredOffers": 33,
-    "modelledOffers": 414,
+    "authoredOffers": 67,
+    "modelledOffers": 380,
     "countries": 72,
-    "countriesWithAPublishedShape": 12,
-    "countriesModelledOnly": 60,
-    "researchedButNotDeclared": 7
+    "countriesWithAPublishedShape": 19,
+    "countriesModelledOnly": 53,
+    "researchedButNotDeclared": 8
   },
   "countries": [
     {
@@ -125,7 +125,13 @@
         "cm-gce-o",
         "cm-probatoire"
       ],
-      "withPublishedShape": [],
+      "withPublishedShape": [
+        "cm-bac",
+        "cm-bepc",
+        "cm-gce-a",
+        "cm-gce-o",
+        "cm-probatoire"
+      ],
       "modelledOnly": [
         "cm-bac",
         "cm-bepc",
@@ -261,7 +267,9 @@
       "specifications": [
         "gh-wassce"
       ],
-      "withPublishedShape": [],
+      "withPublishedShape": [
+        "gh-wassce"
+      ],
       "modelledOnly": [
         "gh-wassce"
       ]
@@ -316,7 +324,9 @@
       "specifications": [
         "ie-junior"
       ],
-      "withPublishedShape": [],
+      "withPublishedShape": [
+        "ie-junior"
+      ],
       "modelledOnly": [
         "ie-junior"
       ]
@@ -329,7 +339,8 @@
         "in-icse"
       ],
       "withPublishedShape": [
-        "in-cbse"
+        "in-cbse",
+        "in-icse"
       ],
       "modelledOnly": [
         "in-cbse",
@@ -484,7 +495,9 @@
         "lk-a-level",
         "lk-o-level"
       ],
-      "withPublishedShape": [],
+      "withPublishedShape": [
+        "lk-o-level"
+      ],
       "modelledOnly": [
         "lk-a-level",
         "lk-o-level"
@@ -542,7 +555,9 @@
       "specifications": [
         "mw-msce"
       ],
-      "withPublishedShape": [],
+      "withPublishedShape": [
+        "mw-msce"
+      ],
       "modelledOnly": [
         "mw-msce"
       ]
@@ -849,7 +864,9 @@
       "specifications": [
         "zm-school-certificate"
       ],
-      "withPublishedShape": [],
+      "withPublishedShape": [
+        "zm-school-certificate"
+      ],
       "modelledOnly": [
         "zm-school-certificate"
       ]
@@ -861,7 +878,10 @@
         "zw-a-level",
         "zw-o-level"
       ],
-      "withPublishedShape": [],
+      "withPublishedShape": [
+        "zw-a-level",
+        "zw-o-level"
+      ],
       "modelledOnly": [
         "zw-a-level",
         "zw-o-level"
@@ -872,24 +892,15 @@
     "aqa-gcse-maths-p1",
     "edexcel-gcse-maths-p1",
     "aqa-alevel-maths-p1",
-    "cambridge-igcse-maths-extended",
-    "ib-maths-sl-p1",
-    "cbse-class12-physics",
     "digital-sat-math",
     "digital-sat-math-2",
     "kcse-maths-p2",
     "caps-maths-p1",
     "caps-maths-p2",
-    "aqa-gcse-physics",
-    "aqa-gcse-chemistry",
-    "aqa-gcse-biology",
     "aqa-gcse-maths-p2",
     "aqa-gcse-maths-p3",
     "edexcel-gcse-maths-p2",
     "edexcel-gcse-maths-p3",
-    "aqa-gcse-physics-p2",
-    "aqa-gcse-chemistry-p2",
-    "aqa-gcse-biology-p2",
     "aqa-alevel-maths-p2",
     "aqa-alevel-maths-p3"
   ],
@@ -897,24 +908,15 @@
     "aqa-gcse-maths-p1",
     "edexcel-gcse-maths-p1",
     "aqa-alevel-maths-p1",
-    "cambridge-igcse-maths-extended",
-    "ib-maths-sl-p1",
-    "cbse-class12-physics",
     "digital-sat-math",
     "digital-sat-math-2",
     "kcse-maths-p2",
     "caps-maths-p1",
     "caps-maths-p2",
-    "aqa-gcse-physics",
-    "aqa-gcse-chemistry",
-    "aqa-gcse-biology",
     "aqa-gcse-maths-p2",
     "aqa-gcse-maths-p3",
     "edexcel-gcse-maths-p2",
     "edexcel-gcse-maths-p3",
-    "aqa-gcse-physics-p2",
-    "aqa-gcse-chemistry-p2",
-    "aqa-gcse-biology-p2",
     "aqa-alevel-maths-p2",
     "aqa-alevel-maths-p3"
   ],
@@ -925,6 +927,7 @@
     "MX": "Mexico: the documented mathematics structure found (Ceneval EXANI-II, 30 items) belongs to a higher-education ADMISSIONS exam that institutions opt into, not to a national upper-secondary exit assessment.",
     "ID": "Indonesia: the national leaving exam was replaced by the Asesmen Nasional, which is a sampled system assessment rather than an individual examination — there is no per-learner paper to model, and inventing one would be the original defect.",
     "CO": "Colombia: ICFES's own orientation guide was identifiable but returned 403 to every read, so the 25+25 split across two 270-minute sessions could not be confirmed at first hand, and the session time is not a mathematics paper's time.",
-    "GH": "Ghana: the paper components and times rest on the general WASSCE structure rather than a readable Ghanaian mathematics document, so the components could not be confirmed for Core Mathematics in particular."
+    "ET": "Ethiopia: the 2025 ESSLCE mathematics booklet is one paper of 60 items in 3 hours, but the mark allocation and the calculator rule could not be confirmed from an EAES document that could be read — the copies available are reproductions, not the board's own publication. A paper whose mark total nobody could check is the thing this catalogue must not print.",
+    "EG": "Egypt: the Ministry's April 2025 announcement gives Pure Mathematics as 20 questions (18 multiple choice, 2 essay) for 30 marks, but the page returned 403 to every read here, so the counts rest on news listings and the calculator rule is unconfirmed."
   }
 }

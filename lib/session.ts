@@ -424,3 +424,26 @@ export function noteActivity(
 export function isComplete(ledger: SessionLedger): boolean {
   return ledger.activity.asked >= ledger.target || ledger.activity.transferAsked > 0;
 }
+
+/**
+ * DOES THIS NEXT STEP MEAN "GO ELSEWHERE", OR "DO THE NEXT THING HERE"?
+ *
+ * The result screen offers "Continue to my next step" against the engine's own
+ * href, and for a step ON THIS CONCEPT that href is the page the learner is
+ * already standing on (`/learn/<subject>/<concept>`). A link to the current
+ * path is not a navigation — the router keeps the mounted component, so the
+ * result panel stayed on screen and the control did nothing. Measured in a
+ * browser after a transfer: an `<a>` whose href equalled `location.pathname`,
+ * pressed, no change. The commonest next step after a transfer is more work on
+ * the same idea, so this was the usual case, not an edge.
+ *
+ * The rule lives here, next to the session that produces the href, so the panel
+ * and any future surface ask the same question. The query is ignored: the engine
+ * builds none, and a same-route href with one would still not remount the page.
+ * Both arguments are paths (`/learn/maths/fractions`), never full URLs.
+ */
+export function continuesHere(href: string, pathname: string): boolean {
+  if (!href || !pathname) return false;
+  const path = (value: string) => value.split("?")[0].split("#")[0].replace(/\/+$/, "") || "/";
+  return path(href) === path(pathname);
+}

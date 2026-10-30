@@ -50,7 +50,23 @@ const SPEC = S.specById(SPEC_ID);
 // (scripts/verify-questions.mjs#SEMANTIC) and that sit in this course's maths
 // strand. Named here because a pilot has to start somewhere; everything else
 // about the cluster is derived.
-const ANCHORS = ["surds", "completing-square"];
+//
+// AND THE FRONT OF THE PATHWAY IS NOW ANCHORED TOO. The pack is the set of
+// concepts a reviewer is asked to read, and the pilot stopped being only the
+// algebra tail when `fractions` and `percentages` were authored: the first is
+// the prerequisite of the data-and-ratio work every science course leans on, and
+// both are concepts the algebra cluster assumed and did not teach. Anchoring them
+// puts them in the pack rather than leaving two authored lessons outside the
+// reviewable set — which is what the suite caught when they were added.
+//
+// AND THE LINK BETWEEN THE FRONT TWO IS ANCHORED FOR THE SAME REASON. `fractions`
+// says what a fraction IS and `percentages` what a proportion OF something is;
+// `fraction-ops` is the operation that joins them, and it carries the most-hit
+// belief in the bank (`denom-add`). Authoring its lesson while leaving it outside
+// the pack would be a reviewed pathway with a hole exactly where a learner
+// spends most of their mistakes — and the suite catches that by requiring every
+// authored plan to be inside this file.
+const ANCHORS = ["surds", "completing-square", "fractions", "fraction-ops", "percentages"];
 // The serve call `app/api/progress/route.ts` makes: band-first search at the
 // tier's difficulty, 40 attempts. A pack sampled with the library default (4)
 // would show items the pilot would never serve.

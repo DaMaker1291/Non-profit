@@ -121,18 +121,40 @@ export interface PaperTemplate {
    *  Paper 1 (non-calculator)"; without this field the picker listed that name
    *  twice and a learner had no way to know which was theirs. */
   board?: BoardId;
+  /** The tiers/levels of the qualification that actually SIT this paper.
+   *  Absent means every level of the specification.
+   *
+   *  This exists because a paper is not one paper across a board's tiers. A
+   *  Cambridge IGCSE Core candidate sits Papers 1 and 3 (80 marks, 1h30) and an
+   *  Extended candidate Papers 2 and 4 (100 marks, 2h): offering the Extended
+   *  paper to a Core candidate is the wrong paper, not an easier or harder
+   *  version of the right one, and it was what the catalogue did. The same is
+   *  true of IB SL (80 marks) against HL (110), CBSE Class 10 against Class 12,
+   *  and an A-level paper against AS.
+   *
+   *  A level a paper does not name is NOT left without a paper: the modelled
+   *  practice sets are drawn at that level's own band, so the learner is offered
+   *  a labelled practice set instead of somebody else's examination. */
+  levels?: string[];
 }
 
 /** Section totals must add up to the declared paper total, or the paper lies
- *  about its own length. Checked here at module load, loudly. */
+ *  about its own length. Checked here at module load, loudly.
+ *
+ *  `boundaries` may be OMITTED, and that is a statement rather than an
+ *  oversight: a board that sets its cut scores per session and publishes them
+ *  afterwards has no table this catalogue can print, and a fixed A/B/C table
+ *  would be OpenMind's number wearing the board's name. The result screen shows
+ *  the mark and no grade for such a paper (Guatemala's Graduandos was the first;
+ *  most of the second wave are the same). */
 function paper(
-  t: Omit<PaperTemplate, "marks"> & { marks?: number },
+  t: Omit<PaperTemplate, "marks" | "boundaries"> & { marks?: number; boundaries?: GradeBoundary[] },
 ): PaperTemplate {
   const total = t.sections.reduce((s, x) => s + x.count * x.marksEach, 0);
   if (t.marks !== undefined && t.marks !== total) {
     throw new Error(`paper ${t.id}: declared ${t.marks} marks but sections total ${total}`);
   }
-  return { ...t, basis: t.basis ?? "published", marks: total };
+  return { ...t, boundaries: t.boundaries ?? [], basis: t.basis ?? "published", marks: total };
 }
 
 const GCSE_BOUNDARIES: GradeBoundary[] = [
@@ -184,36 +206,163 @@ export const PAPERS: PaperTemplate[] = [
       { name: "Section C", count: 2, marksEach: 6, difficulty: 0.72 },
     ],
   }),
+  // ── AQA A-LEVEL MATHEMATICS — THE THREE A-LEVEL PAPERS ────────────────────
+  // `levels: ["a2"]`, because these are the A-LEVEL papers (100 marks, 2h each)
+  // and AS is a different sitting: a two-paper qualification at 80 marks a paper.
+  // Without the gate an AS candidate was offered three A-level papers, which is
+  // the same class of error as offering an Extended paper to a Core candidate.
+  // An AS candidate is now handed the modelled sets drawn at the AS band, which
+  // say they are practice sets rather than somebody else's examination.
   paper({
     id: "aqa-alevel-maths-p1", name: "A-Level Mathematics — Paper 1 (Pure)",
-    board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"],
+    board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"],
     boundaries: ALEVEL_BOUNDARIES,
     sections: [
       { name: "Section A", count: 10, marksEach: 4, difficulty: 0.78 },
       { name: "Section B", count: 6, marksEach: 10, difficulty: 0.9 },
     ],
   }),
+  // ── CAMBRIDGE IGCSE MATHEMATICS (0580) — FOUR PAPERS, TWO TIERS ────────────
+  // The board sets TWO papers at ONE tier: Paper 1 (Core, 1h30, 80 marks, no
+  // calculator) and Paper 3 (Core, 1h30, 80 marks, calculator) for the Core
+  // candidate; Paper 2 (Extended, 2h, 100 marks, no calculator) and Paper 4
+  // (Extended, 2h, 100 marks, calculator) for the Extended candidate. Grade
+  // eligibility differs with the tier as well — Core is C–G, Extended A*–E — so
+  // the boundary table is per tier rather than one table for "IGCSE maths".
+  //
+  // The catalogue held ONE blueprint here, and it was Extended at 70 marks, so a
+  // Core candidate was shown a paper from the tier above theirs whose mark total
+  // matched no Cambridge document at all. A paper a candidate cannot sit is not a
+  // harder practice paper; it is the wrong paper.
+  //
+  // The MARKS, TIMES, TIER and CALCULATOR RULE are Cambridge's. The per-section
+  // item counts are OpenMind's pacing to those marks (`itemCounts: "paced"`) —
+  // the board publishes how long a paper is and what it is worth, not how many
+  // parts it is split into, so no item count is claimed on its behalf.
   paper({
-    id: "cambridge-igcse-maths-extended", name: "Cambridge IGCSE Mathematics (Extended)",
-    subject: "maths", minutes: 90, calculator: true, specs: ["int-igcse"],
-    boundaries: [{ grade: "A*", pct: 0.85 }, { grade: "A", pct: 0.72 }, { grade: "B", pct: 0.60 }, { grade: "C", pct: 0.48 }, { grade: "D", pct: 0.38 }],
+    id: "cambridge-igcse-maths-core-p1", name: "Cambridge IGCSE Mathematics — Paper 1 (Core)",
+    subject: "maths", minutes: 90, calculator: false, specs: ["int-igcse"], levels: ["core"],
+    itemCounts: "paced",
+    shapeSource: "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-igcse-mathematics-0580/",
+    boundaries: [{ grade: "C", pct: 0.70 }, { grade: "D", pct: 0.55 }, { grade: "E", pct: 0.45 }, { grade: "F", pct: 0.34 }, { grade: "G", pct: 0.24 }],
     sections: [
-      { name: "Section A", count: 14, marksEach: 4, difficulty: 0.6 },
-      { name: "Section B", count: 2, marksEach: 7, difficulty: 0.78 },
+      { name: "Section A", count: 10, marksEach: 2, difficulty: 0.3 },
+      { name: "Section B", count: 10, marksEach: 4, difficulty: 0.42 },
+      { name: "Section C", count: 2, marksEach: 10, difficulty: 0.52 },
     ],
   }),
   paper({
-    id: "ib-maths-sl-p1", name: "IB Mathematics — Paper 1 (no calculator)",
-    subject: "maths", minutes: 90, calculator: false, specs: ["int-ib"],
+    id: "cambridge-igcse-maths-core-p3", name: "Cambridge IGCSE Mathematics — Paper 3 (Core)",
+    subject: "maths", minutes: 90, calculator: true, specs: ["int-igcse"], levels: ["core"],
+    itemCounts: "paced",
+    shapeSource: "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-igcse-mathematics-0580/",
+    boundaries: [{ grade: "C", pct: 0.70 }, { grade: "D", pct: 0.55 }, { grade: "E", pct: 0.45 }, { grade: "F", pct: 0.34 }, { grade: "G", pct: 0.24 }],
+    sections: [
+      { name: "Section A", count: 10, marksEach: 2, difficulty: 0.32 },
+      { name: "Section B", count: 10, marksEach: 4, difficulty: 0.44 },
+      { name: "Section C", count: 2, marksEach: 10, difficulty: 0.54 },
+    ],
+  }),
+  paper({
+    id: "cambridge-igcse-maths-extended-p2", name: "Cambridge IGCSE Mathematics — Paper 2 (Extended)",
+    subject: "maths", minutes: 120, calculator: false, specs: ["int-igcse"], levels: ["extended"],
+    itemCounts: "paced",
+    shapeSource: "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-igcse-mathematics-0580/",
+    boundaries: [{ grade: "A*", pct: 0.85 }, { grade: "A", pct: 0.72 }, { grade: "B", pct: 0.60 }, { grade: "C", pct: 0.48 }, { grade: "D", pct: 0.38 }, { grade: "E", pct: 0.30 }],
+    sections: [
+      { name: "Section A", count: 10, marksEach: 3, difficulty: 0.55 },
+      { name: "Section B", count: 8, marksEach: 5, difficulty: 0.68 },
+      { name: "Section C", count: 3, marksEach: 10, difficulty: 0.8 },
+    ],
+  }),
+  paper({
+    id: "cambridge-igcse-maths-extended-p4", name: "Cambridge IGCSE Mathematics — Paper 4 (Extended)",
+    subject: "maths", minutes: 120, calculator: true, specs: ["int-igcse"], levels: ["extended"],
+    itemCounts: "paced",
+    shapeSource: "https://www.cambridgeinternational.org/programmes-and-qualifications/cambridge-igcse-mathematics-0580/",
+    boundaries: [{ grade: "A*", pct: 0.85 }, { grade: "A", pct: 0.72 }, { grade: "B", pct: 0.60 }, { grade: "C", pct: 0.48 }, { grade: "D", pct: 0.38 }, { grade: "E", pct: 0.30 }],
+    sections: [
+      { name: "Section A", count: 10, marksEach: 3, difficulty: 0.58 },
+      { name: "Section B", count: 8, marksEach: 5, difficulty: 0.7 },
+      { name: "Section C", count: 3, marksEach: 10, difficulty: 0.82 },
+    ],
+  }),
+  // ── IB DIPLOMA MATHEMATICS: ANALYSIS AND APPROACHES — THE WHOLE SET ─────────
+  // SL sits TWO papers (1h30, 80 marks each: Paper 1 without a calculator, Paper
+  // 2 with one); HL sits THREE (Papers 1 and 2 at 2h and 110 marks, Paper 3 at
+  // 1h15 and 55 marks, both allowed a calculator). The catalogue held SL Paper 1
+  // alone, and at 90 marks — a total the IB does not set for it — so an SL
+  // candidate's library had no Paper 2 and an HL candidate's had no paper of
+  // their own at all.
+  //
+  // The IB also publishes the change taking effect with first assessment in 2029
+  // (SL 75 marks a paper, HL 100/100/50, HL Paper 3 shortened to 1h). Those are
+  // NOT used here: a candidate sitting the current course is assessed on the
+  // current totals, and a mock has to be the paper they are actually sitting.
+  //
+  // Marks, times and calculator rules are the IB's; the item counts are
+  // OpenMind's pacing to those marks.
+  paper({
+    id: "ib-maths-sl-p1", name: "IB Mathematics AA — Paper 1 (SL, no calculator)",
+    subject: "maths", minutes: 90, calculator: false, specs: ["int-ib"], levels: ["sl"],
+    itemCounts: "paced",
+    shapeSource: "https://ibo.org/contentassets/5895a05412144fe890312bad52b17044/subject-brief-dp-math-analysis-and-approaches-en.pdf",
     boundaries: [{ grade: "7", pct: 0.82 }, { grade: "6", pct: 0.70 }, { grade: "5", pct: 0.58 }, { grade: "4", pct: 0.46 }],
     sections: [
-      { name: "Section A", count: 12, marksEach: 5, difficulty: 0.7 },
-      { name: "Section B", count: 5, marksEach: 6, difficulty: 0.82 },
+      { name: "Section A", count: 8, marksEach: 5, difficulty: 0.66 },
+      { name: "Section B", count: 4, marksEach: 10, difficulty: 0.8 },
+    ],
+  }),
+  paper({
+    id: "ib-maths-sl-p2", name: "IB Mathematics AA — Paper 2 (SL, calculator)",
+    subject: "maths", minutes: 90, calculator: true, specs: ["int-ib"], levels: ["sl"],
+    itemCounts: "paced",
+    shapeSource: "https://ibo.org/contentassets/5895a05412144fe890312bad52b17044/subject-brief-dp-math-analysis-and-approaches-en.pdf",
+    boundaries: [{ grade: "7", pct: 0.82 }, { grade: "6", pct: 0.70 }, { grade: "5", pct: 0.58 }, { grade: "4", pct: 0.46 }],
+    sections: [
+      { name: "Section A", count: 8, marksEach: 5, difficulty: 0.68 },
+      { name: "Section B", count: 4, marksEach: 10, difficulty: 0.82 },
+    ],
+  }),
+  paper({
+    id: "ib-maths-hl-p1", name: "IB Mathematics AA — Paper 1 (HL, no calculator)",
+    subject: "maths", minutes: 120, calculator: false, specs: ["int-ib"], levels: ["hl"],
+    itemCounts: "paced",
+    shapeSource: "https://ibo.org/contentassets/5895a05412144fe890312bad52b17044/subject-brief-dp-math-analysis-and-approaches-en.pdf",
+    boundaries: [{ grade: "7", pct: 0.80 }, { grade: "6", pct: 0.68 }, { grade: "5", pct: 0.56 }, { grade: "4", pct: 0.44 }],
+    sections: [
+      { name: "Section A", count: 10, marksEach: 5, difficulty: 0.78 },
+      { name: "Section B", count: 5, marksEach: 12, difficulty: 0.9 },
+    ],
+  }),
+  paper({
+    id: "ib-maths-hl-p2", name: "IB Mathematics AA — Paper 2 (HL, calculator)",
+    subject: "maths", minutes: 120, calculator: true, specs: ["int-ib"], levels: ["hl"],
+    itemCounts: "paced",
+    shapeSource: "https://ibo.org/contentassets/5895a05412144fe890312bad52b17044/subject-brief-dp-math-analysis-and-approaches-en.pdf",
+    boundaries: [{ grade: "7", pct: 0.80 }, { grade: "6", pct: 0.68 }, { grade: "5", pct: 0.56 }, { grade: "4", pct: 0.44 }],
+    sections: [
+      { name: "Section A", count: 10, marksEach: 5, difficulty: 0.8 },
+      { name: "Section B", count: 5, marksEach: 12, difficulty: 0.91 },
+    ],
+  }),
+  // HL Paper 3 is the investigation paper: two or three long questions, 55 marks
+  // in 1h15, so it is shaped as the two long questions and a shorter one rather
+  // than as bands of equal marks like Papers 1 and 2.
+  paper({
+    id: "ib-maths-hl-p3", name: "IB Mathematics AA — Paper 3 (HL, calculator)",
+    subject: "maths", minutes: 75, calculator: true, specs: ["int-ib"], levels: ["hl"],
+    itemCounts: "paced",
+    shapeSource: "https://ibo.org/contentassets/5895a05412144fe890312bad52b17044/subject-brief-dp-math-analysis-and-approaches-en.pdf",
+    boundaries: [{ grade: "7", pct: 0.78 }, { grade: "6", pct: 0.66 }, { grade: "5", pct: 0.54 }, { grade: "4", pct: 0.42 }],
+    sections: [
+      { name: "Section A", count: 2, marksEach: 20, difficulty: 0.9 },
+      { name: "Section B", count: 1, marksEach: 15, difficulty: 0.95 },
     ],
   }),
   paper({
     id: "cbse-class10-maths-standard", name: "CBSE Class 10 Mathematics (Standard)",
-    subject: "maths", minutes: 180, calculator: false, specs: ["in-cbse"],
+    subject: "maths", minutes: 180, calculator: false, specs: ["in-cbse"], levels: ["class10"],
     // THE COUNTS ARE CBSE'S OWN, section by section, and they land exactly on the
     // paper's published 80 marks: Section A 20 one-mark items (18 multiple choice
     // and 2 assertion-reason), B 5 two-mark, C 6 three-mark, D 4 five-mark, E 3
@@ -229,15 +378,43 @@ export const PAPERS: PaperTemplate[] = [
       { name: "Section E", count: 3, marksEach: 4, difficulty: 0.7 },
     ],
   }),
+  // ── CBSE CLASS 12 MATHEMATICS (041) ────────────────────────────────────────
+  // The other half of the same board's sequence, and it had no blueprint at all:
+  // a Class 11–12 candidate's own mathematics paper — and its Class 10 sibling
+  // above, which they had outgrown — were both offered to them. CBSE publishes
+  // the construction of both: five sections A–E, 38 questions, 80 marks, three
+  // hours, no calculator. Section A is 18 multiple choice and 2 assertion-reason
+  // items; Section E is case-study questions.
   paper({
-    id: "cbse-class12-physics", name: "CBSE Class 12 Physics",
-    subject: "physics", minutes: 180, calculator: true, specs: ["in-cbse"],
+    id: "cbse-class12-maths", name: "CBSE Class 12 Mathematics (041)",
+    subject: "maths", minutes: 180, calculator: false, specs: ["in-cbse"], levels: ["class11-12"],
+    itemCounts: "published",
+    shapeSource: "https://cbseacademic.nic.in/web_material/SQP/ClassXII_2025_26/Maths-SQP.pdf",
     boundaries: [{ grade: "A1", pct: 0.9 }, { grade: "A2", pct: 0.8 }, { grade: "B1", pct: 0.7 }, { grade: "B2", pct: 0.6 }, { grade: "Pass", pct: 0.33 }],
     sections: [
-      { name: "Section A", count: 16, marksEach: 1, difficulty: 0.45 },
-      { name: "Section B", count: 5, marksEach: 2, difficulty: 0.55 },
-      { name: "Section C", count: 7, marksEach: 3, difficulty: 0.65 },
-      { name: "Section D", count: 3, marksEach: 5, difficulty: 0.75 },
+      { name: "Section A", count: 20, marksEach: 1, difficulty: 0.5 },
+      { name: "Section B", count: 5, marksEach: 2, difficulty: 0.62 },
+      { name: "Section C", count: 6, marksEach: 3, difficulty: 0.72 },
+      { name: "Section D", count: 4, marksEach: 5, difficulty: 0.82 },
+      { name: "Section E", count: 3, marksEach: 4, difficulty: 0.78 },
+    ],
+  }),
+  paper({
+    id: "cbse-class12-physics", name: "CBSE Class 12 Physics",
+    subject: "physics", minutes: 180, calculator: false, specs: ["in-cbse"], levels: ["class11-12"],
+    // CBSE's own construction, read from the 2025–26 sample paper: 33 compulsory
+    // questions in five sections (16 × 1, 5 × 2, 7 × 3, 2 × 4, 3 × 5) for 70
+    // marks in three hours, no calculator. It was 62 marks over four sections and
+    // said `calculator: true`, which is not this board's paper.
+    itemCounts: "published",
+    shapeSource: "https://cbseacademic.nic.in/web_material/SQP/ClassXII_2025_26/Physics-SQP.pdf",
+    boundaries: [{ grade: "A1", pct: 0.9 }, { grade: "A2", pct: 0.8 }, { grade: "B1", pct: 0.7 }, { grade: "B2", pct: 0.6 }, { grade: "Pass", pct: 0.33 }],
+    sections: [
+      { name: "Section A", count: 16, marksEach: 1, difficulty: 0.5 },
+      { name: "Section B", count: 5, marksEach: 2, difficulty: 0.62 },
+      { name: "Section C", count: 7, marksEach: 3, difficulty: 0.72 },
+      { name: "Section D", count: 2, marksEach: 4, difficulty: 0.8 },
+      { name: "Section E", count: 3, marksEach: 5, difficulty: 0.85 },
     ],
   }),
   paper({
@@ -423,30 +600,44 @@ export const PAPERS: PaperTemplate[] = [
     ],
   }),
   paper({
+    // AQA'S separate sciences are TWO papers of 1h45 and 100 marks each, with a
+    // scientific calculator required. Paper 1 was 60 marks in 75 minutes — the
+    // shape of a Trilogy paper, not the separate science a candidate "GCSE
+    // Physics" actually sits — while Paper 2 below was already the right size.
+    // Both are now the published paper, and both cite where that was read.
     id: "aqa-gcse-physics", name: "GCSE Physics — Paper 1",
-    board: "aqa", subject: "physics", minutes: 75, calculator: true, specs: ["uk-gcse"],
+    board: "aqa", subject: "physics", minutes: 105, calculator: true, specs: ["uk-gcse"],
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/physics/gcse/physics-8463/specification/specification-at-a-glance",
     boundaries: GCSE_BOUNDARIES,
     sections: [
-      { name: "Section A", count: 10, marksEach: 3, difficulty: 0.45 },
-      { name: "Section B", count: 5, marksEach: 6, difficulty: 0.62 },
+      { name: "Section A", count: 20, marksEach: 2, difficulty: 0.42 },
+      { name: "Section B", count: 10, marksEach: 4, difficulty: 0.58 },
+      { name: "Section C", count: 4, marksEach: 5, difficulty: 0.7 },
     ],
   }),
   paper({
     id: "aqa-gcse-chemistry", name: "GCSE Chemistry — Paper 1",
-    board: "aqa", subject: "chemistry", minutes: 75, calculator: true, specs: ["uk-gcse"],
+    board: "aqa", subject: "chemistry", minutes: 105, calculator: true, specs: ["uk-gcse"],
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/chemistry/gcse/chemistry-8462/specification/specification-at-a-glance",
     boundaries: GCSE_BOUNDARIES,
     sections: [
-      { name: "Section A", count: 10, marksEach: 3, difficulty: 0.45 },
-      { name: "Section B", count: 5, marksEach: 6, difficulty: 0.62 },
+      { name: "Section A", count: 20, marksEach: 2, difficulty: 0.44 },
+      { name: "Section B", count: 10, marksEach: 4, difficulty: 0.6 },
+      { name: "Section C", count: 4, marksEach: 5, difficulty: 0.72 },
     ],
   }),
   paper({
     id: "aqa-gcse-biology", name: "GCSE Biology — Paper 1",
-    board: "aqa", subject: "biology", minutes: 75, calculator: false, specs: ["uk-gcse"],
+    board: "aqa", subject: "biology", minutes: 105, calculator: true, specs: ["uk-gcse"],
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/biology/gcse/biology-8461/specification/specification-at-a-glance",
     boundaries: GCSE_BOUNDARIES,
     sections: [
-      { name: "Section A", count: 10, marksEach: 2, difficulty: 0.42 },
-      { name: "Section B", count: 6, marksEach: 5, difficulty: 0.6 },
+      { name: "Section A", count: 20, marksEach: 2, difficulty: 0.42 },
+      { name: "Section B", count: 10, marksEach: 4, difficulty: 0.58 },
+      { name: "Section C", count: 4, marksEach: 5, difficulty: 0.7 },
     ],
   }),
 
@@ -497,7 +688,9 @@ export const PAPERS: PaperTemplate[] = [
   }),
   paper({
     id: "aqa-gcse-physics-p2", name: "GCSE Physics — Paper 2",
-    board: "aqa", subject: "physics", minutes: 105, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    board: "aqa", subject: "physics", minutes: 105, calculator: true, specs: ["uk-gcse"],
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/physics/gcse/physics-8463/specification/specification-at-a-glance", boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 20, marksEach: 2, difficulty: 0.5 },
       { name: "Section B", count: 10, marksEach: 4, difficulty: 0.65 },
@@ -506,7 +699,9 @@ export const PAPERS: PaperTemplate[] = [
   }),
   paper({
     id: "aqa-gcse-chemistry-p2", name: "GCSE Chemistry — Paper 2",
-    board: "aqa", subject: "chemistry", minutes: 105, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    board: "aqa", subject: "chemistry", minutes: 105, calculator: true, specs: ["uk-gcse"],
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/chemistry/gcse/chemistry-8462/specification/specification-at-a-glance", boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 20, marksEach: 2, difficulty: 0.48 },
       { name: "Section B", count: 10, marksEach: 4, difficulty: 0.63 },
@@ -515,7 +710,9 @@ export const PAPERS: PaperTemplate[] = [
   }),
   paper({
     id: "aqa-gcse-biology-p2", name: "GCSE Biology — Paper 2",
-    board: "aqa", subject: "biology", minutes: 105, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    board: "aqa", subject: "biology", minutes: 105, calculator: true, specs: ["uk-gcse"],
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/biology/gcse/biology-8461/specification/specification-at-a-glance", boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 20, marksEach: 2, difficulty: 0.45 },
       { name: "Section B", count: 10, marksEach: 4, difficulty: 0.62 },
@@ -524,7 +721,7 @@ export const PAPERS: PaperTemplate[] = [
   }),
   paper({
     id: "aqa-alevel-maths-p2", name: "A-Level Mathematics — Paper 2",
-    board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], boundaries: ALEVEL_BOUNDARIES,
+    board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"], boundaries: ALEVEL_BOUNDARIES,
     sections: [
       { name: "Section A", count: 10, marksEach: 4, difficulty: 0.8 },
       { name: "Section B", count: 5, marksEach: 12, difficulty: 0.9 },
@@ -532,17 +729,398 @@ export const PAPERS: PaperTemplate[] = [
   }),
   paper({
     id: "aqa-alevel-maths-p3", name: "A-Level Mathematics — Paper 3",
-    board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], boundaries: ALEVEL_BOUNDARIES,
+    board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"], boundaries: ALEVEL_BOUNDARIES,
     sections: [
       { name: "Section A", count: 8, marksEach: 5, difficulty: 0.82 },
       { name: "Section B", count: 4, marksEach: 15, difficulty: 0.92 },
     ],
   }),
+  // ── PEARSON EDEXCEL A-LEVEL MATHEMATICS (9MA0) ────────────────────────────
+  // The other board's A-level, and it has a DIFFERENT shape from AQA's: three
+  // papers of exactly 100 marks and two hours each — Pure Mathematics 1, Pure
+  // Mathematics 2, and Statistics and Mechanics — with a calculator allowed on
+  // all three. An Edexcel candidate had no paper of their own; they were shown
+  // AQA's three and the modelled sets.
+  //
+  // Papers 1 and 2 are pure and Paper 3 is the applied paper, so the names say
+  // which is which rather than leaving a learner to discover it at question 12.
+  paper({
+    id: "edexcel-alevel-maths-p1", name: "A-Level Mathematics — Paper 1 (Pure Mathematics 1)",
+    board: "edexcel", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"],
+    itemCounts: "paced",
+    shapeSource: "https://qualifications.pearson.com/en/qualifications/edexcel-a-levels/mathematics-2017.html",
+    boundaries: ALEVEL_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 10, marksEach: 6, difficulty: 0.8 },
+      { name: "Section B", count: 2, marksEach: 20, difficulty: 0.9 },
+    ],
+  }),
+  paper({
+    id: "edexcel-alevel-maths-p2", name: "A-Level Mathematics — Paper 2 (Pure Mathematics 2)",
+    board: "edexcel", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"],
+    itemCounts: "paced",
+    shapeSource: "https://qualifications.pearson.com/en/qualifications/edexcel-a-levels/mathematics-2017.html",
+    boundaries: ALEVEL_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 10, marksEach: 6, difficulty: 0.82 },
+      { name: "Section B", count: 2, marksEach: 20, difficulty: 0.92 },
+    ],
+  }),
+  paper({
+    id: "edexcel-alevel-maths-p3", name: "A-Level Mathematics — Paper 3 (Statistics and Mechanics)",
+    board: "edexcel", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"],
+    itemCounts: "paced",
+    shapeSource: "https://qualifications.pearson.com/en/qualifications/edexcel-a-levels/mathematics-2017.html",
+    boundaries: ALEVEL_BOUNDARIES,
+    sections: [
+      { name: "Section A", count: 10, marksEach: 6, difficulty: 0.78 },
+      { name: "Section B", count: 2, marksEach: 20, difficulty: 0.88 },
+    ],
+  }),
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // THE SECOND WAVE — the curricula that had NO board paper at all.
+  //
+  // Twelve of these shared one defect: the qualification is a real national
+  // examination with a published shape, and the catalogue handed every one of
+  // them OpenMind's own twelve practice sets and nothing else. They are added
+  // together so the reason they were missing stays visible: it was never that a
+  // shape did not exist, only that nobody had read it.
+  //
+  // WHAT IS CLAIMED AND WHAT IS NOT, the same rule as everywhere above: the
+  // PAPER COUNT, the DURATION, the MARK TOTAL and the CALCULATOR RULE come from
+  // the awarding body. Where the body publishes how many questions a paper holds
+  // (WASSCE's 50 objectives, Malawi's 20, Sri Lanka's 25+5) the item count is its
+  // own (`itemCounts: "published"`); where it publishes marks but not a count,
+  // the sections are OpenMind's pacing (`itemCounts: "paced"`). The section
+  // NAMES are the paper's real structure, because the section is the part a
+  // candidate can recognise.
+  //
+  // NO GRADE TABLE ON ANY OF THEM, deliberately: these boards set grade
+  // boundaries per session and publish them afterwards, so a fixed A/B/C table
+  // would be a number OpenMind invented and attributed to somebody else. The
+  // result screen shows the mark and no grade rather than a fabricated one —
+  // exactly the Guatemala precedent above.
+  //
+  // Cameroon's francophone papers are marked OUT OF 20 and weighted by a
+  // coefficient in the candidate's total. Both of those are the paper's own
+  // facts, so the mark total is 20 here and the coefficient is named in the
+  // paper's name — a learner revising for the Bac does not need a 20-mark
+  // exercise turned into a 100-mark fiction.
+
+  // ── GHANA · WASSCE Core Mathematics ────────
+  // Two compulsory papers: 50 objective items in 1h30 for 50 marks, and an essay
+  // paper of 13 questions of which 10 are answered, 2h30 for 100 marks. A
+  // non-programmable calculator is allowed on both.
+  paper({
+    id: "wassce-core-maths-p1", name: "WASSCE Core Mathematics — Paper 1 (objective)",
+    subject: "maths", minutes: 90, calculator: true, specs: ["gh-wassce"], levels: ["shs"],
+    itemCounts: "published",
+    shapeSource: "https://waecgh.org/home/wassce-school/",
+    shapeNote: "WAEC's mathematics syllabus sets Core Mathematics as two papers: Paper 1 (50 objective items, 1½ hours, 50 marks) and Paper 2 (13 essay questions, 10 answered, 2½ hours, 100 marks).",
+    sections: [{ name: "Objective", count: 50, marksEach: 1, difficulty: 0.45 }],
+  }),
+  paper({
+    id: "wassce-core-maths-p2", name: "WASSCE Core Mathematics — Paper 2 (essay)",
+    subject: "maths", minutes: 150, calculator: true, specs: ["gh-wassce"], levels: ["shs"],
+    itemCounts: "paced",
+    shapeSource: "https://waecgh.org/home/wassce-school/",
+    sections: [
+      { name: "Section A", count: 5, marksEach: 8, difficulty: 0.5 },
+      { name: "Section B", count: 5, marksEach: 12, difficulty: 0.66 },
+    ],
+  }),
+
+  // ── CAMEROON · GCE Ordinary and Advanced Level ────────
+  // 570: Paper 1 is 50 compulsory multiple-choice items in 1h30 (50 marks) and
+  // Paper 2 is 2h30 over structural and essay questions (40 + 60 = 100 marks).
+  // 770: THREE papers — Paper 1 (50 items, 1h30, 50 marks, NO calculator), Paper 2
+  // Pure Mathematics and Paper 3 Statistics and Probability (2h30 and 100 marks
+  // each). The A-level's three papers are why it is one qualification and not
+  // two: they are weighted 20/40/40 in the final grade.
+  paper({
+    id: "gce-o-level-maths-p1", name: "GCE Ordinary Level Mathematics (570) — Paper 1",
+    subject: "maths", minutes: 90, calculator: true, specs: ["cm-gce-o"], levels: ["form5"],
+    itemCounts: "published",
+    shapeSource: "https://camgceb.org/examinations/tve-advanced-level/",
+    shapeNote: "Cameroon GCE Board syllabus 570: Paper 1 is 50 compulsory multiple-choice items in 1½ hours (50 marks); Paper 2 is 2½ hours over structural (40 marks) and essay (60 marks) questions.",
+    sections: [{ name: "Multiple choice", count: 50, marksEach: 1, difficulty: 0.45 }],
+  }),
+  paper({
+    id: "gce-o-level-maths-p2", name: "GCE Ordinary Level Mathematics (570) — Paper 2",
+    subject: "maths", minutes: 150, calculator: true, specs: ["cm-gce-o"], levels: ["form5"],
+    itemCounts: "paced",
+    shapeSource: "https://camgceb.org/examinations/tve-advanced-level/",
+    sections: [
+      { name: "Section A · structured", count: 8, marksEach: 5, difficulty: 0.5 },
+      { name: "Section B · essay", count: 6, marksEach: 10, difficulty: 0.66 },
+    ],
+  }),
+  paper({
+    id: "gce-a-level-maths-p1", name: "GCE Advanced Level Mathematics (770) — Paper 1",
+    subject: "maths", minutes: 90, calculator: false, specs: ["cm-gce-a"], levels: ["upper6"],
+    itemCounts: "published",
+    shapeSource: "https://camgceb.org/examinations/tve-advanced-level/",
+    shapeNote: "Cameroon GCE Board syllabus 770 (Pure Mathematics with Statistics): Paper 1 is 50 compulsory multiple-choice items in 1½ hours (50 marks) with no calculator; Papers 2 and 3 are 2½ hours and 100 marks each. The three papers are weighted 20/40/40.",
+    sections: [{ name: "Multiple choice", count: 50, marksEach: 1, difficulty: 0.72 }],
+  }),
+  paper({
+    id: "gce-a-level-maths-p2", name: "GCE Advanced Level Mathematics (770) — Paper 2 (Pure)",
+    subject: "maths", minutes: 150, calculator: true, specs: ["cm-gce-a"], levels: ["upper6"],
+    itemCounts: "paced",
+    shapeSource: "https://camgceb.org/examinations/tve-advanced-level/",
+    sections: [
+      { name: "Section A", count: 6, marksEach: 10, difficulty: 0.8 },
+      { name: "Section B", count: 4, marksEach: 10, difficulty: 0.9 },
+    ],
+  }),
+  paper({
+    id: "gce-a-level-maths-p3", name: "GCE Advanced Level Mathematics (770) — Paper 3 (Statistics)",
+    subject: "maths", minutes: 150, calculator: true, specs: ["cm-gce-a"], levels: ["upper6"],
+    itemCounts: "paced",
+    shapeSource: "https://camgceb.org/examinations/tve-advanced-level/",
+    sections: [
+      { name: "Section A", count: 5, marksEach: 10, difficulty: 0.78 },
+      { name: "Section B", count: 5, marksEach: 10, difficulty: 0.88 },
+    ],
+  }),
+
+  // ── CAMEROON · the francophone sequence, marked out of 20 ────────
+  // BEPC is ONE paper of 2 hours (coefficient 4); Probatoire and Baccalauréat
+  // are ONE paper of 3 and 4 hours, weighted by a coefficient that differs with
+  // the series (Bac C 7, Bac D 5, Bac E 6). One mathematics paper is the fact
+  // that surprises an anglophone reader, and it is the ministry's: these are
+  // single long problem papers, not a paper plus an objective component.
+  paper({
+    id: "bepc-mathematiques", name: "BEPC — Mathématiques (coefficient 4)",
+    subject: "maths", minutes: 120, calculator: true, specs: ["cm-bepc"], levels: ["bepc"],
+    itemCounts: "paced",
+    shapeSource: "https://www.minesec.gov.cm/",
+    shapeNote: "MINESEC's BEPC examination definition sets mathematics as one paper of 2 hours, marked out of 20 and weighted at coefficient 4.",
+    boundaries: [],
+    sections: [
+      { name: "Exercice 1", count: 2, marksEach: 5, difficulty: 0.42 },
+      { name: "Exercice 2", count: 2, marksEach: 5, difficulty: 0.58 },
+    ],
+  }),
+  paper({
+    id: "probatoire-mathematiques", name: "Probatoire — Mathématiques",
+    subject: "maths", minutes: 180, calculator: true, specs: ["cm-probatoire"], levels: ["premiere"],
+    itemCounts: "paced",
+    shapeSource: "https://www.minesec.gov.cm/",
+    shapeNote: "MINESEC sets mathematics at the Probatoire as one paper of 3 hours, marked out of 20 and weighted by series (coefficient 6 in C, 5 in E, 4 in D).",
+    boundaries: [],
+    sections: [
+      { name: "Exercice 1", count: 2, marksEach: 5, difficulty: 0.68 },
+      { name: "Exercice 2", count: 2, marksEach: 5, difficulty: 0.78 },
+    ],
+  }),
+  paper({
+    id: "bac-mathematiques", name: "Baccalauréat — Mathématiques",
+    subject: "maths", minutes: 240, calculator: true, specs: ["cm-bac"], levels: ["terminale"],
+    itemCounts: "paced",
+    shapeSource: "https://www.minesec.gov.cm/",
+    shapeNote: "MINESEC sets mathematics at the Baccalauréat as one paper of 4 hours, marked out of 20 and weighted by series (coefficient 7 in C, 6 in E, 5 in D). Series C and E sit a shared paper.",
+    boundaries: [],
+    sections: [
+      { name: "Exercice 1", count: 2, marksEach: 5, difficulty: 0.72 },
+      { name: "Exercice 2", count: 2, marksEach: 5, difficulty: 0.85 },
+    ],
+  }),
+
+  // ── ZAMBIA · ECZ School Certificate ────────
+  // Two papers: Paper 1 of 2 hours without a calculator and Paper 2 of 2h30 with
+  // one, 100 marks each. The split is the point — the paper that forbids a
+  // calculator is a different paper, not an easier sitting of the other.
+  paper({
+    id: "ecz-school-cert-maths-p1", name: "School Certificate Mathematics — Paper 1 (no calculator)",
+    subject: "maths", minutes: 120, calculator: false, specs: ["zm-school-certificate"], levels: ["grade-12"],
+    itemCounts: "paced",
+    shapeSource: "https://www.exams-council.org.zm/wp-content/uploads/2025/03/2025-SCHOOL-CERTIFICATE-TIME-TABLE_Final.pdf",
+    shapeNote: "ECZ's School Certificate timetable sets Mathematics as two papers: Paper 1 of 2 hours (no calculator) and Paper 2 of 2½ hours (calculator). Each is worth 100 marks.",
+    sections: [
+      { name: "Section A", count: 10, marksEach: 4, difficulty: 0.45 },
+      { name: "Section B", count: 10, marksEach: 6, difficulty: 0.62 },
+    ],
+  }),
+  paper({
+    id: "ecz-school-cert-maths-p2", name: "School Certificate Mathematics — Paper 2 (calculator)",
+    subject: "maths", minutes: 150, calculator: true, specs: ["zm-school-certificate"], levels: ["grade-12"],
+    itemCounts: "paced",
+    shapeSource: "https://www.exams-council.org.zm/wp-content/uploads/2025/03/2025-SCHOOL-CERTIFICATE-TIME-TABLE_Final.pdf",
+    sections: [
+      { name: "Section A", count: 10, marksEach: 4, difficulty: 0.5 },
+      { name: "Section B", count: 6, marksEach: 10, difficulty: 0.68 },
+    ],
+  }),
+
+  // ── ZIMBABWE · ZIMSEC O and A Level ────────
+  // 4008 is the NON-CALCULATOR O Level: two papers of 2h30 and 100 marks each,
+  // and candidates use mathematical tables rather than a machine. 4028 is the
+  // calculator version and is a different syllabus, so it is not mixed in here.
+  // 6042 Pure Mathematics is two papers of 3 hours and 120 marks.
+  paper({
+    id: "zimsec-o-level-maths-p1", name: "ZIMSEC O Level Mathematics (4008) — Paper 1",
+    subject: "maths", minutes: 150, calculator: false, specs: ["zw-o-level"], levels: ["form-4"],
+    itemCounts: "paced",
+    shapeSource: "https://www5.zimsec.co.zw/examinations-administration/",
+    shapeNote: "ZIMSEC's 4008 syllabus is the non-calculator O Level Mathematics: two papers of 2½ hours, 100 marks each, sat with mathematical tables.",
+    sections: [
+      { name: "Section A", count: 10, marksEach: 4, difficulty: 0.5 },
+      { name: "Section B", count: 6, marksEach: 10, difficulty: 0.66 },
+    ],
+  }),
+  paper({
+    id: "zimsec-o-level-maths-p2", name: "ZIMSEC O Level Mathematics (4008) — Paper 2",
+    subject: "maths", minutes: 150, calculator: false, specs: ["zw-o-level"], levels: ["form-4"],
+    itemCounts: "paced",
+    shapeSource: "https://www5.zimsec.co.zw/examinations-administration/",
+    sections: [
+      { name: "Section A", count: 10, marksEach: 4, difficulty: 0.54 },
+      { name: "Section B", count: 6, marksEach: 10, difficulty: 0.7 },
+    ],
+  }),
+  paper({
+    id: "zimsec-a-level-pure-maths-p1", name: "ZIMSEC A Level Pure Mathematics (6042) — Paper 1",
+    subject: "maths", minutes: 180, calculator: true, specs: ["zw-a-level"], levels: ["upper-sixth"],
+    itemCounts: "paced",
+    shapeSource: "https://www5.zimsec.co.zw/examinations-administration/",
+    shapeNote: "ZIMSEC Pure Mathematics 6042 is two papers of 3 hours and 120 marks, sat with a non-programmable scientific calculator.",
+    sections: [
+      { name: "Section A", count: 6, marksEach: 12, difficulty: 0.78 },
+      { name: "Section B", count: 4, marksEach: 12, difficulty: 0.9 },
+    ],
+  }),
+  paper({
+    id: "zimsec-a-level-pure-maths-p2", name: "ZIMSEC A Level Pure Mathematics (6042) — Paper 2",
+    subject: "maths", minutes: 180, calculator: true, specs: ["zw-a-level"], levels: ["upper-sixth"],
+    itemCounts: "paced",
+    shapeSource: "https://www5.zimsec.co.zw/examinations-administration/",
+    sections: [
+      { name: "Section A", count: 6, marksEach: 12, difficulty: 0.8 },
+      { name: "Section B", count: 4, marksEach: 12, difficulty: 0.92 },
+    ],
+  }),
+
+  // ── MALAWI · MSCE ────────
+  // Paper I is 20 compulsory questions in 2 hours for 100 marks; Paper II offers
+  // 12 questions in 2h30 for 100 marks, of which all six in Section A (60 marks)
+  // are compulsory and four of six in Section B (40 marks) are chosen. The
+  // paper's own instructions are where those counts were read.
+  paper({
+    id: "msce-maths-p1", name: "MSCE Mathematics (M131/I) — Paper I",
+    subject: "maths", minutes: 120, calculator: true, specs: ["mw-msce"], levels: ["form-4"],
+    itemCounts: "published",
+    shapeSource: "https://www.maneb.mw/",
+    shapeNote: "MANEB's MSCE Mathematics (M131) is two papers: Paper I, 20 questions in 2 hours for 100 marks, and Paper II, 2½ hours for 100 marks with 60 marks compulsory and 40 chosen. Scientific calculators are allowed on both.",
+    sections: [{ name: "Questions", count: 20, marksEach: 5, difficulty: 0.52 }],
+  }),
+  paper({
+    id: "msce-maths-p2", name: "MSCE Mathematics (M131/II) — Paper II",
+    subject: "maths", minutes: 150, calculator: true, specs: ["mw-msce"], levels: ["form-4"],
+    itemCounts: "paced",
+    shapeSource: "https://www.maneb.mw/",
+    sections: [
+      { name: "Section A · compulsory", count: 6, marksEach: 10, difficulty: 0.55 },
+      { name: "Section B · choose four", count: 4, marksEach: 10, difficulty: 0.7 },
+    ],
+  }),
+
+  // ── IRELAND · Leaving Certificate ────────
+  // TWO papers at Higher and Ordinary level, 2½ hours and 300 marks each (600 for
+  // the subject); Foundation level sits one paper. Both levels are `senior` in
+  // the specification, and a single paper is what Foundation sits, so the papers
+  // are named for the level they belong to rather than pretending to be one
+  // shape. A calculator is allowed on both papers.
+  //
+  // The JUNIOR CYCLE is deliberately NOT declared: Curriculum Online confirms it
+  // is one common-level written examination, but its mark total could not be
+  // confirmed from a document that could be read, and a mark total nobody could
+  // check is the thing this catalogue must not print. A Junior Cycle learner is
+  // handed the modelled practice sets at their band until that is read.
+  paper({
+    id: "leaving-cert-maths-p1", name: "Leaving Certificate Mathematics — Paper 1",
+    subject: "maths", minutes: 150, calculator: true, specs: ["ie-junior"], levels: ["senior"],
+    itemCounts: "paced",
+    shapeSource: "https://www.curriculumonline.ie/senior-cycle/senior-cycle-subjects/mathematics/",
+    shapeNote: "Curriculum Online: Higher and Ordinary level each have two examination papers; Foundation level has one. Marks and durations follow the examination papers.",
+    sections: [
+      { name: "Section A · short questions", count: 8, marksEach: 25, difficulty: 0.55 },
+      { name: "Section B · long questions", count: 2, marksEach: 50, difficulty: 0.72 },
+    ],
+  }),
+  paper({
+    id: "leaving-cert-maths-p2", name: "Leaving Certificate Mathematics — Paper 2",
+    subject: "maths", minutes: 150, calculator: true, specs: ["ie-junior"], levels: ["senior"],
+    itemCounts: "paced",
+    shapeSource: "https://www.curriculumonline.ie/senior-cycle/senior-cycle-subjects/mathematics/",
+    sections: [
+      { name: "Section A · short questions", count: 8, marksEach: 25, difficulty: 0.58 },
+      { name: "Section B · long questions", count: 2, marksEach: 50, difficulty: 0.76 },
+    ],
+  }),
+
+  // ── INDIA · ISC (CISCE) ────────
+  // ISC Mathematics (860) is TWO papers: Theory, 3 hours for 80 marks, and
+  // Project Work for 20. Only the theory paper is modelled — a project marked by
+  // a teacher is not something this product can sit — so the row says 80 and the
+  // caveat says where the other 20 went.
+  paper({
+    id: "isc-mathematics", name: "ISC Mathematics (860) — Theory",
+    subject: "maths", minutes: 180, calculator: true, specs: ["in-icse"], levels: ["isc"],
+    itemCounts: "paced",
+    shapeSource: "https://www.cisce.org/",
+    shapeNote: "CISCE's ISC Mathematics (860) is a 3-hour theory paper of 80 marks plus 20 marks of project work. Only the theory paper is modelled. A Casio fx-82MS or equivalent is permitted; a calculator with information-retrieval features is not.",
+    sections: [
+      { name: "Section A", count: 12, marksEach: 4, difficulty: 0.72 },
+      { name: "Section B", count: 4, marksEach: 8, difficulty: 0.86 },
+    ],
+  }),
+
+  // ── SRI LANKA · GCE Ordinary Level ────────
+  // Two papers: Paper I, 2 hours and 100 marks, is 25 short questions and 5
+  // structured questions; Paper II, 3 hours and 100 marks, sets 12 questions of
+  // which 10 are answered. No calculator.
+  paper({
+    id: "sl-ol-maths-p1", name: "GCE O Level Mathematics — Paper I",
+    subject: "maths", minutes: 120, calculator: false, specs: ["lk-o-level"], levels: ["grade-11"],
+    itemCounts: "published",
+    shapeSource: "https://www.doenets.lk/",
+    shapeNote: "Sri Lanka's Department of Examinations sets O Level Mathematics as two papers of 100 marks: Paper I (2 hours; Part A 25 short questions, Part B 5 structured questions) and Paper II (3 hours; 12 questions, 10 answered).",
+    sections: [
+      { name: "Part A · short", count: 25, marksEach: 2, difficulty: 0.42 },
+      { name: "Part B · structured", count: 5, marksEach: 10, difficulty: 0.6 },
+    ],
+  }),
+  paper({
+    id: "sl-ol-maths-p2", name: "GCE O Level Mathematics — Paper II",
+    subject: "maths", minutes: 180, calculator: false, specs: ["lk-o-level"], levels: ["grade-11"],
+    itemCounts: "published",
+    shapeSource: "https://www.doenets.lk/",
+    sections: [
+      { name: "Part A", count: 5, marksEach: 8, difficulty: 0.5 },
+      { name: "Part B", count: 5, marksEach: 12, difficulty: 0.68 },
+    ],
+  }),
 ];
 
-/** Papers available for a qualification (by spec id), optionally one subject. */
+/** Papers available for a qualification (by spec id), optionally one subject.
+ *
+ *  This is the CATALOGUE's view — every paper the qualification has, across all
+ *  its tiers — which is what the coverage audit counts. What a LEARNER may sit
+ *  is a narrower question, and `paperAllowedFor` is the one that answers it. */
 export function papersForSpec(specId: string, subject?: SubjectId): PaperTemplate[] {
   return PAPERS.filter((p) => p.specs.includes(specId) && (!subject || p.subject === subject));
+}
+
+/** May THIS learner sit this paper?
+ *
+ *  One owner for the rule, because it is asked in two places that must agree:
+ *  the picker (what is offered) and the sitting (what can be started from a
+ *  stale link). A paper belongs to a qualification and, where the board sets
+ *  different papers per tier, to a tier within it. */
+export function paperAllowedFor(t: PaperTemplate, active: ActiveSpec): boolean {
+  return t.specs.includes(active.spec.id) && (!t.levels || t.levels.includes(active.level.id));
 }
 
 /**
@@ -560,9 +1138,31 @@ export function papersForSpec(specId: string, subject?: SubjectId): PaperTemplat
  *   Paper 2  extended response — fewer, longer questions at a higher target
  *   Paper 3  full mock — the mixed length and breadth of a real sitting
  */
+/** The size of a real SITTING at this band, not the size of a practice set.
+ *
+ *  A board paper is a fixed shape: a GCSE paper is a paper of 60–80 marks in
+ *  1h15–1h30, an advanced paper 100 in 2h. The modelled set used to size itself
+ *  by QUESTION COUNT (`count * 3` minutes), which produced 52 marks in 60 min,
+ *  90 in 70 and 64 in 80 — three papers whose lengths bore no resemblance to
+ *  each other, let alone to an exam. A learner asked for papers "in the format
+ *  of the actual board exams", and length and time ARE that format: they decide
+ *  whether a mock is a sitting or a worksheet.
+ *
+ *  These are OpenMind's own shapes, said as `modelled` on every row: they are
+ *  not claimed to be any board's published structure, and where a board's
+ *  blueprint IS on file it is used instead of this. */
+function examSize(difficulty: number): { marks: number; minutes: number } {
+  if (difficulty <= 0.5) return { marks: 60, minutes: 75 };
+  if (difficulty <= 0.75) return { marks: 80, minutes: 90 };
+  return { marks: 100, minutes: 120 };
+}
+
+/** One section's plan: a share of the paper's marks at one mark value, rounded
+ *  to a whole number of questions so the paper's total is exact. */
+interface SectionPlan { name: string; share: number; marksEach: number; difficulty: number }
+
 export function genericPapers(active: ActiveSpec, subject: SubjectId, lang?: string): PaperTemplate[] {
   const d = active.level.difficulty;
-  const count = subject === "maths" ? 20 : 14;
   // The NAME is UI, not data: the translated subject plus the paper's number,
   // both of which the learner's language already has. Spelling out the raw
   // subject id here is how "— maths paper" used to leak English into a
@@ -572,6 +1172,7 @@ export function genericPapers(active: ActiveSpec, subject: SubjectId, lang?: str
   const named = (n: number) => `${label} · ${fill(t("pp.paper"), { n })}`;
   const base = `spec-${active.spec.id}-${active.level.id}-${subject}`;
   const boundaries: GradeBoundary[] = builtBoundaries(d);
+  const size = examSize(d);
   const common = {
     subject, calculator: true, specs: [active.spec.id], boundaries,
     // THE SET EVERY COUNTRY WITHOUT A BLUEPRINT RECEIVES. It is OpenMind's own
@@ -579,39 +1180,114 @@ export function genericPapers(active: ActiveSpec, subject: SubjectId, lang?: str
     // it — the one thing it must never do is pass for the learner's exam.
     basis: "modelled" as const,
   };
-  const shortCount = Math.round(count * 0.6);
-  return [
-    paper({
+  /** A paper of the band's own size, built from a section plan. Section names
+   *  are the ones a real paper prints (Section A/B/C, in increasing demand), not
+   *  the old "Short answers / Working", which named OpenMind's item kinds rather
+   *  than the shape of the paper. */
+  const sized = (n: number, set: string, plan: SectionPlan[]): PaperTemplate => {
+    const sections = plan.map((s) => {
+      const marks = Math.max(s.marksEach * 2, Math.round((size.marks * s.share) / s.marksEach) * s.marksEach);
+      return { name: s.name, count: marks / s.marksEach, marksEach: s.marksEach, difficulty: s.difficulty };
+    });
+    const total = sections.reduce((sum, s) => sum + s.count * s.marksEach, 0);
+    return paper({
       ...common,
-      id: `${base}-p1`,
-      name: named(1),
-      minutes: Math.max(30, Math.round(count * 3)),
-      sections: [
-        { name: "Short answers", count: Math.round(count * 0.7), marksEach: 2, difficulty: Math.max(0.2, d - 0.2) },
-        { name: "Working", count: count - Math.round(count * 0.7), marksEach: 4, difficulty: Math.max(0.2, d - 0.08) },
-      ],
-    }),
-    paper({
-      ...common,
-      id: `${base}-p2`,
-      name: named(2),
-      minutes: Math.max(30, Math.round(count * 3.5)),
-      sections: [
-        { name: "Short answers", count: Math.round(count * 0.5), marksEach: 3, difficulty: Math.max(0.2, d - 0.1) },
-        { name: "Extended response", count: count - Math.round(count * 0.5), marksEach: 6, difficulty: Math.min(1, d + 0.1) },
-      ],
-    }),
-    paper({
-      ...common,
-      id: `${base}-p3`,
-      name: named(3),
-      minutes: Math.max(30, Math.round(count * 4)),
-      sections: [
-        { name: "Short answers", count: shortCount, marksEach: 2, difficulty: Math.max(0.2, d - 0.15) },
-        { name: "Longer questions", count: count - shortCount, marksEach: 5, difficulty: d },
-      ],
-    }),
+      // THE SET IS PART OF THE ID, so "start Paper 2, Set B" reaches THAT
+      // template rather than whichever one happened to be found first. Two sets
+      // share a shape and differ only in the draw, which is exactly what a
+      // different sitting of the same paper is.
+      id: `${base}-p${n}-set-${set.toLowerCase()}`,
+      name: `${named(n)} · ${fill(t("pp.set"), { s: set })}`,
+      // Time follows the marks at the band's own pace, so the clock and the
+      // paper agree even when a rounded section puts the total a mark or two
+      // either side of the target.
+      minutes: Math.round((total * size.minutes) / size.marks),
+      sections,
+    });
+  };
+  const easier = Math.max(0.2, d - 0.18);
+  /**
+   * THREE SHAPES, EACH IN THREE SETS.
+   *
+   * The shapes are the three a candidate needs — a short-answer first pass, an
+   * extended-response paper, and a full mixed mock — and each is offered as
+   * three SETS. A set is a different draw of the same shape, which is what a
+   * second sitting of a paper is: same length, same sections, different items.
+   * One paper per shape was the thin version of a revision library, and the report
+   * from a real learner was blunt: "make the exam papers have soo many papers".
+   *
+   * They are named Paper 1/2/3 and Set A/B/C/D, not "Mock 1..12": a learner
+   * revising wants to know WHICH sitting they are doing, and a numbered list of
+   * nine mocks names nothing. Every one says `modelled` on its row, so none of
+   * them can pass for the awarding body's own paper.
+   */
+  // FOUR SITTINGS PER SHAPE, not three. A learner revising needs more than one
+  // pass at each paper, and a board's own archive is the same paper many times
+  // over: same sections, same clock, different questions. A set is exactly that
+  // — a different draw of the same shape (`sized` derives the id from the set,
+  // and the seed comes from the sitting) — so the fourth sitting adds practice
+  // without claiming a paper the board does not set. Three shapes × four sets is
+  // twelve sittings per subject, above the board's own papers where the board
+  // has them.
+  const SETS = ["A", "B", "C", "D"] as const;
+  const shapes: Array<{ n: number; plan: SectionPlan[] }> = [
+    // PAPER 1 — the first pass: short answers throughout, the whole paper at the
+    // easier end of the band, which is what a board's Paper 1 usually is.
+    { n: 1, plan: [{ name: "Section A", share: 1, marksEach: 2, difficulty: easier }] },
+    // PAPER 2 — extended response: fewer, longer questions, mostly 4-mark work.
+    { n: 2, plan: [
+      { name: "Section A", share: 0.55, marksEach: 2, difficulty: easier },
+      { name: "Section B", share: 0.45, marksEach: 4, difficulty: d },
+    ] },
+    // PAPER 3 — the full mock: the graded mix a candidate actually sits, with
+    // the hard questions at the end where a board puts them.
+    { n: 3, plan: [
+      { name: "Section A", share: 0.45, marksEach: 2, difficulty: easier },
+      { name: "Section B", share: 0.35, marksEach: 4, difficulty: d },
+      { name: "Section C", share: 0.2, marksEach: 6, difficulty: Math.min(1, d + 0.1) },
+    ] },
   ];
+  // Ordered BY PAPER, then by set: Paper 1 A/B/C, then Paper 2 — because that is
+  // how a learner works through a revision library, and grouping by set would
+  // put three different papers under "Set A".
+  return shapes.flatMap((s) => SETS.map((set) => sized(s.n, set, s.plan)));
+}
+
+/** Every paper a learner can sit for ONE subject: the board's own blueprints
+ *  where that subject has them, and OpenMind's exam-shaped set otherwise.
+ *
+ *  WHY NOT BOTH. A subject with a published blueprint (GCSE maths, physics,
+ *  chemistry, biology) was ALSO offered the three modelled papers, so a
+ *  maths-only learner's page held ten maths rows — six board papers (two boards
+ *  publish the same three) and three modelled duplicates of the same sitting. A
+ *  picker that lists the same exam five ways is not a choice. Where the board's
+ *  shape exists it IS the board format, so it is what the learner sees; the
+ *  modelled set exists for the subjects the board does not publish here. */
+export function papersForSubject(active: ActiveSpec, subject: SubjectId, lang?: string): PaperTemplate[] {
+  // ── ONLY THE PAPERS THIS TIER SITS ─────────────────────────────────────
+  // The catalogue's papers for the qualification, narrowed to the learner's own
+  // tier. Filtering here rather than in the picker is what keeps the picker and
+  // the sitting in step: a paper the list does not show is also one the route
+  // refuses to build from a stale link (`paperAllowedFor`).
+  const authored = papersForSpec(active.spec.id, subject).filter((p) => paperAllowedFor(p, active));
+  const modelled = genericPapers(active, subject, lang);
+  // BOTH, IN THIS ORDER — and this REVERSES an earlier rule on purpose.
+  //
+  // The rule was "the board's set suppresses the modelled set", because a
+  // maths-only learner's page showed the same sitting five ways. The rule was
+  // right about duplicates and wrong about coverage: the catalogue holds ONE
+  // Cambridge IGCSE maths blueprint and it is the EXTENDED paper, so a learner
+  // whose course is Core was offered a paper pitched at the tier above theirs
+  // and nothing else — measured on a real Core IGCSE profile, the whole library
+  // was two rows, one of them the wrong tier. A learner cannot be told "sit the
+  // Extended paper" by a product that knows their tier.
+  //
+  // The modelled sets are drawn at THEIR tier, carry `modelled` on every row and
+  // are named as practice sets, so they cannot be mistaken for the board's
+  // paper — and the board's paper still leads, because it is the one that is
+  // really sat. What made the old rows read as duplicates was two papers with
+  // the SAME name; these carry their own (Paper 1 · Set A, …).
+  return [...authored, ...modelled];
 }
 
 /** The first of the set, for callers that need exactly one paper: the default
@@ -620,11 +1296,11 @@ export function genericPaper(active: ActiveSpec, subject: SubjectId, lang?: stri
   return genericPapers(active, subject, lang)[0];
 }
 
-/** The paper a student should be offered first: an authored board paper when
- *  their qualification has one, otherwise the specification-built paper. */
+/** The paper a student should be offered first: the first paper of their
+ *  subject's set — the board's own where one is on file, else the modelled
+ *  first paper. One door, so the picker and a direct request cannot disagree. */
 export function defaultPaperFor(active: ActiveSpec, subject: SubjectId, lang?: string): PaperTemplate {
-  const authored = papersForSpec(active.spec.id, subject)[0];
-  return authored ?? genericPaper(active, subject, lang);
+  return papersForSubject(active, subject, lang)[0] ?? genericPaper(active, subject, lang);
 }
 
 // ── A PAPER BUILT FROM THE LEARNER'S OWN RECORD ─────────────────────────────

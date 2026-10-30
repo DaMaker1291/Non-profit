@@ -220,7 +220,7 @@ funding application — states more than the code can support.
 | Mappings reviewed by a subject specialist | **0** | `lib/curricula/mappings.ts` |
 | Concepts reviewed by a qualified person | **0 of 135** | `audit/item-reviews.json` |
 | Concepts whose answer is re-derived independently | 5 of 135 | `audit/verification-coverage.json` |
-| Pilot items awaiting one teacher's review | 110 across 11 concepts | `audit/pilot-pack.json` |
+| Pilot items awaiting one teacher's review | 154 across 15 concepts | `audit/pilot-pack.json` |
 | Concepts with an option-length tell above the line | 84 of 135 | `audit/options-gate.json` |
 | Interface languages | 15 | `lib/i18n.ts` |
 | Question **bodies** translated | English, with the command stem localised and board terminology mapped | `lib/questions.ts#serveView` |

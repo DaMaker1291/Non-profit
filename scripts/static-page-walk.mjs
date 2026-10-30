@@ -204,7 +204,167 @@ async function main() {
     check(!/you have demonstrated/i.test(home),
       "a learner who has demonstrated nothing is shown no list of what they have not done");
 
-    // ── 5. Practice: serve, help, answer, feedback ───────────────────────────
+    // ── 5. The lesson, offline ───────────────────────────────────────────────
+    //
+    // THE TEACHING USED TO BE MISSING FROM THIS ARTEFACT ENTIRELY. The authored
+    // plans (lib/lesson-plans.ts) reached only the React page, so the product a
+    // low-connectivity learner actually uses went from a concept straight to a
+    // question — the exact defect the plan format was written to fix, still
+    // present in the one build that exists for the hardest learners. This is the
+    // claim that it now teaches: the same plan objects, read from the same
+    // module, in a page with no server anywhere.
+    section("The lesson: teaching before the questions, with no server");
+    await p.goto(`${BASE}/#/learn?concept=fractions`);
+    await p.waitFor(`return /#\\/learn\\?concept=fractions/.test(location.hash) && !!document.querySelector("main h1");`, "the lesson");
+    const lesson = await screen(p);
+    check(/by the end you can/i.test(lesson), "the lesson opens on an observable objective");
+    check(/start here/i.test(lesson), "then an intuition before the terminology");
+    check(/the idea/i.test(lesson), "then the formal explanation");
+    const order = await p.evaluate(`
+      const marks = ["plan.can", "plan.start", "learn.idea", "worked.eyebrow", "plan.together", "plan.traps"];
+      const secs = [...document.querySelectorAll("main section")];
+      const found = secs.map((s) => (s.getAttribute("aria-label") || ""));
+      return found;`);
+    check(order.length >= 5 && order[0].toLowerCase().startsWith("by the end"),
+      `the parts arrive in teaching order, by position (${order.join(" → ")})`);
+    check(/fraction/i.test(lesson), "and it teaches THIS concept, not a template");
+    check(/not yet checked by a subject teacher/i.test(lesson),
+      "the review status is stated on the screen, not only in a document");
+    // THE PRACTICE AFFORDANCES ARE ABSENT ON THE READ STAGE. "Explain before you
+    // test" is not a sentence in a document; it is the absence of an answerable
+    // question here.
+    const readOnly = await p.evaluate(`return {
+      answerable: document.querySelectorAll('[data-act="answer"], #numeric-input').length,
+      hint: document.querySelectorAll('[data-act="hint"]').length,
+      door: !!document.querySelector('a[href*="stage=practice"]'),
+    };`);
+    check(readOnly.answerable === 0, "nothing on the read stage can be answered — it teaches first");
+    check(readOnly.door, "and the stage ends with a door into the practice");
+
+    // I DO: one whole, revealed on a press rather than shown already solved.
+    await p.clickExpr(`document.querySelector('[id="worked-slot-worked"] [data-act="worked"]')`, "show me how");
+    await sleep(120);
+    const solved = await p.evaluate(`
+      const slot = document.getElementById("worked-slot-worked");
+      return {
+        marked: slot.querySelectorAll('li[data-state="right"]').length,
+        options: slot.querySelectorAll("li").length,
+        working: (slot.querySelector(".expl")?.innerText || "").trim(),
+      };`);
+    check(solved.options >= 2, `the worked example draws a real item (${solved.options} options)`);
+    check(solved.marked === 1, `exactly one option is marked as the answer (${solved.marked})`);
+    check(solved.working.split(/\s+/).length >= 12,
+      `with a worked solution in prose, not a bare answer (${solved.working.split(/\s+/).length} words)`);
+
+    // WE DO: the same shape, faded — first move only, then the rest.
+    await p.clickExpr(`document.querySelector('[id="worked-slot-guided"] [data-act="worked"]')`, "show the first step");
+    await sleep(120);
+    const faded = await p.evaluate(`
+      const slot = document.getElementById("worked-slot-guided");
+      return {
+        first: (slot.querySelector("p strong")?.parentElement?.innerText || "").trim(),
+        marked: slot.querySelectorAll('li[data-state="right"]').length,
+        offersRest: !!slot.querySelector('[data-act="worked"]'),
+      };`);
+    check(faded.first.length > 0, "the guided item shows its first move");
+    check(faded.marked === 0, "and withholds the answer until the learner has finished it");
+    check(faded.offersRest, "inviting the learner to finish the rest");
+    check(faded.first.length < solved.working.length,
+      `the first step is shorter than the whole working (${faded.first.length} < ${solved.working.length} chars)`);
+
+    // THE PICTURE, DRAWN. This build had no figure renderer at all, so a lesson
+    // figure was a caption with nothing above it. `fractions` carries a pie whose
+    // marked sector IS the teaching, so it is the one to measure.
+    const drew = await p.evaluate(`
+      const f = document.querySelector("main figure[data-figure]");
+      if (!f) return null;
+      const svg = f.querySelector("svg");
+      const box = svg.getBoundingClientRect();
+      return {
+        kind: f.getAttribute("data-figure"),
+        shapes: f.querySelectorAll("svg path, svg circle, svg rect, svg line, svg polygon").length,
+        caption: (f.querySelector("figcaption")?.innerText || "").trim(),
+        width: Math.round(box.width),
+        sideways: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };`);
+    check(drew && drew.kind === "pie", `the lesson draws its figure (${drew ? drew.kind : "none"})`);
+    check(drew && drew.shapes >= 2, `with real shapes in it (${drew ? drew.shapes : 0})`);
+    check(drew && drew.caption.length > 20, "and keeps the caption that says what to notice");
+    check(drew && !drew.sideways && drew.width <= 340,
+      `the drawing fits the page width (${drew ? drew.width : 0}px wide, no sideways scroll)`);
+
+    // A FRACTION IS SET ON THE LINE, NOT UNDER IT. The same defect the server app
+    // had (`vertical-align` on an inline-flex box aligns the NUMERATOR, so the
+    // bar landed below the text baseline and the denominators hung under the
+    // line) lived in this stylesheet too, because the twin draws maths with its
+    // own copy of the rules. A fix in one stylesheet is not a fix in the other,
+    // so the offline build is measured the same way the app is.
+    const fracGeo = await p.evaluate(`
+      const f = document.querySelector("main .mfrac");
+      if (!f) return null;
+      const holder = f.closest(".math") || f.parentElement;
+      const probe = document.createElement("span");
+      probe.style.cssText = "font-size:0;line-height:0;display:inline-block;width:0;height:0;";
+      // IMMEDIATELY BEFORE the fraction, not appended to the holder: in a
+      // paragraph of prose the holder's last position can be on the NEXT line,
+      // and then the probe measures that line's baseline (it reported the bar
+      // 2.18em "above" the axis when the fraction was mid-sentence).
+      holder.insertBefore(probe, f);
+      const baseline = probe.getBoundingClientRect().top;
+      probe.remove();
+      const bar = f.querySelector(".mfrac-d").getBoundingClientRect().top;
+      const em = parseFloat(getComputedStyle(holder).fontSize);
+      return { above: (baseline - bar) / em, text: (f.parentElement?.innerText || "").slice(0, 40) };
+    `);
+    check(!!fracGeo && fracGeo.above > 0.1 && fracGeo.above < 0.45,
+      fracGeo
+        ? `a fraction's bar sits ${fracGeo.above.toFixed(2)}em ABOVE the baseline, on the maths axis ("${fracGeo.text}")`
+        : "no fraction on the offline lesson page to measure");
+
+    // THE DOOR LEADS TO PRACTICE ON THE SAME CONCEPT.
+    await p.clickExpr(`document.querySelector('a[href*="stage=practice"]')`, "now your turn");
+    await p.waitFor(`return /stage=practice/.test(location.hash) && !!(document.querySelector("main .q") || document.getElementById("numeric-input"));`, "the practice screen");
+    check(true, "the door opens the practice on the concept just taught");
+
+    // A PHONE, MEASURED — because the viewport is the browser's, not the page's.
+    // An SVG with a viewBox and no width fills its parent, so the drawing is the
+    // one new element here that could push a 320-px screen sideways, and a phone
+    // is the cheapest device this product is built for.
+    await send("Emulation.setDeviceMetricsOverride", { width: 320, height: 640, deviceScaleFactor: 1, mobile: true });
+    await p.goto(`${BASE}/#/learn?concept=fractions`);
+    await p.waitFor(`return !!document.querySelector("main h1");`, "the lesson at 320px");
+    const phone = await p.evaluate(`
+      const svg = document.querySelector("main figure[data-figure] svg");
+      const box = svg ? svg.getBoundingClientRect() : null;
+      return {
+        width: Math.round(box ? box.width : 0),
+        page: document.documentElement.scrollWidth,
+        view: window.innerWidth,
+      };`);
+    check(phone.width > 0 && phone.width <= 320, `the drawing shrinks to a phone (${phone.width}px at a ${phone.view}px viewport)`);
+    check(phone.page <= phone.view + 1, `and the lesson does not scroll sideways on one (${phone.page} vs ${phone.view})`);
+    await send("Emulation.clearDeviceMetricsOverride");
+
+    // A COORDINATE GRID, WHICH IS THE OTHER KIND A LESSON AND A WORKED EXAMPLE
+    // BOTH CARRY. Three plotted points and a line through them is what the
+    // coordinates plan says out loud, so the drawing either shows those or it is
+    // contradicting the paragraph beside it.
+    await p.goto(`${BASE}/#/learn?concept=coordinates`);
+    await p.waitFor(`return !!document.querySelector("main figure[data-figure=\\"axes\\"]");`, "the coordinates lesson");
+    const grid = await p.evaluate(`
+      const f = document.querySelector('main figure[data-figure="axes"]');
+      return {
+        plots: f.querySelectorAll("svg circle").length,
+        lines: f.querySelectorAll("svg line").length,
+        caption: (f.querySelector("figcaption")?.innerText || "").trim().length,
+        worked: document.querySelectorAll("main .qfigure").length,
+      };`);
+    check(grid.plots >= 3, `a coordinate grid plots the points its lesson names (${grid.plots} plots)`);
+    check(grid.lines >= 6, `with its grid and axes drawn (${grid.lines} lines)`);
+    check(grid.caption > 20, "and the caption that says what to notice");
+    check(grid.worked >= 1, `and the worked example's own item carries its drawing too (${grid.worked})`);
+
+    // ── 5b. Practice: serve, help, answer, feedback ──────────────────────────
     section("Practice: a question, help, an answer, and what it proved");
     await clickLink(p, "curriculum", "the curriculum link");
     await p.waitFor(`return /#\\/curriculum$/.test(location.hash);`, "the curriculum list");
@@ -212,7 +372,9 @@ async function main() {
     check(/your curriculum/i.test(curriculum), "the curriculum names itself");
     const firstConcept = await p.evaluate(`const a = [...document.querySelectorAll("main a")].find(a => /#\\/learn\\?concept=/.test(a.getAttribute("href") || "")); return a ? { href: a.getAttribute("href"), text: (a.textContent || "").trim().slice(0, 40) } : null;`);
     check(!!firstConcept, `every concept is reachable (first: ${firstConcept?.text})`);
-    await p.goto(`${BASE}/${firstConcept.href}`);
+    // `stage=practice` on purpose: the list is a door into TEACHING now, and this
+    // section is about the question surface. A concept with no plan ignores it.
+    await p.goto(`${BASE}/${firstConcept.href}${firstConcept.href.includes("?") ? "&" : "?"}stage=practice`);
     await p.waitFor(`return /#\\/learn\\?concept=/.test(location.hash) && !!document.querySelector("main");`, "the practice screen");
     const question = await screen(p);
     check(/practice · /i.test(question), `the practice screen names the concept it is on (${(question.match(/PRACTICE · [^·]+/i) || ["?"])[0]})`);
@@ -406,6 +568,106 @@ async function main() {
     // Every screen visited above is scanned once more, together, for the
     // artefacts of a build that leaked its internals: a raw dictionary key
     // ("dash.hi"), a template that never filled ("{n}"), a stray undefined.
+    // ── 8b. Localisation, measured on the page rather than in a dictionary
+    //
+    // The product makes exactly two promises in a translated interface: the
+    // VOCABULARY (concept titles, blurbs, belief names — all fifteen languages)
+    // and, for the four languages with coaching, the repair paragraph itself.
+    // Everything else — the lesson's paragraphs, the question, the working — is
+    // English, and the page SAYS so above the first English paragraph. These
+    // checks are about which of those is actually on the screen: a translated
+    // heading over an English paragraph is the failure this section exists for.
+    section("Localisation: what is translated, and what the page admits");
+    await p.goto(`${BASE}/#/learn?concept=fractions`);
+    await p.waitFor(`return !!document.querySelector("main h1");`, "the lesson");
+    await p.pickOption(`document.querySelector("#lang")`, "es", "language");
+    await p.waitFor(`return !!document.querySelector("main .belief");`, "the Spanish lesson");
+    const es = await p.evaluate(`
+      const note = document.querySelector("main [role=note]")?.innerText || "";
+      const belief = document.querySelector("main .belief")?.innerText || "";
+      return { note: note.trim(), belief: belief.trim(), title: document.querySelector("main h1")?.innerText.trim() || "" };`);
+    check(/en tu idioma/i.test(es.note), `the page tells a Spanish reader which half is translated ("${es.note.slice(0, 40)}…")`);
+    check(/denominador/i.test(es.belief), `and the belief's coaching really is Spanish ("${es.belief.slice(0, 46)}…")`);
+    check(!/counts the parts/i.test(es.belief), "not the English paragraph under a translated heading");
+
+    await p.pickOption(`document.querySelector("#lang")`, "de", "language");
+    await p.waitFor(`return /Nenner/i.test(document.querySelector("main .belief")?.innerText || "");`, "the German coaching");
+    const de = await p.evaluate(`
+      const note = document.querySelector("main [role=note]")?.innerText || "";
+      return { note: note.trim(), belief: (document.querySelector("main .belief")?.innerText || "").trim() };`);
+    check(/Konzeptnamen/i.test(de.note), "German gets its own note, not the English one");
+    check(/Nenner/i.test(de.belief), `and its own repair sentence ("${de.belief.slice(0, 46)}…")`);
+
+    // ONE OF THE ELEVEN WITH NO TRANSLATED COACHING. The honest fallback is the
+    // translated NAME alone — no English paragraph, and no blank heading either.
+    await p.pickOption(`document.querySelector("#lang")`, "ja", "language");
+    await p.waitFor(`return !!document.querySelector("main .belief");`, "the Japanese lesson");
+    const ja = await p.evaluate(`
+      const b = document.querySelector("main .belief");
+      return {
+        name: (b?.querySelector("strong")?.innerText || "").trim(),
+        coaching: [...(b?.querySelectorAll("span") || [])].map((s) => (s.innerText || "").trim()).filter(Boolean).join(" "),
+        note: (document.querySelector("main [role=note]")?.innerText || "").trim(),
+      };`);
+    check(ja.name.length > 0 && !/[A-Za-z]{4,}/.test(ja.name), `a language with no coaching still names the belief in its own words ("${ja.name.slice(0, 20)}")`);
+    check(ja.coaching === "", "and prints no English coaching under it");
+    check(/[\u3000-\u9fff]/.test(ja.note), `while the note about what is translated stays in Japanese ("${ja.note.slice(0, 24)}…")`);
+    await p.pickOption(`document.querySelector("#lang")`, "en", "language");
+
+    // ── 9. A foundation learner, and the drawing a question cannot do without
+    //
+    // The tier matters here: `pythagoras` serves its labelled right triangle on
+    // 40 of 40 draws at a foundation aim and 5 of 40 near the top of its range
+    // (measured), so this learner meets one every time and the check is a fact
+    // rather than a lucky draw. Before the renderer existed, the item asked for a
+    // side of a triangle that was not on the page — not a hard question, an
+    // unanswerable one.
+    section("A foundation learner: the picture a question depends on");
+    await p.goto(`${BASE}/`);
+    await p.evaluate(`localStorage.clear(); sessionStorage.clear(); return true;`);
+    await p.goto(`${BASE}/#/setup`);
+    await p.waitFor(`return !!document.querySelector("#f-country");`, "the setup form");
+    await p.typeInto(`document.querySelector("#f-name")`, "Foundation", "the nickname field");
+    await p.typeInto(`document.querySelector("#f-grade")`, "Year 10", "the year-group field");
+    await p.pickOption(`document.querySelector("#f-country")`, "GB", "country");
+    await p.waitFor(`return !![...document.querySelectorAll("main select")].find(s => /uk-gcse/.test(s.innerHTML));`, "the UK courses to appear");
+    await p.pickOption(`[...document.querySelectorAll("main select")].find(s => /uk-gcse/.test(s.innerHTML))`, "uk-gcse|foundation", "course");
+    await p.clickExpr(`[...document.querySelectorAll("main button")].find(b => /start learning/i.test(b.textContent || ""))`, "the start-learning button");
+    await p.waitFor(`return /#\\/diag$/.test(location.hash);`, "the diagnostic sitting", 20000);
+    await p.clickExpr(`[...document.querySelectorAll("main button")].find(b => /finish diagnostic/i.test(b.textContent || ""))`, "finish the diagnostic");
+    await p.waitFor(`return /what we found/i.test(document.body.innerText || "");`, "the report");
+    await p.goto(`${BASE}/#/learn?concept=pythagoras&stage=practice`);
+    await p.waitFor(`return !!document.querySelector("main .q");`, "a pythagoras question");
+    const tri = await p.evaluate(`
+      const f = document.querySelector("main .qfigure");
+      if (!f) return null;
+      const svg = f.querySelector("svg");
+      const box = svg ? svg.getBoundingClientRect() : null;
+      return {
+        kind: f.getAttribute("data-figure"),
+        labels: [...f.querySelectorAll("svg text")].map((t) => (t.textContent || "").trim()),
+        width: box ? Math.round(box.width) : 0,
+        sideways: document.documentElement.scrollWidth > window.innerWidth + 1,
+        // THE PICTURE IN WORDS. The SVG is aria-hidden, so this sentence is the
+        // drawing for a learner using a screen reader — and the only reading of
+        // it in a greyscale print.
+        caption: (f.querySelector("figcaption.qfigure-cap")?.textContent || "").trim(),
+        captionSize: f.querySelector("figcaption.qfigure-cap")
+          ? parseFloat(getComputedStyle(f.querySelector("figcaption.qfigure-cap")).fontSize) : 0,
+      };`);
+    check(tri && tri.kind === "right-triangle", `a question that depends on a drawing gets one (${tri ? tri.kind : "none"})`);
+    check(tri && tri.labels.length >= 3, `with its sides labelled (${tri ? tri.labels.join(" / ") : ""})`);
+    check(tri && tri.labels.includes("?"),
+      "and the side the question asks for left as ? — a diagram must not answer its own question");
+    check(tri && !tri.sideways && tri.width > 0 && tri.width <= 340,
+      `drawn to fit a phone (${tri ? tri.width : 0}px wide, no sideways scroll)`);
+    check(!!tri?.caption && tri.caption.length > 20,
+      `and the drawing is stated in words under it, because the SVG is aria-hidden on this page too ("${(tri?.caption || "").slice(0, 70)}…")`);
+    check(!!tri?.caption && tri.labels.filter((l) => /^[0-9]/.test(l)).every((n) => tri.caption.includes(n.replace(/[^0-9.]/g, ""))),
+      "naming the same numbers the drawing labels, because both come from the one spec");
+    check((tri?.captionSize ?? 0) >= 13,
+      `at body size rather than the browser's default caption size (${tri?.captionSize ?? 0}px)`);
+
     section("Nothing internal reached the screen");
     const pages = [landing, asking, found, home, curriculum, question, verdict, evidence].join(" · ");
     const leaks = [];

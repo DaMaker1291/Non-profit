@@ -183,10 +183,12 @@ not. There is no 1EdTech CASE-shaped standards model in the tree.
 misconceptionTags }`; grading is `choiceIndex === q.answer`. The brief's §6 list
 (numeric entry, algebraic entry, short answer, structured response, graphs,
 tables, code, proof, multi-step, data analysis, extended explanation,
-experimental reasoning) is **entirely unimplemented** except as MCQ. The only
-free-entry numeric input in the tree is in `components/own-paper.tsx`, and it is
-not part of the graded question loop. `extended_response` (§4.1) is the visible
-tip of this.
+experimental reasoning) is **entirely unimplemented** except as MCQ and numeric
+entry: the graded numeric items are answered through
+`components/numeric-answer.tsx`, and the free-entry box this line originally
+named (`components/own-paper.tsx`, a worksheet the learner filled in themselves)
+has since been removed from the product. `extended_response` (§4.1) is the
+visible tip of this.
 
 ### 4.4 P2 — `.topic` CSS exists in one kit only
 

@@ -122,10 +122,18 @@ export default function TutorPanel({
     }
   }
 
-  // Two starters, because on a phone typing a maths sentence is the slowest
-  // thing on the screen and "I don't know what to ask" is the real first
-  // problem.
-  const starters = [t("ask.whatTesting"), t("ask.workThrough")];
+  // THREE STARTERS, and each one is a request the offline tutor already knows
+  // how to answer WITHOUT giving the answer away: a hint (it points at the
+  // question's own four-level ladder), the idea said once (the `explain` move),
+  // and a worked example of a DIFFERENT question (the `example` move). On a
+  // phone, typing a maths sentence is the slowest thing on the screen, so the
+  // first thing a learner meets should be a tap that lands somewhere useful.
+  //
+  // "What is this testing?" was the first chip and it is a phrase a product uses
+  // internally, not one a fourteen-year-old would type. The sentence below says
+  // the same request in the learner's own words, and lib/socratic.ts recognises
+  // it in every language the chip is authored in.
+  const starters = [t("ask.hint"), t("ask.explainQ"), t("ask.workThrough")];
 
   return (
     <>

@@ -3,9 +3,9 @@
 // The teacher's class header and class card read `{n} {t("teach.students")}`,
 // so the commonest class in the product — a teacher who has just created one and
 // had one child join — read "1 students" on their own dashboard. There is no
-// plural machinery in lib/i18n.ts; the established answer (see
-// components/own-paper.tsx, and the 15-language `an.qsOne` / `own.savedOne` /
-// `next.ev.attemptsOne` / `next.ev.hintsOne` keys) is a sibling key for the
+// plural machinery in lib/i18n.ts; the established answer (see the 15-language
+// `an.qsOne` / `own.savedOne` / `next.ev.attemptsOne` / `next.ev.hintsOne` keys)
+// is a sibling key for the
 // singular, selected at the call site.
 //
 // Japanese, Chinese and Bengali are deliberately IDENTICAL to the plural: none

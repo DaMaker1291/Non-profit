@@ -13,13 +13,15 @@ import Link from "next/link";
 import { useI18n } from "@/lib/client";
 import { ctitle, mcName } from "@/lib/content-i18n";
 import { fill } from "@/lib/i18n";
-import { kindTitleKey, reasonKey, type SessionResult, type SessionStepCore } from "@/lib/session";
+import { continuesHere, kindTitleKey, reasonKey, type SessionResult, type SessionStepCore } from "@/lib/session";
 // The verdict vocabulary, shared with the sentence under the mark, My Evidence
 // and the teacher's monitor — so "Independent" is one word with one meaning
 // wherever a learner or a teacher reads it.
 import { proofLabelKey, strongestProof } from "@/lib/proof";
 import type { NextAction } from "@/lib/next-engine";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
+import { earnedSince, momentumOf } from "@/lib/momentum";
+import type { EvidenceEvent } from "@/lib/evidence";
 
 const pct = (v: number | null) => (v === null ? null : `${Math.round(v * 100)}%`);
 
@@ -45,7 +47,36 @@ function nextLabel(step: SessionStepCore | null, live: NextAction | null, t: (k:
   return name ? `${kind}: ${name}` : kind;
 }
 
-export default function SessionResultPanel({ result, next }: { result: SessionResult; next: NextAction | null }) {
+/**
+ * THE RESULT SCREEN'S WAY FORWARD, and the one case it used to get wrong.
+ *
+ * "Continue to my next step" was a plain `next/link` to `next.href`, and the
+ * engine's href for a step ON THIS CONCEPT is `/learn/<subject>/<concept>` —
+ * this very page. Clicking it navigated to the address it was already at, so
+ * the router kept the component and the result panel stayed on screen: measured
+ * in a browser after a transfer, the control was an `<a>` whose href equalled
+ * `location.pathname`, and pressing it did nothing at all. The most common next
+ * step after a transfer is more work on the SAME idea (retrieve it, repair it,
+ * practise it), so the dead control was the usual case rather than an edge.
+ *
+ * When the destination IS this page the button is a real action — the page
+ * opens the next session — and `onContinue` is the page's own way to do that.
+ * Everywhere else it stays an anchor, so a link is still a link (and the
+ * published twin, which renders its own result screen, is unaffected).
+ */
+export default function SessionResultPanel({ result, next, onContinue, events }: {
+  result: SessionResult;
+  next: NextAction | null;
+  /** Open the next session ON THIS CONCEPT. Absent means the caller cannot, and
+   *  the link is rendered even when it points at this page rather than offering
+   *  a control that would lie about what it does. */
+  onContinue?: () => void;
+  /** The learner's record, when the caller re-read it after the sitting. The run
+   *  is folded from it (lib/momentum) — the session's own five answers are
+   *  already in there, so "today counts" is a fact rather than a promise. A
+   *  caller that could not read the record passes nothing and no run is shown. */
+  events?: readonly EvidenceEvent[] | null;
+}) {
   const { t, lang } = useI18n();
   const beforeInd = pct(result.before.independence);
   const afterInd = pct(result.after.independence);
@@ -53,6 +84,13 @@ export default function SessionResultPanel({ result, next }: { result: SessionRe
   const afterMastery = pct(result.after.mastery) ?? "0%";
   const band = t(`mm.${result.after.band}`);
   const href = next?.href ?? result.nextStep?.href ?? "/dashboard";
+  // A DESTINATION ON THIS PAGE IS NOT A NAVIGATION. The rule is the session's
+  // own (lib/session#continuesHere) and asserted in `npm run verify`, so the
+  // anniversary of this bug cannot come back by editing one string here.
+  const actsHere =
+    typeof onContinue === "function" &&
+    typeof window !== "undefined" &&
+    continuesHere(href, window.location.pathname);
   const mistake = result.mistake && result.mistake.after > 0 ? MISCONCEPTIONS_BY_ID[result.mistake.id] : undefined;
   // WHAT THIS SESSION PROVED, by the one shared rule (lib/proof.ts). The
   // session's own contribution, not the concept's lifetime record: the transfer
@@ -70,6 +108,16 @@ export default function SessionResultPanel({ result, next }: { result: SessionRe
   // Until it has, the row is absent rather than showing `0 → 0`, which is the
   // same rule the dimension tables follow: unmeasured is not a score of zero.
   const showRetention = result.after.retentionCorrect > 0;
+  // The run, only when the record is in hand and holds one. A streak of zero is
+  // not worth a line here — this panel is about what the session established.
+  const view = events ? momentumOf(events) : null;
+  const run = view ? view.momentum : null;
+  // WHAT THIS SITTING EARNED — the milestones the RECORD crossed between the
+  // session's own start and now (lib/momentum#earnedSince). A badge for
+  // something earned last week would be a claim about this session that is not
+  // true, so the comparison is a timestamp in the ledger against the sitting's
+  // start, not "today".
+  const justEarned = view ? earnedSince(view, result.startedAt) : [];
 
   return (
     <section className="card soft" aria-label={t("sess.complete")} style={{ borderLeft: "4px solid var(--tick-green)" }}>
@@ -91,6 +139,32 @@ export default function SessionResultPanel({ result, next }: { result: SessionRe
       {proved && (
         <p className="small" style={{ margin: "8px 0 0" }}>
           <strong>{t("sess.proved")}:</strong> {t(proofLabelKey(proved))}
+        </p>
+      )}
+
+      {/* The run the sitting belongs to. One line, immediately under what the
+          work proved: a learner who has just finished five questions is the one
+          person a streak is worth telling, and the date on it is the record's. */}
+      {run && run.streak > 0 && (
+        <p className="small" style={{ margin: "6px 0 0" }}>
+          <span className="chip good">◆ {fill(t("mom.streak"), { n: run.streak })}</span>
+          {run.today > 0 && (
+            <span className="muted">
+              {" "}{t("mom.goal")}{" "}
+              <span className="mono">{Math.min(run.today, run.target)}/{run.target}</span>
+            </span>
+          )}
+        </p>
+      )}
+      {/* WHAT LANDED JUST NOW. A milestone is quiet by nature — it is a counter
+          crossing a line — so the one screen that can say "this sitting did it"
+          says it, and only for milestones the ledger dates inside the sitting. */}
+      {justEarned.length > 0 && (
+        <p className="small" style={{ margin: "6px 0 0", display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+          <span className="muted">{t("mom.justEarned")}</span>
+          {justEarned.map((m) => (
+            <span className="chip good" key={m.id}>✓ {t(m.key)}</span>
+          ))}
         </p>
       )}
 
@@ -138,9 +212,20 @@ export default function SessionResultPanel({ result, next }: { result: SessionRe
         )}
         <div style={{ display: "flex", alignItems: "baseline", gap: 10, padding: "7px 0", borderTop: "1px solid var(--line)" }}>
           <span className="small" style={{ flex: "1 1 40%", fontWeight: 600 }}>{t("sess.nextAction")}</span>
-          <Link href={href} className="small" style={{ flex: "1 1 55%", textAlign: "end" }}>
-            {nextLabel(result.nextStep, next, t, lang)} →
-          </Link>
+          {actsHere ? (
+            <button
+              type="button"
+              className="small linkish"
+              onClick={onContinue}
+              style={{ flex: "1 1 55%", textAlign: "end", background: "none", border: 0, padding: 0, cursor: "pointer" }}
+            >
+              {nextLabel(result.nextStep, next, t, lang)} →
+            </button>
+          ) : (
+            <Link href={href} className="small" style={{ flex: "1 1 55%", textAlign: "end" }}>
+              {nextLabel(result.nextStep, next, t, lang)} →
+            </Link>
+          )}
         </div>
       </div>
 
@@ -158,7 +243,11 @@ export default function SessionResultPanel({ result, next }: { result: SessionRe
       {next?.evidence && <p className="mono small muted" style={{ margin: "0 0 12px" }}>{t("next.why")} {next.evidence}</p>}
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 6 }}>
-        <Link href={href} className="btn">{t("sess.continue")} →</Link>
+        {actsHere ? (
+          <button className="btn" onClick={onContinue}>{t("sess.continue")} →</button>
+        ) : (
+          <Link href={href} className="btn">{t("sess.continue")} →</Link>
+        )}
         <Link href="/dashboard" className="btn ghost">{t("sess.home")}</Link>
       </div>
     </section>

@@ -67,6 +67,19 @@ export default function CurriculumPage() {
   // touched, so the field shows what is actually in force.
   const [pathwayId, setPathwayId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // ── WHICH SUBJECTS, NOT ONLY WHICH COURSE ──────────────────────────────
+  //
+  // The subjects were asked ONCE, on the wizard's enrolment step, and never
+  // again: a learner who ticked maths and then took up physics at the start of
+  // year 10 had no door to add it (and one who dropped chemistry could not stop
+  // being served it). This page already edits the COURSE of every subject, so
+  // it is where the subject list itself belongs — one screen that answers "what
+  // am I studying", in both halves. `null` until touched, so the ticks are the
+  // record's own answer until the learner changes it.
+  const [subjectDraft, setSubjectDraft] = useState<SubjectId[] | null>(null);
+  const [subjectBusy, setSubjectBusy] = useState(false);
+  const [subjectsSaved, setSubjectsSaved] = useState(false);
+  const [subjectErr, setSubjectErr] = useState("");
   // A REFUSED SAVE HAS TO SAY SOMETHING. It used to `catch { return; }` — the
   // learner pressed Save, nothing moved, nothing was said, and the screen went on
   // describing the course they had just chosen, which is indistinguishable from
@@ -207,6 +220,32 @@ export default function CurriculumPage() {
   const report = useMemo(() => coverageReport(active), [active]);
   const terms = termsFor(active.spec.board);
   const inSpec = report.covered;
+
+  /** Write the subject list. The server drops a removed subject's COURSE (a
+   *  course for a subject nobody studies is a record of a choice that has been
+   *  unmade) and keeps all progress, so this cannot lose a learner's work —
+   *  only their tier choice for that subject, which is why the note above the
+   *  control says so rather than hiding it. */
+  async function saveSubjects() {
+    const id = loadLocalProfileId();
+    const next = subjectDraft;
+    if (!id || !next || next.length === 0) return;
+    setSubjectBusy(true);
+    setSubjectErr("");
+    try {
+      const fresh = await api.saveProfile({ subjects: next }, id);
+      set(fresh);
+      setSubjectDraft(null);
+      setSubjectsSaved(true);
+      setTimeout(() => setSubjectsSaved(false), 2500);
+    } catch {
+      // A refused write leaves the ticks where the learner put them: clearing
+      // them would look like a save that quietly did nothing.
+      setSubjectErr(t("common.error"));
+    } finally {
+      setSubjectBusy(false);
+    }
+  }
 
   async function save() {
     const id = loadLocalProfileId();
@@ -459,6 +498,75 @@ export default function CurriculumPage() {
           <p className="field-error" role="status">
             {fill(t("onb.needFields"), { fields: t(FIELD_LABEL[missingField] as Parameters<typeof t>[0]) })}
           </p>
+        )}
+      </section>
+
+      {/* ── WHAT YOU ARE STUDYING ────────────────────────────────────────────
+          The subject list was answered once, at enrolment, and nothing could
+          change it afterwards. It is edited HERE because this is the page a
+          learner opens to change their course: a subject and its course are two
+          halves of the same answer, and a learner who has added physics needs
+          the course control above to notice it — which it does, because the
+          chips there are read from the same record this control writes.
+
+          A SAVE, not a toggle that fires on every click: dropping a subject
+          clears its course, and a mistyped click must not do that silently.
+          The note says exactly what removal does, before it is done. */}
+      <section className="card" style={{ padding: 20, marginBottom: 18 }} aria-label={t("nav.subjects")}>
+        <p className="eyebrow" style={{ margin: 0 }}>{t("nav.subjects")}</p>
+        <p className="small muted" style={{ marginTop: 6, marginBottom: 10 }}>{t("subs.note")}</p>
+        <div className="checks" role="group" aria-label={t("nav.subjects")} style={{ flexWrap: "wrap" }}>
+          {SUBJECT_IDS.map((s) => {
+            const ticked = (subjectDraft ?? declared).includes(s);
+            return (
+              <label key={s} className={ticked ? "on" : ""} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={ticked}
+                  disabled={subjectBusy}
+                  onChange={() => {
+                    setSubjectErr("");
+                    setSubjectsSaved(false);
+                    const cur = subjectDraft ?? declared;
+                    // Kept in the platform's own subject order, so the chips and
+                    // this list never disagree about where a subject sits.
+                    const wanted = new Set(ticked ? cur.filter((x) => x !== s) : [...cur, s]);
+                    setSubjectDraft(SUBJECT_IDS.filter((x) => wanted.has(x)));
+                  }}
+                />
+                {t(SUBJECT_LABELS[s])}
+              </label>
+            );
+          })}
+        </div>
+        {/* THE LAST SUBJECT CANNOT GO: everything the product serves — practice,
+            papers, the diagnostic — is built from a course, and a learner with no
+            subject has no course. The server ignores an empty list, so the control
+            refuses it here instead of writing a change that does nothing. */}
+        {subjectDraft && subjectDraft.length === 0 && (
+          <p className="field-error" role="status" style={{ marginTop: 8 }}>{t("onb.needSubject")}</p>
+        )}
+        {subjectDraft && subjectDraft.length > 0 && (
+          <div className="actions" style={{ marginTop: 10 }}>
+            <button className="btn small" onClick={saveSubjects} disabled={subjectBusy}>
+              {t("common.save")}
+            </button>
+            <button className="btn ghost small" onClick={() => { setSubjectDraft(null); setSubjectErr(""); }} disabled={subjectBusy}>
+              {t("acct.eraseCancel")}
+            </button>
+          </div>
+        )}
+        {/* THE CONFIRMATION OUTLIVES THE BUTTONS. A successful save clears the
+            draft, which removes the Save it was pressed on — measured in a
+            browser: the learner pressed Save and the control simply vanished,
+            with nothing saying whether it had worked. */}
+        {subjectsSaved && !subjectDraft && (
+          <p className="small marking good" role="status" style={{ padding: "8px 12px", marginTop: 10, maxWidth: 420 }}>
+            <span className="mark" aria-hidden="true">✓</span> {t("curr.saved")}
+          </p>
+        )}
+        {subjectErr && (
+          <p className="field-error" role="status">{subjectErr}</p>
         )}
       </section>
 

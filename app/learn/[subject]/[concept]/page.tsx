@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useI18n, useProfile, loadLocalProfileId, loadLocalProfileSecret, fetchProfile } from "@/lib/client";
 import * as api from "@/lib/api/client";
 import { ApiError, answerQuestion } from "@/lib/api/client";
-import { ctitle, cblurb, mcName, mcCoaching } from "@/lib/content-i18n";
+import { ctitle, cblurb, mcName, mcCoaching, namesNatively } from "@/lib/content-i18n";
 import { dueLabel, fill, localeFor } from "@/lib/i18n";
 import { isNextKind, type NextAction, type NextKind } from "@/lib/next-engine";
 import { decideOne, decisionContextFrom } from "@/lib/decision";
@@ -15,7 +15,7 @@ import type { QuestionView } from "@/lib/questions";
 import { SESSION_TARGET, type SessionResult } from "@/lib/session";
 import { proofLabelKey, proofSentenceKey, verdictForGrade } from "@/lib/proof";
 import { declareQuestion } from "@/lib/question-bank";
-import { evidenceFor } from "@/lib/learner-model";
+import { evidenceFor, currentSlip, retiredSlip, slipProgress } from "@/lib/learner-model";
 import SessionResultPanel from "@/components/session-result";
 import { Dims } from "@/components/dims";
 import TutorPanel from "@/components/tutor-panel";
@@ -27,6 +27,7 @@ import MicroDiagnostic from "@/components/micro-diagnostic";
 import SpeakButton from "@/components/speak-button";
 import { Icon } from "@/components/icons";
 import PromptText from "@/components/prompt-text";
+import { FigureGraphic } from "@/components/question-figure";
 import MathText from "@/components/math-text";
 import NumericAnswer from "@/components/numeric-answer";
 import WorkSheet from "@/components/work-sheet";
@@ -39,9 +40,20 @@ import { planFor } from "@/lib/lesson-plans";
 import { exampleFor } from "@/lib/culture";
 import type { FlarePayload } from "@/lib/microdiag";
 import { subjectFromParam } from "@/lib/subjects";
-import type { StudyPack } from "@/lib/types";
 
-type Graded = { correct: boolean; explanation: string; misconceptionId?: string | null; answerIndex: number | null; flare?: FlarePayload | null; evidence?: AnswerEvidence | null };
+type Graded = {
+  correct: boolean;
+  explanation: string;
+  /** The slip the ITEM was built to catch, named by the server after grading. */
+  misconceptionId?: string | null;
+  /** What the option THIS learner picked represents, when the family authored
+   *  one. Server-sent with the grade only: a note about a wrong option read
+   *  before choosing is a hint. */
+  choiceNote?: string | null;
+  answerIndex: number | null;
+  flare?: FlarePayload | null;
+  evidence?: AnswerEvidence | null;
+};
 
 /** WHAT THE SERVER SAW the answer being, returned with the grade.
  *
@@ -87,8 +99,7 @@ export default function ConceptPage() {
    * WHICH STAGE OF THIS PAGE IS ON SCREEN — read, or practise.
    *
    * The page used to stack all of it: the status card, the lesson, "teach
-   * someone else", the misconceptions, the evidence, the question and the tutor,
-   * then the study packs. Measured on a 1,215px screen it ran 2,542px, so the
+   * someone else", the misconceptions, the evidence, the question and the tutor. Measured on a 1,215px screen it ran 2,542px, so the
    * question was two screens below the point where a learner arrived and the
    * tutor sat beside a card they had to scroll to find. The four chips at the
    * top (1 Read · 2 Practise · 3 Prove · 4 Transfer) already told a learner this
@@ -280,49 +291,12 @@ export default function ConceptPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // ── Study packs: the community layer — write, fork, translate, vote ──────
-  const [packs, setPacks] = useState<StudyPack[]>([]);
-  const [composing, setComposing] = useState(false);
-  const [packTitle, setPackTitle] = useState("");
-  const [packBody, setPackBody] = useState("");
-  const [packBusy, setPackBusy] = useState(false);
-
   // ── The "I'm stuck" ladder: graduated scaffolding, recorded per request ──
   const [stuck, setStuck] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const [hintLevel, setHintLevel] = useState(0);
   const [hintBusy, setHintBusy] = useState(false);
   const [servedAt, setServedAt] = useState(0);
-
-  const loadPacks = useCallback(async () => {
-    try {
-      const j = await api.packsFor(conceptId);
-      setPacks(j.packs ?? []);
-    } catch {
-      /* packs are a bonus layer; the lesson works without them */
-    }
-  }, [conceptId]);
-
-  useEffect(() => { void loadPacks(); }, [loadPacks]);
-
-  async function postPack(payload: { action: "create" | "fork" | "helpful"; [k: string]: unknown }) {
-    if (!id) return;
-    setPackBusy(true);
-    try {
-      await api.packAction({ id, ...payload });
-      await loadPacks();
-    } catch { /* packs are a bonus layer; the lesson works without them */ }
-    finally {
-      setPackBusy(false);
-    }
-  }
-
-  async function submitPack() {
-    await postPack({ action: "create", conceptId, title: packTitle.trim(), body: packBody.trim() });
-    setPackTitle("");
-    setPackBody("");
-    setComposing(false);
-  }
 
   if (!c) {
     return (
@@ -389,7 +363,7 @@ export default function ConceptPage() {
       }
       const body = outcome.verdict;
       const correct = body.correct;
-      const g: Graded = { correct, explanation: body.explanation, misconceptionId: body.misconceptionId, answerIndex: body.answerIndex, flare: body.flare ?? null, evidence: (body.demonstrated as AnswerEvidence | undefined) ?? null };
+      const g: Graded = { correct, explanation: body.explanation, misconceptionId: body.misconceptionId, choiceNote: body.choiceNote ?? null, answerIndex: body.answerIndex, flare: body.flare ?? null, evidence: (body.demonstrated as AnswerEvidence | undefined) ?? null };
       setGraded(g);
       // The session's own count of what it has asked; the server holds the same
       // count authoritatively (it increments on grading) and wins at finish.
@@ -431,6 +405,20 @@ export default function ConceptPage() {
     } catch {
       setSessErr(t("sess.err"));
     }
+  }
+
+  /** THE NEXT STEP WHEN IT IS THIS CONCEPT — the result screen's "Continue to
+   *  my next step" used to point at this page and do nothing (measured: the
+   *  anchor's href equalled location.pathname, so the router kept the panel on
+   *  screen). Starting the next session HERE is what "continue" means when the
+   *  engine's answer is "more work on this idea": a fresh standing measured from
+   *  the model as it now is, not a navigation to nowhere. */
+  async function startNext() {
+    setSessErr("");
+    setView("practise");
+    await start();
+    await load();
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   /** Serve a fresh practice question — used for the transfer flow. */
@@ -492,7 +480,23 @@ export default function ConceptPage() {
   }
 
   const progress = state?.progress[conceptId];
-  const streak = progress?.streak ?? 0;
+  /** THE SLIP STILL LIVE ON THIS CONCEPT, and the repair for it when one has
+   *  been written. Both come from the product's one rule (`currentSlip`: three
+   *  clean answers retire a belief), so the lesson, the hint ladder and the
+   *  serve can never disagree about whether a mistake is still current. */
+  const liveSlip = currentSlip(progress);
+  const liveRepair = repairFor(conceptId, liveSlip?.id ?? null);
+  /** …AND HOW CLOSE IT IS TO BEING RETIRED. `currentSlip`'s rule is three clean
+   *  answers, and the section below promised that rule in words while showing
+   *  nothing: the second and third clean answers looked like ordinary practice
+   *  rather than like the thing that closes the loop. The count comes from
+   *  `slipProgress`, which asks `currentSlip` rather than re-deriving, so this
+   *  line cannot disagree with the card beside it. */
+  const slipToGo = slipProgress(progress);
+  /** The same slip AFTER the repair held — the other end of the same rule, shown
+   *  so a learner is told the loop closed instead of being left to notice that a
+   *  card stopped appearing. */
+  const retired = retiredSlip(progress);
   // The learner's own evidence for this concept, straight from the model every
   // other surface reads — shown before practice, so "practise this" is never a
   // bare instruction. "Not yet proven independently" is a real answer; the
@@ -548,18 +552,64 @@ export default function ConceptPage() {
   // under-reports by one for every question after a retry.
   const qOrdinal = Math.min(graded ? count : count + 1, target);
 
+  /** WHICH OF THE FOUR STEPS THE PRACTICE SCREEN IS ON, as a number, so the
+   *  compact indicator and its sentence cannot disagree: 2 while answering the
+   *  set, 3 on the result, 4 on the unfamiliar-question stage. */
+  const practiceStep = stage_ === "transfer" ? 4 : result ? 3 : 2;
+  const practiceStepKey = practiceStep === 4 ? "path.transfer" : practiceStep === 3 ? "path.prove" : "path.practise";
+
   return (
-    <main className="container" style={{ paddingTop: 40 }}>
+    <main className="container session-page" style={{ paddingTop: 40 }}>
+      {/* THE PRACTICE SCREEN DOES NOT OPEN WITH A TITLE PAGE.
+
+          On a phone this block — eyebrow, H1, blurb, then the four stage chips —
+          was ~248px of chrome ABOVE the session card, and the card then spent
+          another ~290px on its own heading, statistics and explanation. Measured
+          at 375px: the question itself did not begin until y = 695 on a 780px
+          screen, so a learner opened the practice, scrolled a whole screen, and
+          only then met the thing they came to do.
+
+          The reading stage keeps the title and the blurb (it is a page you read);
+          the practice stage keeps the NAME and the STEP, one line each, and
+          everything else is the question. The H1 stays in the document for
+          assistive technology, and the stage nav is replaced by the same fact in
+          a compact form (step 2 of 4) with a way back to the lesson. */}
+      {showing === "read" ? (
+        <>
       <p className="eyebrow">{t(`subj.${c.subject}`)} · {ctitle(lang, c.id)}</p>
       <h1>{ctitle(lang, c.id)}</h1>
       <p className="lead">{cblurb(lang, c.id)}</p>
+        </>
+      ) : (
+        <>
+          <h1 className="visually-hidden">{ctitle(lang, c.id)}</h1>
+          <div className="sess-head">
+            <p className="sess-name">{ctitle(lang, c.id)}</p>
+            <button type="button" className="sess-back small" onClick={() => setView("read")}>
+              ← {t("path.read")}
+            </button>
+          </div>
+          {/* WHERE THIS SITS IN THE FOUR STEPS, in one line and four blocks.
+              The chips above are a table of contents on the reading page; while
+              practising they are a status, and a status does not need four
+              wrapping buttons. */}
+          <div className="sess-step-row">
+            <span className="sess-step-text">
+              {fill(t("sess.stepOf"), { n: practiceStep, m: 4 })} · {t(practiceStepKey)}
+            </span>
+            <span className="sess-step-meter" aria-hidden="true">
+              {[1, 2, 3, 4].map((n) => <i key={n} className={n <= practiceStep ? "on" : ""} />)}
+            </span>
+          </div>
+        </>
+      )}
       {assignedDue !== null && (
         <p className="small" style={{ marginTop: -6, marginBottom: 14 }}>
           <span className="chip red">✎ {t("asg.setBy")}</span>{" "}
           <span className="muted">{fill(t("asg.due"), { date: dueLabel(lang, assignedDue) })}</span>
         </p>
       )}
-      {state?.profile?.learningStyle && (
+      {showing === "read" && state?.profile?.learningStyle && (
         <p className="small muted" style={{ marginTop: -10, marginBottom: 14 }}> {t("onb.learningStyle")}: <strong>{state.profile.learningStyle === "reading-writing" ? t("ls.reading") : t(`ls.${state.profile.learningStyle}`)}</strong>
           {state.profile.board && <> · {t("onb.board")}: {state.profile.board}</>}
           {state.profile.exam && <> · {t("learn.exam")}: {state.profile.exam}</>}
@@ -567,9 +617,14 @@ export default function ConceptPage() {
       )}
 
       {/* Learning path: what you do next on this concept.
-          The first two chips are the page's two stages, so they SWITCH it; the
-          last two report the session's own progress. Everything below belongs
-          to exactly one of the stages. */}
+          READ STAGE ONLY. On the practice screen the same four steps are shown as
+          one line and four blocks above (see `sess-step-row`) — four wrapping
+          chips are a table of contents, and the practice screen is not a contents
+          page. */}
+      {showing === "read" && (
+      // The first two chips are the page's two stages, so they SWITCH it; the
+      // last two report the session's own progress. Everything below belongs
+      // to exactly one of the stages.
       <nav aria-label={t("path.aria")} style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "14px 0 20px" }}>
         {(["lesson", "practise", "prove", "transfer"] as const).map((s, i) => {
           const done = stageDone[s];
@@ -601,11 +656,13 @@ export default function ConceptPage() {
           );
         })}
       </nav>
+      )}
 
       {/* ── STAGE ONE: READ ─────────────────────────────────────────────────
-          What OpenMind knows here, the lesson, the teach-back, the traps, the
-          evidence and the community packs. Nothing on this stage is the
-          session, so nothing here competes with a question. */}
+          What OpenMind knows here, the lesson, the teach-back, the traps and the
+          evidence. Nothing on this stage is the session, so nothing here
+          competes with a question. The learner-notes board that used to sit at
+          the foot of this stage is gone — see the note beside the actions row. */}
       {showing === "read" && (
         <>
       {/* STATUS FIRST (§concept page): what OpenMind actually knows here,
@@ -662,6 +719,28 @@ export default function ConceptPage() {
           a topic name does not answer it. The objective is action-first and comes
           from the authored plan (lib/lesson-plans.ts), so it is written for this
           concept rather than generated from its title. */}
+      {/* WHAT LANGUAGE THIS LESSON IS IN, SAID BEFORE IT IS READ.
+
+          A learner who chose Urdu gets translated buttons, a translated concept
+          title and a translated misconception name — and then four paragraphs of
+          English. Nothing on this page said so, and the one honest sentence that
+          exists (`lq.teachNote`, authored in all fifteen dictionaries) rendered
+          only inside the language picker on /access, a screen a learner may
+          never open: the interface claimed a localisation the teaching does not
+          have. It is printed here, above the first English paragraph, in the
+          reader's own language.
+
+          TWO SENTENCES, chosen by MEASUREMENT (`namesNatively` asks the
+          dictionaries whether this language really has the 135 titles), so a
+          language added later with no vocabulary is told the stronger true
+          thing rather than inheriting a claim it does not meet. English readers
+          see nothing: the teaching IS their language. */}
+      {lang !== "en" && (
+        <p className="small muted lang-note" role="note" style={{ margin: "0 0 16px" }}>
+          {t(namesNatively(lang) ? "lq.teachNote" : "lq.teachNoteAll")}
+        </p>
+      )}
+
       {plan && (
         <section className="card plan-objective" style={{ marginBottom: 18 }} aria-label={t("plan.can")}>
           <p className="eyebrow" style={{ margin: 0 }}>{t("plan.can")}</p>
@@ -681,6 +760,30 @@ export default function ConceptPage() {
           <p className="eyebrow" style={{ margin: 0 }}>{t("plan.start")}</p>
           <p className="reading lesson-text" style={{ marginTop: 10 }}>{plan.intuition}</p>
         </section>
+      )}
+
+      {/* THE PICTURE, WHERE THE IDEA NEEDS ONE.
+
+          A figure is carried by the PLAN rather than by the page, because only
+          the author of the teaching knows which relationship prose has to
+          assert and a drawing can show: the direction of a negative jump, what
+          "both sides" looks like, the term an incomplete expansion leaves out.
+          A diagram beside every lesson would be decoration, and decoration
+          teaches a learner to skip pictures.
+
+          The caption is not optional and not decorative. The SVG is
+          `aria-hidden` (it repeats what the lesson says, in shapes), so the
+          sentence under it is where the point is actually stated — for a
+          screen-reader user, for a greyscale print, and for the learner who
+          looks at the picture and does not know what to notice. */}
+      {plan?.figure && (
+        <figure className="lesson-figure" data-figure={plan.figure.spec.kind}>
+          {/* The DRAWING only: this element is already the figure, and a figure
+              inside a figure would leave the caption belonging to one of them
+              and the other with no content of its own. */}
+          <FigureGraphic spec={plan.figure.spec} />
+          <figcaption className="small muted reading">{plan.figure.caption}</figcaption>
+        </figure>
       )}
 
       {/* THE IDEA, WITH ITS FIRST SENTENCE AS THE CLAIM.
@@ -731,6 +834,53 @@ export default function ConceptPage() {
         })()}
       </div>
 
+      {/* THE LESSON OPENS WHERE THIS LEARNER IS.
+
+          Two learners arriving at one concept do not need the same lesson, and
+          until this block existed they got exactly the same one: the plan, the
+          worked example and the traps, whoever was reading — while the repair
+          for a learner's actual mistake appeared only AFTER they made it again
+          in the practice. That is the wrong way round. `currentSlip` is the
+          product's one rule for "this belief is still live", and
+          `lib/repair.ts` already holds the contrast pair written for it, so the
+          branch is the same teaching the wrong-answer card shows, moved to the
+          front where it can stop the mistake instead of explaining it afterwards.
+
+          NOTHING IS INVENTED for a slip nobody has written a repair for:
+          `repairFor` answers null outside the authored set and this section is
+          skipped, so that learner reads the lesson it always had. Which slips
+          are covered is a content number, not a claim — every concept in the
+          pilot today, and `npm run verify` measures that half of it.
+
+          It sits BEFORE the practice door on purpose: a repair shown after the
+          questions is the card that already existed. */}
+      {liveRepair && (
+        <section className="card soft" style={{ marginBottom: 18 }} aria-label={t("lesson.slipTitle")}>
+          <p className="eyebrow" style={{ margin: 0 }}>
+            <span className="no">!</span> {t("lesson.slipTitle")}
+          </p>
+          <p className="small muted" style={{ margin: "6px 0 12px" }}>{t("lesson.slipLead")}</p>
+          <RepairCard plan={liveRepair} />
+          <p className="small muted" style={{ margin: "12px 0 0" }}>
+            {slipToGo && (
+              <><strong>{fill(t("lesson.slipProgress"), { done: slipToGo.clean, need: slipToGo.need })}</strong>{" — "}</>
+            )}
+            {t("lesson.slipClears")}
+          </p>
+        </section>
+      )}
+
+      {/* AND WHEN THE REPAIR HELD. `retiredSlip` is `currentSlip` answering null
+          after REPAIR_STREAK clean answers — the same three the serve and the
+          next-step engine use — so this line cannot claim a repair the record
+          does not support. */}
+      {retired && (
+        <p className="small muted" style={{ margin: "0 0 18px" }}>
+          <strong>{mcName(lang, retired.id, MISCONCEPTIONS_BY_ID[retired.id]?.name ?? retired.id)}</strong>
+          {" — "}{t("lesson.slipRetired")}
+        </p>
+      )}
+
       <LessonWorkedExample conceptId={conceptId} />
 
       {/* "WE DO" — THE SAME ITEM, FADED.
@@ -769,10 +919,16 @@ export default function ConceptPage() {
           {c.misconceptions.map((mid) => {
             const m = MISCONCEPTIONS_BY_ID[mid];
             if (!m) return null;
+            // A language with no `mcp.<id>` line gets the translated NAME and
+            // nothing under it, rather than an English paragraph under a
+            // translated heading (lib/content-i18n#mcCoaching).
+            const coach = mcCoaching(lang, mid, m.coaching);
             return (
               <div key={mid} style={{ margin: "8px 0" }}>
                 <strong>{mcName(lang, mid, m.name)}</strong>
-                <p className="small muted" style={{ margin: "2px 0 0" }}>{mcCoaching(lang, mid, m.coaching)}</p>
+                {coach !== "" && (
+                  <p className="small muted" style={{ margin: "2px 0 0" }}>{coach}</p>
+                )}
               </div>
             );
           })}
@@ -843,8 +999,10 @@ export default function ConceptPage() {
               {evidence.topMisconception && MISCONCEPTIONS_BY_ID[evidence.topMisconception] && (
                 <p style={{ margin: "8px 0 0" }}>
                   <span className="tag">{t("ev.issue")}</span>{" "}
-                  <strong>{mcName(lang, evidence.topMisconception, MISCONCEPTIONS_BY_ID[evidence.topMisconception].name)}</strong>{" — "}
-                  {mcCoaching(lang, evidence.topMisconception, MISCONCEPTIONS_BY_ID[evidence.topMisconception].coaching)}
+                  <strong>{mcName(lang, evidence.topMisconception, MISCONCEPTIONS_BY_ID[evidence.topMisconception].name)}</strong>
+                  {mcCoaching(lang, evidence.topMisconception, MISCONCEPTIONS_BY_ID[evidence.topMisconception].coaching) !== "" && (
+                    <>{" — "}{mcCoaching(lang, evidence.topMisconception, MISCONCEPTIONS_BY_ID[evidence.topMisconception].coaching)}</>
+                  )}
                   {evidence.misconceptionHits >= 2 && (
                     <>
                       {" "}
@@ -875,38 +1033,57 @@ export default function ConceptPage() {
       {!result && (
         <div className="qbar">
           <b>{ctitle(lang, c.id)}</b>
-          <span className="where">{t(`subj.${c.subject}`)}</span>
-          <span className="where">{fill(t("sess.qOf"), { n: qOrdinal, m: target })}</span>
-          {stage_ === "transfer" && (
-            <span className="where">{t(reframed === false ? "learn.deepenStage" : "learn.transferStage")}</span>
+          {/* THE SUBJECT IS NOT REPEATED HERE. It was a fifth item in a bar that
+              is sticky on a phone, where it wrapped the whole strip to four
+              lines (measured at 375px: 154px of every screen, permanently, for a
+              word that is in the page's own eyebrow and in the topbar breadcrumb
+              twelve lines above). The three facts kept are the ones a learner
+              cannot get anywhere else while scrolled into the working: where in
+              the set they are, which stage this is, and how long they have been
+              at it. */}
+          <span className="where qof">{fill(t("sess.qOf"), { n: qOrdinal, m: target })}</span>
+          {/* THE STAGE IS CLAIMED ONLY ONCE THE SERVE HAS SAID SO.
+              `reframed` is the OPERATION's answer — did this serve really put
+              the idea on a second surface, or fall back to a harder direct draw
+              ("deeper work")? While the request is in flight the field is null,
+              and the bar used to print "Transfer — same idea, unfamiliar
+              wording" before anything had claimed it. A stage label that
+              outruns its evidence is the defect this label exists to avoid, so
+              nothing is said until the answer is in. */}
+          {stage_ === "transfer" && reframed !== null && (
+            <span className="where stage">{t(reframed ? "learn.transferStage" : "learn.deepenStage")}</span>
           )}
           <span className="clock" aria-label={t("sess.eyebrow")}>
             ⏱ {Math.floor(clock / 60000)}:{String(Math.floor(clock / 1000) % 60).padStart(2, "0")}
           </span>
+          {/* THE TUTOR'S DOOR, IN THE BAR THAT IS ALREADY STICKY.
+              Below 1,180px the panel is a drawer, and its floating button sat in
+              the bottom-right corner — measured at 320px, `elementFromPoint` over
+              the fourth answer option returned the floating "Ask the tutor" pill,
+              so a learner reaching for D could press the tutor instead. A door in
+              the sticky bar is always in the same place, covers nothing, and is
+              the explicit "Get help" control the brief asks for. Only rendered
+              while the session is running, because the bar is. */}
+          <button type="button" className="qbar-tutor" onClick={() => setTutorOpen(true)}>
+            <span aria-hidden="true">?</span> {t("learn.ask")}
+          </button>
         </div>
       )}
 
       {/* THE WORK AREA: the question, with the tutor beside it. */}
       <div className="work">
         <div className="work-main">
+      {/* THE QUESTION IS THE HEADER.
+
+          This card used to open with a "Q LEARNING SESSION" eyebrow, a
+          mastery / attempts / streak strip, and a paragraph explaining what a
+          session is — then the reason strip, then the prompt. On a phone that
+          was most of a screen of chrome above the thing the learner came to do,
+          and the strip invited a provisional 14% to be read as a verdict. The
+          position in the set stays in the sticky bar, the concept name in the
+          line above, the adaptive reason in the disclosure, and everything else
+          waits for the result screen, where before/after is the point. */}
       <div className="card" style={{ marginBottom: 18 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-          {/* The eyebrow names the session and NOTHING ELSE. It used to append
-              "· Question 1 of 5" directly beneath the sticky bar's own
-              "Question 1 of 5" — the same fact twice, one line apart, beside a
-              third "of 5" on the level chip. The bar owns the position and stays
-              on screen while the learner scrolls, so repeating it here was noise
-              rather than reinforcement. */}
-          <p className="eyebrow" style={{ margin: 0 }}>
-            <span className="no">Q</span> {t("sess.eyebrow")}
-          </p>
-          {progress && (
-            <span className="mono small">
-              {Math.round(progress.mastery * 100)}% · {progress.attempts} ✕ · {streak > 0 ? `✓×${streak}` : "—"}
-            </span>
-          )}
-        </div>
-        {!result && <p className="small muted" style={{ margin: "4px 0 0" }}>{t("sess.lead")}</p>}
 
         {err && <div className="feedback no" style={{ marginTop: 14 }}>{err}</div>}
         {sessErr && (
@@ -918,7 +1095,7 @@ export default function ConceptPage() {
 
         {result && (
           <div style={{ marginTop: 14 }}>
-            <SessionResultPanel result={result} next={nextAction} />
+            <SessionResultPanel result={result} next={nextAction} onContinue={() => void startNext()} events={ledger ? ledger.events : null} />
             {/* TELL IT BACK — AFTER THE PRACTICE, WHICH IS WHERE AN EXPLANATION
                 BELONGS. In the reading stage it asked a learner to explain an
                 idea they had not yet used, so the box could only be filled by
@@ -938,20 +1115,41 @@ export default function ConceptPage() {
                 reason is the difference between "adaptive" and an unexplained
                 difficulty swing. */}
             {why && !graded && (
-              <p className="whyq">
-                <span className="why-label">{t("target.why")}</span>
-                <span>{t(`target.${why.reason}`)}</span>
-                {/* AND WHETHER THIS ONE TESTS THE SLIP.
-                    `repair` says the rung was lowered; it does not say the item
-                    checks the belief, and the serve only sometimes finds one that
-                    does. So the second sentence is printed only when the SERVE
-                    reports `slipCheck` — the page never infers it from the reason,
-                    because "this is built to catch your slip" is a claim about the
-                    item and the learner is entitled to it being true. */}
-                {why.reason === "repair" && why.slipCheck && <span>{t("target.slipCheck")}</span>}
-                <span className="band">{fill(t("target.level"), { n: why.band })}</span>
-                {why.scaffold && <span className="scaffold">{t("target.scaffold")}</span>}
-              </p>
+              // COMPACT BY DEFAULT, AND STILL SAID IN FULL ON REQUEST. The strip
+              // once printed the reason, the band, and a third sentence about
+              // hints on every question — three lines of chrome above a
+              // heading-size prompt. The level stays on the strip as a chip, and
+              // the reason is one tap away: the adaptive decision is still
+              // disclosed in full, because a learner is entitled to know why a
+              // question was chosen, but it does not get to push the question
+              // down the screen to say so.
+              <details className="whyq">
+                {/* THE STRIP IS ONE LINE AND THE SENTENCE IS BEHIND IT. The
+                    reason used to live IN the summary, so the collapsed state
+                    was still three wrapped lines of prose above the prompt —
+                    the disclosure saved nothing until it was opened, and the
+                    question started ~100px lower on a phone for it. The label
+                    and the band stay on the strip (where the item sits is a
+                    fact worth one glance); the reason, whether this item
+                    actually checks the slip, and any scaffold are the detail
+                    the learner asks for. */}
+                <summary>
+                  <span className="why-label">{t("target.why")}</span>
+                  <span className="band">{fill(t("target.level"), { n: why.band })}</span>
+                </summary>
+                <p className="small why-reason" style={{ margin: "2px 0 0 22px" }}>
+                  <span>{t(`target.${why.reason}`)}</span>{" "}
+                  {/* AND WHETHER THIS ONE TESTS THE SLIP.
+                      `repair` says the rung was lowered; it does not say the item
+                      checks the belief, and the serve only sometimes finds one that
+                      does. So the second sentence is printed only when the SERVE
+                      reports `slipCheck` — the page never infers it from the reason,
+                      because "this is built to catch your slip" is a claim about the
+                      item and the learner is entitled to it being true. */}
+                  {why.reason === "repair" && why.slipCheck && <span>{t("target.slipCheck")}</span>}
+                </p>
+                {why.scaffold && <p className="small scaffold">{t("target.scaffold")}</p>}
+              </details>
             )}
             <div className="qprompt">
               <PromptText text={q.prompt} figure={q.figure} />
@@ -969,7 +1167,7 @@ export default function ConceptPage() {
                 slip" before answering is a hint, and a question that warns you
                 about its own trap measures nothing — they appear with the
                 verdict, where they can teach instead of pre-empt. */}
-            <QuestionDeclaration q={q} t={t} />
+            <QuestionDeclaration q={q} t={t} conceptTitle={ctitle(lang, q.conceptId)} />
             {/* ── WHERE THE WORKING GOES ────────────────────────────────────
                 The question asks for an answer; this is the paper it is worked
                 out on. It is deliberately placed BEFORE the options and before
@@ -983,6 +1181,7 @@ export default function ConceptPage() {
               label={t("work.label")}
               placeholder={t("work.ph")}
               note={t("work.note")}
+              hideLabel={t("common.close")}
             />
             {/* ── HOW THIS QUESTION IS ANSWERED ────────────────────────────
                 A numeric item asks the learner to PRODUCE the answer, so it
@@ -992,6 +1191,7 @@ export default function ConceptPage() {
                 just because that is what the page used to draw. */}
             {q.responseKind === "numeric" ? (
               <NumericAnswer
+                questionId={q.id}
                 unit={q.tolerance?.unit}
                 disabled={!!graded || saved || busy[0]}
                 label={t("answer.label")}
@@ -1081,6 +1281,16 @@ export default function ConceptPage() {
                     top of it, because three paragraphs of algebra arriving the
                     instant an answer is marked is how feedback stops being
                     read at all. */}
+                {/* WHAT THEIR OWN OPTION MEANT, before the item-level diagnosis.
+                    A wrong answer used to say the same thing to every learner who
+                    made any mistake on this concept; the family knows what each
+                    distractor stands for ("you subtracted instead of adding"),
+                    and that is the sentence that teaches. It is omitted wherever
+                    nobody wrote a note — a padded near-miss has no meaning to
+                    explain. */}
+                {graded.choiceNote && (
+                  <p className="small" style={{ margin: "0 0 8px" }}>{graded.choiceNote}</p>
+                )}
                 {graded.misconceptionId && MISCONCEPTIONS_BY_ID[graded.misconceptionId] && (() => {
                   // A TARGETED REPAIR WHEN ONE EXISTS, and the old one-liner when
                   // it does not. The fallback used to be the ONLY behaviour: the
@@ -1194,72 +1404,15 @@ export default function ConceptPage() {
         </>
       )}
 
-      {showing === "read" && (
-      <section className="ruled" style={{ borderTop: "2px solid var(--ink)", paddingTop: 18, marginTop: 8, marginBottom: 30 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
-          {/* WHAT THIS SECTION IS, IN ONE SENTENCE. It was called "Study
-              packs" with a button reading "Add a pack" and a "Fork" action
-              under each note — the same word the product already uses for a
-              teacher's PRINTABLE weekly pack, and two pieces of developer
-              vocabulary describing a shared note board. A learner had no way to
-              know what they were looking at, which is exactly how it read. */}
-          <p className="eyebrow" style={{ margin: 0 }}><span className="no">✎</span> {t("pack.title")}</p>
-          <p className="small muted" style={{ margin: "4px 0 0" }}>{t("pack.lead")}</p>
-          <button className="btn ghost small" onClick={() => setComposing((v) => !v)}>{t("pack.add")}</button>
-        </div>
-
-        {composing && (
-          <div style={{ margin: "12px 0" }}>
-            <input
-              type="text"
-              value={packTitle}
-              onChange={(e) => setPackTitle(e.target.value)}
-              placeholder={t("pack.phTitle")}
-              aria-label={t("pack.phTitle")}
-              style={{ marginBottom: 8 }}
-            />
-            <textarea
-              value={packBody}
-              onChange={(e) => setPackBody(e.target.value)}
-              placeholder={t("pack.phBody")}
-              aria-label={t("pack.phBody")}
-              rows={3}
-              style={{ width: "100%", marginBottom: 8 }}
-            />
-            <button
-              className="btn small"
-              disabled={packBusy || !packTitle.trim() || !packBody.trim()}
-              onClick={() => void submitPack()}
-            >
-              {t("pack.add")}
-            </button>
-          </div>
-        )}
-
-        {packs.length === 0 && !composing && <p className="small muted">{t("pack.none")}</p>}
-        {packs.map((pk) => (
-          <div key={pk.id} className="note" style={{ marginTop: 10 }}>
-            <strong>
-              {pk.title}
-              <span className="small muted" style={{ marginLeft: 8, fontWeight: 400 }}>
-                {pk.author} · {pk.language}
-                {pk.forkOf && ` · ${t("pack.forkOf")} ${packs.find((x) => x.id === pk.forkOf)?.title ?? pk.forkOf.slice(0, 12)}`}
-              </span>
-            </strong>
-            <span className="small" style={{ whiteSpace: "pre-wrap" }}>{pk.body}</span>
-            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-              <button className="btn ghost small" disabled={packBusy} onClick={() => void postPack({ action: "helpful", packId: pk.id })}>
-                ▲ {t("pack.helpful")} · {pk.helpful}
-              </button>
-              <button className="btn ghost small" disabled={packBusy} onClick={() => void postPack({ action: "fork", packId: pk.id })}>
-                ⑂ {t("pack.fork")}
-              </button>
-            </div>
-          </div>
-        ))}
-      </section>
-      )}
-
+      {/* THE LEARNER-NOTES BOARD IS GONE, AND ITS API IS NOT.
+          This stage ended with "✎ LEARNER NOTES — short notes from other learners
+          on this idea. Write one, mark one helpful, or copy one and make it your
+          own": an empty board at the foot of every lesson, under a heading
+          written for a feature nobody had used yet, after the lesson had already
+          ended. Removed from the screen on request; `/api/packs` and its client
+          calls are untouched, so a class that has written notes loses nothing and
+          a future surface can render them — what was wrong was putting an empty
+          social board where a learner expects the next thing to do. */}
       <div className="actions" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 20 }}>
         <Link href={`/learn/${subject}`} className="btn ghost small">← {t(SUBJECT_LABELS[subject])}</Link>
         {/* ONE DOOR TO THE TUTOR. This linked to the old standalone tutor PAGE
@@ -1273,22 +1426,31 @@ export default function ConceptPage() {
   );
 }
 
-/** WHAT THIS QUESTION IS TESTING — the demand it asks for, and what it is worth.
+/** WHAT THIS QUESTION IS FOR — the objective, in the learner's language.
  *
- *  The record itself is lib/question-bank#declareQuestion's; this only words it,
- *  so the React question screen and the published static one declare one item
- *  the same way. The beliefs the item discriminates are deliberately NOT part of
- *  this line: naming them before the answer is a hint, and they are rendered
- *  with the verdict instead (see the feedback block above).
+ *  This line read "What is this testing? Multi-step · Marks: 1": two pieces of
+ *  exam-board machinery in a practice session, where a learner needs to know
+ *  what they are being asked to get better at, not which mark-scheme box the
+ *  item ticks. It names the concept now — the objective is the skill — and the
+ *  demand and marks stay as METADATA on the element rather than as ink on the
+ *  screen. In an exam sitting the marks belong on the paper (lib/papers), which
+ *  is where they are drawn; a practice item is one answer and one mark.
+ *
+ *  The record itself is still lib/question-bank#declareQuestion's, so this page
+ *  and the published static one declare one item the same way, and the beliefs
+ *  the item discriminates remain unread here: naming them before the answer is
+ *  a hint, and they are rendered with the verdict instead.
  */
-function QuestionDeclaration({ q, t }: { q: Parameters<typeof declareQuestion>[0]; t: (key: string) => string }) {
+function QuestionDeclaration({ q, t, conceptTitle }: { q: Parameters<typeof declareQuestion>[0]; t: (key: string) => string; conceptTitle: string }) {
   const declared = declareQuestion(q);
   return (
-    <p className="small muted" style={{ margin: "6px 0 0" }}>
+    <p
+      className="small muted"
+      style={{ margin: "6px 0 0" }}
+      title={`${t(`skill.${declared.skill}`)} · ${t("own.marks")}: ${declared.marks}`}
+    >
       <span className="why-label">{t("ask.whatTesting")}</span>{" "}
-      {t(`skill.${declared.skill}`)}
-      {" · "}
-      {t("own.marks")}: {declared.marks}
+      {conceptTitle}
     </p>
   );
 }

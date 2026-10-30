@@ -79,6 +79,64 @@ export function currentSlip(
   return { id: entries[0][0], hits: entries[0][1] };
 }
 
+/** THE SAME SLIP, AFTER THE REPAIR HAS HELD — the other end of `currentSlip`'s
+ *  rule, and deliberately not a second rule.
+ *
+ *  `currentSlip` answers null in two different situations: no slip was ever made
+ *  here, and a slip was made and then repaired. They are not the same fact, and
+ *  a learner who worked their way out of a belief deserves to be told so rather
+ *  than left to notice that a card stopped appearing. This function separates
+ *  them: it answers the retired slip only when a slip is on the record AND the
+ *  streak that retires it has been earned.
+ *
+ *  It CANNOT disagree with `currentSlip`, because it asks it first: a slip that
+ *  function still calls live is never reported as retired. That is the property
+ *  worth having, since the read stage will print this as "you have fixed it". */
+export function retiredSlip(
+  p: { misconceptions?: Record<string, number>; streak?: number } | undefined,
+): { id: string; hits: number } | null {
+  if (currentSlip(p)) return null;
+  if ((p?.streak ?? 0) < REPAIR_STREAK) return null;
+  const entries = Object.entries(p?.misconceptions ?? {});
+  if (entries.length === 0) return null;
+  entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  return { id: entries[0][0], hits: entries[0][1] };
+}
+
+/** HOW CLOSE THE LIVE SLIP IS TO BEING RETIRED — the number a learner needs to
+ *  act on `currentSlip`'s rule rather than be surprised by it.
+ *
+ *  The rule has existed since the slip stopped being permanent: three answers in
+ *  a row retire a belief (`REPAIR_STREAK`), the repair card stops appearing, and
+ *  `retiredSlip` says so. What no surface showed was the COUNT — a learner was
+ *  told "this part disappears once you answer three in a row correctly" and then
+ *  had no way to see it happening, so the second and third clean answers looked
+ *  like practice rather than like the thing that closes the loop. A goal a
+ *  learner cannot measure is a rule they have to remember.
+ *
+ *  It answers null whenever `currentSlip` does, and asks it rather than
+ *  re-deriving: a progress line for a slip that is already retired would be a
+ *  second rule about the same fact. `clean` is therefore always strictly less
+ *  than `need` — the moment it reaches `need` there is no slip to report.
+ *
+ *  `clean` is the concept's own consecutive-correct `streak` (`lib/progress.ts`
+ *  resets it on any wrong answer), which is the same number the serve, the hint
+ *  ladder and `retiredSlip` read. A hint does not reduce it: the slip is about
+ *  the answer given, and independence is measured separately. */
+export interface SlipProgress {
+  readonly slip: { id: string; hits: number };
+  readonly clean: number;
+  readonly need: number;
+}
+
+export function slipProgress(
+  p: { misconceptions?: Record<string, number>; streak?: number } | undefined,
+): SlipProgress | null {
+  const slip = currentSlip(p);
+  if (!slip) return null;
+  return { slip, clean: Math.min(p?.streak ?? 0, REPAIR_STREAK), need: REPAIR_STREAK };
+}
+
 export function statusOf(mastery: number, attempts: number): ConceptEvidence["status"] {
   if (attempts === 0) return "untouched";
   if (mastery >= 0.9) return "strong";

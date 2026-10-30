@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 67 modules compiled from lib/ by that script, wired
+ * Source: 68 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -730,6 +730,7 @@ async function answerQuestion(input) {
             streak: typeof j.streak === "number" ? j.streak : undefined,
             mastery: typeof j.mastery === "number" ? j.mastery : undefined,
             misconceptionId: typeof j.misconceptionId === "string" ? j.misconceptionId : null,
+            choiceNote: typeof j.choiceNote === "string" ? j.choiceNote : null,
             flare: j.flare ?? null,
             demonstrated: j.demonstrated,
         },
@@ -1917,12 +1918,14 @@ function sliceGaps() {
 __def("content-i18n.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.namesNatively = namesNatively;
 exports.ctitle = ctitle;
 exports.cblurb = cblurb;
 exports.levelLabel = levelLabel;
 exports.mcName = mcName;
 exports.mcCoaching = mcCoaching;
 exports.mcCoachingNative = mcCoachingNative;
+exports.figureCaptionText = figureCaptionText;
 // Content translation layer. The genome's 135 concept titles and blurbs are
 // authored English; every learner-facing surface resolves them through
 // `cn.<id>` / `cb.<id>` dictionary keys. `translator()` already falls back
@@ -1930,13 +1933,44 @@ exports.mcCoachingNative = mcCoachingNative;
 // genome's authored text when a dictionary genuinely lacks the key (partial
 // dictionaries like `bn`), never rendering a raw `cn.place-value` key.
 //
-// TIERED CONTENT LANGUAGES: titles, blurbs and misconception names are fully
-// authored for en, es, fr, pt, ar, sw, hi (the audit-recommended set). Other
-// dictionaries get a fully native UI with English teaching content — visible,
-// honest fallback, never a raw key and never a fake translation.
+// WHAT IS AND IS NOT TRANSLATED, measured rather than remembered. Every one of
+// the FIFTEEN dictionaries carries all 135 concept titles and blurbs in its own
+// words (`namesNatively` answers that from the dictionaries themselves) — and
+// none of them carries a sentence of the TEACHING: a plan's paragraphs, a
+// worked explanation, a question prompt, a repair and a hint are authored
+// English and have no dictionary key at all. That asymmetry is the honest
+// description of this product, and it used to be written down as a stale list
+// ("fully authored for en, es, fr, pt, ar, sw, hi") that the dictionaries had
+// outgrown. The lesson page now PRINTS which half a learner is about to read
+// (`lq.teachNote` / `lq.teachNoteAll`), because a learner who chose Urdu and
+// then meets four paragraphs of English has been told something false by the
+// translated buttons.
 const i18n_1 = require("./i18n");
 const genome_1 = require("./genome");
 const misconceptions_1 = require("./misconceptions");
+const figures_1 = require("./figures");
+/** Does this language have THIS PRODUCT'S VOCABULARY — every concept's title
+ *  present in its own dictionary?
+ *
+ *  MEASURED, NOT DECLARED. The old comment in this file listed seven languages
+ *  as the translated set; the dictionaries had every one of the fifteen. A list
+ *  kept by hand is a claim that rots beside the thing it describes, so the
+ *  answer is computed here, and the lesson page and the suite both ask it.
+ *
+ *  Existence is the test, not difference from English: "DNA" and "pH" are the
+ *  same word in several languages, and calling those untranslated would be
+ *  wrong in the other direction. */
+function namesNatively(lang) {
+    if (lang === "en")
+        return true;
+    const dict = i18n_1.DICTS[lang];
+    if (!dict)
+        return false;
+    return genome_1.CONCEPTS.every((c) => {
+        const v = dict[`cn.${c.id}`];
+        return typeof v === "string" && v.trim() !== "";
+    });
+}
 function ctitle(lang, conceptId) {
     const c = (0, genome_1.getConcept)(conceptId);
     const t = (0, i18n_1.translator)(lang);
@@ -1993,9 +2027,33 @@ function mcName(lang, id, fallback) {
     const named = (0, misconceptions_1.beliefName)((0, i18n_1.translator)(lang), id);
     return named === id ? (fallback ?? id) : named;
 }
+/** The coaching paragraph for a belief — IN THE READER'S OWN LANGUAGE, or an
+ *  empty string when that language has none.
+ *
+ *  THIS IS THE ONE RULE, and it used to have a loophole. `mcp.<id>` was authored
+ *  in NO dictionary (the parity gate made it impossible — see
+ *  scripts/verify-engines.mjs), so the old version returned the catalogue's
+ *  English `fallback` for every language: a translated misconception name, a dash, and
+ *  then a paragraph of English inside an Arabic or Bengali sentence. Eight call
+ *  sites used it that way while `mcCoachingNative` enforced the opposite rule
+ *  one file over, so the product had two behaviours for one fact.
+ *
+ *  It reads the dictionary DIRECTLY rather than through `translator()`, because
+ *  `translator` falls back to English — the exact splice this function exists to
+ *  prevent. English still gets the catalogue text: it IS the source language.
+ *
+ *  The PILOT's beliefs are now translated into es, fr, pt and de (the four the
+ *  project can vouch for — the SET is asserted by the suite rather than counted
+ *  here, because a number in a comment is a claim that rots the moment a
+ *  belief is added); every other language, and every belief
+ *  outside the pilot, still falls to the empty branch — a reader sees the
+ *  belief's NAME and no English paragraph under it. Nothing here needs editing
+ *  when the next language lands: the line is read from its own dictionary. */
 function mcCoaching(lang, id, fallback) {
-    const v = (0, i18n_1.translator)(lang)(`mcp.${id}`);
-    return v === `mcp.${id}` ? fallback : v;
+    const own = i18n_1.DICTS[lang]?.[`mcp.${id}`];
+    if (typeof own === "string" && own.trim() !== "")
+        return own;
+    return lang === "en" ? fallback : "";
 }
 /** The coaching line for display INSIDE a translated sentence.
  *
@@ -2007,10 +2065,33 @@ function mcCoaching(lang, id, fallback) {
  *  translated in every dictionary, so the sentence still names what went wrong.
  *  English reads the catalogue itself — it IS the source text. */
 function mcCoachingNative(lang, id) {
-    if (lang === "en")
-        return misconceptions_1.MISCONCEPTIONS_BY_ID[id]?.coaching ?? "";
-    const v = (0, i18n_1.translator)(lang)(`mcp.${id}`);
-    return v === `mcp.${id}` ? "" : v;
+    return mcCoaching(lang, id, misconceptions_1.MISCONCEPTIONS_BY_ID[id]?.coaching ?? "");
+}
+/** WHAT A QUESTION'S DRAWING SHOWS, in the reader's own language.
+ *
+ *  The SVG is `aria-hidden`, and the claim that made that safe — "the stem says
+ *  everything the picture says" — was measured and was false for one family:
+ *  `scatter-correlation` plots the data, so its points appear nowhere in the
+ *  stem. This is the sentence that closes the gap, and it is composed from the
+ *  spec (`lib/figures.ts#figureCaption`) so its numbers are the drawn ones.
+ *
+ *  EMPTY STRING WHEN THE LANGUAGE HAS NO LETTERS FOR IT, the same rule as
+ *  coaching: a translated page must not print an English sentence under a
+ *  translated heading. Unlike coaching, the KEYS are asserted present in all
+ *  fifteen dictionaries, so in practice every language answers with its own
+ *  sentence — and a kind with no template answers null, which the suite turns
+ *  into a failure rather than a silent picture nobody can hear.
+ *
+ *  Placeholders are filled here rather than in each renderer, so the app and
+ *  the offline twin cannot punctuate the same sentence differently. */
+function figureCaptionText(lang, spec) {
+    const c = (0, figures_1.figureCaption)(spec);
+    if (!c)
+        return "";
+    const own = i18n_1.DICTS[lang]?.[c.key] ?? i18n_1.DICTS.en?.[c.key] ?? "";
+    if (!own)
+        return "";
+    return own.replace(/\{(\w+)\}/g, (m, k) => (k in c.values ? c.values[k] : m));
 }
 
 });
@@ -4835,6 +4916,470 @@ function generateImpactReport(perLearner) {
 }
 
 });
+__def("figures.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SURD_SIDE = exports.RECT_W = exports.PIE_R = exports.PIE_SIDE = exports.BAL_H = exports.BAL_W = exports.NL_PAD = exports.NL_H = exports.NL_W = exports.FIGURE_KINDS = void 0;
+exports.numberLineLayout = numberLineLayout;
+exports.panLabel = panLabel;
+exports.balanceLayout = balanceLayout;
+exports.pieLayout = pieLayout;
+exports.figureCaption = figureCaption;
+exports.areaTerm = areaTerm;
+exports.rectangleLayout = rectangleLayout;
+exports.surdSquareLayout = surdSquareLayout;
+exports.parabolaLayout = parabolaLayout;
+exports.gradientLayout = gradientLayout;
+exports.FIGURE_KINDS = [
+    "axes",
+    "pie",
+    "right-triangle",
+    "number-line",
+    "balance",
+    "rectangle",
+    "surd-square",
+];
+// ── number line ─────────────────────────────────────────────────────────────
+exports.NL_W = 380;
+exports.NL_H = 132;
+exports.NL_PAD = 28;
+function numberLineLayout(spec) {
+    const min = Math.min(spec.min, spec.max);
+    const max = Math.max(spec.min, spec.max);
+    const span = max - min;
+    const x = (v) => (span === 0 ? exports.NL_W / 2 : exports.NL_PAD + ((v - min) / span) * (exports.NL_W - exports.NL_PAD * 2));
+    // A tick on every integer where the range allows, otherwise every whole step
+    // that still leaves room for its own label. The tick values are what the
+    // learner reads the jump against, so they cannot be decorative.
+    const step = span <= 20 ? 1 : Math.max(1, Math.ceil(span / 16));
+    const ticks = [];
+    for (let v = Math.ceil(min); v <= Math.floor(max); v += step) {
+        ticks.push({ value: v, x: x(v) });
+    }
+    const direction = spec.to > spec.from ? "right" : spec.to < spec.from ? "left" : "none";
+    return {
+        width: exports.NL_W,
+        height: exports.NL_H,
+        baselineY: 62,
+        ticks,
+        fromX: x(spec.from),
+        toX: x(spec.to),
+        direction,
+        span: Math.abs(x(spec.to) - x(spec.from)),
+    };
+}
+// ── balance ─────────────────────────────────────────────────────────────────
+exports.BAL_W = 340;
+exports.BAL_H = 206;
+const BAL_BEAM_Y = 54;
+const BAL_PAN_Y = 96;
+const BAL_ARM = 96;
+/* THE VESSEL'S OWN MEASUREMENTS, in one place.
+ *
+ * The pan used to be a fixed 96 × 20 trapezoid with the contents placed by
+ * arithmetic that did not know about it: the bags row sat ABOVE the rim
+ * (`BAL_PAN_Y - bagH - 4`) and the weight rows marched DOWN past a floor that
+ * was twenty pixels under the lip. A screenshot of 3x + 5 = 20 showed three
+ * bags floating over a pan and sixteen of the twenty weights below it — a
+ * picture of an equation the lesson does not state. The layout now measures its
+ * contents FIRST, sizes the vessel to them, and lays them out from the FLOOR up,
+ * so "the weights are in the pan" is true at every count rather than at zero. */
+const PAN_PAD = 12; // clearance between the contents and the rim
+const PAN_FLOOR_INSET = 6; // the vessel narrows slightly at the floor
+const PAN_MIN_W = 104;
+const PAN_MIN_DEPTH = 48;
+const BAG_W = 18;
+const BAG_H = 26;
+const BAG_GAP_ABOVE_UNITS = 8;
+const UNIT_R = 7;
+const UNIT_GAP = 4;
+const UNIT_PITCH = UNIT_R * 2 + UNIT_GAP; // one weight plus its gap
+const UNITS_PER_ROW = 5;
+const ROW_PITCH = UNIT_R * 2 + 3;
+/**
+ * WHAT A PAN HOLDS, WRITTEN AS THE EQUATION DOES.
+ *
+ * Three bags and five weights is `3x + 5`; no bags is just `20`. A coefficient of
+ * 1 is not written ("1x" is a notation nobody uses), and a pan holding nothing
+ * says `0` rather than an empty string — an empty label on a pan reads as a
+ * drawing error, not as zero.
+ *
+ * Pure and exported because the renderer must not compute it: a label assembled
+ * inside JSX is a label no test can compare against the counts it sits under.
+ */
+function panLabel(pan, variable = "x") {
+    const bags = Math.max(0, Math.floor(pan.bags));
+    const units = Math.max(0, Math.floor(pan.units));
+    const bag = bags === 0 ? "" : bags === 1 ? variable : `${bags}${variable}`;
+    if (bag === "")
+        return `${units}`;
+    return units === 0 ? bag : `${bag} + ${units}`;
+}
+function balanceLayout(spec) {
+    const cx = exports.BAL_W / 2;
+    const variable = spec.variable && spec.variable.trim() ? spec.variable.trim() : "x";
+    // 1 · MEASURE EACH SIDE. How many rows of weights, how wide the widest row is,
+    // and how tall the contents are — all before a single coordinate is chosen.
+    const measure = (bags, units) => {
+        const b = Math.max(0, Math.floor(bags));
+        const u = Math.max(0, Math.floor(units));
+        const rows = Math.ceil(u / UNITS_PER_ROW);
+        const widest = Math.max(b > 0 ? (b - 1) * UNIT_PITCH + BAG_W : 0, rows > 0 ? (Math.min(u, UNITS_PER_ROW) - 1) * UNIT_PITCH + UNIT_R * 2 : 0);
+        const contentH = (b > 0 ? BAG_H + (rows > 0 ? BAG_GAP_ABOVE_UNITS : 0) : 0) + rows * ROW_PITCH;
+        return { b, u, rows, width: Math.max(PAN_MIN_W, widest + PAN_PAD * 2), contentH };
+    };
+    const shapeL = measure(spec.left.bags, spec.left.units);
+    const shapeR = measure(spec.right.bags, spec.right.units);
+    // ONE VESSEL SIZE FOR BOTH PANS, and one depth: a balance whose pans are
+    // different sizes reads as two different containers, which is noise in a
+    // picture whose job is "the same operation on both sides".
+    const panW = Math.max(shapeL.width, shapeR.width);
+    const depth = Math.max(PAN_MIN_DEPTH, PAN_PAD * 2 + Math.max(shapeL.contentH, shapeR.contentH));
+    const bottomY = BAL_PAN_Y + depth;
+    const pan = (side, shape) => {
+        const { b, u, rows } = shape;
+        const centreX = side === "left" ? cx - BAL_ARM : cx + BAL_ARM;
+        // 2 · LAY THE CONTENTS OUT FROM THE FLOOR UP, so they rest IN the vessel at
+        // every count. The weight block is bottom-aligned; the bags stand on top of
+        // it, and an empty pan simply has nothing to place.
+        const floorY = bottomY - PAN_PAD;
+        const unitRow = Array.from({ length: u }, (_, i) => {
+            const row = Math.floor(i / UNITS_PER_ROW);
+            const inRow = Math.min(UNITS_PER_ROW, u - row * UNITS_PER_ROW);
+            const idx = i % UNITS_PER_ROW;
+            return {
+                x: centreX - ((inRow - 1) * UNIT_PITCH) / 2 + idx * UNIT_PITCH,
+                y: floorY - UNIT_R - (rows - 1 - row) * ROW_PITCH,
+            };
+        });
+        const bagBlockTop = floorY - rows * ROW_PITCH;
+        // BAGS ARE CENTRED BY THEIR OWN BOX, not by a shared corner: `x` is a rect's
+        // LEFT edge, so spacing the left edges evenly shifted the whole row half a
+        // bag to the right of the pan's centre (measured in the screenshot: three
+        // bags sat over the right half of the weights). Centres are spaced, then the
+        // width is subtracted back off.
+        const bagRow = Array.from({ length: b }, (_, i) => ({
+            x: centreX + (i - (b - 1) / 2) * UNIT_PITCH - BAG_W / 2,
+            y: bagBlockTop - BAG_H - (rows > 0 ? BAG_GAP_ABOVE_UNITS : 0),
+        }));
+        // 3 · THE LABEL GOES UNDER THE VESSEL, never inside it: it is a caption for
+        // the contents, and writing it through the bottom row of weights is the
+        // defect the current layout used to have.
+        const labelY = bottomY + 18;
+        return {
+            side,
+            topY: BAL_PAN_Y,
+            centreX,
+            width: panW,
+            depth,
+            bottomY,
+            bags: bagRow,
+            units: unitRow,
+            label: panLabel({ bags: b, units: u }, variable),
+            labelY,
+        };
+    };
+    const pans = [pan("left", shapeL), pan("right", shapeR)];
+    // A pan deep enough to need more rows pushes the labels down, and the picture
+    // grows with them rather than clipping the sentence it exists to show.
+    const height = Math.max(exports.BAL_H, ...pans.map((p) => p.labelY + 12));
+    return {
+        width: exports.BAL_W,
+        height,
+        beam: { x1: cx - BAL_ARM, x2: cx + BAL_ARM, y: BAL_BEAM_Y },
+        fulcrum: { x: cx, y: BAL_BEAM_Y, baseY: height - 18 },
+        pans,
+        left: { bags: spec.left.bags, units: spec.left.units },
+        right: { bags: spec.right.bags, units: spec.right.units },
+        bagDifference: spec.left.bags - spec.right.bags,
+        unitDifference: spec.left.units - spec.right.units,
+    };
+}
+// ── pie ─────────────────────────────────────────────────────────────────────
+//
+// ONE CIRCLE, ONE SHADED SECTOR — and, when the spec asks, the equal cuts that
+// make the same shading readable as a different count of pieces.
+//
+// The geometry is here rather than in the two renderers because there ARE two
+// (the React component and the offline twin) and each used to compute its own
+// arc: the sector path, the start angle at 12 o'clock, the large-arc flag, all
+// written twice in two languages. Two copies of one arc is one copy too many
+// when the claim the drawing makes is "this shaded part IS that fraction": a
+// rounded degree in one renderer and not the other is a picture that disagrees
+// with the caption beside it on every device but the author's.
+//
+// `slices` is the part a learner can read. 240° shaded is "a lot"; 240° shaded
+// with the circle cut into six equal pieces is FOUR of them, which is the fact
+// `fraction-ops` needs before it can add 5/6.
+exports.PIE_SIDE = 240;
+exports.PIE_R = 82;
+function pieLayout(spec) {
+    const cx = exports.PIE_SIDE / 2;
+    const cy = exports.PIE_SIDE / 2;
+    const degrees = Math.max(0, Math.min(360, Number(spec.sectorDegrees) || 0));
+    const start = 0; // 12 o'clock; the arc sweeps clockwise from it
+    const end = degrees;
+    const at = (deg) => {
+        const a = -Math.PI / 2 + (deg * Math.PI) / 180;
+        return [cx + exports.PIE_R * Math.cos(a), cy + exports.PIE_R * Math.sin(a)];
+    };
+    // Equal cuts: the count has to DIVIDE the circle to give equal pieces, so a
+    // fractional or absurd count draws none rather than a ragged last slice.
+    const n = spec.slices == null ? 0 : Math.round(Number(spec.slices));
+    const exact = n >= 2 && n <= 24 && Number.isFinite(n) && Math.abs(n - Number(spec.slices)) < 1e-9;
+    const sliceDegrees = exact ? 360 / n : 0;
+    const divisions = exact ? Array.from({ length: n }, (_, i) => i * sliceDegrees) : [];
+    const showDegrees = spec.showDegrees !== false;
+    const labelText = degrees <= 0
+        ? ""
+        : spec.label && degrees < 360
+            ? showDegrees
+                ? `${spec.label} · ${degrees}°`
+                : spec.label
+            : showDegrees
+                ? `${degrees}°`
+                : "";
+    return {
+        width: exports.PIE_SIDE,
+        height: exports.PIE_SIDE,
+        cx,
+        cy,
+        radius: exports.PIE_R,
+        degrees,
+        start,
+        end,
+        arcFrom: at(start),
+        arcTo: at(end),
+        largeArc: degrees > 180,
+        full: degrees >= 360,
+        divisions,
+        sliceDegrees,
+        labelText,
+    };
+}
+function figureCaption(spec) {
+    if (spec.kind === "axes") {
+        // EVERY plotted point, because for a scatter plot the points ARE the data.
+        // A blank grid would be a caption of the frame rather than of the chart.
+        const points = (spec.points ?? []).map((p) => `(${p.at[0]}, ${p.at[1]})`);
+        return { key: "fig.cap.axes", values: { points: points.join(", ") || "—" } };
+    }
+    if (spec.kind === "right-triangle") {
+        const unit = spec.unit ?? "";
+        return { key: "fig.cap.triangle", values: { a: String(spec.legA), b: String(spec.legB), unit } };
+    }
+    return null;
+}
+// ── rectangle (area model) ──────────────────────────────────────────────────
+exports.RECT_W = 340;
+const RECT_MAX_H = 200;
+const RECT_MARGIN = 34;
+/** WHAT ONE CELL OF AN AREA MODEL STANDS FOR.
+ *
+ *  The cells are the teaching, not decoration: 3 rows of an x-band and a 4-band
+ *  is `3x` beside `12`, and seeing `12` is what makes "the 4 is multiplied too"
+ *  a fact rather than an assertion. So the label is the PRODUCT of the two band
+ *  labels, and it is computed rather than authored — a spec cannot pair a 3 with
+ *  a 4 and print 34.
+ *
+ *  A coefficient of 1 is dropped (`1x` is `x`), which is the convention every
+ *  textbook uses and the one a learner will be expected to write. */
+/** A band label read as coefficient × symbol^power, so two labels can be
+ *  MULTIPLIED rather than glued together. `2x` is 2·x¹, `x²` is 1·x², `3` is 3
+ *  with no symbol. Anything this cannot read answers null and the caller falls
+ *  back to concatenation: an author's unusual label must never silently become a
+ *  wrong product, which is the whole reason this function exists. */
+function readTerm(t) {
+    const s = t.trim().replace(/\s+/g, "");
+    if (s === "")
+        return null;
+    const m = s.match(/^(\d*)([A-Za-z]?)([⁰¹²³⁴⁵⁶⁷⁸⁹]+|\^\d+)?$/);
+    if (!m)
+        return null;
+    const [, coefRaw, symRaw, powRaw] = m;
+    if (coefRaw === "" && symRaw === "" && !powRaw)
+        return null;
+    let pow = 1;
+    if (powRaw) {
+        const SUP = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+        pow = powRaw.startsWith("^")
+            ? Number(powRaw.slice(1))
+            : [...powRaw].reduce((acc, ch) => acc * 10 + SUP.indexOf(ch), 0);
+        if (!Number.isFinite(pow))
+            return null;
+    }
+    return { coef: coefRaw === "" ? 1 : Number(coefRaw), sym: symRaw, pow: symRaw === "" ? 0 : pow };
+}
+/** The superscript form of a power, for a label a learner reads as maths. */
+const SUP_DIGITS = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"];
+function superscript(n) {
+    return n <= 9 ? SUP_DIGITS[n] : `^${n}`;
+}
+function writeTerm(coef, sym, pow) {
+    if (sym === "")
+        return String(coef);
+    const head = coef === 1 ? "" : String(coef);
+    return pow === 1 ? `${head}${sym}` : `${head}${sym}${superscript(pow)}`;
+}
+function areaTerm(row, col) {
+    const r = row.trim();
+    const c = col.trim();
+    const a = readTerm(r);
+    const b = readTerm(c);
+    // A label this cannot read is left exactly as it was written, joined — the old
+    // behaviour, kept for the one case where guessing would be worse.
+    if (!a || !b)
+        return `${r}${c}`;
+    if (a.sym === "" || b.sym === "") {
+        // One side is a pure number: it scales the other, and a pure number times a
+        // pure number is the plain product (the 3 × 4 corner that must read 12).
+        return writeTerm(a.coef * b.coef, a.sym || b.sym, a.sym ? a.pow : b.pow);
+    }
+    if (a.sym !== b.sym)
+        return `${r}${c}`;
+    // Both sides carry the SAME letter, which is what an expansion grid needs:
+    // x × x is x², not "xx". The coefficients multiply and the powers add, which
+    // is the index law the very next concept teaches.
+    return writeTerm(a.coef * b.coef, a.sym, a.pow + b.pow);
+}
+function rectangleLayout(spec) {
+    const widthUnits = spec.widthParts.reduce((s, p) => s + Math.max(0, p.units), 0) || 1;
+    const heightUnits = spec.heightParts.reduce((s, p) => s + Math.max(0, p.units), 0) || 1;
+    // The rectangle keeps its parts' own PROPORTIONS, and the frame keeps the
+    // whole shape's: a 3 × 5 model drawn square would teach the wrong area.
+    const boxW = exports.RECT_W - RECT_MARGIN * 2;
+    let boxH = (boxW * heightUnits) / widthUnits;
+    let width = exports.RECT_W;
+    if (boxH > RECT_MAX_H) {
+        boxH = RECT_MAX_H;
+        width = Math.min(exports.RECT_W, (boxH * widthUnits) / heightUnits + RECT_MARGIN * 2);
+    }
+    const drawW = width - RECT_MARGIN * 2;
+    const x0 = RECT_MARGIN;
+    const y0 = RECT_MARGIN / 2;
+    const colX = [x0];
+    for (const p of spec.widthParts)
+        colX.push(colX[colX.length - 1] + (drawW * Math.max(0, p.units)) / widthUnits);
+    const rowY = [y0];
+    for (const p of spec.heightParts)
+        rowY.push(rowY[rowY.length - 1] + (boxH * Math.max(0, p.units)) / heightUnits);
+    const marked = new Set(spec.emphasis ?? []);
+    const cells = [];
+    spec.heightParts.forEach((hp, r) => {
+        spec.widthParts.forEach((wp, c) => {
+            const label = areaTerm(hp.label, wp.label);
+            cells.push({
+                x: colX[c],
+                y: rowY[r],
+                w: colX[c + 1] - colX[c],
+                h: rowY[r + 1] - rowY[r],
+                label,
+                emphasis: marked.has(label),
+            });
+        });
+    });
+    return { width, height: boxH + RECT_MARGIN, cells, colX, rowY, widthUnits, heightUnits };
+}
+// ── a square cut into equal squares (a surd simplification) ─────────────────
+//
+// √50 = 5√2 is a rule learners memorise and cannot see. Drawn, it is a tiling: a
+// square of area 50 is 25 squares of area 2 laid 5 by 5, so one edge is five of
+// them — five √2s — long. The figure states the AREA and the NUMBER of parts and
+// computes the rest, so it cannot label an edge with a value the tiling does not
+// have.
+exports.SURD_SIDE = 300;
+const SURD_PAD = 36;
+function surdSquareLayout(spec) {
+    const n = Math.round(Math.sqrt(Math.max(0, spec.parts)));
+    const exact = n > 0 && n * n === spec.parts && spec.total > 0;
+    const cellArea = exact ? spec.total / spec.parts : NaN;
+    const box = exports.SURD_SIDE - SURD_PAD * 2;
+    const cellPx = exact ? box / n : 0;
+    const cells = exact
+        ? Array.from({ length: n * n }, (_, i) => ({
+            x: SURD_PAD + (i % n) * cellPx,
+            y: SURD_PAD + Math.floor(i / n) * cellPx,
+            w: cellPx,
+            h: cellPx,
+        }))
+        : [];
+    const num = (v) => (Number.isInteger(v) ? String(v) : String(Number(v.toFixed(3))));
+    const sideLabel = !exact ? "" : cellArea === 1 ? num(n) : n === 1 ? `√${num(spec.total)}` : `${num(n)}√${num(cellArea)}`;
+    return {
+        width: exports.SURD_SIDE,
+        height: exports.SURD_SIDE,
+        n,
+        exact,
+        total: spec.total,
+        cellArea,
+        cells,
+        sideLabel,
+        cellLabel: exact ? num(cellArea) : "",
+    };
+}
+function parabolaLayout(spec) {
+    const { a, b, c, xMin, xMax, yMin, yMax } = spec;
+    const f = (x) => a * x * x + b * x + c;
+    const n = Math.max(2, Math.min(2000, Math.round(spec.samples ?? 240)));
+    const eps = 1e-9;
+    const runs = [];
+    let run = [];
+    for (let i = 0; i <= n; i++) {
+        const x = xMin + ((xMax - xMin) * i) / n;
+        const y = f(x);
+        if (y >= yMin - eps && y <= yMax + eps) {
+            run.push([x, Math.min(yMax, Math.max(yMin, y))]);
+        }
+        else if (run.length) {
+            runs.push(run);
+            run = [];
+        }
+    }
+    if (run.length)
+        runs.push(run);
+    const flat = Math.abs(a) < 1e-12; // not a parabola: a line, or a constant
+    const discriminant = b * b - 4 * a * c;
+    let roots;
+    if (flat) {
+        roots = Math.abs(b) < 1e-12 ? [] : [Number((-c / b).toFixed(12))];
+    }
+    else if (Math.abs(discriminant) <= eps) {
+        roots = [Number((-b / (2 * a)).toFixed(12))];
+    }
+    else if (discriminant < 0) {
+        roots = [];
+    }
+    else {
+        const s = Math.sqrt(discriminant);
+        roots = [Number(((-b - s) / (2 * a)).toFixed(12)), Number(((-b + s) / (2 * a)).toFixed(12))].sort((p, q) => p - q);
+    }
+    const vx = flat ? 0 : -b / (2 * a);
+    return {
+        // One point draws nothing, so a "run" of one is not a curve — dropping it
+        // keeps the renderer from emitting a degenerate polyline.
+        runs: runs.filter((r) => r.length >= 2),
+        roots,
+        vertex: { x: vx, y: f(vx) },
+        opens: a >= 0 ? "up" : "down",
+        discriminant,
+    };
+}
+function gradientLayout(g) {
+    const run = g.to[0] - g.from[0];
+    const rise = g.to[1] - g.from[1];
+    const num = (v) => (Number.isInteger(v) ? String(v) : String(Number(v.toFixed(3))));
+    return {
+        from: g.from,
+        to: g.to,
+        corner: [g.to[0], g.from[1]],
+        run,
+        rise,
+        runLabel: `run ${num(Math.abs(run))}`,
+        riseLabel: `rise ${num(Math.abs(rise))}`,
+    };
+}
+
+});
 __def("genome.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -4863,7 +5408,7 @@ const MATHS = [
     ["negatives", 0, "Negative numbers", "Numbers below zero, and how operations behave with them.", "A negative is an amount below zero — temperatures, debt, depths. The rules that matter: subtracting a negative adds (5 − (−3) = 8), multiplying two negatives makes a positive ((−2) × (−3) = 6), and one negative makes a negative. Picture a number line: adding moves right, subtracting moves left.", [], ["neg-slip"]],
     ["fractions", 0, "Fractions", "Equal parts of a whole, written as a ratio of two integers.", "A fraction a/b means a parts, each of size 1/b. The bottom number names the size of the part; the top counts them. 1/4 of a pizza is bigger than 1/8 because quarters are bigger slices. Equivalent fractions (1/2 = 3/6) multiply top and bottom by the same number — the value doesn't change because you're scaling both part-size and count equally.", [], ["frac-slice"]],
     ["fraction-ops", 1, "Fraction arithmetic", "Adding, subtracting, multiplying and dividing fractions.", "Add or subtract with a common denominator: 1/3 + 1/4 = 4/12 + 3/12 = 7/12. Multiply straight across: 2/3 × 3/5 = 6/15 = 2/5. Divide by flipping the second fraction and multiplying: 2/3 ÷ 1/6 = 2/3 × 6/1 = 4. The flip works because dividing by 1/6 asks 'how many sixths fit?' — and there are 6 sixths in every whole.", ["fractions"], ["denom-add"]],
-    ["decimals", 0, "Decimals", "Fractions with denominators of ten, written in place value.", "0.3 is 3/10; 0.07 is 7/100. Decimal place value extends the same left-right logic as whole numbers. Comparing decimals: line up place value — 0.09 < 0.1 even though 9 > 1. Multiplying shifts the point: 0.3 × 0.2 = 0.06 because tenths times tenths are hundredths.", []],
+    ["decimals", 0, "Decimals", "Fractions with denominators of ten, written in place value.", "0.3 is 3/10; 0.07 is 7/100. Decimal place value extends the same left-right logic as whole numbers. Comparing decimals: line up place value — 0.09 < 0.1 even though 9 > 1. Multiplying shifts the point: 0.3 × 0.2 = 0.06 because tenths times tenths are hundredths.", [], ["dec-point"]],
     ["percentages", 1, "Percentages", "Fractions out of 100, used for comparisons, change and interest.", "Percent means 'per hundred': 45% = 45/100 = 0.45. Percentage of an amount: 15% of 60 = 0.15 × 60 = 9. Percentage change = (new − old)/old × 100. A classic trap: a 20% rise then a 20% fall does not return to the start — 100 → 120 → 96 — because the second percentage acts on a different base.", ["fractions", "decimals"], ["pct-base"]],
     ["ratio", 1, "Ratio", "Comparing parts to each other rather than to a whole.", "A ratio 3 : 2 says one part is 3 units for every 2 of the other — it compares part to part, while a fraction compares part to whole. Sharing 250 g in ratio 3 : 2: there are 5 parts, each 50 g, so 150 g and 100 g. Scaling a recipe for 4 people to 6 people multiplies every quantity by 6/4 — every part scales together.", []],
     ["proportion", 1, "Proportion", "Relationships where two quantities scale together.", "Direct proportion: y = kx — double one, double the other (cost of 5 kg at a fixed price per kg). Inverse proportion: y = k/x — double one, halve the other (workers vs time for a fixed job). The constant of proportionality k is the engine of the relationship; finding it is always step one.", ["ratio"], ["inv-prop"]],
@@ -4876,7 +5421,7 @@ const MATHS = [
     ["linear-equations", 1, "Linear equations", "Solving for an unknown with inverse operations.", "Solve 3x + 5 = 20 by undoing operations in reverse order: subtract 5 (3x = 15), divide by 3 (x = 5). Whatever you do to one side, do to the other — the equation is a balance. Two-step, brackets, unknowns on both sides (5x = 2x + 9) all reduce to the same discipline.", ["algebra-expressions"], ["bal-slip"]],
     ["inequalities", 2, "Inequalities", "Comparisons and regions: <, ≤, >, ≥.", "x > 3 is every number bigger than 3, drawn as an open circle with an arrow. Solving works like equations, with one famous exception: multiplying or dividing by a negative flips the sign (−2x < 6 becomes x > −3). Compound forms like 3 ≤ x < 8 describe a range; inequalities in two variables describe regions of the plane.", ["linear-equations"], ["ineq-flip"]],
     ["simultaneous", 2, "Simultaneous equations", "Finding values that satisfy two equations at once.", "Two unknowns need two independent equations. Elimination lines terms up and subtracts: 3x + 2y = 16 and 3x + y = 10, subtract to get y = 6, then back-substitute. Substitution solves one equation for a letter and inserts it into the other. Graphically, the solution is the single point where the two lines cross.", ["linear-equations"], ["sub-sign"]],
-    ["coordinates", 1, "Coordinates & graphs", "Points on a grid, and curves as pictures of equations.", "A coordinate pair (3, −2) pinpoints a location: 3 right, 2 down from the origin. The x-axis runs horizontally, y vertically. Plotting an equation's points and joining them reveals its shape — lines for linear, parabolas for quadratics. Graphs turn algebra into geometry you can see.", ["negatives"]],
+    ["coordinates", 1, "Coordinates & graphs", "Points on a grid, and curves as pictures of equations.", "A coordinate pair (3, −2) pinpoints a location: 3 right, 2 down from the origin. The x-axis runs horizontally, y vertically. Plotting an equation's points and joining them reveals its shape — lines for linear, parabolas for quadratics. Graphs turn algebra into geometry you can see.", ["negatives"], ["axis-swap"]],
     ["straight-lines", 2, "Straight line graphs", "Gradient and intercept: y = mx + c.", "In y = mx + c, m is the gradient (rise over run — how much y grows per unit of x) and c is where the line crosses the y-axis. Parallel lines share m; perpendicular lines multiply to −1. From two points, m = (y₂ − y₁)/(x₂ − x₁). Every real-world rate — speed, cost per item, fuel use — is a gradient.", ["coordinates", "linear-equations"], ["grad-run"]],
     ["quadratics", 3, "Quadratic equations", "Solving equations of the form ax² + bx + c = 0.", "Quadratics can have two, one, or no real solutions — visible as where the parabola cuts the x-axis. Solve by factorising (x² − 5x + 6 = 0 → (x−2)(x−3) = 0 → x = 2 or 3), by completing the square, or by the quadratic formula x = (−b ± √(b² − 4ac)) / 2a. The discriminant b² − 4ac tells you how many solutions exist before you solve.", ["algebra-expand", "straight-lines"], ["lost-root"]],
     ["sim-equations-quad", 3, "Simultaneous with quadratics", "Line–curve intersections solved algebraically.", "Substitute the linear equation into the quadratic: y = x + 3 into y = x² + 1 gives x + 3 = x² + 1, a quadratic in x alone. Solve it, then back-substitute for y. Each real pair (x, y) is an intersection point of the line and the curve — up to two for a line and a quadratic.", ["quadratics", "simultaneous"], ["lost-root"]],
@@ -6093,10 +6638,16 @@ const en = {
     "plan.traps": "Where this goes wrong",
     "plan.reviewed": "Checked by a subject teacher",
     "plan.unreviewed": "Not yet checked by a subject teacher",
+    "lesson.slipTitle": "Start with the slip from last time",
+    "lesson.slipLead": "You have made this mistake on this idea before, so the lesson opens with it instead of leaving you to meet it again in the practice.",
+    "lesson.slipClears": "This part disappears once you answer three in a row correctly.",
+    "lesson.slipProgress": "Clean answers in a row: {done} of {need}",
+    "lesson.slipRetired": "the slip you were making here has been retired.",
     "cur.covers": "{n} of the {total} concepts here belong to your course.",
     "cur.outside": "Not in your course",
     "cur.outsideNote": "{n} concepts here are outside {spec}. You can still read them, but they are not part of your syllabus.",
     "mc.neg-slip": "Sign slip with negatives",
+    "mc.dec-point": "The decimal point is dropped or moved",
     "mc.frac-slice": "Bigger denominator = bigger slice",
     "mc.denom-add": "Adds denominators",
     "mc.pct-base": "Wrong percentage base",
@@ -6119,6 +6670,7 @@ const en = {
     "mc.unit-sq": "Area/volume unit confusion",
     "mc.sf-area": "Applies scale factor to area directly",
     "mc.vec-dir": "Ignores vector direction",
+    "mc.axis-swap": "Swaps the coordinate order",
     "mc.sum-one": "Probabilities don't sum to 1",
     "mc.ind-dep": "Assumes independence",
     "mc.outlier-mean": "Mean everywhere",
@@ -6153,6 +6705,7 @@ const en = {
     // anything composing a sentence from `mc.<id>` shows the raw key.
     "curr.unmapped": "Your country's national course is not mapped yet — international routes are shown instead.",
     "nav.currTitle": "Your curriculum",
+    "subs.note": "Add or remove the subjects you study. Removing one stops its practice and papers — the work you have already done is kept, but you will choose its course again if you add it back.",
     "curr.title": "Your curriculum",
     "curr.sub": "Choose the course and tier you actually sit. OpenMind then knows which ideas are yours, how deep to pitch practice, and the words your curriculum uses.",
     "course.mapPending": "Syllabus mapping: OpenMind's own, not yet reviewed by a subject specialist.",
@@ -6187,7 +6740,8 @@ const en = {
     "tr.story1": " plus the same amount every month. After ",
     "tr.story2": " months the total paid is ",
     "tr.story3": ". What is the monthly amount?",
-    "tr.whichAnswer": "which of these questions gives this answer",
+    "tr.whichAnswer": "Which of these questions has {v} as its answer?",
+    "tr.whichSolution": "Which equation has {var} = {v} as its solution?",
     "mm.strong": "Strong",
     "mm.developing": "Developing",
     "mm.learning": "Learning",
@@ -6344,6 +6898,7 @@ const en = {
     "lq.interface": "Interface",
     "lq.teaching": "Teaching",
     "lq.teachNote": "Concept names, blurbs and misconception names render natively; full lesson paragraphs and generated questions are English-authored.",
+    "lq.teachNoteAll": "Only the interface is translated: this lesson, its questions and its explanations are in English.",
     "lq.answer": "Answer",
     "lq.school": "School",
     "home.haveProfile": "Already have a profile?",
@@ -6370,10 +6925,12 @@ const en = {
     "home.feat.voice": "Voice & photo",
     "home.feat.voiceDesc": "Speak or take a photo — OpenMind listens and matches.",
     "ask.reading": "Reading…",
-    "ask.whatTesting": "What is this testing?",
+    "ask.whatTesting": "Skill",
+    "ask.hint": "Give me a hint",
+    "ask.explainQ": "Explain what this question is asking",
     "ask.takePhoto": "Take a photo",
     "ask.thinkTests": "I think this tests",
-    "ask.workThrough": "work it through",
+    "ask.workThrough": "Work it through",
     "ask.photoAttached": "Photo attached — describe the question in words or voice above, then tap Solve.",
     "onb.setup": "Set up your learning",
     "onb.lead": "Tell us a few things and OpenMind adapts: teaching language, examples, difficulty and your learning path. An account saves this everywhere — or continue without one.",
@@ -6562,6 +7119,8 @@ const en = {
     "coach.noticed": "I've noticed something.",
     "coach.misconception": "You've made the same \"{name}\" slip a few times.",
     "coach.fixIt": "Let's fix it",
+    "fig.cap.axes": "A coordinate grid with these points marked: {points}.",
+    "fig.cap.triangle": "A right-angled triangle whose two legs are labelled {a}{unit} and {b}{unit}.",
     "intent.exams": "My exams",
     "intent.understand": "Understand a subject",
     "intent.project": "Build a project",
@@ -6712,7 +7271,7 @@ const en = {
     "fb.answerIs": "The answer is",
     "work.label": "Your working",
     "work.ph": "Write your steps here…",
-    "work.note": "Stays on this page — we never read it.",
+    "work.note": "Private scratch paper — kept in this tab, never sent, saved or marked.",
     "answer.unitHint": "in {unit}",
     "learn.check": "Check",
     "learn.correct": "Correct",
@@ -7187,6 +7746,7 @@ const en = {
     "sess.eyebrow": "Learning session",
     "sess.lead": "Short session. At the end, OpenMind shows what changed and what to do next.",
     "sess.qOf": "Question {n} of {m}",
+    "sess.stepOf": "Step {n} of {m}",
     "sess.resume": "Unfinished session: {n} of {m}",
     "sess.noHints": "{c} of {n} with no hints",
     "sess.complete": "Session complete",
@@ -7228,7 +7788,7 @@ const en = {
     "an.weakest": "Practise this weakness",
     "an.none": "No marks lost on this paper — nothing to repair.",
     "err.eyebrow": "My mistakes",
-    "err.lead": "Every recurring slip OpenMind has recorded about you, with what to do about it.",
+    "err.lead": "Every slip OpenMind has recorded about you — the ones it can name, and the ones it can only count.",
     "err.none": "No mistakes recorded yet. Practise something, and this page fills itself in.",
     "err.why": "What went wrong",
     "err.last": "Last seen",
@@ -7446,6 +8006,34 @@ const en = {
     "acct.attach": "Add an account",
     "acct.guestLead": "Your work is saved on this device and held by OpenMind. Add an account and it comes with you — the same progress, the same record, and you can sign in on any device.",
     "acct.class": "Join a class",
+    "mom.title": "Momentum",
+    "mom.loading": "Reading your record…",
+    "mom.streak": "{n}-day streak",
+    "mom.none": "No run going yet",
+    "mom.weekLine": "{n} of the last 7 days",
+    "mom.startLine": "One answer today starts your run.",
+    "mom.keepLine": "One answer today keeps your run alive.",
+    "mom.todayDoneLine": "Today is counted.",
+    "mom.next": "Next",
+    "mom.of": "{n} of {total}",
+    "mom.noneYet": "Nothing earned yet — the first one is one answer away.",
+    "mom.foot": "Days with a recorded answer and counted milestones — not a measure of ability.",
+    "mom.m.first": "First answer recorded",
+    "mom.m.clean": "First hint-free answer",
+    "mom.m.concepts": "Five different ideas",
+    "mom.m.slip": "A slip you fixed",
+    "mom.m.streak3": "Three days in a row",
+    "mom.m.clean10": "Ten hint-free answers",
+    "mom.m.transfer": "Proved on a new question",
+    "mom.goal": "Today",
+    "mom.goalLeft": "{n} to go today.",
+    "mom.goalDone": "Target met — anything more still counts.",
+    "mom.best": "Best run: {n}.",
+    "mom.back": "Today starts a new one.",
+    "mom.justEarned": "Earned just now:",
+    "err.misses": "{w} of {n} answers missed",
+    "err.noBelief": "OpenMind recorded which answers were wrong here, but has no belief to name for them yet — practise here and one may be caught.",
+    "pp.set": "Set {s}",
 };
 const es = {
     "target.slipCheck": "Esta está pensada para pillar ese fallo.",
@@ -7464,11 +8052,17 @@ const es = {
     "plan.traps": "Aquí es donde se falla",
     "plan.reviewed": "Revisado por un profesor de la materia",
     "plan.unreviewed": "Aún no revisado por un profesor de la materia",
+    "lesson.slipTitle": "Empieza por el fallo de la última vez",
+    "lesson.slipLead": "Ya has cometido este error en esta idea, así que la lección empieza por él en lugar de dejarte encontrarlo otra vez en la práctica.",
+    "lesson.slipClears": "Esta parte desaparece cuando aciertas tres veces seguidas.",
+    "lesson.slipProgress": "Respuestas correctas seguidas: {done} de {need}",
+    "lesson.slipRetired": "el fallo que cometías aquí ya está superado.",
     "cur.covers": "{n} de los {total} conceptos de aquí forman parte de tu curso.",
     "cur.outside": "Fuera de tu curso",
     "cur.outsideNote": "{n} conceptos de aquí quedan fuera de {spec}. Puedes leerlos igualmente, pero no forman parte de tu temario.",
     "curr.unmapped": "El curso nacional de tu país aún no está mapeado: se muestran las rutas internacionales.",
     "nav.currTitle": "Tu currículo",
+    "subs.note": "Añade o quita las asignaturas que estudias. Si quitas una, se detienen su práctica y sus exámenes — el trabajo que ya has hecho se conserva, pero volverás a elegir su curso si la añades de nuevo.",
     "curr.title": "Tu currículo",
     "curr.sub": "Elige el curso y el nivel que realmente estudias. Así OpenMind sabe qué ideas son tuyas, con qué profundidad practicar y qué palabras usa tu currículo.",
     "course.mapPending": "Mapeo del temario: elaborado por OpenMind, aún no revisado por un especialista de la materia.",
@@ -7537,7 +8131,8 @@ const es = {
     "tr.story1": " más la misma cantidad cada mes. Tras ",
     "tr.story2": " meses el total pagado es ",
     "tr.story3": ". ¿Cuánto se paga al mes?",
-    "tr.whichAnswer": "¿cuál de estas preguntas da este resultado",
+    "tr.whichAnswer": "¿Cuál de estas preguntas tiene {v} como resultado?",
+    "tr.whichSolution": "¿Qué ecuación tiene {var} = {v} como solución?",
     "cb.place-value": "El significado de un dígito depende de su posición.",
     "cb.addition": "Unir cantidades en un total.",
     "cb.subtraction": "Quitar una cantidad o hallar la diferencia.",
@@ -7808,6 +8403,7 @@ const es = {
     "cn.ai-basics": "IA y aprendizaje automático",
     "cn.statistics-data": "Análisis y estadística de datos",
     "mc.neg-slip": "Error de signos con negativos",
+    "mc.dec-point": "Se pierde o se mueve la coma decimal",
     "mc.frac-slice": "Mayor denominador = porción mayor",
     "mc.denom-add": "Suma los denominadores",
     "mc.pct-base": "Base porcentual equivocada",
@@ -7829,6 +8425,7 @@ const es = {
     "mc.unit-sq": "Confusión de unidades de área/volumen",
     "mc.sf-area": "Aplica el factor de escala al área directo",
     "mc.vec-dir": "Ignora la dirección del vector",
+    "mc.axis-swap": "Invierte el orden de las coordenadas",
     "mc.sum-one": "Las probabilidades no suman 1",
     "mc.ind-dep": "Supone independencia",
     "mc.outlier-mean": "Usa la media siempre",
@@ -7949,7 +8546,7 @@ const es = {
     "fb.answerIs": "La respuesta es",
     "work.label": "Tu desarrollo",
     "work.ph": "Escribe tus pasos aquí…",
-    "work.note": "Se queda en esta página: nunca lo leemos.",
+    "work.note": "Papel de borrador privado: solo en esta pestaña, nunca se envía, se guarda ni se corrige.",
     "answer.unitHint": "en {unit}",
     "q.simplify": "Simplifica",
     "q.expand": "Desarrolla",
@@ -8022,6 +8619,25 @@ const es = {
     "lq.interface": "Interfaz",
     "lq.teaching": "Enseñanza",
     "lq.teachNote": "Los nombres de conceptos, las descripciones y los nombres de errores comunes se muestran en tu idioma; las lecciones completas y las preguntas generadas siguen en inglés.",
+    "lq.teachNoteAll": "Solo la interfaz está traducida: esta lección, sus preguntas y sus explicaciones están en inglés.",
+    // ── EL TEXTO DE UN ERROR CONCRETO, SOLO PARA EL PILOTO (11 de 52) ────────
+    // Traducido y sin revisar por un profesor de la materia. Una lengua sin
+    // `mcp.*` sigue mostrando solo el nombre del error (lib/content-i18n#mcCoaching).
+    "mcp.neg-slip": "Dos ideas lo arreglan para siempre: (1) restar un negativo es sumar — quitar una deuda te hace más rico: 5 − (−3) = 8. (2) Dos negativos multiplicados dan positivo porque «el opuesto del opuesto» es la dirección original. Practica diciendo la regla en voz alta antes de cada paso.",
+    "mcp.order-ops": "La multiplicación y la división se agrupan con más fuerza que la suma y la resta — siempre. 3 + 4 × 2 = 3 + 8 = 11. Primero los paréntesis, luego los índices, después × y ÷ de izquierda a derecha, y por último + y −. Si te ves trabajando de izquierda a derecha, párate y pregunta qué se agrupa con más fuerza.",
+    "mcp.like-terms": "Solo se combinan los términos con la MISMA parte literal: 3x + 2x = 5x. x e y son especies distintas — 3 manzanas más 2 plátanos son 3 manzanas y 2 plátanos, no 5 manzanoplátanos. Y x por x es x², nunca 2x. Primero ordena los términos en familias y después agrupa dentro de cada familia.",
+    "mcp.axis-swap": "Un par de coordenadas es una instrucción, así que el orden tiene significado: el primer número es siempre cuánto a lo ANCHO (x) y el segundo cuánto hacia ARRIBA (y). (3, 5) es 3 a la derecha y 5 arriba; (5, 3) es otro punto distinto del plano. Empieza siempre desde el origen por el eje horizontal y luego sube.",
+    "mcp.neg-exp": "Un índice negativo significa «pasar a fracción»: a⁻² = 1/a². El signo del índice nunca cambia el signo del valor — 2⁻³ = 1/8, positivo. Índice negativo = recíproco; no significa nada más.",
+    "mcp.bal-slip": "Una ecuación es una balanza: lo que hagas a un lado TIENES que hacérselo al otro. Para quitar el +5, resta 5 en LOS DOS lados: 3x = 15. Comprueba toda solución sustituyéndola — un hábito de diez segundos que atrapa casi cualquier desliz.",
+    "mcp.sign-slip": "Cada término lleva su signo. (x − 3)(x + 2) = x² + 2x − 3x − 6 = x² − x − 6. El −3 multiplica LOS DOS términos del segundo paréntesis. Rodea los signos antes de expandir y comprueba siempre sustituyendo un valor: con x = 1 debe salir (−2)(3) = −6 en ambos lados.",
+    "mcp.grad-run": "Pendiente = subida ÷ avance = (y₂ − y₁)/(x₂ − x₁) — cuánto cambia y por cada unidad que cambia x, leído de izquierda a derecha. Bajar significa pendiente negativa. Toma el mismo punto como «primero» arriba y abajo: mezclarlos invierte el signo.",
+    "mcp.b-half": "Divide el coeficiente de x entre dos, elévalo al cuadrado y SÚMALO — y luego compensa: x² + 6x + 5 = (x + 3)² − 9 + 5 = (x + 3)² − 4. El truco SUMA 9 dentro del paréntesis, así que réstalo fuera. Desarrolla tu respuesta para comprobar que coincide con la original.",
+    "mcp.lost-root": "x² = 3x tiene DOS soluciones. Dividir entre x borra x = 0 sin avisar. Factoriza: x(x − 3) = 0, así que x = 0 o x = 3. Igual que √x² = ±x: la raíz esconde dos ramas. Regla: nunca dividas entre una variable.",
+    "mcp.sqrt-prod": "Las raíces se multiplican y se dividen, nunca se suman: √(ab) = √a·√b, pero √(a+b) ≠ √a + √b. Compruébalo con números: √(9 + 16) = √25 = 5, mientras que √9 + √16 = 3 + 4 = 7.",
+    "mcp.dec-point": "Los decimales son un valor posicional escrito con una coma: la coma no es decoración, marca cuántas décimas y centésimas hay. Para sumar, alinea las comas en una columna; para multiplicar, cuenta las cifras decimales de LOS DOS factores y vuelve a ponerlas al final: 0.3 × 0.2 tiene dos cifras entre los dos, así que es 0.06, no 0.6. Una comprobación rápida: si multiplicas dos números menores que 1, el resultado tiene que ser MENOR que ambos.",
+    "mcp.frac-slice": "El número de abajo cuenta las piezas, no su tamaño: cuanto más grande es, más pequeña es cada pieza. 1/8 < 1/4 aunque 8 > 4, porque el mismo todo cortado en ocho da trozos de la mitad de tamaño. Antes de comparar, di en voz alta qué está haciendo el denominador: «cortado en 8 trozos iguales», no «8».",
+    "mcp.denom-add": "Una fracción es un solo número, no dos números apilados. Solo puedes sumar piezas del mismo tamaño: busca antes un denominador común. 1/3 + 1/4 = 4/12 + 3/12 = 7/12. Fíjate en que la respuesta es mayor que cada sumando: 2/7 sería menor que 1/3, y eso ya avisa de que el método está mal.",
+    "mcp.pct-base": "Un porcentaje siempre actúa sobre la cantidad que hay AHORA. Tras una subida del 20 %, la base es mayor, así que la bajada del 20 % se lleva más de lo que añadió la subida: 100 → 120 → 96. Escribe la cadena de multiplicadores (×1,2 y ×0,8 = ×0,96) y verás la pérdida del 4 % en una línea.",
     "lq.answer": "Respuesta",
     "lq.school": "Escuela",
     "home.haveProfile": "¿Ya tienes perfil?",
@@ -8048,10 +8664,12 @@ const es = {
     "home.feat.voice": "Voz y foto",
     "home.feat.voiceDesc": "Habla o toma una foto — OpenMind escucha y empareja.",
     "ask.reading": "Leyendo…",
-    "ask.whatTesting": "¿Qué está probando esto?",
+    "ask.whatTesting": "Habilidad",
+    "ask.hint": "Dame una pista",
+    "ask.explainQ": "Explícame qué pide esta pregunta",
     "ask.takePhoto": "Tomar una foto",
     "ask.thinkTests": "Creo que esto prueba",
-    "ask.workThrough": "resuélvelo paso a paso",
+    "ask.workThrough": "Resuélvelo paso a paso",
     "ask.photoAttached": "Foto adjunta — describe la pregunta con palabras o voz arriba, luego toca Resolver.",
     "onb.setup": "Configura tu aprendizaje",
     "onb.lead": "Cuéntanos unas cosas y OpenMind se adapta: idioma de enseñanza, ejemplos, dificultad y tu ruta. Una cuenta lo guarda en todas partes; o sigue sin cuenta.",
@@ -8198,6 +8816,8 @@ const es = {
     "coach.noticed": "He notado algo.",
     "coach.misconception": "Has repetido el mismo error de «{name}» varias veces.",
     "coach.fixIt": "Arreglémoslo",
+    "fig.cap.axes": "Una cuadrícula de coordenadas con estos puntos marcados: {points}.",
+    "fig.cap.triangle": "Un triángulo rectángulo cuyos dos catetos están etiquetados {a}{unit} y {b}{unit}.",
     "intent.exams": "Mis exámenes",
     "intent.understand": "Entender una materia",
     "intent.project": "Hacer un proyecto",
@@ -8742,6 +9362,7 @@ const es = {
     "sess.eyebrow": "Sesión de aprendizaje",
     "sess.lead": "Sesión corta. Al final, OpenMind muestra qué cambió y qué hacer después.",
     "sess.qOf": "Pregunta {n} de {m}",
+    "sess.stepOf": "Paso {n} de {m}",
     "sess.resume": "Sesión sin terminar: {n} de {m}",
     "sess.noHints": "{c} de {n} sin pistas",
     "sess.complete": "Sesión completada",
@@ -8783,7 +9404,7 @@ const es = {
     "an.weakest": "Practica esta debilidad",
     "an.none": "Sin puntos perdidos en este examen: nada que reparar.",
     "err.eyebrow": "Mis errores",
-    "err.lead": "Cada error recurrente que OpenMind ha registrado sobre ti, y qué hacer al respecto.",
+    "err.lead": "Cada error que OpenMind ha registrado sobre ti: los que puede nombrar y los que solo puede contar.",
     "err.none": "Aún no hay errores registrados. Practica algo y esta página se llenará sola.",
     "err.why": "Qué falló",
     "err.last": "Última vez",
@@ -9002,6 +9623,34 @@ const es = {
     "acct.attach": "Añadir una cuenta",
     "acct.guestLead": "Tu trabajo está guardado en este dispositivo y lo conserva OpenMind. Añade una cuenta y se va contigo: el mismo progreso, el mismo historial, y podrás entrar desde cualquier dispositivo.",
     "acct.class": "Unirse a una clase",
+    "mom.title": "Constancia",
+    "mom.loading": "Leyendo tu registro…",
+    "mom.streak": "Días seguidos: {n}",
+    "mom.none": "Aún sin racha",
+    "mom.weekLine": "{n} de los últimos 7 días",
+    "mom.startLine": "Una respuesta hoy pone en marcha tu racha.",
+    "mom.keepLine": "Una respuesta hoy mantiene viva tu racha.",
+    "mom.todayDoneLine": "Hoy ya cuenta.",
+    "mom.next": "Siguiente",
+    "mom.of": "{n} de {total}",
+    "mom.noneYet": "Todavía no hay nada conseguido: el primero está a una respuesta.",
+    "mom.foot": "Días con una respuesta registrada e hitos contados; no mide tu capacidad.",
+    "mom.m.first": "Primera respuesta registrada",
+    "mom.m.clean": "Primera respuesta sin pistas",
+    "mom.m.concepts": "Cinco ideas distintas",
+    "mom.m.slip": "Un error que corregiste",
+    "mom.m.streak3": "Tres días seguidos",
+    "mom.m.clean10": "Diez respuestas sin pistas",
+    "mom.m.transfer": "Demostrado en una pregunta nueva",
+    "mom.goal": "Hoy",
+    "mom.goalLeft": "Te quedan {n} hoy.",
+    "mom.goalDone": "Objetivo cumplido: lo que hagas de más también cuenta.",
+    "mom.best": "Mejor racha: {n}.",
+    "mom.back": "Hoy empieza otra.",
+    "mom.justEarned": "Conseguido ahora mismo:",
+    "err.misses": "{w} de {n} respuestas falladas",
+    "err.noBelief": "OpenMind registró qué respuestas fallaste aquí, pero aún no puede nombrar la creencia detrás — practica aquí y quizá se detecte.",
+    "pp.set": "Conjunto {s}",
 };
 const fr = {
     "target.slipCheck": "Celle-ci est faite pour piéger cette erreur.",
@@ -9020,11 +9669,17 @@ const fr = {
     "plan.traps": "Là où ça se trompe",
     "plan.reviewed": "Vérifié par un professeur de la matière",
     "plan.unreviewed": "Pas encore vérifié par un professeur de la matière",
+    "lesson.slipTitle": "Commence par l'erreur de la dernière fois",
+    "lesson.slipLead": "Tu as déjà fait cette erreur sur cette idée : la leçon commence donc par elle au lieu de te laisser la retrouver pendant l'exercice.",
+    "lesson.slipClears": "Cette partie disparaît dès que tu réussis trois fois de suite.",
+    "lesson.slipProgress": "Réponses justes d'affilée : {done} sur {need}",
+    "lesson.slipRetired": "l'erreur que tu faisais ici est désormais surmontée.",
     "cur.covers": "{n} des {total} concepts d'ici font partie de ton parcours.",
     "cur.outside": "Hors de ton parcours",
     "cur.outsideNote": "{n} concepts d'ici sont hors de {spec}. Tu peux quand même les lire, mais ils ne font pas partie de ton programme.",
     "curr.unmapped": "Le cursus national de ton pays n'est pas encore relié : les parcours internationaux sont affichés.",
     "nav.currTitle": "Ton programme",
+    "subs.note": "Ajoutez ou retirez les matières que vous étudiez. En retirer une arrête ses exercices et ses sujets — votre travail déjà fait est conservé, mais vous choisirez à nouveau son cours si vous la rajoutez.",
     "curr.title": "Ton programme",
     "curr.sub": "Choisis le cursus et le niveau que tu passes vraiment. OpenMind sait alors quelles notions sont les tiennes, à quelle profondeur travailler et quels mots ton programme emploie.",
     "course.mapPending": "Correspondance avec le programme : établie par OpenMind, pas encore relue par un spécialiste de la matière.",
@@ -9093,7 +9748,8 @@ const fr = {
     "tr.story1": " plus le même montant chaque mois. Après ",
     "tr.story2": " mois le total payé est ",
     "tr.story3": ". Quel est le montant mensuel ?",
-    "tr.whichAnswer": "laquelle de ces questions donne ce résultat",
+    "tr.whichAnswer": "Laquelle de ces questions a {v} pour résultat ?",
+    "tr.whichSolution": "Quelle équation a pour solution {var} = {v} ?",
     "cb.place-value": "Le sens d'un chiffre dépend de sa position.",
     "cb.addition": "Réunir des quantités en un total.",
     "cb.subtraction": "Retirer une quantité ou trouver la différence.",
@@ -9364,6 +10020,7 @@ const fr = {
     "cn.ai-basics": "IA et apprentissage automatique",
     "cn.statistics-data": "Analyse et statistiques",
     "mc.neg-slip": "Erreur de signe avec les négatifs",
+    "mc.dec-point": "La virgule est perdue ou déplacée",
     "mc.frac-slice": "Plus grand dénominateur = plus grande part",
     "mc.denom-add": "Additionne les dénominateurs",
     "mc.pct-base": "Mauvaise base de pourcentage",
@@ -9385,6 +10042,7 @@ const fr = {
     "mc.unit-sq": "Confusion d'unités d'aire/volume",
     "mc.sf-area": "Applique le facteur d'échelle à l'aire directement",
     "mc.vec-dir": "Ignore la direction du vecteur",
+    "mc.axis-swap": "Intervertit l'ordre des coordonnées",
     "mc.sum-one": "Les probabilités ne totalisent pas 1",
     "mc.ind-dep": "Suppose l'indépendance",
     "mc.outlier-mean": "Utilise la moyenne partout",
@@ -9505,7 +10163,7 @@ const fr = {
     "fb.answerIs": "La réponse est",
     "work.label": "Ton raisonnement",
     "work.ph": "Écris tes étapes ici…",
-    "work.note": "Reste sur cette page — nous ne le lisons jamais.",
+    "work.note": "Brouillon privé — uniquement dans cet onglet, jamais envoyé, enregistré ni corrigé.",
     "answer.unitHint": "en {unit}",
     "q.simplify": "Simplifie",
     "q.expand": "Développe",
@@ -9578,6 +10236,25 @@ const fr = {
     "lq.interface": "Interface",
     "lq.teaching": "Enseignement",
     "lq.teachNote": "Les noms de notions, les résumés et les noms d'erreurs courantes s'affichent dans votre langue ; les leçons complètes et les questions générées restent en anglais.",
+    "lq.teachNoteAll": "Seule l'interface est traduite : cette leçon, ses questions et ses explications sont en anglais.",
+    // ── LE TEXTE D'UNE ERREUR PRÉCISE, POUR LE PILOTE SEULEMENT (11 sur 52) ──
+    // Traduit, non relu par un professeur de la discipline. Une langue sans
+    // `mcp.*` n'affiche que le nom de l'erreur (lib/content-i18n#mcCoaching).
+    "mcp.neg-slip": "Deux idées règlent cela définitivement : (1) soustraire un négatif revient à ajouter — retirer une dette t'enrichit : 5 − (−3) = 8. (2) Deux négatifs multipliés donnent un positif car « l'opposé de l'opposé » ramène au sens d'origine. Entraîne-toi à dire la règle à voix haute avant chaque étape.",
+    "mcp.order-ops": "La multiplication et la division lient plus fort que l'addition et la soustraction — toujours. 3 + 4 × 2 = 3 + 8 = 11. D'abord les parenthèses, puis les puissances, ensuite × et ÷ de gauche à droite, enfin + et −. Si tu te surprends à calculer de gauche à droite, arrête-toi et demande ce qui lie le plus fort.",
+    "mcp.like-terms": "Seuls les termes ayant la MÊME partie littérale s'additionnent : 3x + 2x = 5x. x et y sont des espèces différentes — 3 pommes plus 2 bananes font 3 pommes et 2 bananes, pas 5 pommesbananes. Et x fois x donne x², jamais 2x. Trie d'abord les termes par familles, puis regroupe à l'intérieur de chaque famille.",
+    "mcp.axis-swap": "Un couple de coordonnées est une consigne : l'ordre porte le sens. Le premier nombre est toujours l'écart HORIZONTAL (x), le second l'écart VERTICAL (y). (3, 5) se lit 3 vers la droite puis 5 vers le haut ; (5, 3) est un autre point du plan. Pars toujours de l'origine le long de l'axe horizontal, puis monte.",
+    "mcp.neg-exp": "Un exposant négatif signifie « passe en fraction » : a⁻² = 1/a². Le signe de l'exposant ne change jamais le signe de la valeur — 2⁻³ = 1/8, positif. Exposant négatif = inverse ; cela ne veut jamais dire autre chose.",
+    "mcp.bal-slip": "Une équation est une balance : ce que tu fais d'un côté, tu DOIS le faire de l'autre. Pour retirer +5, soustrais 5 des DEUX côtés : 3x = 15. Vérifie chaque solution en la remplaçant — une habitude de dix secondes qui attrape presque toutes les erreurs.",
+    "mcp.sign-slip": "Chaque terme porte son signe. (x − 3)(x + 2) = x² + 2x − 3x − 6 = x² − x − 6. Le −3 multiplie LES DEUX termes de la seconde parenthèse. Entoure les signes avant de développer, et vérifie en remplaçant par une valeur : avec x = 1, on doit trouver (−2)(3) = −6 des deux côtés.",
+    "mcp.grad-run": "Pente = montée ÷ déplacement = (y₂ − y₁)/(x₂ − x₁) — la variation de y pour une unité de x, lue de gauche à droite. Une descente donne une pente négative. Prends le même point comme « premier » au numérateur et au dénominateur : les mélanger inverse le signe.",
+    "mcp.b-half": "Prends la moitié du coefficient de x, mets-la au carré et AJOUTE-la — puis compense : x² + 6x + 5 = (x + 3)² − 9 + 5 = (x + 3)² − 4. L'astuce AJOUTE 9 dans la parenthèse, il faut donc le retirer dehors. Développe ta réponse pour vérifier qu'elle redonne l'expression de départ.",
+    "mcp.lost-root": "x² = 3x a DEUX solutions. Diviser par x efface x = 0 sans le dire. Factorise : x(x − 3) = 0, donc x = 0 ou x = 3. De même √x² = ±x : la racine cache deux branches. Règle : ne divise jamais par une variable.",
+    "mcp.sqrt-prod": "Les racines se multiplient et se divisent, jamais ne s'additionnent : √(ab) = √a·√b, mais √(a+b) ≠ √a + √b. Vérifie avec des nombres : √(9 + 16) = √25 = 5, alors que √9 + √16 = 3 + 4 = 7.",
+    "mcp.dec-point": "Une virgule décimale n'est pas décorative : elle note les dixièmes et les centièmes. Pour additionner, aligne les virgules dans une colonne ; pour multiplier, compte les chiffres après la virgule dans LES DEUX facteurs et replace-les à la fin : 0,3 × 0,2 a deux chiffres à eux deux, donc 0,06, pas 0,6. Contrôle rapide : le produit de deux nombres plus petits que 1 doit être plus petit que chacun d'eux.",
+    "mcp.frac-slice": "Le nombre du bas compte les parts, pas leur taille : plus il est grand, plus chaque part est petite. 1/8 < 1/4 bien que 8 > 4, car le même tout coupé en huit donne des morceaux deux fois plus petits. Avant de comparer, dis à voix haute ce que fait le dénominateur : « coupé en 8 parts égales », pas « 8 ».",
+    "mcp.denom-add": "Une fraction est un seul nombre, pas deux nombres empilés. On ne peut additionner que des parts de même taille : cherche donc d'abord un dénominateur commun. 1/3 + 1/4 = 4/12 + 3/12 = 7/12. Remarque que le résultat est plus grand que chaque terme : 2/7 serait plus petit que 1/3, et c'est déjà un signal d'alarme.",
+    "mcp.pct-base": "Un pourcentage s'applique toujours au montant ACTUEL. Après une hausse de 20 %, la base est plus grande : la baisse de 20 % retire donc plus que la hausse n'a ajouté — 100 → 120 → 96. Écris la chaîne de coefficients (×1,2 puis ×0,8 = ×0,96) et la perte de 4 % apparaît en une ligne.",
     "lq.answer": "Réponse",
     "lq.school": "École",
     "home.haveProfile": "Déjà un profil ?",
@@ -9604,10 +10281,12 @@ const fr = {
     "home.feat.voice": "Voix et photo",
     "home.feat.voiceDesc": "Parle ou prends une photo — OpenMind écoute et associe.",
     "ask.reading": "Lecture…",
-    "ask.whatTesting": "Qu'est-ce que cela teste ?",
+    "ask.whatTesting": "Compétence",
+    "ask.hint": "Donne-moi un indice",
+    "ask.explainQ": "Explique ce que cette question demande",
     "ask.takePhoto": "Prendre une photo",
     "ask.thinkTests": "Je pense que cela teste",
-    "ask.workThrough": "résous-le étape par étape",
+    "ask.workThrough": "Résous-le étape par étape",
     "ask.photoAttached": "Photo jointe — décris la question en mots ou à la voix ci-dessus, puis touche Résoudre.",
     "onb.setup": "Configure ton apprentissage",
     "onb.lead": "Dites-nous quelques choses et OpenMind s'adapte : langue d'enseignement, exemples, difficulté et votre parcours. Un compte enregistre tout — ou continuez sans compte.",
@@ -9754,6 +10433,8 @@ const fr = {
     "coach.noticed": "J'ai remarqué quelque chose.",
     "coach.misconception": "Tu as refait plusieurs fois la même erreur de « {name} ».",
     "coach.fixIt": "Corrigeons ça",
+    "fig.cap.axes": "Un repère avec ces points marqués : {points}.",
+    "fig.cap.triangle": "Un triangle rectangle dont les deux cathètes portent les étiquettes {a}{unit} et {b}{unit}.",
     "intent.exams": "Mes examens",
     "intent.understand": "Comprendre une matière",
     "intent.project": "Réaliser un projet",
@@ -10298,6 +10979,7 @@ const fr = {
     "sess.eyebrow": "Session d'apprentissage",
     "sess.lead": "Session courte. À la fin, OpenMind montre ce qui a changé et quoi faire ensuite.",
     "sess.qOf": "Question {n} sur {m}",
+    "sess.stepOf": "Étape {n} sur {m}",
     "sess.resume": "Session inachevée : {n} sur {m}",
     "sess.noHints": "{c} sur {n} sans indice",
     "sess.complete": "Session terminée",
@@ -10339,7 +11021,7 @@ const fr = {
     "an.weakest": "Travailler cette faiblesse",
     "an.none": "Aucun point perdu sur cette épreuve — rien à réparer.",
     "err.eyebrow": "Mes erreurs",
-    "err.lead": "Chaque erreur récurrente enregistrée à votre sujet, et quoi faire.",
+    "err.lead": "Chaque erreur qu'OpenMind a enregistrée à ton sujet : celles qu'il peut nommer et celles qu'il ne peut que compter.",
     "err.none": "Aucune erreur enregistrée. Entraînez-vous et cette page se remplira.",
     "err.why": "Ce qui a échoué",
     "err.last": "Dernière fois",
@@ -10558,6 +11240,34 @@ const fr = {
     "acct.attach": "Ajouter un compte",
     "acct.guestLead": "Votre travail est enregistré sur cet appareil et conservé par OpenMind. Ajoutez un compte et il vous suit : la même progression, le même historique, et vous pourrez vous connecter depuis n'importe quel appareil.",
     "acct.class": "Rejoindre une classe",
+    "mom.title": "Régularité",
+    "mom.loading": "Lecture de ton suivi…",
+    "mom.streak": "Jours d'affilée : {n}",
+    "mom.none": "Pas encore de série",
+    "mom.weekLine": "{n} des 7 derniers jours",
+    "mom.startLine": "Une réponse aujourd'hui lance ta série.",
+    "mom.keepLine": "Une réponse aujourd'hui maintient ta série.",
+    "mom.todayDoneLine": "Aujourd'hui est compté.",
+    "mom.next": "Ensuite",
+    "mom.of": "{n} sur {total}",
+    "mom.noneYet": "Rien d'acquis pour l'instant — le premier est à une réponse.",
+    "mom.foot": "Des jours avec une réponse enregistrée et des étapes comptées — pas une mesure de tes capacités.",
+    "mom.m.first": "Première réponse enregistrée",
+    "mom.m.clean": "Première réponse sans indice",
+    "mom.m.concepts": "Cinq idées différentes",
+    "mom.m.slip": "Une erreur corrigée",
+    "mom.m.streak3": "Trois jours d'affilée",
+    "mom.m.clean10": "Dix réponses sans indice",
+    "mom.m.transfer": "Prouvé sur une nouvelle question",
+    "mom.goal": "Aujourd'hui",
+    "mom.goalLeft": "Encore {n} aujourd'hui.",
+    "mom.goalDone": "Objectif atteint — le reste compte aussi.",
+    "mom.best": "Meilleure série : {n}.",
+    "mom.back": "Aujourd'hui en commence une autre.",
+    "mom.justEarned": "Obtenu à l'instant :",
+    "err.misses": "{w} réponses ratées sur {n}",
+    "err.noBelief": "OpenMind a enregistré quelles réponses tu as ratées ici, mais ne peut pas encore nommer la croyance derrière — entraîne-toi ici et elle sera peut-être repérée.",
+    "pp.set": "Série {s}",
 };
 const pt = {
     "target.slipCheck": "Esta é feita para apanhar esse erro.",
@@ -10576,11 +11286,17 @@ const pt = {
     "plan.traps": "É aqui que se erra",
     "plan.reviewed": "Revisto por um professor da disciplina",
     "plan.unreviewed": "Ainda não revisto por um professor da disciplina",
+    "lesson.slipTitle": "Comece pelo erro da última vez",
+    "lesson.slipLead": "Você já cometeu este erro nesta ideia, por isso a lição começa por ele em vez de deixar você encontrá-lo outra vez na prática.",
+    "lesson.slipClears": "Esta parte desaparece quando você acerta três vezes seguidas.",
+    "lesson.slipProgress": "Respostas certas seguidas: {done} de {need}",
+    "lesson.slipRetired": "o erro que você cometia aqui já foi superado.",
     "cur.covers": "{n} dos {total} conceitos aqui pertencem ao teu curso.",
     "cur.outside": "Fora do teu curso",
     "cur.outsideNote": "{n} conceitos daqui ficam fora de {spec}. Podes lê-los à mesma, mas não fazem parte do teu programa.",
     "curr.unmapped": "O curso nacional do teu país ainda não está mapeado — mostram-se os percursos internacionais.",
     "nav.currTitle": "O teu currículo",
+    "subs.note": "Adiciona ou remove as disciplinas que estudas. Remover uma pára a sua prática e as suas provas — o trabalho que já fizeste fica guardado, mas voltarás a escolher o seu curso se a adicionares de novo.",
     "curr.title": "O teu currículo",
     "curr.sub": "Escolhe o curso e o nível que realmente frequentas. Assim o OpenMind sabe que ideias são tuas, com que profundidade praticar e que palavras usa o teu currículo.",
     "course.mapPending": "Mapeamento do programa: feito pela OpenMind, ainda não revisto por um especialista da disciplina.",
@@ -10649,7 +11365,8 @@ const pt = {
     "tr.story1": " mais a mesma quantia todo mês. Após ",
     "tr.story2": " meses, o total pago é ",
     "tr.story3": ". Qual é o valor mensal?",
-    "tr.whichAnswer": "qual destas perguntas dá este resultado",
+    "tr.whichAnswer": "Qual destas perguntas tem {v} como resultado?",
+    "tr.whichSolution": "Qual equação tem {var} = {v} como solução?",
     "cb.place-value": "O significado de um algarismo depende da sua posição.",
     "cb.addition": "Unir quantidades num total.",
     "cb.subtraction": "Retirar uma quantidade ou encontrar a diferença.",
@@ -10920,6 +11637,7 @@ const pt = {
     "cn.ai-basics": "IA e aprendizado de máquina",
     "cn.statistics-data": "Análise e estatística de dados",
     "mc.neg-slip": "Erro de sinal com negativos",
+    "mc.dec-point": "A vírgula desaparece ou muda de lugar",
     "mc.frac-slice": "Maior denominador = fatia maior",
     "mc.denom-add": "Soma os denominadores",
     "mc.pct-base": "Base percentual errada",
@@ -10941,6 +11659,7 @@ const pt = {
     "mc.unit-sq": "Confusão de unidades de área/volume",
     "mc.sf-area": "Aplica o fator de escala à área diretamente",
     "mc.vec-dir": "Ignora a direção do vetor",
+    "mc.axis-swap": "Inverte a ordem das coordenadas",
     "mc.sum-one": "As probabilidades não somam 1",
     "mc.ind-dep": "Supõe independência",
     "mc.outlier-mean": "Usa a média sempre",
@@ -11061,7 +11780,7 @@ const pt = {
     "fb.answerIs": "A resposta é",
     "work.label": "O teu desenvolvimento",
     "work.ph": "Escreve os teus passos aqui…",
-    "work.note": "Fica nesta página — nunca o lemos.",
+    "work.note": "Rascunho privado — só nesta aba, nunca é enviado, guardado nem corrigido.",
     "answer.unitHint": "em {unit}",
     "q.simplify": "Simplifica",
     "q.expand": "Desenvolve",
@@ -11134,6 +11853,25 @@ const pt = {
     "lq.interface": "Interface",
     "lq.teaching": "Ensino",
     "lq.teachNote": "Nomes de conceitos, resumos e nomes de erros comuns aparecem no seu idioma; lições completas e perguntas geradas ainda estão em inglês.",
+    "lq.teachNoteAll": "Só a interface está traduzida: esta lição, as suas perguntas e as explicações estão em inglês.",
+    // ── O TEXTO DE UM ERRO CONCRETO, SÓ PARA O PILOTO (11 de 52) ────────────
+    // Traduzido, não revisto por um professor da disciplina. Uma língua sem
+    // `mcp.*` mostra apenas o nome do erro (lib/content-i18n#mcCoaching).
+    "mcp.neg-slip": "Duas ideias resolvem isto de vez: (1) subtrair um negativo é somar — tirar uma dívida deixa-te mais rico: 5 − (−3) = 8. (2) Dois negativos multiplicados dão positivo porque «o oposto do oposto» é a direção original. Treina dizendo a regra em voz alta antes de cada passo.",
+    "mcp.order-ops": "A multiplicação e a divisão ligam mais forte do que a soma e a subtração — sempre. 3 + 4 × 2 = 3 + 8 = 11. Primeiro os parênteses, depois os índices, depois × e ÷ da esquerda para a direita, e por fim + e −. Se te apanhares a calcular da esquerda para a direita, para e pergunta o que liga mais forte.",
+    "mcp.like-terms": "Só se combinam os termos com a MESMA parte literal: 3x + 2x = 5x. x e y são espécies diferentes — 3 maçãs mais 2 bananas são 3 maçãs e 2 bananas, não 5 maçãbananas. E x vezes x é x², nunca 2x. Ordena primeiro os termos por famílias e só depois junta dentro de cada família.",
+    "mcp.axis-swap": "Um par de coordenadas é uma instrução, por isso a ordem carrega o significado: o primeiro número é sempre o quanto na HORIZONTAL (x) e o segundo o quanto para CIMA (y). (3, 5) é 3 para a direita e 5 para cima; (5, 3) é outro ponto. Parte sempre da origem pelo eixo horizontal e só depois sobe.",
+    "mcp.neg-exp": "Um índice negativo significa «passa para fração»: a⁻² = 1/a². O sinal do índice nunca muda o sinal do valor — 2⁻³ = 1/8, positivo. Índice negativo = inverso; nunca quer dizer outra coisa.",
+    "mcp.bal-slip": "Uma equação é uma balança: o que fizeres a um lado TENS de fazer ao outro. Para tirar o +5, subtrai 5 aos DOIS lados: 3x = 15. Confirma cada solução substituindo-a — um hábito de dez segundos que apanha quase todos os deslizes.",
+    "mcp.sign-slip": "Cada termo leva o seu sinal. (x − 3)(x + 2) = x² + 2x − 3x − 6 = x² − x − 6. O −3 multiplica OS DOIS termos do segundo parêntese. Rodeia os sinais antes de expandir e confirma sempre substituindo um valor: com x = 1 deve dar (−2)(3) = −6 nos dois lados.",
+    "mcp.grad-run": "Declive = subida ÷ deslocamento = (y₂ − y₁)/(x₂ − x₁) — quanto muda y por cada unidade de x, lido da esquerda para a direita. Descer significa declive negativo. Escolhe o mesmo ponto como «primeiro» no numerador e no denominador: trocá-los inverte o sinal.",
+    "mcp.b-half": "Divide o coeficiente de x por dois, eleva ao quadrado e SOMA — e depois compensa: x² + 6x + 5 = (x + 3)² − 9 + 5 = (x + 3)² − 4. O truque SOMA 9 dentro do parêntese, por isso subtrai-o fora. Desenvolve a tua resposta para confirmar que dá a expressão inicial.",
+    "mcp.lost-root": "x² = 3x tem DUAS soluções. Dividir por x apaga x = 0 sem avisar. Fatoriza: x(x − 3) = 0, logo x = 0 ou x = 3. Do mesmo modo √x² = ±x: a raiz esconde dois ramos. Regra: nunca dividas por uma variável.",
+    "mcp.sqrt-prod": "As raízes multiplicam-se e dividem-se, nunca se somam: √(ab) = √a·√b, mas √(a+b) ≠ √a + √b. Confirma com números: √(9 + 16) = √25 = 5, enquanto √9 + √16 = 3 + 4 = 7.",
+    "mcp.dec-point": "A vírgula não é enfeite: ela registra as décimas e as centésimas. Na adição, alinha as vírgulas numa coluna; na multiplicação, conta as casas decimais dos DOIS fatores e volta a colocá-las no fim: 0,3 × 0,2 tem duas casas entre os dois, por isso dá 0,06 e não 0,6. Verificação rápida: multiplicar dois números menores do que 1 tem de dar um resultado menor do que cada um deles.",
+    "mcp.frac-slice": "O número de baixo conta as partes, não o seu tamanho: quanto maior for, menor é cada parte. 1/8 < 1/4 embora 8 > 4, porque o mesmo todo cortado em oito dá pedaços com metade do tamanho. Antes de comparar, diz em voz alta o que o denominador está a fazer: «cortado em 8 partes iguais», não «8».",
+    "mcp.denom-add": "Uma fração é um único número, não dois números empilhados. Só podes somar partes do mesmo tamanho: procura primeiro um denominador comum. 1/3 + 1/4 = 4/12 + 3/12 = 7/12. Repara que a resposta é maior do que cada parcela: 2/7 seria menor do que 1/3, e isso já é um sinal de alarme.",
+    "mcp.pct-base": "Uma percentagem age sempre sobre a quantidade ATUAL. Depois de uma subida de 20 %, a base é maior, por isso a descida de 20 % leva mais do que a subida acrescentou: 100 → 120 → 96. Escreve a cadeia de multiplicadores (×1,2 e ×0,8 = ×0,96) e a perda de 4 % aparece numa linha.",
     "lq.answer": "Resposta",
     "lq.school": "Escola",
     "home.haveProfile": "Já tens perfil?",
@@ -11160,10 +11898,12 @@ const pt = {
     "home.feat.voice": "Voz e foto",
     "home.feat.voiceDesc": "Fala ou tira uma foto — o OpenMind ouve e associa.",
     "ask.reading": "A ler…",
-    "ask.whatTesting": "O que é que isto testa?",
+    "ask.whatTesting": "Competência",
+    "ask.hint": "Dá-me uma pista",
+    "ask.explainQ": "Explica o que esta pergunta pede",
     "ask.takePhoto": "Tirar uma foto",
     "ask.thinkTests": "Acho que isto testa",
-    "ask.workThrough": "resolve passo a passo",
+    "ask.workThrough": "Resolve passo a passo",
     "ask.photoAttached": "Foto anexada — descreve a questão por palavras ou voz acima, depois toca em Resolver.",
     "onb.setup": "Configura a tua aprendizagem",
     "onb.lead": "Diga algumas coisas e o OpenMind se adapta: idioma de ensino, exemplos, dificuldade e seu caminho. Uma conta guarda tudo — ou continue sem conta.",
@@ -11310,6 +12050,8 @@ const pt = {
     "coach.noticed": "Notei alguma coisa.",
     "coach.misconception": "Você repetiu o mesmo erro de «{name}» algumas vezes.",
     "coach.fixIt": "Vamos corrigir",
+    "fig.cap.axes": "Uma grelha de coordenadas com estes pontos marcados: {points}.",
+    "fig.cap.triangle": "Um triângulo retângulo cujos dois catetos estão etiquetados {a}{unit} e {b}{unit}.",
     "intent.exams": "Minhas provas",
     "intent.understand": "Entender uma matéria",
     "intent.project": "Construir um projeto",
@@ -11854,6 +12596,7 @@ const pt = {
     "sess.eyebrow": "Sessão de aprendizagem",
     "sess.lead": "Sessão curta. No fim, o OpenMind mostra o que mudou e o que fazer depois.",
     "sess.qOf": "Pergunta {n} de {m}",
+    "sess.stepOf": "Passo {n} de {m}",
     "sess.resume": "Sessão inacabada: {n} de {m}",
     "sess.noHints": "{c} de {n} sem dicas",
     "sess.complete": "Sessão concluída",
@@ -11895,7 +12638,7 @@ const pt = {
     "an.weakest": "Pratique esta fraqueza",
     "an.none": "Nenhum ponto perdido nesta prova — nada a corrigir.",
     "err.eyebrow": "Meus erros",
-    "err.lead": "Cada erro recorrente que o OpenMind registrou sobre você, e o que fazer.",
+    "err.lead": "Cada erro que o OpenMind registou sobre ti: os que consegue nomear e os que só consegue contar.",
     "err.none": "Nenhum erro registrado ainda. Pratique algo e esta página se preencherá.",
     "err.why": "O que deu errado",
     "err.last": "Última vez",
@@ -12114,6 +12857,34 @@ const pt = {
     "acct.attach": "Adicionar uma conta",
     "acct.guestLead": "O seu trabalho está guardado neste aparelho e fica com o OpenMind. Adicione uma conta e ele vai consigo — o mesmo progresso, o mesmo registo, e pode entrar em qualquer aparelho.",
     "acct.class": "Entrar numa turma",
+    "mom.title": "Constância",
+    "mom.loading": "A ler o teu registo…",
+    "mom.streak": "Dias seguidos: {n}",
+    "mom.none": "Ainda sem sequência",
+    "mom.weekLine": "{n} dos últimos 7 dias",
+    "mom.startLine": "Uma resposta hoje inicia a tua sequência.",
+    "mom.keepLine": "Uma resposta hoje mantém a sequência viva.",
+    "mom.todayDoneLine": "Hoje já conta.",
+    "mom.next": "A seguir",
+    "mom.of": "{n} de {total}",
+    "mom.noneYet": "Ainda nada alcançado — o primeiro está a uma resposta.",
+    "mom.foot": "Dias com uma resposta registada e marcos contados — não mede a tua capacidade.",
+    "mom.m.first": "Primeira resposta registada",
+    "mom.m.clean": "Primeira resposta sem ajudas",
+    "mom.m.concepts": "Cinco ideias diferentes",
+    "mom.m.slip": "Um erro que corrigiste",
+    "mom.m.streak3": "Três dias seguidos",
+    "mom.m.clean10": "Dez respostas sem ajudas",
+    "mom.m.transfer": "Provado numa pergunta nova",
+    "mom.goal": "Hoje",
+    "mom.goalLeft": "Faltam {n} hoje.",
+    "mom.goalDone": "Objetivo cumprido — o que fizeres a mais também conta.",
+    "mom.best": "Melhor sequência: {n}.",
+    "mom.back": "Hoje começa outra.",
+    "mom.justEarned": "Ganho agora mesmo:",
+    "err.misses": "{w} de {n} respostas falhadas",
+    "err.noBelief": "O OpenMind registou que respostas falhaste aqui, mas ainda não consegue nomear a crença por trás — pratica aqui e talvez seja detetada.",
+    "pp.set": "Conjunto {s}",
 };
 const ar = {
     "target.slipCheck": "هذا السؤال مصمَّم ليكشف ذلك الخطأ.",
@@ -12132,11 +12903,17 @@ const ar = {
     "plan.traps": "هنا يقع الخطأ",
     "plan.reviewed": "راجعه مدرّس المادة",
     "plan.unreviewed": "لم يراجعه مدرّس المادة بعد",
+    "lesson.slipTitle": "ابدأ من الخطأ الذي وقعت فيه سابقًا",
+    "lesson.slipLead": "لقد ارتكبت هذا الخطأ في هذه الفكرة من قبل، لذا يبدأ الدرس به بدلًا من أن تلقاه مرة أخرى في التدريب.",
+    "lesson.slipClears": "تختفي هذه الفقرة بعد ثلاث إجابات صحيحة متتالية.",
+    "lesson.slipProgress": "إجابات صحيحة متتالية: {done} من {need}",
+    "lesson.slipRetired": "الخطأ الذي كنت ترتكبه هنا قد تجاوزته.",
     "cur.covers": "{n} من أصل {total} مفهومًا هنا تنتمي إلى مسارك.",
     "cur.outside": "خارج مسارك الدراسي",
     "cur.outsideNote": "{n} مفهومًا هنا خارج {spec}؛ يمكنك قراءتها، لكنها ليست جزءًا من منهجك.",
     "curr.unmapped": "لم يُرسم بعد المسار الوطني لبلدك — تُعرض المسارات الدولية بدلاً منه.",
     "nav.currTitle": "منهجك الدراسي",
+    "subs.note": "أضِف المواد التي تدرسها أو أزلها. إزالة مادة توقف تدريبها وأوراقها — عملك السابق محفوظ، لكنك ستختار مقررها من جديد إذا أعدتها.",
     "curr.title": "منهجك الدراسي",
     "curr.sub": "اختر المسار والمستوى الذي تدرسه فعلاً. عندئذٍ يعرف أوبن مايند أي الأفكار تخصّك، وبأي عمق يكون التدريب، وبأي كلمات يتحدّث منهجك.",
     "course.mapPending": "مطابقة المنهج: من إعداد OpenMind، ولم يراجعها بعد متخصص في المادة.",
@@ -12205,7 +12982,8 @@ const ar = {
     "tr.story1": " والمبلغ نفسه كل شهر. بعد ",
     "tr.story2": " شهرا كان المجموع المدفوع ",
     "tr.story3": ". كم المبلغ الشهري؟",
-    "tr.whichAnswer": "أي من هذه الأسئلة يعطي هذا الجواب",
+    "tr.whichAnswer": "أي من هذه الأسئلة ناتجه {v}؟",
+    "tr.whichSolution": "أي معادلة حلُّها {var} = {v}؟",
     "cb.place-value": "معنى الرقم يعتمد على موضعه.",
     "cb.addition": "ضم كميات في مجموع.",
     "cb.subtraction": "إبعاد كمية أو إيجاد الفرق.",
@@ -12476,6 +13254,7 @@ const ar = {
     "cn.ai-basics": "الذكاء الاصطناعي وتعلم الآلة",
     "cn.statistics-data": "تحليل البيانات والإحصاء",
     "mc.neg-slip": "خطأ في الإشارات مع السالبة",
+    "mc.dec-point": "الفاصلة العشرية تُحذف أو تُنقل",
     "mc.frac-slice": "مقام أكبر = قطعة أكبر",
     "mc.denom-add": "يجمع المقامات",
     "mc.pct-base": "أساس النسبة الخطأ",
@@ -12497,6 +13276,7 @@ const ar = {
     "mc.unit-sq": "خلط وحدات المساحة والحجم",
     "mc.sf-area": "يطبق معامل التكبير على المساحة مباشرة",
     "mc.vec-dir": "يتجاهل اتجاه المتجه",
+    "mc.axis-swap": "يخلط ترتيب الإحداثيين",
     "mc.sum-one": "الاحتمالات لا يساوي مجموعها 1",
     "mc.ind-dep": "يفترض الاستقلالية",
     "mc.outlier-mean": "يستخدم الوسط دائمًا",
@@ -12617,7 +13397,7 @@ const ar = {
     "fb.answerIs": "الإجابة هي",
     "work.label": "خطوات الحل",
     "work.ph": "اكتب خطواتك هنا…",
-    "work.note": "يبقى في هذه الصفحة — لا نقرأه أبدًا.",
+    "work.note": "ورقة مسودة خاصة — في هذه النافذة فقط، لا تُرسَل ولا تُحفظ ولا تُصحَّح.",
     "answer.unitHint": "بوحدة {unit}",
     "q.simplify": "بسّط",
     "q.expand": "فُكّ",
@@ -12690,6 +13470,7 @@ const ar = {
     "lq.interface": "الواجهة",
     "lq.teaching": "التعليم",
     "lq.teachNote": "أسماء المفاهيم والملخصات وأسماء الأخطاء الشائعة تظهر بلغتك؛ الدروس الكاملة والأسئلة المولَّدة ما زالت بالإنجليزية.",
+    "lq.teachNoteAll": "الواجهة فقط مترجمة: هذا الدرس وأسئلته وشروحه بالإنجليزية.",
     "lq.answer": "الإجابة",
     "lq.school": "المدرسة",
     "home.haveProfile": "لديك حساب سابق؟",
@@ -12716,7 +13497,9 @@ const ar = {
     "home.feat.voice": "صوت وصورة",
     "home.feat.voiceDesc": "تحدث أو التقط صورة — OpenMind يستمع ويطابق.",
     "ask.reading": "يقرأ…",
-    "ask.whatTesting": "ماذا يختبر هذا؟",
+    "ask.whatTesting": "المهارة",
+    "ask.hint": "أعطني تلميحًا",
+    "ask.explainQ": "اشرح لي ما الذي يطلبه هذا السؤال",
     "ask.takePhoto": "التقط صورة",
     "ask.thinkTests": "أظن أن هذا يختبر",
     "ask.workThrough": "حُلّه خطوة بخطوة",
@@ -12866,6 +13649,8 @@ const ar = {
     "coach.noticed": "لاحظت شيئًا.",
     "coach.misconception": "كررت نفس خطأ «{name}» عدة مرات.",
     "coach.fixIt": "لنصلحه",
+    "fig.cap.axes": "شبكة إحداثيات مع تمييز هذه النقاط: {points}.",
+    "fig.cap.triangle": "مثلث قائم الزاوية ضلعاه الأقصر مكتوب عليهما {a}{unit} و{b}{unit}.",
     "intent.exams": "امتحاناتي",
     "intent.understand": "أفهم مادة",
     "intent.project": "أنجز مشروعًا",
@@ -13410,6 +14195,7 @@ const ar = {
     "sess.eyebrow": "جلسة تعلّم",
     "sess.lead": "جلسة قصيرة. في النهاية يعرض OpenMind ما تغيّر وما الخطوة التالية.",
     "sess.qOf": "السؤال {n} من {m}",
+    "sess.stepOf": "الخطوة {n} من {m}",
     "sess.resume": "جلسة غير مكتملة: {n} من {m}",
     "sess.noHints": "{c} من {n} بدون تلميحات",
     "sess.complete": "اكتملت الجلسة",
@@ -13451,7 +14237,7 @@ const ar = {
     "an.weakest": "تدرّب على هذا الضعف",
     "an.none": "لا درجات مفقودة في هذه الورقة — لا شيء لإصلاحه.",
     "err.eyebrow": "أخطائي",
-    "err.lead": "كل خطأ متكرر سجّله OpenMind عنك، وما العمل حياله.",
+    "err.lead": "كل خطأ سجّله OpenMind عنك — ما يستطيع تسميته وما يستطيع عدّه فقط.",
     "err.none": "لا أخطاء مسجلة بعد. تدرّب وستمتلئ هذه الصفحة.",
     "err.why": "ما الذي أخطأتَ فيه",
     "err.last": "آخر مرة",
@@ -13670,6 +14456,34 @@ const ar = {
     "acct.attach": "أضف حسابًا",
     "acct.guestLead": "عملك محفوظ على هذا الجهاز ويحتفظ به OpenMind. أضف حسابًا لينتقل معك — التقدّم نفسه، والسجل نفسه، ويمكنك تسجيل الدخول من أي جهاز.",
     "acct.class": "الانضمام إلى صف",
+    "mom.title": "الاستمرارية",
+    "mom.loading": "جارٍ قراءة سجلك…",
+    "mom.streak": "أيام متتالية: {n}",
+    "mom.none": "لا سلسلة بعد",
+    "mom.weekLine": "{n} من آخر 7 أيام",
+    "mom.startLine": "إجابة واحدة اليوم تبدأ سلسلتك.",
+    "mom.keepLine": "إجابة واحدة اليوم تُبقي سلسلتك حيّة.",
+    "mom.todayDoneLine": "تم احتساب اليوم.",
+    "mom.next": "التالي",
+    "mom.of": "{n} من {total}",
+    "mom.noneYet": "لم تتحقق أي خطوة بعد — الأولى على بُعد إجابة واحدة.",
+    "mom.foot": "أيام فيها إجابة مسجّلة وخطوات معدودة — وليست قياسًا لقدرتك.",
+    "mom.m.first": "أول إجابة مسجّلة",
+    "mom.m.clean": "أول إجابة دون مساعدة",
+    "mom.m.concepts": "خمس أفكار مختلفة",
+    "mom.m.slip": "خطأ أصلحته",
+    "mom.m.streak3": "ثلاثة أيام متتالية",
+    "mom.m.clean10": "عشر إجابات دون مساعدة",
+    "mom.m.transfer": "أُثبت في سؤال جديد",
+    "mom.goal": "اليوم",
+    "mom.goalLeft": "بقي {n} اليوم.",
+    "mom.goalDone": "تحقق الهدف — وما زاد عنه يُحتسب أيضًا.",
+    "mom.best": "أفضل سلسلة: {n}.",
+    "mom.back": "اليوم تبدأ سلسلة جديدة.",
+    "mom.justEarned": "تحقق الآن:",
+    "err.misses": "{w} من {n} إجابات خاطئة",
+    "err.noBelief": "سجّل OpenMind أي الإجابات كانت خاطئة هنا، لكنه لا يستطيع بعد تسمية الاعتقاد وراءها — تدرّب هنا فقد يُكشف.",
+    "pp.set": "المجموعة {s}",
 };
 const sw = {
     "target.slipCheck": "Hili limeundwa kukamata kosa hilo.",
@@ -13688,11 +14502,17 @@ const sw = {
     "plan.traps": "Hapa ndipo makosa yanatokea",
     "plan.reviewed": "Imepitiwa na mwalimu wa somo",
     "plan.unreviewed": "Bado haijapitiwa na mwalimu wa somo",
+    "lesson.slipTitle": "Anza na kosa la mara ya mwisho",
+    "lesson.slipLead": "Umewahi kufanya kosa hili kwenye wazo hili, kwa hiyo somo linaanza nalo badala ya kukuacha ukabiliane nalo tena kwenye mazoezi.",
+    "lesson.slipClears": "Sehemu hii hutoweka ukipata majibu matatu mfululizo kwa usahihi.",
+    "lesson.slipProgress": "Majibu sahihi mfululizo: {done} kati ya {need}",
+    "lesson.slipRetired": "kosa ulilokuwa ukifanya hapa sasa limerekebishwa.",
     "cur.covers": "{n} kati ya jumla ya {total} hapa yana sehemu ya kozi yako.",
     "cur.outside": "Nje ya kozi yako",
     "cur.outsideNote": "Dhana {n} hizi ziko nje ya {spec}. Bado unaweza kuzisoma, lakini si sehemu ya mtaala wako.",
     "curr.unmapped": "Kozi ya kitaifa ya nchi yako haijapangwa bado — kozi za kimataifa zinaonyeshwa.",
     "nav.currTitle": "Mtaala wako",
+    "subs.note": "Ongeza au ondoa masomo unayosoma. Kuondoa somo huacha mazoezi na mitihani yake — kazi uliyofanya inabaki, lakini utachagua kozi yake tena ukiliongeza.",
     "curr.title": "Mtaala wako",
     "curr.sub": "Chagua kozi na ngazi unayofanya kweli. OpenMind hujua dhana zipi ni zako, kina cha mazoezi, na maneno ambayo mtaala wako hutumia.",
     "course.mapPending": "Ulinganishaji wa mtaala: wa OpenMind, haujakaguliwa bado na mtaalamu wa somo.",
@@ -13761,7 +14581,8 @@ const sw = {
     "tr.story1": " pamoja na kiasi kilekile kila mwezi. Baada ya ",
     "tr.story2": " mwezi jumla iliyolipwa ni ",
     "tr.story3": ". Kiasi cha mwezi ni kipi?",
-    "tr.whichAnswer": "swali lipi kati ya haya linatoa jibu hili",
+    "tr.whichAnswer": "Ni swali lipi kati ya haya lenye jibu {v}?",
+    "tr.whichSolution": "Ni mlinganyo upi wenye suluhisho {var} = {v}?",
     "cb.place-value": "Maana ya tarakimu inategemea nafasi yake.",
     "cb.addition": "Kuunganisha vipimo kuwa jumla.",
     "cb.subtraction": "Kutoa kipimo au kutofautisha.",
@@ -14032,6 +14853,7 @@ const sw = {
     "cn.ai-basics": "Akili bandia na kujifunza mashine",
     "cn.statistics-data": "Uchambuzi wa takwimu",
     "mc.neg-slip": "Kosa la alama kwenye hasi",
+    "mc.dec-point": "Nukta ya desimali hupotea au kuhamishwa",
     "mc.frac-slice": "Mkazo mkubwa = kipande kikubwa",
     "mc.denom-add": "Hujumlisha kina (denominator)",
     "mc.pct-base": "Msingi wa asilimia si sahihi",
@@ -14053,6 +14875,7 @@ const sw = {
     "mc.unit-sq": "Kuchanganya vipimo vya eneo/mjao",
     "mc.sf-area": "Hutumia kipimo cha kupanua kwenye eneo moja kwa moja",
     "mc.vec-dir": "Hupuuza mwelekeo wa vekta",
+    "mc.axis-swap": "Hubadilisha mpangilio wa kuratibu",
     "mc.sum-one": "Uwezekano haujumlishi hadi 1",
     "mc.ind-dep": "Hudhani kujitegemea",
     "mc.outlier-mean": "Hutumia wastani kila mahali",
@@ -14173,7 +14996,7 @@ const sw = {
     "fb.answerIs": "Jibu ni",
     "work.label": "Kazi yako",
     "work.ph": "Andika hatua zako hapa…",
-    "work.note": "Hubaki kwenye ukurasa huu — hatuusomi.",
+    "work.note": "Karatasi ya kazi ya faragha — kwenye kichupo hiki tu, haitumwi, haihifadhiwi wala haihutubiwi.",
     "answer.unitHint": "katika {unit}",
     "q.simplify": "Rahisisha",
     "q.expand": "Panua",
@@ -14246,6 +15069,7 @@ const sw = {
     "lq.interface": "Kiolesura",
     "lq.teaching": "Kufundisha",
     "lq.teachNote": "Majina ya dhana, maelezo mafupi na majina ya makosa ya kawaida huonyeshwa kwa lugha yako; somo kamili na maswali yaliyotengenezwa bado yako kwa Kiingereza.",
+    "lq.teachNoteAll": "Kiolesura pekee kimetafsiriwa: somo hili, maswali yake na maelezo yake yako kwa Kiingereza.",
     "lq.answer": "Jibu",
     "lq.school": "Shule",
     "home.haveProfile": "Una wasifu tayari?",
@@ -14272,10 +15096,12 @@ const sw = {
     "home.feat.voice": "Sauti na picha",
     "home.feat.voiceDesc": "Zungumza au piga picha — OpenMind husikiliza na kulinganisha.",
     "ask.reading": "Inasoma…",
-    "ask.whatTesting": "Hii inapima nini?",
+    "ask.whatTesting": "Ujuzi",
+    "ask.hint": "Nipe kidokezo",
+    "ask.explainQ": "Eleza swali hili linauliza nini",
     "ask.takePhoto": "Piga picha",
     "ask.thinkTests": "Nadhani hii inapima",
-    "ask.workThrough": "isuluhishe hatua kwa hatua",
+    "ask.workThrough": "Isuluhishe hatua kwa hatua",
     "ask.photoAttached": "Picha imewekwa — eleza swali kwa maneno au sauti hapo juu, kisha bonyeza Suluhisha.",
     "onb.setup": "Sanidi kujifunza kwako",
     "onb.lead": "Tuambie mambo machache na OpenMind ibadilike: lugha ya kufundisha, mifano, ugumu na njia yako. Akaunti huhifadhi kila mahali — au endelea bila akaunti.",
@@ -14422,6 +15248,8 @@ const sw = {
     "coach.noticed": "Nimeona kitu.",
     "coach.misconception": "Umekurudia kosa lilelile la «{name}» mara kadhaa.",
     "coach.fixIt": "Tuirekebishe",
+    "fig.cap.axes": "Gridi ya kuratibu yenye nukta hizi zilizowekwa alama: {points}.",
+    "fig.cap.triangle": "Pembetatu yenye pembe mraba ambayo miguu yake miwili imeandikwa {a}{unit} na {b}{unit}.",
     "intent.exams": "Mitihani yangu",
     "intent.understand": "Kuelewa somo",
     "intent.project": "Kujenga mradi",
@@ -14966,6 +15794,7 @@ const sw = {
     "sess.eyebrow": "Kipindi cha kujifunza",
     "sess.lead": "Kipindi kifupi. Mwishoni, OpenMind inaonyesha kilichobadilika na cha kufanya.",
     "sess.qOf": "Swali {n} kati ya {m}",
+    "sess.stepOf": "Hatua {n} ya {m}",
     "sess.resume": "Kipindi hakijakamilika: {n} kati ya {m}",
     "sess.noHints": "{c} kati ya {n} bila vidokezo",
     "sess.complete": "Kipindi kimekamilika",
@@ -15007,7 +15836,7 @@ const sw = {
     "an.weakest": "Fanya mazoezi ya udhaifu huu",
     "an.none": "Hakuna alama zilizopotea — hakuna cha kurekebisha.",
     "err.eyebrow": "Makosa yangu",
-    "err.lead": "Kila kosa linalojirudia lililorekodiwa kukuhusu, na cha kufanya.",
+    "err.lead": "Kila kosa ambalo OpenMind limerekodi juu yako — lile linaloweza kulitaja na lile linaloweza kulihesabu tu.",
     "err.none": "Hakuna makosa yaliyorekodiwa bado. Fanya mazoezi, ukurasa huu utajaa.",
     "err.why": "Kilichokwenda vibaya",
     "err.last": "Mara ya mwisho",
@@ -15226,6 +16055,34 @@ const sw = {
     "acct.attach": "Ongeza akaunti",
     "acct.guestLead": "Kazi yako imehifadhiwa kwenye kifaa hiki na OpenMind anaitunza. Ongeza akaunti ikufuate — maendeleo yale yale, kumbukumbu ile ile, na unaweza kuingia kwenye kifaa chochote.",
     "acct.class": "Jiunge na darasa",
+    "mom.title": "Uthabiti",
+    "mom.loading": "Inasoma kumbukumbu yako…",
+    "mom.streak": "Siku {n} mfululizo",
+    "mom.none": "Bado hakuna mfululizo",
+    "mom.weekLine": "{n} kati ya siku 7 zilizopita",
+    "mom.startLine": "Jibu moja leo huanzisha mfululizo wako.",
+    "mom.keepLine": "Jibu moja leo huendeleza mfululizo wako.",
+    "mom.todayDoneLine": "Leo imehesabiwa.",
+    "mom.next": "Kifuatacho",
+    "mom.of": "{n} kati ya {total}",
+    "mom.noneYet": "Hakuna kilichopatikana bado — cha kwanza kiko jibu moja mbele.",
+    "mom.foot": "Siku zenye jibu lililorekodiwa na hatua zilizohesabiwa — si kipimo cha uwezo wako.",
+    "mom.m.first": "Jibu la kwanza limerekodiwa",
+    "mom.m.clean": "Jibu la kwanza bila msaada",
+    "mom.m.concepts": "Mawazo matano tofauti",
+    "mom.m.slip": "Kosa ulilorekebisha",
+    "mom.m.streak3": "Siku tatu mfululizo",
+    "mom.m.clean10": "Majibu kumi bila msaada",
+    "mom.m.transfer": "Imedhibitishwa kwenye swali jipya",
+    "mom.goal": "Leo",
+    "mom.goalLeft": "Zimebaki {n} leo.",
+    "mom.goalDone": "Lengo limefikiwa — zaidi ya hapo pia huhesabiwa.",
+    "mom.best": "Mfululizo bora: {n}.",
+    "mom.back": "Leo unaanza mpya.",
+    "mom.justEarned": "Imepatikana sasa hivi:",
+    "err.misses": "{w} kati ya {n} majibu yaliyokosewa",
+    "err.noBelief": "OpenMind ilirekodi majibu gani yalikosewa hapa, lakini bado haiwezi kutaja imani iliyo nyuma — fanya mazoezi hapa huenda ikagunduliwa.",
+    "pp.set": "Seti {s}",
 };
 const hi = {
     "target.slipCheck": "यह प्रश्न उसी गलती को पकड़ने के लिए बना है।",
@@ -15244,11 +16101,17 @@ const hi = {
     "plan.traps": "यहाँ गलती होती है",
     "plan.reviewed": "विषय शिक्षक द्वारा जाँचा गया",
     "plan.unreviewed": "अभी विषय शिक्षक द्वारा जाँचा नहीं गया",
+    "lesson.slipTitle": "पिछली बार की गलती से शुरू करें",
+    "lesson.slipLead": "आपने इस विचार में यह गलती पहले की है, इसलिए यह पाठ उसी से शुरू होता है — अभ्यास में वह आपको फिर से न मिले।",
+    "lesson.slipClears": "लगातार तीन सही उत्तर देने पर यह हिस्सा हट जाएगा।",
+    "lesson.slipProgress": "लगातार सही उत्तर: {need} में से {done}",
+    "lesson.slipRetired": "यहाँ जो गलती हो रही थी, वह अब दूर हो गई है।",
     "cur.covers": "यहाँ के {total} में से {n} अवधारणाएँ आपके पाठ्यक्रम में हैं।",
     "cur.outside": "आपके पाठ्यक्रम से बाहर",
     "cur.outsideNote": "यहाँ {n} अवधारणाएँ {spec} से बाहर हैं। आप इन्हें पढ़ सकते हैं, पर ये आपके पाठ्यक्रम का हिस्सा नहीं हैं।",
     "curr.unmapped": "आपके देश का राष्ट्रीय पाठ्यक्रम अभी जुड़ा नहीं है — अंतरराष्ट्रीय मार्ग दिखाए जा रहे हैं।",
     "nav.currTitle": "आपका पाठ्यक्रम",
+    "subs.note": "जिन विषयों को आप पढ़ते हैं उन्हें जोड़ें या हटाएँ। कोई विषय हटाने पर उसका अभ्यास और पेपर रुक जाते हैं — आपका किया हुआ काम सुरक्षित रहता है, पर दोबारा जोड़ने पर उसका कोर्स फिर चुनना होगा।",
     "curr.title": "आपका पाठ्यक्रम",
     "curr.sub": "वह कोर्स और स्तर चुनें जो आप वास्तव में पढ़ते हैं। फिर OpenMind जानता है कि कौन-से विचार आपके हैं, अभ्यास कितना गहरा हो, और आपका पाठ्यक्रम कौन-से शब्द प्रयोग करता है।",
     "course.mapPending": "पाठ्यक्रम मानचित्रण: OpenMind का अपना, विषय-विशेषज्ञ द्वारा अभी समीक्षा नहीं की गई।",
@@ -15317,7 +16180,8 @@ const hi = {
     "tr.story1": " लेता है और हर महीने उतनी ही राशि। ",
     "tr.story2": " महीनों बाद कुल भुगतान ",
     "tr.story3": " है। मासिक राशि क्या है?",
-    "tr.whichAnswer": "इनमें से कौन-सा प्रश्न यह उत्तर देता है",
+    "tr.whichAnswer": "इनमें से किस प्रश्न का उत्तर {v} है?",
+    "tr.whichSolution": "किस समीकरण का हल {var} = {v} है?",
     "cb.place-value": "अंक का मान उसकी स्थिति से तय होता है।",
     "cb.addition": "मात्राओं को जोड़कर योग बनाना।",
     "cb.subtraction": "एक मात्रा घटाना या अंतर निकालना।",
@@ -15588,6 +16452,7 @@ const hi = {
     "cn.ai-basics": "AI और मशीन लर्निंग",
     "cn.statistics-data": "आँकड़ा विश्लेषण और सांख्यिकी",
     "mc.neg-slip": "ऋणात्मक संख्याओं में चिह्न की चूक",
+    "mc.dec-point": "दशमलव बिंदु खो जाता है या खिसक जाता है",
     "mc.frac-slice": "बड़ा हर = बड़ा टुकड़ा",
     "mc.denom-add": "हरों को जोड़ता है",
     "mc.pct-base": "प्रतिशत का गलत आधार",
@@ -15609,6 +16474,7 @@ const hi = {
     "mc.unit-sq": "क्षेत्रफल/आयतन इकाइयों में भ्रम",
     "mc.sf-area": "स्केल गुणक को सीधे क्षेत्रफल पर लगाता है",
     "mc.vec-dir": "सदिश की दिशा नज़रअंदाज़",
+    "mc.axis-swap": "निर्देशांकों का क्रम बदल देता है",
     "mc.sum-one": "प्रायिकताओं का योग 1 नहीं",
     "mc.ind-dep": "स्वतंत्रता मान लेता है",
     "mc.outlier-mean": "हर जगह माध्य का प्रयोग",
@@ -15729,7 +16595,7 @@ const hi = {
     "fb.answerIs": "उत्तर है",
     "work.label": "तुम्हारा हल",
     "work.ph": "अपने चरण यहाँ लिखो…",
-    "work.note": "यह इसी पेज पर रहता है — हम इसे नहीं पढ़ते।",
+    "work.note": "निजी रफ़ काग़ज़ — केवल इस टैब में, कभी भेजा, सहेजा या जाँचा नहीं जाता।",
     "answer.unitHint": "{unit} में",
     "q.simplify": "सरल करें",
     "q.expand": "विस्तार करें",
@@ -15802,6 +16668,7 @@ const hi = {
     "lq.interface": "इंटरफ़ेस",
     "lq.teaching": "शिक्षा",
     "lq.teachNote": "अवधारणा-नाम, सार और गलतफहमी के नाम आपकी भाषा में; पूरे पाठ और बने हुए प्रश्न अभी अंग्रेज़ी में हैं।",
+    "lq.teachNoteAll": "केवल इंटरफ़ेस अनूदित है: यह पाठ, इसके प्रश्न और इसकी व्याख्याएँ अंग्रेज़ी में हैं।",
     "lq.answer": "उत्तर",
     "lq.school": "स्कूल",
     "home.haveProfile": "प्रोफ़ाइल पहले से है?",
@@ -15828,7 +16695,9 @@ const hi = {
     "home.feat.voice": "आवाज़ और फ़ोटो",
     "home.feat.voiceDesc": "बोलें या फ़ोटो लें — OpenMind सुनता और जोड़ता है।",
     "ask.reading": "पढ़ रहा है…",
-    "ask.whatTesting": "यह क्या जाँच रहा है?",
+    "ask.whatTesting": "कौशल",
+    "ask.hint": "मुझे संकेत दो",
+    "ask.explainQ": "समझाओ यह प्रश्न क्या पूछ रहा है",
     "ask.takePhoto": "फ़ोटो लें",
     "ask.thinkTests": "मुझे लगता है यह जाँचता है",
     "ask.workThrough": "कदम-दर-कदम हल करें",
@@ -15978,6 +16847,8 @@ const hi = {
     "coach.noticed": "मैंने कुछ देखा।",
     "coach.misconception": "आपने वही «{name}» की गलती कई बार दोहराई है।",
     "coach.fixIt": "चलो इसे ठीक करें",
+    "fig.cap.axes": "एक निर्देशांक जाल जिसमें ये बिंदु अंकित हैं: {points}.",
+    "fig.cap.triangle": "एक समकोण त्रिभुज जिसकी दो भुजाओं पर {a}{unit} और {b}{unit} लिखा है।",
     "intent.exams": "मेरी परीक्षाएँ",
     "intent.understand": "कोई विषय समझना",
     "intent.project": "कोई प्रोजेक्ट बनाना",
@@ -16522,6 +17393,7 @@ const hi = {
     "sess.eyebrow": "अधिगम सत्र",
     "sess.lead": "छोटा सत्र। अंत में OpenMind दिखाता है क्या बदला और आगे क्या करें।",
     "sess.qOf": "प्रश्न {n} / {m}",
+    "sess.stepOf": "चरण {n} / {m}",
     "sess.resume": "अधूरा सत्र: {n}/{m}",
     "sess.noHints": "{c}/{n} बिना संकेत",
     "sess.complete": "सत्र पूरा",
@@ -16563,7 +17435,7 @@ const hi = {
     "an.weakest": "इस कमज़ोरी का अभ्यास करें",
     "an.none": "इस प्रश्नपत्र में कोई अंक नहीं खोया — सुधारने को कुछ नहीं।",
     "err.eyebrow": "मेरी गलतियाँ",
-    "err.lead": "OpenMind ने आपके बारे में जो दोहराई जाने वाली गलतियाँ दर्ज की हैं, और उनका समाधान।",
+    "err.lead": "हर वह गलती जो OpenMind ने आपके बारे में दर्ज की — जिसे वह नाम दे सकता है और जिसे वह केवल गिन सकता है।",
     "err.none": "अभी कोई गलती दर्ज नहीं। अभ्यास करें, यह पेज भर जाएगा।",
     "err.why": "क्या गलत हुआ",
     "err.last": "अंतिम बार",
@@ -16782,6 +17654,34 @@ const hi = {
     "acct.attach": "खाता जोड़ें",
     "acct.guestLead": "आपका काम इस डिवाइस पर सहेजा गया है और OpenMind इसे रखता है। खाता जोड़िए और यह आपके साथ चला जाएगा — वही प्रगति, वही रिकॉर्ड, और आप किसी भी डिवाइस से साइन इन कर सकेंगे।",
     "acct.class": "कक्षा में शामिल हों",
+    "mom.title": "निरंतरता",
+    "mom.loading": "आपका रिकॉर्ड पढ़ा जा रहा है…",
+    "mom.streak": "{n} दिन की लय",
+    "mom.none": "अभी कोई लय नहीं",
+    "mom.weekLine": "पिछले 7 दिनों में से {n}",
+    "mom.startLine": "आज एक उत्तर देने से आपकी लय शुरू होती है।",
+    "mom.keepLine": "आज एक उत्तर देने से आपकी लय बनी रहती है।",
+    "mom.todayDoneLine": "आज गिना गया है।",
+    "mom.next": "अगला",
+    "mom.of": "{n} / {total}",
+    "mom.noneYet": "अभी कुछ हासिल नहीं — पहला एक उत्तर दूर है।",
+    "mom.foot": "जिन दिनों में उत्तर दर्ज हुआ और जो पड़ाव गिने गए — यह आपकी क्षमता का माप नहीं है।",
+    "mom.m.first": "पहला उत्तर दर्ज",
+    "mom.m.clean": "बिना संकेत पहला सही उत्तर",
+    "mom.m.concepts": "पाँच अलग विचार",
+    "mom.m.slip": "आपने सुधारी हुई गलती",
+    "mom.m.streak3": "लगातार तीन दिन",
+    "mom.m.clean10": "बिना संकेत दस सही उत्तर",
+    "mom.m.transfer": "नए सवाल पर सिद्ध",
+    "mom.goal": "आज",
+    "mom.goalLeft": "आज {n} बाकी।",
+    "mom.goalDone": "लक्ष्य पूरा — इससे ज़्यादा भी गिना जाता है।",
+    "mom.best": "सबसे लंबी लय: {n}।",
+    "mom.back": "आज नई लय शुरू होती है।",
+    "mom.justEarned": "अभी हासिल हुआ:",
+    "err.misses": "{n} में से {w} उत्तर गलत",
+    "err.noBelief": "OpenMind ने दर्ज किया कि यहाँ कौन-से उत्तर गलत हुए, पर उनके पीछे की धारणा का नाम अभी नहीं बता सकता — यहाँ अभ्यास करें, शायद वह पकड़ी जाए।",
+    "pp.set": "सेट {s}",
 };
 const id = {
     "target.slipCheck": "Soal ini dibuat untuk menangkap kesalahan itu.",
@@ -16800,11 +17700,17 @@ const id = {
     "plan.traps": "Di sinilah kesalahan terjadi",
     "plan.reviewed": "Diperiksa guru mata pelajaran",
     "plan.unreviewed": "Belum diperiksa guru mata pelajaran",
+    "lesson.slipTitle": "Mulai dari kesalahan terakhir",
+    "lesson.slipLead": "Kamu pernah melakukan kesalahan ini pada ide ini, jadi pelajaran dimulai dari situ, bukan membiarkanmu bertemu lagi saat latihan.",
+    "lesson.slipClears": "Bagian ini hilang setelah kamu menjawab tiga kali berturut-turut dengan benar.",
+    "lesson.slipProgress": "Jawaban benar berturut-turut: {done} dari {need}",
+    "lesson.slipRetired": "kesalahan yang dulu kamu lakukan di sini sudah teratasi.",
     "cur.covers": "{n} dari {total} konsep di sini termasuk dalam kursusmu.",
     "cur.outside": "Di luar kursusmu",
     "cur.outsideNote": "Ada {n} konsep di sini di luar {spec}. Kamu tetap bisa membacanya, tetapi itu bukan bagian dari silabusmu.",
     "curr.unmapped": "Kurikulum nasional negaramu belum dipetakan — rute internasional ditampilkan.",
     "nav.currTitle": "Kurikulummu",
+    "subs.note": "Tambahkan atau hapus mata pelajaran yang kamu pelajari. Menghapusnya menghentikan latihan dan ujiannya — pekerjaan yang sudah kamu lakukan tetap tersimpan, tetapi kamu akan memilih kursusnya lagi jika menambahkannya kembali.",
     "curr.title": "Kurikulummu",
     "curr.sub": "Pilih kursus dan jenjang yang benar-benar kamu tempuh. OpenMind lalu tahu gagasan mana yang milikmu, seberapa dalam latihannya, dan kata apa yang dipakai kurikulummu.",
     "course.mapPending": "Pemetaan silabus: milik OpenMind, belum ditinjau oleh ahli bidang studi.",
@@ -17106,6 +18012,7 @@ const id = {
     "cn.ai-basics": "AI & pembelajaran mesin",
     "cn.statistics-data": "Analisis & statistika data",
     "mc.neg-slip": "Salah tanda pada bilangan negatif",
+    "mc.dec-point": "Titik desimal hilang atau bergeser",
     "mc.frac-slice": "Penyebut lebih besar = potongan lebih besar",
     "mc.denom-add": "Menjumlahkan penyebut",
     "mc.pct-base": "Dasar persen salah",
@@ -17127,6 +18034,7 @@ const id = {
     "mc.unit-sq": "Kebingungan satuan luas/volume",
     "mc.sf-area": "Menerapkan faktor skala langsung ke luas",
     "mc.vec-dir": "Mengabaikan arah vektor",
+    "mc.axis-swap": "Menukar urutan koordinat",
     "mc.sum-one": "Peluang tidak berjumlah 1",
     "mc.ind-dep": "Menganggap kejadian saling bebas",
     "mc.outlier-mean": "Rata-rata di mana-mana",
@@ -17195,7 +18103,8 @@ const id = {
     "tr.story1": " plus jumlah yang sama setiap bulan. Setelah ",
     "tr.story2": " bulan total yang dibayar ",
     "tr.story3": ". Berapa jumlah per bulan?",
-    "tr.whichAnswer": "soal mana di antara ini yang menghasilkan jawaban ini",
+    "tr.whichAnswer": "Soal mana di antara ini yang jawabannya {v}?",
+    "tr.whichSolution": "Persamaan mana yang penyelesaiannya {var} = {v}?",
     "mm.strong": "Kuat",
     "mm.developing": "Berkembang",
     "mm.learning": "Belajar",
@@ -17286,7 +18195,7 @@ const id = {
     "fb.answerIs": "Jawabannya adalah",
     "work.label": "Cara kerjamu",
     "work.ph": "Tulis langkahmu di sini…",
-    "work.note": "Tetap di halaman ini — kami tidak membacanya.",
+    "work.note": "Kertas coretan pribadi — hanya di tab ini, tidak pernah dikirim, disimpan, atau dinilai.",
     "answer.unitHint": "dalam {unit}",
     "q.simplify": "Sederhanakan",
     "q.expand": "Uraikan",
@@ -17359,6 +18268,7 @@ const id = {
     "lq.interface": "Antarmuka",
     "lq.teaching": "Pengajaran",
     "lq.teachNote": "Nama konsep, ringkasan, dan nama miskonsepsi tampil dalam bahasa Anda; pelajaran lengkap dan soal yang dibuat otomatis masih berbahasa Inggris.",
+    "lq.teachNoteAll": "Hanya antarmukanya yang diterjemahkan: pelajaran ini, soalnya dan penjelasannya dalam bahasa Inggris.",
     "lq.answer": "Jawaban",
     "lq.school": "Sekolah",
     "home.haveProfile": "Sudah punya profil?",
@@ -17385,10 +18295,12 @@ const id = {
     "home.feat.voice": "Suara dan foto",
     "home.feat.voiceDesc": "Bicara atau ambil foto — OpenMind mendengar dan mencocokkan.",
     "ask.reading": "Membaca…",
-    "ask.whatTesting": "Apa yang diuji ini?",
+    "ask.whatTesting": "Keterampilan",
+    "ask.hint": "Beri aku petunjuk",
+    "ask.explainQ": "Jelaskan apa yang diminta soal ini",
     "ask.takePhoto": "Ambil foto",
     "ask.thinkTests": "Kurasa ini menguji",
-    "ask.workThrough": "kerjakan langkah demi langkah",
+    "ask.workThrough": "Kerjakan langkah demi langkah",
     "ask.photoAttached": "Foto terlampir — jelaskan soalnya dengan kata atau suara di atas, lalu ketuk Selesaikan.",
     "onb.setup": "Atur belajarmu",
     "onb.lead": "Beri tahu sedikit dan OpenMind menyesuaikan: bahasa pengantar, contoh, tingkat kesulitan dan jalur belajarmu. Akun menyimpannya di mana saja — atau lanjut tanpa akun.",
@@ -17535,6 +18447,8 @@ const id = {
     "coach.noticed": "Saya melihat sesuatu.",
     "coach.misconception": "Anda mengulang kesalahan «{name}» yang sama beberapa kali.",
     "coach.fixIt": "Mari perbaiki",
+    "fig.cap.axes": "Kisi koordinat dengan titik-titik ini ditandai: {points}.",
+    "fig.cap.triangle": "Segitiga siku-siku yang kedua kaki pendeknya diberi label {a}{unit} dan {b}{unit}.",
     "intent.exams": "Ujian saya",
     "intent.understand": "Memahami suatu mata pelajaran",
     "intent.project": "Membangun proyek",
@@ -18078,6 +18992,7 @@ const id = {
     "sess.eyebrow": "Sesi belajar",
     "sess.lead": "Sesi singkat. Di akhir, OpenMind menunjukkan apa yang berubah dan langkah berikutnya.",
     "sess.qOf": "Soal {n} dari {m}",
+    "sess.stepOf": "Langkah {n} dari {m}",
     "sess.resume": "Sesi belum selesai: {n} dari {m}",
     "sess.noHints": "{c} dari {n} tanpa petunjuk",
     "sess.complete": "Sesi selesai",
@@ -18119,7 +19034,7 @@ const id = {
     "an.weakest": "Latih kelemahan ini",
     "an.none": "Tidak ada poin hilang di ujian ini — tidak ada yang perlu diperbaiki.",
     "err.eyebrow": "Kesalahanku",
-    "err.lead": "Setiap kesalahan berulang yang OpenMind catat tentangmu, dan cara menanganinya.",
+    "err.lead": "Setiap kesalahan yang OpenMind catat tentangmu — yang bisa dinamainya dan yang hanya bisa dihitungnya.",
     "err.none": "Belum ada kesalahan tercatat. Latih sesuatu, halaman ini akan terisi.",
     "err.why": "Apa yang salah",
     "err.last": "Terakhir terlihat",
@@ -18338,6 +19253,34 @@ const id = {
     "acct.attach": "Tambahkan akun",
     "acct.guestLead": "Pekerjaanmu tersimpan di perangkat ini dan disimpan oleh OpenMind. Tambahkan akun dan semuanya ikut berpindah — kemajuan yang sama, catatan yang sama, dan kamu bisa masuk dari perangkat mana pun.",
     "acct.class": "Gabung kelas",
+    "mom.title": "Konsistensi",
+    "mom.loading": "Membaca catatanmu…",
+    "mom.streak": "Rentetan {n} hari",
+    "mom.none": "Belum ada rentetan",
+    "mom.weekLine": "{n} dari 7 hari terakhir",
+    "mom.startLine": "Satu jawaban hari ini memulai rentetanmu.",
+    "mom.keepLine": "Satu jawaban hari ini menjaga rentetanmu.",
+    "mom.todayDoneLine": "Hari ini sudah terhitung.",
+    "mom.next": "Berikutnya",
+    "mom.of": "{n} dari {total}",
+    "mom.noneYet": "Belum ada yang tercapai — yang pertama tinggal satu jawaban.",
+    "mom.foot": "Hari dengan jawaban tercatat dan tonggak yang dihitung — bukan ukuran kemampuanmu.",
+    "mom.m.first": "Jawaban pertama tercatat",
+    "mom.m.clean": "Jawaban pertama tanpa petunjuk",
+    "mom.m.concepts": "Lima gagasan berbeda",
+    "mom.m.slip": "Kesalahan yang kamu perbaiki",
+    "mom.m.streak3": "Tiga hari berturut-turut",
+    "mom.m.clean10": "Sepuluh jawaban tanpa petunjuk",
+    "mom.m.transfer": "Terbukti pada soal baru",
+    "mom.goal": "Hari ini",
+    "mom.goalLeft": "Tersisa {n} hari ini.",
+    "mom.goalDone": "Target tercapai — lebih dari itu tetap dihitung.",
+    "mom.best": "Rentetan terbaik: {n}.",
+    "mom.back": "Hari ini memulai yang baru.",
+    "mom.justEarned": "Baru saja tercapai:",
+    "err.misses": "{w} dari {n} jawaban salah",
+    "err.noBelief": "OpenMind mencatat jawaban mana yang salah di sini, tetapi belum bisa menamai keyakinan di baliknya — berlatihlah di sini, mungkin akan terdeteksi.",
+    "pp.set": "Paket {s}",
 };
 const tl = {
     "target.slipCheck": "Ginawa ito para mahuli ang pagkakamaling iyon.",
@@ -18356,11 +19299,17 @@ const tl = {
     "plan.traps": "Dito nagkakamali",
     "plan.reviewed": "Sinuri ng guro ng asignatura",
     "plan.unreviewed": "Hindi pa sinuri ng guro ng asignatura",
+    "lesson.slipTitle": "Magsimula sa pagkakamali noong nakaraan",
+    "lesson.slipLead": "Nagawa mo na ang pagkakamaling ito sa ideyang ito, kaya dito nagsisimula ang aralin sa halip na hintayin mong makita itong muli sa pagsasanay.",
+    "lesson.slipClears": "Mawawala ang bahaging ito kapag nakatatlong sunod na tamang sagot ka.",
+    "lesson.slipProgress": "Sunod-sunod na tamang sagot: {done} sa {need}",
+    "lesson.slipRetired": "naayos na ang pagkakamaling dati mong ginagawa rito.",
     "cur.covers": "{n} sa {total} na konsepto rito ay bahagi ng iyong kurso.",
     "cur.outside": "Hindi sa iyong kurso",
     "cur.outsideNote": "May {n} konseptong nasa labas ng {spec}. Mababasa mo pa rin ang mga ito, pero hindi sila bahagi ng iyong silabus.",
     "curr.unmapped": "Hindi pa naka-map ang pambansang kurikulum ng bansa mo — mga internasyonal na ruta ang ipinapakita.",
     "nav.currTitle": "Kurikulum mo",
+    "subs.note": "Magdagdag o mag-alis ng mga asignaturang pinag-aaralan mo. Kapag inalis ang isa, titigil ang pagsasanay at papel nito — mananatili ang nagawa mo, ngunit pipiliin muli ang kurso nito kapag idinagdag mo ito.",
     "curr.title": "Kurikulum mo",
     "curr.sub": "Piliin ang kurso at antas na aktwal mong kinukuha. Alam na ng OpenMind kung aling mga ideya ang sa iyo, gaano kalalim ang pagsasanay, at anong mga salita ang ginagamit ng kurikulum mo.",
     "course.mapPending": "Pagmamapa ng syllabus: sariling gawa ng OpenMind, hindi pa nasusuri ng espesyalista sa asignatura.",
@@ -18662,6 +19611,7 @@ const tl = {
     "cn.ai-basics": "AI at machine learning",
     "cn.statistics-data": "Pagsusuri ng datos at estadistika",
     "mc.neg-slip": "Pagkakamali sa sign ng mga negatibo",
+    "mc.dec-point": "Nawawala o gumagalaw ang desimal",
     "mc.frac-slice": "Mas malaking denominator = mas malaking hiwa",
     "mc.denom-add": "Pinagsasama ang denominator",
     "mc.pct-base": "Maling base ng porsyento",
@@ -18683,6 +19633,7 @@ const tl = {
     "mc.unit-sq": "Pagkalito sa unit ng area/volume",
     "mc.sf-area": "Direktang ginagamit ang scale factor sa area",
     "mc.vec-dir": "Binabalewala ang direksyon ng vector",
+    "mc.axis-swap": "Pinagpapalit ang ayos ng koordinado",
     "mc.sum-one": "Hindi sumasama sa 1 ang probability",
     "mc.ind-dep": "Inaakalang independent ang mga event",
     "mc.outlier-mean": "Mean ginagamit sa lahat ng sitwasyon",
@@ -18751,7 +19702,8 @@ const tl = {
     "tr.story1": " sa pagpapamember at parehong halaga kada buwan. Pagkatapos ng ",
     "tr.story2": " buwan, ang kabuuang nabayaran ay ",
     "tr.story3": ". Magkano ang buwanang halaga?",
-    "tr.whichAnswer": "aling tanong sa mga ito ang nagbibigay ng sagot na ito",
+    "tr.whichAnswer": "Aling tanong sa mga ito ang may sagot na {v}?",
+    "tr.whichSolution": "Aling equation ang may solusyong {var} = {v}?",
     "mm.strong": "Matibay",
     "mm.developing": "Nabubuo",
     "mm.learning": "Natututo",
@@ -18842,7 +19794,7 @@ const tl = {
     "fb.answerIs": "Ang sagot ay",
     "work.label": "Ang iyong solusyon",
     "work.ph": "Isulat ang mga hakbang mo dito…",
-    "work.note": "Nananatili ito sa pahinang ito — hindi namin ito binabasa.",
+    "work.note": "Pribadong scratch paper — sa tab na ito lang, hindi ipinapadala, iniimbak, o minamarkahan.",
     "answer.unitHint": "sa {unit}",
     "q.simplify": "Pangepayain",
     "q.expand": "Palawakin",
@@ -18915,6 +19867,7 @@ const tl = {
     "lq.interface": "Interface",
     "lq.teaching": "Pagtuturo",
     "lq.teachNote": "Ang mga pangalan ng konsepto, buod, at pangalan ng maling paniniwala ay nakasalin; ang mga buong aralin at gawing tanong ay Ingles pa rin.",
+    "lq.teachNoteAll": "Ang interface lang ang isinalin: ang araling ito, ang mga tanong at paliwanag nito ay nasa Ingles.",
     "lq.answer": "Sagot",
     "lq.school": "Paaralan",
     "home.haveProfile": "May profile na?",
@@ -18941,10 +19894,12 @@ const tl = {
     "home.feat.voice": "Boses at litrato",
     "home.feat.voiceDesc": "Magsalita o kumuha ng litrato — nakikinig at tumutugma ang OpenMind.",
     "ask.reading": "Nagbabsa…",
-    "ask.whatTesting": "Ano ang sinusuri nito?",
+    "ask.whatTesting": "Kasanayan",
+    "ask.hint": "Bigyan mo ako ng hint",
+    "ask.explainQ": "Ipaliwanag ang hinihingi ng tanong na ito",
     "ask.takePhoto": "Kumuha ng litrato",
     "ask.thinkTests": "Sa palagay ko sinusuri nito",
-    "ask.workThrough": "lutasin hakbang-hakbang",
+    "ask.workThrough": "Lutasin hakbang-hakbang",
     "ask.photoAttached": "Nakakabit ang litrato — ilarawan ang tanong sa salita o boses sa itaas, saka pindutin ang Lutasin.",
     "onb.setup": "I-set up ang pagkatuto mo",
     "onb.lead": "Sabihin ang ilang bagay at mag-aangkop ang OpenMind: wika ng pagtuturo, halimbawa, hirap at landas mo. Sine-save ng account — o magpatuloy nang walang account.",
@@ -19091,6 +20046,8 @@ const tl = {
     "coach.noticed": "May napansin ako.",
     "coach.misconception": "Ilang beses mo nang inulit ang pagkakamaling «{name}».",
     "coach.fixIt": "Ayusin natin",
+    "fig.cap.axes": "Isang grid ng koordinado na may mga markang puntong ito: {points}.",
+    "fig.cap.triangle": "Isang right-angled triangle na ang dalawang binti ay may label na {a}{unit} at {b}{unit}.",
     "intent.exams": "Mga pagsusulit ko",
     "intent.understand": "Unawain ang isang asignatura",
     "intent.project": "Gumawa ng proyekto",
@@ -19634,6 +20591,7 @@ const tl = {
     "sess.eyebrow": "Sesyon ng pag-aaral",
     "sess.lead": "Maikling sesyon. Sa dulo, ipapakita ng OpenMind ang nagbago at ang susunod na gawin.",
     "sess.qOf": "Tanong {n} ng {m}",
+    "sess.stepOf": "Hakbang {n} ng {m}",
     "sess.resume": "Hindi pa tapos: {n} ng {m}",
     "sess.noHints": "{c} sa {n} na walang hint",
     "sess.complete": "Tapos na ang sesyon",
@@ -19675,7 +20633,7 @@ const tl = {
     "an.weakest": "Praktisin ang kahinaang ito",
     "an.none": "Walang nawalang puntos sa papel na ito — walang aayusin.",
     "err.eyebrow": "Mga pagkakamali ko",
-    "err.lead": "Bawat paulit-ulit na pagkakamaling naitala tungkol sa iyo, at ang gagawin.",
+    "err.lead": "Bawat pagkakamaling naitala ng OpenMind tungkol sa iyo — ang kayang pangalanan at ang kayang bilangin lamang.",
     "err.none": "Wala pang naitalang pagkakamali. Magpraktis at mapupuno ang pahinang ito.",
     "err.why": "Ano ang nagkamali",
     "err.last": "Huling beses",
@@ -19894,6 +20852,34 @@ const tl = {
     "acct.attach": "Magdagdag ng account",
     "acct.guestLead": "Naka-save ang gawain mo sa device na ito at iniingatan ito ng OpenMind. Magdagdag ng account at sasama ito sa iyo — parehong progreso, parehong rekord, at makakapasok ka sa anumang device.",
     "acct.class": "Sumali sa klase",
+    "mom.title": "Pagpapatuloy",
+    "mom.loading": "Binabasa ang iyong talaan…",
+    "mom.streak": "{n} araw na sunod-sunod",
+    "mom.none": "Wala pang sunod-sunod",
+    "mom.weekLine": "{n} sa huling 7 araw",
+    "mom.startLine": "Isang sagot ngayon ang magsisimula ng iyong sunod-sunod.",
+    "mom.keepLine": "Isang sagot ngayon ang magpapatuloy ng iyong sunod-sunod.",
+    "mom.todayDoneLine": "Bilang na ang ngayon.",
+    "mom.next": "Susunod",
+    "mom.of": "{n} sa {total}",
+    "mom.noneYet": "Wala pang nakamit — isang sagot lang ang layo ng una.",
+    "mom.foot": "Mga araw na may nakatalang sagot at mga bilang na hakbang — hindi sukat ng kakayahan.",
+    "mom.m.first": "Naitala ang unang sagot",
+    "mom.m.clean": "Unang sagot na walang tulong",
+    "mom.m.concepts": "Limang magkaibang ideya",
+    "mom.m.slip": "Naitama mong pagkakamali",
+    "mom.m.streak3": "Tatlong araw na sunod-sunod",
+    "mom.m.clean10": "Sampung sagot na walang tulong",
+    "mom.m.transfer": "Napatunayan sa bagong tanong",
+    "mom.goal": "Ngayon",
+    "mom.goalLeft": "{n} pa ngayon.",
+    "mom.goalDone": "Naabot ang target — bilang pa rin ang sobra.",
+    "mom.best": "Pinakamahabang sunod-sunod: {n}.",
+    "mom.back": "Ngayon magsisimula ng bago.",
+    "mom.justEarned": "Kararaang nakamit:",
+    "err.misses": "{w} sa {n} sagot ang mali",
+    "err.noBelief": "Naitala ng OpenMind kung aling mga sagot ang mali rito, ngunit wala pa itong maipangalan na paniniwala sa likod — magsanay dito at baka mahuli ito.",
+    "pp.set": "Pangkat {s}",
 };
 // ── Draft languages: core learning loop translated; English fills the rest. ─
 const de = {
@@ -19913,11 +20899,17 @@ const de = {
     "plan.traps": "Hier geht es schief",
     "plan.reviewed": "Von einer Fachlehrkraft geprüft",
     "plan.unreviewed": "Noch nicht von einer Fachlehrkraft geprüft",
+    "lesson.slipTitle": "Beginne mit dem Fehler vom letzten Mal",
+    "lesson.slipLead": "Diesen Fehler hast du bei dieser Idee schon einmal gemacht, deshalb beginnt die Lektion damit, statt dich ihn in der Übung erneut finden zu lassen.",
+    "lesson.slipClears": "Dieser Abschnitt verschwindet, sobald du dreimal hintereinander richtig antwortest.",
+    "lesson.slipProgress": "Richtige Antworten in Folge: {done} von {need}",
+    "lesson.slipRetired": "der Fehler, den du hier gemacht hast, ist überwunden.",
     "cur.covers": "{n} der {total} Konzepte hier gehören zu deinem Kurs.",
     "cur.outside": "Nicht in deinem Kurs",
     "cur.outsideNote": "{n} Konzepte hier gehören nicht zu {spec}. Du kannst sie trotzdem lesen, sie sind aber nicht Teil deines Lehrplans.",
     "curr.unmapped": "Der nationale Lehrplan deines Landes ist noch nicht abgebildet — es werden internationale Wege gezeigt.",
     "nav.currTitle": "Dein Lehrplan",
+    "subs.note": "Füge die Fächer, die du lernst, hinzu oder entferne sie. Ein entferntes Fach pausiert Übungen und Prüfungen — deine bisherige Arbeit bleibt erhalten, aber du wählst seinen Kurs erneut, wenn du es wieder hinzufügst.",
     "curr.title": "Dein Lehrplan",
     "curr.sub": "Wähle den Kurs und die Stufe, die du wirklich belegst. OpenMind weiß dann, welche Ideen deine sind, wie tief geübt wird und welche Wörter dein Lehrplan benutzt.",
     "course.mapPending": "Lehrplan-Zuordnung: von OpenMind erstellt, noch nicht von einer Fachperson geprüft.",
@@ -20219,6 +21211,7 @@ const de = {
     "cn.ai-basics": "KI & Machine Learning",
     "cn.statistics-data": "Datenanalyse & Statistik",
     "mc.neg-slip": "Vorzeichenfehler bei negativen Zahlen",
+    "mc.dec-point": "Das Komma geht verloren oder rutscht",
     "mc.frac-slice": "Größerer Nenner = größeres Stück",
     "mc.denom-add": "Addiert die Nenner",
     "mc.pct-base": "Falsche Prozentbasis",
@@ -20240,6 +21233,7 @@ const de = {
     "mc.unit-sq": "Flächen-/Volumeneinheiten verwechselt",
     "mc.sf-area": "Setzt den Skalierungsfaktor direkt auf Flächen",
     "mc.vec-dir": "Ignoriert die Vektorrichtung",
+    "mc.axis-swap": "Vertauscht die Reihenfolge der Koordinaten",
     "mc.sum-one": "Wahrscheinlichkeiten ergeben nicht 1",
     "mc.ind-dep": "Nimmt Unabhängigkeit an",
     "mc.outlier-mean": "Nimmt überall den Mittelwert",
@@ -20308,7 +21302,8 @@ const de = {
     "tr.story1": " plus jeden Monat denselben Betrag. Nach ",
     "tr.story2": " Monaten beträgt die Gesamtsumme ",
     "tr.story3": ". Wie hoch ist der Monatsbetrag?",
-    "tr.whichAnswer": "welche dieser Aufgaben ergibt dieses Ergebnis",
+    "tr.whichAnswer": "Welche dieser Aufgaben hat {v} als Ergebnis?",
+    "tr.whichSolution": "Welche Gleichung hat die Lösung {var} = {v}?",
     "mm.strong": "Stark",
     "mm.developing": "Im Aufbau",
     "mm.learning": "Am Lernen",
@@ -20399,7 +21394,7 @@ const de = {
     "fb.answerIs": "Die Antwort ist",
     "work.label": "Dein Rechenweg",
     "work.ph": "Schreib deine Schritte hier auf…",
-    "work.note": "Bleibt auf dieser Seite — wir lesen es nie.",
+    "work.note": "Privates Schmierpapier — nur in diesem Tab, wird nie gesendet, gespeichert oder bewertet.",
     "answer.unitHint": "in {unit}",
     "q.simplify": "Vereinfache",
     "q.expand": "Multipliziere aus",
@@ -20472,6 +21467,25 @@ const de = {
     "lq.interface": "Oberfläche",
     "lq.teaching": "Unterricht",
     "lq.teachNote": "Konzeptnamen, Kurzfassungen und Namen typischer Fehler erscheinen auf Deutsch; vollständige Lektionen und erzeugte Aufgaben sind noch englisch.",
+    "lq.teachNoteAll": "Nur die Oberfläche ist übersetzt: diese Lektion, ihre Aufgaben und Erklärungen sind auf Englisch.",
+    // ── DER TEXT ZU EINEM KONKRETEN FEHLER, NUR FÜR DAS PILOTPROJEKT (11 von 52)
+    // Übersetzt, nicht von einer Fachlehrkraft geprüft. Eine Sprache ohne
+    // `mcp.*` zeigt nur den Namen des Fehlers (lib/content-i18n#mcCoaching).
+    "mcp.neg-slip": "Zwei Einsichten lösen das dauerhaft: (1) Einen negativen Wert zu subtrahieren heißt addieren — eine Schuld loszuwerden macht dich reicher: 5 − (−3) = 8. (2) Zwei negative Faktoren ergeben ein Positives, weil „das Gegenteil vom Gegenteil“ die ursprüngliche Richtung ist. Sprich die Regel vor jedem Schritt laut aus.",
+    "mcp.order-ops": "Malnehmen und Teilen binden stärker als Addieren und Subtrahieren — immer. 3 + 4 × 2 = 3 + 8 = 11. Zuerst Klammern, dann Potenzen, danach × und ÷ von links nach rechts, zuletzt + und −. Wenn du von links nach rechts rechnest, halte an und frage, was am stärksten bindet.",
+    "mcp.like-terms": "Nur Terme mit DERSELBEN Variablen lassen sich zusammenfassen: 3x + 2x = 5x. x und y sind verschiedene Arten — 3 Äpfel plus 2 Bananen sind 3 Äpfel und 2 Bananen, nicht 5 Äpfelbananen. Und x mal x ist x², nie 2x. Sortiere die Terme erst in Familien und fasse dann innerhalb jeder Familie zusammen.",
+    "mcp.axis-swap": "Ein Koordinatenpaar ist eine Anweisung, deshalb trägt die Reihenfolge die Bedeutung: die erste Zahl ist immer der Weg nach RECHTS (x), die zweite der Weg nach OBEN (y). (3, 5) heißt 3 nach rechts, dann 5 nach oben; (5, 3) ist ein anderer Punkt. Zeichne immer vom Ursprung waagerecht und dann senkrecht.",
+    "mcp.neg-exp": "Ein negativer Exponent bedeutet „in einen Bruch umdrehen“: a⁻² = 1/a². Das Vorzeichen des Exponenten ändert nie das Vorzeichen des Werts — 2⁻³ = 1/8, positiv. Negativer Exponent = Kehrwert; mehr bedeutet es nie.",
+    "mcp.bal-slip": "Eine Gleichung ist eine Waage: was du auf einer Seite tust, MUSST du auf der anderen tun. Um +5 zu entfernen, ziehe 5 auf BEIDEN Seiten ab: 3x = 15. Prüfe jede Lösung durch Einsetzen — eine Gewohnheit von zehn Sekunden, die fast jeden Fehler findet.",
+    "mcp.sign-slip": "Jeder Term trägt sein Vorzeichen. (x − 3)(x + 2) = x² + 2x − 3x − 6 = x² − x − 6. Die −3 multipliziert BEIDE Terme der zweiten Klammer. Markiere die Vorzeichen vor dem Ausmultiplizieren und prüfe mit einem Wert: für x = 1 muss auf beiden Seiten (−2)(3) = −6 stehen.",
+    "mcp.grad-run": "Steigung = Höhenunterschied ÷ waagerechter Abstand = (y₂ − y₁)/(x₂ − x₁) — wie stark sich y pro Einheit x ändert, von links nach rechts gelesen. Bergab heißt negative Steigung. Nimm im Zähler und im Nenner denselben Punkt als „ersten“ — vertauscht dreht sich das Vorzeichen.",
+    "mcp.b-half": "Halbiere den Koeffizienten von x, quadriere ihn und ADDIERE — dann musst du ausgleichen: x² + 6x + 5 = (x + 3)² − 9 + 5 = (x + 3)² − 4. Der Trick ADDIERT 9 in der Klammer, also ziehe sie außen ab. Multipliziere dein Ergebnis aus und prüfe, ob der Ausgangsterm zurückkommt.",
+    "mcp.lost-root": "x² = 3x hat ZWEI Lösungen. Durch x zu teilen löscht x = 0 still. Faktorisiere: x(x − 3) = 0, also x = 0 oder x = 3. Ebenso √x² = ±x: die Wurzel verdeckt zwei Zweige. Regel: niemals durch eine Variable teilen.",
+    "mcp.sqrt-prod": "Wurzeln multiplizieren und dividieren, addieren aber nie: √(ab) = √a·√b, aber √(a+b) ≠ √a + √b. Prüfe mit Zahlen: √(9 + 16) = √25 = 5, dagegen √9 + √16 = 3 + 4 = 7.",
+    "mcp.dec-point": "Das Komma ist keine Verzierung: es notiert Zehntel und Hundertstel. Beim Addieren schreibst du die Kommas untereinander in eine Spalte; beim Multiplizieren zählst du die Nachkommastellen in BEIDEN Faktoren und setzt so viele am Ende wieder: 0,3 × 0,2 hat zusammen zwei Stellen, also 0,06 und nicht 0,6. Schnelle Probe: das Produkt zweier Zahlen kleiner als 1 muss kleiner sein als jede der beiden.",
+    "mcp.frac-slice": "Die untere Zahl zählt die Teile, nicht ihre Größe: je größer sie ist, desto kleiner ist jedes Teil. 1/8 < 1/4, obwohl 8 > 4 — dasselbe Ganze in acht Teile geschnitten ergibt halb so große Stücke. Sage vor dem Vergleichen, was der Nenner tut: „in 8 gleiche Teile geteilt“, nicht „8“.",
+    "mcp.denom-add": "Ein Bruch ist eine einzige Zahl, nicht zwei übereinandergestapelte Zahlen. Addieren darf man nur gleich große Teile: suche also zuerst einen gemeinsamen Nenner. 1/3 + 1/4 = 4/12 + 3/12 = 7/12. Beachte, dass das Ergebnis größer ist als jeder Summand: 2/7 wäre kleiner als 1/3 — das ist schon ein Warnsignal.",
+    "mcp.pct-base": "Ein Prozentwert wirkt immer auf den Betrag, der JETZT dasteht. Nach einem Anstieg um 20 % ist die Grundlage größer, also nimmt der Rückgang um 20 % mehr weg, als der Anstieg gebracht hat: 100 → 120 → 96. Schreibe die Multiplikationskette (×1,2 und ×0,8 = ×0,96) — der Verlust von 4 % steht dann in einer Zeile.",
     "lq.answer": "Antwort",
     "lq.school": "Schule",
     "home.haveProfile": "Schon ein Profil?",
@@ -20498,7 +21512,9 @@ const de = {
     "home.feat.voice": "Sprache & Foto",
     "home.feat.voiceDesc": "Sprich oder fotografiere — OpenMind hört zu und ordnet zu.",
     "ask.reading": "Lese…",
-    "ask.whatTesting": "Was testet das?",
+    "ask.whatTesting": "Fertigkeit",
+    "ask.hint": "Gib mir einen Hinweis",
+    "ask.explainQ": "Erkläre, was diese Aufgabe verlangt",
     "ask.takePhoto": "Foto aufnehmen",
     "ask.thinkTests": "Ich denke, das testet",
     "ask.workThrough": "Schritt für Schritt lösen",
@@ -20648,6 +21664,8 @@ const de = {
     "coach.noticed": "Mir ist etwas aufgefallen.",
     "coach.misconception": "Du hast denselben «{name}»-Fehler mehrmals wiederholt.",
     "coach.fixIt": "Korrigieren wir das",
+    "fig.cap.axes": "Ein Koordinatengitter mit diesen markierten Punkten: {points}.",
+    "fig.cap.triangle": "Ein rechtwinkliges Dreieck, dessen beide Katheten mit {a}{unit} und {b}{unit} beschriftet sind.",
     "intent.exams": "Meine Prüfungen",
     "intent.understand": "Ein Fach verstehen",
     "intent.project": "Ein Projekt bauen",
@@ -21250,6 +22268,7 @@ const de = {
     "sess.eyebrow": "Lerneinheit",
     "sess.lead": "Kurze Einheit. Am Ende zeigt OpenMind, was sich geändert hat und was als Nächstes dran ist.",
     "sess.qOf": "Frage {n} von {m}",
+    "sess.stepOf": "Schritt {n} von {m}",
     "sess.resume": "Unbeendete Einheit: {n} von {m}",
     "sess.noHints": "{c} von {n} ohne Hinweis",
     "sess.complete": "Einheit abgeschlossen",
@@ -21291,7 +22310,7 @@ const de = {
     "an.weakest": "Diese Schwäche üben",
     "an.none": "Keine verlorenen Punkte — nichts zu reparieren.",
     "err.eyebrow": "Meine Fehler",
-    "err.lead": "Jeder wiederkehrende Fehler, den OpenMind über dich erfasst hat — und was hilft.",
+    "err.lead": "Jeder Fehler, den OpenMind über dich festgehalten hat — die, die es benennen kann, und die, die es nur zählen kann.",
     "err.none": "Noch keine Fehler erfasst. Übe etwas, dann füllt sich diese Seite.",
     "err.why": "Was schiefging",
     "err.last": "Zuletzt gesehen",
@@ -21510,6 +22529,34 @@ const de = {
     "acct.attach": "Konto hinzufügen",
     "acct.guestLead": "Deine Arbeit ist auf diesem Gerät gespeichert und wird von OpenMind geführt. Füge ein Konto hinzu und sie kommt mit — derselbe Fortschritt, dieselbe Aufzeichnung, und du kannst dich auf jedem Gerät anmelden.",
     "acct.class": "Einer Klasse beitreten",
+    "mom.title": "Dranbleiben",
+    "mom.loading": "Dein Verlauf wird gelesen…",
+    "mom.streak": "Tage in Folge: {n}",
+    "mom.none": "Noch keine Serie",
+    "mom.weekLine": "{n} der letzten 7 Tage",
+    "mom.startLine": "Eine Antwort heute startet deine Serie.",
+    "mom.keepLine": "Eine Antwort heute hält deine Serie am Leben.",
+    "mom.todayDoneLine": "Heute zählt mit.",
+    "mom.next": "Als Nächstes",
+    "mom.of": "{n} von {total}",
+    "mom.noneYet": "Noch nichts erreicht — das erste ist eine Antwort entfernt.",
+    "mom.foot": "Tage mit einer aufgezeichneten Antwort und gezählte Meilensteine — kein Maß für dein Können.",
+    "mom.m.first": "Erste Antwort aufgezeichnet",
+    "mom.m.clean": "Erste Antwort ohne Hinweis",
+    "mom.m.concepts": "Fünf verschiedene Ideen",
+    "mom.m.slip": "Ein Fehler, den du behoben hast",
+    "mom.m.streak3": "Drei Tage in Folge",
+    "mom.m.clean10": "Zehn Antworten ohne Hinweis",
+    "mom.m.transfer": "Bei einer neuen Frage bewiesen",
+    "mom.goal": "Heute",
+    "mom.goalLeft": "Heute noch {n}.",
+    "mom.goalDone": "Ziel erreicht — alles Weitere zählt trotzdem.",
+    "mom.best": "Beste Serie: {n}.",
+    "mom.back": "Heute beginnt eine neue.",
+    "mom.justEarned": "Gerade erreicht:",
+    "err.misses": "{w} von {n} Antworten falsch",
+    "err.noBelief": "OpenMind hat festgehalten, welche Antworten hier falsch waren, kann aber noch nicht benennen, welcher Gedanke dahintersteckt — übe hier, vielleicht zeigt er sich.",
+    "pp.set": "Satz {s}",
 };
 const ja = {
     "target.slipCheck": "この問題は、そのつまずきを突くために作られています。",
@@ -21528,11 +22575,17 @@ const ja = {
     "plan.traps": "つまずきやすいところ",
     "plan.reviewed": "教科の先生が確認済み",
     "plan.unreviewed": "教科の先生による確認はまだです",
+    "lesson.slipTitle": "前回のつまずきから始めます",
+    "lesson.slipLead": "この考え方で同じまちがいを以前にしているので、練習でもう一度出会うのを待たず、この授業はそこから始めます。",
+    "lesson.slipClears": "正解が三回続くとこの部分は消えます。",
+    "lesson.slipProgress": "連続正解：{need}問中{done}問",
+    "lesson.slipRetired": "ここでしていたまちがいは克服できました。",
     "cur.covers": "ここにある {total} 概念のうち {n} があなたのコースに含まれます。",
     "cur.outside": "コースの対象外",
     "cur.outsideNote": "ここにある {n} 件の概念は {spec} の範囲外です。読むことはできますが、あなたのカリキュラムには含まれません。",
     "curr.unmapped": "お住まいの国の国内カリキュラムはまだ対応していません — 国際資格のコースを表示します。",
     "nav.currTitle": "あなたのカリキュラム",
+    "subs.note": "学んでいる科目を追加・削除できます。削除するとその科目の演習とテストは止まりますが、これまでの学習は残り、再び追加するときはコースを選び直します。",
     "curr.title": "あなたのカリキュラム",
     "curr.sub": "実際に受けているコースとレベルを選んでください。OpenMind はどの考えがあなたのものか、練習をどの深さで行うか、あなたのカリキュラムが使う言葉を知ります。",
     "course.mapPending": "シラバスの対応付け：OpenMind によるもので、教科の専門家による確認はまだ受けていません。",
@@ -21834,6 +22887,7 @@ const ja = {
     "cn.ai-basics": "AIと機械学習",
     "cn.statistics-data": "データ分析と統計",
     "mc.neg-slip": "負の数の符号ミス",
+    "mc.dec-point": "小数点が消える・ずれる",
     "mc.frac-slice": "分母が大きい＝切り方が大きい",
     "mc.denom-add": "分母を足してしまう",
     "mc.pct-base": "百分率の基準違い",
@@ -21855,6 +22909,7 @@ const ja = {
     "mc.unit-sq": "面積・体積の単位の混同",
     "mc.sf-area": "面積にスケール係数をそのまま使う",
     "mc.vec-dir": "ベクトルの向きを無視",
+    "mc.axis-swap": "座標の順序を入れ替える",
     "mc.sum-one": "確率の合計が1にならない",
     "mc.ind-dep": "独立だと思い込む",
     "mc.outlier-mean": "なんでも平均を使う",
@@ -21923,7 +22978,8 @@ const ja = {
     "tr.story1": " と毎月同じ金額を徴収します。 ",
     "tr.story2": " か月後の支払総額は ",
     "tr.story3": " です。月額はいくらですか？",
-    "tr.whichAnswer": "この答えになるのはどれ",
+    "tr.whichAnswer": "この答え（{v}）になるのはどの問題？",
+    "tr.whichSolution": "{var} = {v} が解になる方程式はどれ？",
     "mm.strong": "しっかり",
     "mm.developing": "発展途上",
     "mm.learning": "学習中",
@@ -22014,7 +23070,7 @@ const ja = {
     "fb.answerIs": "答えは",
     "work.label": "途中の計算",
     "work.ph": "ここに途中式を書きましょう…",
-    "work.note": "このページ内にとどまり、私たちは読みません。",
+    "work.note": "自分用の下書き用紙 — このタブ内だけ。送信・保存・採点はされません。",
     "answer.unitHint": "単位は {unit}",
     "q.simplify": "簡約しなさい",
     "q.expand": "展開しなさい",
@@ -22087,6 +23143,7 @@ const ja = {
     "lq.interface": "表示",
     "lq.teaching": "教育",
     "lq.teachNote": "概念名・要約・つまずきの名前は日本語で表示。本文レッスンと自動生成の問題はまだ英語です。",
+    "lq.teachNoteAll": "翻訳されているのは画面表示だけです。このレッスン、問題、解説は英語です。",
     "lq.answer": "回答",
     "lq.school": "学校",
     "home.haveProfile": "プロフィールをお持ちですか？",
@@ -22113,7 +23170,9 @@ const ja = {
     "home.feat.voice": "音声と写真",
     "home.feat.voiceDesc": "話すか写真を撮る — OpenMindが聞いて一致させます。",
     "ask.reading": "読み取り中…",
-    "ask.whatTesting": "これは何を試していますか？",
+    "ask.whatTesting": "スキル",
+    "ask.hint": "ヒントをください",
+    "ask.explainQ": "この問題が何を聞いているか説明して",
     "ask.takePhoto": "写真を撮る",
     "ask.thinkTests": "これはこれを試していると推測",
     "ask.workThrough": "順を追って解く",
@@ -22263,6 +23322,8 @@ const ja = {
     "coach.noticed": "気づいたことがあります。",
     "coach.misconception": "「{name}」のミスを何度か繰り返しています。",
     "coach.fixIt": "直しましょう",
+    "fig.cap.axes": "座標平面上に次の点が打たれています：{points}。",
+    "fig.cap.triangle": "直角三角形で、2つの直角をはさむ辺に {a}{unit} と {b}{unit} が書かれています。",
     "intent.exams": "試験のため",
     "intent.understand": "教科を理解する",
     "intent.project": "プロジェクトを作る",
@@ -22865,6 +23926,7 @@ const ja = {
     "sess.eyebrow": "学習セッション",
     "sess.lead": "短いセッションです。最後に何が変わり、次に何をするかを表示します。",
     "sess.qOf": "第{n}問／全{m}問",
+    "sess.stepOf": "ステップ {n}/{m}",
     "sess.resume": "未完了のセッション：{n}／{m}",
     "sess.noHints": "{n}問中{c}問をヒントなしで",
     "sess.complete": "セッション完了",
@@ -22906,7 +23968,7 @@ const ja = {
     "an.weakest": "この弱点を練習",
     "an.none": "失点はありません。直すところもありません。",
     "err.eyebrow": "わたしの間違い",
-    "err.lead": "OpenMind が記録した繰り返しのつまずきと、その対処法。",
+    "err.lead": "OpenMind が記録したあなたのつまずき — 名前を特定できたものと、数えることしかできないもの。",
     "err.none": "まだ記録がありません。練習すればこのページが埋まります。",
     "err.why": "どこでつまずいたか",
     "err.last": "最終出現",
@@ -23125,6 +24187,34 @@ const ja = {
     "acct.attach": "アカウントを追加",
     "acct.guestLead": "あなたの学習はこの端末に保存され、OpenMind が保管しています。アカウントを追加すればそのまま引き継げます。進み具合も記録も同じで、どの端末からでもサインインできます。",
     "acct.class": "クラスに参加",
+    "mom.title": "継続",
+    "mom.loading": "記録を読み込んでいます…",
+    "mom.streak": "{n}日連続",
+    "mom.none": "まだ連続記録はありません",
+    "mom.weekLine": "過去7日のうち{n}日",
+    "mom.startLine": "今日1問答えると連続記録が始まります。",
+    "mom.keepLine": "今日1問答えると連続記録が続きます。",
+    "mom.todayDoneLine": "今日は記録済みです。",
+    "mom.next": "次",
+    "mom.of": "{n} / {total}",
+    "mom.noneYet": "まだ達成はありません。最初の一つはあと1問です。",
+    "mom.foot": "解答が記録された日と数えた到達点です。能力の測定ではありません。",
+    "mom.m.first": "最初の解答を記録",
+    "mom.m.clean": "ヒントなしで最初の正解",
+    "mom.m.concepts": "5つの異なる考え",
+    "mom.m.slip": "直したつまずき",
+    "mom.m.streak3": "3日連続",
+    "mom.m.clean10": "ヒントなしの正解10問",
+    "mom.m.transfer": "新しい問題で証明",
+    "mom.goal": "今日",
+    "mom.goalLeft": "今日はあと{n}問。",
+    "mom.goalDone": "目標達成 — それ以上も記録されます。",
+    "mom.best": "最長記録: {n}。",
+    "mom.back": "今日からまた始まります。",
+    "mom.justEarned": "たった今の達成:",
+    "err.misses": "{n}問中{w}問まちがい",
+    "err.noBelief": "ここでどの解答がまちがっていたかは記録しましたが、その背景の思い込みまではまだ特定できていません。ここで練習すれば見つかるかもしれません。",
+    "pp.set": "セット{s}",
 };
 const zh = {
     "target.slipCheck": "这道题就是用来抓住那个错误的。",
@@ -23143,11 +24233,17 @@ const zh = {
     "plan.traps": "这里最容易出错",
     "plan.reviewed": "已由学科教师检查",
     "plan.unreviewed": "尚未经学科教师检查",
+    "lesson.slipTitle": "从上一次的错处开始",
+    "lesson.slipLead": "你在这个概念上犯过这个错误，所以这一课从它开始，而不是让你在练习中再遇到一次。",
+    "lesson.slipClears": "连续答对三次后，这一部分就会消失。",
+    "lesson.slipProgress": "连续答对：{need} 题中 {done} 题",
+    "lesson.slipRetired": "你在这里犯过的错误已经改正了。",
     "cur.covers": "这里的 {total} 个概念中，有 {n} 个属于你的课程。",
     "cur.outside": "不在你的课程内",
     "cur.outsideNote": "这里有 {n} 个概念不在 {spec} 之内。你仍然可以阅读它们，但它们不属于你的教学大纲。",
     "curr.unmapped": "你所在国家的国家课程尚未接入——当前显示国际课程路径。",
     "nav.currTitle": "你的课程体系",
+    "subs.note": "你可以添加或删除所学的科目。删除后该科目的练习和试卷会停止——已完成的学习会保留，重新添加时需要再次选择它的课程。",
     "curr.title": "你的课程体系",
     "curr.sub": "选择你实际参加的课程和层次。这样 OpenMind 就知道哪些概念属于你、练习该有多深，以及你的课程使用哪些术语。",
     "course.mapPending": "大纲对应关系：由 OpenMind 自行建立，尚未经学科专家审阅。",
@@ -23449,6 +24545,7 @@ const zh = {
     "cn.ai-basics": "人工智能与机器学习",
     "cn.statistics-data": "数据分析与统计",
     "mc.neg-slip": "负数符号错误",
+    "mc.dec-point": "小数点丢失或移位",
     "mc.frac-slice": "分母越大＝分得越多",
     "mc.denom-add": "把分母相加",
     "mc.pct-base": "百分数基准错误",
@@ -23470,6 +24567,7 @@ const zh = {
     "mc.unit-sq": "面积/体积单位混淆",
     "mc.sf-area": "把比例尺直接用在面积上",
     "mc.vec-dir": "忽略向量方向",
+    "mc.axis-swap": "调换坐标的顺序",
     "mc.sum-one": "概率之和不为 1",
     "mc.ind-dep": "误以为事件独立",
     "mc.outlier-mean": "处处用平均数",
@@ -23538,7 +24636,8 @@ const zh = {
     "tr.story1": "，之后每月收取相同金额。 ",
     "tr.story2": " 个月后共支付 ",
     "tr.story3": "。每月金额是多少？",
-    "tr.whichAnswer": "哪一道题的答案是这个",
+    "tr.whichAnswer": "哪一道题的答案是 {v}？",
+    "tr.whichSolution": "哪个方程的解是 {var} = {v}？",
     "mm.strong": "熟练",
     "mm.developing": "进步中",
     "mm.learning": "学习中",
@@ -23629,7 +24728,7 @@ const zh = {
     "fb.answerIs": "答案是",
     "work.label": "你的解题过程",
     "work.ph": "在这里写下你的步骤…",
-    "work.note": "只留在这个页面——我们不会读取。",
+    "work.note": "私人草稿纸 — 只在这个标签页里，不会发送、保存或批改。",
     "answer.unitHint": "以{unit}为单位",
     "q.simplify": "化简",
     "q.expand": "展开",
@@ -23702,6 +24801,7 @@ const zh = {
     "lq.interface": "界面",
     "lq.teaching": "教学",
     "lq.teachNote": "概念名、简介和易错点名称已本地化；完整课程与自动生成的题目仍为英文。",
+    "lq.teachNoteAll": "只有界面已翻译：本课内容、题目和解析均为英文。",
     "lq.answer": "作答",
     "lq.school": "学校",
     "home.haveProfile": "已有档案？",
@@ -23728,7 +24828,9 @@ const zh = {
     "home.feat.voice": "语音和拍照",
     "home.feat.voiceDesc": "说话或拍照——OpenMind 听取并匹配。",
     "ask.reading": "识别中…",
-    "ask.whatTesting": "这在考什么？",
+    "ask.whatTesting": "技能",
+    "ask.hint": "给我一个提示",
+    "ask.explainQ": "解释一下这道题在问什么",
     "ask.takePhoto": "拍张照片",
     "ask.thinkTests": "我觉得这考的是",
     "ask.workThrough": "一步步解出来",
@@ -23878,6 +24980,8 @@ const zh = {
     "coach.noticed": "我注意到了一件事。",
     "coach.misconception": "你已经好几次犯同样的「{name}」错误了。",
     "coach.fixIt": "来改掉它",
+    "fig.cap.axes": "一个坐标网格，标出了这些点：{points}。",
+    "fig.cap.triangle": "一个直角三角形，两条直角边分别标注为 {a}{unit} 和 {b}{unit}。",
     "intent.exams": "我的考试",
     "intent.understand": "理解一门学科",
     "intent.project": "做一个项目",
@@ -24390,6 +25494,7 @@ const zh = {
     "sess.eyebrow": "学习环节",
     "sess.lead": "短短一段。结束时，OpenMind 会显示有什么变化、接下来做什么。",
     "sess.qOf": "第 {n} 题，共 {m} 题",
+    "sess.stepOf": "第 {n} 步，共 {m} 步",
     "sess.resume": "未完成的环节：{n}/{m}",
     "sess.noHints": "{n} 题中 {c} 题无提示",
     "sess.complete": "本环节完成",
@@ -24431,7 +25536,7 @@ const zh = {
     "an.weakest": "练习这个薄弱点",
     "an.none": "本卷没有失分——无需修补。",
     "err.eyebrow": "我的错题",
-    "err.lead": "OpenMind 记录下的每一个反复出错，以及该怎么办。",
+    "err.lead": "OpenMind 记录下的你的每一次失误——能说出原因的，和只能统计次数的。",
     "err.none": "还没有记录。练习一下，这一页就会自动填满。",
     "err.why": "错在哪里",
     "err.last": "最近出现",
@@ -24650,6 +25755,34 @@ const zh = {
     "acct.attach": "添加账户",
     "acct.guestLead": "你的学习记录保存在这台设备上，并由 OpenMind 保管。添加账户后它会随你而去——同样的进度、同样的记录，而且你可以在任何设备上登录。",
     "acct.class": "加入班级",
+    "mom.title": "坚持",
+    "mom.loading": "正在读取你的记录…",
+    "mom.streak": "连续 {n} 天",
+    "mom.none": "还没有连续记录",
+    "mom.weekLine": "最近 7 天中有 {n} 天",
+    "mom.startLine": "今天答一题就开始你的连续记录。",
+    "mom.keepLine": "今天答一题就能保持连续记录。",
+    "mom.todayDoneLine": "今天已计入。",
+    "mom.next": "下一个",
+    "mom.of": "{n} / {total}",
+    "mom.noneYet": "还没有达成任何一项——第一项只差一题。",
+    "mom.foot": "有作答记录的天数和已计数的里程碑——不是能力测评。",
+    "mom.m.first": "记录第一次作答",
+    "mom.m.clean": "第一次无提示答对",
+    "mom.m.concepts": "五个不同的概念",
+    "mom.m.slip": "你修正的失误",
+    "mom.m.streak3": "连续三天",
+    "mom.m.clean10": "十次无提示答对",
+    "mom.m.transfer": "在新题上得到证明",
+    "mom.goal": "今天",
+    "mom.goalLeft": "今天还差 {n} 题。",
+    "mom.goalDone": "目标达成 — 多做也算数。",
+    "mom.best": "最长纪录：{n}。",
+    "mom.back": "今天重新开始。",
+    "mom.justEarned": "刚刚达成：",
+    "err.misses": "{n} 题中错了 {w} 题",
+    "err.noBelief": "OpenMind 记录下了这里哪些答案错了，但还说不清背后的想法——在这里练习，也许就能被发现。",
+    "pp.set": "第 {s} 套",
 };
 const fa = {
     "target.slipCheck": "این پرسش برای گرفتن همان خطا ساخته شده است.",
@@ -24668,11 +25801,17 @@ const fa = {
     "plan.traps": "اینجا اشتباه میشود",
     "plan.reviewed": "بررسیشده توسط دبیر درس",
     "plan.unreviewed": "هنوز توسط دبیر درس بررسی نشده",
+    "lesson.slipTitle": "از اشتباه بار قبل شروع کن",
+    "lesson.slipLead": "این اشتباه را قبلاً در این ایده مرتکب شدهای، پس درس از همانجا شروع میشود تا در تمرین دوباره به آن برنخوری.",
+    "lesson.slipClears": "این بخش پس از سه پاسخ درست پشت سر هم پنهان میشود.",
+    "lesson.slipProgress": "پاسخ‌های درست پیاپی: {done} از {need}",
+    "lesson.slipRetired": "اشتباهی که اینجا میکردی برطرف شده است.",
     "cur.covers": "{n} از {total} مفهوم اینجا در دورهٔ شما می‌گنجد.",
     "cur.outside": "خارج از دورهٔ شما",
     "cur.outsideNote": "{n} مفهوم اینجا جزء {spec} نیست. می‌توانی آن‌ها را بخوانی، اما بخشی از برنامهٔ درسی‌ات نیستند.",
     "curr.unmapped": "برنامهٔ ملی کشور شما هنوز نگاشت نشده است — مسیرهای بین‌المللی نمایش داده می‌شود.",
     "nav.currTitle": "برنامهٔ درسی شما",
+    "subs.note": "درس‌هایی را که می‌خوانید اضافه یا حذف کنید. حذف یک درس تمرین و آزمون‌های آن را متوقف می‌کند — کار انجام‌شده باقی می‌ماند، اما اگر دوباره اضافه‌اش کنید، دوره‌اش را از نو انتخاب می‌کنید.",
     "curr.title": "برنامهٔ درسی شما",
     "curr.sub": "دوره و سطحی را انتخاب کنید که واقعاً می‌گذرانید. آن‌گاه OpenMind می‌داند کدام ایده‌ها مال شماست، تمرین تا چه عمقی باشد و برنامهٔ شما چه واژه‌هایی به کار می‌برد.",
     "course.mapPending": "تناظر برنامهٔ درسی: ساختهٔ OpenMind، هنوز توسط متخصص درس بازبینی نشده است.",
@@ -24974,6 +26113,7 @@ const fa = {
     "cn.ai-basics": "هوش مصنوعی و یادگیری ماشین",
     "cn.statistics-data": "تحلیل داده و آمار",
     "mc.neg-slip": "خطای علامت در اعداد منفی",
+    "mc.dec-point": "ممیز حذف یا جابه‌جا می‌شود",
     "mc.frac-slice": "مخرج بزرگ‌تر = تکه بزرگ‌تر",
     "mc.denom-add": "جمع کردن مخرج‌ها",
     "mc.pct-base": "مبنای درصد اشتباه",
@@ -24995,6 +26135,7 @@ const fa = {
     "mc.unit-sq": "خلط یکای مساحت/حجم",
     "mc.sf-area": "به‌کار بردن مستقیم ضریب مقیاس در مساحت",
     "mc.vec-dir": "نادیده گرفتن جهت بردار",
+    "mc.axis-swap": "ترتیب مختصات را جابه‌جا می‌کند",
     "mc.sum-one": "جمع احتمال‌ها برابر ۱ نیست",
     "mc.ind-dep": "فرض استقلال پیشامدها",
     "mc.outlier-mean": "میانگین همه‌جا",
@@ -25063,7 +26204,8 @@ const fa = {
     "tr.story1": " و هر ماه همان مبلغ می‌گیرد. پس از ",
     "tr.story2": " ماه مجموع پرداختی ",
     "tr.story3": " است. مبلغ ماهانه چند است؟",
-    "tr.whichAnswer": "کدام‌یک از این پرسش‌ها این پاسخ را می‌دهد",
+    "tr.whichAnswer": "کدام‌یک از این پرسش‌ها پاسخش {v} است؟",
+    "tr.whichSolution": "کدام معادله جوابش {var} = {v} است؟",
     "mm.strong": "قوی",
     "mm.developing": "در حال پیشرفت",
     "mm.learning": "در حال یادگیری",
@@ -25154,7 +26296,7 @@ const fa = {
     "fb.answerIs": "پاسخ این است",
     "work.label": "راه‌حل تو",
     "work.ph": "مراحل را اینجا بنویس…",
-    "work.note": "همین صفحه می‌ماند — ما آن را نمی‌خوانیم.",
+    "work.note": "کاغذ چرک‌نویس خصوصی — فقط در همین زبانه؛ نه ارسال می‌شود، نه ذخیره، نه تصحیح.",
     "answer.unitHint": "بر حسب {unit}",
     "q.simplify": "ساده کن",
     "q.expand": "بسط بده",
@@ -25227,6 +26369,7 @@ const fa = {
     "lq.interface": "رابط",
     "lq.teaching": "آموزش",
     "lq.teachNote": "نام مفهوم‌ها، خلاصه‌ها و نام بدفهمی‌ها به زبان شماست؛ درس‌های کامل و پرسش‌های خودکار هنوز انگلیسی‌اند.",
+    "lq.teachNoteAll": "فقط رابط کاربری ترجمه شده است: این درس، پرسش‌ها و توضیح‌های آن به انگلیسی است.",
     "lq.answer": "پاسخ",
     "lq.school": "مدرسه",
     "home.haveProfile": "پروفایل داری؟",
@@ -25253,7 +26396,9 @@ const fa = {
     "home.feat.voice": "صدا و عکس",
     "home.feat.voiceDesc": "حرف بزن یا عکس بگیر — OpenMind گوش می‌دهد و تطبیق می‌دهد.",
     "ask.reading": "در حال خواندن…",
-    "ask.whatTesting": "این چه چیزی را می‌سنجد؟",
+    "ask.whatTesting": "مهارت",
+    "ask.hint": "یک راهنما بده",
+    "ask.explainQ": "توضیح بده این پرسش چه می‌خواهد",
     "ask.takePhoto": "عکس بگیر",
     "ask.thinkTests": "فکر کنم این می‌سنجد",
     "ask.workThrough": "قدم‌به‌قدم حلش کن",
@@ -25403,6 +26548,8 @@ const fa = {
     "coach.noticed": "به چیزی پی بردم.",
     "coach.misconception": "چند بار همان اشتباه «{name}» را تکرار کرده‌ای.",
     "coach.fixIt": "بیا درستش کنیم",
+    "fig.cap.axes": "یک شبکه مختصات که این نقطه‌ها روی آن علامت خورده‌اند: {points}.",
+    "fig.cap.triangle": "یک مثلث قائم‌الزاویه که دو ضلع کوتاه‌ترش {a}{unit} و {b}{unit} برچسب خورده‌اند.",
     "intent.exams": "امتحان‌هایم",
     "intent.understand": "فهم یک درس",
     "intent.project": "ساختن یک پروژه",
@@ -25915,6 +27062,7 @@ const fa = {
     "sess.eyebrow": "جلسه یادگیری",
     "sess.lead": "جلسه کوتاه است. در پایان، OpenMind نشان می‌دهد چه تغییر کرد و گام بعدی چیست.",
     "sess.qOf": "پرسش {n} از {m}",
+    "sess.stepOf": "گام {n} از {m}",
     "sess.resume": "جلسه ناتمام: {n} از {m}",
     "sess.noHints": "{c} از {n} بدون راهنما",
     "sess.complete": "جلسه کامل شد",
@@ -25956,7 +27104,7 @@ const fa = {
     "an.weakest": "این ضعف را تمرین کنید",
     "an.none": "در این آزمون نمره‌ای از دست نرفت — چیزی برای جبران نیست.",
     "err.eyebrow": "اشتباه‌های من",
-    "err.lead": "هر خطای تکراری که OpenMind درباره شما ثبت کرده، و راه‌حل آن.",
+    "err.lead": "هر خطایی که OpenMind دربارهٔ شما ثبت کرده — آنچه می‌تواند نام ببرد و آنچه فقط می‌تواند بشمارد.",
     "err.none": "هنوز خطایی ثبت نشده. تمرین کنید تا این صفحه پر شود.",
     "err.why": "چه اشتباهی رخ داد",
     "err.last": "آخرین بار",
@@ -26175,6 +27323,34 @@ const fa = {
     "acct.attach": "افزودن حساب",
     "acct.guestLead": "کار شما روی همین دستگاه ذخیره شده و OpenMind آن را نگه می‌دارد. یک حساب اضافه کنید تا با شما بیاید — همان پیشرفت، همان سابقه، و می‌توانید از هر دستگاهی وارد شوید.",
     "acct.class": "به یک کلاس بپیوندید",
+    "mom.title": "پیوستگی",
+    "mom.loading": "در حال خواندن سابقهٔ شما…",
+    "mom.streak": "زنجیرهٔ {n} روزه",
+    "mom.none": "هنوز زنجیره‌ای نیست",
+    "mom.weekLine": "{n} از ۷ روز گذشته",
+    "mom.startLine": "یک پاسخ امروز زنجیرهٔ شما را آغاز می‌کند.",
+    "mom.keepLine": "یک پاسخ امروز زنجیره را زنده نگه می‌دارد.",
+    "mom.todayDoneLine": "امروز حساب شد.",
+    "mom.next": "بعدی",
+    "mom.of": "{n} از {total}",
+    "mom.noneYet": "هنوز چیزی به دست نیامده — اولی یک پاسخ فاصله دارد.",
+    "mom.foot": "روزهایی با پاسخ ثبت‌شده و گام‌های شمرده‌شده — نه سنجش توانایی شما.",
+    "mom.m.first": "نخستین پاسخ ثبت شد",
+    "mom.m.clean": "نخستین پاسخ بدون راهنما",
+    "mom.m.concepts": "پنج ایدهٔ متفاوت",
+    "mom.m.slip": "خطایی که اصلاح کردید",
+    "mom.m.streak3": "سه روز پیاپی",
+    "mom.m.clean10": "ده پاسخ بدون راهنما",
+    "mom.m.transfer": "در پرسشی تازه اثبات شد",
+    "mom.goal": "امروز",
+    "mom.goalLeft": "{n} امروز باقی مانده.",
+    "mom.goalDone": "هدف محقق شد — بیشتر از آن هم حساب می‌شود.",
+    "mom.best": "بهترین زنجیره: {n}.",
+    "mom.back": "امروز زنجیرهٔ تازه‌ای آغاز می‌شود.",
+    "mom.justEarned": "همین حالا به دست آمد:",
+    "err.misses": "{w} از {n} پاسخ نادرست",
+    "err.noBelief": "OpenMind ثبت کرده کدام پاسخ‌ها اینجا نادرست بوده، اما هنوز نمی‌تواند باورِ پشت آن را نام ببرد — اینجا تمرین کنید، شاید شناسایی شود.",
+    "pp.set": "مجموعه {s}",
 };
 const ur = {
     "target.slipCheck": "یہ سوال اسی غلطی کو پکڑنے کے لیے بنایا گیا ہے۔",
@@ -26193,11 +27369,17 @@ const ur = {
     "plan.traps": "یہاں غلطی ہوتی ہے",
     "plan.reviewed": "مضمون کے استاد نے جانچا",
     "plan.unreviewed": "ابھی مضمون کے استاد نے نہیں جانچا",
+    "lesson.slipTitle": "پچھلی بار کی غلطی سے شروع کریں",
+    "lesson.slipLead": "آپ نے اس خیال میں یہ غلطی پہلے کی ہے، اس لیے سبق اسی سے شروع ہوتا ہے تاکہ مشق میں آپ کو دوبارہ نہ ملے۔",
+    "lesson.slipClears": "مسلسل تین صحیح جواب دینے پر یہ حصہ غائب ہو جائے گا۔",
+    "lesson.slipProgress": "مسلسل درست جوابات: {need} میں سے {done}",
+    "lesson.slipRetired": "یہاں جو غلطی ہو رہی تھی وہ دور ہو گئی ہے۔",
     "cur.covers": "یہاں کے {total} میں سے {n} تصورات آپ کے کورس کے حصے ہیں۔",
     "cur.outside": "آپ کے کورس سے باہر",
     "cur.outsideNote": "یہاں {n} تصورات {spec} سے باہر ہیں۔ آپ انہیں پڑھ سکتے ہیں، مگر یہ آپ کے نصاب کا حصہ نہیں ہیں۔",
     "curr.unmapped": "آپ کے ملک کا قومی نصاب ابھی نقشے پر نہیں — بین الاقوامی راستے دکھائے جا رہے ہیں۔",
     "nav.currTitle": "آپ کا نصاب",
+    "subs.note": "جو مضامین آپ پڑھتے ہیں انہیں شامل کریں یا ہٹائیں۔ کوئی مضمون ہٹانے پر اس کی مشق اور پرچے رک جاتے ہیں — آپ کا کیا ہوا کام محفوظ رہتا ہے، مگر دوبارہ شامل کرنے پر اس کا کورس پھر چننا ہوگا۔",
     "curr.title": "آپ کا نصاب",
     "curr.sub": "وہ کورس اور سطح چنیں جو آپ واقعی پڑھتے ہیں۔ پھر OpenMind جانتا ہے کہ کون سے تصورات آپ کے ہیں، مشق کتنی گہری ہو، اور آپ کا نصاب کون سے الفاظ استعمال کرتا ہے۔",
     "course.mapPending": "نصاب کا نقشہ: OpenMind کا اپنا، جسے ابھی کسی مضمون کے ماہر نے جانچا نہیں۔",
@@ -26499,6 +27681,7 @@ const ur = {
     "cn.ai-basics": "اے آئی اور مشین لرننگ",
     "cn.statistics-data": "ڈیٹا تجزیہ اور شماریات",
     "mc.neg-slip": "منفی عدد میں علامتی غلطی",
+    "mc.dec-point": "اعشاریہ کا نقطہ غائب یا سرک جاتا ہے",
     "mc.frac-slice": "بڑا مخرج = بڑا ٹکڑا",
     "mc.denom-add": "مخرج جمع کر دینا",
     "mc.pct-base": "فیصد کی بنیاد غلط",
@@ -26520,6 +27703,7 @@ const ur = {
     "mc.unit-sq": "رقبہ/حجم کی اکائی خلط",
     "mc.sf-area": "پیمانشی عامل کو رقبے پر براہِ راست لگانا",
     "mc.vec-dir": "سمتِ ویکٹر نظر انداز کرنا",
+    "mc.axis-swap": "مختصات کی ترتیب بدل دینا",
     "mc.sum-one": "احتمالات کا مجموعہ ۱ نہیں",
     "mc.ind-dep": "واقعات کو خودمختار سمجھنا",
     "mc.outlier-mean": "ہر جگہ اوسط",
@@ -26588,7 +27772,8 @@ const ur = {
     "tr.story1": " لیتا ہے اور ہر مہینے وہی رقم۔ ",
     "tr.story2": " مہینوں بعد کل ادائیگی ",
     "tr.story3": " ہے۔ ماہانہ رقم کیا ہے؟",
-    "tr.whichAnswer": "ان میں سے کون سا سوال یہ جواب دیتا ہے",
+    "tr.whichAnswer": "ان میں سے کس سوال کا جواب {v} ہے؟",
+    "tr.whichSolution": "کس مساوات کا حل {var} = {v} ہے؟",
     "mm.strong": "مضبوط",
     "mm.developing": "ترقی پذیر",
     "mm.learning": "سیکھ رہے ہیں",
@@ -26679,7 +27864,7 @@ const ur = {
     "fb.answerIs": "جواب ہے",
     "work.label": "آپ کا حل",
     "work.ph": "اپنے مراحل یہاں لکھیں…",
-    "work.note": "یہ اسی صفحے پر رہتا ہے — ہم اسے نہیں پڑھتے۔",
+    "work.note": "نجی مسودہ — صرف اسی ٹیب میں، کبھی بھیجا، محفوظ یا جانچا نہیں جاتا۔",
     "answer.unitHint": "{unit} میں",
     "q.simplify": "آسان کریں",
     "q.expand": "کھولیں",
@@ -26752,6 +27937,7 @@ const ur = {
     "lq.interface": "انٹرفیس",
     "lq.teaching": "تدریس",
     "lq.teachNote": "تصورات کے نام، خلاصے اور غلط فہمیوں کے نام آپ کی زبان میں؛ مکمل اسباق اور خودکار سوالات ابھی انگریزی میں ہیں۔",
+    "lq.teachNoteAll": "صرف انٹرفیس کا ترجمہ ہے: یہ سبق، اس کے سوالات اور وضاحتیں انگریزی میں ہیں۔",
     "lq.answer": "جواب",
     "lq.school": "اسکول",
     "home.haveProfile": "پروفائل پہلے سے ہے؟",
@@ -26778,7 +27964,9 @@ const ur = {
     "home.feat.voice": "آواز اور تصویر",
     "home.feat.voiceDesc": "بولیں یا تصویر لیں — OpenMind سنتا اور ملاتا ہے۔",
     "ask.reading": "پڑھ رہا ہے…",
-    "ask.whatTesting": "یہ کیا جانچ رہا ہے؟",
+    "ask.whatTesting": "مہارت",
+    "ask.hint": "مجھے اشارہ دو",
+    "ask.explainQ": "سمجھاؤ یہ سوال کیا پوچھ رہا ہے",
     "ask.takePhoto": "تصویر لیں",
     "ask.thinkTests": "مجھے لگتا ہے یہ جانچتا ہے",
     "ask.workThrough": "قدم بہ قدم حل کریں",
@@ -26928,6 +28116,8 @@ const ur = {
     "coach.noticed": "میں نے کچھ نوٹ کیا۔",
     "coach.misconception": "آپ نے وہی «{name}» والی غلطی کئی بار دہرائی ہے۔",
     "coach.fixIt": "آئے اسے ٹھیک کریں",
+    "fig.cap.axes": "ایک متناسق جال جس پر یہ نقطے لگے ہیں: {points}۔",
+    "fig.cap.triangle": "ایک قائمہ زاویہ مثلث جس کی دو چھوٹی اضلاع پر {a}{unit} اور {b}{unit} لکھا ہے۔",
     "intent.exams": "میرے امتحانات",
     "intent.understand": "کسی مضمون کو سمجھنا",
     "intent.project": "ایک منصوبہ بنانا",
@@ -27440,6 +28630,7 @@ const ur = {
     "sess.eyebrow": "سیکھنے کا سیشن",
     "sess.lead": "مختصر سیشن۔ آخر میں OpenMind دکھائے گا کیا بدلا اور آگے کیا کرنا ہے۔",
     "sess.qOf": "سوال {n} از {m}",
+    "sess.stepOf": "مرحلہ {n} از {m}",
     "sess.resume": "نامکمل سیشن: {n} از {m}",
     "sess.noHints": "{n} میں سے {c} بغیر اشارے",
     "sess.complete": "سیشن مکمل",
@@ -27481,7 +28672,7 @@ const ur = {
     "an.weakest": "اس کمزوری کی مشق کریں",
     "an.none": "اس پرچے میں کوئی نشانات ضائع نہیں — درست کرنے کو کچھ نہیں۔",
     "err.eyebrow": "میری غلطیاں",
-    "err.lead": "ہر دہرائی جانے والی غلطی جو OpenMind نے ریکارڈ کی، اور اس کا حل۔",
+    "err.lead": "ہر وہ غلطی جو OpenMind نے آپ کے بارے میں درج کی — جسے وہ نام دے سکتا ہے اور جسے صرف گن سکتا ہے۔",
     "err.none": "ابھی کوئی غلطی درج نہیں۔ مشق کریں، یہ صفحہ بھر جائے گا۔",
     "err.why": "کیا غلط ہوا",
     "err.last": "آخری بار",
@@ -27700,6 +28891,34 @@ const ur = {
     "acct.attach": "اکاؤنٹ شامل کریں",
     "acct.guestLead": "آپ کا کام اسی آلے پر محفوظ ہے اور OpenMind اسے سنبھالے ہوئے ہے۔ اکاؤنٹ شامل کریں تو یہ آپ کے ساتھ چلا جائے گا — وہی پیش رفت، وہی ریکارڈ، اور آپ کسی بھی آلے سے سائن اِن کر سکیں گے۔",
     "acct.class": "کلاس میں شامل ہوں",
+    "mom.title": "تسلسل",
+    "mom.loading": "آپ کا ریکارڈ پڑھا جا رہا ہے…",
+    "mom.streak": "{n} دن کا تسلسل",
+    "mom.none": "ابھی کوئی تسلسل نہیں",
+    "mom.weekLine": "پچھلے 7 دنوں میں سے {n}",
+    "mom.startLine": "آج ایک جواب دینے سے آپ کا تسلسل شروع ہوتا ہے۔",
+    "mom.keepLine": "آج ایک جواب دینے سے تسلسل قائم رہتا ہے۔",
+    "mom.todayDoneLine": "آج شمار ہو گیا۔",
+    "mom.next": "اگلا",
+    "mom.of": "{n} / {total}",
+    "mom.noneYet": "ابھی کچھ حاصل نہیں — پہلا ایک جواب کی دوری پر ہے۔",
+    "mom.foot": "وہ دن جن میں جواب درج ہوا اور گنے گئے سنگِ میل — یہ آپ کی صلاحیت کا پیمانہ نہیں۔",
+    "mom.m.first": "پہلا جواب درج",
+    "mom.m.clean": "بغیر اشارے پہلا جواب",
+    "mom.m.concepts": "پانچ مختلف خیال",
+    "mom.m.slip": "آپ کی درست کی ہوئی غلطی",
+    "mom.m.streak3": "لگاتار تین دن",
+    "mom.m.clean10": "دس جواب بغیر اشارے",
+    "mom.m.transfer": "نئے سوال پر ثابت",
+    "mom.goal": "آج",
+    "mom.goalLeft": "آج {n} باقی ہیں۔",
+    "mom.goalDone": "ہدف پورا — اس سے زیادہ بھی شمار ہوتا ہے۔",
+    "mom.best": "بہترین تسلسل: {n}۔",
+    "mom.back": "آج نیا تسلسل شروع ہوتا ہے۔",
+    "mom.justEarned": "ابھی حاصل ہوا:",
+    "err.misses": "{n} میں سے {w} جواب غلط",
+    "err.noBelief": "OpenMind نے درج کیا کہ یہاں کون سے جواب غلط ہوئے، مگر ان کے پیچھے کے تصور کا نام ابھی نہیں بتا سکتا — یہاں مشق کریں، ممکن ہے پکڑا جائے۔",
+    "pp.set": "سیٹ {s}",
 };
 exports.LANGS = [
     { code: "en", name: "English", native: "English", dir: "ltr", status: "full", sample: "Global" },
@@ -27735,11 +28954,17 @@ exports.bn = {
     "plan.traps": "এখানেই ভুল হয়",
     "plan.reviewed": "বিষয় শিক্ষক দেখেছেন",
     "plan.unreviewed": "বিষয় শিক্ষক এখনো দেখেননি",
+    "lesson.slipTitle": "গতবারের ভুল দিয়ে শুরু করো",
+    "lesson.slipLead": "এই ধারণায় তুমি আগে এই ভুলটি করেছ, তাই পাঠটি সেখান থেকেই শুরু হচ্ছে — অনুশীলনে আবার যেন সেটির মুখোমুখি না হতে হয়।",
+    "lesson.slipClears": "টানা তিনটি সঠিক উত্তর দিলে এই অংশটি আর দেখাবে না।",
+    "lesson.slipProgress": "পরপর সঠিক উত্তর: {need}-এর মধ্যে {done}",
+    "lesson.slipRetired": "এখানে যে ভুলটি হচ্ছিল, সেটি এখন কেটে গেছে।",
     "cur.covers": "এখানকার {total}টি ধারণার মধ্যে {n}টি আপনার কোর্সের অন্তর্ভুক্ত।",
     "cur.outside": "আপনার কোর্সের বাইরে",
     "cur.outsideNote": "এখানে {n}টি ধারণা {spec} এর বাইরে। আপনি সেগুলো পড়তে পারেন, তবে সেগুলো আপনার পাঠ্যসূচির অংশ নয়।",
     "curr.unmapped": "আপনার দেশের জাতীয় পাঠ্যক্রম এখনো যুক্ত হয়নি — আন্তর্জাতিক পথ দেখানো হচ্ছে।",
     "nav.currTitle": "আপনার পাঠ্যক্রম",
+    "subs.note": "আপনি যে বিষয়গুলো পড়েন সেগুলো যোগ বা বাদ দিতে পারেন। কোনো বিষয় বাদ দিলে তার অনুশীলন ও প্রশ্নপত্র থেমে যায় — আগের করা কাজ থেকে যায়, তবে আবার যোগ করলে তার কোর্স আবার বেছে নিতে হবে।",
     "curr.title": "আপনার পাঠ্যক্রম",
     "curr.sub": "আপনি যে কোর্স ও স্তরে পড়েন সেটি বেছে নিন। তখন OpenMind জানে কোন ধারণাগুলো আপনার, অনুশীলন কত গভীর হবে, আর আপনার পাঠ্যক্রম কোন শব্দ ব্যবহার করে।",
     "course.mapPending": "সিলেবাস ম্যাপিং: OpenMind-এর নিজস্ব, এখনো কোনো বিষয়-বিশেষজ্ঞ পর্যালোচনা করেননি।",
@@ -28041,6 +29266,7 @@ exports.bn = {
     "cn.ai-basics": "এআই ও মেশিন লার্নিং",
     "cn.statistics-data": "উপাত্ত বিশ্লেষণ ও পরিসংখ্যান",
     "mc.neg-slip": "ঋণাত্মক সংখ্যায় চিহ্নের ভুল",
+    "mc.dec-point": "দশমিক বিন্দু হারিয়ে যায় বা সরে যায়",
     "mc.frac-slice": "বড় হর = বড় টুকরো",
     "mc.denom-add": "হর যোগ করে ফেলা",
     "mc.pct-base": "শতকরার ভিত্তি ভুল",
@@ -28062,6 +29288,7 @@ exports.bn = {
     "mc.unit-sq": "ক্ষেত্রফল/আয়তনের একক গোলমাল",
     "mc.sf-area": "অনুপাত-গুণক সরাসরি ক্ষেত্রফলে লাগানো",
     "mc.vec-dir": "ভেক্টরের দিক উপেক্ষা",
+    "mc.axis-swap": "স্থানাঙ্কের ক্রম উল্টে ফেলা",
     "mc.sum-one": "সম্ভাবনার যোগফল ১ নয়",
     "mc.ind-dep": "ঘটনাকে স্বাধীন ভেবে নেওয়া",
     "mc.outlier-mean": "সবখানে গড়",
@@ -28142,7 +29369,8 @@ exports.bn = {
     "tr.story1": " নেয় এবং প্রতি মাসে একই অঙ্ক। ",
     "tr.story2": " মাস পরে মোট প্রদত্ত ",
     "tr.story3": "। মাসিক অঙ্ক কত?",
-    "tr.whichAnswer": "এর মধ্যে কোন প্রশ্নটি এই উত্তর দেয়",
+    "tr.whichAnswer": "এর মধ্যে কোন প্রশ্নটির উত্তর {v}?",
+    "tr.whichSolution": "কোন সমীকরণের সমাধান {var} = {v}?",
     "mm.strong": "দৃঢ়",
     "mm.developing": "উন্নতির পথে",
     "mm.learning": "শেখছে",
@@ -28231,7 +29459,7 @@ exports.bn = {
     "fb.answerIs": "উত্তর হলো",
     "work.label": "তোমার সমাধান",
     "work.ph": "তোমার ধাপগুলো এখানে লেখো…",
-    "work.note": "এটি এই পাতাতেই থাকে — আমরা পড়ি না।",
+    "work.note": "ব্যক্তিগত খসড়া কাগজ — শুধু এই ট্যাবে, কখনও পাঠানো, সংরক্ষণ বা মূল্যায়ন করা হয় না।",
     "answer.unitHint": "{unit} এককে",
     "q.simplify": "সরল করুন",
     "q.expand": "বিস্তার করুন",
@@ -28304,6 +29532,7 @@ exports.bn = {
     "lq.interface": "ইন্টারফেস",
     "lq.teaching": "শিক্ষা",
     "lq.teachNote": "ধারণার নাম, সারাংশ ও ভুল ধারণার নাম বাংলায়; পূর্ণ পাঠ ও স্বয়ংক্রিয় প্রশ্ন এখনও ইংরেজিতে।",
+    "lq.teachNoteAll": "শুধু ইন্টারফেস অনূদিত: এই পাঠ, এর প্রশ্ন ও ব্যাখ্যা ইংরেজিতে।",
     "lq.answer": "উত্তর",
     "lq.school": "স্কুল",
     "home.haveProfile": "প্রোফাইল আছে?",
@@ -28330,7 +29559,9 @@ exports.bn = {
     "home.feat.voice": "কণ্ঠ ও ছবি",
     "home.feat.voiceDesc": "বলুন বা ছবি তুলুন — OpenMind শোনে ও মেলায়।",
     "ask.reading": "পড়ছে…",
-    "ask.whatTesting": "এটি কী যাচাই করছে?",
+    "ask.whatTesting": "দক্ষতা",
+    "ask.hint": "আমাকে একটি ইঙ্গিত দাও",
+    "ask.explainQ": "বুঝিয়ে দাও এই প্রশ্নটি কী চাইছে",
     "ask.takePhoto": "ছবি তুলুন",
     "ask.thinkTests": "মনে হয় এটি যাচাই করছে",
     "ask.workThrough": "ধাপে ধাপে সমাধান করুন",
@@ -28488,6 +29719,8 @@ exports.bn = {
     "coach.noticed": "আমি একটি বিষয় লক্ষ্য করেছি।",
     "coach.misconception": "আপনি একই “{name}” ভুল কয়েকবার করেছেন।",
     "coach.fixIt": "চলুন ঠিক করি",
+    "fig.cap.axes": "একটি স্থানাঙ্ক জাল যেখানে এই বিন্দুগুলো চিহ্নিত: {points}।",
+    "fig.cap.triangle": "একটি সমকোণী ত্রিভুজ যার দুই বাহুতে {a}{unit} ও {b}{unit} লেখা আছে।",
     "intent.code": "কোড শিখুন",
     "intent.competition": "প্রতিযোগিতা",
     "intent.life": "জীবনের জন্য শিখুন",
@@ -29047,6 +30280,7 @@ exports.bn = {
     "sess.eyebrow": "শেখার সেশন",
     "sess.lead": "সংক্ষিপ্ত সেশন। শেষে OpenMind দেখাবে কী বদলাল আর পরে কী করবেন।",
     "sess.qOf": "প্রশ্ন {n} / {m}",
+    "sess.stepOf": "ধাপ {n} / {m}",
     "sess.resume": "অসমাপ্ত সেশন: {n}/{m}",
     "sess.noHints": "{n} টির মধ্যে {c} টি সংকেত ছাড়া",
     "sess.complete": "সেশন সম্পন্ন",
@@ -29088,7 +30322,7 @@ exports.bn = {
     "an.weakest": "এই দুর্বলতা অনুশীলন করুন",
     "an.none": "এই প্রশ্নপত্রে নম্বর হারায়নি — সারানোর কিছু নেই।",
     "err.eyebrow": "আমার ভুল",
-    "err.lead": "OpenMind আপনার সম্পর্কে রেকর্ড করা প্রতিটি বারবার ভুল, আর তার সমাধান।",
+    "err.lead": "OpenMind তোমার সম্পর্কে যে ভুলগুলো রেকর্ড করেছে — যেগুলোর কারণ বলতে পারে আর যেগুলো শুধু গুনতে পারে।",
     "err.none": "এখনো কোনো ভুল নথিভুক্ত হয়নি। অনুশীলন করুন, পৃষ্ঠাটি ভরে যাবে।",
     "err.why": "কী ভুল হয়েছে",
     "err.last": "শেষবার",
@@ -29307,6 +30541,34 @@ exports.bn = {
     "acct.attach": "অ্যাকাউন্ট যোগ করুন",
     "acct.guestLead": "আপনার কাজ এই ডিভাইসে সংরক্ষিত আছে এবং OpenMind তা রেখে দেয়। অ্যাকাউন্ট যোগ করুন, তা আপনার সঙ্গে যাবে — একই অগ্রগতি, একই রেকর্ড, আর আপনি যেকোনো ডিভাইস থেকে সাইন ইন করতে পারবেন।",
     "acct.class": "একটি শ্রেণিতে যোগ দিন",
+    "mom.title": "ধারাবাহিকতা",
+    "mom.loading": "তোমার রেকর্ড পড়া হচ্ছে…",
+    "mom.streak": "টানা {n} দিন",
+    "mom.none": "এখনো কোনো ধারা নেই",
+    "mom.weekLine": "গত ৭ দিনের মধ্যে {n} দিন",
+    "mom.startLine": "আজ একটা উত্তর দিলেই তোমার ধারা শুরু হয়।",
+    "mom.keepLine": "আজ একটা উত্তর দিলে ধারা চলতে থাকে।",
+    "mom.todayDoneLine": "আজ গণনা হয়েছে।",
+    "mom.next": "পরবর্তী",
+    "mom.of": "{n} / {total}",
+    "mom.noneYet": "এখনো কিছু পাওয়া যায়নি — প্রথমটি মাত্র এক উত্তরের দূরে।",
+    "mom.foot": "যে দিনগুলোতে উত্তর রেকর্ড হয়েছে এবং যেসব ধাপ গোনা হয়েছে — এটি তোমার সামর্থ্যের মাপকাঠি নয়।",
+    "mom.m.first": "প্রথম উত্তর রেকর্ড হয়েছে",
+    "mom.m.clean": "ইঙ্গিত ছাড়া প্রথম সঠিক উত্তর",
+    "mom.m.concepts": "পাঁচটি আলাদা ধারণা",
+    "mom.m.slip": "তুমি শুধরে নেওয়া ভুল",
+    "mom.m.streak3": "টানা তিন দিন",
+    "mom.m.clean10": "ইঙ্গিত ছাড়া দশটি উত্তর",
+    "mom.m.transfer": "নতুন প্রশ্নে প্রমাণিত",
+    "mom.goal": "আজ",
+    "mom.goalLeft": "আজ আর {n}টি বাকি।",
+    "mom.goalDone": "লক্ষ্য পূরণ — এর বেশি হলেও গণনা হয়।",
+    "mom.best": "সেরা ধারা: {n}।",
+    "mom.back": "আজ নতুন ধারা শুরু হয়।",
+    "mom.justEarned": "এইমাত্র অর্জিত:",
+    "err.misses": "{n}টির মধ্যে {w}টি ভুল",
+    "err.noBelief": "OpenMind রেকর্ড করেছে এখানে কোন উত্তরগুলো ভুল, কিন্তু তার পেছনের ধারণার নাম এখনো বলতে পারে না — এখানে অনুশীলন করো, হয়তো ধরা পড়বে।",
+    "pp.set": "সেট {s}",
 };
 exports.DICTS = {
     en, es, fr, pt, ar, sw, hi, id, tl, ur, fa, de, ja, zh, bn: exports.bn,
@@ -29531,6 +30793,8 @@ __def("learner-model.js", function (module, exports, require) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEMONSTRATED_ORDER = exports.CONCEPT_STAGES = exports.ESTABLISHED_MASTERY = exports.REPAIR_STREAK = void 0;
 exports.currentSlip = currentSlip;
+exports.retiredSlip = retiredSlip;
+exports.slipProgress = slipProgress;
 exports.statusOf = statusOf;
 exports.stageOf = stageOf;
 exports.hasLiveSlip = hasLiveSlip;
@@ -29576,6 +30840,36 @@ function currentSlip(p) {
         return null;
     entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     return { id: entries[0][0], hits: entries[0][1] };
+}
+/** THE SAME SLIP, AFTER THE REPAIR HAS HELD — the other end of `currentSlip`'s
+ *  rule, and deliberately not a second rule.
+ *
+ *  `currentSlip` answers null in two different situations: no slip was ever made
+ *  here, and a slip was made and then repaired. They are not the same fact, and
+ *  a learner who worked their way out of a belief deserves to be told so rather
+ *  than left to notice that a card stopped appearing. This function separates
+ *  them: it answers the retired slip only when a slip is on the record AND the
+ *  streak that retires it has been earned.
+ *
+ *  It CANNOT disagree with `currentSlip`, because it asks it first: a slip that
+ *  function still calls live is never reported as retired. That is the property
+ *  worth having, since the read stage will print this as "you have fixed it". */
+function retiredSlip(p) {
+    if (currentSlip(p))
+        return null;
+    if ((p?.streak ?? 0) < exports.REPAIR_STREAK)
+        return null;
+    const entries = Object.entries(p?.misconceptions ?? {});
+    if (entries.length === 0)
+        return null;
+    entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    return { id: entries[0][0], hits: entries[0][1] };
+}
+function slipProgress(p) {
+    const slip = currentSlip(p);
+    if (!slip)
+        return null;
+    return { slip, clean: Math.min(p?.streak ?? 0, exports.REPAIR_STREAK), need: exports.REPAIR_STREAK };
 }
 function statusOf(mastery, attempts) {
     if (attempts === 0)
@@ -30110,10 +31404,194 @@ const genome_1 = require("./genome");
  * cluster rather than its end: these are the stage 0–1 concepts (negatives,
  * order of operations, expressions, coordinates, indices, equations) that every
  * later concept in the pathway stands on, and they are the concepts whose
- * one-paragraph lessons were thinnest. The rest of the pilot's 11 concepts, and
- * the other 124, still render the prose.
+ * one-paragraph lessons were thinnest. `algebra-expand`, `straight-lines`,
+ * `completing-square`, `quadratics` and `surds` complete that pathway, so ALL
+ * ELEVEN concepts of the reviewed pilot now teach as a sequence.
+ *
+ * THEN THE FRONT OF THE PATHWAY WAS CLOSED. `fractions` and `percentages` are
+ * the two concepts the pilot assumed and did not teach — the first prerequisite
+ * of the data-and-ratio work every science course leans on. They are authored
+ * here as a SEQUENCE (fractions → percentages, with `decimals` between them in
+ * the genome and still on the prose), which makes THIRTEEN. The other 122
+ * concepts still render the prose: this is a pathway with both ends closed, not
+ * the curriculum, and saying otherwise is the exact claim this format exists to
+ * avoid. `npm run verify` measures the count rather than trusting this
+ * paragraph, and `audit/pilot-pack.json` is regenerated from it.
  */
 exports.LESSON_PLANS = {
+    // ── THE FOUNDATIONS RING, ADDED AFTER THE PILOT WAS VERIFIED ────────────────
+    //
+    // The pilot is a pathway through stage 0–3 algebra and number. A learner who
+    // wants to START that pathway cannot: `fractions` is a prerequisite of
+    // `percentages`, which is a prerequisite of the ratio and proportion work every
+    // science course assumes, and all of them still rendered the genome paragraph.
+    //
+    // These two are the smallest sequence that closes the FRONT of the pathway
+    // rather than extending its tail: `fractions` is where a learner who cannot
+    // order 1/4 and 1/8 is stuck, and `percentages` is the one concept the whole of
+    // data, finance and science teaching leans on. Both are in the served bank (so
+    // the worked example and the practice are real items, not prose), and both name
+    // a misconception the catalog already holds — which is what lets the read stage
+    // open on a learner's own slip instead of a generic paragraph.
+    // ── decimals · the first concept in the pilot pathway ───────────────────
+    //
+    // The entry point of the pathway and the one concept with no teaching at all:
+    // a learner arriving at the start of the course met a paragraph and then a
+    // question. It is deliberately placed here, before `fractions`, because that
+    // is the order a learner meets them — the same quantity written two ways.
+    //
+    // NO FIGURE, on purpose. The relationship this lesson turns on is PLACE VALUE —
+    // the column a digit sits in — and no kind the union declares draws a
+    // place-value table: a pie of 0.45 would show that almost half is shaded and
+    // say nothing about why 0.45 < 0.5, which is the thing being taught. A drawing
+    // that teaches nothing is decoration, and decoration teaches a learner to skip
+    // pictures.
+    decimals: {
+        conceptId: "decimals",
+        objective: "Read 0.45 aloud as 45 hundredths, put a list of decimals in size order, and add or multiply two of them without losing the decimal point.",
+        intuition: "Two prices on a shelf: £0.50 and £0.45. The second one has MORE digits, and the first is worth more — 50p beats 45p. That is the whole difficulty of decimals in one comparison: the digits are not the amount, their position is. A decimal continues the place-value system whole numbers already use, past a point and into tenths, hundredths and thousandths, so the column a digit sits in decides what it counts.",
+        idea: [
+            "Read the point as the word \"and\": 0.45 is 4 tenths and 5 hundredths, which is 45/100. Everything to the right of the point is a fraction whose denominator is a power of ten, and each step further right divides the value by ten again — tenths, then hundredths, then thousandths. A digit's position is doing exactly the work it does in 452, where the 4 means 400, except now it continues into amounts smaller than one.",
+            "Comparing decimals is decided column by column, not by how long the number is. Write them with the same number of places — 0.5 becomes 0.50 — and compare from the left: the tenths decide it, and only if they tie do you look at the hundredths. That is why 0.09 is smaller than 0.1 despite 9 being bigger than 1: 0.09 has no tenths at all, and 0.1 has one.",
+            "To add or subtract, put the points in a line — one number under the other with the points in the same column — fill any gaps with zeros, and add the columns exactly as you would whole numbers. 0.3 + 0.4 is three tenths plus four tenths: seven tenths, 0.7. The point is not written in because it was moved; it stays in the column it started in, which is why lining it up is the whole method.",
+            "Multiplying needs a different routine, because the columns no longer have to match. Multiply the digits as if the points were not there, then count the decimal places in BOTH factors and put that many back into the answer: 3 × 2 = 6, and 0.3 and 0.2 have one place each, so the answer needs two — 0.06. That count is not a trick; tenths times tenths really is hundredths, which is the same fact as 1/10 × 1/10 = 1/100.",
+            "A decimal is one quantity written in another notation, so converting costs nothing: 0.45 = 45/100 = 45%. The same number can be a price, a length, a probability or a percentage, and none of those changes its size. What does change is the precision a written decimal claims — 2.4 said to one decimal place means \"between 2.35 and 2.45\" — which is why rounding is a decision about which column matters rather than a tidy-up.",
+            "Multiplying or dividing by ten shifts the digits, not the quantity: 0.45 × 10 = 4.5 and 0.45 ÷ 10 = 0.045, with the point moving one place each time because every digit has moved one column. That is the one legitimate use of \"move the point\", and saying the operation out loud — \"divide by ten\" — keeps it attached to something true.",
+        ],
+        traps: [
+            {
+                move: "\"0.45 is bigger than 0.5, because 45 is bigger than 5.\"",
+                why: "Comparing the digits as if the point were not there ignores the column each one is in. Give both numbers the same number of places — 0.50 against 0.45 — and the tenths decide: five tenths beat four tenths. A longer decimal is not a bigger amount; 0.09 is smaller than 0.1.",
+            },
+            {
+                move: "\"0.3 × 0.2 = 0.6.\"",
+                why: "That is 0.3 × 2 — the point moved one place when the two factors had two decimal places between them. 3 × 2 = 6, so two places back gives 0.06. The check that catches it: multiplying two numbers smaller than 1 must give an answer smaller than either of them, and 0.6 is bigger than 0.3.",
+            },
+            {
+                move: "\"0.3 + 0.4 = 7, because 3 + 4 = 7.\"",
+                why: "Dropping the points multiplied both numbers by ten, so the answer is ten times too big. Three tenths plus four tenths is seven tenths, 0.7. Write the numbers one under the other with the points in a column: the digits you are adding are then the ones in the same place value.",
+            },
+        ],
+        usedFor: "Percentages (0.45 is 45%), measurement to a stated precision, ratio and standard form all read decimals, and rounding an answer to one decimal place is a judgement about which column the question cares about.",
+        review: "unreviewed",
+    },
+    fractions: {
+        conceptId: "fractions",
+        objective: "Read a fraction as a number, compare two of them, and say why 1/8 is smaller than 1/4 when 8 is bigger.",
+        intuition: "Two chocolate bars, identical. One is broken into four pieces, the other into eight, and you are handed one piece of each. The eight-piece bar gave you the SMALLER piece even though 8 is the bigger number — because the number underneath the fraction is not how much you get, it is how many pieces the bar was cut into. Every fraction question starts by asking which of those two things the number is doing.",
+        idea: [
+            "A fraction counts equal pieces of one whole. In 3/4 the bottom number, 4, says the whole was cut into four equal pieces; the top number, 3, says how many of them you have. Say it out loud that way — \"three pieces, each a quarter\" — and the notation stops being two numbers stacked up.",
+            "The bottom number is a SIZE, not a quantity. Cutting a bar into more pieces makes each piece smaller, so a bigger denominator means a smaller slice: 1/8 < 1/4. This is the single most common wrong answer in the whole of fractions, and it is not carelessness — it is reading the denominator as an amount, which is exactly what the top number is for.",
+            "Equivalent fractions say the same amount in different pieces. 1/2 = 2/4 = 3/6 because multiplying the top and the bottom by the same number doubles the count AND halves the slice size, so the amount of chocolate is unchanged. That is why you may scale a fraction up or down as long as you scale both parts: you are renaming the pieces, not changing the amount.",
+            "To compare fractions with different bottoms, make the pieces the same size — a common denominator. 2/3 and 3/4 become 8/12 and 9/12, and now the tops can be compared directly. The other reliable method needs no arithmetic: compare each fraction with 1/2. A fraction whose top is less than half its bottom (3/8) is below 1/2, and one whose top is more than half its bottom (5/8) is above it, so 3/8 < 5/8 and you never had to compute anything.",
+            "A fraction is ONE number, not a division you have not finished. 3/4 sits at a definite place on the number line, between 0 and 1, closer to 1 than to 0 — and once you can see it there, adding, comparing and scaling it are operations on a number rather than rules about two integers that happen to be written on top of each other.",
+            "Decimals and percentages are the same idea in other notation: 3/4 = 0.75 = 75%. Nothing about the quantity changes when the notation does, and a learner who knows where 3/4 sits on the line already knows most of what the next two concepts teach.",
+        ],
+        traps: [
+            {
+                move: "\"1/8 is bigger than 1/4 because 8 is bigger than 4.\"",
+                why: "The bottom number counts the pieces, so a bigger bottom means each piece is smaller. Cut the same bar into eight and every piece is half the size of the quarter you had before. Compare the slices, not the numbers.",
+            },
+            {
+                move: "\"2/3 is bigger than 3/4 because 2 and 3 are bigger than 3 and 4 in the other one.\"",
+                why: "Comparing tops alone only works when the bottoms match. Here the pieces are different sizes, so 2 of one size and 3 of another cannot be counted against each other until the sizes are made equal: 8/12 against 9/12.",
+            },
+            {
+                move: "\"3/4 + 1/4 = 4/8.\"",
+                why: "Adding the bottoms together changes the size of every piece in the answer, so the addition is no longer about the same wholes. Quarters and quarters are the same size, so the tops simply add: 3/4 + 1/4 = 1. (Different bottoms are next concept, and they need a common denominator first.)",
+            },
+        ],
+        usedFor: "Percentages and decimals are fractions in another notation, ratio compares two of them, and probability is one: the chance of a six is 1/6, which is a fraction before it is ever a percentage.",
+        review: "unreviewed",
+        // THE PICTURE THE IDEA NEEDS. "A bigger bottom means smaller pieces" is a
+        // claim about SHAPE — the same circle, cut more ways — so the drawing shows
+        // three quarters of one whole and the caption says what to notice: four of
+        // these slices fill it.
+        figure: {
+            spec: { kind: "pie", sectorDegrees: 270, label: "3/4" },
+            caption: "Three quarters of one whole: the circle is the 1, and the shaded part is three of its four equal slices. A quarter is one slice, so three of them are 3/4 — and four of them would fill the circle exactly.",
+        },
+    },
+    // ── THE LINK BETWEEN THE TWO, AND THE MOST-HIT BELIEF IN THE BANK ────────
+    //
+    // `denom-add` is the misconception this concept exists for, and until now it
+    // had a name, a pattern, a coaching paragraph and NO REPAIR — a learner who
+    // added the bottoms was told what they had done and given nowhere to go. The
+    // concept sits between `fractions` (what a fraction IS) and `percentages`
+    // (what a proportion OF something is), so the pathway now runs front to back
+    // without a hole in the middle.
+    "fraction-ops": {
+        conceptId: "fraction-ops",
+        objective: "Add and subtract two fractions whose bottoms differ, by making the pieces the same size first — and say why the bottoms are never added.",
+        intuition: "Two people both eat some pizza. One eats half of a pizza, the other eats a third of a pizza the same size. Together they have not eaten two fifths of anything: a half and a third are counts of DIFFERENT-SIZED pieces, and until both are counted in the same size, there is no number to add. That is the whole method, and the only reason a common denominator appears at all — it is the unit you agree to count in.",
+        idea: [
+            "The bottom number names the size of the piece being counted. 3/4 is \"three quarters\"; 2/3 is \"two thirds\". Adding them is asking for a count of pieces you have not yet chosen a size for, which is why the rule that follows is about converting and not about arithmetic.",
+            "Any two fractions can be counted in the same size of piece, because multiplying the top and the bottom of a fraction by the same number renames the pieces without changing the amount: 1/2 = 3/6 = 50/100. The smallest shared size is convenient, not compulsory — the product of the two bottoms always works, and is what to do when the smallest is not obvious. For 2/3 and 5/6 the shared size is sixths: 2/3 = 4/6.",
+            "Once the pieces match, the addition is the tops: 4/6 + 5/6 = 9/6. Nine sixths, which simplifies to 3/2, or 1 1/2. The bottom is not part of the addition because it is not a quantity — it is the name of the piece, and adding names is how 2/3 + 5/6 becomes 7/9, an answer smaller than 5/6, one of the numbers being added.",
+            "That size check is what makes the wrong answer visible instead of plausible. Adding two positive fractions must give MORE than either one: 1/3 + 1/4 is more than 1/3, so 2/7 cannot be right — 2/7 is smaller than 1/3. Before writing an answer down, ask whether it is the right sort of size; it catches the denominator slip without any arithmetic at all.",
+            "Subtraction uses the same method, and the same check in reverse: 3/4 − 2/3 = 9/12 − 8/12 = 1/12, which is less than 3/4 and more than nothing. A difference bigger than the number you started with is a sign that the pieces were never made the same size.",
+            "Mixed numbers are added in two parts — the wholes, then the fractions — and the fraction part still needs a common denominator: 2 1/2 + 1 1/3 = 3 + (3/6 + 2/6) = 3 5/6. The answer is then simplified if it can be, and only at the end: 9/6 was 3/2 all along, and simplifying mid-calculation is how a learner loses a factor they needed.",
+        ],
+        traps: [
+            {
+                move: "\"2/3 + 5/6 = 7/9 — add the tops, add the bottoms.\"",
+                why: "Adding the bottoms changes the size of the piece in the answer, so the sum is no longer about the same whole. The size check settles it without argument: 7/9 is smaller than 5/6, and adding 2/3 to 5/6 cannot make it smaller. Convert to sixths first: 4/6 + 5/6 = 9/6.",
+            },
+            {
+                move: "\"2/3 + 5/6 = 7/6 — keep the bigger bottom and add the tops.\"",
+                why: "Sixths is the right unit, but 2/3 was never converted into it: two thirds is four sixths, not two sixths. Keeping the denominator without rescaling the fraction quietly adds a smaller number than the question asked for. Nine sixths is the answer, and it is 1 1/2 rather than 1 1/6.",
+            },
+            {
+                move: "\"2 1/2 + 1 1/3 = 3 2/5 — add the wholes, then the fractions.\"",
+                why: "The whole parts may be added directly, but the fraction parts are counted in halves and thirds, so they need a shared size first: 3/6 + 2/6 = 5/6, giving 3 5/6. The 2/5 comes from adding halves to thirds as if the bottoms were quantities — the same slip as 1/2 + 1/3 = 2/5.",
+            },
+        ],
+        usedFor: "Percentages (a percentage is a fraction with 100 on the bottom), ratio and proportion, probability added along a tree's branches, and algebraic fractions — x/2 + x/3 needs exactly this shared-denominator move with letters in it.",
+        review: "unreviewed",
+        // THE PICTURE STATES THE MOVE THE METHOD ASKS FOR. A shaded sector says "this
+        // much"; the same shading with the circle cut into six says "four of six",
+        // which is the fact a learner has to see before 5/6 can be added to it. The
+        // sector is 240° of 360° = four of six slices, so the picture, the label and
+        // the caption are one claim (and `npm run verify` drives that arithmetic).
+        figure: {
+            spec: { kind: "pie", sectorDegrees: 240, slices: 6, label: "2/3 = 4/6", showDegrees: false },
+            caption: "Two thirds, cut into sixths: the same shaded amount is four of the six equal slices, because cutting each third in half doubles the count and halves the size. So 2/3 = 4/6 — and now 5/6 can be added to it directly, because both are counted in sixths.",
+        },
+    },
+    percentages: {
+        conceptId: "percentages",
+        objective: "Find a percentage of an amount, work out a percentage change, and explain why a 20% rise followed by a 20% fall does not return to where you started.",
+        intuition: "A shop raises a £100 jacket by 20%, and the price tag now reads £120. A month later it takes 20% off — and the tag reads £96, not £100. Nobody made a mistake and nothing was hidden: the second 20% was taken off a bigger number, because the first one had already changed what \"the price\" is. Percentages always act on whatever the amount is NOW, and almost every percentage error is a question about which amount that is.",
+        idea: [
+            "Per cent means \"per hundred\", so a percentage is a fraction with 100 on the bottom. 45% = 45/100 = 0.45, and 7% = 0.07. Writing the percentage as a decimal is not a shortcut, it is the definition: it is the number you can multiply by.",
+            "\"Of\" is multiplication. 15% of 60 is 0.15 × 60 = 9. Two reliable ways to get there: build 10% by dividing by 10 (6), then take half of that for 5% (3) and add them for 15% (9); or multiply by the decimal in one step. The first is what people do in a shop without a calculator, and the second is what generalises.",
+            "Percentage CHANGE always divides by the ORIGINAL amount. If a price goes from 80 to 92, the change is 12 and the original is 80, so the change is 12/80 = 15%. Dividing by the new amount would give 12/92 ≈ 13% — a number that is not the change at all, because the change was measured against what you started with.",
+            "One multiplication can do a whole percentage change, and this is the tool that makes the jacket obvious. A 20% rise multiplies by 1.2; a 20% fall multiplies by 0.8. Doing both is ×1.2 then ×0.8 = ×0.96 — a 4% LOSS, because 0.96 is less than 1. The two percentages do not cancel: the second multiplies a bigger base, which is why the fall takes more money than the rise added.",
+            "Reversing a percentage change is division, not subtraction. If £96 is the price AFTER a 20% rise, the original is 96 ÷ 1.2 = £80. Subtracting 20% of £96 gives £76.80 and is wrong, because the 20% was taken of the original — the very number the question is asking for.",
+            "Percentages of different wholes cannot be compared directly. 30% of a small class and 20% of a large one can be the same number of learners, so a percentage on its own says how much of a whole, never how many. Say what the whole is before you compare two percentages — that is the same discipline the percentage-change rule enforces, applied to two quantities at once.",
+        ],
+        traps: [
+            {
+                move: "\"A 20% rise then a 20% fall returns to the starting price.\"",
+                why: "The second percentage acts on the raised price, so 20% of it is a bigger amount of money than the first 20% added. In multipliers: 1.2 × 0.8 = 0.96, a 4% net loss — and the gap grows with the percentage, which is why 50% up then 50% down loses a quarter.",
+            },
+            {
+                move: "\"The original price is the new price minus the percentage.\"",
+                why: "The percentage was taken of the ORIGINAL, so removing it from the NEW price removes the wrong amount. £96 after a 20% rise came from £80, and 96 ÷ 1.2 = 80; 96 − 19.2 = 76.80 is not an original, it is a number produced by taking 20% of the wrong base.",
+            },
+            {
+                move: "\"The change is 12 out of 92, so it went up by about 13%.\"",
+                why: "The change is measured against the amount before it happened, which was 80: 12/80 = 15%. Dividing by the new value understates every increase and overstates every decrease, and the error is largest exactly where percentages matter most — big changes.",
+            },
+        ],
+        usedFor: "Interest and depreciation, every statistic in a news report, concentration in chemistry and efficiency in physics, and the ratio and proportion work that follows it.",
+        review: "unreviewed",
+        // NO FIGURE, and that is a decision rather than an omission. Every kind the
+        // figure union declares draws ONE scale — an area model, a pie, an axis. The
+        // belief this lesson exists to break is that there are TWO bases, and a
+        // drawing of one whole cannot show a base changing. A picture here would be
+        // decoration beside the one claim it cannot make.
+    },
     negatives: {
         conceptId: "negatives",
         objective: "Read, compare and calculate with numbers below zero — and know which way the answer goes.",
@@ -30140,6 +31618,14 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Coordinates, gradients and inequalities all stand on this: a point below the axis, a line falling to the right, or any inequality you multiply by −1.",
         review: "unreviewed",
+        // THE PICTURE IS THE RULE. 5 − (−3) is the one move in this concept that a
+        // learner reliably gets backwards, and it is backwards because they picture
+        // it as "take away", which travels left. Drawn, the journey travels right
+        // and the sentence in the plan describes what the picture already shows.
+        figure: {
+            spec: { kind: "number-line", min: -6, max: 10, from: 5, to: 8 },
+            caption: "Start at 5. Taking away −3 is removing a leftward move, so the journey goes RIGHT to 8 — the arrow does not turn round because the sign does.",
+        },
     },
     "order-ops": {
         conceptId: "order-ops",
@@ -30195,6 +31681,18 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Solving equations, expanding and factorising, and every formula in science: once you can read 3x + 2 as a quantity, the rest of algebra is the same language.",
         review: "unreviewed",
+        // THE AREA MODEL OF EXPANSION. "Every term inside is multiplied" is a rule a
+        // learner can recite and still not apply; a rectangle whose corner cell is
+        // 12 is the same statement as a count. The `x` band is one unit wide so the
+        // 4-band is visibly four times it.
+        figure: {
+            spec: {
+                kind: "rectangle",
+                widthParts: [{ units: 1, label: "x" }, { units: 4, label: "4" }],
+                heightParts: [{ units: 3, label: "3" }],
+            },
+            caption: "3(x + 4) as an area: three rows, each holding an x and a 4. The cells read 3x and 12 — the 12 is the term left out when someone writes 3x + 4.",
+        },
     },
     coordinates: {
         conceptId: "coordinates",
@@ -30223,6 +31721,247 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Straight-line graphs, gradients, quadratics and every graph in science: this is where algebra becomes something you can see.",
         review: "unreviewed",
+        // THE POINTS AND THE LINE THEY MAKE. A table of values plus a rule is how
+        // the idea is taught; the picture is what makes "constant step in x, constant
+        // step in y" visible, and the line is drawn from the same rule the plan
+        // quotes (y = 2x + 1) rather than from the counts.
+        figure: {
+            spec: {
+                kind: "axes",
+                xMin: -1, xMax: 4, yMin: -1, yMax: 6,
+                points: [{ at: [0, 1] }, { at: [1, 3] }, { at: [2, 5] }],
+                lines: [{ from: [-1, -1], to: [2.5, 6] }],
+            },
+            caption: "y = 2x + 1 plotted: from (0, 1) each step of 1 across goes 2 up, so the points sit on one straight line. A wobble in the line would be an arithmetic slip in the table, not a discovery.",
+        },
+    },
+    "algebra-expand": {
+        conceptId: "algebra-expand",
+        objective: "Multiply out a pair of brackets, say where each of the four terms came from, and factorise a simple quadratic back again.",
+        intuition: "A garden is x + 3 metres long and x + 2 metres wide, with the x part cut off at a fixed place on each side. Its area is not one number you can look up — but the garden splits into four rectangular beds, and each bed has an area you can write down. Expanding brackets is that split written out, which is why nothing is ever dropped.",
+        idea: [
+            "One bracket is one quantity multiplied. 3(x + 4) says: the whole quantity x + 4 is tripled, so both parts are tripled — 3x + 12. The 4 is a length inside the bracket, not a separate add-on, which is why 3x + 4 is too small.",
+            "Two brackets multiply every term of the first by every term of the second, because each side is a length and the area model needs a rectangle for each pair. (x + 3)(x + 2) gives four pieces: x², 2x, 3x and 6.",
+            "The middle term is made of the two CROSS pieces. 2x and 3x are different rectangles, and they add to 5x — so x² + 5x + 6. The 5 is not 3 + 2 arrived at separately; it is what the two crossings come to, which is also why x² + 6 is a real answer to a different question.",
+            "A sign belongs to the term it sits in front of, and it travels into every product that term takes part in. (x − 3)(x + 2) = x² + 2x − 3x − 6 = x² − x − 6: the −3 changes both of its products, which is what turns +2x into 2x − 3x = −x.",
+            "Factorising reverses the multiplication, so it is a search with two clues. In x² + 5x + 6 the two numbers must multiply to 6 (the constant) and add to 5 (the middle), which only 2 and 3 do. The sign of the constant tells you whether the two numbers share a sign; the sign of the middle tells you which sign they share when they do.",
+            "(x + 3)(x − 3) = x² − 9: the cross pieces are +3x and −3x, equal and opposite, so they cancel and no middle term survives. That is the difference of two squares, and it is a pattern you can recognise rather than a separate rule to memorise.",
+        ],
+        traps: [
+            {
+                move: "Writing (x + 3)(x + 2) = x² + 6.",
+                why: "The two cross pieces have been dropped. With x = 10 the brackets give 13 × 12 = 156, while x² + 6 gives 106 — the missing 50 is 2x + 3x. Any expansion can be checked the same way, by substituting a value into the brackets and into the answer.",
+            },
+            {
+                move: "Expanding 3(x + 4) as 3x + 4.",
+                why: "Only the first term was multiplied. The bracket is one length tripled: with x = 2 the true value is 3 × 6 = 18, and 3x + 4 gives 10. One substitution at the end catches this every time.",
+            },
+            {
+                move: "Writing (x − 3)(x + 2) = x² + 5x − 6.",
+                why: "The −3 was multiplied by x but its sign was not carried into the second product: the pieces are −3 × 2 = −6 AND −3 × x = −3x. Adding the middle terms honestly gives 2x − 3x = −x, so the answer is x² − x − 6.",
+            },
+            {
+                move: "Factorising x² + 5x + 6 as (x + 1)(x + 6).",
+                why: "Those numbers multiply to 6 but add to 7, and the middle term says 5. Both clues have to hold at once; check by expanding the pair back and seeing whether you recover the expression you started with.",
+            },
+        ],
+        usedFor: "Quadratics, completing the square, the quadratic formula and any area problem with an unknown side — this is the multiplication that all of them are built on.",
+        review: "unreviewed",
+        // THE FOUR BEDS OF THE GARDEN. "Every term meets every term" is a rule a
+        // learner can recite and still leave a cross piece out; the grid makes the
+        // two crossings two separate rectangles whose labels sum to the middle term.
+        // The cell labels are COMPUTED (`areaTerm`), so a grid can never print a
+        // product that is not the product of its own bands.
+        figure: {
+            spec: {
+                kind: "rectangle",
+                heightParts: [{ units: 1, label: "x" }, { units: 3, label: "3" }],
+                widthParts: [{ units: 1, label: "x" }, { units: 2, label: "2" }],
+            },
+            caption: "(x + 3)(x + 2) drawn as four beds: x², 2x, 3x and 6. The middle term of the answer is the two cross beds added together, and leaving one of them out is exactly how x² + 6 appears instead.",
+        },
+    },
+    "straight-lines": {
+        conceptId: "straight-lines",
+        objective: "Find the gradient and intercept of a line from its equation or from two points, and say what each number does to the picture.",
+        intuition: "A taxi fare is a fixed charge to get in plus a price per mile: 3 + 2d. Change d and the fare changes at a steady rate; that rate is the whole line. Every straight line is a starting value plus a rate — and a graph is the fare chart you could read without doing the arithmetic again.",
+        idea: [
+            "y = mx + c carries two numbers. m is the gradient — how much y changes for each 1 across — and c is the value of y when x is 0, which is where the line crosses the vertical axis.",
+            "The gradient is rise ÷ run, and rise is vertical while run is horizontal: a line that climbs 3 for every 2 across has m = 3/2. Between two points it is (y₂ − y₁) ÷ (x₂ − x₁) — the SAME point first on top and bottom, because swapping one and not the other flips the sign.",
+            "Direction matters as much as steepness. A line falling from left to right has a negative gradient; a horizontal line has m = 0; a vertical line has no gradient at all, because the run is zero and division by zero is not a number.",
+            "c is the y-intercept, at the point (0, c) — not the x-intercept. Where the line crosses the horizontal axis is where y = 0, so it is found by solving mx + c = 0. Those two intercepts are usually different numbers, and reading one off as the other is a reliable way to lose marks.",
+            "Parallel lines share the same m and differ only in c. Perpendicular lines have gradients that multiply to −1, so a line perpendicular to y = 2x has gradient −1/2: it falls while the first climbs, and by the reciprocal amount.",
+            "A gradient is a rate, which is why this idea leaves maths: speed on a distance–time graph, cost per item, degrees per minute. Given a table, the gradient is the change in the second column per ONE unit of the first — divide the difference by however many units the step covered.",
+        ],
+        traps: [
+            {
+                move: "Computing run ÷ rise instead of rise ÷ run.",
+                why: "That inverts every answer, so a steep line reads as shallow. Check with one step: going 1 across should move the line up by m, and if the picture moves up 3 while your gradient says 2, the fraction is upside down.",
+            },
+            {
+                move: "Working out (y₂ − y₁) ÷ (x₁ − x₂).",
+                why: "One difference has been reversed and the other not, which flips the sign of the gradient — so a climbing line comes out falling. Pick which point is 'first' and use it first in both differences.",
+            },
+            {
+                move: "Reading c as the x-intercept — saying y = 2x + 4 crosses the horizontal axis at 4.",
+                why: "c is the value at x = 0, so 4 is where it crosses the VERTICAL axis. The horizontal crossing solves 2x + 4 = 0, which is x = −2. Substituting 0 for x, and separately 0 for y, tells you which is which without memorising anything.",
+            },
+        ],
+        usedFor: "Distance–time and velocity–time graphs, every rate in science, simultaneous equations solved by graphs, and finding the equation of a line through two given points.",
+        review: "unreviewed",
+        // THE TRIANGLE IS THE DEFINITION. `m = rise ÷ run` is a sentence a learner can
+        // recite while reading a steep line as shallow; drawn on the line, the two
+        // legs are lengths they can count, and the division is the thing they do with
+        // them. The quotient is deliberately NOT printed — the picture raises the
+        // question the lesson answers, and the intercept is marked with the SYMBOL c
+        // rather than its value for the same reason.
+        figure: {
+            spec: {
+                kind: "axes",
+                xMin: -1, xMax: 4, yMin: -3, yMax: 6,
+                lines: [{ from: [-1, -3], to: [3, 5] }],
+                points: [{ at: [0, -1], label: "c" }],
+                gradient: { from: [1, 1], to: [3, 5] },
+            },
+            caption: "y = 2x − 1 with the rise/run triangle drawn on it: 2 across and 4 up, so the gradient is 4 ÷ 2 = 2. The line meets the vertical axis at c, one step below zero — that is the number after the x, not the place it crosses the other axis.",
+        },
+    },
+    "completing-square": {
+        conceptId: "completing-square",
+        objective: "Rewrite x² + bx + c in the form (x + p)² + q, and read the turning point straight off the result.",
+        intuition: "Lay a patio x metres by x metres, then add two strips along two sides to make it bigger. The shape you now have is not a square: there is a notch where the two strips fail to meet. x² + 6x is exactly that shape — a square plus two 3-by-x strips — and the only thing missing to make it a square again is the little corner where the strips would cross.",
+        idea: [
+            "x² + 6x is not a perfect square, and the reason is visible: a square of side x has area x², and adding 6x is adding two equal strips, 3x each. Splitting the 6 in half is where the 3 comes from, which is why the method starts by halving the coefficient of x.",
+            "Completing the square means adding the missing corner. The strips are 3 wide, so the corner is 3 × 3 = 9. Adding it gives x² + 6x + 9, which is a square of side (x + 3), because (x + 3)² = x² + 6x + 9.",
+            "If the expression does not already contain that 9, you add it and take it straight back out, so the value never changes: x² + 6x + 5 = (x² + 6x + 9) − 9 + 5 = (x + 3)² − 4. The bracket is the completed square; the number after it is whatever is left over.",
+            "The rule, once and for all: halve the coefficient of x, square it, write (x + half)², then subtract the square you added. For x² − 6x the half is −3, so the form is (x − 3)² − 9 plus whatever constant the expression already had. The sign of the half follows the sign of the x term — it is never chosen for tidiness.",
+            "WHY anyone bothers: a square cannot be negative. (x + 3)² is 0 at least, so (x + 3)² − 4 is −4 at least, and it reaches −4 exactly when x = −3. That is the turning point read off with no table of values and no calculus: the minimum is −4, at x = −3. With the sign outside different — a −(x + 3)² − 4 — it would be a maximum instead.",
+            "It also solves equations that factorising cannot reach. (x + 3)² − 4 = 0 gives (x + 3)² = 4, and a square equal to 4 has TWO roots, x + 3 = 2 or x + 3 = −2, so x = −1 or x = −5. Taking only the positive branch is the same error as forgetting a ± in the quadratic formula, because it is literally the same step.",
+        ],
+        traps: [
+            {
+                move: "Writing (x + 3)² = x² + 9.",
+                why: "The square of a bracket is not the sum of the squares of its parts: (x + 3)² = (x + 3)(x + 3) = x² + 3x + 3x + 9. The two 3x strips are the whole point of the shape, so dropping them removes exactly the term the method is trying to explain.",
+            },
+            {
+                move: "Turning x² + 6x + 5 into (x + 3)² − 9 and stopping.",
+                why: "The 9 has been taken away but the original +5 has gone missing, so the expression is no longer equal to the one you started with. Substitute x = 0 to see it: the original is 5, while (x + 3)² − 9 is 0. The form must be (x + 3)² − 4, and the check is that both sides agree at any value of x.",
+            },
+            {
+                move: "Solving (x + 3)² = 4 by taking the positive root only.",
+                why: "Both 2 and −2 square to 4, so the equation has two solutions, x = −1 and x = −5. A sketch of the parabola shows two crossings of the axis, which is the independent check that a root has not been lost.",
+            },
+            {
+                move: "Completing the square on x² − 6x + 5 as (x + 3)² − 4.",
+                why: "The half of −6 is −3, not +3, so the bracket is (x − 3)². Expanding your answer is the test: (x + 3)² − 4 gives x² + 6x + 5 — the wrong sign on the middle term, which the expansion makes obvious in one line.",
+            },
+        ],
+        usedFor: "Turning points and curve sketching, maximum and minimum problems, solving quadratics that do not factorise, and the derivation of the quadratic formula itself.",
+        review: "unreviewed",
+        // THE MISSING CORNER, DRAWN. x² + 6x is a square with two strips and a notch;
+        // the 9 is the piece that closes it, and it has to READ as the added piece
+        // rather than as one of four equal cells. The grid is the same verified area
+        // model as the expansion lesson — (x + 3)² is four cells whose areas are the
+        // terms — with the corner marked.
+        figure: {
+            spec: {
+                kind: "rectangle",
+                heightParts: [{ units: 1, label: "x" }, { units: 3, label: "3" }],
+                widthParts: [{ units: 1, label: "x" }, { units: 3, label: "3" }],
+                emphasis: ["9"],
+            },
+            caption: "x² + 6x drawn as a shape: the x-by-x square plus two 3-by-x strips (3x each), with a notch where they fail to meet. The marked 9 is the corner that closes it, so x² + 6x + 9 = (x + 3)².",
+        },
+    },
+    quadratics: {
+        conceptId: "quadratics",
+        objective: "Solve a quadratic equation by factorising, and know from the equation itself when to reach for the formula instead.",
+        intuition: "A ball thrown upwards is at 6 metres on the way up and again on the way down. \"When is it 6 metres high?\" has two answers, and that is not a quirk of the ball — it is what a quadratic equation is: the same value reached twice, before and after the turning point. A quadratic can have two solutions, one, or none, and the equation itself tells you which.",
+        idea: [
+            "Put it in standard form first: everything on one side, zero on the other. x² − 5x = −6 becomes x² − 5x + 6 = 0. Factorising only works against zero, because the whole method rests on a product being zero — so this rearrangement is the first step, not tidying up.",
+            "Factorising is a search with two clues: two numbers that multiply to the constant (+6) and add to the coefficient of x (−5). Here −2 and −3, so (x − 2)(x − 3) = 0. Check by expanding — that is the one habit that catches a wrong pair before it becomes a wrong answer.",
+            "The zero product rule finishes it: if two things multiply to zero, at least one of them is zero. So x − 2 = 0 or x − 3 = 0, giving x = 2 or x = 3. Both are solutions; the equation is satisfied by either, not by both at once.",
+            "When no pair of whole numbers fits, the formula does the same job without guessing: x = (−b ± √(b² − 4ac)) ÷ 2a, with a, b and c read off standard form INCLUDING their signs. It is not a different method — it is the same equation solved by completing the square once and for all, which is why it never fails.",
+            "The discriminant b² − 4ac decides how many answers to expect before you compute anything: positive gives two real roots, zero gives one repeated root (the curve just touches the axis), negative gives none (the curve never reaches it). Negative is an answer about the curve, not a mistake in the arithmetic.",
+            "The two roots are where the parabola crosses the x-axis, and the turning point sits exactly halfway between them. So a sketch is a check on the algebra: if your answers are 2 and 3, the curve must cross at 2 and 3 and turn at 2.5 — an answer of 2 and 8 for a curve whose sketch crosses close together means the factorising went wrong.",
+        ],
+        traps: [
+            {
+                move: "Solving x² = 3x by dividing both sides by x.",
+                why: "Dividing by x throws away the case x = 0, and x = 0 really is a solution. Move everything to one side and factorise instead: x² − 3x = 0, so x(x − 3) = 0, giving x = 0 or x = 3. Never divide by a variable — factorise it out.",
+            },
+            {
+                move: "Reading (x − 2)(x − 3) = 0 as x = −2 or x = −3.",
+                why: "Each bracket is set to zero and solved, which reverses its sign: x − 2 = 0 gives x = +2. Substituting back settles it in seconds — putting x = 2 into the original makes the first bracket zero, which is exactly what the equation claims.",
+            },
+            {
+                move: "Using the formula with c taken as positive from 2x² + 3x − 5.",
+                why: "The signs belong to the terms: a = 2, b = 3, c = −5. Dropping the minus changes the discriminant from 9 + 40 = 49 to 9 − 40 = −31 and turns two real roots into none — a wrong answer that looks like a legitimate \"no solutions\" conclusion.",
+            },
+            {
+                move: "Reporting a negative discriminant as an error.",
+                why: "It is information: the parabola sits entirely above or below the axis, so there is no real x making the expression zero. Say so, and support it with the sign of a — that is a complete answer, not a failed one.",
+            },
+        ],
+        usedFor: "Curve sketching, where a line meets a curve, maximum-area and optimisation problems, and any \"when does it reach\" question in physics — the two roots are the two times.",
+        review: "unreviewed",
+        // THE CROSSINGS ARE THE ROOTS, DRAWN. The plan's last idea says a sketch is a
+        // check on the algebra; this is that sketch, computed from the same
+        // coefficients the plan solves (x² − 5x + 6), with the axis of symmetry
+        // dashed in. A pair of answers that does not sit either side of that line
+        // cannot be the roots of this curve.
+        figure: {
+            spec: {
+                kind: "axes",
+                xMin: -1, xMax: 6, yMin: -2, yMax: 8,
+                curve: { a: 1, b: -5, c: 6 },
+                points: [{ at: [2, 0] }, { at: [3, 0] }],
+                lines: [{ from: [2.5, -2], to: [2.5, 8], dashed: true }],
+            },
+            caption: "y = x² − 5x + 6 drawn from its own coefficients: it crosses the horizontal axis at 2 and 3, the two roots the factorising gives, and it turns on the dashed line exactly halfway between them. A pair of answers with no such crossing is a pair the algebra got wrong.",
+        },
+    },
+    surds: {
+        conceptId: "surds",
+        objective: "Simplify, combine and rationalise surds, and say why an exact root can be a better answer than a decimal.",
+        intuition: "Draw a square one metre by one metre and measure its diagonal. The length is real — you can cut a piece of string for it — but no fraction names it exactly. That length is √2, and a surd is how mathematics writes a number it can point at precisely but cannot write as a decimal that stops.",
+        idea: [
+            "A surd is a root of a number that is not a perfect square, kept in root form. √2 is about 1.41421356, and the digits never end and never repeat, so any decimal you write is an approximation — while √2 is the number itself. That is the whole reason surds are kept rather than evaluated.",
+            "Simplify by pulling out the largest square factor. √50 = √(25 × 2) = √25 × √2 = 5√2, using √(ab) = √a × √b — a rule about MULTIPLICATION only, which is why it cannot be applied to a sum. The largest square matters: pulling out 1 leaves the surd unchanged and looks like working without being any.",
+            "Surds add like algebraic terms, because that is exactly what they are. 3√2 + 5√2 = 8√2, the same way 3x + 5x = 8x. √2 + √3 does not combine, the same way x + y does not: the roots are different sizes of thing.",
+            "Rationalising removes a root from a denominator by multiplying top and bottom by something that squares it away. 1/√2 becomes √2/2, because √2 × √2 = 2 — and multiplying both parts by the same thing does not change the value, only its form. For 1/(1 + √2) the multiplier is the conjugate 1 − √2, chosen so the denominator becomes 1 − 2 by the difference of two squares.",
+            "The check that catches the commonest error in the topic: √(a + b) is NOT √a + √b. With 9 and 16, √25 = 5 while √9 + √16 = 7. Roots distribute over multiplication and division only, and testing one pair of numbers is enough to see it.",
+            "Exactness has a practical pay-off. (5√2)² is 25 × 2 = 50 exactly, while squaring 7.0710678 gives something that only rounds to 50. In a multi-step problem the rounding error grows at every step, which is why the exact form is kept until the final line.",
+        ],
+        traps: [
+            {
+                move: "Writing √(a + b) = √a + √b.",
+                why: "Test it: √(9 + 16) = √25 = 5, but √9 + √16 = 3 + 4 = 7. The rule that lets you split a root is about a PRODUCT — √(ab) = √a × √b — and using it on a sum is the single most common surd error.",
+            },
+            {
+                move: "Simplifying √50 as 25√2.",
+                why: "25 is the square, not the root: √50 = √25 × √2 = 5√2. The answer must be checked by squaring it back — (5√2)² = 50, while (25√2)² = 1250, which is not the number you started with.",
+            },
+            {
+                move: "Rationalising by multiplying only the numerator by √2.",
+                why: "That changes the value: 1/√2 does not equal √2/√2. Top AND bottom must be multiplied by the same thing, so the fraction is unchanged in value — 1/√2 becomes √2/2, and the check is that both still equal about 0.707.",
+            },
+            {
+                move: "Adding √2 + √3 as √5.",
+                why: "The roots are different sizes, so they do not combine — the same reason 3x + 5y is not 8xy. Numerically √2 + √3 ≈ 3.146 while √5 ≈ 2.236, and one decimal place of checking shows the sum is not the root of the sum.",
+            },
+        ],
+        usedFor: "Pythagoras and trig questions that need exact lengths, the quadratic formula (whose answers are often surds), circle geometry, and any calculation where rounding early would compound the error.",
+        review: "unreviewed",
+        // THE SIMPLIFICATION IS A TILING. "Pull out the largest square factor" is a
+        // procedure; a square of area 50 that is exactly 25 squares of area 2, five
+        // along each edge, is WHY the edge is 5√2 — and why the answer is exact
+        // rather than a decimal that nearly works. The grid comes from the two
+        // numbers (50, 25), so it cannot label an edge the tiling does not have.
+        figure: {
+            spec: { kind: "surd-square", total: 50, parts: 25 },
+            caption: "A square of area 50 cut into 25 equal squares: each small square has area 2, so its side is √2, and the big square is five of them along each edge. That is why √50 = 5√2 — the root is the edge of the square, drawn.",
+        },
     },
     "indices-intro": {
         conceptId: "indices-intro",
@@ -30281,6 +32020,14 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Formulae, simultaneous equations, rearranging, and every \"find the value of\" question in maths and science; also the discipline of checking an answer by substituting it back.",
         review: "unreviewed",
+        // THE BALANCE, AS COUNTS. 3x + 5 = 20 drawn as three bags and five weights
+        // against twenty weights: the picture supplies the reason the operation is
+        // applied to both sides, which the prose can only assert. The units are
+        // drawn as single circles so the five can be taken off by counting.
+        figure: {
+            spec: { kind: "balance", left: { bags: 3, units: 5 }, right: { bags: 0, units: 20 } },
+            caption: "3x + 5 = 20 as a balance: three bags and five weights against twenty weights. Take the same five off both pans, and the three bags are left holding fifteen — so one bag is 5.",
+        },
     },
 };
 /** The plan for a concept, or null when nobody has written one. Null is a real
@@ -31883,6 +33630,7 @@ exports.MISCONCEPTIONS = [
     { id: "neg-slip", name: "Sign slip with negatives", pattern: "Treats minus signs as decoration: 5 − (−3) becomes 2, and (−2) × (−3) becomes −6.", coaching: "Two ideas fix this for good: (1) subtracting a negative is adding — taking away a debt makes you richer: 5 − (−3) = 8. (2) Two negatives multiply to a positive because 'the opposite of the opposite' is the original direction. Practise by saying the rule aloud before each step.", concepts: ["negatives"] },
     { id: "frac-slice", name: "Bigger denominator = bigger slice", pattern: "Believes 1/8 > 1/4 because 8 > 4 — reading the denominator as a size, not a count of slices.", coaching: "The denominator is how many equal slices the whole was cut into. Cut a pizza into 8 and each slice is smaller than when cut into 4. So 1/8 < 1/4 even though 8 > 4. Draw the two pizzas — the picture beats the rule.", concepts: ["fractions"] },
     { id: "denom-add", name: "Adds denominators", pattern: "Adds fractions as 1/3 + 1/4 = 2/7 — treating top and bottom as separate numbers.", coaching: "Fractions are single numbers, not two stacked ones. You can only add pieces of the same size: convert to a common denominator first. 1/3 + 1/4 = 4/12 + 3/12 = 7/12. Notice the answer is bigger than either part — 2/7 would be smaller than 1/3, a warning sign.", concepts: ["fraction-ops"] },
+    { id: "dec-point", name: "The decimal point is dropped or moved", pattern: "Treats the point as punctuation: 0.3 + 0.4 = 7 by adding the digits and putting no point back, and 0.3 × 0.2 = 0.6 by counting places in only one factor.", coaching: "The point records place values, so it has to be accounted for. Adding: write the numbers one under the other so the points line up in a column, then add — the answer keeps the same number of places. Multiplying: count the decimal places in BOTH factors and put that many back at the end — 0.3 × 0.2 has two between them, so it is 0.06, not 0.6. Quick check: the product of two numbers below 1 must be smaller than either of them.", concepts: ["decimals"] },
     { id: "pct-base", name: "Wrong percentage base", pattern: "Applies percentages of the wrong amount: adds 20% then subtracts 20% and expects the original.", coaching: "Always ask: 20% of WHAT? After a 20% rise the base has changed, so the 20% fall acts on a bigger number. 100 → 120 → 96, not 100. Convert to multipliers: ×1.2 then ×0.8 = ×0.96 — a 4% net loss, visible instantly.", concepts: ["percentages"] },
     { id: "inv-prop", name: "Confuses direct and inverse proportion", pattern: "Doubles both quantities even when the relationship is inverse.", coaching: "Test with the story: if 4 workers take 6 days, do 8 workers take 12? No — more workers means LESS time: inverse proportion (xy = constant: 24, so 8 workers take 3 days). Direct proportion moves together (y = kx); inverse moves opposite (y = k/x). Say which one the situation describes before calculating.", concepts: ["proportion", "proportional-graphs"] },
     { id: "round-half", name: "Rounds halves down / rounds too early", pattern: "Rounds 0.5 boundaries the wrong way, or rounds mid-calculation and accumulates error.", coaching: "The convention: 5 and above round up, so 2.5 → 3 and 3.45 to 1 d.p. → 3.5. Keep full precision through the calculation and round ONLY the final answer — rounding early compounds error. In money, round at the end, not at each step.", concepts: ["rounding", "bounds"] },
@@ -31902,6 +33650,7 @@ exports.MISCONCEPTIONS = [
     { id: "alt-corr", name: "Mixes alternate and corresponding angles", pattern: "Equate angles in the wrong Z or F pattern on parallel lines.", coaching: "Corresponding angles make an F (same corner at each intersection). Alternate angles make a Z (inside, opposite sides). Co-interior angles make a C and SUM to 180°. Trace the letter over the diagram — F, Z or C — before naming the rule. If no parallel lines are marked, none of these apply.", concepts: ["angles-lines"] },
     { id: "unit-sq", name: "Area/volume unit confusion", pattern: "Converts 1 m² as 100 cm², or adds cm to m in one calculation.", coaching: "Length scales once, area twice, volume three times: 1 m = 100 cm, but 1 m² = 100 × 100 = 10 000 cm², and 1 m³ = 1 000 000 cm³. Convert everything to ONE unit before calculating — mixed units are the silent killer of measurement questions.", concepts: ["area-perimeter", "volume"] },
     { id: "sf-area", name: "Applies scale factor to area directly", pattern: "Doubles lengths and claims area doubles.", coaching: "Lengths scale by k, areas by k², volumes by k³. Double a square's side and its area quadruples (2² = 4); triple it and volume grows ×27. Ask 'is this quantity a length, a length², or a length³?' before scaling anything.", concepts: ["transformations"] },
+    { id: "axis-swap", name: "Swaps the coordinate order", pattern: "Reads (3, 5) as five across and three up — writing the pair the other way round because the two numbers look interchangeable.", coaching: "A coordinate pair is an instruction, so its order carries the meaning: the first number is always how far ACROSS (x), the second how far UP (y). (3, 5) goes 3 right then 5 up; (5, 3) goes 5 right then 3 up, which is a different point on the grid. Plot it from the origin along the horizontal axis first, then vertically. Swapping the pair reflects the point in the line y = x, so the point itself moves.", concepts: ["coordinates"] },
     { id: "vec-dir", name: "Ignores vector direction", pattern: "Adds vectors ignoring sign, or reverses AB and BA.", coaching: "AB = −BA: reversing the journey negates every component. Vectors add tip-to-tail: (3, −2) + (−1, 4) = (2, 2). Parallel vectors are scalar multiples — (6, −4) = 2(3, −2). Direction is half the information; dropping it turns vector questions into wrong arithmetic.", concepts: ["vectors"] },
     { id: "sum-one", name: "Probabilities don't sum to 1", pattern: "Lists outcomes whose probabilities add to more or less than 1, or double-counts overlaps.", coaching: "ALL possibilities together must total exactly 1. If P(rain) = 0.3 then P(no rain) = 0.7. For overlapping events subtract the overlap once: P(A∪B) = P(A) + P(B) − P(A∩B). If your list sums to 1.2, you've double-counted something — find the overlap.", concepts: ["probability-basics", "sets-venn"] },
     { id: "ind-dep", name: "Assumes independence", pattern: "Multiplies probabilities for events that influence each other (picking without replacement).", coaching: "Multiply along tree branches ONLY when events are independent. Draw two sweets from a bag of 5 red + 3 blue: after a red goes, it's 4 red + 3 blue — the second denominator changed. 'Without replacement' is the tell. Ask after each stage: did the first event change the second's world?", concepts: ["tree-diagrams"] },
@@ -31980,6 +33729,7 @@ const misconceptions_1 = require("./misconceptions");
 const proof_1 = require("./proof");
 const evidence_1 = require("./evidence");
 const transfer_1 = require("./transfer");
+const specifications_1 = require("./specifications");
 const EN = (k) => exports.EN_NEXT[k] ?? k;
 function nextT(t) { return t ?? EN; }
 /** Runtime list of the kinds — the one place a caller (an API route, a page
@@ -32532,18 +34282,29 @@ function decideNext(state, max = 4, tt, title, now = Date.now(), evidence) {
             // recommendation and find the curriculum themselves.
             //
             // The honest next step for someone the diagnostic could not place is the
-            // FIRST idea of the course they chose, taught rather than tested: the
-            // concept their own subject order starts with. Nothing about the
-            // measurement is claimed — the card says the sitting did not place them,
-            // which is what the report in front of them already said.
+            // FIRST idea of the course they chose, taught rather than tested.
+            //
+            // AND "THE COURSE" IS NOT "THE SUBJECT". This read `bySubject(subj)[0]`,
+            // the genome's own order, whose first maths concept is `place-value` at
+            // stage 0 — so a learner on a SENIOR course whose diagnostic placed
+            // nothing was offered place value under a sentence claiming it was "the
+            // first idea in your course". For GCSE HIGHER that concept is not in the
+            // course AT ALL (its coverage opens at fractions and lists no place value),
+            // and A-level opens at standard form; only Foundation really does begin
+            // there. The course's own coverage list is the authority for what its
+            // first idea is, and it resolves per TIER — which is what makes a senior
+            // course start where it says it does. `bySubject` survives only as the
+            // fallback for a subject whose course resolves to no covered concept.
             const subj = state.profile.subjects[0] ?? "maths";
             const measuredBefore = Object.keys(state.diagnostics ?? {}).some((k) => k.split(":")[0] === subj);
-            const first = measuredBefore ? (0, genome_1.bySubject)(subj)[0] : undefined;
+            const course = (0, specifications_1.specForProfile)(state.profile, subj);
+            const courseFirst = (0, specifications_1.coverageOf)({ spec: course.spec, level: course.level })[0]?.id;
+            const first = measuredBefore ? (courseFirst ?? (0, genome_1.bySubject)(subj)[0]?.id) : undefined;
             if (first) {
                 push({
-                    kind: "EXPLAIN", conceptId: first.id,
-                    title: `${t("next.title.begin")}: ${name(first.id)}`,
-                    reason: (0, i18n_1.fill)(t("next.reason.begin"), { concept: name(first.id) }),
+                    kind: "EXPLAIN", conceptId: first,
+                    title: `${t("next.title.begin")}: ${name(first)}`,
+                    reason: (0, i18n_1.fill)(t("next.reason.begin"), { concept: name(first) }),
                     evidence: t("next.ev.noEvidence"),
                     minutes: 8,
                 });
@@ -32797,7 +34558,33 @@ exports.CORE_NUMERIC_GENS = {
         };
     },
     "fraction-ops": (r) => {
-        const a = r.int(1, 5), b = r.int(2, 7), c = r.int(1, 5), d = r.int(2, 7);
+        // ── BOTH OPERANDS ARE PROPER FRACTIONS ───────────────────────────────
+        //
+        // The old draw range let a numerator equal its denominator (`4/4 + 1/7`)
+        // or exceed it (`5/2 + 1/3`), so 1 or a whole number was being written as a
+        // fraction. It is the same defect the composed family had — found by the
+        // invariant added to `npm run verify`, on THIS layer first, which is why the
+        // rule is enforced in both places rather than only where the screenshot
+        // came from. `0 < a < b` also keeps the item about adding same-size pieces,
+        // which is what its explanation and its `denom-add` tag are about.
+        const proper = (n, d) => n > 0 && n < d;
+        let a = 1, b = 3, c = 1, d = 4;
+        for (let attempt = 0; attempt < 40; attempt++) {
+            a = r.int(1, 5);
+            b = r.int(2, 7);
+            c = r.int(1, 5);
+            d = r.int(2, 7);
+            if (proper(a, b) && proper(c, d))
+                break;
+        }
+        if (!proper(a, b)) {
+            a = 1;
+            b = 3;
+        }
+        if (!proper(c, d)) {
+            c = 1;
+            d = 4;
+        }
         const num = a * d + c * b;
         const den = b * d;
         return {
@@ -32814,7 +34601,10 @@ exports.CORE_NUMERIC_GENS = {
             prompt: `Work out ${a} × ${b}.`,
             value: Number((a * b).toFixed(4)), tolerance: { abs: 0.005 },
             wrongs: [String(Number((a * b * 10).toFixed(4))), String(Number((a * b / 10).toFixed(4))), String(Number((a + b).toFixed(4)))],
-            tags: [], difficulty: 0.45,
+            // Every wrong option here is the point moved, not the multiplication
+            // wrong — which is exactly the belief, so a typed answer that lands on one
+            // of them can be answered with the repair for it.
+            tags: ["dec-point"], difficulty: 0.45,
             explanation: `Decimals multiply by ignoring the points, multiplying the whole numbers, and then restoring the places: ${Math.round(a * 10)} × ${Math.round(b * 10)} = ${Math.round(a * 10) * Math.round(b * 10)}, and two decimal places go back on at the end, giving ${Number((a * b).toFixed(4))}. Adding the two numbers instead (${Number((a + b).toFixed(4))}) is a different operation, and shifting one place too far (${Number((a * b * 10).toFixed(4))}) is a miscount of the places rather than a wrong multiplication.`,
         };
     },
@@ -34485,12 +36275,20 @@ const OPENING_GENS = {
         };
     },
     "tree-diagrams": (r) => {
-        const p = r.int(1, 4);
-        const a = p, b = p; // P = a/b
+        // P = a/b IS A PROPER FRACTION. The draw was `a = p, b = p`, so every item
+        // read "each event has probability 2/2" — that is 1, both branches were
+        // certain, and the product was ALWAYS 1: the item asked the same constant
+        // question on every seed and taught nothing about multiplying along a
+        // branch (measured: 30 of 60 draws carried an n/n probability).
+        const b = r.pick([2, 3, 4, 5]);
+        const a = r.int(1, b - 1);
         const both = (a / b) * (a / b);
         return {
             prompt: `Two independent events each have probability ${a}/${b}. Give the probability that BOTH happen, as a decimal.`,
-            value: both, tolerance: { abs: 0.005 }, wrongs: [String(Number((a / b + a / b).toFixed(4))), String(Number((1 - both).toFixed(4))), String(Number((a / b).toFixed(4)))],
+            // `display` because (a/b)² rarely terminates: 1/3 × 1/3 is 0.1111…, and
+            // without it the shown answer is `formatNumeric` to twelve significant
+            // figures — the IEEE noise `npm run verify:q` flags as float noise.
+            value: both, tolerance: { abs: 0.005, display: String(Number(both.toFixed(4))) }, wrongs: [String(Number((a / b + a / b).toFixed(4))), String(Number((1 - both).toFixed(4))), String(Number((a / b).toFixed(4)))],
             tags: ["ind-dep"], difficulty: 0.5,
             explanation: `For independent events the probabilities MULTIPLY along the branches, because both outcomes have to happen and the second does not depend on the first: ${a}/${b} × ${a}/${b} = ${Number(both.toFixed(4))}. Adding the two (${Number((a / b + a / b).toFixed(4))}) answers "either one or the other", and ${Number((1 - both).toFixed(4))} is the chance that neither happens.`,
         };
@@ -35208,8 +37006,24 @@ function drawPractice(conceptId, seed, aim, served, slip) {
         return { question: first, targeted: false };
     if ((first.misconceptionTags ?? []).includes(slip))
         return { question: first, targeted: true };
+    // ── THE SEARCH WIDENS DOWNWARDS, BECAUSE A TAG CAN LIVE BELOW THE AIM ────
+    //
+    // This loop used to spend all eight extra draws at the SAME aim, which is no
+    // search at all when the family that discriminates the belief sits elsewhere:
+    // `generateQuestionNear` returns the draw nearest the target, so at a
+    // foundation aim every seed landed on the same numeric family and the tagged
+    // item was never reached (measured on `fractions`: 0/40 tagged at aim 0.33,
+    // 12/40 at 0.25 — the belief is only revealed by the comparison item, which
+    // lives lower). A repair that cannot be served is a card a learner never sees.
+    //
+    // So the aims descend: the tier target first, then two steps below it. What a
+    // learner gets is still an item ON their slip, which is the whole purpose of a
+    // repair serve, and the serve REPORTS the band it actually landed in
+    // (`servePractice` reads it off the item), so nothing claims the climb moved.
+    const aims = [aim, Math.max(0.1, aim - 0.1), Math.max(0.1, aim - 0.2)];
     for (let i = 1; i <= exports.SLIP_DRAW_ATTEMPTS; i++) {
-        const q = (0, questions_1.generateQuestionNear)(conceptId, `${seed}#slip:${i}`, aim, exports.PRACTICE_DRAW_ATTEMPTS, served);
+        const tryAim = aims[i % aims.length];
+        const q = (0, questions_1.generateQuestionNear)(conceptId, `${seed}#slip:${i}`, tryAim, exports.PRACTICE_DRAW_ATTEMPTS, served);
         if (q && (q.misconceptionTags ?? []).includes(slip))
             return { question: q, targeted: true };
     }
@@ -35312,6 +37126,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.NEEDS_PAPER_SLOTS = exports.PAPERS = void 0;
 exports.papersForSpec = papersForSpec;
 exports.genericPapers = genericPapers;
+exports.papersForSubject = papersForSubject;
 exports.genericPaper = genericPaper;
 exports.defaultPaperFor = defaultPaperFor;
 exports.needsReading = needsReading;
@@ -35762,9 +37577,28 @@ function papersForSpec(specId, subject) {
  *   Paper 2  extended response — fewer, longer questions at a higher target
  *   Paper 3  full mock — the mixed length and breadth of a real sitting
  */
+/** The size of a real SITTING at this band, not the size of a practice set.
+ *
+ *  A board paper is a fixed shape: a GCSE paper is a paper of 60–80 marks in
+ *  1h15–1h30, an advanced paper 100 in 2h. The modelled set used to size itself
+ *  by QUESTION COUNT (`count * 3` minutes), which produced 52 marks in 60 min,
+ *  90 in 70 and 64 in 80 — three papers whose lengths bore no resemblance to
+ *  each other, let alone to an exam. A learner asked for papers "in the format
+ *  of the actual board exams", and length and time ARE that format: they decide
+ *  whether a mock is a sitting or a worksheet.
+ *
+ *  These are OpenMind's own shapes, said as `modelled` on every row: they are
+ *  not claimed to be any board's published structure, and where a board's
+ *  blueprint IS on file it is used instead of this. */
+function examSize(difficulty) {
+    if (difficulty <= 0.5)
+        return { marks: 60, minutes: 75 };
+    if (difficulty <= 0.75)
+        return { marks: 80, minutes: 90 };
+    return { marks: 100, minutes: 120 };
+}
 function genericPapers(active, subject, lang) {
     const d = active.level.difficulty;
-    const count = subject === "maths" ? 20 : 14;
     // The NAME is UI, not data: the translated subject plus the paper's number,
     // both of which the learner's language already has. Spelling out the raw
     // subject id here is how "— maths paper" used to leak English into a
@@ -35774,6 +37608,7 @@ function genericPapers(active, subject, lang) {
     const named = (n) => `${label} · ${(0, i18n_1.fill)(t("pp.paper"), { n })}`;
     const base = `spec-${active.spec.id}-${active.level.id}-${subject}`;
     const boundaries = builtBoundaries(d);
+    const size = examSize(d);
     const common = {
         subject, calculator: true, specs: [active.spec.id], boundaries,
         // THE SET EVERY COUNTRY WITHOUT A BLUEPRINT RECEIVES. It is OpenMind's own
@@ -35781,50 +37616,111 @@ function genericPapers(active, subject, lang) {
         // it — the one thing it must never do is pass for the learner's exam.
         basis: "modelled",
     };
-    const shortCount = Math.round(count * 0.6);
-    return [
-        paper({
+    /** A paper of the band's own size, built from a section plan. Section names
+     *  are the ones a real paper prints (Section A/B/C, in increasing demand), not
+     *  the old "Short answers / Working", which named OpenMind's item kinds rather
+     *  than the shape of the paper. */
+    const sized = (n, set, plan) => {
+        const sections = plan.map((s) => {
+            const marks = Math.max(s.marksEach * 2, Math.round((size.marks * s.share) / s.marksEach) * s.marksEach);
+            return { name: s.name, count: marks / s.marksEach, marksEach: s.marksEach, difficulty: s.difficulty };
+        });
+        const total = sections.reduce((sum, s) => sum + s.count * s.marksEach, 0);
+        return paper({
             ...common,
-            id: `${base}-p1`,
-            name: named(1),
-            minutes: Math.max(30, Math.round(count * 3)),
-            sections: [
-                { name: "Short answers", count: Math.round(count * 0.7), marksEach: 2, difficulty: Math.max(0.2, d - 0.2) },
-                { name: "Working", count: count - Math.round(count * 0.7), marksEach: 4, difficulty: Math.max(0.2, d - 0.08) },
-            ],
-        }),
-        paper({
-            ...common,
-            id: `${base}-p2`,
-            name: named(2),
-            minutes: Math.max(30, Math.round(count * 3.5)),
-            sections: [
-                { name: "Short answers", count: Math.round(count * 0.5), marksEach: 3, difficulty: Math.max(0.2, d - 0.1) },
-                { name: "Extended response", count: count - Math.round(count * 0.5), marksEach: 6, difficulty: Math.min(1, d + 0.1) },
-            ],
-        }),
-        paper({
-            ...common,
-            id: `${base}-p3`,
-            name: named(3),
-            minutes: Math.max(30, Math.round(count * 4)),
-            sections: [
-                { name: "Short answers", count: shortCount, marksEach: 2, difficulty: Math.max(0.2, d - 0.15) },
-                { name: "Longer questions", count: count - shortCount, marksEach: 5, difficulty: d },
-            ],
-        }),
+            // THE SET IS PART OF THE ID, so "start Paper 2, Set B" reaches THAT
+            // template rather than whichever one happened to be found first. Two sets
+            // share a shape and differ only in the draw, which is exactly what a
+            // different sitting of the same paper is.
+            id: `${base}-p${n}-set-${set.toLowerCase()}`,
+            name: `${named(n)} · ${(0, i18n_1.fill)(t("pp.set"), { s: set })}`,
+            // Time follows the marks at the band's own pace, so the clock and the
+            // paper agree even when a rounded section puts the total a mark or two
+            // either side of the target.
+            minutes: Math.round((total * size.minutes) / size.marks),
+            sections,
+        });
+    };
+    const easier = Math.max(0.2, d - 0.18);
+    /**
+     * THREE SHAPES, EACH IN THREE SETS.
+     *
+     * The shapes are the three a candidate needs — a short-answer first pass, an
+     * extended-response paper, and a full mixed mock — and each is offered as
+     * three SETS. A set is a different draw of the same shape, which is what a
+     * second sitting of a paper is: same length, same sections, different items.
+     * One paper per shape was the thin version of a revision library, and the report
+     * from a real learner was blunt: "make the exam papers have soo many papers".
+     *
+     * They are named Paper 1/2/3 and Set A/B/C, not "Mock 1..9": a learner
+     * revising wants to know WHICH sitting they are doing, and a numbered list of
+     * nine mocks names nothing. Every one says `modelled` on its row, so none of
+     * them can pass for the awarding body's own paper.
+     */
+    const SETS = ["A", "B", "C"];
+    const shapes = [
+        // PAPER 1 — the first pass: short answers throughout, the whole paper at the
+        // easier end of the band, which is what a board's Paper 1 usually is.
+        { n: 1, plan: [{ name: "Section A", share: 1, marksEach: 2, difficulty: easier }] },
+        // PAPER 2 — extended response: fewer, longer questions, mostly 4-mark work.
+        { n: 2, plan: [
+                { name: "Section A", share: 0.55, marksEach: 2, difficulty: easier },
+                { name: "Section B", share: 0.45, marksEach: 4, difficulty: d },
+            ] },
+        // PAPER 3 — the full mock: the graded mix a candidate actually sits, with
+        // the hard questions at the end where a board puts them.
+        { n: 3, plan: [
+                { name: "Section A", share: 0.45, marksEach: 2, difficulty: easier },
+                { name: "Section B", share: 0.35, marksEach: 4, difficulty: d },
+                { name: "Section C", share: 0.2, marksEach: 6, difficulty: Math.min(1, d + 0.1) },
+            ] },
     ];
+    // Ordered BY PAPER, then by set: Paper 1 A/B/C, then Paper 2 — because that is
+    // how a learner works through a revision library, and grouping by set would
+    // put three different papers under "Set A".
+    return shapes.flatMap((s) => SETS.map((set) => sized(s.n, set, s.plan)));
+}
+/** Every paper a learner can sit for ONE subject: the board's own blueprints
+ *  where that subject has them, and OpenMind's exam-shaped set otherwise.
+ *
+ *  WHY NOT BOTH. A subject with a published blueprint (GCSE maths, physics,
+ *  chemistry, biology) was ALSO offered the three modelled papers, so a
+ *  maths-only learner's page held ten maths rows — six board papers (two boards
+ *  publish the same three) and three modelled duplicates of the same sitting. A
+ *  picker that lists the same exam five ways is not a choice. Where the board's
+ *  shape exists it IS the board format, so it is what the learner sees; the
+ *  modelled set exists for the subjects the board does not publish here. */
+function papersForSubject(active, subject, lang) {
+    const authored = papersForSpec(active.spec.id, subject);
+    const modelled = genericPapers(active, subject, lang);
+    // BOTH, IN THIS ORDER — and this REVERSES an earlier rule on purpose.
+    //
+    // The rule was "the board's set suppresses the modelled set", because a
+    // maths-only learner's page showed the same sitting five ways. The rule was
+    // right about duplicates and wrong about coverage: the catalogue holds ONE
+    // Cambridge IGCSE maths blueprint and it is the EXTENDED paper, so a learner
+    // whose course is Core was offered a paper pitched at the tier above theirs
+    // and nothing else — measured on a real Core IGCSE profile, the whole library
+    // was two rows, one of them the wrong tier. A learner cannot be told "sit the
+    // Extended paper" by a product that knows their tier.
+    //
+    // The modelled sets are drawn at THEIR tier, carry `modelled` on every row and
+    // are named as practice sets, so they cannot be mistaken for the board's
+    // paper — and the board's paper still leads, because it is the one that is
+    // really sat. What made the old rows read as duplicates was two papers with
+    // the SAME name; these carry their own (Paper 1 · Set A, …).
+    return [...authored, ...modelled];
 }
 /** The first of the set, for callers that need exactly one paper: the default
  *  offer, and the name/language contract the engine tests assert. */
 function genericPaper(active, subject, lang) {
     return genericPapers(active, subject, lang)[0];
 }
-/** The paper a student should be offered first: an authored board paper when
- *  their qualification has one, otherwise the specification-built paper. */
+/** The paper a student should be offered first: the first paper of their
+ *  subject's set — the board's own where one is on file, else the modelled
+ *  first paper. One door, so the picker and a direct request cannot disagree. */
 function defaultPaperFor(active, subject, lang) {
-    const authored = papersForSpec(active.spec.id, subject)[0];
-    return authored ?? genericPaper(active, subject, lang);
+    return papersForSubject(active, subject, lang)[0] ?? genericPaper(active, subject, lang);
 }
 // ── A PAPER BUILT FROM THE LEARNER'S OWN RECORD ─────────────────────────────
 //
@@ -49003,6 +50899,16 @@ const MATHS_GENS = {
                 prompt: `Work out ${a} − (−${b}).`,
                 correct: String(ans),
                 wrongs: [String(a - b), String(-(a + b)), String(b - a)],
+                // EACH WRONG OPTION IS A MOVE, NOT A NUMBER THAT HAPPENED TO BE WRONG.
+                // `a − b` is exactly what subtracting a POSITIVE gives, `−(a + b)` is the
+                // right size with the wrong sign, and `b − a` is the right pair in the
+                // wrong order — so the feedback can name the move the learner made
+                // rather than repeat the item-level diagnosis they already read.
+                wrongNotes: [
+                    `You subtracted ${b} instead of adding it. That is the answer to ${a} − ${b}; here the ${b} is itself negative, so taking it away moves you the other way.`,
+                    `The size is right: you found ${a} + ${b}. The sign is not — removing a debt of ${b} leaves you ${b} better off, so the answer is positive.`,
+                    `You worked it the other way round: ${b} − ${a}. The two numbers are the right pair, but subtraction is not symmetric, and ${a} − (−${b}) starts at ${a}.`,
+                ],
                 tags: ["neg-slip"], explanation: `Subtracting a negative ADDS: ${a} − (−${b}) = ${a} + ${b} = ${ans}. Taking away a debt makes you richer.`,
                 difficulty: 0.25,
             };
@@ -49014,6 +50920,11 @@ const MATHS_GENS = {
                 prompt: `Work out (${a}) × (${b}).`,
                 correct: String(ans),
                 wrongs: [String(-ans), String(a + b), String(a - b)],
+                wrongNotes: [
+                    `The size is right and the sign is not: you found ${Math.abs(ans)}. ${a < 0 && b < 0 ? "Two negatives multiply to a POSITIVE, so the product cannot be negative." : "One negative makes the product negative, so the sign belongs there."}`,
+                    `You added the two numbers instead of multiplying them. ${a} × ${b} means ${a < 0 ? Math.abs(a) : a} jumps of ${b < 0 ? Math.abs(b) : b}, not ${a} + ${b}.`,
+                    `You subtracted instead of multiplying: ${a} − ${b}. A multiplication question is never answered by the difference.`,
+                ],
                 tags: ["neg-slip"], explanation: `(${a}) × (${b}) = ${ans} because ${a < 0 && b < 0 ? "two negatives multiply to a positive" : a < 0 || b < 0 ? "one negative makes the product negative" : "both are positive"}.`,
                 difficulty: 0.3,
             };
@@ -49023,6 +50934,11 @@ const MATHS_GENS = {
             prompt: `Work out ${a} − ${b}.`,
             correct: String(a - b),
             wrongs: [String(b - a), String(a + b), String(-(a + b))],
+            wrongNotes: [
+                `You worked ${b} − ${a}: the pair is right, the order is not. Starting at ${a} and taking ${b} away has to land below zero, reading it as a negative answer.`,
+                `You added them (${a} + ${b}). The second number is being TAKEN AWAY — that is what the minus between them says — so the answer is smaller than ${a}, not bigger.`,
+                `You added them and then negated. The size of the journey is ${a + b}, but you did not start at zero: you started at ${a}, which is where the sign comes from.`,
+            ],
             tags: ["neg-slip"], explanation: `${a} − ${b} = ${a - b} (negative — ${b} is larger). On the number line you move ${b} left from ${a}.`,
             difficulty: 0.2,
         };
@@ -49110,50 +51026,127 @@ const MATHS_GENS = {
         };
     },
     "fraction-ops": (r) => {
-        const kind = r.int(1, 3);
-        if (kind === 1) {
+        // ── NO FRACTION MAY BE A WHOLE NUMBER WEARING A FRACTION'S CLOTHES ──────
+        //
+        // A fraction whose top and bottom are the same IS 1, and this family served
+        // them three ways: as an operand (`3/3 × 3/4`), as a correct answer printed
+        // `2/1` beside "Give your answer in simplest form", and as an option like
+        // `4/4`. Measured over 80 draws of the served family before this rule
+        // existed: 20% had an `n/n` operand, 9% printed a denominator-1 answer, 25%
+        // carried an `n/n` option. A learner looking at `Work out 2/2 ÷ 4/5` is
+        // looking at what reads as a fault in the product rather than at a question,
+        // and an answer of `1/1` answers "simplest form" wrongly — so the parameters
+        // are redrawn until the item passes, and a hand-checked fallback per branch
+        // means the loop can never exhaust into a broken item.
+        const gg = (a, b) => (b ? gg(b, a % b) : a);
+        /** `n/n`, i.e. a whole number written as a fraction. Always 1, and always
+         *  reads as a mistake rather than as an option. */
+        const dressed = (s) => {
+            const m = /^(\d+)\/(\d+)$/.exec(s);
+            return !!m && m[1] === m[2];
+        };
+        /** A fraction that is neither zero nor a whole number: 0 < n < d. */
+        const proper = (n, d) => n > 0 && n < d;
+        const okOptions = (correct, wrongs) => !dressed(correct) && !wrongs.some((w) => dressed(w) || w === correct);
+        const add = () => {
             const d1 = r.pick([3, 4, 6]), d2 = r.pick([4, 6, 8]);
             const n1 = r.int(1, d1 - 1), n2 = r.int(1, d2 - 1);
-            const lcm = (x, y) => { const gg = (a, b) => (b ? gg(b, a % b) : a); return (x * y) / gg(x, y); };
-            const L = lcm(d1, d2);
+            const L = (d1 * d2) / gg(d1, d2);
             const sum = (n1 * L) / d1 + (n2 * L) / d2;
+            // A sum whose lowest form has denominator 1 is a whole number: `4/4` and
+            // `9/9` were both served as "a fraction" under a prompt asking for one,
+            // so that draw teaches nothing about adding fractions.
+            if (sum % L === 0)
+                return null;
+            const correct = `${sum}/${L}`;
+            const wrongs = [`${n1 + n2}/${d1 + d2}`, `${n1 + n2}/${L}`, `${sum}/${L + 1}`, `${sum + 1}/${L}`];
+            if (!okOptions(correct, wrongs))
+                return null;
             return {
                 prompt: `Work out ${n1}/${d1} + ${n2}/${d2}. Give your answer as a fraction.`,
-                correct: `${sum}/${L}`,
-                wrongs: [`${n1 + n2}/${d1 + d2}`, `${n1 + n2}/${L}`, `${sum}/${L + 1}`, `${sum + 1}/${L}`],
+                correct,
+                wrongs,
                 tags: ["denom-add"], explanation: `Common denominator ${L}: ${(n1 * L) / d1}/${L} + ${(n2 * L) / d2}/${L} = ${sum}/${L}. You can only add same-size slices — never add the denominators.`,
                 difficulty: 0.4,
             };
-        }
-        if (kind === 2) {
+        };
+        const mul = () => {
             const n1 = r.int(1, 5), d1 = r.int(2, 6), n2 = r.int(1, 5), d2 = r.int(2, 6);
+            // `2/2 × 3/4` is `1 × 3/4`: one operand is a whole number, and the only
+            // thing it tests is whether the learner can read a disguised 1.
+            if (!proper(n1, d1) || !proper(n2, d2))
+                return null;
             const num = n1 * n2, den = d1 * d2;
-            const gg = (a, b) => (b ? gg(b, a % b) : a);
             const G = gg(num, den);
+            if (den / G === 1)
+                return null;
+            const correct = `${num / G}/${den / G}`;
+            const wrongs = [`${n1 * d2}/${d1 * n2}`, `${num}/${den + G}`, `${n1 + n2}/${d1 + d2}`];
+            if (!okOptions(correct, wrongs))
+                return null;
             return {
                 prompt: `Work out ${n1}/${d1} × ${n2}/${d2}. Give your answer in simplest form.`,
-                correct: `${num / G}/${den / G}`,
-                wrongs: [`${n1 * d2}/${d1 * n2}`, `${num}/${den + G}`, `${n1 + n2}/${d1 + d2}`],
+                correct,
+                wrongs: wrongs,
                 tags: [], explanation: `Multiply straight across: (${n1}×${n2})/(${d1}×${d2}) = ${num}/${den} = ${num / G}/${den / G} after cancelling ${G}.`,
                 difficulty: 0.35,
             };
+        };
+        const div = () => {
+            const n1 = r.int(1, 4), d1 = r.int(2, 5), n2 = r.int(1, 5), d2 = r.int(2, 6);
+            // THE DIVISOR IS NEVER 1. Dividing by 5/5 makes the flip a no-op, so the
+            // "multiply straight across" slip lands on the answer itself (measured:
+            // `3/2 ÷ 5/5` served `3/2` beside `15/10`), and it is also a vacuous
+            // question — "divide by one" teaches nothing about dividing by a fraction.
+            // The DIVIDEND is held to the same rule: `2/2 ÷ 4/5` is `1 ÷ 4/5`.
+            if (!proper(n1, d1) || !proper(n2, d2))
+                return null;
+            const num = n1 * d2, den = d1 * n2;
+            const G = gg(num, den);
+            if (den / G === 1)
+                return null;
+            const correct = `${num / G}/${den / G}`;
+            const wrongs = [`${n1 * n2}/${d1 * d2}`, `${d1 * n2}/${n1 * d2}`, `${num}/${den + 1}`];
+            if (!okOptions(correct, wrongs))
+                return null;
+            return {
+                prompt: `Work out ${n1}/${d1} ÷ ${n2}/${d2}.`,
+                correct,
+                wrongs: wrongs,
+                tags: [], explanation: `Keep–flip–multiply: ${n1}/${d1} × ${d2}/${n2} = ${num}/${den} = ${num / G}/${den / G}. Dividing by ${n2}/${d2} asks how many of them fit.`,
+                difficulty: 0.45,
+            };
+        };
+        const kind = r.int(1, 3);
+        const build = kind === 1 ? add : kind === 2 ? mul : div;
+        for (let attempt = 0; attempt < 80; attempt++) {
+            const item = build();
+            if (item)
+                return item;
         }
-        const n1 = r.int(1, 4), d1 = r.int(2, 5);
-        // THE DIVISOR IS NEVER 1. Dividing by 5/5 makes the flip a no-op, so the
-        // "multiply straight across" slip lands on the answer itself (measured:
-        // `3/2 ÷ 5/5` served `3/2` beside `15/10`), and it is also a vacuous
-        // question — "divide by one" teaches nothing about dividing by a fraction.
-        let n2 = r.int(1, 5), d2 = r.int(2, 6);
-        if (n2 === d2)
-            d2 = n2 + 1;
-        const num = n1 * d2, den = d1 * n2;
-        const gg = (a, b) => (b ? gg(b, a % b) : a);
-        const G = gg(num, den);
+        // Hand-checked, and valid under the same three rules: 1/3 + 1/4 = 7/12,
+        // 2/3 × 3/5 = 2/5, 2/3 ÷ 4/5 = 5/6.
+        if (kind === 1)
+            return {
+                prompt: "Work out 1/3 + 1/4. Give your answer as a fraction.",
+                correct: "7/12",
+                wrongs: ["2/7", "2/12", "7/13", "8/12"],
+                tags: ["denom-add"], explanation: "Common denominator 12: 4/12 + 3/12 = 7/12. You can only add same-size slices — never add the denominators.",
+                difficulty: 0.4,
+            };
+        if (kind === 2)
+            return {
+                prompt: "Work out 2/3 × 3/5. Give your answer in simplest form.",
+                correct: "2/5",
+                wrongs: ["10/9", "6/18", "5/8"],
+                tags: [], explanation: "Multiply straight across: (2×3)/(3×5) = 6/15 = 2/5 after cancelling 3.",
+                difficulty: 0.35,
+            };
         return {
-            prompt: `Work out ${n1}/${d1} ÷ ${n2}/${d2}.`,
-            correct: `${num / G}/${den / G}`,
-            wrongs: [`${n1 * n2}/${d1 * d2}`, `${d1 * n2}/${n1 * d2}`, `${num}/${den + 1}`],
-            tags: [], explanation: `Keep–flip–multiply: ${n1}/${d1} × ${d2}/${n2} = ${num}/${den} = ${num / G}/${den / G}. Dividing by ${n2}/${d2} asks how many of them fit.`,
+            prompt: "Work out 2/3 ÷ 4/5.",
+            correct: "5/6",
+            wrongs: ["8/15", "15/8", "10/13"],
+            tags: [], explanation: "Keep–flip–multiply: 2/3 × 5/4 = 10/12 = 5/6. Dividing by 4/5 asks how many of them fit.",
             difficulty: 0.45,
         };
     },
@@ -49170,7 +51163,10 @@ const MATHS_GENS = {
                 // answer twice (`11.00` beside `11.0`). Ignoring both decimal points is
                 // the slip this band actually produces, and it is ten times the answer.
                 wrongs: [((parseFloat(a) + parseFloat(b)) * 10).toFixed(1), (parseFloat(a) * 10 + parseFloat(b)).toFixed(1), (parseFloat(a) + parseFloat(b) + 1).toFixed(1)],
-                tags: [], explanation: `Line up the decimal points and add columns: ${a} + ${b} = ${s}. Reading each number as a whole number instead — ${(parseFloat(a) * 10).toFixed(0)} plus ${(parseFloat(b) * 10).toFixed(0)} — gives ${((parseFloat(a) + parseFloat(b)) * 10).toFixed(1)}, ten times too big, which is why the point has to be lined up.`,
+                // Both distractors here ARE the belief: one adds the digits and never puts
+                // the point back (ten times the answer), the other keeps the point in only
+                // one place value. Tagging it is what lets a wrong answer name the slip.
+                tags: ["dec-point"], explanation: `Line up the decimal points and add columns: ${a} + ${b} = ${s}. Reading each number as a whole number instead — ${(parseFloat(a) * 10).toFixed(0)} plus ${(parseFloat(b) * 10).toFixed(0)} — gives ${((parseFloat(a) + parseFloat(b)) * 10).toFixed(1)}, ten times too big, which is why the point has to be lined up.`,
                 difficulty: 0.2,
             };
         }
@@ -49180,7 +51176,12 @@ const MATHS_GENS = {
             prompt: `Work out 0.${a} × 0.${b}.`,
             correct: prod,
             wrongs: [`${(a * b) / 10}`, `${a * b}`, `0.${a * b}0`.replace(/0$/, "")],
-            tags: [], explanation: `${a} × ${b} = ${a * b}, and tenths × tenths = hundredths, so 0.${a} × 0.${b} = ${prod}.`,
+            // The explanation is prose on purpose: a substitution chain of symbols is
+            // the shorthand the explanation standard exists to catch, and this item
+            // was the worst offender in the primary band (5 prose words). It now says
+            // which operation is being done, why the point lands where it does, and
+            // which wrong option each slip produces.
+            tags: ["dec-point"], explanation: `Multiply the digits first, then place the decimal point by counting places: ${a} × ${b} = ${a * b}, and each factor has one decimal place, so the answer needs two. That gives 0.${a} × 0.${b} = ${prod}. Writing ${a * b} answers the whole-number question instead, and ${(a * b) / 10} moves the point only one place, which is what happens when tenths times tenths is treated as tenths.`,
             difficulty: 0.3,
         };
     },
@@ -49193,7 +51194,7 @@ const MATHS_GENS = {
                 prompt: `Work out ${p}% of ${n}.`,
                 correct: fmtNum(ans),
                 wrongs: [fmtNum(n - ans), fmtNum(ans * 10), fmtNum((p / 10) * (n / 10) + ans)],
-                tags: [], explanation: `${p}% = ${p}/100 = ${p / 100}. So ${p}% of ${n} = ${p / 100} × ${n} = ${fmtNum(ans)}.`,
+                tags: [], explanation: `A percentage is a fraction of a hundred, so ${p}% means ${p} out of every hundred, which is ${p / 100}. Taking that fraction of ${n} means multiplying: ${p / 100} × ${n} = ${fmtNum(ans)}. ${fmtNum(n - ans)} is what is left when the percentage is taken away from the whole, and ${fmtNum(ans * 10)} is what dividing by ten gives instead of dividing by a hundred.`,
                 difficulty: 0.25,
             };
         }
@@ -49242,7 +51243,7 @@ const MATHS_GENS = {
             prompt: `Share $${parts} between two people in the ratio ${a} : ${b}. How much does the larger share get (in $)?`,
             correct: String(Math.max(a, b) * unit),
             wrongs: [String(Math.min(a, b) * unit), String(parts / 2), String(parts - Math.max(a, b) * unit + unit)],
-            tags: [], explanation: `${a} + ${b} = ${a + b} parts. Each part = ${parts} ÷ ${a + b} = ${unit}. Larger share = ${Math.max(a, b)} × ${unit} = $${Math.max(a, b) * unit}.`,
+            tags: [], explanation: `The ratio cuts the whole into equal parts: ${a} + ${b} = ${a + b} parts. One part is the total divided by the number of parts, ${parts} ÷ ${a + b} = ${unit}. The larger share takes ${Math.max(a, b)} of those parts, so ${Math.max(a, b)} × ${unit} = $${Math.max(a, b) * unit}. Halving the total ($${parts / 2}) would only be right if the two shares were equal, and ${a} : ${b} says they are not.`,
             difficulty: 0.35,
         };
     },
@@ -49545,7 +51546,7 @@ const MATHS_GENS = {
             // `a = −b` collapses both the swap and the negation onto the (0, 0)
             // answer, so the component-shift candidates below carry the third wrong.
             wrongs: [`(${a[0] - b[0]}, ${a[1] - b[1]})`, `(${s[1]}, ${s[0]})`, `(${a[0] * b[0]}, ${a[1] * b[1]})`, `(${-s[0]}, ${-s[1]})`, `(${s[0] + 1}, ${s[1]})`, `(${s[0]}, ${s[1] + 1})`],
-            tags: ["vec-dir"], explanation: `Add component-wise: x: ${a[0]} + ${b[0]} = ${s[0]}, y: ${a[1]} + ${b[1]} = ${s[1]} → (${s[0]}, ${s[1]}).`,
+            tags: ["vec-dir"], explanation: `Vectors add component by component: the x parts combine with each other and the y parts combine with each other, and the two directions never mix. Here x: ${a[0]} + ${b[0]} = ${s[0]}, and y: ${a[1]} + ${b[1]} = ${s[1]}, so the sum is (${s[0]}, ${s[1]}). Subtracting the components instead describes a different journey, and pairing the x of one vector with the y of the other is the slip that comes from reading the brackets as decoration.`,
             difficulty: 0.35,
         };
     },
@@ -49588,7 +51589,14 @@ const MATHS_GENS = {
     },
     "data-charts": (r) => {
         // Only sectors that divide 360 exactly, so the share is a clean fraction.
-        const deg = r.pick([30, 40, 45, 60, 72, 90, 120, 180]);
+        //
+        // AND NOT A HALF. At 180° the two "divided wrongly" distractors collapse
+        // into whole numbers dressed as fractions — `${deg}/180` is 180/180 and
+        // `1/${share - 1}` is 1/1 — so a four-option item had two options that were
+        // both exactly 1, and the assembler could only keep one of them. A sector
+        // that is half the pie also makes "divide by 180" indistinguishable from
+        // "divide by 360", which is the one misconception this item exists to catch.
+        const deg = r.pick([30, 40, 45, 60, 72, 90, 120]);
         const share = 360 / deg;
         return {
             prompt: `A pie chart shows ${deg}° for "walk". What fraction of the students walk?`,
@@ -49621,7 +51629,7 @@ const MATHS_GENS = {
                 correct: "A third factor (heat) causes both",
                 wrongs: ["Ice cream causes drowning", "Drowning causes ice-cream buying", "Nothing — the data must be wrong"],
                 tags: ["corr-cause"],
-                explanation: `Correlation ≠ causation. Temperature drives both variables — a confounder. Only a controlled study establishes causation.`,
+                explanation: `Two quantities rising together across a summer is a correlation, and a correlation is not a cause. Heat drives both: hot weather sells ice cream and puts more people in the water, so the two rise on the same days without either producing the other. Only a controlled comparison, where one factor is changed on purpose and the rest are held fixed, can establish causation.`,
             },
             {
                 prompt: `Students who eat breakfast get better grades. What can you conclude?`,
@@ -49629,7 +51637,7 @@ const MATHS_GENS = {
                 correct: "Other factors differ between the groups",
                 wrongs: ["Breakfast causes better grades, so it is causal", "Better grades make students eat breakfast", "The study proves nothing about either one"],
                 tags: ["corr-cause"],
-                explanation: `A correlation without a controlled comparison. Sleep, routine and home circumstances all differ between the groups, and each could drive the grades.`,
+                explanation: `Nobody assigned the groups; the students already differed before any breakfast. Sleep, routine, income and home circumstances all shape both what a student eats in the morning and how they do in a test, and any of them could be driving the grades. A correlation like this says the two things travel together, not that one produces the other.`,
             },
             {
                 prompt: `Regions with more storks also record more births. What is the best explanation?`,
@@ -49637,7 +51645,7 @@ const MATHS_GENS = {
                 correct: "A third factor (population size) drives both",
                 wrongs: ["Storks deliver the babies, as the saying goes", "More babies attract storks to the region", "The data must be fabricated"],
                 tags: ["corr-cause"],
-                explanation: `Bigger regions have both more people and more roofs to nest on. When two counts scale with population, they rise together without causing each other.`,
+                explanation: `Storks nest on roofs, and bigger regions have more roofs; they also have more people, and therefore more births. Population size is a third factor that drives both counts, so the two rise together without either causing the other. The data are not fabricated and the storks do not deliver babies: the association is real, and the direction is not the one the chart suggests.`,
             },
         ];
         const s = r.pick(scenes);
@@ -49802,7 +51810,7 @@ const MATHS_GENS = {
             // near-miss so the (120°, 60°) draw, where the supplementary angle IS the
             // answer, still has three distinct wrongs.
             wrongs: [`${centre}°`, `${centre * 2}°`, `${180 - centre}°`, `${circ + 5}°`],
-            tags: ["same-seg"], explanation: `Centre angle = 2 × circumference angle (same arc): ${centre} ÷ 2 = ${circ}°. It is exactly double, not equal to, the angle at the circumference.`,
+            tags: ["same-seg"], explanation: `Both angles stand on the same arc. Joining the centre to the two ends of that arc builds two isosceles triangles, and the exterior angle at the centre picks up both base angles, which is why the centre angle is twice the angle at the circumference. So ${centre} ÷ 2 = ${circ}°. It is exactly double, not equal to: ${centre}° is the angle at the CENTRE, and ${centre * 2}° is what applying the rule the wrong way round gives. The supplementary angle ${180 - centre}° is what you get by treating the chord as a straight line, which is a different theorem altogether.`,
             difficulty: 0.4,
         };
     },
@@ -50218,7 +52226,7 @@ const SCI_GENS = {
             prompt: `A force of ${f} N acts on an area of ${a} m². Pressure (Pa)?`,
             correct: String(f / a),
             wrongs: [String(f * a), String(a / f), String(f + a)],
-            tags: [], explanation: `P = F/A = ${f}/${a} = ${f / a} Pa. Same force on a smaller area → much higher pressure (stiletto vs flat shoe).`,
+            tags: [], explanation: `Pressure is force spread over the area it acts on: P = F ÷ A = ${f} ÷ ${a} = ${f / a} Pa. Multiplying the two instead (${f * a}) answers a different question, and dividing the area by the force (${a / f}) turns the relationship upside down. The same force over a smaller area gives a much larger pressure, which is why a drawing pin is sharp and a stiletto heel dents a floor.`,
             difficulty: 0.25,
         };
     },
@@ -50368,7 +52376,7 @@ const SCI_GENS = {
             prompt: `HCl + NaOH → ?`,
             correct: "NaCl + H₂O",
             wrongs: ["NaCl + H₂", "NaOH + Cl₂", "Na₂Cl + H₂O"],
-            tags: ["strong-conc"], explanation: `Neutralisation: acid + alkali → salt + water. H⁺ + OH⁻ → H₂O, leaving Na⁺Cl⁻. Check: Na, Cl, H, O all balance.`,
+            tags: ["strong-conc"], explanation: `An acid and an alkali neutralise each other: the hydrogen ion from the acid and the hydroxide ion from the alkali join to make water, and the ions left behind form a salt. Here H⁺ + OH⁻ → H₂O leaves Na⁺ and Cl⁻ together as sodium chloride, so the products are NaCl + H₂O. Counting atoms on both sides is the check: Na, Cl, H and O each balance, which rules out the hydrogen gas and the chlorine gas options.`,
             difficulty: 0.35,
         };
     },
@@ -50816,7 +52824,7 @@ const SCI_GENS = {
             prompt: `Why is merge sort preferred over bubble sort for large data?`,
             correct: "O(n log n) vs O(n²) — dramatically fewer comparisons as n grows",
             wrongs: ["It uses no extra memory", "It only works on numbers", "It is easier to write"],
-            tags: [], explanation: `At n = 1,000,000: bubble ≈ 10¹² comparisons, merge ≈ 2×10⁷. The growth CURVE, not the machine, decides what scales.`,
+            tags: [], explanation: `Merge sort splits the data in half, sorts each half and merges the two back together, so its work grows with n log n. Bubble sort compares neighbours over and over, and its work grows with n squared. At n = 1,000,000 that is roughly 2 × 10⁷ comparisons against 10¹², a gap of five orders of magnitude, and no faster machine closes a difference that widens as the data grows.`,
             difficulty: 0.45,
         };
     },
@@ -50962,7 +52970,22 @@ const LATE_GENS = {
                 prompt: `A point has x-coordinate ${fmt(p.x)} and y-coordinate ${fmt(p.y)}. Which is its coordinate pair?`,
                 correct: `(${fmt(p.x)}, ${fmt(p.y)})`,
                 wrongs: [`(${fmt(p.y)}, ${fmt(p.x)})`, `(${fmt(-p.x)}, ${fmt(p.y)})`, `(${fmt(p.x)}, ${fmt(-p.y)})`, `(${fmt(-p.x)}, ${fmt(-p.y)})`],
-                tags: [], explanation: `Order is alphabetical: (x, y). The x-coordinate counts steps right (positive) or left (negative); the y-coordinate counts steps up or down. Swapping the pair walks to a different point.`,
+                // THE TWO MOVES THIS FAMILY EXISTS TO CATCH, each in its own sentence:
+                // swapping the pair (the point is reflected in y = x) and flipping a
+                // SIGN (the point is reflected in an axis). Both produce a real point a
+                // learner can plot and believe, which is why they are worth naming.
+                wrongNotes: [
+                    `That is the pair the other way round: (y, x). Swapping the two walks to a different point — it reflects (${fmt(p.x)}, ${fmt(p.y)}) in the line y = x.`,
+                    `The first number's sign is flipped. The pair starts with x, and x = ${fmt(p.x)} is ${p.x < 0 ? "to the LEFT of the axis" : "to the RIGHT of the axis"}; changing that sign walks across it.`,
+                    `The second number's sign is flipped: y = ${fmt(p.y)} is ${p.y < 0 ? "BELOW the axis" : "ABOVE the axis"}, and negating it moves the point to the other side.`,
+                    `Both signs are flipped, which reflects the point through the origin — the same distance away in the opposite direction, a different place on the grid.`,
+                ],
+                // TAGGED, so a learner who writes the pair the other way round can be
+                // handed a repair for THAT move (lib/repair.ts#axis-swap@coordinates)
+                // on the card, in the hint ladder and in the read stage. The swap is the
+                // family's first wrong option, so the tag names a move the bank really
+                // discriminates rather than a belief nobody can reveal.
+                tags: ["axis-swap"], explanation: `Order is alphabetical: (x, y). The x-coordinate counts steps right (positive) or left (negative); the y-coordinate counts steps up or down. Swapping the pair walks to a different point.`,
                 // The point is PLOTTED but not labelled: where it sits is what the
                 // prompt describes, and the pair that names it is the answer.
                 figure: { kind: "axes", xMin: -6, xMax: 6, yMin: -6, yMax: 6, points: [{ at: [p.x, p.y] }] },
@@ -50982,6 +53005,12 @@ const LATE_GENS = {
                 // exists so (±1, ±1), where the staircase and d² coincide, still has
                 // three distinct wrongs.
                 wrongs: [String(Math.abs(p.x) + Math.abs(p.y)), String(d2), String(Math.abs(Math.abs(p.x) - Math.abs(p.y))), String(Math.abs(p.x * p.y))],
+                wrongNotes: [
+                    `That is the staircase walk — ${Math.abs(p.x)} along and ${Math.abs(p.y)} up. Distance is the straight line between the points, which is always shorter than the walk along the edges.`,
+                    `That is d², not d: you added the squares (${p.x * p.x} + ${p.y * p.y}) and stopped. The distance is the square root of that sum.`,
+                    `You subtracted the two coordinates instead of adding their squares. Pythagoras adds the legs, because they are at right angles — subtracting measures how much further one is than the other.`,
+                    `That multiplies x by y, which is the area of the rectangle the point makes with the axes, not the distance from the origin to the point.`,
+                ],
                 tags: [], explanation: `Distance from the origin is Pythagoras: d = √(x² + y²) = √(${p.x}² + ${p.y}²)${whole ? ` = ${d}` : ` = √${d2}`}. Adding |x| + |y| measures the staircase walk, not the straight line.`,
                 // The point and the origin it is measured FROM. The origin is the one
                 // thing the prompt names, so it is the one thing the plate labels; no
@@ -51002,7 +53031,13 @@ const LATE_GENS = {
                 : `The point (${fmt(other)}, 0) lies on which axis?`,
             correct: onY ? "The y-axis" : "The x-axis",
             wrongs: [onY ? "The x-axis" : "The y-axis", "The origin", "Neither — it is off both axes"],
-            tags: [], explanation: `x = 0 means zero steps right or left — the point sits on the vertical (y) axis. y = 0 puts it on the horizontal (x) axis. The origin (0, 0) is the only point on both.`,
+            // TAGGED WITH THE SAME BELIEF AS THE PAIR ITEM, and for a measured reason:
+            // this branch is the one the SERVE actually reaches for `coordinates`
+            // (probed: 40/40 served draws were multiple choice, and the pair question
+            // never appeared), while the pair branch is what the bank reaches. A
+            // learner who swaps the order reads (0, 3) as three ACROSS and answers
+            // "the x-axis", so the item distinguishes the belief it is tagged with.
+            tags: ["axis-swap"], explanation: `x = 0 means zero steps right or left — the point sits on the vertical (y) axis. y = 0 puts it on the horizontal (x) axis. The origin (0, 0) is the only point on both.`,
             difficulty: 0.25,
         };
     },
@@ -51489,6 +53524,14 @@ function generateQuestion(conceptId, seed) {
         return true;
     };
     push(q.correct);
+    // A WRONG OPTION'S OWN EXPLANATION, carried beside the option text rather than
+    // by its position: the push above drops duplicates, so an index would slide.
+    const noteFor = new Map();
+    for (const [i, w] of q.wrongs.entries()) {
+        const note = q.wrongNotes?.[i];
+        if (note)
+            noteFor.set((0, answer_1.optionValueKey)(w) ?? `raw:${w}`, note);
+    }
     for (const w of q.wrongs)
         push(w);
     const num = Number(q.correct);
@@ -51523,10 +53566,21 @@ function generateQuestion(conceptId, seed) {
             const b = Number(frac[2]);
             // Same denominator, wrong numerator (missed the cancellation / added
             // wrongly); same numerator, denominator off by one (cancelled too much).
-            for (const cand of [`${a + 1}/${b}`, `${a + 2}/${b}`, `${a}/${b + 1}`, `${a + 1}/${b + 1}`]) {
+            //
+            // BUT NEVER A WHOLE NUMBER WEARING A FRACTION'S CLOTHES. `a + 1 === b` is
+            // the common case (`2/3`), and it turned the FIRST padded distractor into
+            // `3/3` — an option that is 1, printed as a fraction, in a question whose
+            // answer is not 1. Every fraction-answer concept pads through here (found
+            // by the bank-wide invariant, on a recipe-table sum whose distractors were
+            // all fine), so the rule belongs here rather than in the family that
+            // happened to be measured. A denominator of 1 is refused for the same
+            // reason: `5/1` is 5.
+            const fracPad = (n, d) => (d > 1 && n > 0 && n !== d ? `${n}/${d}` : null);
+            for (const cand of [fracPad(a + 1, b), fracPad(a + 2, b), fracPad(a, b + 1), fracPad(a + 1, b + 1)]) {
                 if (uniq.length >= 4)
                     break;
-                push(cand);
+                if (cand)
+                    push(cand);
             }
         }
         const pair = plain.match(/^\((-?[\d.]+), (-?[\d.]+)\)$/);
@@ -51571,6 +53625,12 @@ function generateQuestion(conceptId, seed) {
         // this one travel, so the paper, the diagnostic, the practice surface and
         // the offline pack all draw the same figure from the same numbers.
         figure: q.figure,
+        // One entry per choice, `""` where nobody wrote a note (a padded near-miss,
+        // or a family this pass has not covered). Aligned with `choices` AFTER the
+        // shuffle, so the client can ask by the index the learner picked.
+        choiceNotes: noteFor.size > 0
+            ? choices.map((c) => noteFor.get((0, answer_1.optionValueKey)(c) ?? `raw:${c}`) ?? "")
+            : undefined,
         // A numeric draw says so, and carries the number the typed answer is marked
         // against plus the tolerance the ITEM declares. `choiceValues` reads the
         // same four display strings back through the shared parser, so the option
@@ -51768,7 +53828,7 @@ function serveView(q, lang, board) {
     // `tolerance.unit` — the box needs to know it is grammatically wrong to the
     // 14th decimal. `choiceValues` is stripped too: it is the same four numbers
     // the visible options already state.
-    const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, choiceValues: _cv, ...view } = q;
+    const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, choiceValues: _cv, choiceNotes: _cn, ...view } = q;
     if (lang && lang !== "en") {
         view.prompt = (0, qterms_1.localizeStem)(view.prompt, lang);
     }
@@ -51930,12 +53990,128 @@ exports.thinRepairs = thinRepairs;
 // ─────────────────────────────────────────────────────────────────────────────
 const misconceptions_1 = require("./misconceptions");
 /**
- * THE AUTHORED REPAIRS — one per misconception on the six concepts that carry a
- * lesson plan, plus the two slips whose items the bank itself discriminates most
- * often. A misconception with no entry answers null and the page falls back to
- * the coaching sentence it always showed, so nothing renders empty.
+ * THE AUTHORED REPAIRS — one for every concept in the pilot pack (the count is
+ * the pack's, and `npm run verify` reads it from there rather than trusting a
+ * number written here: `audit/pilot-pack.json`). The pilot is the pathway whose
+ * lessons are a sequence rather than a paragraph, and a lesson that opens where
+ * the learner's slip is has to have something to open WITH: without an entry here the
+ * branch renders nothing and that learner reads the lesson it always had. So the
+ * two content sets are now the same set, which is a testable claim rather than a
+ * slogan — `npm run verify` asserts that a repair exists for every pilot concept
+ * that declares a misconception.
+ *
+ * A misconception with no entry still answers null and the page falls back to the
+ * coaching sentence it always showed, so nothing renders empty outside the pilot.
+ *
+ * ONE PAIR PER SLIP, DELIBERATELY, except `neg-slip`. `contrastFor` picks between
+ * pairs by the item's own operator, and a pair it cannot place makes the hint
+ * ladder say something general — correct, but silent. Every pair here is written
+ * to be true of the shape its concept actually serves (measured: 12 of 12 served
+ * items on each of these five concepts carry the tag), so one pair that is always
+ * returned teaches the move on screen, which two pairs would not.
  */
 exports.REPAIRS = {
+    // ── THE FOUNDATIONS RING ───────────────────────────────────────────────────
+    // ── decimals · the point ────────────────────────────────────────────────
+    //
+    // TWO contrast pairs, because the bank's decimals items hide the same belief
+    // behind two different moves: the adding family drops the point entirely
+    // (0.3 + 0.4 = 7), and the multiplying family keeps it but counts places in
+    // only one factor (0.3 × 0.2 = 0.6). A single pair about addition would tell a
+    // learner who multiplied two decimals something about a move they had not
+    // made — the exact defect `neg-slip` carries a second pair for.
+    "dec-point@decimals": {
+        misconceptionId: "dec-point",
+        conceptId: "decimals",
+        reveals: "The digits were multiplied or added as whole numbers and the point was then put back anywhere, or nowhere. The point is not punctuation — it records which place value each digit is in, so how many places the answer needs is decided by the question, not by taste.",
+        contrasts: [
+            {
+                works: "0.3 + 0.4 = 0.7",
+                worksNote: "Correct, and the point stayed where it was: three tenths and four tenths are seven tenths. Writing the numbers one under the other puts the points in the same column, so the digits being added are the same size.",
+                fails: "0.3 + 0.4 = 7",
+                failsNote: "Here the points were ignored, so 3 + 4 = 7 was computed and no point was put back. Seven is ten times seven tenths, and the answer is no longer even the same sort of number as the question.",
+                difference: "Whether the digits were kept in their own place value while adding. The sum of two tenths is still counted in tenths.",
+                move: "Write the numbers one under the other so the points line up in a column, add the columns, and keep the point in the same place in the answer.",
+            },
+            {
+                works: "0.3 × 2 = 0.6",
+                worksNote: "One of the factors has one decimal place, so the product has one: 3 × 2 = 6, one place back, 0.6. This is the case that makes \"just move the point once\" look like a rule.",
+                fails: "0.3 × 0.2 = 0.06, not 0.6",
+                failsNote: "BOTH factors have a decimal place, so the product needs two: 3 × 2 = 6, two places back. 0.6 is the answer to 0.3 × 2, and it is also ten times too big — a product of two numbers under 1 cannot be bigger than either of them.",
+                difference: "How many decimal places the two factors had between them: one place in the first item, two in the second.",
+                move: "Multiply the digits as whole numbers, count the decimal places in BOTH factors, and put that many back at the end. Then check: two numbers below 1 must multiply to something below both.",
+            },
+        ],
+        check: "Work four items unaided — two additions and two multiplications, each written with the points lined up or the places counted beside it — and check every answer against an estimate: 0.3 + 0.4 is near half, and 0.3 × 0.2 is smaller than 0.3.",
+        review: "unreviewed",
+    },
+    "frac-slice@fractions": {
+        misconceptionId: "frac-slice",
+        conceptId: "fractions",
+        reveals: "The bottom number was read as a size, so a bigger denominator looked like more. It is the count of pieces the whole was cut into, and more pieces means smaller pieces — the top number is the one that says how much you get.",
+        contrasts: [
+            {
+                works: "3/8 > 1/8",
+                worksNote: "Correct, and it is where the \"bigger number is bigger\" instinct comes from: the bottoms match, so the pieces are the same size and the bigger top simply counts more of them.",
+                fails: "1/8 < 1/4, not 1/8 > 1/4",
+                failsNote: "Here it is the BOTTOM that changed. Cutting the same whole into eight instead of four made every piece half the size, so one piece of eight is less than one piece of four — even though 8 is bigger than 4.",
+                difference: "Which of the two numbers changed. Changing the top adds pieces of the same size; changing the bottom resizes every piece.",
+                move: "Before comparing, say what the bottom number is doing: \"cut into 8 equal pieces\", not \"8\". Then compare amounts of chocolate, not the numerals.",
+            },
+        ],
+        check: "Draw two identical bars on paper, split one into quarters and the other into eighths, and shade a single piece in each. Then answer four comparison questions unaided — half of them with a repeated bottom and half with a repeated top — and check each by shading.",
+        review: "unreviewed",
+    },
+    "denom-add@fraction-ops": {
+        misconceptionId: "denom-add",
+        conceptId: "fraction-ops",
+        reveals: "The bottoms were treated as quantities and added with the tops. They are not quantities — the bottom names the SIZE of the piece being counted, so adding them changes the size of every piece in the answer and turns a sum into a number that no longer answers the question.",
+        contrasts: [
+            {
+                works: "3/8 + 1/8 = 4/8 = 1/2",
+                worksNote: "Correct, and it is where the instinct comes from: the pieces are the same size, so the tops simply count them and the bottom does not change. Nothing had to be converted.",
+                fails: "2/3 + 5/6 = 9/6 = 1 1/2, not 7/9",
+                failsNote: "Here the pieces are different sizes, so they have to be made the same before counting: 2/3 is 4/6, and 4/6 + 5/6 = 9/6. Adding the bottoms gives 7/9, which is SMALLER than 5/6 — and adding a positive amount to 5/6 cannot make it smaller.",
+                difference: "Whether the two bottoms already match. Same size of piece means add the tops and keep the bottom; different sizes mean convert first, then add.",
+                move: "Ask whether the bottoms match. If they do, add the tops. If they do not, rename one or both so they share a bottom — 2/3 = 4/6 — and only then add. Check the answer is bigger than the larger fraction.",
+            },
+            {
+                works: "1/4 + 3/4 = 1",
+                worksNote: "Four quarters fill the whole, and the tops add to the number of pieces that make it: 1 + 3 = 4 of them. The bottom stayed 4 because the piece never changed size.",
+                fails: "1/2 + 1/3 = 3/5 or 2/5, not 5/6",
+                failsNote: "Halves and thirds are different sizes, so neither top counts the other's pieces. Sixths is a size both can be counted in: 3/6 + 2/6 = 5/6. Both wrong answers are smaller than 1/2, which is impossible when you are adding to it.",
+                difference: "Whether the fractions are already counted in the same unit. Halves and thirds are not; quarters and quarters are.",
+                move: "Before adding, say what the pieces are out loud — \"halves and thirds\" — and if the words differ, find one size both can be counted in before doing any arithmetic.",
+            },
+        ],
+        check: "Answer four additions unaided: two with matching bottoms, two where one fraction has to be rescaled — and write the size check beside each (the answer must be larger than the larger fraction).",
+        review: "unreviewed",
+    },
+    "pct-base@percentages": {
+        misconceptionId: "pct-base",
+        conceptId: "percentages",
+        reveals: "The second percentage was applied to the amount you started with instead of the amount you had by then. A percentage always acts on the CURRENT amount, and after a change the current amount is not the one from the beginning.",
+        contrasts: [
+            {
+                works: "£100 − 10% → £90, so a further 10% is £9, not £10",
+                worksNote: "Correct, and the numbers say why: the second 10% is taken of the £90 in front of you, so it is a smaller amount than the first. A fall shrinks its own base as it goes.",
+                fails: "£100 + 20% → £120, then 20% of the ORIGINAL £100 = £20, giving £100 again",
+                failsNote: "Wrong at the second step: the price in front of you is £120, so 20% of it is £24 and the tag reads £96. Taking the percentage of the original is the same as pretending the rise never happened.",
+                difference: "Which amount the second percentage is taken of — the one in hand after the first change, or the one you began with.",
+                move: "Write the change as a multiplier chain and multiply it out: ×1.2 then ×0.8 is ×0.96, which is a 4% loss in one line.",
+            },
+            {
+                works: "A price rises 25% to £100: 100 ÷ 1.25 = £80, and 80 × 1.25 = 100 ✓",
+                worksNote: "Correct: dividing by the multiplier undoes the change, because the 25% was taken of the 80 — so 80 is what must be multiplied by 1.25 to give 100.",
+                fails: "100 − 25% = £75 as the original",
+                failsNote: "Wrong: 25% of 100 is 25, but the 25% was never taken of 100 — it was taken of the original, which is the number you are trying to find. £75 × 1.25 = £93.75, not £100, so the answer fails its own check.",
+                difference: "Which number the percentage was taken of. Going forwards the base is the starting amount; going backwards you must divide, never subtract.",
+                move: "Name the base out loud before calculating — \"20% of WHAT?\" — and when the answer is the base itself, divide by the multiplier instead of subtracting.",
+            },
+        ],
+        check: "Answer three questions unaided: a rise then a fall of the same percentage, the same the other way round, and one that gives you the final amount and asks for the original. Check each by multiplying your answer forward to see whether it reproduces the figure you were given.",
+        review: "unreviewed",
+    },
     "neg-slip@negatives": {
         misconceptionId: "neg-slip",
         conceptId: "negatives",
@@ -52012,6 +54188,23 @@ exports.REPAIRS = {
         check: "Solve three two-step equations with unknowns on both sides, and substitute every answer back into the ORIGINAL equation.",
         review: "unreviewed",
     },
+    "axis-swap@coordinates": {
+        misconceptionId: "axis-swap",
+        conceptId: "coordinates",
+        reveals: "The two numbers were read in the wrong order: the pair was taken as (up, across) instead of (across, up), which puts the point where the numbers would name if the axes swapped jobs.",
+        contrasts: [
+            {
+                works: "(3, 5) is 3 across and 5 up",
+                worksNote: "The first number is the horizontal move and the second is the vertical one, so the pair walks 3 right, then 5 up — each axis keeps its own job.",
+                fails: "(5, 3) is a different point from (3, 5)",
+                failsNote: "Swapping the numbers moves the point rather than renaming the same one: 5 across and 3 up is elsewhere on the grid, and the swap reflects the original point in the line y = x.",
+                difference: "Which axis each number belongs to. Across is always first and up is always second, whatever the sizes of the two numbers happen to be.",
+                move: "Say the pair out loud as the instruction it is — \"across first, then up\" — before plotting it or reading it off the grid.",
+            },
+        ],
+        check: "Name and plot four points without help, at least two of them with a negative coordinate, then read one back off the grid and compare it with the pair you wrote.",
+        review: "unreviewed",
+    },
     "neg-exp@indices-intro": {
         misconceptionId: "neg-exp",
         conceptId: "indices-intro",
@@ -52027,6 +54220,104 @@ exports.REPAIRS = {
             },
         ],
         check: "Rewrite five negative indices as fractions unaided, and check one by dividing the powers out longhand (a² ÷ a⁵).",
+        review: "unreviewed",
+    },
+    // ── THE REST OF THE PILOT ──────────────────────────────────────────────────
+    // Symptoms all five of the items below are drawn for: the served bank for each
+    // of these concepts is dominated by ONE shape (expand two brackets and read b;
+    // read the gradient off y = mx + c; give q after completing the square; give
+    // one root of a factorable quadratic; simplify a surd). That was measured on
+    // the serve, not assumed, and it is what shapes each pair: a repair for the
+    // catalogue's general belief, written for a move the served item never asks
+    // for, is the defect `-9 + 6` exposed on the card.
+    "sign-slip@algebra-expand": {
+        misconceptionId: "sign-slip",
+        conceptId: "algebra-expand",
+        reveals: "The middle term came out of the two numbers rather than out of the cross terms. The coefficient of x is the two cross products added WITH their signs — so a minus in one bracket makes the numbers work against each other, and an item with no minus at all still needs both cross terms added rather than one of them counted twice.",
+        contrasts: [
+            {
+                works: "(x + 3)(x + 2) = x² + 5x + 6",
+                worksNote: "Both brackets hold a plus, so the two numbers really do work together: adding them gives the coefficient of x and multiplying them gives the constant, and the shortcut agrees with the full expansion.",
+                fails: "(x + 2)(x − 5) = x² − 3x − 10, not x² + 7x − 10",
+                failsNote: "The −5 multiplies the x as well as the 2, so the cross terms are −5x and +2x and they partly cancel: b is −3, not the 2 + 5 = 7 the two numbers give when their signs are dropped. The constant −10 is right, which is what makes the wrong answer convincing.",
+                difference: "The sign on one bracket. The coefficient of x is the two numbers added WITH their signs, so a minus makes them work against each other instead of together.",
+                // NO NUMBERS FROM THE PAIR'S OWN EXAMPLE IN HERE. The move is also rung 3
+                // of the hint ladder, on whatever item the learner is holding, and it
+                // originally read "x·x, x·(−5), 2·x, 2·(−5)" — which quotes a minus that
+                // the served item `(x + 5)(x + 7)` does not contain (found by building
+                // the ladder and reading it, not by reading this file).
+                move: "Write all four products on one line with their signs before collecting anything — every term in the first bracket times every term in the second — so each sign is multiplied rather than assumed.",
+            },
+        ],
+        check: "Expand three products where exactly one bracket holds a minus, unaided, and check each by substituting x = 1: the expanded form and the original brackets must give the same number.",
+        review: "unreviewed",
+    },
+    "grad-run@straight-lines": {
+        misconceptionId: "grad-run",
+        conceptId: "straight-lines",
+        reveals: "The gradient was read without deciding which way the line goes. Either the two differences went the wrong way up, or a minus in front of the x was dropped — and either way the number written describes a different line from the one in the question.",
+        contrasts: [
+            {
+                works: "y = 4x + 1 has gradient 4",
+                worksNote: "The number multiplying x is the gradient, and here it is positive: for every 1 across the line goes 4 up, so the line rises as you read it left to right.",
+                fails: "y = −3x + 1 has gradient −3, not 3",
+                failsNote: "The minus belongs to the coefficient, not to the equation: for every 1 across the line goes 3 DOWN, so the gradient is negative. The +1 is where the line crosses the y-axis and says nothing about steepness — reading it as the gradient is the second half of the slip.",
+                difference: "Whether the number in front of x carries a minus. The constant is the crossing point; the coefficient, with its sign, is the steepness.",
+                move: "Cover everything except the term holding x, keep the minus attached to it, and read that number as the gradient — then say out loud whether the line rises or falls.",
+            },
+        ],
+        check: "Find the gradient of y = −4x + 2 and of the line through (1, 5) and (4, −1) unaided, and say which of the two falls from left to right.",
+        review: "unreviewed",
+    },
+    "b-half@completing-square": {
+        misconceptionId: "b-half",
+        conceptId: "completing-square",
+        reveals: "The square was written into the answer without giving back the number the trick had just added, so q came out as the original constant. The bracket builds in a square the expression did not have, and nothing took it away again.",
+        contrasts: [
+            {
+                works: "x² + 4x + 4 = (x + 2)²",
+                worksNote: "Here the constant already IS the square the trick adds — half of 4 is 2, and 2² = 4 — so there is nothing left to give back and the bracket alone is the whole answer.",
+                fails: "x² + 4x + 9 = (x + 2)² + 5, not (x + 2)² + 9",
+                failsNote: "The bracket builds a 4 into the expression, not a 9: (x + 2)² expands to x² + 4x + 4, so the 5 that is left over is 9 − 4. Writing + 9 counts the 4 twice — once inside the bracket and once in the constant.",
+                difference: "Whether the constant equals (b/2)². When it does, the correction is zero and the bracket alone is right; when it does not, the difference has to be carried outside as q.",
+                move: "Write the square of the halved coefficient as its own number first, then write \"original constant − that number\" before simplifying q.",
+            },
+        ],
+        check: "Complete the square on three expressions with different constants unaided, then EXPAND each answer back and check it matches the expression you started with.",
+        review: "unreviewed",
+    },
+    "lost-root@quadratics": {
+        misconceptionId: "lost-root",
+        conceptId: "quadratics",
+        reveals: "Only one solution came out of a quadratic. Either the equation was divided by x, which deletes the root at zero, or the two brackets were not both read, so a root that exists never appeared — and a question asking for the smaller one is then a guess between one number and nothing.",
+        contrasts: [
+            {
+                works: "x² − 7x + 6 = 0 → (x − 1)(x − 6) = 0 → the roots are 1 and 6",
+                worksNote: "Two brackets, two roots, both on the page before the question is answered. That is what makes 'the smaller root' a choice between two numbers rather than a guess.",
+                fails: "x² = 3x → divide by x → x = 3, and a root has gone missing",
+                failsNote: "x = 0 satisfies the original, 0 = 0, so it is a root and the division deleted it. Dividing by x quietly assumes x is not zero. Factorising keeps it: x(x − 3) = 0 gives x = 0 or x = 3, and the smaller root is 0.",
+                difference: "Whether every term carried an x. With a constant term, zero cannot be a root at all; with none, zero IS a root and dividing by x throws it away — and both brackets still have to be read either way.",
+                move: "Move everything to one side and factorise, read one root off each bracket, and write the full list before choosing the smaller or the larger.",
+            },
+        ],
+        check: "Solve four quadratics unaided — two with a missing constant and two without — write every root down before answering, then substitute each root back into the equation you started with.",
+        review: "unreviewed",
+    },
+    "sqrt-prod@surds": {
+        misconceptionId: "sqrt-prod",
+        conceptId: "surds",
+        reveals: "The root was split in a way that only ever works for multiplication. A square root divides a PRODUCT into the roots of its factors and lets out only the SQUARE ones — it never splits a sum, and it never sends a factor out without taking its root.",
+        contrasts: [
+            {
+                works: "√12 = √(4 × 3) = 2√3",
+                worksNote: "12 splits as 4 × 3, the 4 is the square factor, so its root 2 leaves and the 3 stays inside. Squaring back checks it: (2)² × 3 = 12.",
+                fails: "√27 = 3√3, not 3√9",
+                failsNote: "27 splits as 9 × 3, so the square is the 9 and the number that leaves is its root, 3 — the 9 must not travel with it. Since √9 is 3, writing 3√9 is really 9, and the true value is about 5.2.",
+                difference: "Which of the two factors leaves the root. The SQUARE factor leaves, as its own root; the factor that is not a square stays underneath. Swapping them multiplies the answer by √3.",
+                move: "Find the largest square number that divides the number under the root, put its root outside and leave the rest inside, then square your answer back to check.",
+            },
+        ],
+        check: "Simplify √50, √72 and √27 unaided and square each answer back to the number you started with; then work out √9 + √16 and √(9 + 16) and say which one is 7 and which is 5.",
         review: "unreviewed",
     },
 };
@@ -52752,6 +55043,11 @@ function isExplain(lower) {
     return ["explain", "explícame", "explica", "explique", "erkläre", "erklär", "spiega",
         "explica-me", "açıkla", "説明して", "解释一下", "اشرح", "وضّح", "समझाओ", "समझाइए",
         "jelaskan", "ipaliwanag", "سمجھاؤ", "বুঝিয়ে দাও", "বুঝাও",
+        // The panel's `ask.explainQ` starter chip, in the two languages whose
+        // wording the list above does not already cover. A chip the tutor cannot
+        // recognise is worse than no chip: it is the learner's first sentence, and
+        // it would receive the "tell me which step you are on" reply.
+        "eleza", "توضیح",
     ].some((w) => lower.includes(w));
 }
 /**
@@ -52773,6 +55069,16 @@ function isExample(lower) {
         "work it through", "work through", "walk me through", "walk through", "go through it",
         "ejemplo", "exemple", "beispiel", "esempio", "exemplo", "örnek", "例題", "举例",
         "مثال", "उदाहरण", "contoh", "halimbawa", "misali", "উদাহরণ",
+        // …AND THE THIRD CHIP'S OWN TRANSLATIONS, which is the chip that used to
+        // reach no branch at all. The lists above caught the English phrase and the
+        // WORD for "example" in each language, but the panel sends the whole chip
+        // ("Resuélvelo paso a paso", "Résous-le étape par étape"), which contains
+        // neither — so in eleven languages the chip still fell through to "tell me
+        // which step you are on". Measured by `npm run verify`, which sends the chip
+        // through the real tutor in all fifteen languages.
+        "resuélvelo", "résous", "resolve", "isuluhishe", "कदम-दर-कदम", "kerjakan",
+        "lutasin", "قدم بہ قدم", "قدم‌به‌قدم", "ধাপে ধাপে", "schritt für schritt",
+        "順を追って", "一步步", "خطوة بخطوة",
     ].some((w) => lower.includes(w));
 }
 /**
@@ -52822,6 +55128,9 @@ function isHint(lower) {
     return ["hint", "clue", "pista", "indice", "índice", "hinweis", "dica",
         "petunjuk", "cabhitaan", "hiw", "sugerencia", "संकेत", "सुराग", "ヒント", "提示",
         "تلميح", "اشارہ", "راهنم", "ইঙ্গিত", "подсказ",
+        // `ask.hint` (the panel's first starter chip) in Swahili, which the list
+        // above did not reach — see the note in isExplain.
+        "kidokezo",
     ].some((w) => lower.includes(w));
 }
 /**
@@ -53347,6 +55656,7 @@ exports.levelForGrade = levelForGrade;
 exports.courseForSubject = courseForSubject;
 exports.coversSubject = coversSubject;
 exports.specOptionsFor = specOptionsFor;
+exports.chosenSubjects = chosenSubjects;
 exports.specForProfile = specForProfile;
 exports.courseSummaryFor = courseSummaryFor;
 exports.courseGaps = courseGaps;
@@ -53357,6 +55667,7 @@ exports.coverageReport = coverageReport;
 exports.inSpecification = inSpecification;
 exports.levelsOf = levelsOf;
 const genome_1 = require("./genome");
+const subjects_1 = require("./subjects");
 const curriculum_1 = require("./curriculum");
 const registry_1 = require("./curricula/registry");
 exports.TIERS = ["primary", "junior", "foundation", "higher", "advanced", "degree"];
@@ -53974,6 +56285,31 @@ function coversSubject(spec, subject) {
 function specOptionsFor(country, subject, pathwayId) {
     const eligible = specsFor(country, pathwayId).filter((s) => coversSubject(s, subject));
     return eligible.length > 0 ? eligible : [INDEPENDENT];
+}
+/** THE SUBJECTS THIS LEARNER ACTUALLY STUDIES under a qualification.
+ *
+ *  A qualification's COVERAGE is what it can teach; a learner's SUBJECTS are what
+ *  they chose. The papers page read the first as if it were the second, so a
+ *  learner who picked only Maths was offered physics, chemistry, biology and
+ *  computing papers — 28 rows for a course of one subject. Reported exactly as
+ *  "why are there bio or physics papers shown when the student only selected
+ *  maths?"
+ *
+ *  Declared choices win, and per-subject courses count as declared (that is what
+ *  a course entry IS). A qualification only teaches the subjects in its own
+ *  coverage, so an entry for a subject it does not cover is not offered. With
+ *  NOTHING declared — an anonymous visitor, or a profile from before subject
+ *  choice existed — the whole coverage is the only honest answer, and it is what
+ *  makes the picker usable without a profile.
+ */
+function chosenSubjects(profile, spec) {
+    const covered = subjects_1.SUBJECT_IDS.filter((s) => spec.coverage[s]);
+    const declared = [
+        ...(profile?.subjects ?? []),
+        ...Object.keys(profile?.subjectCourses ?? {}),
+    ];
+    const chosen = covered.filter((s) => declared.includes(s));
+    return chosen.length > 0 ? chosen : covered;
 }
 /** The specification a profile is following FOR ONE SUBJECT: an explicit choice
  *  first, then a board + exam + grade match, then the country's first
@@ -54753,6 +57089,9 @@ __def("transfer.js", function (module, exports, require) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.INVERSE_DISTRACTOR_ATTEMPTS = exports.TRANSFER_SURFACE_ATTEMPTS = void 0;
 exports.answerValueKey = answerValueKey;
+exports.equationVariable = equationVariable;
+exports.equationSolution = equationSolution;
+exports.equationFrame = equationFrame;
 exports.serveTransfer = serveTransfer;
 exports.canTransfer = canTransfer;
 const i18n_1 = require("./i18n");
@@ -54913,6 +57252,127 @@ function readableOption(prompt) {
         && !/[\n…]/.test(prompt);
 }
 const fmt = (n) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
+/**
+ * THE ONE LETTER AN EQUATION IS SOLVED FOR, or null when the prompt is not a
+ * single-unknown equation.
+ *
+ * The inverse surface used to be framed generically — "3 — which of these
+ * questions gives this answer?" — and that sentence is grammatical but not
+ * teachable: it asks a learner to read four equations, solve all four, and
+ * compare, without ever saying that this is what the item wants. When the four
+ * options ARE equations, the question the item is asking has a name, and this
+ * finds it so the prompt can say it.
+ *
+ * Only SINGLE-LETTER runs count, because the prompts are sentences ("Solve
+ * 3(x + 3) = 30.") and the word "Solve" contains five letters that are not a
+ * variable. The letter must also be a plausible unknown — one letter, and the
+ * same one in every option — so a prompt with several variables (a formula such
+ * as `v = u + at`) is refused and keeps the generic wording rather than being
+ * told it has "a solution for v" when it has three unknowns.
+ */
+function equationVariable(prompt) {
+    if (typeof prompt !== "string" || !prompt.includes("="))
+        return null;
+    const singles = (prompt.match(/(?<![A-Za-z])[A-Za-z](?![A-Za-z])/g) ?? []).map((s) => s.toLowerCase());
+    const distinct = [...new Set(singles)];
+    if (distinct.length !== 1)
+        return null;
+    return distinct[0];
+}
+/**
+ * THE SOLUTION OF A ONE-UNKNOWN EQUATION, read straight off the prompt.
+ *
+ * This exists to make a CLAIM CHECKABLE rather than to serve an item. The
+ * inverse frame asserts "only one of these equations has that solution", and
+ * that assertion is only true if the bank's own answer for each option is the
+ * equation's own solution. Those are two different facts that happen to agree
+ * today — a generator that printed `Solve 2(x + 3) = 18` and keyed 6.5 would
+ * break both the item and the claim — so the frame is offered only when this
+ * function and the option's answer key agree, and `npm run verify` re-derives
+ * it from the served item rather than trusting this file.
+ *
+ * Deliberately STRICTER about shape and LAXER about signs than `parseLinear`:
+ * the story surface needs a fee it can word as a fee, while a solution is a
+ * solution whether the constant is added or subtracted.
+ */
+function equationSolution(prompt) {
+    if (typeof prompt !== "string" || !prompt.includes("="))
+        return null;
+    const clean = prompt.replace(/\u2212/g, "-");
+    const two = clean.match(/(-?\d*\.?\d*)\s*x\s*([+\-])\s*(\d+(?:\.\d+)?)\s*=\s*(-?\d*\.?\d*)\s*x\s*([+\-])\s*(\d+(?:\.\d+)?)/);
+    if (two) {
+        const A = two[1] === "-" ? -1 : two[1] === "" ? 1 : parseFloat(two[1]);
+        const B = (two[2] === "-" ? -1 : 1) * parseFloat(two[3]);
+        const C = two[4] === "-" ? -1 : two[4] === "" ? 1 : parseFloat(two[4]);
+        const D = (two[5] === "-" ? -1 : 1) * parseFloat(two[6]);
+        return A === C ? null : (D - B) / (A - C);
+    }
+    const bracket = clean.match(/(-?\d*\.?\d*)\s*\(\s*x\s*([+\-])\s*(\d+(?:\.\d+)?)\s*\)\s*=\s*(-?\d*\.?\d*)/);
+    if (bracket) {
+        const A = bracket[1] === "-" ? -1 : bracket[1] === "" ? 1 : parseFloat(bracket[1]);
+        const inner = (bracket[2] === "-" ? -1 : 1) * parseFloat(bracket[3]);
+        const rhs = parseFloat(bracket[4]);
+        if (!A)
+            return null;
+        return rhs / A - inner;
+    }
+    const plain = clean.match(/(-?\d*\.?\d*)\s*x\s*([+\-])\s*(\d+(?:\.\d+)?)\s*=\s*(-?\d+(?:\.\d+)?)/);
+    if (plain) {
+        const a = plain[1] === "-" ? -1 : plain[1] === "" ? 1 : parseFloat(plain[1]);
+        const b = (plain[2] === "-" ? -1 : 1) * parseFloat(plain[3]);
+        const rhs = parseFloat(plain[4]);
+        if (!a)
+            return null;
+        return (rhs - b) / a;
+    }
+    return null;
+}
+/** Two values agree to the precision a printed answer carries. */
+function sameValue(a, b) {
+    return Math.abs(a - b) < 1e-9;
+}
+/**
+ * IS THIS FOUR-OPTION SET AN EQUATION SET, and if so what does it ask?
+ *
+ * Answers null unless every option is a one-unknown equation whose OWN answer
+ * is its own solution — the condition under which "which equation has x = 3 as
+ * its solution" is true of the item rather than merely worded about it. The
+ * variables must agree across the four options, because a frame naming `x`
+ * beside an option in `y` would be naming something the learner cannot see.
+ */
+function equationFrame(prompts, answers, correctIndex) {
+    if (prompts.length === 0 || prompts.length !== answers.length)
+        return null;
+    if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= prompts.length)
+        return null;
+    const vars = prompts.map(equationVariable);
+    const first = vars[0];
+    if (!first || vars.some((v) => v !== first))
+        return null;
+    const solutions = [];
+    for (let i = 0; i < prompts.length; i++) {
+        const solved = equationSolution(prompts[i]);
+        const own = answerValueKey(answers[i]);
+        if (solved === null || own === null)
+            return null;
+        // The option's own answer must BE its solution, to the printed tolerance:
+        // one is what the bank keyed, the other is what the equation means.
+        const ownNum = Number(own.replace(`${first}=`, ""));
+        if (!Number.isFinite(ownNum) || !sameValue(ownNum, solved))
+            return null;
+        solutions.push(ownNum);
+    }
+    // THE STATED VALUE IS THE CORRECT OPTION'S, not the first one's: the frame
+    // names the value that exactly one option solves to, and the caller's answer
+    // index is the only thing that says which that is. A second exact match would
+    // make two options right, so it is refused here rather than shipped.
+    const value = solutions[correctIndex];
+    if (!Number.isFinite(value))
+        return null;
+    if (solutions.filter((s) => sameValue(s, value)).length !== 1)
+        return null;
+    return { variable: first, value };
+}
 /** Story surface: the equation ax + b = rhs retold as fixed fee + repeated
  *  amount. The monthly amount IS the original unknown — same skill, new
  *  world. Choice list and answer index are untouched. */
@@ -54920,6 +57380,50 @@ function storyQuestion(q, lang, a, b, rhs) {
     const t = (0, i18n_1.translator)(lang);
     // `b` needs no absolute value here: `parseLinear` refuses a negative
     // constant precisely because this sentence can only state a fee.
+    //
+    // AND A ONE-MONTH STORY IS REFUSED, for the same reason: the sentence says
+    // "After {n} months", which is grammatical for every count except one — and a
+    // real draw at band 0.7 printed "After 1 months the total paid is 7", read out
+    // of the served bank rather than imagined. The count is the unknown, so it can
+    // be 1. The template has no singular form (adding one would mean fifteen more
+    // sentences that differ by one letter), and the honest alternative is to let
+    // this draw take another surface — `inverse` or `direct` — rather than print a
+    // sentence a learner can see is wrong. Coverage is not bought by wording a
+    // learner has to forgive.
+    // THE NUMBER IN THE SENTENCE IS `a`, THE COEFFICIENT — which IS the number of
+    // months, because the story is exactly `fee + months × monthly = total`. It is
+    // NOT the solution: `(rhs − b) / a` is the unknown, and printing that into the
+    // prompt would hand the learner the answer on a plate.
+    if (Math.abs(a - 1) < 1e-9)
+        return null;
+    // ── AND THE STORY MUST BE A TRUE RE-TELLING, WHICH IS FOUR CONDITIONS ──
+    // `parseLinear` is a shape match, and a shape match on a fragment of a prompt
+    // that is not a one-step equation produces a sentence that is grammatical and
+    // false. Measured on the served bank before these guards: `quadratics` was
+    // offered "A gym charges a joining fee of 4 plus the same amount every month.
+    // After 4 months the total paid is 0" — a total of zero after four monthly
+    // payments of a fee that was already paid, and a monthly amount of −1, which
+    // this template cannot state (it has no way to say "we take 1 off you each
+    // month"). So:
+    //   1. the unknown has to be POSITIVE — a negative or zero payment is the
+    //      "discount" case the plain pattern already refuses by design;
+    //   2. the item's own keyed answer has to BE that unknown, so the re-told story
+    //      asks for the same number the original marks;
+    //   3. the answer has to be a VALUE, not prose (`answerValueKey`) — a story
+    //      whose four options are still a parabola's crossings is not re-framed;
+    //   4. the sentence needs a plural, which `a === 1` does not have.
+    const unknown = (rhs - b) / a;
+    if (!Number.isFinite(unknown) || unknown <= 0)
+        return null;
+    // An answer keyed as "x = 6" is the number 6 — `answerValueKey` keeps the
+    // variable because the OTHER surfaces print it that way, so it is stripped
+    // here rather than treated as prose. Without this the story surface silently
+    // collapsed to almost no items, which is a worse outcome than a wrong sentence
+    // only because it is quieter.
+    const keyed = answerValueKey(String(q.choices[q.answer] ?? ""));
+    const keyedNum = keyed === null ? NaN : Number(keyed.replace(/^[a-z]\s*=\s*/, ""));
+    if (!Number.isFinite(keyedNum) || Math.abs(keyedNum - unknown) > 1e-9)
+        return null;
     const prompt = [
         t("tr.story0"), fmt(b),
         t("tr.story1"), fmt(a),
@@ -54974,16 +57478,45 @@ function inverseFromDraws(conceptId, seed, aim, lang, target) {
     }
     if (used.length < 3)
         return null;
-    const lead = (0, i18n_1.translator)(lang)("tr.whichAnswer");
+    const t = (0, i18n_1.translator)(lang);
     const { items, answer } = shuffleWithAnswer([target.prompt, ...used.map((d) => d.prompt)], 0, seed);
+    // ── THE QUESTION SAYS WHAT IT IS ASKING ────────────────────────────────
+    //
+    // The prompt used to be `${value} — which of these questions gives this
+    // answer?`: a bare number, an em dash and a fragment. It is grammatical and it
+    // is nearly unanswerable — a learner reads four equations, is told a number, and
+    // has to work out from the shape of the sentence that the task is "solve all
+    // four and find the one that comes to 3". The product's own reviewer asked why
+    // the question was worded that way, which is the only evidence a prompt needs.
+    //
+    // Where the four options really are one-unknown equations, the task has a name
+    // and this says it: "Which equation has x = 3 as its solution?" That frame is
+    // used ONLY when `equationFrame` can re-derive it from what is on screen — every
+    // option a solvable equation, every option's own keyed answer equal to its own
+    // solution, one variable shared, exactly one option solving to the stated value.
+    // Otherwise the generic sentence stays, because it is true of any four questions
+    // and the equation sentence would not be.
+    //
+    // The stated value is printed WITHOUT a leading variable when the frame already
+    // names one ("x = 3", not "x = x=3"), and the answer strings are the bank's own
+    // answer keys for those four draws — the same keys the grader uses.
+    // The answers travel with their prompts THROUGH the shuffle: `items` is
+    // re-ordered and `answer` follows it, so a list read straight off `used` would
+    // be checked against the wrong option. The prompts are unique by construction
+    // above (a duplicate option would be a second correct answer), which is what
+    // makes this lookup exact rather than a guess.
+    const source = [target.prompt, ...used.map((d) => d.prompt)];
+    const answerOf = [target.choices[target.answer] ?? "", ...used.map((d) => d.choices[d.answer] ?? "")];
+    const answers = items.map((p) => answerOf[source.indexOf(p)]);
+    const frame = equationFrame(items, answers, answer);
+    const prompt = frame
+        ? (0, i18n_1.fill)(t("tr.whichSolution"), { var: frame.variable, v: fmt(frame.value) })
+        : (0, i18n_1.fill)(t("tr.whichAnswer"), { v: value });
     return {
         question: {
             ...target,
             id: `${target.id}:rev`,
-            // The value reads FIRST, so the frame is a lowercase fragment in every
-            // language — `tr.whichAnswer` is authored that way (see
-            // scripts/i18n-transfer.mjs) and appended here exactly as documented.
-            prompt: `${value} — ${lead}?`,
+            prompt,
             choices: items,
             answer,
             difficulty: Math.min(0.95, target.difficulty + 0.05),
@@ -55112,7 +57645,9 @@ function canTransfer(conceptId) {
     nextEngine: require("./next-engine.js"),
     learnerModel: require("./learner-model.js"),
     evidenceView: require("./evidence-view.js"),
+    lessonPlans: require("./lesson-plans.js"),
     prompt: require("./prompt.js"),
+    figures: require("./figures.js"),
     mathText: require("./math-text.js"),
     answer: require("./answer.js"),
     i18n: require("./i18n.js"),
@@ -55131,7 +57666,7 @@ function canTransfer(conceptId) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 67 },
+      meta: { modules: 68 },
     };
   });
   return __req("__entry__.js");

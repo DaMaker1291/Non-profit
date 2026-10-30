@@ -20,7 +20,10 @@
   },
   "anchors": [
     "surds",
-    "completing-square"
+    "completing-square",
+    "fractions",
+    "fraction-ops",
+    "percentages"
   ],
   "method": "cluster = anchors + their prerequisites, filtered to uk-gcse; items drawn with generateQuestionNear(id, seed, tier.difficulty, 40) — the production serve",
   "reviewState": {
@@ -28,14 +31,446 @@
     "note": "No concept is marked reviewed by this pack. Records go in audit/item-reviews.json with a reviewer, a date and a scope, and `npm run verify:q` refuses an entry without them."
   },
   "totals": {
-    "concepts": 11,
-    "items": 110,
-    "promptDerived": 2,
-    "withMisconceptions": 10,
-    "foundationTier": 10,
-    "higherTier": 9
+    "concepts": 15,
+    "items": 154,
+    "promptDerived": 3,
+    "withMisconceptions": 15,
+    "foundationTier": 14,
+    "higherTier": 13
   },
   "concepts": [
+    {
+      "id": "decimals",
+      "title": "Decimals",
+      "subject": "maths",
+      "stage": 0,
+      "lesson": "0.3 is 3/10; 0.07 is 7/100. Decimal place value extends the same left-right logic as whole numbers. Comparing decimals: line up place value — 0.09 < 0.1 even though 9 > 1. Multiplying shifts the point: 0.3 × 0.2 = 0.06 because tenths times tenths are hundredths.",
+      "prereqs": [],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.8556005319207907,
+      "promptDerived": false,
+      "misconceptions": [
+        {
+          "id": "dec-point",
+          "name": "The decimal point is dropped or moved",
+          "pattern": "Treats the point as punctuation: 0.3 + 0.4 = 7 by adding the digits and putting no point back, and 0.3 × 0.2 = 0.6 by counting places in only one factor."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:decimals:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 2.6 × 8.8.",
+          "choices": [
+            "11.4",
+            "228.8",
+            "22.88",
+            "2.288"
+          ],
+          "answer": 2,
+          "explanation": "Decimals multiply by ignoring the points, multiplying the whole numbers, and then restoring the places: 26 × 88 = 2288, and two decimal places go back on at the end, giving 22.88. Adding the two numbers instead (11.4) is a different operation, and shifting one place too far (228.8) is a miscount of the places rather than a wrong multiplication.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:decimals:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 3.2 × 5.7.",
+          "choices": [
+            "18.24",
+            "8.9",
+            "182.4",
+            "1.824"
+          ],
+          "answer": 0,
+          "explanation": "Decimals multiply by ignoring the points, multiplying the whole numbers, and then restoring the places: 32 × 57 = 1824, and two decimal places go back on at the end, giving 18.24. Adding the two numbers instead (8.9) is a different operation, and shifting one place too far (182.4) is a miscount of the places rather than a wrong multiplication.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:decimals:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 2.6 × 4.8.",
+          "choices": [
+            "1.248",
+            "12.48",
+            "7.4",
+            "124.8"
+          ],
+          "answer": 1,
+          "explanation": "Decimals multiply by ignoring the points, multiplying the whole numbers, and then restoring the places: 26 × 48 = 1248, and two decimal places go back on at the end, giving 12.48. Adding the two numbers instead (7.4) is a different operation, and shifting one place too far (124.8) is a miscount of the places rather than a wrong multiplication.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:decimals:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 1.6 × 7.8.",
+          "choices": [
+            "9.4",
+            "12.48",
+            "124.8",
+            "1.248"
+          ],
+          "answer": 1,
+          "explanation": "Decimals multiply by ignoring the points, multiplying the whole numbers, and then restoring the places: 16 × 78 = 1248, and two decimal places go back on at the end, giving 12.48. Adding the two numbers instead (9.4) is a different operation, and shifting one place too far (124.8) is a miscount of the places rather than a wrong multiplication.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:decimals:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 2.7 × 3.6.",
+          "choices": [
+            "0.972",
+            "9.72",
+            "97.2",
+            "6.3"
+          ],
+          "answer": 1,
+          "explanation": "Decimals multiply by ignoring the points, multiplying the whole numbers, and then restoring the places: 27 × 36 = 972, and two decimal places go back on at the end, giving 9.72. Adding the two numbers instead (6.3) is a different operation, and shifting one place too far (97.2) is a miscount of the places rather than a wrong multiplication.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:decimals:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 4.4 × 3.3.",
+          "choices": [
+            "1.452",
+            "7.7",
+            "145.2",
+            "14.52"
+          ],
+          "answer": 3,
+          "explanation": "Decimals multiply by ignoring the points, multiplying the whole numbers, and then restoring the places: 44 × 33 = 1452, and two decimal places go back on at the end, giving 14.52. Adding the two numbers instead (7.7) is a different operation, and shifting one place too far (145.2) is a miscount of the places rather than a wrong multiplication.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:decimals:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The table shows the mass of three samples.\n· A: 6.4 kg\n· B: 5.9 kg\n· C: 8.2 kg\nWhat is the total mass?",
+          "choices": [
+            "20.6 kg",
+            "20.5 kg",
+            "12.3 kg",
+            "20.4 kg"
+          ],
+          "answer": 1,
+          "explanation": "Line up the decimal points and add: 6.4 + 5.9 + 8.2 = 20.5 kg. Adding only the first two (12.3) drops a sample.",
+          "difficulty": 0.7501202493207529,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:decimals:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The table shows the mass of three samples.\n· A: 3.7 kg\n· B: 3 kg\n· C: 9 kg\nWhat is the total mass?",
+          "choices": [
+            "15.8 kg",
+            "15.6 kg",
+            "15.7 kg",
+            "6.7 kg"
+          ],
+          "answer": 2,
+          "explanation": "Line up the decimal points and add: 3.7 + 3 + 9 = 15.7 kg. Adding only the first two (6.7) drops a sample.",
+          "difficulty": 0.7574489474180155,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:decimals:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The table shows the mass of three samples.\n· A: 7.7 kg\n· B: 5.3 kg\n· C: 8.6 kg\nWhat is the total mass?",
+          "choices": [
+            "21.7 kg",
+            "13 kg",
+            "21.6 kg",
+            "21.5 kg"
+          ],
+          "answer": 2,
+          "explanation": "Line up the decimal points and add: 7.7 + 5.3 + 8.6 = 21.6 kg. Adding only the first two (13) drops a sample.",
+          "difficulty": 0.788421961327549,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:decimals:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The table shows the mass of three samples.\n· A: 8.4 kg\n· B: 5.5 kg\n· C: 8.3 kg\nWhat is the total mass?",
+          "choices": [
+            "22.2 kg",
+            "13.9 kg",
+            "22.3 kg",
+            "22.1 kg"
+          ],
+          "answer": 0,
+          "explanation": "Line up the decimal points and add: 8.4 + 5.5 + 8.3 = 22.2 kg. Adding only the first two (13.9) drops a sample.",
+          "difficulty": 0.7608632580144331,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:decimals:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The table shows the mass of three samples.\n· A: 2.3 kg\n· B: 3.7 kg\n· C: 7.5 kg\nWhat is the total mass?",
+          "choices": [
+            "13.5 kg",
+            "13.6 kg",
+            "6 kg",
+            "13.4 kg"
+          ],
+          "answer": 0,
+          "explanation": "Line up the decimal points and add: 2.3 + 3.7 + 7.5 = 13.5 kg. Adding only the first two (6) drops a sample.",
+          "difficulty": 0.7502300821943209,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:decimals:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "The table shows the mass of three samples.\n· A: 5.1 kg\n· B: 3 kg\n· C: 1.7 kg\nWhat is the total mass?",
+          "choices": [
+            "9.9 kg",
+            "9.8 kg",
+            "8.1 kg",
+            "9.7 kg"
+          ],
+          "answer": 1,
+          "explanation": "Line up the decimal points and add: 5.1 + 3 + 1.7 = 9.8 kg. Adding only the first two (8.1) drops a sample.",
+          "difficulty": 0.7634060640935786,
+          "numeric": false
+        }
+      ]
+    },
+    {
+      "id": "fractions",
+      "title": "Fractions",
+      "subject": "maths",
+      "stage": 0,
+      "lesson": "A fraction a/b means a parts, each of size 1/b. The bottom number names the size of the part; the top counts them. 1/4 of a pizza is bigger than 1/8 because quarters are bigger slices. Equivalent fractions (1/2 = 3/6) multiply top and bottom by the same number — the value doesn't change because you're scaling both part-size and count equally.",
+      "prereqs": [],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.8088941580522806,
+      "promptDerived": true,
+      "misconceptions": [
+        {
+          "id": "frac-slice",
+          "name": "Bigger denominator = bigger slice",
+          "pattern": "Believes 1/8 > 1/4 because 8 > 4 — reading the denominator as a size, not a count of slices."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:fractions:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 5/6 + 7/10. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "3/4",
+            "5/6",
+            "23/15",
+            "7/10"
+          ],
+          "answer": 2,
+          "explanation": "The denominators are different, so the fractions cannot be counted directly. The lowest common denominator of 6 and 10 is 30: 5/6 = 25/30 and 7/10 = 21/30. So the answer is (25 + 21)/30 = 23/15. Adding the bottoms (12/16) treats the denominator as a size to add rather than a count of equal parts — the bottom number says what the parts are, never how many.",
+          "difficulty": 0.5228369878116064,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fractions:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 3/5 − 1/3. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "14/15",
+            "1/3",
+            "4/15",
+            "1/2"
+          ],
+          "answer": 2,
+          "explanation": "The denominators are different, so the fractions cannot be counted directly. The lowest common denominator of 5 and 3 is 15: 3/5 = 9/15 and 1/3 = 5/15. So the answer is (9 − 5)/15 = 4/15. Adding the bottoms (4/8) treats the denominator as a size to add rather than a count of equal parts — the bottom number says what the parts are, never how many.",
+          "difficulty": 0.5014481765194796,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fractions:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 1/10 + 1/6. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "1/10",
+            "4/15",
+            "1/6",
+            "1/8"
+          ],
+          "answer": 1,
+          "explanation": "The denominators are different, so the fractions cannot be counted directly. The lowest common denominator of 10 and 6 is 30: 1/10 = 3/30 and 1/6 = 5/30. So the answer is (3 + 5)/30 = 4/15. Adding the bottoms (2/16) treats the denominator as a size to add rather than a count of equal parts — the bottom number says what the parts are, never how many.",
+          "difficulty": 0.4736517286673188,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fractions:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 7/8 + 1/6. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "7/8",
+            "25/24",
+            "4/7",
+            "1/6"
+          ],
+          "answer": 1,
+          "explanation": "The denominators are different, so the fractions cannot be counted directly. The lowest common denominator of 8 and 6 is 24: 7/8 = 21/24 and 1/6 = 4/24. So the answer is (21 + 4)/24 = 25/24. Adding the bottoms (8/14) treats the denominator as a size to add rather than a count of equal parts — the bottom number says what the parts are, never how many.",
+          "difficulty": 0.48448351439787074,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fractions:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 5/6 − 2/3. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "2/3",
+            "7/9",
+            "3/2",
+            "1/6"
+          ],
+          "answer": 3,
+          "explanation": "The denominators are different, so the fractions cannot be counted directly. The lowest common denominator of 6 and 3 is 6: 5/6 = 5/6 and 2/3 = 4/6. So the answer is (5 − 4)/6 = 1/6. Adding the bottoms (7/9) treats the denominator as a size to add rather than a count of equal parts — the bottom number says what the parts are, never how many.",
+          "difficulty": 0.4750551870698109,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fractions:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 4/5 + 5/6. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "4/5",
+            "5/6",
+            "49/30",
+            "9/11"
+          ],
+          "answer": 2,
+          "explanation": "The denominators are different, so the fractions cannot be counted directly. The lowest common denominator of 5 and 6 is 30: 4/5 = 24/30 and 5/6 = 25/30. So the answer is (24 + 25)/30 = 49/30. Adding the bottoms (9/11) treats the denominator as a size to add rather than a count of equal parts — the bottom number says what the parts are, never how many.",
+          "difficulty": 0.4814490430988371,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fractions:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A box holds 30 pens. 3/5 of them are red. Of the pens that are NOT red, 1/2 are blue. How many pens are neither red nor blue?",
+          "choices": [
+            "12",
+            "-3",
+            "6",
+            "18"
+          ],
+          "answer": 2,
+          "explanation": "Read it in stages, and each stage uses what the last one LEFT. Red: 3/5 of 30 = 18. Not red: 30 − 18 = 12. Blue: 1/2 of 12 = 6 — of the REST, not of the whole box. Neither: 12 − 6 = 6. Taking the second fraction of the whole box (1/2 of 30) uses the wrong base entirely, and 6 is the blue count.",
+          "difficulty": 0.6495628878707066,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fractions:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A box holds 48 pens. 3/4 of them are red. Of the pens that are NOT red, 1/2 are blue. How many pens are neither red nor blue?",
+          "choices": [
+            "36",
+            "12",
+            "-12",
+            "6"
+          ],
+          "answer": 3,
+          "explanation": "Read it in stages, and each stage uses what the last one LEFT. Red: 3/4 of 48 = 36. Not red: 48 − 36 = 12. Blue: 1/2 of 12 = 6 — of the REST, not of the whole box. Neither: 12 − 6 = 6. Taking the second fraction of the whole box (1/2 of 48) uses the wrong base entirely, and 6 is the blue count.",
+          "difficulty": 0.6383994541829452,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fractions:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A box holds 36 pens. 3/4 of them are red. Of the pens that are NOT red, 2/3 are blue. How many pens are neither red nor blue?",
+          "choices": [
+            "6",
+            "-15",
+            "3",
+            "27"
+          ],
+          "answer": 2,
+          "explanation": "Read it in stages, and each stage uses what the last one LEFT. Red: 3/4 of 36 = 27. Not red: 36 − 27 = 9. Blue: 2/3 of 9 = 6 — of the REST, not of the whole box. Neither: 9 − 6 = 3. Taking the second fraction of the whole box (2/3 of 36) uses the wrong base entirely, and 6 is the blue count.",
+          "difficulty": 0.646379268518649,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fractions:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A hall has 56 tickets. 3/4 of them were sold online. Of the online tickets, 1/2 were later refunded. How many were refunded?",
+          "choices": [
+            "42",
+            "14",
+            "28",
+            "21"
+          ],
+          "answer": 3,
+          "explanation": "First step: 3/4 of 56 = 42 tickets online. Second step: 1/2 OF THOSE is 42 ÷ 2 = 21. The second fraction acts on what the first left, not on the original 56.",
+          "difficulty": 0.6,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fractions:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A box holds 40 pens. 1/5 of them are red. Of the pens that are NOT red, 1/4 are blue. How many pens are neither red nor blue?",
+          "choices": [
+            "32",
+            "8",
+            "24",
+            "22"
+          ],
+          "answer": 2,
+          "explanation": "Read it in stages, and each stage uses what the last one LEFT. Red: 1/5 of 40 = 8. Not red: 40 − 8 = 32. Blue: 1/4 of 32 = 8 — of the REST, not of the whole box. Neither: 32 − 8 = 24. Taking the second fraction of the whole box (1/4 of 40) uses the wrong base entirely, and 8 is the blue count.",
+          "difficulty": 0.6579258067626507,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fractions:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A box holds 36 pens. 5/6 of them are red. Of the pens that are NOT red, 1/3 are blue. How many pens are neither red nor blue?",
+          "choices": [
+            "30",
+            "2",
+            "-6",
+            "4"
+          ],
+          "answer": 3,
+          "explanation": "Read it in stages, and each stage uses what the last one LEFT. Red: 5/6 of 36 = 30. Not red: 36 − 30 = 6. Blue: 1/3 of 6 = 2 — of the REST, not of the whole box. Neither: 6 − 2 = 4. Taking the second fraction of the whole box (1/3 of 36) uses the wrong base entirely, and 2 is the blue count.",
+          "difficulty": 0.6384438904887065,
+          "numeric": false
+        }
+      ]
+    },
     {
       "id": "negatives",
       "title": "Negative numbers",
@@ -507,7 +942,13 @@
       ],
       "depth": 0.804897187652532,
       "promptDerived": false,
-      "misconceptions": [],
+      "misconceptions": [
+        {
+          "id": "axis-swap",
+          "name": "Swaps the coordinate order",
+          "pattern": "Reads (3, 5) as five across and three up — writing the pair the other way round because the two numbers look interchangeable."
+        }
+      ],
       "misconceptionsNaming": [],
       "items": [
         {
@@ -700,6 +1141,224 @@
           "answer": 2,
           "explanation": "The midpoint averages each coordinate: x is (10 + 16) ÷ 2 = 13 and y is (18 + 30) ÷ 2 = 24, giving (13, 24). Adding the coordinates instead of averaging gives (26, 48).",
           "difficulty": 0.7654918277077377,
+          "numeric": false
+        }
+      ]
+    },
+    {
+      "id": "fraction-ops",
+      "title": "Fraction arithmetic",
+      "subject": "maths",
+      "stage": 1,
+      "lesson": "Add or subtract with a common denominator: 1/3 + 1/4 = 4/12 + 3/12 = 7/12. Multiply straight across: 2/3 × 3/5 = 6/15 = 2/5. Divide by flipping the second fraction and multiplying: 2/3 ÷ 1/6 = 2/3 × 6/1 = 4. The flip works because dividing by 1/6 asks 'how many sixths fit?' — and there are 6 sixths in every whole.",
+      "prereqs": [
+        "fractions"
+      ],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.8070727100735531,
+      "promptDerived": false,
+      "misconceptions": [
+        {
+          "id": "denom-add",
+          "name": "Adds denominators",
+          "pattern": "Adds fractions as 1/3 + 1/4 = 2/7 — treating top and bottom as separate numbers."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:fraction-ops:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 5/7 + 5/7. Give your answer as a decimal (2 d.p.).",
+          "choices": [
+            "1.43",
+            "2.43",
+            "1.53",
+            "0.71"
+          ],
+          "answer": 0,
+          "explanation": "Fractions can only be added once the pieces are the same size, so both are rewritten over the common denominator 49: 5/7 = 35/49 and 5/7 = 35/49. Adding the numerators then gives 70/49 = 1.43. Adding the tops and the bottoms (10/14) is the classic error, and it can even produce a fraction smaller than one of the originals — which a sum never is.",
+          "difficulty": 0.55,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:fraction-ops:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 3/5 + 2/3. Give your answer as a decimal (2 d.p.).",
+          "choices": [
+            "1.37",
+            "0.6",
+            "1.27",
+            "0.63"
+          ],
+          "answer": 2,
+          "explanation": "Fractions can only be added once the pieces are the same size, so both are rewritten over the common denominator 15: 3/5 = 9/15 and 2/3 = 10/15. Adding the numerators then gives 19/15 = 1.27. Adding the tops and the bottoms (5/8) is the classic error, and it can even produce a fraction smaller than one of the originals — which a sum never is.",
+          "difficulty": 0.55,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:fraction-ops:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 3/5 ÷ 2/3.",
+          "choices": [
+            "10/9",
+            "9/11",
+            "9/10",
+            "6/15"
+          ],
+          "answer": 2,
+          "explanation": "Keep–flip–multiply: 3/5 × 3/2 = 9/10 = 9/10. Dividing by 2/3 asks how many of them fit.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fraction-ops:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 1/2 ÷ 3/5.",
+          "choices": [
+            "5/6",
+            "5/7",
+            "6/5",
+            "3/10"
+          ],
+          "answer": 0,
+          "explanation": "Keep–flip–multiply: 1/2 × 5/3 = 5/6 = 5/6. Dividing by 3/5 asks how many of them fit.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fraction-ops:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 4/5 ÷ 2/3.",
+          "choices": [
+            "6/5",
+            "8/15",
+            "10/12",
+            "12/11"
+          ],
+          "answer": 0,
+          "explanation": "Keep–flip–multiply: 4/5 × 3/2 = 12/10 = 6/5. Dividing by 2/3 asks how many of them fit.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fraction-ops:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 3/5 ÷ 1/3.",
+          "choices": [
+            "9/5",
+            "9/6",
+            "3/15",
+            "5/9"
+          ],
+          "answer": 0,
+          "explanation": "Keep–flip–multiply: 3/5 × 3/1 = 9/5 = 9/5. Dividing by 1/3 asks how many of them fit.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fraction-ops:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Work out 2/4 + 3/6 − 3/8. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "11/8",
+            "13/8",
+            "5/8",
+            "1/9"
+          ],
+          "answer": 2,
+          "explanation": "The denominators differ, so convert every fraction to the lowest common denominator 24 first: 12/24 + 12/24 − 9/24 = 15/24 = 5/8. Adding the denominators instead — 2/18 — treats the bottom number as a size to add rather than a count of equal parts, which is why it lands nowhere near the right value.",
+          "difficulty": 0.6198295723274351,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fraction-ops:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Work out 4/6 + 1/8 − 1/5. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "119/120",
+            "191/120",
+            "4/19",
+            "71/120"
+          ],
+          "answer": 3,
+          "explanation": "The denominators differ, so convert every fraction to the lowest common denominator 120 first: 80/120 + 15/120 − 24/120 = 71/120 = 71/120. Adding the denominators instead — 4/19 — treats the bottom number as a size to add rather than a count of equal parts, which is why it lands nowhere near the right value.",
+          "difficulty": 0.6348563561588526,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fraction-ops:higher:2",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Work out 5/6 + 3/4 − 5/8. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "53/24",
+            "23/24",
+            "1/6",
+            "47/24"
+          ],
+          "answer": 1,
+          "explanation": "The denominators differ, so convert every fraction to the lowest common denominator 24 first: 20/24 + 18/24 − 15/24 = 23/24 = 23/24. Adding the denominators instead — 3/18 — treats the bottom number as a size to add rather than a count of equal parts, which is why it lands nowhere near the right value.",
+          "difficulty": 0.6143934446759522,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fraction-ops:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Work out 3/5 + 2/3 − 1/4. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "1/3",
+            "121/60",
+            "61/60",
+            "91/60"
+          ],
+          "answer": 2,
+          "explanation": "The denominators differ, so convert every fraction to the lowest common denominator 60 first: 36/60 + 40/60 − 15/60 = 61/60 = 61/60. Adding the denominators instead — 4/12 — treats the bottom number as a size to add rather than a count of equal parts, which is why it lands nowhere near the right value.",
+          "difficulty": 0.633871030472219,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fraction-ops:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Work out 6/8 + 3/4 − 4/6. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "5/6",
+            "5/18",
+            "11/6",
+            "13/6"
+          ],
+          "answer": 0,
+          "explanation": "The denominators differ, so convert every fraction to the lowest common denominator 24 first: 18/24 + 18/24 − 16/24 = 20/24 = 5/6. Adding the denominators instead — 5/18 — treats the bottom number as a size to add rather than a count of equal parts, which is why it lands nowhere near the right value.",
+          "difficulty": 0.6313623988069594,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:fraction-ops:higher:5",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "Work out 2/5 + 7/8 − 1/4. Give your answer as a fraction in its simplest form.",
+          "choices": [
+            "41/40",
+            "81/40",
+            "61/40",
+            "8/17"
+          ],
+          "answer": 0,
+          "explanation": "The denominators differ, so convert every fraction to the lowest common denominator 40 first: 16/40 + 35/40 − 10/40 = 41/40 = 41/40. Adding the denominators instead — 8/17 — treats the bottom number as a size to add rather than a count of equal parts, which is why it lands nowhere near the right value.",
+          "difficulty": 0.6338067536242307,
           "numeric": false
         }
       ]
@@ -1104,6 +1763,161 @@
           "answer": 3,
           "explanation": "Expand the bracket first: 3x − 6 = 2x + 6. Collect the x-terms on both sides — subtracting 2x and adding 6 to BOTH sides — gives 1x = 12, so x = 12 ÷ 1 = 12. Doing any of that to one side only is the balance error: an equation is a scale, so every move happens twice.",
           "difficulty": 0.6457974338345229,
+          "numeric": false
+        }
+      ]
+    },
+    {
+      "id": "percentages",
+      "title": "Percentages",
+      "subject": "maths",
+      "stage": 1,
+      "lesson": "Percent means 'per hundred': 45% = 45/100 = 0.45. Percentage of an amount: 15% of 60 = 0.15 × 60 = 9. Percentage change = (new − old)/old × 100. A classic trap: a 20% rise then a 20% fall does not return to the start — 100 → 120 → 96 — because the second percentage acts on a different base.",
+      "prereqs": [
+        "fractions",
+        "decimals"
+      ],
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.8062595023331233,
+      "promptDerived": false,
+      "misconceptions": [
+        {
+          "id": "pct-base",
+          "name": "Wrong percentage base",
+          "pattern": "Applies percentages of the wrong amount: adds 20% then subtracts 20% and expects the original."
+        }
+      ],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:percentages:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "A price of 80 rises by 10%. What is the new price?",
+          "choices": [
+            "90",
+            "72",
+            "88",
+            "8"
+          ],
+          "answer": 2,
+          "explanation": "A rise of 10% is one multiplication by 1.1, because the new price is the whole original price plus the extra part of it. So 80 × 1.1 = 88. Adding 10 to the price (90) treats the percentage as 10 pounds, and 8 is only the increase, not the new price.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:percentages:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "A price of 120 rises by 25%. What is the new price?",
+          "choices": [
+            "145",
+            "150",
+            "90",
+            "30"
+          ],
+          "answer": 1,
+          "explanation": "A rise of 25% is one multiplication by 1.25, because the new price is the whole original price plus the extra part of it. So 120 × 1.25 = 150. Adding 25 to the price (145) treats the percentage as 25 pounds, and 30 is only the increase, not the new price.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:percentages:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "A price of $100 rises by 25%, then falls by 25%. What is the final price (in $)?",
+          "choices": [
+            "75",
+            "100",
+            "93.75",
+            "150"
+          ],
+          "answer": 2,
+          "explanation": "100 → 125 after the rise. The fall acts on 125, not 100: 125 − 25% of 125 = 93.75. Percentages act on the CURRENT base.",
+          "difficulty": 0.45,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:percentages:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "A price of 80 falls by 25%. What is the new price?",
+          "choices": [
+            "100",
+            "20",
+            "55",
+            "60"
+          ],
+          "answer": 3,
+          "explanation": "A fall of 25% leaves 75% of the price, so the whole calculation is one multiplication by 0.75: 80 × 0.75 = 60. Subtracting 25 from the price treats the percentage as 25 pounds, and multiplying by 1.25 applies a rise instead of a cut.",
+          "difficulty": 0.45,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:percentages:higher:0",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A price rises by 50% and then falls by 40%. What is the overall percentage change?",
+          "choices": [
+            "+10%",
+            "−10%",
+            "90%",
+            "−15%"
+          ],
+          "answer": 1,
+          "explanation": "Work with multipliers, never added percentages: a 50% rise is ×1.5 and a 40% fall is ×0.6. Multiplying: ×0.9, an overall change of −10%. The fall acts on the RAISED price — a different base — which is why 50% up and 40% down do not cancel.",
+          "difficulty": 0.644880712851882,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:percentages:higher:1",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A price rises by 25% and then falls by 10%. What is the overall percentage change?",
+          "choices": [
+            "+12.5%",
+            "−12.5%",
+            "35%",
+            "+15%"
+          ],
+          "answer": 0,
+          "explanation": "Work with multipliers, never added percentages: a 25% rise is ×1.25 and a 10% fall is ×0.9. Multiplying: ×1.125, an overall change of +12.5%. The fall acts on the RAISED price — a different base — which is why 25% up and 10% down do not cancel.",
+          "difficulty": 0.6305042425915599,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:percentages:higher:3",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A price rises by 40% and then falls by 25%. What is the overall percentage change?",
+          "choices": [
+            "−5%",
+            "+15%",
+            "+5%",
+            "65%"
+          ],
+          "answer": 2,
+          "explanation": "Work with multipliers, never added percentages: a 40% rise is ×1.4 and a 25% fall is ×0.75. Multiplying: ×1.05, an overall change of +5%. The fall acts on the RAISED price — a different base — which is why 40% up and 25% down do not cancel.",
+          "difficulty": 0.6596608570963144,
+          "numeric": false
+        },
+        {
+          "seed": "pilot:percentages:higher:4",
+          "tier": "higher",
+          "target": 0.65,
+          "prompt": "A price rises by 50% and then falls by 25%. What is the overall percentage change?",
+          "choices": [
+            "+25%",
+            "+12.5%",
+            "−12.5%",
+            "75%"
+          ],
+          "answer": 1,
+          "explanation": "Work with multipliers, never added percentages: a 50% rise is ×1.5 and a 25% fall is ×0.75. Multiplying: ×1.125, an overall change of +12.5%. The fall acts on the RAISED price — a different base — which is why 50% up and 25% down do not cancel.",
+          "difficulty": 0.6557068456150591,
           "numeric": false
         }
       ]

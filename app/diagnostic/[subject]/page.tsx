@@ -271,7 +271,9 @@ export default function DiagnosticPage() {
               return (
                 <div key={m.id} className="note">
                   <strong>{mcName(lang, m.id, misc?.name ?? m.id)} <span className="mono">×{m.count}</span></strong>
-                  <span className="small">{mcCoaching(lang, m.id, misc?.coaching ?? "")}</span>
+                  {mcCoaching(lang, m.id, misc?.coaching ?? "") !== "" && (
+                    <span className="small">{mcCoaching(lang, m.id, misc?.coaching ?? "")}</span>
+                  )}
                 </div>
               );
             })}

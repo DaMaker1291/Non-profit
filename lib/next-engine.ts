@@ -17,6 +17,7 @@ import { MISCONCEPTIONS_BY_ID, beliefName } from "./misconceptions";
 import { isRetentionEvidence } from "./proof";
 import { orderEvents, type AnswerSubmitted, type EvidenceEvent } from "./evidence";
 import { canTransfer } from "./transfer";
+import { coverageOf, specForProfile } from "./specifications";
 import type { ProfileState } from "./types";
 
 /** Translator shape (lib/i18n). Optional — callers without a language get
@@ -638,18 +639,29 @@ export function decideNext(
       // recommendation and find the curriculum themselves.
       //
       // The honest next step for someone the diagnostic could not place is the
-      // FIRST idea of the course they chose, taught rather than tested: the
-      // concept their own subject order starts with. Nothing about the
-      // measurement is claimed — the card says the sitting did not place them,
-      // which is what the report in front of them already said.
+      // FIRST idea of the course they chose, taught rather than tested.
+      //
+      // AND "THE COURSE" IS NOT "THE SUBJECT". This read `bySubject(subj)[0]`,
+      // the genome's own order, whose first maths concept is `place-value` at
+      // stage 0 — so a learner on a SENIOR course whose diagnostic placed
+      // nothing was offered place value under a sentence claiming it was "the
+      // first idea in your course". For GCSE HIGHER that concept is not in the
+      // course AT ALL (its coverage opens at fractions and lists no place value),
+      // and A-level opens at standard form; only Foundation really does begin
+      // there. The course's own coverage list is the authority for what its
+      // first idea is, and it resolves per TIER — which is what makes a senior
+      // course start where it says it does. `bySubject` survives only as the
+      // fallback for a subject whose course resolves to no covered concept.
       const subj = state.profile.subjects[0] ?? "maths";
       const measuredBefore = Object.keys(state.diagnostics ?? {}).some((k) => k.split(":")[0] === subj);
-      const first = measuredBefore ? bySubject(subj)[0] : undefined;
+      const course = specForProfile(state.profile, subj);
+      const courseFirst = coverageOf({ spec: course.spec, level: course.level })[0]?.id;
+      const first = measuredBefore ? (courseFirst ?? bySubject(subj)[0]?.id) : undefined;
       if (first) {
         push({
-          kind: "EXPLAIN", conceptId: first.id,
-          title: `${t("next.title.begin")}: ${name(first.id)}`,
-          reason: fill(t("next.reason.begin"), { concept: name(first.id) }),
+          kind: "EXPLAIN", conceptId: first,
+          title: `${t("next.title.begin")}: ${name(first)}`,
+          reason: fill(t("next.reason.begin"), { concept: name(first) }),
           evidence: t("next.ev.noEvidence"),
           minutes: 8,
         });

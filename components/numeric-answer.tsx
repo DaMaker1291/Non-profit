@@ -22,6 +22,9 @@ import { useEffect, useRef, useState } from "react";
 import { parseNumericInput } from "@/lib/answer";
 
 export interface NumericAnswerProps {
+  /** The served question this box belongs to. A NEW id means a NEW question,
+   *  and the box starts empty — see the reset below. */
+  questionId: string;
   /** What the answer is in, shown beside the box ("cm", "mol", "J"). */
   unit?: string;
   /** Disabled once graded or while a submission is in flight. */
@@ -36,7 +39,7 @@ export interface NumericAnswerProps {
 }
 
 export default function NumericAnswer({
-  unit, disabled, onSubmit, label, checkLabel, emptyHint,
+  questionId, unit, disabled, onSubmit, label, checkLabel, emptyHint,
 }: NumericAnswerProps) {
   const [value, setValue] = useState("");
   const [touched, setTouched] = useState(false);
@@ -48,11 +51,33 @@ export default function NumericAnswer({
   const [unusable, setUnusable] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus the box when it appears: a learner who has just read the question
-  // should not have to hunt for where to answer it.
+  // ── A NEW QUESTION STARTS WITH AN EMPTY BOX ─────────────────────────────
+  //
+  // Reported from the product: "in the practice part of each topic, the question
+  // field doesn't clear after every input". It did not, and the reason was React
+  // rather than arithmetic — the box is rendered at the same place in the tree
+  // for every question, so the SAME component instance survived the swap and
+  // kept its `value`. A learner who typed 0.75 into `0.3 + 0.45` met the next
+  // item with 0.75 already in the field, one press of Check from being marked as
+  // their answer to a question they had never read. That is worse than a
+  // cosmetic bug: it manufactures an attempt the learner did not make.
+  //
+  // The rule is the one `components/work-sheet.tsx` already follows, and for the
+  // same reason: an answer and a RETRY are the same question (so the box keeps
+  // what was typed while the feedback is read, and a retry is one edit away),
+  // while a NEW question gets a fresh one. Guarding on a ref rather than on
+  // `value` is what survives StrictMode's double-invoked effects without wiping
+  // the box the learner is typing in.
+  const mounted = useRef(false);
   useEffect(() => {
+    if (!mounted.current) { mounted.current = true; inputRef.current?.focus(); return; }
+    setValue("");
+    setTouched(false);
+    setUnusable(false);
+    // The next question is the thing to answer now, so the caret belongs here
+    // again — a learner should not have to hunt for the box once per item.
     inputRef.current?.focus();
-  }, []);
+  }, [questionId]);
 
   const empty = value.trim() === "";
 

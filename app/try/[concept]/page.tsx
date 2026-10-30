@@ -122,9 +122,11 @@ export default function TryConceptPage() {
             label={t("work.label")}
             placeholder={t("work.ph")}
             note={t("work.note")}
+            hideLabel={t("common.close")}
           />
           {q.responseKind === "numeric" ? (
             <NumericAnswer
+              questionId={q.id}
               unit={q.tolerance?.unit}
               disabled={picked !== null || busy}
               label={t("answer.label")}

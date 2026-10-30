@@ -49,8 +49,16 @@ export default function MicroDiagnostic({ flare, lang }: { flare: FlarePayload; 
         <span className="no">!</span> {t("micro.eyebrow")}
       </p>
       <p style={{ margin: "6px 0 0", fontWeight: 700 }}>{mcName(lang, flare.misconceptionId, flare.name)}</p>
-      <p className="small" style={{ margin: "4px 0 0" }}>{mcCoaching(lang, `p:${flare.misconceptionId}`, flare.pattern)}</p>
-      <p className="small" style={{ margin: "6px 0 0" }}>{mcCoaching(lang, flare.misconceptionId, flare.coaching)}</p>
+      {/* Both lines are the catalogue's English unless the reader's own
+          dictionary carries them, in which case `mcCoaching` answers "" and
+          the line is not drawn at all — a translated name over two empty
+          paragraphs is not a diagnosis (lib/content-i18n#mcCoaching). */}
+      {mcCoaching(lang, `p:${flare.misconceptionId}`, flare.pattern) !== "" && (
+        <p className="small" style={{ margin: "4px 0 0" }}>{mcCoaching(lang, `p:${flare.misconceptionId}`, flare.pattern)}</p>
+      )}
+      {mcCoaching(lang, flare.misconceptionId, flare.coaching) !== "" && (
+        <p className="small" style={{ margin: "6px 0 0" }}>{mcCoaching(lang, flare.misconceptionId, flare.coaching)}</p>
+      )}
 
       {flare.check && !result && (
         <div style={{ marginTop: 12 }}>

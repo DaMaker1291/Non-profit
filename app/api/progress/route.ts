@@ -438,6 +438,13 @@ export async function POST(req: Request): Promise<NextResponse> {
           streak: rec.streak,
           mastery: rec.mastery,
           misconceptionId: misc?.id ?? null,
+          // WHAT THE OPTION THEY PICKED REPRESENTS, when the family authored a
+          // note for it. Sent WITH THE GRADE and never with the serve, and only
+          // on a wrong answer: a note about a correct option is a hint about the
+          // ones the learner did not choose.
+          choiceNote: !correct && typeof body.choiceIndex === "number"
+            ? q.choiceNotes?.[body.choiceIndex] || null
+            : null,
           flare,
           demonstrated: { mode, hints: hintCount, source, retained },
         };

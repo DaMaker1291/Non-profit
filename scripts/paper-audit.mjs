@@ -56,7 +56,8 @@ const RESEARCHED_NOT_DECLARED = {
   MX: "Mexico: the documented mathematics structure found (Ceneval EXANI-II, 30 items) belongs to a higher-education ADMISSIONS exam that institutions opt into, not to a national upper-secondary exit assessment.",
   ID: "Indonesia: the national leaving exam was replaced by the Asesmen Nasional, which is a sampled system assessment rather than an individual examination — there is no per-learner paper to model, and inventing one would be the original defect.",
   CO: "Colombia: ICFES's own orientation guide was identifiable but returned 403 to every read, so the 25+25 split across two 270-minute sessions could not be confirmed at first hand, and the session time is not a mathematics paper's time.",
-  GH: "Ghana: the paper components and times rest on the general WASSCE structure rather than a readable Ghanaian mathematics document, so the components could not be confirmed for Core Mathematics in particular.",
+  ET: "Ethiopia: the 2025 ESSLCE mathematics booklet is one paper of 60 items in 3 hours, but the mark allocation and the calculator rule could not be confirmed from an EAES document that could be read — the copies available are reproductions, not the board's own publication. A paper whose mark total nobody could check is the thing this catalogue must not print.",
+  EG: "Egypt: the Ministry's April 2025 announcement gives Pure Mathematics as 20 questions (18 multiple choice, 2 essay) for 30 marks, but the page returned 403 to every read here, so the counts rest on news listings and the calculator rule is unconfirmed.",
 };
 
 // ── 1. Every blueprint names a qualification that exists ────────────────────
@@ -172,6 +173,12 @@ ok(published === P.PAPERS.length,
 const SHAPED = [
   "uk-gcse", "uk-alevel", "int-igcse", "int-ib", "in-cbse", "us-sat",
   "gt-diversificado", "ke-kcse", "za-nsc", "vn-thpt", "tz-csee", "ng-waec", "ug-uce", "br-enem",
+  // The second wave: curricula that had no board paper at all until their own
+  // board's structure was read. Asserted by name for the same reason as the
+  // first list — deleting a file is how a country silently goes back to being
+  // modelled, and a count would not notice the swap.
+  "gh-wassce", "cm-gce-o", "cm-gce-a", "cm-bepc", "cm-probatoire", "cm-bac",
+  "zm-school-certificate", "zw-o-level", "zw-a-level", "mw-msce", "ie-junior", "in-icse", "lk-o-level",
 ];
 for (const id of SHAPED) {
   ok(P.papersForSpec(id).length > 0,

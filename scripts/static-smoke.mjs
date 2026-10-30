@@ -446,6 +446,45 @@ async function main() {
   ok(tutorKeys.every((k) => bundleT(k) === sourceT(k)),
     "offline: and each is the same text the source ships — no dictionary drift either");
 
+  // ── 7c. The teaching, in the offline build ──────────────────────────────
+  //
+  // THE DEFECT THIS PINS. The authored lesson plans reached only the React page,
+  // so the product built for low-connectivity learners went from a concept
+  // straight to a question — the exact thing the plan format was written to fix,
+  // still absent from the one artefact those learners meet. It is easy to lose
+  // again: deleting the branch, or adding a figure kind the twin cannot draw,
+  // leaves a page that still renders and still answers, and only a person who
+  // opened a lesson would notice. These checks are structural on purpose — they
+  // cost milliseconds and run in the Pages workflow; the BEHAVIOUR is driven in
+  // a real browser by `npm run verify:live` (scripts/static-page-walk.mjs).
+  section("The twin teaches, from the plans the app teaches from");
+  const plans = (client.lessonPlans && client.lessonPlans.LESSON_PLANS) || {};
+  const twinSrc = fs.readFileSync(path.join(ROOT, "docs", "app.js"), "utf8");
+  ok(Object.keys(plans).length > 0, `the bundle carries the authored plans, counted from the module (${Object.keys(plans).length})`);
+  ok(/E\.lessonPlans\.planFor\(conceptId\)/.test(twinSrc), "and the lesson route asks that module which concepts have teaching");
+  ok(/stage !== "practice"/.test(twinSrc), "arriving at /learn shows the lesson; only its door opens the practice");
+  ok(/E\.lessonPlans\.firstMoveOf/.test(twinSrc),
+    "the fade's split is the shared one (lib/lesson-plans#firstMoveOf), so the two builds cannot cut a working example in different places");
+  ok(/role="note"/.test(twinSrc), "and the page states which half of the teaching is translated");
+  // ONE HELPER DRAWS A QUESTION'S FIGURE, AND IT CARRIES THE WORDS. The old
+  // check looked for the inline `q.figure ? '<figure class="qfigure"'` string at
+  // each of the three call sites; the caption now makes that a function, so the
+  // assertion follows the shape rather than pinning a copy of the markup.
+  ok(/function questionFigureHtml\(spec\)/.test(twinSrc) && (twinSrc.match(/questionFigureHtml\(q\.figure\)/g) || []).length >= 2,
+    "a question that carries a drawing renders it — an item asking about a graph that is not on the page is unanswerable, not hard");
+  ok(/qfigure-cap/.test(twinSrc) && /E\.contentI18n\.figureCaptionText/.test(twinSrc),
+    "and renders what the drawing shows in words, because the SVG is aria-hidden on this page too");
+  // EVERY KIND THE UNION DECLARES, DRAWN. A new `FigureSpec` member added to
+  // lib/figures.ts#FIGURE_KINDS with no branch here would fall back to a caption
+  // and look like a deliberate choice, which is how a picture silently vanishes.
+  const kinds = client.figures.FIGURE_KINDS.map((k) => (typeof k === "string" ? k : k.kind));
+  const drawn = [...twinSrc.matchAll(/spec\.kind === "([a-z-]+)"/g)].map((m) => m[1]);
+  const missing = kinds.filter((k) => !drawn.includes(k));
+  ok(missing.length === 0, `the twin draws every figure kind the union declares (${kinds.length}: missing ${missing.join(", ") || "none"})`);
+  const planKinds = [...new Set(Object.values(plans).map((p) => p.figure && p.figure.spec && p.figure.spec.kind).filter(Boolean))];
+  ok(planKinds.length > 0 && planKinds.every((k) => drawn.includes(k)),
+    `so every authored lesson figure is drawn rather than captioned (kinds in use: ${planKinds.join(", ")})`);
+
   // ── 8. The artifact itself ──────────────────────────────────────────────
   section("The published artifact");
   const code = fs.readFileSync(BUNDLE, "utf8");

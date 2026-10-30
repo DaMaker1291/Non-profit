@@ -10,9 +10,8 @@ import { fill } from "@/lib/i18n";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import PaperAnalysisPanel, { type PaperAnalysisShape } from "@/components/paper-analysis";
 import PromptText from "@/components/prompt-text";
+import { specForProfile } from "@/lib/specifications";
 import MathText from "@/components/math-text";
-import OwnPaper, { type OwnPaperConcept } from "@/components/own-paper";
-import { coverageOf, specForProfile } from "@/lib/specifications";
 import { subjectLabel } from "@/lib/subjects";
 import type { BoardId, FigureSpec, ProfileState, SubjectId } from "@/lib/types";
 
@@ -226,24 +225,13 @@ export default function PapersPage() {
     }
   }
 
-  // The concepts a learner may attribute their own paper's questions to: their
-  // qualification's own coverage, which is the only taxonomy this codebase can
-  // honestly offer (a board's named topics are not encoded anywhere).
-  const ownConcepts: OwnPaperConcept[] = useMemo(() => {
-    if (!profile) return [];
-    try {
-      return coverageOf(specForProfile(profile.profile)).map((c) => ({ id: c.id, subject: c.subject as SubjectId }));
-    } catch {
-      return [];
-    }
-  }, [profile]);
-
   /** The picker is GROUPED BY SUBJECT. It used to hold a handful of board
-   *  papers; every qualification now offers a three-paper set per subject, so a
-   *  flat list mixed four subjects and twenty rows and the learner had to read
-   *  every name to find their own. Grouping keeps the page scannable and keeps
-   *  the server's order inside each subject — a board paper stays above the
-   *  built papers, because the board's is the one the learner actually sits. */
+   *  papers; every qualification now offers three paper shapes in four sittings
+   *  per subject, so a flat list mixed four subjects and twenty rows and the
+   *  learner had to read every name to find their own. Grouping keeps the page
+   *  scannable and keeps the server's order inside each subject — a board paper
+   *  stays above the built papers, because the board's is the one the learner
+   *  actually sits. */
   const grouped = useMemo(() => {
     const by = new Map<SubjectId, PaperListEntry[]>();
     for (const p of list) {
@@ -364,11 +352,6 @@ export default function PapersPage() {
               </label>
             )}
           </div>
-
-          {/* Not every paper can be hosted here, and refusing to help would be
-              absurd: the learner brings their own, and OpenMind brings the
-              workspace. Marks and ideas only — never the paper. */}
-          <OwnPaper concepts={ownConcepts} board={profile?.profile.board} />
 
           <p className="small muted" style={{ marginTop: 20 }}>
             <Link href="/learn">{t("nav.learn")}</Link> · <Link href="/dashboard">{t("nav.home")}</Link>

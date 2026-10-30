@@ -225,7 +225,23 @@ export function withDepth(base: RawGen, deep: DeepGen, share = 0.5): RawGen {
 // instruments (the diagnostic ladder, the papers sampler, the static pack) —
 // they lose the input box, never the question.
 type RawGen = (r: Rng) => {
-  prompt: string; correct: string; wrongs: string[]; tags: string[]; explanation: string; difficulty: number;
+  prompt: string;
+  correct: string;
+  wrongs: string[];
+  /** WHAT EACH WRONG OPTION REPRESENTS, one note per `wrongs` entry, in the same
+   *  order. Optional, and it should stay sparse: a note is for a distractor that
+   *  stands for a REAL move a learner makes ("you subtracted instead of
+   *  adding"), not for a padded near-miss. A note that says "this is wrong"
+   *  teaches nothing and is worse than the item-level diagnosis we already
+   *  show, because it pretends to know why the learner picked it.
+   *
+   *  It is returned WITH THE GRADE, never with the serve: an explanation of a
+   *  wrong option can narrow the answer down, and a learner who reads it before
+   *  choosing has been given a hint they did not ask for. */
+  wrongNotes?: string[];
+  tags: string[];
+  explanation: string;
+  difficulty: number;
   numeric?: { value: number; tolerance?: NumericTolerance };
   /** The diagram this draw needs, derived from the SAME numbers the prompt is
    *  built from — so the figure and the question cannot disagree. See
@@ -328,6 +344,16 @@ const MATHS_GENS: Record<string, RawGen> = {
         prompt: `Work out ${a} − (−${b}).`,
         correct: String(ans),
         wrongs: [String(a - b), String(-(a + b)), String(b - a)] as [string, string, string],
+        // EACH WRONG OPTION IS A MOVE, NOT A NUMBER THAT HAPPENED TO BE WRONG.
+        // `a − b` is exactly what subtracting a POSITIVE gives, `−(a + b)` is the
+        // right size with the wrong sign, and `b − a` is the right pair in the
+        // wrong order — so the feedback can name the move the learner made
+        // rather than repeat the item-level diagnosis they already read.
+        wrongNotes: [
+          `You subtracted ${b} instead of adding it. That is the answer to ${a} − ${b}; here the ${b} is itself negative, so taking it away moves you the other way.`,
+          `The size is right: you found ${a} + ${b}. The sign is not — removing a debt of ${b} leaves you ${b} better off, so the answer is positive.`,
+          `You worked it the other way round: ${b} − ${a}. The two numbers are the right pair, but subtraction is not symmetric, and ${a} − (−${b}) starts at ${a}.`,
+        ],
         tags: ["neg-slip"], explanation: `Subtracting a negative ADDS: ${a} − (−${b}) = ${a} + ${b} = ${ans}. Taking away a debt makes you richer.`,
         difficulty: 0.25,
       };
@@ -339,6 +365,11 @@ const MATHS_GENS: Record<string, RawGen> = {
         prompt: `Work out (${a}) × (${b}).`,
         correct: String(ans),
         wrongs: [String(-ans), String(a + b), String(a - b)] as [string, string, string],
+        wrongNotes: [
+          `The size is right and the sign is not: you found ${Math.abs(ans)}. ${a < 0 && b < 0 ? "Two negatives multiply to a POSITIVE, so the product cannot be negative." : "One negative makes the product negative, so the sign belongs there."}`,
+          `You added the two numbers instead of multiplying them. ${a} × ${b} means ${a < 0 ? Math.abs(a) : a} jumps of ${b < 0 ? Math.abs(b) : b}, not ${a} + ${b}.`,
+          `You subtracted instead of multiplying: ${a} − ${b}. A multiplication question is never answered by the difference.`,
+        ],
         tags: ["neg-slip"], explanation: `(${a}) × (${b}) = ${ans} because ${a < 0 && b < 0 ? "two negatives multiply to a positive" : a < 0 || b < 0 ? "one negative makes the product negative" : "both are positive"}.`,
         difficulty: 0.3,
       };
@@ -348,6 +379,11 @@ const MATHS_GENS: Record<string, RawGen> = {
       prompt: `Work out ${a} − ${b}.`,
       correct: String(a - b),
       wrongs: [String(b - a), String(a + b), String(-(a + b))] as [string, string, string],
+      wrongNotes: [
+        `You worked ${b} − ${a}: the pair is right, the order is not. Starting at ${a} and taking ${b} away has to land below zero, reading it as a negative answer.`,
+        `You added them (${a} + ${b}). The second number is being TAKEN AWAY — that is what the minus between them says — so the answer is smaller than ${a}, not bigger.`,
+        `You added them and then negated. The size of the journey is ${a + b}, but you did not start at zero: you started at ${a}, which is where the sign comes from.`,
+      ],
       tags: ["neg-slip"], explanation: `${a} − ${b} = ${a - b} (negative — ${b} is larger). On the number line you move ${b} left from ${a}.`,
       difficulty: 0.2,
     };
@@ -435,49 +471,121 @@ const MATHS_GENS: Record<string, RawGen> = {
     };
   },
   "fraction-ops": (r) => {
-    const kind = r.int(1, 3);
-    if (kind === 1) {
+    // ── NO FRACTION MAY BE A WHOLE NUMBER WEARING A FRACTION'S CLOTHES ──────
+    //
+    // A fraction whose top and bottom are the same IS 1, and this family served
+    // them three ways: as an operand (`3/3 × 3/4`), as a correct answer printed
+    // `2/1` beside "Give your answer in simplest form", and as an option like
+    // `4/4`. Measured over 80 draws of the served family before this rule
+    // existed: 20% had an `n/n` operand, 9% printed a denominator-1 answer, 25%
+    // carried an `n/n` option. A learner looking at `Work out 2/2 ÷ 4/5` is
+    // looking at what reads as a fault in the product rather than at a question,
+    // and an answer of `1/1` answers "simplest form" wrongly — so the parameters
+    // are redrawn until the item passes, and a hand-checked fallback per branch
+    // means the loop can never exhaust into a broken item.
+    const gg = (a: number, b: number): number => (b ? gg(b, a % b) : a);
+    /** `n/n`, i.e. a whole number written as a fraction. Always 1, and always
+     *  reads as a mistake rather than as an option. */
+    const dressed = (s: string): boolean => {
+      const m = /^(\d+)\/(\d+)$/.exec(s);
+      return !!m && m[1] === m[2];
+    };
+    /** A fraction that is neither zero nor a whole number: 0 < n < d. */
+    const proper = (n: number, d: number): boolean => n > 0 && n < d;
+    const okOptions = (correct: string, wrongs: string[]): boolean =>
+      !dressed(correct) && !wrongs.some((w) => dressed(w) || w === correct);
+
+    const add = () => {
       const d1 = r.pick([3, 4, 6]), d2 = r.pick([4, 6, 8]);
       const n1 = r.int(1, d1 - 1), n2 = r.int(1, d2 - 1);
-      const lcm = (x: number, y: number): number => { const gg = (a: number, b: number): number => (b ? gg(b, a % b) : a); return (x * y) / gg(x, y); };
-      const L = lcm(d1, d2);
+      const L = (d1 * d2) / gg(d1, d2);
       const sum = (n1 * L) / d1 + (n2 * L) / d2;
+      // A sum whose lowest form has denominator 1 is a whole number: `4/4` and
+      // `9/9` were both served as "a fraction" under a prompt asking for one,
+      // so that draw teaches nothing about adding fractions.
+      if (sum % L === 0) return null;
+      const correct = `${sum}/${L}`;
+      const wrongs = [`${n1 + n2}/${d1 + d2}`, `${n1 + n2}/${L}`, `${sum}/${L + 1}`, `${sum + 1}/${L}`];
+      if (!okOptions(correct, wrongs)) return null;
       return {
         prompt: `Work out ${n1}/${d1} + ${n2}/${d2}. Give your answer as a fraction.`,
-        correct: `${sum}/${L}`,
-        wrongs: [`${n1 + n2}/${d1 + d2}`, `${n1 + n2}/${L}`, `${sum}/${L + 1}`, `${sum + 1}/${L}`],
+        correct,
+        wrongs,
         tags: ["denom-add"], explanation: `Common denominator ${L}: ${(n1 * L) / d1}/${L} + ${(n2 * L) / d2}/${L} = ${sum}/${L}. You can only add same-size slices — never add the denominators.`,
         difficulty: 0.4,
       };
-    }
-    if (kind === 2) {
+    };
+
+    const mul = () => {
       const n1 = r.int(1, 5), d1 = r.int(2, 6), n2 = r.int(1, 5), d2 = r.int(2, 6);
+      // `2/2 × 3/4` is `1 × 3/4`: one operand is a whole number, and the only
+      // thing it tests is whether the learner can read a disguised 1.
+      if (!proper(n1, d1) || !proper(n2, d2)) return null;
       const num = n1 * n2, den = d1 * d2;
-      const gg = (a: number, b: number): number => (b ? gg(b, a % b) : a);
       const G = gg(num, den);
+      if (den / G === 1) return null;
+      const correct = `${num / G}/${den / G}`;
+      const wrongs = [`${n1 * d2}/${d1 * n2}`, `${num}/${den + G}`, `${n1 + n2}/${d1 + d2}`];
+      if (!okOptions(correct, wrongs)) return null;
       return {
         prompt: `Work out ${n1}/${d1} × ${n2}/${d2}. Give your answer in simplest form.`,
-        correct: `${num / G}/${den / G}`,
-        wrongs: [`${n1 * d2}/${d1 * n2}`, `${num}/${den + G}`, `${n1 + n2}/${d1 + d2}`] as [string, string, string],
+        correct,
+        wrongs: wrongs as [string, string, string],
         tags: [], explanation: `Multiply straight across: (${n1}×${n2})/(${d1}×${d2}) = ${num}/${den} = ${num / G}/${den / G} after cancelling ${G}.`,
         difficulty: 0.35,
       };
+    };
+
+    const div = () => {
+      const n1 = r.int(1, 4), d1 = r.int(2, 5), n2 = r.int(1, 5), d2 = r.int(2, 6);
+      // THE DIVISOR IS NEVER 1. Dividing by 5/5 makes the flip a no-op, so the
+      // "multiply straight across" slip lands on the answer itself (measured:
+      // `3/2 ÷ 5/5` served `3/2` beside `15/10`), and it is also a vacuous
+      // question — "divide by one" teaches nothing about dividing by a fraction.
+      // The DIVIDEND is held to the same rule: `2/2 ÷ 4/5` is `1 ÷ 4/5`.
+      if (!proper(n1, d1) || !proper(n2, d2)) return null;
+      const num = n1 * d2, den = d1 * n2;
+      const G = gg(num, den);
+      if (den / G === 1) return null;
+      const correct = `${num / G}/${den / G}`;
+      const wrongs = [`${n1 * n2}/${d1 * d2}`, `${d1 * n2}/${n1 * d2}`, `${num}/${den + 1}`];
+      if (!okOptions(correct, wrongs)) return null;
+      return {
+        prompt: `Work out ${n1}/${d1} ÷ ${n2}/${d2}.`,
+        correct,
+        wrongs: wrongs as [string, string, string],
+        tags: [], explanation: `Keep–flip–multiply: ${n1}/${d1} × ${d2}/${n2} = ${num}/${den} = ${num / G}/${den / G}. Dividing by ${n2}/${d2} asks how many of them fit.`,
+        difficulty: 0.45,
+      };
+    };
+
+    const kind = r.int(1, 3);
+    const build = kind === 1 ? add : kind === 2 ? mul : div;
+    for (let attempt = 0; attempt < 80; attempt++) {
+      const item = build();
+      if (item) return item;
     }
-    const n1 = r.int(1, 4), d1 = r.int(2, 5);
-    // THE DIVISOR IS NEVER 1. Dividing by 5/5 makes the flip a no-op, so the
-    // "multiply straight across" slip lands on the answer itself (measured:
-    // `3/2 ÷ 5/5` served `3/2` beside `15/10`), and it is also a vacuous
-    // question — "divide by one" teaches nothing about dividing by a fraction.
-    let n2 = r.int(1, 5), d2 = r.int(2, 6);
-    if (n2 === d2) d2 = n2 + 1;
-    const num = n1 * d2, den = d1 * n2;
-    const gg = (a: number, b: number): number => (b ? gg(b, a % b) : a);
-    const G = gg(num, den);
+    // Hand-checked, and valid under the same three rules: 1/3 + 1/4 = 7/12,
+    // 2/3 × 3/5 = 2/5, 2/3 ÷ 4/5 = 5/6.
+    if (kind === 1) return {
+      prompt: "Work out 1/3 + 1/4. Give your answer as a fraction.",
+      correct: "7/12",
+      wrongs: ["2/7", "2/12", "7/13", "8/12"],
+      tags: ["denom-add"], explanation: "Common denominator 12: 4/12 + 3/12 = 7/12. You can only add same-size slices — never add the denominators.",
+      difficulty: 0.4,
+    };
+    if (kind === 2) return {
+      prompt: "Work out 2/3 × 3/5. Give your answer in simplest form.",
+      correct: "2/5",
+      wrongs: ["10/9", "6/18", "5/8"],
+      tags: [], explanation: "Multiply straight across: (2×3)/(3×5) = 6/15 = 2/5 after cancelling 3.",
+      difficulty: 0.35,
+    };
     return {
-      prompt: `Work out ${n1}/${d1} ÷ ${n2}/${d2}.`,
-      correct: `${num / G}/${den / G}`,
-      wrongs: [`${n1 * n2}/${d1 * d2}`, `${d1 * n2}/${n1 * d2}`, `${num}/${den + 1}`] as [string, string, string],
-      tags: [], explanation: `Keep–flip–multiply: ${n1}/${d1} × ${d2}/${n2} = ${num}/${den} = ${num / G}/${den / G}. Dividing by ${n2}/${d2} asks how many of them fit.`,
+      prompt: "Work out 2/3 ÷ 4/5.",
+      correct: "5/6",
+      wrongs: ["8/15", "15/8", "10/13"],
+      tags: [], explanation: "Keep–flip–multiply: 2/3 × 5/4 = 10/12 = 5/6. Dividing by 4/5 asks how many of them fit.",
       difficulty: 0.45,
     };
   },
@@ -494,7 +602,10 @@ const MATHS_GENS: Record<string, RawGen> = {
         // answer twice (`11.00` beside `11.0`). Ignoring both decimal points is
         // the slip this band actually produces, and it is ten times the answer.
         wrongs: [((parseFloat(a) + parseFloat(b)) * 10).toFixed(1), (parseFloat(a) * 10 + parseFloat(b)).toFixed(1), (parseFloat(a) + parseFloat(b) + 1).toFixed(1)] as [string, string, string],
-        tags: [], explanation: `Line up the decimal points and add columns: ${a} + ${b} = ${s}. Reading each number as a whole number instead — ${(parseFloat(a) * 10).toFixed(0)} plus ${(parseFloat(b) * 10).toFixed(0)} — gives ${((parseFloat(a) + parseFloat(b)) * 10).toFixed(1)}, ten times too big, which is why the point has to be lined up.`,
+        // Both distractors here ARE the belief: one adds the digits and never puts
+        // the point back (ten times the answer), the other keeps the point in only
+        // one place value. Tagging it is what lets a wrong answer name the slip.
+        tags: ["dec-point"], explanation: `Line up the decimal points and add columns: ${a} + ${b} = ${s}. Reading each number as a whole number instead — ${(parseFloat(a) * 10).toFixed(0)} plus ${(parseFloat(b) * 10).toFixed(0)} — gives ${((parseFloat(a) + parseFloat(b)) * 10).toFixed(1)}, ten times too big, which is why the point has to be lined up.`,
         difficulty: 0.2,
       };
     }
@@ -504,7 +615,12 @@ const MATHS_GENS: Record<string, RawGen> = {
       prompt: `Work out 0.${a} × 0.${b}.`,
       correct: prod,
       wrongs: [`${(a * b) / 10}`, `${a * b}`, `0.${a * b}0`.replace(/0$/, "")] as [string, string, string],
-      tags: [], explanation: `${a} × ${b} = ${a * b}, and tenths × tenths = hundredths, so 0.${a} × 0.${b} = ${prod}.`,
+      // The explanation is prose on purpose: a substitution chain of symbols is
+      // the shorthand the explanation standard exists to catch, and this item
+      // was the worst offender in the primary band (5 prose words). It now says
+      // which operation is being done, why the point lands where it does, and
+      // which wrong option each slip produces.
+      tags: ["dec-point"], explanation: `Multiply the digits first, then place the decimal point by counting places: ${a} × ${b} = ${a * b}, and each factor has one decimal place, so the answer needs two. That gives 0.${a} × 0.${b} = ${prod}. Writing ${a * b} answers the whole-number question instead, and ${(a * b) / 10} moves the point only one place, which is what happens when tenths times tenths is treated as tenths.`,
       difficulty: 0.3,
     };
   },
@@ -517,7 +633,7 @@ const MATHS_GENS: Record<string, RawGen> = {
         prompt: `Work out ${p}% of ${n}.`,
         correct: fmtNum(ans),
         wrongs: [fmtNum(n - ans), fmtNum(ans * 10), fmtNum((p / 10) * (n / 10) + ans)] as [string, string, string],
-        tags: [], explanation: `${p}% = ${p}/100 = ${p / 100}. So ${p}% of ${n} = ${p / 100} × ${n} = ${fmtNum(ans)}.`,
+        tags: [], explanation: `A percentage is a fraction of a hundred, so ${p}% means ${p} out of every hundred, which is ${p / 100}. Taking that fraction of ${n} means multiplying: ${p / 100} × ${n} = ${fmtNum(ans)}. ${fmtNum(n - ans)} is what is left when the percentage is taken away from the whole, and ${fmtNum(ans * 10)} is what dividing by ten gives instead of dividing by a hundred.`,
         difficulty: 0.25,
       };
     }
@@ -566,7 +682,7 @@ const MATHS_GENS: Record<string, RawGen> = {
       prompt: `Share $${parts} between two people in the ratio ${a} : ${b}. How much does the larger share get (in $)?`,
       correct: String(Math.max(a, b) * unit),
       wrongs: [String(Math.min(a, b) * unit), String(parts / 2), String(parts - Math.max(a, b) * unit + unit)] as [string, string, string],
-      tags: [], explanation: `${a} + ${b} = ${a + b} parts. Each part = ${parts} ÷ ${a + b} = ${unit}. Larger share = ${Math.max(a, b)} × ${unit} = $${Math.max(a, b) * unit}.`,
+      tags: [], explanation: `The ratio cuts the whole into equal parts: ${a} + ${b} = ${a + b} parts. One part is the total divided by the number of parts, ${parts} ÷ ${a + b} = ${unit}. The larger share takes ${Math.max(a, b)} of those parts, so ${Math.max(a, b)} × ${unit} = $${Math.max(a, b) * unit}. Halving the total ($${parts / 2}) would only be right if the two shares were equal, and ${a} : ${b} says they are not.`,
       difficulty: 0.35,
     };
   },
@@ -869,7 +985,7 @@ const MATHS_GENS: Record<string, RawGen> = {
       // `a = −b` collapses both the swap and the negation onto the (0, 0)
       // answer, so the component-shift candidates below carry the third wrong.
       wrongs: [`(${a[0] - b[0]}, ${a[1] - b[1]})`, `(${s[1]}, ${s[0]})`, `(${a[0] * b[0]}, ${a[1] * b[1]})`, `(${-s[0]}, ${-s[1]})`, `(${s[0] + 1}, ${s[1]})`, `(${s[0]}, ${s[1] + 1})`],
-      tags: ["vec-dir"], explanation: `Add component-wise: x: ${a[0]} + ${b[0]} = ${s[0]}, y: ${a[1]} + ${b[1]} = ${s[1]} → (${s[0]}, ${s[1]}).`,
+      tags: ["vec-dir"], explanation: `Vectors add component by component: the x parts combine with each other and the y parts combine with each other, and the two directions never mix. Here x: ${a[0]} + ${b[0]} = ${s[0]}, and y: ${a[1]} + ${b[1]} = ${s[1]}, so the sum is (${s[0]}, ${s[1]}). Subtracting the components instead describes a different journey, and pairing the x of one vector with the y of the other is the slip that comes from reading the brackets as decoration.`,
       difficulty: 0.35,
     };
   },
@@ -912,7 +1028,14 @@ const MATHS_GENS: Record<string, RawGen> = {
   },
   "data-charts": (r) => {
     // Only sectors that divide 360 exactly, so the share is a clean fraction.
-    const deg = r.pick([30, 40, 45, 60, 72, 90, 120, 180]);
+    //
+    // AND NOT A HALF. At 180° the two "divided wrongly" distractors collapse
+    // into whole numbers dressed as fractions — `${deg}/180` is 180/180 and
+    // `1/${share - 1}` is 1/1 — so a four-option item had two options that were
+    // both exactly 1, and the assembler could only keep one of them. A sector
+    // that is half the pie also makes "divide by 180" indistinguishable from
+    // "divide by 360", which is the one misconception this item exists to catch.
+    const deg = r.pick([30, 40, 45, 60, 72, 90, 120]);
     const share = 360 / deg;
     return {
       prompt: `A pie chart shows ${deg}° for "walk". What fraction of the students walk?`,
@@ -947,7 +1070,7 @@ const MATHS_GENS: Record<string, RawGen> = {
         correct: "A third factor (heat) causes both",
         wrongs: ["Ice cream causes drowning", "Drowning causes ice-cream buying", "Nothing — the data must be wrong"],
         tags: ["corr-cause"],
-        explanation: `Correlation ≠ causation. Temperature drives both variables — a confounder. Only a controlled study establishes causation.`,
+        explanation: `Two quantities rising together across a summer is a correlation, and a correlation is not a cause. Heat drives both: hot weather sells ice cream and puts more people in the water, so the two rise on the same days without either producing the other. Only a controlled comparison, where one factor is changed on purpose and the rest are held fixed, can establish causation.`,
       },
       {
         prompt: `Students who eat breakfast get better grades. What can you conclude?`,
@@ -955,7 +1078,7 @@ const MATHS_GENS: Record<string, RawGen> = {
         correct: "Other factors differ between the groups",
         wrongs: ["Breakfast causes better grades, so it is causal", "Better grades make students eat breakfast", "The study proves nothing about either one"],
         tags: ["corr-cause"],
-        explanation: `A correlation without a controlled comparison. Sleep, routine and home circumstances all differ between the groups, and each could drive the grades.`,
+        explanation: `Nobody assigned the groups; the students already differed before any breakfast. Sleep, routine, income and home circumstances all shape both what a student eats in the morning and how they do in a test, and any of them could be driving the grades. A correlation like this says the two things travel together, not that one produces the other.`,
       },
       {
         prompt: `Regions with more storks also record more births. What is the best explanation?`,
@@ -963,7 +1086,7 @@ const MATHS_GENS: Record<string, RawGen> = {
         correct: "A third factor (population size) drives both",
         wrongs: ["Storks deliver the babies, as the saying goes", "More babies attract storks to the region", "The data must be fabricated"],
         tags: ["corr-cause"],
-        explanation: `Bigger regions have both more people and more roofs to nest on. When two counts scale with population, they rise together without causing each other.`,
+        explanation: `Storks nest on roofs, and bigger regions have more roofs; they also have more people, and therefore more births. Population size is a third factor that drives both counts, so the two rise together without either causing the other. The data are not fabricated and the storks do not deliver babies: the association is real, and the direction is not the one the chart suggests.`,
       },
     ];
     const s = r.pick(scenes);
@@ -1125,7 +1248,7 @@ const MATHS_GENS: Record<string, RawGen> = {
       // near-miss so the (120°, 60°) draw, where the supplementary angle IS the
       // answer, still has three distinct wrongs.
       wrongs: [`${centre}°`, `${centre * 2}°`, `${180 - centre}°`, `${circ + 5}°`],
-      tags: ["same-seg"], explanation: `Centre angle = 2 × circumference angle (same arc): ${centre} ÷ 2 = ${circ}°. It is exactly double, not equal to, the angle at the circumference.`,
+      tags: ["same-seg"], explanation: `Both angles stand on the same arc. Joining the centre to the two ends of that arc builds two isosceles triangles, and the exterior angle at the centre picks up both base angles, which is why the centre angle is twice the angle at the circumference. So ${centre} ÷ 2 = ${circ}°. It is exactly double, not equal to: ${centre}° is the angle at the CENTRE, and ${centre * 2}° is what applying the rule the wrong way round gives. The supplementary angle ${180 - centre}° is what you get by treating the chord as a straight line, which is a different theorem altogether.`,
       difficulty: 0.4,
     };
   },
@@ -1541,7 +1664,7 @@ const SCI_GENS: Record<string, RawGen> = {
       prompt: `A force of ${f} N acts on an area of ${a} m². Pressure (Pa)?`,
       correct: String(f / a),
       wrongs: [String(f * a), String(a / f), String(f + a)] as [string, string, string],
-      tags: [], explanation: `P = F/A = ${f}/${a} = ${f / a} Pa. Same force on a smaller area → much higher pressure (stiletto vs flat shoe).`,
+      tags: [], explanation: `Pressure is force spread over the area it acts on: P = F ÷ A = ${f} ÷ ${a} = ${f / a} Pa. Multiplying the two instead (${f * a}) answers a different question, and dividing the area by the force (${a / f}) turns the relationship upside down. The same force over a smaller area gives a much larger pressure, which is why a drawing pin is sharp and a stiletto heel dents a floor.`,
       difficulty: 0.25,
     };
   },
@@ -1691,7 +1814,7 @@ const SCI_GENS: Record<string, RawGen> = {
       prompt: `HCl + NaOH → ?`,
       correct: "NaCl + H₂O",
       wrongs: ["NaCl + H₂", "NaOH + Cl₂", "Na₂Cl + H₂O"] as [string, string, string],
-      tags: ["strong-conc"], explanation: `Neutralisation: acid + alkali → salt + water. H⁺ + OH⁻ → H₂O, leaving Na⁺Cl⁻. Check: Na, Cl, H, O all balance.`,
+      tags: ["strong-conc"], explanation: `An acid and an alkali neutralise each other: the hydrogen ion from the acid and the hydroxide ion from the alkali join to make water, and the ions left behind form a salt. Here H⁺ + OH⁻ → H₂O leaves Na⁺ and Cl⁻ together as sodium chloride, so the products are NaCl + H₂O. Counting atoms on both sides is the check: Na, Cl, H and O each balance, which rules out the hydrogen gas and the chlorine gas options.`,
       difficulty: 0.35,
     };
   },
@@ -2131,7 +2254,7 @@ const SCI_GENS: Record<string, RawGen> = {
       prompt: `Why is merge sort preferred over bubble sort for large data?`,
       correct: "O(n log n) vs O(n²) — dramatically fewer comparisons as n grows",
       wrongs: ["It uses no extra memory", "It only works on numbers", "It is easier to write"] as [string, string, string],
-      tags: [], explanation: `At n = 1,000,000: bubble ≈ 10¹² comparisons, merge ≈ 2×10⁷. The growth CURVE, not the machine, decides what scales.`,
+      tags: [], explanation: `Merge sort splits the data in half, sorts each half and merges the two back together, so its work grows with n log n. Bubble sort compares neighbours over and over, and its work grows with n squared. At n = 1,000,000 that is roughly 2 × 10⁷ comparisons against 10¹², a gap of five orders of magnitude, and no faster machine closes a difference that widens as the data grows.`,
       difficulty: 0.45,
     };
   },
@@ -2283,7 +2406,22 @@ const LATE_GENS: Record<string, RawGen> = {
         prompt: `A point has x-coordinate ${fmt(p.x)} and y-coordinate ${fmt(p.y)}. Which is its coordinate pair?`,
         correct: `(${fmt(p.x)}, ${fmt(p.y)})`,
         wrongs: [`(${fmt(p.y)}, ${fmt(p.x)})`, `(${fmt(-p.x)}, ${fmt(p.y)})`, `(${fmt(p.x)}, ${fmt(-p.y)})`, `(${fmt(-p.x)}, ${fmt(-p.y)})`],
-        tags: [], explanation: `Order is alphabetical: (x, y). The x-coordinate counts steps right (positive) or left (negative); the y-coordinate counts steps up or down. Swapping the pair walks to a different point.`,
+        // THE TWO MOVES THIS FAMILY EXISTS TO CATCH, each in its own sentence:
+        // swapping the pair (the point is reflected in y = x) and flipping a
+        // SIGN (the point is reflected in an axis). Both produce a real point a
+        // learner can plot and believe, which is why they are worth naming.
+        wrongNotes: [
+          `That is the pair the other way round: (y, x). Swapping the two walks to a different point — it reflects (${fmt(p.x)}, ${fmt(p.y)}) in the line y = x.`,
+          `The first number's sign is flipped. The pair starts with x, and x = ${fmt(p.x)} is ${p.x < 0 ? "to the LEFT of the axis" : "to the RIGHT of the axis"}; changing that sign walks across it.`,
+          `The second number's sign is flipped: y = ${fmt(p.y)} is ${p.y < 0 ? "BELOW the axis" : "ABOVE the axis"}, and negating it moves the point to the other side.`,
+          `Both signs are flipped, which reflects the point through the origin — the same distance away in the opposite direction, a different place on the grid.`,
+        ],
+        // TAGGED, so a learner who writes the pair the other way round can be
+        // handed a repair for THAT move (lib/repair.ts#axis-swap@coordinates)
+        // on the card, in the hint ladder and in the read stage. The swap is the
+        // family's first wrong option, so the tag names a move the bank really
+        // discriminates rather than a belief nobody can reveal.
+        tags: ["axis-swap"], explanation: `Order is alphabetical: (x, y). The x-coordinate counts steps right (positive) or left (negative); the y-coordinate counts steps up or down. Swapping the pair walks to a different point.`,
         // The point is PLOTTED but not labelled: where it sits is what the
         // prompt describes, and the pair that names it is the answer.
         figure: { kind: "axes", xMin: -6, xMax: 6, yMin: -6, yMax: 6, points: [{ at: [p.x, p.y] }] },
@@ -2303,6 +2441,12 @@ const LATE_GENS: Record<string, RawGen> = {
         // exists so (±1, ±1), where the staircase and d² coincide, still has
         // three distinct wrongs.
         wrongs: [String(Math.abs(p.x) + Math.abs(p.y)), String(d2), String(Math.abs(Math.abs(p.x) - Math.abs(p.y))), String(Math.abs(p.x * p.y))],
+        wrongNotes: [
+          `That is the staircase walk — ${Math.abs(p.x)} along and ${Math.abs(p.y)} up. Distance is the straight line between the points, which is always shorter than the walk along the edges.`,
+          `That is d², not d: you added the squares (${p.x * p.x} + ${p.y * p.y}) and stopped. The distance is the square root of that sum.`,
+          `You subtracted the two coordinates instead of adding their squares. Pythagoras adds the legs, because they are at right angles — subtracting measures how much further one is than the other.`,
+          `That multiplies x by y, which is the area of the rectangle the point makes with the axes, not the distance from the origin to the point.`,
+        ],
         tags: [], explanation: `Distance from the origin is Pythagoras: d = √(x² + y²) = √(${p.x}² + ${p.y}²)${whole ? ` = ${d}` : ` = √${d2}`}. Adding |x| + |y| measures the staircase walk, not the straight line.`,
         // The point and the origin it is measured FROM. The origin is the one
         // thing the prompt names, so it is the one thing the plate labels; no
@@ -2323,7 +2467,13 @@ const LATE_GENS: Record<string, RawGen> = {
         : `The point (${fmt(other)}, 0) lies on which axis?`,
       correct: onY ? "The y-axis" : "The x-axis",
       wrongs: [onY ? "The x-axis" : "The y-axis", "The origin", "Neither — it is off both axes"] as [string, string, string],
-      tags: [], explanation: `x = 0 means zero steps right or left — the point sits on the vertical (y) axis. y = 0 puts it on the horizontal (x) axis. The origin (0, 0) is the only point on both.`,
+      // TAGGED WITH THE SAME BELIEF AS THE PAIR ITEM, and for a measured reason:
+      // this branch is the one the SERVE actually reaches for `coordinates`
+      // (probed: 40/40 served draws were multiple choice, and the pair question
+      // never appeared), while the pair branch is what the bank reaches. A
+      // learner who swaps the order reads (0, 3) as three ACROSS and answers
+      // "the x-axis", so the item distinguishes the belief it is tagged with.
+      tags: ["axis-swap"], explanation: `x = 0 means zero steps right or left — the point sits on the vertical (y) axis. y = 0 puts it on the horizontal (x) axis. The origin (0, 0) is the only point on both.`,
       difficulty: 0.25,
     };
   },
@@ -2816,6 +2966,13 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
     return true;
   };
   push(q.correct);
+  // A WRONG OPTION'S OWN EXPLANATION, carried beside the option text rather than
+  // by its position: the push above drops duplicates, so an index would slide.
+  const noteFor = new Map<string, string>();
+  for (const [i, w] of q.wrongs.entries()) {
+    const note = q.wrongNotes?.[i];
+    if (note) noteFor.set(optionValueKey(w) ?? `raw:${w}`, note);
+  }
   for (const w of q.wrongs) push(w);
 
   const num = Number(q.correct);
@@ -2848,9 +3005,19 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
       const b = Number(frac[2]);
       // Same denominator, wrong numerator (missed the cancellation / added
       // wrongly); same numerator, denominator off by one (cancelled too much).
-      for (const cand of [`${a + 1}/${b}`, `${a + 2}/${b}`, `${a}/${b + 1}`, `${a + 1}/${b + 1}`]) {
+      //
+      // BUT NEVER A WHOLE NUMBER WEARING A FRACTION'S CLOTHES. `a + 1 === b` is
+      // the common case (`2/3`), and it turned the FIRST padded distractor into
+      // `3/3` — an option that is 1, printed as a fraction, in a question whose
+      // answer is not 1. Every fraction-answer concept pads through here (found
+      // by the bank-wide invariant, on a recipe-table sum whose distractors were
+      // all fine), so the rule belongs here rather than in the family that
+      // happened to be measured. A denominator of 1 is refused for the same
+      // reason: `5/1` is 5.
+      const fracPad = (n: number, d: number): string | null => (d > 1 && n > 0 && n !== d ? `${n}/${d}` : null);
+      for (const cand of [fracPad(a + 1, b), fracPad(a + 2, b), fracPad(a, b + 1), fracPad(a + 1, b + 1)]) {
         if (uniq.length >= 4) break;
-        push(cand);
+        if (cand) push(cand);
       }
     }
     const pair = plain.match(/^\((-?[\d.]+), (-?[\d.]+)\)$/);
@@ -2892,6 +3059,12 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
     // this one travel, so the paper, the diagnostic, the practice surface and
     // the offline pack all draw the same figure from the same numbers.
     figure: q.figure,
+    // One entry per choice, `""` where nobody wrote a note (a padded near-miss,
+    // or a family this pass has not covered). Aligned with `choices` AFTER the
+    // shuffle, so the client can ask by the index the learner picked.
+    choiceNotes: noteFor.size > 0
+      ? choices.map((c) => noteFor.get(optionValueKey(c) ?? `raw:${c}`) ?? "")
+      : undefined,
     // A numeric draw says so, and carries the number the typed answer is marked
     // against plus the tolerance the ITEM declares. `choiceValues` reads the
     // same four display strings back through the shared parser, so the option
@@ -3097,7 +3270,7 @@ export function serveView(q: Question, lang?: string, board?: BoardId): Question
   // `tolerance.unit` — the box needs to know it is grammatically wrong to the
   // 14th decimal. `choiceValues` is stripped too: it is the same four numbers
   // the visible options already state.
-  const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, choiceValues: _cv, ...view } = q;
+  const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, choiceValues: _cv, choiceNotes: _cn, ...view } = q;
   if (lang && lang !== "en") {
     view.prompt = localizeStem(view.prompt, lang);
   } else if (board) {

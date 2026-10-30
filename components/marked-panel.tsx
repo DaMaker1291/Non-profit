@@ -80,7 +80,11 @@ export default function MarkedPanel({
   // as a bug in their answer rather than a gap in our content.
   const mid = misconceptionId && MISCONCEPTIONS_BY_ID[misconceptionId] ? misconceptionId : null;
   const miscName = mid ? mcName(lang, mid, MISCONCEPTIONS_BY_ID[mid].name) : null;
-  const miscLine = mid ? mcCoaching(lang, mid, MISCONCEPTIONS_BY_ID[mid].coaching).split(".")[0] : null;
+  // Null when this language has no coaching of its own: the panel then names
+  // the belief and stops, instead of trailing a dash into an English sentence
+  // (lib/content-i18n#mcCoaching).
+  const miscCoachingLine = mid ? mcCoaching(lang, mid, MISCONCEPTIONS_BY_ID[mid].coaching) : "";
+  const miscLine = miscCoachingLine ? miscCoachingLine.split(".")[0] : null;
 
   // The right answer, when there is one to show. A numeric item is answered by
   // typing, but its options still carry the values it was built from, so
@@ -102,7 +106,7 @@ export default function MarkedPanel({
       {miscName && (
         <p style={{ margin: "0 0 8px" }}>
           <b className="tag">{miscName}</b>
-          {" — "}{miscLine}.
+          {miscLine ? <>{" — "}{miscLine}.</> : null}
         </p>
       )}
       {hasWhy && (

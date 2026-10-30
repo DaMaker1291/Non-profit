@@ -357,6 +357,296 @@
       return seg.kind === "code" ? '<pre class="qcode">' + esc(seg.text) + "</pre>" : mathHtml(seg.text);
     }).join("");
   }
+  // ── Figures: the drawing, from the spec both products carry ──────────────
+  //
+  // A FIGURE IS DATA (a `FigureSpec`), and drawing it is what makes some
+  // questions answerable at all. This build had NO renderer, so an offline
+  // learner was served items that ask about a scatter graph, a labelled right
+  // triangle or a marked sector with no drawing under them — measured at 26 of 40
+  // draws on `coordinates` and `pythagoras`, both concepts a learner meets in the
+  // pilot. A lesson figure was dropped too, leaving its caption alone.
+  //
+  // The GEOMETRY is `lib/figures.ts` wherever it exists — the very functions the
+  // React renderer calls — so the curve cannot cross anywhere but its own roots
+  // and the area model cannot print 34 for 3 × 4. What this file adds is the
+  // SVG MARKUP, which is the same split it already uses for prose and maths: the
+  // rule in the engine, the drawing in each renderer.
+  function scale(v, lo, hi, a, b) {
+    if (hi === lo) return (a + b) / 2;
+    return a + ((v - lo) / (hi - lo)) * (b - a);
+  }
+
+  /** The visible part of a segment inside the frame, or null (Liang–Barsky).
+   *  A line running past the frame is clipped by the SVG anyway, but its LABEL is
+   *  placed at its end — so the segment is trimmed first, and the label lands on
+   *  the end a learner can actually see. */
+  function clipSegment(x1, y1, x2, y2, xMin, xMax, yMin, yMax) {
+    var t0 = 0, t1 = 1;
+    var dx = x2 - x1, dy = y2 - y1;
+    var p = [-dx, dx, -dy, dy];
+    var q = [x1 - xMin, xMax - x1, y1 - yMin, yMax - y1];
+    for (var i = 0; i < 4; i++) {
+      if (p[i] === 0) {
+        if (q[i] < 0) return null;
+        continue;
+      }
+      var r = q[i] / p[i];
+      if (p[i] < 0) {
+        if (r > t1) return null;
+        if (r > t0) t0 = r;
+      } else {
+        if (r < t0) return null;
+        if (r < t1) t1 = r;
+      }
+    }
+    return [x1 + t0 * dx, y1 + t0 * dy, x1 + t1 * dx, y1 + t1 * dy];
+  }
+
+  function svgWrap(w, h, parts) {
+    return '<svg viewBox="0 0 ' + w + " " + h + '" role="presentation" aria-hidden="true">' + parts.join("") + "</svg>";
+  }
+
+  function pieSvg(spec) {
+    // THE GEOMETRY IS THE APP'S, NOT A SECOND COPY OF IT. This function used to
+    // compute the arc itself — start at 12 o'clock, sweep clockwise, large-arc
+    // flag above 180° — in a second language, against a spec the React renderer
+    // read separately. One rounding difference and the offline chart disagrees
+    // with the caption printed beside it while both look plausible.
+    var L = E.figures.pieLayout(spec);
+    var c = L.cx, cy = L.cy, R = L.radius;
+    var parts = ['<circle cx="' + c + '" cy="' + cy + '" r="' + R + '" fill="var(--surface-sunken)" stroke="var(--line)" stroke-width="1.5"/>'];
+    if (L.full) {
+      parts.push('<circle cx="' + c + '" cy="' + cy + '" r="' + R + '" fill="var(--accent)"/>');
+    } else if (L.degrees > 0) {
+      parts.push('<path d="M ' + c + " " + cy + " L " + L.arcFrom[0].toFixed(2) + " " + L.arcFrom[1].toFixed(2) +
+        " A " + R + " " + R + " 0 " + (L.largeArc ? 1 : 0) + " 1 " + L.arcTo[0].toFixed(2) + " " + L.arcTo[1].toFixed(2) +
+        ' Z" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"/>');
+    }
+    // The equal cuts, when the spec asks for them: the same shading read as
+    // "four of six" rather than "a lot". Over the fill, under the caption.
+    for (var di = 0; di < L.divisions.length; di++) {
+      var a = -Math.PI / 2 + (L.divisions[di] * Math.PI) / 180;
+      parts.push('<line x1="' + c + '" y1="' + cy + '" x2="' + (c + R * Math.cos(a)).toFixed(2) +
+        '" y2="' + (cy + R * Math.sin(a)).toFixed(2) + '" stroke="var(--line)" stroke-width="1.25"/>');
+    }
+    // The caption sits UNDER the chart in the page's own ink: drawn on the pie it
+    // was painted in the on-fill colour, which is only legible where the fill is —
+    // and a 30° wedge does not reach the middle of the circle.
+    if (L.labelText) {
+      var caption = L.labelText;
+      var usable = L.width - 12, fontSize = 15;
+      while (fontSize > 10 && caption.length * fontSize * 0.55 > usable) fontSize -= 1;
+      parts.push('<text x="' + c + '" y="' + (cy + R + 22) + '" text-anchor="middle" font-size="' + fontSize +
+        '" font-weight="700" fill="var(--text)">' + esc(caption) + "</text>");
+    }
+    return svgWrap(L.width, L.height, parts);
+  }
+
+  function rightTriangleSvg(spec) {
+    var W = 340, H = 250, PAD = 42;
+    var legA = Number(spec.legA) || 0, legB = Number(spec.legB) || 0;
+    var unit = spec.unit || "";
+    var maxW = W - PAD * 2, maxH = H - PAD * 2;
+    var ratio = legA > 0 && legB > 0 ? legB / legA : 0.75;
+    var w = maxW, h = w * ratio;
+    if (h > maxH) { h = maxH; w = ratio > 0 ? h / ratio : maxW; }
+    var ox = PAD, baseY = H - PAD, bx = ox + w, cy = baseY - h;
+    var at = function (v) { return v + unit; };
+    var parts = [
+      '<polygon points="' + ox + "," + baseY + " " + bx + "," + baseY + " " + ox + "," + cy +
+        '" fill="var(--surface-sunken)" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>',
+      // The right-angle square: the one mark that makes this readable as a right
+      // triangle rather than an arbitrary one.
+      '<polygon points="' + (ox + 16) + "," + baseY + " " + (ox + 16) + "," + (baseY - 16) + " " + ox + "," + (baseY - 16) +
+        '" fill="none" stroke="var(--accent)" stroke-width="2"/>',
+      '<text x="' + (ox + w / 2) + '" y="' + (baseY + 26) + '" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">' +
+        esc(spec.labelA ? at(legA) : "?") + "</text>",
+      '<text x="' + (ox - 12) + '" y="' + (cy + h / 2 + 5) + '" text-anchor="end" font-size="15" font-weight="700" fill="var(--text)">' +
+        esc(spec.labelB ? at(legB) : "?") + "</text>",
+      '<text x="' + (ox + w / 2 + 16) + '" y="' + (cy + h / 2 - 8) + '" font-size="15" font-weight="700" fill="var(--text)">' +
+        esc(spec.labelC ? at(Math.round(Math.hypot(legA, legB) * 1000) / 1000) : "?") + "</text>",
+    ];
+    return svgWrap(W, H, parts);
+  }
+
+  function axesSvg(spec) {
+    var SIDE = 340, PAD = 30;
+    var xMin = spec.xMin, xMax = spec.xMax, yMin = spec.yMin, yMax = spec.yMax;
+    var X = function (v) { return scale(v, xMin, xMax, PAD, SIDE - PAD); };
+    var Y = function (v) { return SIDE - PAD - scale(v, yMin, yMax, 0, SIDE - PAD * 2); };
+    var span = Math.max(xMax - xMin, yMax - yMin);
+    var labelEvery = span <= 14 ? 1 : Math.ceil(span / 12);
+    var parts = [];
+    for (var vx = Math.ceil(xMin); vx <= Math.floor(xMax); vx++) {
+      parts.push('<line x1="' + X(vx) + '" y1="' + Y(yMin) + '" x2="' + X(vx) + '" y2="' + Y(yMax) + '" stroke="var(--line-soft)" stroke-width="1"/>');
+    }
+    for (var vy = Math.ceil(yMin); vy <= Math.floor(yMax); vy++) {
+      parts.push('<line x1="' + X(xMin) + '" y1="' + Y(vy) + '" x2="' + X(xMax) + '" y2="' + Y(vy) + '" stroke="var(--line-soft)" stroke-width="1"/>');
+    }
+    // An axis is drawn only where it belongs: a frame whose range excludes zero
+    // has no x-axis in it, and drawing one at the edge would lie.
+    if (yMin <= 0 && yMax >= 0) parts.push('<line x1="' + X(xMin) + '" y1="' + Y(0) + '" x2="' + X(xMax) + '" y2="' + Y(0) + '" stroke="var(--line)" stroke-width="1.5"/>');
+    if (xMin <= 0 && xMax >= 0) parts.push('<line x1="' + X(0) + '" y1="' + Y(yMin) + '" x2="' + X(0) + '" y2="' + Y(yMax) + '" stroke="var(--line)" stroke-width="1.5"/>');
+    for (var lx = Math.ceil(xMin); lx <= Math.floor(xMax); lx++) {
+      // Tick labels live OUTSIDE the plot: under the bottom frame for x, left
+      // of the left frame for y. Setting them on the axes put them inside the
+      // plotting area, through the curve, with the two axes' labels colliding
+      // at the origin.
+      if (lx === 0 || lx % labelEvery !== 0) continue;
+      parts.push('<text x="' + X(lx) + '" y="' + (Y(yMin) + 15) +
+        '" text-anchor="middle" font-size="11" fill="var(--text-muted)">' + lx + "</text>");
+    }
+    for (var ly = Math.ceil(yMin); ly <= Math.floor(yMax); ly++) {
+      if (ly === 0 || ly % labelEvery !== 0) continue;
+      parts.push('<text x="' + (X(xMin) - 7) + '" y="' + (Y(ly) + 4) +
+        '" text-anchor="end" font-size="11" fill="var(--text-muted)">' + ly + "</text>");
+    }
+    if (spec.curve) {
+      var curve = E.figures.parabolaLayout({ a: spec.curve.a, b: spec.curve.b, c: spec.curve.c, xMin: xMin, xMax: xMax, yMin: yMin, yMax: yMax });
+      curve.runs.forEach(function (run) {
+        var d = run.map(function (pt, j) {
+          return (j === 0 ? "M " : "L ") + X(pt[0]).toFixed(2) + " " + Y(pt[1]).toFixed(2);
+        }).join(" ");
+        parts.push('<path d="' + d + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>');
+      });
+    }
+    (spec.lines || []).forEach(function (l) {
+      var c = clipSegment(l.from[0], l.from[1], l.to[0], l.to[1], xMin, xMax, yMin, yMax);
+      if (!c) return;
+      parts.push('<line x1="' + X(c[0]) + '" y1="' + Y(c[1]) + '" x2="' + X(c[2]) + '" y2="' + Y(c[3]) +
+        '" stroke="var(--accent)" stroke-width="2.5"' + (l.dashed ? ' stroke-dasharray="6 5"' : "") + "/>");
+      if (l.label) {
+        parts.push('<text x="' + X(c[2]) + '" y="' + (Y(c[3]) - 8) + '" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">' + esc(l.label) + "</text>");
+      }
+    });
+    if (spec.gradient) {
+      var tri = E.figures.gradientLayout(spec.gradient);
+      var gx0 = tri.from[0], gy0 = tri.from[1], gx1 = tri.corner[0], gy1 = tri.corner[1], gx2 = tri.to[0], gy2 = tri.to[1];
+      parts.push('<path d="M ' + X(gx0) + " " + Y(gy0) + " L " + X(gx1) + " " + Y(gy1) + " L " + X(gx2) + " " + Y(gy2) +
+        '" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5 4"/>');
+      var arm = 8, sx = gx1 >= gx0 ? -arm : arm, sy = gy1 >= gy2 ? arm : -arm;
+      parts.push('<path d="M ' + (X(gx1) + sx) + " " + Y(gy1) + " L " + (X(gx1) + sx) + " " + (Y(gy1) + sy) + " L " + X(gx1) + " " + (Y(gy1) + sy) +
+        '" fill="none" stroke="var(--accent)" stroke-width="1.5"/>');
+      // The legs carry their OWN lengths and deliberately not the quotient:
+      // rise ÷ run is the calculation the lesson asks for.
+      parts.push('<text x="' + ((X(gx0) + X(gx1)) / 2) + '" y="' + (Y(gy1) + (gy1 >= gy0 ? 15 : -7)) +
+        '" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--text)">' + esc(tri.runLabel) + "</text>");
+      parts.push('<text x="' + (X(gx1) + (gx1 >= gx0 ? 7 : -7)) + '" y="' + ((Y(gy1) + Y(gy2)) / 2 + 4) + '" text-anchor="' +
+        (gx1 >= gx0 ? "start" : "end") + '" font-size="11.5" font-weight="700" fill="var(--text)">' + esc(tri.riseLabel) + "</text>");
+    }
+    (spec.points || []).forEach(function (p) {
+      parts.push('<circle cx="' + X(p.at[0]) + '" cy="' + Y(p.at[1]) + '" r="5.5" fill="' +
+        (p.open ? "var(--surface)" : "var(--accent)") + '" stroke="var(--accent)" stroke-width="2.5"/>');
+      if (p.label) {
+        // Haloed, like the React renderer: a label over a grid line (or over the
+        // line it names) is otherwise half-illegible.
+        parts.push('<text x="' + (X(p.at[0]) + 10) + '" y="' + (Y(p.at[1]) - 9) + '" font-size="12.5" font-weight="700" fill="var(--text)" ' +
+          'stroke="var(--surface)" stroke-width="3" paint-order="stroke" stroke-linejoin="round">' + esc(p.label) + "</text>");
+      }
+    });
+    return svgWrap(SIDE, SIDE, parts);
+  }
+
+  function numberLineSvg(spec) {
+    var L = E.figures.numberLineLayout(spec);
+    var LIFT = 30, PAD = 28;
+    var jy = L.baselineY - LIFT;
+    var sign = L.direction === "right" ? 1 : L.direction === "left" ? -1 : 0;
+    var head = 8;
+    var parts = ['<line x1="' + (PAD - 12) + '" y1="' + L.baselineY + '" x2="' + (L.width - PAD + 12) + '" y2="' + L.baselineY + '" stroke="var(--line)" stroke-width="1.5"/>'];
+    L.ticks.forEach(function (tk) {
+      parts.push('<line x1="' + tk.x + '" y1="' + (L.baselineY - 5) + '" x2="' + tk.x + '" y2="' + (L.baselineY + 5) + '" stroke="var(--line)" stroke-width="1.5"/>');
+      parts.push('<text x="' + tk.x + '" y="' + (L.baselineY + 21) + '" text-anchor="middle" font-size="12" fill="var(--text-muted)">' + tk.value + "</text>");
+    });
+    if (sign !== 0) {
+      parts.push('<line x1="' + L.fromX + '" y1="' + jy + '" x2="' + (L.toX - sign * head * 1.4) + '" y2="' + jy + '" stroke="var(--accent)" stroke-width="2.5"/>');
+      parts.push('<polygon points="' + L.toX + "," + jy + " " + (L.toX - sign * head * 1.6) + "," + (jy - head * 0.75) + " " +
+        (L.toX - sign * head * 1.6) + "," + (jy + head * 0.75) + '" fill="var(--accent)"/>');
+    }
+    parts.push('<line x1="' + L.fromX + '" y1="' + (L.baselineY - 6) + '" x2="' + L.fromX + '" y2="' + (jy - 4) + '" stroke="var(--line-soft)" stroke-width="1.5" stroke-dasharray="4 4"/>');
+    parts.push('<line x1="' + L.toX + '" y1="' + (L.baselineY - 6) + '" x2="' + L.toX + '" y2="' + (jy - 4) + '" stroke="var(--line-soft)" stroke-width="1.5" stroke-dasharray="4 4"/>');
+    parts.push('<text x="' + L.fromX + '" y="' + (jy - 12) + '" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">' + esc(String(spec.from)) + "</text>");
+    parts.push('<text x="' + L.toX + '" y="' + (jy - 12) + '" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">' + esc(String(spec.to)) + "</text>");
+    return svgWrap(L.width, L.height, parts);
+  }
+
+  function balanceSvg(spec) {
+    var L = E.figures.balanceLayout(spec);
+    var parts = [
+      '<line x1="' + L.beam.x1 + '" y1="' + L.beam.y + '" x2="' + L.beam.x2 + '" y2="' + L.beam.y + '" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>',
+      '<polygon points="' + L.fulcrum.x + "," + L.fulcrum.y + " " + (L.fulcrum.x - 14) + "," + L.fulcrum.baseY + " " +
+        (L.fulcrum.x + 14) + "," + L.fulcrum.baseY + '" fill="var(--surface-sunken)" stroke="var(--line)" stroke-width="1.5"/>',
+      '<line x1="' + L.fulcrum.x + '" y1="' + L.fulcrum.y + '" x2="' + L.fulcrum.x + '" y2="' + L.fulcrum.baseY + '" stroke="var(--line)" stroke-width="1.5"/>',
+    ];
+    L.pans.forEach(function (pan) {
+      parts.push('<line x1="' + pan.centreX + '" y1="' + L.beam.y + '" x2="' + pan.centreX + '" y2="' + pan.topY + '" stroke="var(--line)" stroke-width="1.5"/>');
+      // The vessel's depth is the layout's, not a constant: a fixed 20px pan was
+      // drawn around contents that overflowed it (bags above the rim, the fourth
+      // row of weights through the floor), which is a picture of a different
+      // equation from the one beside it.
+      parts.push('<path d="M ' + (pan.centreX - pan.width / 2) + " " + pan.topY + " L " + (pan.centreX + pan.width / 2) + " " + pan.topY +
+        " L " + (pan.centreX + pan.width / 2 - 6) + " " + pan.bottomY + " L " + (pan.centreX - pan.width / 2 + 6) + " " + pan.bottomY +
+        ' Z" fill="var(--surface-sunken)" stroke="var(--line)" stroke-width="1.5"/>');
+      pan.bags.forEach(function (b) {
+        parts.push('<rect x="' + b.x + '" y="' + b.y + '" width="18" height="26" rx="4" fill="var(--accent)" opacity="0.85"/>');
+      });
+      pan.units.forEach(function (u) {
+        parts.push('<circle cx="' + u.x + '" cy="' + u.y + '" r="7" fill="var(--accent)" opacity="0.55"/>');
+      });
+      // WHAT THE PAN HOLDS, written under it: a learner should not have to count
+      // twenty weights to see that the right side of 3x + 5 = 20 is 20, and the
+      // string comes from the layout, so it cannot say a different equation.
+      parts.push('<text x="' + pan.centreX + '" y="' + pan.labelY + '" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">' + esc(pan.label) + "</text>");
+    });
+    return svgWrap(L.width, L.height, parts);
+  }
+
+  function rectangleSvg(spec) {
+    var L = E.figures.rectangleLayout(spec);
+    var parts = [];
+    L.cells.forEach(function (cell) {
+      var w = cell.w - 4, h = cell.h - 4;
+      parts.push('<rect x="' + (cell.x + 2) + '" y="' + (cell.y + 2) + '" width="' + Math.max(0, w) + '" height="' + Math.max(0, h) +
+        '" fill="' + (cell.emphasis ? "var(--accent)" : "var(--surface-sunken)") + '" fill-opacity="' + (cell.emphasis ? 0.22 : 1) +
+        '" stroke="' + (cell.emphasis ? "var(--accent)" : "var(--line)") + '" stroke-width="' + (cell.emphasis ? 2.5 : 1.5) + '" rx="3"/>');
+      parts.push('<text x="' + (cell.x + cell.w / 2) + '" y="' + (cell.y + cell.h / 2 + 5) + '" text-anchor="middle" font-size="' +
+        Math.max(11, Math.min(18, Math.min(cell.w, cell.h) / 2.2)) + '" font-weight="700" fill="var(--text)">' + esc(cell.label) + "</text>");
+    });
+    return svgWrap(L.width, L.height, parts);
+  }
+
+  function surdSquareSvg(spec) {
+    var L = E.figures.surdSquareLayout(spec);
+    // A spec whose parts cannot tile the square draws NOTHING: a ragged last row
+    // would picture a division that does not exist, and an exact tiling is this
+    // figure's entire claim.
+    if (!L.exact || !L.cells.length) return "";
+    var parts = [];
+    L.cells.forEach(function (c) {
+      parts.push('<rect x="' + c.x + '" y="' + c.y + '" width="' + c.w + '" height="' + c.h + '" fill="var(--surface-sunken)" stroke="var(--line)" stroke-width="1"/>');
+    });
+    var first = L.cells[0], last = L.cells[L.cells.length - 1];
+    parts.push('<rect x="' + first.x + '" y="' + first.y + '" width="' + first.w * L.n + '" height="' + first.h * L.n + '" fill="none" stroke="var(--line)" stroke-width="2.5"/>');
+    parts.push('<text x="' + (last.x + last.w / 2) + '" y="' + (last.y + last.h / 2 + 5) + '" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)">' + esc(L.cellLabel) + "</text>");
+    // The EDGE label is the point: five small sides along one edge is 5√2.
+    parts.push('<text x="' + first.x + '" y="' + (first.y - 10) + '" text-anchor="start" font-size="13" font-weight="700" fill="var(--text)">' + esc(L.sideLabel) + "</text>");
+    return svgWrap(L.width, L.height, parts);
+  }
+
+  /** A `FigureSpec` as SVG, or `""` for a kind this build cannot draw — and never
+   *  a box with nothing in it. */
+  function figureSvg(spec) {
+    if (!spec || !spec.kind) return "";
+    if (spec.kind === "axes") return axesSvg(spec);
+    if (spec.kind === "pie") return pieSvg(spec);
+    if (spec.kind === "right-triangle") return rightTriangleSvg(spec);
+    if (spec.kind === "number-line") return numberLineSvg(spec);
+    if (spec.kind === "balance") return balanceSvg(spec);
+    if (spec.kind === "rectangle") return rectangleSvg(spec);
+    if (spec.kind === "surd-square") return surdSquareSvg(spec);
+    return "";
+  }
+
   function el(tag, attrs, html) {
     var node = document.createElement(tag);
     for (var k in attrs || {}) node.setAttribute(k, attrs[k]);
@@ -453,7 +743,7 @@
 
     if (base === "/diag") return viewDiagnostic();
     if (base === "/home") return viewHome();
-    if (base === "/learn") return viewLearn(query("concept"));
+    if (base === "/learn") return viewLearn(query("concept"), query("stage"));
     if (base === "/curriculum") return viewCurriculum(query("subject"));
     if (base === "/evidence") return viewEvidence(query("concept"));
     if (base === "/access") return viewAccess();
@@ -940,7 +1230,7 @@
   // instead of repeating the one question it happened to hand out before the
   // tab was closed.
 
-  function viewLearn(conceptId) {
+  function viewLearn(conceptId, stage) {
     setNav("/learn");
     root.className = "";
     if (!conceptId) {
@@ -961,8 +1251,214 @@
         '<p><a class="btn" href="#/curriculum">' + esc(t("nav.currTitle")) + "</a></p>";
       return;
     }
+    // ── THE TEACHING COMES FIRST, IN THE OFFLINE BUILD TOO ────────────────
+    // An authored plan (lib/lesson-plans.ts) used to reach only the React page,
+    // so this product — the one a low-connectivity learner actually uses — went
+    // from a concept straight to a question. That is the defect the plan format
+    // exists to fix, still present in the artefact built for the hardest
+    // learners. `stage=practice` is the door out of the lesson; arriving with no
+    // stage means arriving to be taught.
+    var plan = E.lessonPlans.planFor(conceptId);
+    if (plan && stage !== "practice") return drawLesson(conceptId, plan);
     if (!practice || practice.conceptId !== conceptId || practice.done) startPractice(conceptId);
     drawPractice();
+  }
+
+  // ── The lesson, as a sequence rather than a paragraph ────────────────────
+
+  /** THE ITEMS THIS LESSON NARRATES, keyed by the seed that made them.
+   *
+   *  Held rather than regenerated: a reveal must draw the SAME question the
+   *  learner was reading, and a second draw would be a different item. Each seed
+   *  is fixed and is not the one the practice serve uses, so a worked example
+   *  cannot be reverse-engineered into the answer to the question on screen —
+   *  the same rule app/api/worked-example obeys by taking no seed at all.
+   *  Nothing here is recorded or graded: it is a demonstration, so it can never
+   *  become evidence. */
+  var lessonItems = {};
+  /** How far each of those has been revealed, for the faded one only. */
+  var lessonStep = {};
+
+  /** One authored part of the lesson: a labelled block, in the order a learner
+   *  needs them. The labels are the plan's own words (`plan.can` = what you will
+   *  be able to do, `plan.start` = start here), translated in all fifteen
+   *  dictionaries, so the twin and the app name the same section identically. */
+  function lessonPart(label, body, soft) {
+    return '<section class="card' + (soft ? " soft" : "") + '" style="margin-bottom:18px" aria-label="' + esc(label) + '">' +
+      '<p class="eyebrow" style="margin:0">' + (soft ? '<span class="no">!</span> ' : "") + esc(label) + "</p>" +
+      body + "</section>";
+  }
+
+  function drawLesson(conceptId, plan) {
+    setNav("/learn");
+    root.className = "";
+    lessonItems = {};
+    lessonStep = {};
+    // THE HONEST LANGUAGE NOTE, on the page and not only in a picker. The
+    // teaching paragraphs are English-authored; a learner reading Urdu is told
+    // so in Urdu, above the English, instead of meeting an unexplained switch.
+    var note = lang() === "en" ? "" :
+      '<p class="small muted" role="note" style="margin:0 0 16px">' +
+      esc(t(E.contentI18n.namesNatively(lang()) ? "lq.teachNote" : "lq.teachNoteAll")) + "</p>";
+    var idea = plan.idea.map(function (para) {
+      return '<p style="margin:10px 0 0">' + esc(para) + "</p>";
+    }).join("");
+    var traps = plan.traps.map(function (trap) {
+      return '<p style="margin:10px 0 0"><strong>' + esc(trap.move) + "</strong> " +
+        '<span class="small muted">' + esc(trap.why) + "</span></p>";
+    }).join("");
+
+    root.innerHTML =
+      '<div class="spread"><p class="eyebrow">' + esc(t("learn.lesson")) + " · " + esc(ctitle(conceptId)) + "</p>" +
+      '<a class="progress-line" href="#/curriculum">' + esc(t("nav.currTitle")) + "</a></div>" +
+      "<h1>" + esc(ctitle(conceptId)) + "</h1>" +
+      '<p class="muted">' + esc(E.contentI18n.cblurb(lang(), conceptId)) + "</p>" + note +
+      lessonPart(t("plan.can"), '<p style="margin:10px 0 0">' + esc(plan.objective) + "</p>") +
+      lessonPart(t("plan.start"), '<p style="margin:10px 0 0">' + esc(plan.intuition) + "</p>") +
+      lessonPart(t("learn.idea"), idea) +
+      lessonFigureHtml(plan) +
+      workedBlock(conceptId, "worked", "worked.eyebrow", "worked.lead", "worked.show") +
+      workedBlock(conceptId, "guided", "plan.together", "plan.guidedLead", "plan.firstStep") +
+      (traps ? lessonPart(t("plan.traps"), traps, true) : "") +
+      misconceptionsHtml(conceptId) +
+      '<p style="margin:0 0 8px"><a class="btn primary" href="#/learn?concept=' +
+      encodeURIComponent(conceptId) + '&stage=practice">' + esc(t("worked.next")) + " →</a></p>" +
+      '<p class="small muted" style="margin:0 0 20px">' + esc(plan.usedFor) + " " +
+      '<span class="tag">' + esc(t(plan.review === "subject-reviewed" ? "plan.reviewed" : "plan.unreviewed")) + "</span></p>";
+  }
+
+  /** THE NAMED BELIEFS this concept is known to trip over.
+   *
+   *  The name is what the evidence panel, the repair card and a teacher's view
+   *  all refer to, and it is translated in all fifteen dictionaries. The
+   *  coaching paragraph is translated in four of them, and where it is not, the
+   *  NAME is shown and nothing under it — never an English paragraph beneath a
+   *  translated heading, which is the rule lib/content-i18n#mcCoaching enforces
+   *  and the reason this calls it rather than reading `coaching` directly. */
+  function misconceptionsHtml(conceptId) {
+    var c = E.genome.getConcept(conceptId);
+    var ids = (c && c.misconceptions) || [];
+    if (!ids.length) return "";
+    var body = ids.map(function (id) {
+      var m = E.misconceptions.MISCONCEPTIONS_BY_ID[id];
+      if (!m) return "";
+      var coach = E.contentI18n.mcCoaching(lang(), id, m.coaching || "");
+      return '<p class="belief" data-belief="' + esc(id) + '" style="margin:10px 0 0"><strong>' +
+        esc(E.contentI18n.mcName(lang(), id, m.name)) + "</strong>" +
+        (coach ? ' <span class="small muted">' + esc(coach) + "</span>" : "") + "</p>";
+    }).join("");
+    return body ? lessonPart(t("res.misconceptions"), body, true) : "";
+  }
+
+  /** THE PICTURE, WHERE THE PLAN CARRIES ONE.
+   *
+   *  A real `<figure>` with the drawing and its authored caption — the caption is
+   *  not decorative: the SVG is `aria-hidden` (it repeats what the lesson says,
+   *  in shapes), so the sentence under it is where the point is stated for a
+   *  screen-reader user, a greyscale print, and the learner who looks at the
+   *  picture and does not know what to notice. A kind this build cannot draw
+   *  falls back to the caption alone rather than to an empty frame. */
+  /** A QUESTION'S DIAGRAM, WITH WHAT IT SHOWS WRITTEN UNDER IT.
+   *
+   *  The SVG is `aria-hidden`, and the sentence is why that is honest: its
+   *  numbers are composed from the spec (`figureCaptionText`), so a learner using
+   *  a screen reader is told what a sighted one sees. When the caption is empty
+   *  the figure still draws — an unlabelled picture beats no picture — but the
+   *  suite fails, because the kinds a question can carry all have words. */
+  function questionFigureHtml(spec) {
+    if (!spec) return "";
+    var svg = figureSvg(spec);
+    if (!svg) return "";
+    var cap = E.contentI18n.figureCaptionText(lang(), spec);
+    return '<figure class="qfigure" data-figure="' + esc(spec.kind) + '">' + svg +
+      (cap ? '<figcaption class="qfigure-cap">' + esc(cap) + "</figcaption>" : "") + "</figure>";
+  }
+
+  function lessonFigureHtml(plan) {
+    if (!plan || !plan.figure) return "";
+    var svg = figureSvg(plan.figure.spec);
+    if (!svg) return '<p class="small muted" style="margin:0 0 18px">' + esc(plan.figure.caption) + "</p>";
+    return '<figure class="lesson-figure" data-figure="' + esc(plan.figure.spec.kind) + '">' + svg +
+      '<figcaption class="small muted">' + esc(plan.figure.caption) + "</figcaption></figure>";
+  }
+
+  /** A REAL ITEM FROM THE CONCEPT'S OWN GENERATOR, unrevealed.
+   *
+   *  `worked` shows one whole ("I do"); `guided` shows only its first move and
+   *  asks the learner for the rest ("we do") — the fade, and the split is
+   *  lib/lesson-plans#firstMoveOf, the same one the React lesson fades with, so
+   *  the offline build cannot cut a working example in a different place. Each
+   *  is drawn with a fixed seed and a press, never on load: a solved item that is
+   *  simply on screen is read in two seconds, and the press is the only thing
+   *  that makes a worked example work. */
+  function workedBlock(conceptId, key, eyebrowKey, leadKey, actKey) {
+    var q = E.questions.generateQuestion(conceptId, "lesson-" + key);
+    if (!q) return "";
+    lessonItems[key] = q;
+    lessonStep[key] = 0;
+    return lessonPart(t(eyebrowKey),
+      '<p class="small muted" style="margin:10px 0 0">' + esc(t(leadKey)) + "</p>" +
+      '<div class="q" style="margin-top:10px">' + promptHtml(questionText(q)) + "</div>" +
+      questionFigureHtml(q.figure) +
+      '<div id="worked-slot-' + key + '"><p style="margin:0"><button class="btn small" data-act="worked" data-s="' + key + '">' +
+      esc(t(actKey)) + " →</button></p></div>");
+  }
+
+  /** The options as a LIST, never buttons: nothing here can be pressed to
+   *  answer, because this is the item being narrated. A control that looks like
+   *  practice but records nothing is how a learner learns to distrust the real
+   *  one. */
+  function workedOptionsHtml(q, answerShown) {
+    return '<ol class="choices" style="list-style:none;padding:0;margin:.6rem 0 1rem">' +
+      q.choices.map(function (c, i) {
+        var right = i === q.answer && answerShown;
+        return '<li class="choice"' + (right ? ' data-state="right"' : "") + '><span class="k">' +
+          "ABCD".charAt(i) + "</span><span>" + mathHtml(c) +
+          (right ? " — " + esc(t("worked.answer")) : "") + "</span></li>";
+      }).join("") + "</ol>";
+  }
+
+  /** The worked item's own misconception, named in the reader's language with
+   *  the coaching paragraph only where that language has one — never an English
+   *  paragraph under a translated label (lib/content-i18n#mcCoaching). */
+  function workedBeliefHtml(q) {
+    var mcId = (q.misconceptionTags || [])[0] || "";
+    var entry = mcId ? E.misconceptions.MISCONCEPTIONS_BY_ID[mcId] : null;
+    if (!mcId || !entry) return "";
+    var coaching = E.contentI18n.mcCoaching(lang(), mcId, entry.coaching || "");
+    return '<p class="small muted" style="margin:10px 0 0"><span class="tag">' +
+      esc(E.contentI18n.mcName(lang(), mcId, entry.name)) + "</span>" +
+      (coaching ? " " + esc(coaching) : "") + "</p>";
+  }
+
+  /** Advance one worked example: whole, or first move then the rest. */
+  function advanceWorked(key) {
+    var q = lessonItems[key];
+    var slot = document.getElementById("worked-slot-" + key);
+    if (!q || !slot) return;
+    var explanation = explanationText(q.explanation);
+    if (key !== "guided") {
+      slot.innerHTML = workedOptionsHtml(q, true) +
+        '<div class="verdict"><p class="expl" style="margin:0">' + mathHtml(explanation) + "</p></div>" +
+        workedBeliefHtml(q);
+      return;
+    }
+    var split = E.lessonPlans.firstMoveOf(explanation);
+    if (lessonStep[key] === 0) {
+      lessonStep[key] = 1;
+      slot.innerHTML = workedOptionsHtml(q, false) +
+        '<p style="margin:0 0 6px"><strong>' + esc(t("plan.firstStep")) + "</strong> " + mathHtml(split.first) + "</p>" +
+        (split.rest
+          ? '<p class="small muted" style="margin:10px 0 0">' + esc(t("plan.finishIt")) + "</p>" +
+            '<p style="margin:10px 0 0"><button class="btn small" data-act="worked" data-s="guided">' +
+            esc(t("plan.rest")) + " →</button></p>"
+          : "");
+      return;
+    }
+    lessonStep[key] = 2;
+    slot.innerHTML = workedOptionsHtml(q, true) +
+      '<div class="verdict"><p class="expl" style="margin:0">' + mathHtml(explanation) + "</p></div>" +
+      workedBeliefHtml(q);
   }
 
   function startPractice(conceptId) {
@@ -1005,8 +1501,15 @@
 
     root.innerHTML =
       '<div class="spread"><p class="eyebrow">' + esc(t("learn.practice")) + " · " + esc(ctitle(practice.conceptId)) + "</p>" +
-      '<a class="progress-line" href="#/curriculum">' + esc(t("nav.currTitle")) + "</a></div>" +
+      (E.lessonPlans.planFor(practice.conceptId)
+        ? '<a class="progress-line" href="#/learn?concept=' + encodeURIComponent(practice.conceptId) + '">← ' + esc(t("learn.lesson")) + "</a>"
+        : '<a class="progress-line" href="#/curriculum">' + esc(t("nav.currTitle")) + "</a>") + "</div>" +
       '<div class="q">' + promptHtml(prompt) + "</div>" +
+      // THE DRAWING THE QUESTION NEEDS, if it carries one. Without this the item
+      // asked about a scatter graph that was not on the page (`coordinates`,
+      // `pythagoras` and two data concepts draw one on 4–26 of every 40 draws),
+      // which is not a hard question — it is an unanswerable one.
+      questionFigureHtml(q.figure) +
       // WHAT THIS QUESTION IS TESTING, before it is answered. Every field here
       // existed already and reached the learner only LATER — the demand level in
       // the diagnostic report, the marks nowhere at all. ONE rule composes them
@@ -1029,16 +1532,20 @@
       '<div id="tutor-slot"></div>';
   }
 
-  /** What a question is testing, said before it is answered.
+  /** What a question is for, said before it is answered.
    *
    *  The record is lib/question-bank#declareQuestion's; this only words it. Both
    *  products declare one item the same way, and neither can disagree with the
-   *  report that will later judge the same answer. */
+   *  report that will later judge the same answer. The line names the OBJECTIVE
+   *  (the concept), exactly as the React screen does: a practice item is one
+   *  answer and one mark, so a mark-scheme label here is machinery the learner
+   *  cannot use. The demand and marks stay as metadata on the element. */
   function declarationHtml(q) {
     var d = E.questionBank.declareQuestion(q);
-    return '<p class="small muted" style="margin:.35rem 0 0">' +
+    return '<p class="small muted" style="margin:.35rem 0 0" title="' +
+      esc(t("skill." + d.skill) + " · " + t("own.marks") + ": " + d.marks) + '">' +
       '<span class="why-label">' + esc(t("ask.whatTesting")) + "</span> " +
-      esc(t("skill." + d.skill)) + " · " + esc(t("own.marks")) + ": " + d.marks + "</p>";
+      esc(ctitle(q.conceptId)) + "</p>";
   }
 
   /** The answer box, for a question that is NOT multiple choice (§6). The
@@ -1568,6 +2075,7 @@
       // click on the Check button from also being read as a page action.
       return;
     }
+    if (act === "worked") return advanceWorked(node.getAttribute("data-s"));
     if (act === "hint") return requestHint();
     if (act === "next-q") { startPractice(practice.conceptId); return drawPractice(); }
     if (act === "diag-next") {

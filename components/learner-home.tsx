@@ -51,6 +51,7 @@ import NextStep from "@/components/next-step";
 import AssignmentsPanel from "@/components/assignments";
 import RecentAnswers from "@/components/recent-answers";
 import ExamCountdown from "@/components/exam-countdown";
+import Momentum from "@/components/momentum";
 import { Loading } from "@/components/states";
 import { decide, decisionContextFrom } from "@/lib/decision";
 import { ctitle } from "@/lib/content-i18n";
@@ -297,6 +298,14 @@ export default function LearnerHome() {
           <Link href="/progress">{t("prog.title")} →</Link>
         </p>
       </section>
+
+      {/* THE RUN, and the next thing to aim at. Placed with the record rather
+          than above it: a streak shown before the decision would compete with the
+          one primary action, and what this panel answers — "is this adding up over
+          time?" — is a question asked after "what do I do now?" has been settled.
+          It renders from the ledger, so a record that cannot be read shows the
+          honest "reading your record" line instead of a run of zero days. */}
+      <Momentum events={ledger ? ledger.events : null} />
 
       {/* The goal, and how far the record says the learner is toward it. */}
       {p.goal && goalConcepts.length > 0 && (

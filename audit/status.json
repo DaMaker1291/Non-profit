@@ -4,7 +4,7 @@
   "counts": {
     "Content · Teachable concepts": 135,
     "Content · Concepts by stage": "0:16 1:32 2:46 3:29 4:8 5:4",
-    "Content · Concepts with a named misconception": 63,
+    "Content · Concepts with a named misconception": 65,
     "Content · Languages": 15,
     "Content verification · Concepts with a structural check": 135,
     "Content verification · Concepts whose explanation states its key": 135,
@@ -18,9 +18,9 @@
     "Storage · Owners of where learning data lives": 1,
     "Storage · Route files importing the store": 20,
     "Storage · JSON files the server modules own": 12,
-    "Pilot (UK GCSE maths) · Concepts in the review cluster": 11,
-    "Pilot (UK GCSE maths) · Items awaiting human review": 110,
-    "Pilot (UK GCSE maths) · Cluster concepts with no named misconception to probe": 1,
+    "Pilot (UK GCSE maths) · Concepts in the review cluster": 15,
+    "Pilot (UK GCSE maths) · Items awaiting human review": 154,
+    "Pilot (UK GCSE maths) · Cluster concepts with no named misconception to probe": 0,
     "Curriculum · Country codes offered in enrolment": 71,
     "Curriculum · Countries with a recorded national route": 70,
     "Curriculum · National pathways": 71,
@@ -51,9 +51,9 @@
     {
       "section": "Content",
       "label": "Concepts with a named misconception",
-      "value": 63,
+      "value": 65,
       "source": "lib/genome.ts",
-      "note": "catalogue of 53 patterns"
+      "note": "catalogue of 55 patterns"
     },
     {
       "section": "Content",
@@ -147,21 +147,21 @@
     {
       "section": "Pilot (UK GCSE maths)",
       "label": "Concepts in the review cluster",
-      "value": 11,
+      "value": 15,
       "source": "audit/pilot-pack.json",
       "note": "computed from the genome's prerequisite graph, not hand-picked"
     },
     {
       "section": "Pilot (UK GCSE maths)",
       "label": "Items awaiting human review",
-      "value": 110,
+      "value": 154,
       "source": "audit/pilot-pack.json",
       "note": "every item a learner in the cluster meets, at a seed the reviewer can reproduce"
     },
     {
       "section": "Pilot (UK GCSE maths)",
       "label": "Cluster concepts with no named misconception to probe",
-      "value": 1,
+      "value": 0,
       "source": "audit/pilot-pack.json",
       "note": "a distractor here is not yet tied to a pattern anyone has written down"
     },

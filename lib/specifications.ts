@@ -26,6 +26,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import type { BoardId, Concept, StageId, SubjectCourse, SubjectId } from "./types";
 import { CONCEPTS, bySubject } from "./genome";
+import { SUBJECT_IDS } from "./subjects";
 import { INDEPENDENT_ROUTE, curriculumFor, routeForPathwayId } from "./curriculum";
 import { nationalRouteCodes, pathwayChoiceRequired, pathwayForCountry } from "./curricula/registry";
 
@@ -737,6 +738,10 @@ export interface ActiveSpec { spec: Specification; level: SpecLevel }
  *  fields — a ProfileState, a plain StudentProfile, a request body — resolves. */
 export interface CourseFields {
   country?: string;
+  /** The subjects the learner chose to study. Part of the COURSE, because it is
+   *  how many of a qualification's subjects they actually sit — see
+   *  `chosenSubjects`, which the papers picker reads. */
+  subjects?: SubjectId[];
   board?: BoardId;
   exam?: string;
   grade?: string;
@@ -805,6 +810,35 @@ export function coversSubject(spec: Specification, subject: SubjectId): boolean 
 export function specOptionsFor(country: string, subject: SubjectId, pathwayId?: string): Specification[] {
   const eligible = specsFor(country, pathwayId).filter((s) => coversSubject(s, subject));
   return eligible.length > 0 ? eligible : [INDEPENDENT];
+}
+
+/** THE SUBJECTS THIS LEARNER ACTUALLY STUDIES under a qualification.
+ *
+ *  A qualification's COVERAGE is what it can teach; a learner's SUBJECTS are what
+ *  they chose. The papers page read the first as if it were the second, so a
+ *  learner who picked only Maths was offered physics, chemistry, biology and
+ *  computing papers — 28 rows for a course of one subject. Reported exactly as
+ *  "why are there bio or physics papers shown when the student only selected
+ *  maths?"
+ *
+ *  Declared choices win, and per-subject courses count as declared (that is what
+ *  a course entry IS). A qualification only teaches the subjects in its own
+ *  coverage, so an entry for a subject it does not cover is not offered. With
+ *  NOTHING declared — an anonymous visitor, or a profile from before subject
+ *  choice existed — the whole coverage is the only honest answer, and it is what
+ *  makes the picker usable without a profile.
+ */
+export function chosenSubjects(
+  profile: CourseFields | null | undefined,
+  spec: Specification,
+): SubjectId[] {
+  const covered = SUBJECT_IDS.filter((s) => spec.coverage[s]);
+  const declared = [
+    ...(profile?.subjects ?? []),
+    ...Object.keys(profile?.subjectCourses ?? {}),
+  ] as SubjectId[];
+  const chosen = covered.filter((s) => declared.includes(s));
+  return chosen.length > 0 ? chosen : covered;
 }
 
 /** The specification a profile is following FOR ONE SUBJECT: an explicit choice

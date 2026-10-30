@@ -418,9 +418,23 @@ async function main() {
     section("A concept page shows one stage at a time");
     await p.goto(`${BASE}/learn/maths/fractions`);
     await p.waitFor(`return !!document.querySelector("nav button.chip");`, "the stage chips to render", 25000);
+    // THE CHIPS RENDER BEFORE THE LESSON DOES. `fractions` is a pilot concept, so
+    // its read stage is an authored plan whose paragraphs carry `.reading` — and
+    // that content arrives with the profile/plan data, a tick after the nav. The
+    // assertion below reads both `.reading` and `.qprompt` in one evaluate, so
+    // without this wait it can run against a stage that has drawn its chips and
+    // nothing else: a race that reports "no lesson on screen" about a page that
+    // is still loading it (this suite failed exactly that way at 1104px).
+    await p.waitFor(`return !!document.querySelector(".reading");`, "the lesson text to render", 20000);
     const stageOne = await p.evaluate(`
       const chips = [...document.querySelectorAll("nav button.chip")].map(b => ({ text: (b.textContent || "").trim(), pressed: b.getAttribute("aria-pressed") }));
-      return { chips, question: !!document.querySelector(".qprompt"), lesson: !!document.querySelector(".reading"), docH: document.documentElement.scrollHeight, viewH: innerHeight };
+      // IS THE SESSION ON SCREEN is the qbar class, NOT qprompt. qprompt is the
+      // class the lesson's WORKED EXAMPLE uses too, so on any concept with an
+      // authored plan the read stage legitimately holds one or two of them and
+      // this predicate reported a hijacked page that was not hijacked. qbar
+      // exists only in the practise stage - the same marker the switch-back wait
+      // below already uses.
+      return { chips, question: !!document.querySelector(".qbar"), lesson: !!document.querySelector(".reading"), docH: document.documentElement.scrollHeight, viewH: innerHeight };
     `);
     check(stageOne.chips.length === 2 && stageOne.chips[0].pressed === "true",
       `the page opens on Read, and the stage on screen says so (${stageOne.chips.map((c) => `${c.text}:${c.pressed}`).join(" · ")})`);
@@ -428,19 +442,49 @@ async function main() {
       "with the lesson on screen and NO question under it — the session opens in the background and must not hijack the page");
 
     await p.clickExpr(`[...document.querySelectorAll("nav button.chip")].find(b => /Practise/.test(b.textContent || ""))`, "the Practise chip");
-    await p.waitFor(`return !!document.querySelector(".qprompt") && !document.querySelector(".reading");`, "the question to replace the lesson", 20000);
+    // THE SESSION IS MARKED BY ITS HEADER, NOT BY A QUESTION PROMPT. `.qprompt`
+    // is also the class the lesson's WORKED EXAMPLE uses, so on a concept with an
+    // authored plan (every pilot concept, and now fractions) the read stage itself
+    // contains two of them and the old predicate could never be satisfied when
+    // switching back. `.qbar` exists only in the practise stage.
+    await p.waitFor(`return !!document.querySelector(".qbar") && !document.querySelector(".reading");`, "the question to replace the lesson", 20000);
+    // ON THE PRACTICE SCREEN THE FOUR STEPS ARE A STATUS, NOT A CONTENTS PAGE.
+    // Four chips wrapped to two rows at 390px and sat under the sticky header, so
+    // the strip a learner read before every question was a navigation menu they
+    // did not need. The practice stage shows ONE line — "Step 2 of 4 · Practise" —
+    // with a four-block meter, and a single way back to the lesson; the chips
+    // stay on the reading page, where they are a table of contents.
     const stageTwo = await p.evaluate(`
       const ta = document.querySelector(".tutor-form textarea");
       const panel = document.querySelector(".tutor-panel");
-      const chip = [...document.querySelectorAll("nav button.chip")].find(b => /Practise/.test(b.textContent || ""));
-      return { ta: ta ? Math.round(ta.getBoundingClientRect().width) : 0, taH: ta ? Math.round(ta.getBoundingClientRect().height) : 0, panel: panel ? Math.round(panel.getBoundingClientRect().height) : 0, pressed: chip?.getAttribute("aria-pressed"), docH: document.documentElement.scrollHeight };
+      const step = document.querySelector(".sess-step-row");
+      const back = document.querySelector(".sess-back");
+      const bar = document.querySelector(".qbar");
+      return {
+        ta: ta ? Math.round(ta.getBoundingClientRect().width) : 0,
+        taH: ta ? Math.round(ta.getBoundingClientRect().height) : 0,
+        panel: panel ? Math.round(panel.getBoundingClientRect().height) : 0,
+        step: step ? (step.textContent || "").replace(/\\s+/g, " ").trim() : null,
+        meter: step ? step.querySelectorAll(".sess-step-meter i.on").length : 0,
+        back: back ? (back.textContent || "").trim() : null,
+        chips: document.querySelectorAll("nav button.chip").length,
+        barTop: bar ? Math.round(bar.getBoundingClientRect().height) : 0,
+        prompt: document.querySelector(".qprompt") ? 1 : 0,
+        docH: document.documentElement.scrollHeight,
+      };
     `);
-    check(stageTwo.pressed === "true", `pressing Practise switches the page to the session (${stageTwo.docH}px: the question, not the reading)`);
+    check(!!stageTwo.step && /2/.test(stageTwo.step) && /Practise/i.test(stageTwo.step) &&
+      !/SESS\./.test(stageTwo.step),
+      `pressing Practise shows the compact step indicator (${stageTwo.step}; ${stageTwo.docH}px: the question, not the reading)`);
+    check(stageTwo.meter === 2, `with the meter filled to the step it is on (${stageTwo.meter} of 4 blocks)`);
+    check(stageTwo.chips === 0, "and the four chips are not repeated beside the question (a status is one line)");
+    check(!!stageTwo.back && /Read/.test(stageTwo.back), `with one way back to the lesson ("${stageTwo.back}")`);
+    check(stageTwo.barTop > 0 && stageTwo.prompt === 1, "and the question on screen beneath the bar");
     check(stageTwo.ta >= 240, `and the tutor's box is a box, not a sliver (${stageTwo.ta}×${stageTwo.taH}px; measured 41px wide before this)`);
     check(stageTwo.panel >= 400, `with a panel tall enough to hold a conversation in (${stageTwo.panel}px)`);
 
-    await p.clickExpr(`[...document.querySelectorAll("nav button.chip")].find(b => /Read/.test(b.textContent || ""))`, "the Read chip");
-    await p.waitFor(`return !!document.querySelector(".reading") && !document.querySelector(".qprompt");`, "the lesson to come back", 10000);
+    await p.clickExpr(`document.querySelector(".sess-back")`, "the way back to the lesson");
+    await p.waitFor(`return !!document.querySelector(".reading") && !document.querySelector(".qbar");`, "the lesson to come back", 10000);
     check(true, "and Read brings the lesson back, so the switch is not one-way");
 
     // §20: the shell names the learner's COURSE, not just the page. The whole

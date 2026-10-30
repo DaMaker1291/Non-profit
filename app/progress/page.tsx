@@ -343,7 +343,9 @@ export default function ProgressPage() {
                 <span className="small muted">
                   {m.conceptIds.map((cid) => ctitle(lang, cid)).join(" · ")}
                 </span>
-                {misc && <span className="small">{mcCoaching(lang, m.id, misc.coaching)}</span>}
+                {misc && mcCoaching(lang, m.id, misc.coaching) !== "" && (
+                  <span className="small">{mcCoaching(lang, m.id, misc.coaching)}</span>
+                )}
               </div>
             );
           })}

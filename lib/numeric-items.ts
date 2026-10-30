@@ -251,12 +251,20 @@ const OPENING_GENS: Record<string, NumericGen> = {
   },
 
   "tree-diagrams": (r) => {
-    const p = r.int(1, 4);
-    const a = p, b = p; // P = a/b
+    // P = a/b IS A PROPER FRACTION. The draw was `a = p, b = p`, so every item
+    // read "each event has probability 2/2" — that is 1, both branches were
+    // certain, and the product was ALWAYS 1: the item asked the same constant
+    // question on every seed and taught nothing about multiplying along a
+    // branch (measured: 30 of 60 draws carried an n/n probability).
+    const b = r.pick([2, 3, 4, 5]);
+    const a = r.int(1, b - 1);
     const both = (a / b) * (a / b);
     return {
       prompt: `Two independent events each have probability ${a}/${b}. Give the probability that BOTH happen, as a decimal.`,
-      value: both, tolerance: { abs: 0.005 }, wrongs: [String(Number((a / b + a / b).toFixed(4))), String(Number((1 - both).toFixed(4))), String(Number((a / b).toFixed(4)))],
+      // `display` because (a/b)² rarely terminates: 1/3 × 1/3 is 0.1111…, and
+      // without it the shown answer is `formatNumeric` to twelve significant
+      // figures — the IEEE noise `npm run verify:q` flags as float noise.
+      value: both, tolerance: { abs: 0.005, display: String(Number(both.toFixed(4))) }, wrongs: [String(Number((a / b + a / b).toFixed(4))), String(Number((1 - both).toFixed(4))), String(Number((a / b).toFixed(4)))],
       tags: ["ind-dep"], difficulty: 0.5,
       explanation: `For independent events the probabilities MULTIPLY along the branches, because both outcomes have to happen and the second does not depend on the first: ${a}/${b} × ${a}/${b} = ${Number(both.toFixed(4))}. Adding the two (${Number((a / b + a / b).toFixed(4))}) answers "either one or the other", and ${Number((1 - both).toFixed(4))} is the chance that neither happens.`,
     };

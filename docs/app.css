@@ -718,7 +718,11 @@ details.evidence li { margin-bottom: 0.25rem; }
 .math sub { vertical-align: sub; }
 .math .mfrac {
   display: inline-flex; flex-direction: column; align-items: stretch;
-  vertical-align: -0.42em; margin: 0 0.16em;
+  /* Centred, not baseline-aligned — see the long note in app/globals.css: an
+     inline-flex box takes its baseline from the numerator, so a negative
+     offset put the bar BELOW the text baseline and the denominators under the
+     line. `middle` lands the bar on the maths axis. Measured in both builds. */
+  vertical-align: middle; margin: 0 0.16em;
   font-size: 0.94em; line-height: 1.14; text-align: center;
 }
 .math .mfrac-n { padding: 0 0.24em; }
@@ -791,6 +795,19 @@ details.evidence li { margin-bottom: 0.25rem; }
 .numeric-empty { margin: 0; color: var(--mark-wrong); }
 
 /* ── Answer options: designed to be MARKED ──────────────────────────────── */
+
+/* ── FIGURES ──────────────────────────────────────────────────────────────
+   A drawing is sized by its frame, never by the page. An SVG with a viewBox and
+   no width fills its parent, so a 340-px grid would push a 320-px phone
+   sideways — the exact failure measured on the lesson page before the evidence
+   rows were reflowed. max-width + height:auto keeps the drawing's own aspect
+   ratio and lets it shrink to the screen it is on. */
+.qfigure, .lesson-figure { margin: 0 0 1rem; }
+.qfigure svg, .lesson-figure svg { display: block; width: 100%; max-width: 340px; height: auto; }
+.lesson-figure figcaption { margin-top: 0.4rem; }
+/* The question's own caption: the SVG is aria-hidden, so this is the picture for
+   a screen reader and for a greyscale print. Same rule in both stylesheets. */
+.qfigure-cap { margin-top: 0.4rem; font-size: 0.94rem; line-height: 1.5; color: var(--muted); }
 
 .choices { display: grid; gap: 0.55rem; margin-bottom: 1rem; }
 .choice {

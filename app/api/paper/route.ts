@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import {
-  buildPaper, defaultPaperFor, genericPapers, markPaper, needsPaper, needsPaperId, needsReading,
-  paperConceptsTested, paperById, PAPERS, papersForSpec, type BuiltPaperAnswerKey, type PaperBasis,
+  buildPaper, defaultPaperFor, markPaper, needsPaper, needsPaperId, needsReading,
+  paperAllowedFor, paperConceptsTested, paperById, PAPERS, papersForSubject, type BuiltPaperAnswerKey, type PaperBasis,
 } from "@/lib/papers";
-import { specById, specForProfile, levelOf, type ActiveSpec, type CourseFields } from "@/lib/specifications";
+import { specById, specForProfile, levelOf, chosenSubjects, type ActiveSpec, type CourseFields } from "@/lib/specifications";
 import { cacheGet, cacheSet, getProfile, getStoredPaper, saveStoredPaper } from "@/lib/server/store";
 // The learner transaction, through the port-facing door (lib/server/transaction.ts).
 import { withLearnerState } from "@/lib/server/transaction";
@@ -71,29 +71,32 @@ export async function GET(req: Request): Promise<NextResponse> {
     // both were presented under one sentence that claimed the learner's board
     // "specification and format" — true for the boards and false for everyone
     // else, which is the one thing a picker must not do.
-    const authored = papersForSpec(active.spec.id)
-      .map((p) => ({
-        id: p.id, name: p.name, subject: p.subject, minutes: p.minutes, marks: p.marks,
-        calculator: p.calculator, board: p.board ?? null, authored: true as const,
+    // ── ONLY THE SUBJECTS THIS LEARNER STUDIES ───────────────────────────
+    //
+    // This read the qualification's COVERAGE, so a learner who chose maths and
+    // nothing else was offered physics, chemistry, biology and computing papers
+    // — 28 rows across five subjects for a course of one. Coverage answers "what
+    // can this qualification teach"; the learner's subjects answer "what am I
+    // sitting" (`chosenSubjects`), and only the second is the picker's question.
+    const subjects = chosenSubjects(profile?.profile ?? null, active.spec);
+    // ONE SET PER SUBJECT: the board's own papers where the qualification has
+    // them, OpenMind's exam-shaped set where it does not (`papersForSubject`).
+    // The two used to be added together, so GCSE maths appeared ten times — six
+    // board papers (two boards publish the same three) and three modelled ones.
+    const all = subjects
+      .flatMap((s) => papersForSubject(active, s, lang).map((p) => ({
+        id: p.id, name: p.name, subject: s, minutes: p.minutes, marks: p.marks,
+        calculator: p.calculator, board: p.board ?? null,
+        authored: (p.basis ?? "published") === "published",
         basis: (p.basis ?? "published") as PaperBasis,
         shapeSource: p.shapeSource ?? null,
         shapeNote: p.shapeNote ?? null,
-      }))
+      })))
+      // The learner's own board first, and the order inside each board is the
+      // board's own paper order.
       .sort((a, b) => (a.board === mine ? 0 : 1) - (b.board === mine ? 0 : 1));
-    // SPECIFICATION-BUILT PAPERS, FOR EVERY SUBJECT THE QUALIFICATION TEACHES.
-    // This branch used to be the FALLBACK for a qualification with no authored
-    // paper at all, which left two real holes: a UK GCSE computing learner was
-    // offered NOTHING (the GCSE has authored maths/physics/chemistry/biology
-    // papers, so `authored` was non-empty and no built paper was ever added),
-    // and every other curriculum got exactly one paper per subject. Now every
-    // subject gets the three-paper set, and a board paper — where one exists —
-    // still comes first.
-    const built = SUBJECTS.filter((s) => active.spec.coverage[s])
-      .flatMap((s) => genericPapers(active, s, lang).map((g) => ({
-        id: g.id, name: g.name, subject: s, minutes: g.minutes, marks: g.marks,
-        calculator: g.calculator, board: null, authored: false as const,
-        basis: "modelled" as const, shapeSource: null, shapeNote: null,
-      })));
+    const authored = all.filter((p) => p.basis === "published");
+    const modelled = all.filter((p) => p.basis !== "published");
     // ── THE PAPER BUILT FROM THIS LEARNER'S OWN RECORD ────────────────────
     // Offered only where the record actually says something: a learner who has
     // established everything they have met is not handed a paper "for their weak
@@ -103,7 +106,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     // paper's real length, so the marks and minutes shown are the ones sat.
     const record = profile ? await getProfile(profile.profile.id) : null;
     const needs = record
-      ? SUBJECTS.filter((s) => active.spec.coverage[s])
+      ? subjects
         .map((s) => ({ subject: s, reading: needsReading(record, active, s) }))
         .filter((x) => x.reading.weak.length > 0)
         .map((x) => {
@@ -123,7 +126,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     // generic sets. A record-built paper can be SHORT (it is as long as the
     // unfinished work it is about), so leading with it would open a learner's
     // papers page on a two-question paper above a real mock.
-    const list = [...authored, ...needs, ...built];
+    const list = [...authored, ...needs, ...modelled];
     return NextResponse.json({
       qualification: active.spec.name,
       level: active.level.name || active.level.id,
@@ -146,13 +149,20 @@ export async function GET(req: Request): Promise<NextResponse> {
     // own weak ground, and a generic mock is not that.
     return NextResponse.json({ error: "no_evidence_to_target" }, { status: 400 });
   }
+  // A paper named by id is still bounded by WHOSE paper it is. `paperById` reads
+  // the catalogue without knowing who is asking, so a link saved by a Core
+  // IGCSE candidate (or by a learner who has since changed qualification) would
+  // otherwise build the Extended paper, or another country's paper, for a
+  // learner who cannot sit it. `paperAllowedFor` is the same rule the picker
+  // filtered with, so what can be started and what is offered cannot disagree.
+  const named = templateId ? paperById(templateId) : null;
   const template =
     (needsRead ? needsPaper(active, subject, lang, needsRead.slots) : null)
-    ?? (templateId ? paperById(templateId) : null)
+    ?? (named && paperAllowedFor(named, active) ? named : null)
     // A specification-built paper's id is DERIVED from the qualification, so it
     // is not in PAPERS — and without this lookup every choice in the picker
     // built Paper 1, whatever the learner had chosen.
-    ?? (templateId ? genericPapers(active, subject, lang).find((p) => p.id === templateId) ?? null : null)
+    ?? (templateId ? papersForSubject(active, subject, lang).find((p) => p.id === templateId) ?? null : null)
     ?? defaultPaperFor(active, subject, lang);
 
   let built = buildPaper({

@@ -15,7 +15,7 @@ produces is generated, not written: [REVIEW_PACK.md](REVIEW_PACK.md).
 | Sign-off | The project owner |
 | The ceiling baseline's stale floors | **Left as they are.** A floor below reality still catches a regression, and the absolute checks on reached tiers are live |
 
-What that decision changes for the reviewer: 11 concepts and 110 items, computed
+What that decision changes for the reviewer: 15 concepts and 154 items, computed
 from the prerequisite graph, every item at a seed they can reproduce. What it
 does not change: nothing about the mapping has been reviewed, and this page still
 proposes rather than measures.
@@ -35,7 +35,7 @@ the only question that decides whether any of it matters.
 |---|---|---|
 | Subject | **Maths** | The concepts with independent verification (fractions, surds, completing-square, mixture-problems, circle-area-arc) are maths, so the reviewed set and the verified set overlap. |
 | Course | **UK GCSE Mathematics, Foundation AND Higher** (70 of the 71 offered countries now have a national route, and `npm run curriculum-gate` asserts the picker offers every one of them; this route has a full grade ladder and two tiers) | A single declared course drives all six layers, so the pilot measures one coherent thing. A mixed-tier class sits both tiers, so the pack draws items at both targets. |
-| Concepts | **11**, chosen from the genome's own prerequisite graph rather than by taste — see below | Small enough for a teacher to read every item; large enough for a before/after. |
+| Concepts | **14**, chosen from the genome's own prerequisite graph rather than by taste — see below | Small enough for a teacher to read every item; large enough for a before/after. |
 | Items | Every item a student meets in those concepts, **reviewed by a teacher before use** | Review is the layer that does not exist; this is how it comes into existence. |
 | Duration | 3–4 weeks, two sessions a week | Long enough to include a delayed retention check. |
 | Size | One class, one teacher | A pilot that finds problems is doing its job; a large one cannot be read. |
@@ -49,20 +49,31 @@ the pack a reviewer reads, and `npm run pilot-pack -- --check` fails in CI when
 the pack stops describing the bank):
 
 ```
-C · quadratics / surd strand      completing-square surds + every prerequisite they need
-  concepts            11   (stages 0-3)
-  in GCSE Higher       9   · NOT in it: order-ops, negatives (stage-0 arithmetic,
+C · the pathway, both ends closed
+  anchors             completing-square, surds   (the algebra tail)
+                      fractions, percentages     (the foundations front)
+  concepts            15   (stages 0-3)
+  in GCSE Higher      12   · NOT in it: order-ops, negatives (stage-0 arithmetic,
                             served as prerequisites rather than as course content)
-  prompt-derived       2   (completing-square, surds) — already re-derived from the prompt
-  misconception set   10/11 · WITHOUT: coordinates
-  to review            9 concepts of items, and one missing misconception
+  prompt-derived       3   — already re-derived from the prompt
+  misconception set   15/15 · every concept names the slip it targets
+  to review            15 concepts of items
 ```
 
-Why this one: it contains two of the five concepts whose answers are already
-independently verified, its prerequisites are all real edges in the graph (no
-invented ordering), 9 of 11 sit inside the course a teacher would recognise, and
-the review burden is 9 concepts rather than 135. A teacher can read every item a
-student meets in this strand in one sitting.
+Why this one: it contains the concepts whose answers are already independently
+verified, its prerequisites are all real edges in the graph (no invented
+ordering), 12 of 15 sit inside the course a teacher would recognise, and the
+review burden is 15 concepts rather than 135. A teacher can read every item a
+student meets in this pathway in one sitting.
+
+**The front was added after the tail was complete, and the reason is the review
+itself.** An earlier version anchored only the algebra tail, so a reviewer read
+eleven concepts of which two (`negatives`, `order-ops`) are served as
+prerequisites rather than as course content — while `fractions`, the idea every
+one of those concepts assumes, was not in the pack at all. A pack that asks a
+teacher to review `percentages` without `fractions` asks them to review the second
+half of an explanation. Both now have an authored lesson and a repair, and both
+are in the cluster.
 
 The alternative — all five verified concepts and their prerequisites — is 16
 concepts and 3 subjects' worth of context for one reviewer; the strand above is
@@ -91,6 +102,24 @@ that rebuilds the model from the ledger, class rosters that read the ledger
 rather than a self-report, an aggregate impact report that excludes learners with
 no baseline instead of counting them as unchanged, personal papers for boards
 whose papers we may not host, and an offline pack for a class with no internet.
+
+The offline build (`docs/`) also now TEACHES, which it did not: `/learn` there was
+a question with a concept's blurb above it, while the authored lessons and their
+diagrams existed only in the server app — the one artefact built for a class with
+no internet was the one surface without the teaching. It now renders the same
+plan objects and the same figure layouts from the same modules, and
+`npm run verify:live` drives it in a real browser: the order of the parts, a
+worked example revealed on a press, the fade's first step being shorter than the
+whole working, the pie and coordinate grids actually drawn, a labelled right
+triangle drawn at 340 px on a 320 px viewport, and the language note in Spanish,
+German and Japanese. (The run's total moves by one or two between runs — the
+interactive helpers assert what they clicked — so it is read by `failed`, which
+is zero, never by the count.) A question's diagram is also stated in words: the SVG stays
+`aria-hidden` and a `<figcaption>` carries the sentence, composed from the same
+spec the drawing is (`lib/figures.ts#figureCaption`), in all fifteen languages.
+That was a real hole, not a theoretical one — `scatter-correlation` plots the
+data itself, so its points appear in no prompt, and the argument that "the stem
+says everything the picture says" was measured and found false.
 
 Does not exist: a **review workflow** (marking an item as teacher-reviewed, with
 a name and a date, and having the ledger record it), a **consent and permission

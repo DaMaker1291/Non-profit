@@ -19,49 +19,25 @@ import { useMemo } from "react";
 import { useI18n, useProfile } from "@/lib/client";
 import { ctitle, mcCoaching, mcName } from "@/lib/content-i18n";
 import { getConcept } from "@/lib/genome";
-import { localeFor } from "@/lib/i18n";
+import { fill, localeFor } from "@/lib/i18n";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
+import { mistakeRows, type MistakeRow } from "@/lib/mistakes";
 import { SUBJECT_LABELS } from "@/lib/subjects";
-
-interface MistakeRow {
-  conceptId: string;
-  subject: string;
-  misconceptionId: string;
-  hits: number;
-  totalHits: number;
-  mastery: number;
-  attempts: number;
-  lastSeen: number;
-  others: number;
-}
 
 export default function MistakesPage() {
   const { t, lang } = useI18n();
   const { state, loading } = useProfile();
 
+  // THE RULE LIVES IN lib/mistakes.ts, where the engine suite can draw it: the
+  // page's own copy of this fold is what let a wrong answer with no belief tag
+  // stay invisible, and a rule that only exists inside a component can only be
+  // checked by reading its source.
   const rows = useMemo<MistakeRow[]>(() => {
     if (!state) return [];
-    const out: MistakeRow[] = [];
-    for (const [conceptId, p] of Object.entries(state.progress)) {
-      const c = getConcept(conceptId);
-      if (!c) continue;
-      const entries = Object.entries(p.misconceptions ?? {})
-        .filter(([, n]) => n > 0)
-        .sort((a, b) => b[1] - a[1]);
-      if (!entries.length) continue;
-      out.push({
-        conceptId,
-        subject: c.subject,
-        misconceptionId: entries[0][0],
-        hits: entries[0][1],
-        totalHits: entries.reduce((s, [, n]) => s + n, 0),
-        mastery: p.mastery,
-        attempts: p.attempts,
-        lastSeen: p.lastSeen ?? 0,
-        others: entries.length - 1,
-      });
-    }
-    return out.sort((a, b) => b.totalHits - a.totalHits || b.lastSeen - a.lastSeen);
+    return mistakeRows(state.progress, (id) => {
+      const c = getConcept(id);
+      return c ? { subject: c.subject } : null;
+    });
   }, [state]);
 
   const bySubject = useMemo(() => {
@@ -112,8 +88,12 @@ export default function MistakesPage() {
               {t(SUBJECT_LABELS[subject as keyof typeof SUBJECT_LABELS])}
             </p>
             {list.map((r) => {
-              const m = MISCONCEPTIONS_BY_ID[r.misconceptionId];
+              const m = r.misconceptionId ? MISCONCEPTIONS_BY_ID[r.misconceptionId] : undefined;
               const subjectPath = getConcept(r.conceptId)?.subject ?? "maths";
+              // Empty for a language with no `mcp.<id>` line — the name stands
+              // alone rather than being followed by a dash and an English
+              // paragraph (see lib/content-i18n#mcCoaching).
+              const coach = m && r.misconceptionId ? mcCoaching(lang, r.misconceptionId, m.coaching) : "";
               return (
                 <div key={r.conceptId} className="card" style={{ marginTop: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "baseline" }}>
@@ -121,18 +101,26 @@ export default function MistakesPage() {
                       <Link href={`/learn/${subjectPath}/${r.conceptId}`}>{ctitle(lang, r.conceptId)}</Link>
                     </p>
                     <span className="mono small muted">
-                      {r.totalHits}× · {t("sess.mastery")} {Math.round(r.mastery * 100)}% · {r.attempts} {t("next.ev.attempts")}
+                      {r.misconceptionId
+                        ? <>{r.totalHits}× · </>
+                        : <>{fill(t("err.misses"), { w: r.wrong, n: r.attempts })} · </>}
+                      {t("sess.mastery")} {Math.round(r.mastery * 100)}% · {r.attempts} {t("next.ev.attempts")}
                     </span>
                   </div>
 
                   <p className="small" style={{ margin: "8px 0 0" }}>
                     <span className="tag">{t("err.why")}</span>{" "}
-                    {m ? (
+                    {m && r.misconceptionId ? (
                       <>
-                        <strong>{mcName(lang, r.misconceptionId, m.name)}</strong> — {mcCoaching(lang, r.misconceptionId, m.coaching)}
+                        <strong>{mcName(lang, r.misconceptionId, m.name)}</strong>
+                        {coach ? <>{" — "}{coach}</> : null}
                       </>
                     ) : (
-                      t("err.unknown")
+                      /* THE HONEST ROW: the answers are the learner's, the
+                         belief is not known. It says exactly that rather than
+                         inventing a cause, and it is still actionable — the
+                         concept is named and the practice link works. */
+                      t("err.noBelief")
                     )}
                   </p>
                   {r.others > 0 && (

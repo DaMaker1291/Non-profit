@@ -285,7 +285,9 @@ export default function ConceptMindPage() {
                     {hits >= 2 ? `${t("prog.recurring")} ×${hits}` : t("prog.seenOnce")}
                   </span>
                 </strong>
-                {misc && <span className="small">{mcCoaching(lang, mid, misc.coaching)}</span>}
+                {misc && mcCoaching(lang, mid, misc.coaching) !== "" && (
+                  <span className="small">{mcCoaching(lang, mid, misc.coaching)}</span>
+                )}
               </div>
             );
           })}

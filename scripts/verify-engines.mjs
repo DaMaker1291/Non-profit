@@ -327,7 +327,50 @@ for (const cid of genIds) {
 }
 ok(emptyExpl === 0, `all questions have explanations (empty: ${emptyExpl})`);
 ok(badChoices === 0, `all questions have 4 distinct choices + valid answer (bad: ${badChoices})`);
-ok(variableGens >= 40, `variable generators >=40 (got ${variableGens}, constant ${constantGens})`);
+
+// ── A FRACTION THAT IS A WHOLE NUMBER IS NOT A FRACTION ──
+//
+// Reported from the product as "some of these questions look broken", and the
+// bank was serving three versions of the same defect: an OPERAND like
+// `2/2 ÷ 4/5` (that is 1 ÷ 4/5), a CORRECT ANSWER of `2/1` under a prompt that
+// says "simplest form", and an OPTION like `4/4` or `180/180`. Measured over 80
+// draws of `fraction-ops` before the rule existed: 16 had an `n/n` operand, 7 a
+// denominator-1 answer and 20 an `n/n` option. A learner reads all three as a
+// fault in the product rather than as a question.
+//
+// The sweep is BANK-WIDE because the cause usually is not the family that
+// carries the defect. Three separate sites were found this way: the composed
+// `fraction-ops` family (fixed by redrawing), `tree-diagrams`, whose draw was
+// literally `a = p, b = p` so every item said "probability 2/2" and the answer
+// was always 1, and `generateQuestion`'s own distractor padder, which turned
+// `2/3` into a `3/3` option in any fraction-answer question — the padder is why
+// this cannot be a per-family assertion.
+{
+  const dressed = (s) => {
+    const m = /^(\d+)\/(\d+)$/.exec(String(s).trim());
+    return !!m && (m[1] === m[2] || m[2] === "1");
+  };
+  const offenders = [];
+  let draws = 0;
+  for (const cid of genIds) {
+    for (let i = 0; i < 120; i++) {
+      const q = questions.generateQuestion(cid, `dressed-${i}`);
+      if (!q) continue;
+      draws++;
+      const ops = [...String(q.prompt).matchAll(/(\d+)\/(\d+)/g)].map((m) => `${m[1]}/${m[2]}`);
+      const why = ops.some(dressed) ? "operand"
+        : dressed(q.choices[q.answer]) ? "answer"
+        : q.choices.some(dressed) ? "option"
+        : null;
+      if (why && offenders.length < 6) {
+        offenders.push(`${cid} ${why}: "${q.prompt.replace(/\n/g, " ").slice(0, 54)}" → ${q.choices.join(" | ")}`);
+      }
+    }
+  }
+  ok(offenders.length === 0,
+    `no whole number is ever written as a fraction — no n/n or n/1 operand, answer or option in ${draws} draws${offenders.length ? `: ${offenders.join("; ")}` : ""}`);
+}
+
 // variable generators must truly vary; designed (constant) ones are classified correctly
 for (const cid of genIds.filter((id) => questions.isVariableGen(id))) {
   const prompts = new Set();
@@ -967,6 +1010,47 @@ console.log("▸ Learning path");
   ok(stagesOf.every((v, i) => i === 0 || v >= stagesOf[i - 1] - 1), "path roughly stage-ordered");
   const withLearn = beginner.filter((st) => st.actions.some((a) => a.kind === "learn"));
   ok(withLearn.length >= 3, "low-mastery steps include a learn action");
+}
+
+// ── Where an UNPLACED learner starts is where THEIR COURSE starts ──────────
+//
+// Reported from the product: "why does the course start from the most basic
+// concept of place value if the course is senior?" It did, and the engine was
+// reading the wrong list. A learner whose diagnostic placed nothing is offered
+// "the first idea in your course", and that was computed as
+// `bySubject(subj)[0]` — the genome's own order, whose first maths concept is
+// `place-value` at stage 0 — under a sentence claiming it was their course's
+// first idea. For GCSE HIGHER the concept is not in the course at all (Higher's
+// coverage opens at fractions and lists no place value); A-level opens at
+// standard form. Only Foundation really does begin there, which is what made the
+// defect look like a curriculum choice rather than a wrong lookup.
+{
+  const specs = require("../.verify/specifications.js");
+  const unplaced = (spec, level) => ({
+    profile: { country: "GB", subjects: ["maths"], spec, specLevel: level, grade: "Year 10" },
+    progress: {},
+    diagnostics: { [`maths:${spec}`]: { at: 1, measured: 0, items: [] } },
+  });
+  const tiers = [
+    ["uk-gcse", "foundation", "place-value"],
+    ["uk-gcse", "higher", "fractions"],
+    ["uk-alevel", "as", "standard-form"],
+  ];
+  for (const [spec, level, expected] of tiers) {
+    const state = unplaced(spec, level);
+    const action = nextEngine.decideNext(state, 1)[0];
+    const course = specs.specForProfile(state.profile, "maths");
+    const covered = specs.coverageOf({ spec: course.spec, level: course.level }).map((c) => c.id);
+    ok(action?.conceptId === covered[0],
+      `an unplaced ${level} learner starts at their course's own first idea (${action?.conceptId}, course opens at ${covered[0]})`);
+    ok(covered.includes(action?.conceptId),
+      `and that concept is IN the course they chose (${spec}/${level})`);
+    ok(action?.conceptId === expected,
+      `which for ${spec}/${level} is ${expected} (got ${action?.conceptId})`);
+  }
+  const higher = nextEngine.decideNext(unplaced("uk-gcse", "higher"), 1)[0];
+  ok(higher?.conceptId !== "place-value",
+    "a senior course never opens on a primary concept it does not contain");
 }
 
 // ── 5. Progress / mastery ───────────────────────────────────────────────────
@@ -1745,11 +1829,17 @@ console.log("▸ Internationalisation");
   // language, for fourteen product languages. The rule now: every `en` key is
   // defined in every dictionary.
   //
-  // The one deliberate asymmetry is the CONTENT fallback — `cn.<id>` / `cb.<id>`,
-  // where the authored English lives on the concept itself, so `en` needs no
-  // copy (lib/content-i18n.ts falls back to the genome). That range is asserted
-  // the other way round below, so a genuine English-only UI string cannot hide
-  // inside it.
+  // The deliberate asymmetries are the CONTENT ranges — `cn.<id>` / `cb.<id>`,
+  // where the authored English lives on the concept itself, and now
+  // `mcp.<id>`, the per-belief coaching paragraph, whose English lives in
+  // lib/misconceptions.ts. `en` needs no copy of either (the catalogue and the
+  // genome ARE the source), and a language may translate the content it can.
+  // Until `mcp` was added to this list the gate made translated coaching
+  // IMPOSSIBLE: a `mcp.neg-slip` line in Spanish was an "extra key", so the
+  // only way to pass was to leave all fifteen languages without it — which is
+  // why 14 languages showed an English paragraph under a translated name.
+  // Both ranges are asserted the other way round below, so a genuine
+  // English-only UI string cannot hide inside them.
   const enKeySet = Object.keys(en.DICTS.en);
   for (const l of en.LANGS) {
     if (l.code === "en") continue;
@@ -1758,9 +1848,9 @@ console.log("▸ Internationalisation");
     ok(missing.length === 0,
       `${l.code} defines every en key (missing: ${missing.slice(0, 6).join(", ") || "none"})`);
     const stray = Object.keys(dict)
-      .filter((k) => en.DICTS.en[k] === undefined && !/^(cn|cb)\./.test(k));
+      .filter((k) => en.DICTS.en[k] === undefined && !/^(cn|cb|mcp)\./.test(k));
     ok(stray.length === 0,
-      `${l.code}'s extra keys are only the content fallback range (stray: ${stray.slice(0, 6).join(", ") || "none"})`);
+      `${l.code}'s extra keys are only the content fallback ranges (stray: ${stray.slice(0, 6).join(", ") || "none"})`);
   }
 
   // ── Every tutor sentence, in every language ───────────────────────────────
@@ -1882,6 +1972,35 @@ console.log("▸ Internationalisation");
     // get the concept-grounded scaffold, because there they have no screen.
     ok(soc.socraticReply("place-value", "I am stuck on this one", "en").includes("Place value:"),
       "a concept-only turn (no screen context) still carries the concept line");
+
+    // ── THE PANEL'S THREE STARTER CHIPS ARE THREE DIFFERENT MOVES ────────
+    // The chips are the most-clicked sentences the tutor ever receives, and
+    // they are SENT AS DICTIONARY TEXT — so a translation the keyword lists do
+    // not recognise gets the generic "tell me which step you are on" reply, in
+    // that language only, and nothing in an English test notices. Each chip is
+    // therefore sent through the real tutor in all fifteen languages and must
+    // land on its own move: the hint ladder, the idea said once, a worked
+    // example of a different question. None of the three may hand over the
+    // answer to the item on screen — that is asserted by the moves themselves
+    // (the hint move points at the ladder, the example move walks a DIFFERENT
+    // draw), which is why the assertion is about WHICH move answered.
+    {
+      const codes = i18n.LANG_CODES;
+      const tr = (lang, key) => i18n.translator(lang)(key);
+      const problems = [];
+      let distinct = 0;
+      for (const lang of codes) {
+        const hint = soc.socraticReply("place-value", tr(lang, "ask.hint"), lang, screen);
+        const explain = soc.socraticReply("place-value", tr(lang, "ask.explainQ"), lang, screen);
+        const walk = soc.socraticReply("place-value", tr(lang, "ask.workThrough"), lang, screen);
+        if (!hint.includes(tr(lang, "soc.hintLead"))) problems.push(`${lang}: "hint" chip did not reach the hint move`);
+        if (!explain.includes(tr(lang, "soc.explainLead"))) problems.push(`${lang}: "explain" chip did not reach the explain move`);
+        if (!walk.includes(tr(lang, "soc.exampleLead"))) problems.push(`${lang}: "work it through" chip did not reach the example move`);
+        if (new Set([hint, explain, walk]).size === 3) distinct++;
+      }
+      ok(distinct === codes.length && problems.length === 0,
+        `the tutor panel's three starter chips reach three different moves in all ${codes.length} languages (${distinct}/${codes.length})${problems.length ? `: ${problems.slice(0, 3).join("; ")}` : ""}`);
+    }
     const we = soc.workedExample("fractions", "es");
     ok(we !== null && we.steps[3].includes("\""),
       `a translated worked example still states the correct choice (${we?.steps[3]?.slice(0, 60)})`);
@@ -2012,6 +2131,105 @@ console.log("▸ Internationalisation");
   const arCoach = content.mcCoachingNative("ar", mcIds[0]);
   ok(arCoach === "", `coaching stays out of a translated sentence ("${arCoach.slice(0, 40)}")`);
   ok(content.mcCoachingNative("en", mcIds[0]).length > 20, "English still reads the catalogue's coaching");
+
+  // THE RULE HAS ONE OWNER, AND IT IS MEASURED ON THE WHOLE MATRIX.
+  // `mcCoaching` used to answer with the catalogue's English for every language,
+  // so eight surfaces printed a translated misconception name, a dash, and an
+  // English paragraph. It now reads the READER'S dictionary directly (never
+  // `translator`, which falls back to English) and answers "" when there is no
+  // line — the same rule `mcCoachingNative` already followed.
+  const LIT = require("../.verify/i18n.js");
+  const wrongCoach = [];
+  for (const code of LIT.LANG_CODES) {
+    for (const id of mcIds) {
+      const got = content.mcCoaching(code, id, "SENTINEL");
+      const own = LIT.DICTS[code]?.[`mcp.${id}`];
+      const want = typeof own === "string" && own.trim() !== "" ? own : code === "en" ? "SENTINEL" : "";
+      if (got !== want) wrongCoach.push(`${code}:${id}`);
+    }
+  }
+  ok(wrongCoach.length === 0,
+    `coaching is the reader's OWN line or nothing at all, over every language × misconception (${LIT.LANG_CODES.length * mcIds.length} pairs, ${wrongCoach.length} wrong: ${wrongCoach.slice(0, 3).join(", ")})`);
+  ok(content.mcCoaching("en", mcIds[0], "SENTINEL") === "SENTINEL" && content.mcCoaching("ar", mcIds[0], "SENTINEL") === "",
+    "English still reads the catalogue (it is the source text) while another language gets an empty string, never English");
+  ok(content.mcCoachingNative("ar", mcIds[0]) === content.mcCoaching("ar", mcIds[0], mcMod.MISCONCEPTIONS_BY_ID[mcIds[0]].coaching),
+    "the older helper delegates to the one rule rather than keeping a second copy of it");
+  // WHAT THAT COSTS, stated rather than hidden: eleven languages carry no
+  // coaching line, so the empty branch is what their readers get. The number is
+  // measured here and quoted in the report rather than asserted to a constant,
+  // because a translation landing is an improvement, not a failure.
+  const coachingKeys = LIT.LANG_CODES.reduce(
+    (n, c) => n + Object.keys(LIT.DICTS[c] ?? {}).filter((k) => k.startsWith("mcp.")).length, 0);
+  ok(content.mcCoaching("bn", mcIds[0], "SENTINEL") === "" && content.mcCoaching("ja", mcIds[0], "SENTINEL") === "",
+    `and a language with no line of its own gets nothing back rather than English (${coachingKeys} mcp.<id> line(s) exist across all ${LIT.LANG_CODES.length} dictionaries)`);
+
+  // THE PILOT'S COACHING, TRANSLATED — and held to the same standards as every
+  // other translated sentence, plus one rule of its own: a language either has
+  // the WHOLE pilot set or none of it. Half a set would explain some of a
+  // learner's mistakes in their language and silently drop the rest, which is
+  // worse than the honest empty branch.
+  const repairMod = require("../.verify/repair.js");
+  const pilotSlips = [...new Set(Object.keys(repairMod.REPAIRS).map((k) => k.split("@")[0]))].sort();
+  // FIFTEEN: eleven at the start, then `frac-slice` and `pct-base` with the
+  // foundations ring, then `dec-point` when `decimals` — the pathway's first
+  // concept — was authored, then `denom-add` when `fraction-ops` gained its
+  // lesson. The LIST is derived from the repairs so it cannot drift from them;
+  // the constant is a deliberate tripwire, because a new belief means four new
+  // coaching lines and it is better to be told than to ship a name with nothing
+  // under it in the languages that have the others. It fired exactly as intended
+  // when `fraction-ops` landed.
+  ok(pilotSlips.length === 15,
+    `the coached beliefs are the fifteen the pilot's repairs name (${pilotSlips.join(", ")})`);
+  // A typo in a key is invisible to every other check: the line simply never
+  // renders, exactly as `mc.sf-sig` once shipped a raw key to a learner.
+  const badKeys = [];
+  for (const code of LIT.LANG_CODES) {
+    for (const k of Object.keys(LIT.DICTS[code] ?? {})) {
+      if (!k.startsWith("mcp.")) continue;
+      if (!mcMod.MISCONCEPTIONS_BY_ID[k.slice(4)]) badKeys.push(`${code}:${k}`);
+    }
+  }
+  ok(badKeys.length === 0,
+    `every mcp.<id> line names a belief the catalogue holds (bad: ${badKeys.slice(0, 4).join(", ") || "none"})`);
+  const partialLang = [];
+  const copiedLine = [];
+  const thinLine = [];
+  const translated = [];
+  for (const code of LIT.LANG_CODES) {
+    const ids = Object.keys(LIT.DICTS[code] ?? {})
+      .filter((k) => k.startsWith("mcp."))
+      .map((k) => k.slice(4))
+      .sort();
+    if (ids.length === 0) continue;
+    translated.push(code);
+    const absent = pilotSlips.filter((id) => !ids.includes(id));
+    if (absent.length) partialLang.push(`${code} (missing ${absent.length})`);
+    for (const id of ids) {
+      const line = LIT.DICTS[code][`mcp.${id}`];
+      if (line === mcMod.MISCONCEPTIONS_BY_ID[id].coaching) copiedLine.push(`${code}:${id}`);
+      // Characters, not words: a translation may not put spaces between words
+      // at all, so a word count would call a correct Chinese line empty.
+      if (String(line).length < 60) thinLine.push(`${code}:${id} ${String(line).length}c`);
+    }
+  }
+  ok(partialLang.length === 0,
+    `a language that has any coaching has the whole pilot set (${translated.join(", ") || "none"} translated; partial: ${partialLang.join(", ") || "none"})`);
+  ok(copiedLine.length === 0,
+    `and no line is the English sentence with a different key on it (copies: ${copiedLine.slice(0, 3).join(", ") || "none"})`);
+  ok(thinLine.length === 0,
+    `every translated line is a paragraph, not a stub (short: ${thinLine.slice(0, 3).join(", ") || "none"})`);
+  ok(translated.length >= 4 && content.mcCoaching("es", "neg-slip", "SENTINEL") !== "SENTINEL" && content.mcCoaching("es", "neg-slip", "SENTINEL") !== "",
+    `and the helper actually reaches them — Spanish returns its own paragraph for neg-slip, not the catalogue's English`);
+
+  // THE SEPARATORS ARE THE THING THAT DANGLE. A name followed by " — " and then
+  // an empty string is a broken sentence, so the two surfaces that punctuate
+  // around coaching were checked in place rather than trusted.
+  const mistakesSrc = fs.readFileSync("app/mistakes/page.tsx", "utf8");
+  const panelSrc = fs.readFileSync("components/marked-panel.tsx", "utf8");
+  ok(/\{coach \? <>\{" — "\}\{coach\}<\/> : null\}/.test(mistakesSrc),
+    "the mistakes list prints its dash only when there is a sentence after it");
+  ok(/const miscLine = miscCoachingLine \? miscCoachingLine\.split/.test(panelSrc) && /miscLine \? <>/.test(panelSrc),
+    "and the marked panel names the belief and stops, rather than ending on a dash");
   // A translated name is returned as itself, never as a raw mc.<id> key.
   const arName = content.mcName("ar", mcIds[0], "FALLBACK");
   ok(arName !== "FALLBACK" && arName !== `mc.${mcIds[0]}`, `misconception names arrive translated (${arName.slice(0, 30)})`);
@@ -2137,8 +2355,11 @@ console.log("▸ Hint ladder");
   ok(!hints.buildHint(slipQ, 1, { conceptId: "negatives", slip: "neg-slip" }).text,
     "rung 1 still names nothing — a slip is not handed over as a diagnosis unless asked for");
   // A slip nobody has authored a repair for keeps the general ladder rather than
-  // inventing a sentence: `frac-slice` is a real misconception with no repair.
-  const noRepair = hints.buildHint(q, 2, { conceptId: "fractions", slip: "frac-slice" });
+  // inventing a sentence. `denom-add` IS a real misconception of the next concept
+  // along, and `fractions` has no repair for it — which is the case this pins.
+  // (`frac-slice` used to be the example and now has a repair of its own, which
+  // is the good kind of reason for a fixture to change.)
+  const noRepair = hints.buildHint(q, 2, { conceptId: "fractions", slip: "denom-add" });
   ok(noRepair.key === "hint.body.strong" && !noRepair.text,
     "a slip with no authored repair falls back to the general ladder");
 
@@ -3560,6 +3781,34 @@ console.log("▸ The closed learning loop");
     }
   }
 
+  // ── A NEXT STEP ON THIS PAGE IS AN ACTION, NOT A NAVIGATION.
+  //
+  // Reported as "the continue to my next step at transfer doesn't work", and
+  // measured in a browser: after a transfer the result screen's control was an
+  // <a> whose href equalled location.pathname, so pressing it navigated to the
+  // address the learner was already at and the panel stayed put. The engine's
+  // href for a step on THIS concept is this very page, and more work on the same
+  // idea is the commonest next step — so the dead control was the usual case.
+  ok(session.continuesHere("/learn/maths/fractions", "/learn/maths/fractions"),
+    "a next step on the page the learner is reading is recognised as the same page");
+  ok(!session.continuesHere("/learn/maths/decimals", "/learn/maths/fractions"),
+    "and a step on another concept is a real navigation");
+  ok(session.continuesHere("/learn/maths/fractions?intent=REPAIR", "/learn/maths/fractions"),
+    "a query on the same route is still the same page — a same-route href does not remount it");
+  ok(!session.continuesHere("/dashboard", "/learn/maths/fractions"),
+    "the fallback destination is somewhere else");
+  ok(!session.continuesHere("", "/learn/maths/fractions"),
+    "and an absent href is never treated as 'here'");
+  // The panel has to ASK the rule, and the page has to supply the action: a
+  // reverted panel that compares strings itself, or a page that stops passing
+  // `onContinue`, would put the dead link back without failing anything above.
+  const panelSrc = fs.readFileSync("components/session-result.tsx", "utf8");
+  ok(panelSrc.includes("continuesHere(") && panelSrc.includes("onContinue"),
+    "the result screen routes 'Continue to my next step' through that one rule");
+  const learnSrc = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(learnSrc.includes("onContinue={() => void startNext()}") && /async function startNext\(\)/.test(learnSrc),
+    "and the lesson page hands it the action that opens the next session in place");
+
   // ── The bands a learner sees are derived, and they move with the evidence.
   ok(metricsOf(state.progress[CONCEPT]).band !== "new", "a proven concept is not labelled 'new'");
   ok(metricsOf(undefined).band === "new" && metricsOf(undefined).independence === null,
@@ -4063,6 +4312,156 @@ console.log("▸ Evidence drives the experience");
       `${items} inverse items across all ${concepts} re-framable concepts are served and re-derived by the test`);
     ok(defects.length === 0,
       `and exactly one option is correct in every one — ${regraded} distractor answers re-graded by the test, not trusted${defects.length ? `: ${defects.slice(0, 3).join("; ")}` : ""}`);
+  }
+
+  // ── THE INVERSE ASKS ITS QUESTION IN WORDS ────────────────────────────
+  // The served prompt used to be `${value} — which of these questions gives this
+  // answer?`: a bare number, an em dash and a fragment. The item is a real task
+  // (solve four equations, find the one that comes to 3) and the wording never
+  // said so, which is the reported defect. It now reads either "Which equation
+  // has x = 3 as its solution?" or "Which of these questions has 3 as its
+  // answer?", and BOTH carry the value inside the sentence.
+  //
+  // The equation frame is a CLAIM about four equations, so it is re-derived here
+  // from the option text alone: every option is solved independently of the
+  // bank's key, exactly one solves to the stated value, and that one is the
+  // marked answer. A frame that named a value no option solves to would pass
+  // every caption-only check and teach a learner the wrong thing.
+  {
+    const solved = transferMod.equationSolution;
+    // The planted cases first: a wrong formula here would make every assertion
+    // below agree with itself.
+    const planted = [
+      ["Solve 3(x + 3) = 30.", 7],
+      ["Solve 5(x + 2) = 25.", 3],
+      ["Solve 2x + 5 = 19", 7],
+      ["Solve 3x - 5 = 10", 5],
+      ["Solve 2x + 5 = 0x + 19", 7],
+    ];
+    const wrong = planted.filter(([p, v]) => solved(p) === null || Math.abs(solved(p) - v) > 1e-9);
+    ok(wrong.length === 0,
+      `a printed equation is read for its own solution — ${planted.length} planted shapes${wrong.length ? `: ${wrong.map(([p, v]) => `${p} ≠ ${v} (read ${solved(p)})`).join("; ")}` : ""}`);
+    ok(solved("What is 3/4 of 20?") === null && solved("Solve 4x = 12") === null,
+      "and a prompt that is not a one-unknown equation with a constant is refused rather than guessed");
+    // Two options that solve to the same value make a frame naming that value
+    // false, so the frame must refuse the set.
+    const dup = transferMod.equationFrame(
+      ["Solve 2(x + 1) = 8", "Solve 4(x + 1) = 16"],
+      ["3", "3"],
+      0,
+    );
+    ok(dup === null, "and a set where two options solve to the same value is refused a solution frame");
+    const mismatched = transferMod.equationFrame(
+      ["Solve 2(x + 1) = 8", "Solve 4(y + 1) = 16"],
+      ["3", "3"],
+      0,
+    );
+    ok(mismatched === null, "and one that mixes unknowns is refused — the frame may not name x beside an option in y");
+
+    let items = 0;
+    let framed = 0;
+    let generic = 0;
+    let placeholders = 0;
+    let bad = 0;
+    const problems = [];
+    for (const cid of Object.keys(genome.CONCEPTS_BY_ID)) {
+      if (!transferMod.canTransfer(cid)) continue;
+      for (const band of [0.5, 0.7, 0.85]) {
+        const served = transferMod.serveTransfer(cid, `words:${band}`, band, "en");
+        if (!served || served.surface !== "inverse") continue;
+        items++;
+        const prompt = String(served.question.prompt);
+        if (/\{\s*(v|var)\s*\}/.test(prompt)) placeholders++;
+        if (!prompt.endsWith("?")) problems.push(`${cid}: prompt is not a question ("${prompt}")`);
+        const options = served.question.choices.map(String);
+        const solutionFrame = /^Which equation has /.test(prompt);
+        if (solutionFrame) {
+          framed++;
+          const m = prompt.match(/^Which equation has ([A-Za-z]) = ([^ ]+) as its solution\?$/);
+          if (!m) { problems.push(`${cid}: solution frame is malformed ("${prompt}")`); continue; }
+          const variable = m[1];
+          const value = Number(m[2]);
+          const values = options.map((o) => solved(o));
+          if (values.some((v) => v === null || !Number.isFinite(v))) {
+            problems.push(`${cid}: an option in a solution frame is not a solvable equation`);
+            continue;
+          }
+          const matching = values.filter((v) => Math.abs(v - value) < 1e-9);
+          if (matching.length !== 1) problems.push(`${cid}: ${matching.length} options solve to ${value} ("${prompt}")`);
+          else if (Math.abs(values[served.question.answer] - value) > 1e-9) {
+            problems.push(`${cid}: the marked option is not the one that solves to ${value}`);
+          }
+          if (options.some((o) => transferMod.equationVariable(o) !== variable)) {
+            problems.push(`${cid}: an option is not an equation in ${variable}`);
+          }
+        } else {
+          generic++;
+          const value = String(served.source.choices[served.source.answer] ?? "");
+          if (!prompt.includes(value)) problems.push(`${cid}: the generic prompt never states the value ("${prompt}")`);
+        }
+      }
+    }
+    bad = problems.length;
+    ok(items > 100 && placeholders === 0,
+      `every one of ${items} inverse prompts is a finished sentence — no {v} or {var} placeholder is ever shown to a learner (${placeholders} leaks)`);
+    ok(bad === 0,
+      `and the equation frame's claim holds on every served item it is used for — ${framed} framed, ${generic} generic${bad ? `: ${problems.slice(0, 3).join("; ")}` : ""}`);
+    ok(framed > 0,
+      `the clearer wording really reaches the served surface (${framed} items say "which equation has … as its solution")`);
+  }
+
+  // ── THE STORY SURFACE MUST ADD UP, AND BE READABLE ────────────────────
+  // The story re-frames `a·x + b = total` as "a joining fee of b, the same
+  // amount every month, after a months the total is …". Three numbers, one
+  // equation, and until this was checked nothing compared them: the prompt is
+  // built by concatenating translated fragments, so the only thing that can
+  // catch a wrong slot is arithmetic on what a learner reads.
+  //
+  // It found one: a real draw printed "After 1 months the total paid is 7". The
+  // sentence has no singular form, so a one-month story is now refused (see
+  // lib/transfer.ts#storyQuestion) and the draw takes another surface.
+  {
+    let stories = 0;
+    const problems = [];
+    for (const cid of Object.keys(genome.CONCEPTS_BY_ID)) {
+      if (!transferMod.canTransfer(cid)) continue;
+      for (const band of [0.4, 0.55, 0.7, 0.85]) {
+        const served = transferMod.serveTransfer(cid, `story:${band}`, band, "en");
+        if (!served || served.surface !== "story") continue;
+        stories++;
+        const prompt = String(served.question.prompt);
+        const nums = (prompt.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+        // The bank keys a linear answer as "6" or "x = 6", depending on the
+        // family; both are the number 6, so the variable is stripped the same way
+        // lib/transfer.ts strips it before deciding a story is true.
+        const own = transferMod.answerValueKey(String(served.source.choices[served.source.answer] ?? ""));
+        const answer = own === null ? NaN : Number(own.replace(/^[a-z]\s*=\s*/, ""));
+        if (nums.length !== 3) { problems.push(`${cid}: ${nums.length} numbers in "${prompt}"`); continue; }
+        if (!Number.isFinite(answer)) { problems.push(`${cid}: the source answer is not a number`); continue; }
+        // fee + months × monthly = total, with the monthly amount the unknown.
+        if (Math.abs(nums[0] + nums[1] * answer - nums[2]) > 1e-6) {
+          problems.push(`${cid}: ${nums[0]} + ${nums[1]}×${answer} ≠ ${nums[2]} ("${prompt}")`);
+        }
+        if (/\b1 months\b/.test(prompt)) problems.push(`${cid}: "1 months" — the sentence has no singular form`);
+      }
+    }
+    // NO FLOOR ON THE COUNT, and the reason is the defect: the story surface is
+    // only TRUE for a one-step equation whose unknown is a positive value that
+    // the item already keys, so a handful of draws across the bank is the honest
+    // number. A count floor would push future work toward serving more stories,
+    // which is the wrong pressure — what matters is that every one that IS served
+    // adds up, and that the shapes that cannot be re-told are refused.
+    ok(stories > 0 && problems.length === 0,
+      `every served story adds up and reads — ${stories} re-framed items checked by arithmetic, not by eye${problems.length ? `: ${problems.slice(0, 3).join("; ")}` : ""}`);
+    // The planted regression: `quadratics` was re-framed from a fragment of its
+    // own prompt into "a joining fee of 4 … after 4 months the total paid is 0",
+    // a sentence with a monthly amount of −1. It is not a one-step equation and
+    // must never carry this surface.
+    const quadStories = [0.4, 0.55, 0.7, 0.85]
+      .map((b) => transferMod.serveTransfer("quadratics", `pin:${b}`, b, "en"))
+      .filter((s) => s && s.surface === "story");
+    ok(quadStories.length === 0,
+      "and a concept that is not a one-step equation is never re-told as a gym fee");
   }
 
   // ── STATE E: time passes → retention is due. ──
@@ -5172,8 +5571,16 @@ console.log("▸ The question bank");
     const reactQuestion = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
     ok(reactQuestion.includes("declareQuestion(q)") && reactQuestion.includes("<QuestionDeclaration"),
       "the React question screen declares what it is testing");
-    ok(reactQuestion.includes('t("ask.whatTesting")') && reactQuestion.includes("skill.${declared.skill}"),
-      "naming the demand in the learner's own language");
+    // THE LINE NAMES THE OBJECTIVE, not the mark scheme. It read "What is this
+    // testing? Multi-step · Marks: 1" — two pieces of exam-board machinery on a
+    // practice session, where the learner needs to know what they are getting
+    // better at. The concept IS the objective; the demand and marks remain as
+    // metadata on the element (`title=`), and both products must say it the same
+    // way or one item reads two ways on two surfaces.
+    ok(reactQuestion.includes('t("ask.whatTesting")') && reactQuestion.includes("{conceptTitle}"),
+      "naming the objective in the learner's own language");
+    ok(!/<p[\s\S]{0,400}why-label[\s\S]{0,400}own\.marks[\s\S]{0,200}<\/p>/.test(reactQuestion),
+      "and NOT printing marks in a practice item's visible line");
     // A served question withholds its answer key AND its tags, so the beliefs an
     // item discriminates cannot be listed before the answer — reading them first
     // is a hint, and a question that warns you about its own trap measures
@@ -5183,7 +5590,8 @@ console.log("▸ The question bank");
     const staticQuestion = fs.readFileSync("docs/app.js", "utf8");
     ok(staticQuestion.includes("E.questionBank.declareQuestion(q)"),
       "the published question screen declares the same item from the same rule");
-    ok(staticQuestion.includes('t("ask.whatTesting")'), "in the same words");
+    ok(staticQuestion.includes('t("ask.whatTesting")') && staticQuestion.includes("esc(ctitle(q.conceptId))") &&
+      !/esc\(t\("own\.marks"\)\) \+ ": " \+ d\.marks/.test(staticQuestion), "in the same words, with no marks in the line");
   }
 
   // ── A marked answer TEACHES, and every surface teaches the same way ──────
@@ -5233,6 +5641,22 @@ console.log("▸ The question bank");
   {
     const sheet = fs.readFileSync("components/work-sheet.tsx", "utf8");
     ok(sheet.includes("<textarea"), "the scratch sheet renders a field to write in");
+    // COLLAPSED BY DEFAULT, AND A REAL CONTROL WHEN IT IS.
+    // The sheet used to be five empty rows above four options on EVERY question
+    // — the largest element on the screen, above the answer. It is now a row a
+    // learner opens, so the assertions are: the field is behind the open flag,
+    // the row is a button with `aria-expanded` (a keyboard user meets the
+    // control, not a missing feature), and the open/closed choice survives to
+    // the next question instead of resetting on every item.
+    ok(/\{open && \(\s*<textarea/.test(sheet),
+      "the working field is only rendered once the learner opens the sheet");
+    ok(sheet.includes('aria-expanded="false"') && sheet.includes("work-sheet-toggle"),
+      "and the collapsed row is a disclosure button that says it is collapsed");
+    ok(/let preferredOpen = false/.test(sheet) && sheet.includes("preferredOpen = next"),
+      "and the choice is remembered for the next question rather than reset per item");
+    const sheetCss = fs.readFileSync("app/globals.css", "utf8");
+    ok(sheetCss.includes(".work-sheet-toggle") && sheetCss.includes('.work-sheet[data-open="false"]'),
+      "the stylesheet styles the collapsed row and the open one differently");
     ok(!/\bfetch\(|localStorage|sessionStorage|navigator\.sendBeacon/.test(sheet),
       "and never uploads or stores the working — it is the learner's own paper");
     ok(sheet.includes("[questionId]"),
@@ -5265,6 +5689,82 @@ console.log("▸ The question bank");
     const paperBlock = css.match(/\.work-paper\s*\{([^}]*)\}/)?.[1] ?? "";
     ok(paperBlock.length > 0 && !/outline/.test(paperBlock),
       "and leaves the keyboard focus ring to the shared rule instead of switching it off");
+    // The sentence on the sheet must describe what the code does: React state,
+    // per tab, never sent, never saved, never marked. The old one ("we never read
+    // it") was true but read as a defensive promise; either way, what is asserted
+    // is that the panel and the page pass the DICTIONARY's sentence and that the
+    // string says where the text lives.
+    const note = i18n.translator("en")("work.note");
+    ok(/tab/i.test(note) && /never/i.test(note) && !/never read it/i.test(note),
+      `the sheet's disclosure says where the working lives and what is not done with it ("${note}")`);
+    const learnPage = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+    ok(learnPage.includes('hideLabel={t("common.close")}'),
+      "and the question screen gives the learner a way to close it again");
+  }
+
+  // ── THE QUESTION HEADER NAMES ITS OWN FACTS ─────────────────────────────
+  // "4% · 2 ✕ · —" was three glyphs a learner had to decode: 4% mastery, two
+  // ATTEMPTS (read as "two wrong" by everyone who saw it), and a dash for "no
+  // streak yet". Each figure is now labelled from the dictionary, the reason a
+  // question was served sits behind a disclosure instead of taking three lines
+  // above the prompt, and the sticky bar no longer repeats the subject.
+  {
+    const src = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+    ok(!/\{progress\.attempts\} ✕/.test(src) && !/progress\.mastery \* 100\}% ·/.test(src),
+      "the session's statistics are no longer printed as bare glyphs");
+    // …AND THE STRIP IS NOT REPLACED BY A NICER-LABELLED ONE. Labelling the
+    // figures fixed the decoding and left the shape: three pieces of model
+    // machinery in the most prominent part of every practice screen, where a
+    // provisional mastery percentage invites a verdict and buys the learner
+    // nothing about the question. The numbers belong on the result screen
+    // (components/session-result), where before/after is the point, and the
+    // position in the set belongs to the sticky bar. So the page must print
+    // NONE of them above the question.
+    // The READ stage keeps its own evidence panel (that is what it is for), so
+    // the claim is about the PRACTICE HEADER: the slice from the card's opening
+    // to the prompt must hold none of the three figures.
+    const practiceHead = src.slice(src.indexOf("THE QUESTION IS THE HEADER"), src.indexOf('className="qprompt"'));
+    ok(practiceHead.length > 0 && !practiceHead.includes("sess.mastery") &&
+      !practiceHead.includes("learn.attempts") && !practiceHead.includes("learn.streak") &&
+      !src.includes("sess-stats"),
+      "and the practice header carries no mastery / attempts / streak strip at all");
+    // The reason a question was served is behind the disclosure — the SUMMARY is
+    // one line (the label and the band), and the sentence that explains it opens
+    // underneath. Keeping the reason in the summary meant the collapsed state was
+    // still three wrapped lines above the prompt, so the disclosure saved nothing.
+    ok(/<details className="whyq">[\s\S]{0,1200}?<summary>[\s\S]{0,400}?<\/summary>[\s\S]{0,400}?target\.\$\{why\.reason\}/.test(src),
+      "the reason a question was served is one line with the rest behind a disclosure");
+    // The sticky bar: the subject must not appear IN it (it is in the eyebrow and
+    // the breadcrumb), and the stage chip must wait for the serve's own answer.
+    const bar = src.slice(src.indexOf('className="qbar"'), src.indexOf('className="qbar"') + 2000);
+    ok(!bar.includes("subj."),
+      "the sticky bar does not repeat the subject it is already under");
+    ok(bar.includes("reframed !== null"),
+      "and does not claim a transfer stage before the serve has said whether it re-framed the item");
+    // THE TUTOR'S DOOR IS IN THE BAR, NOT FLOATING OVER THE ANSWERS.
+    // Measured at 320px: `elementFromPoint` over the fourth answer option
+    // returned the floating "Ask the tutor" pill, so a learner reaching for D
+    // could press the tutor. The door is now a control in the sticky bar, and
+    // the floating pill stands down on this page below the drawer breakpoint.
+    ok(src.includes('className="qbar-tutor"') && src.includes("setTutorOpen(true)"),
+      "the question bar carries an explicit tutor control for the widths where the panel is a drawer");
+    const cssSrc = fs.readFileSync("app/globals.css", "utf8");
+    ok(/\.session-page \.tutor-fab\s*\{\s*display:\s*none/.test(cssSrc),
+      "and the floating pill stands down there, because it was covering an answer option");
+    ok(/\.tutor-panel\[data-open="false"\]|\.tutor-panel\s*\{[^}]*visibility:\s*hidden/s.test(cssSrc),
+      "and a closed drawer is out of the tab order rather than merely off screen");
+    // A CHOICE MUST SHOW THE KEYBOARD. The four states are drawn differently:
+    // hover and focus move the border, selection adds the accent ring, marking
+    // replaces it with the tick or the cross. The ring itself is asserted in the
+    // stylesheet because the browser window in this environment is unfocused, so
+    // `:focus-visible` cannot be measured live — see the report.
+    ok(/\.choice:focus-visible\s*\{[^}]*outline:\s*2px/.test(cssSrc),
+      "an answer option draws a 2px keyboard focus ring of its own");
+    const choiceBlock = cssSrc.match(/\.choice\s*\{([^}]*)\}/)?.[1] ?? "";
+    ok(!/outline:\s*none/.test(choiceBlock),
+      "and the base rule never switches the outline off");
+    ok(!/:first-child/.test(cssSrc.match(/\.choices?[^{]*\{[^}]*\}/g)?.join("\n") ?? ""),
+      "and no rule emphasises the first option, so nothing looks preselected");
   }
 
   // ── WHAT AN ANSWER PROVED, said the same way on every surface (§10) ──────
@@ -8894,7 +9394,7 @@ console.log("▸ Assigned work is derived, not counted");
   // commonest class in the product is one child, and it read "1 students" on
   // the screen whose whole job is to show a teacher their class at a glance.
   // No plural machinery exists in this product; the established answer is a
-  // sibling key for the singular (see components/own-paper.tsx), so this pins
+  // sibling key for the singular (as `an.qsOne` sits beside `an.qs`), so this pins
   // both halves: the call site chooses it, and all fifteen dictionaries have it.
   ok(teacherSrc.includes('students.length === 1 ? "teach.studentsOne"'),
     "a class of one names its single student in the singular, not \"1 students\"");
@@ -10466,14 +10966,12 @@ console.log("▸ Learn shows the learner's own curriculum, with a status per top
     "learn.idea", "worked.eyebrow", "worked.lead", "worked.show",
     "worked.answer", "worked.err", "worked.next", "peer.ideas",
     "learn.buildsOn", "worked.another",
-    // The notes section's lead sentence: it read as "Study packs / Add a pack /
-    // Fork", which named a teacher's printable pack and two pieces of developer
-    // vocabulary, so a learner could not tell what the section was for. Only the
-    // LEAD is listed: the other notes strings are packed several-to-a-line in at
-    // least one dictionary (Urdu), where the line-placement assertion below
-    // cannot apply — and quietly restructuring that dictionary to satisfy a
-    // check would be the check dictating the file.
-    "pack.lead",
+    // The learner-notes board's lead sentence is NOT listed any more: the board
+    // was removed from the lesson (it sat empty at the foot of every read stage,
+    // under a heading about writing notes for other learners, after the lesson
+    // had ended). Its dictionary entries remain — `/api/packs` still works and a
+    // future surface may show them — but a string no screen renders is not one
+    // the suite should hold every language to.
   ];
   const learnGaps = [];
   const english = i18n.translator("en");
@@ -12526,12 +13024,162 @@ console.log("▸ A paper says whether its shape is the awarding body's");
 
   // 1. THE SET EVERY COUNTRY WITHOUT A BLUEPRINT RECEIVES says what it is.
   const builtSet = pm.genericPapers(ukActive, "computing", "en");
-  ok(builtSet.length === 3 && builtSet.every((p) => p.basis === "modelled"),
-    `the papers built for a course with no blueprint say they are OpenMind's own (${builtSet.map((p) => p.basis).join(",")})`);
+  ok(builtSet.length === 12 && builtSet.every((p) => p.basis === "modelled"),
+    `the papers built for a course with no blueprint say they are OpenMind's own (${builtSet.length} papers, all modelled)`);
+  // THREE SHAPES × FOUR SETS, and a set has to be a REAL second sitting: its
+  // own id (so the picker's choice reaches THAT template) and its own name (so a
+  // learner knows which one they sat). Two rows sharing an id would make every
+  // set button start the first paper, and two sharing a name is the duplicate
+  // list this library exists to replace.
+  ok(new Set(builtSet.map((p) => p.id)).size === builtSet.length,
+    `every set has its own id (${new Set(builtSet.map((p) => p.id)).size}/${builtSet.length})`);
+  ok(new Set(builtSet.map((p) => p.name)).size === builtSet.length,
+    `and its own name (${builtSet.map((p) => p.name).slice(0, 3).join(" | ")} …)`);
+  ok(["1", "2", "3"].every((n) => builtSet.filter((p) => p.id.includes(`-p${n}-`)).length === 4),
+    `with each paper shape appearing in four sets (${["1", "2", "3"].map((n) => builtSet.filter((p) => p.id.includes(`-p${n}-`)).length).join("+")})`);
+  // FOUR SITTINGS PER SHAPE. The letter is the sitting, so a library that
+  // collapsed to one draw would repeat the same rows under one name; the count
+  // is asserted rather than "at least three", because three was the thin
+  // version a real learner called out ("make the exam papers have soo many
+  // papers") and a later edit must not quietly take it back to three.
+  ok(builtSet.every((p) => /[A-D]$/.test(p.name)) && new Set(builtSet.map((p) => p.name.slice(-1))).size === 4,
+    `and four set letters present, so a library cannot collapse to one draw (${new Set(builtSet.map((p) => p.name.slice(-1))).size})`);
   ok(builtSet.every((p) => !p.shapeSource),
     "and cite no source, because there is no awarding body's structure behind them");
   ok(pm.needsPaper(ukActive, "maths", "en", 4).basis === "modelled",
     "the record-built paper is OpenMind's own shape as well");
+
+  // 1b. THE PICKER LISTS THE LEARNER'S SUBJECTS, NOT THE QUALIFICATION'S.
+  // The list was built from `spec.coverage`, which answers "what CAN this
+  // course teach" — so a learner who chose maths and nothing else was offered
+  // physics, chemistry, biology and computing papers, 28 rows across five
+  // subjects for a course of one. `chosenSubjects` is the rule that separates
+  // the two questions, and the route reads it instead.
+  const ukCovered = Object.keys(uk.coverage).filter((s) => uk.coverage[s]).sort();
+  ok(ukCovered.length > 1,
+    `the GCSE covers several subjects, which is why coverage could not be the picker's answer (${ukCovered.join(", ")})`);
+  const mathsOnly = S.chosenSubjects({ subjects: ["maths"] }, uk);
+  ok(mathsOnly.length === 1 && mathsOnly[0] === "maths",
+    `a learner who chose maths is offered maths and nothing else (${mathsOnly.join(", ")})`);
+  const twoSubjects = S.chosenSubjects({ subjects: ["maths"], subjectCourses: { physics: "uk-gcse" } }, uk);
+  ok(twoSubjects.includes("maths") && twoSubjects.includes("physics") && twoSubjects.length === 2,
+    `and one who chose maths and declared a physics course is offered both, not all five (${twoSubjects.join(", ")})`);
+  ok(S.chosenSubjects({}, uk).length === ukCovered.length,
+    "while a learner who has declared nothing yet still sees the course, which is what every pre-existing record does");
+  const foreignSubject = S.chosenSubjects({ subjects: ["biology"] }, S.specById("gt-diversificado"));
+  ok(foreignSubject.length === 1 && foreignSubject[0] === "maths",
+    `a declared subject the qualification does not teach cannot widen it (${foreignSubject.join(", ")})`);
+  // And one set per subject: the board's own where it exists, never both. The
+  // two used to be added together, so GCSE maths appeared ten times.
+  const ukMathsPapers = pm.papersForSubject(ukActive, "maths", "en");
+  const ukComputingPapers = pm.papersForSubject(ukActive, "computing", "en");
+  const ukMathsIds = new Set(ukMathsPapers.map((p) => p.id));
+  ok(ukMathsPapers.length > 0 && ukMathsPapers.every((p) => p.subject === "maths"),
+    `GCSE maths offers the board's own set (${ukMathsPapers.length} papers: ${[...ukMathsIds].join(", ")})`);
+  const leadingAuthored = ukMathsPapers.findIndex((p) => p.basis !== "published");
+  ok(leadingAuthored > 0
+    && ukMathsPapers.slice(0, leadingAuthored).every((p) => p.board)
+    && ukMathsPapers.slice(leadingAuthored).every((p) => p.basis === "modelled"),
+    `and the board's papers still LEAD the subject's list, with the practice sets after them (${leadingAuthored} authored first)`);
+  ok(pm.papersForSpec("uk-gcse", "maths").every((p) => ukMathsIds.has(p.id)),
+    "and no modelled paper shares its id with one of the board's");
+  // ── A PAPER BELONGS TO A TIER, NOT ONLY TO A QUALIFICATION ────────────────
+  // The catalogue held ONE Cambridge IGCSE maths blueprint and it was the
+  // EXTENDED paper at 70 marks, so a Core learner's library mixed a paper from
+  // the tier above theirs with the modelled sets. A board sets DIFFERENT papers
+  // per tier — Core sits Papers 1 and 3 (80 marks, 1h30); Extended sits Papers 2
+  // and 4 (100 marks, 2h) — so the catalogue now holds all four and `levels`
+  // says which candidate sits which. This is the difference between a mock of a
+  // learner's exam and a paper they will never be handed in the hall.
+  const igcse = S.specById("int-igcse");
+  const coreLevel = igcse.levels.find((l) => l.id === "core") ?? igcse.levels[0];
+  const extLevel = igcse.levels.find((l) => l.id === "extended") ?? igcse.levels[0];
+  const corePapers = pm.papersForSubject({ spec: igcse, level: coreLevel }, "maths", "en");
+  const extPapers = pm.papersForSubject({ spec: igcse, level: extLevel }, "maths", "en");
+  const authoredOf = (rows) => rows.filter((p) => p.basis === "published");
+  ok(corePapers.length >= 10,
+    `a Core IGCSE learner gets a library, not two rows (${corePapers.length} papers)`);
+  ok(authoredOf(corePapers).length === 2 && authoredOf(corePapers).every((p) => /\(Core\)/.test(p.name)),
+    `and the board papers in it are the CORE ones the candidate sits (${authoredOf(corePapers).map((p) => p.name).join(" | ")})`);
+  ok(authoredOf(extPapers).length === 2 && authoredOf(extPapers).every((p) => /\(Extended\)/.test(p.name)),
+    `while an Extended candidate is offered the EXTENDED papers (${authoredOf(extPapers).map((p) => p.name).join(" | ")})`);
+  ok(authoredOf(corePapers).every((p) => p.marks === 80 && p.minutes === 90),
+    `at Cambridge's own 80 marks in 1h30 (${authoredOf(corePapers).map((p) => `${p.marks}/${p.minutes}`).join(", ")})`);
+  ok(authoredOf(extPapers).every((p) => p.marks === 100 && p.minutes === 120),
+    `and 100 marks in 2h for Extended (${authoredOf(extPapers).map((p) => `${p.marks}/${p.minutes}`).join(", ")})`);
+  ok(!corePapers.some((p) => /Extended/.test(p.name)) && !extPapers.some((p) => /\(Core\)/.test(p.name)),
+    "and neither list carries a paper from the other tier");
+  ok(corePapers.some((p) => p.basis === "modelled"),
+    "with OpenMind's own practice sets still offered at that tier's band");
+
+  // 1c. THE SAME RULE WHERE A BOARD SETS AN AS AND AN A-LEVEL. AS is a
+  //     two-paper qualification at 80 marks a paper; the A-level is three at
+  //     100. An AS candidate shown three A-level papers is sitting the wrong
+  //     examination, so the papers name their tier — and a paper named by ID
+  //     (a saved link) is refused by the same rule, which is why the predicate
+  //     has one owner rather than a filter in the picker.
+  const alevel = S.specById("uk-alevel");
+  const asLevel = alevel.levels.find((l) => l.id === "as") ?? alevel.levels[0];
+  const a2Level = alevel.levels.find((l) => l.id === "a2") ?? alevel.levels[alevel.levels.length - 1];
+  const asPapers = pm.papersForSubject({ spec: alevel, level: asLevel }, "maths", "en");
+  const a2Papers = pm.papersForSubject({ spec: alevel, level: a2Level }, "maths", "en");
+  ok(asPapers.every((p) => p.basis === "modelled"),
+    `an AS candidate is not handed the A-level papers (${authoredOf(asPapers).length} authored rows)`);
+  ok(authoredOf(a2Papers).length === 6,
+    `an A2 candidate is: six authored papers, three from each board (${authoredOf(a2Papers).length})`);
+  const aqaP1 = pm.paperById("aqa-alevel-maths-p1");
+  ok(pm.paperAllowedFor(aqaP1, { spec: alevel, level: a2Level })
+    && !pm.paperAllowedFor(aqaP1, { spec: alevel, level: asLevel }),
+    "and one named by id is refused for the tier that does not sit it, so a saved link cannot build it");
+
+  // 1d. THE CBSE SEQUENCE, BOTH HALVES. A Class 10 candidate was offered the
+  //     Class 12 physics paper (it named no tier) and a Class 11–12 candidate was
+  //     offered Class 10 mathematics, which they had outgrown. Each half of the
+  //     board's sequence now names its own classes.
+  const cbseSpec = S.specById("in-cbse");
+  const class10 = cbseSpec.levels.find((l) => l.id === "class10");
+  const class12 = cbseSpec.levels.find((l) => l.id === "class11-12");
+  const c10 = authoredOf(pm.papersForSubject({ spec: cbseSpec, level: class10 }, "maths", "en"));
+  const c12 = authoredOf(pm.papersForSubject({ spec: cbseSpec, level: class12 }, "maths", "en"));
+  ok(c10.length === 1 && /Class 10/.test(c10[0].name),
+    `a Class 10 candidate gets the Class 10 paper (${c10.map((p) => p.name).join(" | ")})`);
+  ok(c12.length === 1 && /Class 12/.test(c12[0].name) && c12[0].marks === 80,
+    `and a Class 11–12 candidate the Class 12 one, at CBSE's 80 marks (${c12.map((p) => `${p.name} ${p.marks}`).join(" | ")})`);
+  ok(!authoredOf(pm.papersForSubject({ spec: cbseSpec, level: class10 }, "physics", "en")).some((p) => /Class 12/.test(p.name)),
+    "with the Class 12 physics paper out of a Class 10 candidate's list");
+
+  // 1e. THE SAME LIBRARY IN EVERY LANGUAGE. The list is built on the server from
+  //     the learner's language, so a language that yields fewer rows is a
+  //     library that silently loses papers when somebody switches interface —
+  //     the kind of gap that only shows up after a learner has changed language
+  //     and found their mock gone.
+  const enRows = pm.papersForSubject(ukActive, "maths", "en");
+  const shortIn = i18n.LANG_CODES.filter((code) => pm.papersForSubject(ukActive, "maths", code).length !== enRows.length);
+  ok(shortIn.length === 0,
+    `every language offers the same paper library (${enRows.length} papers across ${i18n.LANG_CODES.length} languages; short in ${shortIn.join(", ") || "none"})`);
+  const deRows = pm.papersForSubject(ukActive, "maths", "de");
+  const sameName = (id) => enRows.find((p) => p.id === id)?.name === deRows.find((p) => p.id === id)?.name;
+  ok(enRows.filter((p) => p.basis === "published").every((p) => sameName(p.id)),
+    "a board paper keeps the awarding body's own name in every language, because that name is the board's");
+  ok(enRows.filter((p) => p.basis === "modelled").every((p) => !sameName(p.id)),
+    `while a practice set is named in the learner's own (${deRows.filter((p) => p.basis === "modelled")[0]?.name})`);
+  ok(corePapers.every((p) => p.basis === "published" || p.basis === "modelled"),
+    "and every row says which of the two it is");
+  ok(new Set(corePapers.map((p) => p.name)).size === corePapers.length,
+    "with no two rows carrying the same name — the duplicate-list problem that put the old rule in place");
+  ok(ukComputingPapers.length === 12 && ukComputingPapers.every((p) => p.basis === "modelled"),
+    `and a subject the board does not publish here gets OpenMind's exam-shaped sets, three shapes in four sittings (${ukComputingPapers.length})`);
+  // LENGTH AND TIME ARE THE FORMAT. A board paper is a sitting of a fixed
+  // size; the modelled set sized itself by question count before, giving 52
+  // marks in 60 minutes and 90 in 70.
+  const modelledMarks = ukComputingPapers.map((p) => p.marks);
+  const modelledMinutes = ukComputingPapers.map((p) => p.minutes);
+  ok(modelledMarks.every((m) => m >= 60) && modelledMinutes.every((m) => m >= 75),
+    `each modelled paper is a sitting, not a worksheet (marks ${modelledMarks.join("/")}, minutes ${modelledMinutes.join("/")})`);
+  ok(ukComputingPapers.every((p) => Math.abs(p.marks / p.minutes - 60 / 75) < 0.15),
+    "and its clock runs at roughly a mark a minute, as a real paper's does");
+  ok(ukComputingPapers.every((p) => p.sections.some((s) => s.name === "Section A")),
+    "with the section names a real paper prints, not names for OpenMind's item kinds");
 
   // 2. THE SITTING REMEMBERS WHAT IT WAS — on the paper AND on the stored key,
   //    because the key is what marking reads later.
@@ -14947,6 +15595,57 @@ console.log("▸ Every door that costs money or CPU names its bound");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ▸ The lesson says which language it is teaching in
+//
+// The defect: a learner chose Urdu — or Bengali, or Japanese — and got
+// translated buttons, a translated concept title, a translated misconception
+// name, and then four paragraphs of English. Nothing on the page said so. The
+// one honest sentence existed (`lq.teachNote`, in all fifteen dictionaries) and
+// rendered only inside the language picker on /access, a screen a learner may
+// never open, so the interface claimed a localisation the teaching did not have.
+//
+// Two claims, and the first is what makes the second safe to print at all:
+//   1. the sentence's first clause is TRUE, measured from the dictionaries
+//      rather than from a list kept by hand — this file's own comment claimed
+//      seven translated languages while all fifteen carry every concept title;
+//   2. the teaching half really has no translation layer, so the printed
+//      sentence is not hedging content that is translated somewhere else.
+{
+  console.log("▸ The lesson says which language it is teaching in");
+  const litp2 = require("../.verify/i18n.js");
+  const content = require("../.verify/content-i18n.js");
+
+  const named = litp2.LANG_CODES.filter((c) => c !== "en" && content.namesNatively(c));
+  ok(named.length === litp2.LANG_CODES.length - 1,
+    `every non-English dictionary carries all ${genome.CONCEPTS.length} concept titles in its own words, so "names render natively" is a measured fact (${named.length} of ${litp2.LANG_CODES.length - 1}: ${litp2.LANG_CODES.filter((c) => c !== "en" && !content.namesNatively(c)).join(",") || "none missing"})`);
+  ok(content.namesNatively("en") && !content.namesNatively("xx"),
+    "and the rule answers true for English and false for a language that does not exist, so it cannot pass by accident");
+
+  for (const key of ["lq.teachNote", "lq.teachNoteAll"]) {
+    const missing = litp2.LANG_CODES.filter((c) => !litp2.DICTS[c] || !litp2.DICTS[c][key]);
+    ok(missing.length === 0, `${key} is authored in all ${litp2.LANG_CODES.length} languages (missing: ${missing.join(",") || "none"})`);
+    const english = litp2.LANG_CODES.filter((c) => c !== "en" && litp2.DICTS[c][key] === litp2.DICTS.en[key]);
+    ok(english.length === 0, `${key} is not the English sentence in a translation (${english.join(",") || "none"})`);
+  }
+
+  const lp = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(/import \{[^}]*namesNatively[^}]*\} from "@\/lib\/content-i18n"/.test(lp),
+    "the lesson page asks the content layer which language it is in, rather than keeping a second list of its own");
+  ok(/\{lang !== "en" && \(/.test(lp) && /t\(namesNatively\(lang\) \? "lq\.teachNote" : "lq\.teachNoteAll"\)/.test(lp),
+    "and prints one of the two sentences above the first English paragraph, choosing by measurement — English readers see nothing, because the teaching IS their language");
+  ok(lp.indexOf("lq.teachNote") < lp.indexOf("plan-objective"),
+    "it comes BEFORE the objective, so a learner is told what they are about to read before they read it");
+
+  // The other half of the claim: the teaching really is English-only. Measured
+  // at the modules that carry it, so the printed sentence cannot become a hedge
+  // for content that has since been translated.
+  const translatedTeaching = ["lib/lesson-plans.ts", "lib/repair.ts"]
+    .filter((f) => /translator\(|\bt\("/.test(fs.readFileSync(f, "utf8")));
+  ok(translatedTeaching.length === 0,
+    `and the teaching modules read no translator at all, so "the lesson paragraphs are English-authored" is structurally true (${translatedTeaching.join(", ") || "none do"})`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ▸ A wrong answer gets the repair for THAT slip
 //
 // The defect this pins is one line of the concept page: on a wrong answer it
@@ -14991,6 +15690,86 @@ console.log("▸ Every door that costs money or CPU names its bound");
   }
   ok(unreachable.length === 0,
     `every repair is one the served bank can actually reveal (unreachable: ${unreachable.join(", ") || "none"}) — ${triggered.join(", ")}`);
+
+  // 2b · AND THE SERVED PATH REACHES IT, WHICH IS A DIFFERENT CLAIM.
+  //
+  // FOUND WHEN `axis-swap@coordinates` WAS ADDED. The check above draws
+  // `generateQuestion`, and it passed on 2 of 30 draws — while the practice
+  // serve for the same concept returned the axis item on 40 of 40 draws and the
+  // pair item the tag lived on NEVER (measured, not inferred). `generateQuestionNear`
+  // picks the draw nearest the tier's target, so a tagged branch written at a
+  // much lower difficulty is reachable in the bank and unreachable in practice,
+  // and a card that never renders is indistinguishable from a broken feature.
+  // The repair's tag now sits on BOTH branches, and this asserts the serve, so
+  // the next one cannot be filed against a branch the learner never meets.
+  {
+    const opsServe = require("../.verify/operations.js");
+    const unserved = [];
+    const servedReport = [];
+    for (const key of keys) {
+      const plan = repair.REPAIRS[key];
+      const s = store.newProfileState(`repair-serve:${key}`, {
+        country: "GB", subjects: ["maths"],
+        subjectCourses: { maths: { spec: "uk-gcse", specLevel: "foundation" } },
+        spec: "uk-gcse", specLevel: "foundation",
+      });
+      s.progress = {
+        [plan.conceptId]: {
+          attempts: 4, correct: 1, streak: 0, mastery: 0.2, lastSeen: Date.now(),
+          misconceptions: { [plan.misconceptionId]: 3 },
+        },
+      };
+      let hits = 0;
+      for (let i = 0; i < 20; i++) {
+        const r = opsServe.servePractice({ state: s, conceptId: plan.conceptId, seed: `repair-served:${key}:${i}` });
+        if (r.ok && (r.served.question.misconceptionTags ?? []).includes(plan.misconceptionId)) hits++;
+      }
+      servedReport.push(`${plan.conceptId} ${hits}/20`);
+      if (hits === 0) unserved.push(key);
+    }
+    ok(unserved.length === 0,
+      `and the SERVE reaches it too, not just the bank (unserved: ${unserved.join(", ") || "none"}) — ${servedReport.join(", ")}`);
+  }
+
+  // 2c · THE PILOT'S TWO CONTENT SETS ARE THE SAME SET, MEASURED.
+  //
+  // A lesson plan whose read stage opens where the learner's slip is needs a
+  // repair to open WITH: `repairFor(conceptId, liveSlip.id)` answers null when
+  // nobody wrote one, and that learner then reads the generic lesson. So the set
+  // of concepts with a plan and the set with a slip repair should be the same
+  // set — a claim that lives in two files and can drift without either one
+  // changing.
+  //
+  // THE SECOND ASSERTION IS THE ONE THAT MAKES THE FIRST TRUSTWORTHY. The pack is
+  // a generated artefact and it was STALE when this check was written: it listed
+  // `coordinates` with no named misconception while the genome declares
+  // `axis-swap` for it, so a coverage count read off the pack would have been
+  // measured against a claim the bank no longer makes. `npm run pilot-pack --
+  // --check` owns staleness and is not part of this suite, which is exactly why
+  // the field this assertion READS has to be reconciled here.
+  {
+    const pack = JSON.parse(fs.readFileSync("audit/pilot-pack.json", "utf8"));
+    const missing = [];
+    const seen = [];
+    const silent = [];
+    for (const c of pack.concepts) {
+      const ids = (c.misconceptions ?? []).map((m) => m.id);
+      if (ids.length === 0) { silent.push(c.id); continue; }
+      const hit = ids.filter((id) => `${id}@${c.id}` in repair.REPAIRS);
+      seen.push(`${c.id} ${hit.length}/${ids.length}`);
+      if (hit.length === 0) missing.push(c.id);
+    }
+    ok(missing.length === 0,
+      `every pilot concept that names a slip carries that slip's repair — the lesson's slip branch has nothing to draw without one (missing: ${missing.join(", ") || "none"}${silent.length ? `; naming none: ${silent.join(", ")}` : ""}; ${seen.join(", ")})`);
+    const disagree = pack.concepts.filter((c) => {
+      const g = genome.CONCEPTS.find((x) => x.id === c.id);
+      const want = (g?.misconceptions ?? []).slice().sort().join(",");
+      const got = (c.misconceptions ?? []).map((m) => m.id).sort().join(",");
+      return want !== got;
+    }).map((c) => c.id);
+    ok(disagree.length === 0,
+      `and the pack names the slips the genome declares, so the coverage above is measured against what the concepts really target (disagrees on: ${disagree.join(", ") || "none"}) — regenerate with \`npm run pilot-pack\` when it drifts`);
+  }
   ok(repair.repairFor("negatives", "neg-slip")?.misconceptionId === "neg-slip",
     "and the lookup is by the PAIR, so the same slip on another concept cannot borrow this repair");
   // A SLIP WITH TWO MOVES SHOWS BOTH. Measured live: `neg-slip` covers both
@@ -15032,6 +15811,756 @@ console.log("▸ Every door that costs money or CPU names its bound");
   ok(/\.repair-pair \{/.test(cssR) && /max-width: 620px[\s\S]{0,120}\.repair-pair \{ grid-template-columns: 1fr; \}/.test(cssR),
     "the pair sits side by side and stacks on a phone rather than hiding one half");
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ▸ The lesson opens where this learner is
+//
+// The strategy note's first deliverable is "two students who make different
+// mistakes receive meaningfully different teaching". Every surface answered that
+// AFTER the fact: the card renders on a wrong answer, the hint ladder reads the
+// slip once help is asked for, the serve spends its draws on it. The READ STAGE
+// was identical for the whole cohort — a learner arriving with a live slip read
+// the same lesson as one who had never met the concept.
+//
+// The branch is not a second rule. `currentSlip` decides whether a belief is
+// still live (REPAIR_STREAK clean answers retire it), `repairFor` holds the
+// authored teaching, and `retiredSlip` reports the other end of the same rule so
+// a learner is told the loop closed instead of noticing a card stopped appearing.
+// A slip nobody has written a repair for gets nothing: the lesson it always had
+// is better than a card with no teaching in it.
+{
+  console.log("▸ The lesson opens where this learner is");
+  const lms = require("../.verify/learner-model.js");
+  const rps = require("../.verify/repair.js");
+  const rec = (misconceptions, streak) => ({ misconceptions, streak });
+
+  // 1 · THE SAME RULE, BOTH ENDS OF IT.
+  ok(lms.currentSlip(rec({ "bal-slip": 2 }, 0))?.id === "bal-slip",
+    "a slip with no repair streak behind it is still live");
+  ok(lms.currentSlip(rec({ "bal-slip": 2 }, lms.REPAIR_STREAK)) === null,
+    `…and ${lms.REPAIR_STREAK} clean answers retire it — the number the serve and the next-step engine already use`);
+  ok(lms.currentSlip(rec({}, 0)) === null && lms.retiredSlip(rec({}, 0)) === null,
+    "a learner with no slip on the record is reported as having neither a live nor a retired one");
+  ok(lms.retiredSlip(rec({ "bal-slip": 2 }, 0)) === null,
+    "a retired slip is never claimed before the streak has been earned — the line says the loop closed, so it cannot say it early");
+  const held = lms.retiredSlip(rec({ "bal-slip": 2 }, lms.REPAIR_STREAK));
+  ok(held?.id === "bal-slip" && held?.hits === 2,
+    `…and it reports the slip and the count that was made once the streak retires it (${JSON.stringify(held)})`);
+  ok(lms.retiredSlip(rec({ "bal-slip": 2 }, lms.REPAIR_STREAK + 5))?.id === "bal-slip",
+    "a long clean streak does not forget what was repaired");
+  ok(lms.currentSlip(rec({ "bal-slip": 2 }, lms.REPAIR_STREAK - 1))?.id === "bal-slip",
+    "one answer short of the streak, the slip is still live and the branch is still the right teaching");
+
+  // 2 · THE BRANCH RENDERS ONLY WHERE THERE IS TEACHING TO RENDER.
+  const authored = lms.currentSlip(rec({ "bal-slip": 1 }, 0));
+  ok(rps.repairFor("linear-equations", authored?.id ?? null)?.misconceptionId === "bal-slip",
+    "a live slip with an authored repair yields the card for the read stage");
+  // `frac-slice` used to be the unauthored example; the foundations ring wrote
+  // it a repair, so the fixture moves to a belief `fractions` still has no pair
+  // for (`denom-add` belongs to the next concept along).
+  const unauthored = lms.currentSlip(rec({ "denom-add": 4 }, 0));
+  ok(unauthored?.id === "denom-add" && rps.repairFor("fractions", unauthored.id) === null,
+    "and a live slip nobody has written for yields nothing — the lesson falls back rather than drawing an empty card");
+  ok(rps.repairFor("negatives", lms.currentSlip(rec({ "neg-slip": 3 }, 0))?.id ?? null)?.contrasts.length === 2,
+    "the branch shows the whole authored repair, both moves of a two-move slip included");
+
+  // 3 · THE PAGE PUTS IT BEFORE THE PRACTICE, ON THE MODEL'S OWN RULE.
+  const lessonPage = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(/import \{ evidenceFor, currentSlip, retiredSlip, slipProgress \} from "@\/lib\/learner-model"/.test(lessonPage),
+    "the read stage takes the live-slip rule from the learner model rather than keeping a copy of it");
+  ok(/const liveSlip = currentSlip\(progress\)/.test(lessonPage) &&
+     /const liveRepair = repairFor\(conceptId, liveSlip\?\.id \?\? null\)/.test(lessonPage),
+    "and resolves this concept's live slip to the repair written for it");
+  ok(/\{liveRepair && \(/.test(lessonPage),
+    "the branch is conditional, so a learner with nothing on the record reads the lesson it always had");
+  ok(/\{retired && \(/.test(lessonPage) && /retiredSlip\(progress\)/.test(lessonPage),
+    "and the closed loop is reported from the same record, not inferred from a card being absent");
+  const iSlipBranch = lessonPage.indexOf('t("lesson.slipTitle")');
+  const iPracticeDoor = lessonPage.indexOf('t("worked.next")');
+  ok(iSlipBranch > 0 && iPracticeDoor > 0 && iSlipBranch < iPracticeDoor,
+    "the branch sits in the reading stage BEFORE the door into practice — a repair shown after the questions is the card that already existed");
+
+  // 3b · THE COUNT TOWARDS RETIREMENT IS SHOWN, AND IT IS THE MODEL'S NUMBER.
+  //
+  // The section promised "this part disappears once you answer three in a row
+  // correctly" and showed nothing, so the second and third clean answers looked
+  // like ordinary practice instead of like the thing that closes the loop. The
+  // assertion that matters is not that a line renders: it is that the line CANNOT
+  // disagree with the rule beside it, so this tests the property on every streak
+  // from 0 to past the threshold rather than one case.
+  const badProgress = [];
+  for (let clean = 0; clean <= lms.REPAIR_STREAK + 3; clean++) {
+    const r = rec({ "bal-slip": 2 }, clean);
+    const prog = lms.slipProgress(r);
+    const live = lms.currentSlip(r);
+    const retiredNow = lms.retiredSlip(r);
+    if (live && (!prog || prog.clean !== Math.min(clean, lms.REPAIR_STREAK) || prog.need !== lms.REPAIR_STREAK || prog.clean >= prog.need)) {
+      badProgress.push(`streak ${clean} live but progress ${prog ? `${prog.clean}/${prog.need}` : "null"}`);
+    }
+    if (!live && prog) badProgress.push(`streak ${clean} reports progress for a slip that is not live`);
+    if (retiredNow && prog) badProgress.push(`streak ${clean} reports progress for a RETIRED slip`);
+  }
+  ok(badProgress.length === 0,
+    `the count towards retirement agrees with the rule at every streak (${badProgress.join("; ") || `0..${lms.REPAIR_STREAK + 3} all consistent, need = ${lms.REPAIR_STREAK}`})`);
+  ok(lms.slipProgress(rec({}, 2)) === null,
+    "and a learner who never made the slip has no count to show — the promise is not printed for a card that will never appear");
+  ok(lessonPage.includes('slipProgress(progress)') && /fill\(t\("lesson\.slipProgress"\), \{ done: slipToGo\.clean, need: slipToGo\.need \}\)/.test(lessonPage),
+    "the read stage prints the learner's own count, filled from the model rather than from a literal three in the markup");
+
+  // 4 · THE FIVE STRINGS, IN EVERY LANGUAGE, AND NOT IN ENGLISH.
+  const litL = require("../.verify/i18n.js");
+  for (const key of ["lesson.slipTitle", "lesson.slipLead", "lesson.slipClears", "lesson.slipRetired", "lesson.slipProgress"]) {
+    const missing = litL.LANG_CODES.filter((c) => !litL.DICTS[c] || !litL.DICTS[c][key]);
+    ok(missing.length === 0, `${key} is authored in all ${litL.LANG_CODES.length} languages (missing: ${missing.join(",") || "none"})`);
+    const english = litL.LANG_CODES.filter((c) => c !== "en" && litL.DICTS[c][key] === litL.DICTS.en[key]);
+    ok(english.length === 0, `${key} is not the English sentence in a translation (${english.join(",") || "none"})`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ▸ A diagram says what the numbers say
+//
+// A figure can teach the WRONG thing — an arrow that travels left for a
+// subtraction of a negative, an area model whose 3 × 4 corner reads 34, a
+// balance that draws a different equation from the one in the lesson — and none
+// of that is visible to a type check or a render test. So the geometry is a pure
+// module (lib/figures.ts) and these assertions are about the arithmetic, not
+// about pixels. `components/question-figure.tsx` only maps these numbers to SVG.
+//
+// The other half is coverage: a new member of the FigureSpec union that nobody
+// drew renders an EMPTY box, silently, which is why the renderer's own kinds are
+// read out of its source and compared with the union's list.
+{
+  console.log("▸ A diagram says what the numbers say");
+  const figs = require("../.verify/figures.js");
+  const rp = require("../.verify/lesson-plans.js");
+  const svgSrc = fs.readFileSync("components/question-figure.tsx", "utf8");
+
+  // 1 · EVERY KIND IS DRAWN. A `kind` nobody rendered is an empty box.
+  const drawn = [...svgSrc.matchAll(/spec\.kind === "([a-z-]+)"/g)].map((m) => m[1]);
+  const missingKind = figs.FIGURE_KINDS.filter((k) => !drawn.includes(k));
+  ok(missingKind.length === 0,
+    `the renderer draws every kind in the FigureSpec union (missing: ${missingKind.join(",") || "none"}; drawn: ${drawn.join(",")})`);
+  ok(drawn.length === figs.FIGURE_KINDS.length,
+    `and draws no kind the union does not declare (${drawn.length} drawn / ${figs.FIGURE_KINDS.length} declared)`);
+
+  // 2 · THE NUMBER LINE'S ARROW IS THE FACT.
+  const right = figs.numberLineLayout({ kind: "number-line", min: -6, max: 10, from: 5, to: 8 });
+  ok(right.direction === "right" && right.toX > right.fromX,
+    `subtracting a negative travels RIGHT, and the arrow is drawn that way (${right.direction}, ${Math.round(right.fromX)}→${Math.round(right.toX)}px)`);
+  const left = figs.numberLineLayout({ kind: "number-line", min: -6, max: 10, from: 5, to: 2 });
+  ok(left.direction === "left" && left.toX < left.fromX,
+    "and an ordinary subtraction of a positive travels left");
+  ok(figs.numberLineLayout({ kind: "number-line", min: 0, max: 9, from: 4, to: 4 }).direction === "none",
+    "a journey of no length has no direction, rather than an arrowhead pointing nowhere");
+  ok(right.ticks.length >= 12 && right.ticks.every((t, i) => i === 0 || t.x > right.ticks[i - 1].x),
+    `the ticks are ordered left to right and there is one per integer on a small range (${right.ticks.length})`);
+  ok(right.ticks.every((t) => t.value >= -6 && t.value <= 10),
+    "and no tick is drawn outside the range the figure declares");
+  const wide = figs.numberLineLayout({ kind: "number-line", min: 0, max: 100, from: 0, to: 100 });
+  ok(wide.ticks.length <= 20 && wide.ticks.length > 1,
+    `a wide range thins its ticks rather than drawing 101 labels (${wide.ticks.length})`);
+
+  // 3 · THE BALANCE HOLDS THE EQUATION IT STATES.
+  const bal = figs.balanceLayout({ kind: "balance", left: { bags: 3, units: 5 }, right: { bags: 0, units: 20 } });
+  const [Lp, Rp] = bal.pans;
+  ok(Lp.bags.length === 3 && Lp.units.length === 5 && Rp.bags.length === 0 && Rp.units.length === 20,
+    `the pans hold exactly what the equation says (${Lp.bags.length} bags/${Lp.units.length} weights vs ${Rp.bags.length}/${Rp.units.length})`);
+  ok(bal.bagDifference === 3 && bal.unitDifference === -15,
+    "and the difference between the sides is reported, which is what the lesson asks a learner to take away");
+  ok(bal.beam.y < Lp.topY && bal.beam.x1 < bal.beam.x2,
+    "the beam sits above both pans");
+  ok(Math.abs((Lp.centreX - bal.width / 2) + (Rp.centreX - bal.width / 2)) < 0.001,
+    "and the pans hang symmetrically — a balance drawn lopsided says the sides are not equal");
+  ok(bal.fulcrum.y === bal.beam.y && bal.fulcrum.baseY > bal.fulcrum.y,
+    "the fulcrum meets the beam it is holding");
+  // 3b · EACH PAN SAYS WHAT IT HOLDS, and the sentence is derived from the
+  // counts drawn above it. Measured in a browser first: the balance rendered as
+  // shapes with no text at all, so the only way to read 3x + 5 = 20 off the
+  // picture was to count twenty circles — which is the one thing a learner
+  // looking at an equation should not have to do. The label is what makes the
+  // drawing state the equation instead of implying it.
+  ok(Lp.label === "3x + 5" && Rp.label === "20",
+    `each pan is labelled with what it holds ("${Lp.label}" | "${Rp.label}")`);
+  ok(figs.panLabel({ bags: 1, units: 0 }) === "x" && figs.panLabel({ bags: 0, units: 0 }) === "0",
+    `a coefficient of 1 is not written, and an empty pan says 0 rather than nothing ("${figs.panLabel({ bags: 1, units: 0 })}", "${figs.panLabel({ bags: 0, units: 0 })}")`);
+  ok(figs.panLabel({ bags: 2, units: 3 }, "y") === "2y + 3",
+    "and a balance in y labels its bags y, because the letter is part of the equation rather than of the renderer");
+  // THE LABEL'S NUMBERS ARE THE COUNTS. A label assembled from anything but the
+  // spec is how a picture ends up asserting a different equation from the lesson
+  // beside it, so this reads the numbers back out of the string.
+  // READ THE LABEL BACK rather than compare it to a string this file also
+  // builds: `3x + 5` must parse to three bags and five weights, `x` to one bag
+  // and none, `20` to no bags and twenty. Comparing against a second copy of the
+  // formatting rule would pass even if both copies were wrong in the same way.
+  const readBack = (label) => {
+    const nums = (label.match(/\d+/g) ?? []).map(Number);
+    if (!/x/.test(label)) return { bags: 0, units: nums[0] ?? 0 };
+    const leading = label.match(/^(\d+)x/);
+    return { bags: leading ? Number(leading[1]) : 1, units: label.includes("+") ? nums[nums.length - 1] : 0 };
+  };
+  let labelDrift = null;
+  for (let bags = 0; bags <= 6 && !labelDrift; bags++) {
+    for (let units = 0; units <= 24 && !labelDrift; units++) {
+      const l = figs.balanceLayout({ kind: "balance", left: { bags, units }, right: { bags: 0, units } });
+      const back = readBack(l.pans[0].label);
+      if (back.bags !== bags || back.units !== units) {
+        labelDrift = `${bags} bags + ${units} weights → "${l.pans[0].label}" reads back as ${back.bags}/${back.units}`;
+      }
+      if (l.pans[0].bags.length !== bags || l.pans[0].units.length !== units) labelDrift = `${bags}/${units} drawn as ${l.pans[0].bags.length}/${l.pans[0].units.length}`;
+    }
+  }
+  ok(labelDrift === null,
+    `over 175 pans, the label's numbers and the shapes drawn under it are the same counts${labelDrift ? " — " + labelDrift : ""}`);
+  ok(bal.pans.every((p) => p.labelY > p.bottomY),
+    `and the label sits below the whole vessel, not inside it (${Math.round(bal.pans[0].labelY)} vs floor ${Math.round(bal.pans[0].bottomY)})`);
+  // 3c · THE CONTENTS ARE IN THE VESSEL, at every count rather than at zero.
+  // The fixed 96 × 20 pan this replaced put bags ABOVE the rim and marched the
+  // fourth row of weights through the floor: 3x + 5 = 20 was drawn as three bags
+  // floating over a pan and sixteen of the twenty weights outside it, and a
+  // browser screenshot found it only because the picture was looked at. The
+  // geometry is arithmetic, so the claim is asserted arithmetically over a sweep:
+  // every shape's own box is inside the pan's floor, and inside its rim width.
+  const inside = (p) => {
+    const rim = p.width / 2;
+    // The vessel narrows by 6px at the floor, so that is the half-width the
+    // BOTTOM row has to fit in; using the rim would let a row overhang the drawn
+    // pan by exactly the taper and still pass.
+    const floorHalf = rim - 6;
+    const unitsOk = p.units.every((u) => u.x - 7 >= p.centreX - floorHalf && u.x + 7 <= p.centreX + floorHalf && u.y - 7 >= p.topY && u.y + 7 <= p.bottomY);
+    const bagsOk = p.bags.every((b) => b.x >= p.centreX - floorHalf && b.x + 18 <= p.centreX + floorHalf && b.y >= p.topY && b.y + 26 <= p.bottomY);
+    return unitsOk && bagsOk && p.labelY > p.bottomY && p.depth === p.bottomY - p.topY;
+  };
+  let outside = null;
+  for (let bags = 0; bags <= 6 && !outside; bags++) {
+    for (let units = 0; units <= 30 && !outside; units++) {
+      const l = figs.balanceLayout({ kind: "balance", left: { bags, units }, right: { bags: 0, units: 0 } });
+      if (!l.pans.every(inside)) outside = `${bags} bags + ${units} weights`;
+    }
+  }
+  ok(outside === null,
+    `over 217 pans, every bag and every weight sits inside its vessel${outside ? " — " + outside + " overflows" : ""}`);
+  ok(bal.pans[0].depth > 40 && bal.pans[0].depth === bal.pans[1].depth,
+    `and the pan is deep enough for what it holds, with both pans drawn as the same vessel (${Math.round(bal.pans[0].depth)}px deep)`);
+  const fullPan = figs.balanceLayout({ kind: "balance", left: { bags: 0, units: 50 }, right: { bags: 0, units: 0 } });
+  const lowestWeight = Math.max(...fullPan.pans[0].units.map((u) => u.y));
+  ok(fullPan.pans[0].labelY > lowestWeight + 7,
+    `a full pan's weights stack and the label sits below the last row rather than being written through it (${Math.round(lowestWeight)} → ${Math.round(fullPan.pans[0].labelY)})`);
+  ok(fullPan.pans[0].bottomY > lowestWeight, "the vessel's floor is below the last row of weights it holds");
+  ok(fullPan.height > bal.height,
+    `and the picture grows with its labels instead of clipping them (${bal.height} → ${fullPan.height})`);
+
+  // 4 · THE AREA MODEL'S CELLS ARE PRODUCTS, NOT CONCATENATIONS.
+  ok(figs.areaTerm("3", "4") === "12", "3 by 4 is 12 — the corner cell is the term an incomplete expansion leaves out");
+  ok(figs.areaTerm("3", "x") === "3x" && figs.areaTerm("1", "x") === "x",
+    "a coefficient multiplies the letter, and a coefficient of 1 is not written");
+  ok(figs.areaTerm("a", "b") === "ab", "two letters multiply to their product rather than to a number");
+  // A GRID WHOSE BOTH BANDS CARRY THE SAME LETTER is what an expansion model
+  // needs, and gluing the labels there reads `x²` as `xx` — a product written as
+  // a concatenation, which is the exact class of error this function exists to
+  // make impossible. The powers ADD, because that is the index law the very next
+  // concept teaches.
+  ok(figs.areaTerm("x", "x") === "x²" && figs.areaTerm("2x", "x") === "2x²" && figs.areaTerm("x", "x²") === "x³",
+    `like letters multiply honestly, with the powers added (${figs.areaTerm("x", "x")}, ${figs.areaTerm("2x", "x")}, ${figs.areaTerm("x", "x²")})`);
+  ok(figs.areaTerm("x", "y") === "xy" && figs.areaTerm("q?", "x") === "q?x",
+    "unlike letters still multiply, and a label the reader cannot read is left exactly as written");
+  const rect = figs.rectangleLayout({
+    kind: "rectangle",
+    widthParts: [{ units: 1, label: "x" }, { units: 4, label: "4" }],
+    heightParts: [{ units: 3, label: "3" }],
+  });
+  const cellLabels = rect.cells.map((c) => c.label);
+  ok(cellLabels.length === 2 && cellLabels.includes("3x") && cellLabels.includes("12"),
+    `3(x + 4) is drawn as two labelled cells (${cellLabels.join(", ")})`);
+  const wX = rect.colX[1] - rect.colX[0];
+  const w4 = rect.colX[2] - rect.colX[1];
+  ok(Math.abs(w4 / wX - 4) < 0.001,
+    `and the 4-band is four times the x-band, because the shape carries the proportion (${(w4 / wX).toFixed(2)}×)`);
+  ok(rect.cells.every((c) => c.w > 0 && c.h > 0),
+    "no cell is drawn with a zero side — a part of a product is never nothing");
+  // THE EXPANSION GRID'S AREAS ARE ITS TERMS. That is the whole claim of an area
+  // model: (x + 3)(x + 2) is four beds whose AREAS are x², 2x, 3x and 6, and the
+  // middle term is the two cross beds added. A grid whose x² cell were not a
+  // sixth of the 6 cell would be a picture that contradicts the algebra written
+  // beside it, and no label check would see it.
+  {
+    const exp = rp.planFor("algebra-expand")?.figure?.spec;
+    const grid = exp ? figs.rectangleLayout(exp) : null;
+    const coefOf = (label) => {
+      const m = String(label).match(/^(\d*)/);
+      return m[1] === "" ? 1 : Number(m[1]);
+    };
+    const areas = grid ? grid.cells.map((c) => ({ label: c.label, area: c.w * c.h, coef: coefOf(c.label) })) : [];
+    const base = areas.length ? areas[0].area : 0;
+    const misdrawn = areas.filter((a) => Math.abs(a.area / base - a.coef) > 0.001);
+    ok(areas.length === 4 && misdrawn.length === 0,
+      `the expansion grid's cell AREAS are the terms they label (${areas.map((a) => `${a.label}:${(a.area / base).toFixed(2)}`).join(" ")})`);
+    ok(new Set(areas.map((a) => a.label)).size === 4,
+      "and its four cells are four distinct terms, so the two cross beds are drawn separately");
+    ok(areas.every((a) => grid.cells.find((c) => c.label === a.label)?.emphasis === false),
+      "the expansion model marks no cell — a grid drawn with one cell highlighted would assert an emphasis the lesson does not make");
+  }
+  // THE COMPLETING-THE-SQUARE GRID MARKS ITS ADDED CORNER, AND THAT IS THE
+  // LESSON. x² + 6x is a square with two strips and a notch; the 9 is the piece
+  // that closes the shape, so it must be the marked cell — and the marked
+  // cell's AREA must be nine times the x² cell, or the picture would claim the
+  // corner is the wrong size while the caption calls it 9.
+  {
+    const sq = rp.planFor("completing-square")?.figure?.spec;
+    const grid = sq ? figs.rectangleLayout(sq) : null;
+    const marked = grid ? grid.cells.filter((c) => c.emphasis) : [];
+    const base = grid ? Math.min(...grid.cells.map((c) => c.w * c.h)) : 0;
+    const areaOf = (label) => {
+      const cell = grid?.cells.find((c) => c.label === label);
+      return cell ? cell.w * cell.h : 0;
+    };
+    ok(marked.length === 1 && marked[0].label === "9",
+      `completing the square marks the added corner and only it (${marked.map((c) => c.label).join(", ") || "none marked"})`);
+    ok(Math.abs(areaOf("3x") / base - 3) < 0.001 && Math.abs(areaOf("9") / base - 9) < 0.001,
+      `and the strips and corner are drawn to their own sizes, not to fill the frame (3x:${(areaOf("3x") / base).toFixed(2)}, 9:${(areaOf("9") / base).toFixed(2)} against x²)`);
+    ok(grid.cells.filter((c) => c.label === "3x").length === 2,
+      "both 3x strips are drawn — x² + 6x is a square with TWO strips, which is why the coefficient 6 is halved");
+  }
+
+  // THE PARABOLA IS DRAWN FROM ITS OWN COEFFICIENTS, AND ITS CROSSINGS ARE ITS
+  // ROOTS. "A sketch is a check on the algebra" is the plan's own last idea, so
+  // the sketch has to be the algebra: a curve drawn anywhere but at (2, 0) and
+  // (3, 0) would be a picture contradicting the paragraph printed beside it, and
+  // every caption-only check would pass.
+  {
+    const q = rp.planFor("quadratics")?.figure?.spec;
+    ok(q && q.kind === "axes" && q.curve && q.curve.a === 1 && q.curve.b === -5 && q.curve.c === 6,
+      "the quadratics picture is the quadratic its plan solves (x² − 5x + 6), not a neighbouring curve");
+    const lay = q ? figs.parabolaLayout({ ...q.curve, xMin: q.xMin, xMax: q.xMax, yMin: q.yMin, yMax: q.yMax }) : null;
+    const pts = lay ? lay.runs.flat() : [];
+    const f = (x) => q.curve.a * x * x + q.curve.b * x + q.curve.c;
+    const offCurve = pts.filter(([x, y]) => Math.abs(f(x) - y) > 1e-9);
+    ok(pts.length > 100 && offCurve.length === 0,
+      `every drawn point lies on y = x² − 5x + 6 (${pts.length} points sampled, ${offCurve.length} off the curve)`);
+    ok(lay.roots.length === 2 && lay.roots[0] === 2 && lay.roots[1] === 3,
+      `and the roots it computes are the pair the plan factorises to (${lay.roots.join(", ")})`);
+    const marks = (q.points ?? []).map((p) => p.at);
+    ok(marks.length === 2 && marks.every(([x, y]) => lay.roots.includes(x) && y === 0 && Math.abs(f(x)) < 1e-12),
+      `the marked crossings are those very roots, marked on the axis (${marks.map((p) => `(${p.join(", ")})`).join(" ")})`);
+    const sym = (q.lines ?? []).find((l) => l.dashed);
+    ok(sym && sym.from[0] === (lay.roots[0] + lay.roots[1]) / 2 && lay.vertex.x === sym.from[0],
+      `the dashed line is the turning point, and it sits exactly halfway between the roots (x = ${sym?.from[0]})`);
+    ok(Math.abs(lay.vertex.y - f(lay.vertex.x)) < 1e-9 && Math.abs(lay.vertex.y + 0.25) < 1e-9,
+      `the turning point is the curve's own value there (${lay.vertex.y}), not a placed decoration`);
+    ok(pts.every(([x, y]) => x >= q.xMin - 1e-9 && x <= q.xMax + 1e-9 && y >= q.yMin - 1e-9 && y <= q.yMax + 1e-9),
+      "no drawn point sits outside the frame — a curve is broken where it leaves, never pinned to the edge and flattened");
+    ok(f(q.xMin) > q.yMax && pts[0][0] > q.xMin + 1e-9,
+      `and this one really does leave the frame at both ends (drawn from x ≈ ${pts[0][0].toFixed(2)}), so the clip is exercised rather than assumed by a frame that happens to fit`);
+    // AND A CURVE THAT LEAVES AND COMES BACK IS TWO RUNS, not a line drawn across
+    // the gap: y = x² seen through a frame that starts at y = 1 has nothing to
+    // draw between −1 and 1, and joining that gap would invent a horizontal
+    // section the function does not have.
+    const hole = figs.parabolaLayout({ a: 1, b: 0, c: 0, xMin: -5, xMax: 5, yMin: 1, yMax: 10 });
+    ok(hole.runs.length === 2 && hole.runs[0].at(-1)[0] < 0 && hole.runs[1][0][0] > 0,
+      `a curve that leaves the frame and returns is drawn as two separate runs, with the gap left empty (${hole.runs.length} runs)`);
+    ok(lay.opens === "up" && lay.discriminant > 0,
+      `a positive x² opens upwards and a positive discriminant says two crossings (b² − 4ac = ${lay.discriminant})`);
+    const down = figs.parabolaLayout({ a: -1, b: 0, c: 0, xMin: -3, xMax: 3, yMin: -10, yMax: 10 });
+    const none = figs.parabolaLayout({ a: 1, b: 0, c: 1, xMin: -3, xMax: 3, yMin: -10, yMax: 10 });
+    const touch = figs.parabolaLayout({ a: 1, b: -4, c: 4, xMin: -1, xMax: 5, yMin: -2, yMax: 10 });
+    ok(down.opens === "down" && down.roots.length === 1 && down.roots[0] === 0,
+      "a negative x² opens downwards, and its one root is the one it has");
+    ok(none.roots.length === 0 && none.discriminant < 0,
+      "a curve that never reaches the axis gets NO roots, rather than an invented pair — \"no real roots\" is an answer, not a failure");
+    ok(touch.roots.length === 1 && touch.roots[0] === 2,
+      "and one that only touches gets ONE, because a repeated root drawn as two is the mistake this concept is about");
+  }
+
+  // THE TRIANGLE MEASURES THE LINE IT SITS ON.
+  {
+    const s = rp.planFor("straight-lines")?.figure?.spec;
+    const tri = s?.gradient ? figs.gradientLayout(s.gradient) : null;
+    const line = s?.lines?.[0];
+    const m = line ? (line.to[1] - line.from[1]) / (line.to[0] - line.from[0]) : NaN;
+    const onLine = (p) => Math.abs(p[1] - (m * (p[0] - line.from[0]) + line.from[1])) < 1e-9;
+    ok(tri && line && onLine(tri.from) && onLine(tri.to),
+      "the rise/run triangle's two corners sit ON the line they measure — a triangle drawn beside the line measures nothing");
+    ok(tri && Math.abs(tri.rise / tri.run - m) < 1e-9 && tri.run === 2 && tri.rise === 4,
+      `and its legs are the line's own change (run ${tri.run}, rise ${tri.rise}), so rise ÷ run is the gradient the plan quotes (${m})`);
+    ok(tri && tri.runLabel === "run 2" && tri.riseLabel === "rise 4",
+      `the legs are labelled with their own lengths (${tri.runLabel}, ${tri.riseLabel})`);
+    ok(tri && !/[0-9]\s*[÷/]/.test(tri.runLabel + tri.riseLabel),
+      "and neither label prints the quotient — the division is exactly what the lesson asks the learner to do");
+    ok((s.points ?? []).some((p) => p.at[0] === 0 && p.at[1] === -1),
+      "the intercept is marked where x = 0, which is where c lives (not where the line crosses the other axis)");
+    ok((s.points ?? []).every((p) => !p.label || !/[0-9]/.test(p.label)),
+      "and it is marked with the symbol c rather than its value, so the picture raises the question the lesson answers");
+  }
+
+  // A SURD SIMPLIFICATION IS A TILING, AND THE TILING HAS TO CLOSE.
+  {
+    const s = rp.planFor("surds")?.figure?.spec;
+    ok(s && s.kind === "surd-square" && s.total === 50 && s.parts === 25,
+      "the surds picture is the simplification its plan works through (√50 = 5√2), not a neighbouring one");
+    const L = s ? figs.surdSquareLayout(s) : null;
+    ok(L.exact && L.n === 5 && L.cellArea === 2 && L.cells.length === 25,
+      `and it cuts the square into ${L?.n} × ${L?.n} equal cells of area ${L?.cellArea} — the squares a learner is told to look for`);
+    ok(L.n * L.n * L.cellArea === s.total && Math.abs(L.n * Math.sqrt(L.cellArea) - Math.sqrt(s.total)) < 1e-12,
+      `the edge it labels IS the root of the area it states (${L.n}·√${L.cellArea} = √${s.total} = ${Math.sqrt(s.total).toFixed(4)})`);
+    ok(L.sideLabel === "5√2" && L.cellLabel === "2",
+      `so the edge reads ${L.sideLabel} and the cell reads ${L.cellLabel}, both computed from (total, parts) rather than authored`);
+    ok(L.cells.every((c) => c.w === L.cells[0].w && c.h === L.cells[0].h) && L.cells.length === L.n * L.n,
+      "the cells are all the same size — a picture of equal squares with one drawn larger would be a different claim");
+    const outline = L.cells[0].w * L.n;
+    const area = L.cells.reduce((sum, c) => sum + c.w * c.h, 0);
+    ok(Math.abs(area - outline * outline) < 1e-6,
+      `and they TILE it: the cells' areas sum to the outer square's (${area.toFixed(1)} vs ${(outline * outline).toFixed(1)} px²), so no edge is left open`);
+    // 24 is not a perfect square, so twenty-four equal cells cannot tile a
+    // square at all: the grid would end with a sliver. Note what is NOT planted
+    // here — 49 IS a perfect square and tiles exactly (cells of area 50/49), so
+    // it must not be refused; only a count that cannot be arranged 2-dimensionally
+    // is.
+    const ragged = figs.surdSquareLayout({ kind: "surd-square", total: 50, parts: 24 });
+    const tileable = figs.surdSquareLayout({ kind: "surd-square", total: 50, parts: 49 });
+    ok(ragged.exact === false && ragged.cells.length === 0 && ragged.sideLabel === "",
+      "a division that does not close (24 equal cells in a square) is REFUSED — no grid, no edge label, rather than a ragged last row pretending to tile");
+    ok(tileable.exact === true && tileable.cells.length === 49 && Math.abs(tileable.cellArea - 50 / 49) < 1e-12,
+      "while a count that DOES tile is drawn, however unusual its cell area — the refusal is about geometry, not about taste");
+    ok(/if \(!L\.exact\) return null;/.test(svgSrc),
+      "and the renderer draws nothing for it, which is the only honest picture of a tiling that is not one");
+  }
+
+  // A PICTURE THAT ANSWERS THE QUESTION WOULD BE A BROKEN INSTRUMENT. The new
+  // shapes each restate an answer (the crossings ARE the roots, the edge label IS
+  // the simplified surd), so no generated item may carry one — measured over the
+  // whole bank, not assumed because nobody has written one yet.
+  {
+    let drawn = 0;
+    const offending = [];
+    for (const c of genome.CONCEPTS) {
+      for (let i = 0; i < 3; i++) {
+        const q = questions.generateQuestion(c.id, `figscope:${c.id}:${i}`);
+        if (!q?.figure) continue;
+        drawn++;
+        if (q.figure.curve || q.figure.gradient || q.figure.kind === "surd-square") offending.push(`${c.id}@${i}`);
+      }
+    }
+    ok(drawn > 0 && offending.length === 0,
+      `no generated question is drawn with a curve, a rise/run triangle or a surd tiling (${drawn} question figures drawn, offending: ${offending.slice(0, 3).join(", ") || "none"})`);
+  }
+
+  // 5 · PLANS CARRY A FIGURE ONLY WHERE ONE TEACHES.
+  const planned = rp.plannedConceptIds();
+  const figures = planned.filter((id) => rp.planFor(id).figure);
+  const incomplete = figures.filter((id) => {
+    const f = rp.planFor(id).figure;
+    const words = String(f.caption).split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length;
+    return !figs.FIGURE_KINDS.includes(f.spec.kind) || words < 25;
+  });
+  ok(incomplete.length === 0,
+    `every plan figure is a kind the renderer knows and carries a real caption (${incomplete.join(", ") || `${figures.length} figure(s), all captioned`})`);
+  ok(figures.length < planned.length,
+    `and not every plan has one (${figures.length} of ${planned.length}) — a diagram beside every lesson is decoration`);
+  // ── A PLAN NO WALK MEASURES IS A PLAN NOBODY HAS LOOKED AT ────────────────
+  //
+  // scripts/lesson-walk.mjs drives the browser over an EXPLICIT list of lessons
+  // and the figure each should draw. That list is data beside the data, so it
+  // rots silently: `decimals` was authored and its figure decision made, and the
+  // walk still measured the thirteen plans it had been written for. The list is
+  // therefore checked against planFor — every planned concept must have a row,
+  // and the row must declare the kind its own plan declares (null where the plan
+  // deliberately carries none), so a new lesson fails here instead of shipping
+  // unlooked-at.
+  {
+    const walkSrc = fs.readFileSync("scripts/lesson-walk.mjs", "utf8");
+    const rows = new Map();
+    for (const m of walkSrc.matchAll(/^\s*\["([a-z0-9-]+)", (null|"[a-z-]+")\]/gm)) {
+      rows.set(m[1], m[2] === "null" ? null : m[2].slice(1, -1));
+    }
+    const missing = planned.filter((id) => !rows.has(id));
+    const extra = [...rows.keys()].filter((id) => !planned.includes(id));
+    const mismatched = planned
+      .filter((id) => rows.has(id))
+      .filter((id) => (rp.planFor(id).figure?.spec.kind ?? null) !== rows.get(id))
+      .map((id) => `${id}: walk says ${rows.get(id)}, plan says ${rp.planFor(id).figure?.spec.kind ?? null}`);
+    ok(missing.length === 0 && extra.length === 0 && mismatched.length === 0,
+      `every authored plan is measured by the browser walk, with the figure its own plan declares (${planned.length} plans; missing: ${missing.join(", ") || "none"}; not planned: ${extra.join(", ") || "none"}; mismatched: ${mismatched.join("; ") || "none"})`);
+  }
+  // THE PICTURE AND THE PARAGRAPH MUST AGREE about the example they teach.
+  const negFig = rp.planFor("negatives").figure;
+  const negPlan = rp.planFor("negatives");
+  ok(negFig && negFig.spec.kind === "number-line" && negFig.spec.from === 5 && negFig.spec.to === 8 &&
+     negPlan.idea.some((p) => p.includes("5 − (−3)") && p.includes("8")),
+    "the negatives picture draws the very journey its lesson works through (5 − (−3) = 8), not a different one");
+  const eqFig = rp.planFor("linear-equations").figure;
+  ok(eqFig && eqFig.spec.kind === "balance" && eqFig.spec.left.bags === 3 && eqFig.spec.left.units === 5 && eqFig.spec.right.units === 20,
+    "and the balance draws 3x + 5 = 20, the equation its plan solves");
+
+  // 5b · A SHADED SECTOR AND THE CUTS IN IT ARE ONE CLAIM.
+  //
+  // `fraction-ops` teaches that 2/3 becomes 4/6 by cutting each third in half,
+  // and the figure makes that visible by dividing the SAME circle into six and
+  // shading four of them. So the arithmetic is checkable and is checked here: the
+  // shaded part has to be a WHOLE number of slices, and the caption has to name
+  // the two fractions the drawing shows. A figure that shaded 250° of a circle in
+  // sixths would draw four slices and a sliver while claiming exactly 2/3.
+  const foPlan = rp.planFor("fraction-ops");
+  const foFig = foPlan?.figure;
+  ok(foFig && foFig.spec.kind === "pie" && foFig.spec.sectorDegrees === 240 && foFig.spec.slices === 6,
+    `the fraction-ops picture is one circle cut into six with four of them shaded (${JSON.stringify(foFig?.spec)})`);
+  const foLay = foFig ? figs.pieLayout(foFig.spec) : null;
+  ok(!!foLay && foLay.divisions.length === 6 && Math.abs(foLay.sliceDegrees - 60) < 1e-9,
+    `and its cuts are six equal slices of 60° (${foLay?.divisions.length} cuts, ${foLay?.sliceDegrees}° each)`);
+  ok(!!foLay && Math.abs(foLay.degrees / foLay.sliceDegrees - 4) < 1e-9,
+    `the shaded part is exactly four of those slices (${foLay?.degrees}° ÷ ${foLay?.sliceDegrees}° = ${foLay ? foLay.degrees / foLay.sliceDegrees : NaN})`);
+  ok(!!foLay && /2\/3/.test(foFig.spec.label ?? "") && /4\/6/.test(foFig.spec.label ?? ""),
+    `and the chart names both fractions, so the picture and the words make one claim ("${foFig?.spec.label}")`);
+  {
+    const onCircle = (p) => Math.abs(Math.hypot(p[0] - foLay.cx, p[1] - foLay.cy) - foLay.radius) < 1e-6;
+    ok(!!foLay && onCircle(foLay.arcFrom) && onCircle(foLay.arcTo),
+      "the sector's arc starts and ends on the circle it belongs to, computed rather than typed");
+    // EVERY CUT TOO: a division whose outer end drifted off the rim draws a
+    // hairline gap or an overshoot, which reads as a rendering fault.
+    const cuts = (foLay?.divisions ?? []).map((d) => {
+      const a = -Math.PI / 2 + (d * Math.PI) / 180;
+      return [foLay.cx + foLay.radius * Math.cos(a), foLay.cy + foLay.radius * Math.sin(a)];
+    });
+    ok(cuts.length === 6 && cuts.every(onCircle),
+      `and all ${cuts.length} cuts reach the rim, so six equal pieces are drawn and not five and a gap`);
+  }
+  // THE LABEL RULE, BOTH BRANCHES. A sector question turns on its angle, so the
+  // readout appends it; a figure whose label already names the fraction must not
+  // print `2/3 = 4/6 · 240°`, which reads as two answers.
+  ok(figs.pieLayout({ kind: "pie", sectorDegrees: 138 }).labelText === "138°" &&
+     figs.pieLayout({ kind: "pie", sectorDegrees: 240, label: "2/3", showDegrees: false }).labelText === "2/3" &&
+     figs.pieLayout({ kind: "pie", sectorDegrees: 240, label: "2/3" }).labelText === "2/3 · 240°",
+    "the readout under a pie is the angle, the label, or the label with its angle — as the spec asks");
+  // A count that cannot make equal pieces draws none, rather than a ragged last
+  // slice with a hairline gap that reads as a drawing bug.
+  ok(figs.pieLayout({ kind: "pie", sectorDegrees: 120, slices: 5.5 }).divisions.length === 0 &&
+     figs.pieLayout({ kind: "pie", sectorDegrees: 120, slices: 1 }).divisions.length === 0 &&
+     figs.pieLayout({ kind: "pie", sectorDegrees: 120, slices: 8 }).divisions.length === 8,
+    "a slice count that cannot divide the circle draws no cuts at all, and a real one draws exactly its count");
+  // ONE ARC, TWO RENDERERS. The offline twin used to compute this sector itself
+  // in another language, against the same spec — one rounding difference and the
+  // chart disagrees with its own caption on the artefact built for offline use.
+  const twinSrc = fs.readFileSync("docs/app.js", "utf8");
+  ok(/E\.figures\.pieLayout\(spec\)/.test(twinSrc) && /L\.divisions/.test(twinSrc),
+    "the twin draws the pie from the same layout function and its cuts, not from its own trigonometry");
+  ok(/pieLayout/.test(svgSrc) && /L\.divisions/.test(svgSrc),
+    "and so does the app's renderer, so the two products cannot draw different charts from one spec");
+
+  // 5c · EVERY PICTURE A QUESTION CARRIES CAN BE READ IN WORDS.
+  //
+  // The header of components/question-figure.tsx used to argue that `aria-hidden`
+  // was safe because "the stem says everything the picture says". MEASURED, THAT
+  // WAS FALSE: `scatter-correlation` plots the data itself, so its points appear
+  // in no prompt, and a screen-reader learner was being asked about a chart they
+  // could not read. The first version of this assertion tried to police the
+  // claim instead — every number a figure draws must appear in the stem — and the
+  // bank failed it, correctly, on that family. So the rule is the one that
+  // actually licenses a hidden SVG: the picture has words of its own, composed
+  // from the same spec, in the reader's language.
+  {
+    const capMod = require("../.verify/content-i18n.js");
+    const WORDS = require("../.verify/i18n.js");
+    const captionless = [];
+    const kindsSeen = new Set();
+    let drawn = 0;
+    for (const c of genome.CONCEPTS) {
+      for (let i = 0; i < 6; i++) {
+        const q = questions.generateQuestion(c.id, `figstem:${c.id}:${i}`);
+        if (!q?.figure) continue;
+        drawn++;
+        kindsSeen.add(q.figure.kind);
+        const text = capMod.figureCaptionText("en", q.figure);
+        if (!text || text.length < 20) captionless.push(`${c.id}@${i}:${q.figure.kind}`);
+      }
+    }
+    ok(drawn > 0 && captionless.length === 0,
+      `every diagram a question carries can be read in words — the sentence is composed from the spec, so it cannot describe a different chart (${drawn} figures over the bank, ${kindsSeen.size} kind(s): ${[...kindsSeen].join(", ")}; without words: ${captionless.slice(0, 3).join(", ") || "none"})`);
+    // THE CAPTION CARRIES THE DRAWN NUMBERS, not just a description of a shape.
+    const sc = questions.generateQuestion("scatter-correlation", "figstem:scatter:0")?.figure
+      ?? { kind: "axes", xMin: -5, xMax: 5, yMin: -5, yMax: 5, points: [{ at: [1, 2] }, { at: [3, 4] }] };
+    const scText = capMod.figureCaptionText("en", sc);
+    const scPoints = (sc.points ?? []).flatMap((p) => p.at);
+    ok(sc.points?.length > 0 && scPoints.every((v) => scText.includes(String(v))),
+      `and the words carry the plotted coordinates themselves, which is the data a scatter question asks about ("${scText.slice(0, 70)}…")`);
+    // EVERY LANGUAGE HAS THE SENTENCE, and none of them falls back to English:
+    // the caption sits on the question, which is the most-read surface there is.
+    const capKeys = ["fig.cap.axes", "fig.cap.triangle"];
+    const missingKeys = [];
+    const englishInOtherLanguages = [];
+    for (const code of WORDS.LANG_CODES) {
+      for (const k of capKeys) {
+        const v = WORDS.DICTS[code]?.[k];
+        if (typeof v !== "string" || v.trim() === "") missingKeys.push(`${code}:${k}`);
+        else if (code !== "en" && v === WORDS.DICTS.en[k]) englishInOtherLanguages.push(`${code}:${k}`);
+      }
+    }
+    ok(missingKeys.length === 0,
+      `and all ${WORDS.LANG_CODES.length} dictionaries hold the caption sentence (missing: ${missingKeys.slice(0, 4).join(", ") || "none"})`);
+    ok(englishInOtherLanguages.length === 0,
+      `none of them is the English sentence under a translated key (copies: ${englishInOtherLanguages.slice(0, 4).join(", ") || "none"})`);
+    // The placeholders are filled, not printed: a caption reading `{a}{unit}` on
+    // screen is the failure this catches, in a language nobody on the team reads.
+    const rawPlaceholder = WORDS.LANG_CODES.filter((code) => /\{\w+\}/.test(capMod.figureCaptionText(code, sc)));
+    ok(rawPlaceholder.length === 0,
+      `and every language's caption has its placeholders filled, not printed (raw: ${rawPlaceholder.join(", ") || "none"})`);
+    // BOTH RENDERERS PRINT IT. The twin is a separate build with its own DOM
+    // code, and the caption is exactly the sort of thing one of them forgets.
+    ok(/qfigure-cap/.test(svgSrc) && /figureCaptionText\(lang, spec\)/.test(svgSrc),
+      "the app renders the caption from the one sentence composer");
+    ok(/function questionFigureHtml/.test(twinSrc) && /qfigure-cap/.test(twinSrc) && /E\.contentI18n\.figureCaptionText/.test(twinSrc),
+      "and the offline twin prints the same sentence under the same figure, from the same function");
+    ok(/\.qfigure-cap/.test(fs.readFileSync("app/globals.css", "utf8")) && /\.qfigure-cap/.test(fs.readFileSync("docs/app.css", "utf8")),
+      "both stylesheets give the caption body-size muted text rather than leaving it to the browser's default 13px italic");
+  }
+
+  // 6 · THE LESSON ACTUALLY RENDERS IT, WITH ITS CAPTION.
+  const figPage = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(/import \{ FigureGraphic \} from "@\/components\/question-figure"/.test(figPage),
+    "the concept page draws figures with the one renderer the question surfaces use");
+  ok(/\{plan\?\.figure && \(/.test(figPage) && /<FigureGraphic spec=\{plan\.figure\.spec\} \/>/.test(figPage),
+    "the figure is conditional and drawn from the plan's own spec");
+  // A FIGURE INSIDE A FIGURE. The lesson already has a `<figure>` of its own
+  // (with a figcaption that is part of the teaching), so using the question's
+  // WRAPPED component here produced `figure > figure` — the caption belonging to
+  // the outer one and the inner one holding nothing of its own.
+  ok(!/QuestionFigure/.test(figPage),
+    "and it uses the bare graphic, not the question's wrapper — a figure inside a figure leaves its caption belonging to neither");
+  ok(/<figcaption[^>]*>\{plan\.figure\.caption\}<\/figcaption>/.test(figPage),
+    "and the caption is on the screen, because the SVG itself is aria-hidden");
+  const figCss = fs.readFileSync("app/globals.css", "utf8");
+  ok(/\.lesson-figure \{/.test(figCss) && /\.lesson-figure svg \{/.test(figCss),
+    "the lesson figure has its own reading-width frame and a fluid svg rule");
+  ok(/if \(spec\.curve\)/.test(svgSrc) && /parabolaLayout/.test(svgSrc) && /if \(spec\.gradient\)/.test(svgSrc) && /gradientLayout/.test(svgSrc),
+    "the renderer draws both new fields, from the computed layouts rather than from a hand-written path that could disagree with its own numbers");
+  ok(/export function FigureGraphic/.test(svgSrc) && /<figure className="qfigure" data-figure=\{spec\.kind\}>/.test(svgSrc),
+    "one drawing, two wrappers: the question keeps its own frame and the lesson supplies its own");
+
+  // 7 · IT WORKS OFFLINE, AND A SCREEN READER LOSES NOTHING.
+  ok(!/<image|<img|href=|https?:\/\//.test(svgSrc),
+    "the renderer fetches nothing: no image element, no external URL, so a figure draws on a device with no connection");
+  const svgCount = (svgSrc.match(/<svg/g) || []).length;
+  const hiddenCount = (svgSrc.match(/aria-hidden="true"/g) || []).length;
+  ok(svgCount > 0 && hiddenCount >= svgCount,
+    `every svg is aria-hidden (${hiddenCount}/${svgCount}) — the words are in the prompt and the caption, never only in the picture`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ▸ A wrong option says what THAT option meant
+//
+// The feedback on a wrong answer was the same sentence for every learner who
+// made any mistake on the concept: the item carries ONE misconception tag, so
+// "this question was built to catch a sign slip" was all it could say — true,
+// and unable to tell a learner who subtracted instead of adding from one who got
+// the size right and the sign wrong. A family knows what each of its distractors
+// IS, so it can author a note per wrong option, and the grade can return the one
+// that matches the option actually picked.
+//
+// The claims that would fail silently, and what each protects:
+//   1. a noted family really notes every wrong option, in the same order;
+//   2. the note uses the item's OWN numbers, not a template's;
+//   3. the note never sits on the correct option;
+//   4. the serve WITHHOLDS the notes — an explanation of the wrong options is a
+//      hint about the right one;
+//   5. the route sends the picked option's note, and only on a wrong answer;
+//   6. the page renders it, and the client parses it.
+{
+  console.log("▸ A wrong option says what THAT option meant");
+  const notesDraw = (concept, seed) => questions.generateQuestion(concept, seed);
+
+  // 1 · A NOTED FAMILY NOTES ALL THREE WRONGS, AND NONE OF THE ANSWERS.
+  // A CONCEPT WITH A NUMERIC LAYER SERVES EITHER LAYER FROM THE SEED, and the
+  // numeric draw has no options to explain. So the measurement is over the
+  // MULTIPLE-CHOICE draws — reading the first draw as "no notes" would report a
+  // family's authored notes as missing because half its serves are a different
+  // question type.
+  const isChoice = (item) => item && item.responseKind !== "numeric" && Array.isArray(item.choices);
+  let draws = 0;
+  let fullNotes = 0;
+  const holes = [];
+  const onAnswer = [];
+  const templates = [];
+  const notedDraws = [];
+  for (let i = 0; i < 40 && draws < 15; i++) {
+    const item = notesDraw("negatives", `notes:${i}`);
+    if (!isChoice(item)) continue;
+    draws++;
+    notedDraws.push(item);
+    const notes = item.choiceNotes;
+    if (!notes || notes.length !== item.choices.length) { holes.push(`draw ${i}: ${notes ? notes.length : "none"} notes`); continue; }
+    const filled = notes.filter((n) => n && n.trim().length > 0).length;
+    // A DRAW WHOSE DISTRACTOR COLLIDED WITH THE ANSWER LOSES THAT OPTION to the
+    // dedupe in `generateQuestion` and gets an unauthored near-miss instead — so
+    // the subtraction branch, whose four values cannot collide, must note all
+    // three, and a draw where a collision was possible must note at least two
+    // (a note for the padded option would be a note about a number nobody made a
+    // move to reach).
+    // TWO CAN COLLIDE WITH EACH OTHER — `1 − (−1)` makes `a − b` and `b − a`
+    // both 0 — and the dedupe drops one, replacing it with an unauthored
+    // near-miss. So the floor is two (every option a learner can mistake for a
+    // move is explained), and the share of draws that note all three is measured
+    // and reported rather than assumed to be one.
+    if (filled >= 3) fullNotes++;
+    if (filled < 2) holes.push(`draw ${i}: ${filled} noted (${item.prompt.slice(0, 22)})`);
+    if (notes[item.answer]) onAnswer.push(`draw ${i} (${notes[item.answer].slice(0, 20)})`);
+    // 2 · THE NOTE USES THIS ITEM'S OWN NUMBERS. A template string that forgot to
+    // interpolate is a note about a different question — and a note about a wrong
+    // option may legitimately quote the OPTION's value rather than the prompt's
+    // ("the size is right: you found 20"), so both are accepted and nothing else.
+    item.choices.forEach((choice, ci) => {
+      const note = notes[ci];
+      if (!note) return;
+      const numbers = [...(item.prompt.match(/\d+/g) ?? []), ...(String(choice).match(/\d+/g) ?? [])];
+      if (!numbers.some((v) => note.includes(v))) templates.push(`draw ${i} choice ${ci}: "${note.slice(0, 28)}…"`);
+    });
+  }
+  ok(draws >= 15, `the noted family is measured on real multiple-choice draws (${draws})`);
+  ok(holes.length === 0, `every draw explains at least two of its wrong options (holes: ${holes.slice(0, 3).join(", ") || "none"})`);
+  ok(fullNotes / Math.max(1, draws) >= 0.7,
+    `…and most explain all three (${fullNotes}/${draws}) — the shortfall is a distractor that collided with another value and was replaced by a padded near-miss`);
+  ok(onAnswer.length === 0, `and the CORRECT option never carries one (${onAnswer.slice(0, 2).join(", ") || "none"}) — a note on the key is a note about an option nobody was meant to pick`);
+  ok(templates.length === 0, `every note quotes the numbers in its own prompt (${templates.slice(0, 2).join(", ") || "none"})`);
+
+  // 3 · THREE DISTRACTORS, THREE DIFFERENT SENTENCES.
+  const sample = notedDraws[0];
+  const distinct = (sample.choiceNotes ?? []).filter(Boolean);
+  ok(new Set(distinct).size === distinct.length && distinct.length >= 3,
+    `the notes are not one sentence repeated (${distinct.length} noted, ${new Set(distinct).size} distinct)`);
+
+  // 4 · THE SERVE WITHHOLDS THEM.
+  const served = questions.serveView(sample);
+  ok(!("choiceNotes" in served),
+    "the serve strips the notes — a learner who reads what each wrong option means before choosing has been handed a hint they did not ask for");
+  ok(!("choiceNotes" in questions.serveView(notesDraw("linear-equations", "notes:serve"))),
+    "…and that holds for a concept with no notes as well, because the strip is not conditional on the field being non-empty");
+
+  // 5 · THE GRADE SENDS THE PICKED ONE, ONLY WHEN THE ANSWER IS WRONG.
+  const routeSrc2 = fs.readFileSync("app/api/progress/route.ts", "utf8");
+  ok(/choiceNote: !correct && typeof body\.choiceIndex === "number"/.test(routeSrc2),
+    "the answer route returns the picked option's note, and nothing on a correct answer");
+  ok(/q\.choiceNotes\?\.\[body\.choiceIndex\]/.test(routeSrc2),
+    "…reading it by the index the learner actually chose, not the item's tag");
+  const clientSrc = fs.readFileSync("lib/api/client.ts", "utf8");
+  ok(/choiceNote: typeof j\.choiceNote === "string" \? j\.choiceNote : null/.test(clientSrc),
+    "the client parses it into the verdict rather than dropping it");
+  const fbPage = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(/\{graded\.choiceNote && \(/.test(fbPage),
+    "and the practice surface renders it, conditionally — a padded near-miss has no meaning to explain");
+  const iNote = fbPage.indexOf("graded.choiceNote && (");
+  const iRepair = fbPage.indexOf("RepairCard plan={repair}");
+  ok(iNote > 0 && iRepair > 0 && iNote < iRepair,
+    "the picked option is explained BEFORE the item-level repair, because it is the more specific thing");
+
+  // 6 · COVERAGE IS REPORTED, NOT IMPLIED.
+  const noted = genome.CONCEPTS.filter((c) => {
+    for (let i = 0; i < 3; i++) {
+      const item = questions.generateQuestion(c.id, `notes:coverage:${i}`);
+      if (item?.choiceNotes?.some(Boolean)) return true;
+    }
+    return false;
+  }).map((c) => c.id);
+  ok(noted.length > 0,
+    `at least one family writes per-option notes (${noted.join(", ")} of ${genome.CONCEPTS.length} concepts) — the rest are the backlog, stated here rather than guessed at`);
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ▸ A repair serve tests the slip, not only the difficulty
@@ -15146,6 +16675,311 @@ console.log("▸ Every door that costs money or CPU names its bound");
   ok(missS.length === 0, `target.slipCheck is authored in all ${litS.LANG_CODES.length} languages (missing: ${missS.join(",") || "none"})`);
   const engS = litS.LANG_CODES.filter((c) => c !== "en" && litS.DICTS[c]["target.slipCheck"] === litS.DICTS.en["target.slipCheck"]);
   ok(engS.length === 0, `and not left as the English sentence (${engS.join(",") || "none"})`);
+}
+
+// ── N. MOMENTUM: a run of days and seven counted milestones ─────────────────
+//
+// The one deliberately motivating surface in the product, so the claims it
+// makes are exactly the ones worth asserting: a streak counts DAYS THAT HOLD AN
+// ANSWER (not answers, not logins), a milestone is dated at the event that
+// crossed it (not at the page load that noticed), and a learner with an empty
+// record is told the first one is one answer away rather than shown a zero.
+//
+// Every fixture is built at LOCAL NOON, so no assertion here depends on the
+// machine's timezone or on a DST boundary: `dayOf` is defined on local calendar
+// days, and a test that used `Math.floor(at / DAY)` would agree with a UTC
+// implementation on a London laptop and disagree in Auckland.
+console.log("▸ Momentum is a fact about the record, not a game");
+{
+  const mom = require("../.verify/momentum.js");
+  const noon = (d) => new Date(2026, 0, 5 + d, 12, 0, 0, 0).getTime();
+  const lateEvening = (d) => new Date(2026, 0, 5 + d, 23, 30, 0, 0).getTime();
+  const A = (day, over = {}) => ({
+    type: "answer_submitted", at: noon(day), questionId: `q-${day}`,
+    correct: true, chosen: 0, givenValue: null, mode: "practice", hints: 0, score: null,
+    ms: 12000, tags: [], deviceAt: null, certainty: null,
+    learnerId: "mom-test", source: "learner", subject: "maths", conceptId: "fractions", specificationId: null,
+    ...over,
+  });
+  const notAnswer = (day, type) => ({
+    type, at: noon(day), questionId: `h-${day}`, level: 1,
+    learnerId: "mom-test", source: "learner", subject: "maths", conceptId: "fractions", specificationId: null,
+  });
+  const nowAt = (day) => noon(day) + 60_000;
+  const span = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => A(from + i));
+
+  // ── A DAY IS A LOCAL DAY ────────────────────────────────────────────────
+  ok(mom.dayOf(noon(0)) === mom.dayOf(lateEvening(0)),
+    "a learner answering at noon and again at 23:30 is on the SAME day — a run is not broken by a late evening");
+  ok(mom.dayOf(noon(1)) === mom.dayOf(noon(0)) + 1,
+    "and the next calendar day is exactly one index further on, so runs are countable without a timezone library");
+  ok(mom.weekdayOf(mom.dayOf(noon(0))) === new Date(noon(0)).getDay(),
+    "the weekday the strip prints names the day the answer happened on (not one shifted by UTC)");
+
+  // ── AN EMPTY RECORD IS NOT A RUN OF ZERO DAYS ───────────────────────────
+  const empty = mom.momentumOf([], nowAt(0));
+  ok(empty.momentum.answers === 0 && empty.momentum.streak === 0 && empty.momentum.days === 0,
+    "an empty record has no streak and no days — numbers the caller renders as \"one answer away\", never as 0 days");
+  ok(empty.momentum.atRisk === false,
+    "and it is not \"at risk\": there is nothing to be about to lose");
+  ok(empty.milestones.every((m) => m.earnedAt === null && m.progress === 0),
+    "no milestone is earned by having opened the app");
+  ok(empty.next && empty.next.id === "first-answer",
+    `the first milestone is the one offered to a new learner (${empty.next?.id})`);
+  ok(empty.momentum.week.length === 7 && empty.momentum.week[6].today && empty.momentum.week.every((d, i) => d.today === (i === 6)),
+    "the week strip is seven days, oldest first, with TODAY last and marked");
+  ok(empty.momentum.week.filter((d) => d.worked).length === 0,
+    "and no day in it is marked worked, because none is");
+
+  // ── A STREAK COUNTS DAYS, NOT ANSWERS ───────────────────────────────────
+  const sameDay = mom.momentumOf([A(0), A(0), A(0)], nowAt(0));
+  ok(sameDay.momentum.streak === 1 && sameDay.momentum.today === 3,
+    `three answers in one day is a ONE-day run and a count of three today (${sameDay.momentum.streak}, ${sameDay.momentum.today})`);
+  ok(sameDay.momentum.best === 1,
+    "and the best run is one day, not three — answers are not days");
+
+  // ── SEVEN DAYS, AND WHEN THE THREE-DAY MILESTONE LANDED ─────────────────
+  const seven = mom.momentumOf(span(0, 6), nowAt(6));
+  ok(seven.momentum.streak === 7 && seven.momentum.best === 7 && seven.momentum.days === 7,
+    `seven consecutive days is a seven-day run (${seven.momentum.streak})`);
+  ok(seven.momentum.week.every((d) => d.worked),
+    "and every day in the strip is filled, because the record holds an answer on each");
+  const three = seven.milestones.find((m) => m.id === "streak-three");
+  ok(three && three.earnedAt === noon(2),
+    `the three-day milestone is dated at the answer that crossed it, not at the page load (got ${three && new Date(three.earnedAt).toISOString()})`);
+  ok(mom.momentumOf(span(0, 1), nowAt(1)).milestones.find((m) => m.id === "streak-three").earnedAt === null,
+    "and two days does not earn it — a threshold is not a rounding");
+
+  // ── A GAP BREAKS THE RUN; THE BEST SURVIVES IT ──────────────────────────
+  const gapped = mom.momentumOf([A(0), A(1), A(2), A(4)], nowAt(4));
+  ok(gapped.momentum.streak === 1 && gapped.momentum.best === 3,
+    `a missed day ends the run and leaves the longest one standing (${gapped.momentum.streak} now, best ${gapped.momentum.best})`);
+
+  // ── YESTERDAY IS NOT YET A BROKEN RUN ───────────────────────────────────
+  const yesterday = mom.momentumOf([A(1), A(2)], nowAt(3));
+  ok(yesterday.momentum.streak === 2 && yesterday.momentum.atRisk === true && yesterday.momentum.today === 0,
+    `a run through yesterday is still alive and flagged at risk until today is answered (${yesterday.momentum.streak}, atRisk ${yesterday.momentum.atRisk})`);
+  ok(yesterday.momentum.week[5].worked && !yesterday.momentum.week[6].worked,
+    "and the strip shows the two filled days beside an empty today — the nudge is visible, not asserted");
+  const stale = mom.momentumOf(span(0, 2), nowAt(10));
+  ok(stale.momentum.streak === 0 && stale.momentum.atRisk === false && stale.momentum.best === 3,
+    `a run that ended a week ago is over, and is not called at risk (streak ${stale.momentum.streak}, best ${stale.momentum.best})`);
+
+  // ── ONLY A GRADED ANSWER IS WORK ────────────────────────────────────────
+  const opened = mom.momentumOf([A(1), A(2), notAnswer(3, "hint_requested"), notAnswer(3, "session_completed")], nowAt(3));
+  ok(opened.momentum.today === 0 && opened.momentum.streak === 2 && opened.momentum.atRisk === true,
+    `opening a hint and finishing a session without answering does NOT count as today's work (today ${opened.momentum.today}, streak ${opened.momentum.streak})`);
+
+  // ── A MILESTONE IS DATED WHEN IT WAS EARNED ─────────────────────────────
+  const old = mom.momentumOf([A(0)], nowAt(20));
+  ok(old.milestones.find((m) => m.id === "first-answer").earnedAt === noon(0),
+    "the first milestone keeps the timestamp of the answer that earned it, even when read twenty days later");
+
+  // ── WHAT A MILESTONE ACTUALLY COUNTS ───────────────────────────────────
+  const hinted = mom.momentumOf([A(0, { hints: 2 })], nowAt(0));
+  ok(hinted.milestones.find((m) => m.id === "first-clean").earnedAt === null,
+    "a correct answer WITH hints does not earn the hint-free milestone — the same rule the proof vocabulary uses");
+  const thenClean = mom.momentumOf([A(0, { hints: 2 }), A(0, { hints: 0 })], nowAt(0));
+  ok(thenClean.milestones.find((m) => m.id === "first-clean").earnedAt === noon(0),
+    "and a hint-free answer does, at its own event");
+  ok(mom.momentumOf(span(0, 8).map((e, i) => A(i, { hints: i === 0 ? 1 : 0 })), nowAt(8))
+    .milestones.find((m) => m.id === "ten-clean").earnedAt === null,
+    "ten hint-free answers is ten, not ten answers — one hinted correct leaves it one short");
+
+  const independent = mom.momentumOf([A(0, { mode: "practice" }), A(0, { mode: "prove" })], nowAt(0));
+  ok(independent.milestones.find((m) => m.id === "first-transfer").earnedAt === null,
+    "practice and proof do not earn the transfer milestone — transfer means an unfamiliar re-wording");
+  const transfer = mom.momentumOf([A(0), A(0, { mode: "transfer" })], nowAt(0));
+  ok(transfer.milestones.find((m) => m.id === "first-transfer").earnedAt === noon(0),
+    "and a correct answer in transfer mode does");
+
+  // ── A SLIP IS MISSED FIRST, THEN FIXED, ON A TAGGED ITEM ───────────────
+  ok(mom.momentumOf([A(0, { tags: ["denom-add"] })], nowAt(0))
+    .milestones.find((m) => m.id === "slip-fixed").earnedAt === null,
+    "a correct answer on a tagged item fixes nothing — there was no slip to fix");
+  const slipped = mom.momentumOf([A(0, { tags: ["denom-add"], correct: false }), A(0, { tags: ["denom-add"] })], nowAt(0));
+  ok(slipped.milestones.find((m) => m.id === "slip-fixed").earnedAt === noon(0),
+    "a slip missed and then answered correctly on the same belief earns \"a slip you fixed\"");
+  ok(mom.momentumOf([A(0, { tags: ["denom-add"], correct: false }), A(0, { tags: ["axis-swap"] })], nowAt(0))
+    .milestones.find((m) => m.id === "slip-fixed").earnedAt === null,
+    "and a correct answer on a DIFFERENT belief does not — the tag is the claim, so it has to match");
+
+  // ── FIVE DIFFERENT IDEAS MEANS FIVE ────────────────────────────────────
+  const oneConcept = mom.momentumOf([A(0), A(0), A(0), A(0), A(0), A(0)], nowAt(0));
+  ok(oneConcept.milestones.find((m) => m.id === "five-concepts").progress === 1,
+    `six answers on one idea is one idea (progress ${oneConcept.milestones.find((m) => m.id === "five-concepts").progress})`);
+
+  // ── ALL SEVEN, THEN NOTHING LEFT TO AIM AT ─────────────────────────────
+  const all = [];
+  for (let d = 0; d < 3; d += 1) {
+    for (let c = 0; c < 5; c += 1) all.push(A(d, { conceptId: ["fractions", "decimals", "ratio", "percentages", "negatives"][c] }));
+  }
+  all.push(A(0, { tags: ["denom-add"], correct: false }));
+  all.push(A(0, { tags: ["denom-add"] }));
+  all.push(A(0, { mode: "transfer" }));
+  const done = mom.momentumOf(all, nowAt(2));
+  ok(done.next === null && done.milestones.every((m) => m.earnedAt !== null),
+    `a record that meets all seven thresholds has nothing left to aim at (${done.milestones.filter((m) => m.earnedAt === null).length} unearned)`);
+  ok(done.momentum.week.filter((d) => d.worked).length === 3,
+    "and the strip counts the three days it actually holds answers on");
+  ok(done.milestones.map((m) => m.id).join(",") === mom.MILESTONES.map((m) => m.id).join(","),
+    "milestones are returned in declared order, so \"next\" is the first one not yet earned");
+
+  // ── TODAY'S TARGET: A SMALL CLOSED GOAL, COUNTED FROM ANSWERS ──────────
+  // The mechanic every habit-forming study app converges on (a daily goal),
+  // held to this product's rule: it counts GRADED ANSWERS, so opening the app
+  // cannot move it. `target` is a constant that equals one sitting, not a
+  // number derived from a profile's minutes — there is no honest exchange rate
+  // between minutes and questions, and inventing one would be a claim.
+  ok(empty.momentum.target === mom.DAILY_TARGET && mom.DAILY_TARGET === 5,
+    `the daily target is one sitting, not a rate invented from minutes (${mom.DAILY_TARGET})`);
+  ok(empty.momentum.met === false && empty.momentum.toGo === mom.DAILY_TARGET,
+    "an untouched day is five short and not met — the bar starts empty");
+  const threeToday = mom.momentumOf([A(0), A(0), A(0)], nowAt(0));
+  ok(threeToday.momentum.toGo === 2 && threeToday.momentum.met === false,
+    `three answers today is two to go (${threeToday.momentum.toGo})`);
+  const fiveToday = mom.momentumOf([A(4), A(4), A(4), A(4), A(4)], nowAt(4));
+  ok(fiveToday.momentum.met === true && fiveToday.momentum.toGo === 0,
+    "five answers meets it, and nothing is left to do");
+  const overTarget = mom.momentumOf([A(0), A(0), A(0), A(0), A(0), A(0), A(0)], nowAt(0));
+  ok(overTarget.momentum.today === 7 && overTarget.momentum.toGo === 0 && overTarget.momentum.met,
+    `and going past the target is counted, never scolded or clamped to the goal (${overTarget.momentum.today} answers)`);
+  ok(mom.momentumOf([notAnswer(0, "hint_requested")], nowAt(0)).momentum.today === 0,
+    "a hint request does not move the daily bar — a goal that counts taps is a goal about tapping");
+
+  // A BROKEN RUN IS NOT A ZERO: the best run is a fact, and the return copy is
+  // built from it. This is the state a learner is in the day they come back,
+  // and it is the one most products render as \"no streak\".
+  const comeback = mom.momentumOf(span(0, 3), nowAt(10));
+  ok(comeback.momentum.streak === 0 && comeback.momentum.best === 4 && comeback.momentum.today === 0,
+    `a learner returning after a break has no run and a best of four — both true at once (best ${comeback.momentum.best})`);
+  const momSrcReturn = fs.readFileSync("components/momentum.tsx", "utf8");
+  ok(/momentum\.streak === 0 && momentum\.best > 0 && momentum\.today === 0/.test(momSrcReturn)
+    && /t\("mom\.best"\)/.test(momSrcReturn) && /t\("mom\.back"\)/.test(momSrcReturn),
+    "and the panel says so instead of \"no run yet\" — the best run, then that today starts a new one");
+
+  // ── WHAT THIS SITTING EARNED (not what the learner holds) ───────────────
+  const earnedView = mom.momentumOf([A(0), A(1), A(2)], nowAt(2));
+  ok(mom.earnedSince(earnedView, noon(2) + 1000).length === 0,
+    "a sitting that crossed nothing is told it crossed nothing — the first-answer badge earned days ago is not news");
+  const crossedNow = mom.earnedSince(earnedView, noon(1) + 1);
+  ok(crossedNow.length >= 1 && crossedNow.every((m) => m.earnedAt >= noon(1) + 1),
+    `only milestones the ledger dates inside the sitting are offered (${crossedNow.map((m) => m.id).join(",") || "none"})`);
+  ok(mom.earnedSince(earnedView, 0).length === earnedView.milestones.filter((m) => m.earnedAt !== null).length,
+    "and a cutoff before the record includes everything earned, so the rule is the cutoff and not a special case");
+  const resultSrcEarned = fs.readFileSync("components/session-result.tsx", "utf8");
+  ok(/earnedSince\(view, result\.startedAt\)/.test(resultSrcEarned),
+    "the result screen's cutoff is the SITTING's start timestamp, so a badge cannot be shown as though this session earned it");
+  ok(!/earnedSince\(view, [^)]*Date\.now/.test(resultSrcEarned),
+    "…and not \"today\", which would claim every milestone earned since midnight");
+
+  // ── THE SURFACE RENDERS WHAT THIS MODULE COMPUTED ──────────────────────
+  // A fold nobody displays is an engine with no product. Three wirings, each
+  // the kind that silently rots: Home's panel, the result screen's chip, and the
+  // dictionary the chip's sentence lives in.
+  const homeSrc = fs.readFileSync("components/learner-home.tsx", "utf8");
+  ok(/<Momentum events=\{ledger \? ledger\.events : null\} \/>/.test(homeSrc),
+    "Home renders the run from the SAME ledger the decision reads, not a second fetch");
+  const momSrc = fs.readFileSync("components/momentum.tsx", "utf8");
+  ok(/momentumOf\(events\)/.test(momSrc) && !/Date\.now\(\)/.test(momSrc),
+    "the panel asks the fold (which owns the clock) rather than computing days on screen");
+  ok(/t\("mom\.foot"\)/.test(momSrc),
+    "and it states what the numbers are NOT: days with a recorded answer, not a measure of ability");
+  const resultSrc = fs.readFileSync("components/session-result.tsx", "utf8");
+  ok(/momentumOf\(events\)/.test(resultSrc) && /t\("mom\.streak"\)/.test(resultSrc),
+    "the result screen shows the run it just extended, from the ledger re-read after the sitting");
+  ok(!/streak\s*=\s*[^=]*(activity\.|correct\s*\+)/.test(resultSrc),
+    "and never derives a streak from the session's own answers — the record is the only judge of that");
+
+  const dictM = require("../.verify/i18n.js");
+  const momKeys = Object.keys(dictM.DICTS.en).filter((k) => k.startsWith("mom."));
+  ok(momKeys.length >= 19, `the momentum copy is authored (${momKeys.length} mom.* keys)`);
+  const missingMom = dictM.LANG_CODES.filter((c) => momKeys.some((k) => dictM.DICTS[c]?.[k] === undefined));
+  ok(missingMom.length === 0,
+    `every one of them exists in all ${dictM.LANG_CODES.length} dictionaries (missing in: ${missingMom.join(",") || "none"})`);
+  const englishMom = dictM.LANG_CODES.filter((c) => c !== "en" && momKeys.some((k) => dictM.DICTS[c][k] === dictM.DICTS.en[k]));
+  ok(englishMom.length === 0,
+    `and no language is left with the English sentence under its own heading (${englishMom.join(",") || "none"})`);
+  const milestoneKeys = mom.MILESTONES.map((m) => m.key);
+  ok(new Set(milestoneKeys).size === milestoneKeys.length && milestoneKeys.every((k) => momKeys.includes(k)),
+    "each milestone's label is a real key in the dictionary, not a sentence in code");
+}
+
+// ── O. A WRONG ANSWER IS A MISTAKE EVEN WITH NO BELIEF NAMED ────────────────
+//
+// The reported defect was a page that was ALWAYS empty: `/mistakes` filtered on
+// `misconceptions` having a positive count, and only some items carry a belief
+// tag — every numeric item carries none, and most multiple-choice families test
+// a concept rather than discriminate one belief. Reproduced against a real
+// record: two wrong answers on `fractions`, `misconceptions: {}`, page empty.
+// The rule now has two kinds of row, and these are the draws that separate them.
+console.log("▸ A miss counts even when no belief is named");
+{
+  const mk = require("../.verify/mistakes.js");
+  const lookup = (id) => (["fractions", "linear-equations", "decimals", "ratio"].includes(id) ? { subject: "maths" } : null);
+  const P = (over = {}) => ({ attempts: 0, correct: 0, streak: 0, mastery: 0, lastSeen: 0, misconceptions: {}, ...over });
+
+  // THE BUG, EXACTLY: wrong answers, no tags, nothing on the page.
+  const untagged = mk.mistakeRows({ fractions: P({ attempts: 4, correct: 1, lastSeen: 10 }) }, lookup);
+  ok(untagged.length === 1 && untagged[0].conceptId === "fractions",
+    `a concept answered wrongly with NO belief tag is still a row (${untagged.length} row)`);
+  ok(untagged[0].misconceptionId === null && untagged[0].wrong === 3,
+    `and the row says how many were missed rather than inventing a cause (${untagged[0].wrong} of 4, belief ${untagged[0].misconceptionId})`);
+  ok(untagged[0].attempts === 4 && untagged[0].mastery === 0,
+    "with the same attempts and mastery the rest of the product reads");
+
+  // A NAMED BELIEF still carries its count, and further beliefs are counted.
+  const named = mk.mistakeRows({
+    "linear-equations": P({ attempts: 5, correct: 2, lastSeen: 20, misconceptions: { "bal-slip": 2, "sign-slip": 1 } }),
+  }, lookup);
+  ok(named[0].misconceptionId === "bal-slip" && named[0].totalHits === 3,
+    `a named slip is named, with every belief's hits added (${named[0].misconceptionId}, ${named[0].totalHits}x)`);
+  ok(named[0].others === 1,
+    "and the further belief on the same concept is counted, not silently merged into the leading one");
+
+  // NOT A PROGRESS TABLE: a concept answered cleanly is absent.
+  ok(mk.mistakeRows({ decimals: P({ attempts: 6, correct: 6, mastery: 0.8 }) }, lookup).length === 0,
+    "a concept answered entirely correctly is not a mistake row — this page is not a progress table");
+  ok(mk.mistakeRows({ "not-in-this-build": P({ attempts: 2, correct: 0 }) }, lookup).length === 0,
+    "and a concept this build does not have is skipped rather than rendered as a dead link");
+  ok(mk.mistakeRows(null, lookup).length === 0 && mk.mistakeRows(undefined, lookup).length === 0,
+    "an absent record is an empty list, not a crash");
+
+  // ORDER: the row that can be acted on leads.
+  const mixed = mk.mistakeRows({
+    fractions: P({ attempts: 9, correct: 1, lastSeen: 5 }),
+    "linear-equations": P({ attempts: 4, correct: 3, lastSeen: 1, misconceptions: { "bal-slip": 1 } }),
+    // two unnamed concepts, so the second ordering rule is exercised too
+    decimals: P({ attempts: 4, correct: 3, lastSeen: 2 }),
+  }, lookup);
+  ok(mixed[0].misconceptionId === "bal-slip",
+    `a NAMED belief leads a bigger unnamed count (${mixed.map((r) => r.conceptId).join(" > ")})`);
+  ok(mixed[1].conceptId === "fractions" && mixed[2].conceptId === "decimals",
+    "and unnamed rows follow by how many answers were missed, not by the order the record happens to hold");
+
+  // THE PAGE USES THE FOLD. A copy of the rule inside the component is what let
+  // the bug live: the engine could not see it, and a source reader had to.
+  const pageSrc = fs.readFileSync("app/mistakes/page.tsx", "utf8");
+  ok(/mistakeRows\(state\.progress/.test(pageSrc),
+    "the page renders the fold's rows rather than its own copy of the rule");
+  ok(!/if \(!entries\.length\) continue/.test(pageSrc),
+    "and the filter that hid every untagged miss is gone from the page");
+  ok(/err\.noBelief/.test(pageSrc) && /err\.misses/.test(pageSrc),
+    "the unnamed row says what it is: a count, with the belief explicitly not named");
+
+  // …AND THE HEADING NO LONGER CLAIMS MORE THAN THE ROWS.
+  const dictI = require("../.verify/i18n.js");
+  ok(!/recurring slip/i.test(dictI.DICTS.en["err.lead"]),
+    `the page's lead no longer promises only recurring slips ("${dictI.DICTS.en["err.lead"].slice(0, 60)}…")`);
+  const newKeys = ["err.misses", "err.noBelief", "pp.set"];
+  const missingNew = dictI.LANG_CODES.filter((c) => newKeys.some((k) => dictI.DICTS[c]?.[k] === undefined));
+  ok(missingNew.length === 0,
+    `each new sentence exists in all ${dictI.LANG_CODES.length} dictionaries (missing in: ${missingNew.join(",") || "none"})`);
+  const englishNew = dictI.LANG_CODES.filter((c) => c !== "en" && newKeys.some((k) => dictI.DICTS[c][k] === dictI.DICTS.en[k]));
+  ok(englishNew.length === 0,
+    `and none is left in English under a translated heading (${englishNew.join(",") || "none"})`);
+  const englishLead = dictI.LANG_CODES.filter((c) => c !== "en" && dictI.DICTS[c]["err.lead"] === dictI.DICTS.en["err.lead"]);
+  ok(englishLead.length === 0, `the rewritten lead is translated everywhere (${englishLead.join(",") || "none"})`);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

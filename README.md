@@ -299,7 +299,7 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |---|---|---|---|---|
 | **Content** | Teachable concepts | 135 | maths 67 · physics 18 · chemistry 16 · biology 16 · computing 18 | `lib/genome.ts` |
 |  | Concepts by stage | 0:16 1:32 2:46 3:29 4:8 5:4 | stage 0 (primary) → 5 | `lib/genome.ts` |
-|  | Concepts with a named misconception | 63 | catalogue of 53 patterns | `lib/genome.ts` |
+|  | Concepts with a named misconception | 65 | catalogue of 55 patterns | `lib/genome.ts` |
 |  | Languages | 15 |  | `lib/i18n.ts` |
 | **Content verification** | Concepts with a structural check | 135 | four distinct options, no float noise, a non-empty explanation | `audit/verification-coverage.json` |
 |  | Concepts whose explanation states its key | 135 |  | `audit/verification-coverage.json` |
@@ -313,9 +313,9 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Owners of where learning data lives | 1 | one, in lib/server/store.ts; lib/env.ts reports the variable and resolves nothing, so it is exempt | `source scan` |
 |  | Route files importing the store | 20 | 75 export statements in a 1179-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
 |  | JSON files the server modules own | 12 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "boots.json", "classes.json", "erasures.json", "interventions.json", "kiosk-sessions.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
-| **Pilot (UK GCSE maths)** | Concepts in the review cluster | 11 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
-|  | Items awaiting human review | 110 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
-|  | Cluster concepts with no named misconception to probe | 1 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |
+| **Pilot (UK GCSE maths)** | Concepts in the review cluster | 15 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
+|  | Items awaiting human review | 154 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
+|  | Cluster concepts with no named misconception to probe | 0 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |
 | **Curriculum** | Country codes offered in enrolment | 71 |  | `lib/i18n.ts` |
 |  | Countries with a recorded national route | 70 | asserted equal to the published count by `npm run curriculum-gate` | `lib/curricula/registry.ts` |
 |  | National pathways | 71 | Cameroon runs two systems, so this exceeds the country count | `lib/curricula/registry.ts` |
@@ -324,7 +324,7 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Pathways with no structural source on file | 18 | named on every `curriculum-gate` run rather than hidden | `lib/curricula/registry.ts` |
 |  | Pathways whose syllabus mapping has been reviewed | 0 | every mapping is currently OpenMind's own | `lib/curricula/registry.ts` |
 | **Papers** | Countries whose paper shape is the awarding body's own | 12 | 60 countries are shown a practice set that says it is one | `audit/paper-shape-coverage.json` |
-|  | Paper blueprints with a citation on file | 10 of 33 | the rest were authored from a board's structure before citations were collected, and are named by `npm run paper-audit` | `audit/paper-shape-coverage.json` |
+|  | Paper blueprints with a citation on file | 53 of 67 | the rest were authored from a board's structure before citations were collected, and are named by `npm run paper-audit` | `audit/paper-shape-coverage.json` |
 |  | Countries whose assessment shape was researched and NOT found | 7 | each listed with the reason, so the gap is a queue rather than a silence | `audit/paper-shape-coverage.json` |
 |  | Papers a learner can be offered | 447 | 33 with a shape read from an awarding body, 414 OpenMind's own shape at the course's band | `audit/paper-shape-coverage.json` |
 

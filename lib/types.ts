@@ -181,8 +181,73 @@ export type FigureSpec =
        *  answer to "which coordinate pair is this?". */
       points?: AxisPoint[];
       lines?: AxisLine[];
+      /** A CURVE, GIVEN AS ITS COEFFICIENTS: y = ax² + bx + c.
+       *
+       *  A quadratic's shape is the teaching — the roots are where it crosses
+       *  the horizontal axis, the turning point sits halfway between them, and
+       *  a negative discriminant is a curve that never arrives. None of those
+       *  is visible in a factored expression on its own.
+       *
+       *  The coefficients are DATA, and every drawn point is computed from them
+       *  (lib/figures.ts#parabolaLayout), so a picture cannot be drawn for a
+       *  different quadratic than the one the lesson names — the failure mode a
+       *  hand-written path would have, invisibly, forever.
+       *
+       *  FOR A LESSON, NOT FOR AN ASSESSMENT. A question generator must not emit
+       *  one: the curve's crossings ARE the answer to "solve this quadratic". */
+      curve?: { a: number; b: number; c: number };
+      /** A RISE/RUN TRIANGLE, drawn on a line: two points on the line, and the
+       *  right-angled triangle they close.
+       *
+       *  Gradient is `rise ÷ run`, which is a sentence until the two legs are
+       *  drawn. The legs are labelled with their own lengths and NOT with the
+       *  quotient: the division is the thing the lesson asks the learner to do,
+       *  so printing it would answer the question the picture exists to raise. */
+      gradient?: { from: [number, number]; to: [number, number] };
     }
-  | { kind: "pie"; /** The sector that is marked, in degrees of the 360°. */ sectorDegrees: number; label?: string }
+  | {
+      /** A SQUARE CUT INTO EQUAL SMALLER SQUARES — what a surd simplification
+       *  actually says.
+       *
+       *  √50 = 5√2 is not a rule a learner can see: it is the claim that a square
+       *  of area 50 can be tiled exactly by 25 squares of area 2, so each edge is
+       *  five of them long. Drawn, the simplification IS the tiling, which is why
+       *  the figure states `total` and `parts` and computes everything else.
+       *
+       *  A `parts` that does not tile exactly is REFUSED rather than drawn
+       *  roughly (lib/figures.ts#surdSquareLayout): a ragged sliver would show a
+       *  division that is not there. */
+      kind: "surd-square";
+      /** The big square's area — the number under the root. */
+      total: number;
+      /** How many equal small squares it is cut into; must be a perfect square
+       *  for a picture of it to exist. */
+      parts: number;
+    }
+  | {
+      /** A CIRCLE WITH ONE SECTOR MARKED — and, optionally, cut into equal
+       *  slices, which is a different claim from "this much is shaded".
+       *
+       *  `slices` exists for the one idea a bare sector cannot state: the SAME
+       *  amount counted in different pieces. 2/3 and 4/6 are the same shading of
+       *  the same circle, and a learner can only see that when the circle is
+       *  actually cut into six — which is exactly the move `fraction-ops` asks
+       *  them to make before adding. Adding the field rather than a new kind keeps
+       *  one drawing per claim: the shading says how much, the cuts say in what. */
+      kind: "pie";
+      /** The sector that is marked, in degrees of the 360°. */
+      sectorDegrees: number;
+      label?: string;
+      /** How many equal slices the WHOLE circle is divided into. Absent means
+       *  the circle is undivided, which is right for an angle question and wrong
+       *  for an equivalence one. */
+      slices?: number;
+      /** Whether the readout under the chart appends the sector's angle. True by
+       *  default because a sector question turns on the number of degrees; a
+       *  figure whose label already names the fraction would otherwise print
+       *  `2/3 = 4/6 · 240°`, which reads as two different answers. */
+      showDegrees?: boolean;
+    }
   | {
       /** A right-angled triangle, right angle at the bottom-left, drawn to
        *  SCALE from its two legs — so the picture and the numbers cannot
@@ -190,6 +255,60 @@ export type FigureSpec =
        *  with a `?`: the figure never states what the question asks for. */
       kind: "right-triangle"; legA: number; legB: number; unit?: string;
       labelA?: boolean; labelB?: boolean; labelC?: boolean;
+    }
+  | {
+      /** A NUMBER LINE WITH ONE JOURNEY DRAWN ON IT.
+       *
+       *  The arrow is the whole point. "Subtract a negative" moves RIGHT, which
+       *  is the fact learners get wrong, and it is a fact about a line rather
+       *  than about a rule — so the picture shows the direction and the lesson
+       *  does not have to assert it. Positions come from the values, so the ticks
+       *  and the arrow cannot disagree about which way it went. */
+      kind: "number-line"; min: number; max: number; from: number; to: number;
+    }
+  | {
+      /** A BALANCE: two pans holding a number of unknown BAGS and known UNIT
+       *  weights each. Bags and weights are drawn as two different shapes, so
+       *  "three bags and five weights" is countable rather than described.
+       *
+       *  The beam is drawn level, because the equation it illustrates is a claim
+       *  that the two sides ARE equal; what a learner does with the picture is
+       *  take the SAME thing off both pans, which is the operation the plan
+       *  teaches.
+       *
+       *  THE PANS ARE LABELLED with what they hold (`3x + 5` and `20`), derived
+       *  from the same counts the shapes are drawn from. Without the label the
+       *  picture can only be read by counting — and the right pan of a real
+       *  equation holds twenty weights, so counting is the one thing a learner
+       *  should not have to do to see the equation the lesson is about. */
+      kind: "balance";
+      left: { bags: number; units: number };
+      right: { bags: number; units: number };
+      /** The letter a bag stands for. `x` unless the equation uses another. */
+      variable?: string;
+    }
+  | {
+      /** AN AREA MODEL: a rectangle whose width and height are each split into
+       *  parts. 3(x + 4) is one band of 3 against two columns, x and 4, and each
+       *  cell is labelled with the product of its two bands (`3x`, `12`) — the
+       *  multiplication is drawn instead of stated.
+       *
+       *  `units` sets a part's PROPORTION (an x-band is one unit wide), so the
+       *  shape of the rectangle is the shape of the product. */
+      kind: "rectangle";
+      widthParts: { units: number; label: string }[];
+      heightParts: { units: number; label: string }[];
+      /** THE CELLS THAT CARRY THE POINT, by label.
+       *
+       *  An area model has one thing to say per lesson, and in `completing-square`
+       *  that thing is the corner you ADD: `x² + 6x` drawn as a square with two
+       *  strips is missing the 3 × 3, and the 9 has to read as the new piece
+       *  rather than as one of four equal cells. Cells whose label appears here
+       *  are drawn filled; the label is the address, so an author emphasises a
+       *  TERM and cannot accidentally emphasise a cell position. A label that
+       *  appears twice (the two `3x` strips) emphasises both — that is the right
+       *  reading of "these are the same term". */
+      emphasis?: string[];
     };
 
 export interface AxisPoint {
@@ -211,6 +330,17 @@ export interface Question {
   conceptId: string;
   /** Compact difficulty 0–1. */
   difficulty: number;
+  /** WHAT EACH WRONG OPTION REPRESENTS, aligned with `choices`, `""` where no
+   *  note was authored. Returned with the GRADE and never with the serve
+   *  (`serveView` strips it): explaining a wrong option can narrow the answer
+   *  down, and a learner who reads it before choosing has been handed a hint.
+   *
+   *  A note is written for a distractor that stands for a real move — "you
+   *  subtracted instead of adding" — and says what the learner's numbers would
+   *  have been if they had made it. It never guesses WHY this learner picked it:
+   *  the item is tagged with the misconception it discriminates, and the learner
+   *  is told that separately. */
+  choiceNotes?: string[];
   /** Prompt with $...$ maths placeholders the UI renders as-is. */
   prompt: string;
   /** Multiple-choice options; correctness via `answer`. For a numeric item these
