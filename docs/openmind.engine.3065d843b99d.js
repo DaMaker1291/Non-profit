@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 68 modules compiled from lib/ by that script, wired
+ * Source: 69 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -8034,6 +8034,7 @@ const en = {
     "err.misses": "{w} of {n} answers missed",
     "err.noBelief": "OpenMind recorded which answers were wrong here, but has no belief to name for them yet — practise here and one may be caught.",
     "pp.set": "Set {s}",
+    "lq.teachNoteLesson": "This lesson is in your language; the practice questions and their explanations are still in English.",
 };
 const es = {
     "target.slipCheck": "Esta está pensada para pillar ese fallo.",
@@ -9651,6 +9652,7 @@ const es = {
     "err.misses": "{w} de {n} respuestas falladas",
     "err.noBelief": "OpenMind registró qué respuestas fallaste aquí, pero aún no puede nombrar la creencia detrás — practica aquí y quizá se detecte.",
     "pp.set": "Conjunto {s}",
+    "lq.teachNoteLesson": "Esta lección está en tu idioma; las preguntas de práctica y sus explicaciones siguen en inglés.",
 };
 const fr = {
     "target.slipCheck": "Celle-ci est faite pour piéger cette erreur.",
@@ -11268,6 +11270,7 @@ const fr = {
     "err.misses": "{w} réponses ratées sur {n}",
     "err.noBelief": "OpenMind a enregistré quelles réponses tu as ratées ici, mais ne peut pas encore nommer la croyance derrière — entraîne-toi ici et elle sera peut-être repérée.",
     "pp.set": "Série {s}",
+    "lq.teachNoteLesson": "Cette leçon est dans votre langue ; les questions d'entraînement et leurs explications restent en anglais.",
 };
 const pt = {
     "target.slipCheck": "Esta é feita para apanhar esse erro.",
@@ -12885,6 +12888,7 @@ const pt = {
     "err.misses": "{w} de {n} respostas falhadas",
     "err.noBelief": "O OpenMind registou que respostas falhaste aqui, mas ainda não consegue nomear a crença por trás — pratica aqui e talvez seja detetada.",
     "pp.set": "Conjunto {s}",
+    "lq.teachNoteLesson": "Esta lição está no seu idioma; as perguntas de prática e as suas explicações continuam em inglês.",
 };
 const ar = {
     "target.slipCheck": "هذا السؤال مصمَّم ليكشف ذلك الخطأ.",
@@ -14484,6 +14488,7 @@ const ar = {
     "err.misses": "{w} من {n} إجابات خاطئة",
     "err.noBelief": "سجّل OpenMind أي الإجابات كانت خاطئة هنا، لكنه لا يستطيع بعد تسمية الاعتقاد وراءها — تدرّب هنا فقد يُكشف.",
     "pp.set": "المجموعة {s}",
+    "lq.teachNoteLesson": "هذا الدرس بلغتك؛ أما أسئلة التدريب وشروحها فما زالت بالإنجليزية.",
 };
 const sw = {
     "target.slipCheck": "Hili limeundwa kukamata kosa hilo.",
@@ -16083,6 +16088,7 @@ const sw = {
     "err.misses": "{w} kati ya {n} majibu yaliyokosewa",
     "err.noBelief": "OpenMind ilirekodi majibu gani yalikosewa hapa, lakini bado haiwezi kutaja imani iliyo nyuma — fanya mazoezi hapa huenda ikagunduliwa.",
     "pp.set": "Seti {s}",
+    "lq.teachNoteLesson": "Somo hili liko katika lugha yako; maswali ya mazoezi na maelezo yake bado ni kwa Kiingereza.",
 };
 const hi = {
     "target.slipCheck": "यह प्रश्न उसी गलती को पकड़ने के लिए बना है।",
@@ -17682,6 +17688,7 @@ const hi = {
     "err.misses": "{n} में से {w} उत्तर गलत",
     "err.noBelief": "OpenMind ने दर्ज किया कि यहाँ कौन-से उत्तर गलत हुए, पर उनके पीछे की धारणा का नाम अभी नहीं बता सकता — यहाँ अभ्यास करें, शायद वह पकड़ी जाए।",
     "pp.set": "सेट {s}",
+    "lq.teachNoteLesson": "यह पाठ आपकी भाषा में है; अभ्यास के प्रश्न और उनके स्पष्टीकरण अभी भी अंग्रेज़ी में हैं।",
 };
 const id = {
     "target.slipCheck": "Soal ini dibuat untuk menangkap kesalahan itu.",
@@ -19281,6 +19288,7 @@ const id = {
     "err.misses": "{w} dari {n} jawaban salah",
     "err.noBelief": "OpenMind mencatat jawaban mana yang salah di sini, tetapi belum bisa menamai keyakinan di baliknya — berlatihlah di sini, mungkin akan terdeteksi.",
     "pp.set": "Paket {s}",
+    "lq.teachNoteLesson": "Pelajaran ini dalam bahasa Anda; soal latihan dan penjelasannya masih dalam bahasa Inggris.",
 };
 const tl = {
     "target.slipCheck": "Ginawa ito para mahuli ang pagkakamaling iyon.",
@@ -20880,6 +20888,7 @@ const tl = {
     "err.misses": "{w} sa {n} sagot ang mali",
     "err.noBelief": "Naitala ng OpenMind kung aling mga sagot ang mali rito, ngunit wala pa itong maipangalan na paniniwala sa likod — magsanay dito at baka mahuli ito.",
     "pp.set": "Pangkat {s}",
+    "lq.teachNoteLesson": "Ang araling ito ay nasa iyong wika; ang mga tanong sa pagsasanay at ang mga paliwanag nito ay nasa Ingles pa rin.",
 };
 // ── Draft languages: core learning loop translated; English fills the rest. ─
 const de = {
@@ -22557,6 +22566,7 @@ const de = {
     "err.misses": "{w} von {n} Antworten falsch",
     "err.noBelief": "OpenMind hat festgehalten, welche Antworten hier falsch waren, kann aber noch nicht benennen, welcher Gedanke dahintersteckt — übe hier, vielleicht zeigt er sich.",
     "pp.set": "Satz {s}",
+    "lq.teachNoteLesson": "Diese Lektion ist in Ihrer Sprache; die Übungsfragen und ihre Erklärungen sind weiterhin auf Englisch.",
 };
 const ja = {
     "target.slipCheck": "この問題は、そのつまずきを突くために作られています。",
@@ -24215,6 +24225,7 @@ const ja = {
     "err.misses": "{n}問中{w}問まちがい",
     "err.noBelief": "ここでどの解答がまちがっていたかは記録しましたが、その背景の思い込みまではまだ特定できていません。ここで練習すれば見つかるかもしれません。",
     "pp.set": "セット{s}",
+    "lq.teachNoteLesson": "このレッスンはあなたの言語で書かれています。練習問題とその解説は今も英語です。",
 };
 const zh = {
     "target.slipCheck": "这道题就是用来抓住那个错误的。",
@@ -25783,6 +25794,7 @@ const zh = {
     "err.misses": "{n} 题中错了 {w} 题",
     "err.noBelief": "OpenMind 记录下了这里哪些答案错了，但还说不清背后的想法——在这里练习，也许就能被发现。",
     "pp.set": "第 {s} 套",
+    "lq.teachNoteLesson": "本课以你的语言讲授；练习题及其解析仍为英语。",
 };
 const fa = {
     "target.slipCheck": "این پرسش برای گرفتن همان خطا ساخته شده است.",
@@ -27351,6 +27363,7 @@ const fa = {
     "err.misses": "{w} از {n} پاسخ نادرست",
     "err.noBelief": "OpenMind ثبت کرده کدام پاسخ‌ها اینجا نادرست بوده، اما هنوز نمی‌تواند باورِ پشت آن را نام ببرد — اینجا تمرین کنید، شاید شناسایی شود.",
     "pp.set": "مجموعه {s}",
+    "lq.teachNoteLesson": "این درس به زبان شماست؛ پرسش‌های تمرین و توضیح‌هایشان هنوز به انگلیسی است.",
 };
 const ur = {
     "target.slipCheck": "یہ سوال اسی غلطی کو پکڑنے کے لیے بنایا گیا ہے۔",
@@ -28919,6 +28932,7 @@ const ur = {
     "err.misses": "{n} میں سے {w} جواب غلط",
     "err.noBelief": "OpenMind نے درج کیا کہ یہاں کون سے جواب غلط ہوئے، مگر ان کے پیچھے کے تصور کا نام ابھی نہیں بتا سکتا — یہاں مشق کریں، ممکن ہے پکڑا جائے۔",
     "pp.set": "سیٹ {s}",
+    "lq.teachNoteLesson": "یہ سبق آپ کی زبان میں ہے؛ مشق کے سوالات اور اُن کی وضاحتیں اب بھی انگریزی میں ہیں۔",
 };
 exports.LANGS = [
     { code: "en", name: "English", native: "English", dir: "ltr", status: "full", sample: "Global" },
@@ -30569,6 +30583,7 @@ exports.bn = {
     "err.misses": "{n}টির মধ্যে {w}টি ভুল",
     "err.noBelief": "OpenMind রেকর্ড করেছে এখানে কোন উত্তরগুলো ভুল, কিন্তু তার পেছনের ধারণার নাম এখনো বলতে পারে না — এখানে অনুশীলন করো, হয়তো ধরা পড়বে।",
     "pp.set": "সেট {s}",
+    "lq.teachNoteLesson": "এই পাঠ আপনার ভাষায়; অনুশীলনের প্রশ্ন ও তার ব্যাখ্যা এখনও ইংরেজিতে।",
 };
 exports.DICTS = {
     en, es, fr, pt, ar, sw, hi, id, tl, ur, fa, de, ja, zh, bn: exports.bn,
@@ -31346,11 +31361,146 @@ function commitAndProject(learnerId, state, events, store) {
 }
 
 });
+__def("lesson-plans-intl.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PLAN_TRANSLATIONS = void 0;
+exports.gapsFor = gapsFor;
+exports.translationGaps = translationGaps;
+exports.translatedPlanFor = translatedPlanFor;
+exports.completeLanguages = completeLanguages;
+/**
+ * THE TRANSLATED PLANS, by language then concept.
+ *
+ * `fr` · `fractions` is the first entry, chosen because it is the first concept
+ * of the reviewed pilot pathway and because francophone Africa is one of the
+ * largest populations this product is for and one where the national
+ * examinations are sat in French. It is a WORKED EXAMPLE of the pipeline, not
+ * a claim that French is covered.
+ */
+exports.PLAN_TRANSLATIONS = {
+    fr: {
+        fractions: {
+            objective: "Lire une fraction comme un nombre, en comparer deux, et expliquer pourquoi 1/8 est plus petite que 1/4 alors que 8 est plus grand.",
+            intuition: "Deux tablettes de chocolat identiques. L'une est cassée en quatre morceaux, l'autre en huit, et on vous donne un morceau de chacune. C'est la tablette en huit morceaux qui vous a donné le PLUS PETIT morceau, alors même que 8 est le plus grand nombre — parce que le nombre du bas ne dit pas la quantité reçue : il dit en combien de morceaux on a coupé la tablette. Toute question sur les fractions commence par demander lequel de ces deux rôles joue chaque nombre.",
+            idea: [
+                "Une fraction compte des morceaux ÉGAUX d'un tout. Dans 3/4, le nombre du bas, 4, dit que le tout a été coupé en quatre morceaux égaux ; le nombre du haut, 3, dit combien de ces morceaux vous avez. Dites-le à voix haute ainsi — « trois morceaux, chacun un quart » — et l'écriture cesse d'être deux nombres empilés l'un sur l'autre.",
+                "Le nombre du bas est une TAILLE, pas une quantité. Plus on coupe une tablette en morceaux, plus chaque morceau est petit : un dénominateur plus grand donne une part plus petite, donc 1/8 < 1/4. C'est l'erreur la plus fréquente de tout le chapitre, et ce n'est pas de la négligence : c'est lire le dénominateur comme une quantité, alors que c'est précisément le rôle du nombre du haut.",
+                "Des fractions égales disent la même quantité avec des morceaux différents. 1/2 = 2/4 = 3/6, parce que multiplier le haut et le bas par le même nombre double le nombre de morceaux ET divise leur taille par deux : la quantité de chocolat ne change pas. C'est pourquoi vous pouvez agrandir ou réduire une fraction à condition de faire la même chose en haut et en bas : vous renommez les morceaux, vous ne changez pas la quantité.",
+                "Pour comparer des fractions dont les dénominateurs diffèrent, on ramène les morceaux à la même taille — un dénominateur commun. 2/3 et 3/4 deviennent 8/12 et 9/12, et les numérateurs se comparent alors directement. L'autre méthode fiable ne demande aucun calcul : comparez chaque fraction à 1/2. Une fraction dont le haut est inférieur à la moitié du bas (3/8) est en dessous de 1/2, une fraction dont le haut dépasse la moitié du bas (5/8) est au-dessus ; donc 3/8 < 5/8, sans avoir rien calculé.",
+                "Une fraction est UN nombre, pas une division inachevée. 3/4 occupe une place précise sur la droite graduée, entre 0 et 1, plus près de 1 que de 0 — et une fois qu'on la voit là, l'additionner, la comparer et l'agrandir deviennent des opérations sur un nombre, et non des règles sur deux entiers écrits l'un au-dessus de l'autre.",
+                "Les décimaux et les pourcentages sont la même idée dans une autre écriture : 3/4 = 0,75 = 75 %. La quantité ne change pas quand l'écriture change, et un élève qui sait où se trouve 3/4 sur la droite sait déjà l'essentiel de ce que les deux notions suivantes enseignent.",
+            ],
+            traps: [
+                {
+                    move: "« 1/8 est plus grande que 1/4 parce que 8 est plus grand que 4. »",
+                    why: "Le nombre du bas compte les morceaux : un bas plus grand signifie des morceaux plus petits. Coupez la même tablette en huit et chaque morceau fait la moitié du quart que vous aviez. Comparez les parts, pas les nombres.",
+                },
+                {
+                    move: "« 2/3 est plus grande que 3/4 parce que 2 et 3 sont plus grands que 3 et 4. »",
+                    why: "Comparer les numérateurs ne marche que si les dénominateurs sont identiques. Ici les morceaux n'ont pas la même taille : 2 morceaux d'une taille et 3 morceaux d'une autre ne peuvent pas se compter l'un contre l'autre avant d'avoir égalisé les tailles — 8/12 contre 9/12.",
+                },
+                {
+                    move: "« 3/4 + 1/4 = 4/8. »",
+                    why: "Additionner les dénominateurs change la taille de chaque morceau dans la réponse : l'addition ne porte donc plus sur les mêmes touts. Des quarts et des quarts ont la même taille, donc les numérateurs s'ajoutent simplement : 3/4 + 1/4 = 1. (Les dénominateurs différents viennent à la notion suivante, et il faut d'abord un dénominateur commun.)",
+                },
+            ],
+            usedFor: "Les pourcentages et les décimaux sont des fractions écrites autrement, le ratio en compare deux, et la probabilité en est une : la chance d'obtenir un six est 1/6, une fraction avant d'être un pourcentage.",
+            caption: "Trois quarts d'un tout : le cercle est le 1, et la partie colorée représente trois de ses quatre parts égales. Un quart est une part, donc trois parts font 3/4 — et quatre parts rempliraient exactement le cercle.",
+        },
+    },
+};
+/** Does THIS translation object cover every part the English plan carries?
+ *  Returns the reasons it does NOT, so the gate can print them; an empty list is
+ *  a complete translation.
+ *
+ *  Separate from the lookup below ON PURPOSE: the refusal is the rule that keeps
+ *  a half-French lesson out of a classroom, and a rule nobody can call with a
+ *  planted bad input is a rule nobody has tested. `npm run verify` hands this
+ *  function three deliberately broken translations and requires each to be
+ *  refused by name. */
+function gapsFor(tr, base) {
+    if (!tr)
+        return ["no translation"];
+    const gaps = [];
+    const nonEmpty = (s) => typeof s === "string" && s.trim().length > 0;
+    if (!nonEmpty(tr.objective))
+        gaps.push("objective");
+    if (!nonEmpty(tr.intuition))
+        gaps.push("intuition");
+    if (!nonEmpty(tr.usedFor))
+        gaps.push("usedFor");
+    if (tr.idea.length !== base.idea.length)
+        gaps.push(`idea ${tr.idea.length}/${base.idea.length}`);
+    else if (tr.idea.some((p) => !nonEmpty(p)))
+        gaps.push("blank idea paragraph");
+    if (tr.traps.length !== base.traps.length)
+        gaps.push(`traps ${tr.traps.length}/${base.traps.length}`);
+    else if (tr.traps.some((t) => !nonEmpty(t.move) || !nonEmpty(t.why)))
+        gaps.push("blank trap");
+    if (base.figure && !nonEmpty(tr.caption))
+        gaps.push("caption");
+    // A translation that is byte-identical to the English in more than one part
+    // is not a translation; one identical part can be legitimate ("DNA", a
+    // formula), so the bar is more than one.
+    const same = [
+        tr.objective === base.objective,
+        tr.intuition === base.intuition,
+        tr.usedFor === base.usedFor,
+        tr.idea.every((p, i) => p === base.idea[i]),
+    ].filter(Boolean).length;
+    if (same > 1)
+        gaps.push("not actually translated");
+    return gaps;
+}
+/** The gaps for a concept in a language, or `["no translation"]`. */
+function translationGaps(conceptId, lang, base) {
+    return gapsFor(exports.PLAN_TRANSLATIONS[lang]?.[conceptId], base);
+}
+/** The translated plan, or null when it is missing OR incomplete. Never a
+ *  partial merge: see the header. */
+function translatedPlanFor(conceptId, lang, base) {
+    if (lang === "en")
+        return null;
+    const tr = exports.PLAN_TRANSLATIONS[lang]?.[conceptId];
+    if (!tr)
+        return null;
+    if (translationGaps(conceptId, lang, base).length > 0)
+        return null;
+    return {
+        ...base,
+        objective: tr.objective,
+        intuition: tr.intuition,
+        idea: tr.idea,
+        traps: tr.traps,
+        usedFor: tr.usedFor,
+        // The review state is the ENGLISH plan's: a translation is a new artefact,
+        // and the gate that would review it is a bilingual teacher, not this file.
+        review: base.review,
+        figure: base.figure ? { spec: base.figure.spec, caption: tr.caption } : undefined,
+    };
+}
+/** Which languages teach this concept as a COMPLETE translation. The coverage
+ *  number the page and the suite read, computed rather than remembered: a
+ *  translation that is missing a paragraph is not coverage, so it is not listed.
+ *  `lib/lesson-plans.ts#teachingLanguages` is the one-argument form the surfaces
+ *  call; this one takes the English plan so the two modules do not import each
+ *  other at runtime. */
+function completeLanguages(conceptId, base) {
+    if (!base)
+        return [];
+    return Object.keys(exports.PLAN_TRANSLATIONS)
+        .filter((lang) => translationGaps(conceptId, lang, base).length === 0)
+        .sort();
+}
+
+});
 __def("lesson-plans.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LESSON_PLANS = void 0;
 exports.planFor = planFor;
+exports.teachingLanguages = teachingLanguages;
 exports.planWordCount = planWordCount;
 exports.firstMoveOf = firstMoveOf;
 exports.plannedConceptIds = plannedConceptIds;
@@ -31397,6 +31547,7 @@ exports.orphanPlans = orphanPlans;
 // must say so on the screen, not just in a document.
 // ─────────────────────────────────────────────────────────────────────────────
 const genome_1 = require("./genome");
+const lesson_plans_intl_1 = require("./lesson-plans-intl");
 /**
  * THE AUTHORED PLANS.
  *
@@ -32032,9 +32183,30 @@ exports.LESSON_PLANS = {
 };
 /** The plan for a concept, or null when nobody has written one. Null is a real
  *  answer, not an error: the page falls back to the genome's prose, so a concept
- *  without a plan renders what it always did rather than an empty shell. */
-function planFor(conceptId) {
-    return exports.LESSON_PLANS[conceptId] ?? null;
+ *  without a plan renders what it always did rather than an empty shell.
+ *
+ *  WITH A LANGUAGE, THE LESSON COMES IN THAT LANGUAGE when a COMPLETE
+ *  translation exists (lib/lesson-plans-intl.ts). English is answered without
+ *  consulting the record at all, and an absent or PARTIAL translation answers
+ *  the authored English — never a half-French lesson, which reads as the
+ *  product switching language mid-paragraph. The second argument is optional on
+ *  purpose: every existing caller and every assertion that reads a plan is
+ *  still asking "is there a lesson here", and that question has nothing to do
+ *  with the reader's language. */
+function planFor(conceptId, lang) {
+    const base = exports.LESSON_PLANS[conceptId];
+    if (!base)
+        return null;
+    if (!lang || lang === "en")
+        return base;
+    return (0, lesson_plans_intl_1.translatedPlanFor)(conceptId, lang, base) ?? base;
+}
+/** The languages this concept's lesson is COMPLETELY translated into, English
+ *  excluded. Empty is the honest answer for almost the whole bank: one plan, one
+ *  language is what has been authored, and the page's language note reads this
+ *  rather than a hand-maintained list. */
+function teachingLanguages(conceptId) {
+    return (0, lesson_plans_intl_1.completeLanguages)(conceptId, exports.LESSON_PLANS[conceptId] ?? null);
 }
 /** Words of authored teaching in a plan, for the coverage report and the
  *  assertion that a plan is longer than the paragraph it replaces. Counts the
@@ -58232,7 +58404,7 @@ function canTransfer(conceptId) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 68 },
+      meta: { modules: 69 },
     };
   });
   return __req("__entry__.js");

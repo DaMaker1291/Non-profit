@@ -56,7 +56,7 @@ Copy `.env.example` to `.env`:
 
 ### For a fork or adaptation (OpenMind Kenya, OpenMind Brazil…)
 
-The curriculum is plain data and the store is a directory of JSON files. Fork, translate `lib/i18n.ts`, edit `lib/genome.ts`, deploy on a school server, and improvements flow back upstream by pull request. MIT-licensed — see [`LICENSE`](./LICENSE).
+The curriculum is plain data and the store is a directory of JSON files. Fork, translate `lib/i18n.ts`, edit `lib/genome.ts`, deploy on a school server, and improvements flow back upstream by pull request. The code is MIT-licensed ([`LICENSE`](./LICENSE)) and the teaching content is CC BY-SA 4.0 ([`LICENSE-CONTENT.md`](./LICENSE-CONTENT.md)) — the second is the one that lets a ministry translate a lesson legally and keep it open for the next school.
 
 ---
 
@@ -184,6 +184,22 @@ The projection re-runs the model's own mathematics over the ledger (`recordAnswe
 
 ---
 
+
+## Does it teach?
+
+Not proven yet, and the repository says so rather than implying otherwise. What
+exists is a **design for finding out cheaply**: [docs/PILOT_PROTOCOL.md](docs/PILOT_PROTOCOL.md)
+fixes the claim (a gain on an *independent past paper* of the learner's own
+qualification, against the teaching that would otherwise happen), the cluster
+design and its sample size, the pre-registered analysis, the threats and the
+stopping rule — and §6 prices the deployment from the pilot's own numbers
+instead of from a capacity estimate. The sentence it is written to test is worth
+quoting: *a learner with no textbook, no subject teacher and a $60 phone
+completes one reviewed course in the language they are taught in, sits their own
+board's paper, gains measurably, and their record survives a restart and belongs
+to them — at a marginal cost near zero.* Each clause has a known gap and, more
+importantly, a known owner; the language clause is the one this build just made
+mechanically possible.
 
 ## What's inside
 
@@ -440,4 +456,24 @@ The first target is not a ministry or an NGO. It is **one teacher** who says *"m
 
 ## License
 
-MIT — see [`LICENSE`](./LICENSE). Fork it, translate it, run it on a school server, put your ministry's name on a deployment.
+**Code: MIT** — see [`LICENSE`](./LICENSE). Fork it, translate it, run it on a school
+server, put your ministry's name on a deployment.
+
+**Teaching content: CC BY-SA 4.0** — see
+[`LICENSE-CONTENT.md`](./LICENSE-CONTENT.md). This is a separate licence on
+purpose: running the program is not the same right as translating what a child
+is taught. The lesson plans, the question bank and its explanations, the
+misconception coaching and the curriculum descriptions may be translated and
+adapted, provided the source is named and the adaptation stays open the same
+way. No board's examination material is bundled — the catalogue holds zero
+official items, because none is licensed to this project.
+
+**Learner records belong to the learner.** They are not content and they are not
+licensed to anyone: they can be exported, and erased through the product's own
+erasure door. Nothing about a learner is sold, and there is no advertising.
+
+**A translated lesson is not a reviewed one.** Every plan declares
+`review: "unreviewed" | "subject-reviewed"`, the lesson page prints it, and a
+translation inherits the English plan's state rather than upgrading it. A CC
+BY-SA translation that a qualified teacher has checked should record that in the
+same field, so the next reader knows which they are reading.

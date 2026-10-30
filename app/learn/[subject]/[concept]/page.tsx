@@ -37,7 +37,7 @@ import PeerTeach from "@/components/peer-teach";
 import LessonWorkedExample from "@/components/lesson-worked-example";
 import RepairCard from "@/components/repair-card";
 import { repairFor } from "@/lib/repair";
-import { planFor } from "@/lib/lesson-plans";
+import { planFor, teachingLanguages } from "@/lib/lesson-plans";
 import { exampleFor } from "@/lib/culture";
 import type { FlarePayload } from "@/lib/microdiag";
 import { subjectFromParam } from "@/lib/subjects";
@@ -81,8 +81,13 @@ export default function ConceptPage() {
   /** THE AUTHORED LESSON, IF THIS CONCEPT HAS ONE. Null is the normal answer for
    *  most of the genome today, and every plan-only section is skipped rather than
    *  drawn empty — a card with a heading and no teaching is worse than no card. */
-  const plan = planFor(conceptId);
   const { t, lang } = useI18n();
+  const plan = planFor(conceptId, lang);
+  /** IS THIS LESSON ACTUALLY IN THE READER'S LANGUAGE? Read from the translated
+   *  plans themselves, not from "a language was chosen": the note below used to
+   *  say the teaching is English even where it is not (and still says nothing
+   *  where it is). One sentence per state, and each states a fact. */
+  const taughtHere = lang !== "en" && teachingLanguages(conceptId).includes(lang);
   const { state, set: setState } = useProfile();
   // The SERVED view, not the bank's Question: the answer is not on the wire,
   // and the type is what stops a surface from reaching for it.
@@ -731,14 +736,23 @@ export default function ConceptPage() {
           have. It is printed here, above the first English paragraph, in the
           reader's own language.
 
-          TWO SENTENCES, chosen by MEASUREMENT (`namesNatively` asks the
-          dictionaries whether this language really has the 135 titles), so a
-          language added later with no vocabulary is told the stronger true
-          thing rather than inheriting a claim it does not meet. English readers
-          see nothing: the teaching IS their language. */}
+          THREE SENTENCES, chosen by MEASUREMENT, and the third is the one this
+          file now earns: where a COMPLETE translation of this concept's plan
+          exists (`teachingLanguages`, from lib/lesson-plans-intl), the learner
+          is told the lesson is in their language and that the PRACTICE is still
+          English — because the questions and their explanations are generated
+          from the English bank, and a learner who is told otherwise will think
+          their language is broken rather than the coverage incomplete. Where no
+          translation exists, `namesNatively` asks the dictionaries whether this
+          language really has the 135 titles, so a language added later with no
+          vocabulary is told the stronger true thing rather than inheriting a
+          claim it does not meet. English readers see nothing: the teaching IS
+          their language. */}
       {lang !== "en" && (
         <p className="small muted lang-note" role="note" style={{ margin: "0 0 16px" }}>
-          {t(namesNatively(lang) ? "lq.teachNote" : "lq.teachNoteAll")}
+          {t(taughtHere
+            ? "lq.teachNoteLesson"
+            : namesNatively(lang) ? "lq.teachNote" : "lq.teachNoteAll")}
         </p>
       )}
 

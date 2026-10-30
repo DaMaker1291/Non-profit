@@ -461,7 +461,15 @@ async function main() {
   const plans = (client.lessonPlans && client.lessonPlans.LESSON_PLANS) || {};
   const twinSrc = fs.readFileSync(path.join(ROOT, "docs", "app.js"), "utf8");
   ok(Object.keys(plans).length > 0, `the bundle carries the authored plans, counted from the module (${Object.keys(plans).length})`);
-  ok(/E\.lessonPlans\.planFor\(conceptId\)/.test(twinSrc), "and the lesson route asks that module which concepts have teaching");
+  // IN THE READER'S LANGUAGE, WHICH IS WHY THE ARGUMENT IS ASSERTED. The twin is
+  // the artefact a low-connectivity learner actually uses, so a translated plan
+  // that only the React app serves would be the feature failing exactly where it
+  // is needed most. `planFor(id)` still answers "is there teaching here"; the
+  // second argument is "and can this learner read it".
+  ok(/E\.lessonPlans\.planFor\(conceptId, lang\(\)\)/.test(twinSrc),
+    "and the lesson route asks that module which concepts have teaching, in the reader's own language");
+  ok(/E\.lessonPlans\.teachingLanguages\(conceptId\)/.test(twinSrc),
+    "and reads the three-state language note from the same module, so neither product can claim a translation the other does not have");
   ok(/stage !== "practice"/.test(twinSrc), "arriving at /learn shows the lesson; only its door opens the practice");
   ok(/E\.lessonPlans\.firstMoveOf/.test(twinSrc),
     "the fade's split is the shared one (lib/lesson-plans#firstMoveOf), so the two builds cannot cut a working example in different places");

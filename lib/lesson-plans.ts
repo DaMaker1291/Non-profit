@@ -41,6 +41,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { CONCEPTS } from "./genome";
 import type { FigureSpec } from "./types";
+import { completeLanguages, translatedPlanFor } from "./lesson-plans-intl";
 
 /** One wrong move, and why it does not work. */
 export interface LessonTrap {
@@ -785,9 +786,29 @@ export const LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
 
 /** The plan for a concept, or null when nobody has written one. Null is a real
  *  answer, not an error: the page falls back to the genome's prose, so a concept
- *  without a plan renders what it always did rather than an empty shell. */
-export function planFor(conceptId: string): LessonPlan | null {
-  return LESSON_PLANS[conceptId] ?? null;
+ *  without a plan renders what it always did rather than an empty shell.
+ *
+ *  WITH A LANGUAGE, THE LESSON COMES IN THAT LANGUAGE when a COMPLETE
+ *  translation exists (lib/lesson-plans-intl.ts). English is answered without
+ *  consulting the record at all, and an absent or PARTIAL translation answers
+ *  the authored English — never a half-French lesson, which reads as the
+ *  product switching language mid-paragraph. The second argument is optional on
+ *  purpose: every existing caller and every assertion that reads a plan is
+ *  still asking "is there a lesson here", and that question has nothing to do
+ *  with the reader's language. */
+export function planFor(conceptId: string, lang?: string): LessonPlan | null {
+  const base = LESSON_PLANS[conceptId];
+  if (!base) return null;
+  if (!lang || lang === "en") return base;
+  return translatedPlanFor(conceptId, lang, base) ?? base;
+}
+
+/** The languages this concept's lesson is COMPLETELY translated into, English
+ *  excluded. Empty is the honest answer for almost the whole bank: one plan, one
+ *  language is what has been authored, and the page's language note reads this
+ *  rather than a hand-maintained list. */
+export function teachingLanguages(conceptId: string): string[] {
+  return completeLanguages(conceptId, LESSON_PLANS[conceptId] ?? null);
 }
 
 /** Words of authored teaching in a plan, for the coverage report and the

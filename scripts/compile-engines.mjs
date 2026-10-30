@@ -74,6 +74,7 @@ export const ENGINE_SOURCES = [
   // real sequence, and be longer than the prose paragraph it replaces. A plan
   // table that no test compiles is a table nobody has checked.
   "lib/lesson-plans.ts",
+  "lib/lesson-plans-intl.ts",
   // FIGURE GEOMETRY. Compiled with the engines because the claims a diagram
   // makes are arithmetic: a number line's arrow must travel the way the sign
   // says, a balance's pans must hold what the equation says, an area model's

@@ -15578,8 +15578,10 @@ console.log("▸ Every door that costs money or CPU names its bound");
     "and the faded \"we do\" stage is rendered after the worked example");
   ok(/plan\s*\?\s*\(/.test(page),
     "the plan sections are conditional, so a concept without one falls back rather than rendering empty headings");
-  ok(/import \{ planFor \} from "@\/lib\/lesson-plans"/.test(page),
+  ok(/import \{[^}]*\bplanFor\b[^}]*\} from "@\/lib\/lesson-plans"/.test(page),
     "and the page reads plans from the one format module rather than keeping a copy of the content");
+  ok(/import \{[^}]*\bteachingLanguages\b[^}]*\} from "@\/lib\/lesson-plans"/.test(page),
+    "and asks that module which languages teach this concept, rather than keeping a list of translated lessons beside it");
   const litp = require("../.verify/i18n.js");
   const PLAN_KEYS = ["plan.can", "plan.start", "plan.together", "plan.guidedLead", "plan.firstStep",
     "plan.rest", "plan.finishIt", "plan.traps", "plan.reviewed", "plan.unreviewed"];
@@ -15604,12 +15606,14 @@ console.log("▸ Every door that costs money or CPU names its bound");
 // rendered only inside the language picker on /access, a screen a learner may
 // never open, so the interface claimed a localisation the teaching did not have.
 //
-// Two claims, and the first is what makes the second safe to print at all:
+// Three claims, and the first is what makes the others safe to print at all:
 //   1. the sentence's first clause is TRUE, measured from the dictionaries
 //      rather than from a list kept by hand — this file's own comment claimed
 //      seven translated languages while all fifteen carry every concept title;
-//   2. the teaching half really has no translation layer, so the printed
-//      sentence is not hedging content that is translated somewhere else.
+//   2. the sentence is chosen per concept, so a lesson that HAS been translated
+//      is not told its teaching is English (see the section below);
+//   3. nothing translates at RUNTIME, so the printed sentence is never hedging
+//      content a model produced on the fly.
 {
   console.log("▸ The lesson says which language it is teaching in");
   const litp2 = require("../.verify/i18n.js");
@@ -15621,7 +15625,7 @@ console.log("▸ Every door that costs money or CPU names its bound");
   ok(content.namesNatively("en") && !content.namesNatively("xx"),
     "and the rule answers true for English and false for a language that does not exist, so it cannot pass by accident");
 
-  for (const key of ["lq.teachNote", "lq.teachNoteAll"]) {
+  for (const key of ["lq.teachNote", "lq.teachNoteAll", "lq.teachNoteLesson"]) {
     const missing = litp2.LANG_CODES.filter((c) => !litp2.DICTS[c] || !litp2.DICTS[c][key]);
     ok(missing.length === 0, `${key} is authored in all ${litp2.LANG_CODES.length} languages (missing: ${missing.join(",") || "none"})`);
     const english = litp2.LANG_CODES.filter((c) => c !== "en" && litp2.DICTS[c][key] === litp2.DICTS.en[key]);
@@ -15631,18 +15635,113 @@ console.log("▸ Every door that costs money or CPU names its bound");
   const lp = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
   ok(/import \{[^}]*namesNatively[^}]*\} from "@\/lib\/content-i18n"/.test(lp),
     "the lesson page asks the content layer which language it is in, rather than keeping a second list of its own");
-  ok(/\{lang !== "en" && \(/.test(lp) && /t\(namesNatively\(lang\) \? "lq\.teachNote" : "lq\.teachNoteAll"\)/.test(lp),
-    "and prints one of the two sentences above the first English paragraph, choosing by measurement — English readers see nothing, because the teaching IS their language");
+  ok(/\{lang !== "en" && \(/.test(lp) && /taughtHere/.test(lp) &&
+     /"lq\.teachNoteLesson"/.test(lp) &&
+     /namesNatively\(lang\) \? "lq\.teachNote" : "lq\.teachNoteAll"/.test(lp),
+    "and prints one of the three true sentences above the first lesson paragraph, choosing by measurement — English readers see nothing, because the teaching IS their language");
   ok(lp.indexOf("lq.teachNote") < lp.indexOf("plan-objective"),
     "it comes BEFORE the objective, so a learner is told what they are about to read before they read it");
 
   // The other half of the claim: the teaching really is English-only. Measured
   // at the modules that carry it, so the printed sentence cannot become a hedge
   // for content that has since been translated.
-  const translatedTeaching = ["lib/lesson-plans.ts", "lib/repair.ts"]
-    .filter((f) => /translator\(|\bt\("/.test(fs.readFileSync(f, "utf8")));
-  ok(translatedTeaching.length === 0,
-    `and the teaching modules read no translator at all, so "the lesson paragraphs are English-authored" is structurally true (${translatedTeaching.join(", ") || "none do"})`);
+  // THE TEACHING IS TRANSLATED BY A RECORD, NEVER BY A RUNTIME TRANSLATOR. One
+  // plan is translated (lib/lesson-plans-intl.ts) and the rest are not; the
+  // thing that must never happen is the product DECIDING to translate on the
+  // fly, because a machine-translated maths explanation is exactly the failure
+  // the note exists to avoid claiming. So: the repair copy still reads no
+  // translator, and the translation module is a table — no translator, no
+  // network, no model call.
+  const repairSrc = fs.readFileSync("lib/repair.ts", "utf8");
+  ok(!/translator\(|\bt\("/.test(repairSrc),
+    "the repair copy reads no translator at all, so a targeted response is authored rather than generated");
+  const intlSrc = fs.readFileSync("lib/lesson-plans-intl.ts", "utf8");
+  ok(!/\btranslator\(|\bfetch\(|require\(/.test(intlSrc),
+    "and the one translation module is an authored table — no translator, no network, no model call");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ▸ A lesson can be taught in the learner's language of instruction
+//
+// The gap this closes was never a bug: every dictionary carries the 135 concept
+// titles and NONE carried a sentence of the teaching, so a learner taught in
+// French met French buttons and six English paragraphs. lib/lesson-plans-intl
+// makes a WHOLE translated plan possible and `planFor(id, lang)` serves it.
+//
+// The claims that would fail silently, and what each is for:
+//   1. English is untouched, including for every caller that passes no language
+//      (the suite, the walk, the engine) — the mechanism may add a language, it
+//      may not move the one that was already there;
+//   2. a translated plan is complete — every paragraph, every trap's move AND
+//      reason, and the figure's caption, or it is not served at all. A lesson
+//      that starts in French and finishes in English is worse than an English
+//      one, because the learner was told it was theirs;
+//   3. the refusal is tested on PLANTED partial translations, so the rule is
+//      enforced by a test rather than by a comment;
+//   4. coverage is a measured number, not a claim, and it is small on purpose;
+//   5. both renderers ask for the language, because the offline twin is the
+//      product a low-connectivity learner actually uses.
+{
+  console.log("▸ A lesson can be taught in the learner's language of instruction");
+  const plansI = require("../.verify/lesson-plans.js");
+  const intl = require("../.verify/lesson-plans-intl.js");
+  const litp3 = require("../.verify/i18n.js");
+
+  const en = plansI.planFor("fractions");
+  ok(!!en && Array.isArray(en.idea), "the concept the translated lesson covers has an authored English plan");
+  ok(plansI.planFor("fractions", "en").objective === en.objective,
+    "asking for English answers the authored plan unchanged");
+  ok(plansI.planFor("fractions").objective === en.objective,
+    "and so does every existing caller that passes no language at all");
+
+  const fr = plansI.planFor("fractions", "fr");
+  ok(fr.objective !== en.objective && /fraction/i.test(fr.objective),
+    `a complete French translation is served in French ("${fr.objective.slice(0, 54)}…")`);
+  ok(fr.idea.length === en.idea.length && fr.idea.every((p, i) => p !== en.idea[i]),
+    `every idea paragraph is translated, not just the first (${fr.idea.length} paragraphs, none left in English)`);
+  ok(fr.traps.length === en.traps.length && fr.traps.every((t, i) => t.move !== en.traps[i].move && t.why !== en.traps[i].why),
+    `every trap keeps both its move and its reason (${fr.traps.length} traps)`);
+  ok(fr.figure && fr.figure.spec.kind === en.figure.spec.kind && fr.figure.caption !== en.figure.caption,
+    "the figure keeps its own geometry and gains a caption in the same language");
+  ok(fr.review === en.review,
+    `a translation cannot upgrade the review state it inherits (${fr.review})`);
+
+  // 3 · THE REFUSAL, ON PLANTED BAD TRANSLATIONS.
+  const good = intl.PLAN_TRANSLATIONS.fr.fractions;
+  const partial = intl.gapsFor({ ...good, idea: good.idea.slice(0, 2) }, en);
+  ok(partial.length > 0 && partial.some((g) => /idea/.test(g)),
+    `a translation missing most of its idea paragraphs is refused (${partial.join(", ")})`);
+  const noCaption = intl.gapsFor({ ...good, caption: undefined }, en);
+  ok(noCaption.includes("caption"),
+    `a translation that drops the figure's caption is refused — the caption IS the teaching (${noCaption.join(", ")})`);
+  const copiedEnglish = intl.gapsFor({ ...good, objective: en.objective, intuition: en.intuition, usedFor: en.usedFor }, en);
+  ok(copiedEnglish.includes("not actually translated"),
+    `and a "translation" that is the English in three fields is refused (${copiedEnglish.join(", ")})`);
+  ok(plansI.planFor("fractions", "de").objective === en.objective,
+    "a language with no translation gets the authored English — not a half-French lesson, and not an error");
+
+  // 4 · COVERAGE, COUNTED.
+  const langs = plansI.teachingLanguages("fractions");
+  ok(langs.includes("fr") && !langs.includes("en") && !langs.includes("de"),
+    `coverage is read from the COMPLETE translations (${langs.join(", ") || "none"})`);
+  ok(plansI.teachingLanguages("decimals").length === 0,
+    "a concept nobody has translated reports none, so the page keeps telling that learner the truth");
+  const entries = Object.entries(intl.PLAN_TRANSLATIONS)
+    .flatMap(([lang, byConcept]) => Object.keys(byConcept).map((id) => `${lang}:${id}`));
+  const orphaned = Object.entries(intl.PLAN_TRANSLATIONS)
+    .flatMap(([lang, byConcept]) => Object.keys(byConcept).filter((id) => !plansI.planFor(id)));
+  ok(orphaned.length === 0,
+    `every translated lesson names a concept with an authored plan (orphans: ${orphaned.join(", ") || "none"})`);
+  const planCount = plansI.plannedConceptIds().length;
+  ok(entries.length > 0 && entries.length < planCount * litp3.LANG_CODES.length,
+    `and coverage is reported, not padded: ${entries.length} translated lesson(s) across ${planCount} authored plans and ${litp3.LANG_CODES.length} languages`);
+
+  // 5 · THE SENTENCE THAT STATES THAT STATE, and both renderers asking.
+  const twin = fs.readFileSync("docs/app.js", "utf8");
+  ok(/E\.lessonPlans\.planFor\(conceptId, lang\(\)\)/.test(twin),
+    "the offline twin asks for the plan in the reader's language too — it is the artefact a low-connectivity learner actually uses");
+  ok(/E\.lessonPlans\.teachingLanguages\(conceptId\)/.test(twin),
+    "and reads the same three-state note, so the two products cannot tell one learner two different things");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1441,6 +1441,7 @@ const en: Dict = {
   "err.misses": "{w} of {n} answers missed",
   "err.noBelief": "OpenMind recorded which answers were wrong here, but has no belief to name for them yet — practise here and one may be caught.",
   "pp.set": "Set {s}",
+  "lq.teachNoteLesson": "This lesson is in your language; the practice questions and their explanations are still in English.",
 };
 
 const es: Dict = {
@@ -3061,6 +3062,7 @@ const es: Dict = {
   "err.misses": "{w} de {n} respuestas falladas",
   "err.noBelief": "OpenMind registró qué respuestas fallaste aquí, pero aún no puede nombrar la creencia detrás — practica aquí y quizá se detecte.",
   "pp.set": "Conjunto {s}",
+  "lq.teachNoteLesson": "Esta lección está en tu idioma; las preguntas de práctica y sus explicaciones siguen en inglés.",
 };
 
 const fr: Dict = {
@@ -4681,6 +4683,7 @@ const fr: Dict = {
   "err.misses": "{w} réponses ratées sur {n}",
   "err.noBelief": "OpenMind a enregistré quelles réponses tu as ratées ici, mais ne peut pas encore nommer la croyance derrière — entraîne-toi ici et elle sera peut-être repérée.",
   "pp.set": "Série {s}",
+  "lq.teachNoteLesson": "Cette leçon est dans votre langue ; les questions d'entraînement et leurs explications restent en anglais.",
 };
 
 const pt: Dict = {
@@ -6301,6 +6304,7 @@ const pt: Dict = {
   "err.misses": "{w} de {n} respostas falhadas",
   "err.noBelief": "O OpenMind registou que respostas falhaste aqui, mas ainda não consegue nomear a crença por trás — pratica aqui e talvez seja detetada.",
   "pp.set": "Conjunto {s}",
+  "lq.teachNoteLesson": "Esta lição está no seu idioma; as perguntas de prática e as suas explicações continuam em inglês.",
 };
 
 const ar: Dict = {
@@ -7903,6 +7907,7 @@ const ar: Dict = {
   "err.misses": "{w} من {n} إجابات خاطئة",
   "err.noBelief": "سجّل OpenMind أي الإجابات كانت خاطئة هنا، لكنه لا يستطيع بعد تسمية الاعتقاد وراءها — تدرّب هنا فقد يُكشف.",
   "pp.set": "المجموعة {s}",
+  "lq.teachNoteLesson": "هذا الدرس بلغتك؛ أما أسئلة التدريب وشروحها فما زالت بالإنجليزية.",
 };
 
 const sw: Dict = {
@@ -9505,6 +9510,7 @@ const sw: Dict = {
   "err.misses": "{w} kati ya {n} majibu yaliyokosewa",
   "err.noBelief": "OpenMind ilirekodi majibu gani yalikosewa hapa, lakini bado haiwezi kutaja imani iliyo nyuma — fanya mazoezi hapa huenda ikagunduliwa.",
   "pp.set": "Seti {s}",
+  "lq.teachNoteLesson": "Somo hili liko katika lugha yako; maswali ya mazoezi na maelezo yake bado ni kwa Kiingereza.",
 };
 
 const hi: Dict = {
@@ -11107,6 +11113,7 @@ const hi: Dict = {
   "err.misses": "{n} में से {w} उत्तर गलत",
   "err.noBelief": "OpenMind ने दर्ज किया कि यहाँ कौन-से उत्तर गलत हुए, पर उनके पीछे की धारणा का नाम अभी नहीं बता सकता — यहाँ अभ्यास करें, शायद वह पकड़ी जाए।",
   "pp.set": "सेट {s}",
+  "lq.teachNoteLesson": "यह पाठ आपकी भाषा में है; अभ्यास के प्रश्न और उनके स्पष्टीकरण अभी भी अंग्रेज़ी में हैं।",
 };
 
 const id: Dict = {
@@ -12709,6 +12716,7 @@ const id: Dict = {
   "err.misses": "{w} dari {n} jawaban salah",
   "err.noBelief": "OpenMind mencatat jawaban mana yang salah di sini, tetapi belum bisa menamai keyakinan di baliknya — berlatihlah di sini, mungkin akan terdeteksi.",
   "pp.set": "Paket {s}",
+  "lq.teachNoteLesson": "Pelajaran ini dalam bahasa Anda; soal latihan dan penjelasannya masih dalam bahasa Inggris.",
 };
 
 const tl: Dict = {
@@ -14312,6 +14320,7 @@ const tl: Dict = {
   "err.misses": "{w} sa {n} sagot ang mali",
   "err.noBelief": "Naitala ng OpenMind kung aling mga sagot ang mali rito, ngunit wala pa itong maipangalan na paniniwala sa likod — magsanay dito at baka mahuli ito.",
   "pp.set": "Pangkat {s}",
+  "lq.teachNoteLesson": "Ang araling ito ay nasa iyong wika; ang mga tanong sa pagsasanay at ang mga paliwanag nito ay nasa Ingles pa rin.",
 };
 
 // ── Draft languages: core learning loop translated; English fills the rest. ─
@@ -15992,6 +16001,7 @@ const de: Dict = {
   "err.misses": "{w} von {n} Antworten falsch",
   "err.noBelief": "OpenMind hat festgehalten, welche Antworten hier falsch waren, kann aber noch nicht benennen, welcher Gedanke dahintersteckt — übe hier, vielleicht zeigt er sich.",
   "pp.set": "Satz {s}",
+  "lq.teachNoteLesson": "Diese Lektion ist in Ihrer Sprache; die Übungsfragen und ihre Erklärungen sind weiterhin auf Englisch.",
 };
 
 const ja: Dict = {
@@ -17653,6 +17663,7 @@ const ja: Dict = {
   "err.misses": "{n}問中{w}問まちがい",
   "err.noBelief": "ここでどの解答がまちがっていたかは記録しましたが、その背景の思い込みまではまだ特定できていません。ここで練習すれば見つかるかもしれません。",
   "pp.set": "セット{s}",
+  "lq.teachNoteLesson": "このレッスンはあなたの言語で書かれています。練習問題とその解説は今も英語です。",
 };
 
 const zh: Dict = {
@@ -19224,6 +19235,7 @@ const zh: Dict = {
   "err.misses": "{n} 题中错了 {w} 题",
   "err.noBelief": "OpenMind 记录下了这里哪些答案错了，但还说不清背后的想法——在这里练习，也许就能被发现。",
   "pp.set": "第 {s} 套",
+  "lq.teachNoteLesson": "本课以你的语言讲授；练习题及其解析仍为英语。",
 };
 
 const fa: Dict = {
@@ -20795,6 +20807,7 @@ const fa: Dict = {
   "err.misses": "{w} از {n} پاسخ نادرست",
   "err.noBelief": "OpenMind ثبت کرده کدام پاسخ‌ها اینجا نادرست بوده، اما هنوز نمی‌تواند باورِ پشت آن را نام ببرد — اینجا تمرین کنید، شاید شناسایی شود.",
   "pp.set": "مجموعه {s}",
+  "lq.teachNoteLesson": "این درس به زبان شماست؛ پرسش‌های تمرین و توضیح‌هایشان هنوز به انگلیسی است.",
 };
 
 const ur: Dict = {
@@ -22366,6 +22379,7 @@ const ur: Dict = {
   "err.misses": "{n} میں سے {w} جواب غلط",
   "err.noBelief": "OpenMind نے درج کیا کہ یہاں کون سے جواب غلط ہوئے، مگر ان کے پیچھے کے تصور کا نام ابھی نہیں بتا سکتا — یہاں مشق کریں، ممکن ہے پکڑا جائے۔",
   "pp.set": "سیٹ {s}",
+  "lq.teachNoteLesson": "یہ سبق آپ کی زبان میں ہے؛ مشق کے سوالات اور اُن کی وضاحتیں اب بھی انگریزی میں ہیں۔",
 };
 
 export const LANGS: LangMeta[] = [
@@ -24020,6 +24034,7 @@ export const bn: Dict = {
   "err.misses": "{n}টির মধ্যে {w}টি ভুল",
   "err.noBelief": "OpenMind রেকর্ড করেছে এখানে কোন উত্তরগুলো ভুল, কিন্তু তার পেছনের ধারণার নাম এখনো বলতে পারে না — এখানে অনুশীলন করো, হয়তো ধরা পড়বে।",
   "pp.set": "সেট {s}",
+  "lq.teachNoteLesson": "এই পাঠ আপনার ভাষায়; অনুশীলনের প্রশ্ন ও তার ব্যাখ্যা এখনও ইংরেজিতে।",
   };
 
 export const DICTS: Record<string, Dict> = {

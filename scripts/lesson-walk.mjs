@@ -798,6 +798,41 @@ async function main() {
     const deUnreviewed = await p.evaluate(`return (document.querySelector("main")?.innerText || "").includes("Fachlehrkraft");`);
     check(deUnreviewed, "the review state is German too — the honesty line is translated with the rest");
 
+    // ── 7b-ii. A LESSON THAT IS ACTUALLY TRANSLATED, in a browser ───────────
+    //
+    // The sections above prove that a translated INTERFACE reaches the page. They
+    // do not prove the other half: that a lesson whose plan has been translated
+    // is TAUGHT in that language and says so. `fractions` is the one concept with
+    // a complete French plan (lib/lesson-plans-intl.ts), and this drives the same
+    // picker a learner uses — so the mechanism is measured where it is read, not
+    // only where it is stored. The English intuition's opening is asserted ABSENT
+    // for the same reason the Spanish section asserts its paragraph is absent:
+    // a French heading over an English paragraph is the exact failure the
+    // all-or-nothing merge exists to prevent.
+    section("A French learner is taught in French, and told what is not");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/maths/fractions`);
+    await p.waitFor(`return !!document.querySelector(".lang-compact");`, "the picker for the translated lesson", 25000);
+    await p.pick('document.querySelector(".lang-compact")', "fr", "interface language", 'document.documentElement.lang === "fr"');
+    await goto(`${BASE}/learn/maths/fractions`);
+    await p.waitFor(`return !!document.querySelector(".lang-compact");`, "the fractions lesson in French", 30000);
+    await sleep(900);
+    const fr = await p.evaluate(`return { lang: document.documentElement.lang, text: (document.querySelector("main")?.innerText || "") };`);
+    check(fr.lang === "fr", `the document is in French (${fr.lang})`);
+    check(/Lire une fraction comme un nombre/.test(fr.text),
+      "the objective is taught in French, not merely headed in it");
+    check(/Le nombre du bas est une TAILLE/.test(fr.text),
+      "and the idea paragraphs are French — the body of the lesson, not just its title");
+    check(!/The bottom number is a SIZE, not a quantity/.test(fr.text),
+      "with no English idea paragraph left under the French heading");
+    check(/Une fraction compte des morceaux/.test(fr.text) && /Deux tablettes de chocolat identiques/.test(fr.text),
+      "the intuition is French too, so the lesson does not switch language part-way");
+    const frNote = await p.evaluate(`return (document.querySelector(".lang-note")?.textContent || "").trim();`);
+    check(/Cette leçon est dans votre langue/.test(frNote),
+      `and the page states the third true thing: the lesson is theirs, the practice is not ("${frNote.slice(0, 70)}…")`);
+    check(/questions d'entraînement/.test(frNote) && !/English-authored/.test(frNote),
+      "naming what stays English instead of claiming the whole product is translated");
+
     // Put the interface back, so a later walk in the same browser profile is not
     // surprised by Spanish — and because leaving a learner's app in a language
     // they did not choose is exactly the state this section is about.

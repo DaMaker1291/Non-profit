@@ -1258,7 +1258,12 @@
     // exists to fix, still present in the artefact built for the hardest
     // learners. `stage=practice` is the door out of the lesson; arriving with no
     // stage means arriving to be taught.
-    var plan = E.lessonPlans.planFor(conceptId);
+    // IN THE READER'S LANGUAGE, WHEN THE LESSON HAS BEEN TRANSLATED INTO IT.
+    // `planFor` answers the authored English unless a COMPLETE translation
+    // exists (lib/lesson-plans-intl.ts), so this cannot produce a half-French
+    // lesson; the note inside `drawLesson` reports which of the states the
+    // learner is in.
+    var plan = E.lessonPlans.planFor(conceptId, lang());
     if (plan && stage !== "practice") return drawLesson(conceptId, plan);
     if (!practice || practice.conceptId !== conceptId || practice.done) startPractice(conceptId);
     drawPractice();
@@ -1297,9 +1302,16 @@
     // THE HONEST LANGUAGE NOTE, on the page and not only in a picker. The
     // teaching paragraphs are English-authored; a learner reading Urdu is told
     // so in Urdu, above the English, instead of meeting an unexplained switch.
+    // THREE STATES, EACH A FACT: this concept's lesson is in the reader's
+    // language (and the practice is not), the vocabulary is theirs but the
+    // teaching is not, or nothing but the interface is. The twin and the app
+    // read the same three keys, so the two products cannot tell one learner two
+    // different things about the same lesson.
     var note = lang() === "en" ? "" :
       '<p class="small muted" role="note" style="margin:0 0 16px">' +
-      esc(t(E.contentI18n.namesNatively(lang()) ? "lq.teachNote" : "lq.teachNoteAll")) + "</p>";
+      esc(t(E.lessonPlans.teachingLanguages(conceptId).indexOf(lang()) >= 0
+        ? "lq.teachNoteLesson"
+        : E.contentI18n.namesNatively(lang()) ? "lq.teachNote" : "lq.teachNoteAll")) + "</p>";
     var idea = plan.idea.map(function (para) {
       return '<p style="margin:10px 0 0">' + esc(para) + "</p>";
     }).join("");
