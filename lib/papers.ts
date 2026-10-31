@@ -28,6 +28,10 @@ import { generateQuestion, generateQuestionNear, hasGenerator, hashSeed, serveVi
 // here is a paper that disagrees with the next-step card about the same learner.
 import { buildSnapshot, conceptDone, stuckOn, type ConceptEvidence } from "./learner-model";
 import { canTransfer } from "./transfer";
+import {
+  gradeStructuredParts, structuredById, structuredMarks,
+  type StructuredPart, type StructuredPartMark,
+} from "./structured-items";
 import type { BoardId, ProfileState, Question, SubjectId } from "./types";
 
 export interface PaperSectionSpec {
@@ -112,6 +116,12 @@ export interface PaperTemplate {
    *  an awarding body that publishes its papers and hours but not its item
    *  counts, or an exam that does not have a maths-only sitting at all. */
   shapeNote?: string;
+  /** A SLOT THIS BLUEPRINT FILLS WITH A CONSTRUCTED-RESPONSE ITEM. `marks` must
+   *  equal the item's own scheme total AND the mark value of the section slot it
+   *  takes, so adding one can never move the paper's declared total. Absent on
+   *  every paper that has none, which is all of them but one — the first vertical
+   *  slice of a format this engine could not previously serve at all. */
+  structured?: { id: string; marks: number };
   /** Specification ids this paper belongs to (validated against the real
    *  specification layer — a paper cannot name a qualification that does not
    *  exist). */
@@ -216,12 +226,22 @@ export const PAPERS: PaperTemplate[] = [
     id: "aqa-gcse-maths-p1", name: "GCSE Mathematics — Paper 1 (non-calculator)",
     board: "aqa", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
     itemCounts: "paced",
+    // The last 6-mark slot of this paper is a written question with a mark
+    // scheme, not four options: one slice of what a real 8300 paper asks for.
+    structured: { id: "sf-lawn-feed", marks: 6 },
     shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
-    shapeNote: "AQA 8300 is three written papers at the same tier, each 1 hour 30 minutes and 80 marks (33⅓%): Paper 1 non-calculator, Papers 2 and 3 calculator. Item counts and per-question marks here are OpenMind's pacing to that time.",
+    shapeNote: "AQA 8300 is three written papers at the same tier, each 1 hour 30 minutes and 80 marks (33⅓%): Paper 1 non-calculator, Papers 2 and 3 calculator. The mark profile here — single-mark items rising to one 6-mark written question — is OpenMind's modelling of the published sample materials, not an official mark distribution, and only the final slot is marked as a written response.",
+    // THE MARK PROFILE IS THE FORMAT. A paper of 2-, 4- and 6-mark questions
+    // cannot ask what an 8300 paper asks: the single-mark items are where recall
+    // and short technique live, and the rising tail is where the multi-step work
+    // is. 10×1 + 10×2 + 6×3 + 4×4 + 2×5 + 1×6 = 80 over 33 items.
     sections: [
-      { name: "Questions 1–10", count: 10, marksEach: 2, difficulty: 0.4 },
-      { name: "Questions 11–22", count: 12, marksEach: 4, difficulty: 0.55 },
-      { name: "Questions 23–24", count: 2, marksEach: 6, difficulty: 0.72 },
+      { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.3 },
+      { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.42 },
+      { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.55 },
+      { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.68 },
+      { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.78 },
+      { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.86 },
     ],
   }),
   paper({
@@ -231,9 +251,12 @@ export const PAPERS: PaperTemplate[] = [
     shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
     shapeNote: "Paper 2 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification.",
     sections: [
-      { name: "Questions 1–10", count: 10, marksEach: 2, difficulty: 0.42 },
-      { name: "Questions 11–22", count: 12, marksEach: 4, difficulty: 0.57 },
-      { name: "Questions 23–24", count: 2, marksEach: 6, difficulty: 0.74 },
+      { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.32 },
+      { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.44 },
+      { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.57 },
+      { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.7 },
+      { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.8 },
+      { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.88 },
     ],
   }),
   paper({
@@ -243,9 +266,12 @@ export const PAPERS: PaperTemplate[] = [
     shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
     shapeNote: "Paper 3 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification.",
     sections: [
-      { name: "Questions 1–10", count: 10, marksEach: 2, difficulty: 0.45 },
-      { name: "Questions 11–22", count: 12, marksEach: 4, difficulty: 0.6 },
-      { name: "Questions 23–24", count: 2, marksEach: 6, difficulty: 0.78 },
+      { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.34 },
+      { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.46 },
+      { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.59 },
+      { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.72 },
+      { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.82 },
+      { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.9 },
     ],
   }),
   paper({
@@ -253,11 +279,17 @@ export const PAPERS: PaperTemplate[] = [
     board: "edexcel", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
     itemCounts: "paced",
     shapeSource: "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/specification-and-sample-assesment/gcse-maths-2015-specification.pdf",
-    shapeNote: "Pearson Edexcel 1MA1 is three papers at the same tier, each 1 hour 30 minutes and 80 marks: Paper 1 non-calculator, Papers 2 and 3 calculator. Item counts and per-question marks here are OpenMind's pacing to that time.",
+    shapeNote: "Pearson Edexcel 1MA1 is three papers at the same tier, each 1 hour 30 minutes and 80 marks: Paper 1 non-calculator, Papers 2 and 3 calculator. The mark profile here is OpenMind's modelling of the published sample materials, not an official distribution.",
+    // Edexcel's own papers differ from AQA's in the short end (fewer single-mark
+    // items), so the two boards must not ship the same distribution: 8×1 + 11×2
+    // + 6×3 + 4×4 + 2×5 + 1×6 = 80 over 32 items.
     sections: [
-      { name: "Questions 1–12", count: 12, marksEach: 2, difficulty: 0.4 },
-      { name: "Questions 13–23", count: 11, marksEach: 4, difficulty: 0.55 },
-      { name: "Questions 24–25", count: 2, marksEach: 6, difficulty: 0.72 },
+      { name: "Questions 1–8", count: 8, marksEach: 1, difficulty: 0.32 },
+      { name: "Questions 9–19", count: 11, marksEach: 2, difficulty: 0.44 },
+      { name: "Questions 20–25", count: 6, marksEach: 3, difficulty: 0.57 },
+      { name: "Questions 26–29", count: 4, marksEach: 4, difficulty: 0.7 },
+      { name: "Questions 30–31", count: 2, marksEach: 5, difficulty: 0.8 },
+      { name: "Question 32", count: 1, marksEach: 6, difficulty: 0.88 },
     ],
   }),
   // ── AQA A-LEVEL MATHEMATICS — THE THREE A-LEVEL PAPERS ────────────────────
@@ -714,9 +746,12 @@ export const PAPERS: PaperTemplate[] = [
     shapeSource: "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/specification-and-sample-assesment/gcse-maths-2015-specification.pdf",
     shapeNote: "Paper 2 of Pearson Edexcel 1MA1: 1 hour 30 minutes, 80 marks, calculator allowed.",
     sections: [
-      { name: "Questions 1–12", count: 12, marksEach: 2, difficulty: 0.42 },
-      { name: "Questions 13–23", count: 11, marksEach: 4, difficulty: 0.58 },
-      { name: "Questions 24–25", count: 2, marksEach: 6, difficulty: 0.74 },
+      { name: "Questions 1–8", count: 8, marksEach: 1, difficulty: 0.34 },
+      { name: "Questions 9–19", count: 11, marksEach: 2, difficulty: 0.46 },
+      { name: "Questions 20–25", count: 6, marksEach: 3, difficulty: 0.59 },
+      { name: "Questions 26–29", count: 4, marksEach: 4, difficulty: 0.72 },
+      { name: "Questions 30–31", count: 2, marksEach: 5, difficulty: 0.82 },
+      { name: "Question 32", count: 1, marksEach: 6, difficulty: 0.9 },
     ],
   }),
   paper({
@@ -726,9 +761,12 @@ export const PAPERS: PaperTemplate[] = [
     shapeSource: "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/specification-and-sample-assesment/gcse-maths-2015-specification.pdf",
     shapeNote: "Paper 3 of Pearson Edexcel 1MA1: 1 hour 30 minutes, 80 marks, calculator allowed.",
     sections: [
-      { name: "Questions 1–12", count: 12, marksEach: 2, difficulty: 0.46 },
-      { name: "Questions 13–24", count: 12, marksEach: 4, difficulty: 0.62 },
-      { name: "Question 25", count: 1, marksEach: 8, difficulty: 0.78 },
+      { name: "Questions 1–8", count: 8, marksEach: 1, difficulty: 0.36 },
+      { name: "Questions 9–19", count: 11, marksEach: 2, difficulty: 0.48 },
+      { name: "Questions 20–25", count: 6, marksEach: 3, difficulty: 0.61 },
+      { name: "Questions 26–29", count: 4, marksEach: 4, difficulty: 0.74 },
+      { name: "Questions 30–31", count: 2, marksEach: 5, difficulty: 0.84 },
+      { name: "Question 32", count: 1, marksEach: 6, difficulty: 0.92 },
     ],
   }),
   paper({
@@ -1501,6 +1539,27 @@ export function needsPaper(
 }
 
 // ── Assembly ────────────────────────────────────────────────────────────────
+/** The served form of a structured item: what is asked, what each part is worth,
+ *  the unit it must carry, and — where the part has a method criterion — the
+ *  working box's own label and its mark. NEVER the answers, and never the
+ *  accepted working: both stay in the key, for the same reason a choice item's
+ *  key does. */
+export interface StructuredPartView {
+  id: string;
+  prompt: string;
+  marks: number;
+  unit?: string;
+  methodPrompt?: string;
+  methodMarks?: number;
+}
+
+export interface StructuredView {
+  itemId: string;
+  title: string;
+  /** What the item does NOT assess, shown with the question rather than buried. */
+  note: string;
+  parts: StructuredPartView[];
+}
 
 export interface PaperQuestion {
   /** Stable id inside the paper, e.g. "q7". */
@@ -1511,6 +1570,10 @@ export interface PaperQuestion {
   marks: number;
   difficulty: number;
   view: QuestionView;
+  /** Present exactly when this slot is a constructed-response item. Its parts
+   *  are what the sitting renders and what marking reads; `view.choices` is
+   *  empty because there are none. */
+  structured?: StructuredView;
 }
 
 export interface PaperSection {
@@ -1569,6 +1632,9 @@ export interface BuiltPaperAnswerKey {
     explanation: string;
     tags: string[];
     prompt: string;
+    /** A constructed-response item's mark scheme, carried on the key so a saved
+     *  sitting marks without the registry — the same rule as `boundaries`. */
+    structured?: StructuredPart[];
   }>;
 }
 
@@ -1637,6 +1703,47 @@ export function buildPaper(opts: BuildPaperOptions): { paper: BuiltPaper; key: B
     for (let i = 0; i < section.count; i++) {
       const qid = `q${++n}`;
       const slotSeed = `${template.id}:${opts.seed}:${qid}`;
+      // ── A STRUCTURED SLOT ────────────────────────────────────────────────
+      // Claimed on the section's FIRST slot, and only where the section's mark
+      // value equals the item's own scheme total: an item worth 6 cannot sit in
+      // a 2-mark slot without moving the paper's declared total, which is the
+      // kind of drift a paper's own mark check exists to catch.
+      const structuredItem = template.structured && i === 0 && section.marksEach === template.structured.marks
+        ? structuredById(template.structured.id) : null;
+      if (structuredItem && structuredMarks(structuredItem) !== section.marksEach) {
+        throw new Error(`paper ${template.id}: structured item ${structuredItem.id} is worth ${structuredMarks(structuredItem)}, slot declares ${section.marksEach}`);
+      }
+      if (structuredItem) {
+        // A structured item is not a Question: it has parts and a scheme, and no
+        // options. `serveView` is still the one path that strips a key, so the
+        // empty-choice question is shaped through it rather than hand-built.
+        const view = serveView({
+          id: qid, conceptId: structuredItem.conceptId, difficulty: structuredItem.difficulty,
+          prompt: structuredItem.intro, choices: [], answer: 0, explanation: "",
+          misconceptionTags: [], responseKind: "choice",
+        }, opts.lang, opts.active.spec.board);
+        const structured = {
+          itemId: structuredItem.id,
+          title: structuredItem.title,
+          note: structuredItem.note,
+          parts: structuredItem.parts.map((p) => ({
+            id: p.id, prompt: p.prompt, marks: p.marks, unit: p.unit,
+            methodPrompt: p.method?.prompt, methodMarks: p.method?.marks,
+          })),
+        };
+        questions.push({
+          id: qid, conceptId: structuredItem.conceptId, seed: slotSeed,
+          marks: structuredMarks(structuredItem), difficulty: structuredItem.difficulty,
+          view, structured,
+        });
+        key.push({
+          id: qid, conceptId: structuredItem.conceptId, seed: slotSeed,
+          answer: 0, marks: structuredMarks(structuredItem), difficulty: structuredItem.difficulty,
+          explanation: structuredItem.note, tags: [], prompt: structuredItem.intro,
+          structured: structuredItem.parts,
+        });
+        continue;
+      }
       const replacement = opts.replacements?.[qid];
       const drawn = replacement
         ? { conceptId: replacement.conceptId, seed: slotSeed, question: replacement.question }
@@ -1726,6 +1833,9 @@ export interface PaperResult {
      *  beside a wrong answer so the exam-evidence screen can name the IDEA to
      *  check — the one thing the score cannot say. */
     tags: string[];
+    /** Per-part result for a constructed-response item, so a learner who earned
+     *  4 of 6 can see WHICH parts paid and which did not. */
+    parts?: StructuredPartMark[];
   }>;
 }
 
@@ -1734,9 +1844,30 @@ export interface PaperResult {
 export function markPaper(
   key: BuiltPaperAnswerKey,
   answers: Record<string, number>,
+  /** Typed answers for constructed-response items, keyed by question id, one
+   *  entry per part in the item's own order. Absent entirely for a choice paper. */
+  structuredAnswers: Record<string, string[]> = {},
+  /** The working a learner typed, one entry per part. A method mark is earned
+   *  only from this, never inferred from a right answer. */
+  structuredWorking: Record<string, string[]> = {},
 ): PaperResult {
   let raw = 0;
   const perQuestion = key.questions.map((q) => {
+    // ── A STRUCTURED QUESTION IS MARKED BY ITS SCHEME ─────────────────────
+    // Per part, so partial credit is real; unanswered only when NO part carries
+    // input, because a blank box is not evidence of a wrong belief.
+    if (q.structured && q.structured.length > 0) {
+      const grade = gradeStructuredParts(
+        q.structured, structuredAnswers[q.id] ?? [], structuredWorking[q.id] ?? [],
+      );
+      raw += grade.awarded;
+      return {
+        id: q.id, conceptId: q.conceptId, marks: q.marks, awarded: grade.awarded,
+        correct: grade.answered === 0 ? null : grade.awarded === q.marks,
+        chosen: null, answer: q.answer, explanation: q.explanation,
+        tags: q.tags, parts: grade.parts,
+      };
+    }
     const chosen = typeof answers[q.id] === "number" ? answers[q.id] : null;
     const correct = chosen === null ? null : chosen === q.answer;
     const awarded = correct === true ? q.marks : 0;

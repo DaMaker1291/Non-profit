@@ -238,6 +238,10 @@ export async function GET(req: Request): Promise<NextResponse> {
 interface MarkBody {
   paperId?: string;
   answers?: Record<string, number>;
+  /** Typed answers for constructed-response items, one entry per part. */
+  structuredAnswers?: Record<string, string[]>;
+  /** Typed working for those parts: the only evidence a method mark can rest on. */
+  structuredWorking?: Record<string, string[]>;
   id?: string;
   secret?: string;
   lang?: string;
@@ -262,7 +266,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!key) return NextResponse.json({ error: "paper not found" }, { status: 404 });
 
   const answers = body.answers && typeof body.answers === "object" ? body.answers : {};
-  const result = markPaper(key, answers);
+  const structuredAnswers = body.structuredAnswers && typeof body.structuredAnswers === "object"
+    ? body.structuredAnswers : {};
+  const structuredWorking = body.structuredWorking && typeof body.structuredWorking === "object"
+    ? body.structuredWorking : {};
+  const result = markPaper(key, answers, structuredAnswers, structuredWorking);
 
   // Feed the learner model when we know whose paper it is.
   const profile = await authorisedProfile(req, body.id ?? null, body.secret ?? null);

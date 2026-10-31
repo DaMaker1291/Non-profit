@@ -815,7 +815,7 @@ export interface PaperMarking {
 
 /** Mark a paper. With an id the result is also recorded as evidence; without
  *  one the paper is still marked and nothing is stored. */
-export function markPaper(input: { paperId: string; answers: Record<string, number>; id?: string; lang?: string }): Promise<PaperMarking> {
+export function markPaper(input: { paperId: string; answers: Record<string, number>; structuredAnswers?: Record<string, string[]>; structuredWorking?: Record<string, string[]>; id?: string; lang?: string }): Promise<PaperMarking> {
   return send<PaperMarking>("/api/paper", { method: "POST", body: { ...input } });
 }
 

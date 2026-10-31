@@ -109,6 +109,14 @@ export default function PapersPage() {
   const [paper, setPaper] = useState<Paper | null>(null);
   const [source, setSource] = useState<{ source: string; aiQuestions: number; engineQuestions: number } | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  // Typed answers for a constructed-response question: one string per part.
+  // Kept apart from `answers` because a part's answer is TEXT, not a choice
+  // index, and the route marks the two through different schemes.
+  const [typed, setTyped] = useState<Record<string, string[]>>({});
+  // The working, per part. A method mark is earned ONLY from this box: it is
+  // never inferred from a right answer, because a method nobody can see is not
+  // evidence of a method.
+  const [working, setWorking] = useState<Record<string, string[]>>({});
   const [flagged, setFlagged] = useState<Record<string, boolean>>({});
   const [current, setCurrent] = useState(0);
   const [result, setResult] = useState<MarkResult | null>(null);
@@ -214,7 +222,10 @@ export default function PapersPage() {
       // because only the page knows whether there is a learner; the capability
       // travels with the operation.
       const id = loadLocalProfileId();
-      const data = await api.markPaper({ paperId: paper.id, answers, lang, ...(id ? { id } : {}) });
+      const data = await api.markPaper({
+        paperId: paper.id, answers, structuredAnswers: typed, structuredWorking: working,
+        lang, ...(id ? { id } : {}),
+      });
       setResult(data.result);
       setAnalysis((data.analysis as PaperAnalysisShape | null) ?? null);
       setConceptsTested(data.conceptsTested ?? []);
@@ -249,7 +260,9 @@ export default function PapersPage() {
     [paper],
   );
 
-  const answeredCount = Object.keys(answers).length;
+  const answeredCount = flat.filter((q) => typeof answers[q.id] === "number"
+    || (typed[q.id] ?? []).some((v) => v.trim() !== "")
+    || (working[q.id] ?? []).some((v) => v.trim() !== "")).length;
   const clock = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
   /** A grade band is a symbol (A*, 7, 500) or a word. Only "Pass" is a word. */
   const gradeLabel = (g: string | null) => (g === "Pass" ? t("pp.gradePass") : g ?? "—");
@@ -366,6 +379,18 @@ export default function PapersPage() {
         const num = idx + 1;
         const total = flat.length;
         const chosen = answers[q.id];
+        // A constructed-response question has parts and no options. The branch
+        // below is explicit: it never falls back to four choices and call them
+        // the answer.
+        // The client's wire type predates structured items, so the shape is
+        // named here rather than widening a shared type the whole paper list
+        // reads. Optional: every existing question has no parts.
+        const structured = (q as typeof q & {
+          structured?: {
+            itemId: string; title: string; note: string;
+            parts: Array<{ id: string; prompt: string; marks: number; unit?: string; methodPrompt?: string; methodMarks?: number }>;
+          };
+        }).structured;
         const isFlagged = !!flagged[q.id];
         return (
           <>
@@ -406,7 +431,9 @@ export default function PapersPage() {
                 flagged ones marked, exactly as a candidate circles them. */}
             <nav aria-label={t("pp.grid")} data-question-grid style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
               {flat.map((qq, i) => {
-                const done = typeof answers[qq.id] === "number";
+                const done = typeof answers[qq.id] === "number"
+                  || (typed[qq.id] ?? []).some((v) => v.trim() !== "")
+                  || (working[qq.id] ?? []).some((v) => v.trim() !== "");
                 const fl = !!flagged[qq.id];
                 const on = i === current;
                 return (
@@ -455,8 +482,61 @@ export default function PapersPage() {
               <div className="qtext" style={{ marginTop: 10 }}>
                 <PromptText text={q.view.prompt} figure={q.view.figure} />
               </div>
+              {structured && (
+                <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                  <p className="small muted" style={{ margin: 0 }}>{structured.note}</p>
+                  {structured.parts.map((part, pi) => {
+                    const vals = typed[q.id] ?? structured.parts.map(() => "");
+                    const works = working[q.id] ?? structured.parts.map(() => "");
+                    return (
+                      <label
+                        key={part.id}
+                        style={{ display: "grid", gap: 6, padding: "10px 12px", border: "1px solid var(--rule, #e5e7eb)", borderRadius: 10 }}
+                      >
+                        <span className="small">
+                          <b>({part.id})</b> <MathText text={part.prompt} />
+                        </span>
+                        <span className="small muted">
+                          {part.marks} {t("pp.marks")}{part.unit ? ` · ${part.unit}` : ""}
+                        </span>
+                        <input
+                          type="text"
+                          autoComplete="off"
+                          value={vals[pi] ?? ""}
+                          onChange={(e) => setTyped((m) => {
+                            const next = [...(m[q.id] ?? structured.parts.map(() => ""))];
+                            next[pi] = e.target.value;
+                            return { ...m, [q.id]: next };
+                          })}
+                          aria-label={`${t("pp.q")} ${num} (${part.id})`}
+                          style={{ padding: "10px 12px", border: "1px solid var(--rule, #e5e7eb)", borderRadius: 8 }}
+                        />
+                        {part.methodPrompt && (
+                          <>
+                            <span className="small muted">
+                              {part.methodPrompt} · {part.methodMarks ?? 1} {t("pp.marks")}
+                            </span>
+                            <input
+                              type="text"
+                              autoComplete="off"
+                              value={works[pi] ?? ""}
+                              onChange={(e) => setWorking((m) => {
+                                const next = [...(m[q.id] ?? structured.parts.map(() => ""))];
+                                next[pi] = e.target.value;
+                                return { ...m, [q.id]: next };
+                              })}
+                              aria-label={`${t("pp.q")} ${num} (${part.id}) working`}
+                              style={{ padding: "10px 12px", border: "1px dashed var(--rule, #e5e7eb)", borderRadius: 8 }}
+                            />
+                          </>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
               <div style={{ display: "grid", gap: 8 }}>
-                {q.view.choices.map((c, ci) => (
+                {!structured && q.view.choices.map((c, ci) => (
                   <label
                     key={ci}
                     className={chosen === ci ? "on" : ""}
@@ -572,6 +652,19 @@ export default function PapersPage() {
                       <b className="tag">{`△ ${t("pp.checkIdea")}: ${mcName(lang, tag, MISCONCEPTIONS_BY_ID[tag].name)}`}</b>
                     </p>
                   )}
+                  {/* WHICH PARTS PAID. A partial mark of 4/6 without the split
+                      tells a learner they lost two marks and not where, which is
+                      the one thing a marked paper is for. */}
+                  {((q as unknown as { parts?: Array<{ partId: string; awarded: number; marks: number; criteria?: Array<{ id: string; kind: string; label: string; awarded: number; marks: number; met: boolean; why: string }> }> }).parts ?? []).map((p) => (
+                    <div key={p.partId} className="small" style={{ marginTop: 4 }}>
+                      <b>({p.partId})</b>{" "}
+                      {(p.criteria ?? []).map((c) => (
+                        <span key={c.id} style={{ marginRight: 10 }} title={c.why}>
+                          {c.kind === "method" ? "M" : "A"}{c.awarded}/{c.marks} · {c.met ? "✓" : "✗"} {c.label}
+                        </span>
+                      ))}
+                    </div>
+                  ))}
                   <p className="small" style={{ margin: "6px 0 0" }}><MathText text={q.explanation} /></p>
                 </div>
               );

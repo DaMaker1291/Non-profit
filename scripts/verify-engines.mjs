@@ -2921,8 +2921,16 @@ console.log("▸ Paper analysis");
   // Every question wrong: the diagnosis must account for every mark, name the
   // recurring ideas, and point at the biggest loss.
   const allWrong = {};
-  for (const q of built.key.questions) allWrong[q.id] = (q.answer + 1) % 4;
-  const result = papers.markPaper(built.key, allWrong);
+  // A WHOLE-PAPER FIXTURE HAS TO ANSWER EVERY KIND OF QUESTION. The paper now
+  // contains one constructed-response item, and a fixture that only fills in
+  // choice answers leaves it unanswered — which is a different case (and the
+  // one below it asserts) rather than "every question was answered".
+  const wrongTyped = {};
+  for (const q of built.key.questions) {
+    if (q.structured) wrongTyped[q.id] = q.structured.map(() => "not a number");
+    else allWrong[q.id] = (q.answer + 1) % 4;
+  }
+  const result = papers.markPaper(built.key, allWrong, wrongTyped);
   const a = analysePaper(built.key, result);
 
   const available = a.byConcept.reduce((s, c) => s + c.marksAvailable, 0);
@@ -2961,8 +2969,18 @@ console.log("▸ Paper analysis");
 
   // A perfect paper repairs nothing — and says so.
   const allRight = {};
-  for (const q of built.key.questions) allRight[q.id] = q.answer;
-  const perfect = analysePaper(built.key, papers.markPaper(built.key, allRight));
+  // The structured item's truth is per CRITERION: a perfect paper shows the
+  // method as well as the answer, because the method mark is not inferred from
+  // a right answer.
+  const rightTyped = {};
+  const rightWork = {};
+  for (const q of built.key.questions) {
+    if (q.structured) {
+      rightTyped[q.id] = q.structured.map((p) => `${p.answer}${p.unit ? ` ${p.unit}` : ""}`);
+      rightWork[q.id] = q.structured.map((p) => p.method?.accept[0] ?? "");
+    } else allRight[q.id] = q.answer;
+  }
+  const perfect = analysePaper(built.key, papers.markPaper(built.key, allRight, rightTyped, rightWork));
   ok(perfect.lostMarks === 0 && perfect.recurring.length === 0 && perfect.weakest === null,
     "a paper with no lost marks has nothing to repair");
   ok(perfect.concentration === 0, "concentration of an empty loss is zero, not NaN");
@@ -13224,6 +13242,108 @@ console.log("▸ A paper says whether its shape is the awarding body's");
     "with exactly one non-calculator paper and two that allow one");
   ok(aqaGcse.every((p) => /^https:\/\//.test(p.shapeSource ?? "") && p.basis === "published"),
     "and each cites the specification it was read from, so it may claim the board's structure");
+  // 3b-ii. THE FRACTIONS LESSON HAS A MODEL, NOT ONLY A PICTURE. The pie states
+  //       three quarters; it cannot answer "what if I cut it into more pieces?",
+  //       which is the question the lesson's own trap raises. Asserted at the
+  //       source the way the figure checks are: the plan names the model, the
+  //       page renders it only where named, and the component really is two
+  //       controls and a labelled drawing rather than a picture of one.
+  const plansSrc = fs.readFileSync("lib/lesson-plans.ts", "utf8");
+  const lessonPageSrc = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  const modelSrc = fs.readFileSync("components/fraction-model.tsx", "utf8");
+  ok(/conceptId: "fractions"[\s\S]{0,4000}?interactive: "fraction-model"/.test(plansSrc),
+    "the fractions plan declares the interactive model it needs");
+  ok(lessonPageSrc.includes('<FractionModel />') && /plan\?\.interactive === "fraction-model"/.test(lessonPageSrc),
+    "and the lesson page renders it only where a plan names it");
+  ok((modelSrc.match(/type="range"/g) ?? []).length === 2,
+    "the model has a control for the pieces and one for the shading");
+  ok(/<svg[^>]*role="img"[^>]*aria-label=/.test(modelSrc) && /aria-live="polite"/.test(modelSrc),
+    "with the drawing named for a screen reader and the fraction announced in words");
+  // The component writes ids as template literals (`${id}-den`), so the check
+  // reads the SAME pattern the DOM will: a label's htmlFor and an input's id
+  // built from the one useId, for BOTH controls.
+  ok(/htmlFor=\{\s*`\$\{id\}-den`\s*\}/.test(modelSrc) && /id=\{\s*`\$\{id\}-den`\s*\}/.test(modelSrc)
+    && /htmlFor=\{\s*`\$\{id\}-num`\s*\}/.test(modelSrc) && /id=\{\s*`\$\{id\}-num`\s*\}/.test(modelSrc),
+    "and each slider labelled by its own id, so the labels are not a sighted-only hint");
+  // 3c. THE FIRST CONSTRUCTED-RESPONSE QUESTION, MARKED BY ITS OWN SCHEME.
+  //     One 6-mark slot of AQA Paper 1 is a written question with three parts.
+  //     The assertions below are the whole contract: it takes ONE slot (so the
+  //     paper still totals 80), the served form carries no answer, marks are
+  //     earned per part, a required unit is required, an authored equivalent is
+  //     accepted, a blank paper is not evidence, and nothing can exceed the
+  //     question's marks.
+  const gcseSpec = S.specById("uk-gcse");
+  const gcseActive = { spec: gcseSpec, level: gcseSpec.levels[gcseSpec.levels.length - 1] };
+  const aqaTplForSat = pm.paperById("aqa-gcse-maths-p1");
+  const sat = pm.buildPaper({ active: gcseActive, subject: "maths", seed: "structured-1", template: aqaTplForSat });
+  const sq = sat.paper.sections.flatMap((s) => s.questions).find((q) => q.structured);
+  ok(!!sq && sq.marks === 6 && sq.structured.parts.map((p) => p.marks).join("+") === "2+2+2",
+    `the 6-mark slot of AQA Paper 1 is a written question in three 2-mark parts (${sq && sq.structured.parts.map((p) => p.marks).join("+")})`);
+  ok(sat.paper.marks === 80 && sat.paper.questionCount === aqaTplForSat.sections.reduce((n, s) => n + s.count, 0),
+    `and it takes ONE slot, so the paper is still 80 marks over the same questions (${sat.paper.marks} marks, ${sat.paper.questionCount} questions)`);
+  ok(!JSON.stringify(sat.paper).includes("25.5") && !JSON.stringify(sat.paper).includes("25.50"),
+    "the served paper carries no part's answer — the key stays on the server, as for a choice item");
+  const sqId = sq.id;
+  const WORK = ["7.5 × 4", "30 ÷ 12", "3 × 8.50"];
+  const at = (r) => r.perQuestion.find((x) => x.id === sqId);
+  const markedFull = pm.markPaper(sat.key, {}, { [sqId]: ["30 m²", "3", "25.50"] }, { [sqId]: WORK });
+  ok(at(markedFull).awarded === 6,
+    `shown working plus right answers earn the full 6 (${at(markedFull).awarded})`);
+  ok(at(markedFull).parts.every((p) => p.criteria.length === 2 && p.criteria.every((c) => c.met)),
+    "and every part reports its method and answer criteria as met");
+  // A METHOD MARK SURVIVES A WRONG ANSWER — the whole point of partial credit.
+  const markedSlip = pm.markPaper(sat.key, {}, { [sqId]: ["30 m²", "2.5", "25.50"] }, { [sqId]: WORK });
+  const slipQ = at(markedSlip);
+  ok(slipQ.awarded === 5 && slipQ.parts.map((p) => p.awarded).join("+") === "2+1+2",
+    `the shown division is kept when the rounding slips: 5 of 6, b = 1 (${slipQ.parts.map((p) => `${p.partId}:${p.awarded}`).join(", ")})`);
+  ok(slipQ.parts[1].criteria.map((c) => `${c.kind}:${c.awarded}`).join(",") === "method:1,accuracy:0",
+    "and the split says the method was met while the answer was not");
+  // A METHOD MARK NEEDS THE WORKING TO BE SHOWN: it is never inferred.
+  const markedAnswersOnly = pm.markPaper(sat.key, {}, { [sqId]: ["30 m²", "3", "25.50"] });
+  ok(at(markedAnswersOnly).awarded === 3 && at(markedAnswersOnly).parts.every((p) => p.criteria[0].kind === "method" && p.criteria[0].awarded === 0),
+    `right answers with no working keep only the three answer marks (${at(markedAnswersOnly).awarded})`);
+  ok(at(markedAnswersOnly).parts[0].criteria[0].why.includes("No working"),
+    `and say WHY the method mark was withheld (${at(markedAnswersOnly).parts[0].criteria[0].why})`);
+  const markedUnit = pm.markPaper(sat.key, {}, { [sqId]: ["30", "3", "25.5"] }, { [sqId]: WORK });
+  ok(at(markedUnit).awarded === 5 && at(markedUnit).parts[0].awarded === 1,
+    "a bare 30 is not 30 m²: the unit-lost answer keeps its method mark only");
+  ok(at(markedUnit).parts[0].criteria[1].why.includes("unit"),
+    `and the answer criterion names the missing unit (${at(markedUnit).parts[0].criteria[1].why})`);
+  const markedBlank = pm.markPaper(sat.key, {}, {});
+  const blankQ = at(markedBlank);
+  ok(blankQ.awarded === 0 && blankQ.correct === null,
+    "an untouched question is unanswered, not wrong — the ledger must not read a belief into a blank");
+  const markedFaces = pm.markPaper(sat.key, {}, { [sqId]: ["thirty", "3 bags", "£25.50"] });
+  ok(at(markedFaces).awarded === 2,
+    `authored equivalents keep their answer marks, while prose earns nothing (${at(markedFaces).awarded})`);
+  const offList = pm.markPaper(sat.key, {}, { [sqId]: ["30 m²", "3", "25.50"] }, { [sqId]: ["did it in my head", "30 ÷ 12", "3 × 8.50"] });
+  ok(at(offList).parts[0].criteria[0].awarded === 0 && at(offList).parts[0].criteria[0].met === false,
+    "working this question cannot check earns no method mark, and says so rather than guessing");
+  ok(markedFull.raw <= markedFull.total && markedFull.total === 80 && markedSlip.raw === 5,
+    `marks stay inside the paper (${markedFull.raw}/${markedFull.total}, slip ${markedSlip.raw})`);
+  // THE MARK PROFILE IS PART OF THE FORMAT. A paper whose items are all 2, 4 or
+  // 6 marks cannot ask the single-mark recall an 8300 paper opens with, and its
+  // demand cannot rise across a paper. Asserted as a DISTRIBUTION, and asserted
+  // separately per board: two boards that publish different papers must not ship
+  // the same one.
+  const marksOf = (t) => t.sections.flatMap((s) => Array.from({ length: s.count }, () => s.marksEach));
+  const aqaMarks = marksOf(aqaTplForSat);
+  ok(Math.min(...aqaMarks) === 1 && Math.max(...aqaMarks) === 6 && aqaMarks.reduce((a, b) => a + b, 0) === 80,
+    `the AQA paper runs from single-mark items to a 6-mark one and totals 80 (${aqaMarks.length} items: ${[...new Set(aqaMarks)].sort((a, b) => a - b).join(", ")})`);
+  ok(new Set(aqaMarks).size >= 5,
+    `with a real spread of mark values, not three uniform bands (${new Set(aqaMarks).size} values)`);
+  // A RISING PAPER, not a flat one. The first assertion here used to be
+  // `difficulty >= 0`, which is true of every number and therefore proved
+  // nothing; this one fails if the tail is not harder than the opening.
+  const aqaDifficulty = aqaTplForSat.sections.map((s) => s.difficulty);
+  ok(aqaDifficulty.every((d, i) => i === 0 || d > aqaDifficulty[i - 1]) && aqaDifficulty[aqaDifficulty.length - 1] > aqaDifficulty[0],
+    `demand rises across the paper rather than sitting flat (${aqaDifficulty.join(" → ")})`);
+  const edexcelTpl = pm.paperById("edexcel-gcse-maths-p1");
+  const edexcelMarks = marksOf(edexcelTpl);
+  ok(edexcelMarks.reduce((a, b) => a + b, 0) === 80 && Math.min(...edexcelMarks) === 1,
+    `Edexcel is 80 marks over its own profile too (${edexcelMarks.length} items)`);
+  ok(JSON.stringify(edexcelMarks) !== JSON.stringify(aqaMarks),
+    "and the two boards' profiles differ, because the boards' papers do");
   const badSource = pm.PAPERS.filter((t) => t.shapeSource !== undefined && !/^https:\/\/\S+$/.test(t.shapeSource));
   ok(badSource.length === 0, "and every citation on file is an absolute https URL");
   // THE TWO NOTIONS OF "WHERE THIS CAME FROM" MUST NOT CROSS. `source` on a paper
