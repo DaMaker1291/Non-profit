@@ -29,6 +29,7 @@ import SpeakButton from "@/components/speak-button";
 import { Icon } from "@/components/icons";
 import PromptText from "@/components/prompt-text";
 import { FigureGraphic } from "@/components/question-figure";
+import { FractionModel } from "@/components/fraction-model";
 import MathText from "@/components/math-text";
 import NumericAnswer from "@/components/numeric-answer";
 import WorkSheet from "@/components/work-sheet";
@@ -800,6 +801,10 @@ export default function ConceptPage() {
           <figcaption className="small muted reading">{plan.figure.caption}</figcaption>
         </figure>
       )}
+      {/* A picture states the idea; a model lets the learner test it. Rendered
+          only where the plan names one, so no other lesson gains a control that
+          has nothing to do. */}
+      {plan?.interactive === "fraction-model" && <FractionModel />}
 
       {/* THE IDEA, WITH ITS FIRST SENTENCE AS THE CLAIM.
 

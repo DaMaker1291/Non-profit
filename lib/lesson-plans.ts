@@ -78,6 +78,10 @@ export interface LessonPlan {
    *  island: the read stage prints it under the practice door. */
   readonly usedFor: string;
   readonly review: PlanReview;
+  /** An INTERACTIVE model the page renders beside the figure, where a static
+   *  picture cannot answer the question the lesson raises. Optional and named by
+   *  a small union: a plan that carries no model renders exactly what it did. */
+  readonly interactive?: "fraction-model";
   /** THE PICTURE THIS IDEA NEEDS, when it needs one.
    *
    *  A figure belongs to a plan only when the picture makes a relationship
@@ -205,6 +209,7 @@ export const LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     usedFor:
       "Percentages and decimals are fractions in another notation, ratio compares two of them, and probability is one: the chance of a six is 1/6, which is a fraction before it is ever a percentage.",
     review: "unreviewed",
+    interactive: "fraction-model",
     // THE PICTURE THE IDEA NEEDS. "A bigger bottom means smaller pieces" is a
     // claim about SHAPE — the same circle, cut more ways — so the drawing shows
     // three quarters of one whole and the caption says what to notice: four of

@@ -2845,3 +2845,20 @@ html.low-power .card { box-shadow: none; }
 @media (max-width: 639px) {
   .own-row-head { display: none; }
 }
+
+/* ── THE FRACTION MODEL (the fractions lesson's one interactive control) ─────
+   A model, not a game: no motion, no score. The bar is the whole, the shaded
+   cells are the pieces counted, and both sliders are native ranges so keyboard
+   and touch behaviour come from the platform. */
+.fraction-model {
+  display: grid; gap: 8px; margin: 14px 0; padding: 14px 16px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+}
+.fraction-model svg { width: 100%; max-width: 420px; height: auto; }
+.fraction-model .fm-on { fill: var(--accent); }
+.fraction-model .fm-off { fill: var(--accent-soft); stroke: var(--accent-line); stroke-width: 1; }
+.fraction-model label { display: grid; gap: 4px; }
+.fraction-model input[type="range"] { width: 100%; accent-color: var(--accent); }
+@media (max-width: 520px) {
+  .fraction-model { padding: 12px; }
+}
