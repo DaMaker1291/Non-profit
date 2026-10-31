@@ -2,9 +2,9 @@
   "generatedBy": "scripts/paper-audit.mjs",
   "counts": {
     "paperBlueprints": 67,
-    "publishedBlueprints": 67,
-    "blueprintsWithACitation": 53,
-    "uncitedBlueprints": 14,
+    "publishedBlueprints": 62,
+    "blueprintsWithACitation": 62,
+    "uncitedBlueprints": 0,
     "qualificationSubjectOffers": 447,
     "authoredOffers": 67,
     "modelledOffers": 380,
@@ -888,37 +888,13 @@
       ]
     }
   ],
-  "uncitedBlueprints": [
-    "aqa-gcse-maths-p1",
-    "edexcel-gcse-maths-p1",
-    "aqa-alevel-maths-p1",
-    "digital-sat-math",
-    "digital-sat-math-2",
-    "kcse-maths-p2",
-    "caps-maths-p1",
-    "caps-maths-p2",
-    "aqa-gcse-maths-p2",
-    "aqa-gcse-maths-p3",
-    "edexcel-gcse-maths-p2",
-    "edexcel-gcse-maths-p3",
-    "aqa-alevel-maths-p2",
-    "aqa-alevel-maths-p3"
-  ],
+  "uncitedBlueprints": [],
   "uncitedBoundaries": [
-    "aqa-gcse-maths-p1",
-    "edexcel-gcse-maths-p1",
-    "aqa-alevel-maths-p1",
     "digital-sat-math",
     "digital-sat-math-2",
     "kcse-maths-p2",
     "caps-maths-p1",
-    "caps-maths-p2",
-    "aqa-gcse-maths-p2",
-    "aqa-gcse-maths-p3",
-    "edexcel-gcse-maths-p2",
-    "edexcel-gcse-maths-p3",
-    "aqa-alevel-maths-p2",
-    "aqa-alevel-maths-p3"
+    "caps-maths-p2"
   ],
   "researchedNotDeclared": {
     "BD": "Bangladesh: the only official document found was a marks-distribution notice dated AFTER the 2025 SSC sitting, so it is not evidence for the sitting it would describe. No item count or paper structure was verifiable.",

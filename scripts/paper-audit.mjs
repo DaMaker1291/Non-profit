@@ -74,7 +74,10 @@ const uncitedBlueprints = [];
 const uncitedPublishedCounts = [];
 const uncitedBoundaries = [];
 for (const t of P.PAPERS) {
-  const basis = t.basis ?? "published";
+  // `paper()` now derives the basis from the citation, so this fallback only
+  // covers a template built outside it — and for one of those the honest default
+  // is the weaker claim, never the stronger one.
+  const basis = t.basis ?? "modelled";
   if (basis === "published") published++;
   // A count declared as the awarding body's own must say where it was read. This
   // is the rule the item counts were introduced for: without it "45 items" is
@@ -160,8 +163,9 @@ const counts = {
   countriesModelledOnly: countriesWithout.length,
   researchedButNotDeclared: Object.keys(RESEARCHED_NOT_DECLARED).length,
 };
-ok(published === P.PAPERS.length,
-  `every authored blueprint still reports a basis (${published} of ${P.PAPERS.length})`);
+const reportedBasis = P.PAPERS.filter((t) => t.basis === "published" || t.basis === "modelled").length;
+ok(reportedBasis === P.PAPERS.length,
+  `every authored blueprint reports a basis, published or modelled (${reportedBasis} of ${P.PAPERS.length}, ${published} published)`);
 
 // ── 5. The researched shapes stay declared ─────────────────────────────────
 // A floor that can only be raised. Each of these was read from an awarding

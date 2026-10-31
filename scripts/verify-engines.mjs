@@ -13203,6 +13203,27 @@ console.log("▸ A paper says whether its shape is the awarding body's");
   const uncited = pm.PAPERS.filter((t) => t.itemCounts === "published" && !/^https:\/\//.test(t.shapeSource ?? ""));
   ok(uncited.length === 0,
     `no paper claims an awarding body's own item counts without a source (${uncited.map((t) => t.id).join(", ") || "none"})`);
+  // 3b. A BASIS IS EARNED, NOT DEFAULTED. `paper()` used to default to
+  //     "published", so the 14 blueprints authored before citations were
+  //     collected told every learner "your awarding body's published paper
+  //     structure" while `npm run paper-audit` recorded the same 14 as uncited:
+  //     the learner met the claim, only the report met the truth. The basis now
+  //     follows the evidence, so both surfaces say the same thing.
+  const unearned = pm.PAPERS.filter((t) => t.basis === "published" && !/^https:\/\//.test(t.shapeSource ?? ""));
+  ok(unearned.length === 0,
+    `no blueprint claims the board's structure without naming where it was read (${unearned.map((t) => t.id).join(", ") || "none"})`);
+  const noBasis = pm.PAPERS.filter((t) => t.basis !== "published" && t.basis !== "modelled");
+  ok(noBasis.length === 0, "and every blueprint still reports a basis, whichever one it earns");
+  // AQA 8300 is three papers, every one 1h30 and 80 marks: one without a
+  // calculator, two with. The catalogue offered only Paper 1, so two thirds of
+  // the qualification — and the entire calculator half of it — did not exist.
+  const aqaGcse = pm.papersForSpec("uk-gcse", "maths").filter((p) => p.board === "aqa");
+  ok(aqaGcse.length === 3 && aqaGcse.every((p) => p.minutes === 90 && p.marks === 80),
+    `AQA GCSE Mathematics is the three papers a candidate sits, each 90 minutes and 80 marks (${aqaGcse.length}: ${aqaGcse.map((p) => `${p.minutes}min/${p.marks}m`).join(", ")})`);
+  ok(aqaGcse.filter((p) => p.calculator).length === 2 && aqaGcse.filter((p) => !p.calculator).length === 1,
+    "with exactly one non-calculator paper and two that allow one");
+  ok(aqaGcse.every((p) => /^https:\/\//.test(p.shapeSource ?? "") && p.basis === "published"),
+    "and each cites the specification it was read from, so it may claim the board's structure");
   const badSource = pm.PAPERS.filter((t) => t.shapeSource !== undefined && !/^https:\/\/\S+$/.test(t.shapeSource));
   ok(badSource.length === 0, "and every citation on file is an absolute https URL");
   // THE TWO NOTIONS OF "WHERE THIS CAME FROM" MUST NOT CROSS. `source` on a paper

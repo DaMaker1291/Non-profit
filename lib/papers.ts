@@ -154,7 +154,17 @@ function paper(
   if (t.marks !== undefined && t.marks !== total) {
     throw new Error(`paper ${t.id}: declared ${t.marks} marks but sections total ${total}`);
   }
-  return { ...t, boundaries: t.boundaries ?? [], basis: t.basis ?? "published", marks: total };
+  // A BASIS IS EARNED, NOT DEFAULTED. This used to default to "published", so a
+  // blueprint authored before citations were collected told every learner "your
+  // awarding body's published paper structure" while `npm run paper-audit`
+  // recorded the same blueprint as uncited. The learner met the claim and only
+  // the report met the truth — the exact failure mode the two-state field was
+  // added to prevent. Now the basis follows the evidence: a cited shape is
+  // published, and one that cannot name where its structure was read is
+  // OpenMind's model, which the papers page already labels in the learner's own
+  // language (`pp.practiceSet`).
+  const basis: PaperBasis = t.basis ?? (/^https:\/\/\S+$/.test(t.shapeSource ?? "") ? "published" : "modelled");
+  return { ...t, boundaries: t.boundaries ?? [], basis, marks: total };
 }
 
 const GCSE_BOUNDARIES: GradeBoundary[] = [
@@ -188,22 +198,66 @@ function builtBoundaries(d: number): GradeBoundary[] {
 }
 
 export const PAPERS: PaperTemplate[] = [
+  // ── AQA GCSE MATHEMATICS (8300) — THE THREE PAPERS A CANDIDATE SITS ───────
+  // The catalogue held ONE blueprint here and called it "Paper 1", so an AQA
+  // candidate could never sit the two calculator papers — which is ⅔ of the
+  // qualification. AQA's own specification-at-a-glance (cited below) gives three
+  // written papers at the same tier, each 1 hour 30 minutes and 80 marks (33⅓%):
+  // Paper 1 non-calculator, Papers 2 and 3 calculator.
+  //
+  // What is NOT AQA's here, and is said on the paper rather than hidden: the item
+  // counts and the per-question marks are OpenMind's pacing to that board time
+  // (`itemCounts: "paced"`), and the section labels are positions in THIS paper
+  // rather than section names AQA uses — an 8300 paper is not divided into named
+  // sections, so calling them "Section A/B/C" invented a structure while wearing
+  // the board's name. Every item is still multiple choice: that is the only format
+  // this engine marks, and the papers page says so.
   paper({
     id: "aqa-gcse-maths-p1", name: "GCSE Mathematics — Paper 1 (non-calculator)",
     board: "aqa", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+    shapeNote: "AQA 8300 is three written papers at the same tier, each 1 hour 30 minutes and 80 marks (33⅓%): Paper 1 non-calculator, Papers 2 and 3 calculator. Item counts and per-question marks here are OpenMind's pacing to that time.",
     sections: [
-      { name: "Section A", count: 10, marksEach: 2, difficulty: 0.4 },
-      { name: "Section B", count: 12, marksEach: 4, difficulty: 0.55 },
-      { name: "Section C", count: 2, marksEach: 6, difficulty: 0.72 },
+      { name: "Questions 1–10", count: 10, marksEach: 2, difficulty: 0.4 },
+      { name: "Questions 11–22", count: 12, marksEach: 4, difficulty: 0.55 },
+      { name: "Questions 23–24", count: 2, marksEach: 6, difficulty: 0.72 },
+    ],
+  }),
+  paper({
+    id: "aqa-gcse-maths-p2", name: "GCSE Mathematics — Paper 2 (calculator)",
+    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+    shapeNote: "Paper 2 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification.",
+    sections: [
+      { name: "Questions 1–10", count: 10, marksEach: 2, difficulty: 0.42 },
+      { name: "Questions 11–22", count: 12, marksEach: 4, difficulty: 0.57 },
+      { name: "Questions 23–24", count: 2, marksEach: 6, difficulty: 0.74 },
+    ],
+  }),
+  paper({
+    id: "aqa-gcse-maths-p3", name: "GCSE Mathematics — Paper 3 (calculator)",
+    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+    shapeNote: "Paper 3 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification.",
+    sections: [
+      { name: "Questions 1–10", count: 10, marksEach: 2, difficulty: 0.45 },
+      { name: "Questions 11–22", count: 12, marksEach: 4, difficulty: 0.6 },
+      { name: "Questions 23–24", count: 2, marksEach: 6, difficulty: 0.78 },
     ],
   }),
   paper({
     id: "edexcel-gcse-maths-p1", name: "GCSE Mathematics — Paper 1 (non-calculator)",
     board: "edexcel", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    itemCounts: "paced",
+    shapeSource: "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/specification-and-sample-assesment/gcse-maths-2015-specification.pdf",
+    shapeNote: "Pearson Edexcel 1MA1 is three papers at the same tier, each 1 hour 30 minutes and 80 marks: Paper 1 non-calculator, Papers 2 and 3 calculator. Item counts and per-question marks here are OpenMind's pacing to that time.",
     sections: [
-      { name: "Section A", count: 12, marksEach: 2, difficulty: 0.4 },
-      { name: "Section B", count: 11, marksEach: 4, difficulty: 0.55 },
-      { name: "Section C", count: 2, marksEach: 6, difficulty: 0.72 },
+      { name: "Questions 1–12", count: 12, marksEach: 2, difficulty: 0.4 },
+      { name: "Questions 13–23", count: 11, marksEach: 4, difficulty: 0.55 },
+      { name: "Questions 24–25", count: 2, marksEach: 6, difficulty: 0.72 },
     ],
   }),
   // ── AQA A-LEVEL MATHEMATICS — THE THREE A-LEVEL PAPERS ────────────────────
@@ -217,9 +271,12 @@ export const PAPERS: PaperTemplate[] = [
     id: "aqa-alevel-maths-p1", name: "A-Level Mathematics — Paper 1 (Pure)",
     board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"],
     boundaries: ALEVEL_BOUNDARIES,
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/mathematics/a-level/mathematics-7357/specification/specification-at-a-glance",
+    shapeNote: "AQA 7357 is three written papers, each 2 hours and 100 marks (33⅓%): Paper 1 Pure, Paper 2 and Paper 3. Item counts and per-question marks here are OpenMind's pacing to that time.",
     sections: [
-      { name: "Section A", count: 10, marksEach: 4, difficulty: 0.78 },
-      { name: "Section B", count: 6, marksEach: 10, difficulty: 0.9 },
+      { name: "Questions 1–10", count: 10, marksEach: 4, difficulty: 0.78 },
+      { name: "Questions 11–16", count: 6, marksEach: 10, difficulty: 0.9 },
     ],
   }),
   // ── CAMBRIDGE IGCSE MATHEMATICS (0580) — FOUR PAPERS, TWO TIERS ────────────
@@ -651,39 +708,27 @@ export const PAPERS: PaperTemplate[] = [
   // every question in them is still OpenMind's own, written to the
   // specification — see the note at the top of this file.
   paper({
-    id: "aqa-gcse-maths-p2", name: "GCSE Mathematics — Paper 2 (calculator)",
-    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
-    sections: [
-      { name: "Section A", count: 10, marksEach: 2, difficulty: 0.42 },
-      { name: "Section B", count: 12, marksEach: 4, difficulty: 0.58 },
-      { name: "Section C", count: 2, marksEach: 6, difficulty: 0.74 },
-    ],
-  }),
-  paper({
-    id: "aqa-gcse-maths-p3", name: "GCSE Mathematics — Paper 3 (calculator)",
-    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
-    sections: [
-      { name: "Section A", count: 12, marksEach: 2, difficulty: 0.45 },
-      { name: "Section B", count: 10, marksEach: 4, difficulty: 0.6 },
-      { name: "Section C", count: 2, marksEach: 8, difficulty: 0.76 },
-    ],
-  }),
-  paper({
     id: "edexcel-gcse-maths-p2", name: "GCSE Mathematics — Paper 2 (calculator)",
     board: "edexcel", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    itemCounts: "paced",
+    shapeSource: "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/specification-and-sample-assesment/gcse-maths-2015-specification.pdf",
+    shapeNote: "Paper 2 of Pearson Edexcel 1MA1: 1 hour 30 minutes, 80 marks, calculator allowed.",
     sections: [
-      { name: "Section A", count: 12, marksEach: 2, difficulty: 0.42 },
-      { name: "Section B", count: 11, marksEach: 4, difficulty: 0.58 },
-      { name: "Section C", count: 2, marksEach: 6, difficulty: 0.74 },
+      { name: "Questions 1–12", count: 12, marksEach: 2, difficulty: 0.42 },
+      { name: "Questions 13–23", count: 11, marksEach: 4, difficulty: 0.58 },
+      { name: "Questions 24–25", count: 2, marksEach: 6, difficulty: 0.74 },
     ],
   }),
   paper({
     id: "edexcel-gcse-maths-p3", name: "GCSE Mathematics — Paper 3 (calculator)",
     board: "edexcel", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    itemCounts: "paced",
+    shapeSource: "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/specification-and-sample-assesment/gcse-maths-2015-specification.pdf",
+    shapeNote: "Paper 3 of Pearson Edexcel 1MA1: 1 hour 30 minutes, 80 marks, calculator allowed.",
     sections: [
-      { name: "Section A", count: 12, marksEach: 2, difficulty: 0.46 },
-      { name: "Section B", count: 12, marksEach: 4, difficulty: 0.62 },
-      { name: "Section C", count: 1, marksEach: 8, difficulty: 0.78 },
+      { name: "Questions 1–12", count: 12, marksEach: 2, difficulty: 0.46 },
+      { name: "Questions 13–24", count: 12, marksEach: 4, difficulty: 0.62 },
+      { name: "Question 25", count: 1, marksEach: 8, difficulty: 0.78 },
     ],
   }),
   paper({
@@ -722,17 +767,23 @@ export const PAPERS: PaperTemplate[] = [
   paper({
     id: "aqa-alevel-maths-p2", name: "A-Level Mathematics — Paper 2",
     board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"], boundaries: ALEVEL_BOUNDARIES,
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/mathematics/a-level/mathematics-7357/specification/specification-at-a-glance",
+    shapeNote: "Paper 2 of AQA 7357: 2 hours, 100 marks, 33⅓% of the A-level.",
     sections: [
-      { name: "Section A", count: 10, marksEach: 4, difficulty: 0.8 },
-      { name: "Section B", count: 5, marksEach: 12, difficulty: 0.9 },
+      { name: "Questions 1–10", count: 10, marksEach: 4, difficulty: 0.8 },
+      { name: "Questions 11–15", count: 5, marksEach: 12, difficulty: 0.9 },
     ],
   }),
   paper({
     id: "aqa-alevel-maths-p3", name: "A-Level Mathematics — Paper 3",
     board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"], boundaries: ALEVEL_BOUNDARIES,
+    itemCounts: "paced",
+    shapeSource: "https://www.aqa.org.uk/subjects/mathematics/a-level/mathematics-7357/specification/specification-at-a-glance",
+    shapeNote: "Paper 3 of AQA 7357: 2 hours, 100 marks, 33⅓% of the A-level.",
     sections: [
-      { name: "Section A", count: 8, marksEach: 5, difficulty: 0.82 },
-      { name: "Section B", count: 4, marksEach: 15, difficulty: 0.92 },
+      { name: "Questions 1–8", count: 8, marksEach: 5, difficulty: 0.82 },
+      { name: "Questions 9–12", count: 4, marksEach: 15, difficulty: 0.92 },
     ],
   }),
   // ── PEARSON EDEXCEL A-LEVEL MATHEMATICS (9MA0) ────────────────────────────
