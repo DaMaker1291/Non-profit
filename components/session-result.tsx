@@ -147,7 +147,7 @@ export default function SessionResultPanel({ result, next, onContinue, events }:
           person a streak is worth telling, and the date on it is the record's. */}
       {run && run.streak > 0 && (
         <p className="small" style={{ margin: "6px 0 0" }}>
-          <span className="chip good">◆ {fill(t("mom.streak"), { n: run.streak })}</span>
+          <span className="chip reward">◆ {fill(t("mom.streak"), { n: run.streak })}</span>
           {run.today > 0 && (
             <span className="muted">
               {" "}{t("mom.goal")}{" "}
@@ -163,7 +163,7 @@ export default function SessionResultPanel({ result, next, onContinue, events }:
         <p className="small" style={{ margin: "6px 0 0", display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
           <span className="muted">{t("mom.justEarned")}</span>
           {justEarned.map((m) => (
-            <span className="chip good" key={m.id}>✓ {t(m.key)}</span>
+            <span className="chip reward" key={m.id}>✓ {t(m.key)}</span>
           ))}
         </p>
       )}

@@ -59,8 +59,8 @@ export const viewport: Viewport = {
   // Both palettes from globals.css, so the browser's own chrome (the phone's
   // address bar) does not stay white above a dark page.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#faf9f6" },
-    { media: "(prefers-color-scheme: dark)", color: "#101216" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f8f6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c171c" },
   ],
 };
 

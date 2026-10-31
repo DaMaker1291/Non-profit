@@ -32,27 +32,29 @@
   /* Warm paper, white surface, near-black ink, two greys of rule. Four values
      and one accent: a learner reads this screen for an hour at a time, and every
      extra hue is something else to filter out. */
-  --paper: #faf9f6;
-  --paper-deep: #f2f1ec;
+  --paper: #f6f8f6;
+  --paper-deep: #edf2ef;
   --surface: #ffffff;
-  --ink: #141b26;
-  --ink-soft: #2a3542;
-  --pencil: #5f6b76;
-  --line: #dcdcd6;
-  --line-soft: #e9e9e4;
+  --ink: #183247;
+  --ink-soft: #273640;
+  --pencil: #566772;
+  --line: #d8e1dc;
+  --line-soft: #e6ede9;
 
   /* The three marks. Each one is a MEANING, so none of them is also decoration. */
-  --margin-red: #c0362a;
-  --tick-green: #1c7a45;
-  --amber: #a9610a;
+  --margin-red: #b3261e;
+  --tick-green: #1b6b3a;
+  --amber: #8a5a0a;
+  /* A FILL, never text: 1.46:1 against the ivory, 8.2:1 behind navy. */
+  --gold: #f2c66d;
 
   /* ONE restrained accent: a deep academic indigo, calm enough to sit behind
      text for an hour and distinct from both the tick green and the margin red,
      so neither meaning is diluted. */
-  --accent: #2f4a8a;
-  --accent-deep: #24396d;
-  --accent-soft: #eaeff9;
-  --accent-line: #c6d2ea;
+  --accent: #126b68;
+  --accent-deep: #0e5551;
+  --accent-soft: #e4f2ef;
+  --accent-line: #b4d9d3;
 
   /* Two elevations only: a surface resting on paper, and one lifted off another. */
   --shadow-1: 0 1px 2px rgba(20, 27, 38, 0.05);
@@ -178,21 +180,22 @@
    consulted. The accent LIGHTENS here rather than staying put — a deep indigo
    that reads as calm on paper disappears against a dark surface. */
 :root[data-theme="dark"] {
-  --paper: #101216;
-  --paper-deep: #171a20;
-  --surface: #1a1e25;
-  --ink: #eef0f3;
-  --ink-soft: #c6cad2;
-  --pencil: #99a0ac;
-  --line: #2c323b;
-  --line-soft: #232830;
-  --margin-red: #f08a80;
-  --tick-green: #6fd39b;
-  --amber: #e8ba6a;
-  --accent: #9db4ea;
-  --accent-deep: #b9c9f4;
-  --accent-soft: #1d2740;
-  --accent-line: #3a4a70;
+  --paper: #0c171c;
+  --paper-deep: #102127;
+  --surface: #142a31;
+  --ink: #e8f1ef;
+  --ink-soft: #cbdad8;
+  --pencil: #9fb3b1;
+  --line: #24404a;
+  --line-soft: #1b333a;
+  --margin-red: #f0a19a;
+  --tick-green: #7fd3a4;
+  --amber: #e8c07a;
+  --gold: #f2c66d;
+  --accent: #4fc0b8;
+  --accent-deep: #86d8d2;
+  --accent-soft: #10312f;
+  --accent-line: #2c5a57;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
 }

@@ -142,7 +142,7 @@ export default function Momentum({ events }: { events: readonly EvidenceEvent[] 
           <p className="small muted flush">{t("mom.noneYet")}</p>
         ) : (
           earned.map((m) => (
-            <span className="chip good momentum-chip" key={m.id} title={shortDate(m.earnedAt as number, locale)}>
+            <span className="chip reward momentum-chip" key={m.id} title={shortDate(m.earnedAt as number, locale)}>
               ✓ {t(m.key)}
               <span className="momentum-date mono">{shortDate(m.earnedAt as number, locale)}</span>
             </span>

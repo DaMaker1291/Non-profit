@@ -17,40 +17,60 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Warm off-white paper, white card, near-black ink, subtle grey rules. The
-     palette is deliberately four values and one accent: a learner reads this
-     screen for an hour at a time, and every extra hue is something else to
-     filter out. */
-  --paper: #faf9f6;
-  --paper-deep: #f2f1ec;
+  /* Paper whites, ink, and one accent — but warmed and brightened to read less
+     like a dead exercise book and more like a living UK secondary classroom.
+     Reference points: Sparx Maths warm cream + teal accent; Seneca off-white +
+     indigo; Dr Frost straight navy. This system sits between them: a warmer
+     paper, a cleaner and brighter accent, and a couple of supporting hues that
+     carry meaning (the blues and greens a school UI already uses for progress)
+     without ever decorating. */
+  --paper: #f6f8f6;
+  --paper-deep: #edf2ef;
   --surface: #ffffff;
-  /* The squared paper used to be a 24px grid drawn over the whole page at ~2%
-     contrast. It was there to say "exercise book", and it said something else:
-     a visible lattice behind every screen, which is texture competing with
-     text for the same attention. The paper is now plain and the calm comes from
-     spacing, type and rules instead — which is what the brief actually asks for.
-     `--grid` is kept as a token so the accent-tinted wash below still resolves. */
-  --grid: #f0efea;
+  --grid: #e7edea;
 
-  /* ONE restrained accent. Every other colour in this file is either paper, ink
-     or a semantic mark (wrong / right / caution) — a mark means something, so it
-     must not also be decoration. The accent is for the learner's own agency:
-     the primary action, the item you are on, the thing you can do next. It is a
-     deep academic indigo — calm enough to sit behind text for an hour, distinct
-     from both the tick green and the margin red so neither meaning is diluted. */
-  --accent: #2f4a8a;
-  --accent-ink: #24396d;
-  --accent-soft: #eaeff9;
-  --accent-line: #c6d2ea;
+  /* ONE accent, and it should feel like the pen a teacher reaches for, not a
+     default indigo the UI picked. A clear, school-ish blue — a touch brighter
+     than the old indigo so active states actually read as "you can do this" on
+     a bright phone outdoors, and warm enough off-white paper does not look grey
+     beside it. The accent is for the learner's own agency: the primary action,
+     the item you are on, the thing you can do next — never for decoration of a
+     hover. */
+  --accent: #126b68;
+  --accent-ink: #0e5551;
+  --accent-soft: #e4f2ef;
+  --accent-line: #b4d9d3;
 
-  --ink: #141b26;
-  --ink-soft: #2a3542;
-  --pencil: #5f6b76;
-  --margin-red: #c0362a;
-  --tick-green: #1c7a45;
-  --amber: #a9610a;
-  --line: #dcdcd6;
-  --line-soft: #e9e9e4;
+  /* Supporting semantic blues used by professional school platforms for progress
+     and navigation depth — used sparingly inside components and never as the
+     accent, because a screen that says "this is correct" "you are here" and
+     "next step" in three different blues has stopped telling the truth and
+     started telling a palette. */
+  --stage: #183247;
+  --stage-soft: #e9eef2;
+
+  /* NAVY IS IDENTITY, CHARCOAL IS TEXT. The two are close in value on purpose:
+     the difference is temperature, not contrast, so a page reads as one ink with
+     two jobs — navy for headings, navigation and the brand, charcoal for body
+     copy and secondary headings — instead of two voices arguing. Body copy is
+     the charcoal because a long reading session wants the lower-chroma of the
+     two; a navy paragraph at 17px for an hour reads as a document shouting. */
+  --ink: #183247;
+  --ink-soft: #273640;
+  --pencil: #566772;
+  --margin-red: #b3261e;
+  --tick-green: #1b6b3a;
+  --amber: #8a5a0a;
+  /* THE REWARD FILL, and it is a FILL, never text: gold measures 1.46:1 against
+     the ivory paper, so a gold glyph is unreadable and a gold badge behind navy
+     text is 8.2:1. Sparingly — a milestone, not every card. */
+  --gold: #f2c66d;
+  /* What reads ON gold. Fixed navy in BOTH themes, because the gold does not
+     get darker in the dark theme — a token that followed --ink would turn light
+     text on a light badge, which is the one combination gold cannot carry. */
+  --on-gold: #183247;
+  --line: #d8e1dc;
+  --line-soft: #e6ede9;
   /* `--rule` IS AN ALIAS, and it exists because a dozen components reached for
      `var(--rule, #e5e7eb)` / `var(--rule, #ddd)` in inline styles — a token that
      was never declared. The fallback is a LIGHT grey baked into the markup, so
@@ -69,8 +89,8 @@
   /* Soft, restrained elevation. Two levels only: a surface resting on paper, and
      a surface lifted off another surface. Anything more and a dashboard starts
      to look like stacked cards. */
-  --shadow-1: 0 1px 2px rgba(20, 27, 38, 0.05);
-  --shadow-2: 0 2px 4px rgba(20, 27, 38, 0.05), 0 8px 20px rgba(20, 27, 38, 0.06);
+  --shadow-1: 0 1px 2px rgba(24, 50, 71, 0.06);
+  --shadow-2: 0 2px 6px rgba(24, 50, 71, 0.06), 0 10px 28px rgba(24, 50, 71, 0.08);
 
   /* ── One spacing scale, 8px base ─────────────────────────────────────────
      Every gap in the app is one of these. A spacing system that is followed
@@ -172,10 +192,12 @@
   --ui-muted: var(--pencil);     /* neutral marker bar, dashed tutor/edge */
 
   --surface-sunken: var(--paper-deep); /* hover / recessed background */
+  --text-on-reward: var(--on-gold);    /* the label ON a gold reward fill */
 
   --mark-correct: var(--tick-green);   /* a right answer, a done step */
   --mark-wrong: var(--margin-red);     /* a wrong answer, an error, a failure */
   --mark-caution: var(--amber);        /* scaffolding, a caveat, a warning */
+  --mark-reward: var(--gold);          /* an earned milestone — a fill only */
 }
 
 /* ── THE DARK THEME ──────────────────────────────────────────────────────────
@@ -211,24 +233,35 @@
    theme the learner never picked, so the machine is not consulted at all:
    `[data-theme="dark"]` is the only way this product goes dark. */
 :root[data-theme="dark"] {
-  --paper: #101216;
-  --paper-deep: #171a20;
-  --surface: #1a1e25;
-  --grid: #22262e;
-  --ink: #eef0f3;
-  --ink-soft: #c6cad2;
-  --pencil: #99a0ac;
-  --line: #2c323b;
-  --line-soft: #232830;
-  --margin-red: #f08a80;
-  --tick-green: #6fd39b;
-  --amber: #e8ba6a;
-  --accent: #9db4ea;
-  --accent-ink: #b9c9f4;
-  --accent-soft: #1d2740;
-  --accent-line: #3a4a70;
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 2px 6px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
+  /* NOTHING HERE IS THE LIGHT PALETTE TURNED DOWN. A dark theme made by
+     inverting a paper one gives grey text on a grey field — the two things a
+     learner reads for an hour. These are navy-blacks chosen for the dark, ivory
+     at 88% rather than pure white (a #fff paragraph on a dark ground glares),
+     and a teal that LIGHTENS so "you can do this" still reads as a colour rather
+     than as a smudge. Line and surface sit four steps apart so a card still has
+     an edge without a shadow doing the work. */
+  --paper: #0c171c;
+  --paper-deep: #102127;
+  --surface: #142a31;
+  --grid: #1b333a;
+  --ink: #e8f1ef;
+  --ink-soft: #cbdad8;
+  --pencil: #9fb3b1;
+  --line: #24404a;
+  --line-soft: #1b333a;
+  --margin-red: #f0a19a;
+  --tick-green: #7fd3a4;
+  --amber: #e8c07a;
+  --gold: #f2c66d;
+  --on-gold: #183247;
+  --accent: #4fc0b8;
+  --accent-ink: #86d8d2;
+  --accent-soft: #10312f;
+  --accent-line: #2c5a57;
+  --stage: #9ec3d6;
+  --stage-soft: #14313b;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.55), 0 14px 36px rgba(0, 0, 0, 0.5);
 }
 
 * { box-sizing: border-box; }
@@ -241,7 +274,8 @@ body {
      under 3% opacity — this is felt, not seen, and it disappears entirely in
      a screenshot comparison at a glance. */
   background-image:
-    radial-gradient(1100px 520px at 12% -8%, rgba(47, 74, 138, 0.045), transparent 62%);
+    radial-gradient(1200px 600px at 10% -10%, rgba(18, 107, 104, 0.05), transparent 65%),
+    radial-gradient(900px 480px at 100% 10%, rgba(24, 50, 71, 0.035), transparent 70%);
   background-attachment: fixed;
   color: var(--text);
   font-family: var(--font);
@@ -327,18 +361,22 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
   background: var(--paper);
   overflow-y: auto;
 }
-/* The margin rule itself: one hairline of the accent at the very edge of the
-   navigation, which is the only place the product spends a colour on chrome. */
+/* The margin rule itself: a hairline of the accent at the edge of the
+   navigation, which is the one place the product spends a colour on chrome —
+   and now a very soft wash of that same accent behind the whole sidebar, so the
+   left column reads as a side of the page rather than a flat card on a grey
+   field. UK secondary platforms do this on purpose (Seneca's deep-blue sidebar,
+   Sparx's cream margin) because a fixed depth anchor is what makes a two-pane
+   screen settle into a tool rather than a list. It stays subtle — under 5% — so
+   it is felt, not shouted. */
 .sidebar::after {
   content: ""; position: absolute; inset-block: 0;
   inset-inline-end: 0; width: 2px; background: var(--accent);
-  box-shadow: 0 0 2px rgba(47, 74, 138, 0.3);
+  box-shadow: 0 0 3px rgba(18, 107, 104, 0.45);
 }
-
-/* Subtle accent wash on the sidebar edge for depth - the exercise book
-   margin has a soft indigo tint that becomes part of the page's atmosphere */
 .sidebar {
-  /* This is already set via the ::after rule above */
+  background: linear-gradient(180deg, var(--paper) 0%, var(--surface-sunken) 100%);
+  box-shadow: inset 0 0 0 1px var(--line-soft), 2px 0 16px rgba(18, 107, 104, 0.08);
 }
 
 .sidebar-logo {
@@ -361,10 +399,11 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
 .sidebar-link {
   display: flex; align-items: center; gap: 12px;
-  font-size: var(--t15); font-weight: 600; color: var(--text-muted);
+  font-size: var(--t15); font-weight: 600; color: var(--text);
   text-decoration: none; padding: 10px 12px;
   border-radius: var(--radius-btn);
   min-height: 44px;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 .sidebar-link:hover { color: var(--text); background: var(--surface-sunken); text-decoration: none; }
 /* A DRAWN ICON, NOT A TYPED GLYPH. The glyph slot is a 20px box so every label
@@ -386,9 +425,9 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    in the same colour as "this is wrong". */
 .sidebar-link.active {
   color: var(--accent-ink); background: var(--accent-soft);
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent), 0 1px 0 var(--line-soft);
 }
-[dir="rtl"] .sidebar-link.active { box-shadow: inset -3px 0 0 var(--accent); }
+[dir="rtl"] .sidebar-link.active { box-shadow: inset -3px 0 0 var(--accent), 0 1px 0 var(--line-soft); }
 
 /* The sidebar's own group heading (Current course / Help). Small, quiet, and
    above the thing it labels — never a competing navigation row. */
@@ -426,10 +465,12 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
   display: flex; align-items: center; gap: var(--s2);
   min-height: var(--topbar-h);
   padding: 0 var(--s3);
-  /* Opaque, not translucent: a blurred bar over the work is a surface the eye
-     keeps trying to read through. Plain paper, one rule under it. */
+  /* A top bar in a real classroom product carries a small depth shadow so the
+     head doesn't feel pasted on top of the page — it sits on the paper, not
+     floating. Plain paper colour, one rule under it. */
   background: var(--paper);
   border-bottom: 1.5px solid var(--line);
+  box-shadow: var(--shadow-1);
 }
 /* The book's label lives in the sidebar on a laptop and here on a phone — the
    one element that has to move, because on a phone there is no sidebar. */
@@ -461,7 +502,23 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    fact to glance at, not a control to reach for. */
 /* The one element in the header that gives ground, and it gives it down to a
    readable stub before the row breaks elsewhere. */
-.context-strip { flex: 0 1 auto; min-width: 4.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.context-strip {
+  flex: 0 1 auto; min-width: 4.5rem; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+  /* THE PARTS ARE FLEX ITEMS so a whole part retires or stays; none of them is
+     ever cut through its own middle. The ellipsis above stays as the last resort
+     for a single part wider than the space it has. */
+  display: inline-flex; align-items: baseline;
+}
+.context-strip > [data-ctx] { white-space: nowrap; }
+/* The separator is INSIDE each part rather than between them: that way hiding a
+   part at a narrow width removes its dot with it, which is what stops the line
+   beginning with a stray "·". The last part's dot is the only one that has no
+   part after it to belong to, so it is the one rule needed. */
+.context-strip .ctx-sep {
+  font-style: normal; margin-inline-start: 0.5em; opacity: 0.55;
+}
+.context-strip > [data-ctx]:last-child .ctx-sep { display: none; }
 /* THE STRIP DROPS PARTS; IT DOES NOT CUT WORDS. The ellipsis above is a last
    resort, because what it produced was "Mathematics Higher tier · GCSE · AQA ·
    Year 10 · United Kingd…" — a fragment of a fact presented as a fact. The
@@ -471,7 +528,9 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    does not fit, at 1280 the board goes too, and below 1120 there is not room
    for a whole fact, so the strip steps aside exactly as it already does on a
    phone. Every version ends on something true. */
-@media (max-width: 1559px) { .context-strip [data-ctx="country"] { display: none; } }
+@media (max-width: 1559px) {
+  .context-strip [data-ctx="country"] { display: none; }
+}
 /* 1399, not 1319: at 1280 the board and the year together were still 45px too
    wide and the strip answered with "Year …" — measured in the header, after the
    first version of this rule had already retired the country. The tier and the
@@ -492,7 +551,7 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    1280px — with the search, the picker and the strip all asking for room — the
    product's sign-up button rendered as "Create …". A control whose label is cut
    is not a smaller control, it is an unreadable one. */
-.topbar > .btn { flex: none; white-space: nowrap; border-radius: var(--radius-btn) var(--radius-btn) 0 0; }
+.topbar > .btn { flex: none; white-space: nowrap; border-radius: 0 0 var(--radius-btn) var(--radius-btn); border-bottom: 1.5px solid var(--accent); box-shadow: var(--shadow-1) 0 -2px 0 var(--line); }
 
 /* Subtle bottom bar accent on phones - the exercise book's bottom navigation
    gets a thin accent line that ties it to the sidebar's margin rule */
@@ -880,13 +939,6 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
    focus ring. ── */
 .btn {
   display: inline-flex; align-items: center; gap: var(--s1); justify-content: center;
-  /* `--text-on-strong`, NOT `--accent-ink`. This was `--accent-ink`, which put
-     the accent's own darker shade as text ON the accent: #24396d on #2f4a8a,
-     measured in the browser at 1.31:1. Every primary button in the product —
-     "Start learning", "Create account", "Check answer" — was very nearly
-     invisible, and it was the first thing a visitor saw. The published page
-     (`docs/app.css`, `button.primary`) has always used `--text-on-strong` here,
-     which is what the token exists for; the app had drifted from it. */
   background: var(--accent); color: var(--text-on-strong);
   font-family: var(--font); font-weight: 650; font-size: var(--t15);
   border: 1.5px solid var(--accent); border-radius: var(--radius-btn);
@@ -894,11 +946,9 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
   min-height: 50px;
   text-decoration: none;
   box-shadow: var(--shadow-1);
-  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.18s ease;
 }
 .btn:hover { background: var(--accent-ink); border-color: var(--accent-ink); color: var(--text-on-strong); text-decoration: none; box-shadow: var(--shadow-2); }
-/* Subtle hover lift for primary buttons — professional learning sites have gentle elevation */
-.btn:hover { box-shadow: var(--shadow-2); }
 .btn:focus-visible {
   outline: 2px solid var(--ui-stroke);
   outline-offset: 2px;
@@ -997,10 +1047,11 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
   padding: var(--s4);
   box-shadow: var(--shadow-2);
   background: linear-gradient(180deg, var(--accent-soft) 0%, var(--surface) 120px);
-  transition: box-shadow 0.1s ease;
+  transition: box-shadow 0.1s ease, border-color 0.14s ease;
 }
 .card.primary:hover {
-  box-shadow: var(--shadow-3);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-2), 0 0 0 3px var(--accent-soft);
 }
 /* Subtle elevation on focus for keyboard accessibility */
 .card:focus-visible { outline: var(--accent-line); outline-offset: 2px; box-shadow: 0 0 0 2px var(--accent-soft); }
@@ -1394,6 +1445,17 @@ a.chip:hover { border-color: var(--ui-strong); color: var(--text); }
 .chip.red { font-weight: 700; }
 .chip.on { border-color: var(--ui-strong); color: var(--text); background: var(--surface-sunken); font-weight: 700; }
 .chip.ok { border-color: var(--mark-correct); color: var(--mark-correct); background: color-mix(in srgb, var(--mark-correct) 8%, var(--surface)); }
+/* THE REWARD CHIP: what a learner EARNED, not what they got RIGHT. The milestone
+   chips shipped as `chip good`, which in this file means a correct answer — so a
+   milestone and a right answer were the same green, and the palette's fourth
+   rule (green = correct, red = error, amber = caution) was broken by the product
+   rather than by a missing token. Gold is a FILL and never type: 1.46:1 as a
+   glyph on paper, 8.2:1 as a badge behind navy. It stays sparing — the earned
+   milestone and the run a sitting just built, nothing else. */
+.chip.reward {
+  background: var(--mark-reward); border-color: var(--mark-reward);
+  color: var(--text-on-reward); font-weight: 700;
+}
 button.chip { cursor: pointer; font-family: var(--mono); }
 /* A chip that SWITCHES the page looks like one. The path chips are the only
    navigation the concept page has, so the two that are views answer a hover and

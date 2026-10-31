@@ -65,16 +65,37 @@ export function ContextStrip() {
 
   const country = COUNTRIES.find((c) => c.code === p.country)?.name ?? "";
   const subjectLabel = t(SUBJECT_LABELS[subject] ?? `subj.${subject}`);
-  const parts = [
-    country,
-    active?.spec.name ?? "",
+  /**
+   * EACH PART KEEPS ITS OWN NAME, because the stylesheet drops parts BY NAME.
+   *
+   * This array used to be a list of strings that were `join(" · ")`-ed into one
+   * text node, while globals.css retired `[data-ctx="country"]`,
+   * `[data-ctx="board"]` and `[data-ctx="grade"]` at three measured widths. No
+   * element ever carried those attributes, so not one of those rules could
+   * match: the strip could only fall back to `text-overflow: ellipsis`, which is
+   * exactly the failure the comment beside them forbids. Measured in the header
+   * at 1440px it read "United Kingdom · GCSE · AQA · Mathematics Foundat…" — a
+   * truncated word presented as a fact, when the board and the country were both
+   * meant to have retired to make room.
+   *
+   * So every part is emitted as its own `<span data-ctx=…>`. The attribute is
+   * the contract with those media queries; the ORDER is the priority order they
+   * were written around (country first, the subject and its tier last), so a part
+   * is only ever dropped from the outside in.
+   */
+  const parts: { key: string; text: string }[] = [
+    { key: "country", text: country },
+    { key: "qualification", text: active?.spec.name ?? "" },
     // The course's own board when we have a course; the profile's board
     // otherwise. Never both, or a learner with a stale profile board would read
     // two awarding bodies at once.
-    active ? boardName(active.spec.board) : boardName(p.board),
-    p.grade ?? "",
-    active?.level?.name ? `${subjectLabel} ${active.level.name}` : subjectLabel,
-  ].filter((x) => x && x.trim().length > 0);
+    { key: "board", text: active ? boardName(active.spec.board) : boardName(p.board) },
+    { key: "grade", text: p.grade ?? "" },
+    {
+      key: "subject",
+      text: active?.level?.name ? `${subjectLabel} ${active.level.name}` : subjectLabel,
+    },
+  ].filter((x) => x.text && x.text.trim().length > 0);
 
   if (parts.length === 0) return null;
 
@@ -91,7 +112,16 @@ export function ContextStrip() {
       aria-label={t("ctx.aria")}
       title={t("ctx.aria")}
     >
-      {parts.join(" · ")}
+      {parts.map((part) => (
+        // THE SEPARATOR LIVES INSIDE THE PART IT FOLLOWS, so a part that retires
+        // at a narrow width takes its own dot with it and the line can never
+        // begin with a stray one. The last part's dot is suppressed in
+        // globals.css, so a line can never end on one either.
+        <span key={part.key} data-ctx={part.key}>
+          {part.text}
+          <i className="ctx-sep" aria-hidden="true">·</i>
+        </span>
+      ))}
     </span>
   );
 }
