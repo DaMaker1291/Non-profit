@@ -29,7 +29,7 @@
     "Curriculum · Pathways with no structural source on file": 18,
     "Curriculum · Pathways whose syllabus mapping has been reviewed": 0,
     "Papers · Countries whose paper shape is the awarding body's own": 19,
-    "Papers · Paper blueprints with a citation on file": "53 of 67",
+    "Papers · Paper blueprints with a citation on file": "62 of 67",
     "Papers · Countries whose assessment shape was researched and NOT found": 8,
     "Papers · Papers a learner can be offered": 447
   },
@@ -223,7 +223,7 @@
     {
       "section": "Papers",
       "label": "Paper blueprints with a citation on file",
-      "value": "53 of 67",
+      "value": "62 of 67",
       "source": "audit/paper-shape-coverage.json",
       "note": "the rest were authored from a board's structure before citations were collected, and are named by `npm run paper-audit`"
     },

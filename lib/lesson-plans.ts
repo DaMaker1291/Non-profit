@@ -78,6 +78,23 @@ export interface LessonPlan {
    *  island: the read stage prints it under the practice door. */
   readonly usedFor: string;
   readonly review: PlanReview;
+  /** THE WORDS THE LESSON USES, defined where they are first needed. A learner
+   *  who meets "limiting factor" in a paragraph and nowhere else has to infer
+   *  it from context; a short glossary is the difference between reading and
+   *  guessing. Optional because the older plans teach their vocabulary inside
+   *  the prose already. */
+  readonly terms?: readonly { readonly term: string; readonly meaning: string }[];
+  /** FULLY WORKED EXAMPLES AUTHORED WITH THE LESSON, for concepts whose live
+   *  generated item is not enough on its own. Each step says WHY, not only what
+   *  to write. The page still shows a live item from the bank as well. */
+  readonly workedExamples?: readonly {
+    readonly prompt: string;
+    readonly steps: readonly string[];
+    readonly answer: string;
+  }[];
+  /** THE LAST RETRIEVAL BEFORE PRACTICE: three sentences a learner should be
+   *  able to say without looking back. Optional for the older plans. */
+  readonly recap?: readonly string[];
   /** An INTERACTIVE model the page renders beside the figure, where a static
    *  picture cannot answer the question the lesson raises. Optional and named by
    *  a small union: a plan that carries no model renders exactly what it did. */
@@ -215,7 +232,7 @@ export const LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     // three quarters of one whole and the caption says what to notice: four of
     // these slices fill it.
     figure: {
-      spec: { kind: "pie", sectorDegrees: 270, label: "3/4" },
+      spec: { kind: "pie", sectorDegrees: 270, label: "3/4", slices: 4 },
       caption:
         "Three quarters of one whole: the circle is the 1, and the shaded part is three of its four equal slices. A quarter is one slice, so three of them are 3/4 — and four of them would fill the circle exactly.",
     },
@@ -633,7 +650,7 @@ export const LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     traps: [
       {
         move: "Solving x² = 3x by dividing both sides by x.",
-        why: "Dividing by x throws away the case x = 0, and x = 0 really is a solution. Move everything to one side and factorise instead: x² − 3x = 0, so x(x − 3) = 0, giving x = 0 or x = 3. Never divide by a variable — factorise it out.",
+        why: "Dividing by x throws away the case x = 0, and x = 0 really is a solution. Move everything to one side and factorise instead: x² − 3x = 0, so x(x − 3) = 0, giving x = 0 or x = 3. Do not divide by a variable unless you have first checked that it cannot be zero; factorise it out instead.",
       },
       {
         move: "Reading (x − 2)(x − 3) = 0 as x = −2 or x = −3.",
@@ -785,6 +802,336 @@ export const LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
       spec: { kind: "balance", left: { bags: 3, units: 5 }, right: { bags: 0, units: 20 } },
       caption:
         "3x + 5 = 20 as a balance: three bags and five weights against twenty weights. Take the same five off both pans, and the three bags are left holding fifteen — so one bag is 5.",
+    },
+  },
+  // ── SCIENCE · CELLS ───────────────────────────────────────────────────────
+  // The first science lesson in the pilot pack. It is a Class 9 prerequisite
+  // that the Class 10 life-processes work assumes, and it is included because a
+  // learner who cannot say what a cell membrane, a chloroplast or a vacuole does
+  // cannot explain photosynthesis or gas exchange. The lesson is written for
+  // the CBSE English-medium classroom, not translated from a UK worksheet.
+  cells: {
+    conceptId: "cells",
+    objective:
+      "Name the parts of an animal and a plant cell, and explain how each part's structure helps it do its job.",
+    intuition:
+      "A brick wall and a living factory look equally solid from a distance, and only one of them is doing anything. A cell is the smallest piece of a living thing that can carry out all the processes of life: it takes in materials, releases energy, makes what it needs and gets rid of waste. Most cells are too small to see without a microscope, which is why the idea feels abstract until you look at one.",
+    idea: [
+      "A cell is the basic structural and functional unit of life. Every living organism is made of one cell (a bacterium) or many cells (a plant, an animal, you). The cell is not a container with parts floating in it by accident: each part, or organelle, has a job, and the shape of the part is tied to that job.",
+      "An animal cell has a cell membrane around the outside, cytoplasm inside, a nucleus, and mitochondria. The membrane is a thin, flexible boundary that controls what enters and leaves. The cytoplasm is where many reactions happen. The nucleus holds the genetic material (DNA) and controls the cell's activities. Mitochondria are where aerobic respiration releases energy from glucose.",
+      "A plant cell has the same four parts and three more that matter here: a cellulose cell wall outside the membrane, chloroplasts, and a large permanent vacuole. The wall is strong and gives the cell its shape; it is fully permeable, so the membrane underneath is still the gatekeeper. Chloroplasts contain chlorophyll and carry out photosynthesis. The vacuole is filled with cell sap and helps keep the cell firm.",
+      "Specialised cells show the same rule at a larger scale: structure serves function. A red blood cell has no nucleus and is packed with haemoglobin, leaving more room to carry oxygen. A root hair cell has a long, thin extension that increases the surface area for absorbing water and minerals. A sperm cell has many mitochondria to power its journey. A nerve cell is long so it can carry an electrical impulse from one part of the body to another.",
+      "Cells are not all the same size, and the units matter. Most plant and animal cells are measured in micrometres (μm): one micrometre is one-thousandth of a millimetre, or 10⁻⁶ m. A typical cheek cell is about 50–100 μm across. Magnification tells you how many times larger the image is than the object; it does not, by itself, tell you how much detail you can resolve.",
+      "Similar cells group into tissues, tissues into organs, and organs into organ systems. This hierarchy is why a single cell does not need to do everything in a large organism: specialised cells do one job well, and the system coordinates them. It also explains why a large organism cannot simply be one giant cell — the surface area available for exchange grows more slowly than the volume that needs supplying.",
+    ],
+    terms: [
+      { term: "cell membrane", meaning: "The thin, flexible boundary that controls which substances enter and leave the cell." },
+      { term: "nucleus", meaning: "The organelle that contains DNA and controls the cell's activities." },
+      { term: "chloroplast", meaning: "A plant-cell organelle containing chlorophyll, where photosynthesis takes place." },
+      { term: "vacuole", meaning: "A fluid-filled space; the large permanent vacuole in a plant cell helps keep the cell firm." },
+      { term: "mitochondrion", meaning: "The organelle where aerobic respiration releases energy from glucose." },
+    ],
+    workedExamples: [
+      {
+        prompt:
+          "A root hair cell has a long, narrow extension into the soil. Explain one way this shape helps the cell do its job.",
+        steps: [
+          "Identify the job: the root hair cell absorbs water and dissolved mineral ions from the soil.",
+          "Connect shape to job: absorption happens across the cell membrane, so a larger membrane surface allows more water and ions to enter in a given time.",
+          "Name the principle: the long extension increases the surface area to volume ratio; it does not increase the volume of soil the root reaches by magic.",
+        ],
+        answer:
+          "The extension increases the surface area of membrane available for absorbing water and minerals, so the cell can take them in faster.",
+      },
+      {
+        prompt:
+          "A palisade cell from a leaf and a human cheek cell are compared. Which organelles would you expect in the palisade cell but not in the cheek cell, and why?",
+        steps: [
+          "Recall the plant-cell additions: a cellulose cell wall, chloroplasts and a large permanent vacuole.",
+          "Check the job: palisade cells are packed with chloroplasts because they are the main photosynthetic cells of the leaf.",
+          "Do not overclaim: a cheek cell is an animal cell, so it has no chloroplasts and no cellulose wall; both cell types still have mitochondria and a nucleus.",
+        ],
+        answer:
+          "Chloroplasts (and a cellulose cell wall and large permanent vacuole). The palisade cell photosynthesises, so it needs chlorophyll; the cheek cell does not.",
+      },
+    ],
+    traps: [
+      {
+        move: "\"Plant cells have no mitochondria because they get energy from sunlight.\"",
+        why:
+          "Photosynthesis makes glucose; respiration releases energy from glucose, and plant cells carry out respiration day and night. Mitochondria are therefore present in plant cells too. Sunlight is the energy source for making the glucose, not a replacement for respiring it.",
+      },
+      {
+        move: "\"The cell wall controls what enters the cell.\"",
+        why:
+          "The cellulose wall is strong and fully permeable: it gives shape and support, but it does not select substances. The cell membrane underneath is the selectively permeable boundary that does that job.",
+      },
+      {
+        move: "\"A red blood cell has a nucleus like every other cell.\"",
+        why:
+          "A mature human red blood cell loses its nucleus during development. That leaves more space for haemoglobin, so each cell can carry more oxygen. The absence is a specialisation, not a mistake in the diagram.",
+      },
+    ],
+    usedFor:
+      "Photosynthesis, respiration, gas exchange and transport all depend on cell structure: chloroplasts, mitochondria, membranes and surface area are the same ideas used again in every later biology lesson.",
+    recap: [
+      "A cell is the smallest unit that carries out all the processes of life; its parts are organelles with specific jobs.",
+      "Animal and plant cells share a membrane, cytoplasm, nucleus and mitochondria; plant cells also have a wall, chloroplasts and a large vacuole.",
+      "Specialised cells have shapes that increase the surface area or machinery needed for their particular job.",
+    ],
+    review: "unreviewed",
+  },
+  // ── SCIENCE · PHOTOSYNTHESIS ──────────────────────────────────────────────
+  // CBSE Class X, Life Processes (nutrition in plants). The lesson teaches the
+  // equation, the leaf as the organ, and the limiting-factor graph — the three
+  // things a learner is asked to use, not merely recall.
+  photosynthesis: {
+    conceptId: "photosynthesis",
+    objective:
+      "Write the balanced equation for photosynthesis, explain what limits its rate, and interpret a rate-versus-light graph.",
+    intuition:
+      "A leaf is a solar-powered factory with no chimney. It takes carbon dioxide in through tiny pores, draws water up from the roots, and uses light energy to build glucose — while releasing oxygen that every animal, including you, needs. The mass of a tree does not come mostly from the soil; it comes mostly from carbon dioxide in the air. That is the surprising idea this lesson makes visible.",
+    idea: [
+      "Photosynthesis is the process by which plants, algae and some bacteria use light energy to convert carbon dioxide and water into glucose and oxygen. The balanced symbol equation is 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂. Read it as six carbon dioxide molecules plus six water molecules, using light energy and chlorophyll, forming one glucose molecule and six oxygen molecules.",
+      "The reaction happens in chloroplasts, which contain the green pigment chlorophyll. Chlorophyll absorbs mainly red and blue-violet light and reflects green, which is why leaves look green. Light energy is used to split water and drive the reactions that fix carbon dioxide into glucose; the oxygen released comes from water, not from carbon dioxide.",
+      "A leaf is shaped for the job. It is broad and thin, so light reaches the palisade cells near the upper surface and gases do not have far to diffuse. The epidermis is transparent, and stomata — usually on the lower surface — let carbon dioxide in and oxygen out, while a network of veins brings water and carries away sucrose. The palisade cells are packed with chloroplasts; the spongy layer has air spaces that connect to the stomata.",
+      "The rate of photosynthesis is not unlimited. Light intensity, carbon dioxide concentration and temperature are limiting factors: at any moment the factor in shortest supply sets the ceiling. Increase light and the rate rises, but only until another factor becomes limiting; the graph then flattens into a plateau. A plateau is not a failure of the plant — it is evidence that light is no longer the bottleneck.",
+      "Temperature affects the enzymes that control the reactions. The rate rises with temperature up to an optimum and then falls sharply as the enzymes denature. That is a different shape from the light curve: a peak, not a plateau. A learner who can tell the two shapes apart can explain the biology rather than recite a list.",
+      "The glucose made is not all used immediately. Some is respired to release energy, some is converted to starch for storage, some becomes cellulose for cell walls, and some is transported as sucrose to growing parts. The oxygen is released as a by-product. Photosynthesis and respiration both run in a plant; in daylight photosynthesis usually exceeds respiration, so there is a net release of oxygen, while at night only respiration continues and carbon dioxide is released.",
+    ],
+    terms: [
+      { term: "chlorophyll", meaning: "The green pigment in chloroplasts that absorbs light energy for photosynthesis." },
+      { term: "chloroplast", meaning: "The plant-cell organelle where photosynthesis takes place." },
+      { term: "stomata", meaning: "Small pores in the leaf surface that let carbon dioxide in and oxygen and water vapour out." },
+      { term: "limiting factor", meaning: "The factor in shortest supply that sets the maximum rate of a process at that moment." },
+    ],
+    workedExamples: [
+      {
+        prompt:
+          "A plant is given brighter and brighter light, but its rate of photosynthesis stops increasing after a point. Explain what is happening.",
+        steps: [
+          "Start from the graph's shape: the rate rises with light at first, then levels off.",
+          "Identify what a plateau means: light is no longer the factor in shortest supply, so adding more cannot help.",
+          "Name a plausible limiting factor: carbon dioxide concentration or temperature. If the plant is warm and well lit but in still air, CO₂ is the usual candidate.",
+          "State the conclusion carefully: the rate is now limited by another factor, not by the plant refusing to photosynthesise.",
+        ],
+        answer:
+          "Light has stopped being the limiting factor. Another factor — most often carbon dioxide concentration or temperature — now sets the maximum rate, so the graph flattens.",
+      },
+      {
+        prompt:
+          "A leafy plant is kept in complete darkness for 24 hours. Explain why it still releases carbon dioxide.",
+        steps: [
+          "Separate the two processes: photosynthesis needs light; respiration does not.",
+          "In darkness, photosynthesis stops, so no new glucose and no oxygen are produced.",
+          "Respiration continues in every living cell, using glucose and oxygen and releasing carbon dioxide and water.",
+        ],
+        answer:
+          "Respiration continues in the dark, releasing carbon dioxide, while photosynthesis has stopped because there is no light.",
+      },
+    ],
+    traps: [
+      {
+        move: "\"Plants take their food from the soil.\"",
+        why:
+          "The soil supplies water and mineral ions, not the carbon and energy that make up most of the plant's dry mass. The carbon comes from carbon dioxide in the air and the energy from sunlight; the glucose is made in the leaves.",
+      },
+      {
+        move: "\"More light always means a faster rate of photosynthesis.\"",
+        why:
+          "Only while light is the limiting factor. Once another factor — carbon dioxide or temperature — is in shortest supply, extra light cannot increase the rate, and the graph plateaus. The plateau is the evidence that the limiting factor has changed.",
+      },
+      {
+        move: "\"Photosynthesis is the same thing as respiration, just in reverse.\"",
+        why:
+          "The equations look like reverses, but the processes are not interchangeable. Photosynthesis stores energy in glucose using light; respiration releases that energy in a controlled series of reactions. They happen in different organelles and are active at different times.",
+      },
+    ],
+    usedFor:
+      "Every food chain begins with photosynthesis, and the carbon and oxygen cycles are its large-scale consequences. Respiration, ecosystems and climate change all depend on the rate at which plants fix carbon.",
+    recap: [
+      "Photosynthesis uses light energy to turn carbon dioxide and water into glucose and oxygen: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂.",
+      "Chloroplasts contain chlorophyll; the leaf's broad, thin shape and stomata make gas exchange and light capture efficient.",
+      "Light, carbon dioxide and temperature can each limit the rate; a plateau means the limiting factor has changed, not that the plant has stopped working.",
+    ],
+    review: "unreviewed",
+    figure: {
+      spec: {
+        kind: "axes",
+        xMin: 0,
+        xMax: 10,
+        yMin: 0,
+        yMax: 8,
+        points: [
+          { at: [0, 0] },
+          { at: [2, 3] },
+          { at: [4, 5] },
+          { at: [6, 6] },
+          { at: [8, 6] },
+          { at: [10, 6] },
+        ],
+      },
+      caption:
+        "Rate of photosynthesis against light intensity. The points rise while light is limiting, then flatten at a plateau: beyond that point another factor, such as carbon dioxide or temperature, is setting the ceiling.",
+    },
+  },
+  // ── SCIENCE · CHEMICAL EQUATIONS ─────────────────────────────────────────
+  // CBSE Class X, Chemical Reactions and Equations. Balancing is taught as
+  // atom accounting, because that is the idea a learner can check — not as a
+  // set of coefficients to memorise.
+  "equations-stoich": {
+    conceptId: "equations-stoich",
+    objective:
+      "Balance a chemical equation by counting atoms, add state symbols correctly, and explain why balancing does not change the substances.",
+    intuition:
+      "A chemical equation is a recipe written in symbols, and the recipe has a strict rule: atoms are not created or destroyed. You can rearrange the same atoms into new groups, but you cannot make a new atom appear. That is why the number of each kind of atom on the left must equal the number on the right — not approximately, exactly.",
+    idea: [
+      "A chemical reaction rearranges atoms. The starting substances are reactants, written on the left; the new substances are products, written on the right. A word equation names them, and a symbol equation replaces names with formulas: methane + oxygen → carbon dioxide + water becomes CH₄ + O₂ → CO₂ + H₂O.",
+      "The law of conservation of mass says the total mass of reactants equals the total mass of products in a closed system, because atoms are only rearranged. Balancing an equation is how that law is written down. Count each element on both sides; if the counts differ, adjust the coefficient in front of a formula, never the subscript inside it.",
+      "A coefficient multiplies the whole formula. 2H₂O means two water molecules, so it contains four hydrogen atoms and two oxygen atoms. Changing H₂O to H₂O₂ changes the substance itself — that is hydrogen peroxide, not water — so subscript editing is not a balancing move. This is the single most damaging shortcut in the topic, because the equation then balances a reaction that did not happen.",
+      "Balance by inspection, one element at a time, leaving hydrogen and oxygen until late. For CH₄ + O₂ → CO₂ + H₂O: carbon is already one on each side; hydrogen needs two water molecules on the right, giving four hydrogen; that makes four oxygen on the right, so put a 2 in front of O₂ on the left. The balanced equation is CH₄ + 2O₂ → CO₂ + 2H₂O.",
+      "State symbols record the physical form: (s) solid, (l) liquid, (g) gas, (aq) dissolved in water. They are not decoration. A reaction between aqueous solutions and one that produces a gas look different in the laboratory, and the symbol is how the equation says so. Ionic equations go further and remove spectator ions, leaving only the species that actually change.",
+      "Recognise the common reaction types so a name can be attached to the equation: combination (two or more reactants form one product), decomposition (one reactant breaks into two or more), displacement (a more reactive element takes the place of a less reactive one), double displacement (ions swap partners, often making a precipitate), and redox (oxidation and reduction happen together). Exothermic reactions release energy and endothermic reactions absorb it; that is a separate fact from whether the equation balances.",
+    ],
+    terms: [
+      { term: "reactant", meaning: "A starting substance in a chemical reaction, written on the left of the arrow." },
+      { term: "product", meaning: "A new substance formed in a chemical reaction, written on the right of the arrow." },
+      { term: "coefficient", meaning: "The number in front of a formula; it multiplies the whole formula and is the only thing changed when balancing." },
+      { term: "state symbol", meaning: "(s), (l), (g) or (aq), recording the physical state of a substance in the equation." },
+    ],
+    workedExamples: [
+      {
+        prompt: "Balance: Fe + O₂ → Fe₂O₃.",
+        steps: [
+          "Count oxygen: two on the left, three on the right. The lowest common multiple is six, so use 3O₂ and 2Fe₂O₃.",
+          "That gives six oxygen on each side and four iron on the right.",
+          "Balance iron: put a 4 in front of Fe on the left.",
+          "Check every element: 4 Fe and 6 O on both sides.",
+        ],
+        answer: "4Fe + 3O₂ → 2Fe₂O₃.",
+      },
+      {
+        prompt: "Balance: Al + HCl → AlCl₃ + H₂.",
+        steps: [
+          "Chlorine appears as HCl on the left and AlCl₃ on the right; the lowest common multiple of 1 and 3 is 3, so use 3HCl and 1AlCl₃.",
+          "That gives three chlorine on each side and one aluminium on the right, so put a 2 in front of Al on the left? No — check hydrogen first: 3HCl gives three hydrogen, and H₂ needs two.",
+          "Use 6HCl instead: six chlorine and six hydrogen on the left. Then 2AlCl₃ gives six chlorine, and 3H₂ gives six hydrogen.",
+          "Balance aluminium: 2Al on the left. Check: 2 Al, 6 H, 6 Cl on both sides.",
+        ],
+        answer: "2Al + 6HCl → 2AlCl₃ + 3H₂.",
+      },
+    ],
+    traps: [
+      {
+        move: "Changing H₂O to H₂O₂ to make the oxygen count match.",
+        why:
+          "The subscript is part of the substance's identity: H₂O is water and H₂O₂ is hydrogen peroxide. Changing it balances a reaction that did not happen. Only coefficients may change.",
+      },
+      {
+        move: "Counting molecules instead of atoms.",
+        why:
+          "One O₂ molecule contains two oxygen atoms, and one H₂O molecule contains one. A count of 'two molecules on the left' says nothing about the number of atoms; the conservation law is about atoms.",
+      },
+      {
+        move: "Writing 2H₂ + O₂ → 2H₂O and then saying the mass has doubled.",
+        why:
+          "The coefficients describe the ratio in which the substances react; they do not create extra mass. Four hydrogen atoms and two oxygen atoms are rearranged into two water molecules, and the total mass is unchanged.",
+      },
+    ],
+    usedFor:
+      "Every later chemistry calculation — moles, concentrations, limiting reagents, electrolysis and energy changes — starts from a balanced equation, because the coefficients are the ratio in which particles react.",
+    recap: [
+      "A balanced equation has the same number of each kind of atom on both sides; only coefficients may be changed.",
+      "State symbols record solid, liquid, gas or aqueous form and are part of the chemistry, not decoration.",
+      "Reaction types describe how atoms are rearranged; exothermic and endothermic describe the energy change, which is a separate question.",
+    ],
+    review: "unreviewed",
+  },
+  // ── SCIENCE · ELECTRIC CIRCUITS ──────────────────────────────────────────
+  // CBSE Class X, Electricity. The lesson keeps the water analogy only as an
+  // opening picture, then replaces it with the quantities and the rules a
+  // learner must actually calculate with.
+  "electricity-circuits": {
+    conceptId: "electricity-circuits",
+    objective:
+      "Use V = IR to calculate current, voltage or resistance, and apply the series and parallel rules to a simple circuit.",
+    intuition:
+      "A circuit is a closed path with a pump, a flow and a narrow place. The battery is the pump that gives charge energy; current is the rate at which charge flows; resistance is the narrowness that turns some of that energy into heat. The analogy is useful only up to a point — charge is not water, and it is not used up as it goes round — so the lesson replaces the picture with the quantities as soon as they are defined.",
+    idea: [
+      "Electric current is the rate of flow of electric charge: I = Q/t, measured in amperes (A), where one ampere is one coulomb per second. Conventional current is drawn from the positive terminal to the negative terminal, even though electrons move the other way. An ammeter measures current and is connected in series, because the same current must pass through it and the component.",
+      "Potential difference, or voltage, is the energy transferred per unit charge between two points: V = W/Q, measured in volts (V). One volt is one joule per coulomb. A voltmeter measures the difference across a component and is connected in parallel with it, because it must compare the two sides without interrupting the current.",
+      "Ohm's law says that, at constant temperature, the current through a metallic conductor is directly proportional to the potential difference across it: V = IR. Resistance R is measured in ohms (Ω) and depends on the material, length, cross-sectional area and temperature. A longer wire has more resistance; a thicker wire has less; a hotter metal usually has more.",
+      "In a series circuit there is one path, so the current is the same through every component. The potential differences add to the supply voltage, and the total resistance is the sum: R = R₁ + R₂ + … . Adding a resistor in series always increases the total resistance and reduces the current.",
+      "In a parallel circuit the components are connected across the same two points, so the potential difference is the same across each branch. The currents add to the total, and the total resistance is found from 1/R = 1/R₁ + 1/R₂ + … . The total resistance is less than the smallest branch resistance, because the extra branch gives charge another path.",
+      "Electrical power is the rate of energy transfer: P = VI = I²R = V²/R. A resistor converts electrical energy to heat, which is the heating effect used in a filament lamp, a kettle and a fuse. The same power can be delivered at a lower current by using a higher voltage, which is why electricity is transmitted at high voltage and low current: less energy is lost as heat in the cables.",
+    ],
+    terms: [
+      { term: "current", meaning: "The rate of flow of electric charge, measured in amperes; I = Q/t." },
+      { term: "potential difference", meaning: "The energy transferred per unit charge between two points, measured in volts." },
+      { term: "resistance", meaning: "The opposition to current in a component, measured in ohms; V = IR at constant temperature." },
+      { term: "series", meaning: "A circuit with one path, so the same current flows through every component." },
+      { term: "parallel", meaning: "A circuit with branches across the same two points, so the voltage is the same across each branch." },
+    ],
+    workedExamples: [
+      {
+        prompt: "A 12 V battery is connected across a 4 Ω resistor. Calculate the current and the power dissipated.",
+        steps: [
+          "Write the rule: V = IR, so I = V/R.",
+          "Substitute: I = 12 V ÷ 4 Ω = 3 A.",
+          "Use P = VI: P = 12 V × 3 A = 36 W. Check with P = I²R = 9 × 4 = 36 W.",
+        ],
+        answer: "Current = 3 A; power = 36 W.",
+      },
+      {
+        prompt:
+          "Two 6 Ω resistors are connected first in series and then in parallel across a 12 V supply. Find the total resistance and the total current in each case.",
+        steps: [
+          "Series: R = 6 + 6 = 12 Ω. Current I = V/R = 12/12 = 1 A.",
+          "Parallel: 1/R = 1/6 + 1/6 = 2/6, so R = 3 Ω. Current I = 12/3 = 4 A.",
+          "Check the direction: the parallel combination has less resistance, so it draws more current from the same supply.",
+        ],
+        answer: "Series: 12 Ω, 1 A. Parallel: 3 Ω, 4 A.",
+      },
+    ],
+    traps: [
+      {
+        move: "\"The current is used up as it goes round the circuit.\"",
+        why:
+          "Charge is conserved: the same current enters and leaves a component in series. What is transferred is energy, not charge. A bulb does not consume current; it transfers electrical energy to light and heat, and the current continues.",
+      },
+      {
+        move: "\"Two resistors in parallel have a total resistance of R₁ + R₂.\"",
+        why:
+          "The series rule adds resistances because the same current passes through both. In parallel, each branch has the same voltage and the currents add, so the total resistance is smaller than either branch — for two 6 Ω resistors it is 3 Ω, not 12 Ω. Adding a branch makes it easier for charge to flow.",
+      },
+      {
+        move: "\"A voltmeter goes in series with the component.\"",
+        why:
+          "A voltmeter has a very high resistance and is connected in parallel, so it measures the potential difference across the component without diverting much current. An ammeter has a very low resistance and goes in series. Swapping them gives a reading that is not the quantity asked for.",
+      },
+    ],
+    usedFor:
+      "Household wiring, fuses, the heating effect, electrical power bills and the transmission of electricity all use these rules; later electromagnetism and electronics depend on them.",
+    recap: [
+      "Current is charge flow per second, voltage is energy per unit charge, and resistance is the opposition that links them: V = IR.",
+      "Series: same current, voltages add, resistances add. Parallel: same voltage, currents add, total resistance is less than the smallest branch.",
+      "Power is P = VI; a higher voltage can deliver the same power at a lower current, which reduces heating losses in transmission.",
+    ],
+    review: "unreviewed",
+    figure: {
+      spec: {
+        kind: "axes",
+        xMin: 0,
+        xMax: 5,
+        yMin: 0,
+        yMax: 12,
+        // The caption says the line passes through the origin and is straight;
+        // without this the renderer drew only the dashed rise/run triangle.
+        lines: [{ from: [0, 0], to: [4, 8] }],
+        gradient: { from: [0, 0], to: [4, 8] },
+      },
+      caption:
+        "A current–voltage graph for a fixed resistor: the line passes through the origin and is straight, so V is proportional to I. The gradient of this line is the resistance (8 V ÷ 4 A = 2 Ω).",
     },
   },
 };

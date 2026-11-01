@@ -737,6 +737,17 @@ export interface ConceptProgress {
   /** Total answer time in ms (for pace evidence; count in `answers`). */
   totalMs?: number;
   answers?: number;
+  /** CUMULATIVE MARKS, NOT CURRENT MASTERY. The marks awarded and available
+   *  across every scheme-marked answer recorded on this concept, accumulated
+   *  per attempt and rebuilt from the ledger with the same rule. They answer
+   *  "how much credit has this learner earned here", not "what share of the
+   *  concept do they know": two 5/6 attempts are 10 of 12, and the denominator
+   *  grows with them. A surface showing a percentage must divide one by the
+   *  other and call it cumulative. Optional so a record written before scheme
+   *  marking still loads, and absent (not zero) for a concept never marked
+   *  against a scheme. */
+  marksAwarded?: number;
+  marksAvailable?: number;
   /** Proctored diagnostic measurement of this concept (audit P0-A). The
    *  learner model's initial-state estimator: the claim pins to this number
    *  until enough fresh practice evidence accumulates to overturn it.

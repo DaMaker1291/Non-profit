@@ -1,0 +1,628 @@
+{
+  "generatedBy": "scripts/exam-engine-audit.mjs",
+  "seed": "exam-engine-audit-v1",
+  "note": "Measured from served questions in OpenMind's own AQA GCSE Mathematics blueprints. The 80-mark, 90-minute and calculator rules are AQA's; the item mix and the distribution below are OpenMind's modelling, not official board percentages.",
+  "spec": "uk-gcse",
+  "subject": "maths",
+  "papers": [
+    {
+      "id": "aqa-gcse-maths-p1",
+      "tier": "foundation",
+      "minutes": 90,
+      "calculator": false,
+      "marks": 80,
+      "questions": 33,
+      "responseFormats": {
+        "choice": 4,
+        "numeric": 26,
+        "constructed": 3,
+        "byConstructedPart": {
+          "number": 5,
+          "algebra": 3
+        }
+      },
+      "marksByResponseFormat": {
+        "choice": 9,
+        "numeric": 60,
+        "constructed": 11
+      },
+      "constructedItems": [
+        {
+          "id": "sf-proportion",
+          "marks": 2,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "number"
+            }
+          ]
+        },
+        {
+          "id": "sf-expand",
+          "marks": 3,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 1,
+              "response": "algebra"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "algebra"
+            },
+            {
+              "id": "c",
+              "marks": 1,
+              "response": "algebra"
+            }
+          ]
+        },
+        {
+          "id": "sf-lawn-feed",
+          "marks": 6,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 2,
+              "response": "number"
+            },
+            {
+              "id": "b",
+              "marks": 2,
+              "response": "number"
+            },
+            {
+              "id": "c",
+              "marks": 2,
+              "response": "number"
+            }
+          ]
+        }
+      ],
+      "demand": [
+        0.3,
+        0.42,
+        0.55,
+        0.68,
+        0.78,
+        0.86
+      ],
+      "servedDifficulty": {
+        "min": 0.3,
+        "max": 0.6559489881619811,
+        "mean": 0.44714996933824186
+      },
+      "conceptsTested": 26
+    },
+    {
+      "id": "aqa-gcse-maths-p2",
+      "tier": "foundation",
+      "minutes": 90,
+      "calculator": true,
+      "marks": 80,
+      "questions": 33,
+      "responseFormats": {
+        "choice": 5,
+        "numeric": 25,
+        "constructed": 3,
+        "byConstructedPart": {
+          "number": 2,
+          "table": 1,
+          "plot": 1,
+          "readoff": 2,
+          "graph": 1
+        }
+      },
+      "marksByResponseFormat": {
+        "choice": 9,
+        "numeric": 59,
+        "constructed": 12
+      },
+      "constructedItems": [
+        {
+          "id": "sf-proportion",
+          "marks": 2,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "number"
+            }
+          ]
+        },
+        {
+          "id": "sf-table-line",
+          "marks": 4,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 4,
+              "response": "table"
+            }
+          ]
+        },
+        {
+          "id": "sf-plot-line",
+          "marks": 6,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 2,
+              "response": "plot"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "readoff"
+            },
+            {
+              "id": "c",
+              "marks": 2,
+              "response": "graph"
+            },
+            {
+              "id": "d",
+              "marks": 1,
+              "response": "readoff"
+            }
+          ]
+        }
+      ],
+      "demand": [
+        0.32,
+        0.44,
+        0.57,
+        0.7,
+        0.8,
+        0.88
+      ],
+      "servedDifficulty": {
+        "min": 0.3,
+        "max": 0.7753580382326618,
+        "mean": 0.4586472132797778
+      },
+      "conceptsTested": 27
+    },
+    {
+      "id": "aqa-gcse-maths-p3",
+      "tier": "foundation",
+      "minutes": 90,
+      "calculator": true,
+      "marks": 80,
+      "questions": 33,
+      "responseFormats": {
+        "choice": 7,
+        "numeric": 23,
+        "constructed": 3,
+        "byConstructedPart": {
+          "algebra": 3,
+          "number": 5,
+          "graph": 3
+        }
+      },
+      "marksByResponseFormat": {
+        "choice": 17,
+        "numeric": 49,
+        "constructed": 14
+      },
+      "constructedItems": [
+        {
+          "id": "sf-expand",
+          "marks": 3,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 1,
+              "response": "algebra"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "algebra"
+            },
+            {
+              "id": "c",
+              "marks": 1,
+              "response": "algebra"
+            }
+          ]
+        },
+        {
+          "id": "sf-angle-chain",
+          "marks": 5,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "c",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "d",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "e",
+              "marks": 1,
+              "response": "number"
+            }
+          ]
+        },
+        {
+          "id": "sf-line-graph",
+          "marks": 6,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 2,
+              "response": "graph"
+            },
+            {
+              "id": "b",
+              "marks": 2,
+              "response": "graph"
+            },
+            {
+              "id": "c",
+              "marks": 2,
+              "response": "graph"
+            }
+          ]
+        }
+      ],
+      "demand": [
+        0.34,
+        0.46,
+        0.59,
+        0.72,
+        0.82,
+        0.9
+      ],
+      "servedDifficulty": {
+        "min": 0.3,
+        "max": 0.6811897070426494,
+        "mean": 0.46573409102003405
+      },
+      "conceptsTested": 27
+    },
+    {
+      "id": "aqa-gcse-maths-higher-p1",
+      "tier": "higher",
+      "minutes": 90,
+      "calculator": false,
+      "marks": 80,
+      "questions": 33,
+      "responseFormats": {
+        "choice": 10,
+        "numeric": 20,
+        "constructed": 3,
+        "byConstructedPart": {
+          "number": 4,
+          "algebra": 4
+        }
+      },
+      "marksByResponseFormat": {
+        "choice": 24,
+        "numeric": 45,
+        "constructed": 11
+      },
+      "constructedItems": [
+        {
+          "id": "hf-surds",
+          "marks": 2,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "number"
+            }
+          ]
+        },
+        {
+          "id": "hf-algebra",
+          "marks": 3,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 1,
+              "response": "algebra"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "algebra"
+            },
+            {
+              "id": "c",
+              "marks": 1,
+              "response": "algebra"
+            }
+          ]
+        },
+        {
+          "id": "hf-rectangle-context",
+          "marks": 6,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 2,
+              "response": "algebra"
+            },
+            {
+              "id": "b",
+              "marks": 2,
+              "response": "number"
+            },
+            {
+              "id": "c",
+              "marks": 2,
+              "response": "number"
+            }
+          ]
+        }
+      ],
+      "demand": [
+        0.42,
+        0.54,
+        0.65,
+        0.74,
+        0.84,
+        0.92
+      ],
+      "servedDifficulty": {
+        "min": 0.35,
+        "max": 0.8,
+        "mean": 0.5737715023931709
+      },
+      "conceptsTested": 27
+    },
+    {
+      "id": "aqa-gcse-maths-higher-p2",
+      "tier": "higher",
+      "minutes": 90,
+      "calculator": true,
+      "marks": 80,
+      "questions": 33,
+      "responseFormats": {
+        "choice": 16,
+        "numeric": 14,
+        "constructed": 3,
+        "byConstructedPart": {
+          "number": 2,
+          "table": 1,
+          "plot": 1,
+          "readoff": 2,
+          "graph": 1
+        }
+      },
+      "marksByResponseFormat": {
+        "choice": 43,
+        "numeric": 25,
+        "constructed": 12
+      },
+      "constructedItems": [
+        {
+          "id": "hf-surds",
+          "marks": 2,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "number"
+            }
+          ]
+        },
+        {
+          "id": "hf-table-quadratic",
+          "marks": 4,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 4,
+              "response": "table"
+            }
+          ]
+        },
+        {
+          "id": "sf-plot-line",
+          "marks": 6,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 2,
+              "response": "plot"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "readoff"
+            },
+            {
+              "id": "c",
+              "marks": 2,
+              "response": "graph"
+            },
+            {
+              "id": "d",
+              "marks": 1,
+              "response": "readoff"
+            }
+          ]
+        }
+      ],
+      "demand": [
+        0.44,
+        0.56,
+        0.67,
+        0.76,
+        0.86,
+        0.93
+      ],
+      "servedDifficulty": {
+        "min": 0.45,
+        "max": 0.7932712985482067,
+        "mean": 0.607453368843505
+      },
+      "conceptsTested": 30
+    },
+    {
+      "id": "aqa-gcse-maths-higher-p3",
+      "tier": "higher",
+      "minutes": 90,
+      "calculator": true,
+      "marks": 80,
+      "questions": 33,
+      "responseFormats": {
+        "choice": 17,
+        "numeric": 13,
+        "constructed": 3,
+        "byConstructedPart": {
+          "algebra": 4,
+          "number": 7
+        }
+      },
+      "marksByResponseFormat": {
+        "choice": 43,
+        "numeric": 23,
+        "constructed": 14
+      },
+      "constructedItems": [
+        {
+          "id": "hf-algebra",
+          "marks": 3,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 1,
+              "response": "algebra"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "algebra"
+            },
+            {
+              "id": "c",
+              "marks": 1,
+              "response": "algebra"
+            }
+          ]
+        },
+        {
+          "id": "hf-circle-angles",
+          "marks": 5,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "b",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "c",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "d",
+              "marks": 1,
+              "response": "number"
+            },
+            {
+              "id": "e",
+              "marks": 1,
+              "response": "number"
+            }
+          ]
+        },
+        {
+          "id": "hf-sequences-context",
+          "marks": 6,
+          "parts": [
+            {
+              "id": "a",
+              "marks": 2,
+              "response": "algebra"
+            },
+            {
+              "id": "b",
+              "marks": 2,
+              "response": "number"
+            },
+            {
+              "id": "c",
+              "marks": 2,
+              "response": "number"
+            }
+          ]
+        }
+      ],
+      "demand": [
+        0.46,
+        0.58,
+        0.69,
+        0.78,
+        0.88,
+        0.94
+      ],
+      "servedDifficulty": {
+        "min": 0.45,
+        "max": 0.8134509892435745,
+        "mean": 0.6512431582387986
+      },
+      "conceptsTested": 26
+    }
+  ],
+  "totals": {
+    "questions": 198,
+    "marks": 480,
+    "byFormat": {
+      "questions": {
+        "choice": 59,
+        "numeric": 121,
+        "constructed": 18
+      },
+      "marks": {
+        "choice": 145,
+        "numeric": 261,
+        "constructed": 74
+      }
+    }
+  }
+}

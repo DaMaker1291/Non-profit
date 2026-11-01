@@ -1,13 +1,13 @@
 {
   "generatedBy": "scripts/paper-audit.mjs",
   "counts": {
-    "paperBlueprints": 67,
-    "publishedBlueprints": 62,
-    "blueprintsWithACitation": 62,
+    "paperBlueprints": 70,
+    "publishedBlueprints": 65,
+    "blueprintsWithACitation": 65,
     "uncitedBlueprints": 0,
     "qualificationSubjectOffers": 447,
-    "authoredOffers": 67,
-    "modelledOffers": 380,
+    "authoredOffers": 70,
+    "modelledOffers": 377,
     "countries": 72,
     "countriesWithAPublishedShape": 19,
     "countriesModelledOnly": 53,

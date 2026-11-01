@@ -10,10 +10,13 @@ import { fill } from "@/lib/i18n";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import PaperAnalysisPanel, { type PaperAnalysisShape } from "@/components/paper-analysis";
 import PromptText from "@/components/prompt-text";
+import GraphPlot from "@/components/graph-plot";
+import TableAnswer, { type TableView } from "@/components/table-answer";
 import { specForProfile } from "@/lib/specifications";
 import MathText from "@/components/math-text";
 import { subjectLabel } from "@/lib/subjects";
-import type { BoardId, FigureSpec, ProfileState, SubjectId } from "@/lib/types";
+import type { BoardId, FigureSpec, NumericTolerance, ProfileState, ResponseKind, SubjectId } from "@/lib/types";
+import { emptySittingState } from "@/lib/papers";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Exam papers. Pick the paper your board actually sets, sit it under its own
@@ -32,7 +35,13 @@ interface PaperQuestionView {
   seed: string;
   marks: number;
   difficulty: number;
-  view: { prompt: string; choices: string[]; figure?: FigureSpec };
+  view: {
+    prompt: string; choices: string[]; figure?: FigureSpec;
+    /** Absent means a choice item. A numeric item is answered in a box, and its
+     *  choices are never rendered as the answer. */
+    responseKind?: ResponseKind;
+    tolerance?: NumericTolerance;
+  };
 }
 
 interface PaperSection {
@@ -91,7 +100,8 @@ interface MarkResult {
   grade: string | null;
   perQuestion: Array<{
     id: string; conceptId: string; marks: number; awarded: number;
-    correct: boolean | null; chosen: number | null; answer: number; explanation: string;
+    correct: boolean | null; chosen: number | null; given?: string | null; invalid?: boolean;
+    answer: number; explanation: string;
     /** The misconceptions this question probes, from the answer key. */
     tags: string[];
   }>;
@@ -109,6 +119,8 @@ export default function PapersPage() {
   const [paper, setPaper] = useState<Paper | null>(null);
   const [source, setSource] = useState<{ source: string; aiQuestions: number; engineQuestions: number } | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  // Numeric-response questions are one typed value each, not a choice index.
+  const [numericAnswers, setNumericAnswers] = useState<Record<string, string>>({});
   // Typed answers for a constructed-response question: one string per part.
   // Kept apart from `answers` because a part's answer is TEXT, not a choice
   // index, and the route marks the two through different schemes.
@@ -127,6 +139,20 @@ export default function PapersPage() {
   const [left, setLeft] = useState(0);
   const [err, setErr] = useState("");
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /** THE ONLY WAY A SITTING IS CLEARED. Both a new paper and the return-to-
+   *  picker control call this, so a field added later cannot be cleared on one
+   *  boundary and forgotten on the other — the class of bug that let q33's
+   *  structured answer replay into a later paper. */
+  const clearSitting = useCallback(() => {
+    const empty = emptySittingState();
+    setAnswers(empty.answers);
+    setNumericAnswers(empty.numeric);
+    setTyped(empty.typed);
+    setWorking(empty.working);
+    setFlagged(empty.flagged);
+    setCurrent(empty.current);
+  }, []);
 
   const active = useMemo(
     () => specForProfile(profile?.profile ?? {}),
@@ -190,9 +216,12 @@ export default function PapersPage() {
       });
       setPaper(data.paper);
       setSource({ source: data.source, aiQuestions: data.aiQuestions, engineQuestions: data.engineQuestions });
-      setAnswers({});
-      setFlagged({});
-      setCurrent(0);
+      // EVERY SITTING STARTS EMPTY, including the typed and working maps. The
+      // question ids are positional (`q33` in every paper), so leaving them
+      // behind let a learner's previous structured answer appear — and be
+      // submitted — in a paper they had not answered. Cleared on start, not only
+      // when the picker is revisited.
+      clearSitting();
       setLeft(data.paper.minutes * 60);
       stopTimer();
       timer.current = setInterval(() => {
@@ -223,7 +252,7 @@ export default function PapersPage() {
       // travels with the operation.
       const id = loadLocalProfileId();
       const data = await api.markPaper({
-        paperId: paper.id, answers, structuredAnswers: typed, structuredWorking: working,
+        paperId: paper.id, answers, numericAnswers, structuredAnswers: typed, structuredWorking: working,
         lang, ...(id ? { id } : {}),
       });
       setResult(data.result);
@@ -261,6 +290,7 @@ export default function PapersPage() {
   );
 
   const answeredCount = flat.filter((q) => typeof answers[q.id] === "number"
+    || (numericAnswers[q.id] ?? "").trim() !== ""
     || (typed[q.id] ?? []).some((v) => v.trim() !== "")
     || (working[q.id] ?? []).some((v) => v.trim() !== "")).length;
   const clock = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
@@ -388,7 +418,14 @@ export default function PapersPage() {
         const structured = (q as typeof q & {
           structured?: {
             itemId: string; title: string; note: string;
-            parts: Array<{ id: string; prompt: string; marks: number; unit?: string; methodPrompt?: string; methodMarks?: number }>;
+            parts: Array<{
+              id: string; prompt: string; marks: number; unit?: string;
+              methodPrompt?: string; methodMarks?: number;
+              response?: "number" | "graph" | "plot" | "readoff" | "algebra" | "table";
+              graph?: { xMin: number; xMax: number; yMin: number; yMax: number };
+              plot?: { xMin: number; xMax: number; yMin: number; yMax: number };
+              table?: TableView;
+            }>;
           };
         }).structured;
         const isFlagged = !!flagged[q.id];
@@ -432,6 +469,7 @@ export default function PapersPage() {
             <nav aria-label={t("pp.grid")} data-question-grid style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 12 }}>
               {flat.map((qq, i) => {
                 const done = typeof answers[qq.id] === "number"
+                  || (numericAnswers[qq.id] ?? "").trim() !== ""
                   || (typed[qq.id] ?? []).some((v) => v.trim() !== "")
                   || (working[qq.id] ?? []).some((v) => v.trim() !== "");
                 const fl = !!flagged[qq.id];
@@ -499,18 +537,56 @@ export default function PapersPage() {
                         <span className="small muted">
                           {part.marks} {t("pp.marks")}{part.unit ? ` · ${part.unit}` : ""}
                         </span>
-                        <input
-                          type="text"
-                          autoComplete="off"
-                          value={vals[pi] ?? ""}
-                          onChange={(e) => setTyped((m) => {
-                            const next = [...(m[q.id] ?? structured.parts.map(() => ""))];
-                            next[pi] = e.target.value;
-                            return { ...m, [q.id]: next };
-                          })}
-                          aria-label={`${t("pp.q")} ${num} (${part.id})`}
-                          style={{ padding: "10px 12px", border: "1px solid var(--rule, #e5e7eb)", borderRadius: 8 }}
-                        />
+                        {/* A GRAPH PART IS ANSWERED BY STATING THE LINE. Two points
+                            are what a line is, and the marker reads the line they
+                            define — so the instruction says that rather than
+                            pretending the learner can drag one here. */}
+                        {part.response === "graph" && (
+                          <span className="small muted">
+                            Two points as x,y and x,y — any two points on the correct
+                            line are accepted. Grid: x from {part.graph?.xMin} to {part.graph?.xMax}, y from {part.graph?.yMin} to {part.graph?.yMax}.
+                          </span>
+                        )}
+                        {part.response === "plot" && part.plot ? (
+                          <GraphPlot
+                            bounds={part.plot}
+                            value={vals[pi] ?? ""}
+                            onChange={(next) => setTyped((m) => {
+                              const list = [...(m[q.id] ?? structured.parts.map(() => ""))];
+                              list[pi] = next;
+                              return { ...m, [q.id]: list };
+                            })}
+                            label={`${t("pp.q")} ${num} (${part.id})`}
+                          />
+                        ) : part.response === "table" && part.table ? (
+                          <TableAnswer
+                            table={part.table}
+                            value={vals[pi] ?? ""}
+                            onChange={(next) => setTyped((m) => {
+                              const list = [...(m[q.id] ?? structured.parts.map(() => ""))];
+                              list[pi] = next;
+                              return { ...m, [q.id]: list };
+                            })}
+                            label={`${t("pp.q")} ${num} (${part.id})`}
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            autoComplete="off"
+                            placeholder={part.response === "graph" ? "0,1  2,5"
+                              : part.response === "readoff" ? "value of y"
+                                : part.response === "algebra" ? "e.g. 3x + 12"
+                                  : undefined}
+                            value={vals[pi] ?? ""}
+                            onChange={(e) => setTyped((m) => {
+                              const next = [...(m[q.id] ?? structured.parts.map(() => ""))];
+                              next[pi] = e.target.value;
+                              return { ...m, [q.id]: next };
+                            })}
+                            aria-label={`${t("pp.q")} ${num} (${part.id})`}
+                            style={{ padding: "10px 12px", border: "1px solid var(--rule, #e5e7eb)", borderRadius: 8 }}
+                          />
+                        )}
                         {part.methodPrompt && (
                           <>
                             <span className="small muted">
@@ -535,8 +611,29 @@ export default function PapersPage() {
                   })}
                 </div>
               )}
+              {/* A NUMERIC ITEM IS ANSWERED, NOT RECOGNISED. The bank's numeric
+                  questions have choice-form twins for the MCQ-only surfaces; a
+                  paper must not serve that twin back to a learner who is being
+                  examined on producing the value. */}
+              {!structured && q.view.responseKind === "numeric" && (
+                <label className="small" style={{ display: "grid", gap: 6, marginTop: 10 }}>
+                  <span>
+                    {t("pp.answer")}{q.view.tolerance?.unit ? ` · ${q.view.tolerance.unit}` : ""}
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={numericAnswers[q.id] ?? ""}
+                    onChange={(e) => setNumericAnswers((m) => ({ ...m, [q.id]: e.target.value }))}
+                    aria-label={`${t("pp.q")} ${num} ${t("pp.answer")}`}
+                    placeholder={q.view.tolerance?.display ? `e.g. ${q.view.tolerance.display}` : undefined}
+                    style={{ padding: "10px 12px", border: "1px solid var(--rule, #e5e7eb)", borderRadius: 8, maxWidth: 280 }}
+                  />
+                </label>
+              )}
               <div style={{ display: "grid", gap: 8 }}>
-                {!structured && q.view.choices.map((c, ci) => (
+                {!structured && q.view.responseKind !== "numeric" && q.view.choices.map((c, ci) => (
                   <label
                     key={ci}
                     className={chosen === ci ? "on" : ""}
@@ -635,7 +732,9 @@ export default function PapersPage() {
             {result.perQuestion.map((q, i) => {
               const mark = q.correct === true ? "✓" : q.correct === null ? "○" : "✗";
               const markClass = q.correct === true ? "good" : q.correct === null ? "" : "bad";
-              const label = q.correct === true ? t("pp.correct") : q.correct === null ? t("pp.blank") : t("pp.incorrect");
+              const label = q.correct === true ? t("pp.correct")
+                : q.correct === null ? (q.invalid ? t("pp.notANumber") : t("pp.blank"))
+                  : t("pp.incorrect");
               // The idea to check is only claimed for a WRONG answer: a question
               // nobody answered says nothing about what the learner believes.
               const tag = q.correct === false ? (q.tags ?? []).find((x) => MISCONCEPTIONS_BY_ID[x]) : undefined;
@@ -677,7 +776,7 @@ export default function PapersPage() {
               </>
             )}
 
-            <button className="btn" style={{ marginTop: 20 }} onClick={() => { setPaper(null); setResult(null); setSource(null); setAnalysis(null); setFlagged({}); setCurrent(0); }}>
+            <button className="btn" style={{ marginTop: 20 }} onClick={() => { setPaper(null); setResult(null); setSource(null); setAnalysis(null); clearSitting(); }}>
               {t("pp.another")}
             </button>
           </>

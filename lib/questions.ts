@@ -2473,7 +2473,16 @@ const LATE_GENS: Record<string, RawGen> = {
       // never appeared), while the pair branch is what the bank reaches. A
       // learner who swaps the order reads (0, 3) as three ACROSS and answers
       // "the x-axis", so the item distinguishes the belief it is tagged with.
-      tags: ["axis-swap"], explanation: `x = 0 means zero steps right or left — the point sits on the vertical (y) axis. y = 0 puts it on the horizontal (x) axis. The origin (0, 0) is the only point on both.`,
+      tags: ["axis-swap"],
+      // THE GRID, WITH THE ORIGIN — NOT THE ASKED-FOR POINT. Plotting (6, 0)
+      // would answer “which axis?” directly. The origin and the labelled axes
+      // are the tool the learner needs to reason about where a zero coordinate
+      // puts a point; the point itself stays in the prompt.
+      figure: {
+        kind: "axes", xMin: -6, xMax: 6, yMin: -6, yMax: 6,
+        points: [{ at: [0, 0], label: "(0, 0)" }],
+      },
+      explanation: `x = 0 means zero steps right or left — the point sits on the vertical (y) axis. y = 0 puts it on the horizontal (x) axis. The origin (0, 0) is the only point on both.`,
       difficulty: 0.25,
     };
   },

@@ -76,6 +76,13 @@ export function foldEvent(state: ProfileState, e: EvidenceEvent): void {
         ms: e.ms ?? undefined,
         hints: e.hints,
         mode: e.mode,
+        // THE MARKS SURVIVE THE REBUILD. The ledger has carried the score since
+        // paper marking was added, but the fold dropped it, so a replay turned
+        // 5/6 into the same evidence as 0/6. A partial answer is still not a
+        // mastery success — `correct` stays false — but the record now says HOW
+        // MUCH of the question was answered, which is the difference the learner
+        // model could not previously see.
+        score: e.score ?? undefined,
         // The event's own source is carried into the fold: a retrieval is
         // retention evidence in the model exactly when the ledger says it was
         // one, so replay reproduces the retention dimension instead of

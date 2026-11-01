@@ -39,6 +39,7 @@ import LessonWorkedExample from "@/components/lesson-worked-example";
 import RepairCard from "@/components/repair-card";
 import { repairFor } from "@/lib/repair";
 import { planFor, teachingLanguages } from "@/lib/lesson-plans";
+import { lessonStatus } from "@/lib/pilot";
 import { exampleFor } from "@/lib/culture";
 import type { FlarePayload } from "@/lib/microdiag";
 import { subjectFromParam } from "@/lib/subjects";
@@ -84,6 +85,11 @@ export default function ConceptPage() {
    *  drawn empty — a card with a heading and no teaching is worse than no card. */
   const { t, lang } = useI18n();
   const plan = planFor(conceptId, lang);
+  /** WHAT THE PILOT SAYS ABOUT THIS CONCEPT. `unavailable-for-pilot` means no
+   *  complete lesson exists, and this page must not dress the genome paragraph
+   *  as one. `needs-educator-review` means a complete plan that no qualified
+   *  teacher has signed; it is shown with that fact on the screen. */
+  const pilotStatus = lessonStatus(conceptId, lang);
   /** IS THIS LESSON ACTUALLY IN THE READER'S LANGUAGE? Read from the translated
    *  plans themselves, not from "a language was chosen": the note below used to
    *  say the teaching is English even where it is not (and still says nothing
@@ -119,6 +125,14 @@ export default function ConceptPage() {
    * would be a control that lies about what it does.
    */
   const [view, setView] = useState<"read" | "practise">("read");
+  /** A view switch is a new screen, so it starts at the top. Without this a
+   *  learner who pressed "Now your turn" at the foot of a 6,000px lesson kept
+   *  the old scroll offset when the much shorter practice view rendered — the
+   *  button had worked, but the screen did not visibly change. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.scrollTo(0, 0);
+  }, [view]);
   /**
    * Did the transfer serve achieve a genuinely different surface?
    *
@@ -315,6 +329,48 @@ export default function ConceptPage() {
             ONE subject. A back link whose words describe a different page is a
             learner's cue to expect the wrong screen. */}
         <Link href={`/learn/${subject}`} className="btn ghost">← {t(SUBJECT_LABELS[subject])}</Link>
+      </main>
+    );
+  }
+
+  // ── THE HARD GATE ────────────────────────────────────────────────────────
+  // No complete lesson means no lesson. The genome paragraph is real, useful
+  // background material, and it is kept — but behind a disclosure that says
+  // what it is. Rendering it in the lesson's position, under "The idea", was
+  // the defect that made 120 concepts look taught.
+  if (!pilotStatus.plan) {
+    return (
+      <main className="container narrow" style={{ paddingTop: 40 }}>
+        <p className="eyebrow">{t(`subj.${c.subject}`)} · {ctitle(lang, c.id)}</p>
+        <h1>{ctitle(lang, c.id)}</h1>
+        <p className="lead">{cblurb(lang, c.id)}</p>
+        {lang !== "en" && <p className="small muted" role="note">{t("lq.teachNoteAll")}</p>}
+        <section className="card" data-content-state="unavailable-for-pilot" lang="en">
+          <p className="eyebrow" style={{ margin: 0 }}><span className="no">!</span> Not available as a lesson</p>
+          <p style={{ margin: "10px 0 6px", fontWeight: 650 }}>
+            This concept does not yet have a complete lesson, so it is not in the pilot learning path.
+          </p>
+          <p className="small muted" style={{ margin: 0 }}>
+            A complete lesson teaches the idea in sequence, works an example, names the common
+            mistakes and gives practice with feedback. This concept has none of that yet. The
+            paragraph below is background material, not teaching.
+          </p>
+          <details style={{ marginTop: 14 }}>
+            <summary className="small">Read the background note (not a lesson)</summary>
+            <p className="reading lesson-text" style={{ marginTop: 10 }}>{c.lesson}</p>
+          </details>
+        </section>
+        {c.prereqs.length > 0 && (
+          <section className="card soft" style={{ marginBottom: 18 }}>
+            <p className="eyebrow" style={{ margin: 0 }}>{t("learn.buildsOn")}</p>
+            <ul className="lesson-list">
+              {c.prereqs.map((p) => (
+                <li key={p}><Link href={`/learn/${subject}/${p}`}>{ctitle(lang, p)}</Link></li>
+              ))}
+            </ul>
+          </section>
+        )}
+        <Link href={`/learn/${subject}`} className="btn ghost small">← {t(SUBJECT_LABELS[subject])}</Link>
       </main>
     );
   }
@@ -610,6 +666,27 @@ export default function ConceptPage() {
           </div>
         </>
       )}
+      {/* THE CONTENT STATUS, BEFORE THE TEACHING. A learner is entitled to know
+          whether the lesson in front of them has been signed off, and for which
+          curriculum and language. The old page put a small tag at the foot, after
+          the practice door, which is too late to inform the decision to trust it. */}
+      <section className="card soft" data-content-state={pilotStatus.state} lang="en" role="note" style={{ marginBottom: 18 }}>
+        <p className="eyebrow" style={{ margin: 0 }}>Pilot content status</p>
+        <p style={{ margin: "8px 0 4px", fontWeight: 650 }}>
+          {pilotStatus.state === "approved-for-pilot"
+            ? "Approved for this pilot"
+            : pilotStatus.inScope
+              ? "Pilot candidate — not yet approved"
+              : "Outside the current pilot scope"}
+        </p>
+        <p className="small muted" style={{ margin: 0 }}>{pilotStatus.reasons[0]}</p>
+        {pilotStatus.inScope && (
+          <p className="small muted" style={{ margin: "6px 0 0" }}>
+            This is one of the 12 lessons proposed for CBSE Class 10, English medium. It may be read and practised, but it is not presented as a reviewed or officially approved course.
+          </p>
+        )}
+      </section>
+
       {assignedDue !== null && (
         <p className="small" style={{ marginTop: -6, marginBottom: 14 }}>
           <span className="chip red">✎ {t("asg.setBy")}</span>{" "}
@@ -874,6 +951,20 @@ export default function ConceptPage() {
 
           It sits BEFORE the practice door on purpose: a repair shown after the
           questions is the card that already existed. */}
+      {plan?.terms && plan.terms.length > 0 && (
+        <section className="card soft" style={{ marginBottom: 18 }} aria-label="Terms">
+          <p className="eyebrow" style={{ margin: 0 }}>Terms</p>
+          <dl className="lesson-terms">
+            {plan.terms.map((term) => (
+              <div key={term.term}>
+                <dt>{term.term}</dt>
+                <dd className="small muted">{term.meaning}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
       {liveRepair && (
         <section className="card soft" style={{ marginBottom: 18 }} aria-label={t("lesson.slipTitle")}>
           <p className="eyebrow" style={{ margin: 0 }}>
@@ -902,6 +993,24 @@ export default function ConceptPage() {
       )}
 
       <LessonWorkedExample conceptId={conceptId} />
+
+      {/* AUTHORED EXAMPLES, WHERE THE CONCEPT NEEDS MORE THAN ONE. The live
+          example above comes from the bank and proves the method on a real item;
+          these are written for the lesson and each step says WHY. */}
+      {plan?.workedExamples && plan.workedExamples.length > 0 && (
+        <section className="card" style={{ marginBottom: 18 }} aria-label="Worked examples">
+          <p className="eyebrow" style={{ margin: 0 }}>Worked examples</p>
+          {plan.workedExamples.map((ex, i) => (
+            <div key={i} style={{ marginTop: 14 }}>
+              <p style={{ margin: 0, fontWeight: 650 }}>{i + 1}. {ex.prompt}</p>
+              <ol className="small" style={{ margin: "8px 0 0 18px" }}>
+                {ex.steps.map((step, j) => <li key={j} style={{ marginBottom: 4 }}>{step}</li>)}
+              </ol>
+              <p className="small" style={{ margin: "8px 0 0" }}><strong>Answer:</strong> {ex.answer}</p>
+            </div>
+          ))}
+        </section>
+      )}
 
       {/* "WE DO" — THE SAME ITEM, FADED.
 
@@ -960,6 +1069,15 @@ export default function ConceptPage() {
           reads the lesson, feels informed, and leaves. It is also the "we do"
           hand-off: the worked example has just shown one, this starts one they
           answer with the hint ladder beside it. */}
+      {plan?.recap && plan.recap.length > 0 && (
+        <section className="card soft" style={{ marginBottom: 18 }} aria-label="Recap">
+          <p className="eyebrow" style={{ margin: 0 }}>Recap</p>
+          <ul className="lesson-list" style={{ marginTop: 8 }}>
+            {plan.recap.map((line, i) => <li key={i}>{line}</li>)}
+          </ul>
+        </section>
+      )}
+
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: plan ? 8 : 20 }}>
         <button className="btn" onClick={() => setView("practise")}>
           {t("worked.next")} →

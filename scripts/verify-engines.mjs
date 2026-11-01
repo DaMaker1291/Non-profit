@@ -110,6 +110,257 @@ function ok(cond, msg) {
   else { fail++; console.error("  ✗ FAIL:", msg); }
 }
 
+// ── A partial mark is evidence, and it survives the path that rebuilds it ────
+// The defect this pins: a structured answer scoring 5/6 was folded as
+// `correct: false` with nothing else, so the model saw exactly what a 0/6 looks
+// like. The ledger had carried the score all along; the fold dropped it.
+{
+  const partial = { progress: {} };
+  progress.recordAnswer(partial, "fractions", "q-partial", -1, false, "", [], { score: { awarded: 5, max: 6 } }, 1);
+  const rec = partial.progress.fractions;
+  ok(rec.marksAwarded === 5 && rec.marksAvailable === 6, "a 5/6 answer is recorded as five of six marks, not as nothing");
+  const blank = { progress: {} };
+  progress.recordAnswer(blank, "fractions", "q-blank", -1, false, "", [], { score: { awarded: 0, max: 6 } }, 1);
+  ok(rec.marksAwarded !== blank.progress.fractions.marksAwarded, "a 5/6 and a 0/6 are distinguishable in the learner model");
+
+  // CUMULATIVE, NOT MASTERY: a second 5/6 grows BOTH numbers, so a percentage
+  // read off them is "share of the marks ever offered", never "concept known".
+  progress.recordAnswer(partial, "fractions", "q-partial-2", -1, false, "", [], { score: { awarded: 5, max: 6 } }, 2);
+  ok(rec.marksAwarded === 10 && rec.marksAvailable === 12,
+    `two 5/6 attempts accumulate as 10 of 12 cumulative marks, denominator included (${rec.marksAwarded}/${rec.marksAvailable})`);
+  ok(rec.attempts === 2 && rec.correct === 0,
+    "while the mastery signal still sees two unsuccessful answers — marks did not become a pass");
+  ok(!partial.progress.negatives && Object.keys(partial.progress).length === 1,
+    "the marks land on the concept the answer was attributed to, and on no other concept");
+
+  // A SAVED RECORD FROM BEFORE THE FIELDS EXISTED. It has three attempts and no
+  // mark tally; replaying a scored answer onto it must add the marks and keep
+  // the history, not reset either to zero.
+  const replayMod = require("../.verify/replay.js");
+  const legacyRec = progress.emptyProgress();
+  legacyRec.attempts = 3;
+  legacyRec.correct = 2;
+  const legacyBase = { progress: { fractions: legacyRec }, masteries: {}, ledgerMark: 0 };
+  const scoredEvent = evidence.answerEvidence({
+    learnerId: "legacy-marks", at: 1000, source: "past_paper", subject: "maths",
+    conceptId: "fractions", specificationId: null, questionId: "paper:q1",
+    correct: false, chosen: -1, mode: "independent", hints: 0,
+    score: { awarded: 4, max: 6 }, tags: [],
+  });
+  const legacyRebuilt = replayMod.replayModel([scoredEvent], "legacy-marks", legacyBase);
+  const legacyAfter = legacyRebuilt.progress.fractions;
+  ok(legacyAfter.marksAwarded === 4 && legacyAfter.marksAvailable === 6,
+    `a record saved before the tally existed gains the replayed marks rather than reading NaN (${legacyAfter.marksAwarded}/${legacyAfter.marksAvailable})`);
+  ok(legacyAfter.attempts === 4 && legacyAfter.correct === 2,
+    "and its pre-ledger attempts and successes are preserved, not restarted");
+
+  // AN EVENT FROM BEFORE SCORES EXISTED: the fold must not invent a tally.
+  const oldEvent = evidence.answerEvidence({
+    learnerId: "old-event", at: 2000, source: "practice", subject: "maths",
+    conceptId: "fractions", specificationId: null, questionId: "old:q1",
+    correct: true, chosen: 0, mode: "guided", hints: 0, tags: [],
+  });
+  const oldModel = replayMod.replayModel([oldEvent], "old-event");
+  const oldAfter = oldModel.progress.fractions;
+  ok(oldAfter && oldAfter.marksAwarded === undefined && oldAfter.marksAvailable === undefined,
+    "an answer recorded before scheme marking replays without inventing a mark tally");
+  ok(oldAfter && oldAfter.attempts === 1 && oldAfter.correct === 1,
+    "and the old answer still counts as evidence");
+
+  // DETERMINISTIC: the same ledger replayed twice rebuilds the same totals.
+  const again = replayMod.replayModel([scoredEvent], "legacy-marks", {
+    progress: { fractions: { ...progress.emptyProgress(), attempts: 3, correct: 2 } },
+    masteries: {}, ledgerMark: 0,
+  });
+  ok(JSON.stringify(legacyRebuilt.progress) === JSON.stringify(again.progress),
+    "replaying the same ledger twice rebuilds byte-identical mark totals");
+
+  // …and the fold, not a source read, is what carries a score: two scored
+  // answers on one concept rebuild the cumulative 9/12 from the ledger alone.
+  const twoScored = [
+    { ...scoredEvent, id: "ev_a", at: 1000, score: { awarded: 4, max: 6 } },
+    { ...scoredEvent, id: "ev_b", at: 2000, score: { awarded: 5, max: 6 } },
+  ];
+  const rebuiltScores = replayMod.replayModel(twoScored, "two-scored").progress.fractions;
+  ok(rebuiltScores.marksAwarded === 9 && rebuiltScores.marksAvailable === 12,
+    `the ledger alone rebuilds cumulative marks across attempts (${rebuiltScores.marksAwarded}/${rebuiltScores.marksAvailable})`);
+}
+
+// ── One reset owner, and the mark totals survive the real store ──────────────
+// Two boundaries clear a sitting (a new paper, and the return-to-picker
+// control). Two hand-written lists of setters had already drifted once, letting
+// a positional q33 answer replay; this pins one helper and BOTH call sites.
+{
+  const papersMod = require("../.verify/papers.js");
+  const empty = papersMod.emptySittingState();
+  ok(Object.keys(empty).sort().join(",") === "answers,current,flagged,numeric,typed,working",
+    "the sitting state has one named shape (six fields, including current and typed numeric answers)");
+  const fresh = papersMod.emptySittingState();
+  ok(empty.answers !== fresh.answers && empty.numeric !== fresh.numeric && empty.typed !== fresh.typed
+    && empty.working !== fresh.working && empty.flagged !== fresh.flagged,
+    "each reset gets fresh maps, so a caller cannot mutate a shared empty state");
+
+  const pageSrc = fs.readFileSync(path.join(process.cwd(), "app", "papers", "page.tsx"), "utf8");
+  const startAt = pageSrc.indexOf("async function startPaper");
+  const submitAt = pageSrc.indexOf("async function submit", startAt);
+  const startBody = startAt >= 0 ? pageSrc.slice(startAt, submitAt > startAt ? submitAt : startAt + 2500) : "";
+  ok(startAt >= 0 && startBody.includes("clearSitting();"),
+    "starting a paper clears through the shared sitting helper");
+  const anotherAt = pageSrc.indexOf('t("pp.another")');
+  const buttonAt = anotherAt >= 0 ? pageSrc.lastIndexOf("<button", anotherAt) : -1;
+  const anotherBody = buttonAt >= 0 ? pageSrc.slice(buttonAt, anotherAt) : "";
+  ok(buttonAt >= 0 && anotherBody.includes("clearSitting();"),
+    "returning to the picker clears through the same helper, not its own list");
+
+  // THE MARKS SURVIVE THE ACTUAL STORE. Replay compatibility is proven above;
+  // this is the other half: save a live record with a tally and read it back
+  // from profiles.json, so the fields are not merely attached in memory.
+  const roundTrip = store.newProfileState("marks-roundtrip");
+  progress.recordAnswer(roundTrip, "fractions", "rt-1", -1, false, "", [],
+    { score: { awarded: 4, max: 6 } }, 1234);
+  await store.saveProfile(roundTrip);
+  const reloaded = await store.getProfile(roundTrip.profile.id);
+  ok(reloaded?.progress.fractions?.marksAwarded === 4
+    && reloaded.progress.fractions.marksAvailable === 6,
+    `a saved progress record reloads with its cumulative marks (${reloaded?.progress.fractions?.marksAwarded}/${reloaded?.progress.fractions?.marksAvailable})`);
+  ok(reloaded?.progress.fractions?.attempts === 1 && reloaded.progress.fractions.correct === 0,
+    "and the mastery counts survive the same round trip");
+}
+
+// ── A plotted graph is marked on its points, and read off its own line ──────
+// The defect this pins: marking a graph by gradient and intercept alone awards
+// 2/2 to two typed coordinates that never plotted the four points the question
+// requires. The two-rung scheme here is B2/B1: all points joined, or at least
+// two joined. The read-off part follows the learner's own line.
+{
+  const si = require("../.verify/structured-items.js");
+  const item = si.structuredById("sf-plot-line");
+  ok(!!item, "the plotted-line item exists");
+  const P = [[-1, -3], [0, -1], [2, 3], [3, 5]];
+  // THE LEARNER'S LINE IS STORED, NOT REFITTED. L(a,b) is the exact pair of
+  // points the editor drew through; the marker must use this pair.
+  const L = (a, b) => ({ a: [a[0], a[1]], b: [b[0], b[1]] });
+  const correctLine = L([-1, -3], [3, 5]);
+  const wrongLine = L([-1, -3], [3, 3]);
+  const json = (points, line) => JSON.stringify({ points, line });
+  const run = (a, b = "2", c = "0,3 2,1", d = "4") => si.gradeStructuredParts(item.parts, [a, b, c, d]);
+
+  const full = run(json(P, correctLine));
+  ok(full.parts[0].awarded === 2, "all four required points with a joining line is 2/2");
+  ok(full.awarded === 6, `the whole item is 6/6 when every part is right (got ${full.awarded})`);
+
+  const partial = run(json([[-1, -3], [0, -1]], wrongLine));
+  ok(partial.parts[0].awarded === 1, "two required points joined by a WRONG line earn B1, not zero");
+
+  const noLine = run(json(P, null));
+  ok(noLine.parts[0].awarded === 0, "four correct points with no line is 0: the question asks for the graph");
+
+  const extra = run(json([...P, [1, 1]], correctLine));
+  ok(extra.parts[0].awarded === 2, "an extra plotted point does not lose the plotted-line mark");
+
+  const near = run(json([[-1.2, -3], [0, -1.2], [2, 3], [3, 5]], correctLine));
+  ok(near.parts[0].awarded === 2, "a point within half a square still counts");
+
+  const outside = run(json([...P, [9, 9]], correctLine));
+  ok(outside.parts[0].awarded === 0, "a point outside the grid is refused, not clamped");
+
+  const malformed = run("garbage");
+  ok(malformed.parts[0].awarded === 0, "a malformed graph answer marks 0 rather than throwing");
+
+  // EMPTY IS NOT WRONG. A blank plotted part carries no evidence, while a plot
+  // with an unreadable or line-less attempt is an answer and can be wrong.
+  const empty = run("", "", "", "");
+  ok(empty.parts[0].awarded === 0 && empty.answered === 0,
+    "an empty graph is unanswered (0), not counted as a wrong attempt");
+  const attempted = run(json(P, wrongLine), "", "", "");
+  ok(attempted.answered === 1 && attempted.parts[0].correct === false,
+    "a plotted but wrong answer is answered (1) and incorrect, distinct from blank");
+
+  // A CORRECT LINE CAN IMPLY THE POINTS. AQA's note is explicit; a line placed
+  // through all four required positions earns B2 even with no plotted dots.
+  const implied = run(json([], correctLine), "", "", "");
+  ok(implied.parts[0].awarded === 2 && implied.answered === 1,
+    "a correctly placed line with no plotted dots earns B2 by implication");
+
+  // B1 IS LINE INTENTION, NOT MERELY TWO POINTS.
+  const intention = run(json([[-1, -3], [0, -1]], wrongLine));
+  ok(intention.parts[0].awarded === 1, "two points WITH a line earn B1 even when the line is wrong");
+  ok(noLine.parts[0].awarded === 0, "the same points without a line earn nothing");
+
+  // GRID-RELATIVE TOLERANCE: half a 1-unit square.
+  const tolIn = run(json([[-0.55, -3], [-0.45, -1]], L([-1, -3], [-0.45, -1])));
+  ok(tolIn.parts[0].awarded === 1, "points 0.45 of a square from their targets count");
+  const tolOut = run(json([[-0.45, -3], [-1.55, -1]], L([-1, -3], [-0.45, -1])));
+  ok(tolOut.parts[0].awarded === 0, "points 0.55 of a square away do not count");
+
+  // THE LINE DOES NOT MOVE WHEN AN EXTRA POINT IS ADDED: the read-off is marked
+  // from the stored line, not from a refit through every plotted dot.
+  const fitting = require("../.verify/plot-geometry.js");
+  const withExtra = json([...P, [1, 1]], correctLine);
+  // The parsed line is `{a:{x,y}, b:{x,y}}`; the JSON answer uses arrays.
+  ok(fitting.valueAt({ a: { x: -1, y: -3 }, b: { x: 3, y: 5 } }, 1.5) === 2
+    && run(withExtra, "2").parts[1].awarded === 1,
+    "an extra point does not move the line used for follow-through (y = 2 at x = 1.5)");
+
+  // Follow-through: a SHIFTED line that still earned B1, read from ITSELF.
+  const shifted = L([-1, -1], [0, 1]);
+  const ownLine = run(json([[-1, -3], [0, -1]], shifted), "4");
+  ok(ownLine.parts[0].awarded === 1, "two correct points joined by a shifted line earn B1");
+  ok(ownLine.parts[1].awarded === 1, "reading y = 4 from the learner's own shifted line earns the read-off mark");
+
+  const keyNotOwn = run(json([[-1, -3], [0, -1]], shifted), "2");
+  ok(keyNotOwn.parts[1].awarded === 0, "the key's value read off the wrong line is not follow-through");
+
+  const noLineRead = run(json([[-1, -3], [0, -1]], null), "4");
+  ok(noLineRead.parts[1].awarded === 0, "no drawn line means no follow-through mark");
+
+  // A line with NO credited points has no follow-through: the AQA condition is
+  // at least B1, and a line drawn from unrelated dots has not earned it.
+  const noB1 = run(json([[-1, -1], [0, 1]], shifted), "4");
+  ok(noB1.parts[0].awarded === 0 && noB1.parts[1].awarded === 0,
+    "a line with no B1 credit does not unlock a follow-through mark");
+
+  // PART (d) FOLLOWS THROUGH FROM PART (c). Two points on y = −x + 4 are a
+  // valid but WRONG line for the asked-for y = −x + 3; reading 5 from it at
+  // x = −1 must earn the read-off mark, while the key's 4 must not.
+  const ownSecond = run(json(P, correctLine), "2", "0,4 2,2", "5");
+  ok(ownSecond.parts[2].awarded === 1, "the second line's wrong intercept loses one of its two marks, not both");
+  ok(ownSecond.parts[3].awarded === 1, "part (d) reads y = 5 from the learner's own y = −x + 4 line");
+  ok(run(json(P, correctLine), "2", "0,4 2,2", "4").parts[3].awarded === 0,
+    "the key's value read off the learner's different line is not follow-through");
+
+  // The browser gets the grid, never the answer.
+  const papersMod = require("../.verify/papers.js");
+  const specs = require("../.verify/specifications.js");
+  const spec = specs.specById("uk-gcse");
+  const built = papersMod.buildPaper({
+    active: { spec, level: spec.levels.find((l) => l.id === "foundation") },
+    subject: "maths", seed: "plot-proof", template: papersMod.paperById("aqa-gcse-maths-p2"),
+  });
+  const plotted = built.paper.sections.flatMap((s) => s.questions)
+    .flatMap((q) => q.structured?.parts ?? []).find((p) => p.response === "plot");
+  ok(!!plotted, "the exam generator serves the plotted-line question");
+  ok(plotted && plotted.plot && plotted.plot.xMin === -4 && !("points" in plotted.plot) && !("m" in plotted.plot),
+    "the served grid carries bounds only — no target points, no coefficients");
+
+  // EMPTY VS WRONG AT THE PAPER BOUNDARY. The paper result is what the ledger
+  // reads: a blank graph must be `correct: null` (unanswered, no evidence),
+  // while an attempted wrong graph is `correct: false` (evidence of a slip).
+  const structuredQ = built.paper.sections.flatMap((s) => s.questions)
+    .find((q) => q.structured?.parts.some((p) => p.response === "plot"));
+  ok(!!structuredQ, "the built paper carries its plotted structured question");
+  if (structuredQ) {
+    const blankPaper = papersMod.markPaper(built.key, {}, {});
+    const blankQ = blankPaper.perQuestion.find((q) => q.id === structuredQ.id);
+    const wrongPaper = papersMod.markPaper(built.key, {}, { [structuredQ.id]: [json(P, wrongLine), "", "", ""] });
+    const wrongQ = wrongPaper.perQuestion.find((q) => q.id === structuredQ.id);
+    ok(blankQ && blankQ.correct === null && blankQ.awarded === 0,
+      "a blank plotted answer is unanswered in the paper result, not a wrong answer");
+    ok(wrongQ && wrongQ.correct === false && wrongQ.awarded < wrongQ.marks,
+      "an attempted wrong plotted answer is recorded as incorrect");
+  }
+}
+
 // ── The harness cannot be fooled ────────────────────────────────────────────
 // Run on the REAL `ok`, with the counters restored afterwards so the planted
 // cases cannot appear in this run's totals. Every shape a missing `await` can
@@ -2922,15 +3173,19 @@ console.log("▸ Paper analysis");
   // recurring ideas, and point at the biggest loss.
   const allWrong = {};
   // A WHOLE-PAPER FIXTURE HAS TO ANSWER EVERY KIND OF QUESTION. The paper now
-  // contains one constructed-response item, and a fixture that only fills in
-  // choice answers leaves it unanswered — which is a different case (and the
-  // one below it asserts) rather than "every question was answered".
+  // contains three constructed-response items and numeric-response items, and a
+  // fixture that only fills in choice answers leaves those unanswered — which is
+  // a different case (and the one below it asserts) rather than "every question
+  // was answered".
   const wrongTyped = {};
+  const wrongNumeric = {};
   for (const q of built.key.questions) {
     if (q.structured) wrongTyped[q.id] = q.structured.map(() => "not a number");
-    else allWrong[q.id] = (q.answer + 1) % 4;
+    else if (q.responseKind === "numeric" && typeof q.answerValue === "number") {
+      wrongNumeric[q.id] = String(q.answerValue + 1000);
+    } else allWrong[q.id] = (q.answer + 1) % 4;
   }
-  const result = papers.markPaper(built.key, allWrong, wrongTyped);
+  const result = papers.markPaper(built.key, allWrong, wrongTyped, {}, wrongNumeric);
   const a = analysePaper(built.key, result);
 
   const available = a.byConcept.reduce((s, c) => s + c.marksAvailable, 0);
@@ -2974,13 +3229,34 @@ console.log("▸ Paper analysis");
   // a right answer.
   const rightTyped = {};
   const rightWork = {};
+  const rightNumeric = {};
+  const correctPart = (p) => {
+    if (p.response === "algebra" && p.algebra) return p.algebra.accepted[0];
+    if (p.response === "table" && p.table) {
+      const blanks = p.table.rows.flatMap((r) => r.cells.filter((c) => c.answer !== undefined));
+      return JSON.stringify(blanks.map((c) => String(c.answer)));
+    }
+    if (p.response === "plot" && p.plot) {
+      const points = p.plot.points.map((q) => [q.x, q.y]);
+      const a = points[0];
+      const b = points[points.length - 1];
+      return JSON.stringify({ points, line: { a, b } });
+    }
+    if (p.response === "graph" && p.graph) {
+      return `0,${p.graph.c} 1,${p.graph.m + p.graph.c}`;
+    }
+    if (p.response === "readoff" && p.readOff) return String(p.readOff.at);
+    return `${p.answer}${p.unit ? ` ${p.unit}` : ""}`;
+  };
   for (const q of built.key.questions) {
     if (q.structured) {
-      rightTyped[q.id] = q.structured.map((p) => `${p.answer}${p.unit ? ` ${p.unit}` : ""}`);
+      rightTyped[q.id] = q.structured.map(correctPart);
       rightWork[q.id] = q.structured.map((p) => p.method?.accept[0] ?? "");
+    } else if (q.responseKind === "numeric" && typeof q.answerValue === "number") {
+      rightNumeric[q.id] = String(q.answerValue);
     } else allRight[q.id] = q.answer;
   }
-  const perfect = analysePaper(built.key, papers.markPaper(built.key, allRight, rightTyped, rightWork));
+  const perfect = analysePaper(built.key, papers.markPaper(built.key, allRight, rightTyped, rightWork, rightNumeric));
   ok(perfect.lostMarks === 0 && perfect.recurring.length === 0 && perfect.weakest === null,
     "a paper with no lost marks has nothing to repair");
   ok(perfect.concentration === 0, "concentration of an empty loss is zero, not NaN");
@@ -3186,11 +3462,22 @@ console.log("▸ The paper is sat like an exam");
   const spec = require("../.verify/specifications.js");
   const uk = spec.specById("uk-gcse");
   const uiBuilt = papers.buildPaper({ active: { spec: uk, level: uk.levels[uk.levels.length - 1] }, subject: "maths", seed: "exam-ui-1" });
-  const anyTagged = uiBuilt.key.questions.find((q) => (q.tags ?? []).length > 0);
+  // CHOOSE A TAGGED ITEM AND ANSWER IT IN ITS OWN FORMAT. The old fixture
+  // clicked the next option on whichever tagged question came first; now that a
+  // paper mixes numeric and constructed responses, that could leave the item
+  // unanswered and make the tags assertion fail for the harness rather than the
+  // product.
+  const anyTagged = uiBuilt.key.questions.find((q) => (q.tags ?? []).length > 0 && q.responseKind !== "numeric")
+    ?? uiBuilt.key.questions.find((q) => (q.tags ?? []).length > 0);
   ok(Boolean(anyTagged), "some questions in a real paper carry misconception tags");
   const wrongOnly = {};
-  wrongOnly[anyTagged.id] = (anyTagged.answer + 1) % 4;
-  const marked = papers.markPaper(uiBuilt.key, wrongOnly);
+  const wrongNumericOnly = {};
+  if (anyTagged.responseKind === "numeric" && typeof anyTagged.answerValue === "number") {
+    wrongNumericOnly[anyTagged.id] = String(anyTagged.answerValue + 1000);
+  } else {
+    wrongOnly[anyTagged.id] = (anyTagged.answer + 1) % 4;
+  }
+  const marked = papers.markPaper(uiBuilt.key, wrongOnly, {}, {}, wrongNumericOnly);
   ok(marked.perQuestion.every((q) => Array.isArray(q.tags)),
     "marking carries each question's tags through to the result");
   const mt = marked.perQuestion.find((q) => q.id === anyTagged.id);
@@ -9194,7 +9481,7 @@ console.log("▸ One student's evidence is derived from their own ledger");
     `the hypothesis carries the support behind it (${JSON.stringify(ev.hypotheses)})`);
   ok(!ev.unmeasured.includes("fractions") && !ev.unmeasured.includes("quadratics") && !ev.unmeasured.includes("linear-equations"),
     "the ideas named as never-asked exclude every concept this member has answered on");
-  const mathsCourse = require("../.verify/server/assignment-view.js").assignableConcepts("maths", null);
+  const mathsCourse = require("../.verify/server/assignment-view.js").curriculumConcepts("maths", null);
   ok(ev.unmeasured.every((id) => mathsCourse.includes(id)),
     "and every one of them comes from the class's declared course, not from the genome at large");
 
@@ -9250,10 +9537,15 @@ console.log("▸ Assigned work is derived, not counted");
   // 1. THE CURRICULUM IS THE CLASS'S, NEVER A DEFAULT.
   const maths = av.assignableConcepts("maths", null);
   const physics = av.assignableConcepts("physics", null);
-  ok(maths.length > 10 && maths.includes("fractions"),
-    `a class that declares maths may be set maths work (${maths.length} concepts)`);
-  ok(physics.length > 0 && physics.every((c) => !maths.includes(c)),
-    "and a physics class is never offered maths work — the two curricula are disjoint");
+  // THE APPROVAL GATE IS THE FIRST ASSERTION. The 12 pilot lessons are complete
+  // but unreviewed, so they are NOT assignable, and a class is told there is no
+  // work to set rather than being handed candidate teaching as homework.
+  ok(maths.length === 0 && physics.length === 0,
+    `no unreviewed lesson is assignable (maths ${maths.length}, physics ${physics.length})`);
+  ok(maths.every((c) => !physics.includes(c)),
+    "the two curricula remain disjoint even when both candidate lists are empty");
+  ok(av.curriculumConcepts("maths", null).length > 10,
+    "the class's curriculum view still names its concepts while assignment is closed");
   ok(maths.every((c) => questions.hasGenerator(c)),
     "every assignable concept is one the bank can actually serve (an unanswerable assignment is not work)");
   const narrowed = av.assignableConcepts("maths", "uk-gcse");
@@ -13091,7 +13383,10 @@ console.log("▸ A paper says whether its shape is the awarding body's");
   // two used to be added together, so GCSE maths appeared ten times.
   const ukMathsPapers = pm.papersForSubject(ukActive, "maths", "en");
   const ukComputingPapers = pm.papersForSubject(ukActive, "computing", "en");
-  const ukMathsIds = new Set(ukMathsPapers.map((p) => p.id));
+  // The board's IDS across every tier, not only the one this learner sits: a
+  // modelled paper must not collide with a Foundation row merely because the
+  // current profile is Higher.
+  const ukMathsIds = new Set(pm.papersForSpec("uk-gcse", "maths").filter((p) => p.board).map((p) => p.id));
   ok(ukMathsPapers.length > 0 && ukMathsPapers.every((p) => p.subject === "maths"),
     `GCSE maths offers the board's own set (${ukMathsPapers.length} papers: ${[...ukMathsIds].join(", ")})`);
   const leadingAuthored = ukMathsPapers.findIndex((p) => p.basis !== "published");
@@ -13099,7 +13394,7 @@ console.log("▸ A paper says whether its shape is the awarding body's");
     && ukMathsPapers.slice(0, leadingAuthored).every((p) => p.board)
     && ukMathsPapers.slice(leadingAuthored).every((p) => p.basis === "modelled"),
     `and the board's papers still LEAD the subject's list, with the practice sets after them (${leadingAuthored} authored first)`);
-  ok(pm.papersForSpec("uk-gcse", "maths").every((p) => ukMathsIds.has(p.id)),
+  ok(pm.papersForSpec("uk-gcse", "maths").filter((p) => p.board).every((p) => ukMathsIds.has(p.id)),
     "and no modelled paper shares its id with one of the board's");
   // ── A PAPER BELONGS TO A TIER, NOT ONLY TO A QUALIFICATION ────────────────
   // The catalogue held ONE Cambridge IGCSE maths blueprint and it was the
@@ -13236,12 +13531,46 @@ console.log("▸ A paper says whether its shape is the awarding body's");
   // calculator, two with. The catalogue offered only Paper 1, so two thirds of
   // the qualification — and the entire calculator half of it — did not exist.
   const aqaGcse = pm.papersForSpec("uk-gcse", "maths").filter((p) => p.board === "aqa");
-  ok(aqaGcse.length === 3 && aqaGcse.every((p) => p.minutes === 90 && p.marks === 80),
-    `AQA GCSE Mathematics is the three papers a candidate sits, each 90 minutes and 80 marks (${aqaGcse.length}: ${aqaGcse.map((p) => `${p.minutes}min/${p.marks}m`).join(", ")})`);
-  ok(aqaGcse.filter((p) => p.calculator).length === 2 && aqaGcse.filter((p) => !p.calculator).length === 1,
-    "with exactly one non-calculator paper and two that allow one");
+  const aqaFoundation = aqaGcse.filter((p) => (p.levels ?? []).includes("foundation"));
+  const aqaHigher = aqaGcse.filter((p) => (p.levels ?? []).includes("higher"));
+  ok(aqaGcse.length === 6 && aqaFoundation.length === 3 && aqaHigher.length === 3,
+    `AQA GCSE Mathematics has six tier-specific blueprints, three for each tier (${aqaFoundation.length} Foundation, ${aqaHigher.length} Higher)`);
+  ok(aqaGcse.every((p) => p.minutes === 90 && p.marks === 80),
+    `and every one is a 90-minute, 80-mark sitting (${aqaGcse.map((p) => `${p.minutes}min/${p.marks}m`).join(", ")})`);
+  ok(aqaGcse.filter((p) => p.calculator).length === 4 && aqaGcse.filter((p) => !p.calculator).length === 2,
+    "with exactly one non-calculator paper per tier and two calculator papers per tier");
+  ok(aqaFoundation.every((p) => /Foundation/.test(p.name)) && aqaHigher.every((p) => /Higher/.test(p.name)),
+    "and each row names the tier that actually sits it");
   ok(aqaGcse.every((p) => /^https:\/\//.test(p.shapeSource ?? "") && p.basis === "published"),
-    "and each cites the specification it was read from, so it may claim the board's structure");
+    "each cites the specification it was read from, so it may claim the board's structure");
+  ok(aqaGcse.every((p) => (p.structured?.length ?? 0) >= 3),
+    `and every blueprint schedules at least three constructed-response questions (${aqaGcse.map((p) => p.structured?.length ?? 0).join(",")})`);
+  // GENERATED, NOT METADATA. Each of the six is built from its OWN tier and its
+  // own blueprint, and the response mix is counted from the served questions.
+  for (const t of aqaGcse) {
+    const spec = S.specById("uk-gcse");
+    const level = spec.levels.find((l) => l.id === t.levels?.[0]);
+    const built = pm.buildPaper({ active: { spec, level }, subject: "maths", seed: `six:${t.id}`, template: t });
+    const qs = built.paper.sections.flatMap((s) => s.questions);
+    const structured = qs.filter((q) => q.structured);
+    const numeric = qs.filter((q) => q.view.responseKind === "numeric");
+    const choice = qs.filter((q) => !q.structured && q.view.responseKind !== "numeric");
+    ok(qs.length === 33 && built.paper.marks === 80 && structured.length === 3,
+      `${t.id}: 33 questions, 80 marks and three constructed-response items (${qs.length}/${built.paper.marks}/${structured.length})`);
+    ok(numeric.length >= 5 && choice.length > 0 && numeric.length + structured.length + choice.length === qs.length,
+      `${t.id}: the served paper really mixes response formats (${numeric.length} numeric, ${structured.length} constructed, ${choice.length} choice)`);
+    const types = new Set(structured.flatMap((q) => q.structured.parts.map((p) => p.response ?? "number")));
+    ok(types.size >= 2, `${t.id}: constructed-response parts use more than one response contract (${[...types].join(",")})`);
+  }
+  // THE BLUEPRINT CANNOT SILENTLY SUBSTITUTE. A placement naming a missing item
+  // must fail paper construction, not draw four options into that slot.
+  const brokenTpl = { ...pm.paperById("aqa-gcse-maths-p1"), id: "aqa-broken", structured: [{ id: "no-such-item", section: 1, slot: 0, marks: 2 }] };
+  let brokenThrew = false;
+  try {
+    const spec = S.specById("uk-gcse");
+    pm.buildPaper({ active: { spec, level: spec.levels[0] }, subject: "maths", seed: "broken", template: brokenTpl });
+  } catch { brokenThrew = true; }
+  ok(brokenThrew, "a missing constructed-response item fails the paper instead of falling back to multiple choice");
   // 3b-ii. THE FRACTIONS LESSON HAS A MODEL, NOT ONLY A PICTURE. The pie states
   //       three quarters; it cannot answer "what if I cut it into more pieces?",
   //       which is the question the lesson's own trap raises. Asserted at the
@@ -13276,7 +13605,7 @@ console.log("▸ A paper says whether its shape is the awarding body's");
   const gcseActive = { spec: gcseSpec, level: gcseSpec.levels[gcseSpec.levels.length - 1] };
   const aqaTplForSat = pm.paperById("aqa-gcse-maths-p1");
   const sat = pm.buildPaper({ active: gcseActive, subject: "maths", seed: "structured-1", template: aqaTplForSat });
-  const sq = sat.paper.sections.flatMap((s) => s.questions).find((q) => q.structured);
+  const sq = sat.paper.sections.flatMap((s) => s.questions).find((q) => q.structured && q.marks === 6);
   ok(!!sq && sq.marks === 6 && sq.structured.parts.map((p) => p.marks).join("+") === "2+2+2",
     `the 6-mark slot of AQA Paper 1 is a written question in three 2-mark parts (${sq && sq.structured.parts.map((p) => p.marks).join("+")})`);
   ok(sat.paper.marks === 80 && sat.paper.questionCount === aqaTplForSat.sections.reduce((n, s) => n + s.count, 0),
@@ -13344,7 +13673,133 @@ console.log("▸ A paper says whether its shape is the awarding body's");
     `Edexcel is 80 marks over its own profile too (${edexcelMarks.length} items)`);
   ok(JSON.stringify(edexcelMarks) !== JSON.stringify(aqaMarks),
     "and the two boards' profiles differ, because the boards' papers do");
-  const badSource = pm.PAPERS.filter((t) => t.shapeSource !== undefined && !/^https:\/\/\S+$/.test(t.shapeSource));
+  // 3d. PAPER 2 NOW ASKS THE LEARNER TO PLOT, NOT ONLY TO STATE A LINE. The
+  //     previous version of this block read the coordinate-line item THROUGH the
+  //     blueprint; when the slot changed, nine assertions broke even though the
+  //     marker was untouched. That is the lesson: a test of a marker must not be
+  //     a test of which blueprint currently schedules it.
+  const p2Tpl = pm.paperById("aqa-gcse-maths-p2");
+  const graphSat = pm.buildPaper({ active: gcseActive, subject: "maths", seed: "graph-1", template: p2Tpl });
+  const gq = graphSat.paper.sections.flatMap((s) => s.questions).find((x) => x.structured && x.marks === 6);
+  ok(!!gq && gq.marks === 6 && gq.structured.parts.some((p) => p.response === "plot") && gq.structured.parts.some((p) => p.response === "graph"),
+    "Paper 2's 6-mark slot asks the learner to plot points and also to state a line");
+  ok(gq.structured.parts.every((p) => (!p.plot || (!("points" in p.plot) && !("m" in p.plot))) && (!p.graph || (!("m" in p.graph) && !("c" in p.graph)))),
+    "and the served paper carries the grid's bounds only — no target points, no coefficients");
+
+  // The coordinate-line marker still has to hold, so it is graded through the
+  // ITEM: same line from different points, independent criteria, vertical and
+  // off-grid refusals. None of this depends on Paper 2 scheduling it.
+  const siMod = require("../.verify/structured-items.js");
+  const lineItem = siMod.structuredById("sf-line-graph");
+  ok(!!lineItem && lineItem.parts.every((p) => p.response === "graph" && p.marks === 2),
+    "the coordinate-line item asks for three lines, two marks each");
+  const gradeLines = (lines) => siMod.gradeStructuredParts(lineItem.parts, lines);
+  const RIGHT = ["0,1 2,5", "0,3 2,1", "0,-2 2,-1"];
+  const full = gradeLines(RIGHT);
+  ok(full.awarded === 6 && full.parts.every((p) => p.correct), `three correct lines earn all 6 (${full.awarded})`);
+  ok(full.parts.every((p) => p.criteria.map((c) => c.id.split(":")[1]).join("+") === "gradient+intercept"),
+    "each part reports a gradient criterion and an intercept criterion");
+  const moved = gradeLines(["-1,-1 3,7", "0,3 2,1", "0,-2 2,-1"]);
+  ok(moved.awarded === 6, `the same line from different points scores the same (${moved.awarded})`);
+  const wrongGradient = gradeLines(["0,1 2,6", "0,3 2,1", "0,-2 2,-1"]);
+  ok(wrongGradient.awarded === 5 && wrongGradient.parts[0].criteria[0].met === false && wrongGradient.parts[0].criteria[1].met === true,
+    `a wrong gradient keeps the intercept mark: 5 of 6 (${wrongGradient.parts[0].criteria.map((c) => `${c.id}:${c.awarded}`).join(",")})`);
+  const wrongIntercept = gradeLines(["0,3 2,7", "0,3 2,1", "0,-2 2,-1"]);
+  ok(wrongIntercept.awarded === 5 && wrongIntercept.parts[0].criteria[0].met === true && wrongIntercept.parts[0].criteria[1].met === false,
+    "and a wrong intercept keeps the gradient mark, so the two criteria are independent");
+  const vertical = gradeLines(["1,0 1,5", "0,3 2,1", "0,-2 2,-1"]);
+  ok(vertical.awarded === 4 && vertical.parts[0].criteria.every((c) => !c.met && c.why.includes("vertical")),
+    "a vertical line is refused with a reason instead of an infinite gradient");
+  const offGrid = gradeLines(["9,9 10,10", "0,3 2,1", "0,-2 2,-1"]);
+  ok(offGrid.parts[0].awarded === 0 && offGrid.parts[0].criteria[0].why.includes("outside the grid"),
+    "and a point outside the grid is named as outside it");
+  // An untouched structured question is NOT a wrong answer: it carries no
+  // evidence of a belief, and the ledger has to be able to tell those apart.
+  const graphBlank = pm.markPaper(graphSat.key, {}, {}).perQuestion.find((x) => x.id === gq.id);
+  ok(graphBlank.awarded === 0 && graphBlank.correct === null,
+    "an untouched structured question is unanswered, not a wrong line");
+
+  // 3d-i. A NUMERIC QUESTION IS ANSWERED, NOT RECOGNISED. The bank already held
+  //      numeric-response items with an answer box; the paper path projected them
+  //      back to four choices. The served paper must carry no answer value, and
+  //      the typed value must be the thing marking reads.
+  const numericQ = sat.paper.sections.flatMap((s) => s.questions).find((q) => q.view.responseKind === "numeric");
+  const numericKey = numericQ ? sat.key.questions.find((q) => q.id === numericQ.id) : null;
+  ok(!!numericQ && !!numericKey && typeof numericKey.answerValue === "number",
+    "the paper serves at least one numeric-response question with a server-side answer value");
+  ok(!!numericQ && numericQ.view.responseKind === "numeric" && !("answerValue" in numericQ.view),
+    "the served numeric question says how to answer it but does not carry the answer");
+  if (numericQ && numericKey) {
+    const nId = numericQ.id;
+    const rightN = pm.markPaper(sat.key, {}, {}, {}, { [nId]: String(numericKey.answerValue) });
+    const wrongN = pm.markPaper(sat.key, {}, {}, {}, { [nId]: String(numericKey.answerValue + 1000) });
+    const blankN = pm.markPaper(sat.key, {}, {}, {}, {});
+    const invalidN = pm.markPaper(sat.key, {}, {}, {}, { [nId]: "not a number" });
+    const atN = (r) => r.perQuestion.find((q) => q.id === nId);
+    ok(atN(rightN).awarded === numericQ.marks && atN(rightN).correct === true,
+      "a correct typed value earns the numeric question's full marks");
+    ok(atN(wrongN).awarded === 0 && atN(wrongN).correct === false,
+      "a wrong typed value is answered and incorrect, not blank");
+    ok(atN(blankN).awarded === 0 && atN(blankN).correct === null,
+      "an empty numeric box is unanswered");
+    ok(atN(invalidN).awarded === 0 && atN(invalidN).correct === null && atN(invalidN).invalid === true,
+      "a non-numeric entry is refused as an invalid response, not recorded as a wrong belief");
+  }
+
+  // 3d-ii. ALGEBRA IS MARKED BY EQUIVALENCE, AND FORM IS RESPECTED. `(x+3)(x-2)`
+  //       expands to the key, but it is not the expanded form the question asked
+  //       for; `x^2 + x - 6` is. This is the difference between equivalent and
+  //       acceptable in the question's required form.
+  const algebraItem = siMod.structuredById("hf-algebra");
+  const algebraGrades = (answers) => siMod.gradeStructuredParts(algebraItem.parts, answers);
+  const algebraRight = algebraGrades(["x^2 + x - 6", "6x^5", "4x^2 - 4x + 1"]);
+  ok(algebraRight.awarded === 3 && algebraRight.parts.every((p) => p.correct),
+    `three expanded expressions earn the algebra item's 3 marks (${algebraRight.awarded})`);
+  ok(algebraGrades(["(x+3)(x-2)", "6x^5", "4x^2 - 4x + 1"]).parts[0].awarded === 0,
+    "a factorised equivalent is refused when the question requires the expanded form");
+  ok(algebraGrades(["x^2 - x - 6", "6x^5", "4x^2 - 4x + 1"]).parts[0].awarded === 0,
+    "a wrong polynomial keeps no algebra mark");
+
+  // 3d-iii. TABLE CELLS ARE MARKED INDIVIDUALLY, FROM JSON CELL VALUES.
+  const tableItem = siMod.structuredById("sf-table-line");
+  const tableGrades = (cells) => siMod.gradeStructuredParts(tableItem.parts, [JSON.stringify(cells)]);
+  const tableRight = tableGrades(["-1", "1", "3", "5"]);
+  const tablePartial = tableGrades(["-1", "1", "", "8"]);
+  ok(tableRight.awarded === 4 && tableRight.parts[0].criteria.length === 4,
+    `a completed four-cell table earns 4 marks (${tableRight.awarded})`);
+  ok(tablePartial.awarded === 2 && tablePartial.parts[0].criteria.filter((c) => !c.met).length === 2,
+    `a partly completed table keeps the marks for the cells that are right (${tablePartial.awarded}/4)`);
+  const tableQ = graphSat.paper.sections.flatMap((s) => s.questions).find((q) => q.structured?.parts.some((p) => p.response === "table"));
+  ok(!!tableQ, "the foundation Paper 2 serves a table-completion question");
+  ok(!!tableQ && tableQ.structured.parts.every((p) => !p.table || p.table.rows.every((r) => r.cells.every((c) => !("answer" in c)))),
+    "the served table carries its shape and inputs, never a cell's answer");
+  // 3e. THE TIER CHANGES THE PAPER, NOT ONLY ITS NAME. Foundation and Higher sit
+  //     the same three papers; the items they are asked must not be the same
+  //     ones. Both are built from ONE seed so the only difference is the tier.
+  const ukGcse = S.specById("uk-gcse");
+  const tierOf = (id) => ukGcse.levels.find((l) => l.id === id);
+  const foundation = tierOf("foundation");
+  const higher = tierOf("higher");
+  ok(!!foundation && !!higher && foundation.difficulty < higher.difficulty,
+    `the specification declares two tiers with different demand (${foundation && foundation.difficulty} < ${higher && higher.difficulty})`);
+  const oneSeed = "tier-proof-1";
+  const builtF = pm.buildPaper({ active: { spec: ukGcse, level: foundation }, subject: "maths", seed: oneSeed, template: aqaTplForSat });
+  const builtH = pm.buildPaper({ active: { spec: ukGcse, level: higher }, subject: "maths", seed: oneSeed, template: pm.paperById("aqa-gcse-maths-higher-p1") });
+  const promptsOf = (b) => b.paper.sections.flatMap((s) => s.questions.map((q) => q.view.prompt));
+  const fPrompts = promptsOf(builtF);
+  const hPrompts = promptsOf(builtH);
+  const overlap = fPrompts.filter((p, i) => p === hPrompts[i]).length;
+  ok(overlap < fPrompts.length,
+    `Foundation and Higher papers from one seed ask different questions (${fPrompts.length - overlap} of ${fPrompts.length} slots differ)`);
+  const meanDifficulty = (b) => {
+    const ds = b.key.questions.map((q) => q.difficulty);
+    return ds.reduce((a, b2) => a + b2, 0) / ds.length;
+  };
+  ok(meanDifficulty(builtH) > meanDifficulty(builtF),
+    `and the Higher paper's items are harder on average (${meanDifficulty(builtF).toFixed(3)} vs ${meanDifficulty(builtH).toFixed(3)})`);
+  ok(builtF.paper.marks === builtH.paper.marks && builtF.paper.marks === 80,
+    "while both remain 80-mark papers, so the tier does not change the examination's size");
+  const badSource = pm.PAPERS.filter((t) => t.shapeSource !== undefined && !/^https?:\/\/\S+$/.test(t.shapeSource));
   ok(badSource.length === 0, "and every citation on file is an absolute https URL");
   // THE TWO NOTIONS OF "WHERE THIS CAME FROM" MUST NOT CROSS. `source` on a paper
   // is its CONTENT ORIGIN (lib/content-rights.ts), which the licence model and
@@ -15626,6 +16081,7 @@ console.log("▸ Every door that costs money or CPU names its bound");
 {
   console.log("▸ A lesson is a sequence, not a paragraph");
   const plans = require("../.verify/lesson-plans.js");
+  const pilotPlans = require("../.verify/pilot.js");
   const words = (s) => (String(s).split(/\s+/).filter((w) => /[A-Za-z]/.test(w))).length;
   const ids = plans.plannedConceptIds();
 
@@ -15639,9 +16095,14 @@ console.log("▸ Every door that costs money or CPU names its bound");
   // 1b · THE PLANS ARE THE START OF THE PATHWAY, NOT A SET CHOSEN BY TASTE.
   const pilot = JSON.parse(fs.readFileSync("audit/pilot-pack.json", "utf8"));
   const pilotIds = new Set(pilot.concepts.map((c) => c.id));
-  const outside = ids.filter((id) => !pilotIds.has(id));
+  // A plan may belong to the UK review pack OR to the separate CBSE pilot
+  // candidate. It may not belong to neither: an authored lesson outside every
+  // named pack is a lesson no reviewer has been asked to read. The two packs
+  // have different curricula, so merging them into one file would be a false
+  // claim about what the reviewer is reading.
+  const outside = ids.filter((id) => !pilotIds.has(id) && !pilotPlans.PILOT_SEQUENCE.includes(id));
   ok(outside.length === 0,
-    `every authored plan is in the reviewed pilot pathway (outside: ${outside.join(", ") || "none"})`);
+    `every authored plan is in a named review pack (outside: ${outside.join(", ") || "none"})`);
 
   // 2 · EACH PLAN IS A SEQUENCE WITH REAL TEACHING IN EVERY PART.
   const thin = [];
@@ -17221,6 +17682,13 @@ console.log("▸ A miss counts even when no belief is named");
   const englishLead = dictI.LANG_CODES.filter((c) => c !== "en" && dictI.DICTS[c]["err.lead"] === dictI.DICTS.en["err.lead"]);
   ok(englishLead.length === 0, `the rewritten lead is translated everywhere (${englishLead.join(",") || "none"})`);
 }
+
+// ── P. ADAPTIVE INSTRUCTION ───────────────────────────────────────────────
+// The acceptance suite lives in its own module so the twelve required
+// behaviours are readable together. Importing it here makes them part of the
+// release gate rather than a script someone has to remember to run.
+const adaptiveSuite = await import("./adaptive-instruction-suite.mjs");
+adaptiveSuite.runAdaptiveInstructionSuite(ok);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 

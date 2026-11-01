@@ -41,12 +41,19 @@ export function chromeAvailable() {
 }
 
 /** A minimal CDP client: one socket, one request map, promises out. */
-export function client(ws) {
+export function client(ws, onEvent) {
   let seq = 0;
   const pending = new Map();
   ws.addEventListener("message", (ev) => {
     const m = JSON.parse(ev.data);
-    if (!m.id || !pending.has(m.id)) return;
+    // CDP EVENTS (no id) are how a walk sees the wire: a Network request body
+    // is the only place a submitted answer can be inspected, and asserting on
+    // the DOM alone cannot prove what the page SENT.
+    if (!m.id) {
+      if (onEvent) { try { onEvent(m); } catch { /* a walk's listener must not break the socket */ } }
+      return;
+    }
+    if (!pending.has(m.id)) return;
     const { resolve, reject } = pending.get(m.id);
     pending.delete(m.id);
     if (m.error) reject(new Error(`${m.error.message ?? "cdp error"}`));
@@ -119,9 +126,10 @@ export async function launchChrome(opts = {}) {
     ws.addEventListener("open", resolve, { once: true });
     ws.addEventListener("error", () => reject(new Error("could not open the CDP socket")), { once: true });
   });
-  const send = client(ws);
+  const send = client(ws, opts.onEvent);
   await send("Page.enable");
   await send("Runtime.enable");
+  if (opts.onEvent) await send("Network.enable");
   const close = async () => {
     try { await send("Browser.close"); } catch { /* already gone */ }
     try { ws.close(); } catch { /* already closed */ }

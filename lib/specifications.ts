@@ -83,7 +83,12 @@ const UK: Specification = {
   id: "uk-gcse", country: "GB", board: "aqa", name: "GCSE",
   coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
   levels: [
-    { id: "foundation", tier: "foundation", name: "Foundation tier", stages: [0, 3], difficulty: 0.45, exclude: ["completing-square", "polynomials", "binomial", "logs"] },
+    // Higher-only content is removed from the Foundation tier's concept set, not
+    // merely given a lower difficulty target. `sim-equations-quad` was measured
+    // in Foundation Paper 1 before this list existed, and a Foundation candidate
+    // cannot be examined on a line-curve intersection just because it is one
+    // stage below the top of the genome.
+    { id: "foundation", tier: "foundation", name: "Foundation tier", stages: [0, 3], difficulty: 0.45, exclude: ["completing-square", "polynomials", "binomial", "logs", "sim-equations-quad", "surds", "circle-theorems", "trig-rule", "functions", "algebraic-fractions", "bounds"] },
     { id: "higher", tier: "higher", name: "Higher tier", stages: [0, 4], difficulty: 0.65, exclude: ["logs", "calculus-diff", "calculus-int", "matrices-intro"] },
   ],
 };

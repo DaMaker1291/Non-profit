@@ -1,0 +1,6291 @@
+{
+  "generatedAt": "2026-10-31T23:50:47.900Z",
+  "counts": {
+    "concepts": 135,
+    "plans": 15,
+    "fallback": 120,
+    "reviewed": 0,
+    "planTranslations": 1,
+    "specs": 91,
+    "nationalRoutes": 70,
+    "langs": 15,
+    "figureKinds": 7
+  },
+  "bySubject": {
+    "maths": {
+      "concepts": 67,
+      "plans": 15,
+      "complete": 0,
+      "fallback": 52,
+      "questions": 2680,
+      "figPlans": 11,
+      "numeric": 1340,
+      "choice": 1340
+    },
+    "physics": {
+      "concepts": 18,
+      "plans": 0,
+      "complete": 0,
+      "fallback": 18,
+      "questions": 720,
+      "figPlans": 0,
+      "numeric": 360,
+      "choice": 360
+    },
+    "chemistry": {
+      "concepts": 16,
+      "plans": 0,
+      "complete": 0,
+      "fallback": 16,
+      "questions": 640,
+      "figPlans": 0,
+      "numeric": 320,
+      "choice": 320
+    },
+    "biology": {
+      "concepts": 16,
+      "plans": 0,
+      "complete": 0,
+      "fallback": 16,
+      "questions": 640,
+      "figPlans": 0,
+      "numeric": 320,
+      "choice": 320
+    },
+    "computing": {
+      "concepts": 18,
+      "plans": 0,
+      "complete": 0,
+      "fallback": 18,
+      "questions": 720,
+      "figPlans": 0,
+      "numeric": 360,
+      "choice": 360
+    }
+  },
+  "dict": {
+    "en": {
+      "keys": 1423,
+      "titleKeys": 0
+    },
+    "es": {
+      "keys": 1708,
+      "titleKeys": 0
+    },
+    "fr": {
+      "keys": 1708,
+      "titleKeys": 0
+    },
+    "pt": {
+      "keys": 1708,
+      "titleKeys": 0
+    },
+    "ar": {
+      "keys": 1693,
+      "titleKeys": 0
+    },
+    "sw": {
+      "keys": 1693,
+      "titleKeys": 0
+    },
+    "hi": {
+      "keys": 1693,
+      "titleKeys": 0
+    },
+    "id": {
+      "keys": 1693,
+      "titleKeys": 0
+    },
+    "tl": {
+      "keys": 1693,
+      "titleKeys": 0
+    },
+    "ur": {
+      "keys": 1693,
+      "titleKeys": 0
+    },
+    "fa": {
+      "keys": 1693,
+      "titleKeys": 0
+    },
+    "de": {
+      "keys": 1708,
+      "titleKeys": 0
+    },
+    "ja": {
+      "keys": 1693,
+      "titleKeys": 0
+    },
+    "zh": {
+      "keys": 1693,
+      "titleKeys": 0
+    },
+    "bn": {
+      "keys": 1693,
+      "titleKeys": 0
+    }
+  },
+  "pathways": [
+    {
+      "id": "ke-national",
+      "type": "national",
+      "name": "Kenya · Secondary"
+    },
+    {
+      "id": "in-national",
+      "type": "national",
+      "name": "India · Secondary"
+    },
+    {
+      "id": "ph-national",
+      "type": "national",
+      "name": "Philippines · JHS/SHS"
+    },
+    {
+      "id": "bd-national",
+      "type": "national",
+      "name": "Bangladesh · Secondary"
+    },
+    {
+      "id": "ng-national",
+      "type": "national",
+      "name": "Nigeria · JSS/SSS"
+    },
+    {
+      "id": "gh-national",
+      "type": "national",
+      "name": "Ghana · JHS/SHS"
+    },
+    {
+      "id": "tz-national",
+      "type": "national",
+      "name": "Tanzania · Secondary"
+    },
+    {
+      "id": "ug-national",
+      "type": "national",
+      "name": "Uganda · Secondary"
+    },
+    {
+      "id": "pk-national",
+      "type": "national",
+      "name": "Pakistan · Secondary"
+    },
+    {
+      "id": "id-national",
+      "type": "national",
+      "name": "Indonesia · SMP/SMA"
+    },
+    {
+      "id": "br-national",
+      "type": "national",
+      "name": "Brazil · Fundamental/Médio"
+    },
+    {
+      "id": "mx-national",
+      "type": "national",
+      "name": "Mexico · Secundaria"
+    },
+    {
+      "id": "gb-national",
+      "type": "national",
+      "name": "United Kingdom · Secondary"
+    },
+    {
+      "id": "ie-national",
+      "type": "national",
+      "name": "Ireland · Junior/Senior Cycle"
+    },
+    {
+      "id": "us-national",
+      "type": "national",
+      "name": "United States · Middle/High School"
+    },
+    {
+      "id": "ca-national",
+      "type": "national",
+      "name": "Canada · Secondary"
+    },
+    {
+      "id": "au-national",
+      "type": "national",
+      "name": "Australia · Secondary"
+    },
+    {
+      "id": "za-national",
+      "type": "national",
+      "name": "South Africa · Senior/FET"
+    },
+    {
+      "id": "et-national",
+      "type": "national",
+      "name": "Ethiopia · Secondary"
+    },
+    {
+      "id": "eg-national",
+      "type": "national",
+      "name": "Egypt · Secondary"
+    },
+    {
+      "id": "ma-national",
+      "type": "national",
+      "name": "Maroc · Collège / Lycée"
+    },
+    {
+      "id": "rw-national",
+      "type": "national",
+      "name": "Rwanda · Ordinary/Advanced Level"
+    },
+    {
+      "id": "zm-national",
+      "type": "national",
+      "name": "Zambia · Secondary"
+    },
+    {
+      "id": "zw-national",
+      "type": "national",
+      "name": "Zimbabwe · Secondary"
+    },
+    {
+      "id": "mw-national",
+      "type": "national",
+      "name": "Malawi · Secondary"
+    },
+    {
+      "id": "ml-national",
+      "type": "national",
+      "name": "Mali · Collège / Lycée"
+    },
+    {
+      "id": "sn-national",
+      "type": "national",
+      "name": "Sénégal · Collège / Lycée"
+    },
+    {
+      "id": "ci-national",
+      "type": "national",
+      "name": "Côte d'Ivoire · Collège / Lycée"
+    },
+    {
+      "id": "ne-national",
+      "type": "national",
+      "name": "Niger · Collège / Lycée"
+    },
+    {
+      "id": "bf-national",
+      "type": "national",
+      "name": "Burkina Faso · Collège / Lycée"
+    },
+    {
+      "id": "so-national",
+      "type": "national",
+      "name": "Somalia · Secondary"
+    },
+    {
+      "id": "sd-national",
+      "type": "national",
+      "name": "Sudan · Secondary"
+    },
+    {
+      "id": "vn-national",
+      "type": "national",
+      "name": "Việt Nam · THCS / THPT"
+    },
+    {
+      "id": "tr-national",
+      "type": "national",
+      "name": "Türkiye · Ortaokul / Lise"
+    },
+    {
+      "id": "ir-national",
+      "type": "national",
+      "name": "Iran · Secondary"
+    },
+    {
+      "id": "af-national",
+      "type": "national",
+      "name": "Afghanistan · Secondary"
+    },
+    {
+      "id": "cn-national",
+      "type": "national",
+      "name": "China · Junior/Senior High"
+    },
+    {
+      "id": "jp-national",
+      "type": "national",
+      "name": "Japan · Junior/Senior High"
+    },
+    {
+      "id": "kr-national",
+      "type": "national",
+      "name": "South Korea · Middle/High"
+    },
+    {
+      "id": "ye-national",
+      "type": "national",
+      "name": "Yemen · Secondary"
+    },
+    {
+      "id": "iq-national",
+      "type": "national",
+      "name": "Iraq · Secondary"
+    },
+    {
+      "id": "sy-national",
+      "type": "national",
+      "name": "Syria · Secondary"
+    },
+    {
+      "id": "jo-national",
+      "type": "national",
+      "name": "Jordan · Secondary"
+    },
+    {
+      "id": "lb-national",
+      "type": "national",
+      "name": "Lebanon · Secondary"
+    },
+    {
+      "id": "np-national",
+      "type": "national",
+      "name": "Nepal · Secondary"
+    },
+    {
+      "id": "lk-national",
+      "type": "national",
+      "name": "Sri Lanka · Secondary"
+    },
+    {
+      "id": "mm-national",
+      "type": "national",
+      "name": "Myanmar · Secondary"
+    },
+    {
+      "id": "kh-national",
+      "type": "national",
+      "name": "Cambodia · Secondary"
+    },
+    {
+      "id": "la-national",
+      "type": "national",
+      "name": "Laos · Secondary"
+    },
+    {
+      "id": "mn-national",
+      "type": "national",
+      "name": "Mongolia · Secondary"
+    },
+    {
+      "id": "kz-national",
+      "type": "national",
+      "name": "Kazakhstan · Secondary"
+    },
+    {
+      "id": "uz-national",
+      "type": "national",
+      "name": "Uzbekistan · Secondary"
+    },
+    {
+      "id": "es-national",
+      "type": "national",
+      "name": "España · ESO / Bachillerato"
+    },
+    {
+      "id": "fr-national",
+      "type": "national",
+      "name": "France · Collège / Lycée"
+    },
+    {
+      "id": "de-national",
+      "type": "national",
+      "name": "Deutschland · Sekundarstufe"
+    },
+    {
+      "id": "it-national",
+      "type": "national",
+      "name": "Italia · Media / Superiore"
+    },
+    {
+      "id": "pl-national",
+      "type": "national",
+      "name": "Polska · Szkoła podstawowa / Liceum"
+    },
+    {
+      "id": "ua-national",
+      "type": "national",
+      "name": "Україна · Гімназія / Ліцей"
+    },
+    {
+      "id": "co-national",
+      "type": "national",
+      "name": "Colombia · Secundaria / Media"
+    },
+    {
+      "id": "ar-national",
+      "type": "national",
+      "name": "Argentina · Secundaria"
+    },
+    {
+      "id": "pe-national",
+      "type": "national",
+      "name": "Perú · Secundaria"
+    },
+    {
+      "id": "ht-national",
+      "type": "national",
+      "name": "Haïti · Collège / Lycée"
+    },
+    {
+      "id": "bo-national",
+      "type": "national",
+      "name": "Bolivia · Secundaria"
+    },
+    {
+      "id": "ec-national",
+      "type": "national",
+      "name": "Ecuador · EGB / Bachillerato"
+    },
+    {
+      "id": "gt-national",
+      "type": "national",
+      "name": "Guatemala · Básico / Diversificado"
+    },
+    {
+      "id": "hn-national",
+      "type": "national",
+      "name": "Honduras · Secundaria"
+    },
+    {
+      "id": "ni-national",
+      "type": "national",
+      "name": "Nicaragua · Secundaria"
+    },
+    {
+      "id": "sv-national",
+      "type": "national",
+      "name": "El Salvador · Secundaria"
+    },
+    {
+      "id": "do-national",
+      "type": "national",
+      "name": "República Dominicana · Secundaria"
+    },
+    {
+      "id": "cm-anglophone-general-secondary",
+      "type": "national",
+      "name": "Cameroon · Anglophone system (GCE)"
+    },
+    {
+      "id": "cm-francophone-general-secondary",
+      "type": "national",
+      "name": "Cameroun · système francophone (BEPC · Probatoire · Baccalauréat)"
+    },
+    {
+      "id": "int-international",
+      "type": "international",
+      "name": "International · Cambridge / IB"
+    },
+    {
+      "id": "int-independent",
+      "type": "independent",
+      "name": "Independent · skills pathway"
+    }
+  ],
+  "specs": [
+    {
+      "id": "uk-gcse",
+      "country": "GB",
+      "board": "aqa",
+      "name": "GCSE",
+      "levels": [
+        "Foundation tier",
+        "Higher tier"
+      ],
+      "coveredConcepts": 122,
+      "planned": 14
+    },
+    {
+      "id": "uk-alevel",
+      "country": "GB",
+      "board": "aqa",
+      "name": "A-Level",
+      "levels": [
+        "AS",
+        "A2"
+      ],
+      "coveredConcepts": 83,
+      "planned": 5
+    },
+    {
+      "id": "int-igcse",
+      "country": "INT",
+      "board": "cambridge",
+      "name": "Cambridge IGCSE",
+      "levels": [
+        "Core",
+        "Extended"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "int-ib",
+      "country": "INT",
+      "board": "ib",
+      "name": "International Baccalaureate",
+      "levels": [
+        "MYP",
+        "Diploma SL",
+        "Diploma HL"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "us-core",
+      "country": "US",
+      "board": "commoncore",
+      "name": "Common Core (US)",
+      "levels": [
+        "Grades 6–8",
+        "Grades 9–12"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "us-sat",
+      "country": "US",
+      "board": "collegeboard",
+      "name": "Digital SAT",
+      "levels": [
+        "Digital SAT"
+      ],
+      "coveredConcepts": 45,
+      "planned": 13
+    },
+    {
+      "id": "us-ap",
+      "country": "US",
+      "board": "collegeboard",
+      "name": "Advanced Placement (AP)",
+      "levels": [
+        "AP"
+      ],
+      "coveredConcepts": 87,
+      "planned": 5
+    },
+    {
+      "id": "ca-provincial",
+      "country": "CA",
+      "board": "canadian",
+      "name": "Provincial curriculum (Canada)",
+      "levels": [
+        "Grades 7–8",
+        "Grades 9–12"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "za-nsc",
+      "country": "ZA",
+      "board": "caps",
+      "name": "National Senior Certificate (CAPS)",
+      "levels": [
+        "Grades 8–9",
+        "Grades 10–12"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "au-acara",
+      "country": "AU",
+      "board": "acara",
+      "name": "Australian Curriculum",
+      "levels": [
+        "Years 7–10",
+        "Senior secondary"
+      ],
+      "coveredConcepts": 123,
+      "planned": 15
+    },
+    {
+      "id": "ie-junior",
+      "country": "IE",
+      "board": "state",
+      "name": "Junior / Senior Cycle (Ireland)",
+      "levels": [
+        "Junior Cycle",
+        "Senior Cycle"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "in-cbse",
+      "country": "IN",
+      "board": "cbse",
+      "name": "CBSE",
+      "levels": [
+        "Class 8–9",
+        "Class 10",
+        "Class 11–12"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "in-icse",
+      "country": "IN",
+      "board": "icse",
+      "name": "ICSE / ISC",
+      "levels": [
+        "Class 8–9",
+        "Class 10",
+        "ISC 11–12"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "pk-matric",
+      "country": "PK",
+      "board": "matric",
+      "name": "Matric / Intermediate (Pakistan)",
+      "levels": [
+        "Class 6–8",
+        "Class 9–10 (Matric)",
+        "Class 11–12 (Inter)"
+      ],
+      "coveredConcepts": 48,
+      "planned": 10
+    },
+    {
+      "id": "bd-ssc",
+      "country": "BD",
+      "board": "bangladeshi",
+      "name": "SSC / HSC (Bangladesh)",
+      "levels": [
+        "Class 6–8 (JSC)",
+        "Class 9–10 (SSC)",
+        "Class 11–12 (HSC)"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "ke-kcse",
+      "country": "KE",
+      "board": "kenyan",
+      "name": "KCSE (Kenya)",
+      "levels": [
+        "Grade 7–9",
+        "Form 3",
+        "Form 4 (KCSE)"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "tz-csee",
+      "country": "TZ",
+      "board": "kenyan",
+      "name": "CSEE (Tanzania)",
+      "levels": [
+        "Form 1–2",
+        "Form 4 (CSEE)"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "ug-uce",
+      "country": "UG",
+      "board": "kenyan",
+      "name": "UCE (Uganda)",
+      "levels": [
+        "S1–S2",
+        "S4 (UCE)"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "ng-waec",
+      "country": "NG",
+      "board": "nigerian",
+      "name": "WAEC / NECO (Nigeria)",
+      "levels": [
+        "JSS 1–3 (BECE)",
+        "SSS 1–3 (WAEC)"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "gh-wassce",
+      "country": "GH",
+      "board": "state",
+      "name": "WASSCE (Ghana)",
+      "levels": [
+        "JHS 1–3 (BECE)",
+        "SHS 1–3 (WASSCE)"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "ph-deped",
+      "country": "PH",
+      "board": "philippine",
+      "name": "DepEd K-12 (Philippines)",
+      "levels": [
+        "Junior High",
+        "Senior High"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "id-merdeka",
+      "country": "ID",
+      "board": "indonesian",
+      "name": "Kurikulum Merdeka (Indonesia)",
+      "levels": [
+        "SMP 7–9",
+        "SMA 10–12"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "br-enem",
+      "country": "BR",
+      "board": "brazilian",
+      "name": "ENEM / BNCC (Brazil)",
+      "levels": [
+        "Fundamental II",
+        "Médio (ENEM)"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "mx-sep",
+      "country": "MX",
+      "board": "mexican",
+      "name": "SEP (Mexico)",
+      "levels": [
+        "Secundaria",
+        "Preparatoria"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "any-independent",
+      "country": "XX",
+      "board": "state",
+      "name": "Independent · skills pathway",
+      "levels": [
+        "Foundations",
+        "Core",
+        "Advanced"
+      ],
+      "coveredConcepts": 48,
+      "planned": 10
+    },
+    {
+      "id": "cm-gce-o",
+      "country": "CM",
+      "board": "gce",
+      "name": "GCE Ordinary Level",
+      "levels": [
+        "Form 4",
+        "Form 5 · GCE O Level"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "cm-gce-a",
+      "country": "CM",
+      "board": "gce",
+      "name": "GCE Advanced Level",
+      "levels": [
+        "Lower Sixth",
+        "Upper Sixth · GCE A Level"
+      ],
+      "coveredConcepts": 83,
+      "planned": 5
+    },
+    {
+      "id": "cm-bepc",
+      "country": "CM",
+      "board": "minesec",
+      "name": "BEPC",
+      "levels": [
+        "Cycle 1 · 6e–5e",
+        "3e · BEPC"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "cm-probatoire",
+      "country": "CM",
+      "board": "minesec",
+      "name": "Probatoire",
+      "levels": [
+        "1re · Probatoire"
+      ],
+      "coveredConcepts": 123,
+      "planned": 13
+    },
+    {
+      "id": "cm-bac",
+      "country": "CM",
+      "board": "minesec",
+      "name": "Baccalauréat",
+      "levels": [
+        "Terminale · Baccalauréat"
+      ],
+      "coveredConcepts": 123,
+      "planned": 13
+    },
+    {
+      "id": "et-esslce",
+      "country": "ET",
+      "board": "ethiopian",
+      "name": "Ethiopian School Leaving Certificate (ESSLCE)",
+      "levels": [
+        "Grade 10",
+        "Grade 12"
+      ],
+      "coveredConcepts": 123,
+      "planned": 15
+    },
+    {
+      "id": "eg-thanaweya",
+      "country": "EG",
+      "board": "egyptian",
+      "name": "Thanaweya Amma (General Secondary Certificate)",
+      "levels": [
+        "Grade 11",
+        "Grade 12"
+      ],
+      "coveredConcepts": 123,
+      "planned": 15
+    },
+    {
+      "id": "ma-college",
+      "country": "MA",
+      "board": "moroccan",
+      "name": "Brevet (3e année collège)",
+      "levels": [
+        "3AC"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "ma-bac",
+      "country": "MA",
+      "board": "moroccan",
+      "name": "Baccalauréat marocain",
+      "levels": [
+        "1re année Bac",
+        "2e année Bac"
+      ],
+      "coveredConcepts": 123,
+      "planned": 13
+    },
+    {
+      "id": "rw-o-level",
+      "country": "RW",
+      "board": "rwandan",
+      "name": "Ordinary Level (REB)",
+      "levels": [
+        "S3"
+      ],
+      "coveredConcepts": 123,
+      "planned": 15
+    },
+    {
+      "id": "rw-a-level",
+      "country": "RW",
+      "board": "rwandan",
+      "name": "Advanced Level (REB)",
+      "levels": [
+        "S5",
+        "S6"
+      ],
+      "coveredConcepts": 123,
+      "planned": 13
+    },
+    {
+      "id": "zm-school-certificate",
+      "country": "ZM",
+      "board": "zambian",
+      "name": "School Certificate (ECZ)",
+      "levels": [
+        "Grade 9 (Junior Secondary)",
+        "Grade 12"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "zw-o-level",
+      "country": "ZW",
+      "board": "zimsec",
+      "name": "ZIMSEC Ordinary Level",
+      "levels": [
+        "Form 4"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "zw-a-level",
+      "country": "ZW",
+      "board": "zimsec",
+      "name": "ZIMSEC Advanced Level",
+      "levels": [
+        "Upper Sixth"
+      ],
+      "coveredConcepts": 123,
+      "planned": 13
+    },
+    {
+      "id": "mw-msce",
+      "country": "MW",
+      "board": "malawian",
+      "name": "Malawi School Certificate of Education (MSCE)",
+      "levels": [
+        "Form 4"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "ml-bac",
+      "country": "ML",
+      "board": "malian",
+      "name": "Baccalauréat malien",
+      "levels": [
+        "3e (DEF)",
+        "Terminale"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "sn-bac",
+      "country": "SN",
+      "board": "senegalese",
+      "name": "Baccalauréat sénégalais",
+      "levels": [
+        "3e (BFEM)",
+        "Terminale"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "ci-bac",
+      "country": "CI",
+      "board": "ivorian",
+      "name": "Baccalauréat ivoirien",
+      "levels": [
+        "3e (BEPC)",
+        "Terminale"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "ne-bac",
+      "country": "NE",
+      "board": "nigerien",
+      "name": "Baccalauréat nigérien",
+      "levels": [
+        "3e (BEPC)",
+        "Terminale"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "bf-bac",
+      "country": "BF",
+      "board": "burkinabe",
+      "name": "Baccalauréat burkinabè",
+      "levels": [
+        "3e (BEPC)",
+        "Terminale"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "so-form-4",
+      "country": "SO",
+      "board": "somali",
+      "name": "Form 4 National Examination",
+      "levels": [
+        "Form 4"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "sd-school-certificate",
+      "country": "SD",
+      "board": "sudanese",
+      "name": "Sudan School Certificate",
+      "levels": [
+        "Secondary 3"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "vn-thpt",
+      "country": "VN",
+      "board": "vietnamese",
+      "name": "THPT Quốc gia (National High School Examination)",
+      "levels": [
+        "Grade 9",
+        "Grade 12"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "tr-yks",
+      "country": "TR",
+      "board": "turkish",
+      "name": "YKS (TYT / AYT)",
+      "levels": [
+        "Grade 8 (LGS)",
+        "Grade 12"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "ir-konkur",
+      "country": "IR",
+      "board": "iranian",
+      "name": "Konkur (university entrance)",
+      "levels": [
+        "Grade 9",
+        "Grade 12"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "af-baccalaureate",
+      "country": "AF",
+      "board": "afghan",
+      "name": "Baccalaureate (Kankor entry)",
+      "levels": [
+        "Grade 12"
+      ],
+      "coveredConcepts": 100,
+      "planned": 13
+    },
+    {
+      "id": "cn-gaokao",
+      "country": "CN",
+      "board": "chinese",
+      "name": "Gaokao (National College Entrance Examination)",
+      "levels": [
+        "Grade 9 (Zhongkao)",
+        "Grade 12 (Gaokao)"
+      ],
+      "coveredConcepts": 123,
+      "planned": 15
+    },
+    {
+      "id": "jp-nyushi",
+      "country": "JP",
+      "board": "japanese",
+      "name": "Daigaku Nyushi (university entrance)",
+      "levels": [
+        "Junior High 3",
+        "High School 3"
+      ],
+      "coveredConcepts": 123,
+      "planned": 15
+    },
+    {
+      "id": "kr-csat",
+      "country": "KR",
+      "board": "korean",
+      "name": "Suneung (CSAT)",
+      "levels": [
+        "Middle 3",
+        "High 3"
+      ],
+      "coveredConcepts": 123,
+      "planned": 15
+    },
+    {
+      "id": "ye-general-secondary",
+      "country": "YE",
+      "board": "yemeni",
+      "name": "General Secondary Certificate",
+      "levels": [
+        "Grade 12"
+      ],
+      "coveredConcepts": 100,
+      "planned": 13
+    },
+    {
+      "id": "iq-preparatory",
+      "country": "IQ",
+      "board": "iraqi",
+      "name": "Sixth Preparatory Certificate",
+      "levels": [
+        "Grade 12"
+      ],
+      "coveredConcepts": 100,
+      "planned": 13
+    },
+    {
+      "id": "sy-baccalaureate",
+      "country": "SY",
+      "board": "syrian",
+      "name": "Al-Shahada Al-Thanawiyya (Baccalaureate)",
+      "levels": [
+        "Grade 12"
+      ],
+      "coveredConcepts": 100,
+      "planned": 13
+    },
+    {
+      "id": "jo-tawjihi",
+      "country": "JO",
+      "board": "jordanian",
+      "name": "Tawjihi (General Secondary Certificate)",
+      "levels": [
+        "Grade 12"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "lb-baccalaureate",
+      "country": "LB",
+      "board": "lebanese",
+      "name": "Lebanese Baccalaureate",
+      "levels": [
+        "Grade 12"
+      ],
+      "coveredConcepts": 122,
+      "planned": 13
+    },
+    {
+      "id": "np-see",
+      "country": "NP",
+      "board": "nepali",
+      "name": "Secondary Education Examination (SEE)",
+      "levels": [
+        "Grade 10"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "np-neb",
+      "country": "NP",
+      "board": "nepali",
+      "name": "NEB Grade 12",
+      "levels": [
+        "Grade 12"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "lk-o-level",
+      "country": "LK",
+      "board": "srilankan",
+      "name": "GCE Ordinary Level (Sri Lanka)",
+      "levels": [
+        "Grade 11"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "lk-a-level",
+      "country": "LK",
+      "board": "srilankan",
+      "name": "GCE Advanced Level (Sri Lanka)",
+      "levels": [
+        "Grade 13"
+      ],
+      "coveredConcepts": 122,
+      "planned": 13
+    },
+    {
+      "id": "mm-matriculation",
+      "country": "MM",
+      "board": "myanmar",
+      "name": "Matriculation Examination",
+      "levels": [
+        "Grade 12"
+      ],
+      "coveredConcepts": 100,
+      "planned": 13
+    },
+    {
+      "id": "kh-baccalaureate",
+      "country": "KH",
+      "board": "cambodian",
+      "name": "Baccalauréat (Cambodia)",
+      "levels": [
+        "Grade 12"
+      ],
+      "coveredConcepts": 100,
+      "planned": 13
+    },
+    {
+      "id": "la-upper-secondary",
+      "country": "LA",
+      "board": "lao",
+      "name": "Upper Secondary Completion",
+      "levels": [
+        "Grade 12"
+      ],
+      "coveredConcepts": 100,
+      "planned": 13
+    },
+    {
+      "id": "mn-eesh",
+      "country": "MN",
+      "board": "mongolian",
+      "name": "ЭЕШ (University Entrance Examination)",
+      "levels": [
+        "Grade 12"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "kz-unt",
+      "country": "KZ",
+      "board": "kazakh",
+      "name": "ҰБТ (Unified National Testing)",
+      "levels": [
+        "Grade 9",
+        "Grade 11"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "uz-entrance",
+      "country": "UZ",
+      "board": "uzbek",
+      "name": "University entrance examinations",
+      "levels": [
+        "Grade 11"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "es-eso",
+      "country": "ES",
+      "board": "spanish",
+      "name": "Educación Secundaria Obligatoria (ESO)",
+      "levels": [
+        "1º ESO",
+        "4º ESO"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "es-bachillerato",
+      "country": "ES",
+      "board": "spanish",
+      "name": "Bachillerato (EBAU)",
+      "levels": [
+        "1º Bachillerato",
+        "2º Bachillerato"
+      ],
+      "coveredConcepts": 123,
+      "planned": 13
+    },
+    {
+      "id": "fr-college",
+      "country": "FR",
+      "board": "french",
+      "name": "Diplôme national du brevet",
+      "levels": [
+        "3e"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "fr-bac",
+      "country": "FR",
+      "board": "french",
+      "name": "Baccalauréat",
+      "levels": [
+        "1re",
+        "Terminale"
+      ],
+      "coveredConcepts": 123,
+      "planned": 13
+    },
+    {
+      "id": "de-msa",
+      "country": "DE",
+      "board": "german",
+      "name": "Mittlerer Schulabschluss",
+      "levels": [
+        "Klasse 10"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "de-abi",
+      "country": "DE",
+      "board": "german",
+      "name": "Abitur",
+      "levels": [
+        "Klasse 11",
+        "Klasse 12"
+      ],
+      "coveredConcepts": 123,
+      "planned": 13
+    },
+    {
+      "id": "it-media",
+      "country": "IT",
+      "board": "italian",
+      "name": "Licenza media",
+      "levels": [
+        "3ª media"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "it-maturita",
+      "country": "IT",
+      "board": "italian",
+      "name": "Esame di Stato (Maturità)",
+      "levels": [
+        "4ª superiore",
+        "5ª superiore"
+      ],
+      "coveredConcepts": 123,
+      "planned": 13
+    },
+    {
+      "id": "pl-osmoklasisty",
+      "country": "PL",
+      "board": "polish",
+      "name": "Egzamin ósmoklasisty",
+      "levels": [
+        "Klasa 8"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "pl-matura",
+      "country": "PL",
+      "board": "polish",
+      "name": "Matura",
+      "levels": [
+        "Liceum 3",
+        "Liceum 4"
+      ],
+      "coveredConcepts": 123,
+      "planned": 13
+    },
+    {
+      "id": "ua-nmt",
+      "country": "UA",
+      "board": "ukrainian",
+      "name": "НМТ (National Multi-subject Test)",
+      "levels": [
+        "Grade 9",
+        "Grade 12"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "co-saber-11",
+      "country": "CO",
+      "board": "colombian",
+      "name": "Saber 11",
+      "levels": [
+        "Grade 9",
+        "Grade 11"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "ar-secundaria",
+      "country": "AR",
+      "board": "argentine",
+      "name": "Secundaria · Título de Bachiller",
+      "levels": [
+        "6º año"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "pe-secundaria",
+      "country": "PE",
+      "board": "peruvian",
+      "name": "Educación Secundaria (EBR)",
+      "levels": [
+        "5º secundaria"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "ht-bac",
+      "country": "HT",
+      "board": "haitian",
+      "name": "Baccalauréat (Haïti)",
+      "levels": [
+        "3e AF",
+        "Philo (Terminale)"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "bo-bachillerato",
+      "country": "BO",
+      "board": "bolivian",
+      "name": "Bachillerato (Bolivia)",
+      "levels": [
+        "6º de secundaria"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "ec-bachillerato",
+      "country": "EC",
+      "board": "ecuadorian",
+      "name": "Bachillerato (Ecuador)",
+      "levels": [
+        "10º EGB",
+        "3º bachillerato"
+      ],
+      "coveredConcepts": 94,
+      "planned": 12
+    },
+    {
+      "id": "gt-diversificado",
+      "country": "GT",
+      "board": "guatemalan",
+      "name": "Evaluación Graduandos — Matemática",
+      "levels": [
+        "5º diversificado"
+      ],
+      "coveredConcepts": 48,
+      "planned": 13
+    },
+    {
+      "id": "hn-bachillerato",
+      "country": "HN",
+      "board": "honduran",
+      "name": "Bachillerato (Honduras)",
+      "levels": [
+        "11º grado"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "ni-bachillerato",
+      "country": "NI",
+      "board": "nicaraguan",
+      "name": "Bachillerato (Nicaragua)",
+      "levels": [
+        "11º grado"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "sv-bachillerato",
+      "country": "SV",
+      "board": "salvadoran",
+      "name": "Bachillerato (El Salvador)",
+      "levels": [
+        "11º grado"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    },
+    {
+      "id": "do-bachillerato",
+      "country": "DO",
+      "board": "dominican",
+      "name": "Bachillerato (República Dominicana)",
+      "levels": [
+        "6º de secundaria"
+      ],
+      "coveredConcepts": 115,
+      "planned": 13
+    }
+  ],
+  "rows": [
+    {
+      "id": "place-value",
+      "subject": "maths",
+      "stage": 0,
+      "title": "Place value",
+      "prereqs": [],
+      "misconceptions": [],
+      "genomeWords": 53,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 67,
+      "minExplanationWords": 5,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "addition",
+      "subject": "maths",
+      "stage": 0,
+      "title": "Addition",
+      "prereqs": [],
+      "misconceptions": [],
+      "genomeWords": 53,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 1,
+      "medianExplanationWords": 50,
+      "minExplanationWords": 9,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "subtraction",
+      "subject": "maths",
+      "stage": 0,
+      "title": "Subtraction",
+      "prereqs": [],
+      "misconceptions": [],
+      "genomeWords": 53,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 1,
+      "medianExplanationWords": 57,
+      "minExplanationWords": 4,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "multiplication",
+      "subject": "maths",
+      "stage": 0,
+      "title": "Multiplication",
+      "prereqs": [],
+      "misconceptions": [],
+      "genomeWords": 35,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 1,
+      "medianExplanationWords": 50,
+      "minExplanationWords": 4,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "division",
+      "subject": "maths",
+      "stage": 0,
+      "title": "Division",
+      "prereqs": [],
+      "misconceptions": [],
+      "genomeWords": 39,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 1,
+      "medianExplanationWords": 49,
+      "minExplanationWords": 4,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "negatives",
+      "subject": "maths",
+      "stage": 0,
+      "title": "Negative numbers",
+      "prereqs": [],
+      "misconceptions": [
+        "neg-slip"
+      ],
+      "genomeWords": 40,
+      "hasPlan": true,
+      "planWords": 419,
+      "ideas": 4,
+      "traps": 3,
+      "planFigure": "number-line",
+      "planCaption": 25,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 43,
+      "minExplanationWords": 4,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "neg-slip"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "fractions",
+      "subject": "maths",
+      "stage": 0,
+      "title": "Fractions",
+      "prereqs": [],
+      "misconceptions": [
+        "frac-slice"
+      ],
+      "genomeWords": 56,
+      "hasPlan": true,
+      "planWords": 611,
+      "ideas": 6,
+      "traps": 3,
+      "planFigure": "pie",
+      "planCaption": 39,
+      "review": "unreviewed",
+      "teachingLangs": [
+        "fr"
+      ],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 46,
+      "minExplanationWords": 11,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "frac-slice"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "fraction-ops",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Fraction arithmetic",
+      "prereqs": [
+        "fractions"
+      ],
+      "misconceptions": [
+        "denom-add"
+      ],
+      "genomeWords": 36,
+      "hasPlan": true,
+      "planWords": 603,
+      "ideas": 6,
+      "traps": 3,
+      "planFigure": "pie",
+      "planCaption": 44,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 54,
+      "minExplanationWords": 5,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "denom-add"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "decimals",
+      "subject": "maths",
+      "stage": 0,
+      "title": "Decimals",
+      "prereqs": [],
+      "misconceptions": [
+        "dec-point"
+      ],
+      "genomeWords": 31,
+      "hasPlan": true,
+      "planWords": 666,
+      "ideas": 6,
+      "traps": 3,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 52,
+      "minExplanationWords": 16,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "dec-point"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "percentages",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Percentages",
+      "prereqs": [
+        "fractions",
+        "decimals"
+      ],
+      "misconceptions": [
+        "pct-base"
+      ],
+      "genomeWords": 36,
+      "hasPlan": true,
+      "planWords": 575,
+      "ideas": 6,
+      "traps": 3,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 35,
+      "minExplanationWords": 15,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "pct-base"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "ratio",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Ratio",
+      "prereqs": [],
+      "misconceptions": [],
+      "genomeWords": 52,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 46,
+      "minExplanationWords": 25,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "proportion",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Proportion",
+      "prereqs": [
+        "ratio"
+      ],
+      "misconceptions": [
+        "inv-prop"
+      ],
+      "genomeWords": 51,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 52,
+      "minExplanationWords": 11,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "inv-prop"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "rounding",
+      "subject": "maths",
+      "stage": 0,
+      "title": "Rounding & estimation",
+      "prereqs": [],
+      "misconceptions": [
+        "round-half"
+      ],
+      "genomeWords": 41,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 3,
+      "medianExplanationWords": 38,
+      "minExplanationWords": 17,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "round-half"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "order-ops",
+      "subject": "maths",
+      "stage": 0,
+      "title": "Order of operations",
+      "prereqs": [],
+      "misconceptions": [
+        "order-ops"
+      ],
+      "genomeWords": 37,
+      "hasPlan": true,
+      "planWords": 299,
+      "ideas": 4,
+      "traps": 3,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 1,
+      "medianExplanationWords": 37,
+      "minExplanationWords": 4,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "order-ops"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "indices-intro",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Index laws",
+      "prereqs": [
+        "order-ops"
+      ],
+      "misconceptions": [
+        "neg-exp"
+      ],
+      "genomeWords": 50,
+      "hasPlan": true,
+      "planWords": 360,
+      "ideas": 6,
+      "traps": 3,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 11,
+      "medianExplanationWords": 42,
+      "minExplanationWords": 4,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "neg-exp"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "standard-form",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Standard form",
+      "prereqs": [
+        "indices-intro",
+        "place-value"
+      ],
+      "misconceptions": [
+        "sf-sig"
+      ],
+      "genomeWords": 37,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 18,
+      "medianExplanationWords": 52,
+      "minExplanationWords": 15,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "sf-sig"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "algebra-expressions",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Algebraic expressions",
+      "prereqs": [
+        "order-ops"
+      ],
+      "misconceptions": [
+        "like-terms"
+      ],
+      "genomeWords": 44,
+      "hasPlan": true,
+      "planWords": 381,
+      "ideas": 5,
+      "traps": 3,
+      "planFigure": "rectangle",
+      "planCaption": 27,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 31,
+      "minExplanationWords": 16,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "like-terms"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "algebra-expand",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Expanding & factorising",
+      "prereqs": [
+        "algebra-expressions"
+      ],
+      "misconceptions": [
+        "sign-slip"
+      ],
+      "genomeWords": 47,
+      "hasPlan": true,
+      "planWords": 547,
+      "ideas": 6,
+      "traps": 4,
+      "planFigure": "rectangle",
+      "planCaption": 35,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 57,
+      "minExplanationWords": 10,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "sign-slip"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "linear-equations",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Linear equations",
+      "prereqs": [
+        "algebra-expressions"
+      ],
+      "misconceptions": [
+        "bal-slip"
+      ],
+      "genomeWords": 42,
+      "hasPlan": true,
+      "planWords": 474,
+      "ideas": 6,
+      "traps": 3,
+      "planFigure": "balance",
+      "planCaption": 31,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 42,
+      "minExplanationWords": 8,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "bal-slip"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "inequalities",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Inequalities",
+      "prereqs": [
+        "linear-equations"
+      ],
+      "misconceptions": [
+        "ineq-flip"
+      ],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 48,
+      "minExplanationWords": 19,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "ineq-flip"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "simultaneous",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Simultaneous equations",
+      "prereqs": [
+        "linear-equations"
+      ],
+      "misconceptions": [
+        "sub-sign"
+      ],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 61,
+      "minExplanationWords": 16,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "sub-sign"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "coordinates",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Coordinates & graphs",
+      "prereqs": [
+        "negatives"
+      ],
+      "misconceptions": [
+        "axis-swap"
+      ],
+      "genomeWords": 41,
+      "hasPlan": true,
+      "planWords": 390,
+      "ideas": 5,
+      "traps": 3,
+      "planFigure": "axes",
+      "planCaption": 34,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 48,
+      "minExplanationWords": 18,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 30,
+      "tags": [
+        "axis-swap"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "straight-lines",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Straight line graphs",
+      "prereqs": [
+        "coordinates",
+        "linear-equations"
+      ],
+      "misconceptions": [
+        "grad-run"
+      ],
+      "genomeWords": 55,
+      "hasPlan": true,
+      "planWords": 509,
+      "ideas": 6,
+      "traps": 3,
+      "planFigure": "axes",
+      "planCaption": 43,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 51,
+      "minExplanationWords": 21,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "grad-run"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "quadratics",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Quadratic equations",
+      "prereqs": [
+        "algebra-expand",
+        "straight-lines"
+      ],
+      "misconceptions": [
+        "lost-root"
+      ],
+      "genomeWords": 52,
+      "hasPlan": true,
+      "planWords": 599,
+      "ideas": 6,
+      "traps": 4,
+      "planFigure": "axes",
+      "planCaption": 47,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 69,
+      "minExplanationWords": 11,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "lost-root"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "sim-equations-quad",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Simultaneous with quadratics",
+      "prereqs": [
+        "quadratics",
+        "simultaneous"
+      ],
+      "misconceptions": [
+        "lost-root"
+      ],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 12,
+      "medianExplanationWords": 51,
+      "minExplanationWords": 17,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "lost-root"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "sequences",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Sequences",
+      "prereqs": [],
+      "misconceptions": [
+        "nth-term"
+      ],
+      "genomeWords": 45,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 47,
+      "minExplanationWords": 7,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "nth-term"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "functions",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Functions & notation",
+      "prereqs": [
+        "algebra-expressions",
+        "coordinates"
+      ],
+      "misconceptions": [],
+      "genomeWords": 51,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 36,
+      "minExplanationWords": 9,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "trig-ratios",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Trigonometry",
+      "prereqs": [
+        "straight-lines",
+        "proportion"
+      ],
+      "misconceptions": [
+        "deg-rad",
+        "hyp-leg-trig"
+      ],
+      "genomeWords": 47,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 56,
+      "minExplanationWords": 11,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "hyp-leg-trig",
+        "deg-rad"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "trig-identity",
+      "subject": "maths",
+      "stage": 4,
+      "title": "Trig identities & graphs",
+      "prereqs": [
+        "trig-ratios",
+        "functions"
+      ],
+      "misconceptions": [],
+      "genomeWords": 41,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 65,
+      "minExplanationWords": 10,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "circle-theorems",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Circle theorems",
+      "prereqs": [
+        "angles-lines"
+      ],
+      "misconceptions": [
+        "same-seg"
+      ],
+      "genomeWords": 54,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 85,
+      "minExplanationWords": 66,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "same-seg"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "pythagoras",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Pythagoras' theorem",
+      "prereqs": [
+        "indices-intro"
+      ],
+      "misconceptions": [
+        "hyp-leg"
+      ],
+      "genomeWords": 58,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 56,
+      "minExplanationWords": 16,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 25,
+      "tags": [
+        "hyp-leg"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "angles-lines",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Angles & polygons",
+      "prereqs": [],
+      "misconceptions": [
+        "alt-corr"
+      ],
+      "genomeWords": 45,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 46,
+      "minExplanationWords": 6,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "alt-corr"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "area-perimeter",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Area & perimeter",
+      "prereqs": [],
+      "misconceptions": [
+        "unit-sq"
+      ],
+      "genomeWords": 43,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 38,
+      "minExplanationWords": 9,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "unit-sq"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "volume",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Volume & surface area",
+      "prereqs": [
+        "area-perimeter"
+      ],
+      "misconceptions": [
+        "unit-sq"
+      ],
+      "genomeWords": 54,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 46,
+      "minExplanationWords": 12,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "unit-sq"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "transformations",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Transformations",
+      "prereqs": [
+        "coordinates"
+      ],
+      "misconceptions": [
+        "sf-area"
+      ],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 12,
+      "medianExplanationWords": 52,
+      "minExplanationWords": 21,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "sf-area"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "vectors",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Vectors",
+      "prereqs": [
+        "coordinates"
+      ],
+      "misconceptions": [
+        "vec-dir"
+      ],
+      "genomeWords": 39,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 39,
+      "minExplanationWords": 37,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "vec-dir"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "probability-basics",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Probability",
+      "prereqs": [],
+      "misconceptions": [
+        "sum-one"
+      ],
+      "genomeWords": 38,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 46,
+      "minExplanationWords": 11,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "sum-one"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "tree-diagrams",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Tree diagrams & combined events",
+      "prereqs": [
+        "probability-basics"
+      ],
+      "misconceptions": [
+        "ind-dep"
+      ],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 40,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "ind-dep"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "averages",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Averages & spread",
+      "prereqs": [],
+      "misconceptions": [
+        "outlier-mean"
+      ],
+      "genomeWords": 47,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 9,
+      "medianExplanationWords": 40,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "outlier-mean"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "data-charts",
+      "subject": "maths",
+      "stage": 1,
+      "title": "Data representation",
+      "prereqs": [
+        "averages"
+      ],
+      "misconceptions": [],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 15,
+      "medianExplanationWords": 38,
+      "minExplanationWords": 34,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 5,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "scatter-correlation",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Correlation & regression basics",
+      "prereqs": [
+        "data-charts",
+        "straight-lines"
+      ],
+      "misconceptions": [
+        "corr-cause"
+      ],
+      "genomeWords": 46,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 67,
+      "minExplanationWords": 33,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 4,
+      "tags": [
+        "corr-cause"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "surds",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Surds",
+      "prereqs": [
+        "indices-intro"
+      ],
+      "misconceptions": [
+        "sqrt-prod"
+      ],
+      "genomeWords": 47,
+      "hasPlan": true,
+      "planWords": 503,
+      "ideas": 6,
+      "traps": 4,
+      "planFigure": "surd-square",
+      "planCaption": 40,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 60,
+      "minExplanationWords": 6,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "sqrt-prod"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "completing-square",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Completing the square",
+      "prereqs": [
+        "quadratics"
+      ],
+      "misconceptions": [
+        "b-half"
+      ],
+      "genomeWords": 44,
+      "hasPlan": true,
+      "planWords": 596,
+      "ideas": 6,
+      "traps": 4,
+      "planFigure": "rectangle",
+      "planCaption": 35,
+      "review": "unreviewed",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 47,
+      "minExplanationWords": 9,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "b-half"
+      ],
+      "fallback": false
+    },
+    {
+      "id": "polynomials",
+      "subject": "maths",
+      "stage": 4,
+      "title": "Polynomials & factor theorem",
+      "prereqs": [
+        "algebra-expand",
+        "quadratics"
+      ],
+      "misconceptions": [],
+      "genomeWords": 52,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 58,
+      "minExplanationWords": 12,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "binomial",
+      "subject": "maths",
+      "stage": 4,
+      "title": "Binomial expansion",
+      "prereqs": [
+        "polynomials",
+        "indices-intro"
+      ],
+      "misconceptions": [
+        "row-n"
+      ],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 59,
+      "minExplanationWords": 19,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "row-n"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "trig-rule",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Sine & cosine rules",
+      "prereqs": [
+        "trig-ratios",
+        "pythagoras"
+      ],
+      "misconceptions": [
+        "cos-amb"
+      ],
+      "genomeWords": 51,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 54,
+      "minExplanationWords": 23,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "cos-amb"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "circle-area-arc",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Arcs, sectors & circles",
+      "prereqs": [
+        "area-perimeter"
+      ],
+      "misconceptions": [],
+      "genomeWords": 40,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 49,
+      "minExplanationWords": 5,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "mixture-problems",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Word problems & modelling",
+      "prereqs": [
+        "linear-equations",
+        "ratio"
+      ],
+      "misconceptions": [
+        "bal-slip"
+      ],
+      "genomeWords": 56,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 60,
+      "minExplanationWords": 8,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "bal-slip"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "growth-decay",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Exponential growth & decay",
+      "prereqs": [
+        "indices-intro",
+        "percentages"
+      ],
+      "misconceptions": [
+        "simple-cp"
+      ],
+      "genomeWords": 41,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 62,
+      "minExplanationWords": 9,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "simple-cp"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "logs",
+      "subject": "maths",
+      "stage": 5,
+      "title": "Logarithms",
+      "prereqs": [
+        "growth-decay",
+        "indices-intro"
+      ],
+      "misconceptions": [],
+      "genomeWords": 49,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 61,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "calculus-diff",
+      "subject": "maths",
+      "stage": 5,
+      "title": "Differentiation",
+      "prereqs": [
+        "functions",
+        "indices-intro"
+      ],
+      "misconceptions": [],
+      "genomeWords": 51,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 54,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "calculus-int",
+      "subject": "maths",
+      "stage": 5,
+      "title": "Integration",
+      "prereqs": [
+        "calculus-diff"
+      ],
+      "misconceptions": [],
+      "genomeWords": 49,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 51,
+      "minExplanationWords": 18,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "kinematics",
+      "subject": "maths",
+      "stage": 4,
+      "title": "Kinematics",
+      "prereqs": [
+        "straight-lines",
+        "area-perimeter"
+      ],
+      "misconceptions": [],
+      "genomeWords": 45,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 60,
+      "minExplanationWords": 8,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "proof",
+      "subject": "maths",
+      "stage": 4,
+      "title": "Proof & reasoning",
+      "prereqs": [
+        "algebra-expressions",
+        "inequalities"
+      ],
+      "misconceptions": [],
+      "genomeWords": 58,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 13,
+      "medianExplanationWords": 49,
+      "minExplanationWords": 17,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "matrices-intro",
+      "subject": "maths",
+      "stage": 5,
+      "title": "Matrices",
+      "prereqs": [
+        "simultaneous",
+        "vectors"
+      ],
+      "misconceptions": [],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 71,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "sets-venn",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Sets & Venn diagrams",
+      "prereqs": [
+        "probability-basics"
+      ],
+      "misconceptions": [
+        "sum-one"
+      ],
+      "genomeWords": 47,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 53,
+      "minExplanationWords": 4,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "sum-one"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "financial-maths",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Financial mathematics",
+      "prereqs": [
+        "percentages",
+        "growth-decay"
+      ],
+      "misconceptions": [
+        "simple-cp"
+      ],
+      "genomeWords": 47,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 50,
+      "minExplanationWords": 12,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "simple-cp"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "bounds",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Error bounds & limits of accuracy",
+      "prereqs": [
+        "rounding"
+      ],
+      "misconceptions": [
+        "round-half"
+      ],
+      "genomeWords": 49,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 66,
+      "minExplanationWords": 19,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "round-half"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "loci-constructions",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Loci & constructions",
+      "prereqs": [
+        "area-perimeter",
+        "angles-lines"
+      ],
+      "misconceptions": [],
+      "genomeWords": 57,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 60,
+      "minExplanationWords": 28,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "bearings",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Bearings & navigation",
+      "prereqs": [
+        "trig-rule"
+      ],
+      "misconceptions": [],
+      "genomeWords": 39,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 13,
+      "medianExplanationWords": 43,
+      "minExplanationWords": 17,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "proportional-graphs",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Proportional graphs",
+      "prereqs": [
+        "proportion",
+        "straight-lines"
+      ],
+      "misconceptions": [
+        "inv-prop"
+      ],
+      "genomeWords": 47,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 45,
+      "minExplanationWords": 18,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "inv-prop"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "quadratic-graphs",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Quadratic graphs",
+      "prereqs": [
+        "quadratics",
+        "completing-square"
+      ],
+      "misconceptions": [
+        "b-half"
+      ],
+      "genomeWords": 54,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 12,
+      "medianExplanationWords": 49,
+      "minExplanationWords": 19,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "b-half"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "algebraic-fractions",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Algebraic fractions",
+      "prereqs": [
+        "fraction-ops",
+        "algebra-expand"
+      ],
+      "misconceptions": [
+        "cancel-term"
+      ],
+      "genomeWords": 41,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 3,
+      "medianExplanationWords": 74,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "cancel-term"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "iteration",
+      "subject": "maths",
+      "stage": 4,
+      "title": "Numerical iteration",
+      "prereqs": [
+        "quadratics",
+        "functions"
+      ],
+      "misconceptions": [],
+      "genomeWords": 44,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 53,
+      "minExplanationWords": 10,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "circle-geometry-adv",
+      "subject": "maths",
+      "stage": 4,
+      "title": "Advanced circle geometry",
+      "prereqs": [
+        "circle-theorems"
+      ],
+      "misconceptions": [
+        "alt-seg",
+        "same-seg"
+      ],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 48,
+      "minExplanationWords": 21,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "alt-seg",
+        "same-seg"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "number-bases",
+      "subject": "maths",
+      "stage": 2,
+      "title": "Number bases & binary",
+      "prereqs": [
+        "place-value"
+      ],
+      "misconceptions": [],
+      "genomeWords": 43,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 55,
+      "minExplanationWords": 8,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "logic-maths",
+      "subject": "maths",
+      "stage": 3,
+      "title": "Logic & truth tables",
+      "prereqs": [
+        "sets-venn"
+      ],
+      "misconceptions": [],
+      "genomeWords": 49,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 13,
+      "medianExplanationWords": 50,
+      "minExplanationWords": 22,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "forces-basics",
+      "subject": "physics",
+      "stage": 1,
+      "title": "Forces",
+      "prereqs": [],
+      "misconceptions": [
+        "bal-motion"
+      ],
+      "genomeWords": 44,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 21,
+      "minExplanationWords": 7,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "bal-motion"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "motion-graphs",
+      "subject": "physics",
+      "stage": 1,
+      "title": "Motion",
+      "prereqs": [
+        "forces-basics",
+        "straight-lines"
+      ],
+      "misconceptions": [
+        "dt-vt"
+      ],
+      "genomeWords": 46,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 16,
+      "minExplanationWords": 9,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "dt-vt"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "newton-laws",
+      "subject": "physics",
+      "stage": 2,
+      "title": "Newton's laws",
+      "prereqs": [
+        "forces-basics",
+        "motion-graphs"
+      ],
+      "misconceptions": [
+        "fma-v"
+      ],
+      "genomeWords": 52,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 10,
+      "minExplanationWords": 9,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "fma-v"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "momentum",
+      "subject": "physics",
+      "stage": 3,
+      "title": "Momentum & collisions",
+      "prereqs": [
+        "newton-laws"
+      ],
+      "misconceptions": [
+        "con-pair"
+      ],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 15,
+      "minExplanationWords": 8,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "con-pair"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "energy-conservation",
+      "subject": "physics",
+      "stage": 1,
+      "title": "Energy",
+      "prereqs": [],
+      "misconceptions": [
+        "ke-mass"
+      ],
+      "genomeWords": 46,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 29,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "ke-mass"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "work-power",
+      "subject": "physics",
+      "stage": 2,
+      "title": "Work, power & efficiency",
+      "prereqs": [
+        "energy-conservation"
+      ],
+      "misconceptions": [
+        "eff-frac"
+      ],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 27,
+      "minExplanationWords": 4,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "eff-frac"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "waves-basics",
+      "subject": "physics",
+      "stage": 1,
+      "title": "Waves",
+      "prereqs": [],
+      "misconceptions": [
+        "freq-pitch"
+      ],
+      "genomeWords": 38,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 11,
+      "minExplanationWords": 3,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "freq-pitch"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "light-optics",
+      "subject": "physics",
+      "stage": 2,
+      "title": "Light & optics",
+      "prereqs": [
+        "waves-basics",
+        "trig-ratios"
+      ],
+      "misconceptions": [
+        "norm-miss"
+      ],
+      "genomeWords": 47,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 27,
+      "minExplanationWords": 19,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "norm-miss"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "sound-acoustics",
+      "subject": "physics",
+      "stage": 2,
+      "title": "Sound",
+      "prereqs": [
+        "waves-basics"
+      ],
+      "misconceptions": [
+        "sound-vac"
+      ],
+      "genomeWords": 39,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 9,
+      "medianExplanationWords": 24,
+      "minExplanationWords": 6,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "sound-vac"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "electricity-circuits",
+      "subject": "physics",
+      "stage": 2,
+      "title": "Circuits",
+      "prereqs": [
+        "energy-conservation"
+      ],
+      "misconceptions": [
+        "series-par"
+      ],
+      "genomeWords": 47,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 18,
+      "minExplanationWords": 3,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "series-par"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "magnetism",
+      "subject": "physics",
+      "stage": 2,
+      "title": "Magnetism",
+      "prereqs": [],
+      "misconceptions": [
+        "motor-gen"
+      ],
+      "genomeWords": 51,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 20,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "motor-gen"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "em-induction",
+      "subject": "physics",
+      "stage": 3,
+      "title": "Electromagnetic induction",
+      "prereqs": [
+        "magnetism",
+        "electricity-circuits"
+      ],
+      "misconceptions": [
+        "motor-gen"
+      ],
+      "genomeWords": 52,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 9,
+      "medianExplanationWords": 26,
+      "minExplanationWords": 15,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "motor-gen"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "thermal-physics",
+      "subject": "physics",
+      "stage": 2,
+      "title": "Thermal physics",
+      "prereqs": [
+        "energy-conservation"
+      ],
+      "misconceptions": [
+        "heat-temp"
+      ],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 25,
+      "minExplanationWords": 11,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "heat-temp"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "pressure-fluids",
+      "subject": "physics",
+      "stage": 2,
+      "title": "Pressure & density",
+      "prereqs": [
+        "forces-basics"
+      ],
+      "misconceptions": [],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 35,
+      "minExplanationWords": 18,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "radioactivity",
+      "subject": "physics",
+      "stage": 3,
+      "title": "Radioactivity",
+      "prereqs": [
+        "atoms-nucleus",
+        "growth-decay"
+      ],
+      "misconceptions": [
+        "half-life"
+      ],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 14,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "half-life"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "astrophysics",
+      "subject": "physics",
+      "stage": 3,
+      "title": "Space & astrophysics",
+      "prereqs": [
+        "gravity-fields",
+        "waves-basics"
+      ],
+      "misconceptions": [],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 30,
+      "minExplanationWords": 20,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "atoms-nucleus",
+      "subject": "physics",
+      "stage": 2,
+      "title": "Atomic structure",
+      "prereqs": [
+        "electricity-circuits"
+      ],
+      "misconceptions": [],
+      "genomeWords": 40,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 12,
+      "medianExplanationWords": 18,
+      "minExplanationWords": 10,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "gravity-fields",
+      "subject": "physics",
+      "stage": 2,
+      "title": "Gravity & orbits",
+      "prereqs": [
+        "newton-laws",
+        "proportion"
+      ],
+      "misconceptions": [
+        "bal-motion"
+      ],
+      "genomeWords": 38,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 23,
+      "minExplanationWords": 16,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "bal-motion"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "atoms-elements",
+      "subject": "chemistry",
+      "stage": 0,
+      "title": "Atoms & elements",
+      "prereqs": [],
+      "misconceptions": [],
+      "genomeWords": 38,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 22,
+      "minExplanationWords": 16,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "compounds-mixtures",
+      "subject": "chemistry",
+      "stage": 1,
+      "title": "Compounds & mixtures",
+      "prereqs": [
+        "atoms-elements"
+      ],
+      "misconceptions": [],
+      "genomeWords": 36,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 18,
+      "medianExplanationWords": 21,
+      "minExplanationWords": 20,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "periodic-table",
+      "subject": "chemistry",
+      "stage": 1,
+      "title": "The periodic table",
+      "prereqs": [
+        "atoms-elements",
+        "electron-shells"
+      ],
+      "misconceptions": [
+        "group-trend"
+      ],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 15,
+      "medianExplanationWords": 25,
+      "minExplanationWords": 15,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "group-trend"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "electron-shells",
+      "subject": "chemistry",
+      "stage": 1,
+      "title": "Electron configuration",
+      "prereqs": [
+        "atoms-elements"
+      ],
+      "misconceptions": [],
+      "genomeWords": 43,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 19,
+      "medianExplanationWords": 13,
+      "minExplanationWords": 10,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "ionic-bonding",
+      "subject": "chemistry",
+      "stage": 2,
+      "title": "Ionic bonding",
+      "prereqs": [
+        "electron-shells"
+      ],
+      "misconceptions": [],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 17,
+      "medianExplanationWords": 22,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "covalent-bonding",
+      "subject": "chemistry",
+      "stage": 2,
+      "title": "Covalent bonding",
+      "prereqs": [
+        "electron-shells"
+      ],
+      "misconceptions": [],
+      "genomeWords": 42,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 11,
+      "medianExplanationWords": 27,
+      "minExplanationWords": 18,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "metallic-bonding",
+      "subject": "chemistry",
+      "stage": 2,
+      "title": "Metals & alloys",
+      "prereqs": [
+        "ionic-bonding"
+      ],
+      "misconceptions": [],
+      "genomeWords": 42,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 18,
+      "medianExplanationWords": 29,
+      "minExplanationWords": 21,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "moles-calcs",
+      "subject": "chemistry",
+      "stage": 2,
+      "title": "The mole & calculations",
+      "prereqs": [
+        "compounds-mixtures",
+        "proportion"
+      ],
+      "misconceptions": [
+        "mr-mass"
+      ],
+      "genomeWords": 37,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 13,
+      "medianExplanationWords": 24,
+      "minExplanationWords": 4,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "mr-mass"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "equations-stoich",
+      "subject": "chemistry",
+      "stage": 2,
+      "title": "Chemical equations",
+      "prereqs": [
+        "atoms-elements",
+        "linear-equations"
+      ],
+      "misconceptions": [
+        "mass-balance"
+      ],
+      "genomeWords": 39,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 12,
+      "medianExplanationWords": 24,
+      "minExplanationWords": 14,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "mass-balance"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "rates-reaction",
+      "subject": "chemistry",
+      "stage": 2,
+      "title": "Rates of reaction",
+      "prereqs": [
+        "energy-conservation"
+      ],
+      "misconceptions": [],
+      "genomeWords": 40,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 23,
+      "minExplanationWords": 16,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "energy-changes",
+      "subject": "chemistry",
+      "stage": 3,
+      "title": "Energy changes & bonding",
+      "prereqs": [
+        "rates-reaction",
+        "energy-conservation"
+      ],
+      "misconceptions": [],
+      "genomeWords": 37,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 11,
+      "medianExplanationWords": 17,
+      "minExplanationWords": 6,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "acids-bases",
+      "subject": "chemistry",
+      "stage": 2,
+      "title": "Acids, bases & salts",
+      "prereqs": [
+        "compounds-mixtures",
+        "ionic-bonding"
+      ],
+      "misconceptions": [
+        "strong-conc"
+      ],
+      "genomeWords": 36,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 29,
+      "minExplanationWords": 18,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "strong-conc"
+      ],
+      "fallback": true
+    },
+    {
+      "id": "electrolysis",
+      "subject": "chemistry",
+      "stage": 3,
+      "title": "Electrolysis",
+      "prereqs": [
+        "ionic-bonding",
+        "electricity-circuits"
+      ],
+      "misconceptions": [],
+      "genomeWords": 40,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 9,
+      "medianExplanationWords": 41,
+      "minExplanationWords": 15,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "organic-intro",
+      "subject": "chemistry",
+      "stage": 3,
+      "title": "Organic chemistry",
+      "prereqs": [
+        "covalent-bonding"
+      ],
+      "misconceptions": [],
+      "genomeWords": 42,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 17,
+      "minExplanationWords": 16,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "equilibria",
+      "subject": "chemistry",
+      "stage": 4,
+      "title": "Reversible reactions & equilibrium",
+      "prereqs": [
+        "rates-reaction",
+        "energy-changes"
+      ],
+      "misconceptions": [],
+      "genomeWords": 46,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 27,
+      "minExplanationWords": 25,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "analysis-tests",
+      "subject": "chemistry",
+      "stage": 3,
+      "title": "Chemical analysis",
+      "prereqs": [
+        "atoms-elements",
+        "compounds-mixtures"
+      ],
+      "misconceptions": [],
+      "genomeWords": 44,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 18,
+      "medianExplanationWords": 36,
+      "minExplanationWords": 18,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "cells",
+      "subject": "biology",
+      "stage": 0,
+      "title": "Cells",
+      "prereqs": [],
+      "misconceptions": [],
+      "genomeWords": 45,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 18,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "microscopy",
+      "subject": "biology",
+      "stage": 1,
+      "title": "Microscopy",
+      "prereqs": [
+        "cells",
+        "standard-form"
+      ],
+      "misconceptions": [],
+      "genomeWords": 38,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 32,
+      "minExplanationWords": 17,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "enzymes",
+      "subject": "biology",
+      "stage": 1,
+      "title": "Enzymes",
+      "prereqs": [
+        "cells",
+        "proportion"
+      ],
+      "misconceptions": [],
+      "genomeWords": 47,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 26,
+      "minExplanationWords": 16,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "digestion",
+      "subject": "biology",
+      "stage": 1,
+      "title": "Digestion",
+      "prereqs": [
+        "enzymes"
+      ],
+      "misconceptions": [],
+      "genomeWords": 38,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 22,
+      "minExplanationWords": 14,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "circulation",
+      "subject": "biology",
+      "stage": 2,
+      "title": "Circulatory system",
+      "prereqs": [
+        "cells",
+        "pressure-fluids"
+      ],
+      "misconceptions": [],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 19,
+      "minExplanationWords": 17,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "breathing-gas",
+      "subject": "biology",
+      "stage": 1,
+      "title": "Gas exchange",
+      "prereqs": [
+        "cells",
+        "diffusion"
+      ],
+      "misconceptions": [],
+      "genomeWords": 42,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 20,
+      "minExplanationWords": 6,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "diffusion",
+      "subject": "biology",
+      "stage": 1,
+      "title": "Diffusion, osmosis & transport",
+      "prereqs": [
+        "cells"
+      ],
+      "misconceptions": [],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 14,
+      "medianExplanationWords": 21,
+      "minExplanationWords": 9,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "photosynthesis",
+      "subject": "biology",
+      "stage": 1,
+      "title": "Photosynthesis",
+      "prereqs": [
+        "enzymes"
+      ],
+      "misconceptions": [],
+      "genomeWords": 38,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 21,
+      "minExplanationWords": 14,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "respiration",
+      "subject": "biology",
+      "stage": 1,
+      "title": "Respiration",
+      "prereqs": [
+        "enzymes",
+        "energy-conservation"
+      ],
+      "misconceptions": [],
+      "genomeWords": 42,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 22,
+      "minExplanationWords": 14,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "nervous-system",
+      "subject": "biology",
+      "stage": 2,
+      "title": "Nervous system",
+      "prereqs": [
+        "cells"
+      ],
+      "misconceptions": [],
+      "genomeWords": 37,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 21,
+      "minExplanationWords": 16,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "hormones",
+      "subject": "biology",
+      "stage": 2,
+      "title": "Hormones & homeostasis",
+      "prereqs": [
+        "nervous-system",
+        "diffusion"
+      ],
+      "misconceptions": [],
+      "genomeWords": 37,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 7,
+      "medianExplanationWords": 36,
+      "minExplanationWords": 11,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "genetics",
+      "subject": "biology",
+      "stage": 2,
+      "title": "Genetics & inheritance",
+      "prereqs": [
+        "cells",
+        "probability-basics"
+      ],
+      "misconceptions": [],
+      "genomeWords": 49,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 14,
+      "medianExplanationWords": 25,
+      "minExplanationWords": 14,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "evolution",
+      "subject": "biology",
+      "stage": 3,
+      "title": "Evolution & selection",
+      "prereqs": [
+        "genetics"
+      ],
+      "misconceptions": [],
+      "genomeWords": 47,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 21,
+      "minExplanationWords": 9,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "ecosystems",
+      "subject": "biology",
+      "stage": 2,
+      "title": "Ecosystems & cycles",
+      "prereqs": [
+        "photosynthesis",
+        "respiration"
+      ],
+      "misconceptions": [],
+      "genomeWords": 40,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 21,
+      "minExplanationWords": 17,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "biodiversity",
+      "subject": "biology",
+      "stage": 3,
+      "title": "Biodiversity & human impact",
+      "prereqs": [
+        "ecosystems"
+      ],
+      "misconceptions": [],
+      "genomeWords": 40,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 24,
+      "minExplanationWords": 2,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "immune-health",
+      "subject": "biology",
+      "stage": 3,
+      "title": "Health, disease & immunity",
+      "prereqs": [
+        "cells",
+        "evolution"
+      ],
+      "misconceptions": [],
+      "genomeWords": 43,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 8,
+      "medianExplanationWords": 22,
+      "minExplanationWords": 18,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "what-is-code",
+      "subject": "computing",
+      "stage": 0,
+      "title": "What is code?",
+      "prereqs": [],
+      "misconceptions": [],
+      "genomeWords": 55,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 16,
+      "medianExplanationWords": 28,
+      "minExplanationWords": 18,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "variables",
+      "subject": "computing",
+      "stage": 0,
+      "title": "Variables & types",
+      "prereqs": [
+        "what-is-code"
+      ],
+      "misconceptions": [],
+      "genomeWords": 33,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 19,
+      "minExplanationWords": 12,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "conditionals",
+      "subject": "computing",
+      "stage": 0,
+      "title": "Conditionals",
+      "prereqs": [
+        "variables"
+      ],
+      "misconceptions": [],
+      "genomeWords": 36,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 14,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "loops",
+      "subject": "computing",
+      "stage": 0,
+      "title": "Loops",
+      "prereqs": [
+        "variables"
+      ],
+      "misconceptions": [],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 16,
+      "minExplanationWords": 9,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "lists-arrays",
+      "subject": "computing",
+      "stage": 1,
+      "title": "Lists & arrays",
+      "prereqs": [
+        "variables",
+        "loops"
+      ],
+      "misconceptions": [],
+      "genomeWords": 50,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 18,
+      "minExplanationWords": 12,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "functions-code",
+      "subject": "computing",
+      "stage": 1,
+      "title": "Functions & decomposition",
+      "prereqs": [
+        "variables",
+        "conditionals"
+      ],
+      "misconceptions": [],
+      "genomeWords": 37,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 8,
+      "minExplanationWords": 8,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "dictionaries",
+      "subject": "computing",
+      "stage": 1,
+      "title": "Dictionaries & hashing",
+      "prereqs": [
+        "lists-arrays"
+      ],
+      "misconceptions": [],
+      "genomeWords": 45,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 9,
+      "medianExplanationWords": 23,
+      "minExplanationWords": 17,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "algorithms-search",
+      "subject": "computing",
+      "stage": 2,
+      "title": "Searching algorithms",
+      "prereqs": [
+        "lists-arrays",
+        "conditionals"
+      ],
+      "misconceptions": [],
+      "genomeWords": 44,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 9,
+      "medianExplanationWords": 15,
+      "minExplanationWords": 12,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "algorithms-sort",
+      "subject": "computing",
+      "stage": 2,
+      "title": "Sorting algorithms",
+      "prereqs": [
+        "algorithms-search"
+      ],
+      "misconceptions": [],
+      "genomeWords": 43,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 29,
+      "minExplanationWords": 24,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "recursion",
+      "subject": "computing",
+      "stage": 3,
+      "title": "Recursion",
+      "prereqs": [
+        "functions-code"
+      ],
+      "misconceptions": [],
+      "genomeWords": 39,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 17,
+      "minExplanationWords": 16,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "complexity",
+      "subject": "computing",
+      "stage": 3,
+      "title": "Computational thinking & Big-O",
+      "prereqs": [
+        "algorithms-sort",
+        "functions-code"
+      ],
+      "misconceptions": [],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 24,
+      "minExplanationWords": 17,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "binary-data",
+      "subject": "computing",
+      "stage": 1,
+      "title": "Binary & data representation",
+      "prereqs": [
+        "number-bases"
+      ],
+      "misconceptions": [],
+      "genomeWords": 44,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 10,
+      "medianExplanationWords": 21,
+      "minExplanationWords": 8,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "networks",
+      "subject": "computing",
+      "stage": 2,
+      "title": "Networks & the internet",
+      "prereqs": [
+        "binary-data"
+      ],
+      "misconceptions": [],
+      "genomeWords": 42,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 6,
+      "medianExplanationWords": 21,
+      "minExplanationWords": 11,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "cybersecurity",
+      "subject": "computing",
+      "stage": 2,
+      "title": "Cybersecurity",
+      "prereqs": [
+        "networks",
+        "logic-maths"
+      ],
+      "misconceptions": [],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 9,
+      "medianExplanationWords": 35,
+      "minExplanationWords": 22,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "databases-sql",
+      "subject": "computing",
+      "stage": 3,
+      "title": "Databases",
+      "prereqs": [
+        "dictionaries"
+      ],
+      "misconceptions": [],
+      "genomeWords": 44,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 19,
+      "medianExplanationWords": 18,
+      "minExplanationWords": 18,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "web-stack",
+      "subject": "computing",
+      "stage": 2,
+      "title": "How the web works",
+      "prereqs": [
+        "networks"
+      ],
+      "misconceptions": [],
+      "genomeWords": 51,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "numeric": 20,
+        "choice": 20
+      },
+      "uniquePromptTemplates": 14,
+      "medianExplanationWords": 24,
+      "minExplanationWords": 14,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "ai-basics",
+      "subject": "computing",
+      "stage": 3,
+      "title": "AI & machine learning",
+      "prereqs": [
+        "complexity",
+        "statistics-data"
+      ],
+      "misconceptions": [],
+      "genomeWords": 47,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 5,
+      "medianExplanationWords": 27,
+      "minExplanationWords": 13,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [],
+      "fallback": true
+    },
+    {
+      "id": "statistics-data",
+      "subject": "computing",
+      "stage": 2,
+      "title": "Data analysis & statistics",
+      "prereqs": [
+        "averages",
+        "lists-arrays"
+      ],
+      "misconceptions": [
+        "outlier-mean"
+      ],
+      "genomeWords": 48,
+      "hasPlan": false,
+      "planWords": 0,
+      "ideas": 0,
+      "traps": 0,
+      "planFigure": "",
+      "planCaption": 0,
+      "review": "none",
+      "teachingLangs": [],
+      "draws": 40,
+      "kinds": {
+        "choice": 20,
+        "numeric": 20
+      },
+      "uniquePromptTemplates": 4,
+      "medianExplanationWords": 19,
+      "minExplanationWords": 18,
+      "choiceDraws": 20,
+      "fourOptionDraws": 20,
+      "duplicateOptionDraws": 0,
+      "questionFigures": 0,
+      "tags": [
+        "outlier-mean"
+      ],
+      "fallback": true
+    }
+  ]
+}

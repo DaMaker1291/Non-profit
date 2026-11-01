@@ -158,9 +158,9 @@ export function answerDisplay(q: Question): string {
  * The one asymmetry, and it is the whole subtlety: an UNORDERED pair of ROOTS is
  * one answer — `x = 1 and x = -2` says the same thing as `x = -2 and x = 1`,
  * because roots are a set — while a pair of bare numbers is an ORDERED tuple,
- * because `Balance: __ Fe + O₂ → __ Fe₂O₃` with the options `4 and 3` and `3 and
- * 4` is asking about 4 Fe + 3 O₂ versus 3 Fe + 4 O₂, which are different (and
- * only one of them balances). Sorting every pair would delete a good distractor;
+ * because `Balance: __ Fe + O₂ → __ Fe₂O₃` with the options `4 and 2` and `2 and
+ * 4` is asking about 4 Fe + 2 Fe₂O₃ versus 2 Fe + 4 Fe₂O₃, which are different
+ * (and only one of them balances). Sorting every pair would delete a good distractor;
  * sorting none would keep a correct option beside the key.
  *
  * Null means "not a value" (prose, a unit-bearing measurement, an expression)

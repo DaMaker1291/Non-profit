@@ -3416,7 +3416,7 @@ export const DEEP_GENS: Record<string, DeepGen> = {
         ["__ H₂ + O₂ → __ H₂O", "2 and 2", ["1 and 1", "2 and 1", "4 and 2"]],
         ["__ Mg + O₂ → __ MgO", "2 and 2", ["1 and 1", "2 and 1", "4 and 4"]],
         ["__ Al + __ Cl₂ → AlCl₃", "2 and 3", ["3 and 2", "1 and 1", "2 and 2"]],
-        ["__ Fe + O₂ → __ Fe₂O₃", "4 and 3", ["3 and 4", "2 and 3", "1 and 1"]],
+        ["__ Fe + O₂ → __ Fe₂O₃", "4 and 2", ["4 and 3", "3 and 4", "1 and 1"]],
         ["__ C₃H₈ + __ O₂ → 3CO₂ + 4H₂O", "1 and 5", ["1 and 3", "3 and 5", "1 and 7"]],
       ];
       const [blank, correct, wrong] = eqs[r.int(0, eqs.length - 1)];

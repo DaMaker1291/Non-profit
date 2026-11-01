@@ -48,6 +48,12 @@ export function recordAnswer(
      *  the retention block below. */
     source?: "retrieval";
     lang?: string;
+    /** MARKS, WHEN THE ANSWER WAS MARKED AGAINST A SCHEME. A 5/6 and a 0/6 are
+     *  both `correct: false` for mastery purposes, and they are not the same
+     *  answer: without this tally the model cannot tell a learner who nearly had
+     *  it from one who had nothing. Optional, so an answer with no scheme is
+     *  unchanged and a record written before this field still reads. */
+    score?: { awarded: number; max: number };
   },
   /** The answer's clock, in ms. Callers that also mint a ledger event for the
    *  same answer MUST pass the event's stamp here — one answer, one time. The
@@ -66,6 +72,16 @@ export function recordAnswer(
   if (correct) p.correct += 1;
   p.lastSeen = at ?? Date.now();
   if (!correct) for (const t of tags) p.misconceptions[t] = (p.misconceptions[t] ?? 0) + 1;
+  // THE MARK TALLY IS ADDITIVE AND REPLAYABLE, and both fields are DECLARED on
+  // ConceptProgress (lib/types.ts). They used to be attached through a narrow
+  // cast here, which kept them out of the contract every other reader and every
+  // stored record is typed by; an optional declared field keeps old records
+  // loadable while making the tally visible to the type system.
+  if (meta?.score && Number.isFinite(meta.score.max) && meta.score.max > 0) {
+    const awarded = Math.max(0, Math.min(meta.score.awarded, meta.score.max));
+    p.marksAwarded = (p.marksAwarded ?? 0) + awarded;
+    p.marksAvailable = (p.marksAvailable ?? 0) + meta.score.max;
+  }
   // Independence vs transfer evidence: only hint-free answers count as proof.
   const hints = meta?.hints ?? 0;
   // Scaffolding demand, in the form the ledger can reproduce.

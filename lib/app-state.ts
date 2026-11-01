@@ -354,6 +354,10 @@ const ACCESS: Record<string, AccessRequirement> = {
   "/rooms": "public",
   "/hub": "public",
   "/teacher": "public",
+  // The pilot readiness and teacher-preview pages are public CONTENT: they
+  // expose no learner record, start no session and write nothing. A reviewer
+  // must be able to open them without an account.
+  "/pilot": "public",
   // Onboarding is where signed-out and un-enrolled learners are SENT, so it
   // can never require anything — otherwise every redirect would loop.
   "/onboarding": "public",

@@ -89,6 +89,13 @@ const FIGURED = [
   ["surds", "surd-square"],
   ["indices-intro", null],
   ["linear-equations", "balance"],
+  // The four science lessons added to the CBSE pilot candidate. `cells` and
+  // `equations-stoich` deliberately carry no figure; photosynthesis and
+  // circuits do, and the walk measures those drawings at both widths.
+  ["cells", null],
+  ["photosynthesis", "axes"],
+  ["equations-stoich", null],
+  ["electricity-circuits", "axes"],
 ];
 
 /** Every kind the figure union declares. A plan may only draw one of these. */
@@ -438,6 +445,61 @@ async function main() {
     const stageText = await p.allText();
     check(/Not yet checked by a subject teacher/.test(stageText),
       "and the page says the plan has not been subject-reviewed, on the screen rather than in a document");
+
+    // ── 3b. THE PHONE'S CHROME MUST NOT EAT THE LESSON ──────────────────────
+    // The native <details> menu is closed until More is pressed. Its author
+    // `display:grid` rule outranked the browser's closed-details rule, leaving a
+    // live 200×576px panel over the right side of the lesson. This measures the
+    // rendered state, not the source rule: a closed menu has no hit area, and an
+    // open one stays inside the phone.
+    section("The phone's More menu does not cover the lesson");
+    await viewport(390, 844);
+    await goto(`${BASE}/learn/maths/fractions`);
+    await p.waitFor(`return !!document.querySelector(".bottomnav .nav-overflow");`, "the phone navigation", 25000);
+    const phoneNav = await p.evaluate(`
+      const d = document.querySelector(".bottomnav .nav-overflow");
+      const m = d?.querySelector(".nav-overflow-menu");
+      const closedDisplay = m ? getComputedStyle(m).display : null;
+      const closedHit = document.elementFromPoint(innerWidth - 8, 415);
+      if (d) d.open = true;
+      const r = m?.getBoundingClientRect();
+      const openDisplay = m ? getComputedStyle(m).display : null;
+      const inside = r ? r.left >= -1 && r.right <= innerWidth + 1 : false;
+      if (d) d.open = false;
+      return {
+        closedDisplay,
+        openDisplay,
+        inside,
+        hitMenu: !!closedHit?.closest?.(".nav-overflow-menu"),
+      };
+    `);
+    check(phoneNav.closedDisplay === "none" && !phoneNav.hitMenu,
+      `a closed More menu has no live panel over the lesson (${phoneNav.closedDisplay}, hit=${phoneNav.hitMenu})`);
+    check(phoneNav.openDisplay === "grid" && phoneNav.inside,
+      `an open More menu stays inside the 390px screen (${phoneNav.openDisplay}, inside=${phoneNav.inside})`);
+
+    // The read stage is several thousand pixels tall on a phone. Pressing the
+    // final door must show the practice at its top, not preserve the old scroll
+    // offset and leave the learner staring at the bottom of a shorter screen.
+    section("The phone's practice door starts at the top");
+    await goto(`${BASE}/learn/maths/fractions`);
+    await p.waitFor(`return !!${door};`, "the practice door on a phone", 25000);
+    await p.evaluate(`window.scrollTo(0, document.body.scrollHeight); return true;`);
+    const beforeDoor = await p.evaluate(`return window.scrollY;`);
+    await p.clickExpr(door, "the practice door at the foot of the lesson");
+    await p.waitFor(`return !!document.querySelector(".sess-step-row");`, "the practice view", 20000);
+    await p.waitFor(`return window.scrollY < 10;`, "the practice view at the top", 10000);
+    const afterDoor = await p.evaluate(`return window.scrollY;`);
+    check(beforeDoor > 1000 && afterDoor < 10,
+      `the door moves from the lesson's foot to the practice top (${beforeDoor} → ${afterDoor})`);
+
+    // Section 4 reads the worked example on the page section 3 opened. Restore
+    // that page and width: the phone check above deliberately changed both, and
+    // a missing restoration would make the next section fail for a harness
+    // reason rather than a product one.
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/maths/negatives`);
+    await p.waitFor(`return !!document.querySelector(".plan-objective");`, "the negatives read stage again", 30000);
 
     // ── 4. The worked example, and the fade ─────────────────────────────────
     section("The worked example shows the method, and the fade withholds it");

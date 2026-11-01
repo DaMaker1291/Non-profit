@@ -27,7 +27,7 @@ import { recentAnswers } from "../evidence-view";
 // What a class may be measured against: the curriculum it DECLARED, narrowed to
 // concepts the bank can serve. Never a default subject, and never a curriculum
 // the class never named.
-import { assignableConcepts } from "./assignment-view";
+import { curriculumConcepts } from "./assignment-view";
 import { readEvidence } from "./evidence";
 import type { ClassRoster, ClassMemberLive, ClassMemberEvidence, ProfileState } from "../types";
 
@@ -240,7 +240,7 @@ export async function memberEvidence(cls: ClassRoster, handle: string, state: Pr
   // The curriculum the CLASS declared. An entry can exist in `byConcept` with
   // no answer on it (a hint action alone creates one), so "measured" is
   // `attempts > 0` — never the mere presence of an entry.
-  const curriculum = cls.subject ? assignableConcepts(cls.subject, cls.specificationId) : [];
+  const curriculum = cls.subject ? curriculumConcepts(cls.subject, cls.specificationId) : [];
 
   const concepts: ClassMemberEvidence["concepts"] = [];
   for (const [conceptId, c] of Object.entries(p.byConcept)) {

@@ -242,6 +242,8 @@ interface MarkBody {
   structuredAnswers?: Record<string, string[]>;
   /** Typed working for those parts: the only evidence a method mark can rest on. */
   structuredWorking?: Record<string, string[]>;
+  /** Answers to the bank's numeric-response questions, keyed by question id. */
+  numericAnswers?: Record<string, string>;
   id?: string;
   secret?: string;
   lang?: string;
@@ -270,7 +272,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     ? body.structuredAnswers : {};
   const structuredWorking = body.structuredWorking && typeof body.structuredWorking === "object"
     ? body.structuredWorking : {};
-  const result = markPaper(key, answers, structuredAnswers, structuredWorking);
+  const numericAnswers = body.numericAnswers && typeof body.numericAnswers === "object"
+    ? body.numericAnswers : {};
+  const result = markPaper(key, answers, structuredAnswers, structuredWorking, numericAnswers);
 
   // Feed the learner model when we know whose paper it is.
   const profile = await authorisedProfile(req, body.id ?? null, body.secret ?? null);

@@ -671,7 +671,7 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 .bottomnav .glyph svg { width: 22px; height: 22px; display: block; }
 .bottomnav a.active { color: var(--text); }
 .bottomnav a.active .glyph { color: var(--accent); }
-.bottomnav .nav-overflow { flex: 1; position: static; }
+.bottomnav .nav-overflow { flex: 1; position: relative; }
 
 /* Utility pages fold into a ⋯ overflow: the bar stays a learning bar. A
    native <details> — no JS state, keyboard and screen-reader support free. */
@@ -710,6 +710,22 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
   background: var(--surface); border: 2px solid var(--ui-strong); border-radius: var(--radius-card);
   box-shadow: 0 -8px 22px rgba(23, 41, 59, 0.16);
   padding: 6px; display: grid;
+}
+/* A CLOSED <details> MUST NOT PAINT ITS MENU. The browser's own rule hides the
+   children of a closed details element, but this module's `display: grid` rule
+   is author CSS and outranks it. Before this line the phone's closed More menu
+   was a live 200x576px panel of links over the right side of every lesson — it
+   sat at z-index 70, so taps on the content underneath opened a utility page
+   instead of the lesson control the learner could see. */
+.nav-overflow:not([open]) > .nav-overflow-menu { display: none; }
+/* THE PHONE'S MENU OPENS FROM THE MORE TAB, INSIDE THE SCREEN. The wrapper is
+   the containing block now, and the menu is aligned to the wrapper's inline
+   end, so the 200px panel grows leftward instead of running 125px past a 390px
+   viewport. */
+.bottomnav .nav-overflow-menu {
+  inset-inline-start: auto; inset-inline-end: 0;
+  min-width: min(200px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
 }
 .nav-overflow-menu a {
   display: block; font-size: var(--t14); font-weight: 600; color: var(--text);

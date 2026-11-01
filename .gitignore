@@ -58,3 +58,8 @@ var/
 /freebuff-sites-build/
 /.open-next/
 /.wrangler/
+
+# Private agent attachments and a stray nested copy of the checkout. Neither is
+# project source; the attachment cache contains imported conversation files.
+.cloud-attachments/
+/NON PROFIT/

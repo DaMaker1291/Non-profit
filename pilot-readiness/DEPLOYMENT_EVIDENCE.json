@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "scope": "cbse-10-maths-science-en",
+  "lessonVersion": "2026-11-01.3",
+  "schoolPartner": null,
+  "legalReview": null,
+  "safeguardingReview": null,
+  "languageReviews": [],
+  "technical": {
+    "durableStore": null,
+    "backupRestore": null,
+    "permissions": null,
+    "offlineJourney": null,
+    "lowResource": null,
+    "accessibility": null
+  },
+  "operations": {
+    "teacherOnboarding": null,
+    "supportContact": null
+  },
+  "learnerEvidence": null,
+  "countryApprovals": [],
+  "notes": "No external evidence is recorded. The deployment gate must fail every stage above pilot-preparation."
+}

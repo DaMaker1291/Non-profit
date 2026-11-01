@@ -37,6 +37,9 @@
 import { bySubject } from "../genome";
 import { hasGenerator } from "../questions";
 import { courseConceptIds, specById } from "../specifications";
+// A complete lesson is the gate on what may be set as work. See
+// `assignableConcepts`: a question bank entry without a lesson is not homework.
+import { lessonStatus } from "../pilot";
 import { PROJECTION_VERSION, type EvidenceEvent } from "../evidence";
 // The proof vocabulary the learner's own feedback uses (§10). A teacher reading
 // "Independent" in the monitor and a learner reading it under their mark must be
@@ -65,13 +68,30 @@ export const ASSIGNMENT_WEAK_RATE = 0.6;
  * assignment from it rather than substituting a curriculum the class never
  * declared.
  */
-export function assignableConcepts(subject: SubjectId, specificationId?: string | null): string[] {
+/** WHAT THE CLASS'S COURSE CONTAINS. This is a CURRICULUM question, not a
+ *  permission question: a teacher's "not yet measured in this course" list must
+ *  keep naming the course's concepts even while none of them may be set as work.
+ *  Keeping the two questions separate is what stopped the approval gate from
+ *  silently emptying the teacher's coverage view. */
+export function curriculumConcepts(subject: SubjectId, specificationId?: string | null): string[] {
   const servable = bySubject(subject).filter((c) => hasGenerator(c.id));
   if (!specificationId) return servable.map((c) => c.id);
   const spec = specById(specificationId);
   if (!spec) return servable.map((c) => c.id);
   const inCourse = courseConceptIds(spec);
   return servable.filter((c) => inCourse.has(c.id)).map((c) => c.id);
+}
+
+/** WHAT A TEACHER MAY SET. A complete authored plan is not enough: until a
+ *  qualified teacher has signed THIS version for THIS scope, the content is a
+ *  candidate, not homework. A question generator is not enough either — 120
+ *  concepts have no plan at all. Both are unassignable, and the class is told
+ *  there is no work to set rather than being handed unreviewed teaching.
+ *  `PILOT_APPROVALS` is empty today, so this list is empty today: that is the
+ *  truthful state, not a bug. */
+export function assignableConcepts(subject: SubjectId, specificationId?: string | null): string[] {
+  return curriculumConcepts(subject, specificationId)
+    .filter((id) => lessonStatus(id).state === "approved-for-pilot");
 }
 
 /**

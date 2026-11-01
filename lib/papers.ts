@@ -32,7 +32,15 @@ import {
   gradeStructuredParts, structuredById, structuredMarks,
   type StructuredPart, type StructuredPartMark,
 } from "./structured-items";
-import type { BoardId, ProfileState, Question, SubjectId } from "./types";
+import { gradeNumeric, parseNumericInput } from "./answer";
+import type { BoardId, NumericTolerance, ProfileState, Question, SubjectId } from "./types";
+
+export interface StructuredPlacement {
+  id: string;
+  section: number;
+  slot?: number;
+  marks: number;
+}
 
 export interface PaperSectionSpec {
   /** Data, not translation: the awarding body's own section label. */
@@ -116,12 +124,12 @@ export interface PaperTemplate {
    *  an awarding body that publishes its papers and hours but not its item
    *  counts, or an exam that does not have a maths-only sitting at all. */
   shapeNote?: string;
-  /** A SLOT THIS BLUEPRINT FILLS WITH A CONSTRUCTED-RESPONSE ITEM. `marks` must
-   *  equal the item's own scheme total AND the mark value of the section slot it
-   *  takes, so adding one can never move the paper's declared total. Absent on
-   *  every paper that has none, which is all of them but one — the first vertical
-   *  slice of a format this engine could not previously serve at all. */
-  structured?: { id: string; marks: number };
+  /** SLOTS THIS BLUEPRINT FILLS WITH CONSTRUCTED-RESPONSE ITEMS. Each `marks`
+   *  must equal the item's own scheme total AND the mark value of the section
+   *  slot it takes, so adding one can never move the paper's declared total.
+   *  `section` is the zero-based index into `sections`, and `slot` its zero-based
+   *  position within that section (default 0). */
+  structured?: StructuredPlacement[];
   /** Specification ids this paper belongs to (validated against the real
    *  specification layer — a paper cannot name a qualification that does not
    *  exist). */
@@ -163,6 +171,53 @@ function paper(
   const total = t.sections.reduce((s, x) => s + x.count * x.marksEach, 0);
   if (t.marks !== undefined && t.marks !== total) {
     throw new Error(`paper ${t.id}: declared ${t.marks} marks but sections total ${total}`);
+  }
+  // A STRUCTURED PLACEMENT IS VALIDATED WHERE IT IS AUTHORED. A slot that points
+  // at a non-existent section, declares a different mark value from the slot it
+  // takes, or names an item whose scheme totals something else must fail here —
+  // at module load — rather than be skipped during a sitting and leave an
+  // MCQ-shaped hole in a paper that claims to be written.
+  if (t.structured) {
+    const seen = new Set<string>();
+    for (const s of t.structured) {
+      const section = t.sections[s.section];
+      if (!section) throw new Error(`paper ${t.id}: structured slot ${s.id} names section ${s.section}, which does not exist`);
+      const slot = s.slot ?? 0;
+      if (!Number.isInteger(slot) || slot < 0 || slot >= section.count) {
+        throw new Error(`paper ${t.id}: structured slot ${s.id} names position ${slot} in a ${section.count}-question section`);
+      }
+      if (s.marks !== section.marksEach) {
+        throw new Error(`paper ${t.id}: structured item ${s.id} is worth ${s.marks} but its slot is worth ${section.marksEach}`);
+      }
+      const item = structuredById(s.id);
+      if (!item) throw new Error(`paper ${t.id}: structured item ${s.id} does not exist`);
+      if (structuredMarks(item) !== s.marks) {
+        throw new Error(`paper ${t.id}: structured item ${s.id} is worth ${structuredMarks(item)}, slot declares ${s.marks}`);
+      }
+      // A CONSTRUCTED ITEM MUST BELONG TO A REAL CONCEPT AND TO THE SUBJECT
+      // THIS PAPER EXAMINES. Otherwise its marks are attributed to an id the
+      // learner model cannot resolve — the one failure a paper must not create.
+      const concept = getConcept(item.conceptId);
+      if (!concept) throw new Error(`paper ${t.id}: structured item ${s.id} names concept ${item.conceptId}, which does not exist`);
+      if (concept.subject !== t.subject) {
+        throw new Error(`paper ${t.id}: structured item ${s.id} is ${concept.subject}, but this is a ${t.subject} paper`);
+      }
+      // ELIGIBILITY IS THE TIER'S, NOT THE LABEL'S. A Higher-only concept in a
+      // Foundation blueprint would be examined on content the candidate has not
+      // been taught, so the blueprint is rejected at load time.
+      if (t.levels) {
+        for (const levelId of t.levels) {
+          const spec = t.specs.map((id) => specById(id)).find((x) => x?.levels.some((l) => l.id === levelId));
+          const level = spec?.levels.find((l) => l.id === levelId);
+          if (spec && level && !coverageOf({ spec, level }).some((c) => c.id === item.conceptId)) {
+            throw new Error(`paper ${t.id}: structured item ${s.id} is ${item.conceptId}, which ${levelId} does not cover`);
+          }
+        }
+      }
+      const at = `${s.section}:${slot}`;
+      if (seen.has(at)) throw new Error(`paper ${t.id}: two structured items occupy section ${s.section} slot ${slot}`);
+      seen.add(at);
+    }
   }
   // A BASIS IS EARNED, NOT DEFAULTED. This used to default to "published", so a
   // blueprint authored before citations were collected told every learner "your
@@ -215,22 +270,28 @@ export const PAPERS: PaperTemplate[] = [
   // written papers at the same tier, each 1 hour 30 minutes and 80 marks (33⅓%):
   // Paper 1 non-calculator, Papers 2 and 3 calculator.
   //
-  // What is NOT AQA's here, and is said on the paper rather than hidden: the item
-  // counts and the per-question marks are OpenMind's pacing to that board time
-  // (`itemCounts: "paced"`), and the section labels are positions in THIS paper
-  // rather than section names AQA uses — an 8300 paper is not divided into named
-  // sections, so calling them "Section A/B/C" invented a structure while wearing
-  // the board's name. Every item is still multiple choice: that is the only format
-  // this engine marks, and the papers page says so.
+  // FOUNDATION AND HIGHER ARE SEPARATE BLUEPRINTS, not one blueprint with a
+  // tier label. The old three AQA rows were shared by both tiers, and a Higher
+  // candidate and a Foundation candidate sat the same paper with different draw
+  // targets. These six rows name `levels`, select different constructed-response
+  // items, and are filtered by `paperAllowedFor` before either tier sees them.
+  // The mark profile and section labels remain OpenMind's pacing to AQA's 90
+  // minutes and 80 marks (`itemCounts: "paced"`), not an official item count.
+  //
+  // CONSTRUCTED RESPONSE IS NOW A SCHEDULE, NOT ONE SLOT. Three written
+  // questions per paper are placed by section and position; a missing authored
+  // item fails paper construction instead of falling back to four options.
   paper({
-    id: "aqa-gcse-maths-p1", name: "GCSE Mathematics — Paper 1 (non-calculator)",
-    board: "aqa", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    id: "aqa-gcse-maths-p1", name: "GCSE Mathematics — Foundation Paper 1 (non-calculator)",
+    board: "aqa", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], levels: ["foundation"], boundaries: GCSE_BOUNDARIES,
     itemCounts: "paced",
-    // The last 6-mark slot of this paper is a written question with a mark
-    // scheme, not four options: one slice of what a real 8300 paper asks for.
-    structured: { id: "sf-lawn-feed", marks: 6 },
+    structured: [
+      { id: "sf-proportion", section: 1, slot: 0, marks: 2 },
+      { id: "sf-expand", section: 2, slot: 0, marks: 3 },
+      { id: "sf-lawn-feed", section: 5, slot: 0, marks: 6 },
+    ],
     shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
-    shapeNote: "AQA 8300 is three written papers at the same tier, each 1 hour 30 minutes and 80 marks (33⅓%): Paper 1 non-calculator, Papers 2 and 3 calculator. The mark profile here — single-mark items rising to one 6-mark written question — is OpenMind's modelling of the published sample materials, not an official mark distribution, and only the final slot is marked as a written response.",
+    shapeNote: "AQA 8300 is three written papers at the same tier, each 1 hour 30 minutes and 80 marks (33⅓%): Paper 1 non-calculator, Papers 2 and 3 calculator. This Foundation row has three authored constructed-response questions plus numeric-response items drawn from the bank. The item counts and per-question marks are OpenMind's pacing, not an official mark distribution.",
     // THE MARK PROFILE IS THE FORMAT. A paper of 2-, 4- and 6-mark questions
     // cannot ask what an 8300 paper asks: the single-mark items are where recall
     // and short technique live, and the rising tail is where the multi-step work
@@ -245,11 +306,16 @@ export const PAPERS: PaperTemplate[] = [
     ],
   }),
   paper({
-    id: "aqa-gcse-maths-p2", name: "GCSE Mathematics — Paper 2 (calculator)",
-    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    id: "aqa-gcse-maths-p2", name: "GCSE Mathematics — Foundation Paper 2 (calculator)",
+    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], levels: ["foundation"], boundaries: GCSE_BOUNDARIES,
     itemCounts: "paced",
+    structured: [
+      { id: "sf-proportion", section: 1, slot: 0, marks: 2 },
+      { id: "sf-table-line", section: 3, slot: 0, marks: 4 },
+      { id: "sf-plot-line", section: 5, slot: 0, marks: 6 },
+    ],
     shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
-    shapeNote: "Paper 2 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification.",
+    shapeNote: "Paper 2 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification. The constructed-response slots cover a table of values and a plotted straight line.",
     sections: [
       { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.32 },
       { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.44 },
@@ -260,11 +326,16 @@ export const PAPERS: PaperTemplate[] = [
     ],
   }),
   paper({
-    id: "aqa-gcse-maths-p3", name: "GCSE Mathematics — Paper 3 (calculator)",
-    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+    id: "aqa-gcse-maths-p3", name: "GCSE Mathematics — Foundation Paper 3 (calculator)",
+    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], levels: ["foundation"], boundaries: GCSE_BOUNDARIES,
     itemCounts: "paced",
+    structured: [
+      { id: "sf-expand", section: 2, slot: 0, marks: 3 },
+      { id: "sf-angle-chain", section: 4, slot: 0, marks: 5 },
+      { id: "sf-line-graph", section: 5, slot: 0, marks: 6 },
+    ],
     shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
-    shapeNote: "Paper 3 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification.",
+    shapeNote: "Paper 3 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification. The constructed-response slots cover algebra, angle facts and straight-line equations.",
     sections: [
       { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.34 },
       { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.46 },
@@ -272,6 +343,67 @@ export const PAPERS: PaperTemplate[] = [
       { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.72 },
       { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.82 },
       { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.9 },
+    ],
+  }),
+  // ── HIGHER: THE SAME THREE PAPERS, A DIFFERENT SET OF BLUEPRINTS ──────────
+  paper({
+    id: "aqa-gcse-maths-higher-p1", name: "GCSE Mathematics — Higher Paper 1 (non-calculator)",
+    board: "aqa", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], levels: ["higher"], boundaries: GCSE_BOUNDARIES,
+    itemCounts: "paced",
+    structured: [
+      { id: "hf-surds", section: 1, slot: 0, marks: 2 },
+      { id: "hf-algebra", section: 2, slot: 0, marks: 3 },
+      { id: "hf-rectangle-context", section: 5, slot: 0, marks: 6 },
+    ],
+    shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+    shapeNote: "AQA 8300 is three written papers at the same tier, each 1 hour 30 minutes and 80 marks (33⅓%): Paper 1 non-calculator, Papers 2 and 3 calculator. This Higher row selects Higher-only surds and algebra, with a multi-step quadratic context question; item counts and per-question marks are OpenMind's pacing.",
+    sections: [
+      { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.42 },
+      { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.54 },
+      { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.65 },
+      { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.74 },
+      { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.84 },
+      { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.92 },
+    ],
+  }),
+  paper({
+    id: "aqa-gcse-maths-higher-p2", name: "GCSE Mathematics — Higher Paper 2 (calculator)",
+    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], levels: ["higher"], boundaries: GCSE_BOUNDARIES,
+    itemCounts: "paced",
+    structured: [
+      { id: "hf-surds", section: 1, slot: 0, marks: 2 },
+      { id: "hf-table-quadratic", section: 3, slot: 0, marks: 4 },
+      { id: "sf-plot-line", section: 5, slot: 0, marks: 6 },
+    ],
+    shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+    shapeNote: "Paper 2 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification. This Higher row includes a quadratic table and a plotted-line question; the plotting item is shared with Foundation and the surrounding draws are at Higher demand.",
+    sections: [
+      { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.44 },
+      { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.56 },
+      { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.67 },
+      { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.76 },
+      { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.86 },
+      { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.93 },
+    ],
+  }),
+  paper({
+    id: "aqa-gcse-maths-higher-p3", name: "GCSE Mathematics — Higher Paper 3 (calculator)",
+    board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], levels: ["higher"], boundaries: GCSE_BOUNDARIES,
+    itemCounts: "paced",
+    structured: [
+      { id: "hf-algebra", section: 2, slot: 0, marks: 3 },
+      { id: "hf-circle-angles", section: 4, slot: 0, marks: 5 },
+      { id: "hf-sequences-context", section: 5, slot: 0, marks: 6 },
+    ],
+    shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+    shapeNote: "Paper 3 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification. This Higher row includes algebraic products, circle theorems and a linear-sequence context question.",
+    sections: [
+      { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.46 },
+      { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.58 },
+      { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.69 },
+      { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.78 },
+      { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.88 },
+      { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.94 },
     ],
   }),
   paper({
@@ -1551,6 +1683,35 @@ export interface StructuredPartView {
   unit?: string;
   methodPrompt?: string;
   methodMarks?: number;
+  /** "graph" tells the sitting to read the answer as x,y x,y. "plot" opens the
+   *  coordinate grid, and "readoff" asks for a value read from the learner's own
+   *  plotted line. The grid's bounds travel with either; the required points and
+   *  the line's coefficients do not. */
+  response?: "number" | "graph" | "plot" | "readoff" | "algebra" | "table";
+  /** A table's visible shape only. Each answered cell is an input; its key is
+   *  not in this object. */
+  table?: {
+    columns: string[];
+    rows: Array<{ label?: string; cells: Array<{ given?: string; editable?: boolean; unit?: string }> }>;
+  };
+  graph?: { xMin: number; xMax: number; yMin: number; yMax: number };
+  /** Bounds only — never the target points. */
+  plot?: { xMin: number; xMax: number; yMin: number; yMax: number };
+}
+
+/** THE EMPTY STATE OF A SITTING. One owner for the fields a sitting carries,
+ *  so "start another paper" and "return to the picker" cannot clear different
+ *  subsets of it. Question ids are positional, and a field missed by one path
+ *  is how a previous answer reached a later submission. */
+export function emptySittingState(): {
+  answers: Record<string, number>;
+  numeric: Record<string, string>;
+  typed: Record<string, string[]>;
+  working: Record<string, string[]>;
+  flagged: Record<string, boolean>;
+  current: number;
+} {
+  return { answers: {}, numeric: {}, typed: {}, working: {}, flagged: {}, current: 0 };
 }
 
 export interface StructuredView {
@@ -1625,8 +1786,15 @@ export interface BuiltPaperAnswerKey {
     id: string;
     conceptId: string;
     seed: string;
-    /** Index into the served choices. */
+    /** Index into the served choices. For a numeric item this is the index of
+     *  its display form; the answer itself is `answerValue`. */
     answer: number;
+    /** How the learner answers. Absent means a choice index. Carried on the key
+     *  because a saved sitting must mark without the template or the bank. */
+    responseKind?: "choice" | "numeric";
+    /** The canonical number for a numeric item. Never served before marking. */
+    answerValue?: number;
+    tolerance?: NumericTolerance;
     marks: number;
     difficulty: number;
     explanation: string;
@@ -1692,24 +1860,40 @@ export interface BuildPaperOptions {
 
 export function buildPaper(opts: BuildPaperOptions): { paper: BuiltPaper; key: BuiltPaperAnswerKey } {
   const template = opts.template ?? defaultPaperFor(opts.active, opts.subject, opts.lang);
+  // ── THE TIER IS PART OF THE SERVE ─────────────────────────────────────────
+  // A Foundation and a Higher candidate sit the same three papers, and until
+  // this line existed they sat the SAME ITEMS: the slot's target came from the
+  // template alone, so `active.level` reached the paper's name and nothing else.
+  // The target is now half the slot's own demand and half the tier's, which
+  // moves the draw for every slot with a different generator band. This is NOT
+  // two blueprints — the paper's structure is still shared — but it is a real
+  // difference in what a learner is asked, and it is measured below.
+  const tierDifficulty = typeof opts.active.level.difficulty === "number" ? opts.active.level.difficulty : null;
+  const targetFor = (slot: number): number => {
+    if (tierDifficulty === null) return slot;
+    return Math.max(0, Math.min(1, 0.5 * slot + 0.5 * tierDifficulty));
+  };
   const candidates = opts.concepts?.length ? opts.concepts : paperConcepts(opts.active, opts.subject);
   const id = `pap_${hashSeed(`${template.id}:${opts.seed}`).toString(36)}${hashSeed(opts.seed).toString(36)}`;
   const sections: PaperSection[] = [];
   const key: BuiltPaperAnswerKey["questions"] = [];
   let n = 0;
 
-  for (const section of template.sections) {
+  for (let sectionIndex = 0; sectionIndex < template.sections.length; sectionIndex++) {
+    const section = template.sections[sectionIndex];
     const questions: PaperQuestion[] = [];
     for (let i = 0; i < section.count; i++) {
       const qid = `q${++n}`;
       const slotSeed = `${template.id}:${opts.seed}:${qid}`;
       // ── A STRUCTURED SLOT ────────────────────────────────────────────────
-      // Claimed on the section's FIRST slot, and only where the section's mark
-      // value equals the item's own scheme total: an item worth 6 cannot sit in
-      // a 2-mark slot without moving the paper's declared total, which is the
-      // kind of drift a paper's own mark check exists to catch.
-      const structuredItem = template.structured && i === 0 && section.marksEach === template.structured.marks
-        ? structuredById(template.structured.id) : null;
+      // Placements are authored positions, not a single special case. A paper
+      // can carry several constructed-response items, and if an authored item is
+      // missing this FAILS rather than quietly drawing four options in its slot.
+      const placement = template.structured?.find((s) => s.section === sectionIndex && (s.slot ?? 0) === i);
+      const structuredItem = placement ? structuredById(placement.id) : null;
+      if (placement && !structuredItem) {
+        throw new Error(`paper ${template.id}: structured item ${placement.id} is missing, so slot ${qid} cannot be served`);
+      }
       if (structuredItem && structuredMarks(structuredItem) !== section.marksEach) {
         throw new Error(`paper ${template.id}: structured item ${structuredItem.id} is worth ${structuredMarks(structuredItem)}, slot declares ${section.marksEach}`);
       }
@@ -1729,6 +1913,30 @@ export function buildPaper(opts: BuildPaperOptions): { paper: BuiltPaper; key: B
           parts: structuredItem.parts.map((p) => ({
             id: p.id, prompt: p.prompt, marks: p.marks, unit: p.unit,
             methodPrompt: p.method?.prompt, methodMarks: p.method?.marks,
+            response: p.response,
+            // A TABLE'S SHAPE IS SERVED; ITS ANSWERS ARE NOT. `given` cells are
+            // already printed in the question, and an answered cell becomes an
+            // input whose key stays on the server.
+            table: p.table
+              ? {
+                columns: p.table.columns,
+                rows: p.table.rows.map((row) => ({
+                  label: row.label,
+                  cells: row.cells.map((cell) => cell.answer !== undefined
+                    ? { editable: true as const, unit: cell.unit }
+                    : { given: cell.given }),
+                })),
+              }
+              : undefined,
+            graph: p.graph
+              ? { xMin: p.graph.xMin, xMax: p.graph.xMax, yMin: p.graph.yMin, yMax: p.graph.yMax }
+              : undefined,
+            // BOUNDS ONLY. The required points and the intended coefficients are
+            // the answer, and the browser never receives them — the grid is drawn
+            // from these numbers, and the mark scheme stays on the server.
+            plot: p.plot
+              ? { xMin: p.plot.xMin, xMax: p.plot.xMax, yMin: p.plot.yMin, yMax: p.plot.yMax }
+              : undefined,
           })),
         };
         questions.push({
@@ -1747,7 +1955,7 @@ export function buildPaper(opts: BuildPaperOptions): { paper: BuiltPaper; key: B
       const replacement = opts.replacements?.[qid];
       const drawn = replacement
         ? { conceptId: replacement.conceptId, seed: slotSeed, question: replacement.question }
-        : drawFor(candidates, slotSeed, section.difficulty);
+        : drawFor(candidates, slotSeed, targetFor(section.difficulty));
       if (!drawn) continue;
       const { question } = drawn;
       questions.push({
@@ -1763,6 +1971,9 @@ export function buildPaper(opts: BuildPaperOptions): { paper: BuiltPaper; key: B
         conceptId: drawn.conceptId,
         seed: drawn.seed,
         answer: question.answer,
+        responseKind: question.responseKind,
+        answerValue: question.answerValue,
+        tolerance: question.tolerance,
         marks: section.marksEach,
         difficulty: question.difficulty,
         explanation: question.explanation,
@@ -1827,6 +2038,11 @@ export interface PaperResult {
     awarded: number;
     correct: boolean | null;
     chosen: number | null;
+    /** What the learner typed for a numeric item, when it was answered by typing. */
+    given?: string | null;
+    /** True when a non-empty numeric submission could not be parsed as a number.
+     *  It is not evidence of a mathematical belief, so `correct` stays null. */
+    invalid?: boolean;
     answer: number;
     explanation: string;
     /** The misconceptions this question probes, from the answer key. Shown
@@ -1850,6 +2066,10 @@ export function markPaper(
   /** The working a learner typed, one entry per part. A method mark is earned
    *  only from this, never inferred from a right answer. */
   structuredWorking: Record<string, string[]> = {},
+  /** Answers typed for the bank's numeric-response questions. Separate from
+   *  `structuredAnswers`, which is indexed by PART; a numeric question is one
+   *  value and has no parts. */
+  numericAnswers: Record<string, string> = {},
 ): PaperResult {
   let raw = 0;
   const perQuestion = key.questions.map((q) => {
@@ -1866,6 +2086,31 @@ export function markPaper(
         correct: grade.answered === 0 ? null : grade.awarded === q.marks,
         chosen: null, answer: q.answer, explanation: q.explanation,
         tags: q.tags, parts: grade.parts,
+      };
+    }
+    // ── A NUMERIC ITEM IS MARKED FROM WHAT WAS TYPED ───────────────────────
+    // The bank's numeric questions carry `answerValue`; serving their choice
+    // twin instead was the last place the paper flattened a response format
+    // back to four options. A blank box is unanswered, and a non-empty entry the
+    // parser cannot read is refused rather than called a wrong belief.
+    if (q.responseKind === "numeric" && typeof q.answerValue === "number") {
+      const given = numericAnswers[q.id];
+      const rawGiven = typeof given === "string" ? given : "";
+      const parsed = parseNumericInput(rawGiven, q.tolerance?.unit);
+      if (parsed === null) {
+        return {
+          id: q.id, conceptId: q.conceptId, marks: q.marks, awarded: 0,
+          correct: null, chosen: null, given: rawGiven, invalid: rawGiven.trim() !== "",
+          answer: q.answer, explanation: q.explanation, tags: q.tags,
+        };
+      }
+      const correct = gradeNumeric(parsed, q.answerValue, q.tolerance);
+      const awarded = correct ? q.marks : 0;
+      raw += awarded;
+      return {
+        id: q.id, conceptId: q.conceptId, marks: q.marks, awarded,
+        correct, chosen: null, given: rawGiven, answer: q.answer,
+        explanation: q.explanation, tags: q.tags,
       };
     }
     const chosen = typeof answers[q.id] === "number" ? answers[q.id] : null;

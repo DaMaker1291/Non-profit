@@ -240,7 +240,10 @@ function Axes({ spec }: { spec: Extract<FigureSpec, { kind: "axes" }> }) {
       />,
     );
     parts.push(
-      <text key="grun" x={(X(x0) + X(x1)) / 2} y={Y(y1) + (y1 >= y0 ? 15 : -7)} textAnchor="middle" fontSize={11.5} fontWeight={700} fill="var(--text)">{tri.runLabel}</text>,
+      // Keep the run label INSIDE the plot and ABOVE the horizontal leg. Put
+      // below it, it sits on the x-axis tick labels: measured on the electricity
+      // figure, "run 4" overlapped the tick "2" in the 0–5 frame.
+      <text key="grun" x={(X(x0) + X(x1)) / 2} y={Y(y1) - 7} textAnchor="middle" fontSize={11.5} fontWeight={700} fill="var(--text)">{tri.runLabel}</text>,
     );
     parts.push(
       <text key="grise" x={X(x1) + (x1 >= x0 ? 7 : -7)} y={(Y(y1) + Y(y2)) / 2 + 4} textAnchor={x1 >= x0 ? "start" : "end"} fontSize={11.5} fontWeight={700} fill="var(--text)">{tri.riseLabel}</text>,

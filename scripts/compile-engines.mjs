@@ -48,6 +48,11 @@ export const ENGINE_SOURCES = [
   // equivalent option must be the same answer everywhere, so it is compiled
   // with the rest rather than left to each caller to re-derive.
   "lib/answer.ts",
+  // The equivalence marker for algebraic responses. It must be compiled with
+  // the structured items that call it, or the mirror cannot even load them.
+  "lib/algebra.ts",
+  "lib/plot-geometry.ts",
+  "lib/structured-items.ts",
   // The re-framer, and its own question — can this concept's questions be put
   // on a second surface at all? The decision engine asks it (a TRANSFER
   // recommendation the serve cannot honour is a promise the product cannot
@@ -330,6 +335,21 @@ export const ENGINE_SOURCES = [
   // retry behaviour directly, on the REAL module the browser loads, rather than
   // describing it in prose and hoping.
   "lib/sync-queue.ts",
+  // ── ADAPTIVE INSTRUCTION ────────────────────────────────────────────────
+  // The nine-strategy engine and its authored modular-arithmetic slice. It
+  // compiles with the learner model it consumes, so the suite can test the
+  // decisions against real ConceptEvidence rather than a parallel simulation.
+  "lib/adaptive-instruction/types.ts",
+  "lib/adaptive-instruction/abilities.ts",
+  "lib/adaptive-instruction/misconception-detection.ts",
+  "lib/adaptive-instruction/student-state.ts",
+  "lib/adaptive-instruction/instructional-content.ts",
+  "lib/adaptive-instruction/scaffolding-controller.ts",
+  "lib/adaptive-instruction/progress-evaluator.ts",
+  "lib/adaptive-instruction/adaptation-policy.ts",
+  "lib/adaptive-instruction/strategy-selector.ts",
+  "lib/adaptive-instruction/adaptive-instruction-engine.ts",
+  "lib/adaptive-instruction/index.ts",
 ];
 
 export const MIRROR_DIR = ".verify";
