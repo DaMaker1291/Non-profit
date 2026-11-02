@@ -1,19 +1,22 @@
 import { NextResponse } from "next/server";
 import {
   createClass,
+  findAccountByEmail,
   getClass,
   listClasses,
   newId,
   reconcileClassIdentities,
+  rotateJoinCode,
   updateClassByCode,
   updateClassById,
 } from "@/lib/server/store";
 import { authorizeLearner } from "@/lib/server/capability";
 import { authorisedProfile } from "@/lib/server/auth";
-import { canAdminister, isTeachingRole, teacherCaller, teacherOfClass, teachingAccountOf } from "@/lib/server/authority";
+import { canAdminister, isTeachingRole, teacherAccountIdOf, teacherCaller, teacherOfClass, teachingAccountOf } from "@/lib/server/authority";
 import { accountOwningProfile } from "@/lib/server/store";
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
-import { freeHandle, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
+import { freeHandle, handleOf, isClassAdministrator, isMemberOf, isTeacherOf, removeMember } from "@/lib/server/class-membership";
+import { clear as clearRateLimit, hit as hitRateLimit, peek as peekRateLimit, JOIN_PER_LEARNER } from "@/lib/server/rate-limit";
 import {
   deleteKioskSessionsFor, kioskPinHash, makeSalt, mintKioskPin, mintUnshownSecret, newProfileState, saveProfile,
 } from "@/lib/server/store";
@@ -21,6 +24,15 @@ import { liveRoster, memberEvidence, memberRoster, resolveMembers } from "@/lib/
 import { SUBJECT_IDS } from "@/lib/subjects";
 import { courseRefusal, specById } from "@/lib/specifications";
 import type { ClassRoster, ProfileState, SubjectId } from "@/lib/types";
+
+/** A new class code is a thirty-day code. It is not permanent by default; a
+ *  teacher can rotate or revoke it from the class header. */
+const JOIN_CODE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** A display/administration field: trim, bound, and treat blank as absent. */
+function classText(value: unknown, max: number): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : undefined;
+}
 
 export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
@@ -135,7 +147,9 @@ export async function GET(req: Request): Promise<NextResponse> {
 }
 
 interface Body {
-  action: "create" | "join" | "report" | "update" | "provision" | "revoke";
+  action: "create" | "join" | "report" | "update" | "provision" | "revoke"
+    | "invite-teacher" | "remove-teacher" | "rotate-code" | "revoke-code"
+    | "remove-member" | "leave";
   /** The class an "update" edits. */
   clsId?: string;
   /** The calling profile. Every action is authenticated by its capability, so
@@ -153,6 +167,15 @@ interface Body {
    *  it is taught. Validated against the class's subject (lib/specifications#
    *  courseRefusal), so a course the subject is not part of is refused by name. */
   specificationId?: string | null;
+  /** Class administration metadata; all optional and length-bounded below. */
+  school?: string;
+  academicYear?: string;
+  yearGroup?: string;
+  description?: string;
+  colour?: string;
+  /** Co-teacher invitation/removal, by the account's email or id. */
+  email?: string;
+  accountId?: string;
   joinCode?: string;
   handle?: string;
   conceptMastery?: Record<string, number>;
@@ -189,7 +212,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     //                                  `create` then treated the caller's profile
     //                                  as the teacher. Asking for a capability here
     //                                  would reintroduce exactly that.
-    const TEACHER_ACTIONS = new Set(["create", "update", "provision", "revoke"]);
+    const TEACHER_ACTIONS = new Set(["create", "update", "provision", "revoke", "invite-teacher", "remove-teacher", "rotate-code", "revoke-code", "remove-member"]);
     let caller: ProfileState | null = null;
     if (!TEACHER_ACTIONS.has(body.action)) {
       const auth = await authorizeLearner(typeof body.id === "string" ? body.id : null, body.secret);
@@ -226,6 +249,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         // stored on a course its teacher did not choose would be taught, and
         // set work from, a curriculum nobody declared.
         const course = body.specificationId ?? null;
+        const now = Date.now();
         if (course !== null) {
           if (!body.subject) {
             return NextResponse.json({ error: "course_without_subject" }, { status: 400 });
@@ -242,13 +266,20 @@ export async function POST(req: Request): Promise<NextResponse> {
         // lib/server/store.ts, and F-4 of docs/STORAGE_SPEC.md §13.
         const cls: ClassRoster = await createClass((joinCode) => ({
           id: newId("cls"),
-          name: (body.name ?? "Untitled class").slice(0, 60),
+          name: (classText(body.name, 60) ?? "Untitled class"),
           teacher: "teacher",
           joinCode,
+          joinCodeCreatedAt: now,
+          joinCodeExpiresAt: now + JOIN_CODE_TTL_MS,
           language: body.language ?? "en",
           conceptIds: (body.conceptIds ?? []).slice(0, 12),
           subject: body.subject as SubjectId | undefined,
           specificationId: course,
+          school: classText(body.school, 80),
+          academicYear: classText(body.academicYear, 20),
+          yearGroup: classText(body.yearGroup, 30),
+          description: classText(body.description, 500),
+          colour: classText(body.colour, 20),
           // ── THE TEACHER IS NOT A MEMBER OF THEIR OWN CLASS ──────────────
           //
           // They used to be enrolled as the first student, which made one
@@ -269,6 +300,9 @@ export async function POST(req: Request): Promise<NextResponse> {
           // `teacherAccountId` is the one a teacher-only door accepts.
           ownerId: teacher.profileId,
           teacherAccountId: teacher.account.id,
+          // Present from birth, so the console can render the co-teacher list
+          // and the API shape does not change when the first invitation lands.
+          coTeacherAccountIds: [],
         }));
         return NextResponse.json({ cls });
       }
@@ -295,7 +329,22 @@ export async function POST(req: Request): Promise<NextResponse> {
         if (owner && isTeachingRole(owner.role)) {
           return NextResponse.json({ error: "teacher_account_cannot_join" }, { status: 403 });
         }
+        // JOIN CODES ARE GUESSABLE ENTROPY, so the attempt is bounded before any
+        // class is opened. A successful join clears the bucket: the limit is on
+        // guessing, not on a learner moving between classes.
+        const joinKey = `class-join:${caller.profile.id}`;
+        const gate = peekRateLimit(joinKey, JOIN_PER_LEARNER);
+        if (!gate.allowed) {
+          return NextResponse.json(
+            { error: "join_rate_limited" },
+            { status: 429, headers: { "Retry-After": String(gate.retryAfterSec) } },
+          );
+        }
         const upd = await updateClassByCode(body.joinCode ?? "", (cls) => {
+          if (cls.joinCodeRevokedAt) return { error: "join_code_revoked" as const, status: 410 as const };
+          if (cls.joinCodeExpiresAt !== undefined && cls.joinCodeExpiresAt <= Date.now()) {
+            return { error: "join_code_expired" as const, status: 410 as const };
+          }
           // A HANDLE IS A LABEL, NOT A KEY INTO SOMEONE ELSE'S ROW.
           // This used to write `membersById[h] = caller` unconditionally, so two
           // learners who chose the same display name took turns owning one row:
@@ -309,6 +358,15 @@ export async function POST(req: Request): Promise<NextResponse> {
           // as a side effect of somebody else signing up under the same name.
           // Which handle that is, exactly, is one rule — the same one the
           // migration uses to repair a roster that lost a row.
+          //
+          // A LEARNER WHO IS ALREADY A MEMBER KEEPS THE ROW THEY HAVE. Re-entering
+          // the class code ("I am not sure it worked") used to allocate a second
+          // row for the same learner because the handle they typed differed; the
+          // teacher then counted one pupil twice and the monitor read only one of
+          // the two rows' evidence. Membership is by identity, so a duplicate join
+          // answers with the existing row and writes nothing new.
+          const already = handleOf(cls, caller.profile.id);
+          if (already) return { joined: already, alreadyMember: true };
           const h = freeHandle(cls, body.handle ?? caller.profile.handle ?? "student", caller.profile.id);
           cls.students[h] = cls.students[h] ?? {};
           // Remember WHICH learner this handle is, so the live view can find
@@ -319,7 +377,16 @@ export async function POST(req: Request): Promise<NextResponse> {
           if (!cls.members.includes(caller.profile.id)) cls.members.push(caller.profile.id);
           return { joined: h };
         });
-        if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+        if (!upd) {
+          hitRateLimit(joinKey, JOIN_PER_LEARNER);
+          return NextResponse.json({ error: "not found" }, { status: 404 });
+        }
+        const joinResult = upd.result as { joined?: string; error?: string; status?: number };
+        if (joinResult.error) {
+          hitRateLimit(joinKey, JOIN_PER_LEARNER);
+          return NextResponse.json({ error: joinResult.error }, { status: joinResult.status ?? 400 });
+        }
+        clearRateLimit(joinKey);
         // The JOIN ANSWER IS A READ OF THE CLASS, and it was the same leak as
         // the roster door: a learner who joined was handed every classmate's
         // row in the reply. A joiner is not the class's teacher (a teacher
@@ -328,6 +395,77 @@ export async function POST(req: Request): Promise<NextResponse> {
         return NextResponse.json({
           cls: isTeacherOf(upd.cls, caller) ? upd.cls : await memberRoster(upd.cls, caller),
         });
+      }
+      case "invite-teacher": {
+        if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
+        const email = typeof body.email === "string" ? body.email.trim() : "";
+        if (!email) return NextResponse.json({ error: "missing teacher email" }, { status: 400 });
+        const existing = await getClass(body.clsId);
+        if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
+        const teacher = await teacherOfClass(req, existing);
+        if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
+        // CO-TEACHERS MAY ADMINISTER THE CLASS, BUT ONLY THE OWNER MAY CHANGE
+        // WHO ELSE CAN. A co-teacher cannot invite a third person into the class.
+        const owner = await teacherAccountIdOf(existing);
+        if (owner !== teacher.account.id) {
+          return NextResponse.json({ error: "not_the_owner" }, { status: 403 });
+        }
+        const invited = await findAccountByEmail(email);
+        if (!invited) return NextResponse.json({ error: "teacher_account_not_found" }, { status: 404 });
+        if (!isTeachingRole(invited.role)) {
+          return NextResponse.json({ error: "not_a_teacher_account" }, { status: 400 });
+        }
+        if (invited.id === owner) return NextResponse.json({ error: "already_the_owner" }, { status: 400 });
+        const upd = await updateClassById(body.clsId, (cls) => {
+          cls.coTeacherAccountIds ??= [];
+          if (!cls.coTeacherAccountIds.includes(invited.id)) cls.coTeacherAccountIds.push(invited.id);
+          return { invited: invited.id };
+        });
+        if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+        return NextResponse.json({ cls: upd.cls, invited: upd.result.invited });
+      }
+      case "remove-teacher": {
+        if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
+        const accountId = typeof body.accountId === "string" ? body.accountId.trim() : "";
+        if (!accountId) return NextResponse.json({ error: "missing teacher account" }, { status: 400 });
+        const existing = await getClass(body.clsId);
+        if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
+        const teacher = await teacherOfClass(req, existing);
+        if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
+        const owner = await teacherAccountIdOf(existing);
+        if (owner !== teacher.account.id) {
+          return NextResponse.json({ error: "not_the_owner" }, { status: 403 });
+        }
+        if (accountId === owner) return NextResponse.json({ error: "cannot_remove_owner" }, { status: 400 });
+        const upd = await updateClassById(body.clsId, (cls) => {
+          cls.coTeacherAccountIds = (cls.coTeacherAccountIds ?? []).filter((id) => id !== accountId);
+          return { removed: accountId };
+        });
+        if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+        return NextResponse.json({ cls: upd.cls, removed: upd.result.removed });
+      }
+      case "rotate-code": {
+        if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
+        const existing = await getClass(body.clsId);
+        if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
+        const teacher = await teacherOfClass(req, existing);
+        if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
+        const cls = await rotateJoinCode(existing.id, JOIN_CODE_TTL_MS);
+        if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
+        return NextResponse.json({ cls });
+      }
+      case "revoke-code": {
+        if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
+        const existing = await getClass(body.clsId);
+        if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
+        const teacher = await teacherOfClass(req, existing);
+        if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
+        const upd = await updateClassById(body.clsId, (cls) => {
+          cls.joinCodeRevokedAt = Date.now();
+          return { revoked: true as const };
+        });
+        if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+        return NextResponse.json({ cls: upd.cls, revoked: true });
       }
       case "update": {
         // A CLASS'S CURRICULUM IS DECLARED WHERE THE CLASS ALREADY IS.
@@ -345,7 +483,19 @@ export async function POST(req: Request): Promise<NextResponse> {
         const teacher = await teacherOfClass(req, existing);
         if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
         const upd = await updateClassById(body.clsId, (cls) => {
-          if (!isTeacherOf(cls, teacher.profile)) return { error: "not_the_teacher" as const, status: 403 as const };
+          if (!isTeacherOf(cls, teacher.profile) && !isClassAdministrator(cls, teacher.account.id)) {
+            return { error: "not_the_teacher" as const, status: 403 as const };
+          }
+          if (body.name !== undefined) {
+            const value = classText(body.name, 60);
+            if (!value) return { error: "invalid class name" as const, status: 400 as const };
+            cls.name = value;
+          }
+          if (body.school !== undefined) cls.school = classText(body.school, 80);
+          if (body.academicYear !== undefined) cls.academicYear = classText(body.academicYear, 20);
+          if (body.yearGroup !== undefined) cls.yearGroup = classText(body.yearGroup, 30);
+          if (body.description !== undefined) cls.description = classText(body.description, 500);
+          if (body.colour !== undefined) cls.colour = classText(body.colour, 20);
           if (body.subject !== undefined && !(SUBJECT_IDS as string[]).includes(body.subject as string)) {
             return { error: "unknown subject" as const, status: 400 as const };
           }
@@ -372,7 +522,14 @@ export async function POST(req: Request): Promise<NextResponse> {
         // ledger either way, so a client can flatter itself in `students`
         // without ever changing what the teacher sees.
         const upd = await updateClassByCode(body.joinCode ?? "", (cls) => {
-          const h = (body.handle ?? caller.profile.handle ?? "student").slice(0, 24);
+          // The handle is the CALLER'S OWN ROW, never a name from the request.
+          // The old write merged `body.handle` into `cls.students`, so a member
+          // who knew the class code could overwrite a classmate's self-report by
+          // naming their handle. The live teacher view already ignored these
+          // numbers, but the record is still a learner's row and a member may
+          // write only their own — by identity, which a handle is not.
+          const h = handleOf(cls, caller.profile.id);
+          if (!h) return { error: "not_a_member" as const, status: 403 as const };
           cls.students[h] = { ...(cls.students[h] ?? {}), ...(body.conceptMastery ?? {}) };
           if (body.misconceptionHits && Object.keys(body.misconceptionHits).length > 0) {
             cls.misconceptions ??= {};
@@ -381,7 +538,52 @@ export async function POST(req: Request): Promise<NextResponse> {
           return { reported: h };
         });
         if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
-        return NextResponse.json({ cls: upd.cls });
+        const reported = upd.result as { reported?: string; error?: string; status?: number };
+        if (reported.error) return NextResponse.json({ error: reported.error }, { status: reported.status ?? 400 });
+        // The report is a member's own write, so the answer is their own row.
+        // The old answer was the whole class, including its join code.
+        return NextResponse.json({ cls: await memberRoster(upd.cls, caller) });
+      }
+      case "leave": {
+        if (!caller) return NextResponse.json({ error: "missing id" }, { status: 400 });
+        if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
+        const existing = await getClass(body.clsId);
+        if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
+        if (!isMemberOf(existing, caller)) return NextResponse.json({ error: "not_a_member" }, { status: 403 });
+        const upd = await updateClassById(existing.id, (cls) => {
+          if (!isMemberOf(cls, caller)) return { error: "not_a_member" as const, status: 403 as const };
+          removeMember(cls, caller.profile.id);
+          return { left: true as const };
+        });
+        if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+        const left = upd.result as { error?: string; status?: number };
+        if (left.error) return NextResponse.json({ error: left.error }, { status: left.status ?? 400 });
+        return NextResponse.json({ left: true });
+      }
+      case "remove-member": {
+        if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
+        if (!body.learnerId) return NextResponse.json({ error: "missing learner" }, { status: 400 });
+        const existing = await getClass(body.clsId);
+        if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
+        const teacher = await teacherOfClass(req, existing);
+        if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
+        const upd = await updateClassById(existing.id, (cls) => {
+          if (!isTeacherOf(cls, teacher.profile) && !isClassAdministrator(cls, teacher.account.id)) {
+            return { error: "not_the_teacher" as const, status: 403 as const };
+          }
+          const holds = (cls.members ?? []).includes(body.learnerId as string)
+            || Object.values(cls.membersById ?? {}).includes(body.learnerId as string);
+          if (!holds) return { error: "not_a_member" as const, status: 404 as const };
+          removeMember(cls, body.learnerId as string);
+          return { removed: body.learnerId as string };
+        });
+        if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+        const removed = upd.result as { error?: string; status?: number; removed?: string };
+        if (removed.error) return NextResponse.json({ error: removed.error }, { status: removed.status ?? 400 });
+        // Removing a pupil removes their membership and classroom PIN, not their
+        // learning record: the evidence stays theirs and can be attached to a
+        // later class. Return only the fact, never the remaining roster.
+        return NextResponse.json({ removed: removed.removed });
       }
       case "provision": {
         // ── THE TEACHER ISSUES THE CREDENTIALS ─────────────────────────────

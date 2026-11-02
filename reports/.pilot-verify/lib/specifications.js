@@ -1,0 +1,952 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.NATIONAL_ROUTE_COUNT = exports.SPECIFICATIONS = exports.TIERS = void 0;
+exports.termProfileFor = termProfileFor;
+exports.termsFor = termsFor;
+exports.applyTerminology = applyTerminology;
+exports.courseConceptIds = courseConceptIds;
+exports.courseRefusal = courseRefusal;
+exports.specById = specById;
+exports.specsFor = specsFor;
+exports.levelOf = levelOf;
+exports.levelForGrade = levelForGrade;
+exports.courseForSubject = courseForSubject;
+exports.coversSubject = coversSubject;
+exports.specOptionsFor = specOptionsFor;
+exports.chosenSubjects = chosenSubjects;
+exports.specForProfile = specForProfile;
+exports.courseSummaryFor = courseSummaryFor;
+exports.courseGaps = courseGaps;
+exports.incompleteSubjects = incompleteSubjects;
+exports.difficultyFor = difficultyFor;
+exports.coverageOf = coverageOf;
+exports.coverageReport = coverageReport;
+exports.inSpecification = inSpecification;
+exports.levelsOf = levelsOf;
+const genome_1 = require("./genome");
+const subjects_1 = require("./subjects");
+const curriculum_1 = require("./curriculum");
+const registry_1 = require("./curricula/registry");
+exports.TIERS = ["primary", "junior", "foundation", "higher", "advanced", "degree"];
+// ── The specifications ──────────────────────────────────────────────────────
+// One entry per (country/system → qualification). Levels are the tiers a
+// student actually chooses between at enrolment.
+const UK = {
+    id: "uk-gcse", country: "GB", board: "aqa", name: "GCSE",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        // Higher-only content is removed from the Foundation tier's concept set, not
+        // merely given a lower difficulty target. `sim-equations-quad` was measured
+        // in Foundation Paper 1 before this list existed, and a Foundation candidate
+        // cannot be examined on a line-curve intersection just because it is one
+        // stage below the top of the genome.
+        { id: "foundation", tier: "foundation", name: "Foundation tier", stages: [0, 3], difficulty: 0.45, exclude: ["completing-square", "polynomials", "binomial", "logs", "sim-equations-quad", "surds", "circle-theorems", "trig-rule", "functions", "algebraic-fractions", "bounds"] },
+        { id: "higher", tier: "higher", name: "Higher tier", stages: [0, 4], difficulty: 0.65, exclude: ["logs", "calculus-diff", "calculus-int", "matrices-intro"] },
+    ],
+};
+const UK_ALEVEL = {
+    id: "uk-alevel", country: "GB", board: "aqa", name: "A-Level",
+    coverage: { maths: [2, 5], physics: [2, 3], chemistry: [2, 4], biology: [1, 3], computing: [1, 3] },
+    levels: [
+        { id: "as", tier: "advanced", name: "AS", stages: [2, 4], difficulty: 0.75 },
+        { id: "a2", tier: "degree", name: "A2", stages: [2, 5], difficulty: 0.9 },
+    ],
+};
+const IGCSE = {
+    id: "int-igcse", country: "INT", board: "cambridge", name: "Cambridge IGCSE",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "core", tier: "foundation", name: "Core", stages: [0, 2], difficulty: 0.4 },
+        { id: "extended", tier: "higher", name: "Extended", stages: [0, 4], difficulty: 0.65, exclude: ["logs", "calculus-diff", "calculus-int"] },
+    ],
+};
+const IB = {
+    id: "int-ib", country: "INT", board: "ib", name: "International Baccalaureate",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "myp", tier: "junior", name: "MYP", stages: [0, 2], difficulty: 0.45 },
+        { id: "sl", tier: "advanced", name: "Diploma SL", stages: [0, 4], difficulty: 0.7 },
+        { id: "hl", tier: "degree", name: "Diploma HL", stages: [0, 5], difficulty: 0.9 },
+    ],
+};
+const US_CORE = {
+    id: "us-core", country: "US", board: "commoncore", name: "Common Core (US)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "middle", tier: "junior", name: "Grades 6–8", stages: [0, 2], difficulty: 0.4 },
+        { id: "high", tier: "higher", name: "Grades 9–12", stages: [0, 4], difficulty: 0.65 },
+    ],
+};
+const SAT = {
+    id: "us-sat", country: "US", board: "collegeboard", name: "Digital SAT",
+    coverage: { maths: [0, 3] },
+    levels: [
+        // The SAT papers do not examine proof, vectors, matrices or the sine and
+        // cosine rules — listing them here would send students to the wrong work.
+        { id: "sat", tier: "higher", name: "Digital SAT", stages: [0, 3], difficulty: 0.6, exclude: ["proof", "vectors", "matrices-intro", "trig-rule", "circle-theorems"] },
+    ],
+};
+const US_AP = {
+    id: "us-ap", country: "US", board: "collegeboard", name: "Advanced Placement (AP)",
+    coverage: { maths: [2, 5], physics: [2, 3], chemistry: [2, 4], biology: [1, 3], computing: [1, 3] },
+    levels: [
+        { id: "ap", tier: "advanced", name: "AP", stages: [2, 5], difficulty: 0.85 },
+    ],
+};
+const ZA = {
+    id: "za-nsc", country: "ZA", board: "caps", name: "National Senior Certificate (CAPS)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 2] },
+    levels: [
+        { id: "senior", tier: "junior", name: "Grades 8–9", stages: [0, 2], difficulty: 0.4 },
+        { id: "fet", tier: "higher", name: "Grades 10–12", stages: [0, 4], difficulty: 0.65, exclude: ["matrices-intro"] },
+    ],
+};
+const AU = {
+    id: "au-acara", country: "AU", board: "acara", name: "Australian Curriculum",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "years7-10", tier: "junior", name: "Years 7–10", stages: [0, 3], difficulty: 0.5 },
+        { id: "senior", tier: "higher", name: "Senior secondary", stages: [0, 4], difficulty: 0.7 },
+    ],
+};
+const CA = {
+    id: "ca-provincial", country: "CA", board: "canadian", name: "Provincial curriculum (Canada)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "intermediate", tier: "junior", name: "Grades 7–8", stages: [0, 2], difficulty: 0.4 },
+        { id: "senior", tier: "higher", name: "Grades 9–12", stages: [0, 4], difficulty: 0.65 },
+    ],
+};
+const IE = {
+    id: "ie-junior", country: "IE", board: "state", name: "Junior / Senior Cycle (Ireland)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "junior", tier: "junior", name: "Junior Cycle", stages: [0, 2], difficulty: 0.45 },
+        { id: "senior", tier: "higher", name: "Senior Cycle", stages: [0, 4], difficulty: 0.7 },
+    ],
+};
+const IN_CBSE = {
+    id: "in-cbse", country: "IN", board: "cbse", name: "CBSE",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "class8-9", tier: "junior", name: "Class 8–9", stages: [0, 2], difficulty: 0.4 },
+        // CBSE Class 10 trigonometry is ratios and identities; the sine and cosine
+        // rules arrive at Class 11.
+        { id: "class10", tier: "foundation", name: "Class 10", stages: [0, 3], difficulty: 0.55, exclude: ["trig-rule"] },
+        { id: "class11-12", tier: "advanced", name: "Class 11–12", stages: [0, 5], difficulty: 0.85 },
+    ],
+};
+const IN_ICSE = {
+    id: "in-icse", country: "IN", board: "icse", name: "ICSE / ISC",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "class8-9", tier: "junior", name: "Class 8–9", stages: [0, 2], difficulty: 0.42 },
+        { id: "class10", tier: "foundation", name: "Class 10", stages: [0, 4], difficulty: 0.6, exclude: ["calculus-diff", "calculus-int"] },
+        { id: "isc", tier: "advanced", name: "ISC 11–12", stages: [0, 5], difficulty: 0.85 },
+    ],
+};
+const PK = {
+    id: "pk-matric", country: "PK", board: "matric", name: "Matric / Intermediate (Pakistan)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "class6-8", tier: "junior", name: "Class 6–8", stages: [0, 1], difficulty: 0.35 },
+        { id: "matric", tier: "foundation", name: "Class 9–10 (Matric)", stages: [0, 3], difficulty: 0.55 },
+        { id: "inter", tier: "advanced", name: "Class 11–12 (Inter)", stages: [0, 4], difficulty: 0.75 },
+    ],
+};
+const BD = {
+    id: "bd-ssc", country: "BD", board: "bangladeshi", name: "SSC / HSC (Bangladesh)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "jsc", tier: "junior", name: "Class 6–8 (JSC)", stages: [0, 2], difficulty: 0.4 },
+        { id: "ssc", tier: "foundation", name: "Class 9–10 (SSC)", stages: [0, 3], difficulty: 0.55 },
+        { id: "hsc", tier: "advanced", name: "Class 11–12 (HSC)", stages: [0, 4], difficulty: 0.78 },
+    ],
+};
+const KE = {
+    id: "ke-kcse", country: "KE", board: "kenyan", name: "KCSE (Kenya)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "junior", tier: "junior", name: "Grade 7–9", stages: [0, 2], difficulty: 0.4 },
+        { id: "form3", tier: "foundation", name: "Form 3", stages: [0, 3], difficulty: 0.55 },
+        { id: "form4", tier: "higher", name: "Form 4 (KCSE)", stages: [0, 4], difficulty: 0.7, include: ["trig-rule", "completing-square", "surds"] },
+    ],
+};
+const TZ = {
+    id: "tz-csee", country: "TZ", board: "kenyan", name: "CSEE (Tanzania)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 2] },
+    levels: [
+        { id: "form1-2", tier: "junior", name: "Form 1–2", stages: [0, 2], difficulty: 0.4 },
+        { id: "form4", tier: "higher", name: "Form 4 (CSEE)", stages: [0, 4], difficulty: 0.65 },
+    ],
+};
+const UG = {
+    id: "ug-uce", country: "UG", board: "kenyan", name: "UCE (Uganda)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 2] },
+    levels: [
+        { id: "s1-2", tier: "junior", name: "S1–S2", stages: [0, 2], difficulty: 0.4 },
+        { id: "s4", tier: "higher", name: "S4 (UCE)", stages: [0, 4], difficulty: 0.65 },
+    ],
+};
+const NG = {
+    id: "ng-waec", country: "NG", board: "nigerian", name: "WAEC / NECO (Nigeria)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "jss", tier: "junior", name: "JSS 1–3 (BECE)", stages: [0, 2], difficulty: 0.42 },
+        { id: "sss", tier: "higher", name: "SSS 1–3 (WAEC)", stages: [0, 4], difficulty: 0.7, include: ["trig-rule", "surds", "completing-square"] },
+    ],
+};
+const GH = {
+    id: "gh-wassce", country: "GH", board: "state", name: "WASSCE (Ghana)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "jhs", tier: "junior", name: "JHS 1–3 (BECE)", stages: [0, 2], difficulty: 0.42 },
+        { id: "shs", tier: "higher", name: "SHS 1–3 (WASSCE)", stages: [0, 4], difficulty: 0.68 },
+    ],
+};
+const PH = {
+    id: "ph-deped", country: "PH", board: "philippine", name: "DepEd K-12 (Philippines)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "jhs", tier: "junior", name: "Junior High", stages: [0, 2], difficulty: 0.42 },
+        { id: "shs", tier: "higher", name: "Senior High", stages: [0, 4], difficulty: 0.68 },
+    ],
+};
+const ID = {
+    id: "id-merdeka", country: "ID", board: "indonesian", name: "Kurikulum Merdeka (Indonesia)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "smp", tier: "junior", name: "SMP 7–9", stages: [0, 2], difficulty: 0.42 },
+        { id: "sma", tier: "higher", name: "SMA 10–12", stages: [0, 4], difficulty: 0.68 },
+    ],
+};
+const BR = {
+    id: "br-enem", country: "BR", board: "brazilian", name: "ENEM / BNCC (Brazil)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "fundamental", tier: "junior", name: "Fundamental II", stages: [0, 2], difficulty: 0.42 },
+        { id: "medio", tier: "higher", name: "Médio (ENEM)", stages: [0, 4], difficulty: 0.7 },
+    ],
+};
+const MX = {
+    id: "mx-sep", country: "MX", board: "mexican", name: "SEP (Mexico)",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "secundaria", tier: "junior", name: "Secundaria", stages: [0, 2], difficulty: 0.42 },
+        { id: "prepa", tier: "higher", name: "Preparatoria", stages: [0, 4], difficulty: 0.7 },
+    ],
+};
+// ── Cameroon (§7): TWO SYSTEMS, TWO SETS OF QUALIFICATIONS ──────────────────
+//
+// Cameroon's Ministry of Secondary Education runs two general secondary systems
+// side by side (see lib/curricula/registry.ts#CM_FRANCOPHONE for the sources),
+// so the country needs TWO national course sets and neither may stand in for
+// the other: a Cameroonian learner sits GCE O/A Level or the BEPC/Probatoire/
+// Baccalauréat, not both, and a picker that offered the wrong one would pitch
+// their whole course at the wrong depth.
+//
+// WHAT THESE ARE AND ARE NOT. They are OpenMind's mapping of each qualification
+// onto the genome — the same claim every other specification here makes. They
+// are NOT an equivalence: a GCE grade is not converted into a GCSE grade, and
+// nothing states that two qualifications share a syllabus or a marking scheme.
+// The internal `tier` on each level is OpenMind's DEPTH BAND (it chooses the
+// difficulty target and whether stage-0 arithmetic is in scope); the name beside
+// it is the system's own year, which is what a learner should read. The mapping
+// is marked "mapped" and not "reviewed" in the registry until a subject
+// specialist has read it.
+const CM_GCE_O = {
+    id: "cm-gce-o", country: "CM", board: "gce", name: "GCE Ordinary Level",
+    coverage: { maths: [0, 3], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 2] },
+    levels: [
+        { id: "form4", tier: "junior", name: "Form 4", stages: [0, 2], difficulty: 0.45 },
+        { id: "form5", tier: "foundation", name: "Form 5 · GCE O Level", stages: [0, 3], difficulty: 0.6 },
+    ],
+};
+const CM_GCE_A = {
+    id: "cm-gce-a", country: "CM", board: "gce", name: "GCE Advanced Level",
+    coverage: { maths: [2, 5], physics: [2, 3], chemistry: [2, 4], biology: [1, 3], computing: [1, 3] },
+    levels: [
+        { id: "lower6", tier: "advanced", name: "Lower Sixth", stages: [2, 4], difficulty: 0.78 },
+        { id: "upper6", tier: "degree", name: "Upper Sixth · GCE A Level", stages: [2, 5], difficulty: 0.9 },
+    ],
+};
+const CM_BEPC = {
+    id: "cm-bepc", country: "CM", board: "minesec", name: "BEPC",
+    coverage: { maths: [0, 3], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 2] },
+    levels: [
+        { id: "cycle1", tier: "junior", name: "Cycle 1 · 6e–5e", stages: [0, 2], difficulty: 0.42 },
+        { id: "bepc", tier: "foundation", name: "3e · BEPC", stages: [0, 3], difficulty: 0.55 },
+    ],
+};
+const CM_PROBATOIRE = {
+    id: "cm-probatoire", country: "CM", board: "minesec", name: "Probatoire",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "premiere", tier: "higher", name: "1re · Probatoire", stages: [0, 4], difficulty: 0.68 },
+    ],
+};
+const CM_BAC = {
+    id: "cm-bac", country: "CM", board: "minesec", name: "Baccalauréat",
+    coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "terminale", tier: "advanced", name: "Terminale · Baccalauréat", stages: [0, 4], difficulty: 0.75 },
+    ],
+};
+// Three coverage windows, so a row says which kind of course it is rather than
+// restating five subject windows 51 times. Every national course below teaches
+// all five subjects in some form — that is why none of them omits a subject, and
+// the curriculum gate refuses a pathway whose year has no course for a subject.
+const COV_LOWER = {
+    maths: [0, 3], physics: [1, 2], chemistry: [0, 2], biology: [0, 2], computing: [0, 2],
+};
+const COV_SECONDARY = {
+    maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3],
+};
+const COV_UPPER = {
+    maths: [0, 5], physics: [1, 4], chemistry: [0, 4], biology: [0, 4], computing: [0, 4],
+};
+const junior = (id, name, difficulty = 0.42) => [id, "junior", name, [0, 2], difficulty];
+const middle = (id, name, stages = [0, 3], difficulty = 0.52) => [id, "foundation", name, stages, difficulty];
+const senior = (id, name, stages = [0, 4], difficulty = 0.66) => [id, "higher", name, stages, difficulty];
+const final = (id, name, stages = [0, 4], difficulty = 0.8) => [id, "advanced", name, stages, difficulty];
+const NATIONAL_COURSES = [
+    // ── Africa ────────────────────────────────────────────────────────────────
+    { id: "et-esslce", country: "ET", board: "ethiopian", name: "Ethiopian School Leaving Certificate (ESSLCE)", coverage: COV_SECONDARY, levels: [middle("grade-10", "Grade 10", [0, 3], 0.48), final("grade-12", "Grade 12", [0, 4], 0.7)] },
+    { id: "eg-thanaweya", country: "EG", board: "egyptian", name: "Thanaweya Amma (General Secondary Certificate)", coverage: COV_SECONDARY, levels: [middle("grade-11", "Grade 11", [0, 3], 0.5), final("grade-12", "Grade 12", [0, 3], 0.68)] },
+    { id: "ma-college", country: "MA", board: "moroccan", name: "Brevet (3e année collège)", coverage: COV_LOWER, levels: [middle("3ac", "3AC", [0, 2], 0.45)] },
+    { id: "ma-bac", country: "MA", board: "moroccan", name: "Baccalauréat marocain", coverage: COV_UPPER, levels: [senior("1bac", "1re année Bac", [0, 4], 0.68), final("2bac", "2e année Bac", [0, 4], 0.8)] },
+    { id: "rw-o-level", country: "RW", board: "rwandan", name: "Ordinary Level (REB)", coverage: COV_SECONDARY, levels: [middle("s3", "S3", [0, 3], 0.48)] },
+    { id: "rw-a-level", country: "RW", board: "rwandan", name: "Advanced Level (REB)", coverage: COV_UPPER, levels: [senior("s5", "S5", [0, 4], 0.74), final("s6", "S6", [0, 4], 0.84)] },
+    { id: "zm-school-certificate", country: "ZM", board: "zambian", name: "School Certificate (ECZ)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9 (Junior Secondary)", [0, 2], 0.45), senior("grade-12", "Grade 12", [0, 3], 0.62)] },
+    { id: "zw-o-level", country: "ZW", board: "zimsec", name: "ZIMSEC Ordinary Level", coverage: COV_SECONDARY, levels: [senior("form-4", "Form 4", [0, 3], 0.58)] },
+    { id: "zw-a-level", country: "ZW", board: "zimsec", name: "ZIMSEC Advanced Level", coverage: COV_UPPER, levels: [final("upper-sixth", "Upper Sixth", [0, 4], 0.82)] },
+    { id: "mw-msce", country: "MW", board: "malawian", name: "Malawi School Certificate of Education (MSCE)", coverage: COV_SECONDARY, levels: [senior("form-4", "Form 4", [0, 3], 0.58)] },
+    { id: "ml-bac", country: "ML", board: "malian", name: "Baccalauréat malien", coverage: COV_SECONDARY, levels: [middle("3e", "3e (DEF)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.64)] },
+    { id: "sn-bac", country: "SN", board: "senegalese", name: "Baccalauréat sénégalais", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BFEM)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.64)] },
+    { id: "ci-bac", country: "CI", board: "ivorian", name: "Baccalauréat ivoirien", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BEPC)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.64)] },
+    { id: "ne-bac", country: "NE", board: "nigerien", name: "Baccalauréat nigérien", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BEPC)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.62)] },
+    { id: "bf-bac", country: "BF", board: "burkinabe", name: "Baccalauréat burkinabè", coverage: COV_SECONDARY, levels: [middle("3e", "3e (BEPC)", [0, 2], 0.44), final("terminale", "Terminale", [0, 3], 0.62)] },
+    { id: "so-form-4", country: "SO", board: "somali", name: "Form 4 National Examination", coverage: COV_SECONDARY, levels: [senior("form-4", "Form 4", [0, 3], 0.55)] },
+    { id: "sd-school-certificate", country: "SD", board: "sudanese", name: "Sudan School Certificate", coverage: COV_SECONDARY, levels: [senior("secondary-3", "Secondary 3", [0, 3], 0.6)] },
+    // ── Asia & the Middle East ────────────────────────────────────────────────
+    { id: "vn-thpt", country: "VN", board: "vietnamese", name: "THPT Quốc gia (National High School Examination)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-12", "Grade 12", [0, 4], 0.76)] },
+    { id: "tr-yks", country: "TR", board: "turkish", name: "YKS (TYT / AYT)", coverage: COV_SECONDARY, levels: [middle("grade-8", "Grade 8 (LGS)", [0, 2], 0.45), final("grade-12", "Grade 12", [0, 4], 0.72)] },
+    { id: "ir-konkur", country: "IR", board: "iranian", name: "Konkur (university entrance)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-12", "Grade 12", [0, 4], 0.74)] },
+    { id: "af-baccalaureate", country: "AF", board: "afghan", name: "Baccalaureate (Kankor entry)", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.55)] },
+    { id: "cn-gaokao", country: "CN", board: "chinese", name: "Gaokao (National College Entrance Examination)", coverage: COV_UPPER, levels: [middle("grade-9", "Grade 9 (Zhongkao)", [0, 3], 0.6), final("grade-12", "Grade 12 (Gaokao)", [0, 4], 0.86)] },
+    { id: "jp-nyushi", country: "JP", board: "japanese", name: "Daigaku Nyushi (university entrance)", coverage: COV_UPPER, levels: [middle("junior-high-3", "Junior High 3", [0, 3], 0.6), final("high-school-3", "High School 3", [0, 4], 0.8)] },
+    { id: "kr-csat", country: "KR", board: "korean", name: "Suneung (CSAT)", coverage: COV_UPPER, levels: [middle("middle-3", "Middle 3", [0, 3], 0.62), final("high-3", "High 3", [0, 4], 0.86)] },
+    { id: "ye-general-secondary", country: "YE", board: "yemeni", name: "General Secondary Certificate", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.55)] },
+    { id: "iq-preparatory", country: "IQ", board: "iraqi", name: "Sixth Preparatory Certificate", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.58)] },
+    { id: "sy-baccalaureate", country: "SY", board: "syrian", name: "Al-Shahada Al-Thanawiyya (Baccalaureate)", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.58)] },
+    { id: "jo-tawjihi", country: "JO", board: "jordanian", name: "Tawjihi (General Secondary Certificate)", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 3], 0.62)] },
+    { id: "lb-baccalaureate", country: "LB", board: "lebanese", name: "Lebanese Baccalaureate", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 4], 0.68)] },
+    { id: "np-see", country: "NP", board: "nepali", name: "Secondary Education Examination (SEE)", coverage: COV_LOWER, levels: [middle("grade-10", "Grade 10", [0, 2], 0.5)] },
+    { id: "np-neb", country: "NP", board: "nepali", name: "NEB Grade 12", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 3], 0.62)] },
+    { id: "lk-o-level", country: "LK", board: "srilankan", name: "GCE Ordinary Level (Sri Lanka)", coverage: COV_LOWER, levels: [middle("grade-11", "Grade 11", [0, 2], 0.5)] },
+    { id: "lk-a-level", country: "LK", board: "srilankan", name: "GCE Advanced Level (Sri Lanka)", coverage: COV_SECONDARY, levels: [final("grade-13", "Grade 13", [0, 4], 0.78)] },
+    { id: "mm-matriculation", country: "MM", board: "myanmar", name: "Matriculation Examination", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.56)] },
+    { id: "kh-baccalaureate", country: "KH", board: "cambodian", name: "Baccalauréat (Cambodia)", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.56)] },
+    { id: "la-upper-secondary", country: "LA", board: "lao", name: "Upper Secondary Completion", coverage: COV_LOWER, levels: [senior("grade-12", "Grade 12", [0, 3], 0.55)] },
+    { id: "mn-eesh", country: "MN", board: "mongolian", name: "ЭЕШ (University Entrance Examination)", coverage: COV_SECONDARY, levels: [senior("grade-12", "Grade 12", [0, 3], 0.6)] },
+    { id: "kz-unt", country: "KZ", board: "kazakh", name: "ҰБТ (Unified National Testing)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-11", "Grade 11", [0, 4], 0.72)] },
+    { id: "uz-entrance", country: "UZ", board: "uzbek", name: "University entrance examinations", coverage: COV_SECONDARY, levels: [senior("grade-11", "Grade 11", [0, 3], 0.6)] },
+    // ── Europe ────────────────────────────────────────────────────────────────
+    { id: "es-eso", country: "ES", board: "spanish", name: "Educación Secundaria Obligatoria (ESO)", coverage: COV_LOWER, levels: [junior("1-eso", "1º ESO", 0.4), middle("4-eso", "4º ESO", [0, 2], 0.5)] },
+    { id: "es-bachillerato", country: "ES", board: "spanish", name: "Bachillerato (EBAU)", coverage: COV_UPPER, levels: [senior("1-bachillerato", "1º Bachillerato", [0, 4], 0.7), final("2-bachillerato", "2º Bachillerato", [0, 4], 0.8)] },
+    { id: "fr-college", country: "FR", board: "french", name: "Diplôme national du brevet", coverage: COV_LOWER, levels: [middle("3e", "3e", [0, 2], 0.5)] },
+    { id: "fr-bac", country: "FR", board: "french", name: "Baccalauréat", coverage: COV_UPPER, levels: [senior("1re", "1re", [0, 4], 0.74), final("terminale", "Terminale", [0, 4], 0.84)] },
+    { id: "de-msa", country: "DE", board: "german", name: "Mittlerer Schulabschluss", coverage: COV_LOWER, levels: [middle("klasse-10", "Klasse 10", [0, 2], 0.5)] },
+    { id: "de-abi", country: "DE", board: "german", name: "Abitur", coverage: COV_UPPER, levels: [senior("klasse-11", "Klasse 11", [0, 4], 0.72), final("klasse-12", "Klasse 12", [0, 4], 0.86)] },
+    { id: "it-media", country: "IT", board: "italian", name: "Licenza media", coverage: COV_LOWER, levels: [middle("3-media", "3ª media", [0, 2], 0.45)] },
+    { id: "it-maturita", country: "IT", board: "italian", name: "Esame di Stato (Maturità)", coverage: COV_UPPER, levels: [senior("4-superiore", "4ª superiore", [0, 4], 0.7), final("5-superiore", "5ª superiore", [0, 4], 0.8)] },
+    { id: "pl-osmoklasisty", country: "PL", board: "polish", name: "Egzamin ósmoklasisty", coverage: COV_LOWER, levels: [middle("klasa-8", "Klasa 8", [0, 2], 0.5)] },
+    { id: "pl-matura", country: "PL", board: "polish", name: "Matura", coverage: COV_UPPER, levels: [senior("liceum-3", "Liceum 3", [0, 4], 0.7), final("liceum-4", "Liceum 4", [0, 4], 0.82)] },
+    { id: "ua-nmt", country: "UA", board: "ukrainian", name: "НМТ (National Multi-subject Test)", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.5), final("grade-12", "Grade 12", [0, 4], 0.75)] },
+    // ── The Americas ──────────────────────────────────────────────────────────
+    { id: "co-saber-11", country: "CO", board: "colombian", name: "Saber 11", coverage: COV_SECONDARY, levels: [middle("grade-9", "Grade 9", [0, 2], 0.45), final("grade-11", "Grade 11", [0, 3], 0.65)] },
+    { id: "ar-secundaria", country: "AR", board: "argentine", name: "Secundaria · Título de Bachiller", coverage: COV_SECONDARY, levels: [senior("6-ano", "6º año", [0, 3], 0.6)] },
+    { id: "pe-secundaria", country: "PE", board: "peruvian", name: "Educación Secundaria (EBR)", coverage: COV_SECONDARY, levels: [senior("5-secundaria", "5º secundaria", [0, 3], 0.6)] },
+    { id: "ht-bac", country: "HT", board: "haitian", name: "Baccalauréat (Haïti)", coverage: COV_SECONDARY, levels: [middle("3e-af", "3e AF", [0, 2], 0.44), final("philo", "Philo (Terminale)", [0, 3], 0.6)] },
+    { id: "bo-bachillerato", country: "BO", board: "bolivian", name: "Bachillerato (Bolivia)", coverage: COV_SECONDARY, levels: [senior("6-secundaria", "6º de secundaria", [0, 3], 0.58)] },
+    { id: "ec-bachillerato", country: "EC", board: "ecuadorian", name: "Bachillerato (Ecuador)", coverage: COV_SECONDARY, levels: [middle("10-egb", "10º EGB", [0, 2], 0.45), senior("3-bachillerato", "3º bachillerato", [0, 3], 0.65)] },
+    // GUATEMALA IS NOT A FIVE-SUBJECT GCSE. The national exit assessment is two
+    // computer-based tests, Lectura and Matemática, so declaring five subjects here
+    // simulated an examination that does not exist — a learner was offered physics,
+    // chemistry, biology and computing papers for a maths-and-reading test. OpenMind
+    // teaches maths and has no reading subject, so this names the test it prepares
+    // for and covers the area it can honestly teach. The precedent is the Digital
+    // SAT, which is the same situation (two areas) and also declares maths alone.
+    // Lectura is NOT faked into a subject: it is simply absent, which is the truth.
+    { id: "gt-diversificado", country: "GT", board: "guatemalan", name: "Evaluación Graduandos — Matemática", coverage: { maths: [0, 4] }, levels: [senior("5-diversificado", "5º diversificado", [0, 3], 0.56)] },
+    { id: "hn-bachillerato", country: "HN", board: "honduran", name: "Bachillerato (Honduras)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
+    { id: "ni-bachillerato", country: "NI", board: "nicaraguan", name: "Bachillerato (Nicaragua)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
+    { id: "sv-bachillerato", country: "SV", board: "salvadoran", name: "Bachillerato (El Salvador)", coverage: COV_SECONDARY, levels: [senior("11-grado", "11º grado", [0, 3], 0.56)] },
+    { id: "do-bachillerato", country: "DO", board: "dominican", name: "Bachillerato (República Dominicana)", coverage: COV_SECONDARY, levels: [senior("6-secundaria", "6º de secundaria", [0, 3], 0.6)] },
+];
+const INDEPENDENT = {
+    id: "any-independent", country: "XX", board: "state", name: "Independent · skills pathway",
+    coverage: { maths: [0, 5], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
+    levels: [
+        { id: "foundations", tier: "primary", name: "Foundations", stages: [0, 1], difficulty: 0.35 },
+        { id: "core", tier: "foundation", name: "Core", stages: [0, 3], difficulty: 0.55 },
+        { id: "advanced", tier: "advanced", name: "Advanced", stages: [0, 5], difficulty: 0.8 },
+    ],
+};
+exports.SPECIFICATIONS = [
+    UK, UK_ALEVEL, IGCSE, IB, US_CORE, SAT, US_AP, CA, ZA, AU, IE,
+    IN_CBSE, IN_ICSE, PK, BD, KE, TZ, UG, NG, GH, PH, ID, BR, MX, INDEPENDENT,
+    // Cameroon's two systems (§7). Both are national courses; neither is a
+    // fallback for the other, and the learner's pathway (lib/curricula/registry)
+    // is what decides which set their qualification picker offers.
+    CM_GCE_O, CM_GCE_A, CM_BEPC, CM_PROBATOIRE, CM_BAC,
+    // Every country the picker offers now has a course of its own. Expanded from
+    // the compact table above so one row per country stays one row.
+    ...NATIONAL_COURSES.map((c) => ({
+        id: c.id,
+        country: c.country,
+        board: c.board,
+        name: c.name,
+        coverage: c.coverage,
+        levels: c.levels.map(([id, tier, name, stages, difficulty]) => ({ id, tier, name, stages, difficulty })),
+    })),
+];
+// ── The two counts, kept apart on purpose ────────────────
+//
+// `SPECIFICATIONS.length` counts COURSES (25); it is not a country count and
+// never was. The curriculum page printed it beside a dictionary string that said
+// "courses from 20 countries", so that line was wrong twice over: the sentence
+// counted the international (`INT`) and independent (`XX`) pseudo-countries as
+// countries, and the number in front of it was a course count. In the languages
+// whose sentence takes its number from the prefix, a learner read "25 countries",
+// which nothing in the data supports.
+//
+// The honest pair, for the record: **every country the registry records a
+// national pathway for has one** (GB, US, ZA, AU, CA, IE, IN, PK, BD, KE, TZ,
+// UG, NG, GH, PH, ID, BR, MX, and now Cameroon, which has TWO); the
+// international and independent courses serve everyone else; and the onboarding
+// picker offers 70 countries, so most of them are offered a real course that is NOT
+// their national curriculum. That is what the wording has to say — and this
+// constant is the ONE owner of the number, so no dictionary may re-bake it.
+//
+// THE OWNER IS NOW THE REGISTRY, not a set built from the specification list.
+// Those two numbers used to agree by construction; they stopped being the same
+// question the moment a country could have two pathways (Cameroon contributes two
+// national courses and ONE national route), so the count is taken from the layer
+// that models countries rather than the layer that models courses.
+exports.NATIONAL_ROUTE_COUNT = (0, registry_1.nationalRouteCodes)().length;
+/** Teaching-language settings a specification can recommend (§4): the terms a
+ *  student's own curriculum uses. Empty means "use the genome's English
+ *  vocabulary", which is the honest default. */
+const BOARD_TERMS = {
+    aqa: "uk", edexcel: "uk", ocr: "uk", wjec: "uk",
+    // Cameroon (lib/curricula/registry.ts). The Anglophone GCE system teaches in
+    // the same maths vocabulary the genome is authored in, so it maps to the `uk`
+    // profile — which is EMPTY, and empty is the honest answer: nothing needs
+    // substituting. Saying so explicitly matters because the alternative is the
+    // accidental default, and the curriculum page promises "questions and
+    // explanations use your curriculum's vocabulary, not another country's".
+    // The Francophone system is French-medium: this layer substitutes ENGLISH
+    // words only (see applyTerminology), so `common` — no substitution — is the
+    // truthful profile for it rather than a claim that it has no vocabulary of
+    // its own.
+    gce: "uk", minesec: "common",
+    cambridge: "uk", igcse: "uk", ib: "uk",
+    commoncore: "us", collegeboard: "us",
+    cbse: "india", icse: "india", matric: "india", "state": "common",
+    kenyan: "africa", nigerian: "africa",
+    bangladeshi: "india",
+    philippine: "us", indonesian: "common", brazilian: "common", mexican: "common",
+    caps: "uk", acara: "uk", canadian: "uk",
+};
+// Canonical (genome English) term → that curriculum's word. Only terms that
+// actually occur in the genome or generated questions belong here — a mapping
+// that never matches anything would be decoration, so the engine suite asserts
+// every key below occurs in real content.
+const TERMS = {
+    uk: {}, // the genome is authored in UK English — nothing to substitute
+    us: {
+        "gradient": "slope",
+        "simultaneous equations": "system of equations",
+        "standard form": "scientific notation",
+        "BIDMAS": "PEMDAS",
+        "indices": "exponents",
+        "index laws": "exponent rules",
+        "factorise": "factor",
+    },
+    india: {
+        // "gradient" → "slope" only. Substituting a phrase ("slope of the line")
+        // produced "the slope of the line of the line" in real stems, because the
+        // source already continues "... of the line". The engine suite now guards
+        // against a replacement whose tail word repeats what follows the match.
+        "BIDMAS": "BODMAS",
+        "gradient": "slope",
+    },
+    africa: {
+        "BIDMAS": "BODMAS",
+    },
+    common: {},
+};
+function termProfileFor(board) {
+    return (board && BOARD_TERMS[board]) || "common";
+}
+/** Every canonical → local substitution for a board (used by the UI to show
+ *  the student which words their curriculum will use). */
+function termsFor(board) {
+    const profile = termProfileFor(board);
+    return Object.entries(TERMS[profile]).map(([from, to]) => ({ from, to }));
+}
+/** Render text in the student's curriculum vocabulary. Word-boundary,
+ *  case-insensitive on the first letter only, so "Gradient" becomes "Slope"
+ *  and "gradient" becomes "slope" without touching identifiers. */
+function applyTerminology(text, board) {
+    const profile = termProfileFor(board);
+    const terms = TERMS[profile];
+    if (!text || Object.keys(terms).length === 0)
+        return text;
+    let out = text;
+    for (const [from, to] of Object.entries(terms)) {
+        if (from === to)
+            continue;
+        const re = new RegExp(`\\b${from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
+        out = out.replace(re, (hit) => hit[0] === hit[0].toUpperCase() ? to[0].toUpperCase() + to.slice(1) : to);
+    }
+    return out;
+}
+// ── Lookups ─────────────────────────────────────────────────────────────────
+/**
+ * THE CONCEPTS A COURSE ACTUALLY CONTAINS — the one owner of that question.
+ *
+ * A qualification is not a label on a subject: it is a SUBSET of it, spread
+ * over its tiers, and two courses in one subject hold different concepts. Both
+ * the assignment picker (what a class may be set) and the week's plan (what a
+ * class will be taught) ask this, so it is written once here rather than
+ * re-derived as a set-union in each caller — the shape that drifts.
+ */
+function courseConceptIds(spec) {
+    return new Set(spec.levels.flatMap((level) => coverageOf({ spec, level })).map((c) => c.id));
+}
+/**
+ * MAY A CLASS DECLARE THIS COURSE FOR THIS SUBJECT? Null when it may; the
+ * refusal name when it may not.
+ *
+ * The same rule a learner's course follows (app/api/profile#courseEntry): an id
+ * that means nothing, or a real qualification the subject is not part of
+ * (Biology under a maths-only paper), is REFUSED BY NAME. It is never silently
+ * dropped or replaced by a first tier, because a class whose declared course
+ * is not the one the teacher chose is wrong about the curriculum it teaches —
+ * and every question it is then set is drawn from a course nobody declared.
+ */
+function courseRefusal(subject, specId) {
+    const spec = specById(specId);
+    if (!spec)
+        return "unknown_spec";
+    return coversSubject(spec, subject) ? null : `spec_does_not_teach_${subject}`;
+}
+function specById(id) {
+    if (!id)
+        return null;
+    return exports.SPECIFICATIONS.find((s) => s.id === id) ?? null;
+}
+function specsFor(country, pathwayId) {
+    // `country` is optional because a LEARNER MAY HOLD AN INTERNATIONAL PATHWAY
+    // WITHOUT HAVING NAMED A COUNTRY: "prefer not to say" plus "I sit Cambridge
+    // IGCSE" is a coherent state, and the registry offers the international and
+    // independent pathways in every country including that one. An unset country
+    // simply matches no national listing, which is exactly what it should do.
+    // A CHOSEN PATHWAY SCOPES THE OFFER. This is what makes one country able to
+    // run two systems: a Cameroon Anglophone learner is offered the GCE O and A
+    // Levels and NOT the BEPC, Probatoire or Baccalauréat, and the reverse. The
+    // pathway's own list is the authority — a course no pathway leads to is a
+    // course nobody can choose, which the gate asserts.
+    const pathway = (0, registry_1.pathwayForCountry)(country, pathwayId);
+    if (pathway) {
+        const scoped = exports.SPECIFICATIONS.filter((s) => pathway.specificationIds.includes(s.id));
+        if (scoped.length > 0)
+            return scoped;
+    }
+    // "XX" IS NOT A COUNTRY, and it is not treated as one here. The independent
+    // specification carries `country: "XX"` so that it has a code, and a learner
+    // who declined to say where they study used to match it EXACTLY — so the only
+    // course a "prefer not to say" learner was ever offered was the skills
+    // pathway, while every unresearched country was offered the international
+    // programmes. Declining to name a country is not declining to sit an
+    // examination, so XX now falls through to the same list an unresearched
+    // country gets: Cambridge IGCSE and the IB, chosen explicitly, with the
+    // independent pathway beside them.
+    const direct = exports.SPECIFICATIONS.filter((s) => s.country === country && country !== "XX");
+    if (direct.length > 0)
+        return direct;
+    // No national entry: international qualifications are still available, and
+    // the independent pathway always is. Never leave a country with no route.
+    return exports.SPECIFICATIONS.filter((s) => s.country === "INT").concat(INDEPENDENT);
+}
+function levelOf(spec, levelId) {
+    if (!levelId)
+        return null;
+    return spec.levels.find((l) => l.id === levelId) ?? null;
+}
+/** Match a stored grade ("Form 4", "Class 10") to the level that teaches it. */
+function levelForGrade(spec, grade) {
+    if (!grade)
+        return null;
+    const g = grade.toLowerCase();
+    return spec.levels.find((l) => l.name.toLowerCase().includes(g) || g.includes(l.name.toLowerCase())) ?? null;
+}
+/**
+ * The course in force for ONE subject.
+ *
+ * A per-subject entry wins FIELD BY FIELD, so an entry naming only a tier
+ * inherits the country and board rather than losing them; no entry at all means
+ * the learner's flat course, which is what every profile enrolled before
+ * per-subject courses existed has.
+ *
+ * Callers with a subject in hand must pass it. `specForProfile(profile)` with no
+ * subject is the single-course answer — correct for a reader that genuinely has
+ * one course (a countdown, a headline) and wrong for anything pedagogical. */
+function courseForSubject(profile, subject) {
+    if (!subject)
+        return profile;
+    const per = profile.subjectCourses?.[subject];
+    if (per)
+        return { ...profile, ...per };
+    // No entry for this subject. The flat fields are this learner's course ONLY
+    // when they never configured a per-subject course at all — a profile enrolled
+    // before per-subject courses existed. Once one subject has its own course,
+    // silence about another subject means NOT CHOSEN, not "the same as the first":
+    // falling back there would hand Biology the Maths qualification, which is the
+    // one-course-for-everything defect per-subject courses exist to remove. The
+    // cleared fields make `courseGaps` name the subject, so a surface can ask
+    // rather than plan work against a course nobody picked.
+    const perSubject = profile.subjectCourses && Object.keys(profile.subjectCourses).length > 0;
+    if (!perSubject)
+        return profile;
+    return {
+        ...profile,
+        spec: undefined,
+        specLevel: undefined,
+        board: undefined,
+        exam: undefined,
+        examDate: undefined,
+    };
+}
+/** Does this qualification contain this subject at all?
+ *
+ *  The one question that stops a single selection from becoming a curriculum
+ *  for every subject: the Digital SAT covers mathematics and nothing else, so a
+ *  learner who picked it for Maths has not thereby chosen a Biology course.
+ *  Everything that offers a choice (onboarding, /curriculum) and everything that
+ *  resolves one (specForProfile, courseGaps) reads this. */
+function coversSubject(spec, subject) {
+    return Boolean(spec.coverage[subject]);
+}
+/** The qualifications a country offers THAT CONTAIN THIS SUBJECT, in the order
+ *  the country lists them. Used by every picker, so a surface can never offer a
+ *  course it would then have to refuse. The independent pathway covers every
+ *  STEM subject, so this is never empty. */
+function specOptionsFor(country, subject, pathwayId) {
+    const eligible = specsFor(country, pathwayId).filter((s) => coversSubject(s, subject));
+    return eligible.length > 0 ? eligible : [INDEPENDENT];
+}
+/** THE SUBJECTS THIS LEARNER ACTUALLY STUDIES under a qualification.
+ *
+ *  A qualification's COVERAGE is what it can teach; a learner's SUBJECTS are what
+ *  they chose. The papers page read the first as if it were the second, so a
+ *  learner who picked only Maths was offered physics, chemistry, biology and
+ *  computing papers — 28 rows for a course of one subject. Reported exactly as
+ *  "why are there bio or physics papers shown when the student only selected
+ *  maths?"
+ *
+ *  Declared choices win, and per-subject courses count as declared (that is what
+ *  a course entry IS). A qualification only teaches the subjects in its own
+ *  coverage, so an entry for a subject it does not cover is not offered. With
+ *  NOTHING declared — an anonymous visitor, or a profile from before subject
+ *  choice existed — the whole coverage is the only honest answer, and it is what
+ *  makes the picker usable without a profile.
+ */
+function chosenSubjects(profile, spec) {
+    const covered = subjects_1.SUBJECT_IDS.filter((s) => spec.coverage[s]);
+    const declared = [
+        ...(profile?.subjects ?? []),
+        ...Object.keys(profile?.subjectCourses ?? {}),
+    ];
+    const chosen = covered.filter((s) => declared.includes(s));
+    return chosen.length > 0 ? chosen : covered;
+}
+/** The specification a profile is following FOR ONE SUBJECT: an explicit choice
+ *  first, then a board + exam + grade match, then the country's first
+ *  specification at its lowest tier. Deterministic — same profile and subject
+ *  always yield the same path. */
+function specForProfile(profile, subject) {
+    const p = courseForSubject(profile, subject);
+    const candidates = specsFor(p.country ?? "XX", p.pathway);
+    const explicit = specById(p.spec);
+    // An explicit choice is honoured only for a subject it actually contains. A
+    // learner who named a maths-only qualification and also declared Biology has
+    // not chosen a Biology course, and believing the maths one here is exactly how
+    // one selection quietly becomes a curriculum for every subject — biology work
+    // would then be planned against a coverage set with no biology in it.
+    if (explicit && (!subject || coversSubject(explicit, subject))) {
+        const lvl = levelOf(explicit, p.specLevel) ?? levelForGrade(explicit, p.grade) ?? explicit.levels[0];
+        return { spec: explicit, level: lvl };
+    }
+    // With a subject in hand, only qualifications that teach it are candidates —
+    // otherwise the country's first listing (often a maths paper) becomes the
+    // fallback course for every other subject.
+    const eligible = subject ? candidates.filter((s) => coversSubject(s, subject)) : candidates;
+    // A SUBJECT THE COUNTRY HAS NO QUALIFICATION FOR FALLS TO THE INDEPENDENT
+    // PATHWAY — never to the country's first listing. `pool = candidates` was safe
+    // only while every national course covered all five subjects, and the moment
+    // one did not it handed back a qualification that does not teach the subject:
+    // Guatemala's Graduandos can be a maths course only (its assessment is Lectura
+    // and Matemática), so a learner asking for physics under it was answered with
+    // "gt-diversificado" — a course with no physics in it. `any-independent` reaches
+    // every concept, which is the one course that can honestly carry a subject the
+    // national assessment does not examine.
+    const pool = eligible.length > 0 ? eligible : subject ? [INDEPENDENT] : candidates;
+    const byBoard = p.board ? pool.filter((s) => s.board === p.board) : [];
+    const byExam = p.exam
+        ? pool.filter((s) => s.board === p.board || s.id.includes(p.exam.toLowerCase()))
+        : [];
+    const spec = byBoard[0] ?? byExam[0] ?? pool[0] ?? INDEPENDENT;
+    const level = levelForGrade(spec, p.grade) ?? spec.levels[0];
+    return { spec, level };
+}
+function courseSummaryFor(profile, subject) {
+    const active = specForProfile(profile, subject);
+    return {
+        specificationId: active.spec.id,
+        country: active.spec.country,
+        board: active.spec.board,
+        qualification: active.spec.name,
+        tier: active.level.name,
+        tierKey: active.level.tier,
+        levelId: active.level.id,
+        difficulty: active.level.difficulty,
+        terms: termsFor(active.spec.board),
+    };
+}
+/**
+ * What one subject's course still has NOT decided, named field by field.
+ *
+ * The list is deliberately short, and it is the whole of the requirement: where
+ * the learner studies (a mapped country, or the explicit independent route),
+ * what year they are in, which qualification and tier they sit (or an explicit
+ * independent course). Anything beyond that would be configuration for its own
+ * sake.
+ *
+ * An empty `spec` is only honest where the learner's country offered no
+ * qualifications to choose from. Where options existed, silence is not
+ * "independent" — it is the silent default `specForProfile` used to fall back
+ * to, and refusing it is the point: a recommendation must never rest on a
+ * course the learner did not choose.
+ */
+function courseGaps(profile, subject) {
+    const c = courseForSubject(profile, subject);
+    // EVERY country that names somewhere has a route, because an unnamed one is
+    // not the learner's fault and must not be a wall. This read `?? (c.country
+    // === "XX" ? INDEPENDENT_ROUTE : null)` — only the explicit "Prefer not to
+    // say" got the independent pathway — while `specsFor`, ten lines below, has
+    // always fallen back to the international qualifications for ANY country it
+    // has no national entry for, under the comment "Never leave a country with no
+    // route." The two disagreed, and the disagreement was a dead end: 53 of the
+    // 70 countries the picker then offered (France, Germany, Italy, Spain, Japan,
+    // China, Vietnam, Colombia, …) had no national course, so `country` was
+    // reported as missing, the qualification step's own gate
+    // (`courseGaps.length === 0`) could never be satisfied, and `Next` stayed
+    // disabled for ever. Measured live: a learner could create an account and then
+    // never leave step 4 of 6 — which reads exactly like "sign-up does not work".
+    // Those countries have courses now (see NATIONAL_COURSES, which is why this
+    // fallback is reached only by a code the picker does not offer at all).
+    //
+    // The independent pathway IS a course — the rule this function's own doc
+    // states — and it carries real grades (Foundations / Core / Advanced) and
+    // real tiers, so the learner still has to choose a qualification and a level.
+    // Falling back here does not weaken the requirement; it removes a demand the
+    // product cannot honour.
+    const route = c.country
+        ? (0, curriculum_1.routeForPathwayId)(c.country, c.pathway) ?? (0, curriculum_1.curriculumFor)(c.country) ?? curriculum_1.INDEPENDENT_ROUTE
+        : null;
+    const out = [];
+    if (!route)
+        out.push("country");
+    // WHICH EDUCATION SYSTEM — asked only where the answer is genuinely open.
+    //
+    // A country with one national system (or none) needs no question: its years and
+    // its qualifications are what they are, and asking a UK learner to confirm they
+    // follow the UK system would be a step with one real answer. Cameroon has two
+    // systems running side by side, and until the learner says which one they
+    // follow, NOTHING downstream is answerable: the years they can declare differ
+    // (Form 1–5 + Lower/Upper Sixth vs 6e–Terminale), the qualifications differ
+    // (GCE O/A Level vs BEPC/Probatoire/Baccalauréat) and the depth band differs.
+    // Guessing one of the two would be the country-as-curriculum defect this
+    // registry exists to remove, so the gap is named and the step asks.
+    if ((0, registry_1.pathwayChoiceRequired)(c.country) && !(0, registry_1.pathwayForCountry)(c.country, c.pathway))
+        out.push("pathway");
+    if (route && !route.grades.includes(c.grade ?? ""))
+        out.push("grade");
+    const spec = specById(c.spec);
+    if (!spec)
+        out.push("spec");
+    else {
+        // A qualification that does not contain the subject is not this subject's
+        // course, whatever else it gets right.
+        if (!spec.coverage[subject])
+            out.push("spec");
+        if (!spec.levels.some((l) => l.id === c.specLevel))
+            out.push("specLevel");
+    }
+    return out;
+}
+/** Every DECLARED subject whose course is not yet complete, with the fields
+ *  still missing. This is the gate enrolment (and the API behind it) uses, so a
+ *  learner can never reach personalised work on a course nobody finished
+ *  choosing. A learner who declared no subjects has nothing to configure. */
+function incompleteSubjects(profile) {
+    return (profile.subjects ?? [])
+        .map((subject) => ({ subject, missing: courseGaps(profile, subject) }))
+        .filter((x) => x.missing.length > 0);
+}
+/** The difficulty band practice should target for a profile (0–1). Consumed by
+ *  generateQuestionAt, so a Foundation student and an A-Level student work the
+ *  same concept at different depths. */
+function difficultyFor(active) {
+    return active.level.difficulty;
+}
+// ── Coverage ────────────────────────────────────────────────────────────────
+/**
+ * Stage-0 primary arithmetic: the eight concepts a cohort ABOVE the foundation
+ * tier does not examine.
+ *
+ * WHY THIS LIST EXISTS, and why it is not a difficulty judgement. `npm run
+ * content-audit` measures the production serve path — per course and per
+ * concept, through `lib/operations.ts#servePractice`, the same function
+ * `/api/progress` calls — and found that the ENTIRE advanced-content shortfall
+ * is these eight. Each has a generator ceiling of 0.30–0.50; a cohort targeting
+ * 0.87–0.90 can therefore never be served at its own target for them. The
+ * measurement across all 271 course×subject rows: **0 shortfalls are search, 0
+ * are missing content, 412 are generator ceilings** — and 126 of the 135
+ * concepts meet their course's target exactly, including every physics,
+ * chemistry, biology and computing course at every level.
+ *
+ * So the fix is NOT a harder question. For a concept named `addition`, "more
+ * reasoning, more steps, an unfamiliar representation" is not a harder addition
+ * question — it is a different concept. And the engine suite deliberately
+ * depends on genuinely low-ceiling concepts existing (`negatives` drives the
+ * ceiling-climb test; `place-value` must score below `quadratics`).
+ *
+ * What was actually wrong was the ASSIGNMENT: these eight sat in 13 advanced
+ * maths cohorts — GCSE Higher, IB SL/HL, CBSE 11–12, HSC, KCSE Form 4 and the
+ * rest — because those levels declare `stages: [0, 4]`. A level whose tier is
+ * above `foundation` should not examine them. Note what is NOT done here: they
+ * are not removed from the genome, and every cohort genuinely learning them
+ * (foundation and below) still teaches them. A board that really does examine
+ * stage-0 arithmetic at an advanced tier can name the concept in `include`,
+ * which wins (see the precedence note on `excludedFromLevel`).
+ */
+const PRIMARY_ARITHMETIC = [
+    "addition",
+    "subtraction",
+    "place-value",
+    "multiplication",
+    "division",
+    "order-ops",
+    "negatives",
+    "rounding",
+];
+/** Is this tier above the foundation tier? Derived from the TIERS ORDER rather
+ *  than a hand-written set of level ids, so a new level cannot be added with
+ *  the wrong behaviour by being forgotten from a list. */
+function tierTeachesPrimaryArithmetic(tier) {
+    return exports.TIERS.indexOf(tier) <= exports.TIERS.indexOf("foundation");
+}
+/**
+ * THE ONE exclusion rule — read by BOTH `coverageOf` (the concept list) and
+ * `inSpecification` (the single-concept question), because a rule with two
+ * copies has two answers, and these two must never disagree about whether a
+ * concept is in a learner's course.
+ *
+ * Precedence, strongest first: an explicit `exclude` by name; then an explicit
+ * `include` by name; then this rule; then the stage window. So naming a concept
+ * in `include` is what a board does when it genuinely examines it, and naming
+ * it in `exclude` always wins.
+ */
+function primaryArithmeticExcluded(level, conceptId, explicitlyIncluded) {
+    if (explicitlyIncluded)
+        return false;
+    return !tierTeachesPrimaryArithmetic(level.tier) && PRIMARY_ARITHMETIC.includes(conceptId);
+}
+function windowFor(spec, level, subject) {
+    const specWin = spec.coverage[subject];
+    if (!specWin)
+        return null;
+    const narrowed = level.narrow?.[subject] ?? level.stages;
+    const min = Math.max(specWin[0], narrowed[0]);
+    const max = Math.min(specWin[1], narrowed[1]);
+    if (max < min)
+        return null; // tier narrows the subject away entirely
+    return [min, max];
+}
+/** Genome concepts this specification contains at this level. Resolution is
+ *  against the real genome, so an id that does not exist cannot be claimed. */
+function coverageOf(active) {
+    const { spec, level } = active;
+    const include = new Set(level.include ?? []);
+    const exclude = new Set(level.exclude ?? []);
+    const out = [];
+    for (const subject of Object.keys(spec.coverage)) {
+        const win = windowFor(spec, level, subject);
+        if (!win)
+            continue;
+        for (const c of (0, genome_1.bySubject)(subject)) {
+            const inWindow = c.stage >= win[0] && c.stage <= win[1];
+            const named = include.has(c.id);
+            if (exclude.has(c.id))
+                continue;
+            if (primaryArithmeticExcluded(level, c.id, named))
+                continue;
+            if (inWindow || named)
+                out.push(c);
+        }
+    }
+    // Preserve genome order (subject groups, then stage) rather than lookup order.
+    const order = new Map(genome_1.CONCEPTS.map((c, i) => [c.id, i]));
+    return out.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+}
+function coverageReport(active) {
+    const covered = coverageOf(active);
+    const ids = new Set(covered.map((c) => c.id));
+    const bySubject = {};
+    for (const c of covered)
+        bySubject[c.subject] = (bySubject[c.subject] ?? 0) + 1;
+    return {
+        covered: covered.length,
+        genomeTotal: genome_1.CONCEPTS.length,
+        bySubject,
+        outside: genome_1.CONCEPTS.filter((c) => !ids.has(c.id)),
+    };
+}
+/** Is this concept part of the student's specification? The next-step engine
+ *  prefers in-specification work but never hides out-of-specification evidence
+ *  (a misconception found in any concept still gets remediated). */
+function inSpecification(active, conceptId) {
+    const c = genome_1.CONCEPTS.find((x) => x.id === conceptId);
+    if (!c)
+        return false;
+    const win = windowFor(active.spec, active.level, c.subject);
+    if (!win)
+        return false;
+    if (active.level.exclude?.includes(conceptId))
+        return false;
+    // The SAME rule the concept list applies, not a second copy of it: these two
+    // must agree, or a course that omits `addition` from its map would still
+    // answer "yes, that is in your course" for it.
+    const named = active.level.include?.includes(conceptId) ?? false;
+    if (primaryArithmeticExcluded(active.level, conceptId, named))
+        return false;
+    return (c.stage >= win[0] && c.stage <= win[1]) || named;
+}
+/** Grade options a student can pick for their country, for the enrolment UI. */
+function levelsOf(spec) {
+    return spec.levels;
+}

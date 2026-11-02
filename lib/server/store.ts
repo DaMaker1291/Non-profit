@@ -6,6 +6,7 @@ import { createHash, randomUUID, randomBytes, randomInt, scryptSync } from "node
 // build (no server at all) needs both — so they live in lib/learner-profile.ts
 // and are re-exported here. A second copy would be a default that drifts.
 import type { Account, AccountRole } from "../types";
+import type { ContentReviewRecord } from "../content-platform/types";
 // The lookup key is DERIVED from the account id, so the store and the printed
 // grant cannot disagree about which account a teacher's code names.
 import { resetKeyFor } from "../recovery-code";
@@ -492,6 +493,25 @@ export async function withLearnerState<T>(
     const result = await mutator(ctx, state);
     await ctx.saveProfile(state);
     return { state, result };
+  });
+}
+
+// ── Content review records ───────────────────────────────────────────────────
+// Append-only by design: a review is a statement about one lesson version, so a
+// correction is another record rather than an edit to the old one. The port
+// exposes the semantic operations; the file layout stays private to this store.
+const CONTENT_REVIEWS_FILE = "content-reviews.json";
+
+export async function listContentReviews(): Promise<ContentReviewRecord[]> {
+  const records = await readJson<ContentReviewRecord[]>(CONTENT_REVIEWS_FILE, []);
+  return records.slice().sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function appendContentReview(record: ContentReviewRecord): Promise<void> {
+  await withLock(CONTENT_REVIEWS_FILE, async () => {
+    const records = await readJson<ContentReviewRecord[]>(CONTENT_REVIEWS_FILE, []);
+    records.push(record);
+    await writeJson(CONTENT_REVIEWS_FILE, records, "learner-record");
   });
 }
 
@@ -1012,8 +1032,32 @@ const JOIN_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 export function joinCode(): string {
   let s = "";
-  for (let i = 0; i < 6; i++) s += JOIN_ALPHABET[Math.floor(Math.random() * JOIN_ALPHABET.length)];
+  for (let i = 0; i < 6; i++) s += JOIN_ALPHABET[randomInt(JOIN_ALPHABET.length)];
   return s;
+}
+
+/** A rotation replaces the code in place and clears a previous revocation. The
+ *  collision check is inside the same lock as the write, exactly as creation is:
+ *  a code a learner already has on a whiteboard must not be handed to a second
+ *  class. The caller owns the expiry policy. */
+export async function rotateJoinCode(id: string, ttlMs: number): Promise<ClassRoster | null> {
+  return withLock("classes.json", async () => {
+    const all = await readJson<ClassRoster[]>("classes.json", []);
+    const cls = all.find((c) => c.id === id);
+    if (!cls) return null;
+    for (let attempt = 0; attempt < 32; attempt++) {
+      const code = joinCode();
+      if (all.some((c) => c.id !== id && (c.joinCode ?? "").toUpperCase() === code)) continue;
+      const now = Date.now();
+      cls.joinCode = code;
+      cls.joinCodeCreatedAt = now;
+      cls.joinCodeExpiresAt = now + ttlMs;
+      delete cls.joinCodeRevokedAt;
+      await writeJson("classes.json", all);
+      return cls;
+    }
+    throw new Error("no free join code after 32 attempts — the code space is exhausted, not unlucky");
+  });
 }
 
 /**

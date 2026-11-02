@@ -42,6 +42,7 @@ import type { CourseField } from "../specifications";
 import type { EvidenceEvent, LearnerProjection } from "../evidence";
 import type { FlarePayload, MicroDiagStatus } from "../microdiag";
 import type { StarterReveal, StarterView } from "../starter";
+import type { ReviewCriterionId, ReviewDecision, ReviewSubmission } from "../content-platform/types";
 
 export { ApiError };
 export type { Probe, Query };
@@ -961,7 +962,9 @@ export function classAction(input: {
    *  in the union because the school console needs them, not because a learner
    *  route may ask for them: the door authorises them by ACCOUNT
    *  (lib/server/authority.ts) and refuses a profile capability outright. */
-  action: "create" | "join" | "report" | "update" | "provision" | "revoke";
+  action: "create" | "join" | "report" | "update" | "provision" | "revoke"
+    | "invite-teacher" | "remove-teacher" | "rotate-code" | "revoke-code"
+    | "remove-member" | "leave";
   id?: string;
   [k: string]: unknown;
 }): Promise<Record<string, unknown>> {
@@ -987,6 +990,10 @@ export interface AssignableClass {
   subject: string | null;
   specificationId: string | null;
   assignable: string[];
+  /** Curriculum concepts that exist but are waiting for educator review.
+   *  The picker uses this to distinguish "no curriculum" from "the curriculum
+   *  is here, but the content gate is closed" — two different teacher actions. */
+  awaitingReview?: number;
 }
 
 export interface AssignmentBundle {
@@ -999,7 +1006,7 @@ export function assignments(me: string): Promise<AssignmentBundle> {
   return send<AssignmentBundle>("/api/assignments", { query: { me } });
 }
 
-export function assignmentAction(input: { action: "create" | "remove"; id: string; clsId?: string; [k: string]: unknown }): Promise<Record<string, unknown>> {
+export function assignmentAction(input: { action: "create" | "remove" | "publish" | "close"; id: string; clsId?: string; [k: string]: unknown }): Promise<Record<string, unknown>> {
   return send("/api/assignments", { method: "POST", body: { ...input } });
 }
 
@@ -1110,3 +1117,38 @@ export function hubStatus(): Promise<{
 /** The capability the operations above present, exposed for the two places that
  *  genuinely need the raw token (a download link, a diagnostic read). */
 export { ensureSecret };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONTENT REVIEWS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A review as the PUBLIC door returns it. The reviewer's account id and email
+ *  stay on the server; the display name is enough for a status page. */
+export interface ContentReviewView {
+  id: string;
+  documentId: string;
+  decision: ReviewDecision;
+  criteria: Record<ReviewCriterionId, boolean>;
+  notes: string;
+  fingerprint: string;
+  reviewer: { name: string; role: string };
+  createdAt: number;
+}
+
+export interface ContentReviewBundle {
+  criteria: readonly { id: ReviewCriterionId; label: string; help: string }[];
+  reviews: ContentReviewView[];
+}
+
+/** Public review records and the questions a reviewer must answer. */
+export function contentReviews(): Promise<ContentReviewBundle> {
+  return send("/api/content-review");
+}
+
+/** Record a review. Authority is the signed-in teacher account; the body carries
+ *  no reviewer identity, so the route cannot be told who to credit. */
+export function submitContentReview(
+  input: ReviewSubmission,
+): Promise<{ review: ContentReviewView; state: "approved" | "draft" }> {
+  return send("/api/content-review", { method: "POST", body: { ...input } });
+}

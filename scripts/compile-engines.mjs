@@ -48,6 +48,22 @@ export const ENGINE_SOURCES = [
   // equivalent option must be the same answer everywhere, so it is compiled
   // with the rest rather than left to each caller to re-derive.
   "lib/answer.ts",
+  // THE SOURCE RIGHTS REGISTRY and the content-platform resource layer. The
+  // lesson validator checks a source's recorded use against `decideUse`, so the
+  // registry must be in the same mirror as the document it judges.
+  "lib/source-registry.ts",
+  // Mathematical equivalence for expression/equation responses. A formula box
+  // that compares strings marks `2(x+3)` wrong; this module is the one rule.
+  "lib/math-expression.ts",
+  "lib/content-platform/types.ts",
+  // The review contract is compiled with the documents it judges: a gate that
+  // only checks the draft's shape cannot tell an approval from an approval of
+  // the previous version.
+  "lib/content-platform/review.ts",
+  "lib/content-platform/resources.ts",
+  "lib/content-platform/validate.ts",
+  "lib/content-platform/flagships.ts",
+  "lib/content-platform/capability.ts",
   // The equivalence marker for algebraic responses. It must be compiled with
   // the structured items that call it, or the mirror cannot even load them.
   "lib/algebra.ts",

@@ -109,6 +109,7 @@ export default function Home() {
   return (
     <main className="container page">
       <div className="hero">
+        <div className="hero-copy">
         <p className="eyebrow"><span className="no">◉</span> OpenMind</p>
         <h1>{t("home.tagline")}</h1>
         <p className="lead">{t("home.sub")}</p>
@@ -135,6 +136,25 @@ export default function Home() {
           {t("home.haveProfile")} <Link href="/dashboard">{t("home.goDash")} →</Link>
           {" · "}<Link href="/onboarding?mode=signin">{t("onb.signIn")}</Link>
         </p>
+        </div>
+
+        {/* THE METHOD, BESIDE THE PROMISE rather than three screens below it.
+            A visitor's first question is "what actually happens if I start?",
+            and the four steps are the honest answer: read, practise, collect
+            evidence, get the next step. It used to be a band under the proof
+            strip, where it was read after the pricing-shaped numbers and before
+            a wall of cards. Same keys, same order — only the position changed. */}
+        <aside className="hero-panel" aria-label={t("nav.how")}>
+          <p className="eyebrow flush">{t("nav.how")}</p>
+          <ol className="loopband">
+            {loop.map((key, i) => (
+              <li key={key} className="loop-step">
+                <span className="loop-n" aria-hidden="true">{i + 1}</span>
+                {t(key)}
+              </li>
+            ))}
+          </ol>
+        </aside>
       </div>
 
       {/* THE PROOF STRIP. A visitor's first question is "is this real?", and the
@@ -149,22 +169,6 @@ export default function Home() {
           </div>
         ))}
       </dl>
-
-      {/* HOW IT WORKS. The loop, in the product's own words — and now drawn as
-          steps rather than a run of text, which is what it was: `.loop-step` was
-          only ever styled underneath `.loop`, and this band is `.loopband`, so
-          four steps rendered as four plain words with arrows between them. */}
-      <section className="section-block">
-        <h2 className="eyebrow">{t("nav.how")}</h2>
-        <ol className="loopband">
-          {loop.map((key, i) => (
-            <li key={key} className="loop-step">
-              <span className="loop-n" aria-hidden="true">{i + 1}</span>
-              {t(key)}
-            </li>
-          ))}
-        </ol>
-      </section>
 
       {/* WHAT YOU GET, as five cards rather than five rows: a visitor should be
           able to find their own reason to be here at a glance. */}

@@ -15836,8 +15836,8 @@ console.log("▸ Every door that costs money or CPU names its bound");
 // as well as driven over HTTP by `npm run verify:kiosk`.
 {
   const classesSrc3 = fs.readFileSync("app/api/classes/route.ts", "utf8");
-  ok(/const TEACHER_ACTIONS = new Set\(\["create", "update", "provision", "revoke"\]\)/.test(classesSrc3),
-    "the four class-administration actions are named in one set");
+  ok(/const TEACHER_ACTIONS = new Set\(\["create", "update", "provision", "revoke", "invite-teacher", "remove-teacher", "rotate-code", "revoke-code", "remove-member"\]\)/.test(classesSrc3),
+    "the class-administration actions are named in one set");
   ok(/if \(!TEACHER_ACTIONS\.has\(body\.action\)\)/.test(classesSrc3),
     "and that set is what turns the capability check OFF — an administration action is never authenticated by a profile secret");
   ok(/case "create":[\s\S]{0,2500}const teacher = await teacherCaller\(req\)/.test(classesSrc3),
@@ -16180,6 +16180,11 @@ console.log("▸ Every door that costs money or CPU names its bound");
     "and the faded \"we do\" stage is rendered after the worked example");
   ok(/plan\s*\?\s*\(/.test(page),
     "the plan sections are conditional, so a concept without one falls back rather than rendering empty headings");
+  // A GAP IS A DETOUR. The gate must never dress the genome paragraph as a
+  // lesson (lib/pilot.ts), but the page may not leave the learner in a dead end
+  // either: it offers the nearest concepts that DO have a complete lesson.
+  ok(/Start with a complete lesson/.test(page) && /planFor\(id\)/.test(page),
+    "a concept without a complete lesson routes the learner to the nearest complete lesson instead of a dead end");
   ok(/import \{[^}]*\bplanFor\b[^}]*\} from "@\/lib\/lesson-plans"/.test(page),
     "and the page reads plans from the one format module rather than keeping a copy of the content");
   ok(/import \{[^}]*\bteachingLanguages\b[^}]*\} from "@\/lib\/lesson-plans"/.test(page),
@@ -16237,10 +16242,13 @@ console.log("▸ Every door that costs money or CPU names its bound");
   const lp = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
   ok(/import \{[^}]*namesNatively[^}]*\} from "@\/lib\/content-i18n"/.test(lp),
     "the lesson page asks the content layer which language it is in, rather than keeping a second list of its own");
-  ok(/\{lang !== "en" && \(/.test(lp) && /taughtHere/.test(lp) &&
+  ok(/const teachLang = state\?\.profile\.teachingLang \?\? lang/.test(lp) &&
+     /planFor\(conceptId, teachLang\)/.test(lp),
+    "the lesson is resolved in the learner's chosen teaching language, not the interface language");
+  ok(/\{teachLang !== "en" && \(/.test(lp) && /taughtHere/.test(lp) &&
      /"lq\.teachNoteLesson"/.test(lp) &&
      /namesNatively\(lang\) \? "lq\.teachNote" : "lq\.teachNoteAll"/.test(lp),
-    "and prints one of the three true sentences above the first lesson paragraph, choosing by measurement — English readers see nothing, because the teaching IS their language");
+    "and prints one of the three true sentences above the first lesson paragraph, choosing by measurement — a reader whose TEACHING language is English sees nothing, because the teaching IS their language");
   ok(lp.indexOf("lq.teachNote") < lp.indexOf("plan-objective"),
     "it comes BEFORE the objective, so a learner is told what they are about to read before they read it");
 

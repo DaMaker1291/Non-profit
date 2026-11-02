@@ -1,7 +1,7 @@
 {
   "name": "openmind",
   "version": "1.0.0",
-  "description": "OpenMind \u2014 a free, open-source, multilingual learning network. Adaptive learning with optional AI assistance: the diagnostic, the question bank, the grader, the learner model and the tutor are all deterministic and work with no model configured, so the AI is an extra rather than the product. `npm run verify` proves the engines, `npm run verify:q` proves every generated question is answerable, `npm run e2e` proves the API end to end. `npm run benchmark` measures what the decision engine actually decides for adversarial learner states \u2014 and, deliberately, does not measure learning.",
+  "description": "OpenMind — a free, open-source, multilingual learning network. Adaptive learning with optional AI assistance: the diagnostic, the question bank, the grader, the learner model and the tutor are all deterministic and work with no model configured, so the AI is an extra rather than the product. `npm run verify` proves the engines, `npm run verify:q` proves every generated question is answerable, `npm run e2e` proves the API end to end. `npm run benchmark` measures what the decision engine actually decides for adversarial learner states — and, deliberately, does not measure learning.",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -12,6 +12,7 @@
     "start": "next start -p 4173",
     "typecheck": "tsc --noEmit",
     "verify": "node scripts/verify-engines.mjs",
+    "content-platform:check": "node scripts/content-platform-check.mjs",
     "benchmark": "node scripts/educational-benchmark.mjs",
     "reliability": "node scripts/north-star.mjs",
     "content-check": "node scripts/content-check.mjs",
@@ -26,6 +27,8 @@
     "pilot:check": "node scripts/verify-pilot.mjs",
     "deployment:check": "node scripts/deployment-gate.mjs",
     "pilot:pack": "node scripts/pilot-review-pack.mjs",
+    "audit:pilot": "node scripts/audit-pilot-pack.mjs",
+    "audit:structured": "node scripts/audit-structured-items.mjs",
     "pilot:review": "node scripts/pilot-review.mjs",
     "status": "node scripts/status-report.mjs",
     "status:check": "node scripts/status-report.mjs --check",
@@ -71,6 +74,7 @@
     "verify:kiosk:restart": "node scripts/verify-kiosk-restart.mjs"
   },
   "dependencies": {
+    "mathjs": "^15.2.0",
     "next": "^16.4.3",
     "pg": "^8.23.1",
     "react": "^19.3.1",

@@ -215,6 +215,20 @@ record("paper shapes", paperShapesOk, "npm run paper-audit — every paper says 
 const optionsOk = runScript("gate:options");
 record("option-length gate", optionsOk, "npm run gate:options — no concept may be beaten by a length-only strategy");
 
+// THE CONTENT PLATFORM CONTRACT, before any lesson can be published. It checks
+// the typed document shape, block-level provenance, the rights decision for
+// every source use, and mathematical equivalence on the authored forms. A
+// linked resource that tries to power teaching text fails here.
+const contentPlatformOk = runScript("content-platform:check");
+record("content platform schema and rights", contentPlatformOk, "npm run content-platform:check — typed lessons, source rights, coverage and mathematical equivalence");
+
+// Constructed-response marking is a separate contract from the generated
+// multiple-choice bank: method marks survive a wrong answer, a required unit is
+// part of the answer, and a blank response is not a wrong belief. The audit
+// exercises all 13 authored items against those cases.
+const structuredOk = runScript("audit:structured");
+record("constructed-response marking", structuredOk, "npm run audit:structured — correct, partial, unit-missing and blank responses mark as authored");
+
 // The published-numbers check (§30). Every figure OpenMind states about itself —
 // concepts, specifications, how many are verified, how many still carry an
 // option-length tell — is DERIVED by scripts/status-report.mjs into

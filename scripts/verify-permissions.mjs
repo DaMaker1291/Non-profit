@@ -170,6 +170,12 @@ ok(typeof joinCode === "string" && joinCode.length >= 4, "the class carries a jo
 
 const joined = await authedPost("/api/classes", { action: "join", joinCode, handle: "perm_student" }, bob.id);
 ok(joined.status === 200, "a learner joins by code");
+// A second attempt with the same code and a different display name is still the
+// same learner. It must not allocate a second roster row.
+const joinedAgain = await authedPost("/api/classes", { action: "join", joinCode, handle: "perm_student_again" }, bob.id);
+ok(joinedAgain.status === 200, "the same learner may re-enter the class code");
+ok(Object.keys(joinedAgain.body?.cls?.students ?? {}).length === 1,
+  "and the second join does not create a duplicate roster row");
 // THE JOIN REPLY IS A READ OF THE CLASS. It handed the joiner every classmate's
 // row and the code they had just typed; it answers with their own row now.
 ok(joined.body?.cls?.joinCode === "",
@@ -251,6 +257,30 @@ ok(ownerCapabilityPack.status === 401 && ownerCapabilityPack.body?.error === "te
 const ownerPack = await authedGet(`/api/pack-export?id=${cls.id}&me=${teacher.id}&format=json`, teacher.id);
 ok(ownerPack.status === 200, `while the class's teacher still receives it (HTTP ${ownerPack.status})`);
 
+// ── 4b. Removing a pupil is administration, not erasure ─────────────────────
+// A member cannot remove a classmate; the owner can; the removed learner loses
+// access immediately, while their own evidence and account remain.
+const pupilRemove = await authedPost("/api/classes", {
+  action: "remove-member", clsId: cls.id, learnerId: bob.id,
+}, bob.id);
+ok(pupilRemove.status === 401 || pupilRemove.status === 403,
+  "a pupil cannot remove a classmate", `got HTTP ${pupilRemove.status}`);
+const ownerRemove = await authedPost("/api/classes", {
+  action: "remove-member", clsId: cls.id, learnerId: bob.id,
+}, teacher.id);
+ok(ownerRemove.status === 200 && ownerRemove.body?.removed === bob.id,
+  "the owner removes a pupil without deleting their learning record", `got HTTP ${ownerRemove.status}`);
+const afterRemoval = await classRead(bob);
+ok(afterRemoval.status === 403, "the removed pupil can no longer read the class", `got HTTP ${afterRemoval.status}`);
+
+// Leaving is the learner's own door, and it removes only their membership.
+const carol = await newProfile({ handle: "perm_carol", country: "GB", language: "en", subjects: ["maths"] });
+const carolJoin = await authedPost("/api/classes", { action: "join", joinCode, handle: "perm_carol" }, carol.id);
+ok(carolJoin.status === 200, "a second pupil joins for the leave check");
+const carolLeave = await authedPost("/api/classes", { action: "leave", clsId: cls.id }, carol.id);
+ok(carolLeave.status === 200, "the pupil can leave the class themselves", `got HTTP ${carolLeave.status}`);
+ok((await classRead(carol)).status === 403, "and their own access is gone immediately");
+
 const studentEdit = await authedPost("/api/classes", { action: "update", clsId: cls.id, subject: "physics" }, bob.id);
 ok(studentEdit.status === 401 && studentEdit.body?.error === "teacher_account_required",
   "a learner's capability cannot edit the class's curriculum", `got HTTP ${studentEdit.status} ${studentEdit.body?.error ?? ""}`);
@@ -267,17 +297,24 @@ const teacherAssign = await authedPost("/api/assignments", {
   action: "create", clsId: cls.id, subject: "maths",
   conceptIds: ["linear-equations"], title: "Owner's work", dueAt: Date.now() + 86_400_000,
 }, teacher.id);
-ok(teacherAssign.status === 200 && teacherAssign.body?.assignment?.id, "the owner sets work successfully");
+// AUTHORITY PASSED AND THE CONTENT GATE DID ITS JOB. The owner is not refused as
+// a learner (401/403); the request reaches the class and is stopped because no
+// lesson has a qualified review. A test that demanded a stored assignment here
+// would be asking the product to bypass that gate.
+ok(teacherAssign.status === 400 && /not yet approved for a class/.test(teacherAssign.body?.error ?? ""),
+  "the owner reaches the content gate, which refuses unreviewed work by name",
+  `got HTTP ${teacherAssign.status} ${teacherAssign.body?.error ?? ""}`);
 
-// A student receives their OWN row and no monitor; the owner receives the
-// monitor. That asymmetry is the leak the brief warns about, stated as a test.
+// A student receives their OWN row and no monitor; the owner's monitor is empty
+// while no reviewed assignment exists. That asymmetry is the leak the brief
+// warns about, stated as a test.
 const studentView = await authedGet("/api/assignments?me=" + bob.id, bob.id);
 ok(studentView.status === 200, "a student reads their assigned work");
 ok(Array.isArray(studentView.body?.monitor) && studentView.body.monitor.length === 0,
   "and receives NO monitor of the class");
 const teacherView = await authedGet("/api/assignments?me=" + teacher.id, teacher.id);
-ok(Array.isArray(teacherView.body?.monitor) && teacherView.body.monitor.length >= 1,
-  "the owner receives a monitor for the class they own");
+ok(Array.isArray(teacherView.body?.monitor) && teacherView.body.monitor.length === 0,
+  "the owner's monitor is empty while no reviewed work exists, not populated with another class's rows");
 
 // ── 5. The aggregate report is gated by its publisher key, when set ──────────
 group("5 · the aggregate impact report honours its publisher key");

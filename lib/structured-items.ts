@@ -294,7 +294,7 @@ const PLOT_LINE: StructuredItem = {
       response: "graph",
       graph: { xMin: -4, xMax: 4, yMin: -4, yMax: 8, m: -1, c: 3, tolerance: { m: 0.15, c: 0.35 } },
       explanation:
-        "A gradient of −1 falls as it goes right: 1 right, 1 down. The line crosses the y-axis at (0, 3), so (0, 3) and (2, 1) both lie on it.",
+        "A gradient of −1 means the line falls as it goes right: one step right takes you one step down. The line crosses the y-axis at (0, 3), so (0, 3) and (2, 1) both lie on it, and either pair of points can define the same line.",
     },
     {
       id: "d",
@@ -304,7 +304,7 @@ const PLOT_LINE: StructuredItem = {
       response: "readoff",
       readOff: { from: "c", at: -1, tolerance: 0.45 },
       explanation:
-        "On y = −x + 3, x = −1 gives y = 1 + 3 = 4. Reading from your own line is accepted when it is the line you stated.",
+        "On the line y = −x + 3, substituting x = −1 gives y = 1 + 3 = 4, so the read-off value is 4. The mark follows the line you actually stated in part (c), which is why a correct reading from your own graph is accepted.",
     },
   ],
 };
@@ -338,8 +338,7 @@ const LAWN_FEED: StructuredItem = {
         label: "length × width",
       },
       explanation:
-        "Area of a rectangle is length × width: 7.5 × 4 = 30. Area is measured in square " +
-        "units, so the answer is 30 m² — a bare 30 names a length, not a region.",
+        "The area of a rectangle is its length multiplied by its width, so here 7.5 metres times 4 metres gives 30 square metres. Area is measured in square units, which is why the answer is written as 30 m²; a bare 30 would name a length, not the region the lawn covers.",
     },
     {
       id: "b",
@@ -395,7 +394,7 @@ const FOUNDATION_PROPORTION: StructuredItem = {
       answer: 180,
       accepted: ["180"],
       explanation:
-        "A quarter of 240 is 60, because 240 ÷ 4 = 60. Three quarters is three of those parts: 3 × 60 = 180. Dividing by 4 and multiplying by 3 gives the same result, 240 × 3 ÷ 4 = 180.",
+        "A quarter of 240 is 60, because 240 ÷ 4 = 60. Three quarters means taking three of those quarter-parts, so 3 × 60 = 180. Dividing by 4 and then multiplying by 3 gives the same result, 240 × 3 ÷ 4 = 180. This works because finding a fraction of an amount is the same as multiplying by that fraction, and the order of multiplying and dividing does not change the value.",
     },
     {
       id: "b",
@@ -404,7 +403,7 @@ const FOUNDATION_PROPORTION: StructuredItem = {
       answer: 276,
       accepted: ["276"],
       explanation:
-        "15% of 240 is 0.15 × 240 = 36. Increasing means adding that change to the original amount: 240 + 36 = 276. A single multiplier gives the same answer: 240 × 1.15 = 276.",
+        "Fifteen per cent of 240 is 0.15 × 240 = 36. Increasing by 15% means adding that change to the original amount, so 240 + 36 = 276. A single multiplier gives the same answer: 240 × 1.15 = 276, which is often quicker.",
     },
   ],
 };
@@ -424,7 +423,7 @@ const HIGHER_SURDS: StructuredItem = {
       answer: 5,
       accepted: ["5"],
       explanation:
-        "Find a square factor of 50: 50 = 25 × 2, so √50 = √25 × √2 = 5√2. The value multiplying √2 is 5, and 5 is exact — a decimal such as 7.07 is an approximation of the whole surd, not k.",
+        "Find a square factor of 50: 50 = 25 × 2, so √50 = √25 × √2 = 5√2. The value multiplying √2 is therefore 5, and it is exact. A decimal such as 7.07 approximates the whole surd, not the coefficient k the question asks for.",
     },
     {
       id: "b",
@@ -433,7 +432,7 @@ const HIGHER_SURDS: StructuredItem = {
       answer: 12,
       accepted: ["12"],
       explanation:
-        "Square each factor: (2√3)^2 = 2^2 × (√3)^2 = 4 × 3 = 12. The square root disappears because squaring and taking the positive square root are inverse operations for a positive number.",
+        "Square each factor separately: (2√3)^2 = 2^2 × (√3)^2 = 4 × 3 = 12. The square root disappears because squaring and taking the positive square root are inverse operations for a positive number, so the result is the integer 12.",
     },
   ],
 };
@@ -464,7 +463,7 @@ const FOUNDATION_ALGEBRA: StructuredItem = {
       response: "algebra",
       algebra: { accepted: ["x^2 - 5x"], requireExpanded: true },
       explanation:
-        "Multiply x by each term: x × x = x² and x × (−5) = −5x. The expansion is x² − 5x. The term −5x keeps its sign; writing +5x is the common sign slip here.",
+        "Multiply x by each term inside the bracket: x × x = x² and x × (−5) = −5x. The expansion is therefore x² − 5x. The term −5x keeps its negative sign; writing +5x is the common sign slip this question is checking for.",
     },
     {
       id: "c",
@@ -505,7 +504,7 @@ const HIGHER_ALGEBRA: StructuredItem = {
       response: "algebra",
       algebra: { accepted: ["6x^5"], requireExpanded: true },
       explanation:
-        "Multiply the coefficients: 2 × 3 = 6. Multiply the powers of x by adding the indices: x³ × x² = x^(3+2) = x⁵. The result is 6x⁵, not 6x⁶ — the indices add rather than multiply.",
+        "Multiply the coefficients first: 2 × 3 = 6. Then multiply the powers of x by adding their indices: x³ × x² = x^(3+2) = x⁵. The result is 6x⁵, not 6x⁶, because the indices add rather than multiply. The coefficient and the power are separate parts of the term, so they are handled separately before being written together.",
     },
     {
       id: "c",
@@ -547,7 +546,7 @@ const TABLE_LINE: StructuredItem = {
         }],
       },
       explanation:
-        "Substitute each x into y = 2x + 1. At x = −1, 2 × (−1) + 1 = −1; at x = 0 the value is 1; at x = 1 it is 3; and at x = 2 it is 5. Each step adds 2 to y because the coefficient of x is 2.",
+        "Substitute each x value into the same rule, y = 2x + 1. At x = −1, 2 × (−1) + 1 = −1; at x = 0 the value is 1; at x = 1 it is 3; and at x = 2 it is 5. Each step adds 2 to y because the coefficient of x is 2.",
     },
   ],
 };
@@ -579,7 +578,7 @@ const TABLE_QUADRATIC: StructuredItem = {
         }],
       },
       explanation:
-        "At x = −1, x² = 1 and −2x = 2, so y = 3. At x = 0 both terms are 0. At x = 1, 1 − 2 = −1. At x = 3, 9 − 6 = 3. The squared term is positive at both negative and positive x, while the −2x term changes sign.",
+        "At x = −1, x² = 1 and −2x = 2, so y = 3. At x = 0 both terms are 0. At x = 1, 1 − 2 = −1, and at x = 3, 9 − 6 = 3. The squared term is positive at both negative and positive x, while the −2x term changes sign.",
     },
   ],
 };
@@ -598,7 +597,7 @@ const FOUNDATION_ANGLES: StructuredItem = {
       marks: 1,
       answer: 180,
       explanation:
-        "A straight angle is half a full turn. A full turn is 360°, so a straight line is 360° ÷ 2 = 180°. This is why two adjacent angles on a straight line are supplementary.",
+        "A straight angle is half of a full turn. A full turn is 360°, so the angle along a straight line is 360° ÷ 2 = 180°. This is why two adjacent angles on a straight line are called supplementary: together they make a straight angle.",
     },
     {
       id: "b",
@@ -616,7 +615,7 @@ const FOUNDATION_ANGLES: StructuredItem = {
       answer: 70,
       accepted: ["70°"],
       explanation:
-        "The angles in a quadrilateral add to 360°. The three given angles total 90 + 90 + 110 = 290, so the fourth is 360 − 290 = 70°.",
+        "The four interior angles of a quadrilateral always add to 360°. The three given angles total 90 + 90 + 110 = 290, so the fourth angle must be 360 − 290 = 70°. Subtracting from 180 would apply to a triangle, not a quadrilateral.",
     },
     {
       id: "d",
@@ -625,7 +624,7 @@ const FOUNDATION_ANGLES: StructuredItem = {
       answer: 70,
       accepted: ["70°"],
       explanation:
-        "The two base angles of an isosceles triangle are equal. They share 180 − 40 = 140°, so each is 140 ÷ 2 = 70°. The 40° is not one of the equal angles here.",
+        "The two base angles of an isosceles triangle are equal. Together they share the remaining 180 − 40 = 140°, so each base angle is 140 ÷ 2 = 70°. The 40° apex angle is not one of the equal angles in this triangle.",
     },
     {
       id: "e",
@@ -634,7 +633,7 @@ const FOUNDATION_ANGLES: StructuredItem = {
       answer: 72,
       accepted: ["72°"],
       explanation:
-        "The exterior angles of any polygon add to 360°. A regular pentagon has five equal exterior angles, so each is 360 ÷ 5 = 72°. The interior angle would be 108°, not 72°.",
+        "The exterior angles of any polygon add to 360°. A regular pentagon has five equal exterior angles, so each one is 360 ÷ 5 = 72°. The interior angle would be 108°, not 72°, because the interior and exterior angles lie on a straight line.",
     },
   ],
 };
@@ -654,7 +653,7 @@ const HIGHER_ANGLES: StructuredItem = {
       answer: 90,
       accepted: ["90°"],
       explanation:
-        "The angle in a semicircle is a right angle. A diameter cuts the circle into two semicircles, so any angle subtended by it at the circumference is 90°.",
+        "The angle in a semicircle is a right angle. A diameter cuts the circle into two semicircles, so any angle subtended by that diameter at the circumference is 90°. This is a special case of the angle at the centre being twice the angle at the circumference.",
     },
     {
       id: "b",
@@ -662,7 +661,7 @@ const HIGHER_ANGLES: StructuredItem = {
       marks: 1,
       answer: 180,
       explanation:
-        "A cyclic quadrilateral has all four vertices on a circle. Each pair of opposite angles is supplementary, so the pair adds to 180°.",
+        "A cyclic quadrilateral has all four of its vertices on the same circle. Each pair of opposite angles is supplementary, so the two angles in a pair add to 180°. This is different from the 360° total for all four angles.",
     },
     {
       id: "c",
@@ -671,7 +670,7 @@ const HIGHER_ANGLES: StructuredItem = {
       answer: 106,
       accepted: ["106°"],
       explanation:
-        "Opposite angles in a cyclic quadrilateral add to 180°. The opposite angle is 180 − 74 = 106°. Using 360 here would be the whole quadrilateral rather than the opposite-angle pair.",
+        "Opposite angles in a cyclic quadrilateral add to 180°. The opposite angle is therefore 180 − 74 = 106°. Using 360 here would give the whole quadrilateral rather than the opposite-angle pair, which is the common slip.",
     },
     {
       id: "d",
@@ -680,7 +679,7 @@ const HIGHER_ANGLES: StructuredItem = {
       answer: 90,
       accepted: ["90°"],
       explanation:
-        "A tangent is perpendicular to the radius at the point of contact, so the angle between them is 90°.",
+        "A tangent touches the circle at exactly one point. At that point of contact, the tangent is perpendicular to the radius drawn to it, so the angle between the tangent and the radius is 90°.",
     },
     {
       id: "e",
@@ -689,7 +688,7 @@ const HIGHER_ANGLES: StructuredItem = {
       answer: 64,
       accepted: ["64°"],
       explanation:
-        "The angle at the centre is twice the angle at the circumference when both stand on the same arc. The circumference angle is 128 ÷ 2 = 64°, not 128 × 2.",
+        "When both angles stand on the same arc, the angle at the centre is twice the angle at the circumference. The circumference angle is therefore 128 ÷ 2 = 64°, not 128 × 2. The centre angle is the larger of the two.",
     },
   ],
 };
@@ -711,7 +710,7 @@ const HIGHER_CONTEXT: StructuredItem = {
       response: "algebra",
       algebra: { accepted: ["x^2 + 5x + 6"], requireExpanded: true },
       explanation:
-        "Area of a rectangle is length × width: (x + 3)(x + 2). Expanding gives x² + 2x + 3x + 6 = x² + 5x + 6. The two middle terms are both positive, which is why the coefficient of x is 5.",
+        "The area of a rectangle is length × width, so multiply (x + 3) by (x + 2). Expanding every pair gives x² + 2x + 3x + 6 = x² + 5x + 6. The two middle terms are both positive, which is why the coefficient of x is 5.",
     },
     {
       id: "b",
@@ -768,7 +767,7 @@ const HIGHER_SEQUENCES: StructuredItem = {
       answer: 62,
       accepted: ["62"],
       explanation:
-        "Substitute n = 20 into 3n + 2: 3 × 20 + 2 = 60 + 2 = 62. Using n = 20 rather than adding 3 twenty times is the point of the nth-term expression.",
+        "Substitute n = 20 into the nth-term expression 3n + 2: 3 × 20 + 2 = 60 + 2 = 62. Using n = 20 directly, rather than adding 3 twenty times, is exactly what the nth-term expression is for. The expression encodes both the starting value and the common difference, so one substitution gives any term without listing the sequence.",
     },
     {
       id: "c",

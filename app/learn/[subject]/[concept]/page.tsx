@@ -19,7 +19,7 @@ import { evidenceFor, currentSlip, retiredSlip, slipProgress } from "@/lib/learn
 import SessionResultPanel from "@/components/session-result";
 import { Dims } from "@/components/dims";
 import TutorPanel from "@/components/tutor-panel";
-import { getConcept, ancestorsOf } from "@/lib/genome";
+import { getConcept, ancestorsOf, bySubject, descendantsOf } from "@/lib/genome";
 import { SUBJECT_LABELS } from "@/lib/subjects";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { HINT_LEVELS } from "@/lib/hints";
@@ -36,6 +36,8 @@ import WorkSheet from "@/components/work-sheet";
 import ListenFirst from "@/components/listen-first";
 import PeerTeach from "@/components/peer-teach";
 import LessonWorkedExample from "@/components/lesson-worked-example";
+import LessonView from "@/components/content-platform/lesson-view";
+import { lessonDocumentFor } from "@/lib/content-platform/flagships";
 import RepairCard from "@/components/repair-card";
 import { repairFor } from "@/lib/repair";
 import { planFor, teachingLanguages } from "@/lib/lesson-plans";
@@ -84,18 +86,33 @@ export default function ConceptPage() {
    *  most of the genome today, and every plan-only section is skipped rather than
    *  drawn empty — a card with a heading and no teaching is worse than no card. */
   const { t, lang } = useI18n();
-  const plan = planFor(conceptId, lang);
+  // THE LESSON LANGUAGE IS THE LEARNER'S CHOICE, NOT THE MENU'S.
+  //
+  // `lang` is the language of the buttons; `teachingLang` is the language the
+  // learner asked to be TAUGHT in, saved on /access. They are often the same and
+  // are allowed to differ — a learner who reads an English interface but is
+  // taught in French must get the French plan. Before this, the page ignored the
+  // field and used the menu language for both, so the choice on /access would
+  // have changed nothing.
+  const { state, set: setState } = useProfile();
+  const teachLang = state?.profile.teachingLang ?? lang;
+  const plan = planFor(conceptId, teachLang);
+  /** THE CONTENT-PLATFORM DOCUMENT, WHERE ONE EXISTS. It is separate from the
+   *  authored plan: a plan is prose in the existing format, while a document
+   *  carries typed blocks, assessment contracts and block-level provenance.
+   *  The first three documents are a vertical slice, not a claim that every
+   *  concept has one. */
+  const platformLesson = lessonDocumentFor(conceptId);
   /** WHAT THE PILOT SAYS ABOUT THIS CONCEPT. `unavailable-for-pilot` means no
    *  complete lesson exists, and this page must not dress the genome paragraph
    *  as one. `needs-educator-review` means a complete plan that no qualified
    *  teacher has signed; it is shown with that fact on the screen. */
-  const pilotStatus = lessonStatus(conceptId, lang);
+  const pilotStatus = lessonStatus(conceptId, teachLang);
   /** IS THIS LESSON ACTUALLY IN THE READER'S LANGUAGE? Read from the translated
    *  plans themselves, not from "a language was chosen": the note below used to
    *  say the teaching is English even where it is not (and still says nothing
    *  where it is). One sentence per state, and each states a fact. */
-  const taughtHere = lang !== "en" && teachingLanguages(conceptId).includes(lang);
-  const { state, set: setState } = useProfile();
+  const taughtHere = teachLang !== "en" && teachingLanguages(conceptId).includes(teachLang);
   // The SERVED view, not the bank's Question: the answer is not on the wire,
   // and the type is what stops a surface from reaching for it.
   const [q, setQ] = useState<QuestionView | null>(null);
@@ -339,6 +356,24 @@ export default function ConceptPage() {
   // what it is. Rendering it in the lesson's position, under "The idea", was
   // the defect that made 120 concepts look taught.
   if (!pilotStatus.plan) {
+    /* A GAP IS A DETOUR, NOT A DEAD END.
+     *
+     *  The gate must not dress the genome paragraph as a lesson (lib/pilot.ts).
+     *  But a learner who arrived here from the subject map still needs somewhere
+     *  to go, and the honest destination is a concept that HAS a complete
+     *  lesson. Prerequisites come first — they are what this idea builds on —
+     *  then the concepts that build on it, then any other authored lesson in
+     *  the same subject. Only plans that exist are offered; nothing here claims
+     *  the concept itself is taught.
+     */
+    const taught = (ids: string[]) =>
+      ids.filter((id) => id !== c.id && planFor(id)).slice(0, 3);
+    const nearby = [
+      ...taught(c.prereqs),
+      ...taught(descendantsOf(c.id)),
+      ...taught(bySubject(c.subject).map((x) => x.id)),
+    ].filter((id, i, arr) => arr.indexOf(id) === i).slice(0, 3);
+
     return (
       <main className="container narrow" style={{ paddingTop: 40 }}>
         <p className="eyebrow">{t(`subj.${c.subject}`)} · {ctitle(lang, c.id)}</p>
@@ -360,6 +395,22 @@ export default function ConceptPage() {
             <p className="reading lesson-text" style={{ marginTop: 10 }}>{c.lesson}</p>
           </details>
         </section>
+        {nearby.length > 0 && (
+          <section className="card soft" style={{ marginBottom: 18 }} lang="en">
+            <p className="eyebrow" style={{ margin: 0 }}><span className="no">→</span> Start with a complete lesson</p>
+            <p className="small muted" style={{ margin: "6px 0 10px" }}>
+              These nearby ideas have a full lesson: the teaching in sequence, a worked example,
+              the common mistakes, and practice with feedback.
+            </p>
+            <div className="actions" style={{ marginTop: 0 }}>
+              {nearby.map((id) => (
+                <Link key={id} className="btn small" href={`/learn/${c.subject}/${id}`}>
+                  {ctitle(lang, id)} →
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
         {c.prereqs.length > 0 && (
           <section className="card soft" style={{ marginBottom: 18 }}>
             <p className="eyebrow" style={{ margin: 0 }}>{t("learn.buildsOn")}</p>
@@ -682,7 +733,10 @@ export default function ConceptPage() {
         <p className="small muted" style={{ margin: 0 }}>{pilotStatus.reasons[0]}</p>
         {pilotStatus.inScope && (
           <p className="small muted" style={{ margin: "6px 0 0" }}>
-            This is one of the 12 lessons proposed for CBSE Class 10, English medium. It may be read and practised, but it is not presented as a reviewed or officially approved course.
+            This lesson is part of the proposed pilot pathway. It may be read and practised,
+            but no subject teacher has reviewed it and it is not an approved course. Which
+            curriculum and language it is proposed for is stated on the pilot pages, not
+            assumed from the course you are enrolled in.
           </p>
         )}
       </section>
@@ -826,7 +880,7 @@ export default function ConceptPage() {
           vocabulary is told the stronger true thing rather than inheriting a
           claim it does not meet. English readers see nothing: the teaching IS
           their language. */}
-      {lang !== "en" && (
+      {teachLang !== "en" && (
         <p className="small muted lang-note" role="note" style={{ margin: "0 0 16px" }}>
           {t(taughtHere
             ? "lq.teachNoteLesson"
@@ -1069,6 +1123,16 @@ export default function ConceptPage() {
           reads the lesson, feels informed, and leaves. It is also the "we do"
           hand-off: the worked example has just shown one, this starts one they
           answer with the hint ladder beside it. */}
+      {/* THE CONTENT-PLATFORM SLICE. For a concept with an authored plan, this
+          adds only the interactive activities and external links; the prose and
+          the live worked example above are already the lesson. For a concept
+          with no plan (the computing slice), the document is the lesson and the
+          full block sequence is rendered. Nothing here is recorded as evidence,
+          and the draft review state is printed rather than implied away. */}
+      {platformLesson && (
+        <LessonView doc={platformLesson} activitiesOnly={Boolean(plan)} />
+      )}
+
       {plan?.recap && plan.recap.length > 0 && (
         <section className="card soft" style={{ marginBottom: 18 }} aria-label="Recap">
           <p className="eyebrow" style={{ margin: 0 }}>Recap</p>

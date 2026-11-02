@@ -329,7 +329,7 @@ export const DATA_DEEP: Record<string, DeepGen> = {
       correct,
       wrongs: pickDistinct(correct, [`${deepNum(a + b, 2)} kg`, `${deepNum(total + 0.1, 2)} kg`, `${deepNum(total - 0.1, 2)} kg`, `${deepNum(a * b, 2)} kg`]),
       tags: [],
-      explanation: `Line up the decimal points and add: ${deepNum(a, 1)} + ${deepNum(b, 1)} + ${deepNum(c, 1)} = ${deepNum(total, 2)} kg. Adding only the first two (${deepNum(a + b, 2)}) drops a sample.`,
+      explanation: `The table gives three separate masses, so all three must be added: ${deepNum(a, 1)} + ${deepNum(b, 1)} + ${deepNum(c, 1)} = ${deepNum(total, 2)} kg. Lining up the decimal points keeps tenths with tenths, which is why the sum has one decimal place; adding only the first two (${deepNum(a + b, 2)}) drops the third sample and answers a different question.`,
       difficulty: 0.75 + r.next() * 0.05,
     };
   },
@@ -413,7 +413,7 @@ export const DATA_DEEP: Record<string, DeepGen> = {
       correct,
       wrongs: pickDistinct(correct, [`£${rate * want}`, `£${base + rate * m1}`, `£${(base + rate * want) + rate}`, `£${want}`]),
       tags: [],
-      explanation: `The fare rises £${base + rate * m2 - (base + rate * m1)} over ${m2 - m1} miles, so the rate is £${rate} per mile and the fixed charge is £${base}. For ${want} miles: £${base} + ${rate} × ${want} = £${base + rate * want}. Ignoring the fixed charge gives £${rate * want}.`,
+      explanation: `The fare rises £${base + rate * m2 - (base + rate * m1)} between the two rows, and that increase buys ${m2 - m1} extra miles, so each mile costs £${rate}; that is the gradient. The fixed charge is the part that does not change with distance: £${base + rate * m1} − ${rate} × ${m1} = £${base}. For ${want} miles the fare is the fixed charge plus the mileage, £${base} + ${rate} × ${want} = £${base + rate * want}. Charging only the mileage (£${rate * want}) forgets the fixed charge, and reading the first row as the fixed charge ignores its miles.`,
       difficulty: 0.78 + r.next() * 0.05,
     };
   },
@@ -428,7 +428,7 @@ export const DATA_DEEP: Record<string, DeepGen> = {
       correct,
       wrongs: pickDistinct(correct, [`(${x2 - x1}, ${y2 - y1})`, `(${x1 + x2}, ${y1 + y2})`, `(${(x1 + x2) / 2 + 1}, ${(y1 + y2) / 2})`, `(${x1}, ${y2})`]),
       tags: [],
-      explanation: `The midpoint averages each coordinate: x is (${x1} + ${x2}) ÷ 2 = ${(x1 + x2) / 2} and y is (${y1} + ${y2}) ÷ 2 = ${(y1 + y2) / 2}, giving ${correct}. Adding the coordinates instead of averaging gives (${x1 + x2}, ${y1 + y2}).`,
+      explanation: `The midpoint is halfway between the two points, so each coordinate is the AVERAGE of the two: x is (${x1} + ${x2}) ÷ 2 = ${(x1 + x2) / 2}, and y is (${y1} + ${y2}) ÷ 2 = ${(y1 + y2) / 2}, giving ${correct}. Adding the coordinates instead of averaging gives (${x1 + x2}, ${y1 + y2}), which is twice the midpoint and lies beyond both markers rather than between them.`,
       difficulty: 0.76 + r.next() * 0.05,
     };
   },

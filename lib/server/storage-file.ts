@@ -44,6 +44,8 @@ import {
   getRoom,
   getStoredPaper,
   listClasses,
+  listContentReviews,
+  appendContentReview,
   listPacks,
   listPersonalPapers,
   listProfileStates,
@@ -174,6 +176,11 @@ export const fileStorage: Storage = {
   listPacks,
   savePack,
   readAllPacks,
+
+  // Content review records — append-only, and bound to a lesson fingerprint by
+  // the route rather than by the storage layer.
+  listContentReviews,
+  appendContentReview,
 
   // Papers — the answer key stays server-side.
   saveStoredPaper,

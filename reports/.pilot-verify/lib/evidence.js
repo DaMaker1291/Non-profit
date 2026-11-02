@@ -1,0 +1,720 @@
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// THE EVIDENCE LEDGER — the append-only record everything else is derived from.
+//
+// The architecture this replaces was: answer → mutate learner state → recommend.
+// State was the truth, and once mutated, the reason for it was gone. That is why
+// "why does OpenMind think I'm weak at this?" had no answer: the evidence had
+// already been folded into counters and thrown away.
+//
+// The architecture now: action → EVIDENCE EVENT → ledger → projection → model →
+// recommendation. The event is the truth. The learner model is one projection of
+// it, a recommendation is another, and an impact claim is a third.
+//
+// The invariants, all asserted in the harness:
+//   1. Events are NEVER rewritten or deleted. Correcting an interpretation means
+//      re-projecting, not editing history.
+//   2. Events are created SERVER-SIDE, from the same grading inputs the model
+//      uses. A client cannot author evidence about itself (see /api/evidence).
+//   3. Every event carries a schema version, so a later shape change is a
+//      migration rather than a silent re-interpretation.
+//   4. `unknown` stays distinct from `zero`: an absent measurement is null and
+//      never folded into a 0.
+//   5. Projection is deterministic and order-stable, so replaying the same
+//      events always produces the same learner model — the property that makes
+//      "improve the algorithm, keep the history" possible.
+//
+// Pure and dependency-light: no I/O lives here (that is the ledger behind the
+// storage port — lib/server/evidence-file.ts for the file backend), so every
+// claim about it is testable without a server.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SOURCES = exports.PROJECTION_VERSION = exports.EVIDENCE_SCHEMA_VERSION = void 0;
+exports.isDeviceReported = isDeviceReported;
+exports.answerEvidence = answerEvidence;
+exports.hintEvidence = hintEvidence;
+exports.deviceClaimAt = deviceClaimAt;
+exports.newEvidenceId = newEvidenceId;
+exports.submissionEventId = submissionEventId;
+exports.validateEvent = validateEvent;
+exports.orderEvents = orderEvents;
+exports.projectLearner = projectLearner;
+exports.reconcile = reconcile;
+exports.impactSnapshot = impactSnapshot;
+exports.generateImpactReport = generateImpactReport;
+const proof_1 = require("./proof");
+/** Bump when a field's MEANING changes, not when one is added. */
+exports.EVIDENCE_SCHEMA_VERSION = 1;
+/**
+ * The projection algorithm's version — a different question from the schema's.
+ *
+ * `schemaVersion` says what an event MEANS. `PROJECTION_VERSION` says how
+ * evidence is TURNED INTO a learner model. Keeping the two apart is the whole
+ * point of an evidence ledger: the same events, projected by a better
+ * algorithm, should produce a better model, and nobody's learning history has
+ * to be rewritten to get it.
+ *
+ *     evidence @ schema 1  +  projection v1  →  learner model
+ *     evidence @ schema 1  +  projection v2  →  a BETTER learner model
+ *
+ * Every projection reports the version that produced it (`projectionVersion`
+ * on LearnerProjection, and on the profile's ProjectionBase), so a model on
+ * screen can always be attributed to the algorithm that computed it — and an
+ * old model can be re-derived rather than merely replaced.
+ */
+exports.PROJECTION_VERSION = 2;
+/**
+ * Was this answer taken where the server could not see it?
+ *
+ * Two shapes mean the same thing to a learner reading their own record: an
+ * event a device authored outright (`provenance: "device"`, the ingestion door)
+ * and an answer the server graded only after it arrived from a device's offline
+ * queue (`deviceAt` a real claim — the server watched the grading, but not the
+ * answering). Both are disclosed as "recorded offline" rather than presented as
+ * work the server observed, and the claimed time is the marker.
+ */
+function isDeviceReported(e) {
+    if (e.provenance === "device")
+        return true;
+    return e.type === "answer_submitted" && e.deviceAt !== null;
+}
+/** Build a server-observed answer event. The ONE constructor the live routes
+ *  use, so provenance cannot be forgotten on a new call site. */
+function answerEvidence(input) {
+    return {
+        type: "answer_submitted",
+        id: input.id ?? newEvidenceId(),
+        schemaVersion: exports.EVIDENCE_SCHEMA_VERSION,
+        learnerId: input.learnerId,
+        provenance: "server",
+        at: input.at,
+        source: input.source,
+        subject: input.subject,
+        conceptId: input.conceptId,
+        specificationId: input.specificationId,
+        questionId: input.questionId,
+        correct: input.correct,
+        chosen: input.chosen,
+        givenValue: input.givenValue ?? null,
+        mode: input.mode,
+        hints: input.hints,
+        score: input.score ?? null,
+        ms: input.ms ?? null,
+        tags: input.tags ?? [],
+        deviceAt: input.deviceAt ?? null,
+        certainty: input.certainty ?? null,
+    };
+}
+/**
+ * A hint was asked for — an ACTION, recorded as one.
+ *
+ * It deliberately carries no model weight: the hint count that matters is the
+ * one attached to the graded answer (the server kept that ledger while the
+ * question was served), so folding hint actions into the concept tally would
+ * double every hint. The fold ignores this event; `projection.totals.hintActions`
+ * counts it. What it buys is that the request itself is in the history —
+ * "the learner asked for help here, twice, before getting it" survives, even
+ * though the model's own tally does not need it.
+ */
+function hintEvidence(input) {
+    return {
+        type: "hint_requested",
+        id: newEvidenceId(),
+        schemaVersion: exports.EVIDENCE_SCHEMA_VERSION,
+        learnerId: input.learnerId,
+        provenance: "server",
+        at: input.at,
+        source: input.source,
+        subject: input.subject,
+        conceptId: input.conceptId,
+        specificationId: input.specificationId,
+        questionId: input.questionId,
+        level: input.level,
+    };
+}
+const ID_RE = /^ev_[A-Za-z0-9_-]{8,64}$/;
+const LEARNER_RE = /^[A-Za-z0-9_-]{3,64}$/;
+/** How far a device's claimed clock may sit from the server's before the claim
+ *  is dropped as implausible. Generous on purpose — a phone that has been
+ *  offline for a year is a real device — but finite, so a nonsense number
+ *  cannot enter the ledger as a timestamp. */
+const DEVICE_CLAIM_WINDOW_MS = 400 * 24 * 60 * 60 * 1000;
+/** A device's claimed answer time, or null when it is absent or implausible.
+ *  Recorded as the device's own claim and never used for scheduling: see
+ *  AnswerSubmitted#deviceAt and the retention rule in projectLearner. The live
+ *  answer route calls this too, so the claim is judged by ONE rule whichever
+ *  door it arrives at. */
+function deviceClaimAt(value, at) {
+    const v = value;
+    if (typeof v !== "number" || !Number.isFinite(v) || v <= 0)
+        return null;
+    // A claim that cannot be when the learner answered relative to when the
+    // server received it is noise, not history.
+    if (Math.abs(v - at) > DEVICE_CLAIM_WINDOW_MS)
+        return null;
+    return v;
+}
+/** Server-side id. Random, not derived: the ledger must not depend on a
+ *  guessable function of the content, or two genuinely separate attempts at the
+ *  same question (a re-sat paper) would collide and one would be dropped. */
+function newEvidenceId() {
+    const rnd = globalThis.crypto?.randomUUID?.().replace(/-/g, "").slice(0, 24)
+        ?? Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    return `ev_${rnd}`;
+}
+/** The shape a device's submission token must have. Bounded, ASCII, no
+ *  separators: it ends up inside a ledger event id. */
+const SUBMISSION_RE = /^[A-Za-z0-9_-]{8,48}$/;
+/**
+ * THE IDEMPOTENCE SEAM for offline answers.
+ *
+ * A device that answered while offline names each submission with its own
+ * token, and the ledger event's id is DERIVED from that token. This is what
+ * makes a replay safe rather than lucky: the same submission delivered twice —
+ * a dropped response, a double flush, two tabs draining one queue — mints the
+ * same event id, so `appendEvidence` recognises it as one event and the
+ * learner's work counts once.
+ *
+ * It is deliberately NOT derived from the content. The token names a
+ * SUBMISSION, not a question, so two genuine attempts at the same question are
+ * two different tokens and stay two events (which is why newEvidenceId is still
+ * random: a re-sat paper must not collapse into its first sitting). A client
+ * can therefore only ever suppress an event of its own, which it could do by
+ * simply not sending it — and never another learner's, which is the boundary
+ * that matters.
+ *
+ * Returns null for a token that is not well-formed, so the caller can fall back
+ * to a fresh id rather than write a malformed one.
+ */
+function submissionEventId(submissionId) {
+    if (typeof submissionId !== "string" || !SUBMISSION_RE.test(submissionId))
+        return null;
+    return `ev_o${submissionId}`;
+}
+/**
+ * Is this a well-formed event we will accept into the ledger?
+ *
+ * Deliberately strict and total: the ingestion endpoint is reachable by any
+ * authenticated learner, so an unvalidated event is an unvalidated claim about
+ * someone's learning. Returns the reason it was refused, because a dropped
+ * event must never be silent.
+ */
+function validateEvent(input, expectedLearnerId) {
+    if (!input || typeof input !== "object")
+        return { ok: false, reason: "not_an_object" };
+    const e = input;
+    const str = (k) => (typeof e[k] === "string" ? e[k] : null);
+    const num = (k) => (typeof e[k] === "number" && Number.isFinite(e[k]) ? e[k] : null);
+    const id = str("id");
+    if (!id || !ID_RE.test(id))
+        return { ok: false, reason: "bad_id" };
+    const learnerId = str("learnerId");
+    if (!learnerId || !LEARNER_RE.test(learnerId))
+        return { ok: false, reason: "bad_learner" };
+    // Evidence about somebody else is never accepted, whatever the caller claims.
+    if (learnerId !== expectedLearnerId)
+        return { ok: false, reason: "learner_mismatch" };
+    if (num("schemaVersion") !== exports.EVIDENCE_SCHEMA_VERSION)
+        return { ok: false, reason: "schema_mismatch" };
+    const at = num("at");
+    if (at === null || at <= 0)
+        return { ok: false, reason: "bad_time" };
+    const source = str("source");
+    if (!source || !exports.SOURCES.includes(source))
+        return { ok: false, reason: "bad_source" };
+    const shared = {
+        id,
+        schemaVersion: exports.EVIDENCE_SCHEMA_VERSION,
+        learnerId,
+        // Anything that arrives over the wire is a claim by the device, even if the
+        // body says "server". Only lib/evidence-server paths may mint server truth.
+        provenance: "device",
+        at,
+        source: source,
+        subject: str("subject") ?? null,
+        conceptId: str("conceptId"),
+        specificationId: str("specificationId"),
+    };
+    switch (e.type) {
+        case "answer_submitted": {
+            const questionId = str("questionId");
+            if (!questionId)
+                return { ok: false, reason: "bad_question" };
+            if (typeof e.correct !== "boolean")
+                return { ok: false, reason: "bad_correct" };
+            const mode = str("mode");
+            if (mode !== "guided" && mode !== "independent" && mode !== "transfer")
+                return { ok: false, reason: "bad_mode" };
+            const chosen = num("chosen");
+            // −1 is the numeric-answer marker (there was no option to pick); every
+            // other value must be a real, non-negative option index.
+            if (chosen === null || chosen < -1 || !Number.isInteger(chosen))
+                return { ok: false, reason: "bad_choice" };
+            // The typed answer, when there was one. Absent/not-a-number reads as null
+            // rather than as 0 — an absent number is not the number zero.
+            const givenValue = typeof e.givenValue === "number" && Number.isFinite(e.givenValue) ? e.givenValue : null;
+            const hints = num("hints") ?? 0;
+            if (hints < 0 || !Number.isInteger(hints))
+                return { ok: false, reason: "bad_hints" };
+            const tags = Array.isArray(e.tags) ? e.tags.filter((t) => typeof t === "string").slice(0, 8) : [];
+            const scoreRaw = e.score;
+            const score = scoreRaw && typeof scoreRaw === "object"
+                && typeof scoreRaw.awarded === "number" && typeof scoreRaw.max === "number" && scoreRaw.max > 0
+                ? { awarded: Math.max(0, scoreRaw.awarded), max: scoreRaw.max }
+                : null;
+            // The self-report, strictly. Absent/undefined reads as null (nobody was
+            // asked); anything present must be one of the two real statements, so a
+            // malformed claim is REFUSED rather than quietly downgraded to "unasked".
+            let certainty = null;
+            if (e.certainty !== undefined && e.certainty !== null) {
+                if (e.certainty !== "sure" && e.certainty !== "unsure")
+                    return { ok: false, reason: "bad_certainty" };
+                certainty = e.certainty;
+            }
+            return { ok: true, event: { ...shared, type: "answer_submitted", questionId, correct: e.correct, chosen, givenValue, mode, hints, score, ms: num("ms"), tags, deviceAt: deviceClaimAt(e.deviceAt, at), certainty } };
+        }
+        case "hint_requested": {
+            const questionId = str("questionId");
+            const level = num("level");
+            if (!questionId)
+                return { ok: false, reason: "bad_question" };
+            if (level === null || level < 1 || level > 4)
+                return { ok: false, reason: "bad_level" };
+            return { ok: true, event: { ...shared, type: "hint_requested", questionId, level } };
+        }
+        case "diagnostic_completed": {
+            const concepts = num("concepts");
+            if (concepts === null || concepts < 0)
+                return { ok: false, reason: "bad_concepts" };
+            // Seeds are optional (legacy events carry none) but if present they must
+            // be well-formed: the replay folds them into the learner model, so a
+            // malformed seed would corrupt a rebuild. Ask/correct are bounded, and
+            // correctness can never exceed what was asked.
+            let seeds;
+            const raw = e.seeds;
+            if (raw !== undefined) {
+                if (!Array.isArray(raw))
+                    return { ok: false, reason: "bad_seeds" };
+                seeds = [];
+                for (const s of raw) {
+                    const o = s;
+                    const cid = o.conceptId;
+                    const asked = o.asked;
+                    const correct = o.correct;
+                    const stage = o.stage;
+                    const askedThisStage = o.askedThisStage;
+                    const correctThisStage = o.correctThisStage;
+                    const served = o.servedDifficulty;
+                    if (typeof cid !== "string" || !cid ||
+                        typeof asked !== "number" || asked < 0 || !Number.isInteger(asked) ||
+                        typeof correct !== "number" || correct < 0 || correct > asked ||
+                        typeof o.done !== "boolean" ||
+                        typeof stage !== "number" || stage < 0 || !Number.isInteger(stage) ||
+                        typeof askedThisStage !== "number" || askedThisStage < 0 ||
+                        typeof correctThisStage !== "number" || correctThisStage < 0 || correctThisStage > askedThisStage ||
+                        !Array.isArray(served) || served.some((d) => typeof d !== "number" || d < 0 || d > 1)) {
+                        return { ok: false, reason: "bad_seeds" };
+                    }
+                    seeds.push({
+                        conceptId: cid, asked, correct, done: o.done, stage,
+                        askedThisStage, correctThisStage,
+                        servedDifficulty: served.slice(0, 64),
+                    });
+                }
+            }
+            // The sitting's self-report tally, when it carries one. Bounded and
+            // internally consistent: unsure can never exceed what was stated, and the
+            // unsure-and-correct subset can never exceed the unsure count — a tally
+            // that says otherwise would corrupt the report built from it.
+            let certainty;
+            const rawCert = e.certainty;
+            if (rawCert !== undefined && rawCert !== null) {
+                const stated = rawCert.stated;
+                const unsure = rawCert.unsure;
+                const unsureCorrect = rawCert.unsureCorrect;
+                if (typeof stated !== "number" || !Number.isInteger(stated) || stated < 0 ||
+                    typeof unsure !== "number" || !Number.isInteger(unsure) || unsure < 0 || unsure > stated ||
+                    typeof unsureCorrect !== "number" || !Number.isInteger(unsureCorrect) || unsureCorrect < 0 || unsureCorrect > unsure) {
+                    return { ok: false, reason: "bad_certainty" };
+                }
+                certainty = { stated, unsure, unsureCorrect };
+            }
+            return { ok: true, event: { ...shared, type: "diagnostic_completed", concepts, seeds, certainty } };
+        }
+        case "paper_completed": {
+            const paperId = str("paperId");
+            const awarded = num("awarded");
+            const total = num("total");
+            if (!paperId)
+                return { ok: false, reason: "bad_paper" };
+            if (awarded === null || total === null || total <= 0 || awarded < 0)
+                return { ok: false, reason: "bad_marks" };
+            return { ok: true, event: { ...shared, type: "paper_completed", paperId, awarded, total } };
+        }
+        case "session_completed": {
+            const kind = str("kind");
+            const asked = num("asked");
+            const correct = num("correct");
+            if (!kind)
+                return { ok: false, reason: "bad_kind" };
+            if (asked === null || correct === null || asked < 0 || correct < 0 || correct > asked)
+                return { ok: false, reason: "bad_counts" };
+            return { ok: true, event: { ...shared, type: "session_completed", kind, asked, correct } };
+        }
+        default:
+            return { ok: false, reason: "unknown_type" };
+    }
+}
+exports.SOURCES = ["diagnostic", "practice", "retrieval", "past_paper", "transfer", "project"];
+/** Stable ordering: server time, then id. Two events with the same clock value
+ *  must not swap places between runs, or replay stops being deterministic. */
+function orderEvents(events) {
+    return [...events].sort((a, b) => (a.at - b.at) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+function emptyLedger(conceptId, at) {
+    return {
+        conceptId, attempts: 0, correct: 0, hints: 0,
+        independent: { asked: 0, correct: 0 },
+        transfer: { asked: 0, correct: 0 },
+        retention: { asked: 0, correct: 0, lastHeld: null },
+        measured: { asked: 0, correct: 0 },
+        misconceptions: {},
+        certainty: { stated: 0, unsure: 0, unsureCorrect: 0 },
+        firstAt: at, lastAt: at,
+    };
+}
+/**
+ * Fold events into a learner projection. Deterministic: the same events in any
+ * order produce the same result, which is what makes `rebuild` safe to run
+ * after an algorithm change.
+ */
+function projectLearner(events) {
+    var _a, _b;
+    const ordered = orderEvents(events);
+    const byConcept = {};
+    const totals = {
+        answers: 0, correct: 0, hints: 0, hintActions: 0,
+        independent: { asked: 0, correct: 0 },
+        transfer: { asked: 0, correct: 0 },
+        retention: { asked: 0, correct: 0 },
+        certainty: { stated: 0, unsure: 0, unsureCorrect: 0 },
+        sessions: 0, diagnostics: 0, papers: 0,
+    };
+    for (const e of ordered) {
+        switch (e.type) {
+            case "answer_submitted": {
+                totals.answers += 1;
+                if (e.correct)
+                    totals.correct += 1;
+                // RETENTION, decided from the ledger alone. A retrieval proves durable
+                // memory only against a concept that had already aged: the previous
+                // evidence on it is at least a day old, and the answer needed no hints.
+                // Read BEFORE this answer moves the record, and computed here — once —
+                // so the concept's own count and the learner's total cannot drift apart.
+                //
+                // The rule itself is ASKED FOR, not restated: this block used to spell
+                // the three conditions out again beside a comment claiming to be
+                // identical to lib/progress.ts#recordAnswer. Two copies of a rule that
+                // must agree is one copy plus a promise, so the promise is now the call
+                // — and a failed delayed recall stays what it is on both paths: asked,
+                // not correct.
+                //
+                // BOTH stamps are the SERVER's clock (`e.at`), deliberately. A device
+                // that reports its offline work also reports when it says it answered
+                // (`e.deviceAt`); that claim is kept on the event and shown to the
+                // learner, but it is not read here. If it were, a device could backdate
+                // a batch and manufacture a memory it never demonstrated.
+                const prior = e.conceptId ? (byConcept[_a = e.conceptId] ?? (byConcept[_a] = emptyLedger(e.conceptId, e.at))) : null;
+                const priorAt = prior && prior.attempts > 0 ? prior.lastAt : null;
+                const retained = (0, proof_1.isRetentionEvidence)({
+                    source: e.source,
+                    hints: e.hints,
+                    sinceLast: priorAt === null ? null : e.at - priorAt,
+                });
+                if (e.conceptId) {
+                    const c = prior;
+                    c.attempts += 1;
+                    if (e.correct)
+                        c.correct += 1;
+                    // The hint count ATTACHED TO THE ANSWER is authoritative for that
+                    // question: the server kept the ledger while it was served. Counting
+                    // the live hint actions as well would double every hint.
+                    c.hints += e.hints;
+                    if (e.mode === "independent") {
+                        c.independent.asked += 1;
+                        if (e.correct && e.hints === 0)
+                            c.independent.correct += 1;
+                    }
+                    if (e.mode === "transfer") {
+                        c.transfer.asked += 1;
+                        if (e.correct && e.hints === 0)
+                            c.transfer.correct += 1;
+                    }
+                    if (retained) {
+                        c.retention.asked += 1;
+                        if (e.correct)
+                            c.retention.correct += 1;
+                        // The latest outcome FIRST: a failed delayed recall is a state, not
+                        // only a missing count (lib/proof.ts#retentionState).
+                        c.retention.lastHeld = e.correct;
+                    }
+                    // A diagnostic or paper answer MEASURES; practice teaches. Keeping them
+                    // apart is what stops "improvement" from being rehearsal.
+                    if (e.source === "diagnostic" || e.source === "past_paper") {
+                        c.measured.asked += 1;
+                        if (e.correct)
+                            c.measured.correct += 1;
+                    }
+                    // The learner's own statement about their knowing, tallied beside the
+                    // outcome rather than folded into it: "right, but unsure" is a state
+                    // the accuracy figure cannot express. `?? null` because an event
+                    // written before this existed has no field at all, and an absent
+                    // self-report must not be counted as a "sure".
+                    if (e.certainty === "sure" || e.certainty === "unsure") {
+                        c.certainty.stated += 1;
+                        if (e.certainty === "unsure") {
+                            c.certainty.unsure += 1;
+                            if (e.correct)
+                                c.certainty.unsureCorrect += 1;
+                        }
+                    }
+                    if (!e.correct)
+                        for (const t of e.tags)
+                            c.misconceptions[t] = (c.misconceptions[t] ?? 0) + 1;
+                    c.lastAt = Math.max(c.lastAt, e.at);
+                    c.firstAt = Math.min(c.firstAt, e.at);
+                }
+                if (e.mode === "independent") {
+                    totals.independent.asked += 1;
+                    if (e.correct && e.hints === 0)
+                        totals.independent.correct += 1;
+                }
+                if (e.mode === "transfer") {
+                    totals.transfer.asked += 1;
+                    if (e.correct && e.hints === 0)
+                        totals.transfer.correct += 1;
+                }
+                if (retained) {
+                    totals.retention.asked += 1;
+                    if (e.correct)
+                        totals.retention.correct += 1;
+                }
+                if (e.certainty === "sure" || e.certainty === "unsure") {
+                    totals.certainty.stated += 1;
+                    if (e.certainty === "unsure") {
+                        totals.certainty.unsure += 1;
+                        if (e.correct)
+                            totals.certainty.unsureCorrect += 1;
+                    }
+                }
+                totals.hints += e.hints;
+                break;
+            }
+            case "hint_requested": {
+                // Counted separately, never folded into the per-concept hint tally —
+                // see the answer branch above.
+                totals.hintActions += 1;
+                if (e.conceptId)
+                    byConcept[_b = e.conceptId] ?? (byConcept[_b] = emptyLedger(e.conceptId, e.at));
+                break;
+            }
+            case "diagnostic_completed":
+                totals.diagnostics += 1;
+                break;
+            case "paper_completed":
+                totals.papers += 1;
+                break;
+            case "session_completed":
+                totals.sessions += 1;
+                break;
+        }
+    }
+    return {
+        learnerId: ordered[0]?.learnerId ?? null,
+        projectionVersion: exports.PROJECTION_VERSION,
+        events: ordered.length,
+        firstAt: ordered[0]?.at ?? null,
+        lastAt: ordered[ordered.length - 1]?.at ?? null,
+        byConcept,
+        totals,
+    };
+}
+/**
+ * Does the ledger agree with the live learner model?
+ *
+ * This is the safety net that made introducing a ledger possible without a
+ * rewrite: the existing model keeps running, and every divergence is reported
+ * instead of assumed away. Compared on the fields both sides actually keep.
+ */
+function reconcile(projection, progress) {
+    const out = [];
+    const ids = new Set([...Object.keys(projection.byConcept), ...Object.keys(progress)]);
+    for (const id of ids) {
+        const l = projection.byConcept[id];
+        const m = progress[id];
+        if (!l) {
+            out.push({ conceptId: id, field: "ledger", ledger: 0, model: m?.attempts ?? 0 });
+            continue;
+        }
+        if (!m) {
+            out.push({ conceptId: id, field: "model", ledger: l.attempts, model: 0 });
+            continue;
+        }
+        if (l.attempts !== (m.attempts ?? 0))
+            out.push({ conceptId: id, field: "attempts", ledger: l.attempts, model: m.attempts ?? 0 });
+        if (l.correct !== (m.correct ?? 0))
+            out.push({ conceptId: id, field: "correct", ledger: l.correct, model: m.correct ?? 0 });
+        // Independence and transfer are compared ONLY where the live model keeps
+        // them. Reporting a divergence against a field the model does not track
+        // would be noise, not a finding — and noise here would get the check
+        // switched off, which is how a reconciliation stops protecting anything.
+        if (m.independent && l.independent.asked !== m.independent.asked)
+            out.push({ conceptId: id, field: "independent.asked", ledger: l.independent.asked, model: m.independent.asked });
+        if (m.transfer && l.transfer.asked !== m.transfer.asked)
+            out.push({ conceptId: id, field: "transfer.asked", ledger: l.transfer.asked, model: m.transfer.asked });
+        if (m.retention && l.retention.asked !== m.retention.asked)
+            out.push({ conceptId: id, field: "retention.asked", ledger: l.retention.asked, model: m.retention.asked });
+        if (m.retention && l.retention.correct !== m.retention.correct)
+            out.push({ conceptId: id, field: "retention.correct", ledger: l.retention.correct, model: m.retention.correct });
+        // Slips, per pattern: the ledger's tags must add up to the model's counts,
+        // or the ledger is describing a different learner than the one being taught.
+        const modelHits = m.misconceptions ?? {};
+        for (const tag of new Set([...Object.keys(l.misconceptions), ...Object.keys(modelHits)])) {
+            const ledgerHits = l.misconceptions[tag] ?? 0;
+            const modelCount = modelHits[tag] ?? 0;
+            if (ledgerHits !== modelCount)
+                out.push({ conceptId: id, field: `misconception.${tag}`, ledger: ledgerHits, model: modelCount });
+        }
+    }
+    return out;
+}
+/**
+ * A snapshot is only allowed to claim what the evidence shows. If there is no
+ * baseline it says `assessed: false`; if a dimension has no observations it
+ * returns null rather than 0 — the same rule the diagnostic obeys.
+ */
+function impactSnapshot(events) {
+    const ordered = orderEvents(events);
+    const p = projectLearner(ordered);
+    const answers = ordered.filter((e) => e.type === "answer_submitted");
+    const measuredAnswers = answers.filter((e) => e.source === "diagnostic" || e.source === "past_paper");
+    const rate = (list) => (list.length ? { asked: list.length, correct: list.filter((a) => a.correct).length } : null);
+    // The baseline is the EARLIEST measuring sitting, taken from the events that
+    // belong to it — not the learner's first-ever answer, which may be practice.
+    const firstMeasured = measuredAnswers[0];
+    let baseline = { at: null, assessed: false };
+    let currentMeasured = rate(measuredAnswers);
+    if (firstMeasured) {
+        const windowEnd = firstMeasured.at + 1000 * 60 * 60 * 6; // one sitting
+        const sitting = measuredAnswers.filter((a) => a.at <= windowEnd);
+        baseline = { at: firstMeasured.at, assessed: true, measured: { asked: sitting.length, correct: sitting.filter((a) => a.correct).length } };
+        const later = measuredAnswers.filter((a) => a.at > windowEnd);
+        currentMeasured = later.length ? rate(later) : null;
+    }
+    const withProof = (pick) => Object.values(p.byConcept).filter((c) => { const r = pick(c); return r.asked > 0 && r.correct > 0; }).length;
+    const unmeasured = [];
+    if (!baseline.assessed)
+        unmeasured.push("no baseline assessment: nothing before/after can be claimed");
+    if (!currentMeasured)
+        unmeasured.push("no measurement after the baseline: the change is unknown, not zero");
+    if (!p.totals.transfer.asked)
+        unmeasured.push("transfer: never attempted");
+    if (!p.totals.independent.asked)
+        unmeasured.push("independent work: never attempted without hints");
+    // Retention is a measurement now, not an aspiration: a due concept retrieved
+    // hint-free after it had aged is retention evidence. When the ledger holds
+    // none, that is stated as the gap it is — the snapshot never implies a
+    // learner has forgotten something it merely never re-asked them.
+    if (!p.totals.retention.asked)
+        unmeasured.push("retention: no concept has been re-measured after an interval yet");
+    unmeasured.push("causation: this is observational evidence, not a controlled comparison");
+    // Includes answers the server graded only after they arrived from a device's
+    // offline queue: the marking is observed, the answering was not.
+    const device = ordered.filter(isDeviceReported).length;
+    if (device)
+        unmeasured.push(`${device} of ${ordered.length} events were answered or reported on a device, not observed by the server as they happened`);
+    return {
+        learnerId: p.learnerId,
+        period: { from: p.firstAt, to: p.lastAt },
+        baseline,
+        current: {
+            measured: currentMeasured,
+            independent: p.totals.independent.asked ? p.totals.independent : null,
+            transfer: p.totals.transfer.asked ? p.totals.transfer : null,
+            retention: p.totals.retention.asked ? p.totals.retention : null,
+        },
+        concepts: {
+            touched: Object.keys(p.byConcept).length,
+            withIndependentProof: withProof((c) => c.independent),
+            withTransferProof: withProof((c) => c.transfer),
+            withRetentionProof: withProof((c) => c.retention),
+        },
+        sessions: p.totals.sessions,
+        deviceReported: device,
+        unmeasured,
+    };
+}
+/**
+ * The deployment-level report. Aggregates only — by construction it cannot leak
+ * a learner, and it refuses to compute a change for learners who lack both a
+ * baseline and a later measurement (they are excluded from the denominator, not
+ * counted as "no improvement").
+ */
+function generateImpactReport(perLearner) {
+    const all = [];
+    let withBaseline = 0, withFollowUp = 0, withIndependent = 0, withTransfer = 0;
+    let improving = 0, comparable = 0;
+    for (const l of perLearner) {
+        const ordered = orderEvents(l.events);
+        all.push(...ordered);
+        const snap = impactSnapshot(ordered);
+        if (snap.baseline.assessed)
+            withBaseline += 1;
+        if (snap.baseline.assessed && snap.current.measured)
+            withFollowUp += 1;
+        if (snap.current.independent)
+            withIndependent += 1;
+        if (snap.current.transfer)
+            withTransfer += 1;
+        if (snap.baseline.assessed && snap.current.measured) {
+            comparable += 1;
+            const b = snap.baseline.assessed ? snap.baseline.measured : null;
+            const c = snap.current.measured;
+            if (b && c && b.asked > 0 && c.asked > 0 && c.correct / c.asked > b.correct / b.asked)
+                improving += 1;
+        }
+    }
+    const projection = projectLearner(all);
+    const conceptsWithIndependentProof = Object.values(projection.byConcept)
+        .filter((c) => c.independent.asked > 0 && c.independent.correct > 0).length;
+    return {
+        period: { from: projection.firstAt, to: projection.lastAt },
+        population: {
+            learners: perLearner.length,
+            withBaseline,
+            withFollowUpMeasurement: withFollowUp,
+            withIndependentEvidence: withIndependent,
+            withTransferEvidence: withTransfer,
+        },
+        evidence: {
+            events: all.length,
+            answers: projection.totals.answers,
+            diagnostics: projection.totals.diagnostics,
+            papers: projection.totals.papers,
+            hints: projection.totals.hints,
+            deviceReported: all.filter(isDeviceReported).length,
+        },
+        outcome: {
+            conceptsWithIndependentProof,
+            learnersImproving: comparable ? { improved: improving, of: comparable } : null,
+        },
+        limitations: [
+            "Changes are between a learner's own sittings, not against a control group: this is not a causal claim.",
+            "Learners without a baseline assessment and a later measurement are excluded from the change figures, never counted as unchanged.",
+            "Question difficulty is not held constant between sittings beyond the diagnostic's own parallel-form sampling.",
+            "A learner who stops using OpenMind cannot be measured at all, so these figures describe people who stayed.",
+            "Device-reported events were recorded offline and verified by nobody; they are counted and disclosed separately rather than mixed into server-observed results.",
+        ],
+        containsIndividualData: false,
+    };
+}

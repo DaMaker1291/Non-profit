@@ -354,10 +354,18 @@ const ACCESS: Record<string, AccessRequirement> = {
   "/rooms": "public",
   "/hub": "public",
   "/teacher": "public",
+  // An invitation link opens before the learner has a profile; the page then
+  // sends them through onboarding and returns here. It exposes no class record
+  // until the join succeeds, so it must be reachable without a learner.
+  "/join": "public",
   // The pilot readiness and teacher-preview pages are public CONTENT: they
   // expose no learner record, start no session and write nothing. A reviewer
   // must be able to open them without an account.
   "/pilot": "public",
+  // The content platform's status and review surfaces describe LESSONS, not a
+  // learner. A reviewer must be able to read the current state and open a draft
+  // without an account; the POST that records a review authenticates separately.
+  "/content": "public",
   // Onboarding is where signed-out and un-enrolled learners are SENT, so it
   // can never require anything — otherwise every redirect would loop.
   "/onboarding": "public",

@@ -160,6 +160,10 @@ export const UPLOAD_PER_LEARNER: LimitPolicy = { max: 10, windowMs: 10 * 60_000,
 /** Diagnostic actions (start, answer, finish) per learner per five minutes. The
  *  sitting's own ladder bounds it; this bounds a client that ignores the ladder. */
 export const DIAGNOSTIC_PER_LEARNER: LimitPolicy = { max: 200, windowMs: 5 * 60_000, mode: "hard" };
+/** Class-code attempts per learner per ten minutes. A six-character code is
+ *  not guessable at volume, but an unbounded endpoint is still a directory
+ *  search; a successful join clears the bucket. */
+export const JOIN_PER_LEARNER: LimitPolicy = { max: 20, windowMs: 10 * 60_000, mode: "hard" };
 
 /** The fixed key the AI process bound is counted against. */
 export const AI_PROCESS_KEY = "ai:process:all";

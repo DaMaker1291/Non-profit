@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpenMind sandboxed Python runner</title>
+</head>
+<body>
+<!--
+  This file is loaded in an iframe with sandbox="allow-scripts" and deliberately
+  WITHOUT allow-same-origin. It therefore has an opaque origin: no cookies, no
+  localStorage and no access to the application DOM. Learner code is executed by
+  Pyodide in this frame and never sent to the server.
+
+  The parent owns the timeout and destroys/recreates this frame when a program
+  blocks. The frame reports only stdout, stderr and a thrown error.
+-->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+  let runtime = null;
+  let booting = null;
+
+  function send(message) {
+    try { parent.postMessage(message, "*"); } catch (error) { /* the parent is gone */ }
+  }
+
+  async function boot() {
+    if (runtime) return runtime;
+    if (booting) return booting;
+    booting = (async () => {
+      if (typeof loadPyodide !== "function") {
+        throw new Error("The Python runtime could not be loaded from the CDN.");
+      }
+      runtime = await loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/",
+      });
+      send({ type: "ready" });
+      return runtime;
+    })();
+    return booting;
+  }
+
+  window.addEventListener("message", async (event) => {
+    const data = event.data;
+    if (!data || data.type !== "run" || typeof data.code !== "string") return;
+    let stdout = "";
+    let stderr = "";
+    try {
+      const py = await boot();
+      py.setStdout({ batched: (text) => { stdout += text; } });
+      py.setStderr({ batched: (text) => { stderr += text; } });
+      await py.runPythonAsync(data.code);
+      send({ type: "result", stdout: stdout, stderr: stderr });
+    } catch (error) {
+      send({
+        type: "result",
+        stdout: stdout,
+        stderr: stderr,
+        error: String(error && error.message ? error.message : error),
+      });
+    }
+  });
+
+  boot().catch((error) => {
+    send({ type: "error", error: String(error && error.message ? error.message : error) });
+  });
+</script>
+</body>
+</html>

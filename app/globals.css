@@ -2878,3 +2878,159 @@ html.low-power .card { box-shadow: none; }
 @media (max-width: 520px) {
   .fraction-model { padding: 12px; }
 }
+
+/* ═════════════════════════════════════════════════════════════════════════
+   THE FIRST-IMPRESSION PASS — layout and control polish, no new copy.
+   Appended rather than rewritten into the sections above: every rule there
+   carries the incident that produced it, and that record is worth keeping.
+   These rules override by cascade; none of them changes a string, a route or
+   a navigation landmark.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── THE SHELL CAN LOSE ITS SIDEBAR WITHOUT LEAVING ITS COLUMN BEHIND ──────
+   `240px minmax(0, 1fr)` reserved the navigation's width even on a screen that
+   hides the navigation. `auto` lets the column take the sidebar's own width
+   when it is present and collapse to zero when a focused screen steps aside. */
+.shell { grid-template-columns: auto minmax(0, 1fr); }
+.sidebar { width: var(--sidebar-w); }
+
+/* ── A FOCUSED SCREEN IS ONE JOB ─────────────────────────────────────────
+   Enrolment is three questions and a form; the marketing navigation beside it
+   offers four destinations that all leave the flow, and on a phone the bottom
+   bar offers five more. Both step aside, and the wizard takes the middle of
+   the page at a readable measure. Progressive: a browser without :has() keeps
+   the shell it already has, which is the safe failure. */
+body:has(.onboarding) .sidebar,
+body:has(.onboarding) .bottomnav { display: none; }
+body:has(.onboarding) .shell { grid-template-columns: minmax(0, 1fr); }
+body:has(.onboarding) .topbar-search { display: none; }
+/* WITH THE SIDEBAR GONE, THE BRAND HAS TO MOVE. `.topbar-logo` is hidden on a
+   laptop because the sidebar carries the name; a focused screen has no sidebar,
+   so the bar would otherwise open with nothing but controls. */
+body:has(.onboarding) .topbar-logo { display: block; }
+/* AND THE SHELL'S OWN CALL TO ACTION STEPS ASIDE. "Start learning" leads to the
+   page the learner is already on, so beside a wizard's Next it is a second
+   primary action that does nothing. */
+body:has(.onboarding) .topbar > a.btn { display: none; }
+body:has(.onboarding) .footer .container { max-width: 640px; }
+/* `.container.narrow` is two classes; a bare `.onboarding` is one and therefore
+   LOSES the max-width even when it is written later. The compound selector is
+   what actually gives the wizard its measure. */
+.container.narrow.onboarding { max-width: 640px; padding-top: var(--s4); }
+.onboarding .lead { margin-bottom: var(--s3); }
+.onboarding h1 { margin-bottom: 10px; }
+.onboarding .exercise { padding: 26px 26px 22px; }
+@media (max-width: 560px) {
+  .container.narrow.onboarding { padding-top: var(--s3); }
+  .onboarding .exercise { padding: 18px 16px 16px; }
+}
+
+/* ── THE DEMO NOTE IS A NOTE, NOT THE HEADLINE ────────────────────────────
+   An ephemeral deployment must say what it is, but the warning was the loudest
+   object on the whole sign-up: a full-strength caution border sitting above the
+   learner's own name. Same sentence, same position, same colour family — the
+   alarm's weight removed, because the decision it informs has already been
+   made by the operator, not by the learner. */
+.demo-note {
+  border: 1px solid var(--mark-caution);
+  border-inline-start: 4px solid var(--mark-caution);
+  background: color-mix(in srgb, var(--mark-caution) 6%, var(--surface));
+  color: var(--text);
+  font-size: var(--t13-5);
+  padding: 11px 13px;
+}
+
+/* ── THE LANDING PAGE'S TWO COLUMNS ──────────────────────────────────────
+   The hero was a 720px column at the left edge of a 1160px page, so half the
+   first screen was empty paper. The promise and the method now sit side by
+   side: the sentence is read first, and the four steps answer the visitor's
+   real question — "what happens if I start?" — in the same glance. It stacks
+   below the width where two columns would each be too narrow to read. */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: start;
+  padding: var(--s5) 0 var(--s4);
+}
+.hero-copy { min-width: 0; }
+.hero-copy .lead { max-width: 36em; }
+.hero h1 { max-width: 16ch; text-wrap: balance; }
+.hero .actions { margin-top: var(--s3); }
+.hero-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 24px 24px 18px;
+  box-shadow: var(--shadow-2);
+  align-self: stretch;
+  display: flex; flex-direction: column;
+}
+.hero-panel .loopband { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
+.hero-panel .loopband {
+  grid-template-columns: minmax(0, 1fr);
+  border-block: 0;
+  padding: 6px 0 0;
+  margin: 8px 0 0;
+  gap: 0;
+}
+.hero-panel .loop-step {
+  padding: 13px 0;
+  border-bottom: 1px dashed var(--line-soft);
+  font-size: var(--t16);
+}
+.hero-panel .loop-step:last-child { border-bottom: 0; padding-bottom: 2px; }
+.hero-panel .loop-n {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: inline-grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent-ink);
+  font-family: var(--mono); font-size: var(--t12); font-weight: 700;
+}
+@media (max-width: 1080px) {
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-top: var(--s4); }
+  .hero h1 { max-width: none; }
+  .hero-copy .lead { max-width: 42em; }
+  .hero-panel { padding: 18px 20px; align-self: auto; }
+  .hero-panel .loopband { flex: none; display: grid; }
+}
+
+/* ── A CARD IS NOT A LINK UNLESS IT IS ONE ───────────────────────────────
+   Every card lifted on hover, including static panels that do nothing when
+   pressed. A learner reads that lift as "this is pressable", so a page of
+   information was promising interactions it did not have. Only cards that ARE
+   links (or that a page marks clickable) keep the lift. */
+.card:hover:not(.flat):not(.soft) { border-color: var(--line); box-shadow: var(--shadow-1); }
+a.card:hover, button.card:hover, .feature-card:hover, .card.clickable:hover, .next-card:hover {
+  border-color: var(--ui-strong);
+  box-shadow: var(--shadow-2);
+}
+
+/* ── THE TYPED-ANSWER FIELD, WITH ONE BORDER ─────────────────────────────
+   `input[type="text"]` carries element+attribute specificity, so the global
+   field rule beat `.numeric-input { border: 0 }` and drew a second rounded box
+   INSIDE the row's box: measured on /try/fractions, two borders around one
+   answer and the caret sitting in the inner one. The control is the row; the
+   input is only its text. The focus ring moves to the row, so the border does
+   not change width and the field cannot jump when it is focused. */
+input.numeric-input {
+  border: 0; background: transparent; min-height: 0; padding: 12px 0;
+}
+input.numeric-input:focus { outline: none; box-shadow: none; }
+.numeric-row:focus-within {
+  border-color: var(--accent); border-width: 1px; padding: 4px 14px;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.numeric-input::placeholder {
+  color: var(--text-muted); opacity: 0.65;
+  font-family: var(--font); font-size: var(--t15); letter-spacing: 0;
+}
+
+/* ── THE PROOF STRIP READS AS ONE FACT, NOT THREE PANELS ────────────────── */
+.proof-strip { gap: clamp(16px, 3vw, 40px); }
+.proof-strip dt { font-size: clamp(30px, 4vw, 40px); line-height: 1.05; }
+.proof-strip dd { max-width: 18ch; }
+
+/* ── A SUBMITTED ANSWER HAS ITS OWN WEIGHT ────────────────────────────────
+   The Check control was one of four equally loud rows under the box. When the
+   box has something in it, the one action the page wants is the filled one. */
+.numeric-answer .btn { min-height: 46px; }

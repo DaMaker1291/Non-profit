@@ -39,8 +39,8 @@ ok(ids.filter((id) => P.pilotConcept(id)?.subject === "maths").length === 8, "8 
 ok(ids.filter((id) => ["physics", "chemistry", "biology"].includes(P.pilotConcept(id)?.subject)).length === 4, "4 science lessons");
 ok(P.PILOT_APPROVALS.length === 0, "no approval is invented");
 ok(P.approvedPilotPath().length === 0, "the learner pilot path is empty until a real review exists");
-ok(P.PILOT_SUPPORTED_LANGUAGES.length === 1 && P.PILOT_SUPPORTED_LANGUAGES[0] === "en",
-  "the pilot supports one teaching language, English");
+ok(P.PILOT_SUPPORTED_LANGUAGES.includes("en") && P.PILOT_SUPPORTED_LANGUAGES.includes("fr"),
+  "the supported teaching languages are derived from complete translations (en, fr)");
 ok(!P.pilotLanguageSupported("hi") && !P.pilotLanguageSupported("bn") && !P.pilotLanguageSupported("ur"),
   "Hindi, Bengali and Urdu are not silently supported");
 
@@ -135,6 +135,18 @@ ok(hi.state === "needs-educator-review", "a Hindi request is not approved Englis
 ok(hi.reasons.some((r) => r.includes("English")), "the Hindi refusal names the language limit");
 ok(L.planFor("photosynthesis", "hi")?.objective === L.planFor("photosynthesis", "en")?.objective,
   "no machine translation is invented for a missing medium");
+
+// THE ONE TRANSLATION THAT EXISTS MUST BE REPORTED AS ITSELF. The old
+// English-only list called this French lesson "authored in English" while the
+// page rendered the French text — a status contradicting the content beside it.
+const frFractions = P.lessonStatus("fractions", "fr");
+ok(frFractions.plan?.objective !== L.planFor("fractions", "en")?.objective,
+  "French fractions resolves to the French plan, not the English one");
+ok(!frFractions.reasons.some((r) => /authored in English/i.test(r)),
+  "a French lesson is not reported as an English lesson");
+const frMissing = P.lessonStatus("surds", "fr");
+ok(frMissing.reasons.some((r) => r.includes("No complete fr lesson")),
+  "a missing French translation is named per concept, not hidden by another concept's translation");
 
 // ── Curriculum provenance ──────────────────────────────────────────────────
 const maps = M.pilotMappings();

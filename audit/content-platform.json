@@ -1,0 +1,303 @@
+{
+  "generatedAt": "2026-11-02T19:46:04.377Z",
+  "schemaVersion": 1,
+  "passed": 72,
+  "failed": 0,
+  "failures": [],
+  "summary": {
+    "subjects": 5,
+    "concepts": 135,
+    "authoredPlans": 19,
+    "richLessons": 3,
+    "assessments": 4,
+    "resourceRecords": 8,
+    "resourceCoverage": {
+      "total": 8,
+      "ingest": 4,
+      "adapt": 0,
+      "link": 1,
+      "review": 3,
+      "reject": 0,
+      "conceptsWithUsable": 3
+    },
+    "approvedLessons": 0,
+    "sourceBackedLessons": 3
+  },
+  "matrix": [
+    {
+      "subject": "maths",
+      "label": "Mathematics",
+      "concepts": 67,
+      "authoredPlans": 15,
+      "richLessons": 0,
+      "blockKinds": [],
+      "responseKinds": [],
+      "resourceRecords": 0,
+      "usableResources": 0,
+      "linkedResources": 0,
+      "reviewResources": 0,
+      "approvedLessons": 0
+    },
+    {
+      "subject": "physics",
+      "label": "Physics",
+      "concepts": 18,
+      "authoredPlans": 1,
+      "richLessons": 1,
+      "blockKinds": [
+        "calculation",
+        "explanation",
+        "formula",
+        "link",
+        "math_expression",
+        "worked_example"
+      ],
+      "responseKinds": [
+        "math_expression",
+        "numeric"
+      ],
+      "resourceRecords": 3,
+      "usableResources": 1,
+      "linkedResources": 1,
+      "reviewResources": 1,
+      "approvedLessons": 0
+    },
+    {
+      "subject": "chemistry",
+      "label": "Chemistry",
+      "concepts": 16,
+      "authoredPlans": 1,
+      "richLessons": 0,
+      "blockKinds": [],
+      "responseKinds": [],
+      "resourceRecords": 1,
+      "usableResources": 0,
+      "linkedResources": 0,
+      "reviewResources": 1,
+      "approvedLessons": 0
+    },
+    {
+      "subject": "biology",
+      "label": "Biology",
+      "concepts": 16,
+      "authoredPlans": 2,
+      "richLessons": 1,
+      "blockKinds": [
+        "explanation",
+        "label_diagram",
+        "link"
+      ],
+      "responseKinds": [
+        "labels"
+      ],
+      "resourceRecords": 3,
+      "usableResources": 2,
+      "linkedResources": 0,
+      "reviewResources": 1,
+      "approvedLessons": 0
+    },
+    {
+      "subject": "computing",
+      "label": "Computing",
+      "concepts": 18,
+      "authoredPlans": 0,
+      "richLessons": 1,
+      "blockKinds": [
+        "code_lab",
+        "explanation"
+      ],
+      "responseKinds": [
+        "code"
+      ],
+      "resourceRecords": 1,
+      "usableResources": 1,
+      "linkedResources": 0,
+      "reviewResources": 0,
+      "approvedLessons": 0
+    }
+  ],
+  "documents": [
+    {
+      "id": "physics-electricity-circuits-v1",
+      "conceptId": "electricity-circuits",
+      "subject": "physics",
+      "review": "draft",
+      "blocks": [
+        "explanation",
+        "formula",
+        "worked_example",
+        "calculation",
+        "math_expression",
+        "link",
+        "link"
+      ],
+      "assessments": [
+        "numeric",
+        "math_expression"
+      ],
+      "sources": [
+        {
+          "sourceId": "openmind-authored-pilot-12",
+          "use": "authored",
+          "title": "OpenMind authored teaching"
+        },
+        {
+          "sourceId": "phet",
+          "use": "linked",
+          "title": "Circuit Construction Kit: DC"
+        },
+        {
+          "sourceId": "openstax",
+          "use": "linked",
+          "title": "College Physics 2e"
+        }
+      ]
+    },
+    {
+      "id": "biology-cells-v1",
+      "conceptId": "cells",
+      "subject": "biology",
+      "review": "draft",
+      "blocks": [
+        "explanation",
+        "label_diagram",
+        "link"
+      ],
+      "assessments": [
+        "labels"
+      ],
+      "sources": [
+        {
+          "sourceId": "openmind-authored-pilot-12",
+          "use": "authored",
+          "title": "OpenMind authored teaching"
+        },
+        {
+          "sourceId": "openmind-generated-figures",
+          "use": "authored",
+          "title": "OpenMind authored figure"
+        },
+        {
+          "sourceId": "openstax",
+          "use": "linked",
+          "title": "Biology 2e"
+        }
+      ]
+    },
+    {
+      "id": "computing-what-is-code-v1",
+      "conceptId": "what-is-code",
+      "subject": "computing",
+      "review": "draft",
+      "blocks": [
+        "explanation",
+        "code_lab"
+      ],
+      "assessments": [
+        "code"
+      ],
+      "sources": [
+        {
+          "sourceId": "openmind-authored-pilot-12",
+          "use": "authored",
+          "title": "OpenMind authored teaching"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "openstax-college-physics-2e",
+      "sourceId": "openstax",
+      "subject": "physics",
+      "requestedUse": "adapt",
+      "outcome": "review",
+      "reasons": [
+        "openstax: the licence basis is known only from secondary research; primary rights proof is not on file.",
+        "openstax-college-physics-2e: rights are uncertain, so extraction is held for a human rights review."
+      ],
+      "obligations": []
+    },
+    {
+      "id": "phet-circuit-construction-kit-dc",
+      "sourceId": "phet",
+      "subject": "physics",
+      "requestedUse": "link",
+      "outcome": "link",
+      "reasons": [
+        "phet-circuit-construction-kit-dc: link-only use of phet; no expression is copied or embedded."
+      ],
+      "obligations": [
+        "Preserve attribution and the licence notice."
+      ]
+    },
+    {
+      "id": "openstax-biology-2e",
+      "sourceId": "openstax",
+      "subject": "biology",
+      "requestedUse": "adapt",
+      "outcome": "review",
+      "reasons": [
+        "openstax: the licence basis is known only from secondary research; primary rights proof is not on file.",
+        "openstax-biology-2e: rights are uncertain, so extraction is held for a human rights review."
+      ],
+      "obligations": []
+    },
+    {
+      "id": "openstax-chemistry-2e",
+      "sourceId": "openstax",
+      "subject": "chemistry",
+      "requestedUse": "adapt",
+      "outcome": "review",
+      "reasons": [
+        "openstax: the licence basis is known only from secondary research; primary rights proof is not on file.",
+        "openstax-chemistry-2e: rights are uncertain, so extraction is held for a human rights review."
+      ],
+      "obligations": []
+    },
+    {
+      "id": "openmind-electricity-circuits",
+      "sourceId": "openmind-authored-pilot-12",
+      "subject": "physics",
+      "requestedUse": "ingest",
+      "outcome": "ingest",
+      "reasons": [
+        "openmind-authored-pilot-12: openmind-authored permits host."
+      ],
+      "obligations": []
+    },
+    {
+      "id": "openmind-cells",
+      "sourceId": "openmind-authored-pilot-12",
+      "subject": "biology",
+      "requestedUse": "ingest",
+      "outcome": "ingest",
+      "reasons": [
+        "openmind-authored-pilot-12: openmind-authored permits host."
+      ],
+      "obligations": []
+    },
+    {
+      "id": "openmind-cells-diagram",
+      "sourceId": "openmind-generated-figures",
+      "subject": "biology",
+      "requestedUse": "ingest",
+      "outcome": "ingest",
+      "reasons": [
+        "openmind-generated-figures: openmind-authored permits host."
+      ],
+      "obligations": []
+    },
+    {
+      "id": "openmind-what-is-code",
+      "sourceId": "openmind-authored-pilot-12",
+      "subject": "computing",
+      "requestedUse": "ingest",
+      "outcome": "ingest",
+      "reasons": [
+        "openmind-authored-pilot-12: openmind-authored permits host."
+      ],
+      "obligations": []
+    }
+  ]
+}

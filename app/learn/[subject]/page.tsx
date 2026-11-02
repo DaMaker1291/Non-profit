@@ -32,7 +32,8 @@
 import Link from "next/link";
 import { use } from "react";
 import { useI18n, useProfile } from "@/lib/client";
-import { bySubject } from "@/lib/genome";
+import { bySubject, getConcept } from "@/lib/genome";
+import { planFor } from "@/lib/lesson-plans";
 import { ctitle, cblurb } from "@/lib/content-i18n";
 import { proofLabelKey } from "@/lib/proof";
 import { conceptStanding, demonstratedLabelKey } from "@/lib/learner-model";
@@ -89,6 +90,26 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
     ? decideOne(decisionContextFrom(state, null), { tt: t, title: (id) => ctitle(lang, id) })?.conceptId ?? null
     : null;
 
+  // THE PAGE'S ONE ACTION MUST NOT OPEN A GATE.
+  //
+  // `currentId` is the decision's concept, and the decision does not know which
+  // concepts have authored teaching — it ranks by the learner model. So the
+  // button beside the title could name an idea whose page then says "not
+  // available as a lesson", which is an honest page and a dead first step: the
+  // only action on the subject map led to a page with no lesson and no practice.
+  //
+  // When the decision's concept is untaught, start instead at the nearest taught
+  // idea it BUILDS ON (a learner can meet the next concept once its prerequisite
+  // is taught), then at the first taught concept in the course. Only concepts
+  // with a real plan are ever named here; a subject with no lessons at all
+  // renders no button rather than a door into a gate.
+  const firstTaught = (ids: readonly { id: string }[]) => ids.find((c) => planFor(c.id))?.id ?? null;
+  const startId = (() => {
+    if (currentId && planFor(currentId)) return currentId;
+    const prereqs = currentId ? getConcept(currentId)?.prereqs ?? [] : [];
+    return [...prereqs].reverse().find((id) => planFor(id)) ?? firstTaught(listed) ?? firstTaught(all);
+  })();
+
   /** One row of the syllabus. EVERY fact in it comes from
    *  lib/learner-model#conceptStanding — the same function the published static
    *  page asks. This row used to band a concept with its own accuracy ratio
@@ -104,6 +125,7 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
     const pr = state?.progress[c.id];
     const mark = s?.mark === "done" ? "✓" : s?.mark === "underway" ? "◐" : "○";
     const here = !!s && currentId === c.id;
+    const hasPlan = Boolean(planFor(c.id));
     return (
       <Link key={c.id} href={`/learn/${subject}/${c.id}`} className="concept-row">
         <span className="grow">
@@ -143,8 +165,15 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
             on the page and none of them told a learner anything the row's own ○
             did not. A row now reports only when the record has something to
             report: the strongest proof it has, and the answers behind it. */}
-        {(s?.proved || (pr && pr.attempts > 0)) && (
+        {(hasPlan || s?.proved || (pr && pr.attempts > 0)) && (
           <span className="concept-state">
+            {/* WHICH ROWS ARE ACTUALLY TAUGHT. The list is the course, and 15 of
+                its 67 maths rows open a complete lesson while the rest open the
+                gate — a fact the learner had to discover one click at a time.
+                "Lesson" is `learn.lesson`, authored in all fifteen dictionaries.
+                A plain chip, never `good`: the colour means demonstrated, and a
+                lesson that exists is not evidence that anything was learned. */}
+            {hasPlan && <span className="chip">{t("learn.lesson")}</span>}
             {s?.proved && (
               <span className={`chip ${s.proved !== "supported" ? "good" : ""}`}>{t(proofLabelKey(s.proved))}</span>
             )}
@@ -181,9 +210,9 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
             title's line; the counts belong under it. */}
         <div className="page-title-row">
           <h1>{label}</h1>
-          {currentId && (
-            <Link href={`/learn/${subject}/${currentId}`} className="btn subject-next">
-              {t("next.start")}: {ctitle(lang, currentId)} →
+          {startId && (
+            <Link href={`/learn/${subject}/${startId}`} className="btn subject-next">
+              {t("next.start")}: {ctitle(lang, startId)} →
             </Link>
           )}
         </div>
@@ -244,14 +273,19 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
         const k = topic.concepts.reduce((n, c) => n + correctOf(c.id), 0);
         const d = dimensionFor("recalled", t(`stage.${stage}`), a > 0 ? { asked: a, correct: k } : null);
         // OPEN WHERE THE WORK IS. A stage opens when the learner has answered
-        // something in it — and also when it holds the concept the ONE decision
-        // door points at, because closing the out-of-course list (below) would
+        // something in it — and also when it holds the concept this page's own
+        // action starts, because closing the out-of-course list (below) would
         // otherwise leave a new learner on a page of nothing but five closed
-        // headings and no visible place to start.
+        // headings and no visible place to start. `startId`, not `currentId`:
+        // the decision can name a concept with no complete lesson, and then the
+        // action points at a different, taught concept — the stage holding the
+        // thing the button offers is the one that has to be open. Measured on a
+        // fresh IGCSE profile: every stage was closed, so even the fifteen
+        // "Lesson" markers this list now carries were invisible.
         return (
           <details key={topic.stage}
             className="topic"
-            open={topic.concepts.some((c) => askedOf(c.id) > 0) || topic.concepts.some((c) => c.id === currentId)}
+            open={topic.concepts.some((c) => askedOf(c.id) > 0) || topic.concepts.some((c) => c.id === startId)}
           >
             <summary>
               <span className="roman">{stage}</span> · {t(`stage.${stage}`)}

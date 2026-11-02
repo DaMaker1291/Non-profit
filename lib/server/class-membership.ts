@@ -214,6 +214,16 @@ export function isTeacherOf(cls: ClassRoster, state: ProfileState): boolean {
   return owner !== null && owner === state.profile.id;
 }
 
+/** May this teaching ACCOUNT administer the class? The owner is recorded in
+ *  `teacherAccountId`; co-teachers were invited by the owner and are recorded
+ *  by account id. This is deliberately separate from `isTeacherOf`, which asks
+ *  the identity question about a profile; a co-teacher is not the owner's
+ *  profile and must still be able to set work. */
+export function isClassAdministrator(cls: ClassRoster, accountId: string | null): boolean {
+  if (!accountId) return false;
+  return cls.teacherAccountId === accountId || (cls.coTeacherAccountIds ?? []).includes(accountId);
+}
+
 /**
  * IS THIS PROFILE ONE OF THE CLASS'S STUDENTS?
  *

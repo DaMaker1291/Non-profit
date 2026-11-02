@@ -80,6 +80,10 @@ export default function TeacherPage() {
   // Optional: "whole subject" is the ordinary case for a class that is not
   // teaching towards one paper.
   const [course, setCourse] = useState<string>("");
+  const [school, setSchool] = useState("");
+  const [yearGroup, setYearGroup] = useState("");
+  const [coTeacher, setCoTeacher] = useState("");
+  const [teacherMsg, setTeacherMsg] = useState("");
   const [notice, setNotice] = useState("");
 
   const [err, setErr] = useState("");
@@ -198,11 +202,14 @@ export default function TeacherPage() {
       const j = await api.classAction({
         action: "create", id: meId(), name: name.trim(), subject,
         specificationId: course || null, handle: state?.profile.handle ?? "teacher",
+        school: school || undefined, yearGroup: yearGroup || undefined,
       });
       const made = j.cls as ClassRoster;
       setName("");
       setSubject("");
       setCourse("");
+      setSchool("");
+      setYearGroup("");
       setNotice(`${t("teach.invite")}: ${made.joinCode}`);
       // CREATING A CLASS LANDS YOU IN IT. The first thing a teacher does with a
       // new class is enrol it, and the credentials are on the class — leaving
@@ -231,6 +238,61 @@ export default function TeacherPage() {
    *  of the same subject at different qualifications were the same class twice.
    *  This is the one write: only the class's own teacher may make it, and the
    *  server refuses by name a qualification the subject is not part of. */
+  async function rotateCode(clsId: string) {
+    setErr("");
+    try {
+      const j = await api.classAction({ action: "rotate-code", id: meId(), clsId });
+      const made = j.cls as ClassRoster;
+      setNotice(`${t("teach.invite")}: ${made.joinCode}`);
+      await refresh();
+    } catch (e) {
+      setErr(failureText(e));
+    }
+  }
+
+  async function revokeCode(clsId: string) {
+    setErr("");
+    try {
+      await api.classAction({ action: "revoke-code", id: meId(), clsId });
+      setNotice("Join code revoked. Existing members keep their access.");
+      await refresh();
+    } catch (e) {
+      setErr(failureText(e));
+    }
+  }
+
+  /** Remove a pupil from this class without touching their learning record.
+   *  The class door enforces membership and teacher authority; this control is
+   *  shown only to an administrator, and the confirmation names the action so a
+   *  stray click cannot unenrol a child. */
+  async function removeStudent(clsId: string, learnerId: string, handle: string) {
+    if (!window.confirm(`Remove ${handle} from this class? Their learning record stays with them.`)) return;
+    setErr("");
+    setNotice("");
+    try {
+      await api.classAction({ action: "remove-member", id: meId(), clsId, learnerId });
+      setNotice(`${handle} removed from this class.`);
+      await refresh();
+      await refreshWork();
+    } catch (e) {
+      setErr(failureText(e));
+    }
+  }
+
+  async function inviteTeacher(clsId: string) {
+    if (!coTeacher.trim()) return;
+    setErr("");
+    setTeacherMsg("");
+    try {
+      await api.classAction({ action: "invite-teacher", id: meId(), clsId, email: coTeacher.trim() });
+      setTeacherMsg("Co-teacher added. They can now administer this class.");
+      setCoTeacher("");
+      await refresh();
+    } catch (e) {
+      setErr(failureText(e));
+    }
+  }
+
   async function declareCourse(clsId: string, specificationId: string | null) {
     setErr("");
     try {
@@ -255,7 +317,7 @@ export default function TeacherPage() {
    *  AND stamps the record's baseline — the instant the outcome is later split
    *  at. Ordinary work, with no review behind it, still goes to the assignment
    *  door exactly as before. */
-  async function setWork(clsId: string, body: { conceptIds: string[]; dueAt: number; title: string; subject?: SubjectId; targetHandles?: string[]; needId?: string }) {
+  async function setWork(clsId: string, body: { conceptIds: string[]; dueAt: number; title: string; subject?: SubjectId; targetHandles?: string[]; needId?: string; state?: "draft" | "published" }) {
     const { needId, ...plan } = body;
     try {
       if (needId) await api.needAction({ action: "assign", id: meId(), clsId, needId, ...plan });
@@ -272,6 +334,16 @@ export default function TeacherPage() {
   async function removeWork(clsId: string, assignmentId: string) {
     try {
       await api.assignmentAction({ action: "remove", id: meId(), clsId, assignmentId });
+    } catch (e) {
+      setErr(failureText(e));
+      return;
+    }
+    await refreshWork();
+  }
+
+  async function publishWork(clsId: string, assignmentId: string) {
+    try {
+      await api.assignmentAction({ action: "publish", id: meId(), clsId, assignmentId });
     } catch (e) {
       setErr(failureText(e));
       return;
@@ -443,6 +515,8 @@ export default function TeacherPage() {
                     onChange={setCourse}
                     label={t("teach.pickCourse")}
                   />
+                  <input type="text" placeholder={t("teach.school")} value={school} onChange={(e) => setSchool(e.target.value)} />
+                  <input type="text" placeholder={t("onb.grade")} value={yearGroup} onChange={(e) => setYearGroup(e.target.value)} />
                   <button className="btn" onClick={create} disabled={!name.trim() || !subject}>{t("teach.createClass")}</button>
                   {classes.length > 0 && (
                     <button className="btn ghost" onClick={() => setCreating(false)}>{t("common.close")}</button>
@@ -537,18 +611,43 @@ export default function TeacherPage() {
           }
         }
         const top = [...agg.entries()].sort((x, y) => y[1].carriers - x[1].carriers || y[1].hits - x[1].hits).slice(0, 5);
+        const codeActive = !cls.joinCodeRevokedAt && (!cls.joinCodeExpiresAt || cls.joinCodeExpiresAt > Date.now());
+        const owner = Boolean(session.account && cls.teacherAccountId === session.account.id);
+        // A co-teacher administers the class too; only the owner may change who
+        // the co-teachers are. Removing a pupil is ordinary administration, so
+        // both roles see it.
+        const canAdmin = owner || Boolean(session.account && cls.coTeacherAccountIds?.includes(session.account.id));
         return (
           <div key={cls.id} id={`class-${cls.id}`} className="card" style={{ marginBottom: 16, scrollMarginTop: "var(--topbar-h)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, alignItems: "baseline" }}>
               <h1 className="section" style={{ margin: 0 }}>{cls.name}</h1>
-              <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-                <span className="chip red">{t("teach.invite")}: <span className="mono">{cls.joinCode}</span></span>
-                <button
-                  className="btn ghost small"
-                  onClick={async () => {
-                    try { await navigator.clipboard.writeText(cls.joinCode); setCopied(cls.id); setTimeout(() => setCopied(null), 1500); } catch { /* clipboard unavailable — the code is readable beside it */ }
-                  }}
-                >{copied === cls.id ? t("teach.copied") : t("teach.copy")}</button>
+              <span style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <span className={`chip ${codeActive ? "red" : ""}`}>
+                  {t("teach.invite")}: <span className="mono">{codeActive ? cls.joinCode : "—"}</span>
+                  {!codeActive && <span className="small"> · inactive</span>}
+                </span>
+                {codeActive && (
+                  <button
+                    className="btn ghost small"
+                    onClick={async () => {
+                      try { await navigator.clipboard.writeText(cls.joinCode); setCopied(cls.id); setTimeout(() => setCopied(null), 1500); } catch { /* clipboard unavailable — the code is readable beside it */ }
+                    }}
+                  >{copied === cls.id ? t("teach.copied") : t("teach.copy")}</button>
+                )}
+                {codeActive && (
+                  <>
+                    <button
+                      className="btn ghost small"
+                      onClick={async () => {
+                        const url = `${window.location.origin}/join?code=${encodeURIComponent(cls.joinCode)}`;
+                        try { await navigator.clipboard.writeText(url); setCopied(`${cls.id}:link`); setTimeout(() => setCopied(null), 1500); } catch { /* the link itself is still available below */ }
+                      }}
+                    >{copied === `${cls.id}:link` ? t("teach.copied") : "Copy link"}</button>
+                    <a className="btn ghost small" href={`/join?code=${encodeURIComponent(cls.joinCode)}`} target="_blank" rel="noreferrer">Invitation link</a>
+                  </>
+                )}
+                <button className="btn ghost small" onClick={() => void rotateCode(cls.id)}>New code</button>
+                {codeActive && <button className="btn ghost small" onClick={() => void revokeCode(cls.id)}>Revoke</button>}
               </span>
             </div>
             <p className="muted small">
@@ -565,7 +664,12 @@ export default function TeacherPage() {
                 this one declaration. The school comes from the teacher's own
                 profile: it is one school, however many classes are held in it. */}
             <p className="small muted" style={{ margin: "2px 0 10px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-              {state?.profile.school ? <span>{state.profile.school} ·</span> : null}
+              {(cls.school ?? state?.profile.school) ? <span>{cls.school ?? state?.profile.school} ·</span> : null}
+              {cls.yearGroup ? <span>{cls.yearGroup} ·</span> : null}
+              {cls.academicYear ? <span>{cls.academicYear} ·</span> : null}
+              {cls.coTeacherAccountIds && cls.coTeacherAccountIds.length > 0 ? (
+                <span>{cls.coTeacherAccountIds.length} co-teacher{cls.coTeacherAccountIds.length === 1 ? "" : "s"} ·</span>
+              ) : null}
               <span>{t("teach.course")}:</span>
               <CoursePicker
                 country={state?.profile.country ?? ""}
@@ -603,11 +707,33 @@ export default function TeacherPage() {
 
             {tab === "roster" && (
               <>
+            {owner && (
+              <div className="note" style={{ marginBottom: 12 }}>
+                <b>Co-teachers</b>
+                <p className="small muted" style={{ margin: "2px 0 8px" }}>
+                  A co-teacher can see the roster, set work and read evidence. Only you can invite or remove them.
+                </p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <input
+                    type="email"
+                    placeholder={t("onb.email")}
+                    value={coTeacher}
+                    onChange={(e) => { setCoTeacher(e.target.value); setTeacherMsg(""); }}
+                    aria-label={t("onb.email")}
+                  />
+                  <button className="btn small" onClick={() => void inviteTeacher(cls.id)} disabled={!coTeacher.trim()}>Invite</button>
+                </div>
+                {teacherMsg && <p className="small" style={{ margin: "6px 0 0" }}>{teacherMsg}</p>}
+              </div>
+            )}
             {/* THE CLASSROOM'S CREDENTIALS, issued here — and OUTSIDE the
                 roster's own conditional, because the first thing a teacher does
                 with a new class is enroll it. A panel that only appeared once
                 the class already had members would be unreachable for exactly
                 the class that needs it. */}
+            <p className="small muted" style={{ margin: "2px 0 12px" }}>
+              {cls.joinCodeExpiresAt ? `Join code expires ${new Date(cls.joinCodeExpiresAt).toLocaleDateString(localeFor(lang))}.` : "Join code has no expiry recorded."}
+            </p>
             <ClassroomPins cls={cls} me={meId()} />
             {measured.length === 0 && students.length > 0 && (
               <p className="note" style={{ marginBottom: 10 }}>{t("teach.noEvidence")}</p>
@@ -687,6 +813,13 @@ export default function TeacherPage() {
                                   person who can fix it — see the component for why
                                   this is membership rather than a help desk. */}
                               <ResetCode learnerId={m.learnerId} />
+                              {canAdmin && (
+                                <button
+                                  type="button"
+                                  className="btn ghost small"
+                                  onClick={() => void removeStudent(cls.id, m.learnerId, h)}
+                                >{t("teach.remove")}</button>
+                              )}
                               <button
                                 type="button"
                                 className="btn ghost small"
@@ -751,6 +884,7 @@ export default function TeacherPage() {
               monitors={monitor.filter((m) => m.assignment.clsId === cls.id)}
               onSet={(body) => setWork(cls.id, body)}
               onRemove={(assignmentId) => removeWork(cls.id, assignmentId)}
+              onPublish={(assignmentId) => publishWork(cls.id, assignmentId)}
               launch={launch[cls.id] ?? null}
               onLaunchConsumed={() => setLaunch((l) => ({ ...l, [cls.id]: null }))}
             />
@@ -921,14 +1055,16 @@ function WorkPanel({
   monitors,
   onSet,
   onRemove,
+  onPublish,
   launch,
   onLaunchConsumed,
 }: {
   cls: ClassRoster;
   owned?: OwnedClass;
   monitors: AssignmentMonitor[];
-  onSet: (body: { conceptIds: string[]; dueAt: number; title: string; subject?: SubjectId; targetHandles?: string[]; needId?: string }) => Promise<void>;
+  onSet: (body: { conceptIds: string[]; dueAt: number; title: string; subject?: SubjectId; targetHandles?: string[]; needId?: string; state?: "draft" | "published" }) => Promise<void>;
   onRemove: (assignmentId: string) => Promise<void>;
+  onPublish: (assignmentId: string) => Promise<void>;
   /** A finding handed over by the NeedsPanel (§8): pre-populates the four
    *  steps with the concept, learners and title it names. Everything stays
    *  editable — one creation path, a starting point inside it. */
@@ -955,6 +1091,7 @@ function WorkPanel({
   const [q, setQ] = useState("");
   const [due, setDue] = useState("");
   const [label, setLabel] = useState("");
+  const [publishAs, setPublishAs] = useState<"draft" | "published">("published");
   const [declare, setDeclare] = useState<SubjectId | "">("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -1005,6 +1142,7 @@ function WorkPanel({
     setQ("");
     setDue("");
     setLabel("");
+    setPublishAs("published");
     setNeedId("");
     setErr("");
     consumedRef.current = "";
@@ -1030,6 +1168,7 @@ function WorkPanel({
         // Absent for the whole class, so the record keeps its ordinary shape:
         // an empty list would say something the teacher did not.
         ...(whole ? {} : { targetHandles: targets }),
+        state: publishAs,
       });
       // The confirmation names WHO can start — the one fact the teacher just
       // decided. It carries no count on purpose: "1 learners can now start" is
@@ -1132,7 +1271,14 @@ function WorkPanel({
                   </div>
                   <div style={{ maxHeight: 200, overflow: "auto", marginBottom: 8 }}>
                     {assignable.length === 0
-                      ? <p className="small muted">{t("teach.noIdeas")}</p>
+                      ? <p className="small muted">
+                          {t("teach.noIdeas")}
+                          {(owned?.awaitingReview ?? 0) > 0 && (
+                            <span style={{ display: "block", marginTop: 4 }}>
+                              The curriculum is present, but no lesson has completed educator review yet. A qualified reviewer must approve a lesson before it can be set as class work.
+                            </span>
+                          )}
+                        </p>
                       : shown.length === 0
                         ? <p className="small muted">{t("learn.notFound")}</p>
                         : shown.map((id) => (
@@ -1157,6 +1303,14 @@ function WorkPanel({
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
               <label className="small">{t("teach.pickDue")} <input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></label>
               <input type="text" placeholder={t("teach.pickLabel")} value={label} onChange={(e) => setLabel(e.target.value)} />
+              <label className="small" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={publishAs === "draft"}
+                  onChange={(e) => setPublishAs(e.target.checked ? "draft" : "published")}
+                />
+                Save as draft (hidden from pupils)
+              </label>
             </div>
           )}
 
@@ -1217,7 +1371,12 @@ function WorkPanel({
             <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "baseline" }}>
               <strong>{m.assignment.title || ctitle(lang, m.assignment.conceptIds[0])}</strong>
               <span className="small muted">
+                {m.assignment.state === "draft" ? <span className="chip warn">Draft</span> : null}{" "}
+                {m.assignment.state === "closed" ? <span className="chip">Closed</span> : null}{" "}
                 {fill(t("teach.dueOn"), { date: dueLabel(lang, m.assignment.dueAt) })}{" "}
+                {m.assignment.state === "draft" && (
+                  <button className="btn ghost small" onClick={() => void onPublish(m.assignment.id)}>Publish</button>
+                )}{" "}
                 <button className="btn ghost small" onClick={() => void onRemove(m.assignment.id)}>{t("teach.remove")}</button>
               </span>
             </div>

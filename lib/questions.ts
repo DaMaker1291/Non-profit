@@ -466,7 +466,7 @@ const MATHS_GENS: Record<string, RawGen> = {
       prompt: `A hall has ${total} tickets. ${d1 - 1}/${d1} of them were sold online. Of the online tickets, 1/${d2} were later refunded. How many were refunded?`,
       correct: String(ans),
       wrongs: [String(online), String(total / d2), String(d2 * k)] as [string, string, string],
-      tags: [], explanation: `First step: ${d1 - 1}/${d1} of ${total} = ${online} tickets online. Second step: 1/${d2} OF THOSE is ${online} ÷ ${d2} = ${ans}. The second fraction acts on what the first left, not on the original ${total}.`,
+      tags: [], explanation: `First find the online tickets: ${d1 - 1}/${d1} of ${total} = ${online}. The refund acts on THOSE tickets, not on the whole hall: 1/${d2} of ${online} is ${online} ÷ ${d2} = ${ans}. Taking 1/${d2} of the original ${total} instead uses the wrong base, which is where ${total / d2} comes from.`,
       difficulty: 0.6,
     };
   },
@@ -554,7 +554,7 @@ const MATHS_GENS: Record<string, RawGen> = {
         prompt: `Work out ${n1}/${d1} ÷ ${n2}/${d2}.`,
         correct,
         wrongs: wrongs as [string, string, string],
-        tags: [], explanation: `Keep–flip–multiply: ${n1}/${d1} × ${d2}/${n2} = ${num}/${den} = ${num / G}/${den / G}. Dividing by ${n2}/${d2} asks how many of them fit.`,
+        tags: [], explanation: `Keep the first fraction, flip the second and multiply: ${n1}/${d1} × ${d2}/${n2} = ${num}/${den}${G > 1 ? ` = ${num / G}/${den / G} after dividing top and bottom by ${G}` : ""}. The flip works because dividing by ${n2}/${d2} asks how many groups of ${n2}/${d2} fit into ${n1}/${d1}, and multiplying by ${d2}/${n2} counts exactly those groups. Multiplying straight across without flipping (${n1 * n2}/${d1 * d2}) answers a different question, so it is not the same division.`,
         difficulty: 0.45,
       };
     };
@@ -585,7 +585,7 @@ const MATHS_GENS: Record<string, RawGen> = {
       prompt: "Work out 2/3 ÷ 4/5.",
       correct: "5/6",
       wrongs: ["8/15", "15/8", "10/13"],
-      tags: [], explanation: "Keep–flip–multiply: 2/3 × 5/4 = 10/12 = 5/6. Dividing by 4/5 asks how many of them fit.",
+      tags: [], explanation: "Keep the first fraction, flip the second and multiply: 2/3 × 5/4 = 10/12 = 5/6 after dividing top and bottom by 2. The flip works because dividing by 4/5 asks how many groups of 4/5 fit into 2/3, and multiplying by 5/4 counts exactly those groups. Multiplying straight across without flipping (8/15) answers a different question.",
       difficulty: 0.45,
     };
   },
@@ -663,7 +663,7 @@ const MATHS_GENS: Record<string, RawGen> = {
       prompt: `A price of $${start} rises by ${rise}%, then falls by ${rise}%. What is the final price (in $)?`,
       correct: fmtNum(mid + (mid * -rise) / 100),
       wrongs: [String(start), String(start - rise), String(mid + rise)] as [string, string, string],
-      tags: ["pct-base"], explanation: `${start} → ${mid} after the rise. The fall acts on ${mid}, not ${start}: ${mid} − ${rise}% of ${mid} = ${fmtNum(mid + (mid * -rise) / 100)}. Percentages act on the CURRENT base.`,
+      tags: ["pct-base"], explanation: `The rise takes ${start} to ${mid}, because ${rise}% of ${start} is ${mid - start}. The fall then acts on the new price, ${mid}, not on the original: ${rise}% of ${mid} is ${fmtNum((mid * rise) / 100)}, so the final price is ${fmtNum(mid - (mid * rise) / 100)}. The fall is larger in money than the rise because the base has grown, which is why the final price is below ${start}; taking ${rise}% off the original again would wrongly return ${start}.`,
       difficulty: 0.45,
     };
   },
@@ -800,7 +800,7 @@ const MATHS_GENS: Record<string, RawGen> = {
         `x² ${p * q < 0 ? "−" : "+"} ${Math.abs(p * q)}`,
         `x² ${p + q < 0 ? "−" : "+"} ${Math.abs(p + q)}x ${p * q < 0 ? "+" : "−"} ${Math.abs(p * q)}`,
       ] as [string, string, string],
-      tags: ["sign-slip"], explanation: `x² + ${q}x + ${p}x + ${p * q} = x² ${p + q < 0 ? "−" : "+"} ${Math.abs(p + q)}x ${p * q < 0 ? "−" : "+"} ${Math.abs(p * q)}. Every term carries its sign.`,
+      tags: ["sign-slip"], explanation: `Multiply every term in the first bracket by every term in the second: x × x = x², x × ${q} = ${q}x, ${p} × x = ${p}x, and ${p} × ${q} = ${p * q}. The two x-terms are like terms, so ${q}x + ${p}x = ${p + q}x, giving x² ${p + q < 0 ? "−" : "+"} ${Math.abs(p + q)}x ${p * q < 0 ? "−" : "+"} ${Math.abs(p * q)}. The usual slip is dropping the ${p * q} term or losing its sign, which is why every term must carry its sign.`,
       difficulty: 0.45,
     };
   },
@@ -857,7 +857,7 @@ const MATHS_GENS: Record<string, RawGen> = {
       prompt: `Solve x² − ${b}x + ${c} = 0. Give the smaller root.`,
       correct: String(Math.min(p, q)),
       wrongs: [String(Math.max(p, q)), String(-Math.min(p, q)), String(b)] as [string, string, string],
-      tags: ["lost-root"], explanation: `Factorise: (x − ${p})(x − ${q}) = 0, so x = ${p} or x = ${q}. The smaller root is ${Math.min(p, q)}.`,
+      tags: ["lost-root"], explanation: `The two numbers must multiply to ${c} and add to ${b}; ${p} and ${q} do both, so the equation factorises as (x − ${p})(x − ${q}) = 0. A product is zero only when one bracket is zero, so x = ${p} or x = ${q}. ${p === q ? `The two roots coincide, so the answer is ${p}.` : `The question asks for the smaller root, ${Math.min(p, q)}; ${Math.max(p, q)} is the other root and ${b} is their sum, not a root at all.`}`,
       difficulty: 0.5,
     };
   },
@@ -2447,7 +2447,7 @@ const LATE_GENS: Record<string, RawGen> = {
           `You subtracted the two coordinates instead of adding their squares. Pythagoras adds the legs, because they are at right angles — subtracting measures how much further one is than the other.`,
           `That multiplies x by y, which is the area of the rectangle the point makes with the axes, not the distance from the origin to the point.`,
         ],
-        tags: [], explanation: `Distance from the origin is Pythagoras: d = √(x² + y²) = √(${p.x}² + ${p.y}²)${whole ? ` = ${d}` : ` = √${d2}`}. Adding |x| + |y| measures the staircase walk, not the straight line.`,
+        tags: [], explanation: `The horizontal and vertical distances from the origin are the legs of a right-angled triangle: ${Math.abs(p.x)} across and ${Math.abs(p.y)} up. Pythagoras adds their SQUARES and takes the root, so d = √((${fmt(p.x)})² + (${fmt(p.y)})²) = √(${p.x * p.x} + ${p.y * p.y}) = √${d2}${whole ? ` = ${d}` : ""}. Adding ${Math.abs(p.x)} + ${Math.abs(p.y)} measures the staircase walk along the grid, which is longer than the straight line; subtracting the coordinates measures a difference, not a distance.`,
         // The point and the origin it is measured FROM. The origin is the one
         // thing the prompt names, so it is the one thing the plate labels; no
         // connecting segment is drawn, because drawing the triangle would be

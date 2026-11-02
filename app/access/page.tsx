@@ -19,7 +19,7 @@ import { CULTURES, cultureLabel } from "@/lib/culture";
 export default function AccessPage() {
   const { prefs, set } = useAccess();
   const { t, lang, setLang } = useI18n();
-  const { state } = useProfile();
+  const { state, set: setProfile } = useProfile();
   const [pending, setPending] = useState(0);
   const [continuity, setCont] = useState(false);
   const [terms, setTerms] = useState<"local" | "mixed">(state?.profile.termsMode ?? "mixed");
@@ -70,7 +70,26 @@ export default function AccessPage() {
     const id = loadLocalProfileId();
     if (!id) return;
     try {
-      await api.saveProfile({ termsMode: terms, explainLen, resources, board, exam, learningStyle, examples }, id);
+      // THE THREE LEARNING LANGUAGES ARE ALREADY CHOSEN in LangQuick, which
+      // stores them on the device. Saving this panel is the moment they become
+      // part of the PROFILE — the lesson page and the server both read
+      // `teachingLang` from there. Reading the stored values here, rather than
+      // holding a second copy in state, keeps the control and the saved answer
+      // the same answer; two copies is how a language control starts disagreeing
+      // with the page it configures.
+      const stored = (key: string, fallback: string) => {
+        try { return window.localStorage.getItem(key) || fallback; } catch { return fallback; }
+      };
+      const baseLang = state?.profile.language ?? lang;
+      const fresh = await api.saveProfile({
+        termsMode: terms, explainLen, resources, board, exam, learningStyle, examples,
+        teachingLang: stored("openmind:teaching", baseLang),
+        answerLang: stored("openmind:answer", baseLang),
+        schoolLang: stored("openmind:school", baseLang),
+      }, id);
+      // Adopt the saved profile so the lesson page sees the new teaching
+      // language immediately, rather than after the next full reload.
+      setProfile(fresh);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch {

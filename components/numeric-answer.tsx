@@ -106,6 +106,7 @@ export default function NumericAnswer({
             autoComplete="off"
             spellCheck={false}
             aria-label={label}
+            placeholder={emptyHint}
             disabled={disabled}
             value={value}
             onChange={(e) => { setValue(e.target.value); setUnusable(false); }}

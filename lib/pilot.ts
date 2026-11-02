@@ -24,7 +24,7 @@
 // date to make a dashboard green.
 // ─────────────────────────────────────────────────────────────────────────────
 import { CONCEPTS_BY_ID } from "./genome";
-import { LESSON_PLANS, planWordCount, type LessonPlan } from "./lesson-plans";
+import { LESSON_PLANS, planFor, planWordCount, teachingLanguages, type LessonPlan } from "./lesson-plans";
 
 export type ContentState =
   | "draft"
@@ -95,11 +95,20 @@ export const PILOT_SEQUENCE: readonly string[] = [
 
 export const PILOT_CONCEPT_IDS: readonly string[] = PILOT_SEQUENCE;
 
-/** THE TEACHING LANGUAGES THIS PILOT ACTUALLY SUPPORTS. One. The interface has
- *  fifteen languages; a translated menu is not a translated lesson. A language
- *  request outside this list is refused by `lessonStatus` and shown as an
- *  English-medium limitation, never silently filled with English prose. */
-export const PILOT_SUPPORTED_LANGUAGES: readonly string[] = ["en"];
+/** THE TEACHING LANGUAGES THIS BUILD ACTUALLY SUPPORTS, DERIVED FROM THE PLANS.
+ *
+ *  This used to be the literal `["en"]`, and it was true when it was written:
+ *  no plan had a translation. It stopped being true the moment the French
+ *  `fractions` plan landed, and nothing failed — `lessonStatus("fractions",
+ *  "fr")` called a French lesson "authored in English" while the page rendered
+ *  the French text. A hand-kept list beside the translations is the same defect
+ *  as a hand-kept list beside the dictionaries: it describes a previous version
+ *  of the thing next to it. Derived here, so a language is supported the moment
+ *  a complete translation exists and not one moment before. */
+export const PILOT_SUPPORTED_LANGUAGES: readonly string[] = [
+  "en",
+  ...Object.keys(LESSON_PLANS).flatMap((id) => teachingLanguages(id)),
+].filter((l, i, all) => all.indexOf(l) === i).sort();
 
 export function pilotLanguageSupported(lang: string): boolean {
   return PILOT_SUPPORTED_LANGUAGES.includes(lang);
@@ -221,7 +230,11 @@ export function lessonStatus(
    *  synthetic record. The product always uses the empty real registry above. */
   approvals: readonly PilotApproval[] = PILOT_APPROVALS,
 ): PilotLessonStatus {
-  const plan = LESSON_PLANS[conceptId] ?? null;
+  // THE PLAN IN THE LANGUAGE THE LESSON IS TAUGHT IN, not the English one.
+  // `planFor` falls back to English when no complete translation exists; the
+  // language branch below is what stops that fallback from being reported as a
+  // lesson in the requested language.
+  const plan = planFor(conceptId, lang);
   const inScope = PILOT_SEQUENCE.includes(conceptId);
   const gaps = planGaps(plan);
   const reasons: string[] = [];
@@ -233,11 +246,13 @@ export function lessonStatus(
   } else if (gaps.length > 0) {
     state = "draft";
     reasons.push("The authored plan is structurally incomplete.");
-  } else if (!pilotLanguageSupported(lang) || lang !== scope.language) {
-    // A complete English lesson is not a complete Urdu lesson. The page still
-    // states this, and the pilot path refuses it.
+  } else if (lang !== "en" && !teachingLanguages(conceptId).includes(lang)) {
+    // A complete English lesson is not a complete Urdu lesson. The PAGE renders
+    // the English fallback with a note; the pilot status refuses to call it a
+    // lesson in the requested language. Per CONCEPT, not from a global list: a
+    // `fr` translation of `fractions` is not an `fr` translation of `surds`.
     state = "needs-educator-review";
-    reasons.push(`This lesson is authored in English; the ${lang} medium has no complete, reviewed lesson.`);
+    reasons.push(`No complete ${lang} lesson exists for this concept; the English lesson is shown instead.`);
   } else if (!inScope) {
     state = "needs-educator-review";
     reasons.push("A complete authored lesson, but outside the 12-lesson CBSE pilot scope.");

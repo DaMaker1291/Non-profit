@@ -3,9 +3,9 @@ import { getClass, listClasses, newId, updateClassById } from "@/lib/server/stor
 import { authorizeLearner } from "@/lib/server/capability";
 import { canAdminister, teacherOfClass, teachingAccountOf } from "@/lib/server/authority";
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
-import { handleOf, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
+import { handleOf, isClassAdministrator, isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
 import { resolveMembers } from "@/lib/server/class-view";
-import { assignableConcepts, deriveAssignmentProgress, monitorFor } from "@/lib/server/assignment-view";
+import { assignmentVisible, assignableConcepts, curriculumConcepts, deriveAssignmentProgress, monitorFor } from "@/lib/server/assignment-view";
 import { readEvidence } from "@/lib/server/evidence";
 import { SUBJECT_IDS } from "@/lib/subjects";
 import type {
@@ -106,13 +106,21 @@ export async function GET(req: Request): Promise<NextResponse> {
   // nothing and says so — no default curriculum is substituted.
   const owned = mineClasses
     .filter((cls) => administered.get(cls.id) === true)
-    .map((cls) => ({
-      id: cls.id,
-      name: cls.name,
-      subject: cls.subject ?? null,
-      specificationId: cls.specificationId ?? null,
-      assignable: cls.subject ? assignableConcepts(cls.subject, cls.specificationId ?? null) : [],
-    }));
+    .map((cls) => {
+      const assignable = cls.subject ? assignableConcepts(cls.subject, cls.specificationId ?? null) : [];
+      const curriculum = cls.subject ? curriculumConcepts(cls.subject, cls.specificationId ?? null) : [];
+      return {
+        id: cls.id,
+        name: cls.name,
+        subject: cls.subject ?? null,
+        specificationId: cls.specificationId ?? null,
+        assignable,
+        // The difference between an empty course and a course held back by
+        // review. The teacher's picker needs to say which one it is, or the
+        // only available sentence is the false "this course has no work".
+        awaitingReview: Math.max(0, curriculum.length - assignable.length),
+      };
+    });
 
   for (const cls of mineClasses) {
     const work = cls.assignments ?? [];
@@ -150,6 +158,9 @@ export async function GET(req: Request): Promise<NextResponse> {
         // never reaches their list. Stated as a skip rather than a filter so
         // the rule sits beside the read it guards.
         if (targets.length > 0 && !targets.includes(handle)) continue;
+        // A draft belongs to the teacher, a scheduled assignment is hidden
+        // until release, and a closed assignment no longer accepts work.
+        if (!assignmentVisible(a)) continue;
         ownLedger ??= await readEvidence(me.profile.id);
         assigned.push({
           assignment: a,
@@ -168,7 +179,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 }
 
 interface Body {
-  action: "create" | "remove";
+  action: "create" | "remove" | "publish" | "close";
   /** The calling profile — a capability, as on every other door. */
   id?: string;
   secret?: string;
@@ -183,6 +194,11 @@ interface Body {
   /** create: the subject to declare for a class that has not declared one.
    *  Ignored when the class already declares its own curriculum. */
   subject?: string;
+  /** create: draft, scheduled or published. Default published, the shape every
+   *  old record and every existing caller had. */
+  state?: "draft" | "scheduled" | "published";
+  /** create: required for a scheduled assignment; must be before the deadline. */
+  releaseAt?: number;
   /** create: WHO the work is for, by roster row label. Omit (or send an empty
    *  list) for the whole class. Every name must be a current STUDENT of the
    *  class — an unknown one is refused by name rather than stored, because a
@@ -225,6 +241,16 @@ export async function POST(req: Request): Promise<NextResponse> {
         return NextResponse.json({ error: "due date too far ahead" }, { status: 400 });
       }
       const title = typeof body.title === "string" ? body.title.trim().slice(0, 80) : "";
+      const state = body.state === "draft" || body.state === "scheduled" || body.state === "published"
+        ? body.state
+        : "published";
+      const releaseAt = state === "scheduled" ? body.releaseAt : undefined;
+      if (state === "scheduled" && (typeof releaseAt !== "number" || !Number.isFinite(releaseAt) || releaseAt < Date.now())) {
+        return NextResponse.json({ error: "release date must be in the future" }, { status: 400 });
+      }
+      if (releaseAt !== undefined && releaseAt >= (body.dueAt as number)) {
+        return NextResponse.json({ error: "release date must be before the deadline" }, { status: 400 });
+      }
       if (body.subject !== undefined && !(SUBJECT_IDS as string[]).includes(body.subject)) {
         return NextResponse.json({ error: "unknown subject" }, { status: 400 });
       }
@@ -252,7 +278,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
 
       const upd = await updateClassById(body.clsId, (cls) => {
-        if (!isTeacherOf(cls, teacher.profile)) return { error: "not_the_teacher" as const, status: 403 as const };
+        if (!isTeacherOf(cls, teacher.profile) && !isClassAdministrator(cls, teacher.account.id)) {
+          return { error: "not_the_teacher" as const, status: 403 as const };
+        }
         // The curriculum the class actually declared — never a default. A class
         // that declared none may have one declared here (a legacy roster), and
         // a class whose declared course covers none of its subject can be set
@@ -261,10 +289,20 @@ export async function POST(req: Request): Promise<NextResponse> {
         const declared = cls.subject ?? (body.subject as SubjectId | undefined);
         if (!declared) return { error: "declare this class's subject first" as const, status: 400 as const };
         const subject: SubjectId = declared;
+        // Two different refusals, because they ask the teacher to do different
+        // things. A concept outside the class's course is a curriculum error;
+        // a concept inside it that has not completed educator review is a
+        // CONTENT-REVIEW state, and naming it as a curriculum error would send
+        // the teacher looking for the wrong problem.
+        const curriculum = curriculumConcepts(subject, cls.specificationId ?? null);
+        const outside = conceptIds.filter((c) => !curriculum.includes(c));
+        if (outside.length > 0) {
+          return { error: `not in this class's curriculum: ${outside.join(", ")}` as const, status: 400 as const };
+        }
         const allowed = assignableConcepts(subject, cls.specificationId ?? null);
-        const unknown = conceptIds.filter((c) => !allowed.includes(c));
-        if (unknown.length > 0) {
-          return { error: `not in this class's curriculum: ${unknown.join(", ")}` as const, status: 400 as const };
+        const awaitingReview = conceptIds.filter((c) => !allowed.includes(c));
+        if (awaitingReview.length > 0) {
+          return { error: `not yet approved for a class: ${awaitingReview.join(", ")}` as const, status: 400 as const };
         }
         const a: Assignment = {
           id: newId("asg"),
@@ -277,6 +315,9 @@ export async function POST(req: Request): Promise<NextResponse> {
           // Absent for the whole class, which is what an empty list means — the
           // record stays the shape it always was for ordinary work.
           ...(requested.length > 0 ? { targetHandles: requested } : {}),
+          state,
+          ...(state === "published" ? { publishedAt: Date.now() } : {}),
+          ...(releaseAt !== undefined ? { releaseAt } : {}),
           createdAt: Date.now(),
           dueAt: body.dueAt as number,
         };
@@ -293,12 +334,41 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ assignment: r.assignment });
     }
 
+    if (body.action === "publish" || body.action === "close") {
+      if (typeof body.assignmentId !== "string" || !body.assignmentId) {
+        return NextResponse.json({ error: "missing assignment" }, { status: 400 });
+      }
+      const upd = await updateClassById(body.clsId, (cls) => {
+        if (!isTeacherOf(cls, teacher.profile) && !isClassAdministrator(cls, teacher.account.id)) {
+          return { error: "not_the_teacher" as const, status: 403 as const };
+        }
+        const a = (cls.assignments ?? []).find((x) => x.id === body.assignmentId);
+        if (!a) return { error: "not found" as const, status: 404 as const };
+        const now = Date.now();
+        if (body.action === "publish") {
+          a.state = "published";
+          a.publishedAt = now;
+          if (a.releaseAt && a.releaseAt > now) a.releaseAt = now;
+        } else {
+          a.state = "closed";
+          a.closedAt = now;
+        }
+        return { assignment: a };
+      });
+      if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+      const r = upd.result as { error?: string; status?: number; assignment?: Assignment };
+      if (r.error) return NextResponse.json({ error: r.error }, { status: r.status ?? 400 });
+      return NextResponse.json({ assignment: r.assignment });
+    }
+
     if (body.action === "remove") {
       if (typeof body.assignmentId !== "string" || !body.assignmentId) {
         return NextResponse.json({ error: "missing assignment" }, { status: 400 });
       }
       const upd = await updateClassById(body.clsId, (cls) => {
-        if (!isTeacherOf(cls, teacher.profile)) return { error: "not_the_teacher" as const, status: 403 as const };
+        if (!isTeacherOf(cls, teacher.profile) && !isClassAdministrator(cls, teacher.account.id)) {
+          return { error: "not_the_teacher" as const, status: 403 as const };
+        }
         const before = (cls.assignments ?? []).length;
         cls.assignments = (cls.assignments ?? []).filter((a) => a.id !== body.assignmentId);
         if (cls.assignments.length === before) return { error: "not found" as const, status: 404 as const };

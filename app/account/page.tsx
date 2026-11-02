@@ -46,6 +46,13 @@ export default function AccountPage() {
   const [joining, setJoining] = useState(false);
   const [joinedMsg, setJoinedMsg] = useState("");
   const [joinErr, setJoinErr] = useState("");
+  // THE CLASSES THIS LEARNER IS ACTUALLY IN. The join box used to be a one-way
+  // door: after joining there was no list and no way to leave, so a pupil who
+  // used the wrong code (or changed class) had to ask the teacher to remove
+  // them. The list is read through the scoped class door and names only classes
+  // the caller is a member of; leaving removes that membership, never the
+  // learner's evidence.
+  const [classList, setClassList] = useState<Array<{ id: string; name: string }>>([]);
   // ── Privacy: export, and the right to erasure (§23) ──
   // Erasure is consent-gated twice: the learner must first reveal the control
   // (a stray click must never delete a history), then type ERASE to confirm.
@@ -77,6 +84,17 @@ export default function AccountPage() {
     // surfaces need to know. lib/client.tsx#isTeacher draws the same line.
     if (session.account) setRole(session.account.role === "student" ? "student" : "teacher");
   }, [session.account]);
+
+  useEffect(() => {
+    const id = loadLocalProfileId();
+    if (!id || session.account?.role !== "student") { setClassList([]); return; }
+    let alive = true;
+    void api.classes(id).then((j) => {
+      if (!alive) return;
+      setClassList((j.classes ?? []).map((c) => ({ id: c.id, name: c.name })));
+    }).catch(() => { /* the join box still works; the list is a convenience */ });
+    return () => { alive = false; };
+  }, [profile, session.account]);
 
   useEffect(() => {
     setSchool(profile?.profile.school ?? "");
@@ -112,8 +130,30 @@ export default function AccountPage() {
       }
       setJoinedMsg(t("acct.joined"));
       setClassCode("");
+      // Re-read the scoped list after the membership changes. A failed refresh
+      // leaves the success message intact: the join is what the server decided,
+      // and the list is the view of it.
+      try {
+        const j = await api.classes(id);
+        setClassList((j.classes ?? []).map((c) => ({ id: c.id, name: c.name })));
+      } catch { /* the next visit re-reads it */ }
     } finally {
       setJoining(false);
+    }
+  }
+
+  async function leaveClass(clsId: string, name: string) {
+    if (!window.confirm(`Leave ${name}? Your learning record stays with you.`)) return;
+    const id = loadLocalProfileId();
+    if (!id) return;
+    setJoinErr("");
+    setJoinedMsg("");
+    try {
+      await api.classAction({ action: "leave", id, clsId });
+      setClassList((list) => list.filter((c) => c.id !== clsId));
+      setJoinedMsg(`You left ${name}.`);
+    } catch (e) {
+      setJoinErr(e instanceof ApiError && e.code ? e.code : t("common.error"));
     }
   }
 
@@ -380,6 +420,17 @@ export default function AccountPage() {
             </div>
             {joinedMsg && <p className="small marking good" style={{ padding: "8px 12px", marginTop: 10 }}><span className="mark" aria-hidden="true">✓</span> {joinedMsg}</p>}
             {joinErr && <p className="small marking bad" style={{ padding: "8px 12px", marginTop: 10 }}><span className="mark" aria-hidden="true">✗</span> {joinErr}</p>}
+            {classList.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <p className="eyebrow" style={{ marginBottom: 6 }}>Your classes</p>
+                {classList.map((c) => (
+                  <div key={c.id} className="note" style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <span>{c.name}</span>
+                    <button className="btn ghost small" onClick={() => void leaveClass(c.id, c.name)}>Leave</button>
+                  </div>
+                ))}
+              </div>
+            )}
               </>
             )}
 

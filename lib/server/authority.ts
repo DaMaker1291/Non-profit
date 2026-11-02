@@ -36,6 +36,7 @@
 // an owner is how the capability became authority in the first place.
 import { accountFromRequest } from "./auth";
 import { accountOwningProfile, getProfile } from "./store";
+import { isClassAdministrator } from "./class-membership";
 import type { Account, ClassRoster, ProfileState } from "../types";
 
 /** A refusal a route can return verbatim. The names are kept stable because the
@@ -100,7 +101,11 @@ export async function teacherOfClass(req: Request, cls: ClassRoster): Promise<Te
   if (!who.ok) return who;
   const owner = await teacherAccountIdOf(cls);
   if (!owner) return { ok: false, status: 409, error: "class_has_no_teacher_account" };
-  if (owner !== who.account.id) return { ok: false, status: 403, error: "not_the_teacher" };
+  // The owner and any co-teacher the owner invited may administer the class.
+  // Legacy classes have no co-teacher list, so they keep the owner-only rule.
+  if (owner !== who.account.id && !isClassAdministrator(cls, who.account.id)) {
+    return { ok: false, status: 403, error: "not_the_teacher" };
+  }
   return who;
 }
 
@@ -120,5 +125,5 @@ export async function teachingAccountOf(req: Request): Promise<{ id: string; pro
  *  `teacherOfClass` — same rule, one account lookup hoisted by the caller. */
 export async function canAdminister(cls: ClassRoster, teachingAccountId: string | null): Promise<boolean> {
   if (!teachingAccountId) return false;
-  return (await teacherAccountIdOf(cls)) === teachingAccountId;
+  return isClassAdministrator(cls, teachingAccountId) || (await teacherAccountIdOf(cls)) === teachingAccountId;
 }

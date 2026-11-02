@@ -353,6 +353,15 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
   },
 
   quadratics: (r) => {
+    if (r.next() < 0.5) {
+      const h = r.int(2, 8);
+      return {
+        prompt: `The equation x² + ${2 * h}x + c = 0 has exactly one solution. What is c?`,
+        value: h * h, wrongs: [h, h * h + 1, h * h - 1],
+        tags: ["lost-root"], difficulty: 0.66,
+        explanation: `A quadratic has exactly one solution when its two roots coincide, which happens when the expression is a perfect square. Half of the x-coefficient is ${h}, so the square is (x + ${h})² = x² + ${2 * h}x + ${h * h}; matching the constant gives c = ${h * h}. Answering ${h} takes half the coefficient as the constant, and ${h * h + 1} or ${h * h - 1} changes the square so it no longer has one repeated root.`,
+      };
+    }
     const p = r.int(1, 7), q = r.int(1, 7);
     return {
       prompt: `Solve x² − ${p + q}x + ${p * q} = 0. What is the LARGER root?`,
@@ -394,6 +403,17 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
   },
 
   surds: (r) => {
+    if (r.next() < 0.5) {
+      const rad = r.pick([2, 3, 5, 6, 7]);
+      const [a, b] = r.shuffle([1, 2, 3, 4]).slice(0, 2);
+      const n1 = a * a * rad, n2 = b * b * rad;
+      return {
+        prompt: `Write √${n1} + √${n2} in the form k√${rad}. What is k?`,
+        value: a + b, wrongs: [a * b, a + b + 1, Math.abs(a - b)],
+        tags: ["sqrt-prod"], difficulty: 0.65,
+        explanation: `Simplify each surd before adding: √${n1} = √(${a * a} × ${rad}) = ${a}√${rad}, and √${n2} = √(${b * b} × ${rad}) = ${b}√${rad}. The two terms now have the same radical, so they are like terms and their coefficients add: ${a} + ${b} = ${a + b}. Multiplying the coefficients (${a * b}) is the rule for √a × √b, not for a sum, and leaving them unsimplified hides that the radicals match.`,
+      };
+    }
     const k = r.pick([2, 3, 5, 6, 7]);
     const sq = r.pick([4, 9, 16, 25]);
     const n = k * sq;
@@ -407,6 +427,15 @@ export const CORE_NUMERIC_GENS: Record<string, NumericGen> = {
   },
 
   "completing-square": (r) => {
+    if (r.next() < 0.5) {
+      const h = r.int(2, 8), k = r.int(2, 9);
+      return {
+        prompt: `What is the minimum value of y = x² − ${2 * h}x + ${h * h + k}?`,
+        value: k, wrongs: [h * h + k, -h, h * h].filter((v) => v !== k),
+        tags: ["b-half"], difficulty: 0.66,
+        explanation: `Complete the square: half of −${2 * h} is −${h}, and (x − ${h})² expands to x² − ${2 * h}x + ${h * h}. The expression is therefore (x − ${h})² + ${k}; a square is never negative, so the smallest value is ${k}, reached when x = ${h}. Reading the constant ${h * h + k} as the minimum forgets to subtract the ${h * h} that completing the square introduced, and ${-h} is the x-value where the minimum occurs, not the minimum itself.`,
+      };
+    }
     const h = r.int(1, 8);
     return {
       prompt: `Write x² + ${2 * h}x + ${h * h + 5} in the form (x + p)² + q. What is q?`,

@@ -54,6 +54,7 @@ import type { Account, AccountRole, ClassRoster, ProfileState, StudyPack, StudyR
 import type { AppendResult, EvidenceEvent } from "../evidence";
 import type { BuiltPaperAnswerKey } from "../papers";
 import type { PersonalPaper } from "../personal-paper";
+import type { ContentReviewRecord } from "../content-platform/types";
 // TYPE-ONLY for the same reason as the rest: the erasure log's SHAPE is owned by
 // lib/server/erasures.ts — which is also the module a RESTORE reads a directory
 // with — and a value import here would drag `node:fs` into the port, which is the
@@ -356,6 +357,10 @@ export interface Storage {
   savePack(pack: StudyPack): Promise<void>;
   readAllPacks(): Promise<StudyPack[]>;
 
+  // ── Content reviews: append-only, bound to a lesson fingerprint ──────────
+  listContentReviews(): Promise<ContentReviewRecord[]>;
+  appendContentReview(record: ContentReviewRecord): Promise<void>;
+
   // ── Papers. `getStoredPaper` holds the ANSWER KEY, server-side only. ─────
   saveStoredPaper(key: BuiltPaperAnswerKey): Promise<void>;
   getStoredPaper(id: string): Promise<BuiltPaperAnswerKey | null>;
@@ -424,6 +429,8 @@ export const STORAGE_METHODS: readonly (keyof Storage)[] = [
   "listPacks",
   "savePack",
   "readAllPacks",
+  "listContentReviews",
+  "appendContentReview",
   "saveStoredPaper",
   "getStoredPaper",
   "savePersonalPaper",

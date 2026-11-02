@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 69 modules compiled from lib/ by that script, wired
+ * Source: 72 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -175,6 +175,259 @@ function speakableText(s) {
 }
 
 });
+__def("algebra.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// ALGEBRAIC EQUIVALENCE, IN ONE POLYNOMIAL VARIABLE.
+//
+// An expression question cannot be marked by comparing text: `2(x + 3)` and
+// `2x + 6` are the same answer, and `x + 6` is not. This module parses the small
+// algebraic language the bank's expression items actually use — constants, one
+// variable, + − × ^ and brackets, with implicit multiplication (`2x`,
+// `3(x + 1)`) — into polynomial coefficients, and compares the coefficients.
+//
+// THE LIMIT IS DELIBERATE AND STATED: only polynomials in one variable are
+// recognised. Division by a variable, roots, trigonometric functions and
+// equations are refused (null), so a question that needs them must not be
+// authored as an `algebra` part until a marker that understands them exists.
+// Refusing is the honest answer; guessing an equivalence is not.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.normaliseAlgebra = normaliseAlgebra;
+exports.parsePolynomial = parsePolynomial;
+exports.algebraEquivalent = algebraEquivalent;
+exports.formatPolynomial = formatPolynomial;
+const EPS = 1e-9;
+/** Normalise the notation a learner can type without changing its mathematics. */
+function normaliseAlgebra(raw) {
+    return String(raw ?? "")
+        .replace(/[−–—]/g, "-")
+        .replace(/[×·∙]/g, "*")
+        .replace(/÷/g, "/")
+        .replace(/[²³⁴⁵⁶⁷⁸⁹]/g, (d) => `^${"²³⁴⁵⁶⁷⁸⁹".indexOf(d) + 2}`)
+        .replace(/⁰/g, "^0")
+        .replace(/\s+/g, "")
+        .trim();
+}
+function tokenize(s) {
+    const out = [];
+    let i = 0;
+    while (i < s.length) {
+        const c = s[i];
+        if (c === " ") {
+            i++;
+            continue;
+        }
+        if (/[0-9.]/.test(c)) {
+            const m = s.slice(i).match(/^(?:\d+(?:\.\d*)?|\.\d+)/);
+            if (!m)
+                return null;
+            out.push({ kind: "num", text: m[0] });
+            i += m[0].length;
+            continue;
+        }
+        if (/[a-zA-Z]/.test(c)) {
+            out.push({ kind: "var", text: c });
+            i++;
+            continue;
+        }
+        if ("+-*^/".includes(c)) {
+            out.push({ kind: "op", text: c });
+            i++;
+            continue;
+        }
+        if (c === "(") {
+            out.push({ kind: "lparen", text: c });
+            i++;
+            continue;
+        }
+        if (c === ")") {
+            out.push({ kind: "rparen", text: c });
+            i++;
+            continue;
+        }
+        return null;
+    }
+    return out;
+}
+function trimPoly(p) {
+    const out = [...p];
+    while (out.length > 1 && Math.abs(out[out.length - 1]) < EPS)
+        out.pop();
+    return out;
+}
+function add(a, b, sign = 1) {
+    const out = Array.from({ length: Math.max(a.length, b.length) }, () => 0);
+    for (let i = 0; i < out.length; i++)
+        out[i] = (a[i] ?? 0) + sign * (b[i] ?? 0);
+    return trimPoly(out);
+}
+function multiply(a, b) {
+    if (a.length * b.length > 400)
+        return [NaN];
+    const out = Array.from({ length: a.length + b.length - 1 }, () => 0);
+    for (let i = 0; i < a.length; i++) {
+        for (let j = 0; j < b.length; j++)
+            out[i + j] += a[i] * b[j];
+    }
+    return trimPoly(out);
+}
+function power(a, n) {
+    if (!Number.isInteger(n) || n < 0 || n > 20)
+        return null;
+    let out = [1];
+    for (let i = 0; i < n; i++)
+        out = multiply(out, a);
+    return out.some((x) => !Number.isFinite(x)) ? null : out;
+}
+/** Parse one expression to coefficients, or null when it is outside the language. */
+function parsePolynomial(raw, variable = "x") {
+    const tokens = tokenize(normaliseAlgebra(raw));
+    if (!tokens || tokens.length === 0)
+        return null;
+    if (!/^[a-zA-Z]$/.test(variable))
+        return null;
+    let at = 0;
+    const peek = () => tokens[at];
+    const startsFactor = (t) => !!t && (t.kind === "num" || t.kind === "var" || t.kind === "lparen");
+    function primary() {
+        const t = peek();
+        if (!t)
+            return null;
+        if (t.kind === "num") {
+            at++;
+            const n = Number(t.text);
+            return Number.isFinite(n) ? [n] : null;
+        }
+        if (t.kind === "var") {
+            at++;
+            if (t.text !== variable)
+                return null;
+            return [0, 1];
+        }
+        if (t.kind === "lparen") {
+            at++;
+            const inner = expression();
+            if (!inner || peek()?.kind !== "rparen")
+                return null;
+            at++;
+            return inner;
+        }
+        return null;
+    }
+    function powerExpr() {
+        let base = primary();
+        if (!base)
+            return null;
+        if (peek()?.kind === "op" && peek().text === "^") {
+            at++;
+            const t = peek();
+            if (!t || t.kind !== "num" || !/^\d+$/.test(t.text))
+                return null;
+            at++;
+            base = power(base, Number(t.text));
+            if (!base)
+                return null;
+        }
+        return base;
+    }
+    function unary() {
+        if (peek()?.kind === "op" && (peek().text === "+" || peek().text === "-")) {
+            const sign = peek().text === "-" ? -1 : 1;
+            at++;
+            const v = unary();
+            return v ? v.map((n) => sign * n) : null;
+        }
+        return powerExpr();
+    }
+    function term() {
+        let left = unary();
+        if (!left)
+            return null;
+        for (;;) {
+            const t = peek();
+            if (!t)
+                break;
+            if (t.kind === "op" && t.text === "*") {
+                at++;
+                const right = unary();
+                if (!right)
+                    return null;
+                left = multiply(left, right);
+                continue;
+            }
+            // Implicit multiplication: `2x`, `3(x + 1)`, `(x + 1)(x - 2)`.
+            if (startsFactor(t)) {
+                const right = unary();
+                if (!right)
+                    return null;
+                left = multiply(left, right);
+                continue;
+            }
+            // Division is outside this marker's language — even `x / 2`, because a
+            // fraction parser that silently accepts it must then decide equivalence of
+            // rational functions, which this module does not claim to do.
+            if (t.kind === "op" && t.text === "/")
+                return null;
+            break;
+        }
+        return left;
+    }
+    function expression() {
+        let left = term();
+        if (!left)
+            return null;
+        for (;;) {
+            const t = peek();
+            if (!t || t.kind !== "op" || (t.text !== "+" && t.text !== "-"))
+                break;
+            at++;
+            const right = term();
+            if (!right)
+                return null;
+            left = add(left, right, t.text === "-" ? -1 : 1);
+        }
+        return left;
+    }
+    const result = expression();
+    if (!result || at !== tokens.length)
+        return null;
+    if (result.some((n) => !Number.isFinite(n)))
+        return null;
+    return trimPoly(result);
+}
+/** Is `given` the same polynomial as at least one authored accepted form? */
+function algebraEquivalent(given, accepted, variable = "x") {
+    const parsed = parsePolynomial(given, variable);
+    if (!parsed)
+        return false;
+    for (const form of accepted) {
+        const target = parsePolynomial(form, variable);
+        if (!target)
+            continue;
+        if (parsed.length !== target.length)
+            continue;
+        if (parsed.every((n, i) => Math.abs(n - target[i]) <= EPS))
+            return true;
+    }
+    return false;
+}
+/** A human-readable expanded form, for feedback. Not used for marking. */
+function formatPolynomial(p, variable = "x") {
+    const terms = [];
+    for (let i = p.length - 1; i >= 0; i--) {
+        const n = p[i];
+        if (Math.abs(n) < EPS)
+            continue;
+        const abs = Math.abs(n);
+        const coef = i === 0 ? String(Number(abs.toFixed(10))) : abs === 1 ? "" : String(Number(abs.toFixed(10)));
+        const v = i === 0 ? "" : i === 1 ? variable : `${variable}^${i}`;
+        terms.push(`${n < 0 ? "−" : terms.length ? "+" : ""}${coef}${v}`);
+    }
+    return terms.length ? terms.join(" ") : "0";
+}
+
+});
 __def("answer.js", function (module, exports, require) {
 "use strict";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -342,9 +595,9 @@ function answerDisplay(q) {
  * The one asymmetry, and it is the whole subtlety: an UNORDERED pair of ROOTS is
  * one answer — `x = 1 and x = -2` says the same thing as `x = -2 and x = 1`,
  * because roots are a set — while a pair of bare numbers is an ORDERED tuple,
- * because `Balance: __ Fe + O₂ → __ Fe₂O₃` with the options `4 and 3` and `3 and
- * 4` is asking about 4 Fe + 3 O₂ versus 3 Fe + 4 O₂, which are different (and
- * only one of them balances). Sorting every pair would delete a good distractor;
+ * because `Balance: __ Fe + O₂ → __ Fe₂O₃` with the options `4 and 2` and `2 and
+ * 4` is asking about 4 Fe + 2 Fe₂O₃ versus 2 Fe + 4 Fe₂O₃, which are different
+ * (and only one of them balances). Sorting every pair would delete a good distractor;
  * sorting none would keep a correct option beside the key.
  *
  * Null means "not a value" (prose, a unit-bearing measurement, an expression)
@@ -7709,6 +7962,8 @@ const en = {
     "pp.correct": "Correct",
     "pp.incorrect": "Incorrect",
     "pp.blank": "Not attempted",
+    "pp.answer": "Your answer",
+    "pp.notANumber": "Not a number",
     "pp.checkIdea": "Check this idea",
     "ai.on": "AI tutor on",
     "ai.off": "Offline engine",
@@ -9326,6 +9581,8 @@ const es = {
     "pp.correct": "Correcta",
     "pp.incorrect": "Incorrecta",
     "pp.blank": "Sin responder",
+    "pp.answer": "Tu respuesta",
+    "pp.notANumber": "No es un número",
     "pp.checkIdea": "Revisa esta idea",
     "ai.on": "Tutor con IA activado",
     "ai.off": "Motor sin conexión",
@@ -10944,6 +11201,8 @@ const fr = {
     "pp.correct": "Correct",
     "pp.incorrect": "Incorrect",
     "pp.blank": "Non tentée",
+    "pp.answer": "Votre réponse",
+    "pp.notANumber": "Pas un nombre",
     "pp.checkIdea": "Revoir cette notion",
     "ai.on": "Tuteur IA activé",
     "ai.off": "Moteur hors ligne",
@@ -12562,6 +12821,8 @@ const pt = {
     "pp.correct": "Correta",
     "pp.incorrect": "Incorreta",
     "pp.blank": "Não respondida",
+    "pp.answer": "A sua resposta",
+    "pp.notANumber": "Não é um número",
     "pp.checkIdea": "Revise esta ideia",
     "ai.on": "Tutor de IA ativo",
     "ai.off": "Motor offline",
@@ -14162,6 +14423,8 @@ const ar = {
     "pp.correct": "صحيح",
     "pp.incorrect": "خطأ",
     "pp.blank": "لم تُحل",
+    "pp.answer": "إجابتك",
+    "pp.notANumber": "ليس رقمًا",
     "pp.checkIdea": "راجع هذه الفكرة",
     "ai.on": "المعلم بالذكاء الاصطناعي مُفعّل",
     "ai.off": "محرك دون اتصال",
@@ -15762,6 +16025,8 @@ const sw = {
     "pp.correct": "Sahihi",
     "pp.incorrect": "Si sahihi",
     "pp.blank": "Haijajibiwa",
+    "pp.answer": "Jibu lako",
+    "pp.notANumber": "Si nambari",
     "pp.checkIdea": "Angalia wazo hili",
     "ai.on": "Mwalimu wa AI amewashwa",
     "ai.off": "Injini ya nje ya mtandao",
@@ -17362,6 +17627,8 @@ const hi = {
     "pp.correct": "सही",
     "pp.incorrect": "गलत",
     "pp.blank": "अनुत्तरित",
+    "pp.answer": "आपका उत्तर",
+    "pp.notANumber": "संख्या नहीं",
     "pp.checkIdea": "इस विचार की जाँच करें",
     "ai.on": "AI शिक्षक चालू",
     "ai.off": "ऑफ़लाइन इंजन",
@@ -18962,6 +19229,8 @@ const id = {
     "pp.correct": "Benar",
     "pp.incorrect": "Salah",
     "pp.blank": "Tidak dijawab",
+    "pp.answer": "Jawaban Anda",
+    "pp.notANumber": "Bukan angka",
     "pp.checkIdea": "Periksa ide ini",
     "ai.on": "Tutor AI aktif",
     "ai.off": "Mesin offline",
@@ -20562,6 +20831,8 @@ const tl = {
     "pp.correct": "Tama",
     "pp.incorrect": "Mali",
     "pp.blank": "Hindi sinagutan",
+    "pp.answer": "Iyong sagot",
+    "pp.notANumber": "Hindi numero",
     "pp.checkIdea": "Suriin ang ideyang ito",
     "ai.on": "Naka-on ang AI tutor",
     "ai.off": "Offline engine",
@@ -22240,6 +22511,8 @@ const de = {
     "pp.correct": "Richtig",
     "pp.incorrect": "Falsch",
     "pp.blank": "Nicht bearbeitet",
+    "pp.answer": "Deine Antwort",
+    "pp.notANumber": "Keine Zahl",
     "pp.checkIdea": "Diese Idee prüfen",
     "ai.on": "KI-Tutor aktiv",
     "ai.off": "Offline-Engine",
@@ -23899,6 +24172,8 @@ const ja = {
     "pp.correct": "正解",
     "pp.incorrect": "不正解",
     "pp.blank": "未解答",
+    "pp.answer": "あなたの答え",
+    "pp.notANumber": "数値ではありません",
     "pp.checkIdea": "この考えを見直す",
     "ai.on": "AI チューター有効",
     "ai.off": "オフラインエンジン",
@@ -25468,6 +25743,8 @@ const zh = {
     "pp.correct": "正确",
     "pp.incorrect": "错误",
     "pp.blank": "未作答",
+    "pp.answer": "你的答案",
+    "pp.notANumber": "不是数字",
     "pp.checkIdea": "检查这个知识点",
     "ai.on": "AI 辅导已开启",
     "ai.off": "离线引擎",
@@ -27037,6 +27314,8 @@ const fa = {
     "pp.correct": "درست",
     "pp.incorrect": "نادرست",
     "pp.blank": "بی‌پاسخ",
+    "pp.answer": "پاسخ شما",
+    "pp.notANumber": "عدد نیست",
     "pp.checkIdea": "این ایده را بررسی کن",
     "ai.on": "آموزگار هوش مصنوعی روشن",
     "ai.off": "موتور آفلاین",
@@ -28606,6 +28885,8 @@ const ur = {
     "pp.correct": "درست",
     "pp.incorrect": "غلط",
     "pp.blank": "جواب نہیں دیا",
+    "pp.answer": "آپ کا جواب",
+    "pp.notANumber": "عدد نہیں",
     "pp.checkIdea": "اس خیال کو دیکھیں",
     "ai.on": "AI استاد فعال",
     "ai.off": "آف لائن انجن",
@@ -30257,6 +30538,8 @@ exports.bn = {
     "pp.correct": "সঠিক",
     "pp.incorrect": "ভুল",
     "pp.blank": "উত্তর দেওয়া হয়নি",
+    "pp.answer": "আপনার উত্তর",
+    "pp.notANumber": "সংখ্যা নয়",
     "pp.checkIdea": "এই ধারণাটি দেখুন",
     "ai.on": "AI শিক্ষক চালু",
     "ai.off": "অফলাইন ইঞ্জিন",
@@ -31537,9 +31820,10 @@ exports.orphanPlans = orphanPlans;
 // compact tuple table with 135 entries; a structured lesson does not fit in a
 // tuple, and reshaping that table to carry one would have touched every row and
 // every gate that reads it. Keeping plans keyed by concept id also makes the
-// coverage honest and countable: `planFor` answers null for a concept nobody has
-// written a plan for, and the page then renders the prose it always did. There is
-// no generated filler standing in for teaching nobody wrote.
+// AUTHORED coverage honest and countable: `plannedConceptIds` reports the pilot
+// set. Every other genome concept gets a structured fallback derived from its own
+// genome explanation and descendants, marked `unreviewed`; it never invents
+// subject matter or claims a review nobody performed.
 //
 // PROVENANCE IS PART OF THE CONTENT (§3 of the strategy note: authored ≠
 // reviewed ≠ pilot-tested). Every plan states its review state, and the page
@@ -31654,12 +31938,13 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Percentages and decimals are fractions in another notation, ratio compares two of them, and probability is one: the chance of a six is 1/6, which is a fraction before it is ever a percentage.",
         review: "unreviewed",
+        interactive: "fraction-model",
         // THE PICTURE THE IDEA NEEDS. "A bigger bottom means smaller pieces" is a
         // claim about SHAPE — the same circle, cut more ways — so the drawing shows
         // three quarters of one whole and the caption says what to notice: four of
         // these slices fill it.
         figure: {
-            spec: { kind: "pie", sectorDegrees: 270, label: "3/4" },
+            spec: { kind: "pie", sectorDegrees: 270, label: "3/4", slices: 4 },
             caption: "Three quarters of one whole: the circle is the 1, and the shaded part is three of its four equal slices. A quarter is one slice, so three of them are 3/4 — and four of them would fill the circle exactly.",
         },
     },
@@ -32039,7 +32324,7 @@ exports.LESSON_PLANS = {
         traps: [
             {
                 move: "Solving x² = 3x by dividing both sides by x.",
-                why: "Dividing by x throws away the case x = 0, and x = 0 really is a solution. Move everything to one side and factorise instead: x² − 3x = 0, so x(x − 3) = 0, giving x = 0 or x = 3. Never divide by a variable — factorise it out.",
+                why: "Dividing by x throws away the case x = 0, and x = 0 really is a solution. Move everything to one side and factorise instead: x² − 3x = 0, so x(x − 3) = 0, giving x = 0 or x = 3. Do not divide by a variable unless you have first checked that it cannot be zero; factorise it out instead.",
             },
             {
                 move: "Reading (x − 2)(x − 3) = 0 as x = −2 or x = −3.",
@@ -32180,23 +32465,363 @@ exports.LESSON_PLANS = {
             caption: "3x + 5 = 20 as a balance: three bags and five weights against twenty weights. Take the same five off both pans, and the three bags are left holding fifteen — so one bag is 5.",
         },
     },
+    // ── SCIENCE · CELLS ───────────────────────────────────────────────────────
+    // The first science lesson in the pilot pack. It is a Class 9 prerequisite
+    // that the Class 10 life-processes work assumes, and it is included because a
+    // learner who cannot say what a cell membrane, a chloroplast or a vacuole does
+    // cannot explain photosynthesis or gas exchange. The lesson is written for
+    // the CBSE English-medium classroom, not translated from a UK worksheet.
+    cells: {
+        conceptId: "cells",
+        objective: "Name the parts of an animal and a plant cell, and explain how each part's structure helps it do its job.",
+        intuition: "A brick wall and a living factory look equally solid from a distance, and only one of them is doing anything. A cell is the smallest piece of a living thing that can carry out all the processes of life: it takes in materials, releases energy, makes what it needs and gets rid of waste. Most cells are too small to see without a microscope, which is why the idea feels abstract until you look at one.",
+        idea: [
+            "A cell is the basic structural and functional unit of life. Every living organism is made of one cell (a bacterium) or many cells (a plant, an animal, you). The cell is not a container with parts floating in it by accident: each part, or organelle, has a job, and the shape of the part is tied to that job.",
+            "An animal cell has a cell membrane around the outside, cytoplasm inside, a nucleus, and mitochondria. The membrane is a thin, flexible boundary that controls what enters and leaves. The cytoplasm is where many reactions happen. The nucleus holds the genetic material (DNA) and controls the cell's activities. Mitochondria are where aerobic respiration releases energy from glucose.",
+            "A plant cell has the same four parts and three more that matter here: a cellulose cell wall outside the membrane, chloroplasts, and a large permanent vacuole. The wall is strong and gives the cell its shape; it is fully permeable, so the membrane underneath is still the gatekeeper. Chloroplasts contain chlorophyll and carry out photosynthesis. The vacuole is filled with cell sap and helps keep the cell firm.",
+            "Specialised cells show the same rule at a larger scale: structure serves function. A red blood cell has no nucleus and is packed with haemoglobin, leaving more room to carry oxygen. A root hair cell has a long, thin extension that increases the surface area for absorbing water and minerals. A sperm cell has many mitochondria to power its journey. A nerve cell is long so it can carry an electrical impulse from one part of the body to another.",
+            "Cells are not all the same size, and the units matter. Most plant and animal cells are measured in micrometres (μm): one micrometre is one-thousandth of a millimetre, or 10⁻⁶ m. A typical cheek cell is about 50–100 μm across. Magnification tells you how many times larger the image is than the object; it does not, by itself, tell you how much detail you can resolve.",
+            "Similar cells group into tissues, tissues into organs, and organs into organ systems. This hierarchy is why a single cell does not need to do everything in a large organism: specialised cells do one job well, and the system coordinates them. It also explains why a large organism cannot simply be one giant cell — the surface area available for exchange grows more slowly than the volume that needs supplying.",
+        ],
+        terms: [
+            { term: "cell membrane", meaning: "The thin, flexible boundary that controls which substances enter and leave the cell." },
+            { term: "nucleus", meaning: "The organelle that contains DNA and controls the cell's activities." },
+            { term: "chloroplast", meaning: "A plant-cell organelle containing chlorophyll, where photosynthesis takes place." },
+            { term: "vacuole", meaning: "A fluid-filled space; the large permanent vacuole in a plant cell helps keep the cell firm." },
+            { term: "mitochondrion", meaning: "The organelle where aerobic respiration releases energy from glucose." },
+        ],
+        workedExamples: [
+            {
+                prompt: "A root hair cell has a long, narrow extension into the soil. Explain one way this shape helps the cell do its job.",
+                steps: [
+                    "Identify the job: the root hair cell absorbs water and dissolved mineral ions from the soil.",
+                    "Connect shape to job: absorption happens across the cell membrane, so a larger membrane surface allows more water and ions to enter in a given time.",
+                    "Name the principle: the long extension increases the surface area to volume ratio; it does not increase the volume of soil the root reaches by magic.",
+                ],
+                answer: "The extension increases the surface area of membrane available for absorbing water and minerals, so the cell can take them in faster.",
+            },
+            {
+                prompt: "A palisade cell from a leaf and a human cheek cell are compared. Which organelles would you expect in the palisade cell but not in the cheek cell, and why?",
+                steps: [
+                    "Recall the plant-cell additions: a cellulose cell wall, chloroplasts and a large permanent vacuole.",
+                    "Check the job: palisade cells are packed with chloroplasts because they are the main photosynthetic cells of the leaf.",
+                    "Do not overclaim: a cheek cell is an animal cell, so it has no chloroplasts and no cellulose wall; both cell types still have mitochondria and a nucleus.",
+                ],
+                answer: "Chloroplasts (and a cellulose cell wall and large permanent vacuole). The palisade cell photosynthesises, so it needs chlorophyll; the cheek cell does not.",
+            },
+        ],
+        traps: [
+            {
+                move: "\"Plant cells have no mitochondria because they get energy from sunlight.\"",
+                why: "Photosynthesis makes glucose; respiration releases energy from glucose, and plant cells carry out respiration day and night. Mitochondria are therefore present in plant cells too. Sunlight is the energy source for making the glucose, not a replacement for respiring it.",
+            },
+            {
+                move: "\"The cell wall controls what enters the cell.\"",
+                why: "The cellulose wall is strong and fully permeable: it gives shape and support, but it does not select substances. The cell membrane underneath is the selectively permeable boundary that does that job.",
+            },
+            {
+                move: "\"A red blood cell has a nucleus like every other cell.\"",
+                why: "A mature human red blood cell loses its nucleus during development. That leaves more space for haemoglobin, so each cell can carry more oxygen. The absence is a specialisation, not a mistake in the diagram.",
+            },
+        ],
+        usedFor: "Photosynthesis, respiration, gas exchange and transport all depend on cell structure: chloroplasts, mitochondria, membranes and surface area are the same ideas used again in every later biology lesson.",
+        recap: [
+            "A cell is the smallest unit that carries out all the processes of life; its parts are organelles with specific jobs.",
+            "Animal and plant cells share a membrane, cytoplasm, nucleus and mitochondria; plant cells also have a wall, chloroplasts and a large vacuole.",
+            "Specialised cells have shapes that increase the surface area or machinery needed for their particular job.",
+        ],
+        review: "unreviewed",
+    },
+    // ── SCIENCE · PHOTOSYNTHESIS ──────────────────────────────────────────────
+    // CBSE Class X, Life Processes (nutrition in plants). The lesson teaches the
+    // equation, the leaf as the organ, and the limiting-factor graph — the three
+    // things a learner is asked to use, not merely recall.
+    photosynthesis: {
+        conceptId: "photosynthesis",
+        objective: "Write the balanced equation for photosynthesis, explain what limits its rate, and interpret a rate-versus-light graph.",
+        intuition: "A leaf is a solar-powered factory with no chimney. It takes carbon dioxide in through tiny pores, draws water up from the roots, and uses light energy to build glucose — while releasing oxygen that every animal, including you, needs. The mass of a tree does not come mostly from the soil; it comes mostly from carbon dioxide in the air. That is the surprising idea this lesson makes visible.",
+        idea: [
+            "Photosynthesis is the process by which plants, algae and some bacteria use light energy to convert carbon dioxide and water into glucose and oxygen. The balanced symbol equation is 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂. Read it as six carbon dioxide molecules plus six water molecules, using light energy and chlorophyll, forming one glucose molecule and six oxygen molecules.",
+            "The reaction happens in chloroplasts, which contain the green pigment chlorophyll. Chlorophyll absorbs mainly red and blue-violet light and reflects green, which is why leaves look green. Light energy is used to split water and drive the reactions that fix carbon dioxide into glucose; the oxygen released comes from water, not from carbon dioxide.",
+            "A leaf is shaped for the job. It is broad and thin, so light reaches the palisade cells near the upper surface and gases do not have far to diffuse. The epidermis is transparent, and stomata — usually on the lower surface — let carbon dioxide in and oxygen out, while a network of veins brings water and carries away sucrose. The palisade cells are packed with chloroplasts; the spongy layer has air spaces that connect to the stomata.",
+            "The rate of photosynthesis is not unlimited. Light intensity, carbon dioxide concentration and temperature are limiting factors: at any moment the factor in shortest supply sets the ceiling. Increase light and the rate rises, but only until another factor becomes limiting; the graph then flattens into a plateau. A plateau is not a failure of the plant — it is evidence that light is no longer the bottleneck.",
+            "Temperature affects the enzymes that control the reactions. The rate rises with temperature up to an optimum and then falls sharply as the enzymes denature. That is a different shape from the light curve: a peak, not a plateau. A learner who can tell the two shapes apart can explain the biology rather than recite a list.",
+            "The glucose made is not all used immediately. Some is respired to release energy, some is converted to starch for storage, some becomes cellulose for cell walls, and some is transported as sucrose to growing parts. The oxygen is released as a by-product. Photosynthesis and respiration both run in a plant; in daylight photosynthesis usually exceeds respiration, so there is a net release of oxygen, while at night only respiration continues and carbon dioxide is released.",
+        ],
+        terms: [
+            { term: "chlorophyll", meaning: "The green pigment in chloroplasts that absorbs light energy for photosynthesis." },
+            { term: "chloroplast", meaning: "The plant-cell organelle where photosynthesis takes place." },
+            { term: "stomata", meaning: "Small pores in the leaf surface that let carbon dioxide in and oxygen and water vapour out." },
+            { term: "limiting factor", meaning: "The factor in shortest supply that sets the maximum rate of a process at that moment." },
+        ],
+        workedExamples: [
+            {
+                prompt: "A plant is given brighter and brighter light, but its rate of photosynthesis stops increasing after a point. Explain what is happening.",
+                steps: [
+                    "Start from the graph's shape: the rate rises with light at first, then levels off.",
+                    "Identify what a plateau means: light is no longer the factor in shortest supply, so adding more cannot help.",
+                    "Name a plausible limiting factor: carbon dioxide concentration or temperature. If the plant is warm and well lit but in still air, CO₂ is the usual candidate.",
+                    "State the conclusion carefully: the rate is now limited by another factor, not by the plant refusing to photosynthesise.",
+                ],
+                answer: "Light has stopped being the limiting factor. Another factor — most often carbon dioxide concentration or temperature — now sets the maximum rate, so the graph flattens.",
+            },
+            {
+                prompt: "A leafy plant is kept in complete darkness for 24 hours. Explain why it still releases carbon dioxide.",
+                steps: [
+                    "Separate the two processes: photosynthesis needs light; respiration does not.",
+                    "In darkness, photosynthesis stops, so no new glucose and no oxygen are produced.",
+                    "Respiration continues in every living cell, using glucose and oxygen and releasing carbon dioxide and water.",
+                ],
+                answer: "Respiration continues in the dark, releasing carbon dioxide, while photosynthesis has stopped because there is no light.",
+            },
+        ],
+        traps: [
+            {
+                move: "\"Plants take their food from the soil.\"",
+                why: "The soil supplies water and mineral ions, not the carbon and energy that make up most of the plant's dry mass. The carbon comes from carbon dioxide in the air and the energy from sunlight; the glucose is made in the leaves.",
+            },
+            {
+                move: "\"More light always means a faster rate of photosynthesis.\"",
+                why: "Only while light is the limiting factor. Once another factor — carbon dioxide or temperature — is in shortest supply, extra light cannot increase the rate, and the graph plateaus. The plateau is the evidence that the limiting factor has changed.",
+            },
+            {
+                move: "\"Photosynthesis is the same thing as respiration, just in reverse.\"",
+                why: "The equations look like reverses, but the processes are not interchangeable. Photosynthesis stores energy in glucose using light; respiration releases that energy in a controlled series of reactions. They happen in different organelles and are active at different times.",
+            },
+        ],
+        usedFor: "Every food chain begins with photosynthesis, and the carbon and oxygen cycles are its large-scale consequences. Respiration, ecosystems and climate change all depend on the rate at which plants fix carbon.",
+        recap: [
+            "Photosynthesis uses light energy to turn carbon dioxide and water into glucose and oxygen: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂.",
+            "Chloroplasts contain chlorophyll; the leaf's broad, thin shape and stomata make gas exchange and light capture efficient.",
+            "Light, carbon dioxide and temperature can each limit the rate; a plateau means the limiting factor has changed, not that the plant has stopped working.",
+        ],
+        review: "unreviewed",
+        figure: {
+            spec: {
+                kind: "axes",
+                xMin: 0,
+                xMax: 10,
+                yMin: 0,
+                yMax: 8,
+                points: [
+                    { at: [0, 0] },
+                    { at: [2, 3] },
+                    { at: [4, 5] },
+                    { at: [6, 6] },
+                    { at: [8, 6] },
+                    { at: [10, 6] },
+                ],
+            },
+            caption: "Rate of photosynthesis against light intensity. The points rise while light is limiting, then flatten at a plateau: beyond that point another factor, such as carbon dioxide or temperature, is setting the ceiling.",
+        },
+    },
+    // ── SCIENCE · CHEMICAL EQUATIONS ─────────────────────────────────────────
+    // CBSE Class X, Chemical Reactions and Equations. Balancing is taught as
+    // atom accounting, because that is the idea a learner can check — not as a
+    // set of coefficients to memorise.
+    "equations-stoich": {
+        conceptId: "equations-stoich",
+        objective: "Balance a chemical equation by counting atoms, add state symbols correctly, and explain why balancing does not change the substances.",
+        intuition: "A chemical equation is a recipe written in symbols, and the recipe has a strict rule: atoms are not created or destroyed. You can rearrange the same atoms into new groups, but you cannot make a new atom appear. That is why the number of each kind of atom on the left must equal the number on the right — not approximately, exactly.",
+        idea: [
+            "A chemical reaction rearranges atoms. The starting substances are reactants, written on the left; the new substances are products, written on the right. A word equation names them, and a symbol equation replaces names with formulas: methane + oxygen → carbon dioxide + water becomes CH₄ + O₂ → CO₂ + H₂O.",
+            "The law of conservation of mass says the total mass of reactants equals the total mass of products in a closed system, because atoms are only rearranged. Balancing an equation is how that law is written down. Count each element on both sides; if the counts differ, adjust the coefficient in front of a formula, never the subscript inside it.",
+            "A coefficient multiplies the whole formula. 2H₂O means two water molecules, so it contains four hydrogen atoms and two oxygen atoms. Changing H₂O to H₂O₂ changes the substance itself — that is hydrogen peroxide, not water — so subscript editing is not a balancing move. This is the single most damaging shortcut in the topic, because the equation then balances a reaction that did not happen.",
+            "Balance by inspection, one element at a time, leaving hydrogen and oxygen until late. For CH₄ + O₂ → CO₂ + H₂O: carbon is already one on each side; hydrogen needs two water molecules on the right, giving four hydrogen; that makes four oxygen on the right, so put a 2 in front of O₂ on the left. The balanced equation is CH₄ + 2O₂ → CO₂ + 2H₂O.",
+            "State symbols record the physical form: (s) solid, (l) liquid, (g) gas, (aq) dissolved in water. They are not decoration. A reaction between aqueous solutions and one that produces a gas look different in the laboratory, and the symbol is how the equation says so. Ionic equations go further and remove spectator ions, leaving only the species that actually change.",
+            "Recognise the common reaction types so a name can be attached to the equation: combination (two or more reactants form one product), decomposition (one reactant breaks into two or more), displacement (a more reactive element takes the place of a less reactive one), double displacement (ions swap partners, often making a precipitate), and redox (oxidation and reduction happen together). Exothermic reactions release energy and endothermic reactions absorb it; that is a separate fact from whether the equation balances.",
+        ],
+        terms: [
+            { term: "reactant", meaning: "A starting substance in a chemical reaction, written on the left of the arrow." },
+            { term: "product", meaning: "A new substance formed in a chemical reaction, written on the right of the arrow." },
+            { term: "coefficient", meaning: "The number in front of a formula; it multiplies the whole formula and is the only thing changed when balancing." },
+            { term: "state symbol", meaning: "(s), (l), (g) or (aq), recording the physical state of a substance in the equation." },
+        ],
+        workedExamples: [
+            {
+                prompt: "Balance: Fe + O₂ → Fe₂O₃.",
+                steps: [
+                    "Count oxygen: two on the left, three on the right. The lowest common multiple is six, so use 3O₂ and 2Fe₂O₃.",
+                    "That gives six oxygen on each side and four iron on the right.",
+                    "Balance iron: put a 4 in front of Fe on the left.",
+                    "Check every element: 4 Fe and 6 O on both sides.",
+                ],
+                answer: "4Fe + 3O₂ → 2Fe₂O₃.",
+            },
+            {
+                prompt: "Balance: Al + HCl → AlCl₃ + H₂.",
+                steps: [
+                    "Chlorine appears as HCl on the left and AlCl₃ on the right; the lowest common multiple of 1 and 3 is 3, so use 3HCl and 1AlCl₃.",
+                    "That gives three chlorine on each side and one aluminium on the right, so put a 2 in front of Al on the left? No — check hydrogen first: 3HCl gives three hydrogen, and H₂ needs two.",
+                    "Use 6HCl instead: six chlorine and six hydrogen on the left. Then 2AlCl₃ gives six chlorine, and 3H₂ gives six hydrogen.",
+                    "Balance aluminium: 2Al on the left. Check: 2 Al, 6 H, 6 Cl on both sides.",
+                ],
+                answer: "2Al + 6HCl → 2AlCl₃ + 3H₂.",
+            },
+        ],
+        traps: [
+            {
+                move: "Changing H₂O to H₂O₂ to make the oxygen count match.",
+                why: "The subscript is part of the substance's identity: H₂O is water and H₂O₂ is hydrogen peroxide. Changing it balances a reaction that did not happen. Only coefficients may change.",
+            },
+            {
+                move: "Counting molecules instead of atoms.",
+                why: "One O₂ molecule contains two oxygen atoms, and one H₂O molecule contains one. A count of 'two molecules on the left' says nothing about the number of atoms; the conservation law is about atoms.",
+            },
+            {
+                move: "Writing 2H₂ + O₂ → 2H₂O and then saying the mass has doubled.",
+                why: "The coefficients describe the ratio in which the substances react; they do not create extra mass. Four hydrogen atoms and two oxygen atoms are rearranged into two water molecules, and the total mass is unchanged.",
+            },
+        ],
+        usedFor: "Every later chemistry calculation — moles, concentrations, limiting reagents, electrolysis and energy changes — starts from a balanced equation, because the coefficients are the ratio in which particles react.",
+        recap: [
+            "A balanced equation has the same number of each kind of atom on both sides; only coefficients may be changed.",
+            "State symbols record solid, liquid, gas or aqueous form and are part of the chemistry, not decoration.",
+            "Reaction types describe how atoms are rearranged; exothermic and endothermic describe the energy change, which is a separate question.",
+        ],
+        review: "unreviewed",
+    },
+    // ── SCIENCE · ELECTRIC CIRCUITS ──────────────────────────────────────────
+    // CBSE Class X, Electricity. The lesson keeps the water analogy only as an
+    // opening picture, then replaces it with the quantities and the rules a
+    // learner must actually calculate with.
+    "electricity-circuits": {
+        conceptId: "electricity-circuits",
+        objective: "Use V = IR to calculate current, voltage or resistance, and apply the series and parallel rules to a simple circuit.",
+        intuition: "A circuit is a closed path with a pump, a flow and a narrow place. The battery is the pump that gives charge energy; current is the rate at which charge flows; resistance is the narrowness that turns some of that energy into heat. The analogy is useful only up to a point — charge is not water, and it is not used up as it goes round — so the lesson replaces the picture with the quantities as soon as they are defined.",
+        idea: [
+            "Electric current is the rate of flow of electric charge: I = Q/t, measured in amperes (A), where one ampere is one coulomb per second. Conventional current is drawn from the positive terminal to the negative terminal, even though electrons move the other way. An ammeter measures current and is connected in series, because the same current must pass through it and the component.",
+            "Potential difference, or voltage, is the energy transferred per unit charge between two points: V = W/Q, measured in volts (V). One volt is one joule per coulomb. A voltmeter measures the difference across a component and is connected in parallel with it, because it must compare the two sides without interrupting the current.",
+            "Ohm's law says that, at constant temperature, the current through a metallic conductor is directly proportional to the potential difference across it: V = IR. Resistance R is measured in ohms (Ω) and depends on the material, length, cross-sectional area and temperature. A longer wire has more resistance; a thicker wire has less; a hotter metal usually has more.",
+            "In a series circuit there is one path, so the current is the same through every component. The potential differences add to the supply voltage, and the total resistance is the sum: R = R₁ + R₂ + … . Adding a resistor in series always increases the total resistance and reduces the current.",
+            "In a parallel circuit the components are connected across the same two points, so the potential difference is the same across each branch. The currents add to the total, and the total resistance is found from 1/R = 1/R₁ + 1/R₂ + … . The total resistance is less than the smallest branch resistance, because the extra branch gives charge another path.",
+            "Electrical power is the rate of energy transfer: P = VI = I²R = V²/R. A resistor converts electrical energy to heat, which is the heating effect used in a filament lamp, a kettle and a fuse. The same power can be delivered at a lower current by using a higher voltage, which is why electricity is transmitted at high voltage and low current: less energy is lost as heat in the cables.",
+        ],
+        terms: [
+            { term: "current", meaning: "The rate of flow of electric charge, measured in amperes; I = Q/t." },
+            { term: "potential difference", meaning: "The energy transferred per unit charge between two points, measured in volts." },
+            { term: "resistance", meaning: "The opposition to current in a component, measured in ohms; V = IR at constant temperature." },
+            { term: "series", meaning: "A circuit with one path, so the same current flows through every component." },
+            { term: "parallel", meaning: "A circuit with branches across the same two points, so the voltage is the same across each branch." },
+        ],
+        workedExamples: [
+            {
+                prompt: "A 12 V battery is connected across a 4 Ω resistor. Calculate the current and the power dissipated.",
+                steps: [
+                    "Write the rule: V = IR, so I = V/R.",
+                    "Substitute: I = 12 V ÷ 4 Ω = 3 A.",
+                    "Use P = VI: P = 12 V × 3 A = 36 W. Check with P = I²R = 9 × 4 = 36 W.",
+                ],
+                answer: "Current = 3 A; power = 36 W.",
+            },
+            {
+                prompt: "Two 6 Ω resistors are connected first in series and then in parallel across a 12 V supply. Find the total resistance and the total current in each case.",
+                steps: [
+                    "Series: R = 6 + 6 = 12 Ω. Current I = V/R = 12/12 = 1 A.",
+                    "Parallel: 1/R = 1/6 + 1/6 = 2/6, so R = 3 Ω. Current I = 12/3 = 4 A.",
+                    "Check the direction: the parallel combination has less resistance, so it draws more current from the same supply.",
+                ],
+                answer: "Series: 12 Ω, 1 A. Parallel: 3 Ω, 4 A.",
+            },
+        ],
+        traps: [
+            {
+                move: "\"The current is used up as it goes round the circuit.\"",
+                why: "Charge is conserved: the same current enters and leaves a component in series. What is transferred is energy, not charge. A bulb does not consume current; it transfers electrical energy to light and heat, and the current continues.",
+            },
+            {
+                move: "\"Two resistors in parallel have a total resistance of R₁ + R₂.\"",
+                why: "The series rule adds resistances because the same current passes through both. In parallel, each branch has the same voltage and the currents add, so the total resistance is smaller than either branch — for two 6 Ω resistors it is 3 Ω, not 12 Ω. Adding a branch makes it easier for charge to flow.",
+            },
+            {
+                move: "\"A voltmeter goes in series with the component.\"",
+                why: "A voltmeter has a very high resistance and is connected in parallel, so it measures the potential difference across the component without diverting much current. An ammeter has a very low resistance and goes in series. Swapping them gives a reading that is not the quantity asked for.",
+            },
+        ],
+        usedFor: "Household wiring, fuses, the heating effect, electrical power bills and the transmission of electricity all use these rules; later electromagnetism and electronics depend on them.",
+        recap: [
+            "Current is charge flow per second, voltage is energy per unit charge, and resistance is the opposition that links them: V = IR.",
+            "Series: same current, voltages add, resistances add. Parallel: same voltage, currents add, total resistance is less than the smallest branch.",
+            "Power is P = VI; a higher voltage can deliver the same power at a lower current, which reduces heating losses in transmission.",
+        ],
+        review: "unreviewed",
+        figure: {
+            spec: {
+                kind: "axes",
+                xMin: 0,
+                xMax: 5,
+                yMin: 0,
+                yMax: 12,
+                // The caption says the line passes through the origin and is straight;
+                // without this the renderer drew only the dashed rise/run triangle.
+                lines: [{ from: [0, 0], to: [4, 8] }],
+                gradient: { from: [0, 0], to: [4, 8] },
+            },
+            caption: "A current–voltage graph for a fixed resistor: the line passes through the origin and is straight, so V is proportional to I. The gradient of this line is the resistance (8 V ÷ 4 A = 2 Ω).",
+        },
+    },
 };
-/** The plan for a concept, or null when nobody has written one. Null is a real
- *  answer, not an error: the page falls back to the genome's prose, so a concept
- *  without a plan renders what it always did rather than an empty shell.
+/**
+ * Split a genome explanation into sentence-sized teaching paragraphs without
+ * cutting a decimal or an abbreviation. The genome's prose is already authored;
+ * this only gives it the rhythm the read stage needs.
+ */
+function sentencesOf(text) {
+    const parts = text
+        .split(/(?<=[.!?])\s+(?=[A-Z0-9(])/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+    return parts.length > 0 ? parts : [text.trim()].filter(Boolean);
+}
+/**
+ * A STRUCTURED LESSON FOR EVERY CONCEPT, DERIVED FROM ITS OWN AUTHORED DATA.
  *
- *  WITH A LANGUAGE, THE LESSON COMES IN THAT LANGUAGE when a COMPLETE
+ * The authored plans are the reviewed pilot pathway, not the whole genome. A
+ * concept without one used to render a single background paragraph and then
+ * stop; this fallback keeps the genome's own teaching (never generated prose)
+ * and puts it in the same objective → intuition → idea sequence the page uses,
+ * so every concept has a real reading stage and reaches the same live worked
+ * example and practice path. Its review state is still `unreviewed`, and the
+ * page prints that.
+ */
+function derivedPlanFor(c) {
+    const sentences = sentencesOf(c.lesson);
+    const intuition = sentences.length > 1 ? sentences[0] : c.blurb;
+    const idea = sentences.length > 1 ? sentences.slice(1) : sentences;
+    const next = (0, genome_1.descendantsOf)(c.id)
+        .map((id) => genome_1.CONCEPTS_BY_ID[id]?.title)
+        .filter((title) => Boolean(title))
+        .slice(0, 3);
+    return {
+        conceptId: c.id,
+        objective: `Explain ${c.title.toLowerCase()} in your own words and use it to answer a ${c.subject} question.`,
+        intuition,
+        idea,
+        traps: [],
+        usedFor: next.length > 0
+            ? `This idea is used next in ${next.join(", ")}.`
+            : `This is the end of its pathway; use it in mixed problems and revision.`,
+        review: "unreviewed",
+    };
+}
+/** The plan for a concept, or null only when the id is not in the genome.
+ *
+ *  Authored plans are returned first. EVERY OTHER GENOME CONCEPT gets a derived
+ *  structured lesson from its own genome explanation and its own descendants, so
+ *  no valid concept can reach the page without teaching. The derived lesson is
+ *  explicitly unreviewed and never enters the pilot's authored-plan registry.
+ *
+ *  WITH A LANGUAGE, an AUTHORED lesson comes in that language when a COMPLETE
  *  translation exists (lib/lesson-plans-intl.ts). English is answered without
  *  consulting the record at all, and an absent or PARTIAL translation answers
- *  the authored English — never a half-French lesson, which reads as the
- *  product switching language mid-paragraph. The second argument is optional on
- *  purpose: every existing caller and every assertion that reads a plan is
- *  still asking "is there a lesson here", and that question has nothing to do
- *  with the reader's language. */
+ *  the authored English — never a half-French lesson. Derived lessons have no
+ *  translation and are English-authored content. */
 function planFor(conceptId, lang) {
     const base = exports.LESSON_PLANS[conceptId];
-    if (!base)
-        return null;
+    if (!base) {
+        const c = genome_1.CONCEPTS_BY_ID[conceptId];
+        return c ? derivedPlanFor(c) : null;
+    }
     if (!lang || lang === "en")
         return base;
     return (0, lesson_plans_intl_1.translatedPlanFor)(conceptId, lang, base) ?? base;
@@ -37305,6 +37930,7 @@ exports.defaultPaperFor = defaultPaperFor;
 exports.needsReading = needsReading;
 exports.needsPaperId = needsPaperId;
 exports.needsPaper = needsPaper;
+exports.emptySittingState = emptySittingState;
 exports.paperConcepts = paperConcepts;
 exports.buildPaper = buildPaper;
 exports.markPaper = markPaper;
@@ -37321,6 +37947,8 @@ const questions_1 = require("./questions");
 // here is a paper that disagrees with the next-step card about the same learner.
 const learner_model_1 = require("./learner-model");
 const transfer_1 = require("./transfer");
+const structured_items_1 = require("./structured-items");
+const answer_1 = require("./answer");
 /** Section totals must add up to the declared paper total, or the paper lies
  *  about its own length. Checked here at module load, loudly.
  *
@@ -37335,7 +37963,68 @@ function paper(t) {
     if (t.marks !== undefined && t.marks !== total) {
         throw new Error(`paper ${t.id}: declared ${t.marks} marks but sections total ${total}`);
     }
-    return { ...t, boundaries: t.boundaries ?? [], basis: t.basis ?? "published", marks: total };
+    // A STRUCTURED PLACEMENT IS VALIDATED WHERE IT IS AUTHORED. A slot that points
+    // at a non-existent section, declares a different mark value from the slot it
+    // takes, or names an item whose scheme totals something else must fail here —
+    // at module load — rather than be skipped during a sitting and leave an
+    // MCQ-shaped hole in a paper that claims to be written.
+    if (t.structured) {
+        const seen = new Set();
+        for (const s of t.structured) {
+            const section = t.sections[s.section];
+            if (!section)
+                throw new Error(`paper ${t.id}: structured slot ${s.id} names section ${s.section}, which does not exist`);
+            const slot = s.slot ?? 0;
+            if (!Number.isInteger(slot) || slot < 0 || slot >= section.count) {
+                throw new Error(`paper ${t.id}: structured slot ${s.id} names position ${slot} in a ${section.count}-question section`);
+            }
+            if (s.marks !== section.marksEach) {
+                throw new Error(`paper ${t.id}: structured item ${s.id} is worth ${s.marks} but its slot is worth ${section.marksEach}`);
+            }
+            const item = (0, structured_items_1.structuredById)(s.id);
+            if (!item)
+                throw new Error(`paper ${t.id}: structured item ${s.id} does not exist`);
+            if ((0, structured_items_1.structuredMarks)(item) !== s.marks) {
+                throw new Error(`paper ${t.id}: structured item ${s.id} is worth ${(0, structured_items_1.structuredMarks)(item)}, slot declares ${s.marks}`);
+            }
+            // A CONSTRUCTED ITEM MUST BELONG TO A REAL CONCEPT AND TO THE SUBJECT
+            // THIS PAPER EXAMINES. Otherwise its marks are attributed to an id the
+            // learner model cannot resolve — the one failure a paper must not create.
+            const concept = (0, genome_1.getConcept)(item.conceptId);
+            if (!concept)
+                throw new Error(`paper ${t.id}: structured item ${s.id} names concept ${item.conceptId}, which does not exist`);
+            if (concept.subject !== t.subject) {
+                throw new Error(`paper ${t.id}: structured item ${s.id} is ${concept.subject}, but this is a ${t.subject} paper`);
+            }
+            // ELIGIBILITY IS THE TIER'S, NOT THE LABEL'S. A Higher-only concept in a
+            // Foundation blueprint would be examined on content the candidate has not
+            // been taught, so the blueprint is rejected at load time.
+            if (t.levels) {
+                for (const levelId of t.levels) {
+                    const spec = t.specs.map((id) => (0, specifications_1.specById)(id)).find((x) => x?.levels.some((l) => l.id === levelId));
+                    const level = spec?.levels.find((l) => l.id === levelId);
+                    if (spec && level && !(0, specifications_1.coverageOf)({ spec, level }).some((c) => c.id === item.conceptId)) {
+                        throw new Error(`paper ${t.id}: structured item ${s.id} is ${item.conceptId}, which ${levelId} does not cover`);
+                    }
+                }
+            }
+            const at = `${s.section}:${slot}`;
+            if (seen.has(at))
+                throw new Error(`paper ${t.id}: two structured items occupy section ${s.section} slot ${slot}`);
+            seen.add(at);
+        }
+    }
+    // A BASIS IS EARNED, NOT DEFAULTED. This used to default to "published", so a
+    // blueprint authored before citations were collected told every learner "your
+    // awarding body's published paper structure" while `npm run paper-audit`
+    // recorded the same blueprint as uncited. The learner met the claim and only
+    // the report met the truth — the exact failure mode the two-state field was
+    // added to prevent. Now the basis follows the evidence: a cited shape is
+    // published, and one that cannot name where its structure was read is
+    // OpenMind's model, which the papers page already labels in the learner's own
+    // language (`pp.practiceSet`).
+    const basis = t.basis ?? (/^https:\/\/\S+$/.test(t.shapeSource ?? "") ? "published" : "modelled");
+    return { ...t, boundaries: t.boundaries ?? [], basis, marks: total };
 }
 const GCSE_BOUNDARIES = [
     { grade: "9", pct: 0.80 }, { grade: "8", pct: 0.70 }, { grade: "7", pct: 0.62 },
@@ -37366,22 +38055,165 @@ function builtBoundaries(d) {
     ];
 }
 exports.PAPERS = [
+    // ── AQA GCSE MATHEMATICS (8300) — THE THREE PAPERS A CANDIDATE SITS ───────
+    // The catalogue held ONE blueprint here and called it "Paper 1", so an AQA
+    // candidate could never sit the two calculator papers — which is ⅔ of the
+    // qualification. AQA's own specification-at-a-glance (cited below) gives three
+    // written papers at the same tier, each 1 hour 30 minutes and 80 marks (33⅓%):
+    // Paper 1 non-calculator, Papers 2 and 3 calculator.
+    //
+    // FOUNDATION AND HIGHER ARE SEPARATE BLUEPRINTS, not one blueprint with a
+    // tier label. The old three AQA rows were shared by both tiers, and a Higher
+    // candidate and a Foundation candidate sat the same paper with different draw
+    // targets. These six rows name `levels`, select different constructed-response
+    // items, and are filtered by `paperAllowedFor` before either tier sees them.
+    // The mark profile and section labels remain OpenMind's pacing to AQA's 90
+    // minutes and 80 marks (`itemCounts: "paced"`), not an official item count.
+    //
+    // CONSTRUCTED RESPONSE IS NOW A SCHEDULE, NOT ONE SLOT. Three written
+    // questions per paper are placed by section and position; a missing authored
+    // item fails paper construction instead of falling back to four options.
     paper({
-        id: "aqa-gcse-maths-p1", name: "GCSE Mathematics — Paper 1 (non-calculator)",
-        board: "aqa", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        id: "aqa-gcse-maths-p1", name: "GCSE Mathematics — Foundation Paper 1 (non-calculator)",
+        board: "aqa", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], levels: ["foundation"], boundaries: GCSE_BOUNDARIES,
+        itemCounts: "paced",
+        structured: [
+            { id: "sf-proportion", section: 1, slot: 0, marks: 2 },
+            { id: "sf-expand", section: 2, slot: 0, marks: 3 },
+            { id: "sf-lawn-feed", section: 5, slot: 0, marks: 6 },
+        ],
+        shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+        shapeNote: "AQA 8300 is three written papers at the same tier, each 1 hour 30 minutes and 80 marks (33⅓%): Paper 1 non-calculator, Papers 2 and 3 calculator. This Foundation row has three authored constructed-response questions plus numeric-response items drawn from the bank. The item counts and per-question marks are OpenMind's pacing, not an official mark distribution.",
+        // THE MARK PROFILE IS THE FORMAT. A paper of 2-, 4- and 6-mark questions
+        // cannot ask what an 8300 paper asks: the single-mark items are where recall
+        // and short technique live, and the rising tail is where the multi-step work
+        // is. 10×1 + 10×2 + 6×3 + 4×4 + 2×5 + 1×6 = 80 over 33 items.
         sections: [
-            { name: "Section A", count: 10, marksEach: 2, difficulty: 0.4 },
-            { name: "Section B", count: 12, marksEach: 4, difficulty: 0.55 },
-            { name: "Section C", count: 2, marksEach: 6, difficulty: 0.72 },
+            { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.3 },
+            { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.42 },
+            { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.55 },
+            { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.68 },
+            { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.78 },
+            { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.86 },
+        ],
+    }),
+    paper({
+        id: "aqa-gcse-maths-p2", name: "GCSE Mathematics — Foundation Paper 2 (calculator)",
+        board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], levels: ["foundation"], boundaries: GCSE_BOUNDARIES,
+        itemCounts: "paced",
+        structured: [
+            { id: "sf-proportion", section: 1, slot: 0, marks: 2 },
+            { id: "sf-table-line", section: 3, slot: 0, marks: 4 },
+            { id: "sf-plot-line", section: 5, slot: 0, marks: 6 },
+        ],
+        shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+        shapeNote: "Paper 2 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification. The constructed-response slots cover a table of values and a plotted straight line.",
+        sections: [
+            { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.32 },
+            { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.44 },
+            { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.57 },
+            { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.7 },
+            { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.8 },
+            { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.88 },
+        ],
+    }),
+    paper({
+        id: "aqa-gcse-maths-p3", name: "GCSE Mathematics — Foundation Paper 3 (calculator)",
+        board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], levels: ["foundation"], boundaries: GCSE_BOUNDARIES,
+        itemCounts: "paced",
+        structured: [
+            { id: "sf-expand", section: 2, slot: 0, marks: 3 },
+            { id: "sf-angle-chain", section: 4, slot: 0, marks: 5 },
+            { id: "sf-line-graph", section: 5, slot: 0, marks: 6 },
+        ],
+        shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+        shapeNote: "Paper 3 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification. The constructed-response slots cover algebra, angle facts and straight-line equations.",
+        sections: [
+            { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.34 },
+            { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.46 },
+            { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.59 },
+            { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.72 },
+            { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.82 },
+            { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.9 },
+        ],
+    }),
+    // ── HIGHER: THE SAME THREE PAPERS, A DIFFERENT SET OF BLUEPRINTS ──────────
+    paper({
+        id: "aqa-gcse-maths-higher-p1", name: "GCSE Mathematics — Higher Paper 1 (non-calculator)",
+        board: "aqa", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], levels: ["higher"], boundaries: GCSE_BOUNDARIES,
+        itemCounts: "paced",
+        structured: [
+            { id: "hf-surds", section: 1, slot: 0, marks: 2 },
+            { id: "hf-algebra", section: 2, slot: 0, marks: 3 },
+            { id: "hf-rectangle-context", section: 5, slot: 0, marks: 6 },
+        ],
+        shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+        shapeNote: "AQA 8300 is three written papers at the same tier, each 1 hour 30 minutes and 80 marks (33⅓%): Paper 1 non-calculator, Papers 2 and 3 calculator. This Higher row selects Higher-only surds and algebra, with a multi-step quadratic context question; item counts and per-question marks are OpenMind's pacing.",
+        sections: [
+            { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.42 },
+            { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.54 },
+            { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.65 },
+            { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.74 },
+            { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.84 },
+            { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.92 },
+        ],
+    }),
+    paper({
+        id: "aqa-gcse-maths-higher-p2", name: "GCSE Mathematics — Higher Paper 2 (calculator)",
+        board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], levels: ["higher"], boundaries: GCSE_BOUNDARIES,
+        itemCounts: "paced",
+        structured: [
+            { id: "hf-surds", section: 1, slot: 0, marks: 2 },
+            { id: "hf-table-quadratic", section: 3, slot: 0, marks: 4 },
+            { id: "sf-plot-line", section: 5, slot: 0, marks: 6 },
+        ],
+        shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+        shapeNote: "Paper 2 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification. This Higher row includes a quadratic table and a plotted-line question; the plotting item is shared with Foundation and the surrounding draws are at Higher demand.",
+        sections: [
+            { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.44 },
+            { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.56 },
+            { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.67 },
+            { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.76 },
+            { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.86 },
+            { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.93 },
+        ],
+    }),
+    paper({
+        id: "aqa-gcse-maths-higher-p3", name: "GCSE Mathematics — Higher Paper 3 (calculator)",
+        board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], levels: ["higher"], boundaries: GCSE_BOUNDARIES,
+        itemCounts: "paced",
+        structured: [
+            { id: "hf-algebra", section: 2, slot: 0, marks: 3 },
+            { id: "hf-circle-angles", section: 4, slot: 0, marks: 5 },
+            { id: "hf-sequences-context", section: 5, slot: 0, marks: 6 },
+        ],
+        shapeSource: "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/specification-at-a-glance",
+        shapeNote: "Paper 3 of AQA 8300: 1 hour 30 minutes, 80 marks, calculator allowed, 33⅓% of the qualification. This Higher row includes algebraic products, circle theorems and a linear-sequence context question.",
+        sections: [
+            { name: "Questions 1–10", count: 10, marksEach: 1, difficulty: 0.46 },
+            { name: "Questions 11–20", count: 10, marksEach: 2, difficulty: 0.58 },
+            { name: "Questions 21–26", count: 6, marksEach: 3, difficulty: 0.69 },
+            { name: "Questions 27–30", count: 4, marksEach: 4, difficulty: 0.78 },
+            { name: "Questions 31–32", count: 2, marksEach: 5, difficulty: 0.88 },
+            { name: "Question 33", count: 1, marksEach: 6, difficulty: 0.94 },
         ],
     }),
     paper({
         id: "edexcel-gcse-maths-p1", name: "GCSE Mathematics — Paper 1 (non-calculator)",
         board: "edexcel", subject: "maths", minutes: 90, calculator: false, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        itemCounts: "paced",
+        shapeSource: "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/specification-and-sample-assesment/gcse-maths-2015-specification.pdf",
+        shapeNote: "Pearson Edexcel 1MA1 is three papers at the same tier, each 1 hour 30 minutes and 80 marks: Paper 1 non-calculator, Papers 2 and 3 calculator. The mark profile here is OpenMind's modelling of the published sample materials, not an official distribution.",
+        // Edexcel's own papers differ from AQA's in the short end (fewer single-mark
+        // items), so the two boards must not ship the same distribution: 8×1 + 11×2
+        // + 6×3 + 4×4 + 2×5 + 1×6 = 80 over 32 items.
         sections: [
-            { name: "Section A", count: 12, marksEach: 2, difficulty: 0.4 },
-            { name: "Section B", count: 11, marksEach: 4, difficulty: 0.55 },
-            { name: "Section C", count: 2, marksEach: 6, difficulty: 0.72 },
+            { name: "Questions 1–8", count: 8, marksEach: 1, difficulty: 0.32 },
+            { name: "Questions 9–19", count: 11, marksEach: 2, difficulty: 0.44 },
+            { name: "Questions 20–25", count: 6, marksEach: 3, difficulty: 0.57 },
+            { name: "Questions 26–29", count: 4, marksEach: 4, difficulty: 0.7 },
+            { name: "Questions 30–31", count: 2, marksEach: 5, difficulty: 0.8 },
+            { name: "Question 32", count: 1, marksEach: 6, difficulty: 0.88 },
         ],
     }),
     // ── AQA A-LEVEL MATHEMATICS — THE THREE A-LEVEL PAPERS ────────────────────
@@ -37395,9 +38227,12 @@ exports.PAPERS = [
         id: "aqa-alevel-maths-p1", name: "A-Level Mathematics — Paper 1 (Pure)",
         board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"],
         boundaries: ALEVEL_BOUNDARIES,
+        itemCounts: "paced",
+        shapeSource: "https://www.aqa.org.uk/subjects/mathematics/a-level/mathematics-7357/specification/specification-at-a-glance",
+        shapeNote: "AQA 7357 is three written papers, each 2 hours and 100 marks (33⅓%): Paper 1 Pure, Paper 2 and Paper 3. Item counts and per-question marks here are OpenMind's pacing to that time.",
         sections: [
-            { name: "Section A", count: 10, marksEach: 4, difficulty: 0.78 },
-            { name: "Section B", count: 6, marksEach: 10, difficulty: 0.9 },
+            { name: "Questions 1–10", count: 10, marksEach: 4, difficulty: 0.78 },
+            { name: "Questions 11–16", count: 6, marksEach: 10, difficulty: 0.9 },
         ],
     }),
     // ── CAMBRIDGE IGCSE MATHEMATICS (0580) — FOUR PAPERS, TWO TIERS ────────────
@@ -37828,39 +38663,33 @@ exports.PAPERS = [
     // every question in them is still OpenMind's own, written to the
     // specification — see the note at the top of this file.
     paper({
-        id: "aqa-gcse-maths-p2", name: "GCSE Mathematics — Paper 2 (calculator)",
-        board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
-        sections: [
-            { name: "Section A", count: 10, marksEach: 2, difficulty: 0.42 },
-            { name: "Section B", count: 12, marksEach: 4, difficulty: 0.58 },
-            { name: "Section C", count: 2, marksEach: 6, difficulty: 0.74 },
-        ],
-    }),
-    paper({
-        id: "aqa-gcse-maths-p3", name: "GCSE Mathematics — Paper 3 (calculator)",
-        board: "aqa", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
-        sections: [
-            { name: "Section A", count: 12, marksEach: 2, difficulty: 0.45 },
-            { name: "Section B", count: 10, marksEach: 4, difficulty: 0.6 },
-            { name: "Section C", count: 2, marksEach: 8, difficulty: 0.76 },
-        ],
-    }),
-    paper({
         id: "edexcel-gcse-maths-p2", name: "GCSE Mathematics — Paper 2 (calculator)",
         board: "edexcel", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        itemCounts: "paced",
+        shapeSource: "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/specification-and-sample-assesment/gcse-maths-2015-specification.pdf",
+        shapeNote: "Paper 2 of Pearson Edexcel 1MA1: 1 hour 30 minutes, 80 marks, calculator allowed.",
         sections: [
-            { name: "Section A", count: 12, marksEach: 2, difficulty: 0.42 },
-            { name: "Section B", count: 11, marksEach: 4, difficulty: 0.58 },
-            { name: "Section C", count: 2, marksEach: 6, difficulty: 0.74 },
+            { name: "Questions 1–8", count: 8, marksEach: 1, difficulty: 0.34 },
+            { name: "Questions 9–19", count: 11, marksEach: 2, difficulty: 0.46 },
+            { name: "Questions 20–25", count: 6, marksEach: 3, difficulty: 0.59 },
+            { name: "Questions 26–29", count: 4, marksEach: 4, difficulty: 0.72 },
+            { name: "Questions 30–31", count: 2, marksEach: 5, difficulty: 0.82 },
+            { name: "Question 32", count: 1, marksEach: 6, difficulty: 0.9 },
         ],
     }),
     paper({
         id: "edexcel-gcse-maths-p3", name: "GCSE Mathematics — Paper 3 (calculator)",
         board: "edexcel", subject: "maths", minutes: 90, calculator: true, specs: ["uk-gcse"], boundaries: GCSE_BOUNDARIES,
+        itemCounts: "paced",
+        shapeSource: "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/specification-and-sample-assesment/gcse-maths-2015-specification.pdf",
+        shapeNote: "Paper 3 of Pearson Edexcel 1MA1: 1 hour 30 minutes, 80 marks, calculator allowed.",
         sections: [
-            { name: "Section A", count: 12, marksEach: 2, difficulty: 0.46 },
-            { name: "Section B", count: 12, marksEach: 4, difficulty: 0.62 },
-            { name: "Section C", count: 1, marksEach: 8, difficulty: 0.78 },
+            { name: "Questions 1–8", count: 8, marksEach: 1, difficulty: 0.36 },
+            { name: "Questions 9–19", count: 11, marksEach: 2, difficulty: 0.48 },
+            { name: "Questions 20–25", count: 6, marksEach: 3, difficulty: 0.61 },
+            { name: "Questions 26–29", count: 4, marksEach: 4, difficulty: 0.74 },
+            { name: "Questions 30–31", count: 2, marksEach: 5, difficulty: 0.84 },
+            { name: "Question 32", count: 1, marksEach: 6, difficulty: 0.92 },
         ],
     }),
     paper({
@@ -37899,17 +38728,23 @@ exports.PAPERS = [
     paper({
         id: "aqa-alevel-maths-p2", name: "A-Level Mathematics — Paper 2",
         board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"], boundaries: ALEVEL_BOUNDARIES,
+        itemCounts: "paced",
+        shapeSource: "https://www.aqa.org.uk/subjects/mathematics/a-level/mathematics-7357/specification/specification-at-a-glance",
+        shapeNote: "Paper 2 of AQA 7357: 2 hours, 100 marks, 33⅓% of the A-level.",
         sections: [
-            { name: "Section A", count: 10, marksEach: 4, difficulty: 0.8 },
-            { name: "Section B", count: 5, marksEach: 12, difficulty: 0.9 },
+            { name: "Questions 1–10", count: 10, marksEach: 4, difficulty: 0.8 },
+            { name: "Questions 11–15", count: 5, marksEach: 12, difficulty: 0.9 },
         ],
     }),
     paper({
         id: "aqa-alevel-maths-p3", name: "A-Level Mathematics — Paper 3",
         board: "aqa", subject: "maths", minutes: 120, calculator: true, specs: ["uk-alevel"], levels: ["a2"], boundaries: ALEVEL_BOUNDARIES,
+        itemCounts: "paced",
+        shapeSource: "https://www.aqa.org.uk/subjects/mathematics/a-level/mathematics-7357/specification/specification-at-a-glance",
+        shapeNote: "Paper 3 of AQA 7357: 2 hours, 100 marks, 33⅓% of the A-level.",
         sections: [
-            { name: "Section A", count: 8, marksEach: 5, difficulty: 0.82 },
-            { name: "Section B", count: 4, marksEach: 15, difficulty: 0.92 },
+            { name: "Questions 1–8", count: 8, marksEach: 5, difficulty: 0.82 },
+            { name: "Questions 9–12", count: 4, marksEach: 15, difficulty: 0.92 },
         ],
     }),
     // ── PEARSON EDEXCEL A-LEVEL MATHEMATICS (9MA0) ────────────────────────────
@@ -38573,6 +39408,13 @@ function needsPaper(active, subject, lang, slots = exports.NEEDS_PAPER_SLOTS.max
         ],
     });
 }
+/** THE EMPTY STATE OF A SITTING. One owner for the fields a sitting carries,
+ *  so "start another paper" and "return to the picker" cannot clear different
+ *  subsets of it. Question ids are positional, and a field missed by one path
+ *  is how a previous answer reached a later submission. */
+function emptySittingState() {
+    return { answers: {}, numeric: {}, typed: {}, working: {}, flagged: {}, current: 0 };
+}
 /** Concepts in this qualification that have a generator to draw from. */
 function paperConcepts(active, subject) {
     const inSpec = (0, specifications_1.coverageOf)(active).filter((c) => c.subject === subject).map((c) => c.id);
@@ -38608,20 +39450,102 @@ function drawFor(candidates, seed, target) {
 }
 function buildPaper(opts) {
     const template = opts.template ?? defaultPaperFor(opts.active, opts.subject, opts.lang);
+    // ── THE TIER IS PART OF THE SERVE ─────────────────────────────────────────
+    // A Foundation and a Higher candidate sit the same three papers, and until
+    // this line existed they sat the SAME ITEMS: the slot's target came from the
+    // template alone, so `active.level` reached the paper's name and nothing else.
+    // The target is now half the slot's own demand and half the tier's, which
+    // moves the draw for every slot with a different generator band. This is NOT
+    // two blueprints — the paper's structure is still shared — but it is a real
+    // difference in what a learner is asked, and it is measured below.
+    const tierDifficulty = typeof opts.active.level.difficulty === "number" ? opts.active.level.difficulty : null;
+    const targetFor = (slot) => {
+        if (tierDifficulty === null)
+            return slot;
+        return Math.max(0, Math.min(1, 0.5 * slot + 0.5 * tierDifficulty));
+    };
     const candidates = opts.concepts?.length ? opts.concepts : paperConcepts(opts.active, opts.subject);
     const id = `pap_${(0, questions_1.hashSeed)(`${template.id}:${opts.seed}`).toString(36)}${(0, questions_1.hashSeed)(opts.seed).toString(36)}`;
     const sections = [];
     const key = [];
     let n = 0;
-    for (const section of template.sections) {
+    for (let sectionIndex = 0; sectionIndex < template.sections.length; sectionIndex++) {
+        const section = template.sections[sectionIndex];
         const questions = [];
         for (let i = 0; i < section.count; i++) {
             const qid = `q${++n}`;
             const slotSeed = `${template.id}:${opts.seed}:${qid}`;
+            // ── A STRUCTURED SLOT ────────────────────────────────────────────────
+            // Placements are authored positions, not a single special case. A paper
+            // can carry several constructed-response items, and if an authored item is
+            // missing this FAILS rather than quietly drawing four options in its slot.
+            const placement = template.structured?.find((s) => s.section === sectionIndex && (s.slot ?? 0) === i);
+            const structuredItem = placement ? (0, structured_items_1.structuredById)(placement.id) : null;
+            if (placement && !structuredItem) {
+                throw new Error(`paper ${template.id}: structured item ${placement.id} is missing, so slot ${qid} cannot be served`);
+            }
+            if (structuredItem && (0, structured_items_1.structuredMarks)(structuredItem) !== section.marksEach) {
+                throw new Error(`paper ${template.id}: structured item ${structuredItem.id} is worth ${(0, structured_items_1.structuredMarks)(structuredItem)}, slot declares ${section.marksEach}`);
+            }
+            if (structuredItem) {
+                // A structured item is not a Question: it has parts and a scheme, and no
+                // options. `serveView` is still the one path that strips a key, so the
+                // empty-choice question is shaped through it rather than hand-built.
+                const view = (0, questions_1.serveView)({
+                    id: qid, conceptId: structuredItem.conceptId, difficulty: structuredItem.difficulty,
+                    prompt: structuredItem.intro, choices: [], answer: 0, explanation: "",
+                    misconceptionTags: [], responseKind: "choice",
+                }, opts.lang, opts.active.spec.board);
+                const structured = {
+                    itemId: structuredItem.id,
+                    title: structuredItem.title,
+                    note: structuredItem.note,
+                    parts: structuredItem.parts.map((p) => ({
+                        id: p.id, prompt: p.prompt, marks: p.marks, unit: p.unit,
+                        methodPrompt: p.method?.prompt, methodMarks: p.method?.marks,
+                        response: p.response,
+                        // A TABLE'S SHAPE IS SERVED; ITS ANSWERS ARE NOT. `given` cells are
+                        // already printed in the question, and an answered cell becomes an
+                        // input whose key stays on the server.
+                        table: p.table
+                            ? {
+                                columns: p.table.columns,
+                                rows: p.table.rows.map((row) => ({
+                                    label: row.label,
+                                    cells: row.cells.map((cell) => cell.answer !== undefined
+                                        ? { editable: true, unit: cell.unit }
+                                        : { given: cell.given }),
+                                })),
+                            }
+                            : undefined,
+                        graph: p.graph
+                            ? { xMin: p.graph.xMin, xMax: p.graph.xMax, yMin: p.graph.yMin, yMax: p.graph.yMax }
+                            : undefined,
+                        // BOUNDS ONLY. The required points and the intended coefficients are
+                        // the answer, and the browser never receives them — the grid is drawn
+                        // from these numbers, and the mark scheme stays on the server.
+                        plot: p.plot
+                            ? { xMin: p.plot.xMin, xMax: p.plot.xMax, yMin: p.plot.yMin, yMax: p.plot.yMax }
+                            : undefined,
+                    })),
+                };
+                questions.push({
+                    id: qid, conceptId: structuredItem.conceptId, seed: slotSeed,
+                    marks: (0, structured_items_1.structuredMarks)(structuredItem), difficulty: structuredItem.difficulty,
+                    view, structured,
+                });
+                key.push({
+                    id: qid, conceptId: structuredItem.conceptId, seed: slotSeed,
+                    answer: 0, marks: (0, structured_items_1.structuredMarks)(structuredItem), difficulty: structuredItem.difficulty,
+                    explanation: structuredItem.note, tags: [], prompt: structuredItem.intro,
+                    structured: structuredItem.parts,
+                });
+                continue;
+            }
             const replacement = opts.replacements?.[qid];
             const drawn = replacement
                 ? { conceptId: replacement.conceptId, seed: slotSeed, question: replacement.question }
-                : drawFor(candidates, slotSeed, section.difficulty);
+                : drawFor(candidates, slotSeed, targetFor(section.difficulty));
             if (!drawn)
                 continue;
             const { question } = drawn;
@@ -38638,6 +39562,9 @@ function buildPaper(opts) {
                 conceptId: drawn.conceptId,
                 seed: drawn.seed,
                 answer: question.answer,
+                responseKind: question.responseKind,
+                answerValue: question.answerValue,
+                tolerance: question.tolerance,
                 marks: section.marksEach,
                 difficulty: question.difficulty,
                 explanation: question.explanation,
@@ -38686,9 +39613,57 @@ function buildPaper(opts) {
 }
 /** Mark a sitting. `answers` maps question id → chosen choice index; a missing
  *  answer is unanswered, never a free mark. */
-function markPaper(key, answers) {
+function markPaper(key, answers, 
+/** Typed answers for constructed-response items, keyed by question id, one
+ *  entry per part in the item's own order. Absent entirely for a choice paper. */
+structuredAnswers = {}, 
+/** The working a learner typed, one entry per part. A method mark is earned
+ *  only from this, never inferred from a right answer. */
+structuredWorking = {}, 
+/** Answers typed for the bank's numeric-response questions. Separate from
+ *  `structuredAnswers`, which is indexed by PART; a numeric question is one
+ *  value and has no parts. */
+numericAnswers = {}) {
     let raw = 0;
     const perQuestion = key.questions.map((q) => {
+        // ── A STRUCTURED QUESTION IS MARKED BY ITS SCHEME ─────────────────────
+        // Per part, so partial credit is real; unanswered only when NO part carries
+        // input, because a blank box is not evidence of a wrong belief.
+        if (q.structured && q.structured.length > 0) {
+            const grade = (0, structured_items_1.gradeStructuredParts)(q.structured, structuredAnswers[q.id] ?? [], structuredWorking[q.id] ?? []);
+            raw += grade.awarded;
+            return {
+                id: q.id, conceptId: q.conceptId, marks: q.marks, awarded: grade.awarded,
+                correct: grade.answered === 0 ? null : grade.awarded === q.marks,
+                chosen: null, answer: q.answer, explanation: q.explanation,
+                tags: q.tags, parts: grade.parts,
+            };
+        }
+        // ── A NUMERIC ITEM IS MARKED FROM WHAT WAS TYPED ───────────────────────
+        // The bank's numeric questions carry `answerValue`; serving their choice
+        // twin instead was the last place the paper flattened a response format
+        // back to four options. A blank box is unanswered, and a non-empty entry the
+        // parser cannot read is refused rather than called a wrong belief.
+        if (q.responseKind === "numeric" && typeof q.answerValue === "number") {
+            const given = numericAnswers[q.id];
+            const rawGiven = typeof given === "string" ? given : "";
+            const parsed = (0, answer_1.parseNumericInput)(rawGiven, q.tolerance?.unit);
+            if (parsed === null) {
+                return {
+                    id: q.id, conceptId: q.conceptId, marks: q.marks, awarded: 0,
+                    correct: null, chosen: null, given: rawGiven, invalid: rawGiven.trim() !== "",
+                    answer: q.answer, explanation: q.explanation, tags: q.tags,
+                };
+            }
+            const correct = (0, answer_1.gradeNumeric)(parsed, q.answerValue, q.tolerance);
+            const awarded = correct ? q.marks : 0;
+            raw += awarded;
+            return {
+                id: q.id, conceptId: q.conceptId, marks: q.marks, awarded,
+                correct, chosen: null, given: rawGiven, answer: q.answer,
+                explanation: q.explanation, tags: q.tags,
+            };
+        }
         const chosen = typeof answers[q.id] === "number" ? answers[q.id] : null;
         const correct = chosen === null ? null : chosen === q.answer;
         const awarded = correct === true ? q.marks : 0;
@@ -38724,6 +39699,128 @@ function paperById(id) {
 }
 function specNameFor(id) {
     return (0, specifications_1.specById)(id)?.name ?? id;
+}
+
+});
+__def("plot-geometry.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// THE GEOMETRY OF A LINE THE LEARNER DREW.
+//
+// The graph question asks a learner to plot points and join them. The line they
+// SEE and the line the marker READS must be the same object: a marker that fits
+// its own regression through the points can award a follow-through mark for a
+// line the editor never drew. So the answer carries the line explicitly, and
+// both renderer and marker call this module.
+//
+// Why the line is stored as two points rather than `m`/`c`: a vertical line has
+// no gradient, and silently refusing it would make a mathematically valid answer
+// unmarkable. Two distinct points name every straight line, vertical included.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.lineThrough = lineThrough;
+exports.definingLine = definingLine;
+exports.coefficients = coefficients;
+exports.valueAt = valueAt;
+exports.clipToBounds = clipToBounds;
+const finite = (n) => typeof n === "number" && Number.isFinite(n);
+/** The line through two distinct, finite points; null when they do not name one. */
+function lineThrough(a, b) {
+    if (!finite(a?.x) || !finite(a?.y) || !finite(b?.x) || !finite(b?.y))
+        return null;
+    if (a.x === b.x && a.y === b.y)
+        return null;
+    return { a: { x: a.x, y: a.y }, b: { x: b.x, y: b.y } };
+}
+/**
+ * The line a learner's plotted points define WHEN THEY ASK TO JOIN THEM.
+ *
+ * This is called once, at the moment the line is switched on, and its result is
+ * STORED in the answer. Adding or removing points afterwards must not move the
+ * line: the learner sees a line, and that line is what gets marked.
+ *
+ * The two furthest-apart points are chosen so the line spans the plotted set
+ * rather than leaning on two adjacent points; a vertical set is ordered by y.
+ */
+function definingLine(points) {
+    if (!Array.isArray(points) || points.length < 2)
+        return null;
+    const unique = points.filter((p, i) => finite(p?.x) && finite(p?.y)
+        && points.findIndex((q) => q.x === p.x && q.y === p.y) === i);
+    if (unique.length < 2)
+        return null;
+    let best = null;
+    let bestD = -1;
+    for (let i = 0; i < unique.length; i++) {
+        for (let j = i + 1; j < unique.length; j++) {
+            const d = (unique[i].x - unique[j].x) ** 2 + (unique[i].y - unique[j].y) ** 2;
+            if (d > bestD) {
+                bestD = d;
+                best = [unique[i], unique[j]];
+            }
+        }
+    }
+    return best ? lineThrough(best[0], best[1]) : null;
+}
+/** Gradient and intercept. Null for a vertical line, which has no gradient. */
+function coefficients(line) {
+    if (!line || !finite(line.a?.x) || !finite(line.b?.x))
+        return null;
+    if (line.a.x === line.b.x)
+        return null;
+    const m = (line.b.y - line.a.y) / (line.b.x - line.a.x);
+    if (!Number.isFinite(m))
+        return null;
+    return { m, c: line.a.y - m * line.a.x };
+}
+/** The y value on the line at x. Null when the line is vertical. */
+function valueAt(line, x) {
+    const coef = coefficients(line);
+    if (!coef || !finite(x))
+        return null;
+    const y = coef.m * x + coef.c;
+    return Number.isFinite(y) ? y : null;
+}
+/**
+ * The line clipped to the visible grid, as two points in QUESTION coordinates.
+ * This is what the renderer draws and what a reader can check against the
+ * marker's `valueAt` — one straight line, not a segment between whichever
+ * points happen to be plotted.
+ */
+function clipToBounds(line, b) {
+    if (!line)
+        return null;
+    const eps = 1e-9;
+    const inBox = (p) => p.x >= b.xMin - eps && p.x <= b.xMax + eps
+        && p.y >= b.yMin - eps && p.y <= b.yMax + eps;
+    const out = [];
+    const add = (x, y) => {
+        const p = { x, y };
+        if (!finite(x) || !finite(y) || !inBox(p))
+            return;
+        if (out.some((q) => Math.abs(q.x - x) < eps && Math.abs(q.y - y) < eps))
+            return;
+        out.push(p);
+    };
+    if (line.a.x === line.b.x) {
+        add(line.a.x, b.yMin);
+        add(line.a.x, b.yMax);
+    }
+    else {
+        const coef = coefficients(line);
+        if (!coef)
+            return null;
+        add(b.xMin, coef.m * b.xMin + coef.c);
+        add(b.xMax, coef.m * b.xMax + coef.c);
+        if (coef.m !== 0) {
+            add((b.yMin - coef.c) / coef.m, b.yMin);
+            add((b.yMax - coef.c) / coef.m, b.yMax);
+        }
+    }
+    if (out.length < 2)
+        return null;
+    out.sort((p, q) => (p.x - q.x) || (p.y - q.y));
+    return [out[0], out[out.length - 1]];
 }
 
 });
@@ -38779,6 +39876,16 @@ at) {
     if (!correct)
         for (const t of tags)
             p.misconceptions[t] = (p.misconceptions[t] ?? 0) + 1;
+    // THE MARK TALLY IS ADDITIVE AND REPLAYABLE, and both fields are DECLARED on
+    // ConceptProgress (lib/types.ts). They used to be attached through a narrow
+    // cast here, which kept them out of the contract every other reader and every
+    // stored record is typed by; an optional declared field keeps old records
+    // loadable while making the tally visible to the type system.
+    if (meta?.score && Number.isFinite(meta.score.max) && meta.score.max > 0) {
+        const awarded = Math.max(0, Math.min(meta.score.awarded, meta.score.max));
+        p.marksAwarded = (p.marksAwarded ?? 0) + awarded;
+        p.marksAvailable = (p.marksAvailable ?? 0) + meta.score.max;
+    }
     // Independence vs transfer evidence: only hint-free answers count as proof.
     const hints = meta?.hints ?? 0;
     // Scaffolding demand, in the form the ledger can reproduce.
@@ -44490,7 +45597,7 @@ exports.DEEP_GENS = {
                 ["__ H₂ + O₂ → __ H₂O", "2 and 2", ["1 and 1", "2 and 1", "4 and 2"]],
                 ["__ Mg + O₂ → __ MgO", "2 and 2", ["1 and 1", "2 and 1", "4 and 4"]],
                 ["__ Al + __ Cl₂ → AlCl₃", "2 and 3", ["3 and 2", "1 and 1", "2 and 2"]],
-                ["__ Fe + O₂ → __ Fe₂O₃", "4 and 3", ["3 and 4", "2 and 3", "1 and 1"]],
+                ["__ Fe + O₂ → __ Fe₂O₃", "4 and 2", ["4 and 3", "3 and 4", "1 and 1"]],
                 ["__ C₃H₈ + __ O₂ → 3CO₂ + 4H₂O", "1 and 5", ["1 and 3", "3 and 5", "1 and 7"]],
             ];
             const [blank, correct, wrong] = eqs[r.int(0, eqs.length - 1)];
@@ -53775,7 +54882,16 @@ const LATE_GENS = {
             // never appeared), while the pair branch is what the bank reaches. A
             // learner who swaps the order reads (0, 3) as three ACROSS and answers
             // "the x-axis", so the item distinguishes the belief it is tagged with.
-            tags: ["axis-swap"], explanation: `x = 0 means zero steps right or left — the point sits on the vertical (y) axis. y = 0 puts it on the horizontal (x) axis. The origin (0, 0) is the only point on both.`,
+            tags: ["axis-swap"],
+            // THE GRID, WITH THE ORIGIN — NOT THE ASKED-FOR POINT. Plotting (6, 0)
+            // would answer “which axis?” directly. The origin and the labelled axes
+            // are the tool the learner needs to reason about where a zero coordinate
+            // puts a point; the point itself stays in the prompt.
+            figure: {
+                kind: "axes", xMin: -6, xMax: 6, yMin: -6, yMax: 6,
+                points: [{ at: [0, 0], label: "(0, 0)" }],
+            },
+            explanation: `x = 0 means zero steps right or left — the point sits on the vertical (y) axis. y = 0 puts it on the horizontal (x) axis. The origin (0, 0) is the only point on both.`,
             difficulty: 0.25,
         };
     },
@@ -55222,6 +56338,13 @@ function foldEvent(state, e) {
                 ms: e.ms ?? undefined,
                 hints: e.hints,
                 mode: e.mode,
+                // THE MARKS SURVIVE THE REBUILD. The ledger has carried the score since
+                // paper marking was added, but the fold dropped it, so a replay turned
+                // 5/6 into the same evidence as 0/6. A partial answer is still not a
+                // mastery success — `correct` stays false — but the record now says HOW
+                // MUCH of the question was answered, which is the difference the learner
+                // model could not previously see.
+                score: e.score ?? undefined,
                 // The event's own source is carried into the fold: a retrieval is
                 // retention evidence in the model exactly when the ledger says it was
                 // one, so replay reproduces the retention dimension instead of
@@ -56416,7 +57539,12 @@ const UK = {
     id: "uk-gcse", country: "GB", board: "aqa", name: "GCSE",
     coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
     levels: [
-        { id: "foundation", tier: "foundation", name: "Foundation tier", stages: [0, 3], difficulty: 0.45, exclude: ["completing-square", "polynomials", "binomial", "logs"] },
+        // Higher-only content is removed from the Foundation tier's concept set, not
+        // merely given a lower difficulty target. `sim-equations-quad` was measured
+        // in Foundation Paper 1 before this list existed, and a Foundation candidate
+        // cannot be examined on a line-curve intersection just because it is one
+        // stage below the top of the genome.
+        { id: "foundation", tier: "foundation", name: "Foundation tier", stages: [0, 3], difficulty: 0.45, exclude: ["completing-square", "polynomials", "binomial", "logs", "sim-equations-quad", "surds", "circle-theorems", "trig-rule", "functions", "algebraic-fractions", "bounds"] },
         { id: "higher", tier: "higher", name: "Higher tier", stages: [0, 4], difficulty: 0.65, exclude: ["logs", "calculus-diff", "calculus-int", "matrices-intro"] },
     ],
 };
@@ -57444,6 +58572,1128 @@ function gradeConnector(conceptId, s, choiceIndex, q) {
 }
 
 });
+__def("structured-items.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// A CONSTRUCTED-RESPONSE ITEM, WITH A MARK SCHEME THAT CAN BE AUDITED.
+//
+// Every paper item before this one was four options with one right answer, and
+// every mark was all-or-nothing. This module holds the first vertical slice of
+// the other kind, and its rules are small enough to state once and test:
+//
+//   * TWO CRITERIA PER PART: a METHOD mark (M) and an ANSWER mark (A). Total
+//     marks are the sum of the criteria, asserted at module load, so the paper's
+//     declared total cannot drift.
+//   * A METHOD MARK NEEDS THE METHOD TO BE SHOWN. The learner types their working
+//     into its own box, and the mark is earned by matching an authored form of a
+//     correct method. A method this engine cannot see is a method it does not
+//     award — and it never infers working from a right answer.
+//   * A METHOD MARK SURVIVES A WRONG ANSWER. `30 ÷ 12` written with the answer
+//     `2.5` earns the method mark and loses the answer mark, which is the whole
+//     point of partial credit: the reasoning was right and the rounding was not.
+//   * AN ANSWER MARK IS THE VALUE OR AN AUTHORED EQUIVALENT, and a measurement
+//     part's unit is part of the answer. `30` is not `30 m²`.
+//   * NO FOLLOW-THROUGH, NO "CONSISTENT WITH THEIR WORKING" MARKS YET. AQA's
+//     scheme has them; this engine does not, and the item says so rather than
+//     pretending otherwise.
+//
+// Adding a second item means authoring its arithmetic and its accepted forms; it
+// does not mean writing a new marking engine.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.STRUCTURED_ITEMS = void 0;
+exports.structuredMarks = structuredMarks;
+exports.structuredById = structuredById;
+exports.normaliseTyped = normaliseTyped;
+exports.parseGraphPoints = parseGraphPoints;
+exports.parsePlotAnswer = parsePlotAnswer;
+exports.normaliseWorking = normaliseWorking;
+exports.parseTypedNumber = parseTypedNumber;
+exports.gradeStructuredParts = gradeStructuredParts;
+exports.gradeStructuredItem = gradeStructuredItem;
+const answer_1 = require("./answer");
+const algebra_1 = require("./algebra");
+const plot_geometry_1 = require("./plot-geometry");
+// ── The first item ──────────────────────────────────────────────────────────
+const LINE_GRAPH = {
+    id: "sf-line-graph",
+    conceptId: "straight-lines",
+    title: "Straight-line graphs",
+    intro: "Three straight lines, each worth 2 marks: one for its gradient and one for its y-intercept.\n\n" +
+        "Give two points that lie on the line, written as x,y and x,y.",
+    note: "Marked from the geometry of the line you give, so any two points on the correct line are accepted — " +
+        "the gradient and the intercept are compared with this question's own tolerance, not against a picture. " +
+        "Coordinates are typed; drawing freehand on the grid is not implemented.",
+    difficulty: 0.6,
+    parts: [
+        {
+            id: "a",
+            prompt: "Give two points on the line y = 2x + 1.",
+            marks: 2,
+            answer: 0,
+            response: "graph",
+            graph: { xMin: -4, xMax: 4, yMin: -6, yMax: 9, m: 2, c: 1, tolerance: { m: 0.15, c: 0.35 } },
+            explanation: "The gradient is the number multiplying x, so it is 2: from any point on the line, going 1 right means going 2 up. " +
+                "The +1 is the y-intercept — the line crosses the y-axis at (0, 1). (0, 1) and (1, 3) are one valid pair; so are (−1, −1) and (2, 5).",
+        },
+        {
+            id: "b",
+            prompt: "Give two points on the line y = −x + 3.",
+            marks: 2,
+            answer: 0,
+            response: "graph",
+            graph: { xMin: -4, xMax: 4, yMin: -4, yMax: 8, m: -1, c: 3, tolerance: { m: 0.15, c: 0.35 } },
+            explanation: "A gradient of −1 falls as it goes right: 1 right, 1 down. The line crosses the y-axis at (0, 3), so (0, 3) and (2, 1) " +
+                "both lie on it. Writing it as y = 3 − x is the same line; the sign belongs to the x term.",
+        },
+        {
+            id: "c",
+            prompt: "Give two points on the line y = 0.5x − 2.",
+            marks: 2,
+            answer: 0,
+            response: "graph",
+            graph: { xMin: -4, xMax: 4, yMin: -5, yMax: 4, m: 0.5, c: -2, tolerance: { m: 0.1, c: 0.3 } },
+            explanation: "Half a unit up for every 1 right: that is the gradient 0.5. The line crosses the y-axis at (0, −2), so (0, −2) " +
+                "and (2, −1) lie on it. Choosing a point 2 right is easier here, because the y value then moves a whole unit.",
+        },
+    ],
+};
+const PLOT_LINE = {
+    id: "sf-plot-line",
+    conceptId: "straight-lines",
+    title: "Plotting a straight line",
+    intro: "Plot the points on the grid, join them with a straight line, and read a value from the line you drew.\n\n" +
+        "Part (a) is worth 2 marks and part (b) 1 mark; parts (c) and (d) do the same for a second line.",
+    note: "Part (a) is marked the way a plotted-line question is marked: 2 marks when every required point is plotted " +
+        "and joined by a straight line, 1 mark when at least two required points are plotted and joined. " +
+        "Part (b) is marked against YOUR line, not the answer's — a plotting slip that you then read correctly still earns the read-off mark.",
+    difficulty: 0.55,
+    parts: [
+        {
+            id: "a",
+            prompt: "Plot the points on y = 2x − 1 for x = −1, 0, 2 and 3, then join them with a straight line.",
+            marks: 2,
+            answer: 0,
+            response: "plot",
+            plot: {
+                xMin: -4, xMax: 4, yMin: -6, yMax: 9,
+                points: [{ x: -1, y: -3 }, { x: 0, y: -1 }, { x: 2, y: 3 }, { x: 3, y: 5 }],
+                // Half a small square: the grid's squares are 1 unit, so 0.5 is the
+                // AQA allowance rather than a coordinate distance chosen by feel.
+                tolerance: 0.5, partialMin: 2, m: 2, c: -1, lineTolerance: { m: 0.15, c: 0.4 },
+            },
+            explanation: "Substitute each x into y = 2x − 1: x = −1 gives −3, x = 0 gives −1, x = 2 gives 3, x = 3 gives 5. " +
+                "Plotted together they sit on one straight line, because the rule adds the same 2 to y for every 1 across. " +
+                "Two correct points with a line already earns the partial mark; the full mark needs all four plotted.",
+        },
+        {
+            id: "b",
+            prompt: "Use your line to write down the value of y when x = 1.5.",
+            marks: 1,
+            answer: 2,
+            response: "readoff",
+            readOff: { from: "a", at: 1.5, tolerance: 0.45 },
+            explanation: "x = 1.5 is halfway between 1 and 2, so on the line it sits halfway between y = 1 and y = 3: y = 2. " +
+                "Reading from your own graph is accepted even if your plotted line was slightly out — the mark is for reading it correctly.",
+        },
+        {
+            id: "c",
+            prompt: "Give two points on the line y = −x + 3.",
+            marks: 2,
+            answer: 0,
+            response: "graph",
+            graph: { xMin: -4, xMax: 4, yMin: -4, yMax: 8, m: -1, c: 3, tolerance: { m: 0.15, c: 0.35 } },
+            explanation: "A gradient of −1 falls as it goes right: 1 right, 1 down. The line crosses the y-axis at (0, 3), so (0, 3) and (2, 1) both lie on it.",
+        },
+        {
+            id: "d",
+            prompt: "Use the line you gave in part (c) to write down the value of y when x = −1.",
+            marks: 1,
+            answer: 4,
+            response: "readoff",
+            readOff: { from: "c", at: -1, tolerance: 0.45 },
+            explanation: "On y = −x + 3, x = −1 gives y = 1 + 3 = 4. Reading from your own line is accepted when it is the line you stated.",
+        },
+    ],
+};
+const LAWN_FEED = {
+    id: "sf-lawn-feed",
+    conceptId: "area-perimeter",
+    title: "Lawn feed",
+    intro: "A rectangular lawn is 7.5 m long and 4 m wide.\n\n" +
+        "Each part is worth 2 marks: 1 for the method you show, and 1 for the answer.",
+    note: "The method mark is earned by the working you type and is kept even when the answer is wrong — " +
+        "OpenMind cannot award a method it cannot see, and it does not infer your working from a right answer. " +
+        "This is a two-rung scheme: follow-through marks are not implemented.",
+    difficulty: 0.55,
+    parts: [
+        {
+            id: "a",
+            prompt: "Work out the area of the lawn. Give your answer in m².",
+            marks: 2,
+            answer: 30,
+            unit: "m²",
+            unitRequired: true,
+            accepted: ["30 m²", "30 m2", "30 square metres"],
+            method: {
+                id: "a:M1",
+                marks: 1,
+                prompt: "Show the calculation you used",
+                accept: ["7.5 × 4", "7.5 × 4 = 30", "7.5*4", "7.5 x 4", "7.5x4=30"],
+                label: "length × width",
+            },
+            explanation: "Area of a rectangle is length × width: 7.5 × 4 = 30. Area is measured in square " +
+                "units, so the answer is 30 m² — a bare 30 names a length, not a region.",
+        },
+        {
+            id: "b",
+            prompt: "A bag of lawn feed covers 12 m². How many bags are needed to cover the whole lawn?",
+            marks: 2,
+            answer: 3,
+            accepted: ["3 bags"],
+            method: {
+                id: "b:M1",
+                marks: 1,
+                prompt: "Show the division you used",
+                accept: ["30 ÷ 12", "30 ÷ 12 = 2.5", "30/12", "30 ÷ 12 = 2.5, so 3 bags"],
+                label: "area ÷ coverage",
+            },
+            explanation: "30 ÷ 12 = 2.5, so two bags cover only 24 m² and leave 6 m² bare. You cannot buy half " +
+                "a bag, so the number of bags must round UP to 3 — 2.5 is the division, not the answer.",
+        },
+        {
+            id: "c",
+            prompt: "Each bag costs £8.50. Work out the total cost of the bags needed.",
+            marks: 2,
+            answer: 25.5,
+            tolerance: { abs: 0.001, display: "£25.50" },
+            accepted: ["£25.50", "£25.5", "25.50 pounds", "25.5 pounds"],
+            method: {
+                id: "c:M1",
+                marks: 1,
+                prompt: "Show the multiplication you used",
+                accept: ["3 × 8.50", "3 × £8.50", "3*8.5", "3 x 8.50", "3 × 8.5 = 25.5"],
+                label: "bags × price",
+            },
+            explanation: "Three bags at £8.50 each: 3 × 8.50 = 25.50, so the total is £25.50. Paying for 2.5 " +
+                "bags gives £21.25 and buys feed that does not exist, so it cannot cover the lawn.",
+        },
+    ],
+};
+const FOUNDATION_PROPORTION = {
+    id: "sf-proportion",
+    conceptId: "percentages",
+    title: "Fractions and percentages",
+    intro: "Two short calculations. Give each answer in its simplest form.",
+    note: "Each part is worth one mark and is marked from the value you enter. The marker accepts a fraction or an equivalent decimal where the question does not require one particular form.",
+    difficulty: 0.45,
+    parts: [
+        {
+            id: "a",
+            prompt: "Work out 3/4 of 240.",
+            marks: 1,
+            answer: 180,
+            accepted: ["180"],
+            explanation: "A quarter of 240 is 60, because 240 ÷ 4 = 60. Three quarters is three of those parts: 3 × 60 = 180. Dividing by 4 and multiplying by 3 gives the same result, 240 × 3 ÷ 4 = 180.",
+        },
+        {
+            id: "b",
+            prompt: "Increase 240 by 15%.",
+            marks: 1,
+            answer: 276,
+            accepted: ["276"],
+            explanation: "15% of 240 is 0.15 × 240 = 36. Increasing means adding that change to the original amount: 240 + 36 = 276. A single multiplier gives the same answer: 240 × 1.15 = 276.",
+        },
+    ],
+};
+const HIGHER_SURDS = {
+    id: "hf-surds",
+    conceptId: "surds",
+    title: "Surds",
+    intro: "Two short exact-value questions. Do not use a decimal approximation.",
+    note: "Both parts are marked from an exact numeric value. Simplifying a surd is a Higher-tier technique; the marker checks the value, not the spelling of the radical.",
+    difficulty: 0.68,
+    parts: [
+        {
+            id: "a",
+            prompt: "Write √50 in the form k√2. Give the value of k.",
+            marks: 1,
+            answer: 5,
+            accepted: ["5"],
+            explanation: "Find a square factor of 50: 50 = 25 × 2, so √50 = √25 × √2 = 5√2. The value multiplying √2 is 5, and 5 is exact — a decimal such as 7.07 is an approximation of the whole surd, not k.",
+        },
+        {
+            id: "b",
+            prompt: "Work out (2√3)^2. Give your answer as an integer.",
+            marks: 1,
+            answer: 12,
+            accepted: ["12"],
+            explanation: "Square each factor: (2√3)^2 = 2^2 × (√3)^2 = 4 × 3 = 12. The square root disappears because squaring and taking the positive square root are inverse operations for a positive number.",
+        },
+    ],
+};
+const FOUNDATION_ALGEBRA = {
+    id: "sf-expand",
+    conceptId: "algebra-expand",
+    title: "Expanding and simplifying",
+    intro: "Three short algebra questions. Enter an expression; equivalent forms are accepted.",
+    note: "The marker expands what you type and compares it with the required polynomial. Equivalent forms such as 12 + 3x and 3x + 12 are accepted; it cannot mark equations or expressions containing division.",
+    difficulty: 0.5,
+    parts: [
+        {
+            id: "a",
+            prompt: "Expand 3(x + 4).",
+            marks: 1,
+            answer: 0,
+            response: "algebra",
+            algebra: { accepted: ["3x + 12", "12 + 3x"], requireExpanded: true },
+            explanation: "Multiply each term inside the bracket by 3: 3 × x = 3x and 3 × 4 = 12. The expansion is 3x + 12. Leaving it as 3(x + 4) is equivalent but is not expanded, which is what the question asks for.",
+        },
+        {
+            id: "b",
+            prompt: "Expand x(x − 5).",
+            marks: 1,
+            answer: 0,
+            response: "algebra",
+            algebra: { accepted: ["x^2 - 5x"], requireExpanded: true },
+            explanation: "Multiply x by each term: x × x = x² and x × (−5) = −5x. The expansion is x² − 5x. The term −5x keeps its sign; writing +5x is the common sign slip here.",
+        },
+        {
+            id: "c",
+            prompt: "Simplify 2x + 3x − 4.",
+            marks: 1,
+            answer: 0,
+            response: "algebra",
+            algebra: { accepted: ["5x - 4", "-4 + 5x"], requireExpanded: true },
+            explanation: "2x and 3x are like terms, so their coefficients add: 2 + 3 = 5, giving 5x. The constant −4 cannot be combined with an x term, so the simplified expression is 5x − 4. Adding the coefficients to make 6x, or adding −4 to them, are the usual slips.",
+        },
+    ],
+};
+const HIGHER_ALGEBRA = {
+    id: "hf-algebra",
+    conceptId: "algebra-expand",
+    title: "Expanding products",
+    intro: "Three Higher-tier algebra questions. Enter an expression; equivalent forms are accepted.",
+    note: "The marker compares the expanded polynomial with the required one. It accepts any equivalent polynomial, including a different order of terms, and it refuses equations or division because they are outside this response type.",
+    difficulty: 0.72,
+    parts: [
+        {
+            id: "a",
+            prompt: "Expand (x + 3)(x − 2).",
+            marks: 1,
+            answer: 0,
+            response: "algebra",
+            algebra: { accepted: ["x^2 + x - 6"], requireExpanded: true },
+            explanation: "Multiply every term in the first bracket by every term in the second: x² − 2x + 3x − 6. Collecting the middle terms gives x² + x − 6. The two middle terms are different signed terms, so they do not vanish.",
+        },
+        {
+            id: "b",
+            prompt: "Simplify (2x^3)(3x^2).",
+            marks: 1,
+            answer: 0,
+            response: "algebra",
+            algebra: { accepted: ["6x^5"], requireExpanded: true },
+            explanation: "Multiply the coefficients: 2 × 3 = 6. Multiply the powers of x by adding the indices: x³ × x² = x^(3+2) = x⁵. The result is 6x⁵, not 6x⁶ — the indices add rather than multiply.",
+        },
+        {
+            id: "c",
+            prompt: "Expand (2x − 1)^2.",
+            marks: 1,
+            answer: 0,
+            response: "algebra",
+            algebra: { accepted: ["4x^2 - 4x + 1"], requireExpanded: true },
+            explanation: "Write the square as (2x − 1)(2x − 1), then multiply all four pairs: 4x² − 2x − 2x + 1. The middle terms add to −4x, so the result is 4x² − 4x + 1. It is not 4x² + 1: squaring a bracket does not square its terms separately.",
+        },
+    ],
+};
+const TABLE_LINE = {
+    id: "sf-table-line",
+    conceptId: "linear-equations",
+    title: "A table of values",
+    intro: "Complete the table of values for y = 2x + 1.",
+    note: "Each blank cell is worth one mark and is marked independently. Substitute each x value into the same rule; the order of the cells follows the x values from left to right.",
+    difficulty: 0.46,
+    parts: [
+        {
+            id: "a",
+            prompt: "Complete the missing values in the table.",
+            marks: 4,
+            answer: 0,
+            response: "table",
+            table: {
+                columns: ["x = −1", "x = 0", "x = 1", "x = 2"],
+                rows: [{
+                        label: "y = 2x + 1",
+                        cells: [
+                            { answer: -1, accepted: ["−1", "-1"], tolerance: { abs: 0 } },
+                            { answer: 1, tolerance: { abs: 0 } },
+                            { answer: 3, tolerance: { abs: 0 } },
+                            { answer: 5, tolerance: { abs: 0 } },
+                        ],
+                    }],
+            },
+            explanation: "Substitute each x into y = 2x + 1. At x = −1, 2 × (−1) + 1 = −1; at x = 0 the value is 1; at x = 1 it is 3; and at x = 2 it is 5. Each step adds 2 to y because the coefficient of x is 2.",
+        },
+    ],
+};
+const TABLE_QUADRATIC = {
+    id: "hf-table-quadratic",
+    conceptId: "quadratics",
+    title: "A quadratic table",
+    intro: "Complete the table of values for y = x² − 2x.",
+    note: "Each cell is marked separately. The square applies only to x, so at a negative x value the first term is positive even though x itself is negative.",
+    difficulty: 0.7,
+    parts: [
+        {
+            id: "a",
+            prompt: "Complete the missing values for y = x² − 2x.",
+            marks: 4,
+            answer: 0,
+            response: "table",
+            table: {
+                columns: ["x = −1", "x = 0", "x = 1", "x = 3"],
+                rows: [{
+                        label: "y = x² − 2x",
+                        cells: [
+                            { answer: 3, tolerance: { abs: 0 } },
+                            { answer: 0, tolerance: { abs: 0 } },
+                            { answer: -1, accepted: ["−1", "-1"], tolerance: { abs: 0 } },
+                            { answer: 3, tolerance: { abs: 0 } },
+                        ],
+                    }],
+            },
+            explanation: "At x = −1, x² = 1 and −2x = 2, so y = 3. At x = 0 both terms are 0. At x = 1, 1 − 2 = −1. At x = 3, 9 − 6 = 3. The squared term is positive at both negative and positive x, while the −2x term changes sign.",
+        },
+    ],
+};
+const FOUNDATION_ANGLES = {
+    id: "sf-angle-chain",
+    conceptId: "angles-lines",
+    title: "Angle facts",
+    intro: "Five short angle questions. Each answer is a number of degrees.",
+    note: "Each part is one mark. The reasons are the standard angle facts; the marker checks the value, and the explanation beside each part states the reason.",
+    difficulty: 0.48,
+    parts: [
+        {
+            id: "a",
+            prompt: "Angles on a straight line add to how many degrees?",
+            marks: 1,
+            answer: 180,
+            explanation: "A straight angle is half a full turn. A full turn is 360°, so a straight line is 360° ÷ 2 = 180°. This is why two adjacent angles on a straight line are supplementary.",
+        },
+        {
+            id: "b",
+            prompt: "A triangle has angles 48° and 65°. Work out the third angle.",
+            marks: 1,
+            answer: 67,
+            accepted: ["67°"],
+            explanation: "The angles in a triangle add to 180°. The two given angles add to 48 + 65 = 113, so the third is 180 − 113 = 67°. Subtracting from 360 would be the full-turn fact, not the triangle fact.",
+        },
+        {
+            id: "c",
+            prompt: "A quadrilateral has angles 90°, 90° and 110°. Work out the fourth angle.",
+            marks: 1,
+            answer: 70,
+            accepted: ["70°"],
+            explanation: "The angles in a quadrilateral add to 360°. The three given angles total 90 + 90 + 110 = 290, so the fourth is 360 − 290 = 70°.",
+        },
+        {
+            id: "d",
+            prompt: "An isosceles triangle has an apex angle of 40°. Work out each base angle.",
+            marks: 1,
+            answer: 70,
+            accepted: ["70°"],
+            explanation: "The two base angles of an isosceles triangle are equal. They share 180 − 40 = 140°, so each is 140 ÷ 2 = 70°. The 40° is not one of the equal angles here.",
+        },
+        {
+            id: "e",
+            prompt: "Work out the exterior angle of a regular pentagon.",
+            marks: 1,
+            answer: 72,
+            accepted: ["72°"],
+            explanation: "The exterior angles of any polygon add to 360°. A regular pentagon has five equal exterior angles, so each is 360 ÷ 5 = 72°. The interior angle would be 108°, not 72°.",
+        },
+    ],
+};
+const HIGHER_ANGLES = {
+    id: "hf-circle-angles",
+    conceptId: "circle-theorems",
+    title: "Circle theorems",
+    intro: "Five short circle-theorem questions. Each answer is a number of degrees.",
+    note: "Each part is marked independently. The marker checks the angle; the explanation states the theorem that gives it.",
+    difficulty: 0.75,
+    parts: [
+        {
+            id: "a",
+            prompt: "An angle is subtended by a diameter at the circumference. Work out its size.",
+            marks: 1,
+            answer: 90,
+            accepted: ["90°"],
+            explanation: "The angle in a semicircle is a right angle. A diameter cuts the circle into two semicircles, so any angle subtended by it at the circumference is 90°.",
+        },
+        {
+            id: "b",
+            prompt: "Opposite angles of a cyclic quadrilateral add to how many degrees?",
+            marks: 1,
+            answer: 180,
+            explanation: "A cyclic quadrilateral has all four vertices on a circle. Each pair of opposite angles is supplementary, so the pair adds to 180°.",
+        },
+        {
+            id: "c",
+            prompt: "One angle of a cyclic quadrilateral is 74°. Work out the opposite angle.",
+            marks: 1,
+            answer: 106,
+            accepted: ["106°"],
+            explanation: "Opposite angles in a cyclic quadrilateral add to 180°. The opposite angle is 180 − 74 = 106°. Using 360 here would be the whole quadrilateral rather than the opposite-angle pair.",
+        },
+        {
+            id: "d",
+            prompt: "A tangent meets a radius at the point of contact. Work out the angle between them.",
+            marks: 1,
+            answer: 90,
+            accepted: ["90°"],
+            explanation: "A tangent is perpendicular to the radius at the point of contact, so the angle between them is 90°.",
+        },
+        {
+            id: "e",
+            prompt: "An angle at the centre is 128°. Work out the angle at the circumference standing on the same arc.",
+            marks: 1,
+            answer: 64,
+            accepted: ["64°"],
+            explanation: "The angle at the centre is twice the angle at the circumference when both stand on the same arc. The circumference angle is 128 ÷ 2 = 64°, not 128 × 2.",
+        },
+    ],
+};
+const HIGHER_CONTEXT = {
+    id: "hf-rectangle-context",
+    conceptId: "quadratics",
+    title: "A rectangle with an unknown side",
+    intro: "A rectangle has length (x + 3) cm and width (x + 2) cm. Its area is 56 cm².",
+    note: "Part (a) is marked by algebraic equivalence. Part (b) is a numeric solution, and part (c) carries a method mark only when the working is shown. The positive solution is the one that makes a length.",
+    difficulty: 0.8,
+    parts: [
+        {
+            id: "a",
+            prompt: "Show that the area, in cm², is x² + 5x + 6.",
+            marks: 2,
+            answer: 0,
+            response: "algebra",
+            algebra: { accepted: ["x^2 + 5x + 6"], requireExpanded: true },
+            explanation: "Area of a rectangle is length × width: (x + 3)(x + 2). Expanding gives x² + 2x + 3x + 6 = x² + 5x + 6. The two middle terms are both positive, which is why the coefficient of x is 5.",
+        },
+        {
+            id: "b",
+            prompt: "The area is 56 cm². Solve x² + 5x + 6 = 56 for the positive value of x.",
+            marks: 2,
+            answer: 5,
+            accepted: ["5"],
+            explanation: "Subtract 56 from both sides: x² + 5x − 50 = 0. This factorises as (x + 10)(x − 5) = 0, so x = −10 or x = 5. A side length cannot be negative, so x = 5. The negative root is a valid solution of the equation but not of the rectangle.",
+        },
+        {
+            id: "c",
+            prompt: "Work out the perimeter of the rectangle. Give your answer in cm.",
+            marks: 2,
+            answer: 30,
+            unit: "cm",
+            unitRequired: true,
+            accepted: ["30 cm"],
+            method: {
+                id: "c:M1",
+                marks: 1,
+                prompt: "Show how you found the side lengths and perimeter",
+                accept: ["2(8 + 7)", "8 + 7 + 8 + 7", "2 × 15", "2*15", "2(8+7)=30", "8+7+8+7=30"],
+                label: "perimeter = 2(length + width)",
+            },
+            explanation: "With x = 5, the length is 8 cm and the width is 7 cm. The perimeter of a rectangle is 2(length + width) = 2(8 + 7) = 30 cm. Adding only one length and one width gives 15, which is half the perimeter.",
+        },
+    ],
+};
+const HIGHER_SEQUENCES = {
+    id: "hf-sequences-context",
+    conceptId: "sequences",
+    title: "A linear sequence",
+    intro: "A sequence begins 5, 8, 11, 14, …",
+    note: "Part (a) is marked by algebraic equivalence. Parts (b) and (c) are numeric; part (c) carries a method mark only when the working is shown.",
+    difficulty: 0.7,
+    parts: [
+        {
+            id: "a",
+            prompt: "Write an expression for the nth term of the sequence.",
+            marks: 2,
+            answer: 0,
+            response: "algebra",
+            algebra: { variable: "n", accepted: ["3n + 2", "2 + 3n"] },
+            explanation: "The terms increase by 3 each time, so the expression starts with 3n. The first term is 5, and 3 × 1 = 3, so a constant of 2 is needed: 3n + 2. Checking n = 2 gives 8, which matches the second term.",
+        },
+        {
+            id: "b",
+            prompt: "Work out the 20th term.",
+            marks: 2,
+            answer: 62,
+            accepted: ["62"],
+            explanation: "Substitute n = 20 into 3n + 2: 3 × 20 + 2 = 60 + 2 = 62. Using n = 20 rather than adding 3 twenty times is the point of the nth-term expression.",
+        },
+        {
+            id: "c",
+            prompt: "Which term of the sequence is 122? Show your working.",
+            marks: 2,
+            answer: 40,
+            accepted: ["40", "40th term"],
+            method: {
+                id: "c:M1",
+                marks: 1,
+                prompt: "Show the equation you solved",
+                accept: ["3n + 2 = 122", "3n=120", "3n = 120", "(122 - 2) / 3", "(122 − 2) ÷ 3"],
+                label: "solve 3n + 2 = 122",
+            },
+            explanation: "Set the nth term equal to 122: 3n + 2 = 122. Subtract 2 to get 3n = 120, then divide by 3 to get n = 40. So 122 is the 40th term. Reporting 120 as the answer gives the value of 3n, not the position n.",
+        },
+    ],
+};
+exports.STRUCTURED_ITEMS = [
+    LINE_GRAPH, PLOT_LINE, LAWN_FEED,
+    FOUNDATION_PROPORTION, HIGHER_SURDS, FOUNDATION_ALGEBRA, HIGHER_ALGEBRA,
+    TABLE_LINE, TABLE_QUADRATIC, FOUNDATION_ANGLES, HIGHER_ANGLES,
+    HIGHER_CONTEXT, HIGHER_SEQUENCES,
+];
+/** Total marks, summed from the parts — the one number a paper slot checks. */
+function structuredMarks(item) {
+    return item.parts.reduce((n, p) => n + p.marks, 0);
+}
+function structuredById(id) {
+    return exports.STRUCTURED_ITEMS.find((s) => s.id === id) ?? null;
+}
+// AUTHORING GUARDS, at module load and therefore at build and in every test: a
+// malformed scheme must fail here rather than mark a learner against it.
+for (const item of exports.STRUCTURED_ITEMS) {
+    if (item.parts.length === 0)
+        throw new Error(`structured item ${item.id}: no parts`);
+    if (new Set(item.parts.map((p) => p.id)).size !== item.parts.length) {
+        throw new Error(`structured item ${item.id}: duplicate part id`);
+    }
+    for (const p of item.parts) {
+        if (!Number.isInteger(p.marks) || p.marks < 1) {
+            throw new Error(`structured item ${item.id}#${p.id}: marks must be a positive integer`);
+        }
+        if (!p.response || p.response === "number") {
+            if (typeof p.answer !== "number" || !Number.isFinite(p.answer)) {
+                throw new Error(`structured item ${item.id}#${p.id}: a numeric part has no finite answer`);
+            }
+        }
+        if (p.response === "algebra") {
+            if (!p.algebra || p.algebra.accepted.length === 0) {
+                throw new Error(`structured item ${item.id}#${p.id}: an algebra part accepts no expression`);
+            }
+            const variable = p.algebra.variable ?? "x";
+            for (const form of p.algebra.accepted) {
+                if (!(0, algebra_1.parsePolynomial)(form, variable)) {
+                    throw new Error(`structured item ${item.id}#${p.id}: accepted form "${form}" is outside the polynomial marker`);
+                }
+            }
+        }
+        if (p.response === "table") {
+            if (!p.table)
+                throw new Error(`structured item ${item.id}#${p.id}: a table part has no table`);
+            const blanks = p.table.rows.reduce((n, r) => n + r.cells.filter((c) => c.answer !== undefined).length, 0);
+            if (blanks < 1)
+                throw new Error(`structured item ${item.id}#${p.id}: a table part has no blank cell`);
+            if (p.marks !== blanks)
+                throw new Error(`structured item ${item.id}#${p.id}: a table part is one mark per blank cell (${blanks} blanks, ${p.marks} marks)`);
+            for (const row of p.table.rows) {
+                if (row.cells.length !== p.table.columns.length) {
+                    throw new Error(`structured item ${item.id}#${p.id}: a table row does not match its columns`);
+                }
+                for (const cell of row.cells) {
+                    if ((cell.given === undefined) === (cell.answer === undefined)) {
+                        throw new Error(`structured item ${item.id}#${p.id}: each table cell is either given or answered`);
+                    }
+                    if (cell.answer !== undefined && !Number.isFinite(cell.answer)) {
+                        throw new Error(`structured item ${item.id}#${p.id}: a table answer is not finite`);
+                    }
+                }
+            }
+        }
+        if (p.unitRequired && !p.unit) {
+            throw new Error(`structured item ${item.id}#${p.id}: a required unit has no unit`);
+        }
+        if (p.method && p.response && p.response !== "number") {
+            throw new Error(`structured item ${item.id}#${p.id}: a ${p.response} part cannot carry a typed method mark`);
+        }
+        if (p.method && (!Number.isInteger(p.method.marks) || p.method.marks < 1 || p.method.marks >= p.marks)) {
+            throw new Error(`structured item ${item.id}#${p.id}: a method mark must be at least 1 and leave an answer mark`);
+        }
+        if (p.method && p.method.accept.length === 0) {
+            throw new Error(`structured item ${item.id}#${p.id}: a method criterion accepts no working`);
+        }
+        // A GRAPH PART IS TWO CRITERIA AND NO WORKING BOX. Anything else is an
+        // authoring error this check exists to catch, rather than a mark scheme that
+        // silently awards nothing.
+        if (p.response === "graph") {
+            if (!p.graph)
+                throw new Error(`structured item ${item.id}#${p.id}: a graph part has no line`);
+            if (p.marks !== 2)
+                throw new Error(`structured item ${item.id}#${p.id}: a graph part is gradient + intercept, so 2 marks`);
+            if (p.method)
+                throw new Error(`structured item ${item.id}#${p.id}: a graph part has no typed method`);
+            if (p.graph.xMin >= p.graph.xMax || p.graph.yMin >= p.graph.yMax) {
+                throw new Error(`structured item ${item.id}#${p.id}: the graph bounds are not a range`);
+            }
+        }
+        if (p.response === "plot") {
+            if (!p.plot)
+                throw new Error(`structured item ${item.id}#${p.id}: a plot part has no points`);
+            if (p.marks !== 2)
+                throw new Error(`structured item ${item.id}#${p.id}: a plot part is the two-rung B2/B1 scheme, so 2 marks`);
+            if (p.method)
+                throw new Error(`structured item ${item.id}#${p.id}: a plot part has no typed method`);
+            const g = p.plot;
+            if (!(g.xMin < g.xMax && g.yMin < g.yMax)) {
+                throw new Error(`structured item ${item.id}#${p.id}: the plot bounds are not a range`);
+            }
+            if (g.points.length < 2)
+                throw new Error(`structured item ${item.id}#${p.id}: a line needs at least two required points`);
+            if (!Number.isInteger(g.partialMin) || g.partialMin < 2 || g.partialMin > g.points.length) {
+                throw new Error(`structured item ${item.id}#${p.id}: partialMin must be between 2 and the number of points`);
+            }
+            if (!(g.tolerance > 0))
+                throw new Error(`structured item ${item.id}#${p.id}: a plot tolerance must be positive`);
+            if (g.points.some((q) => q.x < g.xMin || q.x > g.xMax || q.y < g.yMin || q.y > g.yMax)) {
+                throw new Error(`structured item ${item.id}#${p.id}: a required point is outside the grid`);
+            }
+            if (!Number.isFinite(g.m) || !Number.isFinite(g.c)) {
+                throw new Error(`structured item ${item.id}#${p.id}: the intended line is not finite`);
+            }
+        }
+        if (p.response === "readoff") {
+            if (!p.readOff)
+                throw new Error(`structured item ${item.id}#${p.id}: a read-off part names no line`);
+            if (p.marks !== 1)
+                throw new Error(`structured item ${item.id}#${p.id}: a read-off part is 1 mark`);
+            if (!Number.isFinite(p.readOff.at) || !(p.readOff.tolerance > 0)) {
+                throw new Error(`structured item ${item.id}#${p.id}: a read-off needs an x and a positive tolerance`);
+            }
+        }
+    }
+    for (let i = 0; i < item.parts.length; i++) {
+        const p = item.parts[i];
+        if (p.response === "readoff" && p.readOff && !item.parts.slice(0, i).some((q) => q.id === p.readOff.from)) {
+            throw new Error(`structured item ${item.id}#${p.id}: read-off names part ${p.readOff.from}, which is not an earlier part`);
+        }
+    }
+}
+// ── Marking ─────────────────────────────────────────────────────────────────
+/** What a learner typed, in a form two spellings can be compared in: trimmed,
+ *  lower case, with the typographic minus and the non-breaking spaces a phone
+ *  keyboard produces folded to their ASCII equivalents. */
+function normaliseTyped(raw) {
+    return String(raw ?? "")
+        .replace(/[\u2212\u2013\u2014]/g, "-")
+        .replace(/[\u00a0\u2009\u202f]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+}
+/** TWO POINTS from `x,y x,y`. Numbers are read in order, parentheses and tidy
+ *  spaces are ignored, and anything else — a single point, prose, an expression —
+ *  is not a line and returns null. */
+function parseGraphPoints(raw) {
+    const nums = normaliseTyped(raw).match(/-?\d+(?:\.\d+)?/g);
+    if (!nums || nums.length < 4)
+        return null;
+    const v = nums.slice(0, 4).map(Number);
+    if (v.some((n) => !Number.isFinite(n)))
+        return null;
+    return [{ x: v[0], y: v[1] }, { x: v[2], y: v[3] }];
+}
+/** A PLOTTED ANSWER is points on this question's grid plus whether they were
+ *  joined. JSON rather than prose: a point is two numbers and a mark scheme that
+ *  parses them back out of a sentence is guessing. Everything malformed — bad
+ *  JSON, a non-finite value, a point off the grid, an oversized payload — is
+ *  refused here, before any mark can be computed. */
+function parsePlotAnswer(raw, g) {
+    if (!raw || raw.trim() === "")
+        return null;
+    let data;
+    try {
+        data = JSON.parse(raw);
+    }
+    catch {
+        return null;
+    }
+    if (!data || typeof data !== "object")
+        return null;
+    const obj = data;
+    if (!Array.isArray(obj.points) || obj.points.length > 24)
+        return null;
+    const inBounds = (p) => p.x >= g.xMin - 1e-9 && p.x <= g.xMax + 1e-9
+        && p.y >= g.yMin - 1e-9 && p.y <= g.yMax + 1e-9;
+    const point = (v) => {
+        if (!Array.isArray(v) || v.length !== 2)
+            return null;
+        const [x, y] = v;
+        if (typeof x !== "number" || typeof y !== "number" || !Number.isFinite(x) || !Number.isFinite(y))
+            return null;
+        const p = { x, y };
+        return inBounds(p) ? p : null;
+    };
+    const points = [];
+    for (const rawPoint of obj.points) {
+        const p = point(rawPoint);
+        if (!p)
+            return null;
+        if (!points.some((q) => q.x === p.x && q.y === p.y))
+            points.push(p);
+    }
+    // THE LINE IS EXPLICIT. `null` means no line was drawn; an object names the
+    // exact two points whose line the learner sees. A legacy `true` is accepted
+    // by deriving the line ONCE from the points and storing that derivation in
+    // the parsed answer, so an answer written before this format still marks.
+    let line = null;
+    if (obj.line === true) {
+        line = (0, plot_geometry_1.definingLine)(points);
+    }
+    else if (obj.line !== null) {
+        if (typeof obj.line !== "object" || Array.isArray(obj.line))
+            return null;
+        const l = obj.line;
+        const a = point(l.a);
+        const b = point(l.b);
+        if (!a || !b)
+            return null;
+        line = (0, plot_geometry_1.lineThrough)(a, b);
+        if (!line)
+            return null;
+    }
+    return { points, line };
+}
+/** WORKING, normalised harder than an answer: case and every space go, and the
+ *  multiplication signs a keyboard offers collapse to one, so `7.5 × 4`,
+ *  `7.5*4` and `7.5 x 4` are one method rather than three. */
+function normaliseWorking(raw) {
+    return normaliseTyped(raw)
+        .replace(/[×✕*]/g, "x")
+        .replace(/[£$]/g, "")
+        .replace(/[,\s]/g, "");
+}
+/** The spellings of a unit a learner may type. "m²" is one keystroke away from
+ *  "m2", and both name the same thing. */
+function unitForms(unit) {
+    const u = normaliseTyped(unit);
+    return [...new Set([u, u.replace(/²/g, "2"), u.replace(/²/g, "^2"), u.replace(/³/g, "3")])];
+}
+function carriesUnit(raw, unit) {
+    const s = normaliseTyped(raw);
+    return unitForms(unit).some((f) => s.endsWith(f));
+}
+function stripUnit(raw, unit) {
+    let s = normaliseTyped(raw);
+    for (const f of unitForms(unit).sort((a, b) => b.length - a.length)) {
+        if (s.endsWith(f)) {
+            s = s.slice(0, -f.length).trim();
+            break;
+        }
+    }
+    return s;
+}
+/** A typed answer as a number, with thousands separators tolerated and a leading
+ *  currency symbol dropped. Null when it is not a number at all. */
+function parseTypedNumber(raw, unit) {
+    let s = unit ? stripUnit(raw, unit) : normaliseTyped(raw);
+    s = s.replace(/[£$]/g, "").replace(/,/g, "").trim();
+    if (!/^-?\d+(?:\.\d+)?$/.test(s))
+        return null;
+    return Number(s);
+}
+/**
+ * Mark one item. Each part is independent, and inside a part each CRITERION is
+ * independent: a shown method earns its mark whatever the answer says.
+ */
+function gradeStructuredParts(partsIn, given, working = []) {
+    // Follow-through needs the line the learner ACTUALLY drew, kept as the parts
+    // are marked in order. A read-off part reads from this map, never from the
+    // question's coefficients.
+    const gradedLines = new Map();
+    const parts = partsIn.map((p, i) => {
+        const raw = typeof given?.[i] === "string" ? given[i] : "";
+        const shown = typeof working?.[i] === "string" ? working[i] : "";
+        const typed = normaliseTyped(raw);
+        // ── PLOTTED POINTS, MARKED ON THE SCHEME'S TWO RUNGS ────────────────
+        // 2 marks: every required point plotted AND joined by a straight line.
+        // 1 mark: at least `partialMin` required points plotted AND joined — the B1
+        // rung, which is about line intention rather than line quality. A correct
+        // set of points with no line is 0: the question asks for the graph, and two
+        // typed coordinates that were never joined are not the graph it asks for.
+        if (p.response === "plot" && p.plot) {
+            const g = p.plot;
+            const parsed = parsePlotAnswer(raw, g);
+            const criterion = (awarded, met, why) => ({
+                id: `${p.id}:plot`, kind: "accuracy", label: "required points plotted and joined",
+                awarded, marks: p.marks, met, why,
+            });
+            if (!parsed) {
+                return {
+                    partId: p.id, awarded: 0, marks: p.marks, correct: false, given: raw, working: "",
+                    criteria: [criterion(0, false, raw.trim()
+                            ? "The plotted answer could not be read: it must be points on this question's grid."
+                            : "No points were plotted.")],
+                };
+            }
+            const matched = g.points.filter((r) => parsed.points.some((s) => Math.abs(s.x - r.x) <= g.tolerance && Math.abs(s.y - r.y) <= g.tolerance));
+            const required = g.points.length;
+            // THE LINE THE LEARNER DREW, not one refitted here. `parsed.line` names the
+            // two points whose line the editor renders; the same object is what the
+            // read-off part below uses. Extra points cannot move it.
+            const line = parsed.line;
+            const coef = (0, plot_geometry_1.coefficients)(line);
+            const lineCorrect = !!coef
+                && Math.abs(coef.m - g.m) <= g.lineTolerance.m
+                && Math.abs(coef.c - g.c) <= g.lineTolerance.c;
+            const all = matched.length === required;
+            const some = matched.length >= g.partialMin;
+            // THE LINE MUST ACTUALLY JOIN THE POINTS. Four correct dots with a line
+            // drawn somewhere else is not "all points joined"; it is B1 intention at
+            // best. A line that passes through every required point joins them by
+            // definition (and a correctly placed line implies them even if no dots
+            // were plotted, AQA's own note).
+            const joinsAll = all && line !== null && g.points.every((r) => {
+                if (line.a.x === line.b.x)
+                    return Math.abs(r.x - line.a.x) <= g.tolerance;
+                const y = (0, plot_geometry_1.valueAt)(line, r.x);
+                return y !== null && Math.abs(y - r.y) <= g.tolerance;
+            });
+            const awarded = line ? (joinsAll || lineCorrect ? 2 : some ? 1 : 0) : 0;
+            // Follow-through exists only once the plot earns a mark: a line with no
+            // credited points is not the B1 rung the read-off part depends on.
+            if (line && awarded >= 1)
+                gradedLines.set(p.id, line);
+            const why = awarded === 2
+                ? lineCorrect && !joinsAll
+                    ? `The line is correctly placed; its position implies the ${required} required points, so the plot earns the full mark.`
+                    : `All ${required} required points are plotted and joined by a straight line.`
+                : awarded === 1
+                    ? `${matched.length} of the ${required} required points are plotted and joined — at least ${g.partialMin} with a line earns the partial mark.`
+                    : !line
+                        ? `${matched.length} of the ${required} required points are plotted, but no straight line joins them.`
+                        : `Only ${matched.length} of the ${required} required points are plotted, so the line cannot earn the plot mark.`;
+            return {
+                partId: p.id, awarded, marks: p.marks, correct: awarded === p.marks, given: raw, working: "",
+                criteria: [criterion(awarded, awarded === p.marks, why)],
+            };
+        }
+        // ── A VALUE READ FROM THE LEARNER'S OWN LINE ─────────────────────────
+        // Follow-through: the earlier part need not be right, only DRAWN. If the
+        // learner plotted a shifted line and read their own graph correctly, that is
+        // the skill this mark is for. No line from the earlier part, no mark.
+        if (p.response === "readoff" && p.readOff) {
+            const ro = p.readOff;
+            const nums = normaliseTyped(raw).match(/-?\d+(?:\.\d+)?/g);
+            const criterion = (met, why) => ({
+                id: `${p.id}:read`, kind: "accuracy", label: "value read from your own line",
+                awarded: met ? 1 : 0, marks: p.marks, met, why,
+            });
+            if (!nums) {
+                return {
+                    partId: p.id, awarded: 0, marks: p.marks, correct: false, given: raw, working: "",
+                    criteria: [criterion(false, "No value was read from the graph.")],
+                };
+            }
+            const value = Number(nums[0]);
+            const line = gradedLines.get(ro.from);
+            const expected = (0, plot_geometry_1.valueAt)(line, ro.at);
+            if (expected === null) {
+                return {
+                    partId: p.id, awarded: 0, marks: p.marks, correct: false, given: raw, working: "",
+                    criteria: [criterion(false, "There is no line from the earlier part to read from.")],
+                };
+            }
+            const met = Math.abs(value - expected) <= ro.tolerance;
+            return {
+                partId: p.id, awarded: met ? 1 : 0, marks: p.marks, correct: met, given: raw, working: "",
+                criteria: [criterion(met, met
+                        ? `Read from the line you drew: at x = ${ro.at}, y = ${Number(expected.toFixed(2))}.`
+                        : `On the line you drew, x = ${ro.at} gives y = ${Number(expected.toFixed(2))}, not ${value}.`)],
+            };
+        }
+        // ── AN ALGEBRAIC EXPRESSION, MARKED BY EQUIVALENCE ────────────────
+        // `2(x + 3)` and `2x + 6` are the same answer. The marker compares the
+        // polynomial the learner typed with every authored accepted form, so an
+        // equivalent route is not marked wrong for spelling. Division, roots and
+        // equations are outside this contract and parse to null — a question that
+        // needs them must not use an `algebra` part until a marker supports them.
+        if (p.response === "algebra" && p.algebra) {
+            const variable = p.algebra.variable ?? "x";
+            const criterion = (met, why) => ({
+                id: `${p.id}:A1`, kind: "accuracy", label: "mathematically equivalent expression",
+                awarded: met ? p.marks : 0, marks: p.marks, met, why,
+            });
+            if (typed === "") {
+                return {
+                    partId: p.id, awarded: 0, marks: p.marks, correct: false, given: raw, working: "",
+                    criteria: [criterion(false, "No expression was given.")],
+                };
+            }
+            const parsed = (0, algebra_1.parsePolynomial)(raw, variable);
+            if (!parsed) {
+                return {
+                    partId: p.id, awarded: 0, marks: p.marks, correct: false, given: raw, working: "",
+                    criteria: [criterion(false, `This marker checks polynomial expressions in ${variable}. The entry could not be read as one.`)],
+                };
+            }
+            const equivalent = (0, algebra_1.algebraEquivalent)(raw, p.algebra.accepted, variable);
+            const wrongForm = !!p.algebra.requireExpanded && /[()]/.test(raw);
+            const met = equivalent && !wrongForm;
+            return {
+                partId: p.id, awarded: met ? p.marks : 0, marks: p.marks, correct: met, given: raw, working: "",
+                criteria: [criterion(met, wrongForm
+                        ? `Your expression is equivalent, but the question asks for the expanded form — remove the brackets.`
+                        : met
+                            ? `Your expression is equivalent to ${p.algebra.accepted[0]}.`
+                            : `Your expression expands to ${(0, algebra_1.formatPolynomial)(parsed, variable)}, which is not equivalent to the required expression.`)],
+            };
+        }
+        // ── A COMPLETED TABLE, ONE MARK PER BLANK CELL ──────────────────────
+        // The value is JSON, one string per editable cell in reading order. Each
+        // cell is its own criterion, so a learner who completes three of four values
+        // keeps three marks and is told which cell failed. The cells that were
+        // printed in the question are not editable and are not marked.
+        if (p.response === "table" && p.table) {
+            const blanks = p.table.rows.flatMap((row) => row.cells.filter((c) => c.answer !== undefined));
+            let values;
+            try {
+                values = JSON.parse(raw);
+            }
+            catch {
+                values = null;
+            }
+            const givenCells = Array.isArray(values) ? values : [];
+            const criteria = blanks.map((cell, i) => {
+                const entry = typeof givenCells[i] === "string" ? givenCells[i] : "";
+                const value = (0, answer_1.parseNumericInput)(entry, cell.unit);
+                const accepted = (cell.accepted ?? []).some((a) => normaliseTyped(a) === normaliseTyped(entry));
+                const numeric = value !== null && cell.answer !== undefined && (0, answer_1.gradeNumeric)(value, cell.answer, cell.tolerance);
+                const met = entry.trim() !== "" && (accepted || numeric);
+                return {
+                    id: `${p.id}:cell${i + 1}`, kind: "accuracy", label: `cell ${i + 1}`,
+                    awarded: met ? 1 : 0, marks: 1, met,
+                    why: entry.trim() === "" ? "This cell was left blank."
+                        : met ? "The value in this cell is correct."
+                            : cell.answer !== undefined ? `The value in this cell is not correct.` : "This cell is not correct.",
+                };
+            });
+            const awarded = criteria.reduce((n, c) => n + c.awarded, 0);
+            return {
+                partId: p.id, awarded, marks: p.marks, correct: awarded === p.marks,
+                given: raw, working: "", criteria,
+            };
+        }
+        // ── A LINE, MARKED FROM ITS GEOMETRY ─────────────────────────────────
+        // Gradient first, then intercept, each its own mark and its own reason. Two
+        // learners who choose different points on the same line get the same marks:
+        // the endpoints are a way of stating the line, not the answer.
+        if (p.response === "graph" && p.graph) {
+            const g = p.graph;
+            const pts = parseGraphPoints(raw);
+            const criterion = (id, label, met, why) => ({ id, kind: "accuracy", label, awarded: met ? 1 : 0, marks: 1, met, why });
+            const missing = (why) => ({
+                partId: p.id, awarded: 0, marks: p.marks, correct: false, given: raw, working: "",
+                criteria: [
+                    criterion(`${p.id}:gradient`, "correct gradient", false, why),
+                    criterion(`${p.id}:intercept`, "correct y-intercept", false, why),
+                ],
+            });
+            if (!pts)
+                return missing("No line was given: enter two points, as x,y and x,y.");
+            const [a, b] = pts;
+            const outside = [a, b].some((q) => q.x < g.xMin || q.x > g.xMax || q.y < g.yMin || q.y > g.yMax);
+            if (outside)
+                return missing("One of the points is outside the grid this question shows.");
+            if (a.x === b.x)
+                return missing("Both points have the same x, which is a vertical line — it has no gradient of this form.");
+            const line = (0, plot_geometry_1.lineThrough)(a, b);
+            const coef = (0, plot_geometry_1.coefficients)(line);
+            if (!line || !coef)
+                return missing("Those two points do not define a line.");
+            const { m, c } = coef;
+            // The line the learner GAVE is what part (d) reads from — even when it is
+            // the wrong line. That is follow-through, and it is why the geometry is
+            // stored before the marks are known.
+            gradedLines.set(p.id, line);
+            const gm = Math.abs(m - g.m) <= g.tolerance.m;
+            const gc = Math.abs(c - g.c) <= g.tolerance.c;
+            const criteria = [
+                criterion(`${p.id}:gradient`, "correct gradient", gm, gm ? `The gradient is ${g.m}.` : `The gradient of the line through your points is ${Number(m.toFixed(2))}, not ${g.m}.`),
+                criterion(`${p.id}:intercept`, "correct y-intercept", gc, gc ? `The line crosses the y-axis at ${g.c}.` : `Your line crosses the y-axis at ${Number(c.toFixed(2))}, not ${g.c}.`),
+            ];
+            const awarded = criteria.reduce((n, x) => n + x.awarded, 0);
+            return {
+                partId: p.id, awarded, marks: p.marks, correct: awarded === p.marks,
+                given: raw, working: "", criteria,
+            };
+        }
+        const methodMarks = p.method?.marks ?? 0;
+        const answerMarks = p.marks - methodMarks;
+        // ── The method criterion ────────────────────────────────────────────────
+        const methodWork = normaliseWorking(shown);
+        const methodMet = !!p.method && methodWork !== ""
+            && p.method.accept.some((a) => normaliseWorking(a) === methodWork);
+        const methodWhy = !p.method ? "" : methodMet
+            ? `The working shows ${p.method.label}.`
+            : methodWork === ""
+                ? "No working was shown, so the method mark could not be awarded."
+                : `The working does not match a form of ${p.method.label} this question can check.`;
+        // ── The answer criterion ────────────────────────────────────────────────
+        const accepted = (p.accepted ?? []).some((a) => normaliseTyped(a) === typed);
+        const value = parseTypedNumber(raw, p.unit);
+        const numeric = value !== null && typeof p.answer === "number" && (0, answer_1.gradeNumeric)(value, p.answer, p.tolerance);
+        // THE UNIT GATE belongs to the ANSWER criterion, and it survives the split
+        // from the method criterion: `30` with the unit missing is not `30 m²`, and
+        // a scheme that accepts the bare number marks a unit error as correct.
+        const unitOk = !p.unitRequired || !p.unit || carriesUnit(raw, p.unit);
+        const answerCorrect = typed !== "" && unitOk && (accepted || numeric);
+        const answerWhy = typed === ""
+            ? "No answer was given."
+            : answerCorrect
+                ? "The answer is correct."
+                : p.unitRequired && p.unit && !carriesUnit(raw, p.unit)
+                    ? `The answer is missing its unit (${p.unit}).`
+                    : "The answer is not correct.";
+        const criteria = [];
+        if (p.method) {
+            criteria.push({
+                id: p.method.id, kind: "method", label: p.method.label,
+                awarded: methodMet ? p.method.marks : 0, marks: p.method.marks,
+                met: methodMet, why: methodWhy,
+            });
+        }
+        criteria.push({
+            id: `${p.id}:A1`, kind: "accuracy", label: "correct answer",
+            awarded: answerCorrect ? answerMarks : 0, marks: answerMarks,
+            met: answerCorrect, why: answerWhy,
+        });
+        const awarded = Math.min(criteria.reduce((n, c) => n + c.awarded, 0), p.marks);
+        return {
+            partId: p.id, awarded, marks: p.marks,
+            correct: criteria.every((c) => c.met),
+            given: raw, working: shown, criteria,
+        };
+    });
+    const awarded = parts.reduce((n, p) => n + p.awarded, 0);
+    const marks = parts.reduce((n, p) => n + p.marks, 0);
+    return {
+        parts: parts.map((p) => ({ ...p, awarded: Math.min(p.awarded, p.marks) })),
+        awarded: Math.min(awarded, marks),
+        marks,
+        answered: parts.filter((p) => p.given !== "" || p.working !== "").length,
+    };
+}
+/** The item-shaped door, for a caller that holds the item itself. The key stores
+ *  the parts, so marking a SAVED sitting goes through `gradeStructuredParts` and
+ *  never needs the registry. */
+function gradeStructuredItem(item, given, working = []) {
+    return gradeStructuredParts(item.parts, given, working);
+}
+
+});
 __def("subjects.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -58404,7 +60654,7 @@ function canTransfer(conceptId) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 69 },
+      meta: { modules: 72 },
     };
   });
   return __req("__entry__.js");

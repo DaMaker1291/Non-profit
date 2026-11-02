@@ -5,9 +5,11 @@ Nothing in this file is generated against held-out or scrubbed content: it is th
 
 - **Course:** GCSE (GB · aqa), tiers Foundation tier and Higher tier
 - **Concepts:** 15 — computed from the genome's prerequisite graph, anchored on `surds`, `completing-square`, `fractions`, `fraction-ops`, `percentages`
-- **Items:** 154 draws at fixed seeds, reproducible one by one
+- **Items:** 149 draws at fixed seeds, reproducible one by one
 - **Already verified by machine:** 3 of 15 have their answer re-derived from the prompt (`npm run verify:q`); the other 12 are structurally checked only, which is precisely what a human is here to add
 - **Human-reviewed:** 0. This pack does not review anything; it is what a reviewer reads, and their answers are recorded per concept.
+
+> This pack covers generated multiple-choice and numeric items. The method-marked constructed-response items are in the separate [structured review addendum](./STRUCTURED_REVIEW_PACK.md).
 
 ## What the reviewer is asked to do
 
@@ -29,7 +31,7 @@ A concept counts as reviewed only when every item type in it has been read. The 
   "reviewer": "R. Okafor (GCSE maths lead)",
   "reviewedOn": "2026-11-02",
   "checklistVersion": 1,
-  "scope": "all 11 draws below, every explanation read",
+  "scope": "all 6 draws below, every explanation read",
   "notes": "found one distractor ambiguous; the item is flagged for a rewrite"
 }
 ```
@@ -58,9 +60,9 @@ No learner names, no class data, no individual results. The pack is content only
 | 12 | Straight line graphs (`straight-lines`) | 2 | foundation, higher | 12 | structure only | 1 |
 | 13 | Completing the square (`completing-square`) | 3 | higher | 6 | answer re-derived | 1 |
 | 14 | Quadratic equations (`quadratics`) | 3 | foundation, higher | 11 | structure only | 1 |
-| 15 | Surds (`surds`) | 3 | foundation, higher | 11 | answer re-derived | 1 |
+| 15 | Surds (`surds`) | 3 | higher | 6 | answer re-derived | 1 |
 
-Total: **154 items across 15 concepts** (14 reachable in Foundation, 13 in Higher).
+Total: **149 items across 15 concepts** (13 reachable in Foundation, 13 in Higher).
 
 ## The items
 
@@ -151,7 +153,7 @@ A. 20.6 kg
 C. 12.3 kg
 D. 20.4 kg
 
-- Explanation given: Line up the decimal points and add: 6.4 + 5.9 + 8.2 = 20.5 kg. Adding only the first two (12.3) drops a sample.
+- Explanation given: The table gives three separate masses, so all three must be added: 6.4 + 5.9 + 8.2 = 20.5 kg. Lining up the decimal points keeps tenths with tenths, which is why the sum has one decimal place; adding only the first two (12.3) drops the third sample and answers a different question.
 - Difficulty as served: 0.75 (tier target 0.65)
 - Reproduce it: `pilot:decimals:higher:0` at the higher target
 
@@ -166,7 +168,7 @@ B. 15.6 kg
 **C. 15.7 kg** ✓ key
 D. 6.7 kg
 
-- Explanation given: Line up the decimal points and add: 3.7 + 3 + 9 = 15.7 kg. Adding only the first two (6.7) drops a sample.
+- Explanation given: The table gives three separate masses, so all three must be added: 3.7 + 3 + 9 = 15.7 kg. Lining up the decimal points keeps tenths with tenths, which is why the sum has one decimal place; adding only the first two (6.7) drops the third sample and answers a different question.
 - Difficulty as served: 0.76 (tier target 0.65)
 - Reproduce it: `pilot:decimals:higher:1` at the higher target
 
@@ -181,7 +183,7 @@ B. 13 kg
 **C. 21.6 kg** ✓ key
 D. 21.5 kg
 
-- Explanation given: Line up the decimal points and add: 7.7 + 5.3 + 8.6 = 21.6 kg. Adding only the first two (13) drops a sample.
+- Explanation given: The table gives three separate masses, so all three must be added: 7.7 + 5.3 + 8.6 = 21.6 kg. Lining up the decimal points keeps tenths with tenths, which is why the sum has one decimal place; adding only the first two (13) drops the third sample and answers a different question.
 - Difficulty as served: 0.79 (tier target 0.65)
 - Reproduce it: `pilot:decimals:higher:2` at the higher target
 
@@ -196,7 +198,7 @@ B. 13.9 kg
 C. 22.3 kg
 D. 22.1 kg
 
-- Explanation given: Line up the decimal points and add: 8.4 + 5.5 + 8.3 = 22.2 kg. Adding only the first two (13.9) drops a sample.
+- Explanation given: The table gives three separate masses, so all three must be added: 8.4 + 5.5 + 8.3 = 22.2 kg. Lining up the decimal points keeps tenths with tenths, which is why the sum has one decimal place; adding only the first two (13.9) drops the third sample and answers a different question.
 - Difficulty as served: 0.76 (tier target 0.65)
 - Reproduce it: `pilot:decimals:higher:3` at the higher target
 
@@ -211,7 +213,7 @@ B. 13.6 kg
 C. 6 kg
 D. 13.4 kg
 
-- Explanation given: Line up the decimal points and add: 2.3 + 3.7 + 7.5 = 13.5 kg. Adding only the first two (6) drops a sample.
+- Explanation given: The table gives three separate masses, so all three must be added: 2.3 + 3.7 + 7.5 = 13.5 kg. Lining up the decimal points keeps tenths with tenths, which is why the sum has one decimal place; adding only the first two (6) drops the third sample and answers a different question.
 - Difficulty as served: 0.75 (tier target 0.65)
 - Reproduce it: `pilot:decimals:higher:4` at the higher target
 
@@ -226,7 +228,7 @@ A. 9.9 kg
 C. 8.1 kg
 D. 9.7 kg
 
-- Explanation given: Line up the decimal points and add: 5.1 + 3 + 1.7 = 9.8 kg. Adding only the first two (8.1) drops a sample.
+- Explanation given: The table gives three separate masses, so all three must be added: 5.1 + 3 + 1.7 = 9.8 kg. Lining up the decimal points keeps tenths with tenths, which is why the sum has one decimal place; adding only the first two (8.1) drops the third sample and answers a different question.
 - Difficulty as served: 0.76 (tier target 0.65)
 - Reproduce it: `pilot:decimals:higher:5` at the higher target
 
@@ -347,7 +349,7 @@ B. 14
 C. 28
 **D. 21** ✓ key
 
-- Explanation given: First step: 3/4 of 56 = 42 tickets online. Second step: 1/2 OF THOSE is 42 ÷ 2 = 21. The second fraction acts on what the first left, not on the original 56.
+- Explanation given: First find the online tickets: 3/4 of 56 = 42. The refund acts on THOSE tickets, not on the whole hall: 1/2 of 42 is 42 ÷ 2 = 21. Taking 1/2 of the original 56 instead uses the wrong base, which is where 28 comes from.
 - Difficulty as served: 0.60 (tier target 0.65)
 - Reproduce it: `pilot:fractions:higher:3` at the higher target
 
@@ -614,7 +616,7 @@ B. £48
 C. £25
 **D. £53** ✓ key
 
-- Explanation given: The fare rises £16 over 4 miles, so the rate is £4 per mile and the fixed charge is £5. For 12 miles: £5 + 4 × 12 = £53. Ignoring the fixed charge gives £48.
+- Explanation given: The fare rises £16 between the two rows, and that increase buys 4 extra miles, so each mile costs £4; that is the gradient. The fixed charge is the part that does not change with distance: £25 − 4 × 5 = £5. For 12 miles the fare is the fixed charge plus the mileage, £5 + 4 × 12 = £53. Charging only the mileage (£48) forgets the fixed charge, and reading the first row as the fixed charge ignores its miles.
 - Difficulty as served: 0.78 (tier target 0.65)
 - Reproduce it: `pilot:algebra-expressions:higher:0` at the higher target
 
@@ -628,7 +630,7 @@ A. £66
 C. £32
 D. £80
 
-- Explanation given: The fare rises £12 over 2 miles, so the rate is £6 per mile and the fixed charge is £8. For 11 miles: £8 + 6 × 11 = £74. Ignoring the fixed charge gives £66.
+- Explanation given: The fare rises £12 between the two rows, and that increase buys 2 extra miles, so each mile costs £6; that is the gradient. The fixed charge is the part that does not change with distance: £32 − 6 × 4 = £8. For 11 miles the fare is the fixed charge plus the mileage, £8 + 6 × 11 = £74. Charging only the mileage (£66) forgets the fixed charge, and reading the first row as the fixed charge ignores its miles.
 - Difficulty as served: 0.78 (tier target 0.65)
 - Reproduce it: `pilot:algebra-expressions:higher:1` at the higher target
 
@@ -642,7 +644,7 @@ B. £96
 C. £42
 D. £84
 
-- Explanation given: The fare rises £24 over 4 miles, so the rate is £6 per mile and the fixed charge is £6. For 14 miles: £6 + 6 × 14 = £90. Ignoring the fixed charge gives £84.
+- Explanation given: The fare rises £24 between the two rows, and that increase buys 4 extra miles, so each mile costs £6; that is the gradient. The fixed charge is the part that does not change with distance: £42 − 6 × 6 = £6. For 14 miles the fare is the fixed charge plus the mileage, £6 + 6 × 14 = £90. Charging only the mileage (£84) forgets the fixed charge, and reading the first row as the fixed charge ignores its miles.
 - Difficulty as served: 0.78 (tier target 0.65)
 - Reproduce it: `pilot:algebra-expressions:higher:2` at the higher target
 
@@ -656,7 +658,7 @@ B. £31
 C. £86
 D. £75
 
-- Explanation given: The fare rises £20 over 4 miles, so the rate is £5 per mile and the fixed charge is £6. For 15 miles: £6 + 5 × 15 = £81. Ignoring the fixed charge gives £75.
+- Explanation given: The fare rises £20 between the two rows, and that increase buys 4 extra miles, so each mile costs £5; that is the gradient. The fixed charge is the part that does not change with distance: £31 − 5 × 5 = £6. For 15 miles the fare is the fixed charge plus the mileage, £6 + 5 × 15 = £81. Charging only the mileage (£75) forgets the fixed charge, and reading the first row as the fixed charge ignores its miles.
 - Difficulty as served: 0.78 (tier target 0.65)
 - Reproduce it: `pilot:algebra-expressions:higher:3` at the higher target
 
@@ -670,7 +672,7 @@ A. £28
 C. £56
 D. £44
 
-- Explanation given: The fare rises £8 over 2 miles, so the rate is £4 per mile and the fixed charge is £8. For 11 miles: £8 + 4 × 11 = £52. Ignoring the fixed charge gives £44.
+- Explanation given: The fare rises £8 between the two rows, and that increase buys 2 extra miles, so each mile costs £4; that is the gradient. The fixed charge is the part that does not change with distance: £28 − 4 × 5 = £8. For 11 miles the fare is the fixed charge plus the mileage, £8 + 4 × 11 = £52. Charging only the mileage (£44) forgets the fixed charge, and reading the first row as the fixed charge ignores its miles.
 - Difficulty as served: 0.78 (tier target 0.65)
 - Reproduce it: `pilot:algebra-expressions:higher:4` at the higher target
 
@@ -684,7 +686,7 @@ B. £62
 **C. £57** ✓ key
 D. £27
 
-- Explanation given: The fare rises £15 over 3 miles, so the rate is £5 per mile and the fixed charge is £2. For 11 miles: £2 + 5 × 11 = £57. Ignoring the fixed charge gives £55.
+- Explanation given: The fare rises £15 between the two rows, and that increase buys 3 extra miles, so each mile costs £5; that is the gradient. The fixed charge is the part that does not change with distance: £27 − 5 × 5 = £2. For 11 miles the fare is the fixed charge plus the mileage, £2 + 5 × 11 = £57. Charging only the mileage (£55) forgets the fixed charge, and reading the first row as the fixed charge ignores its miles.
 - Difficulty as served: 0.78 (tier target 0.65)
 - Reproduce it: `pilot:algebra-expressions:higher:5` at the higher target
 
@@ -706,7 +708,7 @@ B. 20
 **C. √20** ✓ key
 D. 6
 
-- Explanation given: Distance from the origin is Pythagoras: d = √(x² + y²) = √(-4² + 2²) = √20. Adding |x| + |y| measures the staircase walk, not the straight line.
+- Explanation given: The horizontal and vertical distances from the origin are the legs of a right-angled triangle: 4 across and 2 up. Pythagoras adds their SQUARES and takes the root, so d = √((−4)² + (2)²) = √(16 + 4) = √20. Adding 4 + 2 measures the staircase walk along the grid, which is longer than the straight line; subtracting the coordinates measures a difference, not a distance.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:coordinates:foundation:0` at the foundation target
 
@@ -717,7 +719,7 @@ B. 3
 **C. √17** ✓ key
 D. 17
 
-- Explanation given: Distance from the origin is Pythagoras: d = √(x² + y²) = √(-1² + 4²) = √17. Adding |x| + |y| measures the staircase walk, not the straight line.
+- Explanation given: The horizontal and vertical distances from the origin are the legs of a right-angled triangle: 1 across and 4 up. Pythagoras adds their SQUARES and takes the root, so d = √((−1)² + (4)²) = √(1 + 16) = √17. Adding 1 + 4 measures the staircase walk along the grid, which is longer than the straight line; subtracting the coordinates measures a difference, not a distance.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:coordinates:foundation:1` at the foundation target
 
@@ -728,7 +730,7 @@ B. 10
 C. 4
 D. 2
 
-- Explanation given: Distance from the origin is Pythagoras: d = √(x² + y²) = √(-1² + 3²) = √10. Adding |x| + |y| measures the staircase walk, not the straight line.
+- Explanation given: The horizontal and vertical distances from the origin are the legs of a right-angled triangle: 1 across and 3 up. Pythagoras adds their SQUARES and takes the root, so d = √((−1)² + (3)²) = √(1 + 9) = √10. Adding 1 + 3 measures the staircase walk along the grid, which is longer than the straight line; subtracting the coordinates measures a difference, not a distance.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:coordinates:foundation:2` at the foundation target
 
@@ -739,7 +741,7 @@ B. 7
 **C. √29** ✓ key
 D. 3
 
-- Explanation given: Distance from the origin is Pythagoras: d = √(x² + y²) = √(5² + 2²) = √29. Adding |x| + |y| measures the staircase walk, not the straight line.
+- Explanation given: The horizontal and vertical distances from the origin are the legs of a right-angled triangle: 5 across and 2 up. Pythagoras adds their SQUARES and takes the root, so d = √((5)² + (2)²) = √(25 + 4) = √29. Adding 5 + 2 measures the staircase walk along the grid, which is longer than the straight line; subtracting the coordinates measures a difference, not a distance.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:coordinates:foundation:3` at the foundation target
 
@@ -750,7 +752,7 @@ B. 41
 C. 1
 **D. √41** ✓ key
 
-- Explanation given: Distance from the origin is Pythagoras: d = √(x² + y²) = √(5² + -4²) = √41. Adding |x| + |y| measures the staircase walk, not the straight line.
+- Explanation given: The horizontal and vertical distances from the origin are the legs of a right-angled triangle: 5 across and 4 up. Pythagoras adds their SQUARES and takes the root, so d = √((5)² + (−4)²) = √(25 + 16) = √41. Adding 5 + 4 measures the staircase walk along the grid, which is longer than the straight line; subtracting the coordinates measures a difference, not a distance.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:coordinates:foundation:4` at the foundation target
 
@@ -761,7 +763,7 @@ B. 1
 C. 7
 **D. 5** ✓ key
 
-- Explanation given: Distance from the origin is Pythagoras: d = √(x² + y²) = √(3² + -4²) = 5. Adding |x| + |y| measures the staircase walk, not the straight line.
+- Explanation given: The horizontal and vertical distances from the origin are the legs of a right-angled triangle: 3 across and 4 up. Pythagoras adds their SQUARES and takes the root, so d = √((3)² + (−4)²) = √(9 + 16) = √25 = 5. Adding 3 + 4 measures the staircase walk along the grid, which is longer than the straight line; subtracting the coordinates measures a difference, not a distance.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:coordinates:foundation:5` at the foundation target
 
@@ -775,7 +777,7 @@ B. (19, 6)
 C. (36, 12)
 D. (4, 8)
 
-- Explanation given: The midpoint averages each coordinate: x is (16 + 20) ÷ 2 = 18 and y is (2 + 10) ÷ 2 = 6, giving (18, 6). Adding the coordinates instead of averaging gives (36, 12).
+- Explanation given: The midpoint is halfway between the two points, so each coordinate is the AVERAGE of the two: x is (16 + 20) ÷ 2 = 18, and y is (2 + 10) ÷ 2 = 6, giving (18, 6). Adding the coordinates instead of averaging gives (36, 12), which is twice the midpoint and lies beyond both markers rather than between them.
 - Difficulty as served: 0.76 (tier target 0.65)
 - Reproduce it: `pilot:coordinates:higher:0` at the higher target
 
@@ -789,7 +791,7 @@ B. (42, 34)
 **C. (21, 17)** ✓ key
 D. (6, 10)
 
-- Explanation given: The midpoint averages each coordinate: x is (18 + 24) ÷ 2 = 21 and y is (12 + 22) ÷ 2 = 17, giving (21, 17). Adding the coordinates instead of averaging gives (42, 34).
+- Explanation given: The midpoint is halfway between the two points, so each coordinate is the AVERAGE of the two: x is (18 + 24) ÷ 2 = 21, and y is (12 + 22) ÷ 2 = 17, giving (21, 17). Adding the coordinates instead of averaging gives (42, 34), which is twice the midpoint and lies beyond both markers rather than between them.
 - Difficulty as served: 0.76 (tier target 0.65)
 - Reproduce it: `pilot:coordinates:higher:1` at the higher target
 
@@ -803,7 +805,7 @@ B. (4, 10)
 C. (6, 20)
 **D. (3, 10)** ✓ key
 
-- Explanation given: The midpoint averages each coordinate: x is (2 + 4) ÷ 2 = 3 and y is (4 + 16) ÷ 2 = 10, giving (3, 10). Adding the coordinates instead of averaging gives (6, 20).
+- Explanation given: The midpoint is halfway between the two points, so each coordinate is the AVERAGE of the two: x is (2 + 4) ÷ 2 = 3, and y is (4 + 16) ÷ 2 = 10, giving (3, 10). Adding the coordinates instead of averaging gives (6, 20), which is twice the midpoint and lies beyond both markers rather than between them.
 - Difficulty as served: 0.76 (tier target 0.65)
 - Reproduce it: `pilot:coordinates:higher:2` at the higher target
 
@@ -817,7 +819,7 @@ B. (4, 6)
 C. (36, 26)
 **D. (18, 13)** ✓ key
 
-- Explanation given: The midpoint averages each coordinate: x is (16 + 20) ÷ 2 = 18 and y is (10 + 16) ÷ 2 = 13, giving (18, 13). Adding the coordinates instead of averaging gives (36, 26).
+- Explanation given: The midpoint is halfway between the two points, so each coordinate is the AVERAGE of the two: x is (16 + 20) ÷ 2 = 18, and y is (10 + 16) ÷ 2 = 13, giving (18, 13). Adding the coordinates instead of averaging gives (36, 26), which is twice the midpoint and lies beyond both markers rather than between them.
 - Difficulty as served: 0.77 (tier target 0.65)
 - Reproduce it: `pilot:coordinates:higher:3` at the higher target
 
@@ -831,7 +833,7 @@ B. (13, 10)
 C. (8, 4)
 D. (24, 20)
 
-- Explanation given: The midpoint averages each coordinate: x is (8 + 16) ÷ 2 = 12 and y is (8 + 12) ÷ 2 = 10, giving (12, 10). Adding the coordinates instead of averaging gives (24, 20).
+- Explanation given: The midpoint is halfway between the two points, so each coordinate is the AVERAGE of the two: x is (8 + 16) ÷ 2 = 12, and y is (8 + 12) ÷ 2 = 10, giving (12, 10). Adding the coordinates instead of averaging gives (24, 20), which is twice the midpoint and lies beyond both markers rather than between them.
 - Difficulty as served: 0.77 (tier target 0.65)
 - Reproduce it: `pilot:coordinates:higher:4` at the higher target
 
@@ -845,7 +847,7 @@ B. (6, 12)
 **C. (13, 24)** ✓ key
 D. (26, 48)
 
-- Explanation given: The midpoint averages each coordinate: x is (10 + 16) ÷ 2 = 13 and y is (18 + 30) ÷ 2 = 24, giving (13, 24). Adding the coordinates instead of averaging gives (26, 48).
+- Explanation given: The midpoint is halfway between the two points, so each coordinate is the AVERAGE of the two: x is (10 + 16) ÷ 2 = 13, and y is (18 + 30) ÷ 2 = 24, giving (13, 24). Adding the coordinates instead of averaging gives (26, 48), which is twice the midpoint and lies beyond both markers rather than between them.
 - Difficulty as served: 0.77 (tier target 0.65)
 - Reproduce it: `pilot:coordinates:higher:5` at the higher target
 
@@ -889,7 +891,7 @@ B. 9/11
 **C. 9/10** ✓ key
 D. 6/15
 
-- Explanation given: Keep–flip–multiply: 3/5 × 3/2 = 9/10 = 9/10. Dividing by 2/3 asks how many of them fit.
+- Explanation given: Keep the first fraction, flip the second and multiply: 3/5 × 3/2 = 9/10. The flip works because dividing by 2/3 asks how many groups of 2/3 fit into 3/5, and multiplying by 3/2 counts exactly those groups. Multiplying straight across without flipping (6/15) answers a different question, so it is not the same division.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:fraction-ops:foundation:2` at the foundation target
 
@@ -900,7 +902,7 @@ B. 5/7
 C. 6/5
 D. 3/10
 
-- Explanation given: Keep–flip–multiply: 1/2 × 5/3 = 5/6 = 5/6. Dividing by 3/5 asks how many of them fit.
+- Explanation given: Keep the first fraction, flip the second and multiply: 1/2 × 5/3 = 5/6. The flip works because dividing by 3/5 asks how many groups of 3/5 fit into 1/2, and multiplying by 5/3 counts exactly those groups. Multiplying straight across without flipping (3/10) answers a different question, so it is not the same division.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:fraction-ops:foundation:3` at the foundation target
 
@@ -911,7 +913,7 @@ B. 8/15
 C. 10/12
 D. 12/11
 
-- Explanation given: Keep–flip–multiply: 4/5 × 3/2 = 12/10 = 6/5. Dividing by 2/3 asks how many of them fit.
+- Explanation given: Keep the first fraction, flip the second and multiply: 4/5 × 3/2 = 12/10 = 6/5 after dividing top and bottom by 2. The flip works because dividing by 2/3 asks how many groups of 2/3 fit into 4/5, and multiplying by 3/2 counts exactly those groups. Multiplying straight across without flipping (8/15) answers a different question, so it is not the same division.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:fraction-ops:foundation:4` at the foundation target
 
@@ -922,7 +924,7 @@ B. 9/6
 C. 3/15
 D. 5/9
 
-- Explanation given: Keep–flip–multiply: 3/5 × 3/1 = 9/5 = 9/5. Dividing by 1/3 asks how many of them fit.
+- Explanation given: Keep the first fraction, flip the second and multiply: 3/5 × 3/1 = 9/5. The flip works because dividing by 1/3 asks how many groups of 1/3 fit into 3/5, and multiplying by 3/1 counts exactly those groups. Multiplying straight across without flipping (3/15) answers a different question, so it is not the same division.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:fraction-ops:foundation:5` at the foundation target
 
@@ -1320,7 +1322,7 @@ B. 100
 **C. 93.75** ✓ key
 D. 150
 
-- Explanation given: 100 → 125 after the rise. The fall acts on 125, not 100: 125 − 25% of 125 = 93.75. Percentages act on the CURRENT base.
+- Explanation given: The rise takes 100 to 125, because 25% of 100 is 25. The fall then acts on the new price, 125, not on the original: 25% of 125 is 31.25, so the final price is 93.75. The fall is larger in money than the rise because the base has grown, which is why the final price is below 100; taking 25% off the original again would wrongly return 100.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:percentages:foundation:4` at the foundation target
 
@@ -1408,7 +1410,7 @@ A. x² + 6x − 8
 C. x² − 6x + 8
 D. x² + 8
 
-- Explanation given: x² + 2x + 4x + 8 = x² + 6x + 8. Every term carries its sign.
+- Explanation given: Multiply every term in the first bracket by every term in the second: x × x = x², x × 2 = 2x, 4 × x = 4x, and 4 × 2 = 8. The two x-terms are like terms, so 2x + 4x = 6x, giving x² + 6x + 8. The usual slip is dropping the 8 term or losing its sign, which is why every term must carry its sign.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:algebra-expand:foundation:1` at the foundation target
 
@@ -1430,7 +1432,7 @@ B. x² − 5
 **C. x² − 4x − 5** ✓ key
 D. x² + 4x − 5
 
-- Explanation given: x² + 1x + -5x + -5 = x² − 4x − 5. Every term carries its sign.
+- Explanation given: Multiply every term in the first bracket by every term in the second: x × x = x², x × 1 = 1x, -5 × x = -5x, and -5 × 1 = -5. The two x-terms are like terms, so 1x + -5x = -4x, giving x² − 4x − 5. The usual slip is dropping the -5 term or losing its sign, which is why every term must carry its sign.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:algebra-expand:foundation:3` at the foundation target
 
@@ -1441,7 +1443,7 @@ A. x² + 5
 C. x² − 6x + 5
 D. x² + 6x − 5
 
-- Explanation given: x² + 1x + 5x + 5 = x² + 6x + 5. Every term carries its sign.
+- Explanation given: Multiply every term in the first bracket by every term in the second: x × x = x², x × 1 = 1x, 5 × x = 5x, and 5 × 1 = 5. The two x-terms are like terms, so 1x + 5x = 6x, giving x² + 6x + 5. The usual slip is dropping the 5 term or losing its sign, which is why every term must carry its sign.
 - Difficulty as served: 0.45 (tier target 0.45)
 - Reproduce it: `pilot:algebra-expand:foundation:4` at the foundation target
 
@@ -1693,37 +1695,37 @@ C. Minimum 21 when x = -5
 - Difficulty as served: 0.65 (tier target 0.65)
 - Reproduce it: `pilot:completing-square:higher:0` at the higher target
 
-**2. Write x² + 2x + 6 in the form (x + p)² + q. What is q?**
+**2. What is the minimum value of y = x² − 10x + 30?**
 
 **A. 5** ✓ key
-B. 1
-C. 6
-D. -1
+B. -5
+C. 30
+D. 25
 
-- Explanation given: Completing the square starts from the x coefficient: half of 2 is 1, and (x + 1)² expands to x² + 2x + 1. The expression's constant is 6, which is 1 more than the square supplies, so the leftover is q = 6 − 1 = 5. Forgetting to subtract the 1 that completing the square added (answering 6) is the classic error.
-- Difficulty as served: 0.60 (tier target 0.65) · answered by typing a number
+- Explanation given: Complete the square: half of −10 is −5, and (x − 5)² expands to x² − 10x + 25. The expression is therefore (x − 5)² + 5; a square is never negative, so the smallest value is 5, reached when x = 5. Reading the constant 30 as the minimum forgets to subtract the 25 that completing the square introduced, and -5 is the x-value where the minimum occurs, not the minimum itself.
+- Difficulty as served: 0.66 (tier target 0.65) · answered by typing a number
 - Reproduce it: `pilot:completing-square:higher:1` at the higher target
 
-**3. Express x² + 14x + 57 in the form (x + p)² + q, and hence state the minimum value of the expression and the value of x at which it occurs.**
+**3. What is the minimum value of y = x² − 14x + 54?**
 
-A. Minimum 8 when x = 7
-B. Minimum -8 when x = -7
-**C. Minimum 8 when x = -7** ✓ key
-D. Minimum 57 when x = -7
+A. -7
+**B. 5** ✓ key
+C. 49
+D. 54
 
-- Explanation given: Half the coefficient of x is 7, so the square is (x + 7)² = x² + 14x + 49; the expression has 57 there instead, so it is (x + 7)² + 8 = (x + 7)² + 8. A square is never negative, so the SMALLEST the expression gets is when (x + 7)² = 0 — that is x = -7, and the minimum value is 8. The sign of p is the slip: it is −h in the bracket, so the minimum sits at the opposite sign, -7.
-- Difficulty as served: 0.70 (tier target 0.65)
+- Explanation given: Complete the square: half of −14 is −7, and (x − 7)² expands to x² − 14x + 49. The expression is therefore (x − 7)² + 5; a square is never negative, so the smallest value is 5, reached when x = 7. Reading the constant 54 as the minimum forgets to subtract the 49 that completing the square introduced, and -7 is the x-value where the minimum occurs, not the minimum itself.
+- Difficulty as served: 0.66 (tier target 0.65) · answered by typing a number
 - Reproduce it: `pilot:completing-square:higher:2` at the higher target
 
-**4. Express x² + 16x + 58 in the form (x + p)² + q, and hence state the minimum value of the expression and the value of x at which it occurs.**
+**4. What is the minimum value of y = x² − 8x + 23?**
 
-A. Minimum 58 when x = -8
-B. Minimum -6 when x = 8
-C. Minimum 6 when x = -8
-**D. Minimum -6 when x = -8** ✓ key
+A. -4
+**B. 7** ✓ key
+C. 23
+D. 16
 
-- Explanation given: Half the coefficient of x is 8, so the square is (x + 8)² = x² + 16x + 64; the expression has 58 there instead, so it is (x + 8)² − 6 = (x + 8)² − 6. A square is never negative, so the SMALLEST the expression gets is when (x + 8)² = 0 — that is x = -8, and the minimum value is -6. The sign of p is the slip: it is −h in the bracket, so the minimum sits at the opposite sign, -8.
-- Difficulty as served: 0.67 (tier target 0.65)
+- Explanation given: Complete the square: half of −8 is −4, and (x − 4)² expands to x² − 8x + 16. The expression is therefore (x − 4)² + 7; a square is never negative, so the smallest value is 7, reached when x = 4. Reading the constant 23 as the minimum forgets to subtract the 16 that completing the square introduced, and -4 is the x-value where the minimum occurs, not the minimum itself.
+- Difficulty as served: 0.66 (tier target 0.65) · answered by typing a number
 - Reproduce it: `pilot:completing-square:higher:3` at the higher target
 
 **5. Express x² + 6x + 3 in the form (x + p)² + q, and hence state the minimum value of the expression and the value of x at which it occurs.**
@@ -1766,7 +1768,7 @@ B. 6
 C. -3
 D. 9
 
-- Explanation given: Factorise: (x − 3)(x − 6) = 0, so x = 3 or x = 6. The smaller root is 3.
+- Explanation given: The two numbers must multiply to 18 and add to 9; 3 and 6 do both, so the equation factorises as (x − 3)(x − 6) = 0. A product is zero only when one bracket is zero, so x = 3 or x = 6. The question asks for the smaller root, 3; 6 is the other root and 9 is their sum, not a root at all.
 - Difficulty as served: 0.50 (tier target 0.45)
 - Reproduce it: `pilot:quadratics:foundation:0` at the foundation target
 
@@ -1777,7 +1779,7 @@ B. -3
 **C. 3** ✓ key
 D. 5
 
-- Explanation given: Factorise: (x − 5)(x − 3) = 0, so x = 5 or x = 3. The smaller root is 3.
+- Explanation given: The two numbers must multiply to 15 and add to 8; 5 and 3 do both, so the equation factorises as (x − 5)(x − 3) = 0. A product is zero only when one bracket is zero, so x = 5 or x = 3. The question asks for the smaller root, 3; 5 is the other root and 8 is their sum, not a root at all.
 - Difficulty as served: 0.50 (tier target 0.45)
 - Reproduce it: `pilot:quadratics:foundation:2` at the foundation target
 
@@ -1788,7 +1790,7 @@ B. -1
 **C. 1** ✓ key
 D. 6
 
-- Explanation given: Factorise: (x − 5)(x − 1) = 0, so x = 5 or x = 1. The smaller root is 1.
+- Explanation given: The two numbers must multiply to 5 and add to 6; 5 and 1 do both, so the equation factorises as (x − 5)(x − 1) = 0. A product is zero only when one bracket is zero, so x = 5 or x = 1. The question asks for the smaller root, 1; 5 is the other root and 6 is their sum, not a root at all.
 - Difficulty as served: 0.50 (tier target 0.45)
 - Reproduce it: `pilot:quadratics:foundation:3` at the foundation target
 
@@ -1799,7 +1801,7 @@ A. 5
 C. -4
 D. 9
 
-- Explanation given: Factorise: (x − 4)(x − 5) = 0, so x = 4 or x = 5. The smaller root is 4.
+- Explanation given: The two numbers must multiply to 20 and add to 9; 4 and 5 do both, so the equation factorises as (x − 4)(x − 5) = 0. A product is zero only when one bracket is zero, so x = 4 or x = 5. The question asks for the smaller root, 4; 5 is the other root and 9 is their sum, not a root at all.
 - Difficulty as served: 0.50 (tier target 0.45)
 - Reproduce it: `pilot:quadratics:foundation:4` at the foundation target
 
@@ -1810,7 +1812,7 @@ B. 4
 **C. 2** ✓ key
 D. -2
 
-- Explanation given: Factorise: (x − 2)(x − 4) = 0, so x = 2 or x = 4. The smaller root is 2.
+- Explanation given: The two numbers must multiply to 8 and add to 6; 2 and 4 do both, so the equation factorises as (x − 2)(x − 4) = 0. A product is zero only when one bracket is zero, so x = 2 or x = 4. The question asks for the smaller root, 2; 4 is the other root and 6 is their sum, not a root at all.
 - Difficulty as served: 0.50 (tier target 0.45)
 - Reproduce it: `pilot:quadratics:foundation:5` at the foundation target
 
@@ -1836,15 +1838,15 @@ D. x = 5 only
 - Difficulty as served: 0.65 (tier target 0.65)
 - Reproduce it: `pilot:quadratics:higher:1` at the higher target
 
-**8. The graph of y = x² − 2x − 24 crosses the x-axis at two points. What are the x-coordinates of those points?**
+**8. The equation x² + 10x + c = 0 has exactly one solution. What is c?**
 
-A. x = -2 and x = -24
-B. x = 6 only
-**C. x = -4 and x = 6** ✓ key
-D. x = -6 and x = 4
+A. 26
+**B. 25** ✓ key
+C. 24
+D. 5
 
-- Explanation given: The crossings are where y = 0, so solve x² − 2x − 24 = 0 by factorising: two numbers that multiply to -24 and add to -2 are 6 and -4, giving (x − 6)(x + 4) = 0. A product is zero when either factor is zero, so x = -4 OR x = 6 — reporting one root throws away half the answer.
-- Difficulty as served: 0.63 (tier target 0.65)
+- Explanation given: A quadratic has exactly one solution when its two roots coincide, which happens when the expression is a perfect square. Half of the x-coefficient is 5, so the square is (x + 5)² = x² + 10x + 25; matching the constant gives c = 25. Answering 5 takes half the coefficient as the constant, and 26 or 24 changes the square so it no longer has one repeated root.
+- Difficulty as served: 0.66 (tier target 0.65) · answered by typing a number
 - Reproduce it: `pilot:quadratics:higher:2` at the higher target
 
 **9. The graph of y = x² − x − 20 crosses the x-axis at two points. What are the x-coordinates of those points?**
@@ -1883,7 +1885,7 @@ D. x = -1 and x = 2
 
 ### 15. Surds `surds`
 
-Stage 3 · foundation + higher tier · concept ceiling 0.93 · prereqs `indices-intro`
+Stage 3 · higher tier · concept ceiling 0.93 · prereqs `indices-intro`
 
 *What it teaches:* √2 cannot be written exactly as a fraction — its decimal never repeats. A surd is an exact root like √2, √3, √5. Simplify using √(ab) = √a × √b: √50 = √25 × √2 = 5√2. Rationalise denominators by multiplying top and bottom by the surd (or its conjugate for expressions like 1/(1+√2)). Surds keep answers exact where decimals only approximate.
 
@@ -1891,125 +1893,70 @@ Stage 3 · foundation + higher tier · concept ceiling 0.93 · prereqs `indices-
 
 - Splits roots across addition (`sqrt-prod`) — Writes √(a + b) = √a + √b.
 
-**1. Simplify √50.**
+**1. Write √7 + √112 in the form k√7. What is k?**
 
-A. 25√2
-B. 7.07
-C. 10√2
-**D. 5√2** ✓ key
+A. 3
+B. 4
+C. 6
+**D. 5** ✓ key
 
-- Explanation given: √50 = √(25 × 2) = √25 × √2 = 5√2. Take the largest perfect-square factor first.
-- Difficulty as served: 0.45 (tier target 0.45)
-- Reproduce it: `pilot:surds:foundation:0` at the foundation target
-
-**2. Simplify √48.**
-
-A. 16√3
-**B. 4√3** ✓ key
-C. 12√3
-D. 6.93
-
-- Explanation given: √48 = √(16 × 3) = √16 × √3 = 4√3. Take the largest perfect-square factor first.
-- Difficulty as served: 0.45 (tier target 0.45)
-- Reproduce it: `pilot:surds:foundation:1` at the foundation target
-
-**3. Simplify √32.**
-
-A. 8√2
-**B. 4√2** ✓ key
-C. 5.66
-D. 16√2
-
-- Explanation given: √32 = √(16 × 2) = √16 × √2 = 4√2. Take the largest perfect-square factor first.
-- Difficulty as served: 0.45 (tier target 0.45)
-- Reproduce it: `pilot:surds:foundation:3` at the foundation target
-
-**4. Simplify √20.**
-
-A. 4√5
-**B. 2√5** ✓ key
-C. 4.47
-D. 10√5
-
-- Explanation given: √20 = √(4 × 5) = √4 × √5 = 2√5. Take the largest perfect-square factor first.
-- Difficulty as served: 0.45 (tier target 0.45)
-- Reproduce it: `pilot:surds:foundation:4` at the foundation target
-
-**5. Simplify √8.**
-
-**A. 2√2** ✓ key
-B. 4√2
-C. 4
-D. 2.83
-
-- Explanation given: √8 = √(4 × 2) = √4 × √2 = 2√2. Take the largest perfect-square factor first.
-- Difficulty as served: 0.45 (tier target 0.45)
-- Reproduce it: `pilot:surds:foundation:5` at the foundation target
-
-**6. Expand and simplify: (4√3 + 2)(4√3 − 2).**
-
-A. 46
-B. 52
-**C. 44** ✓ key
-D. 8
-
-- Explanation given: This is the difference of two squares: (A + B)(A − B) = A² − B². Here A = 4√3 and B = 2, so A² = 16×3 = 48 and B² = 4, giving 48 − 4 = 44. Note the √3 does NOT survive: squaring the surd term is what removes it, and that is why this expansion is the standard way to rationalise a surd denominator.
-- Difficulty as served: 0.65 (tier target 0.65)
+- Explanation given: Simplify each surd before adding: √7 = √(1 × 7) = 1√7, and √112 = √(16 × 7) = 4√7. The two terms now have the same radical, so they are like terms and their coefficients add: 1 + 4 = 5. Multiplying the coefficients (4) is the rule for √a × √b, not for a sum, and leaving them unsimplified hides that the radicals match.
+- Difficulty as served: 0.65 (tier target 0.65) · answered by typing a number
 - Reproduce it: `pilot:surds:higher:0` at the higher target
 
-**7. Expand and simplify: (2√6 + 4)(2√6 − 4).**
+**2. Write √5 + √80 in the form k√5. What is k?**
 
-A. -4
-B. 40
-C. 20
-**D. 8** ✓ key
-
-- Explanation given: This is the difference of two squares: (A + B)(A − B) = A² − B². Here A = 2√6 and B = 4, so A² = 4×6 = 24 and B² = 16, giving 24 − 16 = 8. Note the √6 does NOT survive: squaring the surd term is what removes it, and that is why this expansion is the standard way to rationalise a surd denominator.
-- Difficulty as served: 0.63 (tier target 0.65)
-- Reproduce it: `pilot:surds:higher:1` at the higher target
-
-**8. Expand and simplify: (2√2 + 5)(2√2 − 5).**
-
-A. -21
-B. 33
-**C. -17** ✓ key
+A. 4
+**B. 5** ✓ key
+C. 6
 D. 3
 
-- Explanation given: This is the difference of two squares: (A + B)(A − B) = A² − B². Here A = 2√2 and B = 5, so A² = 4×2 = 8 and B² = 25, giving 8 − 25 = -17. Note the √2 does NOT survive: squaring the surd term is what removes it, and that is why this expansion is the standard way to rationalise a surd denominator.
-- Difficulty as served: 0.62 (tier target 0.65)
+- Explanation given: Simplify each surd before adding: √5 = √(1 × 5) = 1√5, and √80 = √(16 × 5) = 4√5. The two terms now have the same radical, so they are like terms and their coefficients add: 1 + 4 = 5. Multiplying the coefficients (4) is the rule for √a × √b, not for a sum, and leaving them unsimplified hides that the radicals match.
+- Difficulty as served: 0.65 (tier target 0.65) · answered by typing a number
+- Reproduce it: `pilot:surds:higher:1` at the higher target
+
+**3. Write √48 + √3 in the form k√3. What is k?**
+
+**A. 5** ✓ key
+B. 6
+C. 4
+D. 3
+
+- Explanation given: Simplify each surd before adding: √48 = √(16 × 3) = 4√3, and √3 = √(1 × 3) = 1√3. The two terms now have the same radical, so they are like terms and their coefficients add: 4 + 1 = 5. Multiplying the coefficients (4) is the rule for √a × √b, not for a sum, and leaving them unsimplified hides that the radicals match.
+- Difficulty as served: 0.65 (tier target 0.65) · answered by typing a number
 - Reproduce it: `pilot:surds:higher:2` at the higher target
 
-**9. Expand and simplify: (5√3 + 3)(5√3 − 3).**
+**4. Write √63 + √28 in the form k√7. What is k?**
 
-A. 6
-B. 72
-**C. 66** ✓ key
-D. 84
-
-- Explanation given: This is the difference of two squares: (A + B)(A − B) = A² − B². Here A = 5√3 and B = 3, so A² = 25×3 = 75 and B² = 9, giving 75 − 9 = 66. Note the √3 does NOT survive: squaring the surd term is what removes it, and that is why this expansion is the standard way to rationalise a surd denominator.
-- Difficulty as served: 0.64 (tier target 0.65)
-- Reproduce it: `pilot:surds:higher:3` at the higher target
-
-**10. Expand and simplify: (4√6 + 6)(4√6 − 6).**
-
-A. -12
-B. 90
-C. 132
-**D. 60** ✓ key
-
-- Explanation given: This is the difference of two squares: (A + B)(A − B) = A² − B². Here A = 4√6 and B = 6, so A² = 16×6 = 96 and B² = 36, giving 96 − 36 = 60. Note the √6 does NOT survive: squaring the surd term is what removes it, and that is why this expansion is the standard way to rationalise a surd denominator.
-- Difficulty as served: 0.62 (tier target 0.65)
-- Reproduce it: `pilot:surds:higher:4` at the higher target
-
-**11. Simplify fully: (√45 + √20) ÷ √5.**
-
-A. √13
+A. 4
 B. 6
 **C. 5** ✓ key
-D. (3 + 2)√5
+D. 1
 
-- Explanation given: No surd here is in its simplest form, and none can be combined until it is: √45 = √(3²×5) = 3√5 and √20 = √(2²×5) = 2√5. Now they are like surds: (3√5 + 2√5) ÷ √5 = 5√5 ÷ √5, and the √5 cancels, leaving 5. Adding 45 + 20 under one root is the slip this question is built to catch — √a + √b is not √(a + b).
-- Difficulty as served: 0.69 (tier target 0.65)
+- Explanation given: Simplify each surd before adding: √63 = √(9 × 7) = 3√7, and √28 = √(4 × 7) = 2√7. The two terms now have the same radical, so they are like terms and their coefficients add: 3 + 2 = 5. Multiplying the coefficients (6) is the rule for √a × √b, not for a sum, and leaving them unsimplified hides that the radicals match.
+- Difficulty as served: 0.65 (tier target 0.65) · answered by typing a number
+- Reproduce it: `pilot:surds:higher:3` at the higher target
+
+**5. Write √80 + √45 in the form k√5. What is k?**
+
+A. 1
+**B. 7** ✓ key
+C. 12
+D. 8
+
+- Explanation given: Simplify each surd before adding: √80 = √(16 × 5) = 4√5, and √45 = √(9 × 5) = 3√5. The two terms now have the same radical, so they are like terms and their coefficients add: 4 + 3 = 7. Multiplying the coefficients (12) is the rule for √a × √b, not for a sum, and leaving them unsimplified hides that the radicals match.
+- Difficulty as served: 0.65 (tier target 0.65) · answered by typing a number
+- Reproduce it: `pilot:surds:higher:4` at the higher target
+
+**6. Write √32 + √8 in the form k√2. What is k?**
+
+A. 2
+**B. 6** ✓ key
+C. 8
+D. 7
+
+- Explanation given: Simplify each surd before adding: √32 = √(16 × 2) = 4√2, and √8 = √(4 × 2) = 2√2. The two terms now have the same radical, so they are like terms and their coefficients add: 4 + 2 = 6. Multiplying the coefficients (8) is the rule for √a × √b, not for a sum, and leaving them unsimplified hides that the radicals match.
+- Difficulty as served: 0.65 (tier target 0.65) · answered by typing a number
 - Reproduce it: `pilot:surds:higher:5` at the higher target
 
 

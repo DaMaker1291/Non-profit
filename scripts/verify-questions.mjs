@@ -198,6 +198,21 @@ const SEMANTIC = {
       if (isPerfectSquare(rem)) return `left-over radicand ${rem} is a perfect square`;
       return null;
     }
+    // "Write √A + √B in the form k√R. What is k?" — each surd must simplify
+    // to the same radical, and the coefficient is the sum of the two outside
+    // factors. Re-derived from the prompt, not read off the answer.
+    const sum = q.prompt.match(/Write √(\d+) \+ √(\d+) in the form k√(\d+)\. What is k\?/);
+    if (sum) {
+      const A = Number(sum[1]), B = Number(sum[2]), R = Number(sum[3]);
+      const ca = Math.sqrt(A / R), cb = Math.sqrt(B / R);
+      if (!Number.isInteger(A / R) || !Number.isInteger(B / R) || !Number.isInteger(ca) || !Number.isInteger(cb)) {
+        return `√${A} + √${B} does not simplify to a multiple of √${R}`;
+      }
+      const want = ca + cb;
+      const got = Number(q.choices[q.answer]);
+      if (got !== want) return `√${A} + √${B} = ${want}√${R}, not ${q.choices[q.answer]}`;
+      return null;
+    }
     const m = q.prompt.match(/√(\d+)/);
     if (!m) return `unparseable prompt: ${q.prompt}`;
     const inside = Number(m[1]);
@@ -274,6 +289,18 @@ const SEMANTIC = {
         const want = wc - wh * wh;
         const got = Number(q.choices[q.answer]);
         if (got !== want) return `expected q = ${want}, got ${got}`;
+        return null;
+      }
+      // The Higher numeric branch asks for the MINIMUM, not q: completing the
+      // square gives (x − h)² + k, so the minimum is the leftover k.
+      const minimum = q.prompt.match(/What is the minimum value of y = x² − (\d+)x \+ (\d+)\?/);
+      if (minimum) {
+        const b = Number(minimum[1]);
+        const constant = Number(minimum[2]);
+        const h = b / 2;
+        const want = constant - h * h;
+        const got = Number(q.choices[q.answer]);
+        if (got !== want) return `minimum is ${want}, said ${got}`;
         return null;
       }
       const solve = q.prompt.match(/x² \+ (\d+)x ([+\u2212]) (\d+) = 0/);

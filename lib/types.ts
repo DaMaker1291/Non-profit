@@ -951,6 +951,26 @@ export interface ClassRoster {
    *  has no account is administrable by nobody (409 class_has_no_teacher_account)
    *  rather than being handed to whoever presents a capability. */
   teacherAccountId?: string;
+  /** Additional teaching ACCOUNTS allowed to administer this class. The owner
+   *  invites them by email and may remove them; a co-teacher has the same
+   *  class-management authority as the owner except for ownership itself
+   *  (inviting/removing co-teachers). Account ids, not profile ids, for the same
+   *  reason `teacherAccountId` is an account id: a profile capability proves
+   *  identity, never authority. */
+  coTeacherAccountIds?: string[];
+  /** Class administration metadata. Optional throughout: a roster created
+   *  before these fields existed remains valid, and the teacher console shows
+   *  only what is actually declared. */
+  school?: string;
+  academicYear?: string;
+  yearGroup?: string;
+  description?: string;
+  colour?: string;
+  /** The join code's lifecycle. `joinCode` remains the active value only while
+   *  it is neither revoked nor expired; a rotation replaces it in place. */
+  joinCodeCreatedAt?: number;
+  joinCodeExpiresAt?: number;
+  joinCodeRevokedAt?: number;
   /** CLASSROOM CREDENTIALS, keyed by the learner's profile id — one entry per
    *  member whose access is a PIN rather than a stored capability.
    *
@@ -991,6 +1011,12 @@ export interface ClassRoster {
   live?: Record<string, ClassMemberLive>;
 }
 
+/** The publication state of an assignment. `draft` is visible only to the
+ *  teacher; `scheduled` becomes visible at `releaseAt`; `closed` stops new work
+ *  without deleting the evidence already recorded. Legacy records have no
+ *  state and are treated as published. */
+export type AssignmentState = "draft" | "scheduled" | "published" | "closed";
+
 /** Work a teacher has set for a class: a set of concepts and a deadline.
  *
  *  This is a real state transition on the class (POST /api/assignments), not a
@@ -1007,6 +1033,13 @@ export interface Assignment {
   /** The teacher's learner id — the one authority that may change it. */
   createdBy: string;
   title: string;
+  /** Publication state and the server stamp that makes a scheduled release
+   *  real. `publishedAt` is the evidence window's start for work published
+   *  later than it was created; absent on legacy records. */
+  state?: AssignmentState;
+  releaseAt?: number;
+  publishedAt?: number;
+  closedAt?: number;
   /** The curriculum the concepts came from, recorded at set time so a later
    *  course change cannot silently reinterpret the work. */
   subject: SubjectId;

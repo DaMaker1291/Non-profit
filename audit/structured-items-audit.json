@@ -1,0 +1,383 @@
+{
+  "generatedBy": "scripts/audit-structured-items.mjs",
+  "course": {
+    "id": "uk-gcse",
+    "name": "GCSE",
+    "tiers": [
+      {
+        "id": "foundation",
+        "name": "Foundation tier",
+        "difficulty": 0.45
+      },
+      {
+        "id": "higher",
+        "name": "Higher tier",
+        "difficulty": 0.65
+      }
+    ]
+  },
+  "reviewState": {
+    "reviewedItems": 0,
+    "note": "No constructed-response item has a human review. audit/item-reviews.json is the only source of a human-review claim, and it is empty."
+  },
+  "headline": {
+    "items": 13,
+    "concepts": 10,
+    "parts": 38,
+    "marks": 58,
+    "foundationItems": 11,
+    "higherItems": 13,
+    "inPilotPackItems": 9,
+    "outsidePilotPackItems": 4,
+    "inPilotPackMarks": 36,
+    "outsidePilotPackMarks": 22,
+    "checks": 137,
+    "failures": 0
+  },
+  "responseTotals": {
+    "graph": 2,
+    "plot": 1,
+    "readoff": 1,
+    "number": 7,
+    "algebra": 4,
+    "table": 2
+  },
+  "items": [
+    {
+      "id": "sf-line-graph",
+      "title": "Straight-line graphs",
+      "conceptId": "straight-lines",
+      "concept": "Straight line graphs",
+      "subject": "maths",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.6,
+      "marks": 6,
+      "parts": 3,
+      "responseKinds": [
+        "graph"
+      ],
+      "methodMarks": 0,
+      "inPilotPack": true,
+      "packNote": "in the 149-item pack",
+      "checks": 10,
+      "failed": 0,
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "sf-plot-line",
+      "title": "Plotting a straight line",
+      "conceptId": "straight-lines",
+      "concept": "Straight line graphs",
+      "subject": "maths",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.55,
+      "marks": 6,
+      "parts": 4,
+      "responseKinds": [
+        "graph",
+        "plot",
+        "readoff"
+      ],
+      "methodMarks": 0,
+      "inPilotPack": true,
+      "packNote": "in the 149-item pack",
+      "checks": 12,
+      "failed": 0,
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "sf-lawn-feed",
+      "title": "Lawn feed",
+      "conceptId": "area-perimeter",
+      "concept": "Area & perimeter",
+      "subject": "maths",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.55,
+      "marks": 6,
+      "parts": 3,
+      "responseKinds": [
+        "number"
+      ],
+      "methodMarks": 3,
+      "inPilotPack": false,
+      "packNote": "outside the 149-item pack",
+      "checks": 17,
+      "failed": 0,
+      "failures": [],
+      "warnings": [
+        "sf-lawn-feed: area-perimeter is not in the 149-item generated pilot pack"
+      ]
+    },
+    {
+      "id": "sf-proportion",
+      "title": "Fractions and percentages",
+      "conceptId": "percentages",
+      "concept": "Percentages",
+      "subject": "maths",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.45,
+      "marks": 2,
+      "parts": 2,
+      "responseKinds": [
+        "number"
+      ],
+      "methodMarks": 0,
+      "inPilotPack": true,
+      "packNote": "in the 149-item pack",
+      "checks": 8,
+      "failed": 0,
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "hf-surds",
+      "title": "Surds",
+      "conceptId": "surds",
+      "concept": "Surds",
+      "subject": "maths",
+      "tiers": [
+        "higher"
+      ],
+      "difficulty": 0.68,
+      "marks": 2,
+      "parts": 2,
+      "responseKinds": [
+        "number"
+      ],
+      "methodMarks": 0,
+      "inPilotPack": true,
+      "packNote": "in the 149-item pack",
+      "checks": 8,
+      "failed": 0,
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "sf-expand",
+      "title": "Expanding and simplifying",
+      "conceptId": "algebra-expand",
+      "concept": "Expanding & factorising",
+      "subject": "maths",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.5,
+      "marks": 3,
+      "parts": 3,
+      "responseKinds": [
+        "algebra"
+      ],
+      "methodMarks": 0,
+      "inPilotPack": true,
+      "packNote": "in the 149-item pack",
+      "checks": 10,
+      "failed": 0,
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "hf-algebra",
+      "title": "Expanding products",
+      "conceptId": "algebra-expand",
+      "concept": "Expanding & factorising",
+      "subject": "maths",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.72,
+      "marks": 3,
+      "parts": 3,
+      "responseKinds": [
+        "algebra"
+      ],
+      "methodMarks": 0,
+      "inPilotPack": true,
+      "packNote": "in the 149-item pack",
+      "checks": 10,
+      "failed": 0,
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "sf-table-line",
+      "title": "A table of values",
+      "conceptId": "linear-equations",
+      "concept": "Linear equations",
+      "subject": "maths",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.46,
+      "marks": 4,
+      "parts": 1,
+      "responseKinds": [
+        "table"
+      ],
+      "methodMarks": 0,
+      "inPilotPack": true,
+      "packNote": "in the 149-item pack",
+      "checks": 5,
+      "failed": 0,
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "hf-table-quadratic",
+      "title": "A quadratic table",
+      "conceptId": "quadratics",
+      "concept": "Quadratic equations",
+      "subject": "maths",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.7,
+      "marks": 4,
+      "parts": 1,
+      "responseKinds": [
+        "table"
+      ],
+      "methodMarks": 0,
+      "inPilotPack": true,
+      "packNote": "in the 149-item pack",
+      "checks": 5,
+      "failed": 0,
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "sf-angle-chain",
+      "title": "Angle facts",
+      "conceptId": "angles-lines",
+      "concept": "Angles & polygons",
+      "subject": "maths",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.48,
+      "marks": 5,
+      "parts": 5,
+      "responseKinds": [
+        "number"
+      ],
+      "methodMarks": 0,
+      "inPilotPack": false,
+      "packNote": "outside the 149-item pack",
+      "checks": 14,
+      "failed": 0,
+      "failures": [],
+      "warnings": [
+        "sf-angle-chain: angles-lines is not in the 149-item generated pilot pack"
+      ]
+    },
+    {
+      "id": "hf-circle-angles",
+      "title": "Circle theorems",
+      "conceptId": "circle-theorems",
+      "concept": "Circle theorems",
+      "subject": "maths",
+      "tiers": [
+        "higher"
+      ],
+      "difficulty": 0.75,
+      "marks": 5,
+      "parts": 5,
+      "responseKinds": [
+        "number"
+      ],
+      "methodMarks": 0,
+      "inPilotPack": false,
+      "packNote": "outside the 149-item pack",
+      "checks": 14,
+      "failed": 0,
+      "failures": [],
+      "warnings": [
+        "hf-circle-angles: circle-theorems is not in the 149-item generated pilot pack"
+      ]
+    },
+    {
+      "id": "hf-rectangle-context",
+      "title": "A rectangle with an unknown side",
+      "conceptId": "quadratics",
+      "concept": "Quadratic equations",
+      "subject": "maths",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.8,
+      "marks": 6,
+      "parts": 3,
+      "responseKinds": [
+        "algebra",
+        "number"
+      ],
+      "methodMarks": 1,
+      "inPilotPack": true,
+      "packNote": "in the 149-item pack",
+      "checks": 13,
+      "failed": 0,
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "hf-sequences-context",
+      "title": "A linear sequence",
+      "conceptId": "sequences",
+      "concept": "Sequences",
+      "subject": "maths",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.7,
+      "marks": 6,
+      "parts": 3,
+      "responseKinds": [
+        "algebra",
+        "number"
+      ],
+      "methodMarks": 1,
+      "inPilotPack": false,
+      "packNote": "outside the 149-item pack",
+      "checks": 11,
+      "failed": 0,
+      "failures": [],
+      "warnings": [
+        "hf-sequences-context: sequences is not in the 149-item generated pilot pack"
+      ]
+    }
+  ],
+  "findings": [
+    "**13 constructed-response items are outside the 149-item generated pack.** 9 of them sit on concepts that are in that pack and 4 sit on concepts that are not; the pack therefore cannot show a reviewer the method-marked format at all. This addendum is the review surface for them.",
+    "**38 parts, 58 marks.** 36 marks are on in-pack concepts and 22 on concepts outside it. A reviewer reading only the 149-item pack is not seeing those marks.",
+    "**137 marking scenarios passed.** They cover full correct answers, blank responses, answer-without-working, working-with-wrong-answer, missing units, wrong graph coordinates, partial plots, wrong algebra forms and one-cell table errors.",
+    "**Marking is machine-validated, not teacher-validated.** No item here has a named reviewer: `audit/item-reviews.json` is empty. A green run says the engine agrees with these authored schemes; it does not say the schemes are right for the pupils.",
+    "**4 warnings** are recorded below. The largest is coverage: 4 items are on concepts outside the generated pack, so adding more structured items will not make the pilot's review surface complete until those concepts are brought in."
+  ],
+  "hard": [],
+  "warnings": [
+    "sf-lawn-feed: area-perimeter is not in the 149-item generated pilot pack",
+    "sf-angle-chain: angles-lines is not in the 149-item generated pilot pack",
+    "hf-circle-angles: circle-theorems is not in the 149-item generated pilot pack",
+    "hf-sequences-context: sequences is not in the 149-item generated pilot pack"
+  ]
+}

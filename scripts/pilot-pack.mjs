@@ -214,6 +214,8 @@ md.push(`- **Items:** ${pack.totals.items} draws at fixed seeds, reproducible on
 md.push(`- **Already verified by machine:** ${pack.totals.promptDerived} of ${pack.totals.concepts} have their answer re-derived from the prompt (\`npm run verify:q\`); the other ${pack.totals.concepts - pack.totals.promptDerived} are structurally checked only, which is precisely what a human is here to add`);
 md.push(`- **Human-reviewed:** 0. This pack does not review anything; it is what a reviewer reads, and their answers are recorded per concept.`);
 md.push("");
+md.push("> This pack covers generated multiple-choice and numeric items. The method-marked constructed-response items are in the separate [structured review addendum](./STRUCTURED_REVIEW_PACK.md).");
+md.push("");
 md.push("## What the reviewer is asked to do");
 md.push("");
 md.push("For each concept: read every item below, answer the seven questions, and record the result. That is the whole ask — no repository reading, no setup.");

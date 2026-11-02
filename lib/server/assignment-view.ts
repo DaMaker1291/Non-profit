@@ -58,6 +58,24 @@ import type {
  *  weakness worth intervening on. One threshold, one place. */
 export const ASSIGNMENT_WEAK_RATE = 0.6;
 
+/** When evidence starts counting for this assignment. A draft has no window yet;
+ *  a scheduled assignment opens at its release time; a published assignment at
+ *  the moment it was published. Legacy records fall back to their creation. */
+export function assignmentWindowStart(a: Assignment): number {
+  return a.publishedAt ?? a.releaseAt ?? a.createdAt;
+}
+
+/** Is this assignment visible to a learner at `now`? A draft belongs to the
+ *  teacher, a closed assignment no longer accepts work, and a scheduled one is
+ *  hidden until its release time. Legacy records have no state and were always
+ *  visible. */
+export function assignmentVisible(a: Assignment, now: number = Date.now()): boolean {
+  const state = a.state ?? "published";
+  if (state === "draft" || state === "closed") return false;
+  if (state === "scheduled") return (a.releaseAt ?? Number.POSITIVE_INFINITY) <= now;
+  return true;
+}
+
 /**
  * The concepts a class may be set work on: its declared subject's curriculum,
  * narrowed to the course it names when it names one, and always to concepts the
@@ -127,12 +145,13 @@ export function deriveAssignmentProgress(
   // different work from one that did it alone, and only the ledger knows which.
   const proved: Record<string, { correct: number; independent: number; transfer: number; retention: number }> = {};
 
+  const windowStart = assignmentWindowStart(a);
   for (const e of events) {
     if (e.type !== "answer_submitted" || !e.conceptId || !assigned.has(e.conceptId)) continue;
     const sinceLast = lastAt[e.conceptId] === undefined ? null : e.at - lastAt[e.conceptId];
     lastAt[e.conceptId] = e.at;
     // The window's one rule, and the reason `at` and not `deviceAt` is read.
-    if (e.at < a.createdAt) {
+    if (e.at < windowStart) {
       prior[e.conceptId] = (prior[e.conceptId] ?? 0) + 1;
       continue;
     }

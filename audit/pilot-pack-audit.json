@@ -1,0 +1,970 @@
+{
+  "generatedBy": "scripts/audit-pilot-pack.mjs",
+  "packGeneratedBy": "scripts/pilot-pack.mjs",
+  "course": {
+    "id": "uk-gcse",
+    "country": "GB",
+    "board": "aqa",
+    "name": "GCSE",
+    "tiers": [
+      {
+        "id": "foundation",
+        "name": "Foundation tier",
+        "difficulty": 0.45
+      },
+      {
+        "id": "higher",
+        "name": "Higher tier",
+        "difficulty": 0.65
+      }
+    ]
+  },
+  "reviewState": {
+    "reviewedConcepts": 0,
+    "note": "No concept is marked reviewed by this pack. Records go in audit/item-reviews.json with a reviewer, a date and a scope, and `npm run verify:q` refuses an entry without them."
+  },
+  "headline": {
+    "items": 149,
+    "concepts": 15,
+    "foundationConcepts": 13,
+    "foundationItems": 73,
+    "higherConcepts": 13,
+    "higherItems": 76,
+    "advancedOnlyConcepts": [
+      "completing-square",
+      "surds"
+    ]
+  },
+  "tierTotals": {
+    "foundation": {
+      "concepts": 13,
+      "items": 73,
+      "numeric": 48,
+      "choice": 25,
+      "thin": 0
+    },
+    "higher": {
+      "concepts": 13,
+      "items": 76,
+      "numeric": 11,
+      "choice": 65,
+      "thin": 0
+    }
+  },
+  "concepts": [
+    {
+      "id": "decimals",
+      "title": "Decimals",
+      "subject": "maths",
+      "stage": 0,
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.86,
+      "prereqs": [],
+      "items": 12,
+      "byTier": {
+        "foundation": {
+          "items": 6,
+          "numeric": 6,
+          "choice": 0,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.45,
+            "median": 0.45,
+            "max": 0.45
+          },
+          "maxTargetGap": 0,
+          "explanationWords": {
+            "min": 49,
+            "median": 49,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        },
+        "higher": {
+          "items": 6,
+          "numeric": 0,
+          "choice": 6,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.75,
+            "median": 0.76,
+            "max": 0.79
+          },
+          "maxTargetGap": 0.14,
+          "explanationWords": {
+            "min": 44,
+            "median": 44,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 6,
+      "choice": 6,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 44,
+        "median": 46.5,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "fractions",
+      "title": "Fractions",
+      "subject": "maths",
+      "stage": 0,
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.81,
+      "prereqs": [],
+      "items": 12,
+      "byTier": {
+        "foundation": {
+          "items": 6,
+          "numeric": 0,
+          "choice": 6,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.47,
+            "median": 0.48,
+            "max": 0.52
+          },
+          "maxTargetGap": 0.07,
+          "explanationWords": {
+            "min": 50,
+            "median": 50,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        },
+        "higher": {
+          "items": 6,
+          "numeric": 0,
+          "choice": 6,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.6,
+            "median": 0.64,
+            "max": 0.66
+          },
+          "maxTargetGap": 0.05,
+          "explanationWords": {
+            "min": 33,
+            "median": 47,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 0,
+      "choice": 12,
+      "promptDerived": true,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 33,
+        "median": 48.5,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "negatives",
+      "title": "Negative numbers",
+      "subject": "maths",
+      "stage": 0,
+      "tiers": [
+        "foundation"
+      ],
+      "depth": 0.45,
+      "prereqs": [],
+      "items": 6,
+      "byTier": {
+        "foundation": {
+          "items": 6,
+          "numeric": 6,
+          "choice": 0,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.45,
+            "median": 0.45,
+            "max": 0.45
+          },
+          "maxTargetGap": 0,
+          "explanationWords": {
+            "min": 40,
+            "median": 45,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 6,
+      "choice": 0,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 40,
+        "median": 45,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "order-ops",
+      "title": "Order of operations",
+      "subject": "maths",
+      "stage": 0,
+      "tiers": [
+        "foundation"
+      ],
+      "depth": 0.4,
+      "prereqs": [],
+      "items": 6,
+      "byTier": {
+        "foundation": {
+          "items": 6,
+          "numeric": 6,
+          "choice": 0,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.4,
+            "median": 0.4,
+            "max": 0.4
+          },
+          "maxTargetGap": 0.05,
+          "explanationWords": {
+            "min": 36,
+            "median": 36,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 6,
+      "choice": 0,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 36,
+        "median": 36,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "algebra-expressions",
+      "title": "Algebraic expressions",
+      "subject": "maths",
+      "stage": 1,
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.83,
+      "prereqs": [
+        "order-ops"
+      ],
+      "items": 12,
+      "byTier": {
+        "foundation": {
+          "items": 6,
+          "numeric": 6,
+          "choice": 0,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.45,
+            "median": 0.45,
+            "max": 0.45
+          },
+          "maxTargetGap": 0,
+          "explanationWords": {
+            "min": 27,
+            "median": 27,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        },
+        "higher": {
+          "items": 6,
+          "numeric": 0,
+          "choice": 6,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.78,
+            "median": 0.78,
+            "max": 0.78
+          },
+          "maxTargetGap": 0.13,
+          "explanationWords": {
+            "min": 64,
+            "median": 64,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 6,
+      "choice": 6,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 27,
+        "median": 45.5,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "coordinates",
+      "title": "Coordinates & graphs",
+      "subject": "maths",
+      "stage": 1,
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.8,
+      "prereqs": [
+        "negatives"
+      ],
+      "items": 12,
+      "byTier": {
+        "foundation": {
+          "items": 6,
+          "numeric": 0,
+          "choice": 6,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.45,
+            "median": 0.45,
+            "max": 0.45
+          },
+          "maxTargetGap": 0,
+          "explanationWords": {
+            "min": 48,
+            "median": 48,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        },
+        "higher": {
+          "items": 6,
+          "numeric": 0,
+          "choice": 6,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.76,
+            "median": 0.76,
+            "max": 0.77
+          },
+          "maxTargetGap": 0.12,
+          "explanationWords": {
+            "min": 42,
+            "median": 42,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 0,
+      "choice": 12,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 42,
+        "median": 45,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "fraction-ops",
+      "title": "Fraction arithmetic",
+      "subject": "maths",
+      "stage": 1,
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.81,
+      "prereqs": [
+        "fractions"
+      ],
+      "items": 12,
+      "byTier": {
+        "foundation": {
+          "items": 6,
+          "numeric": 2,
+          "choice": 4,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.45,
+            "median": 0.45,
+            "max": 0.55
+          },
+          "maxTargetGap": 0.1,
+          "explanationWords": {
+            "min": 44,
+            "median": 47,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        },
+        "higher": {
+          "items": 6,
+          "numeric": 0,
+          "choice": 6,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.61,
+            "median": 0.63,
+            "max": 0.63
+          },
+          "maxTargetGap": 0.04,
+          "explanationWords": {
+            "min": 41,
+            "median": 41,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 2,
+      "choice": 10,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 41,
+        "median": 42.5,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "indices-intro",
+      "title": "Index laws",
+      "subject": "maths",
+      "stage": 1,
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.84,
+      "prereqs": [
+        "order-ops"
+      ],
+      "items": 10,
+      "byTier": {
+        "foundation": {
+          "items": 4,
+          "numeric": 4,
+          "choice": 0,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.5,
+            "median": 0.5,
+            "max": 0.5
+          },
+          "maxTargetGap": 0.05,
+          "explanationWords": {
+            "min": 51,
+            "median": 51,
+            "below25": 0
+          },
+          "distinctPrompts": 4,
+          "thin": false
+        },
+        "higher": {
+          "items": 6,
+          "numeric": 0,
+          "choice": 6,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.75,
+            "median": 0.75,
+            "max": 0.78
+          },
+          "maxTargetGap": 0.13,
+          "explanationWords": {
+            "min": 32,
+            "median": 32,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 4,
+      "choice": 6,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 32,
+        "median": 32,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "linear-equations",
+      "title": "Linear equations",
+      "subject": "maths",
+      "stage": 1,
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.82,
+      "prereqs": [
+        "algebra-expressions"
+      ],
+      "items": 12,
+      "byTier": {
+        "foundation": {
+          "items": 6,
+          "numeric": 6,
+          "choice": 0,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.5,
+            "median": 0.5,
+            "max": 0.5
+          },
+          "maxTargetGap": 0.05,
+          "explanationWords": {
+            "min": 38,
+            "median": 38,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        },
+        "higher": {
+          "items": 6,
+          "numeric": 0,
+          "choice": 6,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.61,
+            "median": 0.65,
+            "max": 0.66
+          },
+          "maxTargetGap": 0.04,
+          "explanationWords": {
+            "min": 39,
+            "median": 39,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 6,
+      "choice": 6,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 38,
+        "median": 38.5,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "percentages",
+      "title": "Percentages",
+      "subject": "maths",
+      "stage": 1,
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.81,
+      "prereqs": [
+        "fractions",
+        "decimals"
+      ],
+      "items": 8,
+      "byTier": {
+        "foundation": {
+          "items": 4,
+          "numeric": 3,
+          "choice": 1,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.45,
+            "median": 0.45,
+            "max": 0.45
+          },
+          "maxTargetGap": 0,
+          "explanationWords": {
+            "min": 31,
+            "median": 40,
+            "below25": 0
+          },
+          "distinctPrompts": 4,
+          "thin": false
+        },
+        "higher": {
+          "items": 4,
+          "numeric": 0,
+          "choice": 4,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.63,
+            "median": 0.65,
+            "max": 0.66
+          },
+          "maxTargetGap": 0.02,
+          "explanationWords": {
+            "min": 34,
+            "median": 34,
+            "below25": 0
+          },
+          "distinctPrompts": 4,
+          "thin": false
+        }
+      },
+      "numeric": 3,
+      "choice": 5,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 31,
+        "median": 34,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "algebra-expand",
+      "title": "Expanding & factorising",
+      "subject": "maths",
+      "stage": 2,
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.91,
+      "prereqs": [
+        "algebra-expressions"
+      ],
+      "items": 12,
+      "byTier": {
+        "foundation": {
+          "items": 6,
+          "numeric": 3,
+          "choice": 3,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.45,
+            "median": 0.45,
+            "max": 0.45
+          },
+          "maxTargetGap": 0,
+          "explanationWords": {
+            "min": 42,
+            "median": 45.5,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        },
+        "higher": {
+          "items": 6,
+          "numeric": 1,
+          "choice": 5,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.6,
+            "median": 0.65,
+            "max": 0.67
+          },
+          "maxTargetGap": 0.05,
+          "explanationWords": {
+            "min": 34,
+            "median": 49,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 4,
+      "choice": 8,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 34,
+        "median": 49,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "straight-lines",
+      "title": "Straight line graphs",
+      "subject": "maths",
+      "stage": 2,
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.92,
+      "prereqs": [
+        "coordinates",
+        "linear-equations"
+      ],
+      "items": 12,
+      "byTier": {
+        "foundation": {
+          "items": 6,
+          "numeric": 6,
+          "choice": 0,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.45,
+            "median": 0.45,
+            "max": 0.45
+          },
+          "maxTargetGap": 0,
+          "explanationWords": {
+            "min": 46,
+            "median": 46,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        },
+        "higher": {
+          "items": 6,
+          "numeric": 0,
+          "choice": 6,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.63,
+            "median": 0.64,
+            "max": 0.67
+          },
+          "maxTargetGap": 0.02,
+          "explanationWords": {
+            "min": 41,
+            "median": 41,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 6,
+      "choice": 6,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 41,
+        "median": 44.5,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "completing-square",
+      "title": "Completing the square",
+      "subject": "maths",
+      "stage": 3,
+      "tiers": [
+        "higher"
+      ],
+      "depth": 0.93,
+      "prereqs": [
+        "quadratics"
+      ],
+      "items": 6,
+      "byTier": {
+        "higher": {
+          "items": 6,
+          "numeric": 3,
+          "choice": 3,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.65,
+            "median": 0.66,
+            "max": 0.66
+          },
+          "maxTargetGap": 0.01,
+          "explanationWords": {
+            "min": 51,
+            "median": 53,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 3,
+      "choice": 3,
+      "promptDerived": true,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 51,
+        "median": 53,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "quadratics",
+      "title": "Quadratic equations",
+      "subject": "maths",
+      "stage": 3,
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "depth": 0.92,
+      "prereqs": [
+        "algebra-expand",
+        "straight-lines"
+      ],
+      "items": 11,
+      "byTier": {
+        "foundation": {
+          "items": 5,
+          "numeric": 0,
+          "choice": 5,
+          "target": 0.45,
+          "difficulty": {
+            "min": 0.5,
+            "median": 0.5,
+            "max": 0.5
+          },
+          "maxTargetGap": 0.05,
+          "explanationWords": {
+            "min": 47,
+            "median": 47,
+            "below25": 0
+          },
+          "distinctPrompts": 5,
+          "thin": false
+        },
+        "higher": {
+          "items": 6,
+          "numeric": 1,
+          "choice": 5,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.65,
+            "median": 0.65,
+            "max": 0.66
+          },
+          "maxTargetGap": 0.01,
+          "explanationWords": {
+            "min": 37,
+            "median": 37,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 1,
+      "choice": 10,
+      "promptDerived": false,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 37,
+        "median": 47,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    },
+    {
+      "id": "surds",
+      "title": "Surds",
+      "subject": "maths",
+      "stage": 3,
+      "tiers": [
+        "higher"
+      ],
+      "depth": 0.93,
+      "prereqs": [
+        "indices-intro"
+      ],
+      "items": 6,
+      "byTier": {
+        "higher": {
+          "items": 6,
+          "numeric": 6,
+          "choice": 0,
+          "target": 0.65,
+          "difficulty": {
+            "min": 0.65,
+            "median": 0.65,
+            "max": 0.65
+          },
+          "maxTargetGap": 0,
+          "explanationWords": {
+            "min": 42,
+            "median": 42,
+            "below25": 0
+          },
+          "distinctPrompts": 6,
+          "thin": false
+        }
+      },
+      "numeric": 6,
+      "choice": 0,
+      "promptDerived": true,
+      "misconceptions": 1,
+      "explanationWords": {
+        "min": 42,
+        "median": 42,
+        "below25": 0
+      },
+      "hard": [],
+      "warnings": []
+    }
+  ],
+  "findings": [
+    "**13 is a count of CONCEPTS, not items.** 13 concepts are reachable in Foundation and they carry 73 of the 149 items; Higher carries 76. A reviewer is reading a 149-item sample, not a 149-item assessment bank.",
+    "**Higher is almost entirely multiple choice.** 65 of 76 Higher rows are multiple choice and 11 are numeric entry, while Foundation is 48 numeric and 25 choice. Higher learners are asked to RECOGNISE an answer far more often than to construct one — the opposite of the assessment the roadmap's Stage 3 asks for.",
+    "**0 of 149 explanations are under 25 prose words.** Every explanation in the pack is at least 25 prose words long, so a reviewer is not handed a bare one-line key.",
+    "**The pack is a sample, not a bank.** Every tier has at least four items, but most have six; six draws can show that the generator varies, and cannot show that a lesson has enough assessment.",
+    "**Tier articulation is asymmetric.** `completing-square` and `surds` are Higher-only; `negatives` and `order-ops` are Foundation-only. That is correct curriculum placement, but the pack has no same-concept comparison across tiers for those 4."
+  ],
+  "hard": [],
+  "warnings": []
+}

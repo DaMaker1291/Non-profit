@@ -1,0 +1,55 @@
+"use strict";
+// Question-stem verbs (§12, P0-C): the ~50 maths generators share a tiny set
+// of command-verb stems ("Work out…", "Solve…", "Simplify…"). Storing the
+// body's numbers verbatim and localizing only the stem keeps the wedge's
+// questions readable in every interface language without touching 126
+// generators. Language wraps at serve time; grading is unaffected because
+// answers are indices, never text.
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.stemKeyOf = stemKeyOf;
+exports.localizeStem = localizeStem;
+const i18n_1 = require("./i18n");
+/** Extract the leading English command stem of a maths prompt, if it is one
+ *  the dictionary covers. Returns null for narrative/science prompts. */
+function stemKeyOf(prompt) {
+    const p = prompt.trim();
+    const hit = (re, key) => {
+        const m = p.match(re);
+        return m ? { key, len: m[0].length } : null;
+    };
+    return (hit(/^Work out /, "q.workOut") ?? hit(/^Solve /, "q.solve") ??
+        hit(/^Simplify /, "q.simplify") ?? hit(/^Expand /, "q.expand") ??
+        hit(/^Evaluate /, "q.evaluate") ?? hit(/^Convert /, "q.convert") ??
+        hit(/^Complete /, "q.complete") ?? hit(/^Find /, "q.find") ??
+        hit(/^Round /, "q.round") ?? hit(/^Add /, "q.add") ??
+        hit(/^Write /, "q.write") ?? hit(/^Calculate /, "q.calculate") ??
+        hit(/^Share /, "q.share") ?? hit(/^Balance /, "q.balance"));
+}
+/** Replace the leading English stem with its translation, when covered.
+ *  Narrative prompts (which begin with a sentence, not a command) return
+ *  unchanged — those are part of the teaching-content pass, not this one. */
+function localizeStem(prompt, lang) {
+    const hit = stemKeyOf(prompt);
+    if (!hit)
+        return prompt;
+    // `hit.len` is the length of the stem INCLUDING the space that separated it
+    // from the body (`/^Solve /`), and the dictionary holds the verb alone
+    // ("Resuelve", "احسب", "计算"). Joining them without re-inserting that
+    // separator glued the two together on every localized question — the first
+    // line a learner reads looked like "Resuelvey = x² and y = 3x − 2",
+    // "احسب79 + 43", "计算12 × 8" — measured on 18 of the 135 concepts in every
+    // non-English language. The space is the one character the match consumed, so
+    // the join has to put it back.
+    const rest = prompt.slice(hit.len);
+    return `${(0, i18n_1.translator)(lang)(hit.key)} ${rest}`;
+}
+// ── Genuine transfer (audit P0-D) ───────────────────────────────────────────
+// Re-framing a question onto a SECOND SURFACE is a transfer decision, and it
+// has exactly one owner: lib/transfer.ts. A set of wrapper templates lived here
+// — deterministic families that prefixed or narrated a stem — and it was never
+// called by anything: it changed the framing while keeping the original choices,
+// so "work backwards — which choice gives …?" still asked for the same answer
+// from the same options. That is a preamble, not a second surface, and two
+// implementations of one idea is how the gate and the serve drift apart. It was
+// deleted; the surface families this file used to name live in lib/transfer.ts,
+// built from real generated questions with a provably single correct option.
