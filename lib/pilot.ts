@@ -2,10 +2,11 @@
 // THE PILOT — what is actually allowed in front of a learner, and what is not.
 //
 // The deployment audit found the product's most dangerous educational defect:
-// 120 of 135 concepts rendered a 31–58 word genome summary in the same visual
-// position as a complete lesson. Nothing on the page said "this is not a
-// lesson", so a learner — and a visiting teacher — could reasonably read it as
-// one. This module is the single answer to that question.
+// before the supplemental plans, 120 of 135 concepts rendered a 31–58 word
+// genome summary in the same visual position as a complete lesson. Nothing on
+// the page said "this is not a lesson", so a learner — and a visiting teacher —
+// could reasonably read it as one. This module is the single answer to that
+// question, and it still distinguishes a complete plan from a reviewed one.
 //
 // FOUR STATES, and they are deliberately not a percentage:
 //
@@ -61,7 +62,7 @@ export const CBSE_X_PILOT: PilotScope = {
   excludes: [
     "ICSE, state boards and every other country",
     "Hindi, Bengali, Urdu and every other medium of instruction",
-    "the 116 concepts with no complete authored lesson",
+    "the 116 concepts outside this 12-lesson path, including every supplemental lesson",
     "any claim of full CBSE syllabus coverage",
     "any school, teacher or learner partnership",
   ],
@@ -144,6 +145,52 @@ export const PILOT_APPROVALS: readonly PilotApproval[] = [];
 /** A content version. Bump this whenever any pilot lesson changes; an approval
  *  for an older version no longer applies. */
 export const PILOT_LESSON_VERSION = "2026-11-01.3";
+
+/** TEST-ONLY APPROVALS, AND THEY ARE NOT A REVIEW.
+ *
+ *  The browser walks need to exercise the assignment loop, and a real teacher
+ *  has not signed any lesson for this build. This registry exists so the walk
+ *  can run against the real gate instead of bypassing it: the records are
+ *  deliberately named as test fixtures, the registry is empty in production,
+ *  and it is read only when `OPENMIND_TEST_CONTENT_APPROVALS=1` in a
+ *  non-production process. `PILOT_APPROVALS` stays empty — the product's own
+ *  answer to "may a class be set this lesson?" remains no.
+ *
+ *  The two concepts are the ones `scripts/ui-walk-teacher.mjs` sets. The
+ *  approval is scoped to the candidate CBSE scope and the current lesson
+ *  version, like every real approval, so the gate still checks the shape it
+ *  will check when a qualified reviewer supplies one. */
+export const PILOT_TEST_APPROVALS: readonly PilotApproval[] = [
+  "fractions",
+  "negatives",
+].map((conceptId) => ({
+  conceptId,
+  scopeId: CBSE_X_PILOT.id,
+  lessonVersion: PILOT_LESSON_VERSION,
+  reviewer: "OpenMind test fixture",
+  reviewerRole: "automated test fixture — not a subject review",
+  reviewedAt: "2026-11-01",
+  notes: "Test-only approval used by the browser walk; never a claim of review.",
+  checklist: {
+    subjectAccuracy: true,
+    explanationQuality: true,
+    workedExamples: true,
+    questionsAndMarking: true,
+    diagramQuality: true,
+    languageAndTerminology: true,
+    ageAppropriateness: true,
+    accessibility: true,
+  },
+}));
+
+/** The approvals in force for this process. Production always reads the real,
+ *  empty registry; the fixture is reachable only from an explicit development
+ *  test run. */
+export function pilotApprovals(): readonly PilotApproval[] {
+  const testRun = process.env.NODE_ENV !== "production"
+    && process.env.OPENMIND_TEST_CONTENT_APPROVALS === "1";
+  return testRun ? [...PILOT_APPROVALS, ...PILOT_TEST_APPROVALS] : PILOT_APPROVALS;
+}
 
 export interface LessonGap {
   readonly field: string;
@@ -228,7 +275,7 @@ export function lessonStatus(
   scope: PilotScope = CBSE_X_PILOT,
   /** Injected ONLY by the gate, so the approved branch can be driven with a
    *  synthetic record. The product always uses the empty real registry above. */
-  approvals: readonly PilotApproval[] = PILOT_APPROVALS,
+  approvals: readonly PilotApproval[] = pilotApprovals(),
 ): PilotLessonStatus {
   // THE PLAN IN THE LANGUAGE THE LESSON IS TAUGHT IN, not the English one.
   // `planFor` falls back to English when no complete translation exists; the
@@ -254,8 +301,7 @@ export function lessonStatus(
     state = "needs-educator-review";
     reasons.push(`No complete ${lang} lesson exists for this concept; the English lesson is shown instead.`);
   } else if (!inScope) {
-    state = "needs-educator-review";
-    reasons.push("A complete authored lesson, but outside the 12-lesson CBSE pilot scope.");
+    state = "needs-educator-review";      reasons.push("A complete lesson plan, but outside the 12-lesson CBSE pilot scope.");
   } else {
     const approval = approvalFor(conceptId, scope.id, approvals);
     if (!approval) {
@@ -280,7 +326,7 @@ export function lessonStatus(
  *  empty, and that is the honest answer, not a bug to work around. */
 export function approvedPilotPath(
   scope: PilotScope = CBSE_X_PILOT,
-  approvals: readonly PilotApproval[] = PILOT_APPROVALS,
+  approvals: readonly PilotApproval[] = pilotApprovals(),
 ): string[] {
   return PILOT_SEQUENCE.filter(
     (id) => lessonStatus(id, scope.language, scope, approvals).state === "approved-for-pilot",

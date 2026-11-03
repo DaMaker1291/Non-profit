@@ -6,7 +6,7 @@
 // When nothing is cached (first visit, then offline), navigations fall back
 // to the cached /offline plan — never a bare network error, never a throw.
 const CACHE = "openmind-v2";
-const FALLBACKS = ["/offline", "/"];
+const FALLBACKS = ["/offline", "/offline/study", "/"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

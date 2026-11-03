@@ -388,6 +388,11 @@ const ACCESS: Record<string, AccessRequirement> = {
   // the diagnostic with no course and was served "Quadratic equations".
   "/diagnostic": "onboarded",
 
+  // The live-class door is a pupil's own class work, so it needs the same
+  // enrolled learner the rest of the learning surfaces need. It is not public:
+  // the page lists the caller's classes and carries no anonymous view.
+  "/classroom": "onboarded",
+
   // Needs a course recorded, because the surface is meaningless without one.
   "/learn": "onboarded",
   // The Mind pages speak about the learner's OWN evidence, so they need both a

@@ -32,7 +32,7 @@ import { ensureSecret, rememberOnDevice, writeProfileId, writeSecret } from "./i
 import { readKioskSession } from "../kiosk-session";
 import type {
   Assignment, AssignmentMemberProgress, AssignmentMonitor, ClassMemberEvidence,
-  ClassRoster, ConceptProgress, DiagnosticResult, PathStep, ProfileState,
+  ClassroomSessionView, ClassRoster, ConceptProgress, DiagnosticResult, PathStep, ProfileState,
   PublicAccount, Question, StudyPack, StudyRoom, SubjectCourse, SubjectId, WorkedExampleView,
 } from "../types";
 import type { MatchResult } from "../matcher";
@@ -946,6 +946,57 @@ export function classes(me: string): Promise<{ classes: ClassRoster[]; teaching:
 
 export function classById(id: string, me: string): Promise<{ cls: ClassRoster }> {
   return send("/api/classes", { query: { id, me } });
+}
+
+// ── THE LIVE CLASSROOM ──────────────────────────────────────────────────────
+// The room is read from the server and mutated only through this operation.
+// The stream URL is an operation too, so no component has to know a route name
+// (or accidentally build a second one).
+
+export interface ClassroomData {
+  session: ClassroomSessionView | null;
+  availableConcepts: { id: string; title: string }[];
+  reviewGate: string | null;
+}
+
+export interface ClassroomActionResult {
+  session?: ClassroomSessionView | null;
+  error?: string;
+}
+
+export function classroom(clsId: string): Promise<ClassroomData> {
+  return send<ClassroomData>("/api/classroom", { query: { cls: clsId } });
+}
+
+/** The 409 body is an ANSWER (paused, ended, already live), not a transport
+ *  failure, so it is tolerated and returned to the screen that explains it. */
+export function classroomAction(clsId: string, body: Record<string, unknown>): Promise<ClassroomActionResult> {
+  return send<ClassroomActionResult>("/api/classroom", {
+    method: "POST",
+    body: { clsId, ...body },
+    tolerate: [409],
+  });
+}
+
+export function classroomStreamUrl(clsId: string): string {
+  return buildUrl("/api/classroom/stream", { cls: clsId }, capabilityFor("/api/classroom/stream", "GET"), "GET");
+}
+
+/** The evidence door used by an offline queue. Its URL belongs here, beside
+ *  every other route name; an offline page must not spell it again. */
+export const EVIDENCE_DOOR = "/api/evidence";
+
+export interface OfflinePackList {
+  concepts: { id: string; title: string; subject: string | null; review: string }[];
+  rights?: string;
+}
+
+export function offlinePackList(id: string, secret: string | null): Promise<OfflinePackList> {
+  return send<OfflinePackList>("/api/offline-pack", { query: { list: "1", id, secret: secret ?? undefined } });
+}
+
+export function offlinePack(id: string, secret: string | null, concept: string): Promise<Record<string, unknown>> {
+  return send<Record<string, unknown>>("/api/offline-pack", { query: { concept, id, secret: secret ?? undefined } });
 }
 
 /** ONE member's evidence in detail — the "what can this student demonstrate?"

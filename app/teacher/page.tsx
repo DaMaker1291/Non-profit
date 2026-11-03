@@ -22,6 +22,7 @@ import { ErrorState, Loading } from "@/components/states";
 import { ResetCode } from "@/components/reset-code";
 import { ClassroomPins } from "@/components/classroom-pins";
 import NeedsPanel, { type NeedLaunch } from "@/components/needs-panel";
+import LiveClassroom from "@/components/live-classroom";
 import { dimensionFor, type KnowledgeRow } from "@/lib/evidence-view";
 import type { AssignmentIntervention, AssignmentMonitor, ClassMemberEvidence, ClassRoster, SubjectId } from "@/lib/types";
 // The same four words the learner reads under their own mark: a teacher's
@@ -124,7 +125,7 @@ export default function TeacherPage() {
   // attention rows below link that way), and a refresh keeps the teacher where
   // they were. `#classes` is the index, and unknown hashes are the index too.
   const [openClassId, setOpenClassId] = useState<string | null>(null);
-  const [tab, setTab] = useState<"roster" | "work" | "plan">("roster");
+  const [tab, setTab] = useState<"roster" | "work" | "plan" | "live">("roster");
   const [creating, setCreating] = useState(false);
   useEffect(() => {
     const read = (): void => {
@@ -395,8 +396,12 @@ export default function TeacherPage() {
           <h2 className="section" style={{ marginTop: 0 }}>{t("teach.entryTitle")}</h2>
           <p style={{ margin: "6px 0 16px" }}>{t("teach.entryBody")}</p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link className="btn" href="/onboarding?role=teacher&mode=signup">{t("teach.entryCreate")}</Link>
-            <Link className="btn ghost" href="/onboarding?role=teacher&mode=signin">{t("onb.signIn")}</Link>
+            {/* THE DOOR REMEMBERS WHERE IT WAS. A teacher who followed a link
+                to /teacher, or typed it, must come back here after signing in;
+                dropping the target sent them to Home and made them find the
+                console again. */}
+            <Link className="btn" href="/onboarding?role=teacher&mode=signup&return=%2Fteacher">{t("teach.entryCreate")}</Link>
+            <Link className="btn ghost" href="/onboarding?role=teacher&mode=signin&return=%2Fteacher">{t("onb.signIn")}</Link>
           </div>
           {/* A LEARNER WHO LANDS HERE IS SENT TO THEIR OWN WORK, NOT INTO
               ENROLMENT. The second line used to offer `/onboarding` — the
@@ -694,7 +699,7 @@ export default function TeacherPage() {
                 document rather than being swapped out of an ARIA tab widget a
                 screen reader would then have to navigate around. */}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "0 0 12px", borderBottom: "1px solid var(--line)", paddingBottom: 10 }}>
-              {([["roster", "teach.tabStudents"], ["work", "teach.tabWork"], ["plan", "teach.tabWeek"]] as const).map(([id, key]) => (
+              {([["roster", "teach.tabStudents"], ["work", "teach.tabWork"], ["plan", "teach.tabWeek"], ["live", "Live"]] as const).map(([id, key]) => (
                 <button
                   key={id}
                   type="button"
@@ -894,6 +899,11 @@ export default function TeacherPage() {
             {/* THE WEEK, from the same engine the printed offline pack uses —
                 so the plan on screen and the plan on paper cannot disagree. */}
             {tab === "plan" && <WeeklyPlanPanel cls={cls} />}
+
+            {/* THE ROOM. A fourth job, because a live lesson is not the roster,
+                the work list or the week: it is one question in front of every
+                pupil at the same time. */}
+            {tab === "live" && <LiveClassroom clsId={cls.id} teacher />}
           </div>
         );
       })}

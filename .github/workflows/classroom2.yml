@@ -1,0 +1,154 @@
+# ── CLASSROOM 2.0 — THE FIVE FEATURES, ON EVERY CHANGE ──────────────────────
+#
+# This job is deliberately separate from `gates.yml` (engines/content) and
+# `ci.yml` (deployment readiness). It runs the feature-level evidence:
+#
+#   · teacher and pupil auth, session/return-path boundaries;
+#   · cross-device learner state;
+#   · assignment publication, delivery and the teacher's monitor;
+#   · live classroom control, SSE delivery and reconnect;
+#   · a real offline browser with the network disabled; and
+#   · a process restart on the same store.
+#
+# Both servers use throwaway stores. The development server alone receives the
+# test-only approval fixture; the production server used for the service-worker
+# walk is started with approvals explicitly OFF. No real educator approval and
+# no deployment credential is read by this workflow.
+name: classroom-2
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  classroom-2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OPENMIND_ALLOW_EPHEMERAL_STORE: "1"
+      OPENMIND_ENV: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+
+      - name: Compiler
+        run: npm run typecheck
+
+      # The browser and API suites read the compiled engine mirror; run the
+      # engine gate first rather than relying on a previous step's artefact.
+      - name: Engine suite
+        run: npm run verify
+
+      # The offline walk needs a production build and its service worker. Build
+      # before starting either server, so the artefact is the one this commit
+      # produced rather than a cache from an earlier run.
+      - name: Production build
+        run: npm run build
+
+      - name: Start the development server (test approvals only)
+        run: |
+          mkdir -p /tmp/om-feature-dev
+          OPENMIND_DATA_DIR=/tmp/om-feature-dev \
+            OPENMIND_TEST_CONTENT_APPROVALS=1 \
+            OPENMIND_ALLOW_EPHEMERAL_STORE=1 \
+            npm run dev > /tmp/om-feature-dev.log 2>&1 &
+          echo $! > /tmp/om-feature-dev.pid
+          for i in $(seq 1 120); do
+            curl -sf -o /dev/null http://127.0.0.1:4173/api/health && exit 0
+            sleep 1
+          done
+          echo "::error::development server did not become ready"
+          tail -80 /tmp/om-feature-dev.log
+          exit 1
+
+      - name: Start the production server (no test approvals)
+        run: |
+          mkdir -p /tmp/om-feature-prod
+          OPENMIND_DATA_DIR=/tmp/om-feature-prod \
+            OPENMIND_ALLOW_EPHEMERAL_STORE=1 \
+            OPENMIND_TEST_CONTENT_APPROVALS=0 \
+            npx next start -p 4174 > /tmp/om-feature-prod.log 2>&1 &
+          echo $! > /tmp/om-feature-prod.pid
+          for i in $(seq 1 120); do
+            curl -sf -o /dev/null http://127.0.0.1:4174/api/health && exit 0
+            sleep 1
+          done
+          echo "::error::production server did not become ready"
+          tail -80 /tmp/om-feature-prod.log
+          exit 1
+
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+
+      - name: Classroom API and live-session state
+        run: npm run verify:classroom2
+
+      - name: Authentication and authorization boundaries
+        run: npm run verify:auth-boundaries
+
+      - name: Cross-device learner state
+        run: npm run verify:auth-sync
+
+      - name: Teacher UI journey
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: npm run verify:ui:teacher
+
+      - name: Live classroom in real browsers
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: npm run verify:live-browser
+
+      - name: Live classroom at a 390px phone viewport
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+          OPENMIND_VIEWPORT_WIDTH: "390"
+          OPENMIND_VIEWPORT_HEIGHT: "844"
+        run: npm run verify:live-browser
+
+      - name: Assignment lifecycle (targeted, partial, scheduled, closed)
+        run: npm run verify:assignment-lifecycle
+
+      - name: Assignment journey in real browsers
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: npm run verify:assignment-browser
+
+      # Its own dev server on 4177, a unique throwaway distDir, and a scratch
+      # store: it can stop and restart the process without touching the servers
+      # above.
+      - name: Restart recovery on the same store
+        run: npm run verify:classroom-restart
+
+      - name: Offline learning with a real disconnected browser
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+          OFFLINE_BASE: http://127.0.0.1:4174
+          OPENMIND_DATA_DIR: /tmp/om-feature-prod
+        run: npm run verify:offline-browser
+
+      - name: Server logs on failure
+        if: failure()
+        run: |
+          echo '──── development ────'
+          tail -100 /tmp/om-feature-dev.log 2>/dev/null || true
+          echo '──── production ────'
+          tail -100 /tmp/om-feature-prod.log 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: classroom-2-evidence
+          path: |
+            /tmp/om-feature-dev.log
+            /tmp/om-feature-prod.log
+          if-no-files-found: ignore

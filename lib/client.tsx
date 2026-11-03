@@ -13,6 +13,8 @@ import {
 } from "./app-state";
 import { LANGS, isRtl, langMeta, translator } from "./i18n";
 import { clearKioskSession } from "./kiosk-session";
+import { clearOfflineLearner } from "./offline-pack";
+import { clearQueueFor } from "./sync-queue";
 
 // ── Identity on this device ─────────────────────────────────────────────────
 // One event, one meaning: "the learner identity stored on this device changed".
@@ -131,6 +133,15 @@ function reasonOf(e: unknown, fallback: string): string {
 
 export function clearSession(): void {
   if (typeof window === "undefined") return;
+  // THE HANDOVER POINT. Before the identity is forgotten, remove the work that
+  // belonged to it: saved offline packs/drafts and any answers still waiting to
+  // be sent. Leaving them would let the next child on a shared handset see the
+  // previous child's work, or drain it under the next account.
+  const previous = loadLocalProfileId();
+  if (previous) {
+    clearOfflineLearner(previous);
+    clearQueueFor(previous);
+  }
   clearIdentity();
 }
 
@@ -411,6 +422,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setProfile(state);
         setProfileStatus(profileStatusOf(state));
       });
+    }).catch((e) => {
+      // THE PROBE MUST ALWAYS SETTLE. `fetchSession` is written to answer an
+      // empty session rather than throw, but a provider that hangs on an
+      // unexpected rejection is worse than a signed-out page: every surface
+      // renders the boot skeleton forever and no control can recover it.
+      // Fail closed and leave the reason in the console for the developer.
+      if (!alive) return;
+      console.error("session probe failed", e);
+      setSession(EMPTY_SESSION);
+      setAuth("signed_out");
+      setProfile(null);
+      setProfileStatus("missing");
     });
     return () => { alive = false; };
   }, [generation]);
@@ -465,6 +488,11 @@ export function useAccount(): { session: AccountSession; status: AuthStatus; rea
       if (!alive) return;
       setOwn(s);
       setOwnStatus(s.account ? "signed_in" : "signed_out");
+    }).catch((e) => {
+      if (!alive) return;
+      console.error("standalone session probe failed", e);
+      setOwn(EMPTY_SESSION);
+      setOwnStatus("signed_out");
     });
     return () => { alive = false; };
   }, [ctx, tick]);

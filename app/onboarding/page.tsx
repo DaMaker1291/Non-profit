@@ -294,10 +294,31 @@ function OnboardingFlow() {
    *  caught it. A ref is written synchronously, so the second and third clicks
    *  are refused before React has rendered anything. */
   const advanceLock = useRef(false);
+  /** A SIGN-IN IS A REQUEST, NOT A STEP. The account step used to say `Next`
+   *  and only move the wizard on; the login call happened at the final step,
+   *  which is why a real click on Next looked like a dead sign-in form. The
+   *  refs below make the request happen at the step that owns the credentials,
+   *  and stop the final step repeating it after the context has rerendered. */
+  const signInDone = useRef(false);
+  const guestClaimed = useRef(false);
   const advance = () => {
     if (advanceLock.current) return;
     advanceLock.current = true;
     setAdvancing(true);
+    void advanceStep();
+  };
+  const advanceStep = async () => {
+    // The account step owns the credentials, so it is the step that submits
+    // them. Sign-up still completes at the final step, where the profile is
+    // written; the sign-in request itself is not deferred past the form that
+    // collected the password.
+    if (current === "account" && mode === "signin" && !(signedIn || signInDone.current)) {
+      if (!(await authenticateSession())) {
+        advanceLock.current = false;
+        setAdvancing(false);
+        return;
+      }
+    }
     setStep((s) => s + 1);
   };
   useEffect(() => {
@@ -314,6 +335,47 @@ function OnboardingFlow() {
   const guestClaim = useMemo(() => currentGuestClaim(), []);
   const guestHere = guestClaim !== null;
   const signedIn = Boolean(session.account);
+
+  /** Exchange the account form's credentials for a session, once.
+   *
+   *  This is the operation the normal interface was missing at the point it
+   *  displayed the credentials. It is deliberately separate from `finish`:
+   *  `finish` also writes the profile and decides the destination, while this
+   *  only answers "is there a valid session?". A failed attempt stays on the
+   *  account screen with the server's own refusal, so a wrong password is not
+   *  reported by a later step as a broken profile save.
+   */
+  async function authenticateSession(): Promise<boolean> {
+    if (signedIn || signInDone.current) return true;
+    if (mode !== "signin") return true;
+    setBusy(true);
+    setErr("");
+    setErrCode("");
+    setCanFreshStart(false);
+    try {
+      await signIn(email, password);
+      signInDone.current = true;
+      // Carry this device's anonymous work into the account if it can — using
+      // the claim captured BEFORE sign-in replaced it.
+      if (claim && guestHere && !guestClaimed.current) {
+        guestClaimed.current = true;
+        try {
+          await claimGuestProfile(guestClaim);
+        } catch (e) {
+          setNotice(e instanceof Error && e.message === "account_has_progress" ? t("onb.claimFailed") : "");
+        }
+      }
+      return true;
+    } catch (e) {
+      const shown = errorFor(e instanceof Error ? e.message : "", t);
+      setErr(shown.message);
+      setErrCode(shown.code);
+      setCanFreshStart(shown.fresh);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
 
   // ── THREE SCREENS, AND NOTHING THAT CAN BE ASKED LATER ──────────────────
   //
@@ -442,16 +504,10 @@ function OnboardingFlow() {
           });
           minted = created.recoveryCode ?? "";
         } else if (mode === "signin") {
-          await signIn(email, password);
-          // Carry this device's anonymous work into the account if it can —
-          // using the claim captured BEFORE sign-in replaced it.
-          if (claim && guestHere) {
-            try {
-              await claimGuestProfile(guestClaim);
-            } catch (e) {
-              setNotice(e instanceof Error && e.message === "account_has_progress" ? t("onb.claimFailed") : "");
-            }
-          }
+          // The account step has already done this in the ordinary flow. This
+          // is the recovery path, and the guard makes a second submission on a
+          // slow render harmless instead of opening a second session.
+          if (!(await authenticateSession())) return;
         }
       }
       let saved: ProfileState | null = null;
@@ -1116,7 +1172,7 @@ function OnboardingFlow() {
         )}
         {step < steps.length - 1 ? (
           <button className="btn" onClick={advance} disabled={!canAdvance() || busy || advancing} style={{ flex: 1 }}>
-            {t("common.next")} →
+            {current === "account" && mode === "signin" ? t("onb.signIn") : `${t("common.next")} →`}
           </button>
         ) : (
           <button className="btn" onClick={finish} disabled={busy} style={{ flex: 1 }}>

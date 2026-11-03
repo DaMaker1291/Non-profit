@@ -220,6 +220,20 @@ export default function ConceptPage() {
   }, [phase]);
 
   const prereqs = c ? c.prereqs : [];
+  // DIRECT next steps, not every descendant: a path that lists all of algebra
+  // after one arithmetic lesson is a syllabus, not a next move. A ROOT concept
+  // has no dependent, though, and used to have no forward path at all; follow
+  // the subject's own teaching order in that case, so every starting point has
+  // somewhere to go rather than only a link back to the map.
+  const nextSteps = c
+    ? (() => {
+        const peers = bySubject(c.subject);
+        const direct = peers.filter((x) => x.prereqs.includes(c.id));
+        if (direct.length > 0) return direct;
+        const at = peers.findIndex((x) => x.id === c.id);
+        return at >= 0 ? peers.slice(at + 1, at + 3) : [];
+      })()
+    : [];
   const id = loadLocalProfileId();
 
   useEffect(() => {
@@ -836,6 +850,24 @@ export default function ConceptPage() {
               <li key={p}>
                 <Link href={`/learn/${subject}/${p}`}>{ctitle(lang, p)}</Link>
                 <span className="small muted"> — {cblurb(lang, p)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* THE FORWARD HALF OF THE PATH. Prerequisites answer "what do I need?";
+          this answers "where does this lead?", with the same one-line reason
+          beside each link so a learner can choose the next idea rather than
+          guessing from a title. */}
+      {nextSteps.length > 0 && (
+        <section className="card soft" style={{ marginBottom: 18 }} aria-label={t("learn.next")}>
+          <p className="eyebrow" style={{ margin: 0 }}>{t("learn.next")}</p>
+          <ul className="lesson-list">
+            {nextSteps.map((n) => (
+              <li key={n.id}>
+                <Link href={`/learn/${n.subject}/${n.id}`}>{ctitle(lang, n.id)}</Link>
+                <span className="small muted"> — {cblurb(lang, n.id)}</span>
               </li>
             ))}
           </ul>

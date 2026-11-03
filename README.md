@@ -322,15 +322,15 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Concepts independently re-derived from the prompt | 5 | circle-area-arc, completing-square, fractions, mixture-problems, surds | `audit/verification-coverage.json` |
 |  | Concepts checked for structure only | 130 | an item no matcher recognises is an item nobody has verified | `audit/verification-coverage.json` |
 |  | Concepts reviewed by a qualified person | 0 | nobody has reviewed any item yet — the honest figure, and the one this project would most like to change | `audit/item-reviews.json` |
-| **Assessment validity** | Concepts with an option-length tell above the line | 64 of 135 | a learner who never reads the question should not beat chance | `audit/options-gate.json` |
+| **Assessment validity** | Concepts with an option-length tell above the line | 63 of 135 | a learner who never reads the question should not beat chance | `audit/options-gate.json` |
 |  | Best bank-wide length strategy | 25.2% | chance is 25% | `audit/options-gate.json` |
 |  | Course × subject rows audited for depth | 311 | every subject's target depth is reachable, by some generator in its course | `audit/content-coverage.json` |
 | **Storage** | Lock tables in lib/ and app/ | 1 | one, in lib/server/store.ts — two tables means two writers with no common serialisation point | `source scan` |
 |  | Owners of where learning data lives | 1 | one, in lib/server/store.ts; lib/env.ts reports the variable and resolves nothing, so it is exempt | `source scan` |
-|  | Route files importing the store | 20 | 75 export statements in a 1179-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
-|  | JSON files the server modules own | 12 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "boots.json", "classes.json", "erasures.json", "interventions.json", "kiosk-sessions.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
+|  | Route files importing the store | 23 | 80 export statements in a 1237-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
+|  | JSON files the server modules own | 14 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "boots.json", "classes.json", "classroom-sessions.json", "content-reviews.json", "erasures.json", "interventions.json", "kiosk-sessions.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
 | **Pilot (UK GCSE maths)** | Concepts in the review cluster | 15 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
-|  | Items awaiting human review | 154 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
+|  | Items awaiting human review | 149 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
 |  | Cluster concepts with no named misconception to probe | 0 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |
 | **Curriculum** | Country codes offered in enrolment | 71 |  | `lib/i18n.ts` |
 |  | Countries with a recorded national route | 70 | asserted equal to the published count by `npm run curriculum-gate` | `lib/curricula/registry.ts` |
@@ -340,9 +340,9 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Pathways with no structural source on file | 18 | named on every `curriculum-gate` run rather than hidden | `lib/curricula/registry.ts` |
 |  | Pathways whose syllabus mapping has been reviewed | 0 | every mapping is currently OpenMind's own | `lib/curricula/registry.ts` |
 | **Papers** | Countries whose paper shape is the awarding body's own | 19 | 53 countries are shown a practice set that says it is one | `audit/paper-shape-coverage.json` |
-|  | Paper blueprints with a citation on file | 62 of 67 | the rest were authored from a board's structure before citations were collected, and are named by `npm run paper-audit` | `audit/paper-shape-coverage.json` |
+|  | Paper blueprints with a citation on file | 65 of 70 | the rest were authored from a board's structure before citations were collected, and are named by `npm run paper-audit` | `audit/paper-shape-coverage.json` |
 |  | Countries whose assessment shape was researched and NOT found | 8 | each listed with the reason, so the gap is a queue rather than a silence | `audit/paper-shape-coverage.json` |
-|  | Papers a learner can be offered | 447 | 67 with a shape read from an awarding body, 380 OpenMind's own shape at the course's band | `audit/paper-shape-coverage.json` |
+|  | Papers a learner can be offered | 447 | 70 with a shape read from an awarding body, 377 OpenMind's own shape at the course's band | `audit/paper-shape-coverage.json` |
 
 <!-- status:end -->
 

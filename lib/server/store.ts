@@ -203,6 +203,20 @@ export async function writeJson(
   await fs.rename(tmp, path.join(DATA_DIR, file));
 }
 
+// ── Live classroom sessions ─────────────────────────────────────────────────
+// The classroom store owns its own file, but the file helpers are the store's
+// private business (npm run verify enforces that no other lib module imports
+// them). The live-room module asks the store for this record instead of
+// reaching past the port, so a future backend can replace the file without a
+// second file-shaped caller.
+export async function readClassroomSessionsJson<T>(fallback: T): Promise<T> {
+  return readJson("classroom-sessions.json", fallback);
+}
+
+export async function writeClassroomSessionsJson(data: unknown): Promise<void> {
+  await writeJson("classroom-sessions.json", data);
+}
+
 // ── Profiles ────────────────────────────────────────────────────────────────
 
 // `newProfileState` and `publicProfileState` are re-exported above from

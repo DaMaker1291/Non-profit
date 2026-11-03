@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useI18n } from "@/lib/client";
+import { useI18n, useProfile } from "@/lib/client";
 import { fill } from "@/lib/i18n";
-import { clearRefused, flushQueue, queueSummary, type QueueSummary } from "@/lib/sync-queue";
+import { clearRefused, flushQueue, queueSummary, setSyncScope, type QueueSummary } from "@/lib/sync-queue";
 import { watchPower } from "@/lib/power";
 import { drainIntervalMs, drainsOnArrival, resolveDeployment } from "@/lib/deployment";
 
@@ -15,6 +15,8 @@ export function OfflineBar() {
   const [online, setOnline] = useState(true);
   const [queue, setQueue] = useState<QueueSummary>({ pending: 0, refused: 0, oldest: null });
   const { t } = useI18n();
+  const { state: profileState } = useProfile();
+  const scopeId = profileState?.profile.id ?? null;
   // WHETHER THIS DEVICE MAY DRAIN THE QUEUE BY ITSELF — one answer, read from
   // the declared deployment (lib/deployment.ts). A school on metered data says
   // `syncFrequency: "manual"`, and its work leaves the device when the person
@@ -33,6 +35,9 @@ export function OfflineBar() {
     void flushQueue().then((r) => setQueue({ pending: r.pending, refused: r.refused, oldest: null }));
 
   useEffect(() => {
+    // Scope first: the queue this bar drains must be the signed-in learner's.
+    setSyncScope(scopeId);
+    setQueue(queueSummary());
     if ("serviceWorker" in navigator) {
       if (process.env.NODE_ENV === "production") {
         void navigator.serviceWorker.register("/sw.js");
@@ -73,7 +78,9 @@ export function OfflineBar() {
     // that was closed while offline and reopened on wifi fires nothing at all —
     // so the queue is drained on mount too, or a returning learner's work would
     // sit in localStorage forever.
-    if (auto && navigator.onLine) drain();
+    // A signed-out shell holds no learner queue to drain. A signed-in learner
+    // drains only their own scoped keys.
+    if (scopeId && auto && navigator.onLine) drain();
     else setQueue(queueSummary());
     const on = () => {
       setOnline(true);
@@ -97,7 +104,7 @@ export function OfflineBar() {
       if (timer !== null) window.clearInterval(timer);
       stopPower();
     };
-  }, [auto, deployment]);
+  }, [auto, deployment, scopeId]);
 
   // `fill` rather than concatenation: the count's place in the sentence is a
   // property of the LANGUAGE, so each dictionary decides it.

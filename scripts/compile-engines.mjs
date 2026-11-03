@@ -96,6 +96,11 @@ export const ENGINE_SOURCES = [
   // table that no test compiles is a table nobody has checked.
   "lib/lesson-plans.ts",
   "lib/lesson-plans-intl.ts",
+  "lib/lesson-plans-lens.ts",
+  "lib/lesson-plans-maths.ts",
+  "lib/lesson-plans-science.ts",
+  "lib/lesson-plans-computing.ts",
+  "lib/lesson-plans-supplemental.ts",
   // FIGURE GEOMETRY. Compiled with the engines because the claims a diagram
   // makes are arithmetic: a number line's arrow must travel the way the sign
   // says, a balance's pans must hold what the equation says, an area model's

@@ -31,6 +31,7 @@ tsconfig.tsbuildinfo
 .next-dev/
 .next-e2e/
 .next-ui/
+.next-restart-*/
 
 # Learning data — never commit a classroom.
 .openmind-data

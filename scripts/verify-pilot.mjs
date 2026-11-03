@@ -56,9 +56,9 @@ for (const id of ids) {
   ok(s.reasons.length > 0, `${id}: explains why it is not approved`);
   ok(P.pilotWordCount(s.plan) >= 250, `${id}: at least 250 teaching words`);
 }
-ok(P.lessonStatus("addition").state === "unavailable-for-pilot", "a fallback concept is unavailable, not a lesson");
-ok(P.lessonStatus("addition").plan === null, "a fallback concept has no plan");
-ok(!P.isPilotConcept("addition"), "a fallback concept is not in the pilot path");
+ok(P.lessonStatus("addition").state === "needs-educator-review", "a supplemental concept is complete but unreviewed, not approved");
+ok(P.lessonStatus("addition").plan !== null, "a supplemental concept has a real plan");
+ok(!P.isPilotConcept("addition"), "a supplemental concept is not in the pilot path");
 
 for (const id of ["photosynthesis", "cells", "equations-stoich", "electricity-circuits"]) {
   const plan = P.lessonStatus(id).plan;

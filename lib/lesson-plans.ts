@@ -30,9 +30,13 @@
 // compact tuple table with 135 entries; a structured lesson does not fit in a
 // tuple, and reshaping that table to carry one would have touched every row and
 // every gate that reads it. Keeping plans keyed by concept id also makes the
-// coverage honest and countable: `planFor` answers null for a concept nobody has
-// written a plan for, and the page then renders the prose it always did. There is
-// no generated filler standing in for teaching nobody wrote.
+// coverage honest and countable: the 19 pilot-candidate plans are authored in
+// this module, and `planFor` serves a supplemental plan for every other concept
+// from `lesson-plans-supplemental.ts`. Those supplemental plans are composed from
+// the concept's genome note and its own concept-specific lens, and are marked
+// `provenance: "supplemental"` / `review: "unreviewed"`; they are not presented
+// as reviewed teaching. A concept with no lens still answers null, so a genome
+// addition cannot silently inherit another concept's lesson.
 //
 // PROVENANCE IS PART OF THE CONTENT (§3 of the strategy note: authored ≠
 // reviewed ≠ pilot-tested). Every plan states its review state, and the page
@@ -42,6 +46,7 @@
 import { CONCEPTS } from "./genome";
 import type { FigureSpec } from "./types";
 import { completeLanguages, translatedPlanFor } from "./lesson-plans-intl";
+import { SUPPLEMENTAL_LESSON_PLANS } from "./lesson-plans-supplemental";
 
 /** One wrong move, and why it does not work. */
 export interface LessonTrap {
@@ -78,6 +83,10 @@ export interface LessonPlan {
    *  island: the read stage prints it under the practice door. */
   readonly usedFor: string;
   readonly review: PlanReview;
+  /** Where this plan came from. The 19 pilot plans are the authored review
+   *  candidates; supplemental plans cover the rest of the genome from the
+   *  concept's own teaching note and are never presented as pilot-reviewed. */
+  readonly provenance?: "pilot" | "supplemental";
   /** THE WORDS THE LESSON USES, defined where they are first needed. A learner
    *  who meets "limiting factor" in a paragraph and nowhere else has to infer
    *  it from context; a short glossary is the difference between reading and
@@ -135,7 +144,7 @@ export interface LessonPlan {
  * avoid. `npm run verify` measures the count rather than trusting this
  * paragraph, and `audit/pilot-pack.json` is regenerated from it.
  */
-export const LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
+const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
   // ── THE FOUNDATIONS RING, ADDED AFTER THE PILOT WAS VERIFIED ────────────────
   //
   // The pilot is a pathway through stage 0–3 algebra and number. A learner who
@@ -1136,6 +1145,24 @@ export const LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
   },
 };
 
+/** Every concept in the genome now has a plan: the 19 pilot-authored lessons
+ *  above, plus a supplemental plan built from the concept's own teaching note
+ *  and a concept-specific lens. Supplemental plans are marked unreviewed, so
+ *  the pilot's review gate still means only the 19 candidates in the named
+ *  packs.
+ *
+ *  The full registry is what `planFor` answers from. `pilotPlanIds()` is the
+ *  smaller set the review packs and the browser lesson walk measure. */
+export const LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
+  ...PILOT_LESSON_PLANS,
+  ...SUPPLEMENTAL_LESSON_PLANS,
+};
+
+/** The plans that belong to the review packs, not the supplemental coverage. */
+export function pilotPlanIds(): string[] {
+  return Object.keys(PILOT_LESSON_PLANS);
+}
+
 /** The plan for a concept, or null when nobody has written one. Null is a real
  *  answer, not an error: the page falls back to the genome's prose, so a concept
  *  without a plan renders what it always did rather than an empty shell.
@@ -1202,8 +1229,9 @@ export function firstMoveOf(explanation: string): { first: string; rest: string 
   return { first: explanation, rest: "" };
 }
 
-/** Which concepts have a plan. Reported, never asserted to be 135: a coverage
- *  number that lies is worse than a small honest one. */
+/** Which concepts have a plan: every concept in the genome today, including
+ *  the supplemental coverage. `pilotPlanIds()` remains the smaller reviewed
+ *  candidate set. */
 export function plannedConceptIds(): string[] {
   return Object.keys(LESSON_PLANS);
 }

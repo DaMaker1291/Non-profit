@@ -77,9 +77,13 @@ export function client(ws, onEvent) {
 export async function launchChrome(opts = {}) {
   const chrome = opts.chrome ?? process.env.CHROME_BIN ?? DEFAULT_CHROME;
   const port = opts.port ?? 9333 + Math.floor(Math.random() * 400);
-  const width = opts.width ?? 1280;
-  const height = opts.height ?? 900;
-  const dir = mkdtempSync(path.join(tmpdir(), "openmind-walk-"));
+  const width = opts.width ?? Number(process.env.OPENMIND_VIEWPORT_WIDTH ?? 1280);
+  const height = opts.height ?? Number(process.env.OPENMIND_VIEWPORT_HEIGHT ?? 900);
+  // A caller may name a profile directory when it needs a browser to be closed
+  // and reopened as the SAME person (the offline walk). A normal walk still
+  // gets a fresh temp profile and removes it on close.
+  const dir = opts.userDataDir ?? mkdtempSync(path.join(tmpdir(), "openmind-walk-"));
+  const keepProfile = opts.keepProfile ?? !!opts.userDataDir;
   let stderr = "";
   const proc = spawn(chrome, [
     "--headless=new",
@@ -103,7 +107,9 @@ export async function launchChrome(opts = {}) {
   }
   if (!target) {
     proc.kill("SIGKILL");
-    try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
+    if (!keepProfile) {
+      try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
+    }
     // ONE SLOW START MUST NOT FAIL A RELEASE. A cold CI runner can take longer
     // than the 20s above to bring Chrome up, and the gates workflow treats this
     // throw as a red build — measured on a public run: "Chrome did not expose a
@@ -130,13 +136,31 @@ export async function launchChrome(opts = {}) {
   await send("Page.enable");
   await send("Runtime.enable");
   if (opts.onEvent) await send("Network.enable");
+  // A headless window smaller than Chrome's own minimum is silently clamped to
+  // 500 CSS px. Override the device metrics so a walk that asks for a phone
+  // viewport is actually measured there, rather than at a desktop window.
+  await send("Emulation.setDeviceMetricsOverride", {
+    width,
+    height,
+    deviceScaleFactor: 1,
+    mobile: width < 800,
+  });
   const close = async () => {
+    // Browser.close is ASYNCHRONOUS ON DISK: Chromium can still be flushing
+    // localStorage/LevelDB after the CDP call resolves. SIGKILLing it in the
+    // same tick made a real close/reopen lose the signed-in identity while the
+    // service-worker cache survived — a harness failure that looked like the
+    // product forgetting a learner. Give the process a bounded chance to exit.
+    const exited = new Promise((resolve) => proc.once("exit", resolve));
     try { await send("Browser.close"); } catch { /* already gone */ }
     try { ws.close(); } catch { /* already closed */ }
-    proc.kill("SIGKILL");
-    try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
+    await Promise.race([exited, sleep(2500)]);
+    try { proc.kill("SIGKILL"); } catch { /* already gone */ }
+    if (!keepProfile) {
+      try { rmSync(dir, { recursive: true, force: true }); } catch { /* best effort */ }
+    }
   };
-  return { send, close, port };
+  return { send, close, port, dir };
 }
 
 /**
@@ -256,9 +280,43 @@ export function pageFor(send) {
     await send("Input.dispatchKeyEvent", { type: "keyUp", key });
   };
 
-  /** Real typing into a field: focus with a click, then per-character key events. */
+  /** Real typing into a field: focus with a click, CLEAR it, then per-character
+   *  key events.
+   *
+   *  The clear is not cosmetic. A person correcting a refused password selects
+   *  the field and retypes; the first version of this helper did not, so a second
+   *  attempt APPENDED to the first. The auth walk measured the result: the email
+   *  was doubled and the password was both passwords concatenated, and the server
+   *  correctly refused a credential no person had typed. A harness that cannot
+   *  replace text cannot test a retry. */
   const typeInto = async (expr, text, what) => {
     await clickExpr(expr, what);
+    const modifiers = process.platform === "darwin" ? 4 : 2; // Meta on macOS, Ctrl elsewhere
+    await send("Input.dispatchKeyEvent", {
+      type: "rawKeyDown", key: "a", code: "KeyA", windowsVirtualKeyCode: 65,
+      nativeVirtualKeyCode: 65, modifiers, commands: ["selectAll"],
+    });
+    await send("Input.dispatchKeyEvent", { type: "keyUp", key: "a", code: "KeyA", modifiers });
+    await send("Input.dispatchKeyEvent", {
+      type: "rawKeyDown", key: "Backspace", code: "Backspace",
+      windowsVirtualKeyCode: 8, nativeVirtualKeyCode: 8,
+    });
+    await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Backspace", code: "Backspace" });
+    await sleep(40);
+    const empty = await evaluate(`const el = ${expr}; return !!el && el.value === "";`);
+    if (!empty) {
+      // Fall back to the native setter React observes. This is still a test
+      // instrument, not a product path: it makes the field empty before real
+      // keys type the value the walk intends.
+      await evaluate(`
+        const el = ${expr};
+        if (!el) return false;
+        const set = Object.getOwnPropertyDescriptor(el.constructor.prototype, "value")?.set;
+        if (set) set.call(el, ""); else el.value = "";
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        return el.value === "";
+      `);
+    }
     for (const ch of text) { await press(ch); await sleep(25); }
   };
 

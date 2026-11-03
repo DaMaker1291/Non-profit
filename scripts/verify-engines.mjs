@@ -11156,6 +11156,8 @@ console.log("▸ Learn shows the learner's own curriculum, with a status per top
     "and the screen says which they are");
   ok(page.includes("outside.map(row)"),
     "they stay reachable - the genome is larger than any one qualification and nothing here deletes it");
+  ok(/className="topic outside-course"\s+open/.test(page),
+    "out-of-course lessons are visible on first visit, not hidden behind a disclosure a learner may never open");
   // The flat list it replaced was the whole subject under the learner's own
   // heading. That specific number is what these assertions exist to stop.
   ok(!/const concepts = bySubject\(subject\);\s*$/m.test(page),
@@ -11887,6 +11889,32 @@ console.log("▸ Onboarding moves one step per press");
     "and the button itself is disabled for the step on screen");
   ok(!/onClick=\{\(\) => setStep\(\(s\) => s \+ 1\)\}/.test(onb),
     "the bare increment — the thing that skipped three steps — is gone");
+  // A SIGN-IN IS SUBMITTED WHERE THE CREDENTIALS ARE. The previous version of
+  // this form deferred the login until the final step, so a real click on the
+  // button beside the password moved the wizard on without sending anything —
+  // which is exactly the "dead sign-in" the classroom audit observed. The
+  // request is now made by the account step, and the final step is guarded so
+  // it cannot open a second session.
+  ok(/const advanceStep = async \(\) => \{[\s\S]*current === "account" && mode === "signin"[\s\S]*authenticateSession\(\)/.test(onb),
+    "the account step submits the sign-in before it advances");
+  ok(/async function authenticateSession\(\): Promise<boolean>/.test(onb) &&
+     /await signIn\(email, password\)/.test(onb) &&
+     /if \(signedIn \|\| signInDone\.current\) return true/.test(onb),
+    "and the login runs exactly once, through the client's normal signIn operation");
+  ok(onb.includes('current === "account" && mode === "signin" ? t("onb.signIn")'),
+    "the account step's button names the action it performs, rather than calling it Next");
+}
+
+console.log("▸ A test-only approval cannot become a production approval");
+{
+  const pilot = fs.readFileSync("lib/pilot.ts", "utf8");
+  ok(pilot.includes("export const PILOT_APPROVALS: readonly PilotApproval[] = [];"),
+    "the real approval registry remains empty");
+  ok(pilot.includes('process.env.NODE_ENV !== "production"') &&
+     pilot.includes('process.env.OPENMIND_TEST_CONTENT_APPROVALS === "1"'),
+    "test approvals are reachable only from an explicit non-production fixture run");
+  ok(/reviewerRole: "automated test fixture — not a subject review"/.test(pilot),
+    "and the fixture says in the record that it is not a subject review");
 }
 
 console.log("▸ A refused save is not a connection problem");
@@ -16084,25 +16112,41 @@ console.log("▸ Every door that costs money or CPU names its bound");
   const pilotPlans = require("../.verify/pilot.js");
   const words = (s) => (String(s).split(/\s+/).filter((w) => /[A-Za-z]/.test(w))).length;
   const ids = plans.plannedConceptIds();
+  const authored = plans.pilotPlanIds();
 
   // 1 · EVERY PLAN NAMES A REAL CONCEPT.
   ok(plans.orphanPlans().length === 0,
-    `every authored plan names a concept the genome holds (${plans.orphanPlans().join(", ") || "none orphaned"})`);
-  ok(ids.length > 0, `there are authored plans to check (${ids.length} of ${genome.CONCEPTS.length} concepts)`);
+    `every plan names a concept the genome holds (${plans.orphanPlans().join(", ") || "none orphaned"})`);
+  ok(ids.length === genome.CONCEPTS.length,
+    `every concept has a lesson (${ids.length} of ${genome.CONCEPTS.length} concepts)`);
+  ok(ids.filter((id) => !plans.planFor(id)).length === 0,
+    "every concept id resolves to a plan through the same door the page uses");
   ok(plans.planFor("not-a-concept") === null,
     "a concept with no plan answers null, so the page falls back to the prose instead of drawing an empty lesson");
 
-  // 1b · THE PLANS ARE THE START OF THE PATHWAY, NOT A SET CHOSEN BY TASTE.
+  // 1b · THE PILOT PLANS ARE IN A NAMED PACK; THE SUPPLEMENTAL COVERAGE IS NOT
+  // CLAIMED AS REVIEWED. Keeping the two sets separate is what lets `addition`
+  // have a real lesson without being put in front of a reviewer as pilot work.
   const pilot = JSON.parse(fs.readFileSync("audit/pilot-pack.json", "utf8"));
   const pilotIds = new Set(pilot.concepts.map((c) => c.id));
-  // A plan may belong to the UK review pack OR to the separate CBSE pilot
-  // candidate. It may not belong to neither: an authored lesson outside every
-  // named pack is a lesson no reviewer has been asked to read. The two packs
-  // have different curricula, so merging them into one file would be a false
-  // claim about what the reviewer is reading.
-  const outside = ids.filter((id) => !pilotIds.has(id) && !pilotPlans.PILOT_SEQUENCE.includes(id));
+  const outside = authored.filter((id) => !pilotIds.has(id) && !pilotPlans.PILOT_SEQUENCE.includes(id));
   ok(outside.length === 0,
-    `every authored plan is in a named review pack (outside: ${outside.join(", ") || "none"})`);
+    `every pilot-authored plan is in a named review pack (outside: ${outside.join(", ") || "none"})`);
+  ok(authored.length < ids.length,
+    `the pilot set is smaller than the full coverage (${authored.length} pilot, ${ids.length} total)`);
+
+  // 1c · THE LEARNING PATH has no dead end: every prerequisite and every direct
+  // next step of a taught concept is itself taught.
+  const pathGaps = [];
+  for (const c of genome.CONCEPTS) {
+    if (!plans.planFor(c.id)) continue;
+    for (const p of c.prereqs) if (!plans.planFor(p)) pathGaps.push(`${c.id} needs ${p}`);
+    for (const d of genome.CONCEPTS.filter((x) => x.prereqs.includes(c.id))) {
+      if (!plans.planFor(d.id)) pathGaps.push(`${c.id} leads to ${d.id}`);
+    }
+  }
+  ok(pathGaps.length === 0,
+    `every prerequisite and next step in the learning path has a lesson (${pathGaps.slice(0, 3).join("; ") || "no gaps"})`);
 
   // 2 · EACH PLAN IS A SEQUENCE WITH REAL TEACHING IN EVERY PART.
   const thin = [];
@@ -16954,7 +16998,7 @@ console.log("▸ Every door that costs money or CPU names its bound");
   }
 
   // 5 · PLANS CARRY A FIGURE ONLY WHERE ONE TEACHES.
-  const planned = rp.plannedConceptIds();
+  const planned = rp.pilotPlanIds();
   const figures = planned.filter((id) => rp.planFor(id).figure);
   const incomplete = figures.filter((id) => {
     const f = rp.planFor(id).figure;

@@ -59,6 +59,41 @@ export function setAnswerWire(next: AnswerWire | null): void {
 const KEY = "openmind:sync-queue";
 const REFUSED_KEY = "openmind:sync-refused";
 
+// ── WHOSE QUEUE IS THIS? ────────────────────────────────────────────────────
+// A school handset is shared. A queue keyed only by the device would let one
+// pupil's saved answers drain while another pupil is signed in — the wrong
+// learner's work, recorded under the wrong account. The active profile scopes
+// both keys; sign-out clears that profile's queue before the identity changes.
+// A null scope is the legacy/test shape and remains one queue, as it was.
+let scope: string | null = null;
+
+function scopedFor(owner: string | null, key: string): string {
+  return owner ? `${key}:${owner}` : key;
+}
+function scoped(key: string): string {
+  return scopedFor(scope, key);
+}
+
+/** Bind the queue to the learner whose work it holds. Called by the shell when
+ *  the profile is known and by sign-out before the identity is cleared. */
+export function setSyncScope(learnerId: string | null): void {
+  scope = learnerId && /^[A-Za-z0-9_-]{4,96}$/.test(learnerId) ? learnerId : null;
+}
+
+/** Drop one learner's held answers and refusal record. Used at sign-out, when
+ *  the next person on the device must not inherit the previous person's work. */
+export function clearQueueFor(learnerId: string): void {
+  // REMOVE, do not write []. An empty key still tells the next person on a
+  // shared handset which learner was here, and makes a sign-out cleanup check
+  // look like it failed. The queue's absence is the same state as an empty one.
+  const s = store();
+  if (!s) return;
+  try {
+    s.removeItem(scopedFor(learnerId, KEY));
+    s.removeItem(scopedFor(learnerId, REFUSED_KEY));
+  } catch { /* storage blocked */ }
+}
+
 /** How many answers one device may hold. Reaching it REFUSES the new answer
  *  (visibly) instead of evicting an older one: dropping a learner's work to make
  *  room for newer work is the one thing a queue must never do. */
@@ -144,7 +179,7 @@ function writeJson(key: string, value: unknown): void {
 /** Held answers, in the order the learner answered them. Malformed rows are
  *  skipped rather than thrown on: one bad row must not hide the others. */
 export function readQueue(): QueuedAnswer[] {
-  const rows = readJson<QueuedAnswer>(KEY).filter(
+  const rows = readJson<QueuedAnswer>(scoped(KEY)).filter(
     (r) =>
       r && typeof r.submissionId === "string" && r.submissionId.length > 0 &&
       typeof r.url === "string" && r.url.length > 0 &&
@@ -160,7 +195,7 @@ export function readQueue(): QueuedAnswer[] {
 }
 
 export function refusedAnswers(): RefusedAnswer[] {
-  return readJson<RefusedAnswer>(REFUSED_KEY);
+  return readJson<RefusedAnswer>(scoped(REFUSED_KEY));
 }
 
 export function queueSummary(): QueueSummary {
@@ -188,7 +223,7 @@ export function newSubmissionId(): string {
 function refuse(entry: RefusedAnswer): void {
   const list = refusedAnswers();
   list.push(entry);
-  writeJson(REFUSED_KEY, list.slice(-MAX_REFUSED));
+  writeJson(scoped(REFUSED_KEY), list.slice(-MAX_REFUSED));
 }
 
 /**
@@ -230,7 +265,7 @@ export function enqueueAnswer(op: {
     tries: 0,
     queuedAt,
   });
-  writeJson(KEY, list);
+  writeJson(scoped(KEY), list);
   return { accepted: true, pending: list.length };
 }
 
@@ -372,18 +407,18 @@ async function runFlush(): Promise<FlushResult> {
     // queue behind something that can never succeed.
     refuse({ submissionId: op.submissionId, reason: "rejected", status: res.status, at: Date.now() });
   }
-  writeJson(KEY, stillHeld);
+  writeJson(scoped(KEY), stillHeld);
   return { synced, pending: stillHeld.length, refused: refusedAnswers().length };
 }
 
 /** Forget the refusal record once it has been shown. Held answers are NOT
  *  cleared here: only the server may retire those, by accepting them. */
 export function clearRefused(): void {
-  writeJson(REFUSED_KEY, []);
+  writeJson(scoped(REFUSED_KEY), []);
 }
 
 /** Test/teardown seam: drop everything this device is holding. */
 export function clearQueue(): void {
-  writeJson(KEY, []);
-  writeJson(REFUSED_KEY, []);
+  writeJson(scoped(KEY), []);
+  writeJson(scoped(REFUSED_KEY), []);
 }

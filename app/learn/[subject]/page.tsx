@@ -167,12 +167,13 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
             report: the strongest proof it has, and the answers behind it. */}
         {(hasPlan || s?.proved || (pr && pr.attempts > 0)) && (
           <span className="concept-state">
-            {/* WHICH ROWS ARE ACTUALLY TAUGHT. The list is the course, and 15 of
-                its 67 maths rows open a complete lesson while the rest open the
-                gate — a fact the learner had to discover one click at a time.
-                "Lesson" is `learn.lesson`, authored in all fifteen dictionaries.
-                A plain chip, never `good`: the colour means demonstrated, and a
-                lesson that exists is not evidence that anything was learned. */}
+            {/* WHICH ROWS ARE ACTUALLY TAUGHT. The list is the course, and every
+                concept now opens a complete lesson plan; the lesson page still
+                prints whether that plan is unreviewed, because "has a lesson"
+                and "has been reviewed" are different claims. "Lesson" is
+                `learn.lesson`, authored in all fifteen dictionaries. A plain
+                chip, never `good`: the colour means demonstrated, and a lesson
+                that exists is not evidence that anything was learned. */}
             {hasPlan && <span className="chip">{t("learn.lesson")}</span>}
             {s?.proved && (
               <span className={`chip ${s.proved !== "supported" ? "good" : ""}`}>{t(proofLabelKey(s.proved))}</span>
@@ -304,19 +305,17 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
         );
       })}
 
-      {/* Not in the course — named, counted, still reachable, and CLOSED.
+      {/* Not in the course — named, counted, still reachable, and OPEN.
           Every stage above sits inside a collapsed <details>, while this section
           rendered its rows unconditionally — so on a first visit the ONLY
           concepts a learner could see and click were the ones that are not in
           their syllabus, under the least prominent heading on the page and
-          explained in a note beneath it. Reported by a learner: "I would not
-          have read that small text and would have just done those topics, which
-          aren't even in my syllabus." The rows are now behind a disclosure whose
-          summary carries the exclusion itself, so it is read BEFORE the list
-          rather than after its heading — and a learner who came to work cannot
-          mistake 19 out-of-course rows for the place to start. */}
+          explained in a note beneath it. The summary now carries the exclusion
+          BEFORE the list, and the list stays OPEN: a lesson a learner cannot see
+          is a lesson they do not have. A learner who came to work still sees the
+          course first; the outside rows are visibly labelled as outside it. */}
       {outside.length > 0 && (
-        <details className="topic outside-course">
+        <details className="topic outside-course" open>
           <summary>
             <span>
               {t("cur.outside")} <span className="mono">{outside.length}</span>

@@ -38,8 +38,9 @@ export default function OfflinePage() {
       <h1>{t("off.title")}</h1>
       {/* The pack download lives HERE, not on Home: it is the thing that makes
           this page useful with no connection, and Home is for today's work. */}
-      <div style={{ margin: "0 0 18px" }}>
+      <div style={{ margin: "0 0 18px", display: "flex", gap: 8, flexWrap: "wrap" }}>
         <DownloadPack />
+        <Link href="/offline/study" className="btn ghost">Download an offline lesson →</Link>
       </div>
       {!snap && (
         <>

@@ -55,13 +55,26 @@ async function call(path, opts) {
   try { body = text ? JSON.parse(text) : null; } catch { body = { raw: text.slice(0, 200) }; }
   return { status: res.status, body, headers: res.headers };
 }
-const post = (p, b) => call(p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+const post = (p, b) => call(p, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    ...(b?.id && SESSIONS.has(b.id) ? { Cookie: SESSIONS.get(b.id) } : {}),
+  },
+  body: JSON.stringify(b),
+});
 const query = (params) => {
   const qs = new URLSearchParams(params).toString();
   return qs ? `?${qs}` : "";
 };
 
 const SECRETS = new Map();
+// TEACHER AUTHORITY IS THE ACCOUNT'S, SO THE FIXTURE MUST CARRY A COOKIE.
+// The walk used to create a teacher with the LEARNER profile door and then write
+// that profile into localStorage; the class door correctly answered 401 once
+// class administration moved to the account. A real signup gives this walk the
+// same credential a browser gets, and the browser itself now signs in below.
+const SESSIONS = new Map();
 const created = [];
 /** A learner, created by the profile door — the same door a device uses. */
 async function learner(handle) {
@@ -76,7 +89,33 @@ async function learner(handle) {
   return id;
 }
 const postAs = (id, path, body) => post(path, { ...body, id, secret: SECRETS.get(id) });
-const getAs = (id, path, params = {}) => call(`${path}${query({ ...params, secret: SECRETS.get(id) })}`);
+const getAs = (id, path, params = {}) => call(`${path}${query({ ...params, secret: SECRETS.get(id) })}`, { headers: SESSIONS.has(id) ? { Cookie: SESSIONS.get(id) } : {} });
+
+/** A teacher with the credential the class console actually requires. */
+async function newTeacher(handle) {
+  const stamp = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const email = `uiw-teacher-${stamp}@example.test`;
+  const password = "uiw-teacher-password-123";
+  const r = await post("/api/auth/signup", {
+    email, password, name: handle, role: "teacher",
+    country: "GB", language: "en", subjects: ["maths"],
+  });
+  const state = r.body?.profile?.profile;
+  const id = state?.id;
+  const secret = r.body?.secret;
+  if (r.status !== 200 || !id || !secret) throw new Error(`could not create the teacher account: HTTP ${r.status} ${JSON.stringify(r.body?.error ?? "")}`);
+  SECRETS.set(id, secret);
+  SESSIONS.set(id, (r.headers.get("set-cookie") ?? "").split(";")[0]);
+  created.push({ id, secret });
+  // The account exists before the browser walk starts. Completing its profile
+  // is the same write the normal sign-in form will perform later; doing it here
+  // keeps the fixture's first render free of missing-country setup.
+  const ready = await post("/api/profile", {
+    id, secret, handle, country: "GB", language: "en", onboarded: true,
+  });
+  if (ready.status !== 200) throw new Error(`could not complete the teacher profile: HTTP ${ready.status}`);
+  return { id, email, password };
+}
 
 /** One server-graded answer, through the practice door a learner uses. */
 async function serveAnswer(who, conceptId, correct) {
@@ -111,7 +150,8 @@ async function main() {
   // same named slip (`neg-slip`), so two learners missing it genuinely produce
   // a recurring pattern rather than a lucky draw.
   section("A class whose own answers contain a recurring slip");
-  const teacherId = await learner("uiw_teacher");
+  const teacher = await newTeacher("uiw_teacher");
+  const teacherId = teacher.id;
   const clsRes = await postAs(teacherId, "/api/classes", {
     action: "create", name: "Walk class", subject: "maths", specificationId: "uk-gcse",
   });
@@ -130,23 +170,72 @@ async function main() {
   check(true, `four students joined and recorded real evidence (${handles.join(", ")}; s1/s2 both missed the same slip, s4 has no evidence)`);
 
   const dueISO = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const { send, close } = await launchChrome({ port: PORT });
+  const requests = [];
+  const { send, close } = await launchChrome({
+    port: PORT,
+    onEvent: (m) => {
+      if (m.method === "Network.requestWillBeSent") requests.push(m.params.request.url);
+    },
+  });
   const p = pageFor(send);
   try {
     // ── TEACHER HOME → CLASS ────────────────────────────────────────────────
     section("Teacher Home shows the class, and the class shows what the evidence says");
-    await p.goto(BASE);
-    await p.evaluate(`localStorage.setItem("openmind:profileId", ${JSON.stringify(teacherId)}); localStorage.setItem("openmind:profileSecret", ${JSON.stringify(SECRETS.get(teacherId))}); return true;`);
-    await p.goto(`${BASE}/teacher`);
-    await p.waitFor(`return !!document.getElementById(${JSON.stringify("class-" + cls.id)});`, "the class card to render", 25000);
+    // ── THE REAL TEACHER SIGN-IN, NOT A MANUFACTURED SESSION ───────────────
+    // The old fixture wrote profile id + secret into localStorage and opened the
+    // console. That proved the console rendered; it did not prove a teacher could
+    // get into it. This drives the account form, the Sign in button, the login
+    // request and the final profile step, exactly as a teacher does.
+    await p.goto(`${BASE}/onboarding?role=teacher&mode=signin`);
+    await p.waitFor(`return !!document.querySelector("main input[type=email]");`, "the teacher sign-in form", 25000);
+    await p.typeInto(`document.querySelector("main input[type=email]")`, teacher.email, "the teacher email");
+    await p.typeInto(`document.querySelector("main input[type=password]")`, teacher.password, "the teacher password");
+    const loginBefore = requests.filter((u) => { try { return new URL(u).pathname === "/api/auth/login"; } catch { return false; } }).length;
+    await p.clickExpr(
+      `[...document.querySelectorAll("main button")].find(b => (b.textContent || "").trim() === "Sign in")`,
+      "the Sign in button",
+    );
+    await p.waitFor(`return !document.querySelector("main input[type=email]") && !!document.querySelector("main input[type=text]");`, "the teacher profile step after login", 25000);
+    const loginAfter = requests.filter((u) => { try { return new URL(u).pathname === "/api/auth/login"; } catch { return false; } }).length;
+    check(loginAfter > loginBefore, "the normal sign-in interface submitted the login request");
+    const teacherName = await p.valueOf(`document.querySelector("main input[type=text]")`);
+    if (!teacherName) await p.typeInto(`document.querySelector("main input[type=text]")`, "uiw_teacher", "the teacher display name");
+    await p.clickExpr(
+      `[...document.querySelectorAll("main button")].find(b => /^Teacher/.test((b.textContent || "").trim()))`,
+      "the teacher finish button",
+    );
+    await p.waitFor(`return location.pathname === "/teacher";`, "the teacher console after signing in", 30000);
+    check(true, "the teacher reaches their own console through the normal interface");
+    // THE INDEX RENDERS A CARD; THE CLASS ITSELF OPENS ON A HASH. The walk used
+    // to wait for `id="class-…"`, which is mounted only after the card is
+    // opened, so a correctly rendered index timed out. The card is the thing a
+    // teacher sees first, and clicking it is the journey being tested.
+    const cardHref = `#class-${cls.id}`;
+    await p.waitFor(
+      `return !!document.querySelector('a.class-card[href=${JSON.stringify(cardHref)}]');`,
+      "the class card to render",
+      25000,
+    );
     const card = await p.evaluate(`
-      const el = document.getElementById(${JSON.stringify("class-" + cls.id)});
+      const el = document.querySelector('a.class-card[href=${JSON.stringify(cardHref)}]');
       return { text: (el?.innerText || "").replace(/\\n+/g, " · "), today: /today/i.test(document.body.innerText) };
     `);
     check(/Walk class/.test(card.text) && /4 students/.test(card.text),
       `the class the teacher owns is on their page, with its real head-count (${card.text.slice(0, 90)})`);
     check(card.today, "and the page opens with Today — the day's work, before any class list");
+    await p.clickExpr(
+      `document.querySelector('a.class-card[href=${JSON.stringify(cardHref)}]')`,
+      "the teacher's class card",
+    );
+    await p.waitFor(`return !!document.getElementById(${JSON.stringify("class-" + cls.id)});`, "the opened class", 25000);
 
+    // THE CLASS HAS THREE TABS, and Learning needs is on WORK beside the
+    // builder it launches. The walk used to wait for the panel on the default
+    // Students tab, where the page correctly does not render it.
+    await p.clickExpr(
+      `[...document.querySelectorAll("main button")].find(b => (b.textContent || "").trim() === "Work")`,
+      "the Work tab",
+    );
     await p.waitFor(`return !!document.querySelector("[data-needs-panel]");`, "the learning-needs panel", 25000);
     const panel = await p.evaluate(`const el = document.querySelector("[data-needs-panel]"); return (el?.innerText || "").replace(/\\n+/g, " · ");`);
     check(/Possible shared misconception/.test(panel) && /Negative numbers/.test(panel),

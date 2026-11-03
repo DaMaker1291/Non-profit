@@ -857,6 +857,118 @@ export interface StudyPack {
   forkOf?: string;
 }
 
+// ── Live classroom sessions ──────────────────────────────────────────────────
+// A live session belongs to ONE class and is controlled by that class's
+// OWNING teacher account. It stores the activity and its question so every
+// pupil is answering the same item, and it stores submissions so a teacher can
+// see participation. The answers themselves are also written to each learner's
+// ordinary evidence ledger — this record is the room's state, not a second
+// learning record.
+
+export type ClassroomSessionStatus = "live" | "paused" | "ended";
+
+export interface ClassroomParticipant {
+  learnerId: string;
+  handle: string;
+  joinedAt: number;
+  lastSeenAt: number;
+}
+
+export interface ClassroomSubmission {
+  learnerId: string;
+  handle: string;
+  activityVersion: number;
+  questionId: string;
+  submissionId: string;
+  choiceIndex: number;
+  correct: boolean;
+  at: number;
+}
+
+export interface ClassroomActivity {
+  version: number;
+  conceptId: string;
+  conceptTitle: string;
+  /** The full generated item. The API NEVER sends the key or the explanation
+   *  before a pupil has submitted; the view below is the only wire shape. */
+  question: Question;
+  publishedAt: number;
+  submissionsOpen: boolean;
+}
+
+export interface ClassroomSession {
+  id: string;
+  clsId: string;
+  className: string;
+  teacherAccountId: string;
+  teacherId: string;
+  status: ClassroomSessionStatus;
+  /** Monotonic event/version counter. Every state transition increments it, so
+   *  an SSE client can tell a real update from a repeated snapshot. */
+  version: number;
+  activity: ClassroomActivity | null;
+  participants: ClassroomParticipant[];
+  /** Append-only history across activities, bounded by the store. */
+  submissions: ClassroomSubmission[];
+  startedAt: number;
+  updatedAt: number;
+  endedAt?: number;
+}
+
+export interface ClassroomActivityView {
+  version: number;
+  conceptId: string;
+  conceptTitle: string;
+  questionId: string;
+  prompt: string;
+  choices: string[];
+  figure?: import("./types").FigureSpec;
+  publishedAt: number;
+  submissionsOpen: boolean;
+}
+
+export interface ClassroomParticipantView {
+  handle: string;
+  joinedAt: number;
+  lastSeenAt: number;
+  submitted: boolean;
+  correct: boolean | null;
+}
+
+export interface ClassroomSubmissionView {
+  submissionId: string;
+  activityVersion: number;
+  choiceIndex: number;
+  correct: boolean;
+  at: number;
+}
+
+export interface ClassroomSessionView {
+  id: string;
+  clsId: string;
+  className: string;
+  status: ClassroomSessionStatus;
+  version: number;
+  activity: ClassroomActivityView | null;
+  /** Who the caller is in this room. */
+  me: {
+    learnerId: string | null;
+    handle: string | null;
+    joined: boolean;
+    submission: ClassroomSubmissionView | null;
+  };
+  /** The teacher gets every participant; a pupil sees only their own row. */
+  participants: ClassroomParticipantView[];
+  counts: { participants: number; submitted: number; correct: number };
+  canControl: boolean;
+  startedAt: number;
+  updatedAt: number;
+  endedAt?: number;
+  /** Present only to the owning teacher, after an activity is published. */
+  answerIndex?: number;
+  explanation?: string;
+}
+
 // ── Study rooms & classes ───────────────────────────────────────────────────
 
 export interface RoomMessage {
