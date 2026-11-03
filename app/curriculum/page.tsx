@@ -29,7 +29,7 @@ import { mappingCitation, mappingForSpec } from "@/lib/curricula/mappings";
 // the other is being sent to fix two different things that are the same thing.
 import { FIELD_LABEL } from "@/components/course-first";
 import { COUNTRIES, fill } from "@/lib/i18n";
-import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
+import { SUBJECT_IDS, SUBJECT_LABELS, withMainSubject } from "@/lib/subjects";
 import { ctitle, levelLabel } from "@/lib/content-i18n";
 import type { ProfileState, SubjectId } from "@/lib/types";
 import {
@@ -77,6 +77,12 @@ export default function CurriculumPage() {
   // am I studying", in both halves. `null` until touched, so the ticks are the
   // record's own answer until the learner changes it.
   const [subjectDraft, setSubjectDraft] = useState<SubjectId[] | null>(null);
+  // WHICH SUBJECT IS THE LEARNER'S MAIN SUBJECT. The record has no separate
+  // primary field: `subjects[0]` is what every shell surface opens. That rule
+  // was implicit, so adding chemistry to a physics-only learner kept physics
+  // first and the change looked like it had not happened. This control makes the
+  // order an explicit answer, and `withMainSubject` writes it down.
+  const [mainSubject, setMainSubject] = useState<SubjectId | null>(null);
   const [subjectBusy, setSubjectBusy] = useState(false);
   const [subjectsSaved, setSubjectsSaved] = useState(false);
   const [subjectErr, setSubjectErr] = useState("");
@@ -100,6 +106,8 @@ export default function CurriculumPage() {
   const pathway = pathwayId ?? pathwayForCountry(country, profile?.pathway)?.id ?? initialPathwayFor(country);
   const grade = gradeId ?? profile?.grade ?? "";
   const declared = profile?.subjects?.length ? profile.subjects : SUBJECT_IDS;
+  const selectedSubjects = subjectDraft ?? declared;
+  const main = mainSubject && selectedSubjects.includes(mainSubject) ? mainSubject : selectedSubjects[0];
   const subject: SubjectId = picked && declared.includes(picked) ? picked : declared[0];
   const noNationalRoute = nationalPathwaysFor(country).length === 0;
   const reviewKey = mappingReviewKey(pathwayForCountry(country, pathway) ?? defaultPathwayFor(country));
@@ -233,9 +241,16 @@ export default function CurriculumPage() {
     setSubjectBusy(true);
     setSubjectErr("");
     try {
-      const fresh = await api.saveProfile({ subjects: next }, id);
+      // THE MAIN SUBJECT IS THE FIRST SUBJECT IN THE RECORD. Saving the same
+      // list in platform order is how a learner added chemistry and still got
+      // physics everywhere; the explicit choice must survive the write.
+      const ordered = withMainSubject(next, main);
+      const fresh = await api.saveProfile({ subjects: ordered }, id);
       set(fresh);
       setSubjectDraft(null);
+      setMainSubject(null);
+      // Keep the course editor on the subject the learner just made main.
+      setPicked(ordered[0] ?? null);
       setSubjectsSaved(true);
       setTimeout(() => setSubjectsSaved(false), 2500);
     } catch {
@@ -512,7 +527,7 @@ export default function CurriculumPage() {
           A SAVE, not a toggle that fires on every click: dropping a subject
           clears its course, and a mistyped click must not do that silently.
           The note says exactly what removal does, before it is done. */}
-      <section className="card" style={{ padding: 20, marginBottom: 18 }} aria-label={t("nav.subjects")}>
+      <section id="subjects" className="card" style={{ padding: 20, marginBottom: 18 }} aria-label={t("nav.subjects")}>
         <p className="eyebrow" style={{ margin: 0 }}>{t("nav.subjects")}</p>
         <p className="small muted" style={{ marginTop: 6, marginBottom: 10 }}>{t("subs.note")}</p>
         <div className="checks" role="group" aria-label={t("nav.subjects")} style={{ flexWrap: "wrap" }}>
@@ -528,10 +543,12 @@ export default function CurriculumPage() {
                     setSubjectErr("");
                     setSubjectsSaved(false);
                     const cur = subjectDraft ?? declared;
-                    // Kept in the platform's own subject order, so the chips and
-                    // this list never disagree about where a subject sits.
-                    const wanted = new Set(ticked ? cur.filter((x) => x !== s) : [...cur, s]);
-                    setSubjectDraft(SUBJECT_IDS.filter((x) => wanted.has(x)));
+                    // The learner's order is meaningful: the main subject is
+                    // first. Appending a newly ticked subject lets them choose
+                    // it deliberately instead of letting the platform's list
+                    // order silently choose it for them.
+                    if (ticked && mainSubject === s) setMainSubject(null);
+                    setSubjectDraft(ticked ? cur.filter((x) => x !== s) : [...cur, s]);
                   }}
                 />
                 {t(SUBJECT_LABELS[s])}
@@ -539,6 +556,33 @@ export default function CurriculumPage() {
             );
           })}
         </div>
+        {/* A MAIN SUBJECT IS ONLY A CHOICE BETWEEN SUBJECTS. With one ticked
+            there is nothing to choose; with two or more, this is what makes
+            "I changed to chemistry" true everywhere and not only in the list. */}
+        {selectedSubjects.length > 1 && (
+          <div className="rowline" style={{ marginTop: 12, display: "block" }}>
+            <label className="small muted" htmlFor="curr-main-subject">{t("subs.main")}</label>
+            <select
+              id="curr-main-subject"
+              className="mono"
+              style={{ width: "100%", marginTop: 6 }}
+              value={main ?? ""}
+              disabled={subjectBusy}
+              onChange={(e) => {
+                setSubjectErr("");
+                setSubjectsSaved(false);
+                setMainSubject(e.target.value as SubjectId);
+                // Changing only the main subject is still an edit, so it must
+                // reveal Save rather than looking like a dead control.
+                setSubjectDraft(selectedSubjects);
+              }}
+            >
+              {selectedSubjects.map((s) => (
+                <option key={s} value={s}>{t(SUBJECT_LABELS[s])}</option>
+              ))}
+            </select>
+          </div>
+        )}
         {/* THE LAST SUBJECT CANNOT GO: everything the product serves — practice,
             papers, the diagnostic — is built from a course, and a learner with no
             subject has no course. The server ignores an empty list, so the control
@@ -551,7 +595,7 @@ export default function CurriculumPage() {
             <button className="btn small" onClick={saveSubjects} disabled={subjectBusy}>
               {t("common.save")}
             </button>
-            <button className="btn ghost small" onClick={() => { setSubjectDraft(null); setSubjectErr(""); }} disabled={subjectBusy}>
+            <button className="btn ghost small" onClick={() => { setSubjectDraft(null); setMainSubject(null); setSubjectErr(""); }} disabled={subjectBusy}>
               {t("acct.eraseCancel")}
             </button>
           </div>

@@ -257,6 +257,11 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
             </>
           )}
           {courseNote && <span className="small muted">{courseNote}</span>}
+          {p && (
+            <Link href="/curriculum#subjects" className="small" style={{ marginInlineStart: 8 }}>
+              {t("curr.title")} →
+            </Link>
+          )}
         </p>
       )}
 

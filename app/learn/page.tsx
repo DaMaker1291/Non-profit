@@ -83,7 +83,14 @@ export default function LearnIndexPage() {
             label carried a fraction (`6/122`) with nothing saying what it
             counted. The heading is the subject index's only title; the counts
             belong on the rows, which each carry their own. */}
-        <h1>{t("nav.subjects")}</h1>
+        <div className="page-title-row">
+          <h1>{t("nav.subjects")}</h1>
+          {declared.length > 0 && (
+            <Link href="/curriculum#subjects" className="btn ghost small">
+              {t("curr.title")} →
+            </Link>
+          )}
+        </div>
         <p className="lead" style={{ marginBottom: 0 }}>
           {/* Three states, in the order a learner meets them: nothing chosen yet,
               chosen but untouched, and under way. */}

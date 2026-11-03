@@ -10960,6 +10960,25 @@ console.log("▸ AI explains, never records");
   // `levels[0]`: that is Foundation for the GCSE, the silent easier enrolment
   // that made learners too easy to teach.
   const curSrc = fs.readFileSync("app/curriculum/page.tsx", "utf8");
+  // ── CHANGING SUBJECT, NOT ONLY ADDING ONE ──────────────────────────────
+  // `subjects[0]` is the subject every shell surface opens. Saving the list in
+  // platform order meant a physics learner who added chemistry still met physics
+  // first, so "change subject" appeared not to work. The screen names a main
+  // subject and writes that order; both subject indexes offer a direct door.
+  ok(curSrc.includes('id="subjects"') && curSrc.includes('t("subs.main")') &&
+     curSrc.includes("withMainSubject(next, main)"),
+    "the subject editor has an explicit main-subject choice and saves the list in that order");
+  const orderedPhysics = require("../.verify/subjects.js").withMainSubject(["physics", "chemistry"], "chemistry");
+  ok(orderedPhysics.join(",") === "chemistry,physics",
+    "choosing chemistry moves it to the front, where the shell resolves the learner's subject");
+  ok(require("../.verify/subjects.js").withMainSubject(["physics", "chemistry"], "physics").join(",") === "physics,chemistry",
+    "choosing the existing main subject leaves the list alone");
+  ok(require("../.verify/subjects.js").withMainSubject(["physics"], undefined).join(",") === "physics",
+    "and an untouched list stays stable rather than losing its subject");
+  ok(fs.readFileSync("app/learn/page.tsx", "utf8").includes('href="/curriculum#subjects"'),
+    "the subject index links directly to the subject editor");
+  ok(fs.readFileSync("app/learn/[subject]/page.tsx", "utf8").includes('href="/curriculum#subjects"'),
+    "a subject's own page links there too, where the wrong subject is most visible");
   // THE TIER GATE, REWRITTEN AFTER IT WAS MEASURED WRONG. It counted only
   // `levelId` — the select's own value, EMPTY until the control is touched — so a
   // learner whose course was already saved as "Cambridge IGCSE · Extended"
