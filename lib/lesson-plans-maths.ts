@@ -46,7 +46,7 @@ export const MATHS_LENSES: Record<string, LessonLens> = {
     move:
       "Break a factor into place-value parts: 23 × 4 = (20 × 4) + (3 × 4) = 80 + 12 = 92. For larger products, use a grid so every part meets every part.",
     check:
-      "Estimate with rounded factors and compare the size. 23 × 4 is about 20 × 4 = 80, so 92 is sensible; a product smaller than either factor (other than zero) is not.",
+      "Estimate with rounded factors and compare the size. 23 × 4 is about 20 × 4 = 80, so 92 is sensible. For whole numbers greater than 1, the product is at least as large as either factor; if a factor is between 0 and 1, expect a smaller product instead: 0.5 × 0.5 = 0.25.",
     trap: [
       "Adds the digits of the factors instead of multiplying them: 23 × 4 becomes 2 + 3 + 4.",
       "Multiplication scales one quantity by the other, so the answer is usually much larger than either factor. Keep the place-value parts and multiply each one.",

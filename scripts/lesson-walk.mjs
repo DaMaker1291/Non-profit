@@ -152,6 +152,26 @@ async function main() {
   const buttonMatching = (re) => `[...document.querySelectorAll("main button")].find(b => ${re}.test(b.textContent || ""))`;
   const door = buttonMatching("/Now your turn/");
 
+  /** THE LESSON LANGUAGE IS A SEPARATE SETTING FROM THE INTERFACE LANGUAGE.
+   *
+   *  A learner can read Spanish buttons while being taught in English, and the
+   *  product deliberately lets those two choices differ. The walk below used to
+   *  switch only the topbar picker and then require a Spanish/French lesson,
+   *  which made a correct separation look like a missing translation. Set the
+   *  teaching language through the real /access control, press Save, and let the
+   *  profile carry it to the lesson — the same path a learner uses. */
+  const setTeachingLanguage = async (code) => {
+    await goto(`${BASE}/access`);
+    await p.waitFor(`return !!${selectUnder("Teaching")};`, "the teaching-language control", 30000);
+    await p.pick(selectUnder("Teaching"), code, "teaching language", null);
+    await p.clickExpr(buttonMatching("/^(Save|Guardar|Enregistrer|Speichern)$/"), "Save access settings");
+    await p.waitFor(
+      `return [...document.querySelectorAll("main button")].some(b => /Saved|Guardado|Enregistré|Gespeichert/.test(b.textContent || ""));`,
+      "the access settings to be saved",
+      15000,
+    );
+  };
+
   /** Every number below is read off the rendered DOM, never inferred from the
    *  spec that produced it. */
   const measureFigure = () => p.evaluate(`
@@ -808,6 +828,7 @@ async function main() {
     // learner does; the assertion is on the text that ends up on screen.
     section("The coaching paragraph a Spanish learner reads is Spanish");
     await viewport(1280, 900);
+    await setTeachingLanguage("es");
     await goto(`${BASE}/learn/maths/coordinates`);
     await p.waitFor(`return !!document.querySelector(".lang-compact");`, "the interface language picker in the topbar", 25000);
     await p.pick('document.querySelector(".lang-compact")', "es", "interface language", 'document.documentElement.lang === "es"');
@@ -843,6 +864,11 @@ async function main() {
     // checks exists to catch.
     section("The coaching paragraph a German learner reads is German");
     await viewport(1280, 900);
+    // Put the interface back to English before finding the label "Teaching":
+    // /access is rendered in the interface language, and the walk should name the
+    // control it means rather than depend on the previous section's language.
+    await p.pick('document.querySelector(".lang-compact")', "en", "interface language", 'document.documentElement.lang === "en"');
+    await setTeachingLanguage("de");
     await goto(`${BASE}/learn/maths/coordinates`);
     await p.waitFor(`return !!document.querySelector(".lang-compact");`, "the interface language picker in the topbar", 25000);
     await p.pick('document.querySelector(".lang-compact")', "de", "interface language", 'document.documentElement.lang === "de"');
@@ -873,6 +899,11 @@ async function main() {
     // all-or-nothing merge exists to prevent.
     section("A French learner is taught in French, and told what is not");
     await viewport(1280, 900);
+    // The French plan is only reachable when French is the TEACHING language;
+    // set it on the screen that owns that choice, then switch the interface so
+    // the same page also proves the translated interface and plan meet.
+    await p.pick('document.querySelector(".lang-compact")', "en", "interface language", 'document.documentElement.lang === "en"');
+    await setTeachingLanguage("fr");
     await goto(`${BASE}/learn/maths/fractions`);
     await p.waitFor(`return !!document.querySelector(".lang-compact");`, "the picker for the translated lesson", 25000);
     await p.pick('document.querySelector(".lang-compact")', "fr", "interface language", 'document.documentElement.lang === "fr"');

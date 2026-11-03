@@ -502,6 +502,14 @@ async function main() {
     // — and none of that was visible from the chrome, which showed a subject
     // name and a board code and nothing about which course this actually was.
     section("The shell names the learner's course");
+    // THE STRIP IS WIDTH-DEPENDENT BY DESIGN. At 1280px it deliberately retires
+    // the country and year to keep the header on one line; this assertion is
+    // about the full line, so measure it where all five parts fit. Widening the
+    // viewport is the test setup, not a product change: a 1280px shell reading
+    // "GCSE · Mathematics Higher tier" is the responsive behaviour it was
+    // designed for.
+    await send("Emulation.setDeviceMetricsOverride", { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false });
+    await sleep(150);
     const strip = await p.evaluate(`const el = document.querySelector("[data-context-strip]"); return { text: ((el?.innerText || el?.textContent || "")).trim(), label: el?.getAttribute("aria-label") ?? "" };`);
     check(/United Kingdom/.test(strip.text) && /GCSE/.test(strip.text) && /Year 10/.test(strip.text),
       `the shell names the learner's own country, course and year (${strip.text})`);

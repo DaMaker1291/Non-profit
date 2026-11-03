@@ -117,7 +117,7 @@ export const SCIENCE_LENSES: Record<string, LessonLens> = {
     move:
       "Draw field lines from north to south outside a magnet. For a current-carrying wire, use the right-hand grip rule; for the force on a wire, use Fleming's left-hand rule with field, current and force.",
     check:
-      "Field lines never cross and are closest together where the field is strongest. Reversing the current reverses the force but not the magnetic field direction.",
+      "Field lines never cross and are closest together where the field is strongest. Reversing the current reverses the force on a wire in a permanent magnet's field; the external field itself is unchanged, while the field produced by the current reverses with it.",
     trap: [
       "Uses the left-hand rule to predict the current induced by moving a magnet.",
       "Fleming's left-hand rule gives the force on a current in a field (a motor). Induction is the opposite effect and uses the right-hand rule: motion plus field gives current.",

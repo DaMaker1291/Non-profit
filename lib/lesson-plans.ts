@@ -749,8 +749,8 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     idea: [
       "aᵐ means m copies of a multiplied together, so a⁵ = a × a × a × a × a. The base is the a; the index is the 5. The index counts copies, and it is not a value — a⁵ is not 5a.",
       "Multiplying adds the counts: a² × a³ = (a × a)(a × a × a) = a⁵. Dividing subtracts them: a⁵ ÷ a² cancels two copies and leaves a³. Neither law needs memorising if you are willing to write the copies out once.",
-      "a⁰ = 1 follows from the subtraction law: aⁿ ÷ aⁿ = a⁰, and a quantity divided by itself is 1. It is not a special case bolted on — it is what the pattern forces.",
-      "Negative indices carry the same pattern downwards: a² ÷ a⁴ = a⁻², and that division is 1/a². So a⁻² means the reciprocal of a².",
+      "a⁰ = 1 follows from the subtraction law for a non-zero base: aⁿ ÷ aⁿ = a⁰, and a non-zero quantity divided by itself is 1. It is not a special case bolted on — it is what the pattern forces. (0⁰ is undefined; the base must not be zero.)",
+      "Negative indices carry the same pattern downwards for a non-zero base: a² ÷ a⁴ = a⁻², and that division is 1/a². So a⁻² means the reciprocal of a².",
       "Fractional indices are roots, and the reason is the multiplication law turned around: a^(1/2) × a^(1/2) = a¹, so a^(1/2) must be the number that squares to a — the square root.",
       "The laws hold only for the SAME base. 2³ × 2² = 2⁵, but 2³ × 3² stays as it is, because the copies are of different things.",
     ],
@@ -828,7 +828,7 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     idea: [
       "A cell is the basic structural and functional unit of life. Every living organism is made of one cell (a bacterium) or many cells (a plant, an animal, you). The cell is not a container with parts floating in it by accident: each part, or organelle, has a job, and the shape of the part is tied to that job.",
       "An animal cell has a cell membrane around the outside, cytoplasm inside, a nucleus, and mitochondria. The membrane is a thin, flexible boundary that controls what enters and leaves. The cytoplasm is where many reactions happen. The nucleus holds the genetic material (DNA) and controls the cell's activities. Mitochondria are where aerobic respiration releases energy from glucose.",
-      "A plant cell has the same four parts and three more that matter here: a cellulose cell wall outside the membrane, chloroplasts, and a large permanent vacuole. The wall is strong and gives the cell its shape; it is fully permeable, so the membrane underneath is still the gatekeeper. Chloroplasts contain chlorophyll and carry out photosynthesis. The vacuole is filled with cell sap and helps keep the cell firm.",
+      "A plant cell has the same four parts and three more that matter here: a cellulose cell wall outside the membrane, chloroplasts, and a large permanent vacuole. The wall is strong and gives the cell its shape; it is freely permeable to water and small dissolved substances, but it is not the selective barrier — the membrane underneath is. Chloroplasts contain chlorophyll and carry out photosynthesis. The vacuole is filled with cell sap and helps keep the cell firm.",
       "Specialised cells show the same rule at a larger scale: structure serves function. A red blood cell has no nucleus and is packed with haemoglobin, leaving more room to carry oxygen. A root hair cell has a long, thin extension that increases the surface area for absorbing water and minerals. A sperm cell has many mitochondria to power its journey. A nerve cell is long so it can carry an electrical impulse from one part of the body to another.",
       "Cells are not all the same size, and the units matter. Most plant and animal cells are measured in micrometres (μm): one micrometre is one-thousandth of a millimetre, or 10⁻⁶ m. A typical cheek cell is about 50–100 μm across. Magnification tells you how many times larger the image is than the object; it does not, by itself, tell you how much detail you can resolve.",
       "Similar cells group into tissues, tissues into organs, and organs into organ systems. This hierarchy is why a single cell does not need to do everything in a large organism: specialised cells do one job well, and the system coordinates them. It also explains why a large organism cannot simply be one giant cell — the surface area available for exchange grows more slowly than the volume that needs supplying.",
@@ -873,7 +873,7 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
       {
         move: "\"The cell wall controls what enters the cell.\"",
         why:
-          "The cellulose wall is strong and fully permeable: it gives shape and support, but it does not select substances. The cell membrane underneath is the selectively permeable boundary that does that job.",
+          "The cellulose wall is strong and freely permeable to water and small dissolved substances: it gives shape and support, but it is not the cell's selective barrier. The cell membrane underneath is the selectively permeable boundary that controls what enters and leaves.",
       },
       {
         move: "\"A red blood cell has a nucleus like every other cell.\"",
