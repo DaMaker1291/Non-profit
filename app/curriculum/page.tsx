@@ -175,6 +175,12 @@ export default function CurriculumPage() {
   const needsGrade = route.grades.length > 0 && !route.grades.includes(grade);
   const missingField: "spec" | "specLevel" | "grade" = !chosenSpec ? "spec" : needsLevel ? "specLevel" : "grade";
   const canSave = Boolean(chosenSpec) && !needsLevel && !needsGrade;
+  // The "Continue" door is only true after BOTH halves exist: a saved course or
+  // a complete record already on the profile. Rendering it while the page says
+  // "Still to choose: Qualification" sent the learner to a diagnostic that the
+  // course guard immediately bounced back — a loop with a button on it.
+  const completeCourse = profile ? !incompleteSubjects(profile).some((x) => x.subject === subject) : false;
+  const canContinue = completeCourse || (saved && canSave);
   // ── THE SELECTION IS THE COURSE, IN BOTH HALVES ─────────────────────────
   //
   // This page chooses two things — WHICH qualification, at WHICH tier — and both
@@ -482,7 +488,7 @@ export default function CurriculumPage() {
             id="curr-level"
             className="mono"
             style={{ width: "100%", marginTop: 6 }}
-            value={needsLevel ? "" : active.level.id}
+            value={!chosenSpec || needsLevel ? "" : active.level.id}
             onChange={(e) => setLevelId(e.target.value)}
             // A TIER OF WHAT? With no qualification chosen there is no course to
             // pick a tier of, so the control is shown (its list is the resolved
@@ -493,8 +499,8 @@ export default function CurriculumPage() {
           >
             {/* A prompt, not an answer: the first tier used to be painted as the
                 learner's own choice. */}
-            {needsLevel && <option value="" disabled>{t("onb.pickLevel")}</option>}
-            {active.spec.levels.map((l) => (
+            {(!chosenSpec || needsLevel) && <option value="" disabled>{t("onb.pickLevel")}</option>}
+            {chosenSpec && active.spec.levels.map((l) => (
               <option key={l.id} value={l.id}>
                 {levelLabel(lang, l.tier, l.name)}
               </option>
@@ -614,8 +620,10 @@ export default function CurriculumPage() {
         )}
       </section>
 
-      {/* Honest coverage: what the course contains, out of the whole map. */}
-      <section className="card" style={{ padding: 20, marginBottom: 18 }}>
+      {/* Honest coverage: what the course contains, out of the whole map. It is
+          absent until a qualification exists, because the fallback course is
+          not the learner's and a count presented as theirs is a false claim. */}
+      {chosenSpec && <section className="card" style={{ padding: 20, marginBottom: 18 }}>
         <p className="eyebrow" style={{ margin: 0 }}><span className="no">1</span> {t("curr.covered")}</p>
         <p className="stat" style={{ margin: "6px 0 2px" }}>
           {inSpec} <span className="small muted">{t("curr.ofGenome")} {report.genomeTotal}</span>
@@ -640,19 +648,19 @@ export default function CurriculumPage() {
             <Link href="/genome">{t("curr.wholeMap")}</Link>
           </p>
         )}
-      </section>
+      </section>}
 
       {/* The tier chooses the depth, which is what makes Foundation and Higher
           genuinely different work rather than a label. */}
-      <section className="card soft" style={{ padding: 20, marginBottom: 18 }}>
+      {chosenSpec && <section className="card soft" style={{ padding: 20, marginBottom: 18 }}>
         <p className="eyebrow" style={{ margin: 0 }}><span className="no">2</span> {t("curr.depth")}</p>
         <p className="small" style={{ margin: "6px 0 0" }}>
           {t("curr.depthNote")} <span className="mono">{Math.round(active.level.difficulty * 100)}%</span>
         </p>
-      </section>
+      </section>}
 
       {/* Same idea, the student's own words (§4). */}
-      {terms.length > 0 && (
+      {chosenSpec && terms.length > 0 && (
         <section className="card" style={{ padding: 20, marginBottom: 18 }}>
           <p className="eyebrow" style={{ margin: 0 }}><span className="no">3</span> {t("curr.terms")}</p>
           <p className="small muted" style={{ marginTop: 6 }}>{t("curr.termsNote")}</p>
@@ -677,12 +685,14 @@ export default function CurriculumPage() {
           product insists on the measurement; this one has to as well, and it is
           the door a new learner reaches first. */}
       <div className="actions">
+        {canContinue && (
         <Link
           href={Object.keys(state?.diagnostics ?? {}).length > 0
             ? "/learn"
             : `/diagnostic/${profile?.subjects[0] ?? "maths"}`}
           className="btn"
         >{t("curr.start")} →</Link>
+        )}
         <Link href="/access" className="btn ghost">{t("curr.change")}</Link>
       </div>
       {/* The number comes FROM THE DATA, not from the sentence, and it counts

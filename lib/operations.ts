@@ -299,7 +299,29 @@ function drawPractice(
   // learner gets is still an item ON their slip, which is the whole purpose of a
   // repair serve, and the serve REPORTS the band it actually landed in
   // (`servePractice` reads it off the item), so nothing claims the climb moved.
-  const aims = [aim, Math.max(0.1, aim - 0.1), Math.max(0.1, aim - 0.2)];
+  //
+  // ── AND THE WIDENING IS TWO-SIDED, BECAUSE THE TAG CAN LIVE ABOVE ────────
+  //
+  // The descent fixed `fractions`, where the discriminating comparison item sits
+  // BELOW the tier aim. `percentages` is the mirror image, measured: its `pct-base`
+  // family sits at difficulty 0.40 and is tagged on 40/40 draws at the band aim
+  // 0.45, but a repair aims at 0.33 — and every extra draw at 0.33/0.23/0.13 moves
+  // AWAY from it (8/40, 5/40, 3/40 tagged). So the same eight draws found no tagged
+  // item, the serve honestly reported `slipCheck: false`, and the repair card never
+  // appeared for the one belief the bank can discriminate perfectly.
+  //
+  // Widening both ways keeps the descent that was measured to work and adds the
+  // ascent the measurement above demands. It cannot serve the learner a harder
+  // QUESTION than the repair's own aim in any sense that matters: the item is still
+  // chosen BECAUSE it trips their slip, and `servePractice` reports the band it
+  // actually landed in rather than claiming the climb moved.
+  const aims = [
+    aim,
+    Math.max(0.1, aim - 0.1),
+    Math.min(0.95, aim + 0.1),
+    Math.max(0.1, aim - 0.2),
+    Math.min(0.95, aim + 0.2),
+  ];
   for (let i = 1; i <= SLIP_DRAW_ATTEMPTS; i++) {
     const tryAim = aims[i % aims.length];
     const q = generateQuestionNear(conceptId, `${seed}#slip:${i}`, tryAim, PRACTICE_DRAW_ATTEMPTS, served);

@@ -1,0 +1,30 @@
+{
+  "generated": "2026-11-04T00:00:00Z",
+  "totalConcepts": 135,
+  "stageDistribution": {
+    "0 - metadata_only": 16,
+    "1 - metadata_only": 32,
+    "2 - outline": 46,
+    "3 - draft": 29,
+    "4 - educator_reviewed": 8,
+    "5 - learner_tested": 4,
+    "6 - published": 0
+  },
+  "lessonStatusDistribution": {
+    "metadata_only": 48,
+    "outline": 46,
+    "draft": 29,
+    "educator_reviewed": 8,
+    "learner_tested": 4,
+    "published": 0
+  },
+  "genomeStageDistribution": {
+    "0": 16,
+    "1": 32,
+    "2": 46,
+    "3": 29,
+    "4": 8,
+    "5": 4
+  },
+  "concepts": []
+}

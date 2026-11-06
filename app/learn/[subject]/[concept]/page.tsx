@@ -16,6 +16,7 @@ import { SESSION_TARGET, type SessionResult } from "@/lib/session";
 import { proofLabelKey, proofSentenceKey, verdictForGrade } from "@/lib/proof";
 import { declareQuestion } from "@/lib/question-bank";
 import { evidenceFor, currentSlip, retiredSlip, slipProgress } from "@/lib/learner-model";
+import { isRetentionDue } from "@/lib/retention";
 import SessionResultPanel from "@/components/session-result";
 import { Dims } from "@/components/dims";
 import TutorPanel from "@/components/tutor-panel";
@@ -40,7 +41,16 @@ import LessonView from "@/components/content-platform/lesson-view";
 import { lessonDocumentFor } from "@/lib/content-platform/flagships";
 import RepairCard from "@/components/repair-card";
 import { repairFor } from "@/lib/repair";
-import { planFor, teachingLanguages } from "@/lib/lesson-plans";
+import { planFor, ideaRouteFor, teachingLanguages } from "@/lib/lesson-plans";
+// THE AUTHORED LESSON, WHERE ONE EXISTS.
+//
+// lib/lessons/authored is the authored set, judged against openmind.lesson/1.0
+// by the same gate `npm run verify` runs. It is rendered only in English: the
+// contract carries per-language translation records and none is complete, so
+// showing an English authored lesson to a learner reading in French would be
+// the silent mixture the translation rule forbids.
+import { authoredLessonFor } from "@/lib/lessons/authored";
+import { AuthoredLessonReading } from "@/components/authored-lesson";
 import { lessonStatus } from "@/lib/pilot";
 import { exampleFor } from "@/lib/culture";
 import type { FlarePayload } from "@/lib/microdiag";
@@ -97,6 +107,14 @@ export default function ConceptPage() {
   const { state, set: setState } = useProfile();
   const teachLang = state?.profile.teachingLang ?? lang;
   const plan = planFor(conceptId, teachLang);
+  // The authored lesson replaces the plan's teaching where it exists, and adds
+  // the parts a plan cannot carry (diagnostic, misconception corrections, guided
+  // practice with hints, independent assessment with marking, transfer,
+  // spaced retrieval). English only — see the import note above.
+  // A translation is a WHOLE lesson or nothing: authoredLessonFor answers null
+  // for a language with no complete translation, so a pupil never reads English
+  // teaching under a translated heading.
+  const authoredLesson = authoredLessonFor(conceptId, teachLang);
   /** THE CONTENT-PLATFORM DOCUMENT, WHERE ONE EXISTS. It is separate from the
    *  authored plan: a plan is prose in the existing format, while a document
    *  carries typed blocks, assessment contracts and block-level provenance.
@@ -204,6 +222,10 @@ export default function ConceptPage() {
   // paragraphs on a learner the moment they get something wrong is how
   // feedback stops being read at all.
   const [showWhy, setShowWhy] = useState(false);
+  /** The forgotten-learner gate above the teaching, opened once and never reset:
+   *  the answer stays visible for the sitting, because hiding a worked recall again
+   *  would make a learner who scrolled past it go looking in the practice. */
+  const [recalled, setRecalled] = useState(false);
 
   // The exercise clock: how long this sitting has been open. A stopwatch, not
   // a deadline — it starts when a session starts and stops when it closes, so
@@ -608,6 +630,13 @@ export default function ConceptPage() {
   }
 
   const progress = state?.progress[conceptId];
+  /** IS THIS CONCEPT DUE FOR RETENTION? Asked of the scheduler, not of a flag:
+   *  `lib/retention.ts#isRetentionDue` is the same function the serve path calls to
+   *  stamp an answer `source: "retrieval"`, so the card below and the ledger's
+   *  attribution cannot disagree about whether this learner has met the idea and
+   *  let it fade. False until the record has loaded — a loading ledger is not a
+   *  forgotten topic. */
+  const faded = state ? isRetentionDue(state, conceptId) : false;
   /** THE SLIP STILL LIVE ON THIS CONCEPT, and the repair for it when one has
    *  been written. Both come from the product's one rule (`currentSlip`: three
    *  clean answers retire a belief), so the lesson, the hint ladder and the
@@ -630,6 +659,13 @@ export default function ConceptPage() {
   // bare instruction. "Not yet proven independently" is a real answer; the
   // panel never fills a gap with a number.
   const evidence = state ? evidenceFor(state, conceptId) : null;
+  // THE ROUTE THROUGH THE IDEA THIS LEARNER READS, chosen from that same
+  // evidence. Computed here rather than in the JSX because BOTH the card and the
+  // read-aloud button must speak the same version of the lesson: a learner who
+  // reads one route and hears another has been given two lessons at once.
+  // `default` is the plan's own paragraphs, so an unauthored route changes
+  // nothing — see lib/lesson-plans.ts#ideaRouteFor.
+  const ideaRoute = plan ? ideaRouteFor(plan, evidence) : null;
   // WHAT WE KNOW about this concept, from the LEDGER's projection — the same
   // rows Mind and the evidence record read, so "Application: Developing" means
   // the identical thing on all three surfaces. Null while the ledger is in
@@ -969,6 +1005,39 @@ export default function ConceptPage() {
           has nothing to do. */}
       {plan?.interactive === "fraction-model" && <FractionModel />}
 
+      {/* A PUPIL WHO HAS FORGOTTEN THIS TRIES IT FROM MEMORY FIRST.
+
+          The serve already stages a due concept as a retrieval, but the read stage
+          looked identical to every other learner's: they read the whole lesson and
+          only then met the check. Retrieval before re-reading is the intervention the
+          mandate's "forgotten knowledge" situation names, so the lesson now opens on
+          the review item the lesson itself authored, asks for an answer from memory,
+          and then teaches.
+
+          `plan.finishIt` ("Finish it in your head first, then check.") and
+          `plan.rest` are the existing translated strings — no new keys, so no
+          language falls back to English to say it. It is a PROMPT, not a mark:
+          nothing here is graded or written to the record, which is why it can sit
+          above the teaching at all. */}
+      {faded && authoredLesson?.retrieval?.[0] && (
+        <div className="card" style={{ marginBottom: 18 }}>
+          <p className="eyebrow">{t("skill.recall")}</p>
+          <p className="reading lesson-lead" style={{ marginBottom: 6 }}>
+            {t("plan.finishIt")}
+          </p>
+          <p className="reading lesson-text" style={{ marginBottom: 10 }}>
+            {authoredLesson.retrieval[0].prompt}
+          </p>
+          {recalled ? (
+            <p className="reading lesson-text">{authoredLesson.retrieval[0].answer}</p>
+          ) : (
+            <button className="btn ghost small" onClick={() => setRecalled(true)}>
+              {t("plan.rest")}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* THE IDEA, WITH ITS FIRST SENTENCE AS THE CLAIM.
 
           Every authored lesson opens with the sentence that states the whole
@@ -986,13 +1055,51 @@ export default function ConceptPage() {
           nothing regressed into an empty card. */}
       <div className="card" style={{ marginBottom: 18 }}>
         <p className="eyebrow">{t("learn.idea")}</p>
-        {plan ? (
+        {/* A NON-DEFAULT ROUTE COMES FIRST, AHEAD OF THE AUTHORED LESSON.
+
+            An authored lesson is the DEFAULT route through its concept — the
+            fuller one, with diagnosis and guided practice around it. But it is
+            still one explanation, and on `fractions` it overrode the plan
+            entirely: the authored route for a struggling learner existed and
+            could never render, which is exactly the dead card this project has
+            been bitten by before (`coordinates`' repair, `fractions`' note). The
+            route replaces the TEACHING while the authored lesson keeps the
+            stages around it. */}
+        {ideaRoute && ideaRoute.route !== "default" ? (
           <>
-            <p className="reading lesson-lead">{plan.idea[0]}</p>
-            {plan.idea.slice(1).map((para, i) => (
+            <p className="reading lesson-lead">{ideaRoute.idea[0]}</p>
+            {ideaRoute.idea.slice(1).map((para, i) => (
               <p key={i} className="reading lesson-text">{para}</p>
             ))}
           </>
+        ) : authoredLesson ? (
+          <>
+            {authoredLesson.explanation.map((section) => (
+              <section key={section.heading} style={{ marginBottom: 14 }}>
+                <p className="reading lesson-lead" style={{ marginBottom: 6 }}>{section.heading}</p>
+                {section.paragraphs.map((para, i) => (
+                  <p key={i} className="reading lesson-text">{para}</p>
+                ))}
+              </section>
+            ))}
+          </>
+        ) : plan ? (
+          (() => {
+            // WHICH OF THE AUTHORED ROUTES THIS LEARNER READS, from their own
+            // evidence — the same record the panel below prints, so the lesson
+            // and the evidence cannot disagree. A plan with no alternates, or a
+            // learner with fewer than three answers, gets the authored default:
+            // the selector can only ever return teaching somebody wrote.
+            const { idea } = ideaRouteFor(plan, evidence);
+            return (
+              <>
+                <p className="reading lesson-lead">{idea[0]}</p>
+                {idea.slice(1).map((para, i) => (
+                  <p key={i} className="reading lesson-text">{para}</p>
+                ))}
+              </>
+            );
+          })()
         ) : (
           (() => {
             const cut = c.lesson.indexOf(". ");
@@ -1007,7 +1114,7 @@ export default function ConceptPage() {
           })()
         )}
         <p style={{ margin: "10px 0 0" }}>
-          <SpeakButton text={plan ? [plan.intuition, ...plan.idea].join(" ") : c.lesson} />
+          <SpeakButton text={plan ? [plan.intuition, ...ideaRouteFor(plan, evidence).idea].join(" ") : c.lesson} />
         </p>
         {(() => {
           const culture = state?.profile.examples ?? "neutral";
@@ -1172,6 +1279,15 @@ export default function ConceptPage() {
             {plan.recap.map((line, i) => <li key={i}>{line}</li>)}
           </ul>
         </section>
+      )}
+
+      {/* THE AUTHORED LESSON'S OWN STAGES: prior knowledge, the representation
+          blocks, the misconception corrections, guided practice with a hint per
+          item, the independent assessment with marking, the transfer challenge,
+          spaced retrieval, and the lesson's real review status. Rendered before
+          the practice door so the sequence still teaches before it tests. */}
+      {authoredLesson && (
+        <AuthoredLessonReading lesson={authoredLesson} learnerId={state?.profile?.id ?? null} />
       )}
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: plan ? 8 : 20 }}>

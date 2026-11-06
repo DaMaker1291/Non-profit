@@ -78,6 +78,18 @@ export interface SourceRecord {
   /** Country/board code, `INT` for a multi-country source, or `GLOBAL` for
    *  OpenMind's own material. */
   readonly jurisdiction: string;
+  /** Resource provenance tracking
+   *  - creator: person or organisation that created the original resource
+   *  - version: version number or identifier of the source material
+   *  - licence: the legal licence under which the resource is provided
+   *  - permissions: specific reuse/adapter rights granted
+   *  - adaptationRights: whether derivative works are permitted and under what conditions
+   */
+  readonly creator?: string;
+  readonly version?: string;
+  readonly licence?: string;
+  readonly permissions?: string;
+  readonly adaptationRights?: string;
   /** null for OpenMind-authored material, which has no external landing page. */
   readonly url: string | null;
   readonly retrievedAt: string;

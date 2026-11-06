@@ -1,0 +1,2925 @@
+{
+  "generatedBy": "scripts/lesson-catalogue.mjs",
+  "contract": "openmind.lesson/1.0",
+  "at": "2026-11-04T21:44:44.027Z",
+  "totals": {
+    "concepts": 135,
+    "authored": 16,
+    "byStatus": {
+      "metadata_only": 0,
+      "outline": 119,
+      "draft": 0,
+      "machine_checked": 16,
+      "educator_reviewed": 0,
+      "learner_tested": 0,
+      "published": 0,
+      "needs_revision": 0
+    }
+  },
+  "bySubject": {
+    "maths": {
+      "concepts": 67,
+      "authored": 12,
+      "machineChecked": 12,
+      "outline": 55,
+      "metadataOnly": 0
+    },
+    "physics": {
+      "concepts": 18,
+      "authored": 1,
+      "machineChecked": 1,
+      "outline": 17,
+      "metadataOnly": 0
+    },
+    "chemistry": {
+      "concepts": 16,
+      "authored": 1,
+      "machineChecked": 1,
+      "outline": 15,
+      "metadataOnly": 0
+    },
+    "biology": {
+      "concepts": 16,
+      "authored": 1,
+      "machineChecked": 1,
+      "outline": 15,
+      "metadataOnly": 0
+    },
+    "computing": {
+      "concepts": 18,
+      "authored": 1,
+      "machineChecked": 1,
+      "outline": 17,
+      "metadataOnly": 0
+    }
+  },
+  "translations": {
+    "languages": [],
+    "machine": [
+      "es",
+      "fr"
+    ],
+    "note": "`languages` counts complete, human-reviewed lesson translations. `machine` counts whole lessons translated automatically and NOT reviewed by a native-speaking teacher — shown only with that status printed beside them, never as approved. The 15-language dictionaries cover concept titles, blurbs and UI strings, not teaching prose."
+  },
+  "gaps": [
+    {
+      "conceptId": "ratio",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "proportion",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "indices-intro",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "standard-form",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "algebra-expressions",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "algebra-expand",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "linear-equations",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "inequalities",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "simultaneous",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "coordinates",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "straight-lines",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "quadratics",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "sim-equations-quad",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "sequences",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "functions",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "trig-ratios",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "trig-identity",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "circle-theorems",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "pythagoras",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "angles-lines",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "area-perimeter",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "volume",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "transformations",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "vectors",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "probability-basics",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "tree-diagrams",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "averages",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "data-charts",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "scatter-correlation",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "surds",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "completing-square",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "polynomials",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "binomial",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "trig-rule",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "circle-area-arc",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "mixture-problems",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "growth-decay",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "logs",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "calculus-diff",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "calculus-int",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "kinematics",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "proof",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "matrices-intro",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "sets-venn",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "financial-maths",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "bounds",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "loci-constructions",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "bearings",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "proportional-graphs",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "quadratic-graphs",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "algebraic-fractions",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "iteration",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "circle-geometry-adv",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "number-bases",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "logic-maths",
+      "subject": "maths",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "forces-basics",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "motion-graphs",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "newton-laws",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "momentum",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "energy-conservation",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "work-power",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "waves-basics",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "light-optics",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "sound-acoustics",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "magnetism",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "em-induction",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "thermal-physics",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "pressure-fluids",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "radioactivity",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "astrophysics",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "atoms-nucleus",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "gravity-fields",
+      "subject": "physics",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "atoms-elements",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "compounds-mixtures",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "periodic-table",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "electron-shells",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "ionic-bonding",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "covalent-bonding",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "metallic-bonding",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "moles-calcs",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "rates-reaction",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "energy-changes",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "acids-bases",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "electrolysis",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "organic-intro",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "equilibria",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "analysis-tests",
+      "subject": "chemistry",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "cells",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "microscopy",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "enzymes",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "digestion",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "circulation",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "breathing-gas",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "diffusion",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "respiration",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "nervous-system",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "hormones",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "genetics",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "evolution",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "ecosystems",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "biodiversity",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "immune-health",
+      "subject": "biology",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "variables",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "conditionals",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "loops",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "lists-arrays",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "functions-code",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "dictionaries",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "algorithms-search",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "algorithms-sort",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "recursion",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "complexity",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "binary-data",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "networks",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "cybersecurity",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "databases-sql",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "web-stack",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "ai-basics",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "statistics-data",
+      "subject": "computing",
+      "status": "outline",
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    }
+  ],
+  "concepts": [
+    {
+      "conceptId": "place-value",
+      "title": "Place value",
+      "subject": "maths",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": "GCSE Mathematics, number: place value and the number system (Key Stage 2 to Key Stage 3)",
+      "plan": "supplemental",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 356,
+        "explanationParagraphs": 6,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 2,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [
+          "es",
+          "fr"
+        ],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "addition",
+      "title": "Addition",
+      "subject": "maths",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": "GCSE Mathematics, number: addition and written methods (Key Stage 2 to Key Stage 3)",
+      "plan": "supplemental",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 371,
+        "explanationParagraphs": 6,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 2,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "subtraction",
+      "title": "Subtraction",
+      "subject": "maths",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": "GCSE Mathematics, number: subtraction and written methods (Key Stage 2 to Key Stage 3)",
+      "plan": "supplemental",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 416,
+        "explanationParagraphs": 7,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 2,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "multiplication",
+      "title": "Multiplication",
+      "subject": "maths",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": "GCSE Mathematics, number: multiplication and written methods (Key Stage 2 to Key Stage 3)",
+      "plan": "supplemental",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 391,
+        "explanationParagraphs": 6,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 2,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "division",
+      "title": "Division",
+      "subject": "maths",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": "GCSE Mathematics, number: division, remainders and written methods (Key Stage 2 to Key Stage 3)",
+      "plan": "supplemental",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 392,
+        "explanationParagraphs": 6,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 2,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "negatives",
+      "title": "Negative numbers",
+      "subject": "maths",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": "GCSE Mathematics, number: negative numbers, ordering and the four operations (Key Stage 2 to Key Stage 3)",
+      "plan": "pilot",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 450,
+        "explanationParagraphs": 6,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 2,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "fractions",
+      "title": "Fractions",
+      "subject": "maths",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": "GCSE Mathematics, number: fractions (Key Stage 3 to Foundation GCSE)",
+      "plan": "pilot",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 523,
+        "explanationParagraphs": 7,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "fraction-ops",
+      "title": "Fraction arithmetic",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [
+        "fractions"
+      ],
+      "curriculum": "GCSE Mathematics, number: adding, subtracting, multiplying and dividing fractions (Key Stage 2 to Key Stage 3)",
+      "plan": "pilot",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 472,
+        "explanationParagraphs": 6,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 2,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "decimals",
+      "title": "Decimals",
+      "subject": "maths",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": "GCSE Mathematics, number: decimals and decimal place value (Key Stage 2 to Key Stage 3)",
+      "plan": "pilot",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 415,
+        "explanationParagraphs": 6,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 2,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "percentages",
+      "title": "Percentages",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [
+        "fractions",
+        "decimals"
+      ],
+      "curriculum": "GCSE Mathematics, number: percentages, percentage change and reverse percentages (Key Stage 2 to Key Stage 4)",
+      "plan": "pilot",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 469,
+        "explanationParagraphs": 6,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 2,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "ratio",
+      "title": "Ratio",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "proportion",
+      "title": "Proportion",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [
+        "ratio"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "rounding",
+      "title": "Rounding & estimation",
+      "subject": "maths",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": "GCSE Mathematics, number: rounding, estimation and approximation (Key Stage 2 to Key Stage 3)",
+      "plan": "supplemental",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 458,
+        "explanationParagraphs": 6,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 2,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "order-ops",
+      "title": "Order of operations",
+      "subject": "maths",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": "GCSE Mathematics, number: order of operations, brackets and powers (Key Stage 2 to Key Stage 3)",
+      "plan": "pilot",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 445,
+        "explanationParagraphs": 6,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 2,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "indices-intro",
+      "title": "Index laws",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [
+        "order-ops"
+      ],
+      "curriculum": null,
+      "plan": "pilot",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "standard-form",
+      "title": "Standard form",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "indices-intro",
+        "place-value"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "algebra-expressions",
+      "title": "Algebraic expressions",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [
+        "order-ops"
+      ],
+      "curriculum": null,
+      "plan": "pilot",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "algebra-expand",
+      "title": "Expanding & factorising",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "algebra-expressions"
+      ],
+      "curriculum": null,
+      "plan": "pilot",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "linear-equations",
+      "title": "Linear equations",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [
+        "algebra-expressions"
+      ],
+      "curriculum": null,
+      "plan": "pilot",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "inequalities",
+      "title": "Inequalities",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "linear-equations"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "simultaneous",
+      "title": "Simultaneous equations",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "linear-equations"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "coordinates",
+      "title": "Coordinates & graphs",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [
+        "negatives"
+      ],
+      "curriculum": null,
+      "plan": "pilot",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "straight-lines",
+      "title": "Straight line graphs",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "coordinates",
+        "linear-equations"
+      ],
+      "curriculum": null,
+      "plan": "pilot",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "quadratics",
+      "title": "Quadratic equations",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "algebra-expand",
+        "straight-lines"
+      ],
+      "curriculum": null,
+      "plan": "pilot",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "sim-equations-quad",
+      "title": "Simultaneous with quadratics",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "quadratics",
+        "simultaneous"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "sequences",
+      "title": "Sequences",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "functions",
+      "title": "Functions & notation",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "algebra-expressions",
+        "coordinates"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "trig-ratios",
+      "title": "Trigonometry",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "straight-lines",
+        "proportion"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "trig-identity",
+      "title": "Trig identities & graphs",
+      "subject": "maths",
+      "stage": 4,
+      "prereqs": [
+        "trig-ratios",
+        "functions"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "circle-theorems",
+      "title": "Circle theorems",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "angles-lines"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "pythagoras",
+      "title": "Pythagoras' theorem",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "indices-intro"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "angles-lines",
+      "title": "Angles & polygons",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "area-perimeter",
+      "title": "Area & perimeter",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "volume",
+      "title": "Volume & surface area",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "area-perimeter"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "transformations",
+      "title": "Transformations",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "coordinates"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "vectors",
+      "title": "Vectors",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "coordinates"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "probability-basics",
+      "title": "Probability",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "tree-diagrams",
+      "title": "Tree diagrams & combined events",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "probability-basics"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "averages",
+      "title": "Averages & spread",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "data-charts",
+      "title": "Data representation",
+      "subject": "maths",
+      "stage": 1,
+      "prereqs": [
+        "averages"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "scatter-correlation",
+      "title": "Correlation & regression basics",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "data-charts",
+        "straight-lines"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "surds",
+      "title": "Surds",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "indices-intro"
+      ],
+      "curriculum": null,
+      "plan": "pilot",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "completing-square",
+      "title": "Completing the square",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "quadratics"
+      ],
+      "curriculum": null,
+      "plan": "pilot",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "polynomials",
+      "title": "Polynomials & factor theorem",
+      "subject": "maths",
+      "stage": 4,
+      "prereqs": [
+        "algebra-expand",
+        "quadratics"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "binomial",
+      "title": "Binomial expansion",
+      "subject": "maths",
+      "stage": 4,
+      "prereqs": [
+        "polynomials",
+        "indices-intro"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "trig-rule",
+      "title": "Sine & cosine rules",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "trig-ratios",
+        "pythagoras"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "circle-area-arc",
+      "title": "Arcs, sectors & circles",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "area-perimeter"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "mixture-problems",
+      "title": "Word problems & modelling",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "linear-equations",
+        "ratio"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "growth-decay",
+      "title": "Exponential growth & decay",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "indices-intro",
+        "percentages"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "logs",
+      "title": "Logarithms",
+      "subject": "maths",
+      "stage": 5,
+      "prereqs": [
+        "growth-decay",
+        "indices-intro"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "calculus-diff",
+      "title": "Differentiation",
+      "subject": "maths",
+      "stage": 5,
+      "prereqs": [
+        "functions",
+        "indices-intro"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "calculus-int",
+      "title": "Integration",
+      "subject": "maths",
+      "stage": 5,
+      "prereqs": [
+        "calculus-diff"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "kinematics",
+      "title": "Kinematics",
+      "subject": "maths",
+      "stage": 4,
+      "prereqs": [
+        "straight-lines",
+        "area-perimeter"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "proof",
+      "title": "Proof & reasoning",
+      "subject": "maths",
+      "stage": 4,
+      "prereqs": [
+        "algebra-expressions",
+        "inequalities"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "matrices-intro",
+      "title": "Matrices",
+      "subject": "maths",
+      "stage": 5,
+      "prereqs": [
+        "simultaneous",
+        "vectors"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "sets-venn",
+      "title": "Sets & Venn diagrams",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "probability-basics"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "financial-maths",
+      "title": "Financial mathematics",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "percentages",
+        "growth-decay"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "bounds",
+      "title": "Error bounds & limits of accuracy",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "rounding"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "loci-constructions",
+      "title": "Loci & constructions",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "area-perimeter",
+        "angles-lines"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "bearings",
+      "title": "Bearings & navigation",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "trig-rule"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "proportional-graphs",
+      "title": "Proportional graphs",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "proportion",
+        "straight-lines"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "quadratic-graphs",
+      "title": "Quadratic graphs",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "quadratics",
+        "completing-square"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "algebraic-fractions",
+      "title": "Algebraic fractions",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "fraction-ops",
+        "algebra-expand"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "iteration",
+      "title": "Numerical iteration",
+      "subject": "maths",
+      "stage": 4,
+      "prereqs": [
+        "quadratics",
+        "functions"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "circle-geometry-adv",
+      "title": "Advanced circle geometry",
+      "subject": "maths",
+      "stage": 4,
+      "prereqs": [
+        "circle-theorems"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "number-bases",
+      "title": "Number bases & binary",
+      "subject": "maths",
+      "stage": 2,
+      "prereqs": [
+        "place-value"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "logic-maths",
+      "title": "Logic & truth tables",
+      "subject": "maths",
+      "stage": 3,
+      "prereqs": [
+        "sets-venn"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "forces-basics",
+      "title": "Forces",
+      "subject": "physics",
+      "stage": 1,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "motion-graphs",
+      "title": "Motion",
+      "subject": "physics",
+      "stage": 1,
+      "prereqs": [
+        "forces-basics",
+        "straight-lines"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "newton-laws",
+      "title": "Newton's laws",
+      "subject": "physics",
+      "stage": 2,
+      "prereqs": [
+        "forces-basics",
+        "motion-graphs"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "momentum",
+      "title": "Momentum & collisions",
+      "subject": "physics",
+      "stage": 3,
+      "prereqs": [
+        "newton-laws"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "energy-conservation",
+      "title": "Energy",
+      "subject": "physics",
+      "stage": 1,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "work-power",
+      "title": "Work, power & efficiency",
+      "subject": "physics",
+      "stage": 2,
+      "prereqs": [
+        "energy-conservation"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "waves-basics",
+      "title": "Waves",
+      "subject": "physics",
+      "stage": 1,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "light-optics",
+      "title": "Light & optics",
+      "subject": "physics",
+      "stage": 2,
+      "prereqs": [
+        "waves-basics",
+        "trig-ratios"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "sound-acoustics",
+      "title": "Sound",
+      "subject": "physics",
+      "stage": 2,
+      "prereqs": [
+        "waves-basics"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "electricity-circuits",
+      "title": "Circuits",
+      "subject": "physics",
+      "stage": 2,
+      "prereqs": [
+        "energy-conservation"
+      ],
+      "curriculum": "GCSE Physics, electricity: current, potential difference and resistance (Key Stage 3 to GCSE)",
+      "plan": "pilot",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 489,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "magnetism",
+      "title": "Magnetism",
+      "subject": "physics",
+      "stage": 2,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "em-induction",
+      "title": "Electromagnetic induction",
+      "subject": "physics",
+      "stage": 3,
+      "prereqs": [
+        "magnetism",
+        "electricity-circuits"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "thermal-physics",
+      "title": "Thermal physics",
+      "subject": "physics",
+      "stage": 2,
+      "prereqs": [
+        "energy-conservation"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "pressure-fluids",
+      "title": "Pressure & density",
+      "subject": "physics",
+      "stage": 2,
+      "prereqs": [
+        "forces-basics"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "radioactivity",
+      "title": "Radioactivity",
+      "subject": "physics",
+      "stage": 3,
+      "prereqs": [
+        "atoms-nucleus",
+        "growth-decay"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "astrophysics",
+      "title": "Space & astrophysics",
+      "subject": "physics",
+      "stage": 3,
+      "prereqs": [
+        "gravity-fields",
+        "waves-basics"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "atoms-nucleus",
+      "title": "Atomic structure",
+      "subject": "physics",
+      "stage": 2,
+      "prereqs": [
+        "electricity-circuits"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "gravity-fields",
+      "title": "Gravity & orbits",
+      "subject": "physics",
+      "stage": 2,
+      "prereqs": [
+        "newton-laws",
+        "proportion"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "atoms-elements",
+      "title": "Atoms & elements",
+      "subject": "chemistry",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "compounds-mixtures",
+      "title": "Compounds & mixtures",
+      "subject": "chemistry",
+      "stage": 1,
+      "prereqs": [
+        "atoms-elements"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "periodic-table",
+      "title": "The periodic table",
+      "subject": "chemistry",
+      "stage": 1,
+      "prereqs": [
+        "atoms-elements",
+        "electron-shells"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "electron-shells",
+      "title": "Electron configuration",
+      "subject": "chemistry",
+      "stage": 1,
+      "prereqs": [
+        "atoms-elements"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "ionic-bonding",
+      "title": "Ionic bonding",
+      "subject": "chemistry",
+      "stage": 2,
+      "prereqs": [
+        "electron-shells"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "covalent-bonding",
+      "title": "Covalent bonding",
+      "subject": "chemistry",
+      "stage": 2,
+      "prereqs": [
+        "electron-shells"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "metallic-bonding",
+      "title": "Metals & alloys",
+      "subject": "chemistry",
+      "stage": 2,
+      "prereqs": [
+        "ionic-bonding"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "moles-calcs",
+      "title": "The mole & calculations",
+      "subject": "chemistry",
+      "stage": 2,
+      "prereqs": [
+        "compounds-mixtures",
+        "proportion"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "equations-stoich",
+      "title": "Chemical equations",
+      "subject": "chemistry",
+      "stage": 2,
+      "prereqs": [
+        "atoms-elements",
+        "linear-equations"
+      ],
+      "curriculum": "GCSE Chemistry, quantitative chemistry: chemical equations and the mole (Key Stage 3 to GCSE)",
+      "plan": "pilot",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 430,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "rates-reaction",
+      "title": "Rates of reaction",
+      "subject": "chemistry",
+      "stage": 2,
+      "prereqs": [
+        "energy-conservation"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "energy-changes",
+      "title": "Energy changes & bonding",
+      "subject": "chemistry",
+      "stage": 3,
+      "prereqs": [
+        "rates-reaction",
+        "energy-conservation"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "acids-bases",
+      "title": "Acids, bases & salts",
+      "subject": "chemistry",
+      "stage": 2,
+      "prereqs": [
+        "compounds-mixtures",
+        "ionic-bonding"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "electrolysis",
+      "title": "Electrolysis",
+      "subject": "chemistry",
+      "stage": 3,
+      "prereqs": [
+        "ionic-bonding",
+        "electricity-circuits"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "organic-intro",
+      "title": "Organic chemistry",
+      "subject": "chemistry",
+      "stage": 3,
+      "prereqs": [
+        "covalent-bonding"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "equilibria",
+      "title": "Reversible reactions & equilibrium",
+      "subject": "chemistry",
+      "stage": 4,
+      "prereqs": [
+        "rates-reaction",
+        "energy-changes"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "analysis-tests",
+      "title": "Chemical analysis",
+      "subject": "chemistry",
+      "stage": 3,
+      "prereqs": [
+        "atoms-elements",
+        "compounds-mixtures"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "cells",
+      "title": "Cells",
+      "subject": "biology",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": null,
+      "plan": "pilot",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+    },
+    {
+      "conceptId": "microscopy",
+      "title": "Microscopy",
+      "subject": "biology",
+      "stage": 1,
+      "prereqs": [
+        "cells",
+        "standard-form"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "enzymes",
+      "title": "Enzymes",
+      "subject": "biology",
+      "stage": 1,
+      "prereqs": [
+        "cells",
+        "proportion"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "digestion",
+      "title": "Digestion",
+      "subject": "biology",
+      "stage": 1,
+      "prereqs": [
+        "enzymes"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "circulation",
+      "title": "Circulatory system",
+      "subject": "biology",
+      "stage": 2,
+      "prereqs": [
+        "cells",
+        "pressure-fluids"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "breathing-gas",
+      "title": "Gas exchange",
+      "subject": "biology",
+      "stage": 1,
+      "prereqs": [
+        "cells",
+        "diffusion"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "diffusion",
+      "title": "Diffusion, osmosis & transport",
+      "subject": "biology",
+      "stage": 1,
+      "prereqs": [
+        "cells"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "photosynthesis",
+      "title": "Photosynthesis",
+      "subject": "biology",
+      "stage": 1,
+      "prereqs": [
+        "enzymes"
+      ],
+      "curriculum": "GCSE Biology, bioenergetics: photosynthesis and limiting factors (Key Stage 3 to GCSE)",
+      "plan": "pilot",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 440,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "respiration",
+      "title": "Respiration",
+      "subject": "biology",
+      "stage": 1,
+      "prereqs": [
+        "enzymes",
+        "energy-conservation"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "nervous-system",
+      "title": "Nervous system",
+      "subject": "biology",
+      "stage": 2,
+      "prereqs": [
+        "cells"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "hormones",
+      "title": "Hormones & homeostasis",
+      "subject": "biology",
+      "stage": 2,
+      "prereqs": [
+        "nervous-system",
+        "diffusion"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "genetics",
+      "title": "Genetics & inheritance",
+      "subject": "biology",
+      "stage": 2,
+      "prereqs": [
+        "cells",
+        "probability-basics"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "evolution",
+      "title": "Evolution & selection",
+      "subject": "biology",
+      "stage": 3,
+      "prereqs": [
+        "genetics"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "ecosystems",
+      "title": "Ecosystems & cycles",
+      "subject": "biology",
+      "stage": 2,
+      "prereqs": [
+        "photosynthesis",
+        "respiration"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "biodiversity",
+      "title": "Biodiversity & human impact",
+      "subject": "biology",
+      "stage": 3,
+      "prereqs": [
+        "ecosystems"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "immune-health",
+      "title": "Health, disease & immunity",
+      "subject": "biology",
+      "stage": 3,
+      "prereqs": [
+        "cells",
+        "evolution"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "what-is-code",
+      "title": "What is code?",
+      "subject": "computing",
+      "stage": 0,
+      "prereqs": [],
+      "curriculum": "GCSE Computer Science, programming: sequence, selection and iteration (Key Stage 3 to GCSE)",
+      "plan": "supplemental",
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 371,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 2,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
+    },
+    {
+      "conceptId": "variables",
+      "title": "Variables & types",
+      "subject": "computing",
+      "stage": 0,
+      "prereqs": [
+        "what-is-code"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "conditionals",
+      "title": "Conditionals",
+      "subject": "computing",
+      "stage": 0,
+      "prereqs": [
+        "variables"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "loops",
+      "title": "Loops",
+      "subject": "computing",
+      "stage": 0,
+      "prereqs": [
+        "variables"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "lists-arrays",
+      "title": "Lists & arrays",
+      "subject": "computing",
+      "stage": 1,
+      "prereqs": [
+        "variables",
+        "loops"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "functions-code",
+      "title": "Functions & decomposition",
+      "subject": "computing",
+      "stage": 1,
+      "prereqs": [
+        "variables",
+        "conditionals"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "dictionaries",
+      "title": "Dictionaries & hashing",
+      "subject": "computing",
+      "stage": 1,
+      "prereqs": [
+        "lists-arrays"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "algorithms-search",
+      "title": "Searching algorithms",
+      "subject": "computing",
+      "stage": 2,
+      "prereqs": [
+        "lists-arrays",
+        "conditionals"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "algorithms-sort",
+      "title": "Sorting algorithms",
+      "subject": "computing",
+      "stage": 2,
+      "prereqs": [
+        "algorithms-search"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "recursion",
+      "title": "Recursion",
+      "subject": "computing",
+      "stage": 3,
+      "prereqs": [
+        "functions-code"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "complexity",
+      "title": "Computational thinking & Big-O",
+      "subject": "computing",
+      "stage": 3,
+      "prereqs": [
+        "algorithms-sort",
+        "functions-code"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "binary-data",
+      "title": "Binary & data representation",
+      "subject": "computing",
+      "stage": 1,
+      "prereqs": [
+        "number-bases"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "networks",
+      "title": "Networks & the internet",
+      "subject": "computing",
+      "stage": 2,
+      "prereqs": [
+        "binary-data"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "cybersecurity",
+      "title": "Cybersecurity",
+      "subject": "computing",
+      "stage": 2,
+      "prereqs": [
+        "networks",
+        "logic-maths"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "databases-sql",
+      "title": "Databases",
+      "subject": "computing",
+      "stage": 3,
+      "prereqs": [
+        "dictionaries"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "web-stack",
+      "title": "How the web works",
+      "subject": "computing",
+      "stage": 2,
+      "prereqs": [
+        "networks"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "ai-basics",
+      "title": "AI & machine learning",
+      "subject": "computing",
+      "stage": 3,
+      "prereqs": [
+        "complexity",
+        "statistics-data"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    },
+    {
+      "conceptId": "statistics-data",
+      "title": "Data analysis & statistics",
+      "subject": "computing",
+      "stage": 2,
+      "prereqs": [
+        "averages",
+        "lists-arrays"
+      ],
+      "curriculum": null,
+      "plan": "supplemental",
+      "status": "outline",
+      "lesson": null,
+      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+    }
+  ]
+}

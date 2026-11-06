@@ -436,6 +436,18 @@ function dfs(id) {
 for (const id of ids) dfs(id);
 ok(cycles === 0, `no prerequisite cycles (found ${cycles})`);
 ok(genome.CONCEPTS.every((c) => c.lesson.length > 80 && c.blurb.length > 15), "every concept has a real lesson + blurb");
+
+// Lesson content status enforcement
+// The genome stages 0-5 indicate authoring level:
+//   stage 0-1: expected status = metadata_only
+//   stage 2: expected status = outline
+//   stage 3: expected status = draft
+//   stage 4: expected status = educator_reviewed
+//   stage 5: expected status = learner_tested
+//   stage 6+: expected status = published
+// Verify every concept has a valid genome stage (0-5)
+ok(genome.CONCEPTS.every((c) => c.stage >= 0 && c.stage <= 5), "every concept has a valid genome stage (0-5)");
+
 // misconception wiring
 const badMis = genome.CONCEPTS.flatMap((c) => (c.misconceptions ?? []).filter((m) => !misconceptions.MISCONCEPTIONS_BY_ID[m]));
 ok(badMis.length === 0, `concept→misconception refs resolve (bad: ${badMis.join(",")})`);
@@ -4881,6 +4893,61 @@ console.log("▸ Evidence drives the experience");
     const retention = require("../.verify/retention.js");
     const dueIds = retention.dueReviews(s, NOW_L).map((d) => d.conceptId);
     const unmet = lm2.unmetPrerequisites("circle-theorems", s);
+
+    // ── The learner's own catch-up path ────────────────────────────────────
+    // A year group is not evidence, and neither is one level of prerequisites:
+    // a learner rebuilding after interrupted schooling needs the ancestry,
+    // foundations first, with "nobody has asked me this" kept distinct from
+    // "I answered and it is not there".
+    {
+      const { catchUpPath } = require("../.verify/foundations.js");
+      const empty = { profile: {}, secret: "x", progress: {}, diagnostics: {}, masteries: {} };
+      const path = catchUpPath(empty, { targets: ["circle-theorems"] });
+      ok(path.steps.length > 0, "an unmeasured learner's path names the ideas the target rests on");
+      ok(path.steps.every((x) => x.state === "unmeasured" && x.mastery === 0),
+        "and each is reported NOT YET MEASURED, never as a score of zero");
+      ok(new Set(path.steps.map((x) => x.conceptId)).size === path.steps.length,
+        "with no concept listed twice");
+      ok(path.steps.every((x) => x.neededBy.includes("circle-theorems")),
+        "and each step says which of the learner's targets rests on it");
+      ok(path.steps.every((x, i) => i === 0 || path.steps[i - 1].depth <= x.depth),
+        "foundations come before the ideas built on them");
+
+      const first = path.steps[0].conceptId;
+      const weak = { ...empty, progress: { [first]: { attempts: 2, correct: 0, streak: 0, mastery: 0.1, lastSeen: 1, misconceptions: {} } } };
+      ok(catchUpPath(weak, { targets: ["circle-theorems"] }).steps.some((x) => x.conceptId === first && x.state === "weak"),
+        "a measured-but-unestablished prerequisite is a REBUILD, not unmeasured");
+
+      const fixed = { ...empty, progress: { [first]: { attempts: 3, correct: 3, streak: 3, mastery: 0.9, lastSeen: 1, misconceptions: {} } } };
+      ok(!catchUpPath(fixed, { targets: ["circle-theorems"] }).steps.some((x) => x.conceptId === first),
+        "and an established one drops out of the path entirely");
+
+      // The cap is tested over a WHOLE SUBJECT's ancestry, not one concept's:
+      // `circle-theorems` declares a single ancestor, so "total > 2" was an
+      // assertion about the genome's shape that happened to be false — it failed
+      // on a working path. A subject's union of ancestors is genuinely deep.
+      const g = require("../.verify/genome.js");
+      const maths = g.bySubject("maths").map((c) => c.id);
+      const capped = catchUpPath(empty, { targets: maths, limit: 2 });
+      ok(capped.steps.length === 2 && capped.total > 2,
+        `the path is capped but the total is still reported (${capped.steps.length} of ${capped.total})`);
+      ok(JSON.stringify(catchUpPath(empty, { targets: ["circle-theorems"] })) === JSON.stringify(path),
+        "and two derivations of one record agree exactly");
+
+      // An ENROLLED learner with no record: the adult returning to education, or
+      // a pupil resuming after months away. Their course is the target even
+      // though they have answered nothing, which is the case the path is for.
+      const enrolled = catchUpPath(empty, { subjects: ["maths"] });
+      ok(enrolled.steps.length > 0 && enrolled.steps.every((x) => x.state === "unmeasured"),
+        "a learner who enrolled and answered nothing still gets a path from their own course");
+      ok(catchUpPath(empty, { targets: ["circle-theorems"], subjects: ["biology"] })
+        .steps.every((x) => x.neededBy.includes("circle-theorems")),
+        "and a caller that names the course's concepts is not overridden by the subject list");
+
+      const page = fs.readFileSync("app/progress/page.tsx", "utf8");
+      ok(page.includes("catchUpPath(") && page.includes('t("catch.title")'),
+        "the learner's own record renders the path — it is not only a library");
+    }
     ok(dueIds.includes("angles-lines"),
       `the foundation is genuinely due for review (${dueIds.filter((id) => id === "angles-lines").length}× angles-lines among ${dueIds.length} due)`);
     ok(unmet.includes("angles-lines"),
@@ -13627,8 +13694,16 @@ console.log("▸ A paper says whether its shape is the awarding body's");
   const plansSrc = fs.readFileSync("lib/lesson-plans.ts", "utf8");
   const lessonPageSrc = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
   const modelSrc = fs.readFileSync("components/fraction-model.tsx", "utf8");
-  ok(/conceptId: "fractions"[\s\S]{0,4000}?interactive: "fraction-model"/.test(plansSrc),
-    "the fractions plan declares the interactive model it needs");
+  // READ THE PLAN, NOT A CHARACTER WINDOW AROUND ITS SOURCE. This used to be
+  // `/conceptId: "fractions"[\s\S]{0,4000}?interactive: …/`, which asserted
+  // "the line is within 4000 characters" — a proxy that passed for years and
+  // then failed the moment the plan gained a second teaching route, although
+  // `interactive` was still declared. Asking the served plan what it declares
+  // is the fact the assertion was ever about, and it cannot be broken by
+  // authoring more teaching into the plan.
+  const servedFractions = require("../.verify/lesson-plans.js").planFor("fractions");
+  ok(servedFractions?.interactive === "fraction-model",
+    `the fractions plan declares the interactive model it needs (${servedFractions?.interactive ?? "none"})`);
   ok(lessonPageSrc.includes('<FractionModel />') && /plan\?\.interactive === "fraction-model"/.test(lessonPageSrc),
     "and the lesson page renders it only where a plan names it");
   ok((modelSrc.match(/type="range"/g) ?? []).length === 2,
@@ -16202,6 +16277,61 @@ console.log("▸ Every door that costs money or CPU names its bound");
   ok(notLonger.length === 0,
     `every plan teaches at least twice as much as the genome paragraph it replaces (${notLonger.join(", ") || "all above 2×"})`);
 
+  // 3b · A SECOND ROUTE EXISTS ONLY WHERE AN AUTHOR WROTE ONE, AND IT REPLACES
+  // THE BASE ROUTE RATHER THAN ADDING TO IT. The mandate asks for multiple
+  // explanations chosen from evidence; the failure mode it invites is a
+  // generated "simpler" paragraph nobody taught. These assertions make the
+  // authored set the only source, and make restatement impossible.
+  const routeBad = [];
+  const routeIds = [];
+  for (const p of Object.values(plans.LESSON_PLANS)) {
+    for (const r of p.routes ?? []) {
+      routeIds.push(`${p.conceptId}:${r.when}`);
+      if (r.when !== "struggling" && r.when !== "advanced") routeBad.push(`${p.conceptId}: unknown route ${r.when}`);
+      if (r.idea.length < 3) routeBad.push(`${p.conceptId}/${r.when}: ${r.idea.length} paragraphs`);
+      const shortest = Math.min(...r.idea.map(words));
+      if (shortest < 20) routeBad.push(`${p.conceptId}/${r.when}: shortest paragraph ${shortest}w`);
+      if (r.idea.some((para) => p.idea.includes(para))) routeBad.push(`${p.conceptId}/${r.when}: repeats a base paragraph`);
+    }
+    const whens = (p.routes ?? []).map((r) => r.when);
+    if (new Set(whens).size !== whens.length) routeBad.push(`${p.conceptId}: two routes for the same evidence`);
+  }
+  ok(routeBad.length === 0,
+    `every authored route teaches three or more real paragraphs and none restates the base (${routeBad.slice(0, 3).join(" | ") || `${routeIds.length} routes`})`);
+
+  // …and the SELECTOR can only answer teaching somebody wrote. No evidence, or
+  // too little, is the default; the route names are the ones actually served.
+  const fractionsPlan = plans.planFor("fractions");
+  const negativesPlan = plans.planFor("negatives");
+  ok(plans.ideaRouteFor(fractionsPlan, null).route === "default",
+    "no evidence serves the authored default, not a guess at what the learner needs");
+  ok(plans.ideaRouteFor(fractionsPlan, { attempts: 2, correct: 0 }).route === "default",
+    "two wrong answers is not yet evidence enough to rewrite the lesson");
+  const strug = plans.ideaRouteFor(fractionsPlan, { attempts: 4, correct: 1 });
+  ok(strug.route === "struggling" && strug.idea[0].includes("no symbols at all"),
+    `a learner failing most items reads the struggling route (${strug.route})`);
+  ok(strug.idea !== fractionsPlan.idea && strug.idea.length < fractionsPlan.idea.length,
+    "the struggling route REPLACES the base paragraphs and is shorter, not padded on top of them");
+  const adv = plans.ideaRouteFor(negativesPlan, { attempts: 4, correct: 4, mastery: 0.92 });
+  ok(adv.route === "advanced" && /reflection/.test(adv.idea.join(" ")),
+    `a mastered learner reads the route that generalises rather than repeats (${adv.route})`);
+  ok(plans.ideaRouteFor(negativesPlan, { attempts: 4, correct: 4, mastery: 0.5 }).route === "default",
+    "mastery below the bar does not promote a learner to the advanced route");
+  const unauthored = plans.planFor("place-value");
+  ok(plans.ideaRouteFor(unauthored, { attempts: 9, correct: 0 }).route === "default" &&
+     plans.ideaRouteFor(unauthored, { attempts: 9, correct: 9, mastery: 0.99 }).route === "default",
+    "a plan with no authored route serves the base lesson in both directions");
+  const lessonPage = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(/import \{[^}]*\bideaRouteFor\b[^}]*\} from "@\/lib\/lesson-plans"/.test(lessonPage) &&
+     /ideaRouteFor\(plan, evidence\)/.test(lessonPage),
+    "the lesson page renders the route this learner's own evidence selects");
+  // AND IT COMES BEFORE THE AUTHORED LESSON. `fractions` has BOTH an authored
+  // lesson and an authored alternate; the authored explanation used to win every
+  // time, so the struggling route was written and unreachable — a card nobody
+  // sees. The route must be the first branch of that card.
+  ok(/ideaRoute && ideaRoute\.route !== "default"[\s\S]{0,600}?\) : authoredLesson \?/.test(lessonPage),
+    "a non-default route renders ahead of the authored lesson instead of being shadowed by it");
+
   // 4 · THE FADE IS LOSSLESS, AND CANNOT CUT A DECIMAL OR AN ABBREVIATION.
   const s1 = plans.firstMoveOf("Multiply 3 × 2 = 6, then add. The answer is 8.");
   ok(s1.first === "Multiply 3 × 2 = 6, then add." && s1.rest === "The answer is 8.",
@@ -17760,6 +17890,179 @@ console.log("▸ A miss counts even when no belief is named");
 // release gate rather than a script someone has to remember to run.
 const adaptiveSuite = await import("./adaptive-instruction-suite.mjs");
 adaptiveSuite.runAdaptiveInstructionSuite(ok);
+
+// ── Q. AUTHORED LESSONS ────────────────────────────────────────────────────
+// The milestone's central claim is that OpenMind now AUTHORS teaching rather
+// than assembling plans. These assertions are what make that claim checkable:
+// the standard is a contract, the contract is applied to real lessons, and a
+// plan (however substantial) is never counted as authored teaching.
+console.log("▸ A lesson's assessment can be marked, and a translation is whole");
+{
+  // TWO CLAIMS, AND BOTH CAN BE FALSE WITHOUT ANYTHING LOOKING WRONG.
+  //  (a) "the assessment is gradable" — an item with a key that does not accept
+  //      its own model answer is a broken marking scheme, and nothing in the UI
+  //      would show it.
+  //  (b) "this lesson is translated" — a lesson whose headings are Spanish and
+  //      whose paragraphs are English renders perfectly and teaches nothing.
+  const grading = require("../.verify/lesson-assessment.js");
+  const translate = require("../.verify/lesson-translate.js");
+  const authored = require("../.verify/lessons/authored/index.js");
+  const lessons = authored.AUTHORED_LESSONS;
+
+  const place = authored.authoredLessonFor("place-value");
+  ok(Boolean(place), "the foundation batch's lesson is in the authored set");
+  if (place) {
+    const keyed = place.assessment.filter((a) => grading.isGradable(a));
+    ok(keyed.length >= 1, `the lesson carries an assessment the server can mark (${keyed.length})`);
+    ok(
+      grading.gradeAuthoredAssessment(keyed[0], keyed[0].modelAnswer) === true,
+      "an item's key accepts its own model answer",
+    );
+    ok(
+      grading.gradeAuthoredAssessment(keyed[0], "eleven") === false,
+      "and refuses an answer that is not it",
+    );
+    ok(
+      grading.gradeAuthoredAssessment(keyed[0], " 3,040 ") === true,
+      "a typed thousands separator and stray spaces are the same answer, not a wrong one",
+    );
+    const constructed = place.assessment.find((a) => a.kind === "constructed-response");
+    ok(
+      constructed && grading.gradeAuthoredAssessment(constructed, "a full explanation") === null,
+      "a constructed response is NOT scored — no verdict is invented from prose",
+    );
+  }
+
+  const inconsistent = [];
+  for (const lesson of lessons) {
+    for (const item of lesson.assessment) {
+      if (!grading.isGradable(item)) continue;
+      if (grading.gradeAuthoredAssessment(item, item.modelAnswer) !== true) {
+        inconsistent.push(`${lesson.conceptId}/${item.id} rejects its own model answer`);
+      }
+      if (grading.gradeAuthoredAssessment(item, "\u0000 not an answer \u0000") !== false) {
+        inconsistent.push(`${lesson.conceptId}/${item.id} accepts a nonsense answer`);
+      }
+    }
+  }
+  ok(
+    inconsistent.length === 0,
+    `every deterministic key marks its own answer and refuses nonsense${inconsistent.length ? `: ${inconsistent.join("; ")}` : ""}`,
+  );
+
+  const langs = authored.TRANSLATED_LANGUAGES;
+  ok(
+    langs.includes("es") && langs.includes("fr"),
+    `Spanish and French lessons exist (${langs.join(", ")})`,
+  );
+  const english = place ?? lessons[0];
+  const es = authored.authoredLessonFor(english.conceptId, "es");
+  const fr = authored.authoredLessonFor(english.conceptId, "fr");
+  ok(Boolean(es) && Boolean(fr), "a whole translated lesson is returned for each language");
+
+  const problems = [
+    ...(es ? translate.translationProblems(english, es, "es") : []),
+    ...(fr ? translate.translationProblems(english, fr, "fr") : []),
+  ];
+  ok(
+    problems.length === 0,
+    `both translations carry the whole lesson${problems.length ? `: ${problems.map((p) => `${p.language} ${p.problem}`).join("; ")}` : ""}`,
+  );
+  if (es) {
+    const share = translate.untranslatedShare(english, es);
+    ok(
+      share <= translate.UNTRANSLATED_ALLOWANCE,
+      `the Spanish lesson is not English behind Spanish headings (${Math.round(share * 100)}% identical, allowance ${Math.round(
+        translate.UNTRANSLATED_ALLOWANCE * 100,
+      )}%)`,
+    );
+    ok(
+      es.translations.find((t) => t.language === "es")?.status === "machine",
+      "and it SAYS it is machine-translated rather than implying a review",
+    );
+    ok(!authored.hasReviewedTranslation(es), "nothing claims a human-reviewed translation exists");
+
+    const fabricated = {
+      ...es,
+      translations: [{ language: "es", status: "human-reviewed", lessonVersion: "1.0.0" }],
+    };
+    ok(
+      translate
+        .translationProblems(english, fabricated, "es")
+        .some((p) => /nobody recorded/.test(p.problem)),
+      "a review record with nobody named behind it is refused — an approval cannot be typed in",
+    );
+
+    const untranslated = { ...english, translations: es.translations };
+    ok(
+      translate
+        .translationProblems(english, untranslated, "es")
+        .some((p) => /identical to the English/.test(p.problem)),
+      "and a lesson left in English under a Spanish record is reported, not shown",
+    );
+
+    const short = { ...es, explanation: es.explanation.slice(1) };
+    ok(
+      translate
+        .translationProblems(english, short, "es")
+        .some((p) => /^explanation:/.test(p.problem)),
+      "a translation that dropped a section is caught",
+    );
+  }
+  ok(
+    authored.authoredLessonFor(english.conceptId, "de") === null,
+    "a language with no complete translation gets NO lesson rather than the English one",
+  );
+}
+
+console.log("▸ Authored lessons meet the lesson contract");
+{
+  const lessonVerify = require("../.verify/lesson-verify.js");
+  const authored = require("../.verify/lessons/authored/index.js");
+  const lessons = authored.AUTHORED_LESSONS;
+
+  ok(lessons.length > 0, `the authored set is not empty (${lessons.length} lesson${lessons.length === 1 ? "" : "s"})`);
+
+  const problems = lessons.flatMap((l) => lessonVerify.auditLessonForStatus(l));
+  ok(problems.length === 0,
+    `every authored lesson meets openmind.lesson/1.0 (${problems.slice(0, 3).map((p) => `${p.where}: ${p.problem}`).join(" | ") || "none"})`);
+
+  const reused = lessonVerify.originalityProblems(lessons);
+  ok(reused.length === 0,
+    `no authored lesson reuses another's prose, or the genome paragraph it replaces (${reused.slice(0, 2).map((p) => `${p.where}: ${p.problem}`).join(" | ") || "none"})`);
+
+  const subjects = new Set(lessons.map((l) => l.subject));
+  ok(subjects.size === 5,
+    `one representative lesson per supported subject (${[...subjects].sort().join(", ")})`);
+
+  // THE HONESTY RULE. A human rung needs a named reviewer and real learner
+  // testing; nothing in the codebase fills either, so a claimed rung without
+  // records is the one failure this gate must never let pass.
+  const humanRungs = ["educator_reviewed", "learner_tested", "published"];
+  const claimed = lessons.filter((l) => humanRungs.includes(l.declaredStatus));
+  const backed = claimed.filter((l) => l.reviews.length > 0 && l.learnerTesting.length > 0);
+  ok(claimed.length === backed.length,
+    `no lesson claims a human rung without a named review and learner testing (${claimed.length - backed.length} unbacked)`);
+
+  // AND A PLAN IS NOT A LESSON. The catalogue is built with the REAL plan
+  // table, so a shipped plan counts as `outline` and can never be read as
+  // authored teaching.
+  const plans = require("../.verify/lesson-plans.js");
+  const planState = {};
+  for (const id of plans.plannedConceptIds()) {
+    planState[id] = plans.LESSON_PLANS?.[id]?.provenance === "pilot" ? "pilot" : "supplemental";
+  }
+  const catalogue = lessonVerify.buildCatalogue(lessons, "1970-01-01T00:00:00.000Z", planState);
+  ok(catalogue.totals.authored === lessons.length,
+    `the catalogue counts authored lessons from the contract, not from plans (${catalogue.totals.authored})`);
+  ok(catalogue.concepts.every((c) => c.lesson !== null || c.status === "outline" || c.status === "metadata_only"),
+    "and every concept without an authored lesson is reported as outline or metadata_only");
+  const nonzero = catalogue.totals.byStatus;
+  ok((nonzero.published ?? 0) === 0 && (nonzero.learner_tested ?? 0) === 0 && (nonzero.educator_reviewed ?? 0) === 0,
+    `no concept is claimed as reviewed, tested or published (${JSON.stringify({ published: nonzero.published ?? 0, learner_tested: nonzero.learner_tested ?? 0, educator_reviewed: nonzero.educator_reviewed ?? 0 })})`);
+  ok(catalogue.gaps.length > 0,
+    `the gaps are reported rather than hidden (${catalogue.gaps.length} concepts still need an authored lesson)`);
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 

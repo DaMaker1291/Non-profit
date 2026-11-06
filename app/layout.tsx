@@ -77,7 +77,17 @@ export const viewport: Viewport = {
  * `prefers-color-scheme` in globals.css take over, so a learner who has chosen
  * nothing follows their device instead of being pinned to light.
  */
-const THEME_BOOT = `try{var t=localStorage.getItem("openmind:theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
+//
+// THE LEARNER'S ACCESS PREFERENCES ARE APPLIED HERE TOO, for the same reason and
+// with the same consequence if they are not. `AccessProvider` applies them in a
+// `useEffect`, which is after hydration — so a learner who chose larger text got
+// a page of ordinary text first and watched it grow, on every navigation, and a
+// learner who chose the calm screen saw the motion they had switched off. The
+// classes are the whole contract (`html.access-large` raises the root size in
+// globals.css), so setting them before the shell paints is the difference
+// between a preference and a flash. Measured by `npm run verify:a11y`:
+// with the classes stored, `<html>` carries them before the first paint.
+const THEME_BOOT = `try{var t=localStorage.getItem("openmind:theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t);var a=JSON.parse(localStorage.getItem("openmind:access")||"{}");var c=[];var s=typeof a.textScale==="number"?a.textScale:(a.largeText?1:0);if(s>=2)c.push("access-xlarge");else if(s>=1)c.push("access-large");if(a.roomy)c.push("access-roomy");if(a.highContrast)c.push("access-contrast");if(a.reduceMotion)c.push("access-calm");if(c.length)document.documentElement.className+=(document.documentElement.className?" ":"")+c.join(" ");if(a.preferSpeech)document.documentElement.classList.add("access-voice-first")}catch(e){}`;
 
 /**
  * THE SHELL, mounted once.

@@ -61,12 +61,23 @@ export interface LessonTrap {
 /** How far a plan has been checked. The strategy note's review ladder starts
  *  here and climbs; a plan may not claim a rung it has not reached. */
 export type PlanReview =
+  /** Stage 0-1: only metadata (title + blurb), no lesson plan yet */
+  | "metadata_only"
+  /** Stage 2: lesson plan outline exists (structure, objectives) */
+  | "outline"
+  /** Stage 3: authored draft present (full teaching plan) */
+  | "draft"
+  /** Stage 4: reviewed by a subject teacher */
+  | "educator_reviewed"
+  /** Stage 5: tested with learners, data exists */
+  | "learner_tested"
+  /** Stage 6: fully published and deployed */
+  | "published"
   /** Written by the project team. No subject teacher has read it. */
   | "unreviewed"
   /** A qualified teacher of the subject has read the mathematics and the
    *  explanations. */
   | "subject-reviewed";
-
 export interface LessonPlan {
   /** The genome id this teaches. Checked against the genome by `npm run
    *  verify` — a plan filed under a typo'd id would render for nobody. */
@@ -121,6 +132,41 @@ export interface LessonPlan {
    *  screen reader — or printing in greyscale, or on a phone — must be able to
    *  get the whole point from the sentence under it. */
   readonly figure?: { readonly spec: FigureSpec; readonly caption: string };
+  /** A SECOND ROUTE THROUGH THE SAME IDEA, for a learner whose own evidence
+   *  says the default route has not landed.
+   *
+   *  The mandate asks for multiple explanations and for the engine to choose one
+   *  from the learner's evidence. A generator cannot write that choice: an
+   *  explanation that has not been thought through is worse than the one that
+   *  has, so a route exists ONLY where an author wrote it, and a plan with no
+   *  routes answers exactly what it always did. This is the same rule as
+   *  `planFor` answering null for an unwritten concept — no template, no prose
+   *  invented to fill a slot.
+   *
+   *  `idea` REPLACES the base `idea`; it does not add to it. A struggling
+   *  learner handed both routes reads the same six paragraphs twice with a
+   *  different opening, which is the padding the mandate forbids. The advanced
+   *  route is for a learner whose evidence shows mastery, and it must go
+   *  FURTHER (generalise, prove, connect), not merely faster. */
+  readonly routes?: readonly {
+    readonly when: "struggling" | "advanced";
+    readonly idea: readonly string[];
+  }[];
+}
+
+/** Which route through the idea a learner is reading, and the paragraphs of it. */
+export interface LessonRouteChoice {
+  readonly route: "default" | "struggling" | "advanced";
+  readonly idea: readonly string[];
+}
+
+/** The evidence the route is chosen from — the same fields `ConceptProgress`
+ *  carries, as an optional bag so a caller with only part of the record (a
+ *  learner who has answered twice) still gets a defensible answer. */
+export interface LessonRouteEvidence {
+  readonly attempts?: number;
+  readonly correct?: number;
+  readonly mastery?: number;
 }
 
 /**
@@ -235,6 +281,25 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     usedFor:
       "Percentages and decimals are fractions in another notation, ratio compares two of them, and probability is one: the chance of a six is 1/6, which is a fraction before it is ever a percentage.",
     review: "unreviewed",
+    // THE SECOND ROUTE FOR A LEARNER THE FIRST ROUTE DID NOT REACH. Measured
+    // need, not a hunch: `fractions` is a stage-0 concept and the first
+    // prerequisite of the data-and-ratio work every science course leans on, so
+    // a learner arriving here having failed it is common. The base route opens
+    // with notation ("in 3/4 the bottom number, 4…"); a pupil who does not yet
+    // believe the bottom is a SIZE cannot start there. This route builds the
+    // picture first and does not write a fraction until paragraph three, then
+    // proves the comparison rule by drawing before naming it.
+    routes: [
+      {
+        when: "struggling",
+        idea: [
+          "Start with one bar of chocolate and no symbols at all. Break it into two equal pieces and you have two halves. Break a SECOND identical bar into four equal pieces and you have four quarters. Hold up one piece from each: the quarter is the smaller piece, even though 4 is the bigger number — because the number underneath a fraction counts how many pieces the bar was cut into, not how many you get.",
+          "So when you meet 3/4, read the bottom first: the bar was cut into 4 equal pieces. Then read the top: you have 3 of them. Say the whole thing out loud as \"three quarters\" and check it against the picture — three pieces, each one a quarter of the bar. If the words and the picture ever disagree, the picture is right; the two numbers are a shorthand for it.",
+          "Now compare 1/8 and 1/4 the slow way, by drawing. Draw two identical bars. Cut the first into 8 and shade 1 piece; cut the second into 4 and shade 1 piece. The shaded eighth is visibly the smaller piece, so 1/8 is less than 1/4. You have just proved the rule by looking at it, which is why you will not need to memorise which way round it goes.",
+          "Only when that is comfortable, use the shortcut. To compare fractions with different bottoms, cut both bars into the same number of pieces and count: 2/3 and 3/4 both become twelfths, 8/12 and 9/12, so 3/4 is bigger by one twelfth. If the shortcut will not come in an exam, draw the bars instead — slower, and always right.",
+        ],
+      },
+    ],
     interactive: "fraction-model",
     // THE PICTURE THE IDEA NEEDS. "A bigger bottom means smaller pieces" is a
     // claim about SHAPE — the same circle, cut more ways — so the drawing shows
@@ -363,6 +428,22 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     usedFor:
       "Coordinates, gradients and inequalities all stand on this: a point below the axis, a line falling to the right, or any inequality you multiply by −1.",
     review: "unreviewed",
+    // THE ADVANCED ROUTE. A learner whose evidence shows mastery of the moves is
+    // handed the same picture as an ALGEBRA (numbers are positions, operations are
+    // transformations) and the two results the default route can only assert:
+    // why two reflections cancel, and where the inequality flip comes from. It
+    // replaces the base paragraphs rather than adding to them, so nothing is
+    // read twice.
+    routes: [
+      {
+        when: "advanced",
+        idea: [
+          "Treat every number as a POSITION on the line and every operation as a transformation, and the sign rules stop being rules to remember. Adding a number slides the whole line; multiplying by −1 reflects it through zero; subtracting b is adding the reflection of b. That is the whole algebra, and 5 − (−3) = 8 is one sentence in it: reflect −3 to 3, then slide right by 3.",
+          "This framing answers what the default route can only assert. Why is (−2) × (−3) positive? Multiplication by a negative is a reflection through zero, and reflecting twice returns you to where you began — two half-turns make a full turn. The product of two negatives is positive because the two reversals cancel, not because \"two minuses make a plus\" is something to chant.",
+          "Two results worth deriving now, because both are used later. Distance between two numbers is |a − b|, so the distance from −4 to 3 is 7, and the midpoint is their mean, (−4 + 3)/2 = −0.5 — check on the line that −0.5 is equally far from −4 and from 3. Then the inequality flip follows from the same picture: multiplying by −1 MIRRORS the line, so every point that was to the left is now to the right, and a \"less than\" becomes a \"greater than\" because the order reversed, not because of a separate rule.",
+        ],
+      },
+    ],
     // THE PICTURE IS THE RULE. 5 − (−3) is the one move in this concept that a
     // learner reliably gets backwards, and it is backwards because they picture
     // it as "take away", which travels left. Drawn, the journey travels right
@@ -372,6 +453,101 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
       caption:
         "Start at 5. Taking away −3 is removing a leftward move, so the journey goes RIGHT to 8 — the arrow does not turn round because the sign does.",
     },
+  },
+
+  // ── THE TWO IDEAS EVERY LATER NUMBER TOPIC ASSUMES ────────────────────────
+  // These were supplemental: a genome paragraph plus a lens. That is enough to
+  // remind someone and not enough to teach someone who has never met the idea,
+  // which is who the catch-up path sends here. Written to the pilot format:
+  // objective, intuition before terminology, several idea paragraphs in the
+  // order they must land, traps that say WHY the wrong move fails.
+  "place-value": {
+    conceptId: "place-value",
+    objective:
+      "Read and write any number by what each digit is actually worth, and explain what multiplying or dividing by ten does to it.",
+    intuition:
+      "A bus goes past with the number 45 on the front. A price tag reads £45. Same two digits, and one of them is nine times bigger than the other number's twin. The digits did not change; their POSITION did. That is the whole idea, and it is why 405 and 45 are not the same amount of anything.",
+    idea: [
+      "Every column is ten times the column on its right. So 452 is not \"four, five, two\": it is 4 hundreds + 5 tens + 2 ones = 400 + 50 + 2. The digit 4 is worth 400 here, 40 in 45, and 4 in 4 — the same symbol, three different amounts.",
+      "Zero is a placeholder, not decoration. 405 has no tens, and the zero is what holds the hundreds column in its place. Drop it and you have written 45, a different number. This is also why you cannot \"cancel\" a zero off the end of a number unless you are dividing by ten.",
+      "Multiplying by 10 moves every digit one column LEFT, because each digit becomes ten times bigger: 35 × 10 = 350. Dividing by 10 moves them right, which is why 350 ÷ 10 = 35. The decimal point never moves — the digits do, and the point stays where it is to mark the ones column.",
+      "Decimals continue the same pattern to the right. The column after the point is tenths, then hundredths: 0.1 is one tenth, 0.45 is four tenths and five hundredths. Nothing new starts at the point; the tens pattern simply keeps halving in the other direction.",
+      "Comparing numbers means comparing the leftmost column where they differ, not counting digits. 0.45 and 0.5 look like 45 against 5, but line up the columns: 0.45 is 45 hundredths and 0.5 is 50 hundredths, so 0.5 is larger. The same rule settles 4,099 against 4,100.",
+      "This is the machinery under every written method you will meet. Column addition lines up the columns so ones meet ones; long multiplication splits a number into its place-value parts; standard form writes a number as a digit string times a power of ten. A learner who cannot say what a digit is worth cannot check any of them.",
+    ],
+    traps: [
+      {
+        move: "Saying the 4 in 452 is worth 4.",
+        why: "The value comes from the column, not the symbol. That 4 sits in the hundreds column, so it contributes 400; the number would be 52 without it. Ask \"which column is it in?\" before \"what is the digit?\".",
+      },
+      {
+        move: "Deciding 0.45 is bigger than 0.5 because 45 is bigger than 5.",
+        why: "They are not in the same column. 0.45 is 45 hundredths and 0.5 is 5 tenths, which is 50 hundredths — so 0.5 is bigger. Compare by place, and pad with zeros if it helps: 0.45 against 0.50.",
+      },
+      {
+        move: "Multiplying by 10 by writing a zero on the end.",
+        why: "That happens to work for whole numbers and quietly fails for decimals: 3.5 × 10 is 35, not 3.50. The digits move one column left; writing a zero does not move anything, it just adds a placeholder.",
+      },
+    ],
+    terms: [
+      { term: "digit", meaning: "One of the ten symbols 0–9. On its own it has no value; its column gives it one." },
+      { term: "place value", meaning: "What a digit is worth because of the column it sits in — 4 means 400 in 452." },
+      { term: "placeholder", meaning: "A zero that keeps the other digits in their columns, as in 405." },
+    ],
+    recap: [
+      "Each column is ten times the one on its right, so 452 = 400 + 50 + 2.",
+      "Zero holds a column open; 405 is not 45.",
+      "Multiplying by 10 moves the digits one column left; the decimal point stays put.",
+    ],
+    usedFor:
+      "Column addition and subtraction, long multiplication and division, decimals, rounding and standard form all read the columns this way.",
+    review: "unreviewed",
+  },
+
+  "multiplication": {
+    conceptId: "multiplication",
+    objective:
+      "Multiply any two whole numbers without a calculator, and explain why the column method works rather than just following it.",
+    intuition:
+      "A hall has 4 rows of 3 chairs. You do not count twelve chairs one at a time; you see four equal groups and know the total. That is what multiplication is — repeated addition of equal groups — and 4 × 3 and 3 × 4 give the same twelve because a 4-by-3 rectangle is the same rectangle turned on its side.",
+    idea: [
+      "4 × 3 means four groups of three: 3 + 3 + 3 + 3 = 12. The two numbers have names that matter later — factors — and the answer is the product. Multiplication is commutative (4 × 3 = 3 × 4) and associative ((2 × 3) × 4 = 2 × (3 × 4)), which is what lets you regroup a hard product into two easy ones.",
+      "Split a number by its place value and the hard product becomes two easy ones: 23 × 4 = (20 × 4) + (3 × 4) = 80 + 12 = 92. This is not a trick; it is the distributive law, and it is the reason every written method looks the way it does.",
+      "The column method is that split written down. For 23 × 14 you multiply by the 4 ones first (92), then by the 1 ten — which gives 23 tens, not 23 ones — and add: 230 + 92 = 322. The shifted second row is the tens row, which is why the zero appears at its end.",
+      "Times tables are retrieval, not the idea. Knowing 6 × 7 by heart frees working memory, but if it slips, derive it: 6 × 7 = 6 × 5 + 6 × 2 = 30 + 12 = 42. A learner with two anchor facts and the distributive law can rebuild the rest.",
+      "Always estimate before and after. 23 × 14 is about 20 × 14 = 280, so 322 is plausible and 115 is not. Estimation is not a second method; it is the check that catches a missing shifted row.",
+    ],
+    traps: [
+      {
+        move: "Writing 23 × 4 = 812 by putting 8 and 12 side by side.",
+        why: "12 ones is one ten and two ones, so the ten has to be carried into the tens column: 80 + 12 = 92. Writing the digits in sequence treats a two-digit column result as if it were two separate columns.",
+      },
+      {
+        move: "Forgetting the shift when multiplying by the tens digit.",
+        why: "The 1 in 14 is one ten, so 23 × 1 gives 23 TENS — 230, not 23. Adding 23 + 92 = 115 instead of 322 is the classic missing-zero error, and estimating first catches it immediately.",
+      },
+      {
+        move: "Multiplying a decimal by 10 by appending a zero.",
+        why: "0.4 × 10 is 4, not 0.40. The digits move one column left; appending a zero leaves the value unchanged. (Place value is the idea doing the work here.)",
+      },
+      {
+        move: "Treating multiplication as addition when the numbers are small.",
+        why: "3 × 4 is 12, while 3 + 4 is 7. The sign tells you which structure you have: equal groups means multiply, combining unequal amounts means add.",
+      },
+    ],
+    terms: [
+      { term: "factor", meaning: "One of the numbers being multiplied; in 23 × 4, both 23 and 4 are factors." },
+      { term: "product", meaning: "The result of a multiplication." },
+      { term: "partition", meaning: "Splitting a number into place-value parts, as 23 becomes 20 + 3." },
+    ],
+    recap: [
+      "Multiplication is repeated addition of equal groups, and 4 × 3 = 3 × 4.",
+      "Partition by place value: 23 × 4 = 80 + 12 = 92.",
+      "The second row of a long multiplication is TENS, so it is shifted; estimate to check.",
+    ],
+    usedFor:
+      "Division, fractions, ratio and proportion, area, algebra (3x means 3 times x) and every formula that multiplies a rate by a time.",
+    review: "unreviewed",
   },
 
   "order-ops": {
@@ -1153,9 +1329,18 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
  *
  *  The full registry is what `planFor` answers from. `pilotPlanIds()` is the
  *  smaller set the review packs and the browser lesson walk measure. */
+// AUTHORED WINS, AND THE ORDER IS THE WHOLE RULE. The supplemental module
+// builds a plan for every concept that has a lens, and it is spread LAST in the
+// first version of this merge — so an authored plan whose concept also has a
+// lens was silently replaced by the generated one. Nothing threw: `planFor`
+// answered, the page rendered, the coverage counts looked right, and two new
+// lessons would have shipped as supplemental prose while their authors believed
+// they were live. Found by reading the registry (`place-value` reported
+// `provenance: "supplemental"`) rather than by trusting the file diff. The
+// generated plan is the FALLBACK; it is never allowed to shadow taught content.
 export const LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
-  ...PILOT_LESSON_PLANS,
   ...SUPPLEMENTAL_LESSON_PLANS,
+  ...PILOT_LESSON_PLANS,
 };
 
 /** The plans that belong to the review packs, not the supplemental coverage. */
@@ -1180,6 +1365,41 @@ export function planFor(conceptId: string, lang?: string): LessonPlan | null {
   if (!base) return null;
   if (!lang || lang === "en") return base;
   return translatedPlanFor(conceptId, lang, base) ?? base;
+}
+
+/** WHICH ROUTE THROUGH THE IDEA THIS LEARNER READS, and its paragraphs.
+ *
+ *  Thresholds, and why they are where they are:
+ *   - fewer than three answers is not evidence of anything, so the default
+ *     route is served rather than a route chosen from one lucky guess;
+ *   - struggling is accuracy BELOW 0.5 over at least three answers — a learner
+ *     getting most items wrong — and never applies to a learner whose mastery
+ *     has been established, because mastery outranks a bad early run;
+ *   - advanced requires mastery at 0.8 or more AND the three answers, so a
+ *     single correct answer does not promote anybody;
+ *   - a route that has not been authored falls back to the default, so the
+ *     function can only ever return teaching somebody wrote.
+ *  The returned `route` is the one ACTUALLY served, so a caller can tell
+ *  "default because no evidence" from "default because no alternate exists". */
+export function ideaRouteFor(
+  plan: LessonPlan,
+  evidence?: LessonRouteEvidence | null,
+): LessonRouteChoice {
+  const attempts = evidence?.attempts ?? 0;
+  const correct = evidence?.correct ?? 0;
+  const mastery = evidence?.mastery ?? 0;
+  const authored = plan.routes ?? [];
+  if (attempts >= 3) {
+    const accuracy = correct / attempts;
+    if (mastery >= 0.8) {
+      const advanced = authored.find((r) => r.when === "advanced");
+      if (advanced) return { route: "advanced", idea: advanced.idea };
+    } else if (accuracy < 0.5) {
+      const struggling = authored.find((r) => r.when === "struggling");
+      if (struggling) return { route: "struggling", idea: struggling.idea };
+    }
+  }
+  return { route: "default", idea: plan.idea };
 }
 
 /** The languages this concept's lesson is COMPLETELY translated into, English

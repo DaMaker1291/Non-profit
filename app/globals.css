@@ -2099,6 +2099,22 @@ input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--ma
    and strengthens lines for outdoor / low-quality screens. Calm stills every
    animation. The class hooks are the contract — keep them in sync. ── */
 html.access-large { font-size: var(--t19); }
+/* TWO STEPS ABOVE THE OLD SINGLE SWITCH. "Larger text" was a boolean, so a
+   learner who needed more got 19 px and no way to ask for 22, and a learner who
+   needed a little got 19 px whether or not that suited them. The steps are the
+   learner's choice; nothing here infers a need. */
+html.access-xlarge { font-size: 22px; }
+/* ROOMIER LINES. Bigger type alone does not separate letters; spacing does. The
+   rules apply to the blocks that carry teaching prose, not to buttons, tables or
+   the numerals inside an answer field. */
+html.access-roomy .reading,
+html.access-roomy .lesson-text,
+html.access-roomy .lesson-lead,
+html.access-roomy .card p {
+  line-height: 1.9;
+  letter-spacing: 0.012em;
+  word-spacing: 0.06em;
+}
 html.access-contrast {
   --ink: #000000;
   --ink-soft: #101820;

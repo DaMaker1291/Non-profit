@@ -18,8 +18,19 @@
 export interface AccessPrefs {
   /** Read controls and feedback aloud when tapped (§10). */
   readAloud: boolean;
-  /** Larger base type (§10). */
+  /** Larger base type. KEPT as a mirror of `textScale > 0` so every existing
+   *  reader, stored preference and assertion still answers the same question;
+   *  the UI no longer exposes it as a single switch, because "large or not" gave
+   *  a dyslexic learner no way to ask for the LARGEST step and no way to say how
+   *  large. */
   largeText: boolean;
+  /** Type size in STEPS: 0 standard, 1 large (19 px), 2 largest (22 px).
+   *  Chosen by the learner, never inferred, and never a diagnosis. */
+  textScale: 0 | 1 | 2;
+  /** Roomier lines: line-height, letter spacing and word spacing, which is the
+   *  reading accommodation dyslexia guidance asks for most often — a bigger
+   *  font alone does not separate letters. */
+  roomy: boolean;
   /** High-contrast ink (§10). */
   highContrast: boolean;
   /** Fewer animations, calmer motion (§3, §6). */
@@ -31,6 +42,8 @@ export interface AccessPrefs {
 export const DEFAULT_PREFS: AccessPrefs = {
   readAloud: false,
   largeText: false,
+  textScale: 0,
+  roomy: false,
   highContrast: false,
   reduceMotion: false,
   preferSpeech: false,
@@ -44,9 +57,18 @@ export function loadPrefs(): AccessPrefs {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT_PREFS };
     const j = JSON.parse(raw) as Partial<AccessPrefs>;
+    // A preference stored BEFORE the steps existed carries only `largeText`, and
+    // it must keep working: a learner who chose larger text and comes back after
+    // an update is not asked to choose again, and does not silently shrink.
+    const rawScale = typeof j.textScale === "number"
+      ? Math.round(j.textScale)
+      : j.largeText === true ? 1 : 0;
+    const textScale = (rawScale >= 2 ? 2 : rawScale >= 1 ? 1 : 0) as 0 | 1 | 2;
     return {
       readAloud: j.readAloud === true,
-      largeText: j.largeText === true,
+      largeText: textScale > 0,
+      textScale,
+      roomy: j.roomy === true,
       highContrast: j.highContrast === true,
       reduceMotion: j.reduceMotion === true,
       preferSpeech: j.preferSpeech === true,
@@ -67,7 +89,9 @@ export function savePrefs(p: AccessPrefs): void {
  *  The CSS side is a mirror of this list — see globals.css. */
 export function prefClasses(p: AccessPrefs): string[] {
   const out: string[] = [];
-  if (p.largeText) out.push("access-large");
+  if (p.textScale >= 2) out.push("access-xlarge");
+  else if (p.textScale === 1 || p.largeText) out.push("access-large");
+  if (p.roomy) out.push("access-roomy");
   if (p.highContrast) out.push("access-contrast");
   if (p.reduceMotion) out.push("access-calm");
   return out;

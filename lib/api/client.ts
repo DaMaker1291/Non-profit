@@ -457,6 +457,39 @@ export type AnswerOutcome =
  * The caller never declares mode, hint count or retention credit — the server
  * derives all three from what it actually handed out.
  */
+/** One of an authored lesson's own assessment items, graded on the server.
+ *
+ *  The capability secret travels on the request exactly as it does for every
+ *  other write — `send` attaches it — so this door has no separate authority.
+ *  The server decides whether the item is gradable at all: an item without a
+ *  deterministic key answers 400 "not gradable" and the page shows the marking
+ *  criteria instead of inventing a verdict. */
+export interface LessonCheckResult {
+  correct: boolean;
+  modelAnswer: string;
+  marking: string[];
+}
+
+export function lessonCheck(input: {
+  id: string;
+  conceptId: string;
+  itemId: string;
+  answer: string;
+  secret?: string | null;
+}): Promise<LessonCheckResult> {
+  return send<LessonCheckResult>("/api/progress", {
+    method: "POST",
+    body: {
+      action: "lessonCheck",
+      id: input.id,
+      conceptId: input.conceptId,
+      itemId: input.itemId,
+      answer: input.answer,
+      secret: input.secret ?? undefined,
+    },
+  });
+}
+
 export async function answerQuestion(
   input: {
     id: string;

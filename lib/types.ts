@@ -689,6 +689,15 @@ export interface ConceptProgress {
   /** EWMA of graded-answer outcomes — the accuracy signal mastery integrates. */
   accuracy?: number;
   lastSeen: number;
+  /** Learner testing status for this concept:
+   *  metadata_only: no learner testing data
+   *  outline: basic testing data exists (some attempts recorded)
+   *  draft: learner testing in progress (answers being recorded)
+   *  educator_reviewed: educator has reviewed test results
+   *  learner_tested: sufficient learner testing data exists
+   *  published: all gates pass and content is deployed
+   */
+  testingStatus?: "metadata_only" | "outline" | "draft" | "educator_reviewed" | "learner_tested" | "published";
   /** Misconception id -> hit count, only incremented on wrong answers. */
   misconceptions: Record<string, number>;
   /** Help level (1-4) -> times requested. Scaffolding demand is learner-model data.
@@ -734,6 +743,11 @@ export interface ConceptProgress {
   retention?: { asked: number; correct: number; lastHeld?: boolean | null };
   /** Peer teaching: explanations checked and strong ones. */
   peer?: { checks: number; strong: number };
+  /** A lesson's OWN assessment items (openmind.lesson/1.0): answered and right.
+   *  Kept apart from bank attempts because these items carry a deterministic key
+   *  rather than a generated tolerance — mixing them would make one counter mean
+   *  two different things. Absent until the learner answers one. */
+  lessonCheck?: { asked: number; correct: number };
   /** Total answer time in ms (for pace evidence; count in `answers`). */
   totalMs?: number;
   answers?: number;

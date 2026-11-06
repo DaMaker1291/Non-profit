@@ -2560,28 +2560,32 @@ const LATE_GENS: Record<string, RawGen> = {
       prompt: `A goat is tethered by a 5 m rope to a post. Which shape shows everywhere the goat can reach?`,
       correct: "A circle of radius 5 m centred on the post",
       wrongs: ["A line 5 m from the post", "The interior of a 5 m square around the post", "A circle of radius 10 m centred on the post"] as [string, string, string],
-      tags: [], explanation: `Fixed distance from a fixed point: every reachable point is exactly 5 m away — that locus is a circle of radius 5 m centred on the post. Inside it the rope would be slack, not taut.`,
+      tags: [], figure: { kind: "pie", sectorDegrees: 360, slices: 6 },
+      explanation: `Fixed distance from a fixed point: every reachable point is exactly 5 m away — that locus is a circle of radius 5 m centred on the post. Inside it the rope would be slack, not taut.`,
       difficulty: 0.35,
     };
     if (v === 1) return {
       prompt: `Points equidistant from two fixed points A and B lie on...`,
       correct: "the perpendicular bisector of AB",
       wrongs: ["the line AB itself", "a circle through A and B", "the angle bisector at A"] as [string, string, string],
-      tags: [], explanation: `Equal distance from both ends is the definition of the perpendicular bisector — it cuts AB in half at 90°. Compasses construct it as two equal arcs crossing.`,
+      tags: [], figure: { kind: "axes", xMin: -5, xMax: 5, yMin: -5, yMax: 5, lines: [{ from: [-5, 0], to: [5, 0] }] },
+      explanation: `Equal distance from both ends is the definition of the perpendicular bisector — it cuts AB in half at 90°. Compasses construct it as two equal arcs crossing.`,
       difficulty: 0.4,
     };
     if (v === 2) return {
       prompt: `Points equidistant from two straight roads that cross lie on...`,
       correct: "the angle bisectors of the roads",
       wrongs: ["the perpendicular bisector of the roads", "a circle centred where they cross", "a line parallel to one road"] as [string, string, string],
-      tags: [], explanation: `Equal distance from two lines means equal perpendicular distance to each — that locus is the pair of angle bisectors. Bisect the angle where the roads cross with compasses.`,
+      tags: [], figure: { kind: "axes", xMin: -5, xMax: 5, yMin: -5, yMax: 5, lines: [{ from: [0, -5], to: [0, 5] }] },
+      explanation: `Equal distance from two lines means equal perpendicular distance to each — that locus is the pair of angle bisectors. Bisect the angle where the roads cross with compasses.`,
       difficulty: 0.45,
     };
     return {
       prompt: `A fence must be built no more than 3 m from a straight hedge. Which region shows where the fence may go?`,
       correct: "A strip of width 3 m running along the hedge",
       wrongs: ["A circle of radius 3 m", "A line exactly 3 m from the hedge", "A 3 m × 3 m square at each end"] as [string, string, string],
-      tags: [], explanation: `"Within 3 m of a line" is a band: every point up to 3 m perpendicular distance. Combined loci like this (with, say, 10 m from a well) carve real site plans into allowed regions.`,
+      tags: [], figure: { kind: "rectangle", widthParts: [{ units: 1, label: "3 m" }], heightParts: [{ units: 3, label: "3 m" }], emphasis: ["strip"] },
+      explanation: `"Within 3 m of a line" is a band: every point up to 3 m perpendicular distance. Combined loci like this (with, say, 10 m from a well) carve real site plans into allowed regions.`,
       difficulty: 0.5,
     };
   },

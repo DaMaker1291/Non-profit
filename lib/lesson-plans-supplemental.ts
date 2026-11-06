@@ -158,7 +158,7 @@ function buildPlan(conceptId: string): LessonPlan | null {
 
   return {
     conceptId,
-    objective: `Use ${c.title.toLowerCase()} in a problem, and explain the idea: ${c.blurb}`,
+    objective: `${c.title.toLowerCase()} in a problem, and explain why it works: ${c.blurb}`,
     intuition: lens.intuition,
     idea,
     traps,

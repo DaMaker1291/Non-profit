@@ -115,7 +115,23 @@ export function AccessProvider({ children }: { children: ReactNode }) {
               was prefixed with an emoji-drawn character (🔊 👁 🎨 🧠 🎙) that
               the platform, not the product, sets. The word is the label. */}
           <Toggle on={prefs.readAloud} label={t("access.readAloud")} onClick={() => set({ readAloud: !prefs.readAloud })} />
-          <Toggle on={prefs.largeText} label={t("access.largeText")} onClick={() => set({ largeText: !prefs.largeText })} />
+          {/* THREE STEPS, NOT A SWITCH. `aria-pressed` on each makes the choice
+              a radio-like group to a screen reader, and the label names the
+              group. `largeText` is kept in step for every older reader. */}
+          <div role="group" aria-label={t("access.textSize")} style={{ display: "flex", gap: 6, margin: "4px 0" }}>
+            {([0, 1, 2] as const).map((n) => (
+              <button
+                key={n}
+                className={`btn small ${prefs.textScale === n ? "" : "ghost"}`}
+                aria-pressed={prefs.textScale === n}
+                onClick={() => set({ textScale: n, largeText: n > 0 })}
+                style={{ flex: 1, justifyContent: "center" }}
+              >
+                {t(n === 0 ? "access.sizeStandard" : n === 1 ? "access.sizeLarge" : "access.sizeLargest")}
+              </button>
+            ))}
+          </div>
+          <Toggle on={prefs.roomy} label={t("access.roomy")} onClick={() => set({ roomy: !prefs.roomy })} />
           <Toggle on={prefs.highContrast} label={t("access.highContrast")} onClick={() => set({ highContrast: !prefs.highContrast })} />
           <Toggle on={prefs.reduceMotion} label={t("access.reduceMotion")} onClick={() => set({ reduceMotion: !prefs.reduceMotion })} />
           <Toggle on={prefs.preferSpeech} label={t("access.preferSpeech")} onClick={() => set({ preferSpeech: !prefs.preferSpeech })} />

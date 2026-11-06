@@ -32,6 +32,15 @@ import { authorisedProfile } from "@/lib/server/auth";
 import { checkPresentedSecret, classroomSessionFor } from "@/lib/server/capability";
 import { learnerLimitKey, pace } from "@/lib/server/limits";
 import { ANSWERS_PER_LEARNER } from "@/lib/server/rate-limit";
+// AN AUTHORED LESSON'S OWN ASSESSMENT IS GRADED AND RECORDED HERE.
+//
+// The item is not from the bank, so it has no generated tolerance: the lesson
+// carries a deterministic key (lib/lesson-contract.ts#AssessmentItem.check) and
+// lib/lesson-assessment.ts is the one rule that compares against it. An item
+// with no key returns null and is never graded — a constructed response is
+// marked against criteria by a person, not scored by vocabulary.
+import { authoredLessonFor } from "@/lib/lessons/authored";
+import { gradeAuthoredAssessment } from "@/lib/lesson-assessment";
 import type { ProfileState, Question } from "@/lib/types";
 
 /** A choice index must be a real array index: anything else is a client bug,
@@ -76,6 +85,9 @@ interface AnswerBody {
   deviceAt?: number;
 }
 interface PeerBody { action: "peer"; id: string; conceptId: string; strong: boolean; secret?: string }
+interface LessonCheckBody {
+  action: "lessonCheck"; id: string; conceptId: string; itemId: string; answer: string; secret?: string;
+}
 interface HintBody { action: "hint"; id: string; conceptId: string; questionId: string; level: number; secret?: string }
 interface MicroBody { action: "micro"; id: string; conceptId: string; misconceptionId: string; questionId: string; choiceIndex: number; secret?: string }
 interface StarterBody { action: "starter"; id: string; conceptId: string; questionId: string; secret?: string }
@@ -121,7 +133,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 /** POST /api/progress — serve a practice question, or grade an answer. */
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const body = (await req.json()) as ServeBody | AnswerBody | HintBody | MicroBody | StarterBody | StarterPickBody | PeerBody;
+    const body = (await req.json()) as ServeBody | AnswerBody | HintBody | MicroBody | StarterBody | StarterPickBody | PeerBody | LessonCheckBody;
     if (!body?.id) return NextResponse.json({ error: "bad request" }, { status: 400 });
 
     // ── BOUND THE WORK BEFORE IT RUNS ──────────────────────────────────────
@@ -639,6 +651,63 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
       const r = upd.result as { error?: string };
       if (r.error) return NextResponse.json({ error: r.error }, { status: 400 });
+      return NextResponse.json(upd.result);
+    }
+
+    // ── A lesson's own assessment, graded and recorded ─────────────────────
+    // The evidence event is a real graded answer on the concept: it names the
+    // authored item (`lesson:<concept>:<item>`), records no hints and counts as
+    // independent, because the learner answered it unaided. A lesson check that
+    // was not recorded would be a quiz nobody can measure.
+    if (body.action === "lessonCheck") {
+      const { conceptId, itemId, answer } = body;
+      if (
+        typeof conceptId !== "string" || !conceptId ||
+        typeof itemId !== "string" || !itemId ||
+        typeof answer !== "string"
+      ) {
+        return NextResponse.json({ error: "bad request" }, { status: 400 });
+      }
+      const lesson = authoredLessonFor(conceptId);
+      const item = lesson?.assessment.find((a) => a.id === itemId);
+      if (!lesson || !item) return NextResponse.json({ error: "no such assessment" }, { status: 404 });
+      const graded = gradeAuthoredAssessment(item, answer);
+      // Null means this item has no key: the page offers the marking criteria
+      // instead, and the server refuses to invent a verdict.
+      if (graded === null) return NextResponse.json({ error: "not gradable" }, { status: 400 });
+      const upd = await withLearnerState(body.id, async (ctx, state) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
+        const p = (state.progress[conceptId] ??= emptyProgress());
+        p.lessonCheck ??= { asked: 0, correct: 0 };
+        p.lessonCheck.asked += 1;
+        if (graded) p.lessonCheck.correct += 1;
+        const event = answerEvidence({
+          learnerId: body.id,
+          at: Date.now(),
+          source: "practice",
+          subject: getConcept(conceptId)?.subject ?? null,
+          conceptId,
+          specificationId: state.profile.spec ?? null,
+          questionId: `lesson:${conceptId}:${itemId}`,
+          correct: graded,
+          // −1 is "typed", never a real option index.
+          chosen: -1,
+          mode: "independent",
+          hints: 0,
+          tags: [],
+        }) as EvidenceEvent;
+        try {
+          await commitAndProjectIn(ctx, state, [event]);
+        } catch {
+          return { error: "evidence_not_recorded" as const };
+        }
+        return { correct: graded, modelAnswer: item.modelAnswer, marking: item.marking };
+      });
+      if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+      const r = upd.result as { error?: string };
+      if (r.error) {
+        return NextResponse.json({ error: r.error }, { status: r.error === "evidence_not_recorded" ? 503 : 400 });
+      }
       return NextResponse.json(upd.result);
     }
 

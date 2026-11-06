@@ -148,7 +148,21 @@ export default function AccessPage() {
               control did not say twice. */}
           <Toggle on={prefs.readAloud} label={t("acc.readAloud")} onClick={() => set({ readAloud: !prefs.readAloud })} />
           <Toggle on={prefs.preferSpeech} label={t("acc.preferSpeech")} onClick={() => set({ preferSpeech: !prefs.preferSpeech })} />
-          <Toggle on={prefs.largeText} label={t("acc.largeText")} onClick={() => set({ largeText: !prefs.largeText })} />
+          {/* THE SAME THREE STEPS AS THE PANEL, from the same owner. Sizes are
+              the learner's choice, never inferred from a diagnosis. */}
+          <div role="group" aria-label={t("access.textSize")} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {([0, 1, 2] as const).map((n) => (
+              <button
+                key={n}
+                className={`btn small ${prefs.textScale === n ? "" : "ghost"}`}
+                aria-pressed={prefs.textScale === n}
+                onClick={() => set({ textScale: n, largeText: n > 0 })}
+              >
+                {t(n === 0 ? "access.sizeStandard" : n === 1 ? "access.sizeLarge" : "access.sizeLargest")}
+              </button>
+            ))}
+          </div>
+          <Toggle on={prefs.roomy} label={t("access.roomy")} onClick={() => set({ roomy: !prefs.roomy })} />
           <Toggle on={prefs.highContrast} label={t("acc.highContrast")} onClick={() => set({ highContrast: !prefs.highContrast })} />
           <Toggle on={prefs.reduceMotion} label={t("acc.calmScreen")} onClick={() => set({ reduceMotion: !prefs.reduceMotion })} />
         </div>

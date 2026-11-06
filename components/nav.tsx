@@ -9,7 +9,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ctitle, levelLabel } from "@/lib/content-i18n";
 import { CONCEPTS } from "@/lib/genome";
-import { specForProfile } from "@/lib/specifications";
+import { incompleteSubjects, specForProfile } from "@/lib/specifications";
 import { SUBJECT_LABELS } from "@/lib/subjects";
 import type { SubjectId } from "@/lib/types";
 
@@ -152,13 +152,16 @@ export function Nav() {
    *  taught, named once (GCSE · Higher tier · Year 10), and a way to change it.
    *  A subject list belongs on the page that is about subjects.
    *
-   *  Resolved through `specForProfile`, so the card can only ever name a course
-   *  the learner's own record resolves — a course still being chosen falls back
-   *  to the setup prompt rather than to a guess. */
+   *  Resolved through `specForProfile` only when the record has completed the
+   *  subject's course. `specForProfile` has a display fallback for screens that
+   *  need a course to preview; using it here made the sidebar name a Foundation
+   *  GCSE to a learner who had not chosen a qualification yet. The setup prompt
+   *  is the honest state until the course gate says the course is complete. */
   const course = useMemo(() => {
     const p = state?.profile;
     const subject = p?.subjects?.[0];
     if (!p || !subject) return null;
+    if (incompleteSubjects(p).some((x) => x.subject === subject)) return null;
     try {
       const active = specForProfile(p, subject);
       return {

@@ -23,7 +23,9 @@
     "completing-square",
     "fractions",
     "fraction-ops",
-    "percentages"
+    "percentages",
+    "place-value",
+    "multiplication"
   ],
   "method": "cluster = anchors + their prerequisites, filtered to uk-gcse; items drawn with generateQuestionNear(id, seed, tier.difficulty, 40) — the production serve",
   "reviewState": {
@@ -31,11 +33,11 @@
     "note": "No concept is marked reviewed by this pack. Records go in audit/item-reviews.json with a reviewer, a date and a scope, and `npm run verify:q` refuses an entry without them."
   },
   "totals": {
-    "concepts": 15,
-    "items": 149,
+    "concepts": 17,
+    "items": 161,
     "promptDerived": 3,
     "withMisconceptions": 15,
-    "foundationTier": 13,
+    "foundationTier": 15,
     "higherTier": 13
   },
   "concepts": [
@@ -472,6 +474,119 @@
       ]
     },
     {
+      "id": "multiplication",
+      "title": "Multiplication",
+      "subject": "maths",
+      "stage": 0,
+      "lesson": "4 × 3 means four groups of three: 3 + 3 + 3 + 3 = 12. Times tables are the alphabet of arithmetic — knowing them by heart lets you factorise, estimate and spot patterns instantly. The grid and column methods break big products into place-value chunks: 23 × 4 = (20 × 4) + (3 × 4).",
+      "prereqs": [],
+      "tiers": [
+        "foundation"
+      ],
+      "depth": 0.35,
+      "promptDerived": false,
+      "misconceptions": [],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:multiplication:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 27 × 5.",
+          "choices": [
+            "162",
+            "130",
+            "32",
+            "135"
+          ],
+          "answer": 3,
+          "explanation": "27 × 5 means 5 lots of 27, which comes to 135. Multiplying in two steps is the reliable way to get there: 27 × 4 = 108, and one more 27 takes it to 135. Adding the two numbers instead (32) is the commonest slip, and it is not multiplication at all — 5 lots of 27 is far more than the two numbers added together.",
+          "difficulty": 0.35,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:multiplication:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 24 × 8.",
+          "choices": [
+            "216",
+            "184",
+            "192",
+            "32"
+          ],
+          "answer": 2,
+          "explanation": "24 × 8 means 8 lots of 24, which comes to 192. Multiplying in two steps is the reliable way to get there: 24 × 7 = 168, and one more 24 takes it to 192. Adding the two numbers instead (32) is the commonest slip, and it is not multiplication at all — 8 lots of 24 is far more than the two numbers added together.",
+          "difficulty": 0.35,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:multiplication:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 28 × 8.",
+          "choices": [
+            "252",
+            "224",
+            "216",
+            "36"
+          ],
+          "answer": 1,
+          "explanation": "28 × 8 means 8 lots of 28, which comes to 224. Multiplying in two steps is the reliable way to get there: 28 × 7 = 196, and one more 28 takes it to 224. Adding the two numbers instead (36) is the commonest slip, and it is not multiplication at all — 8 lots of 28 is far more than the two numbers added together.",
+          "difficulty": 0.35,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:multiplication:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 28 × 12.",
+          "choices": [
+            "324",
+            "364",
+            "40",
+            "336"
+          ],
+          "answer": 3,
+          "explanation": "28 × 12 means 12 lots of 28, which comes to 336. Multiplying in two steps is the reliable way to get there: 28 × 11 = 308, and one more 28 takes it to 336. Adding the two numbers instead (40) is the commonest slip, and it is not multiplication at all — 12 lots of 28 is far more than the two numbers added together.",
+          "difficulty": 0.35,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:multiplication:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 34 × 10.",
+          "choices": [
+            "374",
+            "44",
+            "330",
+            "340"
+          ],
+          "answer": 3,
+          "explanation": "34 × 10 means 10 lots of 34, which comes to 340. Multiplying in two steps is the reliable way to get there: 34 × 9 = 306, and one more 34 takes it to 340. Adding the two numbers instead (44) is the commonest slip, and it is not multiplication at all — 10 lots of 34 is far more than the two numbers added together.",
+          "difficulty": 0.35,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:multiplication:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "Work out 31 × 6.",
+          "choices": [
+            "186",
+            "37",
+            "217",
+            "180"
+          ],
+          "answer": 0,
+          "explanation": "31 × 6 means 6 lots of 31, which comes to 186. Multiplying in two steps is the reliable way to get there: 31 × 5 = 155, and one more 31 takes it to 186. Adding the two numbers instead (37) is the commonest slip, and it is not multiplication at all — 6 lots of 31 is far more than the two numbers added together.",
+          "difficulty": 0.35,
+          "numeric": true
+        }
+      ]
+    },
+    {
       "id": "negatives",
       "title": "Negative numbers",
       "subject": "maths",
@@ -705,6 +820,119 @@
           "answer": 2,
           "explanation": "Multiplication binds tighter than addition, so the product is worked out before the sum: 5 × 6 = 30 comes first, and then 5 + 30 = 35. Working left to right instead (60) adds before multiplying, which is a different expression — it is exactly why 5 + 5 × 6 is not 60.",
           "difficulty": 0.4,
+          "numeric": true
+        }
+      ]
+    },
+    {
+      "id": "place-value",
+      "title": "Place value",
+      "subject": "maths",
+      "stage": 0,
+      "lesson": "In the number 452, the digit 4 means 400, the 5 means 50 and the 2 means 2. Each step left multiplies a digit's value by ten, and each step right divides it by ten. This single idea is why we can write enormous numbers compactly, and it is the foundation of decimal numbers, estimation and standard form later on.",
+      "prereqs": [],
+      "tiers": [
+        "foundation"
+      ],
+      "depth": 0.35,
+      "promptDerived": false,
+      "misconceptions": [],
+      "misconceptionsNaming": [],
+      "items": [
+        {
+          "seed": "pilot:place-value:foundation:0",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "In the number 979, what is the VALUE of the ones digit?",
+          "choices": [
+            "0.9",
+            "9",
+            "10",
+            "90"
+          ],
+          "answer": 1,
+          "explanation": "In 979 the columns are worth 100, 10 and 1 from the left, so every digit is scaled by the column it sits in. The 9 hundreds are worth 900, the 7 tens are worth 70 and the 9 ones are worth 9, and those add back to 979. The ones digit on its own is 9, but its VALUE is 9 — writing the digit instead of the value is the usual slip, and 90 would be one column further left.",
+          "difficulty": 0.35,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:place-value:foundation:1",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "In the number 349, what is the VALUE of the hundreds digit?",
+          "choices": [
+            "300",
+            "3",
+            "30",
+            "3000"
+          ],
+          "answer": 0,
+          "explanation": "In 349 the columns are worth 100, 10 and 1 from the left, so every digit is scaled by the column it sits in. The 3 hundreds are worth 300, the 4 tens are worth 40 and the 9 ones are worth 9, and those add back to 349. The hundreds digit on its own is 3, but its VALUE is 300 — writing the digit instead of the value is the usual slip, and 3000 would be one column further left.",
+          "difficulty": 0.35,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:place-value:foundation:2",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "In the number 393, what is the VALUE of the hundreds digit?",
+          "choices": [
+            "3",
+            "3000",
+            "300",
+            "30"
+          ],
+          "answer": 2,
+          "explanation": "In 393 the columns are worth 100, 10 and 1 from the left, so every digit is scaled by the column it sits in. The 3 hundreds are worth 300, the 9 tens are worth 90 and the 3 ones are worth 3, and those add back to 393. The hundreds digit on its own is 3, but its VALUE is 300 — writing the digit instead of the value is the usual slip, and 3000 would be one column further left.",
+          "difficulty": 0.35,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:place-value:foundation:3",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "In the number 759, what is the VALUE of the hundreds digit?",
+          "choices": [
+            "700",
+            "7000",
+            "70",
+            "7"
+          ],
+          "answer": 0,
+          "explanation": "In 759 the columns are worth 100, 10 and 1 from the left, so every digit is scaled by the column it sits in. The 7 hundreds are worth 700, the 5 tens are worth 50 and the 9 ones are worth 9, and those add back to 759. The hundreds digit on its own is 7, but its VALUE is 700 — writing the digit instead of the value is the usual slip, and 7000 would be one column further left.",
+          "difficulty": 0.35,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:place-value:foundation:4",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "In the number 544, what is the VALUE of the tens digit?",
+          "choices": [
+            "4",
+            "40",
+            "41",
+            "400"
+          ],
+          "answer": 1,
+          "explanation": "In 544 the columns are worth 100, 10 and 1 from the left, so every digit is scaled by the column it sits in. The 5 hundreds are worth 500, the 4 tens are worth 40 and the 4 ones are worth 4, and those add back to 544. The tens digit on its own is 4, but its VALUE is 40 — writing the digit instead of the value is the usual slip, and 400 would be one column further left.",
+          "difficulty": 0.35,
+          "numeric": true
+        },
+        {
+          "seed": "pilot:place-value:foundation:5",
+          "tier": "foundation",
+          "target": 0.45,
+          "prompt": "In the number 953, what is the VALUE of the hundreds digit?",
+          "choices": [
+            "90",
+            "900",
+            "9",
+            "9000"
+          ],
+          "answer": 1,
+          "explanation": "In 953 the columns are worth 100, 10 and 1 from the left, so every digit is scaled by the column it sits in. The 9 hundreds are worth 900, the 5 tens are worth 50 and the 3 ones are worth 3, and those add back to 953. The hundreds digit on its own is 9, but its VALUE is 900 — writing the digit instead of the value is the usual slip, and 9000 would be one column further left.",
+          "difficulty": 0.35,
           "numeric": true
         }
       ]

@@ -58,6 +58,49 @@ export function cblurb(lang: string, conceptId: string): string {
   return v === `cb.${conceptId}` ? (c?.blurb ?? "") : v;
 }
 
+/**
+ * Check if full teaching content has been translated for a concept in a given language.
+ * Teaching content includes: lesson plans, worked examples, question prompts,
+ * repair hints, and misconception coaching notes.
+ */
+
+export function teachingTranslated(lang: string, conceptId: string): boolean {
+  if (lang === 'en') return true;
+  const dict = DICTS[lang];
+  if (!dict) return false;
+  // Check that the concept has teaching content translated (not raw English keys)
+  // Teaching content keys use specific prefixes that indicate authored content:
+  // - lp.<id>: lesson plan
+  // - we.<id>: worked example
+  // - qp.<id>: question prompt
+  // - rh.<id>: repair hint
+  // - mc.<id>: misconception coaching
+  // - mp.<id>: misconception prompt
+  // We check if any of these keys exist and are not raw English keys
+  const c = getConcept(conceptId);
+  if (!c) return false;
+  // Check that cn and cb are translated (not raw English)
+  const dictCn = dict[`cn.${conceptId}`];
+  const dictCb = dict[`cb.${conceptId}`];
+  if (typeof dictCn !== 'string' || dictCn.trim() === '' ||
+      typeof dictCb !== 'string' || dictCb.trim() === '') {
+    return false;
+  }
+  // Check if any teaching content key is present and not a raw English key
+  const teachingKeys = [
+    `lp.${conceptId}`,
+    `we.${conceptId}`,
+    `qp.${conceptId}`,
+    `rh.${conceptId}`,
+    `mc.${conceptId}`,
+    `mp.${conceptId}`,
+  ];
+  return teachingKeys.some(key => {
+    const v = dict[key];
+    return typeof v === 'string' && v.trim() !== '' && v !== `cn.${conceptId}` && v !== `cb.${conceptId}`;
+  });
+}
+
 /** Misconception name / coaching: `mc.<id>` / `mcp.<id>` keys, falling back
  *  to the catalogue's authored English when a dictionary lacks them. */
 /** The name of ONE tier, in the reader's language, without repeating itself.

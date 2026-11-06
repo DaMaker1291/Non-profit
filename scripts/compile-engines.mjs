@@ -159,6 +159,7 @@ export const ENGINE_SOURCES = [
   // is pure, so it lives outside the fs-bound store and both builds share it.
   "lib/learner-profile.ts",
   "lib/learner-model.ts",
+  "lib/foundations.ts",
   // The append-and-project path, with its storage injected: the server uses the
   // JSONL store, the static build uses localStorage, and one module decides
   // the order of operations for both.
@@ -371,6 +372,34 @@ export const ENGINE_SOURCES = [
   "lib/adaptive-instruction/strategy-selector.ts",
   "lib/adaptive-instruction/adaptive-instruction-engine.ts",
   "lib/adaptive-instruction/index.ts",
+  // ── AUTHORED TEACHING ───────────────────────────────────────────────────
+  // The lesson contract, the five subject frameworks, the gate's pure rules and
+  // the authored set itself. Compiled with the engines because `npm run verify`
+  // must judge the REAL lessons against the REAL standard — a gate that reads a
+  // parallel copy of either cannot tell an authored lesson from a plan.
+  "lib/lesson-contract.ts",
+  "lib/lesson-frameworks.ts",
+  "lib/lesson-verify.ts",
+  "lib/lesson-assessment.ts",
+  "lib/lesson-translate.ts",
+  "lib/lessons/authored/maths-fractions.ts",
+  "lib/lessons/authored/physics-circuits.ts",
+  "lib/lessons/authored/chemistry-equations.ts",
+  "lib/lessons/authored/biology-photosynthesis.ts",
+  "lib/lessons/authored/computing-what-is-code.ts",
+  "lib/lessons/authored/place-value.ts",
+  "lib/lessons/authored/decimals.ts",
+  "lib/lessons/authored/addition.ts",
+  "lib/lessons/authored/subtraction.ts",
+  "lib/lessons/authored/rounding.ts",
+  "lib/lessons/authored/multiplication.ts",
+  "lib/lessons/authored/division.ts",
+  "lib/lessons/authored/negatives.ts",
+  "lib/lessons/authored/order-ops.ts",
+  "lib/lessons/authored/fraction-ops.ts",
+  "lib/lessons/authored/percentages.ts",
+  "lib/lessons/authored/translations.ts",
+  "lib/lessons/authored/index.ts",
 ];
 
 export const MIRROR_DIR = ".verify";

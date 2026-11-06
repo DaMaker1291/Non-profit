@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { MasteryBar, useI18n, useProfile, loadLocalProfileId, loadLocalProfileSecret } from "@/lib/client";
 import { getConcept } from "@/lib/genome";
+import { catchUpPath } from "@/lib/foundations";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { confidenceOf } from "@/lib/retention";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
@@ -101,7 +102,16 @@ export default function ProgressPage() {
       .slice(-8)
       .reverse();
 
-    return { entries, totalAttempts, accuracy, mastered, misconceptions, diagRuns, bySubject, events, state };
+    // THE PATH, from the learner's own evidence. Targets are the concepts they
+    // have actually touched — never a year group and never a course they have
+    // not declared. A learner with no ancestors open sees no section at all,
+    // rather than a congratulation the record cannot support.
+    // Targets are the learner's DECLARED subjects first: an enrolled learner
+    // who has answered nothing yet (an adult returning, a pupil resuming after
+    // an interruption) must still be able to see what their course rests on.
+    const catchPath = catchUpPath(state, { limit: 5, subjects: state.profile.subjects });
+
+    return { entries, totalAttempts, accuracy, mastered, misconceptions, diagRuns, bySubject, events, state, catchPath };
   }, [state, lang]);
 
   if (loading) {
@@ -153,6 +163,36 @@ export default function ProgressPage() {
         <div className="card soft"><div className="stat">{Math.round(data.accuracy * 100)}%</div><div className="stat-label">{t("prog.accuracy")}</div></div>
         <div className="card soft"><div className="stat">{data.mastered}</div><div className="stat-label">{t("learn.mastered")}</div></div>
       </div>
+
+      {data.catchPath.total > 0 && (
+        <section className="ruled" style={{ borderTop: "2px solid var(--ink)", paddingTop: 18, marginBottom: 30 }}>
+          <p className="eyebrow"><span className="no">↳</span> {t("catch.title")}</p>
+          <p className="small" style={{ marginTop: 0 }}>{t("catch.lead")}</p>
+          <ol className="timeline">
+            {data.catchPath.steps.map((s) => (
+              <li key={s.conceptId}>
+                <span className="tl-date">
+                  {s.state === "unmeasured" ? t("catch.unmeasured") : t("catch.weak")}
+                </span>
+                <div className="tl-body">
+                  <Link href={`/learn/${s.subject}/${s.conceptId}`} style={{ fontWeight: 650 }}>
+                    {ctitle(lang, s.conceptId)}
+                  </Link>
+                  <div className="tl-marks">
+                    {/* A dash, never 0%, for an idea nobody has asked about. */}
+                    <span className="chip">{s.state === "weak" ? `${Math.round(s.mastery * 100)}%` : "—"}</span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+          {data.catchPath.total > data.catchPath.steps.length && (
+            <p className="small muted" style={{ margin: 0 }}>
+              {t("catch.more").replace("{n}", String(data.catchPath.total - data.catchPath.steps.length))}
+            </p>
+          )}
+        </section>
+      )}
 
       {(() => {
         // Learning gains: Diagnostic → Learning → Independent → Transfer.
