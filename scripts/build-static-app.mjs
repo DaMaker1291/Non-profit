@@ -91,6 +91,10 @@ const ENTRY = {
   // same plan objects, so the twin reads the SAME authored text rather than a
   // second copy of it.
   lessonPlans: "lesson-plans",
+  // The universal teaching layer: one learning map and one honest video card
+  // per lesson, shared by the React page and this offline twin.
+  lessonMap: "lesson-map",
+  lessonMedia: "lesson-media",
   // Prompt formatting (prose vs code), shared with the React surfaces so both
   // builds set a code question the same way.
   prompt: "prompt",

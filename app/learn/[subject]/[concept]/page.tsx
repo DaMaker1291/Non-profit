@@ -30,6 +30,7 @@ import SpeakButton from "@/components/speak-button";
 import { Icon } from "@/components/icons";
 import PromptText from "@/components/prompt-text";
 import { FigureGraphic } from "@/components/question-figure";
+import { LessonMap } from "@/components/lesson-map";
 import { FractionModel } from "@/components/fraction-model";
 import MathText from "@/components/math-text";
 import NumericAnswer from "@/components/numeric-answer";
@@ -43,7 +44,8 @@ import LessonView from "@/components/content-platform/lesson-view";
 import { lessonDocumentFor } from "@/lib/content-platform/flagships";
 import RepairCard from "@/components/repair-card";
 import { repairFor } from "@/lib/repair";
-import { planFor, ideaRouteFor, teachingLanguages } from "@/lib/lesson-plans";
+import { planFor, ideaRouteFor, teachingLanguages, sectionsFor } from "@/lib/lesson-plans";
+import { videoFor, videoScopeLabel } from "@/lib/lesson-media";
 // THE AUTHORED LESSON, WHERE ONE EXISTS.
 //
 // lib/lessons/authored is the authored set, judged against openmind.lesson/1.0
@@ -109,6 +111,10 @@ export default function ConceptPage() {
   const { state, set: setState } = useProfile();
   const teachLang = state?.profile.teachingLang ?? lang;
   const plan = planFor(conceptId, teachLang);
+  // `plan.sections` is the authored shape; `sectionsFor` gives the plans that
+  // predate it the same readable sequence without inventing a new body.
+  const planSections = plan ? sectionsFor(plan) : [];
+  const lessonVideo = plan ? videoFor(plan) : null;
   // The authored lesson replaces the plan's teaching where it exists, and adds
   // the parts a plan cannot carry (diagnostic, misconception corrections, guided
   // practice with hints, independent assessment with marking, transfer,
@@ -985,6 +991,12 @@ export default function ConceptPage() {
         </section>
       )}
 
+      {/* EVERY LESSON SHOWS WHERE IT SITS. The subject figure, where one is
+          authored, appears later beside the idea it draws; this map is about
+          the learning path rather than the science, so it arrives before the
+          explanation and answers "what does this assume, and what next?". */}
+      <LessonMap conceptId={conceptId} />
+
       {/* THE PICTURE, WHERE THE IDEA NEEDS ONE.
 
           A figure is carried by the PLAN rather than by the page, because only
@@ -1016,31 +1028,33 @@ export default function ConceptPage() {
           third party can be blocked, can fail silently, and leaves a blank box
           where teaching was promised — while a link opens the source's own page
           and says whose work it is before the learner taps it. */}
-      {plan?.video && (
+      {lessonVideo && (
         <a
           className="lesson-video"
-          href={plan.video.url}
+          href={lessonVideo.url}
           target="_blank"
           rel="noreferrer noopener"
-          data-video-source={plan.video.source}
-          data-video-language={plan.video.language}
+          data-video-source={lessonVideo.source}
+          data-video-language={lessonVideo.language}
+          data-video-scope={lessonVideo.scope}
         >
           <span className="lesson-video-play" aria-hidden="true">▶</span>
           <span className="lesson-video-copy">
-            <strong>{plan.video.title}</strong>
+            <strong>{lessonVideo.title}</strong>
             <span className="lesson-video-meta small muted">
-              {plan.video.source}{plan.video.length ? ` · ${plan.video.length}` : ""} · {plan.video.language.toUpperCase()}
-              {plan.video.captions === "none"
+              {lessonVideo.source}{lessonVideo.length ? ` · ${lessonVideo.length}` : ""} · {lessonVideo.language.toUpperCase()}
+              {lessonVideo.captions === "none"
                 ? " · no captions"
-                : plan.video.captions === "unknown"
+                : lessonVideo.captions === "unknown"
                   ? " · captions not verified"
-                  : plan.video.captions === "auto"
+                  : lessonVideo.captions === "auto"
                     ? " · auto captions"
                     : " · captions"}
             </span>
-            <span className="lesson-video-summary small muted">{plan.video.summary}</span>
+            <span className="lesson-video-summary small muted">{lessonVideo.summary}</span>
+            <span className="lesson-video-scope small muted">{videoScopeLabel(lessonVideo)}</span>
             <span className="lesson-video-note small muted">
-              Opens {plan.video.source} in a new tab. Needs internet; the lesson below teaches the same idea without it.
+              Opens {lessonVideo.source} in a new tab. Needs internet; the lesson below teaches the same idea without it.
             </span>
           </span>
         </a>
@@ -1125,9 +1139,9 @@ export default function ConceptPage() {
               </section>
             ))}
           </>
-        ) : plan?.sections ? (
+        ) : planSections.length > 0 ? (
           <div className="lesson-sections">
-            {plan.sections.map((section, i) => (
+            {planSections.map((section, i) => (
               <section className="lesson-section" key={i}>
                 <div className="lesson-section-head">
                   <span className="lesson-section-number" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>

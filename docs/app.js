@@ -1405,7 +1405,10 @@
       esc(t(E.lessonPlans.teachingLanguages(conceptId).indexOf(lang()) >= 0
         ? "lq.teachNoteLesson"
         : E.contentI18n.namesNatively(lang()) ? "lq.teachNote" : "lq.teachNoteAll")) + "</p>";
-    var idea = plan.sections ? plan.sections.map(function (section, i) {
+    // Authored sections win; plans written before the field existed are grouped
+    // into the same readable sequence by the shared helper in lesson-plans.
+    var lessonSections = plan.sections || E.lessonPlans.sectionsFor(plan);
+    var idea = lessonSections ? lessonSections.map(function (section, i) {
       var body = section.body.map(function (para) {
         return '<p class="reading lesson-text">' + esc(para) + "</p>";
       }).join("");
@@ -1437,8 +1440,10 @@
       '<p class="muted">' + esc(E.contentI18n.cblurb(lang(), conceptId)) + "</p>" + note +
       lessonPart(t("plan.can"), '<p style="margin:10px 0 0">' + esc(plan.objective) + "</p>") +
       lessonPart(t("plan.start"), '<p style="margin:10px 0 0">' + esc(plan.intuition) + "</p>") +
-      lessonPart(t("learn.idea"), plan.sections ? '<div class="lesson-sections">' + idea + "</div>" : idea) +
+      lessonMapHtml(conceptId) +
+      lessonPart(t("learn.idea"), lessonSections ? '<div class="lesson-sections">' + idea + "</div>" : idea) +
       lessonFigureHtml(plan) +
+      lessonVideoHtml(plan) +
       workedBlock(conceptId, "worked", "worked.eyebrow", "worked.lead", "worked.show") +
       workedBlock(conceptId, "guided", "plan.together", "plan.guidedLead", "plan.firstStep") +
       (traps ? lessonPart(t("plan.traps"), traps, true) : "") +
@@ -1502,6 +1507,65 @@
     if (!svg) return '<p class="small muted" style="margin:0 0 18px">' + esc(plan.figure.caption) + "</p>";
     return '<figure class="lesson-figure" data-figure="' + esc(plan.figure.spec.kind) + '">' + svg +
       '<figcaption class="small muted">' + esc(plan.figure.caption) + "</figcaption></figure>";
+  }
+
+  /** A LEARNING MAP FOR EVERY LESSON, drawn from the genome. The map makes a
+   *  different claim from a subject diagram: it shows prerequisites, this
+   *  concept and what comes next. The SVG is aria-hidden; the caption names the
+   *  concepts in the reader's language and says this is the learning path, not
+   *  a picture of the science. */
+  function lessonMapHtml(conceptId) {
+    if (!E.lessonMap) return "";
+    var M = E.lessonMap.lessonMapFor(conceptId);
+    if (!M) return "";
+    var parts = [];
+    M.edges.forEach(function (edge) {
+      var angle = Math.atan2(edge.y2 - edge.y1, edge.x2 - edge.x1);
+      var head = 8, a = 0.42;
+      parts.push('<g class="lesson-map-edge"><line x1="' + edge.x1 + '" y1="' + edge.y1 +
+        '" x2="' + edge.x2 + '" y2="' + edge.y2 + '"/><polygon points="' +
+        edge.x2 + "," + edge.y2 + " " +
+        (edge.x2 - head * Math.cos(angle - a)) + "," + (edge.y2 - head * Math.sin(angle - a)) + " " +
+        (edge.x2 - head * Math.cos(angle + a)) + "," + (edge.y2 - head * Math.sin(angle + a)) +
+        '"/></g>');
+    });
+    M.nodes.forEach(function (node) {
+      var lines = E.lessonMap.wrapLessonMapLabel(ctitle(node.id));
+      var lineHeight = 15;
+      var startY = node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2 + 4;
+      var text = lines.map(function (line, i) {
+        return '<text x="' + (node.x + node.width / 2) + '" y="' + (startY + i * lineHeight) + '" text-anchor="middle">' + esc(line) + "</text>";
+      }).join("");
+      parts.push('<g class="lesson-map-node ' + node.role + '" data-node="' + esc(node.id) + '">' +
+        '<rect x="' + node.x + '" y="' + node.y + '" width="' + node.width + '" height="' + node.height + '" rx="10"/>' + text + "</g>");
+    });
+    var before = M.nodes.filter(function (n) { return n.role === "before"; }).map(function (n) { return ctitle(n.id); });
+    var after = M.nodes.filter(function (n) { return n.role === "after"; }).map(function (n) { return ctitle(n.id); });
+    var nearby = M.nodes.filter(function (n) { return n.role === "nearby"; }).map(function (n) { return ctitle(n.id); });
+    var caption = (before.length ? ctitle(conceptId) + " comes after " + before.join(" and ") + "." : ctitle(conceptId) + " starts this learning path.") +
+      " " + (after.length ? "It leads on to " + after.join(" and ") + "." : nearby.length ? "Other ideas in this subject nearby: " + nearby.join(" and ") + "." : "It has no next concept in this pathway yet.") +
+      " This is a map of the learning path, not a diagram of the science itself.";
+    return '<figure class="lesson-map" data-map="learning-path" data-concept="' + esc(conceptId) + '">' +
+      '<div class="lesson-map-scroll">' + svgWrap(M.width, M.height, parts) + "</div>" +
+      '<figcaption class="small muted reading">' + esc(caption) + "</figcaption></figure>";
+  }
+
+  /** THE LINK-ONLY VIDEO CARD, in the offline twin too. `videoFor` answers the
+   *  authored concept video when there is one, otherwise a subject overview
+   *  explicitly marked as such. The card never embeds a player: the source's
+   *  page opens in a new tab, and the summary teaches even when it cannot. */
+  function lessonVideoHtml(plan) {
+    if (!E.lessonMedia) return "";
+    var v = E.lessonMedia.videoFor(plan);
+    if (!v) return "";
+    var captions = v.captions === "none" ? "no captions" : v.captions === "unknown" ? "captions not verified" : v.captions === "auto" ? "auto captions" : "captions";
+    return '<a class="lesson-video" href="' + esc(v.url) + '" target="_blank" rel="noreferrer noopener" data-video-source="' + esc(v.source) +
+      '" data-video-language="' + esc(v.language) + '" data-video-scope="' + esc(v.scope) + '">' +
+      '<span class="lesson-video-play" aria-hidden="true">\u25b6</span><span class="lesson-video-copy"><strong>' + esc(v.title) + '</strong>' +
+      '<span class="lesson-video-meta small muted">' + esc(v.source) + (v.length ? " \u00b7 " + esc(v.length) : "") + " \u00b7 " + esc(v.language.toUpperCase()) + " \u00b7 " + captions + "</span>" +
+      '<span class="lesson-video-summary small muted">' + esc(v.summary) + '</span>' +
+      '<span class="lesson-video-scope small muted">' + esc(E.lessonMedia.videoScopeLabel(v)) + '</span>' +
+      '<span class="lesson-video-note small muted">Opens ' + esc(v.source) + ' in a new tab. Needs internet; the lesson below teaches the same idea without it.</span></span></a>';
   }
 
   /** A REAL ITEM FROM THE CONCEPT'S OWN GENERATOR, unrevealed.

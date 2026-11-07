@@ -175,6 +175,10 @@ export interface LessonPlan {
      *  language still gets the teaching from the text, and the card is useful
      *  before the video opens. */
     readonly summary: string;
+    /** Whether this video teaches THIS concept or gives a subject overview.
+     *  Omitted on an authored concept video for compatibility; `videoFor`
+     *  supplies `"concept"` and every subject fallback supplies `"subject"`. */
+    readonly scope?: "concept" | "subject";
   };
   /** THE PICTURE THIS IDEA NEEDS, when it needs one.
    *
@@ -1826,6 +1830,28 @@ export function planFor(conceptId: string, lang?: string): LessonPlan | null {
   if (!base) return null;
   if (!lang || lang === "en") return base;
   return translatedPlanFor(conceptId, lang, base) ?? base;
+}
+
+/** THE SECTIONS EVERY LESSON RENDERS.
+ *
+ *  Authored plans carry their own sequence (the chemistry lessons have formulas
+ *  and tables; the pilot plans teach a deliberate path). For the plans that do
+ *  not, the four authored idea paragraphs are still a sequence, and putting them
+ *  in one undifferentiated card is the wall this format exists to break. This
+ *  groups them into two or three readable sections with honest structural
+ *  headings. It does not invent teaching: every body string is already in the
+ *  plan, and an authored `sections` field always wins. */
+export function sectionsFor(plan: LessonPlan): readonly LessonSection[] {
+  if (plan.sections?.length) return plan.sections;
+  const ideas = plan.idea.filter((para) => para.trim().length > 0);
+  if (!ideas.length) return [];
+  const groups: string[][] = [];
+  for (let i = 0; i < ideas.length; i += 2) groups.push(ideas.slice(i, i + 2));
+  const headings = ["The core idea", "Building the idea", "Putting it together", "Extending the idea"];
+  return groups.map((body, i) => ({
+    heading: headings[Math.min(i, headings.length - 1)],
+    body,
+  }));
 }
 
 /** WHICH ROUTE THROUGH THE IDEA THIS LEARNER READS, and its paragraphs.

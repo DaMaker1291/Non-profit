@@ -43,7 +43,7 @@
     "verify:lesson": "node scripts/lesson-walk.mjs",
     "verify:routes": "node scripts/learner-routes.mjs",
     "verify:a11y": "node scripts/a11y-audit.mjs",
-    "verify:lessons": "node scripts/lesson-catalogue.mjs && node scripts/media-check.mjs && node scripts/science-figure-check.mjs && node scripts/chemistry-lesson-check.mjs",
+    "verify:lessons": "node scripts/lesson-catalogue.mjs && node scripts/media-check.mjs && node scripts/lesson-map-check.mjs && node scripts/science-figure-check.mjs && node scripts/chemistry-lesson-check.mjs",
     "media-check": "node scripts/media-check.mjs",
     "verify:science": "node scripts/science-figure-check.mjs",
     "verify:chemistry": "node scripts/chemistry-lesson-check.mjs",

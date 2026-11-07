@@ -101,6 +101,8 @@ export const ENGINE_SOURCES = [
   "lib/lesson-plans-science.ts",
   "lib/lesson-plans-computing.ts",
   "lib/lesson-plans-supplemental.ts",
+  "lib/lesson-map.ts",
+  "lib/lesson-media.ts",
   // FIGURE GEOMETRY. Compiled with the engines because the claims a diagram
   // makes are arithmetic: a number line's arrow must travel the way the sign
   // says, a balance's pans must hold what the equation says, an area model's

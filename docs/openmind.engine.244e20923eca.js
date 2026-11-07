@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 78 modules compiled from lib/ by that script, wired
+ * Source: 80 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -32216,6 +32216,231 @@ function commitAndProject(learnerId, state, events, store) {
 }
 
 });
+__def("lesson-map.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MAP_NODE_HEIGHT = exports.MAP_NODE_WIDTH = exports.MAP_HEIGHT = exports.MAP_WIDTH = void 0;
+exports.lessonMapFor = lessonMapFor;
+exports.wrapLessonMapLabel = wrapLessonMapLabel;
+// ─────────────────────────────────────────────────────────────────────────────
+// THE LEARNING MAP — the diagram every lesson can honestly carry.
+//
+// A subject diagram says how a cell is built or how a reaction profile moves;
+// this map says where the idea SITS. That is a different claim, and it is one
+// the genome can make for every concept without inventing science: prerequisites
+// on the left, this lesson in the middle, the next ideas on the right. A learner
+// who is lost in a lesson can see what it assumes and what it unlocks.
+//
+// The geometry is pure and deliberately small: at most two prerequisites and two
+// next concepts are drawn, because a map with twenty arrows teaches nothing. The
+// cap is reported (`beforeMore` / `afterMore`) so the page can say what it left
+// out rather than silently truncating the pathway.
+// ─────────────────────────────────────────────────────────────────────────────
+const genome_1 = require("./genome");
+exports.MAP_WIDTH = 640;
+exports.MAP_HEIGHT = 230;
+exports.MAP_NODE_WIDTH = 176;
+exports.MAP_NODE_HEIGHT = 54;
+function yFor(index, count) {
+    if (count <= 1)
+        return (exports.MAP_HEIGHT - exports.MAP_NODE_HEIGHT) / 2;
+    return 58 + index * 98;
+}
+/** At most two each side, in the genome's own order. */
+function lessonMapFor(conceptId) {
+    const concept = genome_1.CONCEPTS_BY_ID[conceptId];
+    if (!concept)
+        return null;
+    const before = concept.prereqs.slice(0, 2);
+    const after = genome_1.CONCEPTS.filter((c) => c.prereqs.includes(conceptId)).map((c) => c.id).slice(0, 2);
+    // A few foundation concepts have no prerequisite and no dependant recorded in
+    // the genome. A centre box alone would be a picture of nothing, so those maps
+    // show two other starting points in the same subject — explicitly as nearby
+    // context, NOT as an arrow that would claim a prerequisite relation.
+    const nearby = before.length === 0 && after.length === 0
+        ? genome_1.CONCEPTS.filter((c) => c.subject === concept.subject && c.id !== conceptId).map((c) => c.id).slice(0, 2)
+        : [];
+    const thisNode = {
+        id: conceptId,
+        role: "this",
+        x: (exports.MAP_WIDTH - exports.MAP_NODE_WIDTH) / 2,
+        y: (exports.MAP_HEIGHT - exports.MAP_NODE_HEIGHT) / 2,
+        width: exports.MAP_NODE_WIDTH,
+        height: exports.MAP_NODE_HEIGHT,
+    };
+    const beforeNodes = before.map((id, i) => ({
+        id,
+        role: "before",
+        x: 8,
+        y: yFor(i, before.length),
+        width: exports.MAP_NODE_WIDTH,
+        height: exports.MAP_NODE_HEIGHT,
+    }));
+    const afterNodes = after.map((id, i) => ({
+        id,
+        role: "after",
+        x: exports.MAP_WIDTH - exports.MAP_NODE_WIDTH - 8,
+        y: yFor(i, after.length),
+        width: exports.MAP_NODE_WIDTH,
+        height: exports.MAP_NODE_HEIGHT,
+    }));
+    const nearbyNodes = nearby.map((id, i) => ({
+        id,
+        role: "nearby",
+        x: exports.MAP_WIDTH - exports.MAP_NODE_WIDTH - 8,
+        y: yFor(i, nearby.length),
+        width: exports.MAP_NODE_WIDTH,
+        height: exports.MAP_NODE_HEIGHT,
+    }));
+    const edges = [];
+    for (const node of beforeNodes) {
+        edges.push({
+            from: node.id,
+            to: conceptId,
+            x1: node.x + node.width,
+            y1: node.y + node.height / 2,
+            x2: thisNode.x - 8,
+            y2: thisNode.y + thisNode.height / 2,
+        });
+    }
+    for (const node of afterNodes) {
+        edges.push({
+            from: conceptId,
+            to: node.id,
+            x1: thisNode.x + thisNode.width,
+            y1: thisNode.y + thisNode.height / 2,
+            x2: node.x - 8,
+            y2: node.y + node.height / 2,
+        });
+    }
+    return {
+        conceptId,
+        width: exports.MAP_WIDTH,
+        height: exports.MAP_HEIGHT,
+        nodes: [...beforeNodes, thisNode, ...afterNodes, ...nearbyNodes],
+        edges,
+        beforeMore: Math.max(0, concept.prereqs.length - before.length),
+        afterMore: Math.max(0, genome_1.CONCEPTS.filter((c) => c.prereqs.includes(conceptId)).length - after.length),
+    };
+}
+/** Split a concept title into at most two short SVG lines. A title is a label,
+ *  not a paragraph; the caption below the map carries the full names. */
+function wrapLessonMapLabel(label, max = 24) {
+    const words = label.trim().split(/\s+/).filter(Boolean);
+    if (!words.length)
+        return [""];
+    const lines = [""];
+    for (const word of words) {
+        const current = lines[lines.length - 1];
+        const candidate = current ? `${current} ${word}` : word;
+        if (candidate.length <= max || !current)
+            lines[lines.length - 1] = candidate;
+        else if (lines.length < 2)
+            lines.push(word);
+        else
+            lines[1] = `${lines[1]} ${word}`.slice(0, max - 1) + "…";
+    }
+    return lines;
+}
+
+});
+__def("lesson-media.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SUBJECT_VIDEOS = void 0;
+exports.videoFor = videoFor;
+exports.videoScopeLabel = videoScopeLabel;
+exports.conceptVideoCount = conceptVideoCount;
+// ─────────────────────────────────────────────────────────────────────────────
+// LESSON MEDIA — one honest video card per lesson.
+//
+// The authored plan may carry a video that teaches THIS concept. Most plans do
+// not, and inventing a per-concept URL would be worse than an empty slot: a
+// video is a claim about what a learner will see. The fallback below is a
+// SUBJECT OVERVIEW, explicitly labelled as one, so every lesson has a real
+// watched route without pretending the overview teaches the exact idea.
+//
+// The link-only rule lives in docs/MEDIA_AND_DIAGRAMS.md and is enforced by
+// scripts/media-check.mjs: no embed, no download, no third-party request until
+// the learner taps. This module only chooses WHICH source to offer.
+// ─────────────────────────────────────────────────────────────────────────────
+const genome_1 = require("./genome");
+/** One verified overview per subject. These are LINKS, not embeds. The titles,
+ *  sources and running times were checked at the source; caption status stays
+ *  `unknown` until somebody watches the track. */
+exports.SUBJECT_VIDEOS = {
+    maths: {
+        url: "https://www.khanacademy.org/math/math1/x89d82521517266d4:algebra-foundation/x89d82521517266d4:overview-history-alg/v/the-beauty-of-algebra",
+        title: "The beauty of algebra",
+        source: "Khan Academy",
+        length: "10:07",
+        language: "en",
+        captions: "unknown",
+        scope: "subject",
+        summary: "A broad tour of algebra: letters standing for numbers, expressions describing relationships, and why the subject generalises arithmetic. This is a subject overview, not a walkthrough of this exact concept; the lesson below does that part.",
+    },
+    physics: {
+        url: "https://www.khanacademy.org/science/physics/one-dimensional-motion/introduction-to-physics-tutorial/v/introduction-to-physics",
+        title: "Introduction to physics",
+        source: "Khan Academy",
+        length: "9:30",
+        language: "en",
+        captions: "unknown",
+        scope: "subject",
+        summary: "A broad introduction to physics: matter, motion, forces and the mathematical models used to predict them. This is a subject overview, not a walkthrough of this exact concept; the lesson below does that part.",
+    },
+    chemistry: {
+        url: "https://www.khanacademy.org/science/chemistry/ap-chemistry/atoms-compounds-ions-ap/introduction-to-the-atom-ap/v/introduction-to-chemistry",
+        title: "Introduction to chemistry",
+        source: "Khan Academy",
+        length: "7:45",
+        language: "en",
+        captions: "unknown",
+        scope: "subject",
+        summary: "A broad view of chemistry as the study of matter, its properties and how substances change. This is a subject overview, not a walkthrough of this exact concept; the lesson below does that part.",
+    },
+    biology: {
+        url: "https://www.khanacademy.org/science/biology/intro-to-biology/what-is-biology/v/overview-of-biology",
+        title: "Biology overview",
+        source: "Khan Academy",
+        length: "4:33",
+        language: "en",
+        captions: "unknown",
+        scope: "subject",
+        summary: "A broad view of biology as the study of life, from cells and energy to inheritance and evolution. This is a subject overview, not a walkthrough of this exact concept; the lesson below does that part.",
+    },
+    computing: {
+        url: "https://www.khanacademy.org/computing/intro-to-python-fundamentals/x5279a44ae0ab15d6:computational-thinking-with-variables/x5279a44ae0ab15d6:the-programming-platform/v/welcome-to-intro-to-computer-science-python",
+        title: "Welcome to Intro to Computer Science - Python!",
+        source: "Khan Academy",
+        length: "3:53",
+        language: "en",
+        captions: "unknown",
+        scope: "subject",
+        summary: "A broad introduction to programming: variables, conditionals, loops, functions and data structures, and how they fit together in a program. This is a subject overview, not a walkthrough of this exact concept; the lesson below does that part.",
+    },
+};
+/** The video for this lesson: the authored concept video when there is one,
+ *  otherwise the subject overview, always with its scope made explicit. */
+function videoFor(plan) {
+    if (plan.video)
+        return { ...plan.video, scope: plan.video.scope ?? "concept" };
+    const subject = genome_1.CONCEPTS_BY_ID[plan.conceptId]?.subject;
+    return subject ? exports.SUBJECT_VIDEOS[subject] ?? null : null;
+}
+/** The scope sentence a card must print, in one place for both renderers. */
+function videoScopeLabel(video) {
+    return video.scope === "subject"
+        ? "Subject overview · not specific to this idea"
+        : "Walkthrough for this idea";
+}
+/** How many lessons are taught by a concept-specific video. Exported so the
+ *  media gate can report the distinction rather than flattening it. */
+function conceptVideoCount(plans) {
+    return plans.filter((plan) => videoFor(plan)?.scope === "concept").length;
+}
+
+});
 __def("lesson-plans-computing.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -33627,6 +33852,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LESSON_PLANS = void 0;
 exports.pilotPlanIds = pilotPlanIds;
 exports.planFor = planFor;
+exports.sectionsFor = sectionsFor;
 exports.ideaRouteFor = ideaRouteFor;
 exports.teachingLanguages = teachingLanguages;
 exports.planWordCount = planWordCount;
@@ -35152,6 +35378,30 @@ function planFor(conceptId, lang) {
     if (!lang || lang === "en")
         return base;
     return (0, lesson_plans_intl_1.translatedPlanFor)(conceptId, lang, base) ?? base;
+}
+/** THE SECTIONS EVERY LESSON RENDERS.
+ *
+ *  Authored plans carry their own sequence (the chemistry lessons have formulas
+ *  and tables; the pilot plans teach a deliberate path). For the plans that do
+ *  not, the four authored idea paragraphs are still a sequence, and putting them
+ *  in one undifferentiated card is the wall this format exists to break. This
+ *  groups them into two or three readable sections with honest structural
+ *  headings. It does not invent teaching: every body string is already in the
+ *  plan, and an authored `sections` field always wins. */
+function sectionsFor(plan) {
+    if (plan.sections?.length)
+        return plan.sections;
+    const ideas = plan.idea.filter((para) => para.trim().length > 0);
+    if (!ideas.length)
+        return [];
+    const groups = [];
+    for (let i = 0; i < ideas.length; i += 2)
+        groups.push(ideas.slice(i, i + 2));
+    const headings = ["The core idea", "Building the idea", "Putting it together", "Extending the idea"];
+    return groups.map((body, i) => ({
+        heading: headings[Math.min(i, headings.length - 1)],
+        body,
+    }));
 }
 /** WHICH ROUTE THROUGH THE IDEA THIS LEARNER READS, and its paragraphs.
  *
@@ -63461,6 +63711,8 @@ exports.WORLD_COUNTRIES = [
     learnerModel: require("./learner-model.js"),
     evidenceView: require("./evidence-view.js"),
     lessonPlans: require("./lesson-plans.js"),
+    lessonMap: require("./lesson-map.js"),
+    lessonMedia: require("./lesson-media.js"),
     prompt: require("./prompt.js"),
     figures: require("./figures.js"),
     mathText: require("./math-text.js"),
@@ -63481,7 +63733,7 @@ exports.WORLD_COUNTRIES = [
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 78 },
+      meta: { modules: 80 },
     };
   });
   return __req("__entry__.js");

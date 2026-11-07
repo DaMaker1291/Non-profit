@@ -3110,6 +3110,31 @@ input.numeric-input:focus { outline: none; box-shadow: none; }
 .lesson-video-copy strong { font-weight: 600; }
 .lesson-video-summary { display: block; max-width: 62ch; line-height: 1.45; }
 .lesson-video-note { display: block; font-size: var(--t12); opacity: 0.85; }
+.lesson-video-scope {
+  display: inline-block; justify-self: start; margin-top: 1px; padding: 2px 7px;
+  border: 1px solid var(--line-soft); border-radius: 999px; font-size: var(--t12);
+  color: var(--accent); background: var(--surface-sunken);
+}
+.lesson-map {
+  margin: 0 0 18px; padding: 14px 16px 12px; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--surface);
+}
+.lesson-map-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.lesson-map svg {
+  display: block; width: 100%; min-width: 540px; height: auto; margin: 0 auto;
+}
+.lesson-map-edge line { stroke: var(--line-strong); stroke-width: 1.4; }
+.lesson-map-edge polygon { fill: var(--line-strong); }
+.lesson-map-node rect {
+  fill: var(--surface-sunken); stroke: var(--line-strong); stroke-width: 1.2;
+}
+.lesson-map-node.this rect { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.lesson-map-node.nearby rect { fill: transparent; stroke-dasharray: 4 3; }
+.lesson-map-node text {
+  fill: var(--text); font-size: 12px; font-weight: 600; font-family: var(--sans);
+}
+.lesson-map-node.this text { fill: var(--accent-strong, var(--accent)); }
+.lesson-map figcaption { margin-top: 8px; line-height: 1.45; }
 
 /* ── A LESSON IS A SEQUENCE, NOT A WALL ───────────────────────────────────
    A list of five paragraphs in one card is read as one block, however correct
@@ -3153,4 +3178,6 @@ input.numeric-input:focus { outline: none; box-shadow: none; }
   .lesson-section { padding-left: 10px; }
   .lesson-formula code { white-space: normal; overflow-wrap: anywhere; }
   .lesson-section-title { font-size: var(--t15); }
+  .lesson-map { padding-inline: 10px; }
+  .lesson-map svg { min-width: 480px; }
 }

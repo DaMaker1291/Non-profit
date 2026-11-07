@@ -33,8 +33,10 @@ permissions. Three reasons:
 
 The gate `npm run media-check` enforces the shape: HTTPS links only, no
 `/embed/` URLs, no media-file URLs, a language tag, a caption status, a fallback
-summary, a text route in the same lesson, and `target="_blank"` with
-`rel="noreferrer noopener"`.
+summary, a text route in the same lesson, `target="_blank"` with
+`rel="noreferrer noopener"`, and a visible `concept` / `subject` scope. It also
+requires every one of the 135 lesson plans to resolve a card, not only the five
+with an authored concept video.
 
 ## Source-by-source position
 
@@ -86,15 +88,19 @@ video, never autoplays, and never makes an answer depend on watching it.
 
 ## Language, captions and translation
 
-- The five linked videos are **English audio** (`language: "en"`). That is a
-  fact about the audio, not a claim that the video has been localised.
-- Caption status is currently **`unknown`** for all five. We have not verified a
+- All 135 linked video cards are **English audio** (`language: "en"`). That is a
+  fact about the audio, not a claim that any video has been localised.
+- Caption status is currently **`unknown`** for all 135. We have not verified a
   human caption track. YouTube's automatic captions and auto-translation are
   machine-generated and unreliable for technical vocabulary; they are not a
   substitute for a reviewed translation.
 - The card therefore prints "captions not verified" rather than "captioned".
   When a track is checked, the field becomes `human`, `auto` or `none` and the
   card says which.
+- Five cards are concept-specific. The other 130 are **subject overviews**, and
+  the card says `Subject overview · not specific to this idea` before the
+  learner taps. A broad tour of biology is useful enrichment; it is not the
+  lesson on mitosis, and the page does not pretend it is.
 - The teaching itself is localised through the lesson text and the interface
   dictionaries, not through the video. The diagram labels are numbers or
   chemical symbols; the caption carries the words, so translating a plan does
@@ -111,9 +117,9 @@ video, never autoplays, and never makes an answer depend on watching it.
   images. They add no image request and remain sharp at any width.
 - The card always includes a prose summary, so a learner who cannot open the
   video still gets the video's teaching point in text.
-- The static twin (`docs/openmind.html`) embeds the same SVG renderers and the
-  same summaries. It works from `file://`; a video link naturally needs a
-  network, and the summary remains readable without one.
+- The static twin (`docs/openmind.html`) embeds the same SVG renderers, the same
+  learning map and the same video cards. It works from `file://`; a video link
+  naturally needs a network, and the summary remains readable without one.
 - The lesson does not claim a transcript it does not have. A transcript is a
   media-specific accessibility feature; for a linked video, the source's own
   caption controls apply. This is a limitation of the link-only route, not a
@@ -148,26 +154,53 @@ as pixels:
 conservation, plant/animal differences, bounds, meter placement and the
 voltmeter branch.
 
+## The learning map every lesson carries
+
+Every lesson renders a **learning map** generated from the genome: prerequisites
+on the left, this concept in the centre, and the concepts it unlocks on the
+right. It answers the question a learner asks when they are lost — "what does
+this assume, and what is it for?" — without claiming to draw the science. The
+map is a separate `lib/lesson-map.ts` module and a separate `LessonMap`
+component; it is not a question figure and cannot reveal an answer.
+
+The map is deliberately small: at most two prerequisites and two next concepts
+are drawn. When a concept has more, the layout reports the remainder rather than
+pretending the pathway ends. The five maths foundations with no recorded
+prerequisite or dependant (addition, subtraction, multiplication, division,
+sequences) show two **other ideas in the same subject nearby**, marked dashed
+rather than connected by a false arrow. The captions say which kind of
+relationship is being shown.
+
+This is the diagram that is true for all 135 lessons. The 17 **subject-specific**
+diagrams (a balance, an area model, a cell, an energy profile, a parabola) are a
+different claim and remain authored per concept; "every lesson has a learning
+map" does not mean every lesson has a diagram of its science.
+
 ## What is still missing
 
 This is the part that must not be hidden behind a green check.
 
-- The catalogue has **21 authored plans** and **114 supplemental plans** out of
-  135 concepts; **119 concepts have no authored lesson** and therefore no
-  authored science diagram. `cells` and `equations-stoich` now have real
-  drawings; the other science outlines do not. "Every lesson has a diagram" is
-  **not** true yet, and adding decorative drawings to the outlines would not make
-  it true.
-- Five videos are linked, not "videos for every lesson". They are enrichment,
-  not a curriculum.
+- The catalogue has 135 plans, split between authored/pilot and supplemental
+  plans. All render the teaching sequence, but only **2** plans carry a fully
+  authored `sections` field (the two chemistry lessons); the rest are grouped
+  from their authored idea paragraphs. Grouping is not the same as authoring a
+  sequence, and the catalogue keeps that distinction.
+- All 135 lessons have a **video card**, but only **5** have a verified video
+  about the exact concept. The other **130** are labelled subject overviews.
+  The videos are enrichment, not a curriculum.
+- **17** concepts carry an authored subject-specific diagram. The other 118
+  carry the learning map and prose, not a drawing of their science. "Every
+  lesson has a subject diagram" is **not** true yet, and adding decorative
+  drawings to outlines would not make it true.
 - Caption availability is unverified; the field says so.
 - The legal position for a non-commercial educational use has not been reviewed
   by counsel, and the operating entity's status is unconfirmed. That is why the
   link-only route is the one implemented.
 
-The next content work is therefore explicit: author the remaining science
-lessons, give each a diagram only where it carries a relationship, and check
-each video's caption track before changing `unknown` to a stronger claim.
+The next content work is therefore explicit: find and verify concept-specific
+videos where they exist, give each remaining science lesson a diagram only where
+it carries a relationship, and check each video's caption track before changing
+`unknown` to a stronger claim.
 
 ## Sources
 
