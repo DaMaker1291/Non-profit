@@ -189,6 +189,13 @@ Every concept's lesson remains reachable outside a national course through the
 full learning map. What a national course changes is which ideas are examined,
 not whether the lesson exists.
 
+The **Independent · skills pathway** is offered to every country, including the
+explicit international and "prefer not to say" choices, and it covers all 135
+concepts across all five subjects. It is a universal learning route, not a
+national syllabus: it does not pretend that a ministry examines every concept.
+The world gate requires this route and requires it to remain complete, so no
+country is locked out of a lesson by a missing national mapping.
+
 This is the diagram that is true for all 135 lessons. The 17 **subject-specific**
 diagrams (a balance, an area model, a cell, an energy profile, a parabola) are a
 different claim and remain authored per concept; "every lesson has a learning

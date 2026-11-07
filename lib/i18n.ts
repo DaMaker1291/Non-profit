@@ -25,7 +25,7 @@ import { RECOVERY_STRINGS } from "./i18n-recovery";
 import { CURRICULUM_STRINGS } from "./i18n-curriculum";
 import { DEVICE_STRINGS } from "./i18n-device";
 import { KIOSK_STRINGS } from "./i18n-kiosk";
-import { LESSON_STRINGS } from "./i18n-lessons";
+import { LESSON_STRINGS, VIDEO_META_STRINGS } from "./i18n-lessons";
 
 const en: Dict = {
   "target.slipCheck": "This one is built to catch that slip.",
@@ -24246,7 +24246,7 @@ export const DICTS: Record<string, Dict> = {
 // Each source is merged SEPARATELY. Spreading two language maps into one object
 // would keep only the second map's entry for a language both define — the
 // failure is silent and it removes keys that were already working.
-for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOSK_STRINGS, LESSON_STRINGS]) {
+for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOSK_STRINGS, LESSON_STRINGS, VIDEO_META_STRINGS]) {
   for (const [code, extra] of Object.entries(source)) {
     const dict = DICTS[code];
     if (!dict) continue;
@@ -24257,7 +24257,7 @@ for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOS
 }
 // `en` is the fallback for a missing key, so it must carry them even if a caller
 // reaches it directly rather than through DICTS.
-for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOSK_STRINGS, LESSON_STRINGS]) {
+for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOSK_STRINGS, LESSON_STRINGS, VIDEO_META_STRINGS]) {
   for (const [key, value] of Object.entries(source.en)) {
     if (!(key in en)) en[key] = value;
   }

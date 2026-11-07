@@ -27,7 +27,7 @@ const require = createRequire(import.meta.url);
 compileEngines();
 
 const { LANGS, DICTS, translator, fill } = require("../.verify/i18n.js");
-const { LESSON_STRINGS } = require("../.verify/i18n-lessons.js");
+const { LESSON_STRINGS, VIDEO_META_STRINGS } = require("../.verify/i18n-lessons.js");
 const { CONCEPTS } = require("../.verify/genome.js");
 const { planFor, sectionsFor, teachingLanguages } = require("../.verify/lesson-plans.js");
 const { ctitle, cblurb } = require("../.verify/content-i18n.js");
@@ -40,6 +40,7 @@ const S = require("../.verify/specifications.js");
 
 const failures = [];
 const lessonKeys = Object.keys(LESSON_STRINGS.en);
+const captionKeys = Object.keys(VIDEO_META_STRINGS.en);
 const languages = LANGS.map((l) => l.code);
 const subjects = ["maths", "physics", "chemistry", "biology", "computing"];
 
@@ -53,6 +54,11 @@ for (const lang of languages) {
     if (!own[key]?.trim()) failures.push(`${lang}: missing ${key}`);
     if (translator(lang)(key) === key) failures.push(`${lang}: raw dictionary key ${key}`);
     if (lang !== "en" && own[key] === LESSON_STRINGS.en[key]) failures.push(`${lang}: ${key} is still English`);
+  }
+  for (const key of captionKeys) {
+    if (!DICTS[lang]?.[key]?.trim()) failures.push(`${lang}: missing ${key}`);
+    if (translator(lang)(key) === key) failures.push(`${lang}: raw dictionary key ${key}`);
+    if (lang !== "en" && DICTS[lang]?.[key] === VIDEO_META_STRINGS.en[key]) failures.push(`${lang}: ${key} is still English`);
   }
 }
 
@@ -95,12 +101,20 @@ for (const lang of languages) {
 // international/independent route). A course with no concepts or no level is a
 // shell, not a course.
 let offeredCourseCount = 0;
+let universalCourseCountries = 0;
 for (const { code } of COUNTRIES) {
   const specs = S.specsFor(code);
   if (!specs.length) failures.push(`${code}: the picker offers no course`);
   if (!R.pathwayChoices(code).length) failures.push(`${code}: no pathway choice or fallback`);
   offeredCourseCount += specs.length;
+  if (S.specsFor(code, "int-independent").some((spec) => spec.id === "any-independent")) {
+    universalCourseCountries += 1;
+  } else {
+    failures.push(`${code}: the universal independent course is not offered`);
+  }
 }
+const universal = S.SPECIFICATIONS.filter((spec) => S.courseConceptIds(spec).size === CONCEPTS.length);
+if (!universal.length) failures.push("no specification covers all 135 concepts");
 for (const spec of S.SPECIFICATIONS) {
   if (!spec.levels?.length) failures.push(`${spec.id}: a course with no level`);
   if (!S.courseConceptIds(spec).size) failures.push(`${spec.id}: a course with no concepts`);
@@ -115,6 +129,7 @@ const twin = fs.readFileSync(path.join("docs", "app.js"), "utf8");
 for (const [where, source] of [["React lesson", page], ["offline twin", twin]]) {
   if (!source.includes("headingKey")) failures.push(`${where}: section headings are not translated`);
   if (!source.includes("videoScopeKey")) failures.push(`${where}: video scope is not translated`);
+  if (!source.includes("lesson.videoCaptionsUnknown")) failures.push(`${where}: video caption status is not translated`);
   if (!source.includes("lesson.videoOpen")) failures.push(`${where}: video-open note is not translated`);
 }
 const mapComponent = fs.readFileSync(path.join("components", "lesson-map.tsx"), "utf8");
@@ -135,5 +150,6 @@ console.log(
     `each with a map, video card, at least two translated section headings and no raw key. ` +
     `All ${COUNTRIES.length} country choices resolve to ${offeredCourseCount} offered course slots across ` +
     `${S.SPECIFICATIONS.length} specifications (${nationalRoutes} researched national routes); ` +
+    `${universalCourseCountries}/${COUNTRIES.length} offer the universal course covering all ${CONCEPTS.length} concepts; ` +
     `complete translated teaching bodies: ${translatedTeaching} lesson-language pairs.`,
 );

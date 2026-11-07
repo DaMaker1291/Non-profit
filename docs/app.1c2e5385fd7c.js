@@ -1566,11 +1566,11 @@
     if (!E.lessonMedia) return "";
     var v = E.lessonMedia.videoFor(plan);
     if (!v) return "";
-    var captions = v.captions === "none" ? "no captions" : v.captions === "unknown" ? "captions not verified" : v.captions === "auto" ? "auto captions" : "captions";
+    var captions = v.captions === "none" ? t("lesson.videoCaptionsNone") : v.captions === "unknown" ? t("lesson.videoCaptionsUnknown") : v.captions === "auto" ? t("lesson.videoCaptionsAuto") : t("lesson.videoCaptionsHuman");
     return '<a class="lesson-video" href="' + esc(v.url) + '" target="_blank" rel="noreferrer noopener" data-video-source="' + esc(v.source) +
       '" data-video-language="' + esc(v.language) + '" data-video-scope="' + esc(v.scope) + '">' +
       '<span class="lesson-video-play" aria-hidden="true">\u25b6</span><span class="lesson-video-copy"><strong>' + esc(v.title) + '</strong>' +
-      '<span class="lesson-video-meta small muted">' + esc(v.source) + (v.length ? " \u00b7 " + esc(v.length) : "") + " \u00b7 " + esc(v.language.toUpperCase()) + " \u00b7 " + captions + "</span>" +
+      '<span class="lesson-video-meta small muted">' + esc(v.source) + (v.length ? " \u00b7 " + esc(v.length) : "") + " \u00b7 " + esc(v.language.toUpperCase()) + " \u00b7 " + esc(captions) + "</span>" +
       '<span class="lesson-video-summary small muted">' + esc(v.summary) + '</span>' +
       '<span class="lesson-video-scope small muted">' + esc(t(E.lessonMedia.videoScopeKey(v))) + '</span>' +
       '<span class="lesson-video-note small muted">' + esc(fill(t("lesson.videoOpen"), { source: v.source })) + '</span></span></a>';

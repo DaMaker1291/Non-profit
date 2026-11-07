@@ -7049,7 +7049,7 @@ for (const [code, dict] of Object.entries(TEACHER_STRINGS)) {
 __def("i18n-lessons.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LESSON_STRINGS = void 0;
+exports.VIDEO_META_STRINGS = exports.LESSON_STRINGS = void 0;
 exports.listNames = listNames;
 exports.LESSON_STRINGS = {
     en: {
@@ -7311,6 +7311,101 @@ function listNames(lang, names) {
         return names.join(", ");
     }
 }
+/** Caption status vocabulary. It lives beside the lesson strings because it is
+ *  read on the same card; every language carries all four states so a learner
+ *  never sees English metadata beside a translated scope label. */
+exports.VIDEO_META_STRINGS = {
+    en: {
+        "lesson.videoCaptionsHuman": "captions",
+        "lesson.videoCaptionsAuto": "auto captions",
+        "lesson.videoCaptionsNone": "no captions",
+        "lesson.videoCaptionsUnknown": "captions not verified",
+    },
+    es: {
+        "lesson.videoCaptionsHuman": "subtítulos",
+        "lesson.videoCaptionsAuto": "subtítulos automáticos",
+        "lesson.videoCaptionsNone": "sin subtítulos",
+        "lesson.videoCaptionsUnknown": "subtítulos no verificados",
+    },
+    fr: {
+        "lesson.videoCaptionsHuman": "sous-titres",
+        "lesson.videoCaptionsAuto": "sous-titres automatiques",
+        "lesson.videoCaptionsNone": "sans sous-titres",
+        "lesson.videoCaptionsUnknown": "sous-titres non vérifiés",
+    },
+    pt: {
+        "lesson.videoCaptionsHuman": "legendas",
+        "lesson.videoCaptionsAuto": "legendas automáticas",
+        "lesson.videoCaptionsNone": "sem legendas",
+        "lesson.videoCaptionsUnknown": "legendas não verificadas",
+    },
+    ar: {
+        "lesson.videoCaptionsHuman": "ترجمة نصية",
+        "lesson.videoCaptionsAuto": "ترجمة نصية تلقائية",
+        "lesson.videoCaptionsNone": "بلا ترجمة نصية",
+        "lesson.videoCaptionsUnknown": "الترجمة النصية غير موثقة",
+    },
+    sw: {
+        "lesson.videoCaptionsHuman": "manukuu",
+        "lesson.videoCaptionsAuto": "manukuu ya kiotomatiki",
+        "lesson.videoCaptionsNone": "hakuna manukuu",
+        "lesson.videoCaptionsUnknown": "manukuu hayajathibitishwa",
+    },
+    hi: {
+        "lesson.videoCaptionsHuman": "कैप्शन",
+        "lesson.videoCaptionsAuto": "स्वचालित कैप्शन",
+        "lesson.videoCaptionsNone": "कैप्शन नहीं",
+        "lesson.videoCaptionsUnknown": "कैप्शन सत्यापित नहीं",
+    },
+    id: {
+        "lesson.videoCaptionsHuman": "takarir",
+        "lesson.videoCaptionsAuto": "takarir otomatis",
+        "lesson.videoCaptionsNone": "tanpa takarir",
+        "lesson.videoCaptionsUnknown": "takarir belum diverifikasi",
+    },
+    tl: {
+        "lesson.videoCaptionsHuman": "mga caption",
+        "lesson.videoCaptionsAuto": "awtomatikong caption",
+        "lesson.videoCaptionsNone": "walang caption",
+        "lesson.videoCaptionsUnknown": "hindi pa beripikado ang caption",
+    },
+    ur: {
+        "lesson.videoCaptionsHuman": "کیپشنز",
+        "lesson.videoCaptionsAuto": "خودکار کیپشنز",
+        "lesson.videoCaptionsNone": "کیپشنز نہیں",
+        "lesson.videoCaptionsUnknown": "کیپشنز کی تصدیق نہیں ہوئی",
+    },
+    fa: {
+        "lesson.videoCaptionsHuman": "زیرنویس",
+        "lesson.videoCaptionsAuto": "زیرنویس خودکار",
+        "lesson.videoCaptionsNone": "بدون زیرنویس",
+        "lesson.videoCaptionsUnknown": "زیرنویس تأیید نشده",
+    },
+    de: {
+        "lesson.videoCaptionsHuman": "Untertitel",
+        "lesson.videoCaptionsAuto": "automatische Untertitel",
+        "lesson.videoCaptionsNone": "keine Untertitel",
+        "lesson.videoCaptionsUnknown": "Untertitel nicht geprüft",
+    },
+    ja: {
+        "lesson.videoCaptionsHuman": "字幕",
+        "lesson.videoCaptionsAuto": "自動字幕",
+        "lesson.videoCaptionsNone": "字幕なし",
+        "lesson.videoCaptionsUnknown": "字幕は未確認",
+    },
+    zh: {
+        "lesson.videoCaptionsHuman": "字幕",
+        "lesson.videoCaptionsAuto": "自动字幕",
+        "lesson.videoCaptionsNone": "无字幕",
+        "lesson.videoCaptionsUnknown": "字幕未核实",
+    },
+    bn: {
+        "lesson.videoCaptionsHuman": "ক্যাপশন",
+        "lesson.videoCaptionsAuto": "স্বয়ংক্রিয় ক্যাপশন",
+        "lesson.videoCaptionsNone": "ক্যাপশন নেই",
+        "lesson.videoCaptionsUnknown": "ক্যাপশন যাচাই করা হয়নি",
+    },
+};
 
 });
 __def("i18n-recovery.js", function (module, exports, require) {
@@ -31742,7 +31837,7 @@ exports.DICTS = {
 // Each source is merged SEPARATELY. Spreading two language maps into one object
 // would keep only the second map's entry for a language both define — the
 // failure is silent and it removes keys that were already working.
-for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS, i18n_lessons_1.LESSON_STRINGS]) {
+for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS, i18n_lessons_1.LESSON_STRINGS, i18n_lessons_1.VIDEO_META_STRINGS]) {
     for (const [code, extra] of Object.entries(source)) {
         const dict = exports.DICTS[code];
         if (!dict)
@@ -31755,7 +31850,7 @@ for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRIC
 }
 // `en` is the fallback for a missing key, so it must carry them even if a caller
 // reaches it directly rather than through DICTS.
-for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS, i18n_lessons_1.LESSON_STRINGS]) {
+for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS, i18n_lessons_1.LESSON_STRINGS, i18n_lessons_1.VIDEO_META_STRINGS]) {
     for (const [key, value] of Object.entries(source.en)) {
         if (!(key in en))
             en[key] = value;

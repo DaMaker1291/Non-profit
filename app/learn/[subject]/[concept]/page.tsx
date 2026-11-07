@@ -1043,13 +1043,13 @@ export default function ConceptPage() {
             <strong>{lessonVideo.title}</strong>
             <span className="lesson-video-meta small muted">
               {lessonVideo.source}{lessonVideo.length ? ` · ${lessonVideo.length}` : ""} · {lessonVideo.language.toUpperCase()}
-              {lessonVideo.captions === "none"
-                ? " · no captions"
+              {" · " + (lessonVideo.captions === "none"
+                ? t("lesson.videoCaptionsNone")
                 : lessonVideo.captions === "unknown"
-                  ? " · captions not verified"
+                  ? t("lesson.videoCaptionsUnknown")
                   : lessonVideo.captions === "auto"
-                    ? " · auto captions"
-                    : " · captions"}
+                    ? t("lesson.videoCaptionsAuto")
+                    : t("lesson.videoCaptionsHuman"))}
             </span>
             <span className="lesson-video-summary small muted">{lessonVideo.summary}</span>
             <span className="lesson-video-scope small muted">{t(videoScopeKey(lessonVideo))}</span>
