@@ -4,10 +4,15 @@ OpenMind does not map "country → curriculum". It records **which education sys
 country runs**, and lets the learner say which one they follow. That distinction is the
 whole of this document, and it exists because the simpler model was wrong in production:
 
-> Of the 70 countries the enrolment picker offered, **18 had a national route**. The other
-> 52 were answered with Cambridge IGCSE and the IB — the *international* qualifications —
-> silently, as though they were the local ones. A learner in France or Germany who had
-> never seen a British syllabus was enrolled in one, and told nothing.
+> Of the 70 countries the original enrolment picker offered, **18 had a national route**.
+> The other 52 were answered with Cambridge IGCSE and the IB — the *international*
+> qualifications — silently, as though they were the local ones. A learner in France or
+> Germany who had never seen a British syllabus was enrolled in one, and told nothing.
+
+The current picker is deliberately **complete**: 251 choices (every ISO 3166-1 entry, plus
+Kosovo and an explicit “other” choice). **70** have a recorded national route; the other
+**181** are offered the international programmes and the independent skills pathway, with
+the limitation stated. Complete choice is not a claim of complete national coverage.
 
 The registry is `lib/curricula/registry.ts`; the routes are derived from it
 (`lib/curriculum.ts`), the courses are derived from the pathway (`lib/specifications.ts`),
@@ -41,7 +46,7 @@ onto, and the sources the structure was read from.
 
 | Label | Means | Presently |
 |---|---|---|
-| `unmapped` | no national pathway recorded | 1 choice (`Prefer not to say`) |
+| `unmapped` | no national pathway recorded | 181 choices (all offered the international/independent fallback) |
 | `mapped` | the record exists and is in production; **citations not on file** | 16 inherited national routes + the international and independent pathways |
 | `researched` | ≥1 authoritative source for the structure | 55 national routes |
 | `reviewed` | a subject specialist has read the mapping onto the genome | **none** |
@@ -77,9 +82,9 @@ difficulty target and whether stage-0 arithmetic is in scope) — not an examina
 ## Adding a country — the pipeline
 
 1. **Audit.** `npm run curriculum-gate` prints one row per offered country with its pathways,
-   courses, sources and review state, and writes `audit/curriculum-coverage.json`. A country
-   listed as *unmapped* is a queue item; a country in **neither** list is a bug and the gate
-   fails on it.
+   courses, sources and review state, and writes `audit/curriculum-coverage.json`. A choice
+   listed as *unmapped* is a queue item and is explicitly offered the international and
+   independent routes; it must never be silently given another country's course.
 2. **Establish the real structure** from authoritative sources. In order: the country's
    ministry of education (years, cycles, examination years, teaching languages); the
    examination authority (what is actually sat, and when); the UNESCO Institute for
@@ -109,9 +114,9 @@ difficulty target and whether stage-0 arithmetic is in scope) — not an examina
 
 | | Count |
 |---|---|
-| Country codes offered in enrolment | **71** (70 countries + "prefer not to say") |
+| Country choices offered in enrolment | **251** (every ISO 3166-1 entry, plus Kosovo and an explicit “other” choice) |
 | With a recorded national route | **70** |
-| Without one (offered the international programmes and the skills pathway) | **1** ("prefer not to say") |
+| Without one (offered the international programmes and the skills pathway) | **181** |
 | National pathways | **71** (Cameroon runs two) |
 | Specifications | **91** — 88 national, 2 international, 1 independent |
 | Pathways with no structural source on file | **18** — 16 inherited national routes, plus the international and independent routes |

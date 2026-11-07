@@ -256,7 +256,7 @@ One download while connected → a **single printable file**: the week plan, a 5
 
 ### 🌐 Internationalisation (`lib/i18n.ts`)
 
-**15 languages at full key parity**: English, Spanish, French, Portuguese, Arabic, Swahili, Hindi, Indonesian, Filipino, Urdu, Farsi, German, Japanese, Chinese, Bengali — with automatic **RTL** for Arabic, Urdu and Farsi, a 60+ country picker, and per-key fallback. *(Non-English dictionaries are machine-drafted and deserve native-speaker review before a real deployment — that review is one of the highest-value contributions possible.)*
+**15 languages at full key parity**: English, Spanish, French, Portuguese, Arabic, Swahili, Hindi, Indonesian, Filipino, Urdu, Farsi, German, Japanese, Chinese, Bengali — with automatic **RTL** for Arabic, Urdu and Farsi, a country picker covering every ISO country and territory (plus Kosovo and an explicit “other” choice), and per-key fallback. *(Non-English dictionaries are machine-drafted and deserve native-speaker review before a real deployment — that review is one of the highest-value contributions possible.)*
 
 ### 👥 Study rooms & 🧑‍🏫 classes
 
@@ -329,13 +329,13 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Owners of where learning data lives | 1 | one, in lib/server/store.ts; lib/env.ts reports the variable and resolves nothing, so it is exempt | `source scan` |
 |  | Route files importing the store | 23 | 80 export statements in a 1237-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
 |  | JSON files the server modules own | 14 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "boots.json", "classes.json", "classroom-sessions.json", "content-reviews.json", "erasures.json", "interventions.json", "kiosk-sessions.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
-| **Pilot (UK GCSE maths)** | Concepts in the review cluster | 15 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
-|  | Items awaiting human review | 149 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
-|  | Cluster concepts with no named misconception to probe | 0 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |
-| **Curriculum** | Country codes offered in enrolment | 71 |  | `lib/i18n.ts` |
+| **Pilot (UK GCSE maths)** | Concepts in the review cluster | 20 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
+|  | Items awaiting human review | 179 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
+|  | Cluster concepts with no named misconception to probe | 5 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |
+| **Curriculum** | Country choices offered in enrolment | 251 |  | `lib/world-countries.ts` |
 |  | Countries with a recorded national route | 70 | asserted equal to the published count by `npm run curriculum-gate` | `lib/curricula/registry.ts` |
 |  | National pathways | 71 | Cameroon runs two systems, so this exceeds the country count | `lib/curricula/registry.ts` |
-|  | Offerings without a national route | 1 | offered the international programmes and the skills pathway, explicitly | `lib/curricula/registry.ts` |
+|  | Offerings without a national route | 181 | offered the international programmes and the skills pathway, explicitly | `lib/curricula/registry.ts` |
 |  | Specifications | 91 | 88 national · 2 international · 1 independent | `lib/specifications.ts` |
 |  | Pathways with no structural source on file | 18 | named on every `curriculum-gate` run rather than hidden | `lib/curricula/registry.ts` |
 |  | Pathways whose syllabus mapping has been reviewed | 0 | every mapping is currently OpenMind's own | `lib/curricula/registry.ts` |

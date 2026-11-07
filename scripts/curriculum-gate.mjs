@@ -52,8 +52,12 @@ const isNationalSpec = (id) => !NON_NATIONAL_SPECS.has(id);
 // "We have not researched this" and "somebody forgot it" are different answers,
 // and the report has to be able to tell them apart: one is a queue, the other is
 // a bug. A country in neither list is the bug.
+const countryCodes = COUNTRIES.map((c) => c.code);
+ok(COUNTRIES.length >= 190, `the picker is complete (${COUNTRIES.length} country/territory choices)`);
+ok(new Set(countryCodes).size === countryCodes.length, "no country or territory is listed twice");
+ok(COUNTRIES.every((c) => c.code && c.name), "every picker choice has a code and a name");
 const knownCodes = new Set([...R.RESEARCHED_CODES, ...R.UNRESEARCHED_CODES, "INT"]);
-const unlisted = COUNTRIES.map((c) => c.code).filter((code) => !knownCodes.has(code));
+const unlisted = countryCodes.filter((code) => !knownCodes.has(code));
 ok(unlisted.length === 0, `offered but unclassified: ${unlisted.join(", ")}`);
 
 // ── 2. Every pathway is well formed ─────────────────────────────────────────

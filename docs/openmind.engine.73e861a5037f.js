@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 77 modules compiled from lib/ by that script, wired
+ * Source: 78 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -2712,7 +2712,7 @@ const NATIONAL_ROUTES = [
 ];
 // ── THE 51 COUNTRIES THAT HAD NO CURRICULUM AT ALL ─────────────────────────
 //
-// THE DEFECT THESE RECORDS FIX. The picker offered 71 countries and 19 had a
+// THE DEFECT THESE RECORDS FIX. The original picker offered 71 countries and 19 had a
 // national route. The other 52 — France, Germany, Spain, Italy, Poland, Japan,
 // China, Korea, Vietnam, Turkey, Iran, Ethiopia, Egypt, Morocco, Nigeria's
 // neighbours, most of Latin America — resolved to NO national pathway, so
@@ -2828,23 +2828,10 @@ function pathwayFromRoute(route) {
             "learner is shown.",
     };
 }
-/** A country the picker offers with NO national pathway recorded. Listing them
- *  explicitly (rather than inferring "anything unlisted is unmapped") is what
- *  lets the gate tell "we have not researched this yet" apart from "somebody
- *  forgot to add it at all", which is the difference the report has to show. */
-// AFTER THE ADDED_ROUTES PASS THIS LIST IS SHORT ON PURPOSE. Every country the
-// enrolment picker OFFERS now has a national route, so nothing on this list is
-// offered to a learner — these are the systems OpenMind has not modelled yet and
-// does not pretend to. Keeping them named is the difference between "we have not
-// researched this" and "somebody forgot it": the curriculum gate fails on a code
-// in NEITHER list, and the report prints this one as the queue it is.
-const UNRESEARCHED_COUNTRIES = [
-    // Gulf, South-East Asia and Europe outside the picker today.
-    "AE", "SA", "MY", "TH", "SG",
-    "NL", "SE", "NO", "DK", "FI", "GR", "RO", "HU", "CZ", "CH",
-    // Americas
-    "CL",
-];
+/** Every offered code with no national pathway recorded. Kept explicit so a new
+ *  picker entry must be CLASSIFIED: the curriculum gate fails on a code in
+ *  neither this queue nor CURRICULA, instead of silently treating "not added
+ *  yet" as "we decided to offer the international fallback". */
 const CURRICULA = {
     ...Object.fromEntries([...NATIONAL_ROUTES, ...ADDED_ROUTES].map((r) => [
         r.code,
@@ -2889,6 +2876,31 @@ const CURRICULA = {
 /** Every country code the registry can answer for, plus the "no national
  *  route" list. Read by the audit report, never by a page. */
 exports.RESEARCHED_CODES = Object.keys(CURRICULA);
+const UNRESEARCHED_COUNTRIES = [
+    "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ",
+    "AG", "AM", "AW", "AT", "AZ", "BS", "BH", "BB",
+    "BY", "BE", "BZ", "BJ", "BM", "BT", "BQ", "BA",
+    "BW", "BV", "IO", "BN", "BG", "BI", "CV", "KY",
+    "CF", "TD", "CL", "CX", "CC", "KM", "CG", "CD",
+    "CK", "CR", "HR", "CU", "CW", "CY", "CZ", "DK",
+    "DJ", "DM", "GQ", "ER", "EE", "SZ", "FK", "FO",
+    "FJ", "FI", "GF", "PF", "TF", "GA", "GM", "GE",
+    "GI", "GR", "GL", "GD", "GP", "GU", "GG", "GN",
+    "GW", "GY", "HM", "VA", "HK", "HU", "IS", "IM",
+    "IL", "JM", "JE", "KI", "KP", "XK", "KW", "KG",
+    "LV", "LS", "LR", "LY", "LI", "LT", "LU", "MO",
+    "MG", "MY", "MV", "MT", "MH", "MQ", "MR", "MU",
+    "YT", "FM", "MD", "MC", "ME", "MS", "MZ", "NA",
+    "NR", "NL", "NC", "NZ", "NU", "NF", "MK", "MP",
+    "NO", "OM", "PW", "PS", "PA", "PG", "PY", "PN",
+    "PT", "PR", "QA", "RE", "RO", "RU", "BL", "SH",
+    "KN", "LC", "MF", "PM", "VC", "WS", "SM", "ST",
+    "SA", "RS", "SC", "SL", "SG", "SX", "SK", "SI",
+    "SB", "GS", "SS", "SR", "SJ", "SE", "CH", "TW",
+    "TJ", "TH", "TL", "TG", "TK", "TO", "TT", "TN",
+    "TM", "TC", "TV", "AE", "UM", "UY", "VU", "VE",
+    "VG", "VI", "WF", "EH",
+];
 exports.UNRESEARCHED_CODES = [...UNRESEARCHED_COUNTRIES];
 exports.SHARED_PATHWAY_IDS = exports.SHARED_PATHWAYS.map((p) => p.id);
 const ALL_PATHWAYS = [
@@ -31536,33 +31548,11 @@ function dueLabel(lang, at) {
         return new Date(at).toLocaleDateString();
     }
 }
-/** Country picker data — broad coverage, compact. */
-exports.COUNTRIES = [
-    { code: "US", name: "United States" }, { code: "GB", name: "United Kingdom" }, { code: "IE", name: "Ireland" }, { code: "IN", name: "India" },
-    { code: "NG", name: "Nigeria" }, { code: "KE", name: "Kenya" }, { code: "ZA", name: "South Africa" },
-    { code: "GH", name: "Ghana" }, { code: "TZ", name: "Tanzania" }, { code: "UG", name: "Uganda" },
-    { code: "ET", name: "Ethiopia" }, { code: "EG", name: "Egypt" }, { code: "MA", name: "Morocco" },
-    { code: "PK", name: "Pakistan" }, { code: "BD", name: "Bangladesh" }, { code: "ID", name: "Indonesia" },
-    { code: "PH", name: "Philippines" }, { code: "VN", name: "Vietnam" }, { code: "BR", name: "Brazil" },
-    { code: "MX", name: "Mexico" }, { code: "CO", name: "Colombia" }, { code: "AR", name: "Argentina" },
-    { code: "PE", name: "Peru" }, { code: "ES", name: "Spain" }, { code: "FR", name: "France" },
-    { code: "DE", name: "Germany" }, { code: "IT", name: "Italy" }, { code: "PL", name: "Poland" },
-    { code: "TR", name: "Turkey" }, { code: "IR", name: "Iran" }, { code: "AF", name: "Afghanistan" },
-    { code: "CN", name: "China" }, { code: "JP", name: "Japan" }, { code: "KR", name: "South Korea" },
-    { code: "AU", name: "Australia" }, { code: "CA", name: "Canada" }, { code: "UA", name: "Ukraine" },
-    { code: "RW", name: "Rwanda" }, { code: "ZM", name: "Zambia" }, { code: "ZW", name: "Zimbabwe" },
-    { code: "MW", name: "Malawi" }, { code: "ML", name: "Mali" }, { code: "SN", name: "Senegal" },
-    { code: "CI", name: "Côte d'Ivoire" }, { code: "CM", name: "Cameroon" }, { code: "NE", name: "Niger" },
-    { code: "BF", name: "Burkina Faso" }, { code: "SO", name: "Somalia" }, { code: "SD", name: "Sudan" },
-    { code: "YE", name: "Yemen" }, { code: "IQ", name: "Iraq" }, { code: "SY", name: "Syria" },
-    { code: "JO", name: "Jordan" }, { code: "LB", name: "Lebanon" }, { code: "NP", name: "Nepal" },
-    { code: "LK", name: "Sri Lanka" }, { code: "MM", name: "Myanmar" }, { code: "KH", name: "Cambodia" },
-    { code: "LA", name: "Laos" }, { code: "MN", name: "Mongolia" }, { code: "KZ", name: "Kazakhstan" },
-    { code: "UZ", name: "Uzbekistan" }, { code: "HT", name: "Haiti" }, { code: "BO", name: "Bolivia" },
-    { code: "EC", name: "Ecuador" }, { code: "GT", name: "Guatemala" }, { code: "HN", name: "Honduras" },
-    { code: "NI", name: "Nicaragua" }, { code: "SV", name: "El Salvador" }, { code: "DO", name: "Dominican Republic" },
-    { code: "XX", name: "Prefer not to say" },
-];
+/** Country picker data — every ISO 3166-1 entry plus Kosovo and an explicit
+ *  "other" choice. The list is complete; the national-route claim is not. See
+ *  lib/world-countries.ts and lib/curricula/registry.ts. */
+var world_countries_1 = require("./world-countries");
+Object.defineProperty(exports, "COUNTRIES", { enumerable: true, get: function () { return world_countries_1.WORLD_COUNTRIES; } });
 
 });
 __def("kiosk-session.js", function (module, exports, require) {
@@ -60438,12 +60428,12 @@ exports.SPECIFICATIONS = [
 // whose sentence takes its number from the prefix, a learner read a country
 // count that nothing in the data supports.
 //
-// The honest pair, for the record: the picker offers 71 choices; 70 have a
-// national route and the 71st is "prefer not to say"; the international and
-// independent courses serve everyone else explicitly. Cameroon still contributes
-// two national courses but ONE national route. That is what the wording has to
-// say — and this constant is the ONE owner of the number, so no dictionary may
-// re-bake it.
+// The honest pair, for the record: the picker now offers every ISO country and
+// territory (plus Kosovo and an "other" choice); 70 have a national route and
+// every other choice is explicitly offered the international and independent
+// courses. Cameroon still contributes two national courses but ONE national
+// route. That is what the wording has to say — and this constant is the ONE
+// owner of the number, so no dictionary may re-bake it.
 //
 // THE OWNER IS NOW THE REGISTRY, not a set built from the specification list.
 // Those two numbers used to agree by construction; they stopped being the same
@@ -60773,7 +60763,7 @@ function courseGaps(profile, subject) {
     // disabled for ever. Measured live: a learner could create an account and then
     // never leave step 4 of 6 — which reads exactly like "sign-up does not work".
     // Those countries have courses now (see NATIONAL_COURSES, which is why this
-    // fallback is reached only by a code the picker does not offer at all).
+    // fallback is reached by an unrecorded country rather than by a wall).
     //
     // The independent pathway IS a course — the rule this function's own doc
     // states — and it carries real grades (Foundations / Core / Advanced) and
@@ -63178,6 +63168,275 @@ function canTransfer(conceptId) {
 }
 
 });
+__def("world-countries.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// The enrolment country list: ISO 3166-1 entries plus Kosovo and one explicit
+// "other" choice. The list is deliberately COMPLETE. A country is not a claim
+// that OpenMind has that country’s national curriculum: lib/curricula/registry
+// answers with a national route only where one is recorded, and with the
+// international/independent pathways everywhere else.
+//
+// Generated from the ISO 3166 list, keeping the original picker order first so
+// existing learners see the same neighbours, then adding the rest by name.
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.WORLD_COUNTRIES = void 0;
+exports.WORLD_COUNTRIES = [
+    { code: "US", name: "United States" },
+    { code: "GB", name: "United Kingdom" },
+    { code: "IE", name: "Ireland" },
+    { code: "IN", name: "India" },
+    { code: "NG", name: "Nigeria" },
+    { code: "KE", name: "Kenya" },
+    { code: "ZA", name: "South Africa" },
+    { code: "GH", name: "Ghana" },
+    { code: "TZ", name: "Tanzania" },
+    { code: "UG", name: "Uganda" },
+    { code: "ET", name: "Ethiopia" },
+    { code: "EG", name: "Egypt" },
+    { code: "MA", name: "Morocco" },
+    { code: "PK", name: "Pakistan" },
+    { code: "BD", name: "Bangladesh" },
+    { code: "ID", name: "Indonesia" },
+    { code: "PH", name: "Philippines" },
+    { code: "VN", name: "Vietnam" },
+    { code: "BR", name: "Brazil" },
+    { code: "MX", name: "Mexico" },
+    { code: "CO", name: "Colombia" },
+    { code: "AR", name: "Argentina" },
+    { code: "PE", name: "Peru" },
+    { code: "ES", name: "Spain" },
+    { code: "FR", name: "France" },
+    { code: "DE", name: "Germany" },
+    { code: "IT", name: "Italy" },
+    { code: "PL", name: "Poland" },
+    { code: "TR", name: "Turkey" },
+    { code: "IR", name: "Iran" },
+    { code: "AF", name: "Afghanistan" },
+    { code: "CN", name: "China" },
+    { code: "JP", name: "Japan" },
+    { code: "KR", name: "South Korea" },
+    { code: "AU", name: "Australia" },
+    { code: "CA", name: "Canada" },
+    { code: "UA", name: "Ukraine" },
+    { code: "RW", name: "Rwanda" },
+    { code: "ZM", name: "Zambia" },
+    { code: "ZW", name: "Zimbabwe" },
+    { code: "MW", name: "Malawi" },
+    { code: "ML", name: "Mali" },
+    { code: "SN", name: "Senegal" },
+    { code: "CI", name: "Côte d'Ivoire" },
+    { code: "CM", name: "Cameroon" },
+    { code: "NE", name: "Niger" },
+    { code: "BF", name: "Burkina Faso" },
+    { code: "SO", name: "Somalia" },
+    { code: "SD", name: "Sudan" },
+    { code: "YE", name: "Yemen" },
+    { code: "IQ", name: "Iraq" },
+    { code: "SY", name: "Syria" },
+    { code: "JO", name: "Jordan" },
+    { code: "LB", name: "Lebanon" },
+    { code: "NP", name: "Nepal" },
+    { code: "LK", name: "Sri Lanka" },
+    { code: "MM", name: "Myanmar" },
+    { code: "KH", name: "Cambodia" },
+    { code: "LA", name: "Laos" },
+    { code: "MN", name: "Mongolia" },
+    { code: "KZ", name: "Kazakhstan" },
+    { code: "UZ", name: "Uzbekistan" },
+    { code: "HT", name: "Haiti" },
+    { code: "BO", name: "Bolivia" },
+    { code: "EC", name: "Ecuador" },
+    { code: "GT", name: "Guatemala" },
+    { code: "HN", name: "Honduras" },
+    { code: "NI", name: "Nicaragua" },
+    { code: "SV", name: "El Salvador" },
+    { code: "DO", name: "Dominican Republic" },
+    { code: "AX", name: "Åland Islands" },
+    { code: "AL", name: "Albania" },
+    { code: "DZ", name: "Algeria" },
+    { code: "AS", name: "American Samoa" },
+    { code: "AD", name: "Andorra" },
+    { code: "AO", name: "Angola" },
+    { code: "AI", name: "Anguilla" },
+    { code: "AQ", name: "Antarctica" },
+    { code: "AG", name: "Antigua and Barbuda" },
+    { code: "AM", name: "Armenia" },
+    { code: "AW", name: "Aruba" },
+    { code: "AT", name: "Austria" },
+    { code: "AZ", name: "Azerbaijan" },
+    { code: "BS", name: "Bahamas" },
+    { code: "BH", name: "Bahrain" },
+    { code: "BB", name: "Barbados" },
+    { code: "BY", name: "Belarus" },
+    { code: "BE", name: "Belgium" },
+    { code: "BZ", name: "Belize" },
+    { code: "BJ", name: "Benin" },
+    { code: "BM", name: "Bermuda" },
+    { code: "BT", name: "Bhutan" },
+    { code: "BQ", name: "Bonaire, Sint Eustatius and Saba" },
+    { code: "BA", name: "Bosnia and Herzegovina" },
+    { code: "BW", name: "Botswana" },
+    { code: "BV", name: "Bouvet Island" },
+    { code: "IO", name: "British Indian Ocean Territory" },
+    { code: "BN", name: "Brunei Darussalam" },
+    { code: "BG", name: "Bulgaria" },
+    { code: "BI", name: "Burundi" },
+    { code: "CV", name: "Cabo Verde" },
+    { code: "KY", name: "Cayman Islands" },
+    { code: "CF", name: "Central African Republic" },
+    { code: "TD", name: "Chad" },
+    { code: "CL", name: "Chile" },
+    { code: "CX", name: "Christmas Island" },
+    { code: "CC", name: "Cocos (Keeling) Islands" },
+    { code: "KM", name: "Comoros" },
+    { code: "CG", name: "Congo" },
+    { code: "CD", name: "Congo, Democratic Republic of the" },
+    { code: "CK", name: "Cook Islands" },
+    { code: "CR", name: "Costa Rica" },
+    { code: "HR", name: "Croatia" },
+    { code: "CU", name: "Cuba" },
+    { code: "CW", name: "Curaçao" },
+    { code: "CY", name: "Cyprus" },
+    { code: "CZ", name: "Czechia" },
+    { code: "DK", name: "Denmark" },
+    { code: "DJ", name: "Djibouti" },
+    { code: "DM", name: "Dominica" },
+    { code: "GQ", name: "Equatorial Guinea" },
+    { code: "ER", name: "Eritrea" },
+    { code: "EE", name: "Estonia" },
+    { code: "SZ", name: "Eswatini" },
+    { code: "FK", name: "Falkland Islands (Malvinas)" },
+    { code: "FO", name: "Faroe Islands" },
+    { code: "FJ", name: "Fiji" },
+    { code: "FI", name: "Finland" },
+    { code: "GF", name: "French Guiana" },
+    { code: "PF", name: "French Polynesia" },
+    { code: "TF", name: "French Southern Territories" },
+    { code: "GA", name: "Gabon" },
+    { code: "GM", name: "Gambia" },
+    { code: "GE", name: "Georgia" },
+    { code: "GI", name: "Gibraltar" },
+    { code: "GR", name: "Greece" },
+    { code: "GL", name: "Greenland" },
+    { code: "GD", name: "Grenada" },
+    { code: "GP", name: "Guadeloupe" },
+    { code: "GU", name: "Guam" },
+    { code: "GG", name: "Guernsey" },
+    { code: "GN", name: "Guinea" },
+    { code: "GW", name: "Guinea-Bissau" },
+    { code: "GY", name: "Guyana" },
+    { code: "HM", name: "Heard Island and McDonald Islands" },
+    { code: "VA", name: "Holy See" },
+    { code: "HK", name: "Hong Kong" },
+    { code: "HU", name: "Hungary" },
+    { code: "IS", name: "Iceland" },
+    { code: "IM", name: "Isle of Man" },
+    { code: "IL", name: "Israel" },
+    { code: "JM", name: "Jamaica" },
+    { code: "JE", name: "Jersey" },
+    { code: "KI", name: "Kiribati" },
+    { code: "KP", name: "Korea, Democratic People's Republic of" },
+    { code: "XK", name: "Kosovo" },
+    { code: "KW", name: "Kuwait" },
+    { code: "KG", name: "Kyrgyzstan" },
+    { code: "LV", name: "Latvia" },
+    { code: "LS", name: "Lesotho" },
+    { code: "LR", name: "Liberia" },
+    { code: "LY", name: "Libya" },
+    { code: "LI", name: "Liechtenstein" },
+    { code: "LT", name: "Lithuania" },
+    { code: "LU", name: "Luxembourg" },
+    { code: "MO", name: "Macao" },
+    { code: "MG", name: "Madagascar" },
+    { code: "MY", name: "Malaysia" },
+    { code: "MV", name: "Maldives" },
+    { code: "MT", name: "Malta" },
+    { code: "MH", name: "Marshall Islands" },
+    { code: "MQ", name: "Martinique" },
+    { code: "MR", name: "Mauritania" },
+    { code: "MU", name: "Mauritius" },
+    { code: "YT", name: "Mayotte" },
+    { code: "FM", name: "Micronesia, Federated States of" },
+    { code: "MD", name: "Moldova, Republic of" },
+    { code: "MC", name: "Monaco" },
+    { code: "ME", name: "Montenegro" },
+    { code: "MS", name: "Montserrat" },
+    { code: "MZ", name: "Mozambique" },
+    { code: "NA", name: "Namibia" },
+    { code: "NR", name: "Nauru" },
+    { code: "NL", name: "Netherlands, Kingdom of the" },
+    { code: "NC", name: "New Caledonia" },
+    { code: "NZ", name: "New Zealand" },
+    { code: "NU", name: "Niue" },
+    { code: "NF", name: "Norfolk Island" },
+    { code: "MK", name: "North Macedonia" },
+    { code: "MP", name: "Northern Mariana Islands" },
+    { code: "NO", name: "Norway" },
+    { code: "OM", name: "Oman" },
+    { code: "PW", name: "Palau" },
+    { code: "PS", name: "Palestine, State of" },
+    { code: "PA", name: "Panama" },
+    { code: "PG", name: "Papua New Guinea" },
+    { code: "PY", name: "Paraguay" },
+    { code: "PN", name: "Pitcairn" },
+    { code: "PT", name: "Portugal" },
+    { code: "PR", name: "Puerto Rico" },
+    { code: "QA", name: "Qatar" },
+    { code: "RE", name: "Réunion" },
+    { code: "RO", name: "Romania" },
+    { code: "RU", name: "Russian Federation" },
+    { code: "BL", name: "Saint Barthélemy" },
+    { code: "SH", name: "Saint Helena, Ascension and Tristan da Cunha" },
+    { code: "KN", name: "Saint Kitts and Nevis" },
+    { code: "LC", name: "Saint Lucia" },
+    { code: "MF", name: "Saint Martin (French part)" },
+    { code: "PM", name: "Saint Pierre and Miquelon" },
+    { code: "VC", name: "Saint Vincent and the Grenadines" },
+    { code: "WS", name: "Samoa" },
+    { code: "SM", name: "San Marino" },
+    { code: "ST", name: "Sao Tome and Principe" },
+    { code: "SA", name: "Saudi Arabia" },
+    { code: "RS", name: "Serbia" },
+    { code: "SC", name: "Seychelles" },
+    { code: "SL", name: "Sierra Leone" },
+    { code: "SG", name: "Singapore" },
+    { code: "SX", name: "Sint Maarten (Dutch part)" },
+    { code: "SK", name: "Slovakia" },
+    { code: "SI", name: "Slovenia" },
+    { code: "SB", name: "Solomon Islands" },
+    { code: "GS", name: "South Georgia and the South Sandwich Islands" },
+    { code: "SS", name: "South Sudan" },
+    { code: "SR", name: "Suriname" },
+    { code: "SJ", name: "Svalbard and Jan Mayen" },
+    { code: "SE", name: "Sweden" },
+    { code: "CH", name: "Switzerland" },
+    { code: "TW", name: "Taiwan, Province of China" },
+    { code: "TJ", name: "Tajikistan" },
+    { code: "TH", name: "Thailand" },
+    { code: "TL", name: "Timor-Leste" },
+    { code: "TG", name: "Togo" },
+    { code: "TK", name: "Tokelau" },
+    { code: "TO", name: "Tonga" },
+    { code: "TT", name: "Trinidad and Tobago" },
+    { code: "TN", name: "Tunisia" },
+    { code: "TM", name: "Turkmenistan" },
+    { code: "TC", name: "Turks and Caicos Islands" },
+    { code: "TV", name: "Tuvalu" },
+    { code: "AE", name: "United Arab Emirates" },
+    { code: "UM", name: "United States Minor Outlying Islands" },
+    { code: "UY", name: "Uruguay" },
+    { code: "VU", name: "Vanuatu" },
+    { code: "VE", name: "Venezuela, Bolivarian Republic of" },
+    { code: "VG", name: "Virgin Islands (British)" },
+    { code: "VI", name: "Virgin Islands (U.S.)" },
+    { code: "WF", name: "Wallis and Futuna" },
+    { code: "EH", name: "Western Sahara" },
+    { code: "XX", name: "Other country / not listed" },
+];
+
+});
   __def("__entry__.js", function (module, exports, require) {
     module.exports = {
     genome: require("./genome.js"),
@@ -63222,7 +63481,7 @@ function canTransfer(conceptId) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 77 },
+      meta: { modules: 78 },
     };
   });
   return __req("__entry__.js");

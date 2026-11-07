@@ -12450,7 +12450,7 @@ console.log("▸ The years a learner can declare");
 // `courseGaps(profile, subject).length === 0`, so any field this function
 // reports as missing is a field the learner must be able to fix ON THAT SCREEN.
 // `country` was reported whenever `curriculumFor(country)` was null — and 53 of
-// the 70 countries the picker offers have no national route, so a learner who
+// the original 70 countries the picker offered had no national route, so a learner who
 // honestly chose France, Germany, Italy, Spain, Japan, China, Vietnam or any of
 // the other unmodelled countries could create an account and then never leave
 // step 4 of 6: `Next` was disabled for ever, and Back could only reach a screen
@@ -12499,7 +12499,7 @@ console.log("▸ Every offered country can complete a course");
     );
     if (gaps.length > 0) problems.push(`${code}: still missing ${gaps.join("+")}`);
   }
-  ok(COUNTRIES.length >= 60, `the picker's own country list was read (${COUNTRIES.length} countries)`);
+  ok(COUNTRIES.length >= 190, `the picker's own country list is complete (${COUNTRIES.length} choices)`);
   ok(problems.length === 0,
     `and every one of them can finish a course (${problems.slice(0, 5).join("; ") || "none blocked"})`);
   // ── THE LONG TAIL THIS USED TO BE ────────────────────────────────────────
@@ -12514,19 +12514,19 @@ console.log("▸ Every offered country can complete a course");
   // because Cameroon has nothing recorded, but because it runs two systems and
   // the learner has not said which. The claim here is "has a national system",
   // which is the record, not the single default.
-  const unmodelledOffered = COUNTRIES
-    .filter(({ code }) => code !== "XX" && (R.countryRecord(code)?.nationalPathways ?? []).length === 0)
+  const unclassifiedOffered = COUNTRIES
+    .filter(({ code }) => code !== "XX" && !R.RESEARCHED_CODES.includes(code) && !R.UNRESEARCHED_CODES.includes(code))
     .map(({ code }) => code);
-  ok(unmodelledOffered.length === 0,
-    `every country the picker offers has a national route (${unmodelledOffered.slice(0, 6).join(", ") || "all of them"})`);
-  // The honest gap still exists where it should: a code the picker does NOT
-  // offer (Chile, the Netherlands, …) is unmodelled, and a learner holding one
-  // is answered with a REAL pathway rather than with silence.
-  const cl = C.curriculumFor("CL");
-  ok(cl === null, "a system OpenMind has not modelled still has none (the fallback is the step's, not a fabricated route)");
-  const clGaps = S.courseGaps({ country: "CL", grade: "Core", subjects: ["maths"] }, "maths");
-  ok(!clGaps.includes("country"), "but such a country is never reported as a missing course field");
-  ok(clGaps.includes("spec"), "while the qualification itself is still required, so the choice stays the learner's");
+  ok(unclassifiedOffered.length === 0,
+    `every country the picker offers is either nationally mapped or explicitly unresearched (${unclassifiedOffered.slice(0, 6).join(", ") || "all of them"})`);
+  // The honest gap still exists where it should: a code outside the picker is
+  // unmodelled, and a learner holding one is answered with a REAL pathway rather
+  // than with silence.
+  const zz = C.curriculumFor("ZZ");
+  ok(zz === null, "a system OpenMind has not modelled still has none (the fallback is the step's, not a fabricated route)");
+  const zzGaps = S.courseGaps({ country: "ZZ", grade: "Core", subjects: ["maths"] }, "maths");
+  ok(!zzGaps.includes("country"), "but such a country is never reported as a missing course field");
+  ok(zzGaps.includes("spec"), "while the qualification itself is still required, so the choice stays the learner's");
 }
 
 // ════════════════════════════════════════════════════════════════════════════

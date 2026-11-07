@@ -1,9 +1,9 @@
 {
   "generatedBy": "scripts/curriculum-gate.mjs",
   "counts": {
-    "countriesOffered": 71,
+    "countriesOffered": 251,
     "countriesWithNationalRoute": 70,
-    "countriesUnmapped": 1,
+    "countriesUnmapped": 181,
     "nationalPathways": 71,
     "specifications": 91,
     "nationalSpecifications": 88,
@@ -2275,8 +2275,2348 @@
       "sourcesOnFile": 1
     },
     {
+      "countryCode": "AX",
+      "countryName": "Åland Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AL",
+      "countryName": "Albania",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "DZ",
+      "countryName": "Algeria",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AS",
+      "countryName": "American Samoa",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AD",
+      "countryName": "Andorra",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AO",
+      "countryName": "Angola",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AI",
+      "countryName": "Anguilla",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AQ",
+      "countryName": "Antarctica",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AG",
+      "countryName": "Antigua and Barbuda",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AM",
+      "countryName": "Armenia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AW",
+      "countryName": "Aruba",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AT",
+      "countryName": "Austria",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AZ",
+      "countryName": "Azerbaijan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BS",
+      "countryName": "Bahamas",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BH",
+      "countryName": "Bahrain",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BB",
+      "countryName": "Barbados",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BY",
+      "countryName": "Belarus",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BE",
+      "countryName": "Belgium",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BZ",
+      "countryName": "Belize",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BJ",
+      "countryName": "Benin",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BM",
+      "countryName": "Bermuda",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BT",
+      "countryName": "Bhutan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BQ",
+      "countryName": "Bonaire, Sint Eustatius and Saba",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BA",
+      "countryName": "Bosnia and Herzegovina",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BW",
+      "countryName": "Botswana",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BV",
+      "countryName": "Bouvet Island",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "IO",
+      "countryName": "British Indian Ocean Territory",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BN",
+      "countryName": "Brunei Darussalam",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BG",
+      "countryName": "Bulgaria",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BI",
+      "countryName": "Burundi",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CV",
+      "countryName": "Cabo Verde",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "KY",
+      "countryName": "Cayman Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CF",
+      "countryName": "Central African Republic",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TD",
+      "countryName": "Chad",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CL",
+      "countryName": "Chile",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CX",
+      "countryName": "Christmas Island",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CC",
+      "countryName": "Cocos (Keeling) Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "KM",
+      "countryName": "Comoros",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CG",
+      "countryName": "Congo",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CD",
+      "countryName": "Congo, Democratic Republic of the",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CK",
+      "countryName": "Cook Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CR",
+      "countryName": "Costa Rica",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "HR",
+      "countryName": "Croatia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CU",
+      "countryName": "Cuba",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CW",
+      "countryName": "Curaçao",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CY",
+      "countryName": "Cyprus",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CZ",
+      "countryName": "Czechia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "DK",
+      "countryName": "Denmark",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "DJ",
+      "countryName": "Djibouti",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "DM",
+      "countryName": "Dominica",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GQ",
+      "countryName": "Equatorial Guinea",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "ER",
+      "countryName": "Eritrea",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "EE",
+      "countryName": "Estonia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SZ",
+      "countryName": "Eswatini",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "FK",
+      "countryName": "Falkland Islands (Malvinas)",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "FO",
+      "countryName": "Faroe Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "FJ",
+      "countryName": "Fiji",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "FI",
+      "countryName": "Finland",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GF",
+      "countryName": "French Guiana",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PF",
+      "countryName": "French Polynesia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TF",
+      "countryName": "French Southern Territories",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GA",
+      "countryName": "Gabon",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GM",
+      "countryName": "Gambia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GE",
+      "countryName": "Georgia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GI",
+      "countryName": "Gibraltar",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GR",
+      "countryName": "Greece",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GL",
+      "countryName": "Greenland",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GD",
+      "countryName": "Grenada",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GP",
+      "countryName": "Guadeloupe",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GU",
+      "countryName": "Guam",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GG",
+      "countryName": "Guernsey",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GN",
+      "countryName": "Guinea",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GW",
+      "countryName": "Guinea-Bissau",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GY",
+      "countryName": "Guyana",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "HM",
+      "countryName": "Heard Island and McDonald Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "VA",
+      "countryName": "Holy See",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "HK",
+      "countryName": "Hong Kong",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "HU",
+      "countryName": "Hungary",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "IS",
+      "countryName": "Iceland",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "IM",
+      "countryName": "Isle of Man",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "IL",
+      "countryName": "Israel",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "JM",
+      "countryName": "Jamaica",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "JE",
+      "countryName": "Jersey",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "KI",
+      "countryName": "Kiribati",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "KP",
+      "countryName": "Korea, Democratic People's Republic of",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "XK",
+      "countryName": "Kosovo",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "KW",
+      "countryName": "Kuwait",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "KG",
+      "countryName": "Kyrgyzstan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "LV",
+      "countryName": "Latvia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "LS",
+      "countryName": "Lesotho",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "LR",
+      "countryName": "Liberia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "LY",
+      "countryName": "Libya",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "LI",
+      "countryName": "Liechtenstein",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "LT",
+      "countryName": "Lithuania",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "LU",
+      "countryName": "Luxembourg",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MO",
+      "countryName": "Macao",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MG",
+      "countryName": "Madagascar",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MY",
+      "countryName": "Malaysia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MV",
+      "countryName": "Maldives",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MT",
+      "countryName": "Malta",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MH",
+      "countryName": "Marshall Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MQ",
+      "countryName": "Martinique",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MR",
+      "countryName": "Mauritania",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MU",
+      "countryName": "Mauritius",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "YT",
+      "countryName": "Mayotte",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "FM",
+      "countryName": "Micronesia, Federated States of",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MD",
+      "countryName": "Moldova, Republic of",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MC",
+      "countryName": "Monaco",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "ME",
+      "countryName": "Montenegro",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MS",
+      "countryName": "Montserrat",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MZ",
+      "countryName": "Mozambique",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "NA",
+      "countryName": "Namibia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "NR",
+      "countryName": "Nauru",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "NL",
+      "countryName": "Netherlands, Kingdom of the",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "NC",
+      "countryName": "New Caledonia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "NZ",
+      "countryName": "New Zealand",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "NU",
+      "countryName": "Niue",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "NF",
+      "countryName": "Norfolk Island",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MK",
+      "countryName": "North Macedonia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MP",
+      "countryName": "Northern Mariana Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "NO",
+      "countryName": "Norway",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "OM",
+      "countryName": "Oman",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PW",
+      "countryName": "Palau",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PS",
+      "countryName": "Palestine, State of",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PA",
+      "countryName": "Panama",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PG",
+      "countryName": "Papua New Guinea",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PY",
+      "countryName": "Paraguay",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PN",
+      "countryName": "Pitcairn",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PT",
+      "countryName": "Portugal",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PR",
+      "countryName": "Puerto Rico",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "QA",
+      "countryName": "Qatar",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "RE",
+      "countryName": "Réunion",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "RO",
+      "countryName": "Romania",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "RU",
+      "countryName": "Russian Federation",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "BL",
+      "countryName": "Saint Barthélemy",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SH",
+      "countryName": "Saint Helena, Ascension and Tristan da Cunha",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "KN",
+      "countryName": "Saint Kitts and Nevis",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "LC",
+      "countryName": "Saint Lucia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "MF",
+      "countryName": "Saint Martin (French part)",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "PM",
+      "countryName": "Saint Pierre and Miquelon",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "VC",
+      "countryName": "Saint Vincent and the Grenadines",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "WS",
+      "countryName": "Samoa",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SM",
+      "countryName": "San Marino",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "ST",
+      "countryName": "Sao Tome and Principe",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SA",
+      "countryName": "Saudi Arabia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "RS",
+      "countryName": "Serbia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SC",
+      "countryName": "Seychelles",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SL",
+      "countryName": "Sierra Leone",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SG",
+      "countryName": "Singapore",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SX",
+      "countryName": "Sint Maarten (Dutch part)",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SK",
+      "countryName": "Slovakia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SI",
+      "countryName": "Slovenia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SB",
+      "countryName": "Solomon Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "GS",
+      "countryName": "South Georgia and the South Sandwich Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SS",
+      "countryName": "South Sudan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SR",
+      "countryName": "Suriname",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SJ",
+      "countryName": "Svalbard and Jan Mayen",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "SE",
+      "countryName": "Sweden",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "CH",
+      "countryName": "Switzerland",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TW",
+      "countryName": "Taiwan, Province of China",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TJ",
+      "countryName": "Tajikistan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TH",
+      "countryName": "Thailand",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TL",
+      "countryName": "Timor-Leste",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TG",
+      "countryName": "Togo",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TK",
+      "countryName": "Tokelau",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TO",
+      "countryName": "Tonga",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TT",
+      "countryName": "Trinidad and Tobago",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TN",
+      "countryName": "Tunisia",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TM",
+      "countryName": "Turkmenistan",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TC",
+      "countryName": "Turks and Caicos Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "TV",
+      "countryName": "Tuvalu",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "AE",
+      "countryName": "United Arab Emirates",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "UM",
+      "countryName": "United States Minor Outlying Islands",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "UY",
+      "countryName": "Uruguay",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "VU",
+      "countryName": "Vanuatu",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "VE",
+      "countryName": "Venezuela, Bolivarian Republic of",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "VG",
+      "countryName": "Virgin Islands (British)",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "VI",
+      "countryName": "Virgin Islands (U.S.)",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "WF",
+      "countryName": "Wallis and Futuna",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
+      "countryCode": "EH",
+      "countryName": "Western Sahara",
+      "status": "unmapped",
+      "nationalPathways": [],
+      "offeredCourses": [
+        "int-igcse",
+        "int-ib",
+        "any-independent"
+      ],
+      "recordReview": "unmapped",
+      "sourcesOnFile": 0
+    },
+    {
       "countryCode": "XX",
-      "countryName": "Prefer not to say",
+      "countryName": "Other country / not listed",
       "status": "independent",
       "nationalPathways": [],
       "offeredCourses": [

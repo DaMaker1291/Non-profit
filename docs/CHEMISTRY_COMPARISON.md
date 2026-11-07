@@ -159,9 +159,9 @@ country runs**, not a single “country → syllabus” shortcut. The current ga
 
 | Measure | Current value |
 |---|---|
-| Country choices offered | 71 |
+| Country choices offered | 251 (all ISO countries and territories, plus Kosovo and an explicit “other” choice) |
 | Countries with a national route | 70 |
-| Explicitly unmapped choices | 1 (`Prefer not to say`) |
+| Explicitly unmapped choices | 181 (offered the international/independent fallback) |
 | National pathways | 71 (Cameroon has two systems) |
 | Specifications (courses) | 91 |
 | National / international / independent specifications | 88 / 2 / 1 |
@@ -179,8 +179,10 @@ distinction, and it is the one the word “credible” depends on.
 
 ### The honest limitation
 
-OpenMind can **offer a course for 70 countries and teach the common chemistry concepts**
-in those courses. It cannot yet say “verified against every national syllabus”:
+OpenMind can **offer a national course for 70 countries and teach the common chemistry
+concepts** in those courses. Every one of the 251 country choices can start a course through
+the international or independent routes. It cannot yet say “verified against every national
+syllabus”:
 
 - only **two** specifications have a document-level mapping on file
   (`lib/curricula/mappings.ts`: UK GCSE and Indian CBSE);
@@ -196,9 +198,9 @@ in those courses. It cannot yet say “verified against every national syllabus�
 
 So the accurate statement is:
 
-> **Any country:** structurally reachable for 70 countries, with international and
-> independent routes for the rest. **Any syllabus:** not yet verified. Coverage is
-> recorded, mapped at two documents, and unreviewed everywhere.
+> **Any country:** selectable — 251 choices, 70 with a national route and 181 with an
+> explicit international/independent route. **Any syllabus:** not yet verified. Coverage
+> is recorded, mapped at two documents, and unreviewed everywhere.
 
 That is weaker than “teaches every syllabus” and stronger than “UK-only”. The repository’s
 own rule is the right one: do not let a review label imply a review that did not happen.

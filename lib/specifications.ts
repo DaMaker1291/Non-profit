@@ -371,7 +371,7 @@ const CM_BAC: Specification = {
 
 // ── NATIONAL COURSES FOR EVERY COUNTRY THE PICKER OFFERS ────────────────────
 //
-// WHY THIS BLOCK EXISTS. Of the 71 countries the enrolment picker offers, 19
+// WHY THIS BLOCK EXISTS. Of the 71 choices the original enrolment picker offered, 19
 // had a national course and 52 did not. A learner who chose France, Germany,
 // Japan, Vietnam, Ethiopia, Egypt or any of the other 46 was answered with
 // Cambridge IGCSE or the IB — programmes that exist as ALTERNATIVES, handed over
@@ -543,12 +543,12 @@ export const SPECIFICATIONS: Specification[] = [
 // whose sentence takes its number from the prefix, a learner read a country
 // count that nothing in the data supports.
 //
-// The honest pair, for the record: the picker offers 71 choices; 70 have a
-// national route and the 71st is "prefer not to say"; the international and
-// independent courses serve everyone else explicitly. Cameroon still contributes
-// two national courses but ONE national route. That is what the wording has to
-// say — and this constant is the ONE owner of the number, so no dictionary may
-// re-bake it.
+// The honest pair, for the record: the picker now offers every ISO country and
+// territory (plus Kosovo and an "other" choice); 70 have a national route and
+// every other choice is explicitly offered the international and independent
+// courses. Cameroon still contributes two national courses but ONE national
+// route. That is what the wording has to say — and this constant is the ONE
+// owner of the number, so no dictionary may re-bake it.
 //
 // THE OWNER IS NOW THE REGISTRY, not a set built from the specification list.
 // Those two numbers used to agree by construction; they stopped being the same
@@ -962,7 +962,7 @@ export function courseGaps(profile: CourseFields, subject: SubjectId): CourseFie
   // disabled for ever. Measured live: a learner could create an account and then
   // never leave step 4 of 6 — which reads exactly like "sign-up does not work".
   // Those countries have courses now (see NATIONAL_COURSES, which is why this
-  // fallback is reached only by a code the picker does not offer at all).
+  // fallback is reached by an unrecorded country rather than by a wall).
   //
   // The independent pathway IS a course — the rule this function's own doc
   // states — and it carries real grades (Foundations / Core / Advanced) and

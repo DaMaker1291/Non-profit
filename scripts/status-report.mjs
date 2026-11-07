@@ -136,7 +136,7 @@ const rows = [
   { section: "Pilot (UK GCSE maths)", label: "Items awaiting human review", value: pilotPack?.totals?.items ?? "MISSING", source: "audit/pilot-pack.json", note: "every item a learner in the cluster meets, at a seed the reviewer can reproduce" },
   { section: "Pilot (UK GCSE maths)", label: "Cluster concepts with no named misconception to probe", value: pilotPack ? pilotPack.totals.concepts - pilotPack.totals.withMisconceptions : "MISSING", source: "audit/pilot-pack.json", note: "a distractor here is not yet tied to a pattern anyone has written down" },
 
-  { section: "Curriculum", label: "Country codes offered in enrolment", value: I.COUNTRIES.length, source: "lib/i18n.ts" },
+  { section: "Curriculum", label: "Country choices offered in enrolment", value: I.COUNTRIES.length, source: "lib/world-countries.ts" },
   { section: "Curriculum", label: "Countries with a recorded national route", value: R.nationalRouteCodes().length, source: "lib/curricula/registry.ts", note: "asserted equal to the published count by `npm run curriculum-gate`" },
   { section: "Curriculum", label: "National pathways", value: R.allPathways().filter((p) => p.pathwayType === "national").length, source: "lib/curricula/registry.ts", note: "Cameroon runs two systems, so this exceeds the country count" },
   { section: "Curriculum", label: "Offerings without a national route", value: I.COUNTRIES.filter((c) => (R.countryRecord(c.code)?.nationalPathways ?? []).length === 0).length, source: "lib/curricula/registry.ts", note: "offered the international programmes and the skills pathway, explicitly" },

@@ -24326,30 +24326,7 @@ export function dueLabel(lang: string | undefined, at: number): string {
   }
 }
 
-/** Country picker data — broad coverage, compact. */
-export const COUNTRIES: Array<{ code: string; name: string }> = [
-  { code: "US", name: "United States" }, { code: "GB", name: "United Kingdom" }, { code: "IE", name: "Ireland" }, { code: "IN", name: "India" },
-  { code: "NG", name: "Nigeria" }, { code: "KE", name: "Kenya" }, { code: "ZA", name: "South Africa" },
-  { code: "GH", name: "Ghana" }, { code: "TZ", name: "Tanzania" }, { code: "UG", name: "Uganda" },
-  { code: "ET", name: "Ethiopia" }, { code: "EG", name: "Egypt" }, { code: "MA", name: "Morocco" },
-  { code: "PK", name: "Pakistan" }, { code: "BD", name: "Bangladesh" }, { code: "ID", name: "Indonesia" },
-  { code: "PH", name: "Philippines" }, { code: "VN", name: "Vietnam" }, { code: "BR", name: "Brazil" },
-  { code: "MX", name: "Mexico" }, { code: "CO", name: "Colombia" }, { code: "AR", name: "Argentina" },
-  { code: "PE", name: "Peru" }, { code: "ES", name: "Spain" }, { code: "FR", name: "France" },
-  { code: "DE", name: "Germany" }, { code: "IT", name: "Italy" }, { code: "PL", name: "Poland" },
-  { code: "TR", name: "Turkey" }, { code: "IR", name: "Iran" }, { code: "AF", name: "Afghanistan" },
-  { code: "CN", name: "China" }, { code: "JP", name: "Japan" }, { code: "KR", name: "South Korea" },
-  { code: "AU", name: "Australia" }, { code: "CA", name: "Canada" }, { code: "UA", name: "Ukraine" },
-  { code: "RW", name: "Rwanda" }, { code: "ZM", name: "Zambia" }, { code: "ZW", name: "Zimbabwe" },
-  { code: "MW", name: "Malawi" }, { code: "ML", name: "Mali" }, { code: "SN", name: "Senegal" },
-  { code: "CI", name: "Côte d'Ivoire" }, { code: "CM", name: "Cameroon" }, { code: "NE", name: "Niger" },
-  { code: "BF", name: "Burkina Faso" }, { code: "SO", name: "Somalia" }, { code: "SD", name: "Sudan" },
-  { code: "YE", name: "Yemen" }, { code: "IQ", name: "Iraq" }, { code: "SY", name: "Syria" },
-  { code: "JO", name: "Jordan" }, { code: "LB", name: "Lebanon" }, { code: "NP", name: "Nepal" },
-  { code: "LK", name: "Sri Lanka" }, { code: "MM", name: "Myanmar" }, { code: "KH", name: "Cambodia" },
-  { code: "LA", name: "Laos" }, { code: "MN", name: "Mongolia" }, { code: "KZ", name: "Kazakhstan" },
-  { code: "UZ", name: "Uzbekistan" }, { code: "HT", name: "Haiti" }, { code: "BO", name: "Bolivia" },
-  { code: "EC", name: "Ecuador" }, { code: "GT", name: "Guatemala" }, { code: "HN", name: "Honduras" },
-  { code: "NI", name: "Nicaragua" }, { code: "SV", name: "El Salvador" }, { code: "DO", name: "Dominican Republic" },
-  { code: "XX", name: "Prefer not to say" },
-];
+/** Country picker data — every ISO 3166-1 entry plus Kosovo and an explicit
+ *  "other" choice. The list is complete; the national-route claim is not. See
+ *  lib/world-countries.ts and lib/curricula/registry.ts. */
+export { WORLD_COUNTRIES as COUNTRIES } from "./world-countries";

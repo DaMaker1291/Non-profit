@@ -18,13 +18,13 @@
     "Storage · Owners of where learning data lives": 1,
     "Storage · Route files importing the store": 23,
     "Storage · JSON files the server modules own": 14,
-    "Pilot (UK GCSE maths) · Concepts in the review cluster": 15,
-    "Pilot (UK GCSE maths) · Items awaiting human review": 149,
-    "Pilot (UK GCSE maths) · Cluster concepts with no named misconception to probe": 0,
-    "Curriculum · Country codes offered in enrolment": 71,
+    "Pilot (UK GCSE maths) · Concepts in the review cluster": 20,
+    "Pilot (UK GCSE maths) · Items awaiting human review": 179,
+    "Pilot (UK GCSE maths) · Cluster concepts with no named misconception to probe": 5,
+    "Curriculum · Country choices offered in enrolment": 251,
     "Curriculum · Countries with a recorded national route": 70,
     "Curriculum · National pathways": 71,
-    "Curriculum · Offerings without a national route": 1,
+    "Curriculum · Offerings without a national route": 181,
     "Curriculum · Specifications": 91,
     "Curriculum · Pathways with no structural source on file": 18,
     "Curriculum · Pathways whose syllabus mapping has been reviewed": 0,
@@ -147,29 +147,29 @@
     {
       "section": "Pilot (UK GCSE maths)",
       "label": "Concepts in the review cluster",
-      "value": 15,
+      "value": 20,
       "source": "audit/pilot-pack.json",
       "note": "computed from the genome's prerequisite graph, not hand-picked"
     },
     {
       "section": "Pilot (UK GCSE maths)",
       "label": "Items awaiting human review",
-      "value": 149,
+      "value": 179,
       "source": "audit/pilot-pack.json",
       "note": "every item a learner in the cluster meets, at a seed the reviewer can reproduce"
     },
     {
       "section": "Pilot (UK GCSE maths)",
       "label": "Cluster concepts with no named misconception to probe",
-      "value": 0,
+      "value": 5,
       "source": "audit/pilot-pack.json",
       "note": "a distractor here is not yet tied to a pattern anyone has written down"
     },
     {
       "section": "Curriculum",
-      "label": "Country codes offered in enrolment",
-      "value": 71,
-      "source": "lib/i18n.ts"
+      "label": "Country choices offered in enrolment",
+      "value": 251,
+      "source": "lib/world-countries.ts"
     },
     {
       "section": "Curriculum",
@@ -188,7 +188,7 @@
     {
       "section": "Curriculum",
       "label": "Offerings without a national route",
-      "value": 1,
+      "value": 181,
       "source": "lib/curricula/registry.ts",
       "note": "offered the international programmes and the skills pathway, explicitly"
     },

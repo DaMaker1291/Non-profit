@@ -2,8 +2,9 @@
 
 **Status: two courses mapped, none reviewed by a subject specialist.** That
 sentence is the whole point of this document. OpenMind teaches 135 concepts
-across five subjects and offers courses for 71 countries; before this file
-existed there was no written record anywhere of *which published document* any
+across five subjects and offers a country choice for 251 countries and territories (70
+with a national route, 181 with an explicit international/independent fallback); before
+this file existed there was no written record anywhere of *which published document* any
 course's concepts were placed against. The registry said as much
 (`mappingReview: "mapped"` on every pathway, `reviewed: 0` in
 [audit/status.json](../audit/status.json)) — an honest label with nothing

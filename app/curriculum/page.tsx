@@ -120,7 +120,7 @@ export default function CurriculumPage() {
   // The same fallback the course gate uses: a country this product does not
   // model still has the independent pathway, and it still has grades to choose
   // from. Without it the grade control here was a placeholder with an empty
-  // list — a course that could never be completed for 53 of the 70 countries.
+  // list — a course that could never be completed for 53 of the original 70 countries.
   const route = routeForPathwayId(country, pathway) ?? curriculumFor(country) ?? INDEPENDENT_ROUTE;
   // Only the qualifications that actually contain THIS subject — offering a
   // maths-only paper as a Biology course would be a choice that cannot be saved —
