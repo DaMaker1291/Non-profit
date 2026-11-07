@@ -26,6 +26,9 @@ import { CURRICULUM_STRINGS } from "./i18n-curriculum";
 import { DEVICE_STRINGS } from "./i18n-device";
 import { KIOSK_STRINGS } from "./i18n-kiosk";
 import { LESSON_STRINGS, VIDEO_META_STRINGS } from "./i18n-lessons";
+import { ATLAS_STRINGS } from "./i18n-atlas";
+import { ATLAS_EXTRA_STRINGS } from "./i18n-atlas-extra";
+import { THEORY_STRINGS } from "./i18n-theory";
 
 const en: Dict = {
   "target.slipCheck": "This one is built to catch that slip.",
@@ -24233,6 +24236,104 @@ export const bn: Dict = {
   "lq.teachNoteLesson": "এই পাঠ আপনার ভাষায়; অনুশীলনের প্রশ্ন ও তার ব্যাখ্যা এখনও ইংরেজিতে।",
   };
 
+// THE SUBJECT PAGE'S OWN VOCABULARY. Kept in one block rather than pasted into
+// fifteen dictionaries for the same reason the recovery and curriculum strings
+// are: one feature, one reviewable place. The merge below puts these into every
+// dictionary, so key parity, the English fallback and the suite's authored-in-
+// every-language checks still read one `DICTS` surface.
+const SUBJECT_STRINGS: Record<string, Dict> = {
+  en: {
+    "subject.progressCount": "{practised} of {total} concepts practised · {mastered} demonstrated independently",
+    "subject.recommended": "Your recommended starting point",
+    "subject.startUnavailable": "No complete lesson is available in this course yet. Choose a course with lessons from your curriculum.",
+    "subject.syllabus": "Syllabus {version}",
+  },
+  es: {
+    "subject.progressCount": "{practised} de {total} conceptos practicados · {mastered} demostrados de forma independiente",
+    "subject.recommended": "Tu punto de partida recomendado",
+    "subject.startUnavailable": "Aún no hay ninguna lección completa disponible en este curso. Elige en tu plan de estudios un curso con lecciones.",
+    "subject.syllabus": "Programa {version}",
+  },
+  fr: {
+    "subject.progressCount": "{practised} notions sur {total} travaillées · {mastered} démontrées en autonomie",
+    "subject.recommended": "Votre point de départ recommandé",
+    "subject.startUnavailable": "Aucune leçon complète n'est encore disponible dans ce cours. Choisissez dans votre programme un cours avec des leçons.",
+    "subject.syllabus": "Programme {version}",
+  },
+  pt: {
+    "subject.progressCount": "{practised} de {total} conceitos praticados · {mastered} demonstrados de forma independente",
+    "subject.recommended": "O seu ponto de partida recomendado",
+    "subject.startUnavailable": "Ainda não há nenhuma lição completa disponível neste curso. Escolha no seu currículo um curso com lições.",
+    "subject.syllabus": "Programa {version}",
+  },
+  ar: {
+    "subject.progressCount": "{practised} من {total} مفاهيم تم التدرب عليها · {mastered} أُثبتت باستقلالية",
+    "subject.recommended": "نقطة البداية الموصى بها",
+    "subject.startUnavailable": "لا يوجد أي درس مكتمل متاح في هذا المقرر بعد. اختر من منهجك مقررًا يحتوي على دروس.",
+    "subject.syllabus": "المنهج {version}",
+  },
+  sw: {
+    "subject.progressCount": "Umeifanyia mazoezi dhana {practised} kati ya {total} · {mastered} zimeonyeshwa kwa kujitegemea",
+    "subject.recommended": "Mahali pako pa kuanzia panapopendekezwa",
+    "subject.startUnavailable": "Hakuna somo kamili linalopatikana katika kozi hii bado. Chagua kozi yenye masomo kutoka mtaala wako.",
+    "subject.syllabus": "Mtaala {version}",
+  },
+  hi: {
+    "subject.progressCount": "{total} में से {practised} अवधारणाओं का अभ्यास किया · {mastered} स्वतंत्र रूप से प्रदर्शित",
+    "subject.recommended": "आपका सुझाया गया शुरुआती बिंदु",
+    "subject.startUnavailable": "इस कोर्स में अभी कोई पूरा पाठ उपलब्ध नहीं है। अपने पाठ्यक्रम से पाठ वाला कोर्स चुनें।",
+    "subject.syllabus": "पाठ्यक्रम {version}",
+  },
+  id: {
+    "subject.progressCount": "{practised} dari {total} konsep dilatih · {mastered} ditunjukkan secara mandiri",
+    "subject.recommended": "Titik awal yang disarankan untukmu",
+    "subject.startUnavailable": "Belum ada pelajaran lengkap di kursus ini. Pilih kursus yang memiliki pelajaran dari kurikulummu.",
+    "subject.syllabus": "Silabus {version}",
+  },
+  tl: {
+    "subject.progressCount": "{practised} sa {total} na konsepto ang nasanay · {mastered} naipakitang mag-isa",
+    "subject.recommended": "Ang inirerekomendang simula mo",
+    "subject.startUnavailable": "Wala pang kumpletong aralin sa kursong ito. Pumili ng kursong may mga aralin mula sa iyong kurikulum.",
+    "subject.syllabus": "Silabus {version}",
+  },
+  ur: {
+    "subject.progressCount": "{total} میں سے {practised} تصورات کی مشق ہوئی · {mastered} خودمختار طور پر ثابت ہوئے",
+    "subject.recommended": "آپ کا تجویز کردہ نقطۂ آغاز",
+    "subject.startUnavailable": "اس کورس میں ابھی کوئی مکمل سبق دستیاب نہیں ہے۔ اپنے نصاب سے سبق والا کورس منتخب کریں۔",
+    "subject.syllabus": "نصاب {version}",
+  },
+  fa: {
+    "subject.progressCount": "{practised} از {total} مفهوم تمرین شده · {mastered} به‌طور مستقل نشان داده شده",
+    "subject.recommended": "نقطهٔ شروع پیشنهادی شما",
+    "subject.startUnavailable": "هنوز درس کاملی در این دوره موجود نیست. از برنامهٔ درسی خود دوره‌ای با درس انتخاب کنید.",
+    "subject.syllabus": "برنامهٔ درسی {version}",
+  },
+  de: {
+    "subject.progressCount": "{practised} von {total} Konzepten geübt · {mastered} selbstständig nachgewiesen",
+    "subject.recommended": "Dein empfohlener Einstieg",
+    "subject.startUnavailable": "In diesem Kurs ist noch keine vollständige Lektion verfügbar. Wähle in deinem Lehrplan einen Kurs mit Lektionen.",
+    "subject.syllabus": "Lehrplan {version}",
+  },
+  ja: {
+    "subject.progressCount": "{total} 個中 {practised} 個の概念を練習済み · {mastered} 個を自力で証明",
+    "subject.recommended": "おすすめの開始地点",
+    "subject.startUnavailable": "このコースにはまだ完全なレッスンがありません。カリキュラムからレッスンのあるコースを選んでください。",
+    "subject.syllabus": "シラバス {version}",
+  },
+  zh: {
+    "subject.progressCount": "已练习 {practised}/{total} 个概念 · 已独立证明 {mastered} 个",
+    "subject.recommended": "推荐的起点",
+    "subject.startUnavailable": "本课程尚无完整课程内容。请从课程设置中选择包含课程内容的学习路径。",
+    "subject.syllabus": "教学大纲 {version}",
+  },
+  bn: {
+    "subject.progressCount": "{total}টির মধ্যে {practised}টি ধারণা অনুশীলন করা হয়েছে · {mastered}টি স্বাধীনভাবে প্রমাণিত",
+    "subject.recommended": "আপনার প্রস্তাবিত শুরুর স্থান",
+    "subject.startUnavailable": "এই কোর্সে এখনো কোনো সম্পূর্ণ পাঠ নেই। আপনার পাঠ্যক্রম থেকে পাঠসহ কোর্স বেছে নিন।",
+    "subject.syllabus": "সিলেবাস {version}",
+  },
+};
+
 export const DICTS: Record<string, Dict> = {
   en, es, fr, pt, ar, sw, hi, id, tl, ur, fa, de, ja, zh, bn,
 };
@@ -24246,7 +24347,7 @@ export const DICTS: Record<string, Dict> = {
 // Each source is merged SEPARATELY. Spreading two language maps into one object
 // would keep only the second map's entry for a language both define — the
 // failure is silent and it removes keys that were already working.
-for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOSK_STRINGS, LESSON_STRINGS, VIDEO_META_STRINGS]) {
+for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOSK_STRINGS, LESSON_STRINGS, VIDEO_META_STRINGS, ATLAS_STRINGS, ATLAS_EXTRA_STRINGS, THEORY_STRINGS, SUBJECT_STRINGS]) {
   for (const [code, extra] of Object.entries(source)) {
     const dict = DICTS[code];
     if (!dict) continue;
@@ -24257,7 +24358,7 @@ for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOS
 }
 // `en` is the fallback for a missing key, so it must carry them even if a caller
 // reaches it directly rather than through DICTS.
-for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOSK_STRINGS, LESSON_STRINGS, VIDEO_META_STRINGS]) {
+for (const source of [RECOVERY_STRINGS, CURRICULUM_STRINGS, DEVICE_STRINGS, KIOSK_STRINGS, LESSON_STRINGS, VIDEO_META_STRINGS, ATLAS_STRINGS, ATLAS_EXTRA_STRINGS, THEORY_STRINGS, SUBJECT_STRINGS]) {
   for (const [key, value] of Object.entries(source.en)) {
     if (!(key in en)) en[key] = value;
   }

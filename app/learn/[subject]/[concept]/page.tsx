@@ -991,20 +991,21 @@ export default function ConceptPage() {
         </section>
       )}
 
-      {/* EVERY LESSON SHOWS WHERE IT SITS. The subject figure, where one is
-          authored, appears later beside the idea it draws; this map is about
-          the learning path rather than the science, so it arrives before the
-          explanation and answers "what does this assume, and what next?". */}
-      <LessonMap conceptId={conceptId} />
-
       {/* THE PICTURE, WHERE THE IDEA NEEDS ONE.
 
           A figure is carried by the PLAN rather than by the page, because only
           the author of the teaching knows which relationship prose has to
           assert and a drawing can show: the direction of a negative jump, what
-          "both sides" looks like, the term an incomplete expansion leaves out.
+          "both sides" looks like, the atom counts on each side of an equation.
           A diagram beside every lesson would be decoration, and decoration
           teaches a learner to skip pictures.
+
+          THIS COMES BEFORE THE LEARNING MAP. The map is boxes and arrows about
+          the order of ideas, not a picture of the science; the first version
+          put it above the subject figure, so the first thing a learner saw on
+          "Chemical equations" was three rectangles and the actual particle
+          diagram was below the whole explanation. The figure is the teaching
+          image and gets the first position; the map follows it.
 
           The caption is not optional and not decorative. The SVG is
           `aria-hidden` (it repeats what the lesson says, in shapes), so the
@@ -1020,6 +1021,11 @@ export default function ConceptPage() {
           <figcaption className="small muted reading">{plan.figure.caption}</figcaption>
         </figure>
       )}
+
+      {/* EVERY LESSON SHOWS WHERE IT SITS — AFTER its own science figure. This
+          map is about the learning path rather than the science, and its caption
+          says so; it answers "what does this assume, and what next?". */}
+      <LessonMap conceptId={conceptId} />
       {/* A picture states the idea; a model lets the learner test it. Rendered
           only where the plan names one, so no other lesson gains a control that
           has nothing to do. */}

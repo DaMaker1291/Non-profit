@@ -24,7 +24,7 @@ compileEngines();
 
 const { CONCEPTS } = require("../.verify/genome.js");
 const { planFor, sectionsFor } = require("../.verify/lesson-plans.js");
-const { lessonMapFor, wrapLessonMapLabel } = require("../.verify/lesson-map.js");
+const { lessonMapFor, wrapLessonMapLabel, MAP_WIDTH } = require("../.verify/lesson-map.js");
 
 const failures = [];
 let connected = 0;
@@ -52,10 +52,19 @@ for (const concept of CONCEPTS) {
       failures.push(`${concept.id}: label for ${node.id} does not fit two short lines`);
     }
   }
+  // The canvas must be the CONTENT. A fixed 640px frame with a centre at 232
+  // left a blank column on every map with only one side populated, and the SVG
+  // stretched that blank column to the full card width. Assert the right edge
+  // reaches the frame instead of leaving a column of nothing.
+  const right = Math.max(...map.nodes.map((n) => n.x + n.width));
+  if (map.width > MAP_WIDTH) failures.push(`${concept.id}: map is wider than the declared maximum`);
+  if (right > map.width) failures.push(`${concept.id}: the rightmost node leaves the map frame`);
+  if (map.width - right > 32) failures.push(`${concept.id}: map leaves ${map.width - right}px of empty column`);
   for (const edge of map.edges) {
     if (!ids.has(edge.from) || !ids.has(edge.to)) failures.push(`${concept.id}: edge names a node that is not drawn`);
     if (edge.from === edge.to) failures.push(`${concept.id}: map has a self-edge`);
     if (edge.x2 <= edge.x1) failures.push(`${concept.id}: map edge does not travel left to right`);
+    if (edge.x2 - edge.x1 < 32) failures.push(`${concept.id}: map edge is too short to read as an arrow`);
   }
   const before = map.nodes.filter((n) => n.role === "before").length;
   const after = map.nodes.filter((n) => n.role === "after").length;

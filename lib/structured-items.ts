@@ -788,11 +788,453 @@ const HIGHER_SEQUENCES: StructuredItem = {
   ],
 };
 
+const CHEMISTRY_MOLES: StructuredItem = {
+  id: "chem-moles",
+  conceptId: "moles-calcs",
+  title: "Moles and mass",
+  intro:
+    "Carbon dioxide has the formula CO₂. Use C = 12 and O = 16.\n\n" +
+    "Part (a) is worth 1 mark. Parts (b) and (c) are each worth 2 marks: 1 for the method you show and 1 for the answer.",
+  note:
+    "The method mark is earned by the working you type, not inferred from a correct answer, and it is kept when the final value is wrong. " +
+    "The answer mark is the value in moles or grams, with the unit where the question asks for a mass. " +
+    "This item checks the mole relationship and arithmetic; it does not assess a written explanation.",
+  difficulty: 0.55,
+  parts: [
+    {
+      id: "a",
+      prompt: "Work out the relative formula mass of carbon dioxide, CO₂.",
+      marks: 1,
+      answer: 44,
+      accepted: ["44", "44 g/mol", "44 g mol-1"],
+      explanation:
+        "One carbon contributes 12 and two oxygens contribute 2 × 16 = 32, so 12 + 32 = 44. " +
+        "Relative formula mass adds the relative atomic masses in the formula; it is not the mass of a single molecule measured in grams. " +
+        "The relative formula mass is 44, and one mole of carbon dioxide therefore has a mass of 44 g.",
+    },
+    {
+      id: "b",
+      prompt: "Calculate the number of moles in 11 g of carbon dioxide.",
+      marks: 2,
+      answer: 0.25,
+      accepted: ["0.25", "0.250", "0.25 mol", "0.250 mol"],
+      method: {
+        id: "b:M1",
+        marks: 1,
+        prompt: "Show the calculation you used",
+        accept: [
+          "11 / 44", "11 ÷ 44", "11/44",
+          "11 / 44 = 0.25", "11 ÷ 44 = 0.25", "11/44 = 0.25",
+        ],
+        label: "mass ÷ relative formula mass",
+      },
+      explanation:
+        "Moles are found by dividing mass by relative formula mass: 11 ÷ 44 = 0.25 mol. " +
+        "The check is the reverse calculation, 0.25 × 44 = 11 g, which returns the mass in the question. " +
+        "Multiplying 11 by 44 would treat a mass as though it were a mole ratio and gives 484, not 0.25.",
+    },
+    {
+      id: "c",
+      prompt: "Calculate the mass of 0.50 mol of carbon dioxide. Give your answer in grams.",
+      marks: 2,
+      answer: 22,
+      unit: "g",
+      unitRequired: true,
+      accepted: ["22 g", "22g", "22.0 g", "22.0g"],
+      method: {
+        id: "c:M1",
+        marks: 1,
+        prompt: "Show the calculation you used",
+        accept: [
+          "0.5 × 44", "0.50 × 44", "0.5*44", "0.50*44", "0.5 x 44", "0.50 x 44",
+          "0.5 × 44 = 22", "0.50 × 44 = 22",
+        ],
+        label: "moles × relative formula mass",
+      },
+      explanation:
+        "Mass is moles multiplied by relative formula mass: 0.50 × 44 = 22 g. " +
+        "The answer needs the gram unit because the question asks for a mass, not a number of moles. " +
+        "Dividing 0.50 by 44 would give about 0.0114, which is the number of moles in 0.50 g rather than the mass of 0.50 mol.",
+    },
+  ],
+};
+
+const CHEMISTRY_BALANCING: StructuredItem = {
+  id: "chem-balancing",
+  conceptId: "equations-stoich",
+  title: "Balancing propane combustion",
+  intro:
+    "Propane burns completely: C₃H₈ + O₂ → CO₂ + H₂O.\n\n" +
+    "Part (a) is a table worth 3 marks, one per coefficient. Part (b) is worth 2 marks: 1 for the method you show and 1 for the answer.",
+  note:
+    "Each table cell is marked independently, so two correct coefficients keep two marks. " +
+    "The method mark in part (b) is earned by the working you type and is not inferred from the final answer. " +
+    "This item checks balancing and the mole ratio; it does not assess a written explanation of the reaction.",
+  difficulty: 0.6,
+  parts: [
+    {
+      id: "a",
+      prompt:
+        "Complete the coefficients that balance the equation. Enter the number that goes in front of each formula.",
+      marks: 3,
+      answer: 0,
+      response: "table",
+      table: {
+        columns: ["O₂", "CO₂", "H₂O"],
+        rows: [{
+          label: "Coefficient",
+          cells: [
+            { answer: 5, accepted: ["5"], tolerance: { abs: 0 } },
+            { answer: 3, accepted: ["3"], tolerance: { abs: 0 } },
+            { answer: 4, accepted: ["4"], tolerance: { abs: 0 } },
+          ],
+        }],
+      },
+      explanation:
+        "Propane has three carbon atoms, so three CO₂ molecules are needed; its eight hydrogen atoms need four H₂O molecules. " +
+        "The products then contain 3 × 2 + 4 = 10 oxygen atoms, so five O₂ molecules are needed on the left. " +
+        "Checking each element gives C 3 = 3, H 8 = 8 and O 10 = 10, so C₃H₈ + 5O₂ → 3CO₂ + 4H₂O is balanced.",
+    },
+    {
+      id: "b",
+      prompt:
+        "0.20 mol of propane burns completely. Calculate the number of moles of carbon dioxide produced.",
+      marks: 2,
+      answer: 0.6,
+      accepted: ["0.6", "0.60", "0.6 mol", "0.60 mol"],
+      method: {
+        id: "b:M1",
+        marks: 1,
+        prompt: "Show the mole-ratio calculation you used",
+        accept: [
+          "0.20 × 3", "0.2 × 3", "3 × 0.20", "3 × 0.2",
+          "0.20*3", "0.2*3", "3*0.20", "3*0.2",
+          "0.20 x 3", "0.2 x 3", "3 x 0.20", "3 x 0.2",
+          "0.20 × 3 = 0.6", "0.2 × 3 = 0.6",
+        ],
+        label: "three moles of CO₂ per mole of propane",
+      },
+      explanation:
+        "The balanced equation has a coefficient of 3 in front of CO₂ and an unwritten coefficient of 1 in front of C₃H₈, so the mole ratio is 3 : 1. " +
+        "For 0.20 mol of propane, the carbon dioxide produced is 0.20 × 3 = 0.60 mol. " +
+        "Using 0.20 ÷ 3 would reverse the ratio and give about 0.067 mol, which is the amount of propane needed for 0.20 mol of carbon dioxide.",
+    },
+  ],
+};
+
+const BIOLOGY_MICROSCOPY: StructuredItem = {
+  id: "bio-microscopy",
+  conceptId: "microscopy",
+  title: "Microscope magnification",
+  intro:
+    "A student views a cell with a microscope. The image of the cell is 30 mm wide. The real cell is 0.015 mm wide.\n\n" +
+    "Part (a) is worth 2 marks: 1 for the method you show and 1 for the answer. Part (b) is worth 2 marks in the same way. Part (c) is worth 1 mark.",
+  note:
+    "Marked from the magnification equation and the values you type. The method mark is earned only by the working shown, never inferred from a correct answer. " +
+    "Magnification itself has no unit; the two lengths do. The item checks calculation, not the drawing or focusing of a microscope.",
+  difficulty: 0.5,
+  parts: [
+    {
+      id: "a",
+      prompt: "Calculate the magnification. Give your answer as a number.",
+      marks: 2,
+      answer: 2000,
+      accepted: ["2000", "2,000"],
+      method: {
+        id: "a:M1",
+        marks: 1,
+        prompt: "Show the calculation you used",
+        accept: ["30 / 0.015", "30 ÷ 0.015", "30/0.015", "30 ÷ 0.015 = 2000", "30/0.015 = 2000"],
+        label: "image size ÷ real size",
+      },
+      explanation:
+        "Magnification is image size divided by real size: 30 mm ÷ 0.015 mm = 2000. The millimetres cancel because both lengths are in the same unit, so the result is a pure number; writing mm would make the magnification a length. The method mark is for that quotient, not for multiplying the two measurements.",
+    },
+    {
+      id: "b",
+      prompt: "A second cell is 45 mm wide in the same image. Calculate its real width in mm. Give your answer in mm.",
+      marks: 2,
+      answer: 0.0225,
+      unit: "mm",
+      unitRequired: true,
+      accepted: ["0.0225 mm", "0.0225mm"],
+      method: {
+        id: "b:M1",
+        marks: 1,
+        prompt: "Show the calculation you used",
+        accept: ["45 / 2000", "45 ÷ 2000", "45/2000", "45 ÷ 2000 = 0.0225", "45/2000 = 0.0225"],
+        label: "image size ÷ magnification",
+      },
+      explanation:
+        "The same magnification applies to the second cell, so rearrange image size = magnification × real size to get real size = image size ÷ magnification. That is 45 mm ÷ 2000 = 0.0225 mm. Multiplying 45 by 2000 would make the real cell 90,000 mm wide, which is the wrong direction for the rearrangement.",
+    },
+    {
+      id: "c",
+      prompt: "Convert the real width from part (b) to micrometres. Give your answer in µm.",
+      marks: 1,
+      answer: 22.5,
+      unit: "µm",
+      unitRequired: true,
+      accepted: ["22.5 µm", "22.5µm"],
+      explanation:
+        "One millimetre is 1000 micrometres, so 0.0225 mm × 1000 = 22.5 µm. The conversion multiplies because a micrometre is a smaller unit than a millimetre; dividing would make the cell smaller still and reverse the intended change of unit.",
+    },
+  ],
+};
+
+const BIOLOGY_ENERGY: StructuredItem = {
+  id: "bio-energy-transfer",
+  conceptId: "ecosystems",
+  title: "Energy in a food chain",
+  intro:
+    "The grass in a food chain contains 80 000 kJ of energy. At each step, 10% of the energy is transferred to the next trophic level.\n\n" +
+    "Part (a) is a table worth 3 marks. Part (b) is worth 2 marks: 1 for the method you show and 1 for the answer.",
+  note:
+    "Each table cell is marked independently, so three correct transfers keep three marks. " +
+    "Part (b) asks for the share of the grass's original energy that reaches the tertiary consumer, so the answer is a percentage, not a quantity of energy.",
+  difficulty: 0.55,
+  parts: [
+    {
+      id: "a",
+      prompt: "Complete the energy transferred to each consumer.",
+      marks: 3,
+      answer: 0,
+      response: "table",
+      table: {
+        columns: ["Primary consumer", "Secondary consumer", "Tertiary consumer"],
+        rows: [{
+          label: "Energy transferred (kJ)",
+          cells: [
+            { answer: 8000, tolerance: { abs: 0 } },
+            { answer: 800, tolerance: { abs: 0 } },
+            { answer: 80, tolerance: { abs: 0 } },
+          ],
+        }],
+      },
+      explanation:
+        "Each transfer is 10% of the energy in the level before it. The grass's 80 000 kJ gives 8000 kJ to the primary consumer, 10% of 8000 gives 800 kJ to the secondary consumer, and 10% of 800 gives 80 kJ to the tertiary consumer. At each step 90% is lost to the surroundings, mostly as heat from respiration, so the chain supports fewer organisms at each higher level.",
+    },
+    {
+      id: "b",
+      prompt:
+        "Calculate the percentage of the grass's original energy that reaches the tertiary consumer. Give your answer in %.",
+      marks: 2,
+      answer: 0.1,
+      unit: "%",
+      unitRequired: true,
+      accepted: ["0.1%", "0.10%"],
+      tolerance: { abs: 0.0001, display: "0.1%" },
+      method: {
+        id: "b:M1",
+        marks: 1,
+        prompt: "Show the calculation you used",
+        accept: [
+          "80 / 80000 × 100", "80 ÷ 80000 × 100", "80/80000*100", "80/80000x100",
+          "80 ÷ 80000 = 0.001, then × 100", "0.001 × 100",
+        ],
+        label: "energy at the tertiary consumer ÷ original energy × 100",
+      },
+      explanation:
+        "The tertiary consumer receives 80 kJ from an original 80 000 kJ. As a fraction that is 80 ÷ 80 000 = 0.001, and as a percentage it is 0.001 × 100 = 0.1%. Reporting 10% would stop after one transfer; the energy has passed through three transfers, so the original share is much smaller than one step's transfer.",
+    },
+  ],
+};
+
+const PHYSICS_CIRCUITS: StructuredItem = {
+  id: "phys-resistance",
+  conceptId: "electricity-circuits",
+  title: "Resistance and charge",
+  intro:
+    "A resistor is connected to a 6.0 V supply. The current through it is 0.30 A.\n\n" +
+    "Part (a) is worth 2 marks: 1 for the method and 1 for the answer. Part (b) is worth 2 marks in the same way. Part (c) is worth 1 mark.",
+  note:
+    "The method mark is earned by the working you type, not inferred from the final value. " +
+    "Resistance, current and charge each carry a unit in the answer box; a bare number is not the physical quantity the question asks for.",
+  difficulty: 0.55,
+  parts: [
+    {
+      id: "a",
+      prompt: "Calculate the resistance of the resistor. Give your answer in ohms.",
+      marks: 2,
+      answer: 20,
+      unit: "Ω",
+      unitRequired: true,
+      accepted: ["20 Ω", "20Ω"],
+      method: {
+        id: "a:M1",
+        marks: 1,
+        prompt: "Show the calculation you used",
+        accept: ["6.0 / 0.30", "6 / 0.3", "6.0 ÷ 0.30", "6 ÷ 0.3", "6/0.3", "6.0/0.30"],
+        label: "voltage ÷ current",
+      },
+      explanation:
+        "From V = IR, resistance is R = V ÷ I. Substituting gives 6.0 V ÷ 0.30 A = 20 Ω. The unit is ohms because voltage divided by current is resistance; multiplying the two would give a voltage-like quantity and is not the rearrangement the question needs.",
+    },
+    {
+      id: "b",
+      prompt: "The resistor is replaced by a 30 Ω resistor. Calculate the current at the same 6.0 V. Give your answer in A.",
+      marks: 2,
+      answer: 0.2,
+      unit: "A",
+      unitRequired: true,
+      accepted: ["0.2 A", "0.20 A"],
+      method: {
+        id: "b:M1",
+        marks: 1,
+        prompt: "Show the calculation you used",
+        accept: ["6.0 / 30", "6 / 30", "6.0 ÷ 30", "6 ÷ 30", "6/30", "6.0/30"],
+        label: "voltage ÷ resistance",
+      },
+      explanation:
+        "The supply voltage stays at 6.0 V, so I = V ÷ R = 6.0 ÷ 30 = 0.20 A. A larger resistance gives a smaller current for the same voltage. Using 30 ÷ 6 would reverse the relationship and give 5 A, which would happen if resistance were multiplied by current instead of dividing voltage by it.",
+    },
+    {
+      id: "c",
+      prompt: "The current is 0.30 A for 120 s. Calculate the charge that flows. Give your answer in coulombs.",
+      marks: 1,
+      answer: 36,
+      unit: "C",
+      unitRequired: true,
+      accepted: ["36 C", "36C"],
+      explanation:
+        "Current is charge per second, so charge is current × time: 0.30 A × 120 s = 36 C. Dividing 0.30 by 120 would give the charge per second twice over, not the total charge transferred during the 120 seconds.",
+    },
+  ],
+};
+
+const PHYSICS_MOTION: StructuredItem = {
+  id: "phys-motion",
+  conceptId: "motion-graphs",
+  title: "Acceleration and distance",
+  intro:
+    "A car accelerates uniformly from 8.0 m/s to 20.0 m/s in 6.0 s.\n\n" +
+    "Part (a) is worth 2 marks: 1 for the method and 1 for the answer. Part (b) is worth 2 marks in the same way. Part (c) is worth 1 mark.",
+  note:
+    "The marker checks the acceleration and distance from the values typed; the method mark needs the working shown. " +
+    "The final conversion asks for kilometres, so the answer is a distance, not a speed.",
+  difficulty: 0.6,
+  parts: [
+    {
+      id: "a",
+      prompt: "Calculate the acceleration of the car. Give your answer in m/s².",
+      marks: 2,
+      answer: 2,
+      unit: "m/s²",
+      unitRequired: true,
+      accepted: ["2 m/s²", "2 m/s2"],
+      method: {
+        id: "a:M1",
+        marks: 1,
+        prompt: "Show the calculation you used",
+        accept: [
+          "(20 - 8) / 6", "(20 − 8) ÷ 6", "(20-8)/6", "12 / 6", "12 ÷ 6",
+          "(20.0 - 8.0) / 6.0", "(20.0 − 8.0) ÷ 6.0",
+        ],
+        label: "change in velocity ÷ time",
+      },
+      explanation:
+        "Acceleration is the change in velocity divided by the time taken. The change is 20.0 − 8.0 = 12.0 m/s, so 12.0 ÷ 6.0 = 2.0 m/s². Dividing the final speed by the time would ignore the car's starting speed and give 3.3 m/s² instead.",
+    },
+    {
+      id: "b",
+      prompt: "Calculate the distance the car travels during the 6.0 s. Give your answer in m.",
+      marks: 2,
+      answer: 84,
+      unit: "m",
+      unitRequired: true,
+      accepted: ["84 m", "84m"],
+      method: {
+        id: "b:M1",
+        marks: 1,
+        prompt: "Show the calculation you used",
+        accept: [
+          "((8 + 20) / 2) × 6", "((8 + 20) ÷ 2) × 6", "(8 + 20) / 2 × 6", "(8 + 20) ÷ 2 × 6",
+          "14 × 6", "14 * 6", "average speed × time",
+        ],
+        label: "average speed × time",
+      },
+      explanation:
+        "For uniform acceleration, the average speed is halfway between 8.0 m/s and 20.0 m/s: (8.0 + 20.0) ÷ 2 = 14.0 m/s. Multiplying by 6.0 s gives 84 m. Using only the final speed would assume the car was already at 20 m/s for the whole six seconds and overestimate the distance.",
+    },
+    {
+      id: "c",
+      prompt: "Give the distance from part (b) in kilometres.",
+      marks: 1,
+      answer: 0.084,
+      unit: "km",
+      unitRequired: true,
+      accepted: ["0.084 km", "0.084km"],
+      explanation:
+        "There are 1000 metres in a kilometre, so 84 m ÷ 1000 = 0.084 km. Multiplication by 1000 would give 84 000 km, which is far larger than the distance travelled and reverses the direction of the conversion.",
+    },
+  ],
+};
+
+const COMPUTING_LOOP: StructuredItem = {
+  id: "comp-loop-trace",
+  conceptId: "loops",
+  title: "Tracing a loop",
+  intro:
+    "Study this program:\n\n" +
+    "total = 0\n" +
+    "for n in [2, 4, 6, 8]:\n" +
+    "    total = total + n\n\n" +
+    "Part (a) is a trace table worth 4 marks, one per value. Parts (b) and (c) are worth 1 mark each.",
+  note:
+    "The table is marked cell by cell, so two correct values keep two marks. The trace follows the loop in order; the final value and the number of iterations are counted from the same list, not guessed from the size of the numbers.",
+  difficulty: 0.5,
+  parts: [
+    {
+      id: "a",
+      prompt: "Complete the value of total after each update.",
+      marks: 4,
+      answer: 0,
+      response: "table",
+      table: {
+        columns: ["n = 2", "n = 4", "n = 6", "n = 8"],
+        rows: [{
+          label: "total after the update",
+          cells: [
+            { answer: 2, tolerance: { abs: 0 } },
+            { answer: 6, tolerance: { abs: 0 } },
+            { answer: 12, tolerance: { abs: 0 } },
+            { answer: 20, tolerance: { abs: 0 } },
+          ],
+        }],
+      },
+      explanation:
+        "The loop visits the list in order. Starting from total = 0: after n = 2, total is 2; after n = 4, 2 + 4 = 6; after n = 6, 6 + 6 = 12; after n = 8, 12 + 8 = 20. Each cell is a snapshot after that update, not a running formula with n substituted independently.",
+    },
+    {
+      id: "b",
+      prompt: "What is the final value of total?",
+      marks: 1,
+      answer: 20,
+      accepted: ["20"],
+      explanation:
+        "The final update is 12 + 8 = 20, so the last value stored in total is 20. Reporting 8 would name the last item in the list rather than the accumulated total.",
+    },
+    {
+      id: "c",
+      prompt: "How many times does the loop body run?",
+      marks: 1,
+      answer: 4,
+      accepted: ["4"],
+      explanation:
+        "The list contains four values: 2, 4, 6 and 8. A for loop runs its body once for each item, so the body runs four times, not eight or twenty.",
+    },
+  ],
+};
+
 export const STRUCTURED_ITEMS: StructuredItem[] = [
   LINE_GRAPH, PLOT_LINE, LAWN_FEED,
   FOUNDATION_PROPORTION, HIGHER_SURDS, FOUNDATION_ALGEBRA, HIGHER_ALGEBRA,
   TABLE_LINE, TABLE_QUADRATIC, FOUNDATION_ANGLES, HIGHER_ANGLES,
   HIGHER_CONTEXT, HIGHER_SEQUENCES,
+  CHEMISTRY_MOLES, CHEMISTRY_BALANCING,
+  BIOLOGY_MICROSCOPY, BIOLOGY_ENERGY,
+  PHYSICS_CIRCUITS, PHYSICS_MOTION,
+  COMPUTING_LOOP,
 ];
 
 /** Total marks, summed from the parts — the one number a paper slot checks. */

@@ -1,0 +1,112 @@
+// The five subjects added after the first atlas pass, kept in their own block so
+// the original reviewable vocabulary remains one diff. Merged into DICTS at
+// module load like every other feature dictionary.
+export type AtlasExtraStrings = Record<string, string>;
+
+export const ATLAS_EXTRA_STRINGS: Record<string, AtlasExtraStrings> = {
+  en: {
+    "atlas.languages": "Modern languages",
+    "atlas.dance": "Dance",
+    "atlas.film": "Film & screen",
+    "atlas.environment": "Environmental science",
+    "atlas.engineering": "Engineering",
+  },
+  es: {
+    "atlas.languages": "Lenguas modernas",
+    "atlas.dance": "Danza",
+    "atlas.film": "Cine y pantalla",
+    "atlas.environment": "Ciencias ambientales",
+    "atlas.engineering": "Ingeniería",
+  },
+  fr: {
+    "atlas.languages": "Langues vivantes",
+    "atlas.dance": "Danse",
+    "atlas.film": "Cinéma et écran",
+    "atlas.environment": "Sciences de l'environnement",
+    "atlas.engineering": "Ingénierie",
+  },
+  pt: {
+    "atlas.languages": "Línguas modernas",
+    "atlas.dance": "Dança",
+    "atlas.film": "Cinema e ecrã",
+    "atlas.environment": "Ciências do ambiente",
+    "atlas.engineering": "Engenharia",
+  },
+  ar: {
+    "atlas.languages": "اللغات الحديثة",
+    "atlas.dance": "الرقص",
+    "atlas.film": "السينما والشاشة",
+    "atlas.environment": "علوم البيئة",
+    "atlas.engineering": "الهندسة",
+  },
+  sw: {
+    "atlas.languages": "Lugha za kisasa",
+    "atlas.dance": "Ngoma",
+    "atlas.film": "Filamu na skrini",
+    "atlas.environment": "Sayansi ya mazingira",
+    "atlas.engineering": "Uhandisi",
+  },
+  hi: {
+    "atlas.languages": "आधुनिक भाषाएँ",
+    "atlas.dance": "नृत्य",
+    "atlas.film": "फ़िल्म और स्क्रीन",
+    "atlas.environment": "पर्यावरण विज्ञान",
+    "atlas.engineering": "इंजीनियरी",
+  },
+  id: {
+    "atlas.languages": "Bahasa modern",
+    "atlas.dance": "Tari",
+    "atlas.film": "Film dan layar",
+    "atlas.environment": "Ilmu lingkungan",
+    "atlas.engineering": "Teknik",
+  },
+  tl: {
+    "atlas.languages": "Mga modernong wika",
+    "atlas.dance": "Sayaw",
+    "atlas.film": "Pelikula at screen",
+    "atlas.environment": "Agham pangkalikasan",
+    "atlas.engineering": "Inhinyeriya",
+  },
+  ur: {
+    "atlas.languages": "جدید زبانیں",
+    "atlas.dance": "رقص",
+    "atlas.film": "فلم اور اسکرین",
+    "atlas.environment": "ماحولیاتی سائنس",
+    "atlas.engineering": "انجینئرنگ",
+  },
+  fa: {
+    "atlas.languages": "زبان‌های مدرن",
+    "atlas.dance": "رقص",
+    "atlas.film": "سینما و صفحه",
+    "atlas.environment": "علوم محیطی",
+    "atlas.engineering": "مهندسی",
+  },
+  de: {
+    "atlas.languages": "Moderne Sprachen",
+    "atlas.dance": "Tanz",
+    "atlas.film": "Film und Leinwand",
+    "atlas.environment": "Umweltwissenschaften",
+    "atlas.engineering": "Ingenieurwesen",
+  },
+  ja: {
+    "atlas.languages": "現代語",
+    "atlas.dance": "ダンス",
+    "atlas.film": "映画とスクリーン",
+    "atlas.environment": "環境科学",
+    "atlas.engineering": "工学",
+  },
+  zh: {
+    "atlas.languages": "现代语言",
+    "atlas.dance": "舞蹈",
+    "atlas.film": "电影与屏幕",
+    "atlas.environment": "环境科学",
+    "atlas.engineering": "工程",
+  },
+  bn: {
+    "atlas.languages": "আধুনিক ভাষা",
+    "atlas.dance": "নৃত্য",
+    "atlas.film": "চলচ্চিত্র ও স্ক্রিন",
+    "atlas.environment": "পরিবেশ বিজ্ঞান",
+    "atlas.engineering": "প্রকৌশল",
+  },
+};

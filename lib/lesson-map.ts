@@ -42,10 +42,15 @@ export interface LessonMapLayout {
   readonly afterMore: number;
 }
 
-export const MAP_WIDTH = 640;
+// The widest a three-column map gets. A one-sided map is narrower than this;
+// `lessonMapFor` makes the canvas the CONTENT rather than a fixed 640px frame
+// with an empty column where the missing side would be.
+export const MAP_WIDTH = 704;
 export const MAP_HEIGHT = 230;
 export const MAP_NODE_WIDTH = 176;
 export const MAP_NODE_HEIGHT = 54;
+const MAP_PAD = 16;
+const MAP_GAP = 72;
 
 function yFor(index: number, count: number): number {
   if (count <= 1) return (MAP_HEIGHT - MAP_NODE_HEIGHT) / 2;
@@ -65,10 +70,24 @@ export function lessonMapFor(conceptId: string): LessonMapLayout | null {
   const nearby = before.length === 0 && after.length === 0
     ? CONCEPTS.filter((c) => c.subject === concept.subject && c.id !== conceptId).map((c) => c.id).slice(0, 2)
     : [];
+  // THE CANVAS IS THE CONTENT. The old layout always used a 640px frame and
+  // put `this` at x=232, so a map with prerequisites but no next concept drew
+  // two boxes on the left and 232px of empty space on the right. The card then
+  // stretched that empty column to its own width, which is why the screenshot
+  // looked like three small buttons floating in a large empty panel.
+  const hasBefore = before.length > 0;
+  const hasAfter = after.length > 0 || nearby.length > 0;
+  const width =
+    MAP_PAD * 2 +
+    MAP_NODE_WIDTH +
+    (hasBefore ? MAP_GAP + MAP_NODE_WIDTH : 0) +
+    (hasAfter ? MAP_GAP + MAP_NODE_WIDTH : 0);
+  const thisX = MAP_PAD + (hasBefore ? MAP_NODE_WIDTH + MAP_GAP : 0);
+  const afterX = thisX + MAP_NODE_WIDTH + MAP_GAP;
   const thisNode: LessonMapNode = {
     id: conceptId,
     role: "this",
-    x: (MAP_WIDTH - MAP_NODE_WIDTH) / 2,
+    x: thisX,
     y: (MAP_HEIGHT - MAP_NODE_HEIGHT) / 2,
     width: MAP_NODE_WIDTH,
     height: MAP_NODE_HEIGHT,
@@ -76,7 +95,7 @@ export function lessonMapFor(conceptId: string): LessonMapLayout | null {
   const beforeNodes = before.map((id, i) => ({
     id,
     role: "before" as const,
-    x: 8,
+    x: MAP_PAD,
     y: yFor(i, before.length),
     width: MAP_NODE_WIDTH,
     height: MAP_NODE_HEIGHT,
@@ -84,7 +103,7 @@ export function lessonMapFor(conceptId: string): LessonMapLayout | null {
   const afterNodes = after.map((id, i) => ({
     id,
     role: "after" as const,
-    x: MAP_WIDTH - MAP_NODE_WIDTH - 8,
+    x: afterX,
     y: yFor(i, after.length),
     width: MAP_NODE_WIDTH,
     height: MAP_NODE_HEIGHT,
@@ -92,7 +111,7 @@ export function lessonMapFor(conceptId: string): LessonMapLayout | null {
   const nearbyNodes = nearby.map((id, i) => ({
     id,
     role: "nearby" as const,
-    x: MAP_WIDTH - MAP_NODE_WIDTH - 8,
+    x: afterX,
     y: yFor(i, nearby.length),
     width: MAP_NODE_WIDTH,
     height: MAP_NODE_HEIGHT,
@@ -120,7 +139,7 @@ export function lessonMapFor(conceptId: string): LessonMapLayout | null {
   }
   return {
     conceptId,
-    width: MAP_WIDTH,
+    width,
     height: MAP_HEIGHT,
     nodes: [...beforeNodes, thisNode, ...afterNodes, ...nearbyNodes],
     edges,

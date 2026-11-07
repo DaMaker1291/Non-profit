@@ -257,7 +257,15 @@ h1, h2, h3 {
 h1 { font-size: clamp(1.7rem, 3.2vw, 2.05rem); line-height: 1.15; margin-bottom: var(--s2); }
 h2 { font-size: clamp(1.2rem, 2.2vw, 1.35rem); margin-bottom: 0.4rem; }
 h3 { font-size: var(--t1-05); }
-p { margin: 0 0 0.8rem; }
+/* The paragraph gap is the SAME spacing token the React app uses. `0.8rem`
+   followed the root font size, so the gap between two paragraphs moved when a
+   learner raised their text size — the one thing a spacing scale exists to
+   stop. Lists get the same block rhythm; `ul.items` below keeps its own
+   reset because it is a table of rows, not prose. */
+p { margin: 0 0 var(--s2); text-wrap: pretty; }
+ul, ol { margin: 0 0 var(--s2); padding-inline-start: 1.35em; }
+dl { margin: 0 0 var(--s2); }
+dd { margin-inline-start: 0; margin-bottom: 4px; }
 
 /* ── Chrome: the header ─────────────────────────────────────────────────── */
 
@@ -476,9 +484,12 @@ main {
   width: 100%;
   max-width: var(--measure);
   margin: 0 auto;
-  padding: 1.9rem 1.15rem 5rem;
+  /* The same opening step as the app: 32px on a page whose H1 is the content,
+     and 40px on the landing page, which opens with a hero. The old 30.4/44.8
+     pair was two arbitrary rem values in a file that declares an 8px scale. */
+  padding: var(--s4) 1.15rem var(--s5);
 }
-main.landing { padding-top: 2.8rem; }
+main.landing { padding-top: var(--s5); }
 
 footer {
   width: 100%;
@@ -806,7 +817,13 @@ details.evidence li { margin-bottom: 0.25rem; }
    rows were reflowed. max-width + height:auto keeps the drawing's own aspect
    ratio and lets it shrink to the screen it is on. */
 .qfigure, .lesson-figure { margin: 0 0 1rem; }
-.qfigure svg, .lesson-figure svg { display: block; width: 100%; max-width: 340px; height: auto; }
+/* A question's drawing is a compact chart; a LESSON's drawing is the teaching
+   image, so it takes the reading column rather than shrinking to 340px. At
+   340px the particle diagram's atoms were 7px circles and the picture read as
+   noise — the failure the learner reported as "doesn't show anything". */
+.qfigure svg { display: block; width: 100%; max-width: 340px; height: auto; }
+.lesson-figure { max-width: 100%; }
+.lesson-figure svg { display: block; width: 100%; max-width: 520px; margin-inline: auto; height: auto; }
 .lesson-figure figcaption { margin-top: 0.4rem; }
 /* The question's own caption: the SVG is aria-hidden, so this is the picture for
    a screen reader and for a greyscale print. Same rule in both stylesheets. */
@@ -846,18 +863,46 @@ details.evidence li { margin-bottom: 0.25rem; }
 }
 .lesson-map {
   margin: 0 0 18px; padding: 14px 16px 12px; border: 1px solid var(--line);
-  border-radius: 12px; background: var(--surface);
+  border-radius: 12px; background: var(--surface); max-width: 740px;
 }
 .lesson-map-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.lesson-map svg { display: block; width: 100%; min-width: 540px; height: auto; margin: 0 auto; }
-.lesson-map-edge line { stroke: var(--line-strong); stroke-width: 1.4; }
-.lesson-map-edge polygon { fill: var(--line-strong); }
-.lesson-map-node rect { fill: var(--surface-sunken); stroke: var(--line-strong); stroke-width: 1.2; }
+.lesson-map svg { display: block; width: 100%; min-width: 440px; height: auto; margin: 0 auto; }
+.lesson-map-edge line { stroke: var(--line); stroke-width: 2; }
+.lesson-map-edge polygon { fill: var(--line); }
+.lesson-map-node rect { fill: var(--surface-sunken); stroke: var(--line); stroke-width: 1.2; }
 .lesson-map-node.this rect { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
 .lesson-map-node.nearby rect { fill: transparent; stroke-dasharray: 4 3; }
 .lesson-map-node text { fill: var(--text); font-size: 12px; font-weight: 600; font-family: var(--sans); }
 .lesson-map-node.this text { fill: var(--accent-strong, var(--accent)); }
 .lesson-map figcaption { margin-top: 8px; line-height: 1.45; }
+
+/* ── The universal subject atlas ─────────────────────────────────────────── */
+.atlas-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.atlas-card { display: block; color: inherit; text-decoration: none; }
+.atlas-card h3 { margin: 0; font-size: 1.05rem; }
+.atlas-card p { margin: 8px 0 0; }
+.atlas-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.atlas-card-head .tag { flex: none; max-width: 100%; white-space: normal; }
+.atlas-map { margin: 14px 0 10px; }
+.atlas-map svg { display: block; width: 100%; height: auto; overflow: visible; }
+.atlas-map figcaption { margin-top: 6px; line-height: 1.45; }
+.atlas-map-centre { fill: var(--text); }
+.atlas-map-edge { stroke: var(--line); stroke-width: 2; }
+.atlas-map-node { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.atlas-map-centre-text { fill: var(--surface); font-size: 14px; font-weight: 650; font-family: var(--sans); }
+.atlas-map-node-text { fill: var(--text); font-size: 13px; font-family: var(--sans); }
+
+/* ── The full-subject theory map ─────────────────────────────────────────── */
+.theory-map-panel { margin: 1rem 0 1.5rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.theory-map-panel > summary { display: flex; align-items: center; gap: 8px; padding: 10px 14px; cursor: pointer; font-weight: 650; }
+.theory-map-panel > summary .mono { color: var(--muted); font-weight: 400; }
+.theory-map { margin: 0; padding: 0 14px 12px; }
+.theory-map-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.theory-map svg { display: block; height: auto; }
+.theory-map-edge { stroke: var(--line); stroke-width: 1.1; }
+.theory-map-node rect { fill: var(--surface-sunken); stroke: var(--line); stroke-width: 1; }
+.theory-map-node text { fill: var(--text); font-size: 11px; font-family: var(--font, sans-serif); unicode-bidi: plaintext; }
+.theory-map-caption { margin: 10px 0 0; line-height: 1.45; }
 .lesson-formula {
   margin: 10px 0 2px; padding: 10px 12px;
   border: 1px solid var(--line); border-radius: 8px;
@@ -875,7 +920,7 @@ details.evidence li { margin-bottom: 0.25rem; }
 @media (max-width: 520px) {
   .lesson-section { padding-left: 10px; }
   .lesson-map { padding-inline: 10px; }
-  .lesson-map svg { min-width: 480px; }
+  .lesson-map svg { min-width: 440px; }
 }
 
 .choices { display: grid; gap: 0.55rem; margin-bottom: 1rem; }

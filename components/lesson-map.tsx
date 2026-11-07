@@ -43,10 +43,16 @@ export function LessonMap({ conceptId }: { conceptId: string }) {
   return (
     <figure className="lesson-map" data-map="learning-path" data-concept={conceptId}>
       <div className="lesson-map-scroll">
-        <svg viewBox={`0 0 ${map.width} ${map.height}`} role="presentation" aria-hidden="true">
+        <svg
+          viewBox={`0 0 ${map.width} ${map.height}`}
+          role="presentation"
+          aria-hidden="true"
+          focusable="false"
+          style={{ maxWidth: map.width }}
+        >
           {map.edges.map((edge, i) => {
             const angle = Math.atan2(edge.y2 - edge.y1, edge.x2 - edge.x1);
-            const head = 8;
+            const head = 11;
             const a = 0.42;
             return (
               <g key={`${edge.from}-${edge.to}-${i}`} className="lesson-map-edge">

@@ -402,8 +402,9 @@
     return [x1 + t0 * dx, y1 + t0 * dy, x1 + t1 * dx, y1 + t1 * dy];
   }
 
-  function svgWrap(w, h, parts) {
-    return '<svg viewBox="0 0 ' + w + " " + h + '" role="presentation" aria-hidden="true">' + parts.join("") + "</svg>";
+  function svgWrap(w, h, parts, style) {
+    return '<svg viewBox="0 0 ' + w + " " + h + '" role="presentation" aria-hidden="true"' +
+      (style ? ' style="' + style + '"' : "") + ">" + parts.join("") + "</svg>";
   }
 
   function pieSvg(spec) {
@@ -704,6 +705,22 @@
     return svgWrap(L.width, L.height, parts);
   }
 
+  function atomSvg(spec) {
+    var L = E.figures.atomLayout(spec);
+    var parts = [];
+    L.shells.forEach(function (shell) {
+      parts.push('<circle cx="' + L.cx + '" cy="' + L.cy + '" r="' + shell.radius + '" fill="none" stroke="var(--line)" stroke-width="1.2"/>');
+      shell.electrons.forEach(function (electron) {
+        parts.push('<circle cx="' + electron.x + '" cy="' + electron.y + '" r="4" fill="var(--accent)"/>');
+      });
+      parts.push('<text x="' + (L.cx + shell.radius + 8) + '" y="' + (L.cy + 4) + '" font-size="9" fill="var(--text-muted)">' + shell.electrons.length + 'e⁻</text>');
+    });
+    parts.push('<circle cx="' + L.cx + '" cy="' + L.cy + '" r="' + L.nucleusRadius + '" fill="var(--surface-sunken)" stroke="var(--accent)" stroke-width="2"/>');
+    parts.push('<text x="' + L.cx + '" y="' + (L.cy + 4) + '" text-anchor="middle" font-size="16" font-weight="700" fill="var(--text)">' + esc(spec.symbol) + '</text>');
+    parts.push('<text x="' + L.cx + '" y="' + (L.cy + L.nucleusRadius + 15) + '" text-anchor="middle" font-size="10" fill="var(--text-muted)">' + esc(spec.protons + 'p · ' + spec.neutrons + 'n') + '</text>');
+    return svgWrap(L.width, L.height, parts);
+  }
+
   function energyProfileSvg(spec) {
     var L = E.figures.energyProfileLayout(spec);
     var points = L.points.map(function (p) { return p[0] + ',' + p[1]; }).join(' ');
@@ -724,6 +741,51 @@
 
   /** A `FigureSpec` as SVG, or `""` for a kind this build cannot draw — and never
    *  a box with nothing in it. */
+  function chemSvg(spec) {
+    var L = E.figures.chemLayout(spec);
+    function paint(p) {
+      if (p === "accent") return "var(--accent)";
+      if (p === "muted") return "var(--text-muted)";
+      if (p === "line") return "var(--line)";
+      if (p === "surface") return "var(--surface)";
+      if (p === "sunken") return "var(--surface-sunken)";
+      if (p === "text") return "var(--text)";
+      if (p === "flame-li") return "#d64545";
+      if (p === "flame-na") return "#d9a400";
+      if (p === "flame-k") return "#8a5bd6";
+      if (p === "flame-ca") return "#e2703a";
+      if (p === "flame-cu") return "#2f9e8f";
+      return "none";
+    }
+    var parts = L.shapes.map(function (s) {
+      if (s.kind === "rect") {
+        return '<rect x="' + s.x + '" y="' + s.y + '" width="' + s.w + '" height="' + s.h + '"' +
+          (s.rx ? ' rx="' + s.rx + '"' : '') + ' fill="' + paint(s.fill) + '"' +
+          (s.fillOpacity !== undefined ? ' fill-opacity="' + s.fillOpacity + '"' : '') +
+          (s.stroke ? ' stroke="' + paint(s.stroke) + '" stroke-width="' + (s.strokeWidth || 1) + '"' : '') + '/>';
+      }
+      if (s.kind === "circle") {
+        return '<circle cx="' + s.cx + '" cy="' + s.cy + '" r="' + s.r + '" fill="' + paint(s.fill) + '"' +
+          (s.fillOpacity !== undefined ? ' fill-opacity="' + s.fillOpacity + '"' : '') +
+          (s.stroke ? ' stroke="' + paint(s.stroke) + '" stroke-width="' + (s.strokeWidth || 1) + '"' : '') + '/>';
+      }
+      if (s.kind === "line") {
+        return '<line x1="' + s.x1 + '" y1="' + s.y1 + '" x2="' + s.x2 + '" y2="' + s.y2 + '" stroke="' + paint(s.stroke) + '" stroke-width="' + (s.strokeWidth || 1) + '"' + (s.dashed ? ' stroke-dasharray="4 4"' : '') + '/>';
+      }
+      if (s.kind === "path") {
+        return '<path d="' + s.d + '" fill="' + paint(s.fill) + '"' +
+          (s.fillOpacity !== undefined ? ' fill-opacity="' + s.fillOpacity + '"' : '') +
+          (s.stroke ? ' stroke="' + paint(s.stroke) + '" stroke-width="' + (s.strokeWidth || 1) + '"' : '') + '/>';
+      }
+      if (s.kind === "polyline") {
+        return '<polyline points="' + s.points.map(function (p) { return p[0] + "," + p[1]; }).join(" ") + '" fill="none" stroke="' + paint(s.stroke) + '" stroke-width="' + (s.strokeWidth || 1) + '"' + (s.dashed ? ' stroke-dasharray="4 4"' : '') + '/>';
+      }
+      return '<text x="' + s.x + '" y="' + s.y + '" text-anchor="' + (s.anchor || "start") + '" font-size="' + (s.size || 11) + '"' +
+        (s.weight ? ' font-weight="' + s.weight + '"' : '') + ' fill="' + paint(s.fill) + '">' + esc(s.text) + '</text>';
+    });
+    return svgWrap(L.width, L.height, parts);
+  }
+
   function figureSvg(spec) {
     if (!spec || !spec.kind) return "";
     if (spec.kind === "axes") return axesSvg(spec);
@@ -736,6 +798,8 @@
     if (spec.kind === "particles") return particlesSvg(spec);
     if (spec.kind === "circuit") return circuitSvg(spec);
     if (spec.kind === "cell") return cellSvg(spec);
+    if (spec.kind === "atom") return atomSvg(spec);
+    if (spec.kind === "chem") return chemSvg(spec);
     if (spec.kind === "energy-profile") return energyProfileSvg(spec);
     return "";
   }
@@ -830,6 +894,8 @@
 
     if (base === "/" || base === "") return viewLanding();
     if (base === "/setup") return viewSetup();
+    // PUBLIC, and before the profile guard: the atlas is not a learner record.
+    if (base === "/subjects") return viewAtlas();
     // Every route past this point reads the learner's own record, so with no
     // profile on this device the honest screen is the one that SAYS so.
     if (!hasProfile) return viewNoProfile();
@@ -876,7 +942,72 @@
       }).join("") +
       "</ul>" +
       '<p class="small muted" style="margin-top:.6rem">' + ready + " / " + concepts + " " + esc(t("home.concepts")) + "</p>" +
+      '<p style="margin:12px 0 0"><a class="btn ghost small" href="#/subjects">' + esc(t("atlas.title")) + " →</a></p>" +
       "</div>";
+  }
+
+  /** THE UNIVERSAL SUBJECT ATLAS, in the offline twin.
+   *
+   *  The React page and this page read the SAME subject data and the SAME map
+   *  geometry from lib/subject-atlas.ts. Five cards lead into the graded
+   *  curriculum; twenty-one are external courses, labelled as such. The route is
+   *  public and country-blind on purpose: it is a way into a subject, not a
+   *  national syllabus claim. */
+  function viewAtlas() {
+    setNav("/subjects");
+    root.className = "";
+    var A = E.subjectAtlas;
+    var graded = A.SUBJECT_ATLAS.filter(function (s) { return s.graded; });
+    var routes = A.SUBJECT_ATLAS.filter(function (s) { return !s.graded; });
+    function label(s) { return t(s.labelKey); }
+    function map(s) {
+      var M = A.atlasMapLayout(s);
+      var parts = [];
+      M.edges.forEach(function (edge) {
+        parts.push('<line class="atlas-map-edge" x1="' + edge.x1 + '" y1="' + edge.y1 +
+          '" x2="' + edge.x2 + '" y2="' + edge.y2 + '"/>');
+      });
+      parts.push('<rect class="atlas-map-centre" x="' + M.centre.x + '" y="' + M.centre.y +
+        '" width="' + M.centre.width + '" height="' + M.centre.height + '" rx="14"/>');
+      var centreLines = A.wrapAtlasLabel(label(s), 22).slice(0, 2);
+      centreLines.forEach(function (line, i) {
+        parts.push('<text class="atlas-map-centre-text" x="' + (M.centre.x + M.centre.width / 2) +
+          '" y="' + (M.centre.y + (centreLines.length === 1 ? 41 : 32 + i * 18)) +
+          '" text-anchor="middle">' + esc(line) + '</text>');
+      });
+      M.nodes.forEach(function (node) {
+        parts.push('<g><rect class="atlas-map-node" x="' + node.x + '" y="' + node.y +
+          '" width="' + node.width + '" height="' + node.height + '" rx="10"/>' +
+          node.lines.map(function (line, i) {
+            return '<text class="atlas-map-node-text" x="' + (node.x + 14) + '" y="' +
+              (node.y + (node.lines.length === 1 ? 29 : 20 + i * 16)) + '">' + esc(line) + '</text>';
+          }).join("") + '</g>');
+      });
+      return '<figure class="atlas-map">' + svgWrap(A.ATLAS_MAP_WIDTH, A.ATLAS_MAP_HEIGHT, parts) +
+        '<figcaption class="small muted">' + esc(t("atlas.mapCaption")) + '</figcaption></figure>';
+    }
+    function card(s) {
+      var c = s.course;
+      var body = map(s);
+      if (s.graded) {
+        return '<a class="card atlas-card" href="#/curriculum?subject=' + encodeURIComponent(s.id) + '">' +
+          '<div class="atlas-card-head"><h3>' + esc(label(s)) + '</h3><span class="tag good">' +
+          esc(t("atlas.graded")) + '</span></div><p>' + esc(s.question) + '</p>' + body + '</a>';
+      }
+      return '<article class="card atlas-card"><div class="atlas-card-head"><h3>' + esc(label(s)) +
+        '</h3><span class="tag">' + esc(t("atlas.notGraded")) + '</span></div><p>' + esc(s.question) + '</p>' +
+        body + '<p class="small muted">' + esc(c.summary) + '</p><p class="small muted">' +
+        esc(c.source) + " · " + esc(c.language.toUpperCase()) + " · " + esc(t("lesson.videoCaptionsUnknown")) +
+        '</p><a class="btn ghost small" href="' + esc(c.url) + '" target="_blank" rel="noreferrer noopener">' +
+        esc(t("atlas.open")) + " · " + esc(c.title) + ' ↗</a></article>';
+    }
+    root.innerHTML = '<div class="section"><h1>' + esc(t("atlas.title")) + '</h1><p class="lead">' +
+      esc(t("atlas.lead")) + '</p><p class="small muted">' + A.ATLAS_TOTAL_COUNT + ' · ' +
+      A.ATLAS_GRADED_COUNT + ' ' + esc(t("atlas.graded")) + ' · ' + A.ATLAS_EXTERNAL_COUNT + ' ' +
+      esc(t("atlas.route")) + '</p><h2>' + esc(t("atlas.graded")) + '</h2><div class="atlas-grid">' +
+      graded.map(card).join("") + '</div><h2 style="margin-top:2rem">' + esc(t("atlas.route")) +
+      '</h2><p class="small muted">' + esc(t("atlas.englishNote")) + '</p><div class="atlas-grid">' +
+      routes.map(card).join("") + '</div></div>';
   }
 
   /** A deep link with no learner on this device.
@@ -1440,9 +1571,9 @@
       '<p class="muted">' + esc(E.contentI18n.cblurb(lang(), conceptId)) + "</p>" + note +
       lessonPart(t("plan.can"), '<p style="margin:10px 0 0">' + esc(plan.objective) + "</p>") +
       lessonPart(t("plan.start"), '<p style="margin:10px 0 0">' + esc(plan.intuition) + "</p>") +
+      lessonFigureHtml(plan) +
       lessonMapHtml(conceptId) +
       lessonPart(t("learn.idea"), lessonSections ? '<div class="lesson-sections">' + idea + "</div>" : idea) +
-      lessonFigureHtml(plan) +
       lessonVideoHtml(plan) +
       workedBlock(conceptId, "worked", "worked.eyebrow", "worked.lead", "worked.show") +
       workedBlock(conceptId, "guided", "plan.together", "plan.guidedLead", "plan.firstStep") +
@@ -1521,7 +1652,7 @@
     var parts = [];
     M.edges.forEach(function (edge) {
       var angle = Math.atan2(edge.y2 - edge.y1, edge.x2 - edge.x1);
-      var head = 8, a = 0.42;
+      var head = 11, a = 0.42;
       parts.push('<g class="lesson-map-edge"><line x1="' + edge.x1 + '" y1="' + edge.y1 +
         '" x2="' + edge.x2 + '" y2="' + edge.y2 + '"/><polygon points="' +
         edge.x2 + "," + edge.y2 + " " +
@@ -1554,12 +1685,42 @@
           : t("lesson.mapEnd")) +
       " " + t("lesson.mapNote");
     return '<figure class="lesson-map" data-map="learning-path" data-concept="' + esc(conceptId) + '">' +
-      '<div class="lesson-map-scroll">' + svgWrap(M.width, M.height, parts) + "</div>" +
+      '<div class="lesson-map-scroll">' + svgWrap(M.width, M.height, parts, "max-width:" + M.width + "px;") + "</div>" +
       '<figcaption class="small muted reading">' + esc(caption) + "</figcaption></figure>";
   }
 
-  /** THE LINK-ONLY VIDEO CARD, in the offline twin too. `videoFor` answers the
-   *  authored concept video when there is one, otherwise a subject overview
+  /** EVERY CONCEPT IN ONE SUBJECT MAP, generated from the genome's prerequisites.
+   *  The same layout module the React page uses, so the two builds cannot draw
+   *  different theory networks from the same graph. No edge is invented: a line
+   *  exists only where `prereqs` names a concept in this subject. */
+  function theoryMapHtml(subject) {
+    if (!E.theoryMap) return "";
+    var M = E.theoryMap.theoryMapFor(subject);
+    if (!M) return "";
+    var parts = [];
+    M.edges.forEach(function (edge) {
+      parts.push('<line class="theory-map-edge" x1="' + edge.x1 + '" y1="' + edge.y1 +
+        '" x2="' + edge.x2 + '" y2="' + edge.y2 + '"/>');
+    });
+    M.nodes.forEach(function (node) {
+      var lines = E.lessonMap.wrapLessonMapLabel(ctitle(node.id));
+      var lineHeight = 13;
+      var startY = node.y + node.height / 2 - ((lines.length - 1) * lineHeight) / 2 + 4;
+      parts.push('<g class="theory-map-node" data-node="' + esc(node.id) + '">' +
+        '<rect x="' + node.x + '" y="' + node.y + '" width="' + node.width + '" height="' + node.height + '" rx="8"/>' +
+        lines.map(function (line, i) {
+          return '<text x="' + (node.x + node.width / 2) + '" y="' + (startY + i * lineHeight) + '" text-anchor="middle">' + esc(line) + "</text>";
+        }).join("") + "</g>");
+    });
+    var caption = fill(t("theory.caption"), { n: M.nodes.length, subject: t("subj." + subject) });
+    return '<figure class="theory-map" data-map="subject-theory" data-subject="' + esc(subject) + '">' +
+      '<div class="theory-map-scroll" dir="ltr">' + svgWrap(M.width, M.height, parts, "width:" + M.width + "px;max-width:none") + '</div>' +
+      '<figcaption class="theory-map-caption small muted">' + esc(caption) + '</figcaption></figure>';
+  }
+
+  /** THE LINK-ONLY VIDEO CARD, in the offline twin too. `videoFor` answers an
+   *  authored concept video only when one teaches this exact idea; there is no
+   *  subject-overview fallback
    *  explicitly marked as such. The card never embeds a player: the source's
    *  page opens in a new tab, and the summary teaches even when it cannot. */
   function lessonVideoHtml(plan) {
@@ -1931,6 +2092,8 @@
         return '<button class="chip" data-act="subject" data-s="' + esc(s) + '"' + (s === subject ? ' aria-current="true"' : "") + ">" + esc(s) + "</button>";
       }).join("") + "</p>" +
       '<p class="small muted">' + esc(fill(t("curr.specsNote"), { n: E.specifications.NATIONAL_ROUTE_COUNT })) + "</p>" +
+      '<details class="theory-map-panel"><summary><span>' + esc(t("theory.title")) + '</span> <span class="mono">' +
+      E.genome.bySubject(subject).length + '</span></summary>' + theoryMapHtml(subject) + '</details>' +
       '<hr class="rule">' +
       '<ul class="items">' + list.map(function (c) {
         // EVERY FACT ABOUT A ROW COMES FROM ONE FUNCTION. This list used to

@@ -6,8 +6,8 @@
 //   - all 135 lessons resolve in all 15 interface languages;
 //   - the lesson scaffolding (section headings, map captions, video scope) has
 //     its own translated string in every language, not an English fallback;
-//   - every lesson still has a learning map, a video card and at least two
-//     sections in every language;
+//   - every lesson still has a learning map and at least two sections in every
+//     language, and any video card it does show is exact-concept;
 //   - every one of the 251 country choices resolves to at least one offered
 //     course, and no offered course is an empty shell;
 //   - the national-route and endpoint counts are reported, not inferred.
@@ -75,9 +75,13 @@ for (const lang of languages) {
     if (!title.trim() || title === `cn.${concept.id}`) failures.push(`${lang}/${concept.id}: no concept title`);
     if (!cblurb(lang, concept.id).trim()) failures.push(`${lang}/${concept.id}: no concept blurb`);
     if (!lessonMapFor(concept.id)) failures.push(`${lang}/${concept.id}: no learning map`);
+    // A lesson without an exact-concept video is valid. The old rule required
+    // every lesson to have a card, which is exactly how an unrelated 7:45
+    // chemistry overview was attached to all sixteen chemistry concepts.
     const video = videoFor(plan);
-    if (!video) failures.push(`${lang}/${concept.id}: no video card`);
-    else if (t(videoScopeKey(video)) === videoScopeKey(video)) failures.push(`${lang}/${concept.id}: raw video scope key`);
+    if (video && t(videoScopeKey(video)) === videoScopeKey(video)) {
+      failures.push(`${lang}/${concept.id}: raw video scope key`);
+    }
     const sections = sectionsFor(plan);
     if (sections.length < 2) failures.push(`${lang}/${concept.id}: fewer than two sections`);
     for (const section of sections) {
@@ -147,7 +151,7 @@ if (failures.length) {
 
 console.log(
   `✓ ${lessonLanguagePairs} lesson-language pairs: ${CONCEPTS.length} lessons × ${languages.length} interface languages, ` +
-    `each with a map, video card, at least two translated section headings and no raw key. ` +
+    `each with a map, at least two translated section headings and no raw key; video cards are exact-concept only. ` +
     `All ${COUNTRIES.length} country choices resolve to ${offeredCourseCount} offered course slots across ` +
     `${S.SPECIFICATIONS.length} specifications (${nationalRoutes} researched national routes); ` +
     `${universalCourseCountries}/${COUNTRIES.length} offer the universal course covering all ${CONCEPTS.length} concepts; ` +

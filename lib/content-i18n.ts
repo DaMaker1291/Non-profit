@@ -115,15 +115,20 @@ export function teachingTranslated(lang: string, conceptId: string): boolean {
  *  "Higher tier · Higher tier" on the screen that names their course.
  *
  *  This is the one owner of that choice, so the same course is named the same
- *  way wherever a learner meets it. */
+ *  way wherever a learner meets it. A board's own name is authoritative: the
+ *  translated generic tier is a fallback, never a second label beside it. */
 export function levelLabel(lang: string, tier: string, name?: string): string {
   const generic = translator(lang)(`lvl.${tier}`);
   const own = (name ?? "").trim();
-  if (!own) return generic;
-  // A dictionary without `lvl.<tier>` renders the key itself; the system's own
-  // name is then the honest answer rather than "lvl.degree" on screen.
-  if (generic === `lvl.${tier}`) return own;
-  return own === generic ? generic : `${generic} · ${own}`;
+  // THE SYSTEM'S OWN NAME WINS. It is the term the learner's board uses and
+  // the term their syllabus, papers and teacher will use: Cambridge IGCSE has
+  // Core and Extended, not Foundation and Higher. Combining the two printed
+  // "Higher tier · Extended", naming a tier the qualification does not have
+  // beside the one it does. A level with no name of its own still gets the
+  // translated generic tier, and an unknown tier still falls back to its name
+  // rather than leaking an `lvl.` key.
+  if (own) return own;
+  return generic;
 }
 
 /** A belief's name, in the learner's language.

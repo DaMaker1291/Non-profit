@@ -291,6 +291,12 @@ export const CHEMISTRY_EQUATIONS: AuthoredLesson = {
         "Uses the coefficient ratio of three to one from the balanced equation.",
         "Converts the moles of carbon dioxide back to a mass and states the unit.",
       ],
+      check: {
+        accepted: [
+          "26.4 g", "26.4g", "26.40 g", "26.40g",
+          "8.8 g of propane is 0.2 mol. The equation C₃H₈ + 5O₂ → 3CO₂ + 4H₂O gives three moles of carbon dioxide per mole of propane, so 0.6 mol of carbon dioxide is produced. At 44 g per mole that is 26.4 g.",
+        ],
+      },
     },
   ],
 

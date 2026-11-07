@@ -1316,6 +1316,68 @@ console.log("▸ Learning path");
     "a senior course never opens on a primary concept it does not contain");
 }
 
+// ── The subject page's Start belongs to the page's course ────────────────────
+// Reported as a P0: the Chemistry page offered "Start: Fractions". The global
+// decision engine legitimately ranked a maths idea, but the subject page then
+// fell back across every subject. These assertions are behavioural — a hint
+// from another subject, or outside the chosen tier, must not survive.
+console.log("▸ Subject-scoped start");
+{
+  const S = require("../.verify/specifications.js");
+  const starter = require("../.verify/subject-start.js");
+  const profile = (subject, level) => ({ country: "INT", subjects: [subject], spec: "int-igcse", specLevel: level, grade: "Year 11" });
+  const chem = S.specForProfile(profile("chemistry", "extended"), "chemistry");
+  const chemCore = S.specForProfile(profile("chemistry", "core"), "chemistry");
+  const bio = S.specForProfile(profile("biology", "extended"), "biology");
+  const chemIds = new Set(S.coverageOf(chem).filter((c) => c.subject === "chemistry").map((c) => c.id));
+  const coreIds = new Set(S.coverageOf(chemCore).filter((c) => c.subject === "chemistry").map((c) => c.id));
+  const bioIds = new Set(S.coverageOf(bio).filter((c) => c.subject === "biology").map((c) => c.id));
+
+  const chemistry = starter.chooseSubjectStart("chemistry", chem, "fractions");
+  ok(!!chemistry.conceptId && chemIds.has(chemistry.conceptId),
+    `a maths hint never becomes the Chemistry start (got ${chemistry.conceptId})`);
+  ok(chemistry.conceptId !== "fractions", "the Chemistry page never starts at Fractions");
+  ok(!!chemistry.conceptId && starter.lessonAvailable(chemistry.conceptId),
+    "and the chosen start has a complete lesson");
+
+  const biology = starter.chooseSubjectStart("biology", bio, "gravity-fields");
+  ok(!!biology.conceptId && bioIds.has(biology.conceptId),
+    `a physics hint never becomes the Biology start (got ${biology.conceptId})`);
+  ok(biology.conceptId !== "gravity-fields", "the Biology page never starts at a Physics concept");
+
+  const core = starter.chooseSubjectStart("chemistry", chemCore, "analysis-tests");
+  ok(!!core.conceptId && coreIds.has(core.conceptId),
+    `an out-of-tier hint stays inside the Core course (got ${core.conceptId})`);
+  ok(core.conceptId !== "analysis-tests", "a concept outside the chosen tier is never the start");
+
+  ok(starter.chooseSubjectStart("chemistry", chem, "compounds-mixtures").reason === "current",
+    "an in-course evidence hint is kept, so returning learners are not sent back to the first row");
+  ok(starter.chooseSubjectStart("chemistry", null, "fractions").conceptId === null,
+    "with no complete course there is no start, rather than an unqualified fallback");
+
+  const noLessons = {
+    spec: { ...chem.spec, coverage: { chemistry: [5, 5] } },
+    level: { ...chem.level, stages: [5, 5], narrow: { chemistry: [5, 5] } },
+  };
+  ok(starter.chooseSubjectStart("chemistry", noLessons, null).conceptId === null,
+    "a course with no available lesson renders the honest unavailable state");
+
+  const igcse = S.specById("int-igcse");
+  ok(igcse.subjectCodes?.chemistry === "0620", "Cambridge IGCSE Chemistry carries its official 0620 code");
+  ok(igcse.syllabi?.chemistry === "2026–2028", "and the checked syllabus version is recorded");
+  ok(igcse.levels.find((l) => l.id === "core")?.name === "Core",
+    "the IGCSE foundation tier is called Core, not Foundation");
+  ok(igcse.levels.find((l) => l.id === "extended")?.name === "Extended",
+    "and its higher tier is called Extended, not Higher");
+  const ci = require("../.verify/content-i18n.js");
+  const extended = igcse.levels.find((l) => l.id === "extended");
+  const extendedLabel = ci.levelLabel("en", extended.tier, extended.name);
+  ok(extendedLabel === "Extended",
+    `the board's own tier name is printed alone (got "${extendedLabel}")`);
+  ok(!/Foundation|Higher/.test(extendedLabel),
+    "and an IGCSE learner never sees Foundation/Higher terminology beside Extended");
+}
+
 // ── 5. Progress / mastery ───────────────────────────────────────────────────
 console.log("▸ Progress tracking");
 {
@@ -11215,8 +11277,9 @@ console.log("▸ Learn shows the learner's own curriculum, with a status per top
     "and when no course is finished, the whole subject is listed rather than nothing");
 
   // ── THE HEADER COUNTS THE COURSE, NOT THE PLATFORM ──────────────────────
-  ok(/\{touched\}\/\{listed\.length\}/.test(page) && !/\{touched\}\/\{all\.length\}/.test(page),
-    "the header's own fraction counts what is listed");
+  ok(/practised:\s*touched/.test(page) && /total:\s*listed\.length/.test(page)
+    && !/total:\s*all\.length/.test(page),
+    "the header's own progress count is practised-of-listed, never practised-of-everything");
   ok(/\{\s*n: String\(inCourse\.length\), total: String\(all\.length\)\s*\}/.test(code),
     "and the platform's size is printed only as the size of the gap, never as the course");
 

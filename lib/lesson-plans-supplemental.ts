@@ -83,6 +83,105 @@ const SUBJECT_TRAPS: Record<string, readonly LessonTrap[]> = {
 
 const ORDINALS = ["first", "second", "third", "fourth", "fifth"];
 
+/** The chemistry figures that belong to supplemental plans. They are attached
+ *  here rather than to the lens because a figure is a plan-level teaching claim,
+ *  and the plan builder is the one place every supplemental lesson passes
+ *  through. Both show a count the prose names: carbon's 2,4 shells and sodium's
+ *  2,8,1. */
+const SUPPLEMENTAL_FIGURES: Record<string, NonNullable<LessonPlan["figure"]>> = {
+  "atoms-elements": {
+    spec: { kind: "atom", symbol: "C", protons: 6, neutrons: 6, shells: [2, 4] },
+    caption:
+      "A carbon atom: six protons and six neutrons in the nucleus, with six electrons in two shells (2, 4). The outer four electrons are the ones that form bonds; the nucleus is what makes the element carbon.",
+  },
+  "electron-shells": {
+    spec: { kind: "atom", symbol: "Na", protons: 11, neutrons: 12, shells: [2, 8, 1] },
+    caption:
+      "Sodium: 11 protons and 12 neutrons in the nucleus, with 11 electrons in shells of 2, 8 and 1. The single outer electron is why sodium loses one easily and forms Na⁺. A full outer shell would be stable; this one is one electron short of it.",
+  },
+  "compounds-mixtures": {
+    spec: { kind: "chem", variant: "particle-box" },
+    caption:
+      "Three boxes: an element has identical atoms, a compound has different atoms chemically joined in a fixed ratio, and a mixture has different particles that are not chemically joined. A mixture can be separated physically; a compound cannot.",
+  },
+  "periodic-table": {
+    spec: { kind: "chem", variant: "periodic" },
+    caption:
+      "A simplified periodic table with group 1 highlighted down the left and period 3 highlighted across. Sodium sits where they meet. The group number tells you the outer electrons; the period tells you the number of shells.",
+  },
+  "ionic-bonding": {
+    spec: { kind: "chem", variant: "ionic" },
+    caption:
+      "Sodium transfers its one outer electron to chlorine. The resulting Na⁺ and Cl⁻ ions attract each other electrostatically, and each ion has a full outer shell. The transfer is the bond; the lattice is the repeating pattern of those ions.",
+  },
+  "covalent-bonding": {
+    spec: { kind: "chem", variant: "covalent" },
+    caption:
+      "Two hydrogen atoms share a pair of electrons. The shared pair is the covalent bond, and neither atom loses an electron. Small molecules held by these bonds have low melting and boiling points.",
+  },
+  "metallic-bonding": {
+    spec: { kind: "chem", variant: "metallic" },
+    caption:
+      "Metal cations sit in a regular lattice with delocalised electrons between them. The electrons are free to move, which explains why metals conduct electricity and heat, and why the layers can slide without the bond breaking.",
+  },
+  "moles-calcs": {
+    spec: { kind: "chem", variant: "mole" },
+    caption:
+      "One mole of water contains 6.02 × 10²³ molecules and has a mass of 18 g. The mole is a count of particles, not a mass; molar mass is the bridge between the count and the balance.",
+  },
+  "rates-reaction": {
+    spec: {
+      kind: "chem",
+      variant: "chart",
+      xMax: 10,
+      yMax: 10,
+      series: [{ points: [[0, 9], [1, 7], [2, 5.2], [3, 4], [4, 3.2], [5, 2.7], [6, 2.4], [7, 2.2], [8, 2.1], [9, 2], [10, 1.95]] }],
+    },
+    caption:
+      "The rate is steepest at the start, when reactant concentration is highest, then flattens as the reactants are used up. The gradient of this curve is the rate at that moment, not an average over the whole reaction.",
+  },
+  "acids-bases": {
+    spec: { kind: "chem", variant: "ph" },
+    caption:
+      "The pH scale runs from 0 to 14: below 7 is acidic, 7 is neutral, and above 7 is alkaline. Each step of one pH unit means a tenfold change in hydrogen-ion concentration, so pH 2 is far more acidic than pH 4.",
+  },
+  "electrolysis": {
+    spec: { kind: "chem", variant: "electrolysis" },
+    caption:
+      "A direct current passes through an electrolyte between two electrodes. Positive ions move to the cathode and negative ions to the anode, where the products form. The electrolyte must contain mobile ions; a solid ionic compound does not conduct.",
+  },
+  "organic-intro": {
+    spec: { kind: "chem", variant: "organic" },
+    caption:
+      "Methane, CH₄: one carbon atom forms four single covalent bonds to hydrogen. Carbon's four bonds are why organic molecules can form chains, branches and rings, giving the huge range of organic compounds.",
+  },
+  "equilibria": {
+    spec: {
+      kind: "chem",
+      variant: "chart",
+      xMax: 10,
+      yMax: 10,
+      series: [
+        { points: [[0, 9], [2, 7], [4, 5.5], [6, 4.7], [8, 4.3], [10, 4.2]], tone: "accent" },
+        { points: [[0, 1], [2, 3], [4, 4.5], [6, 5.2], [8, 5.5], [10, 5.7]], tone: "muted", dashed: true },
+      ],
+    },
+    caption:
+      "At equilibrium the forward and reverse reactions continue at equal rates, so the concentrations stop changing even though both reactions are still happening. The curves flatten at the same time; equilibrium is dynamic, not a stopped reaction.",
+  },
+  "analysis-tests": {
+    spec: { kind: "chem", variant: "flame" },
+    caption:
+      "Flame tests identify metal ions by colour: lithium red, sodium yellow, potassium lilac, calcium orange-red and copper green-blue. The colour is evidence for the metal ion, not a measurement of how much is present.",
+  },
+};
+
+// NO CHEMISTRY VIDEO CARD IS EMITTED YET.
+// Every previous chemistry card pointed at a BBC or Khan page that opened
+// behind a consent choice; several ran four to six minutes, and one was a
+// mixtures video on a compounds-and-mixtures lesson. A replacement must be a
+// short, exact-concept, consent-free source before this map gets an entry.
+
 function words(text: string): number {
   return text.split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length;
 }
@@ -156,6 +255,7 @@ function buildPlan(conceptId: string): LessonPlan | null {
     ...subjectTraps,
   ].slice(0, 3);
 
+  const figure = SUPPLEMENTAL_FIGURES[conceptId];
   return {
     conceptId,
     objective: `${c.title.toLowerCase()} in a problem, and explain why it works: ${c.blurb}`,
@@ -165,6 +265,7 @@ function buildPlan(conceptId: string): LessonPlan | null {
     usedFor: usedFor(conceptId),
     review: "unreviewed",
     provenance: "supplemental",
+    ...(figure ? { figure } : {}),
   };
 }
 

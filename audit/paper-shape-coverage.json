@@ -825,7 +825,7 @@
     },
     {
       "countryCode": "XX",
-      "countryName": "Prefer not to say",
+      "countryName": "Other country / not listed",
       "specifications": [
         "any-independent"
       ],

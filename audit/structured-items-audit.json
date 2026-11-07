@@ -21,26 +21,26 @@
     "note": "No constructed-response item has a human review. audit/item-reviews.json is the only source of a human-review claim, and it is empty."
   },
   "headline": {
-    "items": 13,
-    "concepts": 10,
-    "parts": 38,
-    "marks": 58,
-    "foundationItems": 11,
-    "higherItems": 13,
+    "items": 20,
+    "concepts": 17,
+    "parts": 57,
+    "marks": 94,
+    "foundationItems": 18,
+    "higherItems": 20,
     "inPilotPackItems": 9,
-    "outsidePilotPackItems": 4,
+    "outsidePilotPackItems": 11,
     "inPilotPackMarks": 36,
-    "outsidePilotPackMarks": 22,
-    "checks": 137,
+    "outsidePilotPackMarks": 58,
+    "checks": 230,
     "failures": 0
   },
   "responseTotals": {
     "graph": 2,
     "plot": 1,
     "readoff": 1,
-    "number": 7,
+    "number": 14,
     "algebra": 4,
-    "table": 2
+    "table": 5
   },
   "items": [
     {
@@ -364,20 +364,212 @@
       "warnings": [
         "hf-sequences-context: sequences is not in the 149-item generated pilot pack"
       ]
+    },
+    {
+      "id": "chem-moles",
+      "title": "Moles and mass",
+      "conceptId": "moles-calcs",
+      "concept": "The mole & calculations",
+      "subject": "chemistry",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.55,
+      "marks": 5,
+      "parts": 3,
+      "responseKinds": [
+        "number"
+      ],
+      "methodMarks": 2,
+      "inPilotPack": false,
+      "packNote": "outside the 149-item pack",
+      "checks": 15,
+      "failed": 0,
+      "failures": [],
+      "warnings": [
+        "chem-moles: moles-calcs is not in the 149-item generated pilot pack"
+      ]
+    },
+    {
+      "id": "chem-balancing",
+      "title": "Balancing propane combustion",
+      "conceptId": "equations-stoich",
+      "concept": "Chemical equations",
+      "subject": "chemistry",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.6,
+      "marks": 5,
+      "parts": 2,
+      "responseKinds": [
+        "number",
+        "table"
+      ],
+      "methodMarks": 1,
+      "inPilotPack": false,
+      "packNote": "outside the 149-item pack",
+      "checks": 9,
+      "failed": 0,
+      "failures": [],
+      "warnings": [
+        "chem-balancing: equations-stoich is not in the 149-item generated pilot pack"
+      ]
+    },
+    {
+      "id": "bio-microscopy",
+      "title": "Microscope magnification",
+      "conceptId": "microscopy",
+      "concept": "Microscopy",
+      "subject": "biology",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.5,
+      "marks": 5,
+      "parts": 3,
+      "responseKinds": [
+        "number"
+      ],
+      "methodMarks": 2,
+      "inPilotPack": false,
+      "packNote": "outside the 149-item pack",
+      "checks": 16,
+      "failed": 0,
+      "failures": [],
+      "warnings": [
+        "bio-microscopy: microscopy is not in the 149-item generated pilot pack"
+      ]
+    },
+    {
+      "id": "bio-energy-transfer",
+      "title": "Energy in a food chain",
+      "conceptId": "ecosystems",
+      "concept": "Ecosystems & cycles",
+      "subject": "biology",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.55,
+      "marks": 5,
+      "parts": 2,
+      "responseKinds": [
+        "number",
+        "table"
+      ],
+      "methodMarks": 1,
+      "inPilotPack": false,
+      "packNote": "outside the 149-item pack",
+      "checks": 10,
+      "failed": 0,
+      "failures": [],
+      "warnings": [
+        "bio-energy-transfer: ecosystems is not in the 149-item generated pilot pack"
+      ]
+    },
+    {
+      "id": "phys-resistance",
+      "title": "Resistance and charge",
+      "conceptId": "electricity-circuits",
+      "concept": "Circuits",
+      "subject": "physics",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.55,
+      "marks": 5,
+      "parts": 3,
+      "responseKinds": [
+        "number"
+      ],
+      "methodMarks": 2,
+      "inPilotPack": false,
+      "packNote": "outside the 149-item pack",
+      "checks": 17,
+      "failed": 0,
+      "failures": [],
+      "warnings": [
+        "phys-resistance: electricity-circuits is not in the 149-item generated pilot pack"
+      ]
+    },
+    {
+      "id": "phys-motion",
+      "title": "Acceleration and distance",
+      "conceptId": "motion-graphs",
+      "concept": "Motion",
+      "subject": "physics",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.6,
+      "marks": 5,
+      "parts": 3,
+      "responseKinds": [
+        "number"
+      ],
+      "methodMarks": 2,
+      "inPilotPack": false,
+      "packNote": "outside the 149-item pack",
+      "checks": 17,
+      "failed": 0,
+      "failures": [],
+      "warnings": [
+        "phys-motion: motion-graphs is not in the 149-item generated pilot pack"
+      ]
+    },
+    {
+      "id": "comp-loop-trace",
+      "title": "Tracing a loop",
+      "conceptId": "loops",
+      "concept": "Loops",
+      "subject": "computing",
+      "tiers": [
+        "foundation",
+        "higher"
+      ],
+      "difficulty": 0.5,
+      "marks": 6,
+      "parts": 3,
+      "responseKinds": [
+        "number",
+        "table"
+      ],
+      "methodMarks": 0,
+      "inPilotPack": false,
+      "packNote": "outside the 149-item pack",
+      "checks": 9,
+      "failed": 0,
+      "failures": [],
+      "warnings": [
+        "comp-loop-trace: loops is not in the 149-item generated pilot pack"
+      ]
     }
   ],
   "findings": [
-    "**13 constructed-response items are outside the 149-item generated pack.** 9 of them sit on concepts that are in that pack and 4 sit on concepts that are not; the pack therefore cannot show a reviewer the method-marked format at all. This addendum is the review surface for them.",
-    "**38 parts, 58 marks.** 36 marks are on in-pack concepts and 22 on concepts outside it. A reviewer reading only the 149-item pack is not seeing those marks.",
-    "**137 marking scenarios passed.** They cover full correct answers, blank responses, answer-without-working, working-with-wrong-answer, missing units, wrong graph coordinates, partial plots, wrong algebra forms and one-cell table errors.",
+    "**20 constructed-response items are outside the 149-item generated pack.** 9 of them sit on concepts that are in that pack and 11 sit on concepts that are not; the pack therefore cannot show a reviewer the method-marked format at all. This addendum is the review surface for them.",
+    "**57 parts, 94 marks.** 36 marks are on in-pack concepts and 58 on concepts outside it. A reviewer reading only the 149-item pack is not seeing those marks.",
+    "**230 marking scenarios passed.** They cover full correct answers, blank responses, answer-without-working, working-with-wrong-answer, missing units, wrong graph coordinates, partial plots, wrong algebra forms and one-cell table errors.",
     "**Marking is machine-validated, not teacher-validated.** No item here has a named reviewer: `audit/item-reviews.json` is empty. A green run says the engine agrees with these authored schemes; it does not say the schemes are right for the pupils.",
-    "**4 warnings** are recorded below. The largest is coverage: 4 items are on concepts outside the generated pack, so adding more structured items will not make the pilot's review surface complete until those concepts are brought in."
+    "**11 warnings** are recorded below. The largest is coverage: 11 items are on concepts outside the generated pack, so adding more structured items will not make the pilot's review surface complete until those concepts are brought in."
   ],
   "hard": [],
   "warnings": [
     "sf-lawn-feed: area-perimeter is not in the 149-item generated pilot pack",
     "sf-angle-chain: angles-lines is not in the 149-item generated pilot pack",
     "hf-circle-angles: circle-theorems is not in the 149-item generated pilot pack",
-    "hf-sequences-context: sequences is not in the 149-item generated pilot pack"
+    "hf-sequences-context: sequences is not in the 149-item generated pilot pack",
+    "chem-moles: moles-calcs is not in the 149-item generated pilot pack",
+    "chem-balancing: equations-stoich is not in the 149-item generated pilot pack",
+    "bio-microscopy: microscopy is not in the 149-item generated pilot pack",
+    "bio-energy-transfer: ecosystems is not in the 149-item generated pilot pack",
+    "phys-resistance: electricity-circuits is not in the 149-item generated pilot pack",
+    "phys-motion: motion-graphs is not in the 149-item generated pilot pack",
+    "comp-loop-trace: loops is not in the 149-item generated pilot pack"
   ]
 }

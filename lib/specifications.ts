@@ -69,6 +69,14 @@ export interface Specification {
    *  exam under the same name. Only the generic tier names (lvl.*) are
    *  translated in every dictionary. */
   name: string;
+  /** The awarding body's subject code where one is published (Cambridge
+   *  Chemistry 0620, for example). Data, because a code is an identifier, not a
+   *  translation; a subject with no code simply shows the qualification name. */
+  subjectCodes?: Partial<Record<SubjectId, string>>;
+  /** The syllabus version a subject code is being taught against, e.g.
+   *  "2026–2028". Kept per subject because boards revise subjects on different
+   *  cycles; claiming one version for a whole qualification would be false. */
+  syllabi?: Partial<Record<SubjectId, string>>;
   /** Subject → stage window the qualification covers. Subjects absent here are
    *  not part of this specification, but remain reachable through the genome. */
   coverage: Partial<Record<SubjectId, StageWindow>>;
@@ -104,6 +112,13 @@ const UK_ALEVEL: Specification = {
 
 const IGCSE: Specification = {
   id: "int-igcse", country: "INT", board: "cambridge", name: "Cambridge IGCSE",
+  // Cambridge's own subject codes. The subject page prints the code beside the
+  // qualification so a learner can match what OpenMind calls their course to
+  // the syllabus they actually sit. The syllabi are recorded only where a
+  // version has been checked against the published syllabus, rather than
+  // assuming every subject shares one revision cycle.
+  subjectCodes: { maths: "0580", physics: "0625", chemistry: "0620", biology: "0610", computing: "0478" },
+  syllabi: { chemistry: "2026–2028" },
   coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
   levels: [
     { id: "core", tier: "foundation", name: "Core", stages: [0, 2], difficulty: 0.4 },

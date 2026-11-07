@@ -351,6 +351,10 @@ const ACCESS: Record<string, AccessRequirement> = {
   "/offline": "public",
   "/genome": "public",
   "/curriculum": "public",
+  // The subject atlas is public CONTENT: it reads no learner record and is the
+  // breadth door for a visitor who has not enrolled. Classifying it explicitly
+  // keeps "public" a decision rather than a default.
+  "/subjects": "public",
   "/rooms": "public",
   "/hub": "public",
   "/teacher": "public",

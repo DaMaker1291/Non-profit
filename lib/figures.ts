@@ -42,7 +42,9 @@ export const FIGURE_KINDS = [
   "particles",
   "circuit",
   "cell",
+  "atom",
   "energy-profile",
+  "chem",
 ] as const;
 
 export type FigureKind = (typeof FIGURE_KINDS)[number];
@@ -1046,5 +1048,308 @@ export function energyProfileLayout(
     exothermic: delta < 0,
     activationLabel: "Ea",
     deltaLabel: `ΔH = ${delta > 0 ? "+" : ""}${delta} kJ/mol`,
+  };
+}
+
+// ── an atom ─────────────────────────────────────────────────────────────────
+//
+// The shells are not decoration: they are the electron configuration the lesson
+// names. Every dot comes from `shells`, so sodium cannot be drawn as 2,8,2 or
+// carbon as 2,2,2 while the caption says 2,4. The first three shells fit the
+// frame; a fourth would be outside it, so the layout reports `truncated` rather
+// than drawing a dot on the edge.
+
+export const ATOM_W = 360;
+export const ATOM_H = 260;
+export const ATOM_CX = ATOM_W / 2;
+export const ATOM_CY = 132;
+export const ATOM_NUCLEUS_R = 26;
+
+export interface AtomShell {
+  radius: number;
+  electrons: { x: number; y: number }[];
+}
+
+export interface AtomLayout {
+  width: number;
+  height: number;
+  cx: number;
+  cy: number;
+  nucleusRadius: number;
+  shells: AtomShell[];
+  electronsTotal: number;
+  truncated: boolean;
+}
+
+// ── chemistry schematics ────────────────────────────────────────────────────
+//
+// A small scene vocabulary rather than nine separate SVG components: a shape is
+// still DATA, every coordinate is computed here, and both renderers consume the
+// same list. The variants are deliberately fixed schematics (which group/period,
+// which ions, which pH values) because each is attached to exactly one lesson;
+// the caption states the relationship and the drawing repeats it.
+
+export type ChemPaint =
+  | "accent" | "muted" | "line" | "surface" | "sunken" | "text" | "none"
+  // Real flame-test colours. Tokens rather than raw hex so the static twin and
+  // the React renderer cannot drift, and so a theme can still override them.
+  | "flame-li" | "flame-na" | "flame-k" | "flame-ca" | "flame-cu";
+
+export type ChemShape =
+  | { kind: "rect"; x: number; y: number; w: number; h: number; rx?: number; fill?: ChemPaint; fillOpacity?: number; stroke?: ChemPaint; strokeWidth?: number }
+  | { kind: "circle"; cx: number; cy: number; r: number; fill?: ChemPaint; fillOpacity?: number; stroke?: ChemPaint; strokeWidth?: number }
+  | { kind: "line"; x1: number; y1: number; x2: number; y2: number; stroke?: ChemPaint; strokeWidth?: number; dashed?: boolean }
+  | { kind: "path"; d: string; fill?: ChemPaint; fillOpacity?: number; stroke?: ChemPaint; strokeWidth?: number }
+  | { kind: "polyline"; points: readonly (readonly [number, number])[]; stroke?: ChemPaint; strokeWidth?: number; dashed?: boolean }
+  | { kind: "text"; x: number; y: number; text: string; size?: number; anchor?: "start" | "middle" | "end"; weight?: number; fill?: ChemPaint };
+
+export interface ChemLayout {
+  width: number;
+  height: number;
+  shapes: readonly ChemShape[];
+}
+
+const CHEM_W = 360;
+const CHEM_H = 220;
+
+function particleBoxShapes(): ChemShape[] {
+  const out: ChemShape[] = [];
+  const boxes = [12, 130, 248];
+  // THE BOXES USED TO BE UNLABELLED, so a learner saw three arrangements of
+  // dots and had to read the caption to know which was which. The formula under
+  // each box is the diagram's own key: one element, one compound, a mixture.
+  const keys = ["C", "H₂O", "O₂ + N₂"];
+  for (const [i, x] of boxes.entries()) {
+    out.push({ kind: "rect", x, y: 34, w: 100, h: 126, rx: 8, fill: "surface", stroke: "line" });
+    if (i === 0) {
+      for (let n = 0; n < 6; n++) out.push({ kind: "circle", cx: x + 24 + (n % 3) * 26, cy: 66 + Math.floor(n / 3) * 30, r: 9, fill: "accent" });
+    } else if (i === 1) {
+      // Water is two H joined to one O, not three equal circles. The sizes and
+      // colours carry that before the formula under the box names it.
+      out.push({ kind: "line", x1: x + 34, y1: 82, x2: x + 50, y2: 108, stroke: "line" });
+      out.push({ kind: "line", x1: x + 66, y1: 82, x2: x + 50, y2: 108, stroke: "line" });
+      out.push({ kind: "circle", cx: x + 34, cy: 78, r: 7, fill: "muted" });
+      out.push({ kind: "circle", cx: x + 66, cy: 78, r: 7, fill: "muted" });
+      out.push({ kind: "circle", cx: x + 50, cy: 112, r: 12, fill: "accent" });
+    } else {
+      // Two separate diatomic molecules: O₂ and N₂. The line inside each pair
+      // is the covalent bond; there is no line between the two molecules.
+      out.push({ kind: "line", x1: x + 32, y1: 72, x2: x + 50, y2: 72, stroke: "line" });
+      out.push({ kind: "circle", cx: x + 30, cy: 72, r: 8, fill: "accent" });
+      out.push({ kind: "circle", cx: x + 52, cy: 72, r: 8, fill: "accent" });
+      out.push({ kind: "line", x1: x + 66, y1: 112, x2: x + 82, y2: 128, stroke: "line" });
+      out.push({ kind: "circle", cx: x + 64, cy: 110, r: 9, fill: "muted" });
+      out.push({ kind: "circle", cx: x + 84, cy: 130, r: 9, fill: "muted" });
+    }
+    out.push({ kind: "text", x: x + 50, y: 181, text: keys[i], size: i === 1 ? 12 : 11, anchor: "middle", weight: 700, fill: i === 1 ? "accent" : "text" });
+  }
+  return out;
+}
+
+function periodicShapes(): ChemShape[] {
+  const out: ChemShape[] = [];
+  const x0 = 30;
+  const y0 = 30;
+  const cell = 16;
+  for (let row = 0; row < 7; row++) {
+    for (let col = 0; col < 18; col++) {
+      const x = x0 + col * cell;
+      const y = y0 + row * cell;
+      const highlight = col === 0 || row === 2;
+      out.push({ kind: "rect", x, y, w: cell - 2, h: cell - 2, rx: 2, fill: highlight ? "accent" : "surface", fillOpacity: highlight ? 0.22 : 1, stroke: "line" });
+    }
+  }
+  out.push({ kind: "text", x: x0 + 6, y: y0 + cell * 2 + 12, text: "Na", size: 11, anchor: "middle", weight: 700, fill: "text" });
+  out.push({ kind: "text", x: x0 - 9, y: y0 + cell * 2 + 11, text: "1", size: 10, anchor: "end", weight: 700, fill: "accent" });
+  out.push({ kind: "text", x: x0 + 5, y: y0 + cell * 2 - 5, text: "3", size: 10, anchor: "start", weight: 700, fill: "accent" });
+  return out;
+}
+
+function ionicShapes(): ChemShape[] {
+  return [
+    { kind: "circle", cx: 105, cy: 110, r: 36, fill: "surface", stroke: "accent", strokeWidth: 2 },
+    { kind: "text", x: 105, y: 115, text: "Na⁺", size: 16, anchor: "middle", weight: 700, fill: "text" },
+    { kind: "circle", cx: 255, cy: 110, r: 36, fill: "surface", stroke: "accent", strokeWidth: 2 },
+    { kind: "text", x: 255, y: 115, text: "Cl⁻", size: 16, anchor: "middle", weight: 700, fill: "text" },
+    { kind: "circle", cx: 105, cy: 62, r: 5, fill: "accent" },
+    { kind: "line", x1: 118, y1: 66, x2: 225, y2: 82, stroke: "accent", strokeWidth: 2 },
+    { kind: "path", d: "M 218 75 L 228 84 L 220 91", fill: "none", stroke: "accent", strokeWidth: 2 },
+    { kind: "text", x: 172, y: 58, text: "e⁻", size: 10, anchor: "middle", fill: "muted" },
+  ];
+}
+
+function covalentShapes(): ChemShape[] {
+  return [
+    { kind: "circle", cx: 135, cy: 110, r: 32, fill: "surface", stroke: "accent", strokeWidth: 2 },
+    { kind: "text", x: 135, y: 115, text: "H", size: 18, anchor: "middle", weight: 700, fill: "text" },
+    { kind: "circle", cx: 225, cy: 110, r: 32, fill: "surface", stroke: "accent", strokeWidth: 2 },
+    { kind: "text", x: 225, y: 115, text: "H", size: 18, anchor: "middle", weight: 700, fill: "text" },
+    { kind: "circle", cx: 169, cy: 102, r: 4, fill: "accent" },
+    { kind: "circle", cx: 191, cy: 102, r: 4, fill: "accent" },
+    { kind: "line", x1: 169, y1: 102, x2: 191, y2: 102, stroke: "accent", strokeWidth: 1 },
+    { kind: "text", x: 180, y: 72, text: "2e⁻", size: 10, anchor: "middle", fill: "muted" },
+  ];
+}
+
+function metallicShapes(): ChemShape[] {
+  const out: ChemShape[] = [];
+  for (let r = 0; r < 3; r++) {
+    for (let c = 0; c < 3; c++) {
+      const cx = 100 + c * 80;
+      const cy = 65 + r * 48;
+      out.push({ kind: "circle", cx, cy, r: 15, fill: "surface", stroke: "accent", strokeWidth: 1.5 });
+      out.push({ kind: "text", x: cx, y: cy + 4, text: "+", size: 11, anchor: "middle", weight: 700, fill: "accent" });
+    }
+  }
+  for (const [cx, cy] of [[140, 89], [220, 89], [180, 113], [140, 137], [220, 137]] as const) {
+    out.push({ kind: "circle", cx, cy, r: 3, fill: "accent" });
+  }
+  out.push({ kind: "text", x: 180, y: 30, text: "e⁻", size: 10, anchor: "middle", fill: "muted" });
+  return out;
+}
+
+function moleShapes(): ChemShape[] {
+  return [
+    { kind: "rect", x: 70, y: 35, w: 220, h: 150, rx: 12, fill: "surface", stroke: "accent", strokeWidth: 2 },
+    { kind: "text", x: 180, y: 72, text: "1 mol", size: 18, anchor: "middle", weight: 700, fill: "text" },
+    { kind: "text", x: 180, y: 102, text: "H₂O", size: 20, anchor: "middle", weight: 700, fill: "accent" },
+    { kind: "text", x: 180, y: 132, text: "18 g", size: 16, anchor: "middle", weight: 700, fill: "text" },
+    { kind: "text", x: 180, y: 158, text: "6.02 × 10²³", size: 12, anchor: "middle", fill: "muted" },
+    { kind: "line", x1: 70, y1: 185, x2: 290, y2: 185, stroke: "line", strokeWidth: 1 },
+  ];
+}
+
+function chartShapes(spec: Extract<FigureSpec, { kind: "chem" }>): ChemShape[] {
+  const out: ChemShape[] = [];
+  const x0 = 42;
+  const y0 = CHEM_H - 32;
+  const x1 = CHEM_W - 18;
+  const y1 = 24;
+  const xMax = spec.xMax && spec.xMax > 0 ? spec.xMax : 10;
+  const yMax = spec.yMax && spec.yMax > 0 ? spec.yMax : 10;
+  out.push({ kind: "line", x1: x0, y1, x2: x0, y2: y0, stroke: "line", strokeWidth: 1.5 });
+  out.push({ kind: "line", x1: x0, y1: y0, x2: x1, y2: y0, stroke: "line", strokeWidth: 1.5 });
+  for (const s of spec.series ?? []) {
+    const points = s.points.map(([x, y]) => [x0 + (Math.max(0, Math.min(xMax, x)) / xMax) * (x1 - x0), y0 - (Math.max(0, Math.min(yMax, y)) / yMax) * (y0 - y1)] as const);
+    out.push({ kind: "polyline", points, stroke: s.tone === "muted" ? "muted" : "accent", strokeWidth: 2.5, dashed: s.dashed });
+  }
+  // An unlabelled pair of axes is a squiggle, not a graph: the reader cannot
+  // tell time from temperature or see where zero is. The caption still carries
+  // the full explanation; these labels name the axes and the origin.
+  out.push({ kind: "text", x: x1, y: y0 + 14, text: "t", size: 10, anchor: "end", fill: "muted" });
+  out.push({ kind: "text", x: x0 + 4, y: y1 - 6, text: "amount", size: 9, anchor: "start", fill: "muted" });
+  out.push({ kind: "text", x: x0 - 6, y: y0 + 4, text: "0", size: 9, anchor: "end", fill: "muted" });
+  return out;
+}
+
+function phShapes(): ChemShape[] {
+  const out: ChemShape[] = [];
+  const x0 = 20;
+  const step = 320 / 15;
+  for (let i = 0; i < 15; i++) {
+    out.push({ kind: "rect", x: x0 + i * step, y: 88, w: step - 1, h: 22, fill: i < 7 ? "accent" : i === 7 ? "muted" : "accent", fillOpacity: i < 7 ? 0.9 - i * 0.08 : i === 7 ? 1 : 0.35 + (i - 7) * 0.035, stroke: "none" });
+    out.push({ kind: "text", x: x0 + i * step + (step - 1) / 2, y: 128, text: String(i), size: 9, anchor: "middle", fill: "muted" });
+  }
+  for (const [i, range] of [[2, "0–6"], [7, "7"], [12, "8–14"]] as const) {
+    const cx = x0 + i * step + (step - 1) / 2;
+    out.push({ kind: "circle", cx, cy: 99, r: 5, fill: "surface", stroke: "text", strokeWidth: 1.5 });
+    out.push({ kind: "text", x: cx, y: 70, text: String(i), size: 13, anchor: "middle", weight: 700, fill: "text" });
+    out.push({ kind: "text", x: cx, y: 162, text: range, size: 9, anchor: "middle", fill: "muted" });
+  }
+  out.push({ kind: "text", x: 30, y: 48, text: "H⁺", size: 13, weight: 700, fill: "accent" });
+  out.push({ kind: "text", x: 330, y: 48, text: "OH⁻", size: 13, anchor: "end", weight: 700, fill: "accent" });
+  return out;
+}
+
+function electrolysisShapes(): ChemShape[] {
+  return [
+    { kind: "rect", x: 70, y: 75, w: 220, h: 105, rx: 6, fill: "surface", stroke: "line", strokeWidth: 2 },
+    { kind: "rect", x: 78, y: 126, w: 204, h: 48, fill: "accent", fillOpacity: 0.16, stroke: "none" },
+    { kind: "line", x1: 125, y1: 95, x2: 125, y2: 160, stroke: "text", strokeWidth: 5 },
+    { kind: "line", x1: 235, y1: 95, x2: 235, y2: 160, stroke: "text", strokeWidth: 5 },
+    { kind: "line", x1: 125, y1: 95, x2: 125, y2: 42, stroke: "text", strokeWidth: 2 },
+    { kind: "line", x1: 235, y1: 95, x2: 235, y2: 42, stroke: "text", strokeWidth: 2 },
+    { kind: "line", x1: 125, y1: 42, x2: 235, y2: 42, stroke: "text", strokeWidth: 2 },
+    { kind: "line", x1: 164, y1: 42, x2: 164, y2: 33, stroke: "text", strokeWidth: 2 },
+    { kind: "line", x1: 180, y1: 33, x2: 180, y2: 51, stroke: "text", strokeWidth: 3 },
+    { kind: "text", x: 125, y: 30, text: "+", size: 12, anchor: "middle", weight: 700, fill: "text" },
+    { kind: "text", x: 235, y: 30, text: "−", size: 12, anchor: "middle", weight: 700, fill: "text" },
+    { kind: "circle", cx: 145, cy: 145, r: 3, fill: "surface" },
+    { kind: "circle", cx: 154, cy: 136, r: 2.5, fill: "surface" },
+    { kind: "circle", cx: 218, cy: 145, r: 3, fill: "surface" },
+    { kind: "circle", cx: 207, cy: 136, r: 2.5, fill: "surface" },
+  ];
+}
+
+function flameShapes(): ChemShape[] {
+  const out: ChemShape[] = [];
+  const ions = ["Li⁺", "Na⁺", "K⁺", "Ca²⁺", "Cu²⁺"];
+  const colours = ["flame-li", "flame-na", "flame-k", "flame-ca", "flame-cu"] as const;
+  for (let i = 0; i < 5; i++) {
+    const x = 54 + i * 63;
+    // The colour IS the observation in a flame test. Five identical flames with
+    // different captions would be a key, not a diagram.
+    out.push({ kind: "path", d: `M ${x} 170 C ${x - 20} 140 ${x - 12} 105 ${x} 70 C ${x + 12} 105 ${x + 20} 140 ${x} 170 Z`, fill: colours[i], fillOpacity: 0.28, stroke: colours[i], strokeWidth: 2 });
+    out.push({ kind: "text", x, y: 194, text: ions[i], size: 12, anchor: "middle", weight: 700, fill: "text" });
+  }
+  return out;
+}
+
+function organicShapes(): ChemShape[] {
+  return [
+    { kind: "circle", cx: 180, cy: 110, r: 26, fill: "surface", stroke: "accent", strokeWidth: 2 },
+    { kind: "text", x: 180, y: 115, text: "C", size: 16, anchor: "middle", weight: 700, fill: "text" },
+    { kind: "line", x1: 180, y1: 84, x2: 180, y2: 44, stroke: "line", strokeWidth: 2 },
+    { kind: "line", x1: 180, y1: 136, x2: 180, y2: 176, stroke: "line", strokeWidth: 2 },
+    { kind: "line", x1: 154, y1: 110, x2: 110, y2: 110, stroke: "line", strokeWidth: 2 },
+    { kind: "line", x1: 206, y1: 110, x2: 250, y2: 110, stroke: "line", strokeWidth: 2 },
+    { kind: "text", x: 180, y: 34, text: "H", size: 14, anchor: "middle", weight: 700, fill: "accent" },
+    { kind: "text", x: 180, y: 194, text: "H", size: 14, anchor: "middle", weight: 700, fill: "accent" },
+    { kind: "text", x: 98, y: 115, text: "H", size: 14, anchor: "middle", weight: 700, fill: "accent" },
+    { kind: "text", x: 262, y: 115, text: "H", size: 14, anchor: "middle", weight: 700, fill: "accent" },
+    { kind: "text", x: 180, y: 210, text: "CH₄", size: 12, anchor: "middle", fill: "muted" },
+  ];
+}
+
+export function chemLayout(spec: Extract<FigureSpec, { kind: "chem" }>): ChemLayout {
+  const shapes: ChemShape[] =
+    spec.variant === "particle-box" ? particleBoxShapes()
+      : spec.variant === "periodic" ? periodicShapes()
+        : spec.variant === "ionic" ? ionicShapes()
+          : spec.variant === "covalent" ? covalentShapes()
+            : spec.variant === "metallic" ? metallicShapes()
+              : spec.variant === "mole" ? moleShapes()
+                : spec.variant === "chart" ? chartShapes(spec)
+                  : spec.variant === "ph" ? phShapes()
+                    : spec.variant === "electrolysis" ? electrolysisShapes()
+                      : spec.variant === "flame" ? flameShapes()
+                        : organicShapes();
+  return { width: CHEM_W, height: CHEM_H, shapes };
+}
+
+export function atomLayout(spec: Extract<FigureSpec, { kind: "atom" }>): AtomLayout {
+  const shown = spec.shells.slice(0, 3);
+  const shells: AtomShell[] = shown.map((count, i) => {
+    const radius = 48 + i * 30;
+    const electrons = Math.max(0, Math.min(8, Math.round(Number(count) || 0)));
+    const offset = -Math.PI / 2 + i * 0.28;
+    return {
+      radius,
+      electrons: Array.from({ length: electrons }, (_, j) => {
+        const angle = offset + (2 * Math.PI * j) / Math.max(electrons, 1);
+        return { x: ATOM_CX + Math.cos(angle) * radius, y: ATOM_CY + Math.sin(angle) * radius };
+      }),
+    };
+  });
+  const electronsTotal = spec.shells.reduce((n, count) => n + Math.max(0, Math.round(Number(count) || 0)), 0);
+  return {
+    width: ATOM_W,
+    height: ATOM_H,
+    cx: ATOM_CX,
+    cy: ATOM_CY,
+    nucleusRadius: ATOM_NUCLEUS_R,
+    shells,
+    electronsTotal,
+    truncated: spec.shells.length > 3,
   };
 }

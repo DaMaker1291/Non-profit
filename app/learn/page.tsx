@@ -85,11 +85,16 @@ export default function LearnIndexPage() {
             belong on the rows, which each carry their own. */}
         <div className="page-title-row">
           <h1>{t("nav.subjects")}</h1>
-          {declared.length > 0 && (
-            <Link href="/curriculum#subjects" className="btn ghost small">
-              {t("curr.title")} →
+          <span className="actions" style={{ margin: 0 }}>
+            <Link href="/subjects" className="btn ghost small">
+              {t("atlas.title")} →
             </Link>
-          )}
+            {declared.length > 0 && (
+              <Link href="/curriculum#subjects" className="btn ghost small">
+                {t("curr.title")} →
+              </Link>
+            )}
+          </span>
         </div>
         <p className="lead" style={{ marginBottom: 0 }}>
           {/* Three states, in the order a learner meets them: nothing chosen yet,

@@ -829,7 +829,11 @@ export const PAPERS: PaperTemplate[] = [
     id: "aqa-gcse-physics", name: "GCSE Physics — Paper 1",
     board: "aqa", subject: "physics", minutes: 105, calculator: true, specs: ["uk-gcse"],
     itemCounts: "paced",
+    structured: [
+      { id: "phys-resistance", section: 2, slot: 0, marks: 5 },
+    ],
     shapeSource: "https://www.aqa.org.uk/subjects/physics/gcse/physics-8463/specification/specification-at-a-glance",
+    shapeNote: "The section counts and per-question marks are OpenMind's pacing, not an official item count. The first 5-mark slot is an authored constructed-response resistance and charge question, marked from the working and the answer.",
     boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 20, marksEach: 2, difficulty: 0.42 },
@@ -841,7 +845,11 @@ export const PAPERS: PaperTemplate[] = [
     id: "aqa-gcse-chemistry", name: "GCSE Chemistry — Paper 1",
     board: "aqa", subject: "chemistry", minutes: 105, calculator: true, specs: ["uk-gcse"],
     itemCounts: "paced",
+    structured: [
+      { id: "chem-moles", section: 2, slot: 0, marks: 5 },
+    ],
     shapeSource: "https://www.aqa.org.uk/subjects/chemistry/gcse/chemistry-8462/specification/specification-at-a-glance",
+    shapeNote: "The section counts and per-question marks are OpenMind's pacing, not an official item count. The first 5-mark slot is an authored constructed-response moles calculation, marked from the working and answer key.",
     boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 20, marksEach: 2, difficulty: 0.44 },
@@ -853,7 +861,11 @@ export const PAPERS: PaperTemplate[] = [
     id: "aqa-gcse-biology", name: "GCSE Biology — Paper 1",
     board: "aqa", subject: "biology", minutes: 105, calculator: true, specs: ["uk-gcse"],
     itemCounts: "paced",
+    structured: [
+      { id: "bio-microscopy", section: 2, slot: 0, marks: 5 },
+    ],
     shapeSource: "https://www.aqa.org.uk/subjects/biology/gcse/biology-8461/specification/specification-at-a-glance",
+    shapeNote: "The section counts and per-question marks are OpenMind's pacing, not an official item count. The first 5-mark slot is an authored constructed-response magnification and unit-conversion question, marked from the working and the answer.",
     boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 20, marksEach: 2, difficulty: 0.42 },
@@ -905,7 +917,11 @@ export const PAPERS: PaperTemplate[] = [
     id: "aqa-gcse-physics-p2", name: "GCSE Physics — Paper 2",
     board: "aqa", subject: "physics", minutes: 105, calculator: true, specs: ["uk-gcse"],
     itemCounts: "paced",
-    shapeSource: "https://www.aqa.org.uk/subjects/physics/gcse/physics-8463/specification/specification-at-a-glance", boundaries: GCSE_BOUNDARIES,
+    structured: [
+      { id: "phys-motion", section: 2, slot: 0, marks: 5 },
+    ],
+    shapeSource: "https://www.aqa.org.uk/subjects/physics/gcse/physics-8463/specification/specification-at-a-glance",
+    shapeNote: "The first 5-mark slot is an authored constructed-response acceleration and distance question, marked from the working and the answer. Section counts remain OpenMind's pacing, not an official item count.", boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 20, marksEach: 2, difficulty: 0.5 },
       { name: "Section B", count: 10, marksEach: 4, difficulty: 0.65 },
@@ -916,7 +932,11 @@ export const PAPERS: PaperTemplate[] = [
     id: "aqa-gcse-chemistry-p2", name: "GCSE Chemistry — Paper 2",
     board: "aqa", subject: "chemistry", minutes: 105, calculator: true, specs: ["uk-gcse"],
     itemCounts: "paced",
-    shapeSource: "https://www.aqa.org.uk/subjects/chemistry/gcse/chemistry-8462/specification/specification-at-a-glance", boundaries: GCSE_BOUNDARIES,
+    structured: [
+      { id: "chem-balancing", section: 2, slot: 0, marks: 5 },
+    ],
+    shapeSource: "https://www.aqa.org.uk/subjects/chemistry/gcse/chemistry-8462/specification/specification-at-a-glance",
+    shapeNote: "The first 5-mark slot is an authored constructed-response balancing and mole-ratio question, marked from the table cells, the working and the answer. Section counts remain OpenMind's pacing, not an official item count.", boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 20, marksEach: 2, difficulty: 0.48 },
       { name: "Section B", count: 10, marksEach: 4, difficulty: 0.63 },
@@ -927,7 +947,11 @@ export const PAPERS: PaperTemplate[] = [
     id: "aqa-gcse-biology-p2", name: "GCSE Biology — Paper 2",
     board: "aqa", subject: "biology", minutes: 105, calculator: true, specs: ["uk-gcse"],
     itemCounts: "paced",
-    shapeSource: "https://www.aqa.org.uk/subjects/biology/gcse/biology-8461/specification/specification-at-a-glance", boundaries: GCSE_BOUNDARIES,
+    structured: [
+      { id: "bio-energy-transfer", section: 2, slot: 0, marks: 5 },
+    ],
+    shapeSource: "https://www.aqa.org.uk/subjects/biology/gcse/biology-8461/specification/specification-at-a-glance",
+    shapeNote: "The first 5-mark slot is an authored constructed-response food-chain energy transfer question, marked from the table cells, the working and the answer. Section counts remain OpenMind's pacing, not an official item count.", boundaries: GCSE_BOUNDARIES,
     sections: [
       { name: "Section A", count: 20, marksEach: 2, difficulty: 0.45 },
       { name: "Section B", count: 10, marksEach: 4, difficulty: 0.62 },
@@ -1405,7 +1429,7 @@ export function genericPapers(active: ActiveSpec, subject: SubjectId, lang?: str
    *  are the ones a real paper prints (Section A/B/C, in increasing demand), not
    *  the old "Short answers / Working", which named OpenMind's item kinds rather
    *  than the shape of the paper. */
-  const sized = (n: number, set: string, plan: SectionPlan[]): PaperTemplate => {
+  const sized = (n: number, set: string, plan: SectionPlan[], structured?: StructuredPlacement[]): PaperTemplate => {
     const sections = plan.map((s) => {
       const marks = Math.max(s.marksEach * 2, Math.round((size.marks * s.share) / s.marksEach) * s.marksEach);
       return { name: s.name, count: marks / s.marksEach, marksEach: s.marksEach, difficulty: s.difficulty };
@@ -1424,6 +1448,12 @@ export function genericPapers(active: ActiveSpec, subject: SubjectId, lang?: str
       // either side of the target.
       minutes: Math.round((total * size.minutes) / size.marks),
       sections,
+      // ONLY ON THE PAPER THAT ACTUALLY HAS THE SLOT. A constructed-response
+      // item in the modelled set exists because a subject's authored papers do
+      // not cover it — computing's Paper 3 is the only modelled paper with a
+      // written trace question — and `paper()` rejects it by marks and subject
+      // if it is placed anywhere its section cannot hold it.
+      ...(structured ? { structured } : {}),
     });
   };
   const easier = Math.max(0.2, d - 0.18);
@@ -1471,7 +1501,14 @@ export function genericPapers(active: ActiveSpec, subject: SubjectId, lang?: str
   // Ordered BY PAPER, then by set: Paper 1 A/B/C, then Paper 2 — because that is
   // how a learner works through a revision library, and grouping by set would
   // put three different papers under "Set A".
-  return shapes.flatMap((s) => SETS.map((set) => sized(s.n, set, s.plan)));
+  // COMPUTING'S FULL MOCK CARRIES A WRITTEN QUESTION. The subject has no
+  // authored board blueprint here, so the modelled Paper 3 is where a computing
+  // candidate can meet a constructed-response trace table at all. It goes on
+  // Paper 3 only — the shape whose Section C is 6-mark work — and every set of
+  // it, so "Paper 3 · Set B" is not the one sitting without the written item.
+  const computingTrace: StructuredPlacement[] | undefined =
+    subject === "computing" ? [{ id: "comp-loop-trace", section: 2, slot: 0, marks: 6 }] : undefined;
+  return shapes.flatMap((s) => SETS.map((set) => sized(s.n, set, s.plan, s.n === 3 ? computingTrace : undefined)));
 }
 
 /** Every paper a learner can sit for ONE subject: the board's own blueprints

@@ -102,8 +102,10 @@ export const ENGINE_SOURCES = [
   "lib/lesson-plans-computing.ts",
   "lib/lesson-plans-supplemental.ts",
   "lib/lesson-map.ts",
+  "lib/theory-map.ts",
   "lib/lesson-media.ts",
   "lib/i18n-lessons.ts",
+  "lib/subject-atlas.ts",
   // FIGURE GEOMETRY. Compiled with the engines because the claims a diagram
   // makes are arithmetic: a number line's arrow must travel the way the sign
   // says, a balance's pans must hold what the equation says, an area model's
@@ -144,6 +146,11 @@ export const ENGINE_SOURCES = [
   "lib/curriculum.ts",
   "lib/deadline.ts",
   "lib/specifications.ts",
+  // THE SUBJECT PAGE'S START RULE. Pure, and compiled because the suite asserts
+  // the boundary that caused the P0 defect: a decision hint from another
+  // subject, or a concept outside the chosen course, may never become the
+  // button a learner presses on this page.
+  "lib/subject-start.ts",
   // What a course can ACTUALLY serve, measured from its generators. Imported
   // by no engine module — it exists so a surface can state the gap honestly,
   // and it imports both questions.ts and specifications.ts, so it must stay

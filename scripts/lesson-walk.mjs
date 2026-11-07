@@ -124,7 +124,7 @@ const FIGURED = [
 const AUTHORED_NO_PLAN = ["place-value", "addition", "subtraction", "rounding", "multiplication", "division"];
 
 /** Every kind the figure union declares. A plan may only draw one of these. */
-const KINDS = ["axes", "pie", "right-triangle", "number-line", "balance", "rectangle", "surd-square", "particles", "circuit", "cell"];
+const KINDS = ["axes", "pie", "right-triangle", "number-line", "balance", "rectangle", "surd-square", "particles", "circuit", "cell", "atom", "chem"];
 
 async function main() {
   try {

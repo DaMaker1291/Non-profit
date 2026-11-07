@@ -6,9 +6,9 @@ This is the review surface for the items that are **not** in the 149-item genera
 
 ## What this addendum contains
 
-- **13 constructed-response items**, 38 parts, 58 marks.
-- **9 items** sit on concepts also covered by the generated pack; **4** sit on concepts outside it.
-- **137 machine marking scenarios**, all passing. These are representative cases, not a claim that every possible learner response has been tested.
+- **20 constructed-response items**, 57 parts, 94 marks.
+- **9 items** sit on concepts also covered by the generated pack; **11** sit on concepts outside it.
+- **230 machine marking scenarios**, all passing. These are representative cases, not a claim that every possible learner response has been tested.
 - **0 human reviews.** A machine agreeing with an authored scheme is not a teacher agreeing with the teaching.
 
 ## By item
@@ -28,14 +28,21 @@ This is the review surface for the items that are **not** in the 149-item genera
 | Circle theorems (`hf-circle-angles`) | `circle-theorems` | Higher | 5 | 5 | numeric entry | no |
 | A rectangle with an unknown side (`hf-rectangle-context`) | `quadratics` | Foundation, Higher | 3 | 6 | algebraic expression, numeric entry | concept yes, item no |
 | A linear sequence (`hf-sequences-context`) | `sequences` | Foundation, Higher | 3 | 6 | algebraic expression, numeric entry | no |
+| Moles and mass (`chem-moles`) | `moles-calcs` | Foundation, Higher | 3 | 5 | numeric entry | no |
+| Balancing propane combustion (`chem-balancing`) | `equations-stoich` | Foundation, Higher | 2 | 5 | numeric entry, table cells | no |
+| Microscope magnification (`bio-microscopy`) | `microscopy` | Foundation, Higher | 3 | 5 | numeric entry | no |
+| Energy in a food chain (`bio-energy-transfer`) | `ecosystems` | Foundation, Higher | 2 | 5 | numeric entry, table cells | no |
+| Resistance and charge (`phys-resistance`) | `electricity-circuits` | Foundation, Higher | 3 | 5 | numeric entry | no |
+| Acceleration and distance (`phys-motion`) | `motion-graphs` | Foundation, Higher | 3 | 5 | numeric entry | no |
+| Tracing a loop (`comp-loop-trace`) | `loops` | Foundation, Higher | 3 | 6 | numeric entry, table cells | no |
 
 ## Findings
 
-1. **13 constructed-response items are outside the 149-item generated pack.** 9 of them sit on concepts that are in that pack and 4 sit on concepts that are not; the pack therefore cannot show a reviewer the method-marked format at all. This addendum is the review surface for them.
-2. **38 parts, 58 marks.** 36 marks are on in-pack concepts and 22 on concepts outside it. A reviewer reading only the 149-item pack is not seeing those marks.
-3. **137 marking scenarios passed.** They cover full correct answers, blank responses, answer-without-working, working-with-wrong-answer, missing units, wrong graph coordinates, partial plots, wrong algebra forms and one-cell table errors.
+1. **20 constructed-response items are outside the 149-item generated pack.** 9 of them sit on concepts that are in that pack and 11 sit on concepts that are not; the pack therefore cannot show a reviewer the method-marked format at all. This addendum is the review surface for them.
+2. **57 parts, 94 marks.** 36 marks are on in-pack concepts and 58 on concepts outside it. A reviewer reading only the 149-item pack is not seeing those marks.
+3. **230 marking scenarios passed.** They cover full correct answers, blank responses, answer-without-working, working-with-wrong-answer, missing units, wrong graph coordinates, partial plots, wrong algebra forms and one-cell table errors.
 4. **Marking is machine-validated, not teacher-validated.** No item here has a named reviewer: `audit/item-reviews.json` is empty. A green run says the engine agrees with these authored schemes; it does not say the schemes are right for the pupils.
-5. **4 warnings** are recorded below. The largest is coverage: 4 items are on concepts outside the generated pack, so adding more structured items will not make the pilot's review surface complete until those concepts are brought in.
+5. **11 warnings** are recorded below. The largest is coverage: 11 items are on concepts outside the generated pack, so adding more structured items will not make the pilot's review surface complete until those concepts are brought in.
 
 ## The items and their mark schemes
 
@@ -450,6 +457,248 @@ A sequence begins 5, 8, 11, 14, …
 - Answer: **40**
 - Also accepted: `40`, `40th term`
 - Explanation: Set the nth term equal to 122: 3n + 2 = 122. Subtract 2 to get 3n = 120, then divide by 3 to get n = 40. So 122 is the 40th term. Reporting 120 as the answer gives the value of 3n, not the position n.
+
+**Items in this addendum are reviewable, not reviewed.** If every part is read and the scheme is sound, record the concept in `audit/item-reviews.json` with a reviewer, a date and a scope.
+
+### 14. Moles and mass `chem-moles`
+
+- **Concept:** `moles-calcs` — The mole & calculations
+- **Tier(s):** Foundation, Higher · **difficulty:** 0.55 · **marks:** 5
+- **In the 149-item generated pack:** no
+
+Carbon dioxide has the formula CO₂. Use C = 12 and O = 16.
+
+Part (a) is worth 1 mark. Parts (b) and (c) are each worth 2 marks: 1 for the method you show and 1 for the answer.
+
+*What this item does not assess:* The method mark is earned by the working you type, not inferred from a correct answer, and it is kept when the final value is wrong. The answer mark is the value in moles or grams, with the unit where the question asks for a mass. This item checks the mole relationship and arithmetic; it does not assess a written explanation.
+
+**Part a — Work out the relative formula mass of carbon dioxide, CO₂.**
+
+- Marks: **1** (answer) · response: numeric entry
+- Answer: **44**
+- Also accepted: `44`, `44 g/mol`, `44 g mol-1`
+- Explanation: One carbon contributes 12 and two oxygens contribute 2 × 16 = 32, so 12 + 32 = 44. Relative formula mass adds the relative atomic masses in the formula; it is not the mass of a single molecule measured in grams. The relative formula mass is 44, and one mole of carbon dioxide therefore has a mass of 44 g.
+
+**Part b — Calculate the number of moles in 11 g of carbon dioxide.**
+
+- Marks: **2** (1 method + 1 answer) · response: numeric entry
+- Method: **mass ÷ relative formula mass** — accepted working: `11 / 44`, `11 ÷ 44`, `11/44`, `11 / 44 = 0.25`, `11 ÷ 44 = 0.25`, `11/44 = 0.25`
+- Answer: **0.25**
+- Also accepted: `0.25`, `0.250`, `0.25 mol`, `0.250 mol`
+- Explanation: Moles are found by dividing mass by relative formula mass: 11 ÷ 44 = 0.25 mol. The check is the reverse calculation, 0.25 × 44 = 11 g, which returns the mass in the question. Multiplying 11 by 44 would treat a mass as though it were a mole ratio and gives 484, not 0.25.
+
+**Part c — Calculate the mass of 0.50 mol of carbon dioxide. Give your answer in grams.**
+
+- Marks: **2** (1 method + 1 answer) · response: numeric entry
+- Method: **moles × relative formula mass** — accepted working: `0.5 × 44`, `0.50 × 44`, `0.5*44`, `0.50*44`, `0.5 x 44`, `0.50 x 44`, `0.5 × 44 = 22`, `0.50 × 44 = 22`
+- Answer: **22 g** · unit required for the answer mark
+- Also accepted: `22 g`, `22g`, `22.0 g`, `22.0g`
+- Explanation: Mass is moles multiplied by relative formula mass: 0.50 × 44 = 22 g. The answer needs the gram unit because the question asks for a mass, not a number of moles. Dividing 0.50 by 44 would give about 0.0114, which is the number of moles in 0.50 g rather than the mass of 0.50 mol.
+
+**Items in this addendum are reviewable, not reviewed.** If every part is read and the scheme is sound, record the concept in `audit/item-reviews.json` with a reviewer, a date and a scope.
+
+### 15. Balancing propane combustion `chem-balancing`
+
+- **Concept:** `equations-stoich` — Chemical equations
+- **Tier(s):** Foundation, Higher · **difficulty:** 0.60 · **marks:** 5
+- **In the 149-item generated pack:** no
+
+Propane burns completely: C₃H₈ + O₂ → CO₂ + H₂O.
+
+Part (a) is a table worth 3 marks, one per coefficient. Part (b) is worth 2 marks: 1 for the method you show and 1 for the answer.
+
+*What this item does not assess:* Each table cell is marked independently, so two correct coefficients keep two marks. The method mark in part (b) is earned by the working you type and is not inferred from the final answer. This item checks balancing and the mole ratio; it does not assess a written explanation of the reaction.
+
+**Part a — Complete the coefficients that balance the equation. Enter the number that goes in front of each formula.**
+
+- Marks: **3** (answer) · response: table cells
+- Table: O₂ · CO₂ · H₂O · 3 blank cell(s), one mark each
+- Explanation: Propane has three carbon atoms, so three CO₂ molecules are needed; its eight hydrogen atoms need four H₂O molecules. The products then contain 3 × 2 + 4 = 10 oxygen atoms, so five O₂ molecules are needed on the left. Checking each element gives C 3 = 3, H 8 = 8 and O 10 = 10, so C₃H₈ + 5O₂ → 3CO₂ + 4H₂O is balanced.
+
+**Part b — 0.20 mol of propane burns completely. Calculate the number of moles of carbon dioxide produced.**
+
+- Marks: **2** (1 method + 1 answer) · response: numeric entry
+- Method: **three moles of CO₂ per mole of propane** — accepted working: `0.20 × 3`, `0.2 × 3`, `3 × 0.20`, `3 × 0.2`, `0.20*3`, `0.2*3`, `3*0.20`, `3*0.2`, `0.20 x 3`, `0.2 x 3`, `3 x 0.20`, `3 x 0.2`, `0.20 × 3 = 0.6`, `0.2 × 3 = 0.6`
+- Answer: **0.6**
+- Also accepted: `0.6`, `0.60`, `0.6 mol`, `0.60 mol`
+- Explanation: The balanced equation has a coefficient of 3 in front of CO₂ and an unwritten coefficient of 1 in front of C₃H₈, so the mole ratio is 3 : 1. For 0.20 mol of propane, the carbon dioxide produced is 0.20 × 3 = 0.60 mol. Using 0.20 ÷ 3 would reverse the ratio and give about 0.067 mol, which is the amount of propane needed for 0.20 mol of carbon dioxide.
+
+**Items in this addendum are reviewable, not reviewed.** If every part is read and the scheme is sound, record the concept in `audit/item-reviews.json` with a reviewer, a date and a scope.
+
+### 16. Microscope magnification `bio-microscopy`
+
+- **Concept:** `microscopy` — Microscopy
+- **Tier(s):** Foundation, Higher · **difficulty:** 0.50 · **marks:** 5
+- **In the 149-item generated pack:** no
+
+A student views a cell with a microscope. The image of the cell is 30 mm wide. The real cell is 0.015 mm wide.
+
+Part (a) is worth 2 marks: 1 for the method you show and 1 for the answer. Part (b) is worth 2 marks in the same way. Part (c) is worth 1 mark.
+
+*What this item does not assess:* Marked from the magnification equation and the values you type. The method mark is earned only by the working shown, never inferred from a correct answer. Magnification itself has no unit; the two lengths do. The item checks calculation, not the drawing or focusing of a microscope.
+
+**Part a — Calculate the magnification. Give your answer as a number.**
+
+- Marks: **2** (1 method + 1 answer) · response: numeric entry
+- Method: **image size ÷ real size** — accepted working: `30 / 0.015`, `30 ÷ 0.015`, `30/0.015`, `30 ÷ 0.015 = 2000`, `30/0.015 = 2000`
+- Answer: **2000**
+- Also accepted: `2000`, `2,000`
+- Explanation: Magnification is image size divided by real size: 30 mm ÷ 0.015 mm = 2000. The millimetres cancel because both lengths are in the same unit, so the result is a pure number; writing mm would make the magnification a length. The method mark is for that quotient, not for multiplying the two measurements.
+
+**Part b — A second cell is 45 mm wide in the same image. Calculate its real width in mm. Give your answer in mm.**
+
+- Marks: **2** (1 method + 1 answer) · response: numeric entry
+- Method: **image size ÷ magnification** — accepted working: `45 / 2000`, `45 ÷ 2000`, `45/2000`, `45 ÷ 2000 = 0.0225`, `45/2000 = 0.0225`
+- Answer: **0.0225 mm** · unit required for the answer mark
+- Also accepted: `0.0225 mm`, `0.0225mm`
+- Explanation: The same magnification applies to the second cell, so rearrange image size = magnification × real size to get real size = image size ÷ magnification. That is 45 mm ÷ 2000 = 0.0225 mm. Multiplying 45 by 2000 would make the real cell 90,000 mm wide, which is the wrong direction for the rearrangement.
+
+**Part c — Convert the real width from part (b) to micrometres. Give your answer in µm.**
+
+- Marks: **1** (answer) · response: numeric entry
+- Answer: **22.5 µm** · unit required for the answer mark
+- Also accepted: `22.5 µm`, `22.5µm`
+- Explanation: One millimetre is 1000 micrometres, so 0.0225 mm × 1000 = 22.5 µm. The conversion multiplies because a micrometre is a smaller unit than a millimetre; dividing would make the cell smaller still and reverse the intended change of unit.
+
+**Items in this addendum are reviewable, not reviewed.** If every part is read and the scheme is sound, record the concept in `audit/item-reviews.json` with a reviewer, a date and a scope.
+
+### 17. Energy in a food chain `bio-energy-transfer`
+
+- **Concept:** `ecosystems` — Ecosystems & cycles
+- **Tier(s):** Foundation, Higher · **difficulty:** 0.55 · **marks:** 5
+- **In the 149-item generated pack:** no
+
+The grass in a food chain contains 80 000 kJ of energy. At each step, 10% of the energy is transferred to the next trophic level.
+
+Part (a) is a table worth 3 marks. Part (b) is worth 2 marks: 1 for the method you show and 1 for the answer.
+
+*What this item does not assess:* Each table cell is marked independently, so three correct transfers keep three marks. Part (b) asks for the share of the grass's original energy that reaches the tertiary consumer, so the answer is a percentage, not a quantity of energy.
+
+**Part a — Complete the energy transferred to each consumer.**
+
+- Marks: **3** (answer) · response: table cells
+- Table: Primary consumer · Secondary consumer · Tertiary consumer · 3 blank cell(s), one mark each
+- Explanation: Each transfer is 10% of the energy in the level before it. The grass's 80 000 kJ gives 8000 kJ to the primary consumer, 10% of 8000 gives 800 kJ to the secondary consumer, and 10% of 800 gives 80 kJ to the tertiary consumer. At each step 90% is lost to the surroundings, mostly as heat from respiration, so the chain supports fewer organisms at each higher level.
+
+**Part b — Calculate the percentage of the grass's original energy that reaches the tertiary consumer. Give your answer in %.**
+
+- Marks: **2** (1 method + 1 answer) · response: numeric entry
+- Method: **energy at the tertiary consumer ÷ original energy × 100** — accepted working: `80 / 80000 × 100`, `80 ÷ 80000 × 100`, `80/80000*100`, `80/80000x100`, `80 ÷ 80000 = 0.001, then × 100`, `0.001 × 100`
+- Answer: **0.1 %** · unit required for the answer mark
+- Also accepted: `0.1%`, `0.10%`
+- Explanation: The tertiary consumer receives 80 kJ from an original 80 000 kJ. As a fraction that is 80 ÷ 80 000 = 0.001, and as a percentage it is 0.001 × 100 = 0.1%. Reporting 10% would stop after one transfer; the energy has passed through three transfers, so the original share is much smaller than one step's transfer.
+
+**Items in this addendum are reviewable, not reviewed.** If every part is read and the scheme is sound, record the concept in `audit/item-reviews.json` with a reviewer, a date and a scope.
+
+### 18. Resistance and charge `phys-resistance`
+
+- **Concept:** `electricity-circuits` — Circuits
+- **Tier(s):** Foundation, Higher · **difficulty:** 0.55 · **marks:** 5
+- **In the 149-item generated pack:** no
+
+A resistor is connected to a 6.0 V supply. The current through it is 0.30 A.
+
+Part (a) is worth 2 marks: 1 for the method and 1 for the answer. Part (b) is worth 2 marks in the same way. Part (c) is worth 1 mark.
+
+*What this item does not assess:* The method mark is earned by the working you type, not inferred from the final value. Resistance, current and charge each carry a unit in the answer box; a bare number is not the physical quantity the question asks for.
+
+**Part a — Calculate the resistance of the resistor. Give your answer in ohms.**
+
+- Marks: **2** (1 method + 1 answer) · response: numeric entry
+- Method: **voltage ÷ current** — accepted working: `6.0 / 0.30`, `6 / 0.3`, `6.0 ÷ 0.30`, `6 ÷ 0.3`, `6/0.3`, `6.0/0.30`
+- Answer: **20 Ω** · unit required for the answer mark
+- Also accepted: `20 Ω`, `20Ω`
+- Explanation: From V = IR, resistance is R = V ÷ I. Substituting gives 6.0 V ÷ 0.30 A = 20 Ω. The unit is ohms because voltage divided by current is resistance; multiplying the two would give a voltage-like quantity and is not the rearrangement the question needs.
+
+**Part b — The resistor is replaced by a 30 Ω resistor. Calculate the current at the same 6.0 V. Give your answer in A.**
+
+- Marks: **2** (1 method + 1 answer) · response: numeric entry
+- Method: **voltage ÷ resistance** — accepted working: `6.0 / 30`, `6 / 30`, `6.0 ÷ 30`, `6 ÷ 30`, `6/30`, `6.0/30`
+- Answer: **0.2 A** · unit required for the answer mark
+- Also accepted: `0.2 A`, `0.20 A`
+- Explanation: The supply voltage stays at 6.0 V, so I = V ÷ R = 6.0 ÷ 30 = 0.20 A. A larger resistance gives a smaller current for the same voltage. Using 30 ÷ 6 would reverse the relationship and give 5 A, which would happen if resistance were multiplied by current instead of dividing voltage by it.
+
+**Part c — The current is 0.30 A for 120 s. Calculate the charge that flows. Give your answer in coulombs.**
+
+- Marks: **1** (answer) · response: numeric entry
+- Answer: **36 C** · unit required for the answer mark
+- Also accepted: `36 C`, `36C`
+- Explanation: Current is charge per second, so charge is current × time: 0.30 A × 120 s = 36 C. Dividing 0.30 by 120 would give the charge per second twice over, not the total charge transferred during the 120 seconds.
+
+**Items in this addendum are reviewable, not reviewed.** If every part is read and the scheme is sound, record the concept in `audit/item-reviews.json` with a reviewer, a date and a scope.
+
+### 19. Acceleration and distance `phys-motion`
+
+- **Concept:** `motion-graphs` — Motion
+- **Tier(s):** Foundation, Higher · **difficulty:** 0.60 · **marks:** 5
+- **In the 149-item generated pack:** no
+
+A car accelerates uniformly from 8.0 m/s to 20.0 m/s in 6.0 s.
+
+Part (a) is worth 2 marks: 1 for the method and 1 for the answer. Part (b) is worth 2 marks in the same way. Part (c) is worth 1 mark.
+
+*What this item does not assess:* The marker checks the acceleration and distance from the values typed; the method mark needs the working shown. The final conversion asks for kilometres, so the answer is a distance, not a speed.
+
+**Part a — Calculate the acceleration of the car. Give your answer in m/s².**
+
+- Marks: **2** (1 method + 1 answer) · response: numeric entry
+- Method: **change in velocity ÷ time** — accepted working: `(20 - 8) / 6`, `(20 − 8) ÷ 6`, `(20-8)/6`, `12 / 6`, `12 ÷ 6`, `(20.0 - 8.0) / 6.0`, `(20.0 − 8.0) ÷ 6.0`
+- Answer: **2 m/s²** · unit required for the answer mark
+- Also accepted: `2 m/s²`, `2 m/s2`
+- Explanation: Acceleration is the change in velocity divided by the time taken. The change is 20.0 − 8.0 = 12.0 m/s, so 12.0 ÷ 6.0 = 2.0 m/s². Dividing the final speed by the time would ignore the car's starting speed and give 3.3 m/s² instead.
+
+**Part b — Calculate the distance the car travels during the 6.0 s. Give your answer in m.**
+
+- Marks: **2** (1 method + 1 answer) · response: numeric entry
+- Method: **average speed × time** — accepted working: `((8 + 20) / 2) × 6`, `((8 + 20) ÷ 2) × 6`, `(8 + 20) / 2 × 6`, `(8 + 20) ÷ 2 × 6`, `14 × 6`, `14 * 6`, `average speed × time`
+- Answer: **84 m** · unit required for the answer mark
+- Also accepted: `84 m`, `84m`
+- Explanation: For uniform acceleration, the average speed is halfway between 8.0 m/s and 20.0 m/s: (8.0 + 20.0) ÷ 2 = 14.0 m/s. Multiplying by 6.0 s gives 84 m. Using only the final speed would assume the car was already at 20 m/s for the whole six seconds and overestimate the distance.
+
+**Part c — Give the distance from part (b) in kilometres.**
+
+- Marks: **1** (answer) · response: numeric entry
+- Answer: **0.084 km** · unit required for the answer mark
+- Also accepted: `0.084 km`, `0.084km`
+- Explanation: There are 1000 metres in a kilometre, so 84 m ÷ 1000 = 0.084 km. Multiplication by 1000 would give 84 000 km, which is far larger than the distance travelled and reverses the direction of the conversion.
+
+**Items in this addendum are reviewable, not reviewed.** If every part is read and the scheme is sound, record the concept in `audit/item-reviews.json` with a reviewer, a date and a scope.
+
+### 20. Tracing a loop `comp-loop-trace`
+
+- **Concept:** `loops` — Loops
+- **Tier(s):** Foundation, Higher · **difficulty:** 0.50 · **marks:** 6
+- **In the 149-item generated pack:** no
+
+Study this program:
+
+total = 0
+for n in [2, 4, 6, 8]:
+    total = total + n
+
+Part (a) is a trace table worth 4 marks, one per value. Parts (b) and (c) are worth 1 mark each.
+
+*What this item does not assess:* The table is marked cell by cell, so two correct values keep two marks. The trace follows the loop in order; the final value and the number of iterations are counted from the same list, not guessed from the size of the numbers.
+
+**Part a — Complete the value of total after each update.**
+
+- Marks: **4** (answer) · response: table cells
+- Table: n = 2 · n = 4 · n = 6 · n = 8 · 4 blank cell(s), one mark each
+- Explanation: The loop visits the list in order. Starting from total = 0: after n = 2, total is 2; after n = 4, 2 + 4 = 6; after n = 6, 6 + 6 = 12; after n = 8, 12 + 8 = 20. Each cell is a snapshot after that update, not a running formula with n substituted independently.
+
+**Part b — What is the final value of total?**
+
+- Marks: **1** (answer) · response: numeric entry
+- Answer: **20**
+- Also accepted: `20`
+- Explanation: The final update is 12 + 8 = 20, so the last value stored in total is 20. Reporting 8 would name the last item in the list rather than the accumulated total.
+
+**Part c — How many times does the loop body run?**
+
+- Marks: **1** (answer) · response: numeric entry
+- Answer: **4**
+- Also accepted: `4`
+- Explanation: The list contains four values: 2, 4, 6 and 8. A for loop runs its body once for each item, so the body runs four times, not eight or twenty.
 
 **Items in this addendum are reviewable, not reviewed.** If every part is read and the scheme is sound, record the concept in `audit/item-reviews.json` with a reviewer, a date and a scope.
 

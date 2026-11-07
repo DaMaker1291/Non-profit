@@ -32,8 +32,9 @@
 import Link from "next/link";
 import { use } from "react";
 import { useI18n, useProfile } from "@/lib/client";
-import { bySubject, getConcept } from "@/lib/genome";
+import { bySubject } from "@/lib/genome";
 import { planFor } from "@/lib/lesson-plans";
+import { chooseSubjectStart } from "@/lib/subject-start";
 import { ctitle, cblurb } from "@/lib/content-i18n";
 import { proofLabelKey } from "@/lib/proof";
 import { conceptStanding, demonstratedLabelKey } from "@/lib/learner-model";
@@ -41,6 +42,7 @@ import { decideOne, decisionContextFrom } from "@/lib/decision";
 import { coverageOf, courseGaps, specForProfile } from "@/lib/specifications";
 import { dimensionFor } from "@/lib/evidence-view";
 import { bandKey } from "@/components/dims";
+import { SubjectTheoryMap } from "@/components/subject-theory-map";
 import { fill } from "@/lib/i18n";
 import type { SubjectId } from "@/lib/types";
 
@@ -75,6 +77,13 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
   const askedOf = (id: string) => state?.progress[id]?.attempts ?? 0;
   const correctOf = (id: string) => state?.progress[id]?.correct ?? 0;
   const touched = listed.filter((c) => askedOf(c.id) > 0).length;
+  // "Mastered" is the engine's own finished state, not a second threshold: a
+  // concept counts here only when `conceptStanding` says the learner has
+  // demonstrated it. Practising is not mastery, and the two counts are printed
+  // as two different facts.
+  const mastered = state
+    ? listed.filter((c) => conceptStanding(state, c.id).done).length
+    : 0;
 
   // What the course does NOT cover: computed, not assumed away, and never
   // deleted — it stays one link away on the same screen.
@@ -90,25 +99,22 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
     ? decideOne(decisionContextFrom(state, null), { tt: t, title: (id) => ctitle(lang, id) })?.conceptId ?? null
     : null;
 
-  // THE PAGE'S ONE ACTION MUST NOT OPEN A GATE.
+  // THE PAGE'S ACTION MUST STAY INSIDE THIS COURSE.
   //
-  // `currentId` is the decision's concept, and the decision does not know which
-  // concepts have authored teaching — it ranks by the learner model. So the
-  // button beside the title could name an idea whose page then says "not
-  // available as a lesson", which is an honest page and a dead first step: the
-  // only action on the subject map led to a page with no lesson and no practice.
-  //
-  // When the decision's concept is untaught, start instead at the nearest taught
-  // idea it BUILDS ON (a learner can meet the next concept once its prerequisite
-  // is taught), then at the first taught concept in the course. Only concepts
-  // with a real plan are ever named here; a subject with no lessons at all
-  // renders no button rather than a door into a gate.
-  const firstTaught = (ids: readonly { id: string }[]) => ids.find((c) => planFor(c.id))?.id ?? null;
-  const startId = (() => {
-    if (currentId && planFor(currentId)) return currentId;
-    const prereqs = currentId ? getConcept(currentId)?.prereqs ?? [] : [];
-    return [...prereqs].reverse().find((id) => planFor(id)) ?? firstTaught(listed) ?? firstTaught(all);
-  })();
+  // `currentId` is a GLOBAL decision: it ranks the whole learner model and does
+  // not know which subject page is asking. On a Chemistry page it can name a
+  // Mathematics idea. The chooser below validates that hint against this
+  // subject's share of `coverageOf(active)` and refuses any cross-subject or
+  // out-of-course fallback. If the course has no usable lesson, it answers null
+  // and the page prints the unavailable state rather than sending a Chemistry
+  // learner to Fractions.
+  const startId = chooseSubjectStart(subject, active, currentId).conceptId;
+
+  const subjectCode = active?.spec.subjectCodes?.[subject] ?? null;
+  const syllabus = active?.spec.syllabi?.[subject] ?? null;
+  const qualification = active
+    ? `${active.spec.name} ${label}${subjectCode ? ` (${subjectCode})` : ""}`
+    : null;
 
   /** One row of the syllabus. EVERY fact in it comes from
    *  lib/learner-model#conceptStanding — the same function the published static
@@ -125,9 +131,12 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
     const pr = state?.progress[c.id];
     const mark = s?.mark === "done" ? "✓" : s?.mark === "underway" ? "◐" : "○";
     const here = !!s && currentId === c.id;
-    const hasPlan = Boolean(planFor(c.id));
+    const plan = planFor(c.id);
+    const hasPlan = Boolean(plan);
+    const recommended = startId === c.id;
+    const reviewNote = plan?.review === "unreviewed" ? t("plan.unreviewed") : t("plan.reviewed");
     return (
-      <Link key={c.id} href={`/learn/${subject}/${c.id}`} className="concept-row">
+      <Link key={c.id} href={`/learn/${subject}/${c.id}`} className={`concept-row${recommended ? " is-start" : ""}`}>
         <span className="grow">
           <b>
             <span className="mark" aria-hidden="true" style={{ fontFamily: "var(--mono)", marginInlineEnd: 6 }}>{mark}</span>
@@ -174,7 +183,12 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
                 `learn.lesson`, authored in all fifteen dictionaries. A plain
                 chip, never `good`: the colour means demonstrated, and a lesson
                 that exists is not evidence that anything was learned. */}
-            {hasPlan && <span className="chip">{t("learn.lesson")}</span>}
+            {recommended && <span className="chip start-chip">{t("plan.start")}</span>}
+            {hasPlan && (
+              <span className="chip" title={reviewNote} aria-label={`${t("learn.lesson")} — ${reviewNote}`}>
+                {t("learn.lesson")}
+              </span>
+            )}
             {s?.proved && (
               <span className={`chip ${s.proved !== "supported" ? "good" : ""}`}>{t(proofLabelKey(s.proved))}</span>
             )}
@@ -226,10 +240,17 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
                 two sizes, which reads as a number followed by punctuation; the
                 pair is set as a single figure and the noun is the caption. */}
             <p className="subject-count">
-              <span className="num">{touched}/{listed.length}</span>{" "}
-              <span className="muted">{t("map.concepts")}</span>
+              {fill(t("subject.progressCount"), {
+                practised: touched,
+                total: listed.length,
+                mastered,
+              })}
             </p>
-            <div className="coverage-bar" role="img" aria-label={`${touched} / ${listed.length} ${t("map.concepts")}`}>
+            <div className="coverage-bar" role="img" aria-label={fill(t("subject.progressCount"), {
+              practised: touched,
+              total: listed.length,
+              mastered,
+            })}>
               <span style={{ width: `${listed.length ? Math.round((touched / listed.length) * 100) : 0}%` }} />
             </div>
             {/* The count is ALREADY above the bar — this line used to repeat it
@@ -237,7 +258,8 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
                 printed twice in three lines and neither copy was the one the
                 learner could act on. It carries the action only. */}
             <p className="small muted" style={{ margin: "8px 0 0" }}>
-              <Link href={`/diagnostic/${subject}`}>{t("dash.diagnose")} →</Link>
+              <Link href={`/diagnostic/${subject}`}>{t("dash.diagnose")} →</Link>{" "}
+              {t("state.needsDiagnostic")}
             </p>
           </div>
         </div>
@@ -252,8 +274,11 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
         <p className="subject-course-line">
           {active && (
             <>
-              <span className="chip">{active.spec.name}</span>
-              <span className="chip" style={{ marginInlineStart: 8 }}>{t(`lvl.${active.level.tier}`)}</span>
+              <span className="chip">{qualification}</span>
+              <span className="chip" style={{ marginInlineStart: 8 }}>{active.level.name}</span>
+              {syllabus && (
+                <span className="small muted">{fill(t("subject.syllabus"), { version: syllabus })}</span>
+              )}
             </>
           )}
           {courseNote && <span className="small muted">{courseNote}</span>}
@@ -265,9 +290,44 @@ export default function SubjectPage({ params }: { params: Promise<{ subject: str
         </p>
       )}
 
+      {/* THE FIRST LESSON IS VISIBLE, NAMED AND EXPLAINED. The stage holding
+          `startId` is opened below; this card says which idea it is, what it
+          teaches, and opens it, so a first-time learner does not have to infer
+          a starting point from the first row of a collapsed stage. */}
+      {startId ? (
+        <section className="subject-start-card">
+          <div>
+            <p className="eyebrow">{t("subject.recommended")}</p>
+            <h2>{ctitle(lang, startId)}</h2>
+            <p>{cblurb(lang, startId)}</p>
+          </div>
+          <Link href={`/learn/${subject}/${startId}`} className="btn">
+            {t("next.start")} →
+          </Link>
+        </section>
+      ) : (
+        <p className="small muted subject-start-empty">
+          {active ? t("subject.startUnavailable") : p ? t("curr.unmapped") : t("curr.noProfile")}
+        </p>
+      )}
+
       {touched === 0 && listed.length > 0 && (
         <p className="small muted" style={{ marginBottom: 4 }}>{t("learn.notStarted")}</p>
       )}
+
+      {/* EVERY CONCEPT IN ONE PICTURE. The topic list below is the course this
+          learner is actually taking; this map is the whole subject the genome
+          defines, including ideas outside that course. It is generated from the
+          same `prereqs` the lesson maps read, so it cannot invent a relationship
+          or omit a concept. A disclosure keeps a 67-node map from pushing the
+          first lesson off the screen. */}
+      <details className="theory-map-panel">
+        <summary>
+          <span>{t("theory.title")}</span>{" "}
+          <span className="mono">{all.length}</span>
+        </summary>
+        <SubjectTheoryMap subject={subject} />
+      </details>
 
       {/* One disclosure per topic. A topic's status is the learner's own answers
           in it, banded by the SAME rule a single concept uses, and an untouched

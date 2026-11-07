@@ -353,6 +353,21 @@ export type FigureSpec =
       variant: "plant" | "animal";
     }
   | {
+      /** A SINGLE ATOM, with its nucleus and occupied electron shells.
+       *
+       *  "Atomic number" and "electron configuration" are counts, and a count is
+       *  hard to feel until it is drawn: carbon's 2,4 shells show why it forms
+       *  four bonds, and sodium's 2,8,1 shows the one outer electron it loses.
+       *  The layout computes every electron position from `shells`, so the
+       *  picture cannot show a different configuration from the caption. */
+      kind: "atom";
+      symbol: string;
+      protons: number;
+      neutrons: number;
+      /** Occupied shells, innermost first. At most three are drawn. */
+      shells: number[];
+    }
+  | {
       /** A REACTION-ENERGY PROFILE, drawn as a schematic path: reactants on the
        *  left, products on the right, the activation-energy hill between them.
        *  `delta` is the signed enthalpy change in kJ/mol (negative = exothermic,
@@ -363,6 +378,27 @@ export type FigureSpec =
       reaction: string;
       activation: number;
       delta: number;
+    }
+  | {
+      /** A CHEMISTRY SCHEMATIC from the shared scene vocabulary.
+       *
+       *  These are the pictures that make a chemical relationship visible: a
+       *  particle box for element/compound/mixture, the periodic table's group
+       *  and period cross, electron transfer versus sharing versus a metal
+       *  lattice, a mole as a count, a rate/equilibrium graph, the pH scale, an
+       *  electrolysis cell, flame-test colours and a displayed organic formula.
+       *  They are drawn from this data by `chemLayout`, so the renderers cannot
+       *  silently draw a different relationship from the caption. */
+      kind: "chem";
+      variant: "particle-box" | "periodic" | "ionic" | "covalent" | "metallic" | "mole" | "chart" | "ph" | "electrolysis" | "flame" | "organic";
+      /** A chart's series, in data coordinates. Used only by `variant: "chart"`. */
+      series?: readonly {
+        readonly points: readonly (readonly [number, number])[];
+        readonly tone?: "accent" | "muted";
+        readonly dashed?: boolean;
+      }[];
+      xMax?: number;
+      yMax?: number;
     };
 
 export interface AxisPoint {

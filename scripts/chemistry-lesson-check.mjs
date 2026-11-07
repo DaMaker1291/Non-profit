@@ -57,6 +57,27 @@ for (const [id, expected] of Object.entries(CASES)) {
   ok(plan.sections.some((s) => s.formula?.includes("=")), `${id}: at least one formula is an equation, not a label`);
 }
 
+// THE CHEMISTRY VERTICAL IS COMPLETE ON THE THING WE CAN HONESTLY CLAIM: every
+// one of the sixteen concepts has a subject-specific diagram. It has NO video
+// card: the old BBC/Khan cards were longer than the lesson and opened behind a
+// consent screen. A future card must clear both bars; this gate fails if an old
+// source or a six-minute video returns.
+const G = require("../.verify/genome.js");
+const chemistry = G.CONCEPTS.filter((c) => c.subject === "chemistry");
+const missingFigures = chemistry.filter((c) => !P.planFor(c.id)?.figure);
+ok(chemistry.length === 16, `chemistry has its full sixteen concepts (${chemistry.length})`);
+ok(missingFigures.length === 0, `every chemistry concept has a diagram (missing: ${missingFigures.map((c) => c.id).join(", ") || "none"})`);
+const badVideoHost = /(?:bbc\.co\.uk|khanacademy\.org)/i;
+const badSource = chemistry.filter((c) => badVideoHost.test(P.planFor(c.id)?.video?.url ?? ""));
+ok(badSource.length === 0, `no chemistry video sends a learner to an unverified consent-walled host (${badSource.map((c) => c.id).join(", ") || "none"})`);
+const tooLong = chemistry.filter((c) => {
+  const length = P.planFor(c.id)?.video?.length;
+  if (!length) return false;
+  const seconds = String(length).split(":").reduce((n, part) => n * 60 + Number(part), 0);
+  return seconds > 180;
+});
+ok(tooLong.length === 0, `no chemistry video is longer than three minutes (${tooLong.map((c) => c.id).join(", ") || "none"})`);
+
 const energy = P.planFor("energy-changes");
 ok(energy.figure?.spec?.kind === "energy-profile", "energy-changes: the reaction profile is attached");
 ok(energy.figure?.spec?.delta === -185, "energy-changes: the profile's ΔH is the calculated value");
@@ -84,4 +105,4 @@ if (failures.length) {
   for (const failure of failures) console.error(`  ✗ ${failure}`);
   process.exit(1);
 }
-console.log(`✓ ${passed} assertions: chemistry sections, formulas, tables, worked examples, profile and both renderers.`);
+console.log(`✓ ${passed} assertions: chemistry sections, formulas, tables, worked examples, complete diagram coverage, no unverified chemistry video, profile and both renderers.`);

@@ -179,9 +179,8 @@ export interface LessonPlan {
      *  language still gets the teaching from the text, and the card is useful
      *  before the video opens. */
     readonly summary: string;
-    /** Whether this video teaches THIS concept or gives a subject overview.
-     *  Omitted on an authored concept video for compatibility; `videoFor`
-     *  supplies `"concept"` and every subject fallback supplies `"subject"`. */
+    /** Whether this video teaches THIS concept. There is no subject fallback
+     *  any more: `videoFor` supplies `"concept"` and returns null otherwise. */
     readonly scope?: "concept" | "subject";
   };
   /** THE PICTURE THIS IDEA NEEDS, when it needs one.
@@ -1715,6 +1714,11 @@ const CHEMISTRY_AUTHORED_PLANS: Readonly<Record<string, LessonPlan>> = {
     ],
     review: "unreviewed",
     provenance: "authored",
+    figure: {
+      spec: { kind: "chem", variant: "mole" },
+      caption:
+        "One mole of water contains 6.02 × 10²³ molecules and has a mass of 18 g. The mole is a count of particles, not a mass; molar mass is the bridge between the count and the balance.",
+    },
   },
   "energy-changes": {
     conceptId: "energy-changes",

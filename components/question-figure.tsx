@@ -29,7 +29,9 @@ import { figureCaptionText } from "@/lib/content-i18n";
 import { useI18n } from "@/lib/client";
 import {
   NL_PAD,
+  atomLayout,
   balanceLayout,
+  chemLayout,
   cellLayout,
   circuitLayout,
   energyProfileLayout,
@@ -694,6 +696,73 @@ function CellGraphic({ spec }: { spec: Extract<FigureSpec, { kind: "cell" }> }) 
   return <svg viewBox={`0 0 ${L.width} ${L.height}`} role="presentation" aria-hidden="true">{parts}</svg>;
 }
 
+/** The chemistry scene vocabulary. Every coordinate comes from `chemLayout`;
+ *  this component only paints the shapes it returns. */
+function ChemGraphic({ spec }: { spec: Extract<FigureSpec, { kind: "chem" }> }) {
+  const L = chemLayout(spec);
+  const paint = (p: string | undefined) =>
+    p === "accent" ? "var(--accent)"
+      : p === "muted" ? "var(--text-muted)"
+        : p === "line" ? "var(--line)"
+          : p === "surface" ? "var(--surface)"
+            : p === "sunken" ? "var(--surface-sunken)"
+              : p === "text" ? "var(--text)"
+                : p === "flame-li" ? "#d64545"
+                  : p === "flame-na" ? "#d9a400"
+                    : p === "flame-k" ? "#8a5bd6"
+                      : p === "flame-ca" ? "#e2703a"
+                        : p === "flame-cu" ? "#2f9e8f"
+                          : "none";
+  return (
+    <svg viewBox={`0 0 ${L.width} ${L.height}`} role="presentation" aria-hidden="true">
+      {L.shapes.map((s, i) => {
+        if (s.kind === "rect") {
+          return <rect key={`r${i}`} x={s.x} y={s.y} width={s.w} height={s.h} rx={s.rx} fill={paint(s.fill)} fillOpacity={s.fillOpacity} stroke={s.stroke ? paint(s.stroke) : undefined} strokeWidth={s.strokeWidth} />;
+        }
+        if (s.kind === "circle") {
+          return <circle key={`c${i}`} cx={s.cx} cy={s.cy} r={s.r} fill={paint(s.fill)} fillOpacity={s.fillOpacity} stroke={s.stroke ? paint(s.stroke) : undefined} strokeWidth={s.strokeWidth} />;
+        }
+        if (s.kind === "line") {
+          return <line key={`l${i}`} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={paint(s.stroke)} strokeWidth={s.strokeWidth} strokeDasharray={s.dashed ? "4 4" : undefined} />;
+        }
+        if (s.kind === "path") {
+          return <path key={`p${i}`} d={s.d} fill={paint(s.fill)} fillOpacity={s.fillOpacity} stroke={s.stroke ? paint(s.stroke) : undefined} strokeWidth={s.strokeWidth} />;
+        }
+        if (s.kind === "polyline") {
+          return <polyline key={`pl${i}`} points={s.points.map(([x, y]) => `${x},${y}`).join(" ")} fill="none" stroke={paint(s.stroke)} strokeWidth={s.strokeWidth} strokeDasharray={s.dashed ? "4 4" : undefined} />;
+        }
+        return <text key={`t${i}`} x={s.x} y={s.y} textAnchor={s.anchor ?? "start"} fontSize={s.size ?? 11} fontWeight={s.weight} fill={paint(s.fill)}>{s.text}</text>;
+      })}
+    </svg>
+  );
+}
+
+/** One atom with its shells. Every electron is placed by `atomLayout`, so the
+ *  drawing cannot disagree with the configuration in the caption. */
+function AtomGraphic({ spec }: { spec: Extract<FigureSpec, { kind: "atom" }> }) {
+  const L = atomLayout(spec);
+  return (
+    <svg viewBox={`0 0 ${L.width} ${L.height}`} role="presentation" aria-hidden="true">
+      {L.shells.map((shell, i) => (
+        <g key={`shell${i}`}>
+          <circle cx={L.cx} cy={L.cy} r={shell.radius} fill="none" stroke="var(--line)" strokeWidth={1.2} />
+          {shell.electrons.map((electron, j) => (
+            <circle key={`e${i}-${j}`} cx={electron.x} cy={electron.y} r={4} fill="var(--accent)" />
+          ))}
+          <text x={L.cx + shell.radius + 8} y={L.cy + 4} fontSize={9} fill="var(--text-muted)">
+            {`${shell.electrons.length}e⁻`}
+          </text>
+        </g>
+      ))}
+      <circle cx={L.cx} cy={L.cy} r={L.nucleusRadius} fill="var(--surface-sunken)" stroke="var(--accent)" strokeWidth={2} />
+      <text x={L.cx} y={L.cy + 4} textAnchor="middle" fontSize={16} fontWeight={700} fill="var(--text)">{spec.symbol}</text>
+      <text x={L.cx} y={L.cy + L.nucleusRadius + 15} textAnchor="middle" fontSize={10} fill="var(--text-muted)">
+        {`${spec.protons}p · ${spec.neutrons}n`}
+      </text>
+    </svg>
+  );
+}
+
 /** A schematic reaction-energy profile. The levels come from the layout's
  *  signed ΔH, so an exothermic drawing cannot put the products above the
  *  reactants. `R` and `P` are labels rather than English words: the caption
@@ -741,7 +810,9 @@ export function FigureGraphic({ spec }: { spec: FigureSpec }) {
       {spec.kind === "particles" && <Particles spec={spec} />}
       {spec.kind === "circuit" && <CircuitDiagram spec={spec} />}
       {spec.kind === "cell" && <CellGraphic spec={spec} />}
+      {spec.kind === "atom" && <AtomGraphic spec={spec} />}
       {spec.kind === "energy-profile" && <EnergyProfile spec={spec} />}
+      {spec.kind === "chem" && <ChemGraphic spec={spec} />}
     </>
   );
 }

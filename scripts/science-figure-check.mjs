@@ -102,8 +102,40 @@ ok(endo.points.every(([x, y]) => inside(x, endo.width) && inside(y, endo.height)
 ok(exo.deltaLabel.includes("−185") || exo.deltaLabel.includes("-185"), "the exothermic profile prints its signed ΔH");
 ok(endo.activationLabel === "Ea", "the profile labels the activation barrier, not just the overall change");
 
+// ── atom: the shells are the configuration, and every electron is inside them
+const carbon = F.atomLayout({ kind: "atom", symbol: "C", protons: 6, neutrons: 6, shells: [2, 4] });
+const sodium = F.atomLayout({ kind: "atom", symbol: "Na", protons: 11, neutrons: 12, shells: [2, 8, 1] });
+ok(carbon.shells.length === 2, "carbon is drawn with two occupied shells");
+ok(carbon.shells[0].electrons.length === 2 && carbon.shells[1].electrons.length === 4, "carbon's shells carry 2 and 4 electrons");
+ok(carbon.electronsTotal === 6, "carbon's drawn electron total is six");
+ok(sodium.shells.length === 3 && sodium.shells.map((s) => s.electrons.length).join(",") === "2,8,1", "sodium's shells are 2, 8, 1");
+ok(sodium.shells[2].electrons.length === 1, "sodium's outer electron is drawn as one dot, not a full shell");
+for (const layout of [carbon, sodium]) {
+  for (const shell of layout.shells) {
+    ok(shell.electrons.every((e) => inside(e.x, layout.width) && inside(e.y, layout.height)), "every drawn electron is inside the atom frame");
+  }
+}
+
+// ── the chemistry scene vocabulary: every variant must produce a drawing, and
+// the chart and pH variants must carry the values the caption talks about.
+const CHEM_VARIANTS = ["particle-box", "periodic", "ionic", "covalent", "metallic", "mole", "ph", "electrolysis", "flame", "organic"];
+for (const variant of CHEM_VARIANTS) {
+  const layout = F.chemLayout({ kind: "chem", variant });
+  ok(layout.shapes.length >= 5, `chem/${variant} draws at least five shapes`);
+}
+const rate = F.chemLayout({ kind: "chem", variant: "chart", xMax: 10, yMax: 10, series: [{ points: [[0, 9], [5, 3], [10, 2]] }] });
+ok(rate.shapes.filter((s) => s.kind === "polyline").length === 1, "a rate chart draws its series as a polyline");
+const equilibrium = F.chemLayout({ kind: "chem", variant: "chart", series: [{ points: [[0, 9], [10, 4]] }, { points: [[0, 1], [10, 5]], dashed: true }] });
+ok(equilibrium.shapes.filter((s) => s.kind === "polyline").length === 2, "an equilibrium chart draws both directions");
+const ph = F.chemLayout({ kind: "chem", variant: "ph" });
+ok(ph.shapes.some((s) => s.kind === "text" && s.text === "7"), "the pH scale marks neutral 7");
+const flames = F.chemLayout({ kind: "chem", variant: "flame" });
+const flameColours = new Set(flames.shapes.filter((s) => s.kind === "path").map((s) => s.fill));
+ok(flameColours.size === 5, `the flame test distinguishes all five metal ions by colour (${flameColours.size} paints)`);
+ok(ph.shapes.filter((s) => s.kind === "rect").length === 15, "the pH scale has fifteen whole-number bands");
+
 // ── the registry is the renderer's list, not a parallel list
-for (const kind of ["particles", "circuit", "cell", "energy-profile"]) {
+for (const kind of ["particles", "circuit", "cell", "atom", "chem", "energy-profile"]) {
   ok(F.FIGURE_KINDS.includes(kind), `${kind} is declared in FIGURE_KINDS`);
 }
 
@@ -112,4 +144,4 @@ if (failures.length) {
   for (const failure of failures) console.error(`  ✗ ${failure}`);
   process.exit(1);
 }
-console.log(`✓ ${passed} assertions: particle conservation, cell variant and bounds, circuit connections, reaction-profile signs.`);
+console.log(`✓ ${passed} assertions: particle conservation, cell variant and bounds, circuit connections, atom shells, chemistry schematics, reaction-profile signs.`);

@@ -34,9 +34,9 @@ permissions. Three reasons:
 The gate `npm run media-check` enforces the shape: HTTPS links only, no
 `/embed/` URLs, no media-file URLs, a language tag, a caption status, a fallback
 summary, a text route in the same lesson, `target="_blank"` with
-`rel="noreferrer noopener"`, and a visible `concept` / `subject` scope. It also
-requires every one of the 135 lesson plans to resolve a card, not only the five
-with an authored concept video.
+`rel="noreferrer noopener"`, and a visible exact-concept scope. A lesson without
+a verified exact-concept video renders no card; the gate requires the five
+cards that do exist to stay link-only and honest.
 
 ## Source-by-source position
 
@@ -88,19 +88,20 @@ video, never autoplays, and never makes an answer depend on watching it.
 
 ## Language, captions and translation
 
-- All 135 linked video cards are **English audio** (`language: "en"`). That is a
+- The five linked video cards are **English audio** (`language: "en"`). That is a
   fact about the audio, not a claim that any video has been localised.
-- Caption status is currently **`unknown`** for all 135. We have not verified a
+- Caption status is currently **`unknown`** for all five. We have not verified a
   human caption track. YouTube's automatic captions and auto-translation are
   machine-generated and unreliable for technical vocabulary; they are not a
   substitute for a reviewed translation.
 - The card therefore prints "captions not verified" rather than "captioned".
   When a track is checked, the field becomes `human`, `auto` or `none` and the
   card says which.
-- Five cards are concept-specific. The other 130 are **subject overviews**, and
-  the card says `Subject overview · not specific to this idea` before the
-  learner taps. A broad tour of biology is useful enrichment; it is not the
-  lesson on mitosis, and the page does not pretend it is.
+- All five cards are **concept-specific**; none is a subject overview. The
+  other 130 lessons show **no video card**. The old fallback attached one broad
+  "Introduction to chemistry" to every chemistry concept, so a learner asking
+  how to balance an equation was sent to a 7:45 tour behind a cookie wall that
+  did not answer the question. An honest absence is better than that link.
 - The **interface and lesson scaffolding** resolve in all **15** dictionary
   languages: section headings, map captions, list conjunctions, video-scope
   labels and the video-open note. A learner reading Arabic does not get an
@@ -122,7 +123,7 @@ video, never autoplays, and never makes an answer depend on watching it.
 - The card always includes a prose summary, so a learner who cannot open the
   video still gets the video's teaching point in text.
 - The static twin (`docs/openmind.html`) embeds the same SVG renderers, the same
-  learning map and the same video cards. It works from `file://`; a video link
+  learning map and the same exact-concept video cards. It works from `file://`; a video link
   naturally needs a network, and the summary remains readable without one.
 - The lesson does not claim a transcript it does not have. A transcript is a
   media-specific accessibility feature; for a linked video, the source's own
@@ -175,6 +176,22 @@ sequences) show two **other ideas in the same subject nearby**, marked dashed
 rather than connected by a false arrow. The captions say which kind of
 relationship is being shown.
 
+## The full theory map every subject carries
+
+Every `/learn/[subject]` page also carries a **full-subject theory map** inside a
+disclosure. It is generated from the same genome `prereqs` as the lesson maps,
+but it draws the whole subject at once: all **135** concepts appear exactly once
+across five maps, in prerequisite order, with a left-to-right line for every
+same-subject prerequisite. The map reports the number of concepts it covers and
+says that a line means the earlier idea comes first — not that one idea causes
+another. It is scrollable rather than allowed to widen the page, and the concept
+list below it remains the clickable route into each lesson.
+
+The map is not a substitute for a subject-specific diagram, and the page does not
+call it one. It makes the structure of the subject visible; it does not draw a
+cell, a force diagram or a reaction. The 31 authored science diagrams remain a
+different, smaller claim.
+
 ## Every country, without inventing a syllabus
 
 The picker offers **251** country/territory choices. **70** have a researched
@@ -196,10 +213,32 @@ national syllabus: it does not pretend that a ministry examines every concept.
 The world gate requires this route and requires it to remain complete, so no
 country is locked out of a lesson by a missing national mapping.
 
-This is the diagram that is true for all 135 lessons. The 17 **subject-specific**
-diagrams (a balance, an area model, a cell, an energy profile, a parabola) are a
-different claim and remain authored per concept; "every lesson has a learning
-map" does not mean every lesson has a diagram of its science.
+## The universal subject atlas
+
+`/subjects` offers **26 subject routes** to **every country**: the five subjects
+OpenMind teaches and grades, plus **21 external open-course routes** (BBC
+Bitesize and Khan Academy). Each external route carries a five-topic subject map
+and a link to the source's own course page, where the video and diagrams live.
+The link opens in a new tab; nothing is embedded, downloaded or rehosted.
+
+Every external card says **“External course — not graded by OpenMind”**, and the
+page says the course is in English while the interface and map are translated
+into all 15 interface languages. This is breadth without a false claim: it does
+not turn a route into a national syllabus, a question bank or a translated
+teaching body. Those remain true only of the five graded subjects. The atlas
+runs no country filter, so no country is locked out of a route.
+
+`npm run verify:atlas` proves the counts, the five-topic map geometry, the
+caption, the external-link discipline and all 15 language dictionaries. Link rot
+is a separate review: the URLs were resolved when written, but a course can move
+without changing this repository.
+
+This is the map that is true for all 135 lessons, and the full-subject theory
+map extends the same honest claim to each subject. The 31 **subject-specific**
+diagrams (a balance, an area model, a cell, an atom with its shells, an energy
+profile, a parabola) are a different claim and remain authored per concept;
+"every lesson has a learning map" does not mean every lesson has a diagram of
+its science.
 
 ## What is still missing
 
@@ -210,22 +249,34 @@ This is the part that must not be hidden behind a green check.
   authored `sections` field (the two chemistry lessons); the rest are grouped
   from their authored idea paragraphs. Grouping is not the same as authoring a
   sequence, and the catalogue keeps that distinction.
-- All 135 lessons have a **video card**, but only **5** have a verified video
-  about the exact concept. The other **130** are labelled subject overviews.
-  The videos are enrichment, not a curriculum.
-- **17** concepts carry an authored subject-specific diagram. The other 118
+- **5** lessons have a verified video about the exact concept. The other **130**
+  have no video card; they are not filled with a subject overview that does not
+  answer the lesson's question. The videos are enrichment, not a curriculum.
+- **31** concepts carry an authored subject-specific diagram. The other **104**
   carry the learning map and prose, not a drawing of their science. "Every
   lesson has a subject diagram" is **not** true yet, and adding decorative
   drawings to outlines would not make it true.
+- **All 16 chemistry concepts** carry a subject-specific diagram. **None has a
+  video card**: the previous sixteen links were removed after re-checking them
+  against the complaint that sent learners here. `compounds-mixtures` pointed at
+  a five-minute **Types of mixtures** video, `organic-intro` at a course
+  introduction, every BBC/Khan destination opened behind a consent choice, and
+  several ran four to six minutes. No replacement was invented. The chemistry
+  figures use a scene vocabulary (`chemLayout`) rather than sixteen separate
+  one-off drawings, and every caption states the relationship the drawing is
+  meant to make visible. Their labels are symbols and numbers (Na⁺, 2e⁻, pH 7,
+  0–14), the three formula keys on the particle figure (`C`, `H₂O`, `O₂ + N₂`),
+  and the graph's `t`/`amount` axes; the caption carries the prose.
 - Caption availability is unverified; the field says so.
 - The legal position for a non-commercial educational use has not been reviewed
   by counsel, and the operating entity's status is unconfirmed. That is why the
   link-only route is the one implemented.
 
-The next content work is therefore explicit: find and verify concept-specific
-videos where they exist, give each remaining science lesson a diagram only where
-it carries a relationship, and check each video's caption track before changing
-`unknown` to a stronger claim.
+The next content work is therefore explicit: find and verify short,
+exact-concept chemistry videos on a source that does not open behind a consent
+screen, give each remaining science lesson a diagram only where it carries a
+relationship, and check each video's caption track before changing `unknown` to
+a stronger claim.
 
 ## Sources
 
