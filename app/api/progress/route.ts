@@ -14,7 +14,7 @@ import { emptyProgress, isRetentionEvidence } from "@/lib/progress";
 import { answerDisposition, noteHint, servePractice, type ServeState } from "@/lib/operations";
 import { currentSlip } from "@/lib/learner-model";
 import { generateQuestion, hasGenerator, serveView } from "@/lib/questions";
-import { gradeChoice, gradeNumeric, parseNumericInput } from "@/lib/answer";
+import { gradeChoice, gradeFraction, gradeNumeric, gradePair, parseFractionParts, parseNumericInput, parsePairParts } from "@/lib/answer";
 import { difficultyBandFor } from "@/lib/question-bank";
 import { applyTerminology } from "@/lib/specifications";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
@@ -75,6 +75,12 @@ interface AnswerBody {
    *  tolerance. Sent as text rather than a parsed number so the server, not the
    *  browser, decides whether it was a number at all. */
   numericAnswer?: string;
+  /** A constructed fraction answer: two whole numbers, marked by
+   *  cross-multiplication so 2/4 and 1/2 are the same answer. */
+  fractionAnswer?: { numerator: string; denominator: string };
+  /** A constructed coordinate answer: ordered, because (3, 5) and (5, 3) are
+   *  different points. */
+  pairAnswer?: { x: string; y: string };
   ms?: number; lang?: string; secret?: string;
   /** The device's name for THIS submission (§ offline sync). Present on every
    *  answer the client sends, so a lost response cannot turn one answer into
@@ -172,6 +178,9 @@ export async function POST(req: Request): Promise<NextResponse> {
           conceptId,
           intent: isTransfer ? "transfer" : undefined,
           lang: body.lang,
+          // The practice door asks for a constructed answer where the drawn
+          // item's options are uniformly a fraction or a coordinate pair.
+          structuredResponses: true,
         });
         if (!served.ok) return { error: "no question" as const };
         const { question: q, aim, reframed, transferable, slipCheck } = served.served;
@@ -226,7 +235,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       // SERVER staged (see `q.responseKind` below), never by the client.
       const hasChoice = validChoice(choiceIndex);
       const hasNumeric = typeof (body as AnswerBody).numericAnswer === "string";
-      if (typeof conceptId !== "string" || !conceptId || typeof questionId !== "string" || !questionId || (!hasChoice && !hasNumeric)) {
+      const hasFraction = !!((body as AnswerBody).fractionAnswer && typeof (body as AnswerBody).fractionAnswer === "object");
+      const hasPair = !!((body as AnswerBody).pairAnswer && typeof (body as AnswerBody).pairAnswer === "object");
+      if (typeof conceptId !== "string" || !conceptId || typeof questionId !== "string" || !questionId || (!hasChoice && !hasNumeric && !hasFraction && !hasPair)) {
         return NextResponse.json({ error: "bad request" }, { status: 400 });
       }
       // ── A REPLAYED SUBMISSION IS THE SAME EVENT, NOT A SECOND ANSWER ──
@@ -271,7 +282,25 @@ export async function POST(req: Request): Promise<NextResponse> {
         // What the learner actually gave, in the form the ledger records it:
         // a picked option is its index, a typed answer its canonical NUMBER.
         let givenValue: number | null = null;
-        if (q.responseKind === "numeric") {
+        if (q.responseKind === "fraction") {
+          const given = parseFractionParts(
+            (body as AnswerBody).fractionAnswer?.numerator ?? "",
+            (body as AnswerBody).fractionAnswer?.denominator ?? "",
+          );
+          if (!given || !q.answerFraction) return { error: "not a fraction" as const };
+          // The decimal is recorded for analytics; the VERDICT is exact
+          // (cross-multiplication), so 2/4 is marked as 1/2.
+          givenValue = given.numerator / given.denominator;
+          correct = gradeFraction(given, q.answerFraction);
+        } else if (q.responseKind === "pair") {
+          const given = parsePairParts(
+            (body as AnswerBody).pairAnswer?.x ?? "",
+            (body as AnswerBody).pairAnswer?.y ?? "",
+          );
+          if (!given || !q.answerPair) return { error: "not a pair" as const };
+          givenValue = null;
+          correct = gradePair(given, q.answerPair);
+        } else if (q.responseKind === "numeric") {
           // A NUMERIC ITEM CAN BE ANSWERED EITHER WAY, and the two ways must
           // agree (lib/answer.ts rule 3). Its four options carry the same
           // numbers the typed form names, so a learner who TAPS "0.75" instead
@@ -374,7 +403,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           correct,
           // −1 marks "the learner typed their answer": there is no option to
           // have chosen, and 0 is a real index so it cannot double as a marker.
-          chosen: q.responseKind === "numeric" ? -1 : (choiceIndex as number),
+          chosen: q.responseKind && q.responseKind !== "choice" ? -1 : (choiceIndex as number),
           givenValue,
           mode,
           hints: hintCount,

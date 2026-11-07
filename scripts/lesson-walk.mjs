@@ -83,9 +83,10 @@ const FIGURED = [
   // shows magnitude rather than what a digit is worth — the picture the lesson
   // needs is the one the learner writes.
   ["place-value", null],
-  // No drawing: an array of chairs would illustrate repeated addition and stop
-  // short of the column method, which is the part that needs teaching.
-  ["multiplication", null],
+  // The array IS this lesson's opening idea: four rows of three and three rows
+  // of four are the same twelve, which is the commutativity the rectangle shows.
+  // The column method is taught by its own worked example, not by a picture.
+  ["multiplication", "rectangle"],
   ["decimals", null],
   ["fractions", "pie"],
   ["fraction-ops", "pie"],
@@ -101,12 +102,12 @@ const FIGURED = [
   ["surds", "surd-square"],
   ["indices-intro", null],
   ["linear-equations", "balance"],
-  // The four science lessons added to the CBSE pilot candidate. `cells` and
-  // `equations-stoich` deliberately carry no figure; photosynthesis and
-  // circuits do, and the walk measures those drawings at both widths.
-  ["cells", null],
+  // The four science lessons added to the CBSE pilot candidate. The plant cell
+  // and the balanced equation now carry their own drawings; photosynthesis and
+  // circuits keep their graphs, so all four are measured at both widths.
+  ["cells", "cell"],
   ["photosynthesis", "axes"],
-  ["equations-stoich", null],
+  ["equations-stoich", "particles"],
   ["electricity-circuits", "axes"],
 ];
 
@@ -123,7 +124,7 @@ const FIGURED = [
 const AUTHORED_NO_PLAN = ["place-value", "addition", "subtraction", "rounding", "multiplication", "division"];
 
 /** Every kind the figure union declares. A plan may only draw one of these. */
-const KINDS = ["axes", "pie", "right-triangle", "number-line", "balance", "rectangle", "surd-square"];
+const KINDS = ["axes", "pie", "right-triangle", "number-line", "balance", "rectangle", "surd-square", "particles", "circuit", "cell"];
 
 async function main() {
   try {
@@ -321,7 +322,19 @@ async function main() {
     // wait is generous: a 20-second ceiling here would blame the product for the
     // compiler's first route.
     await p.waitFor(`return !!document.querySelector("main h1");`, "the wizard", 90000);
-    await p.clickExpr(labelWith("Continue without an account"), "the continue-without-an-account choice");
+    // THE STEP IS CLIENT-RENDERED, SO THE HEADING IS NOT THE STEP. Onboarding
+    // renders `<Loading lines={4} />` until its own profile probe settles, and
+    // the first `<h1>` can therefore arrive a frame before the account choices
+    // do. Clicking in that frame failed with "nothing clickable for the
+    // continue-without-an-account choice" — a harness race that reads exactly
+    // like a missing guest path. Wait for the choices themselves, then read the
+    // labels back: if the step is in another language, the failure names the
+    // language it found instead of pretending the control does not exist.
+    await p.waitFor(`return document.querySelectorAll("main label").length >= 3;`, "the account step's choices", 30000);
+    const modeLabels = await p.evaluate(`return [...document.querySelectorAll("main label")].map(l => (l.textContent || "").trim()).filter(Boolean).slice(0, 8);`);
+    const guestLabel = modeLabels.find((text) => /^Continue without an account$/i.test(text));
+    if (!guestLabel) throw new Error(`the account step was in another language (labels: ${modeLabels.join(" | ")})`);
+    await p.clickExpr(labelWith(guestLabel), "the continue-without-an-account choice");
     await p.clickExpr(buttonMatching("/(Next|Start learning)/"), "Next on the account step");
     await p.waitFor(`return !!${selectUnder("Where you are")};`, "the about step");
     await p.typeInto(`document.querySelector("main input[type=text]")`, "lesson_walk", "the display-name field");
@@ -414,7 +427,7 @@ async function main() {
       check(smallNarrow >= 9, `${concept}'s labels stay legible at 320 (smallest ${smallNarrow.toFixed(1)}px)`);
       if (["linear-equations", "surds", "straight-lines"].includes(concept)) await shot(`320-${concept}`);
     }
-    check(kinds.size === 6, `the pilot's plans use ${kinds.size} distinct figure kinds (${[...kinds].join(", ")})`);
+    check(kinds.size === 8, `the pilot's plans use ${kinds.size} distinct figure kinds (${[...kinds].join(", ")})`);
 
     // ── 3. The read stage teaches in an order ────────────────────────────────
     // ── 2b. A fraction is set ON the line, not under it ─────────────────────

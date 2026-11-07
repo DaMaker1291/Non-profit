@@ -36,7 +36,12 @@ export interface AnonPracticeQ {
   /** "numeric" = the learner TYPED. The box is keyed off this, so the surface
    *  never has to infer the response kind from what happens to be in the
    *  payload. */
-  responseKind?: "choice" | "numeric";
+  /** This surface does not ask the serve for a constructed answer, so it only
+   *  ever renders choice or numeric. The union is widened so a QuestionView from
+   *  the shared serve assigns without an unchecked cast; a constructed item that
+   *  ever arrived here would fall back to its four options, which are still
+   *  present and still correct. */
+  responseKind?: "choice" | "numeric" | "fraction" | "pair";
   /** The unit the answer is in, for the box to show. `answerValue` is stripped
    *  server-side, so what the box carries is deliberately the shape only. */
   tolerance?: { unit?: string };

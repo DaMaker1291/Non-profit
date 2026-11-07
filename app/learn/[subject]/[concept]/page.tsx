@@ -33,6 +33,8 @@ import { FigureGraphic } from "@/components/question-figure";
 import { FractionModel } from "@/components/fraction-model";
 import MathText from "@/components/math-text";
 import NumericAnswer from "@/components/numeric-answer";
+import FractionAnswer from "@/components/fraction-answer";
+import PairAnswer from "@/components/pair-answer";
 import WorkSheet from "@/components/work-sheet";
 import ListenFirst from "@/components/listen-first";
 import PeerTeach from "@/components/peer-teach";
@@ -482,11 +484,17 @@ export default function ConceptPage() {
    *  their own sentence; anything else gets the neutral one.
    */
   function refusalText(code: unknown): string {
-    if (code === "not a number") return t("answer.needNumber");
+    if (code === "not a number" || code === "not a fraction" || code === "not a pair") return t("answer.needNumber");
     return t("common.error");
   }
 
-  async function submit(given: { choiceIndex: number } | { numericAnswer: string }) {
+  async function submit(
+    given:
+      | { choiceIndex: number }
+      | { numericAnswer: string }
+      | { fractionAnswer: { numerator: string; denominator: string } }
+      | { pairAnswer: { x: string; y: string } },
+  ) {
     if (graded || saved || !q || busy[0] || !id) return;
     busy[1](true);
     if ("choiceIndex" in given) setPicked(given.choiceIndex);
@@ -1003,6 +1011,40 @@ export default function ConceptPage() {
       {/* A picture states the idea; a model lets the learner test it. Rendered
           only where the plan names one, so no other lesson gains a control that
           has nothing to do. */}
+      {/* A WORKED-ON-SCREEN ROUTE THROUGH THE SAME IDEA, where a real one
+          exists. This is a LINK rather than an embedded player: an iframe from a
+          third party can be blocked, can fail silently, and leaves a blank box
+          where teaching was promised — while a link opens the source's own page
+          and says whose work it is before the learner taps it. */}
+      {plan?.video && (
+        <a
+          className="lesson-video"
+          href={plan.video.url}
+          target="_blank"
+          rel="noreferrer noopener"
+          data-video-source={plan.video.source}
+          data-video-language={plan.video.language}
+        >
+          <span className="lesson-video-play" aria-hidden="true">▶</span>
+          <span className="lesson-video-copy">
+            <strong>{plan.video.title}</strong>
+            <span className="lesson-video-meta small muted">
+              {plan.video.source}{plan.video.length ? ` · ${plan.video.length}` : ""} · {plan.video.language.toUpperCase()}
+              {plan.video.captions === "none"
+                ? " · no captions"
+                : plan.video.captions === "unknown"
+                  ? " · captions not verified"
+                  : plan.video.captions === "auto"
+                    ? " · auto captions"
+                    : " · captions"}
+            </span>
+            <span className="lesson-video-summary small muted">{plan.video.summary}</span>
+            <span className="lesson-video-note small muted">
+              Opens {plan.video.source} in a new tab. Needs internet; the lesson below teaches the same idea without it.
+            </span>
+          </span>
+        </a>
+      )}
       {plan?.interactive === "fraction-model" && <FractionModel />}
 
       {/* A PUPIL WHO HAS FORGOTTEN THIS TRIES IT FROM MEMORY FIRST.
@@ -1083,6 +1125,45 @@ export default function ConceptPage() {
               </section>
             ))}
           </>
+        ) : plan?.sections ? (
+          <div className="lesson-sections">
+            {plan.sections.map((section, i) => (
+              <section className="lesson-section" key={i}>
+                <div className="lesson-section-head">
+                  <span className="lesson-section-number" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+                  <h3 className="lesson-section-title">{section.heading}</h3>
+                </div>
+                {section.body.map((para, j) => (
+                  <p key={j} className="reading lesson-text">{para}</p>
+                ))}
+                {section.formula && (
+                  <div className="lesson-formula" aria-label="Formula">
+                    <code>{section.formula}</code>
+                  </div>
+                )}
+                {section.table && (
+                  <div className="lesson-table-wrap">
+                    <table className="lesson-table">
+                      <thead>
+                        <tr>{section.table.columns.map((column) => <th key={column}>{column}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {section.table.rows.map((row, ri) => (
+                          <tr key={ri}>{row.map((cell, ci) => <td key={ci}>{cell}</td>)}</tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {section.table.caption && <p className="small muted">{section.table.caption}</p>}
+                  </div>
+                )}
+                {section.steps && (
+                  <ol className="lesson-steps">
+                    {section.steps.map((step, j) => <li key={j}>{step}</li>)}
+                  </ol>
+                )}
+              </section>
+            ))}
+          </div>
         ) : plan ? (
           (() => {
             // WHICH OF THE AUTHORED ROUTES THIS LEARNER READS, from their own
@@ -1559,6 +1640,24 @@ export default function ConceptPage() {
                 checkLabel={t("learn.check")}
                 emptyHint={t("answer.needNumber")}
                 onSubmit={(raw) => void submit({ numericAnswer: raw })}
+              />
+            ) : q.responseKind === "fraction" ? (
+              <FractionAnswer
+                questionId={q.id}
+                disabled={!!graded || saved || busy[0]}
+                label={t("answer.label")}
+                checkLabel={t("learn.check")}
+                emptyHint={t("answer.needNumber")}
+                onSubmit={(given) => void submit({ fractionAnswer: given })}
+              />
+            ) : q.responseKind === "pair" ? (
+              <PairAnswer
+                questionId={q.id}
+                disabled={!!graded || saved || busy[0]}
+                label={t("answer.label")}
+                checkLabel={t("learn.check")}
+                emptyHint={t("answer.needNumber")}
+                onSubmit={(given) => void submit({ pairAnswer: given })}
               />
             ) : (
               <div className="choices">

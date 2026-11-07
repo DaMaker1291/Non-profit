@@ -39,6 +39,10 @@ export const FIGURE_KINDS = [
   "balance",
   "rectangle",
   "surd-square",
+  "particles",
+  "circuit",
+  "cell",
+  "energy-profile",
 ] as const;
 
 export type FigureKind = (typeof FIGURE_KINDS)[number];
@@ -703,5 +707,344 @@ export function gradientLayout(g: { from: [number, number]; to: [number, number]
     rise,
     runLabel: `run ${num(Math.abs(run))}`,
     riseLabel: `rise ${num(Math.abs(rise))}`,
+  };
+}
+
+// ── a chemical equation as particles ────────────────────────────────────────
+//
+// The coefficient is the thing learners misread. 2H₂ + O₂ → 2H₂O has four
+// hydrogen atoms and two oxygen atoms on each side, but a learner who counts
+// the FORMULAS sees "two plus one becomes two". Drawing every molecule makes the
+// rearrangement visible, and the layout returns the atom counts it drew so a
+// caption or a test never has to count them again by eye.
+
+export const PART_W = 380;
+export const PART_H = 220;
+export const PART_PAD = 24;
+
+interface PlacedAtom { x: number; y: number; label: string }
+export interface PlacedMolecule {
+  x: number;
+  y: number;
+  atoms: PlacedAtom[];
+  bonds: [number, number][];
+}
+export interface ParticlesLayout {
+  width: number;
+  height: number;
+  left: PlacedMolecule[];
+  right: PlacedMolecule[];
+  arrow: { x1: number; x2: number; y: number };
+  leftAtoms: Record<string, number>;
+  rightAtoms: Record<string, number>;
+  /** True only when the drawn atoms are the same on both sides. Unbalanced is a
+   *  legitimate teaching state (a learner is asked to balance it), so the layout
+   *  reports the fact rather than refusing to draw. */
+  balanced: boolean;
+}
+
+/** Where the atoms of ONE molecule sit, relative to its centre. The first atom
+ *  is the centre for a three- or four-atom molecule, which is why H₂O is
+ *  authored as ["O", "H", "H"]. */
+function atomOffsets(atoms: string[]): { label: string; dx: number; dy: number; bonds: [number, number][] }[] {
+  const labels = atoms.slice(0, 4);
+  if (labels.length <= 1) return [{ label: labels[0] ?? "?", dx: 0, dy: 0, bonds: [] }];
+  if (labels.length === 2) {
+    return labels.map((label, i) => ({ label, dx: i === 0 ? -10 : 10, dy: 0, bonds: [[0, 1] as [number, number]] }));
+  }
+  if (labels.length === 3) {
+    const spots = [{ dx: 0, dy: 0 }, { dx: -13, dy: -8 }, { dx: 13, dy: -8 }];
+    return labels.map((label, i) => ({ label, ...spots[i], bonds: [[0, 1], [0, 2]] as [number, number][] }));
+  }
+  const spots = [{ dx: -10, dy: -10 }, { dx: 10, dy: -10 }, { dx: -10, dy: 10 }, { dx: 10, dy: 10 }];
+  return labels.map((label, i) => ({
+    label,
+    ...spots[i],
+    bonds: [[0, 1], [1, 3], [3, 2], [2, 0]] as [number, number][],
+  }));
+}
+
+function expandMolecules(molecules: { atoms: string[]; count: number }[]): { atoms: string[] }[] {
+  const out: { atoms: string[] }[] = [];
+  for (const molecule of molecules) {
+    const copies = Math.max(0, Math.round(Number(molecule.count) || 0));
+    for (let i = 0; i < copies; i++) out.push({ atoms: molecule.atoms });
+  }
+  return out;
+}
+
+function atomCounts(molecules: { atoms: string[]; count: number }[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const molecule of molecules) {
+    const copies = Math.max(0, Math.round(Number(molecule.count) || 0));
+    for (const atom of molecule.atoms) counts[atom] = (counts[atom] ?? 0) + copies;
+  }
+  return counts;
+}
+
+function sameCounts(a: Record<string, number>, b: Record<string, number>): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  return [...keys].every((key) => (a[key] ?? 0) === (b[key] ?? 0));
+}
+
+function placeGroup(
+  molecules: { atoms: string[]; count: number }[],
+  x0: number,
+  width: number,
+): PlacedMolecule[] {
+  const list = expandMolecules(molecules);
+  if (!list.length) return [];
+  const cols = list.length <= 3 ? list.length : 2;
+  const rows = Math.ceil(list.length / cols);
+  const cellW = width / cols;
+  const cellH = 70;
+  const top = PART_H / 2 - (rows * cellH) / 2 + 8;
+  return list.map((molecule, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const cx = x0 + (col + 0.5) * cellW;
+    const cy = top + row * cellH + cellH / 2;
+    const offsets = atomOffsets(molecule.atoms);
+    return {
+      x: cx,
+      y: cy,
+      atoms: offsets.map((a) => ({ label: a.label, x: cx + a.dx, y: cy + a.dy })),
+      // One bond list is enough: every atom in a molecule shares the same list.
+      bonds: offsets[0]?.bonds ?? [],
+    };
+  });
+}
+
+export function particlesLayout(spec: Extract<FigureSpec, { kind: "particles" }>): ParticlesLayout {
+  const groupW = 150;
+  const left = placeGroup(spec.left, PART_PAD, groupW);
+  const right = placeGroup(spec.right, PART_W - PART_PAD - groupW, groupW);
+  const leftAtoms = atomCounts(spec.left);
+  const rightAtoms = atomCounts(spec.right);
+  return {
+    width: PART_W,
+    height: PART_H,
+    left,
+    right,
+    arrow: { x1: PART_PAD + groupW + 4, x2: PART_W - PART_PAD - groupW - 4, y: PART_H / 2 },
+    leftAtoms,
+    rightAtoms,
+    balanced: Object.keys(leftAtoms).length > 0 && sameCounts(leftAtoms, rightAtoms),
+  };
+}
+
+// ── a circuit ───────────────────────────────────────────────────────────────
+//
+// A schematic, not a picture of a bench. The one thing it must get right is the
+// CONNECTION: the ammeter is in the same path as the resistor, and the voltmeter
+// is across it. The wire segments and the meter positions come from one layout,
+// so a renderer cannot draw a voltmeter in series by accident.
+
+export const CIRC_W = 360;
+export const CIRC_H = 220;
+
+export interface CircuitLayout {
+  width: number;
+  height: number;
+  wires: { points: [number, number][]; dashed?: boolean }[];
+  battery: { x: number; y: number };
+  resistor: { x1: number; x2: number; y: number };
+  ammeter: { x: number; y: number; r: number };
+  voltmeter: { x: number; y: number; r: number } | null;
+}
+
+export function circuitLayout(spec: Extract<FigureSpec, { kind: "circuit" }>): CircuitLayout {
+  const left = 40;
+  const right = 320;
+  const top = 50;
+  const bottom = 170;
+  const mid = (top + bottom) / 2;
+  const resistor = { x1: 140, x2: 220, y: top };
+  const showVoltmeter = spec.showVoltmeter !== false;
+  const wires: { points: [number, number][]; dashed?: boolean }[] = [
+    { points: [[left, top], [resistor.x1, top]] },
+    { points: [[resistor.x2, top], [right, top]] },
+    { points: [[right, top], [right, bottom]] },
+    { points: [[right, bottom], [left, bottom]] },
+    { points: [[left, bottom], [left, mid + 20]] },
+    { points: [[left, mid - 20], [left, top]] },
+  ];
+  if (showVoltmeter) {
+    wires.push(
+      { points: [[resistor.x1, top], [resistor.x1, 145], [162, 145]], dashed: true },
+      { points: [[resistor.x2, top], [resistor.x2, 145], [198, 145]], dashed: true },
+    );
+  }
+  return {
+    width: CIRC_W,
+    height: CIRC_H,
+    wires,
+    battery: { x: left, y: mid },
+    resistor,
+    ammeter: { x: right, y: mid, r: 18 },
+    voltmeter: showVoltmeter ? { x: 180, y: 145, r: 18 } : null,
+  };
+}
+
+// ── a cell ──────────────────────────────────────────────────────────────────
+//
+// Numbered organelles, not English labels. The caption is the teaching and is
+// translatable; the drawing stays language-neutral. The numbers are part of the
+// layout so a caption and a picture cannot disagree about which part is 4.
+
+export const CELL_W = 360;
+export const CELL_H = 270;
+
+export type CellShapeKind =
+  | "wall"
+  | "membrane"
+  | "nucleus"
+  | "nucleolus"
+  | "vacuole"
+  | "chloroplast"
+  | "mitochondrion";
+
+export interface CellShape {
+  kind: CellShapeKind;
+  x: number;
+  y: number;
+  /** Rectangles (`wall`, `membrane`). */
+  w?: number;
+  h?: number;
+  /** Ellipses and circles (`vacuole`, `chloroplast`, `mitochondrion`, `nucleus`). */
+  rx?: number;
+  ry?: number;
+  rotate?: number;
+  fill: "none" | "sunken" | "accent";
+}
+
+export interface CellLayout {
+  width: number;
+  height: number;
+  variant: "plant" | "animal";
+  shapes: CellShape[];
+  numbers: { n: number; x: number; y: number }[];
+}
+
+export function cellLayout(spec: Extract<FigureSpec, { kind: "cell" }>): CellLayout {
+  if (spec.variant === "animal") {
+    return {
+      width: CELL_W,
+      height: CELL_H,
+      variant: "animal",
+      shapes: [
+        { kind: "membrane", x: 28, y: 28, w: 304, h: 214, fill: "sunken" },
+        { kind: "nucleus", x: 140, y: 120, rx: 38, ry: 38, fill: "sunken" },
+        { kind: "nucleolus", x: 140, y: 120, rx: 10, ry: 10, fill: "accent" },
+        { kind: "mitochondrion", x: 75, y: 80, rx: 22, ry: 10, rotate: 25, fill: "accent" },
+        { kind: "mitochondrion", x: 285, y: 170, rx: 22, ry: 10, rotate: -20, fill: "accent" },
+      ],
+      numbers: [
+        { n: 1, x: 140, y: 120 },
+        { n: 2, x: 75, y: 140 },
+        { n: 3, x: 75, y: 80 },
+        { n: 4, x: 30, y: 40 },
+      ],
+    };
+  }
+  return {
+    width: CELL_W,
+    height: CELL_H,
+    variant: "plant",
+    shapes: [
+      { kind: "wall", x: 16, y: 16, w: 328, h: 238, fill: "none" },
+      { kind: "membrane", x: 28, y: 28, w: 304, h: 214, fill: "sunken" },
+      { kind: "vacuole", x: 235, y: 145, rx: 62, ry: 52, fill: "accent" },
+      { kind: "nucleus", x: 130, y: 120, rx: 36, ry: 36, fill: "sunken" },
+      { kind: "nucleolus", x: 130, y: 120, rx: 10, ry: 10, fill: "accent" },
+      { kind: "chloroplast", x: 70, y: 190, rx: 20, ry: 10, rotate: -20, fill: "accent" },
+      { kind: "chloroplast", x: 255, y: 75, rx: 20, ry: 10, rotate: 30, fill: "accent" },
+      { kind: "chloroplast", x: 290, y: 205, rx: 18, ry: 9, rotate: -35, fill: "accent" },
+      { kind: "mitochondrion", x: 70, y: 75, rx: 22, ry: 10, rotate: 25, fill: "accent" },
+      { kind: "mitochondrion", x: 290, y: 120, rx: 22, ry: 10, rotate: -20, fill: "accent" },
+    ],
+    numbers: [
+      { n: 1, x: 130, y: 120 },
+      { n: 2, x: 65, y: 140 },
+      { n: 3, x: 235, y: 145 },
+      { n: 4, x: 70, y: 190 },
+      { n: 5, x: 70, y: 75 },
+      { n: 6, x: 30, y: 40 },
+    ],
+  };
+}
+
+// ── a reaction-energy profile ────────────────────────────────────────────────
+//
+// Energetics is the one chemistry topic where a sentence and a picture can
+// contradict each other without either looking wrong: "exothermic" beside a
+// diagram whose product line is ABOVE the reactant line is a lesson teaching the
+// opposite of its caption. The layout therefore derives both levels from one
+// signed ΔH, and the renderer only maps these numbers to SVG.
+
+export const EP_W = 420;
+export const EP_H = 260;
+export const EP_PAD = 42;
+
+export interface EnergyProfileLayout {
+  width: number;
+  height: number;
+  x1: number;
+  x2: number;
+  peakX: number;
+  reactantY: number;
+  productY: number;
+  peakY: number;
+  /** The polyline the renderer draws, already in SVG coordinates. */
+  points: [number, number][];
+  activation: number;
+  delta: number;
+  exothermic: boolean;
+  activationLabel: string;
+  deltaLabel: string;
+}
+
+export function energyProfileLayout(
+  spec: Extract<FigureSpec, { kind: "energy-profile" }>,
+): EnergyProfileLayout {
+  const activation = Math.max(0, Number(spec.activation) || 0);
+  const delta = Number(spec.delta) || 0;
+  // Place the REACTANTS inside the frame, not on its bottom edge. An exothermic
+  // product is drawn BELOW the reactants, so anchoring reactants at the bottom
+  // pushed the product out of the picture; the baseline now leaves room on both
+  // sides. The peak sits an activation above the higher level, so an endothermic
+  // reaction needs delta + activation of headroom.
+  const spanAbove = Math.max(0, delta) + activation;
+  const spanBelow = Math.max(0, -delta);
+  const scale = (EP_H - EP_PAD * 2) / Math.max(spanAbove + spanBelow, 1);
+  const reactantY = EP_PAD + spanAbove * scale;
+  const productY = reactantY - delta * scale;
+  const peakY = Math.min(reactantY, productY) - activation * scale;
+  const x1 = EP_PAD;
+  const x2 = EP_W - EP_PAD;
+  const peakX = (x1 + x2) / 2;
+  return {
+    width: EP_W,
+    height: EP_H,
+    x1,
+    x2,
+    peakX,
+    reactantY,
+    productY,
+    peakY,
+    points: [
+      [x1, reactantY],
+      [x1 + 18, reactantY],
+      [peakX - 24, peakY],
+      [peakX, peakY],
+      [peakX + 24, peakY],
+      [x2 - 18, productY],
+      [x2, productY],
+    ],
+    activation,
+    delta,
+    exothermic: delta < 0,
+    activationLabel: "Ea",
+    deltaLabel: `ΔH = ${delta > 0 ? "+" : ""}${delta} kJ/mol`,
   };
 }

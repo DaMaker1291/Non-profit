@@ -604,3 +604,94 @@ This is the second time in this programme that the interesting failure was in ho
 content was WIRED rather than in the content itself (the first was a plan filed
 under a concept that answered null). A lesson nobody can reach is indistinguishable
 from a lesson nobody wrote.
+
+### §4l — The foundation batch was already authored; the wiring was not
+
+`addition`, `subtraction` and `division` were requested as the next authored batch.
+They already existed as 345-line contract lessons (`lib/lessons/authored/*.ts`,
+`openmind.lesson/1.0`): three objectives with evidence, a prior-knowledge check,
+three explanation sections, three representations, two fully worked examples with a
+reason per step, two misconceptions with contrast pairs, three guided items with
+hints, assessment with marking criteria, transfer, retrieval, accessibility
+alternatives and provenance. The catalogue reports them `machine_checked` — no
+educator has reviewed them. Writing a second, thinner plan layer over them would
+have put two competing lessons on the same page, so the work was verification and
+wiring instead:
+
+- The review pack did not reach them. `scripts/pilot-pack.mjs` now anchors the whole
+  primary chain, taking the pack from 17 concepts / 161 items to **20 concepts /
+  179 items** (`--check` current). This is the first measurement that asks a subject
+  teacher to read them.
+- The browser walk already listed them in `AUTHORED_NO_PLAN`, and it now actually
+  passes: **292 passed, 0 failed**, including *all 6 authored lessons with no plan
+  record paint their teaching (6/6)* and `division` at 320 px (320 vs 320).
+- The first walk attempts failed at onboarding with "nothing clickable for the
+  continue-without-an-account choice". Two causes, both harness/environment: the
+  onboarding step is client-rendered behind `if (!ready)` and the walk clicked a
+  frame before the choices mounted; and a stale dev server was still respawning on
+  4173 while a second shared `.next-dev`, producing a constant HMR rebuild loop and
+  a page stuck on the `Loading` skeleton. The walk now waits for the account
+  choices and names the labels it found if they are in another language. The
+  product was not at fault, and the blank screen was not reproducible with a single
+  clean server: `rm -rf .next-dev`, one listener, walk green.
+
+Checks: `tsc` 0; `npm run verify` 4614/0; `verify:lessons` 16 authored, plan records
+21 authored / 114 supplemental; `pilot-pack --check` current; `verify:lesson`
+292/0. Unchanged in this pass: no new lesson was written, so the authored-lesson
+count stays **16 contract lessons / 21 plan records**.
+
+### §4m — More ways to answer, and the honest limit of the diagram vocabulary
+
+The practice serve now has two CONSTRUCTED response kinds beyond choice and
+number: `fraction` (two whole-number fields, marked by cross-multiplication, so
+2/4 and 1/2 are the same answer) and `pair` (ordered x and y fields, so (3, 5)
+and (5, 3) are different points). `lib/response-mode.ts` converts a four-option
+item only when all four options are uniformly a fraction or a coordinate pair
+and no per-option note would be lost. The conversion is applied by
+`servePractice` only when the caller asks (`structuredResponses: true`), which
+the practice route does; papers, the diagnostic and the published static twin
+keep the four-option projection they were built for.
+
+Measured on 1,350 draws over all 135 concepts at aim 0.45 and the production
+40-attempt budget (`npm run answer-mix -- --check`): **numeric 826 (61.2%),
+fraction 25 (1.9%), pair 12 (0.9%), four options 487 (36.1%) — 63.9% non-MCQ**.
+The same conversion serves an item whose four options are all bare numbers as a
+TYPED numeric answer (exact tolerance, no display string in the served view); at
+the production budget that is what moved the four-option share from 48.1% to
+36.1%. Fraction and pair are reachable on six concepts (fractions 10/10,
+fraction-ops 10/10, transformations 8/10 as pairs, quadratic-graphs 4/10 as
+pairs, probability-basics 4/10, trig-identity 1/10). The committed floor is 60%,
+below the measured value; the script prints the number beside any failure.
+
+Lessons gained a `video` field rendered as an external worked-example card. Five
+real links were resolved and title-checked at the source (YouTube oEmbed or HTTP
+200): decimals, percentages, place-value, order-ops and indices-intro. They are
+links rather than embeds, so a blocked third-party player cannot leave a blank
+box. `multiplication` gained the rectangle figure its own intuition uses
+(4 rows of 3; the same rectangle turned is 3 × 4). The browser walk measures it:
+552×593, labels 18 px, caption present. The final walk after the typed-numeric
+conversion (which changes what the practice door serves) is **304 passed, 0
+failed**; its first attempt timed out on the onboarding skeleton with no
+compile error and no 404 — the stale `.next-dev` signature — and a cleared
+cache ran green.
+
+WHAT THE WALK STILL DOES NOT DO: it never types into a `fraction`/`pair`
+control or opens a `video` card. The constructed kinds are measured at the serve
+(`answer-mix`) and covered by typecheck, not by a browser; that is the next
+check owed.
+
+THE DIAGRAM DEMAND IS NOT MET, and saying otherwise would be false. Fourteen of
+135 plans carry a figure (fourteen of the 21 authored plans). The remaining
+authored lessons need a figure vocabulary that does not exist yet: place-value
+and decimals need a column table, percentages need two bases in one picture,
+indices need a tally of copies, order-ops needs an expression tree. Forcing one
+of the six existing kinds onto those claims would be decoration beside the one
+thing it cannot draw, which is the failure this format exists to prevent, so
+those five lessons got a verified video instead. A further 114 supplemental
+plans have no figure at all. The next honest step is new kinds (table, two-base
+bar, expression tree) and authored diagrams — not a generic picture per lesson.
+
+Not exercised in a browser this pass: the fraction and pair controls, and the
+video card itself. Their serve reachability is measured and the links are
+resolved, but no learner has typed into the new controls; that needs a walk
+section that keeps drawing until a fraction item arrives.

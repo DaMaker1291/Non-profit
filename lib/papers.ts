@@ -1791,7 +1791,10 @@ export interface BuiltPaperAnswerKey {
     answer: number;
     /** How the learner answers. Absent means a choice index. Carried on the key
      *  because a saved sitting must mark without the template or the bank. */
-    responseKind?: "choice" | "numeric";
+    /** Papers never request constructed responses, so this is choice or
+     *  numeric in practice; the union follows ResponseKind so the shared
+     *  QuestionView assigns without an unchecked cast. */
+    responseKind?: "choice" | "numeric" | "fraction" | "pair";
     /** The canonical number for a numeric item. Never served before marking. */
     answerValue?: number;
     tolerance?: NumericTolerance;

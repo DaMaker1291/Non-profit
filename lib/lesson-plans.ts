@@ -78,6 +78,26 @@ export type PlanReview =
   /** A qualified teacher of the subject has read the mathematics and the
    *  explanations. */
   | "subject-reviewed";
+/** ONE STRUCTURED SECTION OF A LESSON, for a topic whose teaching is a
+ *  sequence rather than a set of paragraphs. `body` is still prose; the
+ *  structure is the point. A calculation lesson needs a formula and a method
+ *  beside the explanation, and a comparison needs a table — putting all three
+ *  into one undifferentiated card is how a lesson becomes a wall of text. */
+export interface LessonSection {
+  readonly heading: string;
+  readonly body: readonly string[];
+  /** One display formula for this section, e.g. "n = m / Mᵣ". */
+  readonly formula?: string;
+  /** An ordered method, when the section is a procedure. */
+  readonly steps?: readonly string[];
+  /** A small data table the learner must read across. */
+  readonly table?: {
+    readonly columns: readonly string[];
+    readonly rows: readonly (readonly string[])[];
+    readonly caption?: string;
+  };
+}
+
 export interface LessonPlan {
   /** The genome id this teaches. Checked against the genome by `npm run
    *  verify` — a plan filed under a typo'd id would render for nobody. */
@@ -88,6 +108,11 @@ export interface LessonPlan {
   readonly intuition: string;
   /** The formal teaching — one paragraph per idea, in the order it must land. */
   readonly idea: readonly string[];
+  /** A STRUCTURED ROUTE through the same teaching. When present, the page
+   *  renders these sections instead of the bare idea paragraphs: a heading, a
+   *  formula, a method and a table are content, not decoration. The flat `idea`
+   *  remains for translation, word counts and the fallback renderer. */
+  readonly sections?: readonly LessonSection[];
   /** Wrong moves, each with the reason it fails. */
   readonly traps: readonly LessonTrap[];
   /** Where this idea is used next, in plain words, so the concept is not an
@@ -97,7 +122,7 @@ export interface LessonPlan {
   /** Where this plan came from. The 19 pilot plans are the authored review
    *  candidates; supplemental plans cover the rest of the genome from the
    *  concept's own teaching note and are never presented as pilot-reviewed. */
-  readonly provenance?: "pilot" | "supplemental";
+  readonly provenance?: "pilot" | "authored" | "supplemental";
   /** THE WORDS THE LESSON USES, defined where they are first needed. A learner
    *  who meets "limiting factor" in a paragraph and nowhere else has to infer
    *  it from context; a short glossary is the difference between reading and
@@ -119,6 +144,38 @@ export interface LessonPlan {
    *  picture cannot answer the question the lesson raises. Optional and named by
    *  a small union: a plan that carries no model renders exactly what it did. */
   readonly interactive?: "fraction-model";
+  /** A WORKED-OUT VIDEO, where a real one exists.
+   *
+   *  Some ideas need to be watched being done before the prose lands — a
+   *  column method, an order of operations, a decimal place-value table — and
+   *  the static figure vocabulary cannot draw those honestly. This is a LINK,
+   *  not an embed: a third-party player inside the lesson can fail silently or
+   *  be blocked entirely, leaving a blank rectangle where teaching was promised.
+   *  The card says whose video it is and how long it runs, so the learner knows
+   *  what will open before they tap it.
+   *
+   *  Every URL here was resolved and its title confirmed at the source. A video
+   *  link is a claim about the world, so an invented or unverified one is worse
+   *  than no card at all. */
+  readonly video?: {
+    readonly url: string;
+    readonly title: string;
+    readonly source: string;
+    /** The running time the source states ("4:33"), not an estimate. */
+    readonly length?: string;
+    /** The language of the AUDIO, as a BCP-47 tag. A video is not a
+     *  translation of the lesson and this field is how the card says so. */
+    readonly language: string;
+    /** Whether the source is known to provide captions. `unknown` is an honest
+     *  answer, not a missing one: a caption claim that has not been checked is
+     *  worse than telling the learner to look for the CC control. */
+    readonly captions: "human" | "auto" | "none" | "unknown";
+    /** WHAT THE VIDEO SHOWS, in the lesson's own words. This is the fallback:
+     *  a learner on a blocked network, a slow connection or a different
+     *  language still gets the teaching from the text, and the card is useful
+     *  before the video opens. */
+    readonly summary: string;
+  };
   /** THE PICTURE THIS IDEA NEEDS, when it needs one.
    *
    *  A figure belongs to a plan only when the picture makes a relationship
@@ -249,6 +306,19 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     usedFor:
       "Percentages (0.45 is 45%), measurement to a stated precision, ratio and standard form all read decimals, and rounding an answer to one decimal place is a judgement about which column the question cares about.",
     review: "unreviewed",
+    // THE WORKED-ON-SCREEN ROUTE. This plan deliberately draws no static figure
+    // because the figure vocabulary has no place-value table; a real video is
+    // the honest alternative, linked rather than embedded.
+    video: {
+      url: "https://www.khanacademy.org/v/decimal-place-value",
+      title: "Decimal place value",
+      source: "Khan Academy",
+      length: "4:00",
+      language: "en",
+      captions: "unknown",
+      summary:
+        "A short walkthrough of decimal place value. Watch how each column is named and how the decimal point fixes which column a digit occupies; the lesson below teaches the same columns without needing the video.",
+    },
   },
 
   fractions: {
@@ -393,6 +463,16 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     usedFor:
       "Interest and depreciation, every statistic in a news report, concentration in chemistry and efficiency in physics, and the ratio and proportion work that follows it.",
     review: "unreviewed",
+    video: {
+      url: "https://www.khanacademy.org/math/pre-algebra/xb4832e56:percentages/xb4832e56:equivalent-representations-of-percent-problems/v/taking-a-percentage-example",
+      title: "Percent of a whole number",
+      source: "Khan Academy",
+      length: "2:07",
+      language: "en",
+      captions: "unknown",
+      summary:
+        "A worked example of finding a percentage of a whole number. Watch how the percentage becomes a decimal before it multiplies; the lesson below applies the same move to a percentage change, where the base matters.",
+    },
     // NO FIGURE, and that is a decision rather than an omission. Every kind the
     // figure union declares draws ONE scale — an area model, a pie, an axis. The
     // belief this lesson exists to break is that there are TWO bases, and a
@@ -502,6 +582,15 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     usedFor:
       "Column addition and subtraction, long multiplication and division, decimals, rounding and standard form all read the columns this way.",
     review: "unreviewed",
+    video: {
+      url: "https://www.youtube.com/watch?v=wx2gI8iwMCA",
+      title: "Introduction to place value",
+      source: "Khan Academy",
+      language: "en",
+      captions: "unknown",
+      summary:
+        "An introduction to place value. Watch how a digit's value comes from its column rather than from the digit alone; the lesson below uses the same columns for whole numbers and decimals.",
+    },
   },
 
   "multiplication": {
@@ -548,6 +637,20 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     usedFor:
       "Division, fractions, ratio and proportion, area, algebra (3x means 3 times x) and every formula that multiplies a rate by a time.",
     review: "unreviewed",
+    // THE ARRAY IS THE IDEA. Four rows of three is the picture the intuition
+    // opens with, and the same rectangle on its side is why 4 × 3 = 3 × 4 — a
+    // fact the prose asserts and this drawing shows. The column method has its
+    // own worked example and is not what a rectangle can teach.
+    figure: {
+      spec: {
+        kind: "rectangle",
+        widthParts: [{ units: 3, label: "3" }],
+        heightParts: [{ units: 4, label: "4" }],
+        emphasis: ["12"],
+      },
+      caption:
+        "Four rows of three chairs, drawn as a rectangle. Its area is 3 × 4 = 12, and turning the same rectangle on its side gives 4 × 3 — the same twelve chairs, which is why the order of the factors does not change the product.",
+    },
   },
 
   "order-ops": {
@@ -578,6 +681,16 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     usedFor:
       "Every formula you meet later — substituting into 3x² + 2, evaluating a physics equation, simplifying an expression — is this order applied to letters instead of numbers.",
     review: "unreviewed",
+    video: {
+      url: "https://www.youtube.com/watch?v=eoYThjIAhOc",
+      title: "Order of operations introduction",
+      source: "Khan Academy",
+      length: "4:33",
+      language: "en",
+      captions: "unknown",
+      summary:
+        "A worked introduction to the order of operations. Watch how brackets and powers are handled before multiplication and addition; the lesson below uses the same order on expressions with letters.",
+    },
   },
 
   "algebra-expressions": {
@@ -947,6 +1060,16 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
     usedFor:
       "Standard form, growth and decay, surds and quadratic formulae all rest on these laws — and they are the difference between manipulating algebra and guessing at it.",
     review: "unreviewed",
+    video: {
+      url: "https://www.youtube.com/watch?v=XZRQhkii0h0",
+      title: "Introduction to exponents",
+      source: "Khan Academy",
+      length: "3:02",
+      language: "en",
+      captions: "unknown",
+      summary:
+        "An introduction to exponents. Watch how a power counts repeated factors and why a² × a³ adds the indices; the lesson below uses the same laws on algebraic expressions.",
+    },
   },
 
   "linear-equations": {
@@ -1065,6 +1188,14 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
       "Specialised cells have shapes that increase the surface area or machinery needed for their particular job.",
     ],
     review: "unreviewed",
+    // THE PICTURE THE LESSON NEEDS. The numbered shapes are language-neutral;
+    // the caption maps every number to its name, so a translated plan can
+    // translate the teaching without the SVG growing an English label layer.
+    figure: {
+      spec: { kind: "cell", variant: "plant" },
+      caption:
+        "A plant cell, schematic and not to scale. 1 nucleus, holding the DNA; 2 cytoplasm, where many reactions happen; 3 large permanent vacuole, filled with cell sap; 4 chloroplast, containing chlorophyll; 5 mitochondrion, where aerobic respiration releases energy; 6 cellulose cell wall, outside the membrane. The wall gives shape and support; the membrane just inside it is the selectively permeable barrier that controls what enters and leaves.",
+    },
   },
   // ── SCIENCE · PHOTOSYNTHESIS ──────────────────────────────────────────────
   // CBSE Class X, Life Processes (nutrition in plants). The lesson teaches the
@@ -1231,6 +1362,22 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
       "Reaction types describe how atoms are rearranged; exothermic and endothermic describe the energy change, which is a separate question.",
     ],
     review: "unreviewed",
+    // THE PICTURE THE LESSON NEEDS. Coefficients are the thing learners read as
+    // atom counts, so the molecules are drawn: four H and two O before the
+    // arrow, four H and two O after it. The layout computes those counts, so
+    // the drawing and the conservation claim cannot drift apart.
+    figure: {
+      spec: {
+        kind: "particles",
+        left: [
+          { atoms: ["H", "H"], count: 2 },
+          { atoms: ["O", "O"], count: 1 },
+        ],
+        right: [{ atoms: ["O", "H", "H"], count: 2 }],
+      },
+      caption:
+        "2H₂ + O₂ → 2H₂O as particles. Left: two hydrogen molecules (four H atoms) and one oxygen molecule (two O atoms). Right: two water molecules, each with one O and two H — four H and two O again. The atoms are rearranged, not created; the coefficient 2 doubles the MOLECULE count, and that is why the atom count is unchanged.",
+    },
   },
   // ── SCIENCE · ELECTRIC CIRCUITS ──────────────────────────────────────────
   // CBSE Class X, Electricity. The lesson keeps the water analogy only as an
@@ -1321,11 +1468,324 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
   },
 };
 
-/** Every concept in the genome now has a plan: the 19 pilot-authored lessons
- *  above, plus a supplemental plan built from the concept's own teaching note
- *  and a concept-specific lens. Supplemental plans are marked unreviewed, so
- *  the pilot's review gate still means only the 19 candidates in the named
- *  packs.
+// ── CHEMISTRY · THE QUANTITATIVE CORE ───────────────────────────────────────
+//
+// These two lessons are AUTHORED but deliberately not added to the pilot
+// sequence: the pilot is a CBSE Class X pathway, and adding concepts to it
+// would change a scope a teacher is being asked to review. They are still
+// authored teaching, so they go into LESSON_PLANS ahead of the generated
+// fallback. `provenance: "authored"` is the honest label: written here, not
+// reviewed, and not claimed as part of the pilot.
+//
+// Moles and energy changes are the two topics the comparison found every
+// serious chemistry product teaches as a CALCULATION WITH A METHOD. A paragraph
+// that states n = m/Mr is not a lesson; a learner needs the quantity triangle,
+// a worked substitution, the unit check and the traps that produce the wrong
+// answer. The `sections` field is what lets those sit beside the prose instead
+// of being flattened into it.
+const MOLES_SECTIONS: readonly LessonSection[] = [
+  {
+    heading: "A mole is a count, not a mass",
+    body: [
+      "A mole is a fixed number of particles: 6.02 × 10²³ of them. That number is Avogadro's constant, and it is chosen so that one mole of a substance has a mass in grams equal to its relative formula mass. The mole is the bridge between a count too large to see and a mass you can weigh.",
+      "The size is not arbitrary. Atoms are so small that a visible sample contains an enormous number of them; counting in moles keeps the numbers human-sized. One mole of carbon-12 has a mass of exactly 12 g, one mole of water has a mass of about 18 g, and both contain the same number of formula units.",
+    ],
+    formula: "n = N / N_A",
+    table: {
+      columns: ["Symbol", "Meaning", "Unit"],
+      rows: [
+        ["n", "amount of substance", "mol"],
+        ["N", "number of particles", "count"],
+        ["N_A", "Avogadro's constant", "6.02 × 10²³ mol⁻¹"],
+      ],
+      caption: "The unit of n is mol; N is a pure count, so N/N_A is mol.",
+    },
+  },
+  {
+    heading: "Mass to moles: the formula you rearrange",
+    body: [
+      "The relative formula mass, Mᵣ, is the mass of one mole in grams. For water, add the relative atomic masses: 2(1) + 16 = 18, so Mᵣ = 18 g/mol. For sodium hydroxide: 23 + 16 + 1 = 40 g/mol. The subscript belongs to the atom before it, so H₂O has two hydrogens, not one.",
+      "Divide a mass by Mᵣ to get moles; multiply moles by Mᵣ to get mass. Rearranging is not a second formula to memorise — it is the same relationship read in the direction the question needs.",
+    ],
+    formula: "n = m / M_r        m = n × M_r",
+    steps: [
+      "Write the formula and the value of Mᵣ with its unit.",
+      "Substitute the mass in grams and divide.",
+      "Check the unit: g ÷ (g/mol) leaves mol.",
+    ],
+  },
+  {
+    heading: "Concentration: moles per cubic decimetre",
+    body: [
+      "Concentration is the amount of solute in a given volume of solution. It is measured in mol/dm³ (the same as mol L⁻¹). A 0.100 mol/dm³ solution contains 0.100 mol of solute in every cubic decimetre of solution.",
+      "The volume must be in dm³ before you substitute. 1 dm³ is 1000 cm³, so 25.0 cm³ is 0.0250 dm³, not 25. Dividing by the volume in cm³ gives an answer a thousand times too large — the most common unit error in the topic.",
+    ],
+    formula: "c = n / V        n = c × V",
+    table: {
+      columns: ["You are given", "Use", "Result"],
+      rows: [
+        ["mass (g)", "n = m ÷ Mᵣ", "moles"],
+        ["moles", "m = n × Mᵣ", "mass (g)"],
+        ["concentration and volume", "n = c × V", "moles"],
+        ["moles and volume", "c = n ÷ V", "concentration (mol/dm³)"],
+      ],
+      caption: "Convert to moles before using an equation's ratio; the ratio is a ratio of amounts, not of masses or volumes.",
+    },
+  },
+  {
+    heading: "The balanced equation supplies the ratio",
+    body: [
+      "The coefficients in a balanced equation are the ratio in which particles react. In 2H₂ + O₂ → 2H₂O, two moles of hydrogen react with one mole of oxygen to make two moles of water. The coefficient 2 in front of H₂ doubles the number of hydrogen MOLECULES; it does not mean 2 g.",
+      "Read the ratio in the direction you need. If you know the moles of water produced, the equation says the hydrogen used was the same number of moles and the oxygen used was half as many. If you know a mass, convert it to moles first, apply the ratio, then convert the answer to the requested unit.",
+    ],
+    formula: "2H₂ + O₂ → 2H₂O     ratio 2 : 1 : 2",
+  },
+  {
+    heading: "Limiting reagent: the reactant that runs out first",
+    body: [
+      "When the reactants are not in the exact ratio, one of them is used up first. That reactant limits the amount of product; the other is in excess and some of it will remain. The limiting reactant is not necessarily the one with the smaller mass — it is the one whose amount divided by its coefficient is smallest.",
+      "For 2H₂ + O₂ → 2H₂O with 4 mol H₂ and 1 mol O₂: hydrogen needs 2 mol O₂ to react completely, but only 1 mol is present. Oxygen runs out first, so oxygen is limiting and 2 mol of water forms. The 2 mol of hydrogen left over is the excess.",
+    ],
+  },
+  {
+    heading: "The four-line method that works every time",
+    body: [
+      "Most mole questions are the same four moves with different numbers. Keeping the moves in order prevents the common mistake of multiplying a mass by a coefficient, which mixes a mass ratio with a particle ratio.",
+    ],
+    steps: [
+      "Write and balance the equation; write the mole ratio under it.",
+      "Convert everything you are given into moles (mass ÷ Mᵣ, or concentration × volume in dm³).",
+      "Multiply by the mole ratio, using the coefficients from the equation.",
+      "Convert the moles back to the unit asked for (mass, volume of gas, or concentration).",
+    ],
+  },
+];
+
+const ENERGY_SECTIONS: readonly LessonSection[] = [
+  {
+    heading: "Enthalpy is the energy ledger",
+    body: [
+      "Every reaction exchanges energy with its surroundings. Enthalpy, H, is the energy stored in the chemical system at constant pressure. We cannot measure the absolute value, so we measure the change: ΔH = H(products) − H(reactants).",
+      "If the products have less enthalpy than the reactants, the difference has been transferred to the surroundings, usually as heat. That reaction is exothermic and ΔH is negative. If the products have more enthalpy, energy has been absorbed from the surroundings; the reaction is endothermic and ΔH is positive. The sign is a direction, not a size.",
+    ],
+    formula: "ΔH = H(products) − H(reactants)",
+    table: {
+      columns: ["Reaction", "ΔH", "Surroundings"],
+      rows: [
+        ["exothermic", "negative", "temperature rises"],
+        ["endothermic", "positive", "temperature falls"],
+      ],
+      caption: "A sign tells you the direction of energy transfer; the magnitude tells you how much per mole.",
+    },
+  },
+  {
+    heading: "Breaking costs, making pays",
+    body: [
+      "A chemical reaction breaks the bonds in the reactants and makes new bonds in the products. Breaking a bond always requires energy; making a bond always releases energy. The overall energy change is the difference between the two ledgers.",
+      "Use average bond enthalpies when the question supplies them. They are averages over similar compounds and are defined for gaseous species, so a calculation using them is an estimate. A negative ΔH means the energy released in making bonds is greater than the energy absorbed in breaking bonds: the reaction is exothermic.",
+    ],
+    formula: "ΔH = Σ(bonds broken) − Σ(bonds formed)",
+  },
+  {
+    heading: "A bond-energy calculation",
+    body: [
+      "Hydrogen and chlorine react: H₂ + Cl₂ → 2HCl. Count the bonds, not the molecules. One H–H bond and one Cl–Cl bond are broken; two H–Cl bonds are made, because the equation produces two HCl molecules.",
+      "Use the table's values, then subtract the energy released from the energy absorbed. The result is negative, so the reaction is exothermic. Writing the calculation in two lines — energy in, energy out — is safer than trying to hold both sums in your head.",
+    ],
+    table: {
+      columns: ["Bond", "Bond energy / kJ mol⁻¹"],
+      rows: [
+        ["H–H", "436"],
+        ["Cl–Cl", "243"],
+        ["H–Cl", "432"],
+      ],
+      caption: "Average bond enthalpies. The values apply to gaseous bonds; they are not the same as the enthalpy of formation of the compound.",
+    },
+    formula: "energy in = 436 + 243 = 679 kJ/mol; energy out = 2 × 432 = 864 kJ/mol; ΔH = 679 − 864 = −185 kJ/mol",
+  },
+  {
+    heading: "Reading a reaction profile",
+    body: [
+      "A reaction profile plots energy against reaction progress. The reactants sit on the left and the products on the right. The peak between them is the transition state, and the height from the reactants to that peak is the activation energy, Eₐ — the barrier a collision must clear before the reaction can happen.",
+      "The height from the reactants to the products is ΔH. On an exothermic profile the product level is lower; on an endothermic profile it is higher. A catalyst lowers the peak, so Eₐ falls, but it does not move the reactant or product levels — the overall ΔH is unchanged.",
+    ],
+  },
+  {
+    heading: "Calorimetry: measuring the heat",
+    body: [
+      "A calorimetry experiment measures the temperature change of a known mass of water or solution. The heat gained or lost is q = m c ΔT, where m is the mass of the liquid being heated, c is its specific heat capacity, and ΔT is the temperature change. For water, c is about 4.18 J g⁻¹ °C⁻¹.",
+      "That q is the heat for the amount you actually used, not per mole. Divide by the number of moles of the limiting reactant to get ΔH per mole. If the temperature rises, the reaction released heat to the water, so the reaction's ΔH is negative; the negative sign is the direction, not a mistake in the arithmetic.",
+    ],
+    formula: "q = m c ΔT        ΔH = −q / n",
+    steps: [
+      "Find ΔT = final temperature − initial temperature.",
+      "Calculate q in joules with the mass of the solution in grams.",
+      "Convert q to kJ by dividing by 1000.",
+      "Divide by the moles that reacted and attach the sign.",
+    ],
+  },
+  {
+    heading: "Signs and units: the check before you move on",
+    body: [
+      "A number without a sign is not an enthalpy change, and a value per mole without per mole in the unit is incomplete. Check three things before writing the answer: the sign agrees with the temperature change, the unit is kJ/mol, and the magnitude is plausible for the bonds involved.",
+      "Bond energies are quoted per mole of bonds. If the equation makes two H–Cl bonds, multiply by two. If it makes one, do not. The coefficient in the equation is the multiplier; the subscript inside a formula is already part of that formula's identity.",
+    ],
+  },
+];
+
+const CHEMISTRY_AUTHORED_PLANS: Readonly<Record<string, LessonPlan>> = {
+  "moles-calcs": {
+    conceptId: "moles-calcs",
+    objective:
+      "Convert between mass, moles and concentration, use a balanced equation's mole ratio, and identify the limiting reagent in a reaction.",
+    intuition:
+      "A recipe for one cake uses two eggs for every 200 g of flour. If you have 400 g of flour but only two eggs, the eggs limit how many cakes you can make — the flour is in excess. Chemistry has the same arithmetic: a balanced equation gives the ratio, and the reactant that runs out first decides how much product forms. The mole is the unit that makes the recipe countable.",
+    idea: MOLES_SECTIONS.flatMap((section) => section.body),
+    sections: MOLES_SECTIONS,
+    terms: [
+      { term: "mole", meaning: "The amount of substance containing 6.02 × 10²³ particles; its mass in grams equals the relative formula mass." },
+      { term: "relative formula mass (Mᵣ)", meaning: "The sum of the relative atomic masses in a formula, in g/mol." },
+      { term: "concentration", meaning: "The amount of solute per cubic decimetre of solution, in mol/dm³." },
+      { term: "limiting reagent", meaning: "The reactant that is used up first and therefore limits the amount of product formed." },
+      { term: "mole ratio", meaning: "The ratio of coefficients in a balanced equation, which tells you how many moles of each substance react or form." },
+    ],
+    workedExamples: [
+      {
+        prompt: "Calculate the amount, in moles, in 8.0 g of sodium hydroxide, NaOH. (Mᵣ = 40)",
+        steps: [
+          "Write the formula: n = m ÷ Mᵣ.",
+          "Substitute: n = 8.0 g ÷ 40 g/mol.",
+          "Check the unit: g ÷ g/mol = mol.",
+        ],
+        answer: "0.20 mol",
+      },
+      {
+        prompt:
+          "25.0 cm³ of 0.100 mol/dm³ sodium hydroxide is neutralised by hydrochloric acid of concentration 0.0500 mol/dm³. The reaction is 1:1. Calculate the volume of acid needed.",
+        steps: [
+          "Convert the volume to dm³: 25.0 cm³ ÷ 1000 = 0.0250 dm³.",
+          "Find the moles of NaOH: n = c × V = 0.100 × 0.0250 = 0.00250 mol.",
+          "The ratio is 1:1, so the acid also needs 0.00250 mol.",
+          "Rearrange c = n ÷ V: V = n ÷ c = 0.00250 ÷ 0.0500 = 0.0500 dm³ = 50.0 cm³.",
+        ],
+        answer: "50.0 cm³ of hydrochloric acid",
+      },
+      {
+        prompt:
+          "10.0 g of calcium carbonate, CaCO₃, decomposes completely: CaCO₃ → CaO + CO₂. Calculate the mass of calcium oxide formed. (Mᵣ: CaCO₃ = 100, CaO = 56)",
+        steps: [
+          "Convert the reactant to moles: n = 10.0 ÷ 100 = 0.100 mol.",
+          "The ratio CaCO₃ : CaO is 1:1, so 0.100 mol of CaO forms.",
+          "Convert back to mass: m = n × Mᵣ = 0.100 × 56 = 5.60 g.",
+        ],
+        answer: "5.60 g of calcium oxide",
+      },
+    ],
+    traps: [
+      {
+        move: "Multiplies the mass by Mᵣ to find the number of moles.",
+        why:
+          "The unit check exposes it: g × g/mol gives g²/mol, which is not a count. Dividing mass by Mᵣ makes the number smaller, as it should — a mole is a very large count, so a small mass contains a fraction of a mole (unless the substance is very light).",
+      },
+      {
+        move: "Uses the coefficients in the equation as a ratio of masses.",
+        why:
+          "The coefficients count particles, or moles of particles, not grams. Convert the given mass to moles first, apply the coefficient ratio, then convert the product's moles back to grams using its own Mᵣ. A coefficient of 2 means twice as many particles, not twice as many grams.",
+      },
+      {
+        move: "Puts 25 cm³ straight into c = n ÷ V and gets a concentration a thousand times too large.",
+        why:
+          "Concentration is per cubic decimetre. Convert cm³ to dm³ by dividing by 1000 before substituting: 25 cm³ = 0.025 dm³. The same numerical mistake appears when a volume of gas is given in cm³ but the molar volume is in dm³.",
+      },
+    ],
+    usedFor:
+      "Titration, percentage yield, atom economy, gas volumes, electrolysis and every energy-per-mole calculation use the mole as their common currency. A balanced equation is the ratio; the mole is how you count with it.",
+    recap: [
+      "A mole is 6.02 × 10²³ particles; n = m ÷ Mᵣ converts mass to moles, and m = n × Mᵣ converts back.",
+      "Concentration is c = n ÷ V, with V in dm³; 1 dm³ = 1000 cm³.",
+      "The balanced equation gives the mole ratio; the limiting reagent is the reactant whose amount divided by its coefficient is smallest.",
+    ],
+    review: "unreviewed",
+    provenance: "authored",
+  },
+  "energy-changes": {
+    conceptId: "energy-changes",
+    objective:
+      "Classify a reaction as exothermic or endothermic, calculate ΔH from bond energies or calorimetry, and read a reaction profile without confusing Eₐ with ΔH.",
+    intuition:
+      "A hand warmer gets hot when you open it; a cold pack gets cold. Both are chemical reactions exchanging energy with their surroundings. The hand warmer's products have less enthalpy than its reactants, so the difference leaves as heat. The cold pack absorbs energy, so its products have more enthalpy. The sign of ΔH is simply which way the energy went.",
+    idea: ENERGY_SECTIONS.flatMap((section) => section.body),
+    sections: ENERGY_SECTIONS,
+    terms: [
+      { term: "enthalpy change (ΔH)", meaning: "The heat energy exchanged with the surroundings at constant pressure; negative for exothermic, positive for endothermic." },
+      { term: "activation energy (Eₐ)", meaning: "The minimum energy colliding particles need to react; the height of the barrier on a reaction profile." },
+      { term: "bond enthalpy", meaning: "The average energy needed to break one mole of a particular covalent bond in the gaseous state." },
+      { term: "calorimetry", meaning: "An experiment that measures heat exchange from a temperature change, usually using q = m c ΔT." },
+      { term: "specific heat capacity", meaning: "The energy needed to raise the temperature of 1 g of a substance by 1 °C; for water it is about 4.18 J g⁻¹ °C⁻¹." },
+    ],
+    workedExamples: [
+      {
+        prompt:
+          "Calculate ΔH for H₂ + Cl₂ → 2HCl using these average bond enthalpies: H–H 436, Cl–Cl 243, H–Cl 432 kJ/mol.",
+        steps: [
+          "Energy absorbed breaking bonds: 436 + 243 = 679 kJ/mol.",
+          "Energy released making bonds: two H–Cl bonds, so 2 × 432 = 864 kJ/mol.",
+          "ΔH = energy in − energy out = 679 − 864 = −185 kJ/mol.",
+          "The negative sign means more energy is released than absorbed, so the reaction is exothermic.",
+        ],
+        answer: "ΔH = −185 kJ/mol (exothermic)",
+      },
+      {
+        prompt:
+          "A reaction raises the temperature of 100 g of water by 6.8 °C. The amount reacting is 0.0500 mol. Calculate ΔH per mole. (c = 4.18 J g⁻¹ °C⁻¹)",
+        steps: [
+          "Calculate the heat gained by the water: q = m c ΔT = 100 × 4.18 × 6.8 = 2842.4 J.",
+          "Convert to kJ: 2842.4 J ÷ 1000 = 2.842 kJ.",
+          "Divide by the amount reacting: 2.842 ÷ 0.0500 = 56.8 kJ/mol.",
+          "The water warmed, so the reaction released heat: the sign is negative.",
+        ],
+        answer: "ΔH = −56.8 kJ/mol",
+      },
+    ],
+    traps: [
+      {
+        move: "Says breaking bonds releases energy because the reaction gives out heat overall.",
+        why:
+          "Breaking a bond always requires energy; forming a bond always releases it. A reaction is exothermic when the energy released by forming the products' bonds is GREATER than the energy absorbed by breaking the reactants' bonds. The overall sign comes from the difference, not from the direction of either half.",
+      },
+      {
+        move: "Gives an exothermic reaction a positive ΔH because the temperature rose.",
+        why:
+          "The sign describes the reaction, not the thermometer. In an exothermic reaction the system loses enthalpy to the surroundings, so ΔH is negative while the surroundings' temperature rises. An endothermic reaction has a positive ΔH and the surroundings cool.",
+      },
+      {
+        move: "Calculates q = m c ΔT and reports q as the enthalpy change per mole.",
+        why:
+          "q is the heat exchanged for the amount actually used, in joules. Enthalpy per mole needs q divided by the number of moles, converted to kJ/mol, with the sign chosen from the temperature change. Reporting q alone gives a total energy, not a molar quantity.",
+      },
+    ],
+    usedFor:
+      "Fuels, hand warmers and cold packs, bond-energy calculations, calorimetry practicals and the energy balance of industrial reactions all use ΔH. The same sign convention returns in equilibrium, where heating shifts the position of a reversible reaction.",
+    recap: [
+      "ΔH is products' enthalpy minus reactants' enthalpy; negative is exothermic, positive is endothermic.",
+      "Breaking bonds costs energy; making bonds releases it; ΔH = bonds broken − bonds formed.",
+      "On a profile, Eₐ is the barrier from reactants to the peak, while ΔH is the difference between reactant and product levels.",
+    ],
+    review: "unreviewed",
+    provenance: "authored",
+    figure: {
+      spec: { kind: "energy-profile", reaction: "H₂ + Cl₂ → 2HCl", activation: 150, delta: -185 },
+      caption:
+        "Reaction profile for H₂ + Cl₂ → 2HCl, schematic and not to scale. The vertical axis is energy; R marks the reactants and P the products. The peak is the transition state, and Eₐ is the activation energy — the barrier a collision must clear. P is below R, so the products have less enthalpy: ΔH is negative and the reaction is exothermic. The barrier is drawn to show the idea, not as a measured value.",
+    },
+  },
+};
+
+/** Every concept in the genome now has a plan: the pilot-authored lessons above,
+ *  the two authored chemistry lessons, plus a supplemental plan built from the
+ *  concept's own teaching note and a concept-specific lens. Supplemental plans
+ *  are marked unreviewed, so the pilot's review gate still means only the
+ *  candidates in the named packs.
  *
  *  The full registry is what `planFor` answers from. `pilotPlanIds()` is the
  *  smaller set the review packs and the browser lesson walk measure. */
@@ -1340,6 +1800,7 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
 // generated plan is the FALLBACK; it is never allowed to shadow taught content.
 export const LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
   ...SUPPLEMENTAL_LESSON_PLANS,
+  ...CHEMISTRY_AUTHORED_PLANS,
   ...PILOT_LESSON_PLANS,
 };
 

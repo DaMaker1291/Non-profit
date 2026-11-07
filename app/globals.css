@@ -3050,3 +3050,107 @@ input.numeric-input:focus { outline: none; box-shadow: none; }
    The Check control was one of four equally loud rows under the box. When the
    box has something in it, the one action the page wants is the filled one. */
 .numeric-answer .btn { min-height: 46px; }
+
+/* ── CONSTRUCTED ANSWERS: A FRACTION AND A POINT ──────────────────────────
+   Two controls that ask a learner to PRODUCE a value rather than recognise it
+   among four printed strings. The fraction's bar is the only label the two
+   fields need; the point's x/y are the symbols the lesson itself uses. Both
+   keep the numeric box's visual weight (mono digits, one bordered control, the
+   Check button full height) so a constructed item does not read as a different
+   kind of task from a typed number. */
+.fraction-answer, .pair-answer { display: grid; gap: 10px; margin-bottom: 4px; }
+.fraction-field { border: 0; margin: 0; padding: 0; min-width: 0; }
+.fraction-stack {
+  display: flex; flex-direction: column; align-items: stretch;
+  width: min(190px, 100%);
+  border: 1px solid var(--line); border-radius: var(--radius-input);
+  background: var(--paper); padding: 6px 16px;
+}
+.fraction-stack:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.fraction-input {
+  width: 100%; border: 0; background: transparent;
+  font-family: var(--mono); font-size: var(--t22); line-height: 1.2;
+  padding: 6px 0; color: var(--text); text-align: center;
+}
+.fraction-input:focus { outline: none; }
+.fraction-bar { height: 2px; background: var(--text); }
+.pair-fields { display: flex; gap: 10px; flex-wrap: wrap; }
+.pair-coordinate {
+  display: flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); border-radius: var(--radius-input);
+  background: var(--paper); padding: 4px 14px;
+}
+.pair-coordinate:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.pair-axis { font-family: var(--mono); font-size: var(--t15); color: var(--text-muted); }
+.pair-input {
+  width: 96px; border: 0; background: transparent;
+  font-family: var(--mono); font-size: var(--t22); padding: 12px 0; color: var(--text);
+}
+.pair-input:focus { outline: none; }
+.fraction-answer .btn, .pair-answer .btn { min-height: 46px; }
+
+/* ── A REAL WORKED-ON-SCREEN ROUTE THROUGH THE LESSON ─────────────────────
+   A link, not an embed: it says what will open, whose video it is and how long
+   it runs, and it opens in a new tab so the learner does not lose the lesson.
+   The play badge is decorative (the title is the accessible name). */
+.lesson-video {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin: 14px 0 18px; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--paper); color: var(--text); text-decoration: none;
+}
+.lesson-video:hover { border-color: var(--accent); }
+.lesson-video:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+.lesson-video-play {
+  display: grid; place-items: center; flex: 0 0 auto;
+  width: 38px; height: 38px; border-radius: 999px;
+  background: var(--accent); color: var(--paper); font-size: 14px;
+}
+.lesson-video-copy { display: grid; gap: 3px; min-width: 0; }
+.lesson-video-copy strong { font-weight: 600; }
+.lesson-video-summary { display: block; max-width: 62ch; line-height: 1.45; }
+.lesson-video-note { display: block; font-size: var(--t12); opacity: 0.85; }
+
+/* ── A LESSON IS A SEQUENCE, NOT A WALL ───────────────────────────────────
+   A list of five paragraphs in one card is read as one block, however correct
+   each paragraph is. A section gives the learner a place to stop, a formula
+   gives the calculation its own weight, and a table lets the eye compare two
+   quantities instead of reconstructing the comparison from prose. These rules
+   are layout only: the teaching is still the authored `body`, and a plan with
+   no `sections` renders exactly what it did before. */
+.lesson-sections { display: grid; gap: 16px; margin-top: 12px; }
+.lesson-section {
+  min-width: 0;
+  border-left: 3px solid var(--accent);
+  padding: 2px 0 2px 14px;
+}
+.lesson-section-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.lesson-section-number {
+  flex: 0 0 auto; font-family: var(--mono); font-size: var(--t12);
+  font-weight: 700; color: var(--accent); letter-spacing: 0.04em;
+}
+.lesson-section-title { margin: 0; font-size: var(--t16); line-height: 1.3; }
+.lesson-section .lesson-text { max-width: 68ch; line-height: 1.65; margin: 8px 0 0; }
+.lesson-formula {
+  margin: 10px 0 2px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface-sunken); overflow-x: auto;
+}
+.lesson-formula code {
+  font-family: var(--mono); font-size: var(--t14); line-height: 1.5;
+  color: var(--text); white-space: nowrap;
+}
+.lesson-table-wrap { min-width: 0; margin: 10px 0 2px; overflow-x: auto; }
+.lesson-table { width: 100%; border-collapse: collapse; font-size: var(--t14); }
+.lesson-table th, .lesson-table td {
+  border-bottom: 1px solid var(--line-soft); padding: 7px 10px; text-align: left;
+  vertical-align: top;
+}
+.lesson-table th { font-size: var(--t12); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.lesson-steps { margin: 10px 0 0 20px; padding: 0; }
+.lesson-steps li { margin: 0 0 6px; line-height: 1.55; }
+@media (max-width: 520px) {
+  .lesson-section { padding-left: 10px; }
+  .lesson-formula code { white-space: normal; overflow-wrap: anywhere; }
+  .lesson-section-title { font-size: var(--t15); }
+}

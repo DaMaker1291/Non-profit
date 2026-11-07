@@ -30,9 +30,13 @@ import { useI18n } from "@/lib/client";
 import {
   NL_PAD,
   balanceLayout,
+  cellLayout,
+  circuitLayout,
+  energyProfileLayout,
   gradientLayout,
   numberLineLayout,
   parabolaLayout,
+  particlesLayout,
   pieLayout,
   rectangleLayout,
   surdSquareLayout,
@@ -557,6 +561,162 @@ function SurdSquare({ spec }: { spec: Extract<FigureSpec, { kind: "surd-square" 
   return <svg viewBox={`0 0 ${L.width} ${L.height}`} role="presentation" aria-hidden="true">{parts}</svg>;
 }
 
+/** A chemical equation as particles: the molecules are drawn, and the atom
+ *  counts come from the same spec, so the picture and the conservation claim
+ *  cannot disagree. */
+function Particles({ spec }: { spec: Extract<FigureSpec, { kind: "particles" }> }) {
+  const L = particlesLayout(spec);
+  const parts: React.ReactNode[] = [
+    <line key="arrow" x1={L.arrow.x1} y1={L.arrow.y} x2={L.arrow.x2 - 8} y2={L.arrow.y} stroke="var(--accent)" strokeWidth={2.5} />,
+    <polygon
+      key="head"
+      points={`${L.arrow.x2},${L.arrow.y} ${L.arrow.x2 - 11},${L.arrow.y - 6} ${L.arrow.x2 - 11},${L.arrow.y + 6}`}
+      fill="var(--accent)"
+    />,
+  ];
+  for (const [side, molecules] of [["l", L.left], ["r", L.right]] as const) {
+    for (const [mi, molecule] of molecules.entries()) {
+      for (const [a, b] of molecule.bonds) {
+        const first = molecule.atoms[a];
+        const second = molecule.atoms[b];
+        if (!first || !second) continue;
+        parts.push(
+          <line
+            key={`${side}b${mi}-${a}-${b}`}
+            x1={first.x} y1={first.y} x2={second.x} y2={second.y}
+            stroke="var(--line)" strokeWidth={2}
+          />,
+        );
+      }
+      for (const [ai, atom] of molecule.atoms.entries()) {
+        parts.push(
+          <g key={`${side}a${mi}-${ai}`}>
+            <circle cx={atom.x} cy={atom.y} r={8} fill="var(--surface)" stroke="var(--accent)" strokeWidth={1.8} />,
+            <text x={atom.x} y={atom.y + 3.5} textAnchor="middle" fontSize={9} fontWeight={700} fill="var(--text)">{atom.label}</text>
+          </g>,
+        );
+      }
+    }
+  }
+  return <svg viewBox={`0 0 ${L.width} ${L.height}`} role="presentation" aria-hidden="true">{parts}</svg>;
+}
+
+/** A schematic series circuit. Wires first, then the components drawn over
+ *  them; the voltmeter's dashed leads are in the layout, not guessed here. */
+function CircuitDiagram({ spec }: { spec: Extract<FigureSpec, { kind: "circuit" }> }) {
+  const L = circuitLayout(spec);
+  const parts: React.ReactNode[] = [];
+  for (const [i, wire] of L.wires.entries()) {
+    parts.push(
+      <polyline
+        key={`w${i}`}
+        points={wire.points.map(([x, y]) => `${x},${y}`).join(" ")}
+        fill="none" stroke={wire.dashed ? "var(--text-muted)" : "var(--line)"}
+        strokeWidth={wire.dashed ? 1.6 : 2}
+        strokeDasharray={wire.dashed ? "5 4" : undefined}
+      />,
+    );
+  }
+  // Battery: a long line and a short line across the left-hand wire.
+  parts.push(
+    <line key="batL" x1={L.battery.x - 12} y1={L.battery.y - 8} x2={L.battery.x + 12} y2={L.battery.y - 8} stroke="var(--text)" strokeWidth={2.5} />,
+    <line key="batS" x1={L.battery.x - 7} y1={L.battery.y + 8} x2={L.battery.x + 7} y2={L.battery.y + 8} stroke="var(--text)" strokeWidth={2.5} />,
+    <text key="batP" x={L.battery.x + 17} y={L.battery.y - 6} fontSize={11} fontWeight={700} fill="var(--text)">+</text>,
+    <text key="batM" x={L.battery.x + 17} y={L.battery.y + 13} fontSize={11} fontWeight={700} fill="var(--text)">−</text>,
+  );
+  // Resistor: the standard zigzag, drawn from the layout's two ends.
+  const zig = 8;
+  const step = (L.resistor.x2 - L.resistor.x1) / (zig * 2);
+  let d = `M ${L.resistor.x1} ${L.resistor.y}`;
+  for (let i = 0; i < zig * 2; i++) {
+    const x = L.resistor.x1 + step * (i + 1);
+    const y = L.resistor.y + (i % 2 === 0 ? -8 : 8);
+    d += ` L ${x} ${y}`;
+  }
+  d += ` L ${L.resistor.x2} ${L.resistor.y}`;
+  parts.push(<path key="res" d={d} fill="none" stroke="var(--text)" strokeWidth={2.5} />);
+  parts.push(
+    <circle key="amm" cx={L.ammeter.x} cy={L.ammeter.y} r={L.ammeter.r} fill="var(--surface)" stroke="var(--text)" strokeWidth={2} />,
+    <text key="ammT" x={L.ammeter.x} y={L.ammeter.y + 5} textAnchor="middle" fontSize={13} fontWeight={700} fill="var(--text)">A</text>,
+  );
+  if (L.voltmeter) {
+    parts.push(
+      <circle key="vol" cx={L.voltmeter.x} cy={L.voltmeter.y} r={L.voltmeter.r} fill="var(--surface)" stroke="var(--text)" strokeWidth={2} />,
+      <text key="volT" x={L.voltmeter.x} y={L.voltmeter.y + 5} textAnchor="middle" fontSize={13} fontWeight={700} fill="var(--text)">V</text>,
+    );
+  }
+  return <svg viewBox={`0 0 ${L.width} ${L.height}`} role="presentation" aria-hidden="true">{parts}</svg>;
+}
+
+/** Numbered cell organelles. The shapes are schematic, not to scale; the
+ *  caption is where the names live, so the drawing stays language-neutral. */
+function CellGraphic({ spec }: { spec: Extract<FigureSpec, { kind: "cell" }> }) {
+  const L = cellLayout(spec);
+  const parts: React.ReactNode[] = [];
+  for (const [i, s] of L.shapes.entries()) {
+    const fill = s.fill === "sunken" ? "var(--surface-sunken)" : s.fill === "accent" ? "var(--accent)" : "none";
+    const opacity = s.fill === "accent" ? 0.18 : undefined;
+    if (s.kind === "wall" || s.kind === "membrane") {
+      parts.push(
+        <rect
+          key={`s${i}`} x={s.x} y={s.y} width={s.w} height={s.h}
+          rx={s.kind === "wall" ? 36 : 28} ry={s.kind === "wall" ? 36 : 28}
+          fill={fill} fillOpacity={opacity}
+          stroke={s.kind === "wall" ? "var(--line)" : "var(--accent)"}
+          strokeWidth={s.kind === "wall" ? 3 : 2}
+        />,
+      );
+    } else if (s.kind === "nucleus" || s.kind === "nucleolus") {
+      parts.push(
+        <g key={`s${i}`}>
+          <circle cx={s.x} cy={s.y} r={s.rx} fill={fill} fillOpacity={opacity} stroke="var(--accent)" strokeWidth={s.kind === "nucleus" ? 2 : 1.5} />
+          {s.kind === "nucleus" && <circle cx={s.x} cy={s.y} r={(s.rx ?? 36) * 0.35} fill="none" stroke="var(--line-soft)" strokeWidth={1} />}
+        </g>,
+      );
+    } else {
+      parts.push(
+        <ellipse
+          key={`s${i}`} cx={s.x} cy={s.y} rx={s.rx} ry={s.ry}
+          transform={s.rotate ? `rotate(${s.rotate} ${s.x} ${s.y})` : undefined}
+          fill={fill} fillOpacity={opacity} stroke="var(--accent)" strokeWidth={1.5}
+        />,
+      );
+    }
+  }
+  for (const n of L.numbers) {
+    parts.push(
+      <g key={`n${n.n}`}>
+        <circle cx={n.x} cy={n.y} r={8.5} fill="var(--surface)" stroke="var(--accent)" strokeWidth={1.5} />,
+        <text x={n.x} y={n.y + 3.2} textAnchor="middle" fontSize={9.5} fontWeight={700} fill="var(--accent)">{n.n}</text>
+      </g>,
+    );
+  }
+  return <svg viewBox={`0 0 ${L.width} ${L.height}`} role="presentation" aria-hidden="true">{parts}</svg>;
+}
+
+/** A schematic reaction-energy profile. The levels come from the layout's
+ *  signed ΔH, so an exothermic drawing cannot put the products above the
+ *  reactants. `R` and `P` are labels rather than English words: the caption
+ *  names them, and the SVG stays language-neutral. */
+function EnergyProfile({ spec }: { spec: Extract<FigureSpec, { kind: "energy-profile" }> }) {
+  const L = energyProfileLayout(spec);
+  const points = L.points.map(([x, y]) => `${x},${y}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${L.width} ${L.height}`} role="presentation" aria-hidden="true">
+      <line x1={L.x1} y1={L.reactantY} x2={L.x1} y2={L.productY} stroke="var(--line)" strokeWidth={1.5} />
+      <line x1={L.x1} y1={L.reactantY} x2={L.x2} y2={L.reactantY} stroke="var(--line-soft)" strokeWidth={1} strokeDasharray="3 4" />
+      <line x1={L.x1} y1={L.productY} x2={L.x2} y2={L.productY} stroke="var(--line-soft)" strokeWidth={1} strokeDasharray="3 4" />
+      <polyline points={points} fill="none" stroke="var(--accent)" strokeWidth={2.5} strokeLinejoin="round" />
+      <line x1={L.peakX} y1={L.peakY} x2={L.peakX} y2={L.reactantY} stroke="var(--text-muted)" strokeWidth={1.2} strokeDasharray="4 4" />
+      <text x={L.peakX + 6} y={L.peakY + 12} fontSize={11} fontWeight={700} fill="var(--text)">{L.activationLabel}</text>
+      <text x={L.x1 + 5} y={L.reactantY - 8} fontSize={11} fontWeight={700} fill="var(--text)">R</text>
+      <text x={L.x2 - 5} y={L.productY + 15} textAnchor="end" fontSize={11} fontWeight={700} fill="var(--text)">P</text>
+      <text x={L.x2} y={L.productY - 8} textAnchor="end" fontSize={10} fill="var(--text-muted)">{L.deltaLabel}</text>
+      <text x={(L.x1 + L.x2) / 2} y={L.height - 10} textAnchor="middle" fontSize={10} fill="var(--text-muted)">{spec.reaction}</text>
+    </svg>
+  );
+}
+
 /** THE DRAWING, WITHOUT A FRAME AROUND IT.
  *
  *  A question wraps its figure in `<figure class="qfigure">`; a LESSON already
@@ -578,6 +738,10 @@ export function FigureGraphic({ spec }: { spec: FigureSpec }) {
       {spec.kind === "balance" && <Balance spec={spec} />}
       {spec.kind === "rectangle" && <Rectangle spec={spec} />}
       {spec.kind === "surd-square" && <SurdSquare spec={spec} />}
+      {spec.kind === "particles" && <Particles spec={spec} />}
+      {spec.kind === "circuit" && <CircuitDiagram spec={spec} />}
+      {spec.kind === "cell" && <CellGraphic spec={spec} />}
+      {spec.kind === "energy-profile" && <EnergyProfile spec={spec} />}
     </>
   );
 }

@@ -633,6 +633,95 @@
     return svgWrap(L.width, L.height, parts);
   }
 
+  function particlesSvg(spec) {
+    var L = E.figures.particlesLayout(spec);
+    var parts = [
+      '<line x1="' + L.arrow.x1 + '" y1="' + L.arrow.y + '" x2="' + (L.arrow.x2 - 8) + '" y2="' + L.arrow.y + '" stroke="var(--accent)" stroke-width="2.5"/>',
+      '<polygon points="' + L.arrow.x2 + ',' + L.arrow.y + ' ' + (L.arrow.x2 - 11) + ',' + (L.arrow.y - 6) + ' ' + (L.arrow.x2 - 11) + ',' + (L.arrow.y + 6) + '" fill="var(--accent)"/>',
+    ];
+    [L.left, L.right].forEach(function (molecules, side) {
+      molecules.forEach(function (molecule, mi) {
+        molecule.bonds.forEach(function (bond) {
+          var a = molecule.atoms[bond[0]], b = molecule.atoms[bond[1]];
+          if (!a || !b) return;
+          parts.push('<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="var(--line)" stroke-width="2"/>');
+        });
+        molecule.atoms.forEach(function (atom, ai) {
+          parts.push('<circle cx="' + atom.x + '" cy="' + atom.y + '" r="8" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.8"/>');
+          parts.push('<text x="' + atom.x + '" y="' + (atom.y + 3.5) + '" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">' + esc(atom.label) + '</text>');
+        });
+      });
+    });
+    return svgWrap(L.width, L.height, parts);
+  }
+
+  function circuitSvg(spec) {
+    var L = E.figures.circuitLayout(spec);
+    var parts = [];
+    L.wires.forEach(function (wire) {
+      parts.push('<polyline points="' + wire.points.map(function (p) { return p[0] + ',' + p[1]; }).join(' ') +
+        '" fill="none" stroke="' + (wire.dashed ? 'var(--text-muted)' : 'var(--line)') + '" stroke-width="' + (wire.dashed ? 1.6 : 2) + '"' +
+        (wire.dashed ? ' stroke-dasharray="5 4"' : '') + '/>');
+    });
+    parts.push('<line x1="' + (L.battery.x - 12) + '" y1="' + (L.battery.y - 8) + '" x2="' + (L.battery.x + 12) + '" y2="' + (L.battery.y - 8) + '" stroke="var(--text)" stroke-width="2.5"/>');
+    parts.push('<line x1="' + (L.battery.x - 7) + '" y1="' + (L.battery.y + 8) + '" x2="' + (L.battery.x + 7) + '" y2="' + (L.battery.y + 8) + '" stroke="var(--text)" stroke-width="2.5"/>');
+    parts.push('<text x="' + (L.battery.x + 17) + '" y="' + (L.battery.y - 6) + '" font-size="11" font-weight="700" fill="var(--text)">+</text>');
+    parts.push('<text x="' + (L.battery.x + 17) + '" y="' + (L.battery.y + 13) + '" font-size="11" font-weight="700" fill="var(--text)">−</text>');
+    var zig = 8, step = (L.resistor.x2 - L.resistor.x1) / (zig * 2);
+    var d = 'M ' + L.resistor.x1 + ' ' + L.resistor.y;
+    for (var i = 0; i < zig * 2; i++) {
+      d += ' L ' + (L.resistor.x1 + step * (i + 1)) + ' ' + (L.resistor.y + (i % 2 === 0 ? -8 : 8));
+    }
+    d += ' L ' + L.resistor.x2 + ' ' + L.resistor.y;
+    parts.push('<path d="' + d + '" fill="none" stroke="var(--text)" stroke-width="2.5"/>');
+    parts.push('<circle cx="' + L.ammeter.x + '" cy="' + L.ammeter.y + '" r="' + L.ammeter.r + '" fill="var(--surface)" stroke="var(--text)" stroke-width="2"/>');
+    parts.push('<text x="' + L.ammeter.x + '" y="' + (L.ammeter.y + 5) + '" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">A</text>');
+    if (L.voltmeter) {
+      parts.push('<circle cx="' + L.voltmeter.x + '" cy="' + L.voltmeter.y + '" r="' + L.voltmeter.r + '" fill="var(--surface)" stroke="var(--text)" stroke-width="2"/>');
+      parts.push('<text x="' + L.voltmeter.x + '" y="' + (L.voltmeter.y + 5) + '" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text)">V</text>');
+    }
+    return svgWrap(L.width, L.height, parts);
+  }
+
+  function cellSvg(spec) {
+    var L = E.figures.cellLayout(spec);
+    var parts = [];
+    L.shapes.forEach(function (s) {
+      var fill = s.fill === 'sunken' ? 'var(--surface-sunken)' : s.fill === 'accent' ? 'var(--accent)' : 'none';
+      var op = s.fill === 'accent' ? ' fill-opacity="0.18"' : '';
+      if (s.kind === 'wall' || s.kind === 'membrane') {
+        parts.push('<rect x="' + s.x + '" y="' + s.y + '" width="' + s.w + '" height="' + s.h + '" rx="' + (s.kind === 'wall' ? 36 : 28) + '" ry="' + (s.kind === 'wall' ? 36 : 28) + '" fill="' + fill + '"' + op + ' stroke="' + (s.kind === 'wall' ? 'var(--line)' : 'var(--accent)') + '" stroke-width="' + (s.kind === 'wall' ? 3 : 2) + '"/>');
+      } else if (s.kind === 'nucleus' || s.kind === 'nucleolus') {
+        parts.push('<circle cx="' + s.x + '" cy="' + s.y + '" r="' + s.rx + '" fill="' + fill + '"' + op + ' stroke="var(--accent)" stroke-width="' + (s.kind === 'nucleus' ? 2 : 1.5) + '"/>');
+      } else {
+        parts.push('<ellipse cx="' + s.x + '" cy="' + s.y + '" rx="' + s.rx + '" ry="' + s.ry + '"' + (s.rotate ? ' transform="rotate(' + s.rotate + ' ' + s.x + ' ' + s.y + ')"' : '') + ' fill="' + fill + '"' + op + ' stroke="var(--accent)" stroke-width="1.5"/>');
+      }
+    });
+    L.numbers.forEach(function (n) {
+      parts.push('<circle cx="' + n.x + '" cy="' + n.y + '" r="8.5" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>');
+      parts.push('<text x="' + n.x + '" y="' + (n.y + 3.2) + '" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--accent)">' + n.n + '</text>');
+    });
+    return svgWrap(L.width, L.height, parts);
+  }
+
+  function energyProfileSvg(spec) {
+    var L = E.figures.energyProfileLayout(spec);
+    var points = L.points.map(function (p) { return p[0] + ',' + p[1]; }).join(' ');
+    var parts = [
+      '<line x1="' + L.x1 + '" y1="' + L.reactantY + '" x2="' + L.x1 + '" y2="' + L.productY + '" stroke="var(--line)" stroke-width="1.5"/>',
+      '<line x1="' + L.x1 + '" y1="' + L.reactantY + '" x2="' + L.x2 + '" y2="' + L.reactantY + '" stroke="var(--line-soft)" stroke-width="1" stroke-dasharray="3 4"/>',
+      '<line x1="' + L.x1 + '" y1="' + L.productY + '" x2="' + L.x2 + '" y2="' + L.productY + '" stroke="var(--line-soft)" stroke-width="1" stroke-dasharray="3 4"/>',
+      '<polyline points="' + points + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>',
+      '<line x1="' + L.peakX + '" y1="' + L.peakY + '" x2="' + L.peakX + '" y2="' + L.reactantY + '" stroke="var(--text-muted)" stroke-width="1.2" stroke-dasharray="4 4"/>',
+      '<text x="' + (L.peakX + 6) + '" y="' + (L.peakY + 12) + '" font-size="11" font-weight="700" fill="var(--text)">' + L.activationLabel + '</text>',
+      '<text x="' + (L.x1 + 5) + '" y="' + (L.reactantY - 8) + '" font-size="11" font-weight="700" fill="var(--text)">R</text>',
+      '<text x="' + (L.x2 - 5) + '" y="' + (L.productY + 15) + '" text-anchor="end" font-size="11" font-weight="700" fill="var(--text)">P</text>',
+      '<text x="' + L.x2 + '" y="' + (L.productY - 8) + '" text-anchor="end" font-size="10" fill="var(--text-muted)">' + L.deltaLabel + '</text>',
+      '<text x="' + ((L.x1 + L.x2) / 2) + '" y="' + (L.height - 10) + '" text-anchor="middle" font-size="10" fill="var(--text-muted)">' + esc(spec.reaction) + '</text>',
+    ];
+    return svgWrap(L.width, L.height, parts);
+  }
+
   /** A `FigureSpec` as SVG, or `""` for a kind this build cannot draw — and never
    *  a box with nothing in it. */
   function figureSvg(spec) {
@@ -644,6 +733,10 @@
     if (spec.kind === "balance") return balanceSvg(spec);
     if (spec.kind === "rectangle") return rectangleSvg(spec);
     if (spec.kind === "surd-square") return surdSquareSvg(spec);
+    if (spec.kind === "particles") return particlesSvg(spec);
+    if (spec.kind === "circuit") return circuitSvg(spec);
+    if (spec.kind === "cell") return cellSvg(spec);
+    if (spec.kind === "energy-profile") return energyProfileSvg(spec);
     return "";
   }
 
@@ -1312,7 +1405,24 @@
       esc(t(E.lessonPlans.teachingLanguages(conceptId).indexOf(lang()) >= 0
         ? "lq.teachNoteLesson"
         : E.contentI18n.namesNatively(lang()) ? "lq.teachNote" : "lq.teachNoteAll")) + "</p>";
-    var idea = plan.idea.map(function (para) {
+    var idea = plan.sections ? plan.sections.map(function (section, i) {
+      var body = section.body.map(function (para) {
+        return '<p class="reading lesson-text">' + esc(para) + "</p>";
+      }).join("");
+      var formula = section.formula ? '<div class="lesson-formula"><code>' + esc(section.formula) + "</code></div>" : "";
+      var table = section.table ? '<div class="lesson-table-wrap"><table class="lesson-table"><thead><tr>' +
+        section.table.columns.map(function (column) { return '<th>' + esc(column) + "</th>"; }).join("") +
+        "</tr></thead><tbody>" + section.table.rows.map(function (row) {
+          return "<tr>" + row.map(function (cell) { return '<td>' + esc(cell) + "</td>"; }).join("") + "</tr>";
+        }).join("") + "</tbody></table>" +
+        (section.table.caption ? '<p class="small muted">' + esc(section.table.caption) + "</p>" : "") + "</div>" : "";
+      var steps = section.steps ? '<ol class="lesson-steps">' + section.steps.map(function (step) {
+        return "<li>" + esc(step) + "</li>";
+      }).join("") + "</ol>" : "";
+      return '<section class="lesson-section"><div class="lesson-section-head"><span class="lesson-section-number">' +
+        String(i + 1).padStart(2, "0") + '</span><h3 class="lesson-section-title">' + esc(section.heading) + "</h3></div>" +
+        body + formula + table + steps + "</section>";
+    }).join("") : plan.idea.map(function (para) {
       return '<p style="margin:10px 0 0">' + esc(para) + "</p>";
     }).join("");
     var traps = plan.traps.map(function (trap) {
@@ -1327,7 +1437,7 @@
       '<p class="muted">' + esc(E.contentI18n.cblurb(lang(), conceptId)) + "</p>" + note +
       lessonPart(t("plan.can"), '<p style="margin:10px 0 0">' + esc(plan.objective) + "</p>") +
       lessonPart(t("plan.start"), '<p style="margin:10px 0 0">' + esc(plan.intuition) + "</p>") +
-      lessonPart(t("learn.idea"), idea) +
+      lessonPart(t("learn.idea"), plan.sections ? '<div class="lesson-sections">' + idea + "</div>" : idea) +
       lessonFigureHtml(plan) +
       workedBlock(conceptId, "worked", "worked.eyebrow", "worked.lead", "worked.show") +
       workedBlock(conceptId, "guided", "plan.together", "plan.guidedLead", "plan.firstStep") +

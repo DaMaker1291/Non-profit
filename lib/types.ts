@@ -127,7 +127,7 @@ export interface Concept {
  * can keep serving a numeric concept WITHOUT handing the learner an input box
  * they cannot grade. `answerValue` is the truth; `choices` is the projection.
  */
-export type ResponseKind = "choice" | "numeric";
+export type ResponseKind = "choice" | "numeric" | "fraction" | "pair";
 
 /**
  * How close a typed number must be to the canonical answer.
@@ -172,6 +172,17 @@ export interface NumericTolerance {
  *
  *  A mark's `at`, a tick or an axis value are all in the SAME units as the
  *  question's own numbers, so the figure and the stem cannot disagree. */
+/** ONE MOLECULE IN A PARTICLE DIAGRAM.
+ *
+ *  `atoms` are element symbols, in the order they are drawn: the first is the
+ *  centre of a three- or four-atom molecule, so H₂O is written ["O", "H", "H"]
+ *  and not ["H", "H", "O"]. `count` is how many copies of that molecule the
+ *  side of the equation contains — the coefficient, not an atom count. */
+export interface ParticleMolecule {
+  atoms: string[];
+  count: number;
+}
+
 export type FigureSpec =
   | {
       kind: "axes"; xMin: number; xMax: number; yMin: number; yMax: number;
@@ -309,6 +320,49 @@ export type FigureSpec =
        *  appears twice (the two `3x` strips) emphasises both — that is the right
        *  reading of "these are the same term". */
       emphasis?: string[];
+    }
+  | {
+      /** A CHEMICAL EQUATION AS PARTICLES, before and after the arrow.
+       *
+       *  A balanced equation is a claim about atoms, and a coefficient is a
+       *  claim about molecules: 2H₂ + O₂ → 2H₂O has four H and two O on each
+       *  side, but a learner who counts the formulas instead of the atoms sees
+       *  "two plus one becomes two". Drawing the molecules makes the
+       *  rearrangement visible and lets the counts be checked.
+       *
+       *  The layout computes `leftAtoms` and `rightAtoms` from the same data the
+       *  drawing uses; a caption or test can therefore say what the picture
+       *  shows without re-counting it by hand. */
+      kind: "particles";
+      left: ParticleMolecule[];
+      right: ParticleMolecule[];
+    }
+  | {
+      /** A SIMPLE SERIES CIRCUIT with an ammeter in the loop and, optionally,
+       *  a voltmeter across the resistor. The drawing is schematic: it teaches
+       *  the CONNECTION, not the physical layout of a lab bench. */
+      kind: "circuit";
+      showVoltmeter?: boolean;
+    }
+  | {
+      /** A PLANT OR ANIMAL CELL, with numbered organelles rather than English
+       *  labels. The numbers are language-neutral and the caption maps them, so
+       *  a translated lesson can translate the caption without the SVG growing
+       *  a second English paragraph. */
+      kind: "cell";
+      variant: "plant" | "animal";
+    }
+  | {
+      /** A REACTION-ENERGY PROFILE, drawn as a schematic path: reactants on the
+       *  left, products on the right, the activation-energy hill between them.
+       *  `delta` is the signed enthalpy change in kJ/mol (negative = exothermic,
+       *  products lower); `activation` is the forward barrier. The layout computes
+       *  every y-coordinate, so the picture cannot show an exothermic reaction
+       *  with products above reactants. */
+      kind: "energy-profile";
+      reaction: string;
+      activation: number;
+      delta: number;
     };
 
 export interface AxisPoint {
@@ -357,6 +411,14 @@ export interface Question {
   /** The canonical answer as a NUMBER, present exactly when
    *  `responseKind === "numeric"`. `choices[answer]` is its display form. */
   answerValue?: number;
+  /** The canonical answer as a FRACTION, present exactly when
+   *  `responseKind === "fraction"`. Two integers rather than a decimal, because
+   *  1/3 has no exact decimal form and a learner's answer must be marked by the
+   *  number it names, not by a rounded copy of it. */
+  answerFraction?: { numerator: number; denominator: number };
+  /** The canonical answer as a COORDINATE PAIR, present exactly when
+   *  `responseKind === "pair"`. Ordered: (3, 5) and (5, 3) are different points. */
+  answerPair?: { x: number; y: number };
   /** How close a typed answer must be. Required on a numeric item. */
   tolerance?: NumericTolerance;
   /** The four MCQ option VALUES, aligned with `choices` by index. Present on a

@@ -45,7 +45,7 @@ try {
   for (const concept of genome.CONCEPTS) {
     const plan = plans.planFor(concept.id);
     if (!plan) continue;
-    planState[concept.id] = plan.provenance === "supplemental" ? "supplemental" : "pilot";
+    planState[concept.id] = plan.provenance === "supplemental" ? "supplemental" : plan.provenance === "authored" ? "authored" : "pilot";
   }
 } catch {
   console.warn("  (no compiled plan table: plan-only concepts will read as metadata_only)");
@@ -84,7 +84,7 @@ const planRecords = catalogue.concepts.reduce((m, c) => {
   return m;
 }, {});
 console.log(
-  `  plan records: ${catalogue.concepts.length} (authored plan ${planRecords.pilot ?? 0} · supplemental ${planRecords.supplemental ?? 0} · none ${planRecords.none ?? 0}) — a plan is not a lesson`,
+  `  plan records: ${catalogue.concepts.length} (pilot plan ${planRecords.pilot ?? 0} · authored lesson ${planRecords.authored ?? 0} · supplemental ${planRecords.supplemental ?? 0} · none ${planRecords.none ?? 0}) — a plan is not a lesson`,
 );
 console.log(
   `  translated lessons: ${catalogue.translations.languages.length} reviewed · ${catalogue.translations.machine.length} machine (unreviewed, shown with their status)`,

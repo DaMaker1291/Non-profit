@@ -41,9 +41,9 @@ onto, and the sources the structure was read from.
 
 | Label | Means | Presently |
 |---|---|---|
-| `unmapped` | no national pathway recorded | 51 countries |
-| `mapped` | the record exists and is in production; **citations not on file** | 18 inherited routes + the international and independent pathways |
-| `researched` | ≥1 authoritative source for the structure | Cameroon's two systems |
+| `unmapped` | no national pathway recorded | 1 choice (`Prefer not to say`) |
+| `mapped` | the record exists and is in production; **citations not on file** | 16 inherited national routes + the international and independent pathways |
+| `researched` | ≥1 authoritative source for the structure | 55 national routes |
 | `reviewed` | a subject specialist has read the mapping onto the genome | **none** |
 | `verified` | reviewed, released, with a learner-facing coverage statement | **none** |
 
@@ -110,11 +110,11 @@ difficulty target and whether stage-0 arithmetic is in scope) — not an examina
 | | Count |
 |---|---|
 | Country codes offered in enrolment | **71** (70 countries + "prefer not to say") |
-| With a recorded national route | **19** — US GB IE IN NG KE ZA GH TZ UG PK BD ID PH BR MX AU CA **CM** |
-| Without one (offered the international programmes and the skills pathway) | **52** (51 countries + "prefer not to say") |
-| National pathways | **20** (Cameroon runs two) |
-| Specifications | **30** — 27 national, 2 international, 1 independent |
-| Pathways with no structural source on file | **20** |
+| With a recorded national route | **70** |
+| Without one (offered the international programmes and the skills pathway) | **1** ("prefer not to say") |
+| National pathways | **71** (Cameroon runs two) |
+| Specifications | **91** — 88 national, 2 international, 1 independent |
+| Pathways with no structural source on file | **18** — 16 inherited national routes, plus the international and independent routes |
 | Mappings reviewed by a subject specialist | **0** |
 
 **Cameroon**, the reference case: 2 pathways · 7 years each (Form 1 → Upper Sixth; 6e →

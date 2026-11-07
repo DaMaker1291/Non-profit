@@ -502,7 +502,12 @@ export async function answerQuestion(
      *  one — so the token belongs to the ACT of answering, not to the question. */
     submissionId?: string;
     deviceAt?: number;
-  } & ({ choiceIndex: number } | { numericAnswer: string }),
+  } & (
+    | { choiceIndex: number }
+    | { numericAnswer: string }
+    | { fractionAnswer: { numerator: string; denominator: string } }
+    | { pairAnswer: { x: string; y: string } }
+  ),
 ): Promise<AnswerOutcome> {
   const { id, conceptId, questionId, lang, ms, ...given } = input;
   const submissionId = input.submissionId ?? newSubmissionId();

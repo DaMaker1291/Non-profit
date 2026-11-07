@@ -68,13 +68,34 @@ const SPEC = S.specById(SPEC_ID);
 // authored plan to be inside this file.
 // AND THE FOUNDATIONS ARE ANCHORED BECAUSE THE CATCH-UP PATH SENDS LEARNERS
 // THERE. `lib/foundations.ts` names the unestablished prerequisites of a learner's
-// own course, and the first two it reaches are place value and multiplication —
-// the concepts every other number topic assumes. An authored lesson outside the
-// reviewable pack is a lesson no subject teacher is asked to read, which is the
-// one thing the pack exists to prevent. Both were added and the suite named them
-// (`every pilot-authored plan is in a named review pack (outside: place-value,
-// multiplication)`) rather than letting them sit outside it quietly.
-const ANCHORS = ["surds", "completing-square", "fractions", "fraction-ops", "percentages", "place-value", "multiplication"];
+// own course, and what it reaches first is the primary number chain: place value,
+// then addition, subtraction, multiplication and division. These are the concepts
+// every other number topic assumes.
+//
+// An authored lesson outside the reviewable pack is a lesson no subject teacher is
+// asked to read, which is the one thing the pack exists to prevent. The two plan
+// records were added first and the suite named them (`every pilot-authored plan is
+// in a named review pack (outside: place-value, multiplication)`) rather than
+// letting them sit outside it quietly.
+//
+// `addition`, `subtraction` and `division` are different: their teaching is an
+// AUTHORED CONTRACT LESSON (`lib/lessons/authored/*.ts`), not a plan record, so
+// the plan-membership assertion could not see them. They were genuinely authored
+// and genuinely outside the review queue — the stronger lesson, measured by
+// nobody. Anchoring them here is what makes the review pack reach the concepts the
+// catch-up path actually sends a learner to.
+const ANCHORS = [
+  "surds",
+  "completing-square",
+  "fractions",
+  "fraction-ops",
+  "percentages",
+  "place-value",
+  "addition",
+  "subtraction",
+  "multiplication",
+  "division",
+];
 // The serve call `app/api/progress/route.ts` makes: band-first search at the
 // tier's difficulty, 40 attempts. A pack sampled with the library default (4)
 // would show items the pilot would never serve.

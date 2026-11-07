@@ -32,6 +32,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { answerKey } from "./answer";
+import { withStructuredResponse } from "./response-mode";
 import { getConcept } from "./genome";
 import { practiceTarget, type PracticeTarget } from "./question-bank";
 import { generateQuestionNear } from "./questions";
@@ -184,6 +185,12 @@ export interface ServeInput {
    *  makes two serves on one concept different draws, so a caller that pins it
    *  has asked for a repeat. */
   seed?: string;
+  /** Ask for a constructed answer (fraction or coordinate pair) where the drawn
+   *  item's four options are uniformly that value. Off by default because the
+   *  papers, diagnostic and published static twin are multiple-choice
+   *  instruments and must keep the projection they were built for; the practice
+   *  route asks for it explicitly. */
+  structuredResponses?: boolean;
 }
 
 /**
@@ -370,6 +377,11 @@ export function servePractice(input: ServeInput): ServeResult {
     question = drawn.question;
     slipCheck = drawn.targeted;
   }
+
+  // A PRACTICE ITEM MAY BE RE-ASKED AS A CONSTRUCTED ANSWER.
+  // The conversion is a property of THIS serve, applied before the key is
+  // recorded, so the staged item and the item the learner sees are the same one.
+  if (input.structuredResponses) question = withStructuredResponse(question);
 
   // Record the served item so the NEXT serve on this concept skips it. Always
   // appended, even a repeat: the list rotates, so the most recently served key

@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 72 modules compiled from lib/ by that script, wired
+ * Source: 77 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -74,6 +74,8 @@ exports.speakableText = speakableText;
 exports.DEFAULT_PREFS = {
     readAloud: false,
     largeText: false,
+    textScale: 0,
+    roomy: false,
     highContrast: false,
     reduceMotion: false,
     preferSpeech: false,
@@ -87,9 +89,18 @@ function loadPrefs() {
         if (!raw)
             return { ...exports.DEFAULT_PREFS };
         const j = JSON.parse(raw);
+        // A preference stored BEFORE the steps existed carries only `largeText`, and
+        // it must keep working: a learner who chose larger text and comes back after
+        // an update is not asked to choose again, and does not silently shrink.
+        const rawScale = typeof j.textScale === "number"
+            ? Math.round(j.textScale)
+            : j.largeText === true ? 1 : 0;
+        const textScale = (rawScale >= 2 ? 2 : rawScale >= 1 ? 1 : 0);
         return {
             readAloud: j.readAloud === true,
-            largeText: j.largeText === true,
+            largeText: textScale > 0,
+            textScale,
+            roomy: j.roomy === true,
             highContrast: j.highContrast === true,
             reduceMotion: j.reduceMotion === true,
             preferSpeech: j.preferSpeech === true,
@@ -111,8 +122,12 @@ function savePrefs(p) {
  *  The CSS side is a mirror of this list — see globals.css. */
 function prefClasses(p) {
     const out = [];
-    if (p.largeText)
+    if (p.textScale >= 2)
+        out.push("access-xlarge");
+    else if (p.textScale === 1 || p.largeText)
         out.push("access-large");
+    if (p.roomy)
+        out.push("access-roomy");
     if (p.highContrast)
         out.push("access-contrast");
     if (p.reduceMotion)
@@ -467,6 +482,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.isNumericQuestion = isNumericQuestion;
 exports.parseNumericInput = parseNumericInput;
 exports.gradeNumeric = gradeNumeric;
+exports.parseFractionText = parseFractionText;
+exports.parseFractionParts = parseFractionParts;
+exports.gradeFraction = gradeFraction;
+exports.parsePairText = parsePairText;
+exports.parsePairParts = parsePairParts;
+exports.gradePair = gradePair;
 exports.formatNumeric = formatNumeric;
 exports.answerDisplay = answerDisplay;
 exports.optionValueKey = optionValueKey;
@@ -555,6 +576,67 @@ function gradeNumeric(given, answer, tolerance) {
     const diff = Math.abs(given - answer);
     const slack = Math.max(abs ?? 0, rel !== undefined ? rel * Math.abs(answer) : 0);
     return diff <= slack;
+}
+/** ── A FRACTION IS TWO INTEGERS, NOT A DECIMAL ─────────────────────────────
+ *
+ *  A learner asked for 1/3 must be able to write 1/3. Parsing it into 0.333…
+ *  and comparing within a tolerance would accept 0.333 as the same answer and
+ *  reject 2/6 for looking different, when 2/6 IS the same number. So a fraction
+ *  answer is marked by CROSS-MULTIPLICATION: a/b = c/d exactly when ad = bc.
+ *
+ *  Both fields must be whole numbers. A decimal in a fraction box is refused as
+ *  input rather than silently read as another fraction, the same rule that
+ *  keeps "x + 3" out of the number box.
+ */
+function parseFractionText(text) {
+    const m = foldSigns(String(text ?? "")).trim().match(/^(-?\d+)\s*\/\s*(-?\d+)$/);
+    if (!m)
+        return null;
+    const numerator = Number(m[1]);
+    const denominator = Number(m[2]);
+    if (!Number.isInteger(numerator) || !Number.isInteger(denominator) || denominator === 0)
+        return null;
+    return { numerator, denominator };
+}
+function parseFractionParts(numerator, denominator) {
+    const n = foldSigns(String(numerator ?? "")).trim();
+    const d = foldSigns(String(denominator ?? "")).trim();
+    if (!/^-?\d+$/.test(n) || !/^-?\d+$/.test(d))
+        return null;
+    const parts = { numerator: Number(n), denominator: Number(d) };
+    if (!Number.isInteger(parts.numerator) || !Number.isInteger(parts.denominator) || parts.denominator === 0)
+        return null;
+    return parts;
+}
+/** 1/2 and 2/4 are the same answer; an unsimplified fraction is not a mistake. */
+function gradeFraction(given, answer) {
+    if (!given.denominator || !answer.denominator)
+        return false;
+    return given.numerator * answer.denominator === answer.numerator * given.denominator;
+}
+/** ── A COORDINATE PAIR IS ORDERED ────────────────────────────────────────────
+ *  (3, 5) and (5, 3) are different points, so this is never sorted the way a
+ *  pair of roots is. Decimals are allowed (a point at (2.5, −1)) and compared to
+ *  a hairline tolerance, because both sides are parsed from text. */
+function parsePairText(text) {
+    const m = foldSigns(String(text ?? "")).trim().match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)$/);
+    if (!m)
+        return null;
+    const x = Number(m[1]);
+    const y = Number(m[2]);
+    return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
+}
+function parsePairParts(xRaw, yRaw) {
+    const xs = foldSigns(String(xRaw ?? "")).trim();
+    const ys = foldSigns(String(yRaw ?? "")).trim();
+    if (!/^-?\d+(?:\.\d+)?$/.test(xs) || !/^-?\d+(?:\.\d+)?$/.test(ys))
+        return null;
+    const x = Number(xs);
+    const y = Number(ys);
+    return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
+}
+function gradePair(given, answer) {
+    return Math.abs(given.x - answer.x) < 1e-9 && Math.abs(given.y - answer.y) < 1e-9;
 }
 /**
  * A number as a learner should read it: no floating-point noise, no trailing
@@ -688,7 +770,7 @@ __def("api/client.js", function (module, exports, require) {
 // learner's own record — this file only carries the question and the answer.
 // ─────────────────────────────────────────────────────────────────────────────
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ensureSecret = exports.EMPTY_SESSION = exports.ApiError = void 0;
+exports.ensureSecret = exports.EVIDENCE_DOOR = exports.EMPTY_SESSION = exports.ApiError = void 0;
 exports.deploymentHealth = deploymentHealth;
 exports.signUp = signUp;
 exports.signIn = signIn;
@@ -709,6 +791,7 @@ exports.eraseProfile = eraseProfile;
 exports.progressFor = progressFor;
 exports.learnerExists = learnerExists;
 exports.serveQuestion = serveQuestion;
+exports.lessonCheck = lessonCheck;
 exports.answerQuestion = answerQuestion;
 exports.hint = hint;
 exports.microCheck = microCheck;
@@ -737,6 +820,11 @@ exports.tutorTurn = tutorTurn;
 exports.concepts = concepts;
 exports.classes = classes;
 exports.classById = classById;
+exports.classroom = classroom;
+exports.classroomAction = classroomAction;
+exports.classroomStreamUrl = classroomStreamUrl;
+exports.offlinePackList = offlinePackList;
+exports.offlinePack = offlinePack;
 exports.classMember = classMember;
 exports.classAction = classAction;
 exports.assignments = assignments;
@@ -746,6 +834,8 @@ exports.needAction = needAction;
 exports.rooms = rooms;
 exports.roomAction = roomAction;
 exports.hubStatus = hubStatus;
+exports.contentReviews = contentReviews;
+exports.submitContentReview = submitContentReview;
 const transport_1 = require("./transport");
 Object.defineProperty(exports, "ApiError", { enumerable: true, get: function () { return transport_1.ApiError; } });
 const sync_queue_1 = require("../sync-queue");
@@ -935,15 +1025,19 @@ function serveQuestion(id, conceptId, opts = {}) {
         body: { action: "serve", id, conceptId, lang: opts.lang, intent: opts.intent, reveal: opts.reveal },
     });
 }
-/**
- * Send one answer. This is the ONLY write that must survive a dead connection,
- * so it goes through the offline queue: a failure the server would repeat is
- * reported, and a failure a later attempt could fix is HELD on the device and
- * replayed through this same operation when the connection returns.
- *
- * The caller never declares mode, hint count or retention credit — the server
- * derives all three from what it actually handed out.
- */
+function lessonCheck(input) {
+    return (0, transport_1.send)("/api/progress", {
+        method: "POST",
+        body: {
+            action: "lessonCheck",
+            id: input.id,
+            conceptId: input.conceptId,
+            itemId: input.itemId,
+            answer: input.answer,
+            secret: input.secret ?? undefined,
+        },
+    });
+}
 async function answerQuestion(input) {
     const { id, conceptId, questionId, lang, ms, ...given } = input;
     const submissionId = input.submissionId ?? (0, sync_queue_1.newSubmissionId)();
@@ -1149,6 +1243,30 @@ function classes(me) {
 function classById(id, me) {
     return (0, transport_1.send)("/api/classes", { query: { id, me } });
 }
+function classroom(clsId) {
+    return (0, transport_1.send)("/api/classroom", { query: { cls: clsId } });
+}
+/** The 409 body is an ANSWER (paused, ended, already live), not a transport
+ *  failure, so it is tolerated and returned to the screen that explains it. */
+function classroomAction(clsId, body) {
+    return (0, transport_1.send)("/api/classroom", {
+        method: "POST",
+        body: { clsId, ...body },
+        tolerate: [409],
+    });
+}
+function classroomStreamUrl(clsId) {
+    return (0, transport_1.buildUrl)("/api/classroom/stream", { cls: clsId }, (0, transport_1.capabilityFor)("/api/classroom/stream", "GET"), "GET");
+}
+/** The evidence door used by an offline queue. Its URL belongs here, beside
+ *  every other route name; an offline page must not spell it again. */
+exports.EVIDENCE_DOOR = "/api/evidence";
+function offlinePackList(id, secret) {
+    return (0, transport_1.send)("/api/offline-pack", { query: { list: "1", id, secret: secret ?? undefined } });
+}
+function offlinePack(id, secret, concept) {
+    return (0, transport_1.send)("/api/offline-pack", { query: { concept, id, secret: secret ?? undefined } });
+}
 /** ONE member's evidence in detail — the "what can this student demonstrate?"
  *  read. The door answers the class's TEACHER only (a member who is not the
  *  teacher is a 403), which is the server's rule, not this call's: a surface
@@ -1185,6 +1303,15 @@ function roomAction(input) {
  *  design: it describes the DEPLOYMENT, never a learner. */
 function hubStatus() {
     return (0, transport_1.send)("/api/hub-status");
+}
+/** Public review records and the questions a reviewer must answer. */
+function contentReviews() {
+    return (0, transport_1.send)("/api/content-review");
+}
+/** Record a review. Authority is the signed-in teacher account; the body carries
+ *  no reviewer identity, so the route cannot be told who to credit. */
+function submitContentReview(input) {
+    return (0, transport_1.send)("/api/content-review", { method: "POST", body: { ...input } });
 }
 
 });
@@ -2174,6 +2301,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.namesNatively = namesNatively;
 exports.ctitle = ctitle;
 exports.cblurb = cblurb;
+exports.teachingTranslated = teachingTranslated;
 exports.levelLabel = levelLabel;
 exports.mcName = mcName;
 exports.mcCoaching = mcCoaching;
@@ -2235,6 +2363,50 @@ function cblurb(lang, conceptId) {
     const t = (0, i18n_1.translator)(lang);
     const v = t(`cb.${conceptId}`);
     return v === `cb.${conceptId}` ? (c?.blurb ?? "") : v;
+}
+/**
+ * Check if full teaching content has been translated for a concept in a given language.
+ * Teaching content includes: lesson plans, worked examples, question prompts,
+ * repair hints, and misconception coaching notes.
+ */
+function teachingTranslated(lang, conceptId) {
+    if (lang === 'en')
+        return true;
+    const dict = i18n_1.DICTS[lang];
+    if (!dict)
+        return false;
+    // Check that the concept has teaching content translated (not raw English keys)
+    // Teaching content keys use specific prefixes that indicate authored content:
+    // - lp.<id>: lesson plan
+    // - we.<id>: worked example
+    // - qp.<id>: question prompt
+    // - rh.<id>: repair hint
+    // - mc.<id>: misconception coaching
+    // - mp.<id>: misconception prompt
+    // We check if any of these keys exist and are not raw English keys
+    const c = (0, genome_1.getConcept)(conceptId);
+    if (!c)
+        return false;
+    // Check that cn and cb are translated (not raw English)
+    const dictCn = dict[`cn.${conceptId}`];
+    const dictCb = dict[`cb.${conceptId}`];
+    if (typeof dictCn !== 'string' || dictCn.trim() === '' ||
+        typeof dictCb !== 'string' || dictCb.trim() === '') {
+        return false;
+    }
+    // Check if any teaching content key is present and not a raw English key
+    const teachingKeys = [
+        `lp.${conceptId}`,
+        `we.${conceptId}`,
+        `qp.${conceptId}`,
+        `rh.${conceptId}`,
+        `mc.${conceptId}`,
+        `mp.${conceptId}`,
+    ];
+    return teachingKeys.some(key => {
+        const v = dict[key];
+        return typeof v === 'string' && v.trim() !== '' && v !== `cn.${conceptId}` && v !== `cb.${conceptId}`;
+    });
 }
 /** Misconception name / coaching: `mc.<id>` / `mcp.<id>` keys, falling back
  *  to the catalogue's authored English when a dictionary lacks them. */
@@ -5172,7 +5344,7 @@ function generateImpactReport(perLearner) {
 __def("figures.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SURD_SIDE = exports.RECT_W = exports.PIE_R = exports.PIE_SIDE = exports.BAL_H = exports.BAL_W = exports.NL_PAD = exports.NL_H = exports.NL_W = exports.FIGURE_KINDS = void 0;
+exports.EP_PAD = exports.EP_H = exports.EP_W = exports.CELL_H = exports.CELL_W = exports.CIRC_H = exports.CIRC_W = exports.PART_PAD = exports.PART_H = exports.PART_W = exports.SURD_SIDE = exports.RECT_W = exports.PIE_R = exports.PIE_SIDE = exports.BAL_H = exports.BAL_W = exports.NL_PAD = exports.NL_H = exports.NL_W = exports.FIGURE_KINDS = void 0;
 exports.numberLineLayout = numberLineLayout;
 exports.panLabel = panLabel;
 exports.balanceLayout = balanceLayout;
@@ -5183,6 +5355,10 @@ exports.rectangleLayout = rectangleLayout;
 exports.surdSquareLayout = surdSquareLayout;
 exports.parabolaLayout = parabolaLayout;
 exports.gradientLayout = gradientLayout;
+exports.particlesLayout = particlesLayout;
+exports.circuitLayout = circuitLayout;
+exports.cellLayout = cellLayout;
+exports.energyProfileLayout = energyProfileLayout;
 exports.FIGURE_KINDS = [
     "axes",
     "pie",
@@ -5191,6 +5367,10 @@ exports.FIGURE_KINDS = [
     "balance",
     "rectangle",
     "surd-square",
+    "particles",
+    "circuit",
+    "cell",
+    "energy-profile",
 ];
 // ── number line ─────────────────────────────────────────────────────────────
 exports.NL_W = 380;
@@ -5629,6 +5809,243 @@ function gradientLayout(g) {
         rise,
         runLabel: `run ${num(Math.abs(run))}`,
         riseLabel: `rise ${num(Math.abs(rise))}`,
+    };
+}
+// ── a chemical equation as particles ────────────────────────────────────────
+//
+// The coefficient is the thing learners misread. 2H₂ + O₂ → 2H₂O has four
+// hydrogen atoms and two oxygen atoms on each side, but a learner who counts
+// the FORMULAS sees "two plus one becomes two". Drawing every molecule makes the
+// rearrangement visible, and the layout returns the atom counts it drew so a
+// caption or a test never has to count them again by eye.
+exports.PART_W = 380;
+exports.PART_H = 220;
+exports.PART_PAD = 24;
+/** Where the atoms of ONE molecule sit, relative to its centre. The first atom
+ *  is the centre for a three- or four-atom molecule, which is why H₂O is
+ *  authored as ["O", "H", "H"]. */
+function atomOffsets(atoms) {
+    const labels = atoms.slice(0, 4);
+    if (labels.length <= 1)
+        return [{ label: labels[0] ?? "?", dx: 0, dy: 0, bonds: [] }];
+    if (labels.length === 2) {
+        return labels.map((label, i) => ({ label, dx: i === 0 ? -10 : 10, dy: 0, bonds: [[0, 1]] }));
+    }
+    if (labels.length === 3) {
+        const spots = [{ dx: 0, dy: 0 }, { dx: -13, dy: -8 }, { dx: 13, dy: -8 }];
+        return labels.map((label, i) => ({ label, ...spots[i], bonds: [[0, 1], [0, 2]] }));
+    }
+    const spots = [{ dx: -10, dy: -10 }, { dx: 10, dy: -10 }, { dx: -10, dy: 10 }, { dx: 10, dy: 10 }];
+    return labels.map((label, i) => ({
+        label,
+        ...spots[i],
+        bonds: [[0, 1], [1, 3], [3, 2], [2, 0]],
+    }));
+}
+function expandMolecules(molecules) {
+    const out = [];
+    for (const molecule of molecules) {
+        const copies = Math.max(0, Math.round(Number(molecule.count) || 0));
+        for (let i = 0; i < copies; i++)
+            out.push({ atoms: molecule.atoms });
+    }
+    return out;
+}
+function atomCounts(molecules) {
+    const counts = {};
+    for (const molecule of molecules) {
+        const copies = Math.max(0, Math.round(Number(molecule.count) || 0));
+        for (const atom of molecule.atoms)
+            counts[atom] = (counts[atom] ?? 0) + copies;
+    }
+    return counts;
+}
+function sameCounts(a, b) {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    return [...keys].every((key) => (a[key] ?? 0) === (b[key] ?? 0));
+}
+function placeGroup(molecules, x0, width) {
+    const list = expandMolecules(molecules);
+    if (!list.length)
+        return [];
+    const cols = list.length <= 3 ? list.length : 2;
+    const rows = Math.ceil(list.length / cols);
+    const cellW = width / cols;
+    const cellH = 70;
+    const top = exports.PART_H / 2 - (rows * cellH) / 2 + 8;
+    return list.map((molecule, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const cx = x0 + (col + 0.5) * cellW;
+        const cy = top + row * cellH + cellH / 2;
+        const offsets = atomOffsets(molecule.atoms);
+        return {
+            x: cx,
+            y: cy,
+            atoms: offsets.map((a) => ({ label: a.label, x: cx + a.dx, y: cy + a.dy })),
+            // One bond list is enough: every atom in a molecule shares the same list.
+            bonds: offsets[0]?.bonds ?? [],
+        };
+    });
+}
+function particlesLayout(spec) {
+    const groupW = 150;
+    const left = placeGroup(spec.left, exports.PART_PAD, groupW);
+    const right = placeGroup(spec.right, exports.PART_W - exports.PART_PAD - groupW, groupW);
+    const leftAtoms = atomCounts(spec.left);
+    const rightAtoms = atomCounts(spec.right);
+    return {
+        width: exports.PART_W,
+        height: exports.PART_H,
+        left,
+        right,
+        arrow: { x1: exports.PART_PAD + groupW + 4, x2: exports.PART_W - exports.PART_PAD - groupW - 4, y: exports.PART_H / 2 },
+        leftAtoms,
+        rightAtoms,
+        balanced: Object.keys(leftAtoms).length > 0 && sameCounts(leftAtoms, rightAtoms),
+    };
+}
+// ── a circuit ───────────────────────────────────────────────────────────────
+//
+// A schematic, not a picture of a bench. The one thing it must get right is the
+// CONNECTION: the ammeter is in the same path as the resistor, and the voltmeter
+// is across it. The wire segments and the meter positions come from one layout,
+// so a renderer cannot draw a voltmeter in series by accident.
+exports.CIRC_W = 360;
+exports.CIRC_H = 220;
+function circuitLayout(spec) {
+    const left = 40;
+    const right = 320;
+    const top = 50;
+    const bottom = 170;
+    const mid = (top + bottom) / 2;
+    const resistor = { x1: 140, x2: 220, y: top };
+    const showVoltmeter = spec.showVoltmeter !== false;
+    const wires = [
+        { points: [[left, top], [resistor.x1, top]] },
+        { points: [[resistor.x2, top], [right, top]] },
+        { points: [[right, top], [right, bottom]] },
+        { points: [[right, bottom], [left, bottom]] },
+        { points: [[left, bottom], [left, mid + 20]] },
+        { points: [[left, mid - 20], [left, top]] },
+    ];
+    if (showVoltmeter) {
+        wires.push({ points: [[resistor.x1, top], [resistor.x1, 145], [162, 145]], dashed: true }, { points: [[resistor.x2, top], [resistor.x2, 145], [198, 145]], dashed: true });
+    }
+    return {
+        width: exports.CIRC_W,
+        height: exports.CIRC_H,
+        wires,
+        battery: { x: left, y: mid },
+        resistor,
+        ammeter: { x: right, y: mid, r: 18 },
+        voltmeter: showVoltmeter ? { x: 180, y: 145, r: 18 } : null,
+    };
+}
+// ── a cell ──────────────────────────────────────────────────────────────────
+//
+// Numbered organelles, not English labels. The caption is the teaching and is
+// translatable; the drawing stays language-neutral. The numbers are part of the
+// layout so a caption and a picture cannot disagree about which part is 4.
+exports.CELL_W = 360;
+exports.CELL_H = 270;
+function cellLayout(spec) {
+    if (spec.variant === "animal") {
+        return {
+            width: exports.CELL_W,
+            height: exports.CELL_H,
+            variant: "animal",
+            shapes: [
+                { kind: "membrane", x: 28, y: 28, w: 304, h: 214, fill: "sunken" },
+                { kind: "nucleus", x: 140, y: 120, rx: 38, ry: 38, fill: "sunken" },
+                { kind: "nucleolus", x: 140, y: 120, rx: 10, ry: 10, fill: "accent" },
+                { kind: "mitochondrion", x: 75, y: 80, rx: 22, ry: 10, rotate: 25, fill: "accent" },
+                { kind: "mitochondrion", x: 285, y: 170, rx: 22, ry: 10, rotate: -20, fill: "accent" },
+            ],
+            numbers: [
+                { n: 1, x: 140, y: 120 },
+                { n: 2, x: 75, y: 140 },
+                { n: 3, x: 75, y: 80 },
+                { n: 4, x: 30, y: 40 },
+            ],
+        };
+    }
+    return {
+        width: exports.CELL_W,
+        height: exports.CELL_H,
+        variant: "plant",
+        shapes: [
+            { kind: "wall", x: 16, y: 16, w: 328, h: 238, fill: "none" },
+            { kind: "membrane", x: 28, y: 28, w: 304, h: 214, fill: "sunken" },
+            { kind: "vacuole", x: 235, y: 145, rx: 62, ry: 52, fill: "accent" },
+            { kind: "nucleus", x: 130, y: 120, rx: 36, ry: 36, fill: "sunken" },
+            { kind: "nucleolus", x: 130, y: 120, rx: 10, ry: 10, fill: "accent" },
+            { kind: "chloroplast", x: 70, y: 190, rx: 20, ry: 10, rotate: -20, fill: "accent" },
+            { kind: "chloroplast", x: 255, y: 75, rx: 20, ry: 10, rotate: 30, fill: "accent" },
+            { kind: "chloroplast", x: 290, y: 205, rx: 18, ry: 9, rotate: -35, fill: "accent" },
+            { kind: "mitochondrion", x: 70, y: 75, rx: 22, ry: 10, rotate: 25, fill: "accent" },
+            { kind: "mitochondrion", x: 290, y: 120, rx: 22, ry: 10, rotate: -20, fill: "accent" },
+        ],
+        numbers: [
+            { n: 1, x: 130, y: 120 },
+            { n: 2, x: 65, y: 140 },
+            { n: 3, x: 235, y: 145 },
+            { n: 4, x: 70, y: 190 },
+            { n: 5, x: 70, y: 75 },
+            { n: 6, x: 30, y: 40 },
+        ],
+    };
+}
+// ── a reaction-energy profile ────────────────────────────────────────────────
+//
+// Energetics is the one chemistry topic where a sentence and a picture can
+// contradict each other without either looking wrong: "exothermic" beside a
+// diagram whose product line is ABOVE the reactant line is a lesson teaching the
+// opposite of its caption. The layout therefore derives both levels from one
+// signed ΔH, and the renderer only maps these numbers to SVG.
+exports.EP_W = 420;
+exports.EP_H = 260;
+exports.EP_PAD = 42;
+function energyProfileLayout(spec) {
+    const activation = Math.max(0, Number(spec.activation) || 0);
+    const delta = Number(spec.delta) || 0;
+    // Place the REACTANTS inside the frame, not on its bottom edge. An exothermic
+    // product is drawn BELOW the reactants, so anchoring reactants at the bottom
+    // pushed the product out of the picture; the baseline now leaves room on both
+    // sides. The peak sits an activation above the higher level, so an endothermic
+    // reaction needs delta + activation of headroom.
+    const spanAbove = Math.max(0, delta) + activation;
+    const spanBelow = Math.max(0, -delta);
+    const scale = (exports.EP_H - exports.EP_PAD * 2) / Math.max(spanAbove + spanBelow, 1);
+    const reactantY = exports.EP_PAD + spanAbove * scale;
+    const productY = reactantY - delta * scale;
+    const peakY = Math.min(reactantY, productY) - activation * scale;
+    const x1 = exports.EP_PAD;
+    const x2 = exports.EP_W - exports.EP_PAD;
+    const peakX = (x1 + x2) / 2;
+    return {
+        width: exports.EP_W,
+        height: exports.EP_H,
+        x1,
+        x2,
+        peakX,
+        reactantY,
+        productY,
+        peakY,
+        points: [
+            [x1, reactantY],
+            [x1 + 18, reactantY],
+            [peakX - 24, peakY],
+            [peakX, peakY],
+            [peakX + 24, peakY],
+            [x2 - 18, productY],
+            [x2, productY],
+        ],
+        activation,
+        delta,
+        exothermic: delta < 0,
+        activationLabel: "Ea",
+        deltaLabel: `ΔH = ${delta > 0 ? "+" : ""}${delta} kJ/mol`,
     };
 }
 
@@ -6959,6 +7376,7 @@ const en = {
     "curr.unmapped": "Your country's national course is not mapped yet — international routes are shown instead.",
     "nav.currTitle": "Your curriculum",
     "subs.note": "Add or remove the subjects you study. Removing one stops its practice and papers — the work you have already done is kept, but you will choose its course again if you add it back.",
+    "subs.main": "Main subject",
     "curr.title": "Your curriculum",
     "curr.sub": "Choose the course and tier you actually sit. OpenMind then knows which ideas are yours, how deep to pitch practice, and the words your curriculum uses.",
     "course.mapPending": "Syllabus mapping: OpenMind's own, not yet reviewed by a subject specialist.",
@@ -7225,6 +7643,16 @@ const en = {
     "access.lead": "Choose how OpenMind adapts to you. Change it any time.",
     "access.readAloud": "Read controls aloud when I tap",
     "access.largeText": "Larger text",
+    "access.textSize": "Text size",
+    "access.sizeStandard": "Standard",
+    "access.sizeLarge": "Large",
+    "access.sizeLargest": "Largest",
+    "access.roomy": "Roomier lines",
+    "catch.title": "Before your course",
+    "catch.lead": "Your course assumes these earlier ideas. They are not established yet, so start here.",
+    "catch.unmeasured": "Not yet measured",
+    "catch.weak": "Needs rebuilding",
+    "catch.more": "{n} more below these",
     "access.highContrast": "High contrast",
     "access.reduceMotion": "Calm screen (less motion)",
     "access.preferSpeech": "I'd rather speak than type",
@@ -8319,6 +8747,7 @@ const es = {
     "curr.unmapped": "El curso nacional de tu país aún no está mapeado: se muestran las rutas internacionales.",
     "nav.currTitle": "Tu currículo",
     "subs.note": "Añade o quita las asignaturas que estudias. Si quitas una, se detienen su práctica y sus exámenes — el trabajo que ya has hecho se conserva, pero volverás a elegir su curso si la añades de nuevo.",
+    "subs.main": "Asignatura principal",
     "curr.title": "Tu currículo",
     "curr.sub": "Elige el curso y el nivel que realmente estudias. Así OpenMind sabe qué ideas son tuyas, con qué profundidad practicar y qué palabras usa tu currículo.",
     "course.mapPending": "Mapeo del temario: elaborado por OpenMind, aún no revisado por un especialista de la materia.",
@@ -8972,6 +9401,16 @@ const es = {
     "access.lead": "Elige cómo se adapta OpenMind a ti. Cámbialo cuando quieras.",
     "access.readAloud": "Leer los controles en voz alta al tocar",
     "access.largeText": "Texto más grande",
+    "access.textSize": "Tamaño del texto",
+    "access.sizeStandard": "Estándar",
+    "access.sizeLarge": "Grande",
+    "access.sizeLargest": "Muy grande",
+    "access.roomy": "Líneas más amplias",
+    "catch.title": "Antes de tu curso",
+    "catch.lead": "Tu curso da por sabidas estas ideas anteriores. Aún no están consolidadas, así que empieza aquí.",
+    "catch.unmeasured": "Aún sin medir",
+    "catch.weak": "Necesita reconstruirse",
+    "catch.more": "{n} más por debajo",
     "access.highContrast": "Alto contraste",
     "access.reduceMotion": "Pantalla tranquila (menos movimiento)",
     "access.preferSpeech": "Prefiero hablar que escribir",
@@ -9939,6 +10378,7 @@ const fr = {
     "curr.unmapped": "Le cursus national de ton pays n'est pas encore relié : les parcours internationaux sont affichés.",
     "nav.currTitle": "Ton programme",
     "subs.note": "Ajoutez ou retirez les matières que vous étudiez. En retirer une arrête ses exercices et ses sujets — votre travail déjà fait est conservé, mais vous choisirez à nouveau son cours si vous la rajoutez.",
+    "subs.main": "Matière principale",
     "curr.title": "Ton programme",
     "curr.sub": "Choisis le cursus et le niveau que tu passes vraiment. OpenMind sait alors quelles notions sont les tiennes, à quelle profondeur travailler et quels mots ton programme emploie.",
     "course.mapPending": "Correspondance avec le programme : établie par OpenMind, pas encore relue par un spécialiste de la matière.",
@@ -10592,6 +11032,16 @@ const fr = {
     "access.lead": "Choisis comment OpenMind s'adapte à toi. Modifie quand tu veux.",
     "access.readAloud": "Lire les boutons à voix haute quand je touche",
     "access.largeText": "Texte plus grand",
+    "access.textSize": "Taille du texte",
+    "access.sizeStandard": "Standard",
+    "access.sizeLarge": "Grand",
+    "access.sizeLargest": "Très grand",
+    "access.roomy": "Lignes plus aérées",
+    "catch.title": "Avant votre cours",
+    "catch.lead": "Votre cours suppose ces idées antérieures. Elles ne sont pas encore acquises, alors commencez ici.",
+    "catch.unmeasured": "Pas encore évalué",
+    "catch.weak": "À reconstruire",
+    "catch.more": "{n} autres en dessous",
     "access.highContrast": "Contraste élevé",
     "access.reduceMotion": "Écran calme (moins d'animations)",
     "access.preferSpeech": "Je préfère parler qu'écrire",
@@ -11559,6 +12009,7 @@ const pt = {
     "curr.unmapped": "O curso nacional do teu país ainda não está mapeado — mostram-se os percursos internacionais.",
     "nav.currTitle": "O teu currículo",
     "subs.note": "Adiciona ou remove as disciplinas que estudas. Remover uma pára a sua prática e as suas provas — o trabalho que já fizeste fica guardado, mas voltarás a escolher o seu curso se a adicionares de novo.",
+    "subs.main": "Matéria principal",
     "curr.title": "O teu currículo",
     "curr.sub": "Escolhe o curso e o nível que realmente frequentas. Assim o OpenMind sabe que ideias são tuas, com que profundidade praticar e que palavras usa o teu currículo.",
     "course.mapPending": "Mapeamento do programa: feito pela OpenMind, ainda não revisto por um especialista da disciplina.",
@@ -12212,6 +12663,16 @@ const pt = {
     "access.lead": "Escolha como o OpenMind se adapta a você. Mude quando quiser.",
     "access.readAloud": "Ler os botões em voz alta ao tocar",
     "access.largeText": "Texto maior",
+    "access.textSize": "Tamanho do texto",
+    "access.sizeStandard": "Padrão",
+    "access.sizeLarge": "Grande",
+    "access.sizeLargest": "Muito grande",
+    "access.roomy": "Linhas mais espaçadas",
+    "catch.title": "Antes do seu curso",
+    "catch.lead": "O seu curso assume estas ideias anteriores. Ainda não estão consolidadas, por isso comece aqui.",
+    "catch.unmeasured": "Ainda não avaliado",
+    "catch.weak": "Precisa de ser reconstruído",
+    "catch.more": "Mais {n} abaixo destes",
     "access.highContrast": "Alto contraste",
     "access.reduceMotion": "Tela calma (menos movimento)",
     "access.preferSpeech": "Prefiro falar a digitar",
@@ -13179,6 +13640,7 @@ const ar = {
     "curr.unmapped": "لم يُرسم بعد المسار الوطني لبلدك — تُعرض المسارات الدولية بدلاً منه.",
     "nav.currTitle": "منهجك الدراسي",
     "subs.note": "أضِف المواد التي تدرسها أو أزلها. إزالة مادة توقف تدريبها وأوراقها — عملك السابق محفوظ، لكنك ستختار مقررها من جديد إذا أعدتها.",
+    "subs.main": "المادة الرئيسية",
     "curr.title": "منهجك الدراسي",
     "curr.sub": "اختر المسار والمستوى الذي تدرسه فعلاً. عندئذٍ يعرف أوبن مايند أي الأفكار تخصّك، وبأي عمق يكون التدريب، وبأي كلمات يتحدّث منهجك.",
     "course.mapPending": "مطابقة المنهج: من إعداد OpenMind، ولم يراجعها بعد متخصص في المادة.",
@@ -13814,6 +14276,16 @@ const ar = {
     "access.lead": "اختر كيف يتكيّف OpenMind معك. غيّرها في أي وقت.",
     "access.readAloud": "اقرأ الأزرار بصوت عالٍ عند اللمس",
     "access.largeText": "نص أكبر",
+    "access.textSize": "حجم النص",
+    "access.sizeStandard": "عادي",
+    "access.sizeLarge": "كبير",
+    "access.sizeLargest": "الأكبر",
+    "access.roomy": "أسطر أوسع",
+    "catch.title": "قبل مقررك",
+    "catch.lead": "يفترض مقررك هذه الأفكار السابقة. لم تترسخ بعد، فابدأ من هنا.",
+    "catch.unmeasured": "لم يُقس بعد",
+    "catch.weak": "يحتاج إلى إعادة بناء",
+    "catch.more": "{n} أخرى أسفل هذه",
     "access.highContrast": "تباين عالٍ",
     "access.reduceMotion": "شاشة هادئة (حركة أقل)",
     "access.preferSpeech": "أفضّل الكلام على الكتابة",
@@ -14781,6 +15253,7 @@ const sw = {
     "curr.unmapped": "Kozi ya kitaifa ya nchi yako haijapangwa bado — kozi za kimataifa zinaonyeshwa.",
     "nav.currTitle": "Mtaala wako",
     "subs.note": "Ongeza au ondoa masomo unayosoma. Kuondoa somo huacha mazoezi na mitihani yake — kazi uliyofanya inabaki, lakini utachagua kozi yake tena ukiliongeza.",
+    "subs.main": "Somo kuu",
     "curr.title": "Mtaala wako",
     "curr.sub": "Chagua kozi na ngazi unayofanya kweli. OpenMind hujua dhana zipi ni zako, kina cha mazoezi, na maneno ambayo mtaala wako hutumia.",
     "course.mapPending": "Ulinganishaji wa mtaala: wa OpenMind, haujakaguliwa bado na mtaalamu wa somo.",
@@ -15416,6 +15889,16 @@ const sw = {
     "access.lead": "Chagua jinsi OpenMind anavyokuzungumzia. Badilisha wakati wowote.",
     "access.readAloud": "Soma vitufe kwa sauti ninapogusa",
     "access.largeText": "Maandishi makubwa",
+    "access.textSize": "Ukubwa wa maandishi",
+    "access.sizeStandard": "Kawaida",
+    "access.sizeLarge": "Kubwa",
+    "access.sizeLargest": "Kubwa zaidi",
+    "access.roomy": "Mistari mipana",
+    "catch.title": "Kabla ya kozi yako",
+    "catch.lead": "Kozi yako inadhani mawazo haya ya awali. Bado hayajaimarika, kwa hivyo anza hapa.",
+    "catch.unmeasured": "Bado haijapimwa",
+    "catch.weak": "Inahitaji kujengwa upya",
+    "catch.more": "Zaidi ya {n} chini ya haya",
     "access.highContrast": "Migongano mikali",
     "access.reduceMotion": "Skrini tulivu (mwendo mdogo)",
     "access.preferSpeech": "Napenda kuzungumza kuliko kuandika",
@@ -16383,6 +16866,7 @@ const hi = {
     "curr.unmapped": "आपके देश का राष्ट्रीय पाठ्यक्रम अभी जुड़ा नहीं है — अंतरराष्ट्रीय मार्ग दिखाए जा रहे हैं।",
     "nav.currTitle": "आपका पाठ्यक्रम",
     "subs.note": "जिन विषयों को आप पढ़ते हैं उन्हें जोड़ें या हटाएँ। कोई विषय हटाने पर उसका अभ्यास और पेपर रुक जाते हैं — आपका किया हुआ काम सुरक्षित रहता है, पर दोबारा जोड़ने पर उसका कोर्स फिर चुनना होगा।",
+    "subs.main": "मुख्य विषय",
     "curr.title": "आपका पाठ्यक्रम",
     "curr.sub": "वह कोर्स और स्तर चुनें जो आप वास्तव में पढ़ते हैं। फिर OpenMind जानता है कि कौन-से विचार आपके हैं, अभ्यास कितना गहरा हो, और आपका पाठ्यक्रम कौन-से शब्द प्रयोग करता है।",
     "course.mapPending": "पाठ्यक्रम मानचित्रण: OpenMind का अपना, विषय-विशेषज्ञ द्वारा अभी समीक्षा नहीं की गई।",
@@ -17018,6 +17502,16 @@ const hi = {
     "access.lead": "चुनें कि OpenMind आपके अनुसार कैसे ढले। कभी भी बदलें।",
     "access.readAloud": "छूने पर बटन बोलकर पढ़े",
     "access.largeText": "बड़ा टेक्स्ट",
+    "access.textSize": "पाठ का आकार",
+    "access.sizeStandard": "सामान्य",
+    "access.sizeLarge": "बड़ा",
+    "access.sizeLargest": "सबसे बड़ा",
+    "access.roomy": "चौड़ी पंक्तियाँ",
+    "catch.title": "आपके पाठ्यक्रम से पहले",
+    "catch.lead": "आपका पाठ्यक्रम इन पहले के विचारों को मान लेता है। ये अभी मज़बूत नहीं हैं, इसलिए यहीं से शुरू करें।",
+    "catch.unmeasured": "अभी मापा नहीं गया",
+    "catch.weak": "फिर से बनाना है",
+    "catch.more": "इनके नीचे {n} और",
     "access.highContrast": "तेज़ कंट्रास्ट",
     "access.reduceMotion": "शांत स्क्रीन (कम एनिमेशन)",
     "access.preferSpeech": "टाइप करने से बोलना बेहतर",
@@ -17985,6 +18479,7 @@ const id = {
     "curr.unmapped": "Kurikulum nasional negaramu belum dipetakan — rute internasional ditampilkan.",
     "nav.currTitle": "Kurikulummu",
     "subs.note": "Tambahkan atau hapus mata pelajaran yang kamu pelajari. Menghapusnya menghentikan latihan dan ujiannya — pekerjaan yang sudah kamu lakukan tetap tersimpan, tetapi kamu akan memilih kursusnya lagi jika menambahkannya kembali.",
+    "subs.main": "Mata pelajaran utama",
     "curr.title": "Kurikulummu",
     "curr.sub": "Pilih kursus dan jenjang yang benar-benar kamu tempuh. OpenMind lalu tahu gagasan mana yang milikmu, seberapa dalam latihannya, dan kata apa yang dipakai kurikulummu.",
     "course.mapPending": "Pemetaan silabus: milik OpenMind, belum ditinjau oleh ahli bidang studi.",
@@ -18621,6 +19116,16 @@ const id = {
     "access.lead": "Pilih bagaimana OpenMind menyesuaikan diri. Ubah kapan saja.",
     "access.readAloud": "Bacakan tombol saat saya sentuh",
     "access.largeText": "Teks lebih besar",
+    "access.textSize": "Ukuran teks",
+    "access.sizeStandard": "Standar",
+    "access.sizeLarge": "Besar",
+    "access.sizeLargest": "Terbesar",
+    "access.roomy": "Baris lebih renggang",
+    "catch.title": "Sebelum kursus Anda",
+    "catch.lead": "Kursus Anda menganggap gagasan awal ini sudah dikuasai. Gagasan ini belum kokoh, jadi mulailah di sini.",
+    "catch.unmeasured": "Belum diukur",
+    "catch.weak": "Perlu dibangun ulang",
+    "catch.more": "{n} lagi di bawah ini",
     "access.highContrast": "Kontras tinggi",
     "access.reduceMotion": "Layar tenang (gerak sedikit)",
     "access.preferSpeech": "Aku lebih suka bicara daripada mengetik",
@@ -19587,6 +20092,7 @@ const tl = {
     "curr.unmapped": "Hindi pa naka-map ang pambansang kurikulum ng bansa mo — mga internasyonal na ruta ang ipinapakita.",
     "nav.currTitle": "Kurikulum mo",
     "subs.note": "Magdagdag o mag-alis ng mga asignaturang pinag-aaralan mo. Kapag inalis ang isa, titigil ang pagsasanay at papel nito — mananatili ang nagawa mo, ngunit pipiliin muli ang kurso nito kapag idinagdag mo ito.",
+    "subs.main": "Pangunahing asignatura",
     "curr.title": "Kurikulum mo",
     "curr.sub": "Piliin ang kurso at antas na aktwal mong kinukuha. Alam na ng OpenMind kung aling mga ideya ang sa iyo, gaano kalalim ang pagsasanay, at anong mga salita ang ginagamit ng kurikulum mo.",
     "course.mapPending": "Pagmamapa ng syllabus: sariling gawa ng OpenMind, hindi pa nasusuri ng espesyalista sa asignatura.",
@@ -20223,6 +20729,16 @@ const tl = {
     "access.lead": "Piliin kung paano iaangkop ng OpenMind. Palitan anumang oras.",
     "access.readAloud": "Basahin nang malakas ang mga button kapag hinawakan",
     "access.largeText": "Mas malaking teksto",
+    "access.textSize": "Laki ng teksto",
+    "access.sizeStandard": "Karaniwan",
+    "access.sizeLarge": "Malaki",
+    "access.sizeLargest": "Pinakamalaki",
+    "access.roomy": "Mas maluwag na linya",
+    "catch.title": "Bago ang iyong kurso",
+    "catch.lead": "Ipinagpapalagay ng kurso mo ang mga naunang ideyang ito. Hindi pa matatag ang mga ito, kaya magsimula rito.",
+    "catch.unmeasured": "Hindi pa nasusukat",
+    "catch.weak": "Kailangang itayo muli",
+    "catch.more": "{n} pa sa ilalim nito",
     "access.highContrast": "Mataas na kaibahan",
     "access.reduceMotion": "Kalmadong screen (kaunting galaw)",
     "access.preferSpeech": "Mas gusto kong magsalita kaysa mag-type",
@@ -21190,6 +21706,7 @@ const de = {
     "curr.unmapped": "Der nationale Lehrplan deines Landes ist noch nicht abgebildet — es werden internationale Wege gezeigt.",
     "nav.currTitle": "Dein Lehrplan",
     "subs.note": "Füge die Fächer, die du lernst, hinzu oder entferne sie. Ein entferntes Fach pausiert Übungen und Prüfungen — deine bisherige Arbeit bleibt erhalten, aber du wählst seinen Kurs erneut, wenn du es wieder hinzufügst.",
+    "subs.main": "Hauptfach",
     "curr.title": "Dein Lehrplan",
     "curr.sub": "Wähle den Kurs und die Stufe, die du wirklich belegst. OpenMind weiß dann, welche Ideen deine sind, wie tief geübt wird und welche Wörter dein Lehrplan benutzt.",
     "course.mapPending": "Lehrplan-Zuordnung: von OpenMind erstellt, noch nicht von einer Fachperson geprüft.",
@@ -21844,6 +22361,16 @@ const de = {
     "access.lead": "Wähle, wie sich OpenMind dir anpasst. Jederzeit änderbar.",
     "access.readAloud": "Steuerungen beim Antippen vorlesen",
     "access.largeText": "Größerer Text",
+    "access.textSize": "Textgröße",
+    "access.sizeStandard": "Standard",
+    "access.sizeLarge": "Groß",
+    "access.sizeLargest": "Am größten",
+    "access.roomy": "Weitere Zeilen",
+    "catch.title": "Vor deinem Kurs",
+    "catch.lead": "Dein Kurs setzt diese früheren Ideen voraus. Sie sind noch nicht gefestigt, also beginne hier.",
+    "catch.unmeasured": "Noch nicht gemessen",
+    "catch.weak": "Muss neu aufgebaut werden",
+    "catch.more": "{n} weitere darunter",
     "access.highContrast": "Hoher Kontrast",
     "access.reduceMotion": "Ruhiger Bildschirm (weniger Bewegung)",
     "access.preferSpeech": "Ich spreche lieber, als zu tippen",
@@ -22869,6 +23396,7 @@ const ja = {
     "curr.unmapped": "お住まいの国の国内カリキュラムはまだ対応していません — 国際資格のコースを表示します。",
     "nav.currTitle": "あなたのカリキュラム",
     "subs.note": "学んでいる科目を追加・削除できます。削除するとその科目の演習とテストは止まりますが、これまでの学習は残り、再び追加するときはコースを選び直します。",
+    "subs.main": "主な科目",
     "curr.title": "あなたのカリキュラム",
     "curr.sub": "実際に受けているコースとレベルを選んでください。OpenMind はどの考えがあなたのものか、練習をどの深さで行うか、あなたのカリキュラムが使う言葉を知ります。",
     "course.mapPending": "シラバスの対応付け：OpenMind によるもので、教科の専門家による確認はまだ受けていません。",
@@ -23505,6 +24033,16 @@ const ja = {
     "access.lead": "OpenMindがあなたに合わせる方法を選べます。いつでも変えられます。",
     "access.readAloud": "タップしたボタンを読み上げる",
     "access.largeText": "大きめの文字",
+    "access.textSize": "文字の大きさ",
+    "access.sizeStandard": "標準",
+    "access.sizeLarge": "大",
+    "access.sizeLargest": "最大",
+    "access.roomy": "行間を広く",
+    "catch.title": "コースの前に",
+    "catch.lead": "このコースはこれらの以前の考え方を前提にしています。まだ定着していないので、ここから始めましょう。",
+    "catch.unmeasured": "まだ測っていません",
+    "catch.weak": "立て直しが必要",
+    "catch.more": "この下にさらに{n}件",
     "access.highContrast": "ハイコントラスト",
     "access.reduceMotion": "落ち着いた画面（動きを控えめ）",
     "access.preferSpeech": "打ち込むより話すほうが楽",
@@ -24530,6 +25068,7 @@ const zh = {
     "curr.unmapped": "你所在国家的国家课程尚未接入——当前显示国际课程路径。",
     "nav.currTitle": "你的课程体系",
     "subs.note": "你可以添加或删除所学的科目。删除后该科目的练习和试卷会停止——已完成的学习会保留，重新添加时需要再次选择它的课程。",
+    "subs.main": "主科目",
     "curr.title": "你的课程体系",
     "curr.sub": "选择你实际参加的课程和层次。这样 OpenMind 就知道哪些概念属于你、练习该有多深，以及你的课程使用哪些术语。",
     "course.mapPending": "大纲对应关系：由 OpenMind 自行建立，尚未经学科专家审阅。",
@@ -25166,6 +25705,16 @@ const zh = {
     "access.lead": "选择 OpenMind 如何适应你。随时可以更改。",
     "access.readAloud": "点按时朗读按钮内容",
     "access.largeText": "更大的文字",
+    "access.textSize": "文字大小",
+    "access.sizeStandard": "标准",
+    "access.sizeLarge": "大",
+    "access.sizeLargest": "最大",
+    "access.roomy": "更宽的行距",
+    "catch.title": "课程之前",
+    "catch.lead": "你的课程假定这些更早的概念已经掌握。它们尚未稳固，所以从这里开始。",
+    "catch.unmeasured": "尚未测量",
+    "catch.weak": "需要重建",
+    "catch.more": "下面还有 {n} 项",
     "access.highContrast": "高对比度",
     "access.reduceMotion": "安静屏幕（减少动画）",
     "access.preferSpeech": "比起打字，我更想说话",
@@ -26101,6 +26650,7 @@ const fa = {
     "curr.unmapped": "برنامهٔ ملی کشور شما هنوز نگاشت نشده است — مسیرهای بین‌المللی نمایش داده می‌شود.",
     "nav.currTitle": "برنامهٔ درسی شما",
     "subs.note": "درس‌هایی را که می‌خوانید اضافه یا حذف کنید. حذف یک درس تمرین و آزمون‌های آن را متوقف می‌کند — کار انجام‌شده باقی می‌ماند، اما اگر دوباره اضافه‌اش کنید، دوره‌اش را از نو انتخاب می‌کنید.",
+    "subs.main": "درس اصلی",
     "curr.title": "برنامهٔ درسی شما",
     "curr.sub": "دوره و سطحی را انتخاب کنید که واقعاً می‌گذرانید. آن‌گاه OpenMind می‌داند کدام ایده‌ها مال شماست، تمرین تا چه عمقی باشد و برنامهٔ شما چه واژه‌هایی به کار می‌برد.",
     "course.mapPending": "تناظر برنامهٔ درسی: ساختهٔ OpenMind، هنوز توسط متخصص درس بازبینی نشده است.",
@@ -26737,6 +27287,16 @@ const fa = {
     "access.lead": "انتخاب کن OpenMind چگونه خودش را با تو وفق دهد. هر وقت خواستی عوض کن.",
     "access.readAloud": "هنگام لمس، دکمه‌ها را بلند بخوان",
     "access.largeText": "متن بزرگ‌تر",
+    "access.textSize": "اندازهٔ متن",
+    "access.sizeStandard": "استاندارد",
+    "access.sizeLarge": "بزرگ",
+    "access.sizeLargest": "بزرگ‌ترین",
+    "access.roomy": "سطرهای بازتر",
+    "catch.title": "پیش از درس شما",
+    "catch.lead": "درس شما این ایده‌های پیشین را مفروض می‌گیرد. هنوز تثبیت نشده‌اند، پس از اینجا شروع کنید.",
+    "catch.unmeasured": "هنوز سنجیده نشده",
+    "catch.weak": "نیاز به بازسازی دارد",
+    "catch.more": "{n} مورد دیگر در زیر",
     "access.highContrast": "کنتراست بالا",
     "access.reduceMotion": "نمایشگر آرام (حرکت کمتر)",
     "access.preferSpeech": "بیشتر از تایپ، حرف زدن را دوست دارم",
@@ -27672,6 +28232,7 @@ const ur = {
     "curr.unmapped": "آپ کے ملک کا قومی نصاب ابھی نقشے پر نہیں — بین الاقوامی راستے دکھائے جا رہے ہیں۔",
     "nav.currTitle": "آپ کا نصاب",
     "subs.note": "جو مضامین آپ پڑھتے ہیں انہیں شامل کریں یا ہٹائیں۔ کوئی مضمون ہٹانے پر اس کی مشق اور پرچے رک جاتے ہیں — آپ کا کیا ہوا کام محفوظ رہتا ہے، مگر دوبارہ شامل کرنے پر اس کا کورس پھر چننا ہوگا۔",
+    "subs.main": "بنیادی مضمون",
     "curr.title": "آپ کا نصاب",
     "curr.sub": "وہ کورس اور سطح چنیں جو آپ واقعی پڑھتے ہیں۔ پھر OpenMind جانتا ہے کہ کون سے تصورات آپ کے ہیں، مشق کتنی گہری ہو، اور آپ کا نصاب کون سے الفاظ استعمال کرتا ہے۔",
     "course.mapPending": "نصاب کا نقشہ: OpenMind کا اپنا، جسے ابھی کسی مضمون کے ماہر نے جانچا نہیں۔",
@@ -28308,6 +28869,16 @@ const ur = {
     "access.lead": "چنیں کہ OpenMind آپ کے مطابق کیسے ڈھلے۔ کبھی بھی بدلیں۔",
     "access.readAloud": "چھونے پر بٹن بلند آواز میں پڑھے",
     "access.largeText": "بڑا متن",
+    "access.textSize": "متن کا سائز",
+    "access.sizeStandard": "معیاری",
+    "access.sizeLarge": "بڑا",
+    "access.sizeLargest": "سب سے بڑا",
+    "access.roomy": "کشادہ سطریں",
+    "catch.title": "آپ کے کورس سے پہلے",
+    "catch.lead": "آپ کا کورس ان پہلے تصورات کو مستحکم مانتا ہے۔ یہ ابھی پختہ نہیں، اس لیے یہیں سے شروع کریں۔",
+    "catch.unmeasured": "ابھی ناپا نہیں گیا",
+    "catch.weak": "دوبارہ بنانا ہے",
+    "catch.more": "ان کے نیچے {n} مزید",
     "access.highContrast": "تیز تضاد",
     "access.reduceMotion": "پرسکون اسکرین (کم حرکت)",
     "access.preferSpeech": "ٹائپ کرنے سے بولنا بہتر",
@@ -29260,6 +29831,7 @@ exports.bn = {
     "curr.unmapped": "আপনার দেশের জাতীয় পাঠ্যক্রম এখনো যুক্ত হয়নি — আন্তর্জাতিক পথ দেখানো হচ্ছে।",
     "nav.currTitle": "আপনার পাঠ্যক্রম",
     "subs.note": "আপনি যে বিষয়গুলো পড়েন সেগুলো যোগ বা বাদ দিতে পারেন। কোনো বিষয় বাদ দিলে তার অনুশীলন ও প্রশ্নপত্র থেমে যায় — আগের করা কাজ থেকে যায়, তবে আবার যোগ করলে তার কোর্স আবার বেছে নিতে হবে।",
+    "subs.main": "প্রধান বিষয়",
     "curr.title": "আপনার পাঠ্যক্রম",
     "curr.sub": "আপনি যে কোর্স ও স্তরে পড়েন সেটি বেছে নিন। তখন OpenMind জানে কোন ধারণাগুলো আপনার, অনুশীলন কত গভীর হবে, আর আপনার পাঠ্যক্রম কোন শব্দ ব্যবহার করে।",
     "course.mapPending": "সিলেবাস ম্যাপিং: OpenMind-এর নিজস্ব, এখনো কোনো বিষয়-বিশেষজ্ঞ পর্যালোচনা করেননি।",
@@ -29911,6 +30483,16 @@ exports.bn = {
     "access.open": "OpenMind কীভাবে শিখাবে?", "access.title": "আমাকে শেখান",
     "access.lead": "OpenMind আপনার কাছে কীভাবে অ্যাডাপ্ট হয় তা বেছে নিন। যেকোনো সময় পরিবর্তন করতে পারেন।",
     "access.readAloud": "বোতাম চাপলে পড়ে শোনুন", "access.largeText": "বডি টেক্সট",
+    "access.textSize": "লেখার আকার",
+    "access.sizeStandard": "সাধারণ",
+    "access.sizeLarge": "বড়",
+    "access.sizeLargest": "সবচেয়ে বড়",
+    "access.roomy": "প্রশস্ত লাইন",
+    "catch.title": "আপনার কোর্সের আগে",
+    "catch.lead": "আপনার কোর্স এই আগের ধারণাগুলো ধরে নেয়। এগুলো এখনো পাকা নয়, তাই এখান থেকেই শুরু করুন।",
+    "catch.unmeasured": "এখনো মাপা হয়নি",
+    "catch.weak": "আবার গড়তে হবে",
+    "catch.more": "এর নিচে আরও {n}টি",
     "access.highContrast": "উচ্চ কন্ট্রাস্ট", "access.reduceMotion": "শান্ত স্ক্রিন",
     "access.preferSpeech": "আমি টাইপ করার বদলে বলতে পারি", "access.localNote": "এই বেছে নেওয়া শুধু আপনার ডিভাইসে থাকে।",
     "ai.localTitle": "ডিভাইসে এআই",
@@ -31644,6 +32226,178 @@ function commitAndProject(learnerId, state, events, store) {
 }
 
 });
+__def("lesson-plans-computing.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.COMPUTING_LENSES = void 0;
+/** Concept-specific teaching for the computing concepts that do not yet have a
+ *  pilot-authored plan. */
+exports.COMPUTING_LENSES = {
+    "what-is-code": {
+        intuition: "A recipe tells a cook what to do in order; code tells a computer the same way, but with no room for interpretation. 'Add salt' is ambiguous to a machine; 'add 2 grams of salt' is an instruction.",
+        move: "Break the goal into small, ordered steps, then write each step as an instruction the machine can test. Name the inputs, the process and the output before writing any syntax.",
+        check: "Read the instructions aloud exactly as written, including the boring cases. If a step could be interpreted two ways, the computer will usually choose the way you did not intend.",
+        trap: [
+            "Writes code that does what the programmer meant rather than what the words say.",
+            "A computer executes the instructions literally, so an unstated assumption is not followed. Make every condition and every input explicit, then test an unexpected value.",
+        ],
+    },
+    variables: {
+        intuition: "A variable is a labelled box. Putting 0 in a box called score and then adding 10 changes what the box holds; the label stays the same while the value moves.",
+        move: "Choose a name that says what the value means, assign it once, and update it explicitly. Keep types consistent: a number for arithmetic, a string for text, a boolean for a yes/no condition.",
+        check: "Print the variable before and after each change. If a calculation gives text joined together instead of a sum, one of the values is a string and needs converting.",
+        trap: [
+            "Adds a number to a string and expects arithmetic: \"3\" + 4 gives \"34\" in many languages.",
+            "A string is text, so + joins it. Convert the text to a number first, or keep numeric values numeric from the start, before adding.",
+        ],
+    },
+    conditionals: {
+        intuition: "A thermostat chooses between heating, cooling and doing nothing based on the temperature. A conditional is the same decision written as a test, with one branch taken and the others skipped.",
+        move: "Write the condition as a boolean expression, order the branches from most specific to least specific, and make the else branch handle everything left over. Use early returns to keep nesting shallow.",
+        check: "Test the boundary values, not only the middle of each range. If the condition is `> 30`, test 30 as well as 29 and 31; an off-by-one at the boundary is the usual bug.",
+        trap: [
+            "Uses two separate if statements when the second should only run if the first did not.",
+            "Two independent ifs can both run. Use else-if when the cases are mutually exclusive, so a value cannot fall into more than one branch.",
+        ],
+    },
+    loops: {
+        intuition: "A for loop is a factory line that repeats a fixed number of times; a while loop is a door that stays open until a condition changes. Both save you from copying the same instruction by hand.",
+        move: "For a known collection, iterate over the items directly. For a condition, update the variable that controls the loop inside the body, and make sure it can eventually become false.",
+        check: "Trace the first and last iteration, and check the loop variable's start and end values. If the body never changes the while condition, the loop will not terminate.",
+        trap: [
+            "Uses `<=` when iterating to the length of a list, then reads one item past the end.",
+            "A list of length n has indices 0 to n − 1. `range(n)` or `< n` stops at the last valid index; `<= n` goes one too far.",
+        ],
+    },
+    "lists-arrays": {
+        intuition: "A list is a row of numbered lockers. The first locker is number 0, so a list of three items has positions 0, 1 and 2 — not 1, 2 and 3. That zero is a position, not a count.",
+        move: "Use index access for a known position, append to add at the end, and iteration for every item. For a grid, use a list of lists and address it as grid[row][column].",
+        check: "Check the length before indexing, and remember that the last valid index is length − 1. An empty list has no valid index at all.",
+        trap: [
+            "Uses the first index as 1 because people count from one.",
+            "Most programming languages index lists from 0. The first item is at 0 and the last is at length − 1; using 1 skips the first item and can run past the end.",
+        ],
+    },
+    "functions-code": {
+        intuition: "A function is a named machine: put an input in, get an output out, and reuse the same machine wherever the job appears. Changing the machine changes every call at once.",
+        move: "Give the function a name that describes its job, list only the parameters it needs, and return a value rather than printing it when callers need the result. Keep one job per function.",
+        check: "Call the function with a normal value, a boundary value and an invalid value. If it returns a different type from the one the caller expects, the contract is unclear.",
+        trap: [
+            "Prints the result inside the function and also returns it, so callers cannot tell which value is the answer.",
+            "Printing is a side effect for a human; returning is how a program passes a value on. Choose one contract, usually return, and let the caller decide whether to display it.",
+        ],
+    },
+    dictionaries: {
+        intuition: "A dictionary is a labelled index: instead of searching a list for a name, you look it up directly by its key. The label is the key and the stored value is what comes back.",
+        move: "Choose a key that uniquely identifies the value, then use get, set and membership checks. For counting, start missing keys at zero before adding one; for grouping, append to a list stored under each key.",
+        check: "A missing key is not the same as a key whose value is zero or empty. Use a safe lookup with a default, and check membership before assuming the key exists.",
+        trap: [
+            "Uses a list and scans it for every lookup when the data is naturally keyed.",
+            "A scan is O(n) for every lookup, while a dictionary is typically O(1). The right structure changes the program's growth, not just its length.",
+        ],
+    },
+    "algorithms-search": {
+        intuition: "Looking for a word in a dictionary by reading every page is linear search. Opening to the middle and choosing a half is binary search — far fewer steps, but only because the book is already in order.",
+        move: "For binary search, keep a low and high index, inspect the middle, and discard the half that cannot contain the target. Stop when the range is empty or the target is found.",
+        check: "Binary search requires sorted data; if the list is unsorted, the comparison tells you nothing about which half to discard. Count the steps: 1,000,000 items should take about 20 halvings.",
+        trap: [
+            "Runs binary search on an unsorted list because it is faster than linear search.",
+            "The halving step depends on order. In an unsorted list, the middle value does not tell you which side the target is on, so the search can discard the answer.",
+        ],
+    },
+    "algorithms-sort": {
+        intuition: "Bubble sort repeatedly swaps neighbours until the biggest values rise to the end. Merge sort splits the list into halves, sorts each, and merges the sorted pieces — much less work on large lists.",
+        move: "Trace a small list by hand. For merge sort, write the split, the recursive sort of each half, and the merge step that repeatedly takes the smaller front item from the two sorted halves.",
+        check: "After sorting, every adjacent pair must be in order, and the output must contain exactly the same items as the input. Check the empty list and the one-item list as base cases.",
+        trap: [
+            "Says merge sort is always faster because it has a better Big-O class.",
+            "Big-O describes growth for large inputs. For a tiny list, the overhead of splitting and merging can make a simpler sort faster; use the complexity to predict scaling, not every runtime.",
+        ],
+    },
+    recursion: {
+        intuition: "Russian dolls contain smaller dolls of the same kind. A recursive function solves a problem by opening a smaller version of the same problem, stopping when it reaches the smallest doll.",
+        move: "Write the base case first, then the recursive case with an input that is strictly closer to the base. Trust the recursive call to solve the smaller problem, and combine its result.",
+        check: "Every path must reach the base case. Trace factorial(3) down to factorial(0) and back up; if the argument does not shrink, the recursion will overflow the call stack.",
+        trap: [
+            "Forgets the base case and relies on the loop or an external condition to stop.",
+            "Without a base case, the function calls itself forever until the call stack overflows. The base case is the first thing to write and the first thing to test.",
+        ],
+    },
+    complexity: {
+        intuition: "A million operations are fine; a million-squared operations are not. Big-O describes how the work grows as the input grows, which is more useful than a stopwatch on one machine.",
+        move: "Count the loops that depend on n: one pass is O(n), a nested pair is O(n²), and halving the input each time is O(log n). Drop constants and lower-order terms, because the growth class is the point.",
+        check: "Double n and predict the new cost: O(n) doubles, O(n²) quadruples, O(log n) adds one step. If the measured growth does not match, a hidden loop or repeated scan is present.",
+        trap: [
+            "Calls an O(n²) algorithm fast because it finishes quickly on ten items.",
+            "Small inputs hide growth. At n = 10, n² is 100; at n = 100,000, it is 10 billion. Complexity is about the shape of the curve, not the first measurement.",
+        ],
+    },
+    "binary-data": {
+        intuition: "A light switch is either on or off, and a byte is eight switches. With eight bits there are 2⁸ = 256 possible patterns, which is enough for a character, a small number or one channel of a colour.",
+        move: "Convert between binary and decimal by labelling positions with powers of two. For text, use a character encoding; for images, store pixel colour values; for sound, store samples of amplitude over time.",
+        check: "Eight bits make one byte, and a binary digit can only be 0 or 1. Check the number of distinct values: n bits give 2ⁿ patterns, not n values.",
+        trap: [
+            "Thinks a kilobyte is exactly 1,000 bytes in every context.",
+            "Decimal units use powers of 10 and binary units use powers of 2. A kibibyte is 1,024 bytes, while a kilobyte is often 1,000; the difference matters at storage scale.",
+        ],
+    },
+    networks: {
+        intuition: "A letter is split into numbered pages, each page is addressed, and the pages can take different routes and be reassembled at the destination. Packets work the same way.",
+        move: "Describe the layer's job: IP addresses and routes packets, TCP orders and retransmits them, DNS maps names to addresses, and HTTP carries requests and responses. Keep the layers separate when diagnosing a problem.",
+        check: "A network problem can be name resolution, routing, a port, or the application. Test each layer in turn rather than assuming the website itself is down.",
+        trap: [
+            "Says the internet is the same thing as the World Wide Web.",
+            "The internet is the network of networks that moves packets; the web is one application — HTTP pages — running on top of it. Email and video calls use the internet without using the web.",
+        ],
+    },
+    cybersecurity: {
+        intuition: "A chain is only as strong as its weakest link. A strong password does not help if a phishing email convinces you to hand it over, which is why security is about people and systems, not only cryptography.",
+        move: "Identify the threat first: phishing targets the person, malware targets the machine, brute force targets the credential. Match the defence to the threat: awareness, updates, strong unique passwords and 2FA.",
+        check: "Ask what the attacker gains and what the defence actually prevents. Encryption protects data in transit; hashing protects stored passwords; neither stops a user from being tricked into revealing a password.",
+        trap: [
+            "Says hashing a password is the same as encrypting it.",
+            "Encryption is reversible with the key; a hash is a one-way fingerprint. Storing a hash means even the server cannot recover the password, which is the point.",
+        ],
+    },
+    "databases-sql": {
+        intuition: "A spreadsheet with one row per student is a table. A primary key is the student ID that identifies each row; a foreign key is the class ID that links a student to a class.",
+        move: "Write the query in clauses: SELECT the columns, FROM the table, WHERE the filter, GROUP BY the grouping, ORDER BY the order. For a join, name the key that links the two tables.",
+        check: "Run the query without the filter first to see the full table, then add one clause at a time. A join that duplicates rows usually means the key is not unique on one side.",
+        trap: [
+            "Stores the same student's name in every class row instead of linking to a student table.",
+            "Duplicated data can disagree with itself and must be updated in several places. Normalise it into a student table and link by a foreign key.",
+        ],
+    },
+    "web-stack": {
+        intuition: "A house has a frame, decoration and wiring. HTML is the frame, CSS is the decoration, and JavaScript is the wiring that makes the lights respond to a switch.",
+        move: "Start with semantic HTML for structure, add CSS for layout and appearance, then JavaScript for behaviour. Keep content, presentation and interaction in separate layers so each can change without breaking the others.",
+        check: "Disable JavaScript and check the page still has its content; disable CSS and check the structure still makes sense. If either layer is doing another layer's job, the page will be harder to maintain and less accessible.",
+        trap: [
+            "Uses JavaScript to build all the page content when HTML could carry it.",
+            "An HTML-first page is readable before scripts run, works with assistive technology and is easier to index. JavaScript should add behaviour, not replace the document's structure.",
+        ],
+    },
+    "ai-basics": {
+        intuition: "A spam filter learns from thousands of emails already labelled spam or not spam. It is not following a hand-written rule for every word; it is finding patterns in the examples.",
+        move: "Separate training data from test data, choose a model, fit its parameters on the training set, and evaluate on data it has never seen. Compare against a simple baseline before claiming the model is useful.",
+        check: "A model that scores 99% on its training data but 60% on new data has overfit. Check the test set, the class balance and whether the data contains leakage from the answer.",
+        trap: [
+            "Judges a model only by its accuracy on the data it was trained on.",
+            "Training accuracy measures memorisation, not generalisation. The useful number is performance on held-out data, especially when one class is much more common than another.",
+        ],
+    },
+    "statistics-data": {
+        intuition: "A dataset can have the same mean and wildly different spreads. A summary that reports only the average hides the shape, the outliers and the people the average does not describe.",
+        move: "Clean the data, plot it, compute several summaries (mean, median, spread), and look for missing values and outliers. State the sample and how it was collected before drawing a conclusion.",
+        check: "Ask whether the sample is representative and whether the comparison is fair. A difference between groups can come from a confounding variable rather than the thing being studied.",
+        trap: [
+            "Concludes that a correlation in a dataset proves causation.",
+            "Observational data can be explained by a third variable, reverse causation or selection bias. A causal claim needs a controlled design or a strong independent argument.",
+        ],
+    },
+};
+
+});
 __def("lesson-plans-intl.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -31778,11 +32532,1112 @@ function completeLanguages(conceptId, base) {
 }
 
 });
+__def("lesson-plans-maths.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MATHS_LENSES = void 0;
+/** Concept-specific teaching for the mathematics concepts outside the pilot
+ *  plans. The genome lesson is the core; this adds the picture, the move, a
+ *  self-check and one wrong turn that is particular to the idea. */
+exports.MATHS_LENSES = {
+    "place-value": {
+        intuition: "Two price tags, £4.05 and £4.50, use the same three digits. The 5 is worth five hundredths in the first and five tenths in the second, so position — not the digit alone — decides the amount.",
+        move: "Write the number in columns: thousands, hundreds, tens, ones, then tenths and hundredths after the point. Read each digit with its column name before you calculate.",
+        check: "Rebuild the number from its parts. 452 must come back as 400 + 50 + 2, and 4.05 as 4 + 0.05; if the parts do not add back, a column has been misread.",
+        trap: [
+            "Reads 4.05 as four pounds fifty because 05 looks like 50.",
+            "The point marks where whole columns end and fractional columns begin. 0.05 is five hundredths, while 0.50 is five tenths — ten times larger.",
+        ],
+    },
+    addition: {
+        intuition: "You have 8 stickers and win 5 more. Adding puts the two groups into one total, and the order does not change that total: 8 + 5 and 5 + 8 both make 13.",
+        move: "Line the numbers up by place value, add the ones column first, and carry a group of ten into the next column when a column reaches ten or more.",
+        check: "Estimate first and compare: 198 + 47 is about 200 + 50 = 250, so an answer of 245 is plausible and 1,245 is not. Then add the columns in the opposite order as a second check.",
+        trap: [
+            "Writes 68 + 27 = 815 by writing the digits side by side.",
+            "The columns are not separate numbers to concatenate. 68 + 27 is 95: the 8 + 7 makes 15, so the 1 is carried into the tens column.",
+        ],
+    },
+    subtraction: {
+        intuition: "A jumper costs £37 and you have £52. Subtraction answers both how much is left and how far apart the two amounts are; the difference is £15 either way.",
+        move: "Line up place values and subtract column by column. If the top digit is too small, borrow one ten from the next column and turn it into ten ones.",
+        check: "Add the answer back to the number you subtracted. 52 − 37 = 15 because 15 + 37 = 52; if the addition does not return the starting number, the borrowing went wrong.",
+        trap: [
+            "Always subtracts the smaller digit from the larger one, even when it is on the top.",
+            "Subtraction is directional: 52 − 37 is not 37 − 52. When the top digit is smaller, borrow from the next column rather than reversing the subtraction.",
+        ],
+    },
+    multiplication: {
+        intuition: "Four bags with three apples in each give twelve apples. Multiplication counts equal groups without adding the same number again and again. It is repeated addition, and the order of the factors does not change the product.",
+        move: "Break a factor into place-value parts: 23 × 4 = (20 × 4) + (3 × 4) = 80 + 12 = 92. For larger products, use a grid so every part meets every part.",
+        check: "Estimate with rounded factors and compare the size. 23 × 4 is about 20 × 4 = 80, so 92 is sensible. For whole numbers greater than 1, the product is at least as large as either factor; if a factor is between 0 and 1, expect a smaller product instead: 0.5 × 0.5 = 0.25.",
+        trap: [
+            "Adds the digits of the factors instead of multiplying them: 23 × 4 becomes 2 + 3 + 4.",
+            "Multiplication scales one quantity by the other, so the answer is usually much larger than either factor. Keep the place-value parts and multiply each one.",
+        ],
+    },
+    division: {
+        intuition: "Twelve sweets shared between three people gives four each. The same division also answers how many groups of three fit into twelve — sharing and grouping are two readings of one operation.",
+        move: "Split the dividend by place value, divide each part, and carry the remainder into the next place. Record a remainder honestly instead of dropping it.",
+        check: "Multiply the quotient by the divisor and add the remainder. 13 ÷ 4 = 3 remainder 1 because 3 × 4 + 1 = 13; the reconstruction must match the dividend.",
+        trap: [
+            "Drops a remainder because the answer is expected to be a whole number.",
+            "A remainder is part of the answer: 13 ÷ 4 is 3 remainder 1, or 3¼, or 3.25. Dropping it loses a quarter of the quantity.",
+        ],
+    },
+    ratio: {
+        intuition: "A squash recipe mixes 1 part cordial with 4 parts water. The ratio 1 : 4 compares cordial to water, not cordial to the whole drink — the whole has five parts.",
+        move: "Add the ratio parts to find the total number of equal shares, divide the whole amount by that total, then multiply by each part. For scaling, multiply every part by the same factor.",
+        check: "Add the shares back to the original total and check the ratio simplifies to the one you were given. 150 g and 100 g are 3 : 2 and total 250 g.",
+        trap: [
+            "Treats a 3 : 2 ratio as 3/2 of the whole rather than three parts out of five.",
+            "A ratio compares part to part; a fraction compares part to whole. In 3 : 2 there are five equal parts, so the shares are 3/5 and 2/5 of the total.",
+        ],
+    },
+    proportion: {
+        intuition: "Five identical notebooks cost £7.50. Double the notebooks and the cost doubles; that is direct proportion. Four workers building a wall take six days, but eight workers take three — more workers means less time, which is inverse proportion.",
+        move: "First decide whether the quantities move together or in opposite directions. Find the constant k from one known pair, then use y = kx for direct proportion or y = k/x for inverse.",
+        check: "Test the relationship with a second pair. If doubling x doubles y, it is direct; if doubling x halves y, it is inverse. The same k must work for every pair.",
+        trap: [
+            "Doubles both quantities in an inverse-proportion problem and gets a longer time with more workers.",
+            "Inverse proportion means the product stays constant: 4 workers × 6 days = 24 worker-days, so 8 workers take 3 days, not 12.",
+        ],
+    },
+    rounding: {
+        intuition: "A crowd of 47 people is about 50, while 43 is about 40. Rounding replaces a precise number with a nearby one that is easier to say, at the cost of pretending the missing detail does not matter.",
+        move: "Choose the place you are rounding to, look at the digit immediately to its right, and leave the digit alone below 5 or increase it by one at 5 or above. For significant figures, start counting at the first non-zero digit.",
+        check: "Compare the rounded value with the original on a number line: it must be the nearest value at that accuracy. Then check that the rounded answer still makes sense in the original context.",
+        trap: [
+            "Rounds each step of a calculation and then rounds the final answer again.",
+            "Every early rounding moves the value away from the true one, and the errors can add up. Keep full precision while calculating and round only the answer the question asks for.",
+        ],
+    },
+    "standard-form": {
+        intuition: "The Sun's mass and a red blood cell's width are both impossible to read comfortably as long strings of zeros. Standard form writes each as a number between 1 and 10 multiplied by a power of ten, so the size is visible at a glance.",
+        move: "Move the decimal point until the number is between 1 and 10, then count the places moved: right gives a negative power, left gives a positive one. 0.000008 becomes 8 × 10⁻⁶.",
+        check: "Multiply the coefficient and the power back out. The result must equal the original number, and the coefficient must be at least 1 but strictly below 10.",
+        trap: [
+            "Writes 12 × 10⁵ and calls it standard form.",
+            "Standard form requires the first factor to be between 1 and 10. 12 × 10⁵ is 1.2 × 10⁶; the coefficient is out of range, not a stylistic choice.",
+        ],
+    },
+    inequalities: {
+        intuition: "A lift says 'maximum 8 people'. The useful statement is not one number but a whole set: every count up to 8 is allowed, and 9 is not. An inequality describes that set.",
+        move: "Solve as you would an equation, but reverse the inequality sign whenever you multiply or divide both sides by a negative number. Draw the boundary as an open circle for < or > and a filled one for ≤ or ≥.",
+        check: "Test a number from your solution in the original inequality. If the test fails, the sign was probably flipped the wrong way or the boundary was included when it should not be.",
+        trap: [
+            "Divides −2x < 6 by −2 and writes x < −3.",
+            "Dividing by a negative reverses the order of the number line. The correct answer is x > −3; test x = 0, which satisfies 0 < 6 and also 0 > −3.",
+        ],
+    },
+    simultaneous: {
+        intuition: "One equation with two unknowns has infinitely many pairs that fit. A second, independent equation narrows the possibilities to the single pair that satisfies both at once.",
+        move: "Elimination: make the coefficients of one variable equal, then add or subtract the equations to remove it. Substitution: rearrange one equation for a variable and put that expression into the other.",
+        check: "Substitute the pair into BOTH original equations, not just the one you rearranged last. A pair that satisfies one but not the other is not a solution.",
+        trap: [
+            "Finds y correctly and then substitutes it with the wrong sign.",
+            "Write the substitution with its sign visible: 3x + 2(−6) = 16 becomes 3x − 12 = 16. Most errors happen in this final step, after the hard work is done.",
+        ],
+    },
+    "sim-equations-quad": {
+        intuition: "A straight line and a parabola can meet at two points, one point, or not at all. Solving them together asks exactly where the two pictures cross, not merely what each one looks like.",
+        move: "Substitute the linear expression for y into the quadratic, collect everything on one side, and solve the resulting quadratic. Then put each x back into the line to find its y.",
+        check: "Check both coordinates in both original equations. The number of real intersection points must match the number of real roots: two crossings, one touching point, or none.",
+        trap: [
+            "Finds two x-values and reports them as the final answer without finding the matching y-values.",
+            "A point has two coordinates. Each x must be substituted back into the line (or curve) to produce its y, and the pair must satisfy both equations.",
+        ],
+    },
+    sequences: {
+        intuition: "A queue of numbered seats has a pattern: 4, 7, 10, 13. The step from one term to the next is the rule, and the nth-term formula lets you jump straight to a far-away seat without listing them all.",
+        move: "For an arithmetic sequence, find the common difference d; the nth term is dn plus an adjustment. Check n = 1 against the first term, then n = 2 against the second.",
+        check: "Generate the first three terms from your formula and compare them with the sequence. If the first term is wrong, the constant is wrong; if the gap is wrong, the coefficient is wrong.",
+        trap: [
+            "Writes 3n for the sequence 4, 7, 10 because the common difference is 3.",
+            "3n gives 3, 6, 9 — one less than each term. The sequence is 3n + 1; always test n = 1 against the first term before trusting the formula.",
+        ],
+    },
+    functions: {
+        intuition: "A function is a machine with one input slot and one output slot. Put 4 into f(x) = 2x + 3 and the machine doubles it, adds three, and returns 11.",
+        move: "Replace every x with the input in brackets, then evaluate: f(4) = 2(4) + 3. For an inverse, swap x and y and solve for the new y; for a composition, work from the inside function outwards.",
+        check: "Feed the output back through the inverse. If f(4) = 11, then f⁻¹(11) must return 4. Also check the domain: an input that makes a denominator zero or a square root negative is not allowed.",
+        trap: [
+            "Reads f(x + 1) as f(x) + 1 and changes only the final constant.",
+            "The whole input is substituted: f(x + 1) = 2(x + 1) + 3 = 2x + 5. The function acts on the entire bracket, not just on x.",
+        ],
+    },
+    "trig-ratios": {
+        intuition: "A ladder leans against a wall. The angle at the ground and the length of one side determine the others; trigonometry is the set of ratios that makes that possible without measuring the triangle directly.",
+        move: "Label the sides relative to the angle: opposite, adjacent, hypotenuse. Choose SOH-CAH-TOA by asking which two sides the question connects, then rearrange the ratio before substituting.",
+        check: "The hypotenuse must be the longest side, and sin and cos of an acute angle must lie between 0 and 1. Check the calculator is in the mode the question uses — degrees or radians.",
+        trap: [
+            "Uses the sine ratio for the side adjacent to the angle because it is the one that looks 'next to' the angle.",
+            "Sine connects the opposite side to the hypotenuse; cosine connects the adjacent side. Label the sides from the angle first, then choose the ratio that contains the two sides you know and need.",
+        ],
+    },
+    "trig-identity": {
+        intuition: "A point moving around a unit circle has coordinates (cos θ, sin θ). Its distance from the origin is always 1, so the squares of those coordinates must add to 1 — the identity is Pythagoras drawn on a circle.",
+        move: "Use sin²θ + cos²θ = 1 to replace one squared ratio with the other, and tan θ = sin θ / cos θ to turn a tangent into a pair of sine and cosine terms. Work on the more complicated side first.",
+        check: "Test the identity with a simple angle such as 30° or 45°, and check the signs in the quadrant. An identity must hold for every angle, not just the one you used.",
+        trap: [
+            "Cancels sin²θ from both sides of an equation as if it were a factor of every term.",
+            "You may only cancel a factor common to the whole side. sin²θ + cos²θ has two separate terms, and removing one changes the value rather than simplifying it.",
+        ],
+    },
+    "circle-theorems": {
+        intuition: "Any triangle drawn inside a semicircle has a right angle at the circumference, wherever the third point sits. The circle constrains the angle even though the triangle can move.",
+        move: "Mark the arc or chord the angle stands on before choosing a theorem. Then use: centre angle is twice the circumference angle on the same arc; angles in the same segment are equal; opposite angles in a cyclic quadrilateral add to 180°.",
+        check: "Trace the arc used by each angle and confirm both angles stand on that same arc. If the theorem needs a cyclic quadrilateral or a diameter, check that the diagram actually contains one.",
+        trap: [
+            "Applies the centre-is-double rule to angles standing on different arcs.",
+            "The theorem compares two angles subtended by the SAME arc. Mark the arc first; if the angles use different arcs, the doubling rule does not apply.",
+        ],
+    },
+    pythagoras: {
+        intuition: "A 3 m ladder reaches a window 2.4 m up a wall. The ladder, wall and ground form a right triangle, and the square of the ladder's length equals the squares of the other two sides.",
+        move: "Identify the hypotenuse — the side opposite the right angle and the longest side. Substitute the two known sides into a² + b² = c², then solve for the missing one; subtract when finding a leg.",
+        check: "The hypotenuse must be longer than either leg. If your answer for the hypotenuse is shorter than a leg, you have added when you should have subtracted, or labelled the wrong side.",
+        trap: [
+            "Treats the side that touches the right angle as the hypotenuse.",
+            "The hypotenuse is always opposite the right angle and never touches it. Circle it before substituting; the other two sides are the legs.",
+        ],
+    },
+    "angles-lines": {
+        intuition: "A straight road crossing two parallel streets creates repeated angles: the same acute angle appears in matching positions at each crossing. Those repeats are what the parallel-line rules describe.",
+        move: "Name the pattern before using a rule: corresponding angles make an F, alternate angles make a Z, and co-interior angles make a C and add to 180°. For polygons, use (n − 2) × 180° for the interior total.",
+        check: "Angles on a straight line must total 180°, around a point 360°, and a triangle 180°. If your values violate one of these, a parallel-line rule has been applied to lines that are not parallel.",
+        trap: [
+            "Treats alternate and corresponding angles as interchangeable.",
+            "Alternate angles are equal and lie on opposite sides of the transversal; corresponding angles are equal and sit in matching positions. Trace the Z or the F before naming the relationship.",
+        ],
+    },
+    "area-perimeter": {
+        intuition: "A picture frame has a length of wood around its edge and a sheet of glass inside. Perimeter measures the wood; area measures the glass. They are different quantities even when they describe the same rectangle.",
+        move: "Split a compound shape into rectangles and triangles, calculate each area, and add or subtract the parts. Keep every length in the same unit before multiplying.",
+        check: "Area is in square units and perimeter in ordinary units. A rectangle 2 m by 50 cm has an area of 1 m², not 100 m²; convert to the same unit first.",
+        trap: [
+            "Converts 1 m² to 100 cm² by multiplying by 100 once.",
+            "Area scales by the square of the length factor: 1 m = 100 cm, so 1 m² = 100 × 100 = 10,000 cm². Volume would scale by 100³.",
+        ],
+    },
+    volume: {
+        intuition: "A box 3 cm by 4 cm by 5 cm can be filled with 60 centimetre cubes. Volume counts those cubes; surface area counts the paper needed to wrap the outside.",
+        move: "For a cuboid use V = lwh; for a prism use the cross-sectional area times its length; for a cylinder use πr²h. For surface area, find every face and add them, using a net to avoid missing one.",
+        check: "Volume is in cubic units and surface area in square units. If a scale factor k changes every length, area changes by k² and volume by k³ — a doubled box holds eight times as much.",
+        trap: [
+            "Doubles the sides of a cube and says the volume doubles.",
+            "Every length is multiplied by 2, so the volume is multiplied by 2 × 2 × 2 = 8. Area would be multiplied by 4, not 2.",
+        ],
+    },
+    transformations: {
+        intuition: "A shape on a grid can slide, turn, flip or grow. Each move has a rule, and a complete description says which move, by how much, and from where — otherwise the same picture could be produced in different ways.",
+        move: "For a translation give the vector; for a rotation give the angle, direction and centre; for a reflection give the mirror line; for an enlargement give the centre and scale factor. Apply the rule to each vertex.",
+        check: "Compare side lengths and angles: translations, rotations and reflections preserve them, while an enlargement multiplies every length by the same factor. The image's orientation must match the move described.",
+        trap: [
+            "Describes a rotation without naming its centre.",
+            "The same angle about different centres produces different images. A rotation is only fully specified by angle, direction and centre, and the mark scheme requires all three.",
+        ],
+    },
+    vectors: {
+        intuition: "A walk of 3 steps right and 2 steps down is a vector. The two components say how far and in which direction; another walk with the same components ends at the same displacement, wherever it starts.",
+        move: "Add vectors component by component, tip to tail. Subtract by adding the negative. Multiply by a scalar to stretch or reverse the vector; parallel vectors are scalar multiples of one another.",
+        check: "Reverse the journey and every component changes sign: AB = −BA. If two vectors are parallel, their components must share the same scale factor, not merely look similar.",
+        trap: [
+            "Adds vectors by adding their magnitudes and ignores direction.",
+            "Vectors are not lengths. (3, −2) + (−1, 4) = (2, 2); a 5-unit vector plus a 4-unit vector can produce any resultant between 1 and 9 units depending on direction.",
+        ],
+    },
+    "probability-basics": {
+        intuition: "A fair coin has two equally likely outcomes, so heads has probability 1/2. A probability is a position on a scale from 0 (impossible) to 1 (certain), not a guarantee about the next single toss.",
+        move: "Count the equally likely outcomes and the favourable ones, then divide. For the complement, subtract from 1. For experimental probability, divide the number of successes by the number of trials.",
+        check: "Every probability must lie between 0 and 1, and the probabilities of all mutually exclusive outcomes must total 1. If they do not, an outcome has been missed or double-counted.",
+        trap: [
+            "Adds the probabilities of overlapping events and counts the overlap twice.",
+            "P(A or B) = P(A) + P(B) − P(A and B). The subtraction removes the outcomes counted in both events; without it the total can exceed 1.",
+        ],
+    },
+    "tree-diagrams": {
+        intuition: "Two coin tosses have four equally likely paths: HH, HT, TH, TT. A tree draws each choice as a branch, so multiplying along a path counts the chance of that whole sequence.",
+        move: "Multiply along a branch for 'and', and add the probabilities of different branches for 'or'. If an item is not replaced, change the denominator on the second branch to reflect what remains.",
+        check: "The probabilities on every complete set of branches must total 1. For 'at least one', calculate the complement of 'none' and subtract it from 1.",
+        trap: [
+            "Uses the same denominator on the second draw when the first item was not replaced.",
+            "Without replacement the sample space has shrunk: after one red sweet from 5 red and 3 blue, the second draw is from 4 red and 3 blue. The branches are not independent.",
+        ],
+    },
+    averages: {
+        intuition: "One very high salary can pull a mean far above what a typical worker earns, while the median stays near the middle. An average is a summary, and the right summary depends on what the data looks like.",
+        move: "Mean: add and divide by the count. Median: sort and take the middle (average the two middle values if the count is even). Mode: the most frequent value. Range: largest minus smallest.",
+        check: "Ask whether an outlier is present and whether the data is numerical or categorical. Report the median for skewed numerical data, the mode for categories, and never quote a mean without saying what it is a mean of.",
+        trap: [
+            "Uses the mean for a data set with one extreme outlier because it is the most familiar average.",
+            "The mean uses every value, so one outlier can move it far from the typical case. The median is resistant to extremes and describes the middle more honestly.",
+        ],
+    },
+    "data-charts": {
+        intuition: "The same numbers can look dramatic or flat depending on where the vertical axis starts. A chart is an argument made with scale, colour and grouping, not a neutral photograph of the data.",
+        move: "Choose the chart by the question: bars for categories, a line for change over time, a pie for shares of one whole, a scatter for two numerical variables. Label both axes and state the units.",
+        check: "Read the axes before the shape: is the scale uniform, does it start at zero when comparing magnitudes, and are the categories in a sensible order? A missing baseline can exaggerate a small change.",
+        trap: [
+            "Compares the heights of bars whose vertical axis starts at a value other than zero.",
+            "A truncated axis magnifies small differences: a bar from 90 to 100 can look twice as tall as one from 95 to 100. For magnitude comparisons, start at zero or state the break clearly.",
+        ],
+    },
+    "scatter-correlation": {
+        intuition: "Ice-cream sales and drowning deaths rise together in summer. The points on a scatter graph show a relationship, but the weather is the hidden cause of both — the graph alone cannot tell you which variable drives the other.",
+        move: "Plot one variable on each axis, look for the direction and strength of the pattern, and draw a line of best fit through the middle of the points. Use it to interpolate inside the data range; extrapolate only with a stated reason.",
+        check: "Correlation is not causation. Ask whether a third factor could explain both variables, whether the relationship is linear, and whether outliers are pulling the line.",
+        trap: [
+            "Concludes that a change in x causes a change in y because the points slope upward.",
+            "A correlation can be produced by a common cause, reverse causation or chance. Only a controlled comparison or a plausible mechanism supports a causal claim.",
+        ],
+    },
+    polynomials: {
+        intuition: "A cubic can cross the x-axis up to three times. Each crossing is a root, and each root corresponds to a factor — so finding one root is a way into the rest of the expression.",
+        move: "Use the factor theorem: if substituting x = a gives 0, then (x − a) is a factor. Divide the polynomial by that factor, then factorise or solve the remaining lower-degree expression.",
+        check: "Substitute each proposed root back into the original polynomial; it must give exactly 0. The degree tells you the maximum number of real roots, so a cubic cannot have four.",
+        trap: [
+            "Assumes a cubic has three real roots because its degree is three.",
+            "The degree gives the maximum number of roots over the complex numbers, not a guarantee of real crossings. A cubic can have one real root and two complex ones.",
+        ],
+    },
+    binomial: {
+        intuition: "Expanding (x + 2)³ by multiplying every bracket is slow. Pascal's triangle gives the coefficients directly: 1, 3, 3, 1, so the expansion can be written in one line. The pattern is symmetric.",
+        move: "Use row n of Pascal's triangle for (a + b)ⁿ, or C(n, r) for a single coefficient. In each term the powers of a and b must add to n, starting with aⁿb⁰ and ending with a⁰bⁿ.",
+        check: "The powers in every term must sum to n, and the coefficients must be symmetric. Substitute x = 1 into both the original and the expansion; the values must match.",
+        trap: [
+            "Uses the row above or below the one matching the power.",
+            "For (a + b)ⁿ use row n, counting the top row as row 0. (x + 2)³ uses 1, 3, 3, 1; using the wrong row gives the right shape with the wrong coefficients.",
+        ],
+    },
+    "trig-rule": {
+        intuition: "Pythagoras only works when a triangle has a right angle. The sine and cosine rules extend the same reasoning to any triangle by relating sides to the angles opposite them.",
+        move: "Use the sine rule when you have a matching side-and-opposite-angle pair; use the cosine rule when you have two sides and the included angle, or all three sides. For area, use ½ab sin C.",
+        check: "The longest side must be opposite the largest angle. If your calculated angle or side violates that ordering, you have paired the wrong side with the wrong angle.",
+        trap: [
+            "Uses the sine rule with a side and an angle that are not opposite each other.",
+            "The sine rule pairs a side with the angle across from it: a/sin A = b/sin B. Label the triangle so each side and its opposite angle are matched before substituting.",
+        ],
+    },
+    "circle-area-arc": {
+        intuition: "A pizza slice is a fraction of the whole pizza. The angle at the centre tells you what fraction: 90° is a quarter of 360°, so the slice has a quarter of the area and a quarter of the crust.",
+        move: "For a sector, multiply the full circle's area or circumference by θ/360. For arc length use (θ/360) × 2πr; for sector area use (θ/360) × πr². Keep the angle in degrees unless the formula explicitly uses radians.",
+        check: "The sector area must be smaller than the whole circle's area, and the arc must be shorter than the full circumference. A sector angle above 360° or a negative length is a sign the units or formula are wrong.",
+        trap: [
+            "Uses the diameter in place of the radius in πr².",
+            "The formula is built on the radius: a circle of diameter 10 has r = 5 and area 25π, not 100π. Halve the diameter before substituting.",
+        ],
+    },
+    "mixture-problems": {
+        intuition: "A word problem is a story with numbers hiding in it. 'Three more than twice a number is 17' has to become 2x + 3 = 17 before any algebra can help.",
+        move: "Define the unknown in words, translate each phrase into an operation, write an equation, solve it, and then answer the question the story actually asked — not merely the value of x.",
+        check: "Put the answer back into the original sentence and read it as a sentence. If the result is impossible — a negative length, a fractional number of people — the equation or the definition of the variable is wrong.",
+        trap: [
+            "Solves the equation but reports x when the question asked for a total, a difference or a price.",
+            "The variable is a stepping stone, not always the answer. Underline what the question asks for before solving, then use the value of x to compute that quantity.",
+        ],
+    },
+    "growth-decay": {
+        intuition: "Money in an account earning compound interest grows by a percentage of its current amount each year, so the interest itself starts earning interest. The curve bends upward rather than following a straight line.",
+        move: "Write repeated percentage change as a multiplier: a 5% increase is ×1.05, a 12% decrease is ×0.88. For n periods, raise the multiplier to the power n and multiply the starting amount.",
+        check: "A growth multiplier must be above 1 and a decay multiplier between 0 and 1. After one period the result should match a single percentage calculation; after several, it should be larger than simple interest for growth.",
+        trap: [
+            "Adds the same interest amount every year and calls it compound interest.",
+            "Simple interest adds a fixed amount; compound interest multiplies by the same factor each period, so the amount added grows. After several years the two answers diverge sharply.",
+        ],
+    },
+    logs: {
+        intuition: "A logarithm answers 'what power do I need?'. log₂ 8 = 3 because 2³ = 8; it is the inverse question to exponentiation, not a separate operation to memorise. The base names the number being repeatedly multiplied.",
+        move: "Rewrite a log equation as an exponential one, or vice versa: log_a b = c means aᶜ = b. Use the laws log(xy) = log x + log y, log(x/y) = log x − log y, and log(xⁿ) = n log x.",
+        check: "The base must be positive and not 1, and the argument must be positive. Substitute the answer back: if log₂ 8 = 3, then 2³ must equal 8.",
+        trap: [
+            "Writes log(x + y) = log x + log y.",
+            "The product law applies to multiplication, not addition. log(2 + 3) = log 5, while log 2 + log 3 = log 6; the two are different.",
+        ],
+    },
+    "calculus-diff": {
+        intuition: "A car's speedometer shows its rate of change at one instant, not an average over the journey. Differentiation finds that instantaneous rate — the gradient of a curve at a single point.",
+        move: "For a power, multiply by the exponent and reduce it by one: y = xⁿ gives dy/dx = nxⁿ⁻¹. Differentiate each term separately, then set dy/dx = 0 to locate stationary points.",
+        check: "The derivative of a constant is zero, and the units of dy/dx are the units of y per unit of x. At a maximum the gradient changes from positive to negative; at a minimum, the reverse.",
+        trap: [
+            "Differentiates x² as 2x² instead of 2x.",
+            "The power rule reduces the exponent by one: x² becomes 2x¹ = 2x. Multiplying by the exponent without reducing it leaves the wrong power.",
+        ],
+    },
+    "calculus-int": {
+        intuition: "If a car's speedometer tells you how fast it is going, the area under that speed graph tells you how far it has travelled. Integration accumulates a rate into a total.",
+        move: "Reverse the power rule: ∫xⁿ dx = xⁿ⁺¹/(n + 1) + c for n ≠ −1. For a definite integral, integrate and substitute the upper limit minus the lower limit.",
+        check: "Differentiate your answer; it must return the original integrand. For a definite integral, the result should have the units of the quantity accumulated, not the rate.",
+        trap: [
+            "Omits the constant of integration in an indefinite integral.",
+            "Differentiation destroys constants: x² + 3 and x² + 7 both differentiate to 2x. The + c records every possible starting value, and a definite integral cancels it.",
+        ],
+    },
+    kinematics: {
+        intuition: "A ball thrown upward slows, stops for an instant, then falls faster and faster. Its velocity changes at a constant rate, which is exactly the condition the SUVAT equations describe.",
+        move: "List s, u, v, a and t, choose the equation containing the three quantities you know and the one you need, and decide a positive direction before substituting. For graphs, gradient is acceleration and area is displacement.",
+        check: "Check the sign of every vector against your chosen direction, and check the units. A negative displacement means the object is on the other side of the starting point, not that the calculation failed.",
+        trap: [
+            "Uses SUVAT when acceleration is not constant.",
+            "The equations assume constant acceleration. If the velocity–time graph is curved, the acceleration is changing and the equations do not apply; use the graph or calculus instead.",
+        ],
+    },
+    proof: {
+        intuition: "Checking 3² + 4² = 5² does not prove Pythagoras for every triangle. A proof is an argument whose steps follow for all cases, so no counterexample can slip through.",
+        move: "State what is given and what must be shown. Use a general representation — an even number 2n, consecutive integers n and n + 1 — and transform it with valid algebraic steps until the claim appears.",
+        check: "Every step must be justified by a definition, an earlier result or algebra. A single unchecked case is not a proof; a single counterexample is enough to disprove a universal claim.",
+        trap: [
+            "Proves a statement for several examples and concludes it holds for all values.",
+            "Examples can only disprove a universal claim, not prove it. A proof must cover the general case, which is why algebra with n is used instead of a list of numbers.",
+        ],
+    },
+    "matrices-intro": {
+        intuition: "A matrix is a compact instruction for a transformation: it tells every point on a grid where to move. Multiplying matrices composes two transformations into one.",
+        move: "To multiply, take each row of the first matrix with each column of the second: multiply matching entries and add. For a 2×2 matrix, the determinant ad − bc tells you how areas scale.",
+        check: "Check the dimensions: the number of columns in the first matrix must equal the number of rows in the second. A zero determinant means the transformation collapses area, so no inverse exists.",
+        trap: [
+            "Multiplies matrices entry by entry instead of row by column.",
+            "Matrix multiplication combines a row of the first with a column of the second, summing the products. It is not elementwise multiplication, and the order of the product matters.",
+        ],
+    },
+    "sets-venn": {
+        intuition: "In a class, some pupils play football, some play music, and some do both. A Venn diagram puts the overlap in the middle so nobody is counted twice.",
+        move: "Draw one circle per set, put the intersection in the overlap, and fill the 'only' regions by subtracting the overlap from each total. For probability, divide the counted region by the total.",
+        check: "Add every region and compare it with the total number of items. The regions must be disjoint and their sum must equal the whole; if it does not, the overlap was counted twice or a region was missed.",
+        trap: [
+            "Adds the two set totals without subtracting the overlap.",
+            "The overlap belongs to both sets, so adding the totals counts it twice. P(A ∪ B) = P(A) + P(B) − P(A ∩ B); the subtraction is what makes the count correct.",
+        ],
+    },
+    "financial-maths": {
+        intuition: "A loan or savings account quotes a yearly rate, but the amount changes each period. The difference between simple and compound interest is whether the interest itself starts earning interest.",
+        move: "For simple interest use I = PRT/100. For compound growth use A = P(1 + r/100)ⁿ; for depreciation use the same formula with a multiplier below 1. Keep the rate and the number of periods in the same time unit.",
+        check: "After one period both methods should agree; after several, compound growth must be larger than simple. A monthly rate cannot be substituted directly into a formula built for years without converting the number of periods.",
+        trap: [
+            "Uses the annual rate for a monthly payment without dividing it or converting the number of periods.",
+            "The formula's n counts periods, not years. A 6% annual rate compounded monthly uses 0.06/12 per month and 12n months; mixing the units overstates or understates the result.",
+        ],
+    },
+    bounds: {
+        intuition: "A length recorded as 3.6 cm to one decimal place could really be anything from 3.55 cm up to, but not including, 3.65 cm. The written number is a summary of a range, not an exact measurement.",
+        move: "Find the half-step below and above the rounded value. For a sum use lower + lower and upper + upper; for a difference use lower − upper and upper − lower; for a product or quotient pair the bounds that make the result smallest and largest.",
+        check: "The upper bound must be greater than the recorded value and the lower bound smaller. For a difference, the maximum uses the larger upper bound minus the smaller lower bound, not both uppers.",
+        trap: [
+            "Uses the upper bound of both quantities to find the maximum of a difference.",
+            "A difference is largest when the first quantity is as large as possible and the second as small as possible. Using both upper bounds subtracts too much and gives a value that is not the maximum.",
+        ],
+    },
+    "loci-constructions": {
+        intuition: "A goat tethered to a post can reach every point within the rope's length — a circle. A locus is the set of all points that satisfy one rule, and the shape is the picture of that rule.",
+        move: "Translate the rule into a distance condition: fixed distance from a point gives a circle, equidistant from two points gives the perpendicular bisector, equidistant from two lines gives an angle bisector. Construct with compasses and keep the arcs visible.",
+        check: "Pick a point on your locus and measure its distances; they must satisfy the rule. Pick a point clearly inside and one clearly outside; the boundary should separate them.",
+        trap: [
+            "Draws only one side of a perpendicular bisector or angle bisector.",
+            "A locus is the whole set of points satisfying the rule, on both sides of the segment or angle. A half-line is only part of the answer unless the context restricts it.",
+        ],
+    },
+    bearings: {
+        intuition: "A bearing is a direction given the way a compass reads it: start facing north, turn clockwise, and state the angle as three digits. 045° is northeast, 180° is due south.",
+        move: "Draw a north line at the starting point, measure clockwise from it, and write three digits. For a return journey, add or subtract 180°; for a triangle, use the sine or cosine rule after drawing the north lines.",
+        check: "A bearing must be between 000° and 360°, and a back-bearing differs by exactly 180°. If the return direction is not opposite the outbound one, the north lines or the angle direction are wrong.",
+        trap: [
+            "Measures the bearing anticlockwise from north or clockwise from the other point.",
+            "Bearings are always measured clockwise from north at the point you are leaving. Measuring from the destination, or anticlockwise, gives the supplement rather than the bearing.",
+        ],
+    },
+    "proportional-graphs": {
+        intuition: "A straight line through the origin says that doubling x doubles y. A curve that falls as x grows says the opposite: as one quantity increases, the other decreases.",
+        move: "For direct proportion, check that the graph is a straight line through (0, 0) and that y/x is constant. For inverse proportion, check that the graph is a hyperbola and that xy is constant.",
+        check: "Pick two points and compute y/x (direct) or xy (inverse). The value must be the same for every pair; a straight line that misses the origin is not direct proportion.",
+        trap: [
+            "Calls any straight-line graph direct proportion.",
+            "Direct proportion must pass through the origin, because zero of one quantity means zero of the other. A line with a non-zero intercept is linear but not proportional.",
+        ],
+    },
+    "quadratic-graphs": {
+        intuition: "A ball's height over time traces a parabola: it rises, turns, and falls. The turning point is the maximum height, and the points where it crosses the ground are the roots.",
+        move: "Find the roots by factorising or using the formula, find the turning point by completing the square or using x = −b/2a, and note whether the parabola opens up or down from the sign of a.",
+        check: "The axis of symmetry sits halfway between the roots, and the turning point lies on it. The y-intercept is c; substituting x = 0 must give that value.",
+        trap: [
+            "Reads the turning point directly from the roots instead of the completed-square form.",
+            "The roots are where y = 0; the turning point is where the parabola reaches its maximum or minimum. Completing the square gives (h, k) directly; the midpoint of the roots gives only the x-coordinate.",
+        ],
+    },
+    "algebraic-fractions": {
+        intuition: "An algebraic fraction is a fraction whose top and bottom are expressions. Simplifying it is the same contract as with numbers: factor first, then cancel whole factors, never individual terms.",
+        move: "Factorise the numerator and denominator completely, cancel factors common to the whole expression, and state any value that would make a denominator zero. For addition, build a common denominator from the factors.",
+        check: "Substitute a value into the original and simplified expressions; they must agree wherever both are defined. Check the excluded values separately, because cancellation can hide a hole.",
+        trap: [
+            "Cancels the x in (x + 3)/(x + 5) to get 3/5.",
+            "Cancellation removes a common FACTOR of the whole numerator and denominator, not a term inside a sum. (x + 3)/(x + 5) does not simplify; x is not a factor of either sum.",
+        ],
+    },
+    iteration: {
+        intuition: "Some equations have no neat algebraic solution, but a calculator can still home in on one. Start with a guess, apply the rule, feed the result back, and watch the digits settle.",
+        move: "Rearrange the equation into the form x = g(x), choose a starting value, and substitute repeatedly. Keep enough decimal places to see whether successive values are converging, and stop when they agree to the required accuracy.",
+        check: "The sequence should approach a fixed point, not oscillate or run away. Substitute the final value into the original equation; the two sides must agree to the required number of decimal places.",
+        trap: [
+            "Stops after one iteration and treats the first output as the root.",
+            "One application of g(x) moves the guess; it does not solve the equation. The answer is the value that stops changing, so several iterations and a convergence check are required.",
+        ],
+    },
+    "circle-geometry-adv": {
+        intuition: "Two chords crossing inside a circle cut each other into segments whose products are equal. The picture looks like an X, but the lengths obey a hidden balance.",
+        move: "For intersecting chords use PA × PB = PC × PD. For a tangent and a chord, use the alternate segment theorem: the angle between the tangent and chord equals the angle in the alternate segment. Two tangents from one external point are equal.",
+        check: "Identify which theorem the diagram supports before writing an equation: chords inside, tangent–chord, or two tangents. Then check that every length or angle you use belongs to the same circle and the same chord.",
+        trap: [
+            "Uses the angle at the centre for the alternate segment theorem.",
+            "The alternate segment theorem compares the tangent–chord angle with the angle in the OPPOSITE segment, not the centre. The centre angle is double the circumference angle on the same arc.",
+        ],
+    },
+    "number-bases": {
+        intuition: "In base 10, 452 means 4 hundreds, 5 tens and 2 ones. In base 2 the same idea uses powers of two, so 1011 means 8 + 2 + 1 — the columns have changed, not the principle.",
+        move: "Label each column with its power of the base, multiply each digit by that power, and add. To convert from decimal, divide repeatedly by the base and read the remainders from bottom to top.",
+        check: "Convert the result back to decimal and compare. Every digit must be smaller than the base — a digit 2 in binary is already impossible, so the representation is wrong.",
+        trap: [
+            "Reads 1011₂ as one thousand and eleven.",
+            "The subscript 2 changes the column values to powers of two, and a binary numeral uses only 0 and 1. 1011₂ = 8 + 0 + 2 + 1 = 11, not 1011 in base 10.",
+        ],
+    },
+    "logic-maths": {
+        intuition: "A burglar alarm sounds if the door is open AND the system is armed. An AND statement needs both parts true; an OR statement needs at least one. Truth tables list every combination so no case is missed.",
+        move: "Write one row for every combination of true and false inputs, then evaluate the connective for each row. For an implication, remember that 'if P then Q' is false only when P is true and Q is false.",
+        check: "The number of rows must be 2ⁿ for n inputs. Check the final column against the meaning of the sentence in words, and look for a row where the conclusion is true but the condition is false.",
+        trap: [
+            "Treats 'if P then Q' as the same statement as 'if Q then P'.",
+            "An implication and its converse are different: 'if it is raining, the ground is wet' does not mean 'if the ground is wet, it is raining'. A truth table shows the converse can fail while the original holds.",
+        ],
+    },
+};
+
+});
+__def("lesson-plans-science.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SCIENCE_LENSES = void 0;
+/** Concept-specific teaching for physics, chemistry and biology concepts that
+ *  do not yet have a pilot-authored plan. */
+exports.SCIENCE_LENSES = {
+    "forces-basics": {
+        intuition: "A book resting on a table is pulled down by gravity and pushed up by the table at the same time. The forces are balanced, which is why the book stays still rather than because no forces act on it.",
+        move: "Draw a free-body diagram: one arrow for each force, starting on the object, with the arrow's length showing size and its direction showing push or pull. Add the forces as vectors to find the resultant.",
+        check: "Balanced forces mean constant velocity — at rest or moving steadily — not necessarily zero motion. An unbalanced resultant predicts acceleration in its direction.",
+        trap: [
+            "Says there is no force on a stationary object because it is not moving.",
+            "Stationary means the forces cancel, not that none exist. Gravity still pulls down and the table still pushes up; the resultant is zero, so the velocity does not change.",
+        ],
+    },
+    "motion-graphs": {
+        intuition: "A distance–time graph of a walk that stops for a rest is flat while the time passes. The slope tells you the speed at each moment, and a flat section means zero speed.",
+        move: "On a distance–time graph, gradient = speed. On a velocity–time graph, gradient = acceleration and area under the line = displacement. Label the axes and units before reading any value.",
+        check: "A steeper distance–time graph means faster motion, while a steeper velocity–time graph means greater acceleration. The area under a velocity–time graph must have units of distance.",
+        trap: [
+            "Reads the height of a distance–time graph as the speed.",
+            "Height is the distance from the start; speed is the gradient. A high flat line means the object is far away and stationary, not moving quickly.",
+        ],
+    },
+    "newton-laws": {
+        intuition: "A shopping trolley is easy to push when empty and hard when full. The same push produces less acceleration as the mass grows, which is the heart of F = ma.",
+        move: "Find the resultant force first, then use F = ma with consistent units. For a falling object, weight is mg; for a system, draw each body separately and remember that equal-and-opposite forces act on different bodies.",
+        check: "The acceleration is in the direction of the resultant force. If the forces are balanced, a must be zero; if the mass is in kilograms and the force in newtons, the acceleration is in m/s².",
+        trap: [
+            "Adds action and reaction forces on the same body and concludes they cancel.",
+            "Newton's third-law pairs act on DIFFERENT bodies, so they never cancel in one free-body diagram. Weight and the normal reaction on a book are not a third-law pair.",
+        ],
+    },
+    momentum: {
+        intuition: "A moving truck is harder to stop than a moving bicycle even at the same speed. Momentum combines mass and velocity, so it measures how much motion is carried.",
+        move: "Calculate p = mv for each object before and after an interaction. In a collision or explosion, set total momentum before equal to total momentum after, taking direction signs seriously.",
+        check: "Momentum is a vector: choose a positive direction and keep the signs. The total momentum after must equal the total before; kinetic energy need not be conserved in an inelastic collision.",
+        trap: [
+            "Adds the speeds of two objects moving towards each other without giving one a negative velocity.",
+            "Momentum has direction. If one object moves left and the other right, one velocity must be negative; otherwise the collision is modelled as if both moved the same way.",
+        ],
+    },
+    "energy-conservation": {
+        intuition: "A roller coaster at the top of a hill has gravitational potential energy; at the bottom it has kinetic energy. The total is not created or destroyed, only moved between stores.",
+        move: "Identify the stores before and after: kinetic ½mv², gravitational mgh, elastic ½ke², thermal, chemical. Set the total before equal to the total after, accounting for energy transferred to the surroundings.",
+        check: "Every joule must be accounted for. If the final kinetic energy is greater than the initial potential energy, either a force did work or the mass/height values are wrong.",
+        trap: [
+            "Assumes all potential energy becomes kinetic energy even when friction is present.",
+            "Friction transfers some energy to thermal stores and the surroundings. The kinetic energy is less than mgh, and the missing amount is the work done against friction.",
+        ],
+    },
+    "work-power": {
+        intuition: "Carrying a box up stairs takes the same work whether you walk or run, but running takes more power because the same energy is transferred in less time.",
+        move: "Work = force × distance moved in the direction of the force. Power = work ÷ time. Efficiency = useful output ÷ total input, expressed as a fraction or percentage.",
+        check: "Work is in joules, power in watts and efficiency between 0 and 1. A machine cannot be more than 100% efficient; a value above 1 means the useful and total outputs were swapped.",
+        trap: [
+            "Calculates efficiency as wasted energy divided by useful energy.",
+            "Efficiency compares useful output with TOTAL input: useful ÷ total. The wasted fraction is 1 − efficiency, not the efficiency itself.",
+        ],
+    },
+    "waves-basics": {
+        intuition: "A wave on a rope carries a pulse from one end to the other while the rope itself moves up and down. The wave transfers energy without carrying the material along with it.",
+        move: "Use v = fλ, where f is frequency in hertz and λ is wavelength in metres. For a transverse wave, the oscillation is perpendicular to travel; for a longitudinal wave, it is parallel.",
+        check: "The wave speed is set by the medium, while frequency and wavelength trade off. Doubling the frequency halves the wavelength if the speed stays the same.",
+        trap: [
+            "Thinks a louder sound must have a higher frequency.",
+            "Amplitude controls loudness and frequency controls pitch; they are independent. A loud low note and a quiet high note can have either property without the other.",
+        ],
+    },
+    "light-optics": {
+        intuition: "A straw looks bent at the water surface because light changes speed as it passes from water to air. The eye traces the ray back in a straight line and places the straw in the wrong position.",
+        move: "Draw the normal at the surface, measure the angle of incidence from the normal, and apply reflection or refraction at that boundary. For a lens, trace rays parallel to the axis and through the centre.",
+        check: "Angles are always measured from the normal, not the surface. Light bending towards the normal means it is entering a denser medium; bending away means it is leaving one.",
+        trap: [
+            "Measures the angle of incidence between the ray and the water surface.",
+            "Optical angles are measured from the normal, the line perpendicular to the surface. Measuring from the surface gives the complement of the correct angle and the wrong sine.",
+        ],
+    },
+    "sound-acoustics": {
+        intuition: "A drum is loud because its surface moves a large distance, not because it vibrates faster. The pitch comes from how quickly it vibrates; the volume comes from how far.",
+        move: "Sound is a longitudinal wave: particles vibrate along the direction of travel. Use v = fλ, and remember that sound needs a medium, while light does not.",
+        check: "A higher frequency means a higher pitch, and a larger amplitude means a louder sound. In a vacuum, the sound speed is not defined because there is no medium to carry it.",
+        trap: [
+            "Says sound travels through space because light does.",
+            "Sound is a mechanical vibration and needs particles to pass it on. Space is effectively a vacuum, so it is silent; light is an electromagnetic wave and needs no medium.",
+        ],
+    },
+    magnetism: {
+        intuition: "A compass needle turns to line up with the Earth's magnetic field. A wire carrying current creates its own field, which is why a current can deflect a compass or turn a motor.",
+        move: "Draw field lines from north to south outside a magnet. For a current-carrying wire, use the right-hand grip rule; for the force on a wire, use Fleming's left-hand rule with field, current and force.",
+        check: "Field lines never cross and are closest together where the field is strongest. Reversing the current reverses the force on a wire in a permanent magnet's field; the external field itself is unchanged, while the field produced by the current reverses with it.",
+        trap: [
+            "Uses the left-hand rule to predict the current induced by moving a magnet.",
+            "Fleming's left-hand rule gives the force on a current in a field (a motor). Induction is the opposite effect and uses the right-hand rule: motion plus field gives current.",
+        ],
+    },
+    "em-induction": {
+        intuition: "Push a magnet into a coil and a voltage appears; hold it still and the voltage disappears. It is the CHANGE in magnetic flux, not the presence of a magnet, that generates electricity.",
+        move: "Increase the induced voltage by moving the magnet faster, using more turns, or using a stronger magnet. For a transformer, use V₁/V₂ = N₁/N₂ and remember it needs alternating current.",
+        check: "No change in flux means no induced voltage. Reversing the direction of motion reverses the voltage; a transformer cannot step up power, only voltage while reducing current.",
+        trap: [
+            "Expects a transformer to work with a steady direct current.",
+            "A transformer relies on a changing magnetic flux. A steady DC produces a constant field, so there is no induced voltage in the secondary coil.",
+        ],
+    },
+    "thermal-physics": {
+        intuition: "A metal spoon in hot soup heats quickly while a wooden handle stays cooler. Both touch the same hot liquid, but they transfer thermal energy at different rates.",
+        move: "Use Q = mcΔT for heating and cooling, and distinguish temperature (average particle energy) from thermal energy (total, depending on mass). For state changes, use latent heat instead of a temperature change.",
+        check: "Temperature is in °C or K, energy in joules, and specific heat capacity in J/kg°C. A larger mass needs more energy for the same temperature rise.",
+        trap: [
+            "Treats a small cup of boiling water as storing more energy than a full bath at 50 °C.",
+            "Thermal energy depends on mass as well as temperature. The bath contains far more water, so its total thermal energy is much larger despite the lower temperature.",
+        ],
+    },
+    "pressure-fluids": {
+        intuition: "A sharp knife cuts with the same force as a blunt one because the force is concentrated on a much smaller area. Pressure is force per unit area, not force alone.",
+        move: "Use P = F/A for solids and P = ρgh for the pressure due to a fluid column. Density is mass ÷ volume; pressure in a fluid acts equally in all directions at a given depth.",
+        check: "Pressure is in pascals, and 1 Pa = 1 N/m². A larger area with the same force gives a smaller pressure; a deeper point in the same fluid gives a larger pressure.",
+        trap: [
+            "Uses the total force on a dam rather than the pressure at a point to compare depths.",
+            "Pressure at a depth is ρgh, independent of the area of the container. The total force on a wall is pressure × area, so a wider dam has a larger force at the same depth.",
+        ],
+    },
+    radioactivity: {
+        intuition: "A radioactive sample is like a room full of popping corn: you cannot predict which kernel will pop next, but the fraction that pops in a given time is predictable.",
+        move: "Identify alpha, beta or gamma by its penetration and charge. For half-life, multiply the remaining amount by ½ for each half-life; for a fraction, use (½)ⁿ where n is the number of half-lives.",
+        check: "After one half-life, half remains; after two, one quarter; after three, one eighth. The count never reaches zero in a finite number of half-lives.",
+        trap: [
+            "Says the sample is completely gone after two half-lives.",
+            "Each half-life removes half of what is LEFT, not half of the original. Two half-lives leave one quarter, not zero; the decay continues indefinitely.",
+        ],
+    },
+    astrophysics: {
+        intuition: "The Moon stays in orbit because it is falling towards Earth while moving sideways fast enough to keep missing it. Gravity supplies the centripetal force that curves its path.",
+        move: "For a circular orbit, set gravitational force equal to the centripetal force: GMm/r² = mv²/r. For stars, use mass to predict the end state; for galaxies, use redshift to infer expansion.",
+        check: "A larger orbital radius means a longer period and a slower speed for a given central mass. Redshift means the source is moving away, not that it is necessarily larger.",
+        trap: [
+            "Says astronauts float because there is no gravity in space.",
+            "Gravity is what keeps the spacecraft in orbit. Astronauts float because they and the craft are falling together, so there is no normal force between them.",
+        ],
+    },
+    "atoms-nucleus": {
+        intuition: "Rutherford's gold-foil experiment fired particles at a thin sheet and found that a few bounced almost straight back. That was only possible if the atom's positive charge is concentrated in a tiny nucleus.",
+        move: "Read the atomic number as protons and the mass number as protons plus neutrons. Isotopes have the same protons but different neutrons; ions have a different electron count and therefore a charge.",
+        check: "The number of protons identifies the element; changing it changes the element. The mass number is always at least the atomic number, and the neutron number is mass number minus atomic number.",
+        trap: [
+            "Treats the mass number as the number of neutrons.",
+            "The mass number is protons + neutrons. Carbon-14 has 6 protons and 8 neutrons, not 14 neutrons; the atomic number supplies the proton count.",
+        ],
+    },
+    "gravity-fields": {
+        intuition: "The same satellite feels a weaker gravitational pull when it is farther from Earth. Double the distance and the force is not halved — it falls to a quarter, because gravity follows an inverse-square law.",
+        move: "Use F = Gm₁m₂/r² and measure r from the centres of mass. Near a planet's surface, use W = mg with g ≈ 9.8 N/kg; for orbits, equate gravitational and centripetal forces.",
+        check: "Doubling r divides the force by four; tripling r divides it by nine. Mass is not the same as weight: the mass stays the same on the Moon, but the weight is smaller because g is smaller.",
+        trap: [
+            "Says there is no gravity on the International Space Station because the astronauts float.",
+            "The station is still deep in Earth's gravity; that gravity provides its centripetal force. The astronauts float because they are in free fall around Earth, not because gravity has vanished.",
+        ],
+    },
+    "atoms-elements": {
+        intuition: "Gold, oxygen and carbon are different because their atoms have different numbers of protons. The periodic table is organised around that one fact. That count is the atomic number.",
+        move: "Read an element's symbol and atomic number, then count protons, neutrons and electrons. In a neutral atom, electrons equal protons; an ion has gained or lost electrons.",
+        check: "The atomic number must match the element's position in the periodic table, and the mass number must be a whole number of nucleons. A chemical reaction rearranges atoms but does not change one element into another.",
+        trap: [
+            "Thinks a chemical reaction can turn lead into gold by rearranging atoms.",
+            "Chemical reactions rearrange atoms into new compounds; they do not change an atom's proton count. Turning lead into gold requires a nuclear reaction, not a chemical one.",
+        ],
+    },
+    "compounds-mixtures": {
+        intuition: "Salt dissolves in water and can be recovered by evaporation; hydrogen and oxygen in water cannot be separated by filtering. A compound is chemically joined; a mixture is only physically combined.",
+        move: "Use the fixed-ratio test: a compound has a definite formula and can only be separated by a chemical reaction. A mixture's components keep their own properties and can be separated by filtration, distillation or chromatography.",
+        check: "If the composition can vary and the components can be separated physically, it is a mixture. If the ratio is fixed by a formula, it is a compound.",
+        trap: [
+            "Calls seawater a compound because it contains water.",
+            "Seawater is a mixture of water and dissolved salts; its composition varies and the salt can be separated by evaporation. Water itself is the compound H₂O.",
+        ],
+    },
+    "periodic-table": {
+        intuition: "Elements in the same column react in similar ways because they have the same number of outer electrons. The table is a map of electron arrangement, not just an alphabetical list.",
+        move: "Locate the element's group and period, then use the group to predict outer electrons and reactivity. Across a period, metallic character decreases; down a group, atoms get larger.",
+        check: "Group 1 metals become MORE reactive down the group; group 7 halogens become LESS reactive down the group. The two trends run in opposite directions for the same underlying reason: distance from the nucleus.",
+        trap: [
+            "Says group 1 metals become less reactive as you go down the group.",
+            "The outer electron is further from the nucleus and lost more easily, so reactivity INCREASES down group 1. For group 7 the opposite is true because those atoms are gaining an electron.",
+        ],
+    },
+    "electron-shells": {
+        intuition: "Sodium has 11 electrons and reacts vigorously with water; argon has 18 and is almost inert. The difference is not the total count but whether the outer shell is full.",
+        move: "Fill shells in order: 2 in the first, 8 in the second and 8 in the third for these elements. Write the configuration (2, 8, 1) and identify the outer electrons that drive bonding.",
+        check: "The configuration must add up to the total electron count. A full outer shell is stable; an atom with one or seven outer electrons is likely to lose or gain to reach a full shell.",
+        trap: [
+            "Puts all remaining electrons into the third shell regardless of the rule.",
+            "The shell capacities are fixed: 2, 8, 8 for the first three. A shell fills before the next one starts, so the count cannot simply continue. Potassium's 19 electrons are 2, 8, 8, 1, not 2, 8, 9.",
+        ],
+    },
+    "ionic-bonding": {
+        intuition: "Sodium gives away its one outer electron and chlorine needs one to complete its shell. The resulting positive and negative ions attract and pack into a regular lattice.",
+        move: "Work out the charge each ion needs to reach a full outer shell, then balance the charges to write the formula. The lattice is held together by electrostatic attraction in every direction.",
+        check: "The total positive charge must equal the total negative charge. Ionic compounds conduct when molten or dissolved, because the ions become free to move.",
+        trap: [
+            "Writes the formula for aluminium oxide as AlO because the symbols appear once each.",
+            "The charges are Al³⁺ and O²⁻; the smallest whole-number ratio that balances them is Al₂O₃. The formula follows charge balance, not a one-to-one pairing.",
+        ],
+    },
+    "covalent-bonding": {
+        intuition: "Two hydrogen atoms each have one electron and need two for a full shell. Sharing a pair gives both the full shell and a strong bond between them.",
+        move: "Count the outer electrons, decide how many each atom needs, and pair them into shared electron pairs. For a displayed formula, draw one line for each shared pair.",
+        check: "Each atom should end with a full outer shell (two for hydrogen, eight for the second row). A molecule with an unpaired electron or an atom with too many bonds is drawn incorrectly.",
+        trap: [
+            "Thinks a double bond is two separate single bonds that can rotate freely.",
+            "A double bond is a pair of shared electron pairs; it is shorter and stronger than a single bond and restricts rotation. It is one bond with order two, not two independent connections.",
+        ],
+    },
+    "metallic-bonding": {
+        intuition: "A metal conducts electricity because its outer electrons are not tied to one atom. They form a sea that moves when a voltage is applied, carrying charge through the solid.",
+        move: "Describe a metal as positive ions in a sea of delocalised electrons. Use that model to explain conductivity, malleability and why alloys are harder than pure metals.",
+        check: "Conduction requires mobile charge; in a solid metal the delocalised electrons provide it. An ionic solid does not conduct until its ions are free to move.",
+        trap: [
+            "Explains why metals conduct by saying their ions move through the solid.",
+            "The ions in a solid metal are fixed in the lattice. It is the delocalised electrons that move and carry the current; the ions only move when the metal is molten.",
+        ],
+    },
+    "moles-calcs": {
+        intuition: "A dozen means 12, and a mole means 6.02 × 10²³. The mole is a counting unit that lets chemists weigh out a known number of particles. It connects the microscopic count to a measurable mass.",
+        move: "Use moles = mass ÷ Mr for a pure substance, and concentration = moles ÷ volume for a solution. Convert the balanced equation's coefficients into a mole ratio before comparing masses.",
+        check: "The units must cancel: grams ÷ grams per mole leaves moles. A mole ratio comes from the equation's coefficients, not from the masses in the question.",
+        trap: [
+            "Multiplies mass by Mr instead of dividing by it.",
+            "moles = mass ÷ Mr. Dividing by a molar mass turns grams into moles; multiplying gives a number with units of g²/mol, which cannot be a particle count.",
+        ],
+    },
+    "rates-reaction": {
+        intuition: "A powder dissolves faster than a solid lump because more surface is exposed to the liquid. Reaction rate depends on how often particles collide and how many of those collisions have enough energy.",
+        move: "Change one variable at a time and measure rate as amount ÷ time. Temperature, concentration, surface area and catalysts affect collision frequency or the fraction of successful collisions.",
+        check: "A catalyst lowers the activation energy and speeds up the reaction without being used up; it does not change the final amount of product. Increasing temperature increases rate, but it also changes the energy distribution.",
+        trap: [
+            "Says a catalyst increases the yield of a reversible reaction.",
+            "A catalyst speeds up the forward and reverse reactions equally, so equilibrium is reached sooner but the final position is unchanged. Yield is controlled by temperature, pressure and equilibrium, not by the catalyst.",
+        ],
+    },
+    "energy-changes": {
+        intuition: "Burning fuel gives out heat because the bonds formed in the products release more energy than the bonds broken in the reactants. The net difference is the energy change.",
+        move: "Use bond energies: energy absorbed to break bonds minus energy released forming bonds. A negative result means exothermic; a positive result means endothermic.",
+        check: "Exothermic reactions release energy to the surroundings and feel warmer; endothermic reactions absorb energy and feel cooler. The sign of the energy change must match the direction of the arrow on a reaction profile.",
+        trap: [
+            "Thinks breaking bonds releases energy because the reaction gives out heat overall.",
+            "Breaking bonds always ABSORBS energy; forming bonds releases it. A reaction is exothermic when the energy released by forming products exceeds the energy absorbed by breaking reactants.",
+        ],
+    },
+    "acids-bases": {
+        intuition: "Lemon juice and vinegar taste sour because they release hydrogen ions; soap feels slippery because it is alkaline. The pH scale measures the balance between H⁺ and OH⁻.",
+        move: "Identify the acid and base, then neutralise: acid + base → salt + water. Use the acid's name to predict the salt (hydrochloric → chloride, sulfuric → sulfate, nitric → nitrate).",
+        check: "A neutral solution has pH 7 at room temperature. Strong and concentrated are different: a dilute strong acid is fully ionised but has few acid particles per litre.",
+        trap: [
+            "Uses 'strong' and 'concentrated' as if they mean the same thing.",
+            "Strength is how completely an acid ionises; concentration is how much acid is dissolved per litre. A dilute strong acid can have a higher pH than a concentrated weak acid.",
+        ],
+    },
+    electrolysis: {
+        intuition: "Electrolysis uses electricity to force a non-spontaneous chemical change. Positive ions move to the negative electrode and negative ions move to the positive electrode, where they lose or gain electrons.",
+        move: "Identify the ions in the molten or aqueous compound, then follow the rule: cations go to the cathode (−) and are reduced; anions go to the anode (+) and are oxidised. Write the half-equations and balance the electrons.",
+        check: "The charge must balance in each half-equation, and the electrons lost at the anode must equal those gained at the cathode. A solid ionic compound will not conduct, so it cannot be electrolysed.",
+        trap: [
+            "Says positive ions move to the positive electrode because opposites attract.",
+            "Positive ions are attracted to the NEGATIVE cathode. The names can mislead: cations go to the cathode, anions go to the anode.",
+        ],
+    },
+    "organic-intro": {
+        intuition: "Crude oil is a mixture of carbon compounds with different chain lengths. Heating it in a fractionating column separates them because longer chains have higher boiling points.",
+        move: "Name alkanes with the CₙH₂ₙ₊₂ pattern and alkenes with the CₙH₂ₙ pattern. For cracking, balance the equation so the carbon and hydrogen atoms are conserved; for combustion, add oxygen and produce CO₂ and water.",
+        check: "A saturated hydrocarbon has only single C–C bonds; an alkene has a C=C double bond and decolourises bromine water. Balance every combustion equation atom by atom.",
+        trap: [
+            "Calls an alkene saturated because it contains only carbon and hydrogen.",
+            "Saturation is about bonds, not elements. Alkanes are saturated (single bonds); alkenes are unsaturated because the C=C double bond can add more atoms.",
+        ],
+    },
+    equilibria: {
+        intuition: "A reversible reaction reaches a balancing point where the forward and reverse rates are equal. The amounts stop changing, but the reaction has not stopped — both directions are still running.",
+        move: "Apply Le Chatelier's principle: when a condition changes, the equilibrium shifts in the direction that opposes the change. Count gas molecules on each side for pressure changes, and identify the endothermic direction for temperature changes.",
+        check: "The equilibrium constant and the position of equilibrium are different ideas. A catalyst changes how fast equilibrium is reached, not where it lies.",
+        trap: [
+            "Says increasing pressure always shifts the equilibrium to the side with more gas molecules.",
+            "Increasing pressure shifts the equilibrium towards the side with FEWER gas molecules, because that reduces the pressure. Count the molecules on each side before predicting the direction.",
+        ],
+    },
+    "analysis-tests": {
+        intuition: "A flame test identifies a metal ion by the colour it gives off; a gas test identifies a gas by a visible reaction. Each test is a fingerprint, not a guess.",
+        move: "For metal ions, use the flame colour or the precipitate formed with sodium hydroxide. For gases, use the standard tests: hydrogen gives a squeaky pop, oxygen relights a glowing splint, carbon dioxide turns limewater cloudy, chlorine bleaches damp litmus.",
+        check: "A test must distinguish the substance from the other possibilities, not merely react with it. Use a confirmatory test when two ions could give a similar result.",
+        trap: [
+            "Identifies a gas as hydrogen because it burns.",
+            "Many gases burn; hydrogen is identified by the squeaky pop with a lit splint. A burning splint alone is not a confirmatory test.",
+        ],
+    },
+    microscopy: {
+        intuition: "A light microscope can show a cell's nucleus but not the details of its mitochondria. Magnification makes an image larger; resolution decides whether two close points can be told apart.",
+        move: "Use magnification = image size ÷ actual size, and convert units before dividing. For electron micrographs, read the scale bar and use standard form to keep the powers of ten manageable.",
+        check: "The magnification has no units, while image and actual size must be in the same unit. A larger magnification with poor resolution gives a bigger blur, not more detail.",
+        trap: [
+            "Assumes the highest magnification always gives the clearest image.",
+            "Resolution limits the detail that can be seen. Beyond the resolving power of the microscope, increasing magnification only enlarges a blurred image.",
+        ],
+    },
+    enzymes: {
+        intuition: "A lock accepts only the right key; an enzyme's active site accepts only its substrate. That is why amylase digests starch but not protein. Shape determines which reaction is catalysed.",
+        move: "Describe the enzyme–substrate complex, then explain how temperature, pH, substrate concentration or inhibitors change the rate. Denaturation changes the active site's shape, so the substrate no longer fits.",
+        check: "The rate rises with temperature up to an optimum, then falls sharply as the enzyme denatures. A graph that plateaus with substrate concentration means the enzyme is saturated, not denatured.",
+        trap: [
+            "Says an enzyme is killed when it is denatured.",
+            "Enzymes are proteins, not living organisms, so they are not killed. Denaturation changes the active site's shape and stops the enzyme working; the effect is irreversible.",
+        ],
+    },
+    digestion: {
+        intuition: "A piece of bread is not absorbed as bread; it is broken into sugars small enough to cross the gut wall. Digestion is the process that turns food into molecules the body can use.",
+        move: "Follow each food group through its enzyme: amylase breaks starch to sugar, protease breaks protein to amino acids, lipase breaks fat to fatty acids and glycerol. Bile emulsifies fat and neutralises stomach acid.",
+        check: "Absorption happens through the villi, so surface area matters. A substance that has not been broken down cannot cross the gut wall, no matter how much of it is eaten.",
+        trap: [
+            "Thinks bile digests fat because it acts on fat in the small intestine.",
+            "Bile does not contain an enzyme; it emulsifies fat into smaller droplets, increasing the surface area for lipase. The digestion itself is done by lipase.",
+        ],
+    },
+    circulation: {
+        intuition: "Blood passes through the heart twice on one complete circuit: once to the lungs to pick up oxygen, then to the body to deliver it. That double loop keeps oxygenated and deoxygenated blood separate.",
+        move: "Trace the path: right atrium → right ventricle → lungs → left atrium → left ventricle → body. Relate the vessel's structure to its job: arteries thick and elastic, veins valved, capillaries one cell thick.",
+        check: "The left ventricle has the thickest wall because it pumps to the whole body. The pulmonary artery carries deoxygenated blood, which is the exception to the 'arteries carry oxygenated blood' shorthand.",
+        trap: [
+            "Says all arteries carry oxygenated blood and all veins carry deoxygenated blood.",
+            "The pulmonary artery carries deoxygenated blood to the lungs, and the pulmonary vein carries oxygenated blood back. Arteries are defined by direction away from the heart, not by oxygen content.",
+        ],
+    },
+    "breathing-gas": {
+        intuition: "Alveoli are tiny, moist, one-cell-thick air sacs surrounded by capillaries. Their huge total surface area lets oxygen diffuse into the blood and carbon dioxide diffuse out.",
+        move: "Explain gas exchange with three features: a steep concentration gradient, a short diffusion distance and a large surface area. For breathing, describe volume and pressure changes: diaphragm contracts, volume increases, pressure falls, air enters.",
+        check: "Oxygen diffuses from the alveolus into the blood because its concentration there is higher; carbon dioxide moves the other way. The direction is always down the gradient, never 'the lungs pump oxygen into the blood'.",
+        trap: [
+            "Says breathing and respiration are the same process.",
+            "Breathing is the mechanical movement of air into and out of the lungs. Respiration is the chemical release of energy from glucose inside cells; it happens in every living cell, not just the lungs.",
+        ],
+    },
+    diffusion: {
+        intuition: "A drop of ink spreads through water without stirring. Particles move randomly from a region of higher concentration to one of lower concentration, and the net movement continues until the gradient is gone.",
+        move: "Compare diffusion, osmosis and active transport by what moves and whether energy is needed. Diffusion moves any particle down a gradient; osmosis moves water through a partially permeable membrane; active transport moves substances against a gradient using energy.",
+        check: "The net movement is always down the concentration gradient for diffusion and osmosis. If a substance moves from low to high concentration, the process must be active transport and must use energy.",
+        trap: [
+            "Says osmosis is the movement of water from a high concentration of water to a low concentration of water, then calls the sugar concentration the water concentration.",
+            "Osmosis is water moving through a partially permeable membrane from a dilute solution (high water potential) to a concentrated solution (low water potential). Track the water, not the solute.",
+        ],
+    },
+    respiration: {
+        intuition: "A sprinter's muscles burn and they keep breathing hard after the race. Anaerobic respiration releases energy without oxygen and leaves lactic acid, which has to be broken down afterwards.",
+        move: "Write the word equation for aerobic respiration and compare it with anaerobic respiration in muscles and yeast. Link exercise to the increased demand for oxygen and the oxygen debt.",
+        check: "Respiration releases energy; breathing only supplies oxygen and removes carbon dioxide. Anaerobic respiration releases less energy per glucose molecule than aerobic respiration.",
+        trap: [
+            "Says respiration is the same as breathing.",
+            "Respiration is a chemical reaction in cells that releases energy from glucose. Breathing is ventilation — the movement of air — and is only one part of supplying the oxygen respiration needs.",
+        ],
+    },
+    "nervous-system": {
+        intuition: "Touch a hot pan and your hand pulls back before you feel the pain. A reflex arc routes the signal through the spinal cord, so the response is faster than a decision made in the brain.",
+        move: "Follow the reflex arc: receptor → sensory neurone → relay neurone → motor neurone → effector. For a voluntary response, include the brain. Synapses slow the signal by converting it to a chemical message.",
+        check: "The response is automatic and protective; the brain is informed afterwards. A reflex does not require conscious thought, which is why it can happen so quickly.",
+        trap: [
+            "Says the brain is not involved in a reflex at all.",
+            "The brain is not needed to trigger the reflex, but it is informed as the signal travels up the spinal cord. The response can be conscious after the protective movement has begun.",
+        ],
+    },
+    hormones: {
+        intuition: "A thermostat switches the heating on when a room cools and off when it warms. The body uses hormones in a similar negative-feedback loop to keep blood glucose, temperature and water balance steady.",
+        move: "Identify the receptor, the coordination centre and the effector, then name the hormone and its effect. For blood glucose, insulin lowers it and glucagon raises it; for water balance, ADH increases reabsorption in the kidneys.",
+        check: "Negative feedback reverses the original change. If the response makes the change larger, it is positive feedback, which is unusual in homeostasis and usually needs a specific example such as childbirth.",
+        trap: [
+            "Says insulin raises blood glucose because it is released after a meal.",
+            "Insulin LOWERS blood glucose by helping cells take it up and storing it as glycogen. Glucagon has the opposite effect; releasing a hormone after a meal does not mean the hormone raises the level.",
+        ],
+    },
+    genetics: {
+        intuition: "A child inherits one allele from each parent. A dominant allele shows even when only one copy is present; a recessive allele needs two copies, which is why two brown-eyed parents can have a blue-eyed child.",
+        move: "Write the parental genotypes, put one allele from each parent along the top and side of a Punnett square, and fill the boxes. Count the phenotypes and express the ratio in its simplest form.",
+        check: "The total number of boxes must equal the number of possible combinations (four for a monohybrid cross). The ratio of phenotypes should add to the total number of boxes.",
+        trap: [
+            "Says a recessive allele is weaker or less common than a dominant allele.",
+            "Dominance is about whether the allele is expressed when heterozygous, not about strength or frequency. A recessive allele can be common in a population, and a dominant allele can be rare.",
+        ],
+    },
+    evolution: {
+        intuition: "Bacteria that survive an antibiotic pass on their resistance; the drug does not create resistant bacteria, it selects the ones that already are. Evolution is a change in the inherited characteristics of a population over generations.",
+        move: "Explain variation, selection and inheritance in order: individuals vary, some variants survive and reproduce more, and the successful alleles become more common. For speciation, add isolation and enough time for reproductive separation.",
+        check: "Evolution happens to populations, not individuals. An individual does not evolve during its lifetime; the allele frequencies in the population change across generations.",
+        trap: [
+            "Says an animal grows a useful feature because it needs it.",
+            "Need does not cause a genetic change. Variation arises randomly; selection then favours the variants that already exist. A trait acquired during life is not passed on in the way evolution requires.",
+        ],
+    },
+    ecosystems: {
+        intuition: "A food chain rarely has more than four or five levels because most energy is lost at each transfer. The pyramid of energy is widest at the producers and narrows sharply towards the top.",
+        move: "Draw the food web with arrows showing energy flow, then calculate the energy lost at each level. For material cycles, trace the element through producers, consumers, decomposers and the abiotic environment.",
+        check: "Energy flows and is lost as heat; matter cycles. A food chain arrow points from the organism being eaten to the eater, because the arrow shows the direction of energy transfer.",
+        trap: [
+            "Draws a food-chain arrow from the predator to the prey.",
+            "The arrow shows where the energy goes: grass → rabbit means the rabbit eats the grass. Reversing it describes the wrong direction of energy flow.",
+        ],
+    },
+    biodiversity: {
+        intuition: "A forest with many species can recover from a disease or a drought better than a field of one crop. Biodiversity is variety at the level of genes, species and ecosystems, and that variety is a form of resilience.",
+        move: "Separate the three levels of biodiversity and name the human pressure in the question. For conservation, match the method to the threat: protected areas for habitat loss, quotas for overfishing, seed banks for genetic diversity.",
+        check: "A conservation method must address the specific cause of the decline. A reserve does not help a species threatened by climate change if the reserve itself is becoming unsuitable.",
+        trap: [
+            "Treats biodiversity as simply the number of species in one place.",
+            "Biodiversity includes genetic variation within a species and the variety of ecosystems, not only species count. A population with no genetic variation is vulnerable even if it is the only species present.",
+        ],
+    },
+    "immune-health": {
+        intuition: "A vaccine shows the immune system a harmless version of a pathogen, so it can make memory cells without the danger of the disease. A later infection is then met by a faster, stronger response.",
+        move: "Describe the barriers first (skin, mucus, acid), then the immune response: phagocytes engulf pathogens, lymphocytes produce antibodies specific to an antigen, and memory cells remain after recovery or vaccination.",
+        check: "Antibodies are specific to one antigen, and antibiotics work on bacteria, not viruses. A treatment that targets a bacterial cell wall cannot affect a virus, which has no cell wall.",
+        trap: [
+            "Says antibiotics can cure a cold because both are infections.",
+            "Colds are caused by viruses, and antibiotics target bacterial structures such as cell walls. Taking antibiotics for a viral infection does not work and encourages resistance.",
+        ],
+    },
+};
+
+});
+__def("lesson-plans-supplemental.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PATH_ORDINALS = exports.SUPPLEMENTAL_LESSON_PLANS = void 0;
+exports.supplementalConceptIds = supplementalConceptIds;
+exports.supplementalPlanFor = supplementalPlanFor;
+exports.supplementalProblems = supplementalProblems;
+exports.conceptPath = conceptPath;
+const genome_1 = require("./genome");
+const misconceptions_1 = require("./misconceptions");
+const lesson_plans_maths_1 = require("./lesson-plans-maths");
+const lesson_plans_science_1 = require("./lesson-plans-science");
+const lesson_plans_computing_1 = require("./lesson-plans-computing");
+/** The concept-specific content for every non-pilot concept. The union is kept
+ *  here so a concept added to the genome without a lens is visible as a gap,
+ *  rather than silently inheriting another concept's teaching. */
+const LENSES = {
+    ...lesson_plans_maths_1.MATHS_LENSES,
+    ...lesson_plans_science_1.SCIENCE_LENSES,
+    ...lesson_plans_computing_1.COMPUTING_LENSES,
+};
+/** Two subject-level traps complete the three-trap minimum when a concept has
+ *  no named misconception of its own. They are deliberately about the habits
+ *  that fail across the subject, not about any one topic. */
+const SUBJECT_TRAPS = {
+    maths: [
+        {
+            move: "Does the steps without checking the sign, the units or the size of the answer.",
+            why: "A correct-looking calculation can still describe the wrong quantity. Check the sign against the context, keep the units consistent, and estimate the answer before trusting the arithmetic.",
+        },
+        {
+            move: "Memorises a rule and applies it to a case the rule was never about.",
+            why: "A rule has conditions. Say what the rule assumes before using it — a right angle, a common denominator, a positive base — and check those conditions against the question in front of you.",
+        },
+    ],
+    physics: [
+        {
+            move: "Quotes a numerical answer without its unit or direction.",
+            why: "A magnitude alone does not identify a physical quantity. State the unit and, for a vector, the direction; an answer of 5 could be 5 m, 5 m/s or 5 N, and those are not interchangeable.",
+        },
+        {
+            move: "Uses a formula without checking the physical situation it assumes.",
+            why: "Equations such as SUVAT or V = IR hold under stated conditions. Name the assumption — constant acceleration, constant temperature, a closed circuit — before substituting values into the formula.",
+        },
+    ],
+    chemistry: [
+        {
+            move: "Balances an equation by changing a subscript instead of a coefficient.",
+            why: "Changing a subscript changes the substance itself: H₂O is water, H₂O₂ is hydrogen peroxide. Balance by placing coefficients in front of the formulas, never by editing the formulas.",
+        },
+        {
+            move: "Confuses the amount of a substance with its concentration or its strength.",
+            why: "Amount, concentration and strength are different axes. Say which one the question asks about, and convert with moles = mass ÷ Mr or concentration = moles ÷ volume rather than guessing.",
+        },
+    ],
+    biology: [
+        {
+            move: "Names a structure without saying what its shape lets it do.",
+            why: "Biology marks the link between structure and function: alveoli are thin and folded for diffusion, villi are long and packed for absorption. A name alone is a label, not an explanation.",
+        },
+        {
+            move: "Treats a model or a diagram as the whole living process.",
+            why: "A diagram selects features to make a relationship visible; it omits others. State what the model shows and what it leaves out before drawing a conclusion about the organism.",
+        },
+    ],
+    computing: [
+        {
+            move: "Tests one example and declares the program correct.",
+            why: "One input cannot exercise every branch. Test a normal case, a boundary case and an invalid case; a program that works for 3 may still fail at 0, at the last item, or on empty input.",
+        },
+        {
+            move: "Chooses a data structure or algorithm by habit rather than by cost.",
+            why: "The right structure changes how work grows: a list scan is O(n), a dictionary lookup is typically O(1), and a nested loop is O(n²). State the operation the program performs most often, then choose for that operation.",
+        },
+    ],
+};
+const ORDINALS = ["first", "second", "third", "fourth", "fifth"];
+function words(text) {
+    return text.split(/\s+/).filter((w) => /[A-Za-z]/.test(w)).length;
+}
+/** Split a paragraph into sentence-sized pieces, then merge until each piece has
+ *  enough words to stand as an idea paragraph. The last short piece is folded
+ *  into the previous one rather than left as a fragment. */
+function packSentences(text, minimum = 20) {
+    const sentences = text.match(/[^.!?]+[.!?]+(?:["')\]]+)?|[^.!?]+$/g)?.map((s) => s.trim()).filter(Boolean) ?? [text.trim()];
+    const out = [];
+    let current = "";
+    for (const sentence of sentences) {
+        current = current ? `${current} ${sentence}` : sentence;
+        if (words(current) >= minimum) {
+            out.push(current);
+            current = "";
+        }
+    }
+    if (current) {
+        if (out.length)
+            out[out.length - 1] = `${out[out.length - 1]} ${current}`;
+        else
+            out.push(current);
+    }
+    return out;
+}
+function ensureIdea(text) {
+    if (words(text) >= 20)
+        return text;
+    return `${text} Say what each quantity in this sentence means before you move on.`;
+}
+function nextConcepts(conceptId) {
+    return genome_1.CONCEPTS.filter((c) => c.prereqs.includes(conceptId)).map((c) => c.title);
+}
+function pathParagraph(conceptId) {
+    const next = nextConcepts(conceptId);
+    if (!next.length) {
+        return "This is a foundation for later ideas in the subject. Keep the definition and the check beside you whenever a problem uses it.";
+    }
+    const named = next.slice(0, 3).join(", ");
+    return `This idea is the step before ${named}. Keep its definition and its check beside you when those topics use it.`;
+}
+function usedFor(conceptId) {
+    const next = nextConcepts(conceptId);
+    if (!next.length) {
+        return `This is a foundation for later ${genome_1.CONCEPTS_BY_ID[conceptId]?.subject ?? "subject"} ideas; explain it whenever a problem uses it.`;
+    }
+    return `This is used next in ${next.slice(0, 3).join(", ")}${next.length > 3 ? ` and ${next.length - 3} more` : ""}. Keep its definition and its check beside you when those topics use it.`;
+}
+function buildPlan(conceptId) {
+    const c = genome_1.CONCEPTS_BY_ID[conceptId];
+    const lens = LENSES[conceptId];
+    if (!c || !lens)
+        return null;
+    const core = packSentences(c.lesson);
+    const first = ensureIdea(core[0] ?? c.lesson);
+    const second = ensureIdea(core.slice(1).join(" ") || pathParagraph(conceptId));
+    const idea = [first, second, ensureIdea(lens.move), ensureIdea(lens.check)];
+    const named = (c.misconceptions ?? [])
+        .map((id) => misconceptions_1.MISCONCEPTIONS_BY_ID[id])
+        .filter((m) => Boolean(m))
+        .map((m) => ({ move: m.pattern, why: m.coaching }));
+    const subjectTraps = SUBJECT_TRAPS[c.subject] ?? SUBJECT_TRAPS.maths;
+    const traps = [
+        { move: lens.trap[0], why: lens.trap[1] },
+        ...named,
+        ...subjectTraps,
+    ].slice(0, 3);
+    return {
+        conceptId,
+        objective: `${c.title.toLowerCase()} in a problem, and explain why it works: ${c.blurb}`,
+        intuition: lens.intuition,
+        idea,
+        traps,
+        usedFor: usedFor(conceptId),
+        review: "unreviewed",
+        provenance: "supplemental",
+    };
+}
+/** Every concept that has a supplemental lens. Exported for the coverage gate:
+ *  a concept added to the genome without one must be a visible gap. */
+function supplementalConceptIds() {
+    return Object.keys(LENSES);
+}
+exports.SUPPLEMENTAL_LESSON_PLANS = Object.fromEntries(supplementalConceptIds()
+    .map((id) => [id, buildPlan(id)])
+    .filter((entry) => entry[1] !== null));
+/** The builder is also exported for a coverage test that asks for one concept. */
+function supplementalPlanFor(conceptId) {
+    return exports.SUPPLEMENTAL_LESSON_PLANS[conceptId] ?? null;
+}
+/** Names that have a lens but no genome row, or the reverse. A typo in a lens
+ *  key is silent otherwise: it would simply never render. */
+function supplementalProblems() {
+    const problems = [];
+    for (const id of Object.keys(LENSES)) {
+        if (!genome_1.CONCEPTS_BY_ID[id])
+            problems.push(`lens without concept: ${id}`);
+    }
+    for (const c of genome_1.CONCEPTS) {
+        if (!LENSES[c.id] && !["decimals", "fractions", "fraction-ops", "percentages", "negatives", "order-ops", "algebra-expressions", "coordinates", "algebra-expand", "straight-lines", "completing-square", "quadratics", "surds", "indices-intro", "linear-equations", "cells", "photosynthesis", "equations-stoich", "electricity-circuits"].includes(c.id)) {
+            problems.push(`concept without lens: ${c.id}`);
+        }
+    }
+    return problems;
+}
+/** A compact path used by the lesson coverage test: the direct prerequisites and
+ *  the direct dependants, both of which must themselves have lessons. */
+function conceptPath(conceptId) {
+    const c = genome_1.CONCEPTS_BY_ID[conceptId];
+    if (!c)
+        return { before: [], after: [] };
+    return {
+        before: [...c.prereqs],
+        after: genome_1.CONCEPTS.filter((x) => x.prereqs.includes(conceptId)).map((x) => x.id),
+    };
+}
+exports.PATH_ORDINALS = ORDINALS;
+
+});
 __def("lesson-plans.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LESSON_PLANS = void 0;
+exports.pilotPlanIds = pilotPlanIds;
 exports.planFor = planFor;
+exports.ideaRouteFor = ideaRouteFor;
 exports.teachingLanguages = teachingLanguages;
 exports.planWordCount = planWordCount;
 exports.firstMoveOf = firstMoveOf;
@@ -31820,10 +33675,13 @@ exports.orphanPlans = orphanPlans;
 // compact tuple table with 135 entries; a structured lesson does not fit in a
 // tuple, and reshaping that table to carry one would have touched every row and
 // every gate that reads it. Keeping plans keyed by concept id also makes the
-// AUTHORED coverage honest and countable: `plannedConceptIds` reports the pilot
-// set. Every other genome concept gets a structured fallback derived from its own
-// genome explanation and descendants, marked `unreviewed`; it never invents
-// subject matter or claims a review nobody performed.
+// coverage honest and countable: the 19 pilot-candidate plans are authored in
+// this module, and `planFor` serves a supplemental plan for every other concept
+// from `lesson-plans-supplemental.ts`. Those supplemental plans are composed from
+// the concept's genome note and its own concept-specific lens, and are marked
+// `provenance: "supplemental"` / `review: "unreviewed"`; they are not presented
+// as reviewed teaching. A concept with no lens still answers null, so a genome
+// addition cannot silently inherit another concept's lesson.
 //
 // PROVENANCE IS PART OF THE CONTENT (§3 of the strategy note: authored ≠
 // reviewed ≠ pilot-tested). Every plan states its review state, and the page
@@ -31832,6 +33690,7 @@ exports.orphanPlans = orphanPlans;
 // ─────────────────────────────────────────────────────────────────────────────
 const genome_1 = require("./genome");
 const lesson_plans_intl_1 = require("./lesson-plans-intl");
+const lesson_plans_supplemental_1 = require("./lesson-plans-supplemental");
 /**
  * THE AUTHORED PLANS.
  *
@@ -31853,7 +33712,7 @@ const lesson_plans_intl_1 = require("./lesson-plans-intl");
  * avoid. `npm run verify` measures the count rather than trusting this
  * paragraph, and `audit/pilot-pack.json` is regenerated from it.
  */
-exports.LESSON_PLANS = {
+const PILOT_LESSON_PLANS = {
     // ── THE FOUNDATIONS RING, ADDED AFTER THE PILOT WAS VERIFIED ────────────────
     //
     // The pilot is a pathway through stage 0–3 algebra and number. A learner who
@@ -31909,6 +33768,18 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Percentages (0.45 is 45%), measurement to a stated precision, ratio and standard form all read decimals, and rounding an answer to one decimal place is a judgement about which column the question cares about.",
         review: "unreviewed",
+        // THE WORKED-ON-SCREEN ROUTE. This plan deliberately draws no static figure
+        // because the figure vocabulary has no place-value table; a real video is
+        // the honest alternative, linked rather than embedded.
+        video: {
+            url: "https://www.khanacademy.org/v/decimal-place-value",
+            title: "Decimal place value",
+            source: "Khan Academy",
+            length: "4:00",
+            language: "en",
+            captions: "unknown",
+            summary: "A short walkthrough of decimal place value. Watch how each column is named and how the decimal point fixes which column a digit occupies; the lesson below teaches the same columns without needing the video.",
+        },
     },
     fractions: {
         conceptId: "fractions",
@@ -31938,6 +33809,25 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Percentages and decimals are fractions in another notation, ratio compares two of them, and probability is one: the chance of a six is 1/6, which is a fraction before it is ever a percentage.",
         review: "unreviewed",
+        // THE SECOND ROUTE FOR A LEARNER THE FIRST ROUTE DID NOT REACH. Measured
+        // need, not a hunch: `fractions` is a stage-0 concept and the first
+        // prerequisite of the data-and-ratio work every science course leans on, so
+        // a learner arriving here having failed it is common. The base route opens
+        // with notation ("in 3/4 the bottom number, 4…"); a pupil who does not yet
+        // believe the bottom is a SIZE cannot start there. This route builds the
+        // picture first and does not write a fraction until paragraph three, then
+        // proves the comparison rule by drawing before naming it.
+        routes: [
+            {
+                when: "struggling",
+                idea: [
+                    "Start with one bar of chocolate and no symbols at all. Break it into two equal pieces and you have two halves. Break a SECOND identical bar into four equal pieces and you have four quarters. Hold up one piece from each: the quarter is the smaller piece, even though 4 is the bigger number — because the number underneath a fraction counts how many pieces the bar was cut into, not how many you get.",
+                    "So when you meet 3/4, read the bottom first: the bar was cut into 4 equal pieces. Then read the top: you have 3 of them. Say the whole thing out loud as \"three quarters\" and check it against the picture — three pieces, each one a quarter of the bar. If the words and the picture ever disagree, the picture is right; the two numbers are a shorthand for it.",
+                    "Now compare 1/8 and 1/4 the slow way, by drawing. Draw two identical bars. Cut the first into 8 and shade 1 piece; cut the second into 4 and shade 1 piece. The shaded eighth is visibly the smaller piece, so 1/8 is less than 1/4. You have just proved the rule by looking at it, which is why you will not need to memorise which way round it goes.",
+                    "Only when that is comfortable, use the shortcut. To compare fractions with different bottoms, cut both bars into the same number of pieces and count: 2/3 and 3/4 both become twelfths, 8/12 and 9/12, so 3/4 is bigger by one twelfth. If the shortcut will not come in an exam, draw the bars instead — slower, and always right.",
+                ],
+            },
+        ],
         interactive: "fraction-model",
         // THE PICTURE THE IDEA NEEDS. "A bigger bottom means smaller pieces" is a
         // claim about SHAPE — the same circle, cut more ways — so the drawing shows
@@ -32022,6 +33912,15 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Interest and depreciation, every statistic in a news report, concentration in chemistry and efficiency in physics, and the ratio and proportion work that follows it.",
         review: "unreviewed",
+        video: {
+            url: "https://www.khanacademy.org/math/pre-algebra/xb4832e56:percentages/xb4832e56:equivalent-representations-of-percent-problems/v/taking-a-percentage-example",
+            title: "Percent of a whole number",
+            source: "Khan Academy",
+            length: "2:07",
+            language: "en",
+            captions: "unknown",
+            summary: "A worked example of finding a percentage of a whole number. Watch how the percentage becomes a decimal before it multiplies; the lesson below applies the same move to a percentage change, where the base matters.",
+        },
         // NO FIGURE, and that is a decision rather than an omission. Every kind the
         // figure union declares draws ONE scale — an area model, a pie, an axis. The
         // belief this lesson exists to break is that there are TWO bases, and a
@@ -32054,6 +33953,22 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Coordinates, gradients and inequalities all stand on this: a point below the axis, a line falling to the right, or any inequality you multiply by −1.",
         review: "unreviewed",
+        // THE ADVANCED ROUTE. A learner whose evidence shows mastery of the moves is
+        // handed the same picture as an ALGEBRA (numbers are positions, operations are
+        // transformations) and the two results the default route can only assert:
+        // why two reflections cancel, and where the inequality flip comes from. It
+        // replaces the base paragraphs rather than adding to them, so nothing is
+        // read twice.
+        routes: [
+            {
+                when: "advanced",
+                idea: [
+                    "Treat every number as a POSITION on the line and every operation as a transformation, and the sign rules stop being rules to remember. Adding a number slides the whole line; multiplying by −1 reflects it through zero; subtracting b is adding the reflection of b. That is the whole algebra, and 5 − (−3) = 8 is one sentence in it: reflect −3 to 3, then slide right by 3.",
+                    "This framing answers what the default route can only assert. Why is (−2) × (−3) positive? Multiplication by a negative is a reflection through zero, and reflecting twice returns you to where you began — two half-turns make a full turn. The product of two negatives is positive because the two reversals cancel, not because \"two minuses make a plus\" is something to chant.",
+                    "Two results worth deriving now, because both are used later. Distance between two numbers is |a − b|, so the distance from −4 to 3 is 7, and the midpoint is their mean, (−4 + 3)/2 = −0.5 — check on the line that −0.5 is equally far from −4 and from 3. Then the inequality flip follows from the same picture: multiplying by −1 MIRRORS the line, so every point that was to the left is now to the right, and a \"less than\" becomes a \"greater than\" because the order reversed, not because of a separate rule.",
+                ],
+            },
+        ],
         // THE PICTURE IS THE RULE. 5 − (−3) is the one move in this concept that a
         // learner reliably gets backwards, and it is backwards because they picture
         // it as "take away", which travels left. Drawn, the journey travels right
@@ -32061,6 +33976,114 @@ exports.LESSON_PLANS = {
         figure: {
             spec: { kind: "number-line", min: -6, max: 10, from: 5, to: 8 },
             caption: "Start at 5. Taking away −3 is removing a leftward move, so the journey goes RIGHT to 8 — the arrow does not turn round because the sign does.",
+        },
+    },
+    // ── THE TWO IDEAS EVERY LATER NUMBER TOPIC ASSUMES ────────────────────────
+    // These were supplemental: a genome paragraph plus a lens. That is enough to
+    // remind someone and not enough to teach someone who has never met the idea,
+    // which is who the catch-up path sends here. Written to the pilot format:
+    // objective, intuition before terminology, several idea paragraphs in the
+    // order they must land, traps that say WHY the wrong move fails.
+    "place-value": {
+        conceptId: "place-value",
+        objective: "Read and write any number by what each digit is actually worth, and explain what multiplying or dividing by ten does to it.",
+        intuition: "A bus goes past with the number 45 on the front. A price tag reads £45. Same two digits, and one of them is nine times bigger than the other number's twin. The digits did not change; their POSITION did. That is the whole idea, and it is why 405 and 45 are not the same amount of anything.",
+        idea: [
+            "Every column is ten times the column on its right. So 452 is not \"four, five, two\": it is 4 hundreds + 5 tens + 2 ones = 400 + 50 + 2. The digit 4 is worth 400 here, 40 in 45, and 4 in 4 — the same symbol, three different amounts.",
+            "Zero is a placeholder, not decoration. 405 has no tens, and the zero is what holds the hundreds column in its place. Drop it and you have written 45, a different number. This is also why you cannot \"cancel\" a zero off the end of a number unless you are dividing by ten.",
+            "Multiplying by 10 moves every digit one column LEFT, because each digit becomes ten times bigger: 35 × 10 = 350. Dividing by 10 moves them right, which is why 350 ÷ 10 = 35. The decimal point never moves — the digits do, and the point stays where it is to mark the ones column.",
+            "Decimals continue the same pattern to the right. The column after the point is tenths, then hundredths: 0.1 is one tenth, 0.45 is four tenths and five hundredths. Nothing new starts at the point; the tens pattern simply keeps halving in the other direction.",
+            "Comparing numbers means comparing the leftmost column where they differ, not counting digits. 0.45 and 0.5 look like 45 against 5, but line up the columns: 0.45 is 45 hundredths and 0.5 is 50 hundredths, so 0.5 is larger. The same rule settles 4,099 against 4,100.",
+            "This is the machinery under every written method you will meet. Column addition lines up the columns so ones meet ones; long multiplication splits a number into its place-value parts; standard form writes a number as a digit string times a power of ten. A learner who cannot say what a digit is worth cannot check any of them.",
+        ],
+        traps: [
+            {
+                move: "Saying the 4 in 452 is worth 4.",
+                why: "The value comes from the column, not the symbol. That 4 sits in the hundreds column, so it contributes 400; the number would be 52 without it. Ask \"which column is it in?\" before \"what is the digit?\".",
+            },
+            {
+                move: "Deciding 0.45 is bigger than 0.5 because 45 is bigger than 5.",
+                why: "They are not in the same column. 0.45 is 45 hundredths and 0.5 is 5 tenths, which is 50 hundredths — so 0.5 is bigger. Compare by place, and pad with zeros if it helps: 0.45 against 0.50.",
+            },
+            {
+                move: "Multiplying by 10 by writing a zero on the end.",
+                why: "That happens to work for whole numbers and quietly fails for decimals: 3.5 × 10 is 35, not 3.50. The digits move one column left; writing a zero does not move anything, it just adds a placeholder.",
+            },
+        ],
+        terms: [
+            { term: "digit", meaning: "One of the ten symbols 0–9. On its own it has no value; its column gives it one." },
+            { term: "place value", meaning: "What a digit is worth because of the column it sits in — 4 means 400 in 452." },
+            { term: "placeholder", meaning: "A zero that keeps the other digits in their columns, as in 405." },
+        ],
+        recap: [
+            "Each column is ten times the one on its right, so 452 = 400 + 50 + 2.",
+            "Zero holds a column open; 405 is not 45.",
+            "Multiplying by 10 moves the digits one column left; the decimal point stays put.",
+        ],
+        usedFor: "Column addition and subtraction, long multiplication and division, decimals, rounding and standard form all read the columns this way.",
+        review: "unreviewed",
+        video: {
+            url: "https://www.youtube.com/watch?v=wx2gI8iwMCA",
+            title: "Introduction to place value",
+            source: "Khan Academy",
+            language: "en",
+            captions: "unknown",
+            summary: "An introduction to place value. Watch how a digit's value comes from its column rather than from the digit alone; the lesson below uses the same columns for whole numbers and decimals.",
+        },
+    },
+    "multiplication": {
+        conceptId: "multiplication",
+        objective: "Multiply any two whole numbers without a calculator, and explain why the column method works rather than just following it.",
+        intuition: "A hall has 4 rows of 3 chairs. You do not count twelve chairs one at a time; you see four equal groups and know the total. That is what multiplication is — repeated addition of equal groups — and 4 × 3 and 3 × 4 give the same twelve because a 4-by-3 rectangle is the same rectangle turned on its side.",
+        idea: [
+            "4 × 3 means four groups of three: 3 + 3 + 3 + 3 = 12. The two numbers have names that matter later — factors — and the answer is the product. Multiplication is commutative (4 × 3 = 3 × 4) and associative ((2 × 3) × 4 = 2 × (3 × 4)), which is what lets you regroup a hard product into two easy ones.",
+            "Split a number by its place value and the hard product becomes two easy ones: 23 × 4 = (20 × 4) + (3 × 4) = 80 + 12 = 92. This is not a trick; it is the distributive law, and it is the reason every written method looks the way it does.",
+            "The column method is that split written down. For 23 × 14 you multiply by the 4 ones first (92), then by the 1 ten — which gives 23 tens, not 23 ones — and add: 230 + 92 = 322. The shifted second row is the tens row, which is why the zero appears at its end.",
+            "Times tables are retrieval, not the idea. Knowing 6 × 7 by heart frees working memory, but if it slips, derive it: 6 × 7 = 6 × 5 + 6 × 2 = 30 + 12 = 42. A learner with two anchor facts and the distributive law can rebuild the rest.",
+            "Always estimate before and after. 23 × 14 is about 20 × 14 = 280, so 322 is plausible and 115 is not. Estimation is not a second method; it is the check that catches a missing shifted row.",
+        ],
+        traps: [
+            {
+                move: "Writing 23 × 4 = 812 by putting 8 and 12 side by side.",
+                why: "12 ones is one ten and two ones, so the ten has to be carried into the tens column: 80 + 12 = 92. Writing the digits in sequence treats a two-digit column result as if it were two separate columns.",
+            },
+            {
+                move: "Forgetting the shift when multiplying by the tens digit.",
+                why: "The 1 in 14 is one ten, so 23 × 1 gives 23 TENS — 230, not 23. Adding 23 + 92 = 115 instead of 322 is the classic missing-zero error, and estimating first catches it immediately.",
+            },
+            {
+                move: "Multiplying a decimal by 10 by appending a zero.",
+                why: "0.4 × 10 is 4, not 0.40. The digits move one column left; appending a zero leaves the value unchanged. (Place value is the idea doing the work here.)",
+            },
+            {
+                move: "Treating multiplication as addition when the numbers are small.",
+                why: "3 × 4 is 12, while 3 + 4 is 7. The sign tells you which structure you have: equal groups means multiply, combining unequal amounts means add.",
+            },
+        ],
+        terms: [
+            { term: "factor", meaning: "One of the numbers being multiplied; in 23 × 4, both 23 and 4 are factors." },
+            { term: "product", meaning: "The result of a multiplication." },
+            { term: "partition", meaning: "Splitting a number into place-value parts, as 23 becomes 20 + 3." },
+        ],
+        recap: [
+            "Multiplication is repeated addition of equal groups, and 4 × 3 = 3 × 4.",
+            "Partition by place value: 23 × 4 = 80 + 12 = 92.",
+            "The second row of a long multiplication is TENS, so it is shifted; estimate to check.",
+        ],
+        usedFor: "Division, fractions, ratio and proportion, area, algebra (3x means 3 times x) and every formula that multiplies a rate by a time.",
+        review: "unreviewed",
+        // THE ARRAY IS THE IDEA. Four rows of three is the picture the intuition
+        // opens with, and the same rectangle on its side is why 4 × 3 = 3 × 4 — a
+        // fact the prose asserts and this drawing shows. The column method has its
+        // own worked example and is not what a rectangle can teach.
+        figure: {
+            spec: {
+                kind: "rectangle",
+                widthParts: [{ units: 3, label: "3" }],
+                heightParts: [{ units: 4, label: "4" }],
+                emphasis: ["12"],
+            },
+            caption: "Four rows of three chairs, drawn as a rectangle. Its area is 3 × 4 = 12, and turning the same rectangle on its side gives 4 × 3 — the same twelve chairs, which is why the order of the factors does not change the product.",
         },
     },
     "order-ops": {
@@ -32089,6 +34112,15 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Every formula you meet later — substituting into 3x² + 2, evaluating a physics equation, simplifying an expression — is this order applied to letters instead of numbers.",
         review: "unreviewed",
+        video: {
+            url: "https://www.youtube.com/watch?v=eoYThjIAhOc",
+            title: "Order of operations introduction",
+            source: "Khan Academy",
+            length: "4:33",
+            language: "en",
+            captions: "unknown",
+            summary: "A worked introduction to the order of operations. Watch how brackets and powers are handled before multiplication and addition; the lesson below uses the same order on expressions with letters.",
+        },
     },
     "algebra-expressions": {
         conceptId: "algebra-expressions",
@@ -32406,8 +34438,8 @@ exports.LESSON_PLANS = {
         idea: [
             "aᵐ means m copies of a multiplied together, so a⁵ = a × a × a × a × a. The base is the a; the index is the 5. The index counts copies, and it is not a value — a⁵ is not 5a.",
             "Multiplying adds the counts: a² × a³ = (a × a)(a × a × a) = a⁵. Dividing subtracts them: a⁵ ÷ a² cancels two copies and leaves a³. Neither law needs memorising if you are willing to write the copies out once.",
-            "a⁰ = 1 follows from the subtraction law: aⁿ ÷ aⁿ = a⁰, and a quantity divided by itself is 1. It is not a special case bolted on — it is what the pattern forces.",
-            "Negative indices carry the same pattern downwards: a² ÷ a⁴ = a⁻², and that division is 1/a². So a⁻² means the reciprocal of a².",
+            "a⁰ = 1 follows from the subtraction law for a non-zero base: aⁿ ÷ aⁿ = a⁰, and a non-zero quantity divided by itself is 1. It is not a special case bolted on — it is what the pattern forces. (0⁰ is undefined; the base must not be zero.)",
+            "Negative indices carry the same pattern downwards for a non-zero base: a² ÷ a⁴ = a⁻², and that division is 1/a². So a⁻² means the reciprocal of a².",
             "Fractional indices are roots, and the reason is the multiplication law turned around: a^(1/2) × a^(1/2) = a¹, so a^(1/2) must be the number that squares to a — the square root.",
             "The laws hold only for the SAME base. 2³ × 2² = 2⁵, but 2³ × 3² stays as it is, because the copies are of different things.",
         ],
@@ -32427,6 +34459,15 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Standard form, growth and decay, surds and quadratic formulae all rest on these laws — and they are the difference between manipulating algebra and guessing at it.",
         review: "unreviewed",
+        video: {
+            url: "https://www.youtube.com/watch?v=XZRQhkii0h0",
+            title: "Introduction to exponents",
+            source: "Khan Academy",
+            length: "3:02",
+            language: "en",
+            captions: "unknown",
+            summary: "An introduction to exponents. Watch how a power counts repeated factors and why a² × a³ adds the indices; the lesson below uses the same laws on algebraic expressions.",
+        },
     },
     "linear-equations": {
         conceptId: "linear-equations",
@@ -32478,7 +34519,7 @@ exports.LESSON_PLANS = {
         idea: [
             "A cell is the basic structural and functional unit of life. Every living organism is made of one cell (a bacterium) or many cells (a plant, an animal, you). The cell is not a container with parts floating in it by accident: each part, or organelle, has a job, and the shape of the part is tied to that job.",
             "An animal cell has a cell membrane around the outside, cytoplasm inside, a nucleus, and mitochondria. The membrane is a thin, flexible boundary that controls what enters and leaves. The cytoplasm is where many reactions happen. The nucleus holds the genetic material (DNA) and controls the cell's activities. Mitochondria are where aerobic respiration releases energy from glucose.",
-            "A plant cell has the same four parts and three more that matter here: a cellulose cell wall outside the membrane, chloroplasts, and a large permanent vacuole. The wall is strong and gives the cell its shape; it is fully permeable, so the membrane underneath is still the gatekeeper. Chloroplasts contain chlorophyll and carry out photosynthesis. The vacuole is filled with cell sap and helps keep the cell firm.",
+            "A plant cell has the same four parts and three more that matter here: a cellulose cell wall outside the membrane, chloroplasts, and a large permanent vacuole. The wall is strong and gives the cell its shape; it is freely permeable to water and small dissolved substances, but it is not the selective barrier — the membrane underneath is. Chloroplasts contain chlorophyll and carry out photosynthesis. The vacuole is filled with cell sap and helps keep the cell firm.",
             "Specialised cells show the same rule at a larger scale: structure serves function. A red blood cell has no nucleus and is packed with haemoglobin, leaving more room to carry oxygen. A root hair cell has a long, thin extension that increases the surface area for absorbing water and minerals. A sperm cell has many mitochondria to power its journey. A nerve cell is long so it can carry an electrical impulse from one part of the body to another.",
             "Cells are not all the same size, and the units matter. Most plant and animal cells are measured in micrometres (μm): one micrometre is one-thousandth of a millimetre, or 10⁻⁶ m. A typical cheek cell is about 50–100 μm across. Magnification tells you how many times larger the image is than the object; it does not, by itself, tell you how much detail you can resolve.",
             "Similar cells group into tissues, tissues into organs, and organs into organ systems. This hierarchy is why a single cell does not need to do everything in a large organism: specialised cells do one job well, and the system coordinates them. It also explains why a large organism cannot simply be one giant cell — the surface area available for exchange grows more slowly than the volume that needs supplying.",
@@ -32517,7 +34558,7 @@ exports.LESSON_PLANS = {
             },
             {
                 move: "\"The cell wall controls what enters the cell.\"",
-                why: "The cellulose wall is strong and fully permeable: it gives shape and support, but it does not select substances. The cell membrane underneath is the selectively permeable boundary that does that job.",
+                why: "The cellulose wall is strong and freely permeable to water and small dissolved substances: it gives shape and support, but it is not the cell's selective barrier. The cell membrane underneath is the selectively permeable boundary that controls what enters and leaves.",
             },
             {
                 move: "\"A red blood cell has a nucleus like every other cell.\"",
@@ -32531,6 +34572,13 @@ exports.LESSON_PLANS = {
             "Specialised cells have shapes that increase the surface area or machinery needed for their particular job.",
         ],
         review: "unreviewed",
+        // THE PICTURE THE LESSON NEEDS. The numbered shapes are language-neutral;
+        // the caption maps every number to its name, so a translated plan can
+        // translate the teaching without the SVG growing an English label layer.
+        figure: {
+            spec: { kind: "cell", variant: "plant" },
+            caption: "A plant cell, schematic and not to scale. 1 nucleus, holding the DNA; 2 cytoplasm, where many reactions happen; 3 large permanent vacuole, filled with cell sap; 4 chloroplast, containing chlorophyll; 5 mitochondrion, where aerobic respiration releases energy; 6 cellulose cell wall, outside the membrane. The wall gives shape and support; the membrane just inside it is the selectively permeable barrier that controls what enters and leaves.",
+        },
     },
     // ── SCIENCE · PHOTOSYNTHESIS ──────────────────────────────────────────────
     // CBSE Class X, Life Processes (nutrition in plants). The lesson teaches the
@@ -32680,6 +34728,21 @@ exports.LESSON_PLANS = {
             "Reaction types describe how atoms are rearranged; exothermic and endothermic describe the energy change, which is a separate question.",
         ],
         review: "unreviewed",
+        // THE PICTURE THE LESSON NEEDS. Coefficients are the thing learners read as
+        // atom counts, so the molecules are drawn: four H and two O before the
+        // arrow, four H and two O after it. The layout computes those counts, so
+        // the drawing and the conservation claim cannot drift apart.
+        figure: {
+            spec: {
+                kind: "particles",
+                left: [
+                    { atoms: ["H", "H"], count: 2 },
+                    { atoms: ["O", "O"], count: 1 },
+                ],
+                right: [{ atoms: ["O", "H", "H"], count: 2 }],
+            },
+            caption: "2H₂ + O₂ → 2H₂O as particles. Left: two hydrogen molecules (four H atoms) and one oxygen molecule (two O atoms). Right: two water molecules, each with one O and two H — four H and two O again. The atoms are rearranged, not created; the coefficient 2 doubles the MOLECULE count, and that is why the atom count is unchanged.",
+        },
     },
     // ── SCIENCE · ELECTRIC CIRCUITS ──────────────────────────────────────────
     // CBSE Class X, Electricity. The lesson keeps the water analogy only as an
@@ -32761,70 +34824,378 @@ exports.LESSON_PLANS = {
         },
     },
 };
-/**
- * Split a genome explanation into sentence-sized teaching paragraphs without
- * cutting a decimal or an abbreviation. The genome's prose is already authored;
- * this only gives it the rhythm the read stage needs.
- */
-function sentencesOf(text) {
-    const parts = text
-        .split(/(?<=[.!?])\s+(?=[A-Z0-9(])/)
-        .map((part) => part.trim())
-        .filter(Boolean);
-    return parts.length > 0 ? parts : [text.trim()].filter(Boolean);
-}
-/**
- * A STRUCTURED LESSON FOR EVERY CONCEPT, DERIVED FROM ITS OWN AUTHORED DATA.
- *
- * The authored plans are the reviewed pilot pathway, not the whole genome. A
- * concept without one used to render a single background paragraph and then
- * stop; this fallback keeps the genome's own teaching (never generated prose)
- * and puts it in the same objective → intuition → idea sequence the page uses,
- * so every concept has a real reading stage and reaches the same live worked
- * example and practice path. Its review state is still `unreviewed`, and the
- * page prints that.
- */
-function derivedPlanFor(c) {
-    const sentences = sentencesOf(c.lesson);
-    const intuition = sentences.length > 1 ? sentences[0] : c.blurb;
-    const idea = sentences.length > 1 ? sentences.slice(1) : sentences;
-    const next = (0, genome_1.descendantsOf)(c.id)
-        .map((id) => genome_1.CONCEPTS_BY_ID[id]?.title)
-        .filter((title) => Boolean(title))
-        .slice(0, 3);
-    return {
-        conceptId: c.id,
-        objective: `Explain ${c.title.toLowerCase()} in your own words and use it to answer a ${c.subject} question.`,
-        intuition,
-        idea,
-        traps: [],
-        usedFor: next.length > 0
-            ? `This idea is used next in ${next.join(", ")}.`
-            : `This is the end of its pathway; use it in mixed problems and revision.`,
+// ── CHEMISTRY · THE QUANTITATIVE CORE ───────────────────────────────────────
+//
+// These two lessons are AUTHORED but deliberately not added to the pilot
+// sequence: the pilot is a CBSE Class X pathway, and adding concepts to it
+// would change a scope a teacher is being asked to review. They are still
+// authored teaching, so they go into LESSON_PLANS ahead of the generated
+// fallback. `provenance: "authored"` is the honest label: written here, not
+// reviewed, and not claimed as part of the pilot.
+//
+// Moles and energy changes are the two topics the comparison found every
+// serious chemistry product teaches as a CALCULATION WITH A METHOD. A paragraph
+// that states n = m/Mr is not a lesson; a learner needs the quantity triangle,
+// a worked substitution, the unit check and the traps that produce the wrong
+// answer. The `sections` field is what lets those sit beside the prose instead
+// of being flattened into it.
+const MOLES_SECTIONS = [
+    {
+        heading: "A mole is a count, not a mass",
+        body: [
+            "A mole is a fixed number of particles: 6.02 × 10²³ of them. That number is Avogadro's constant, and it is chosen so that one mole of a substance has a mass in grams equal to its relative formula mass. The mole is the bridge between a count too large to see and a mass you can weigh.",
+            "The size is not arbitrary. Atoms are so small that a visible sample contains an enormous number of them; counting in moles keeps the numbers human-sized. One mole of carbon-12 has a mass of exactly 12 g, one mole of water has a mass of about 18 g, and both contain the same number of formula units.",
+        ],
+        formula: "n = N / N_A",
+        table: {
+            columns: ["Symbol", "Meaning", "Unit"],
+            rows: [
+                ["n", "amount of substance", "mol"],
+                ["N", "number of particles", "count"],
+                ["N_A", "Avogadro's constant", "6.02 × 10²³ mol⁻¹"],
+            ],
+            caption: "The unit of n is mol; N is a pure count, so N/N_A is mol.",
+        },
+    },
+    {
+        heading: "Mass to moles: the formula you rearrange",
+        body: [
+            "The relative formula mass, Mᵣ, is the mass of one mole in grams. For water, add the relative atomic masses: 2(1) + 16 = 18, so Mᵣ = 18 g/mol. For sodium hydroxide: 23 + 16 + 1 = 40 g/mol. The subscript belongs to the atom before it, so H₂O has two hydrogens, not one.",
+            "Divide a mass by Mᵣ to get moles; multiply moles by Mᵣ to get mass. Rearranging is not a second formula to memorise — it is the same relationship read in the direction the question needs.",
+        ],
+        formula: "n = m / M_r        m = n × M_r",
+        steps: [
+            "Write the formula and the value of Mᵣ with its unit.",
+            "Substitute the mass in grams and divide.",
+            "Check the unit: g ÷ (g/mol) leaves mol.",
+        ],
+    },
+    {
+        heading: "Concentration: moles per cubic decimetre",
+        body: [
+            "Concentration is the amount of solute in a given volume of solution. It is measured in mol/dm³ (the same as mol L⁻¹). A 0.100 mol/dm³ solution contains 0.100 mol of solute in every cubic decimetre of solution.",
+            "The volume must be in dm³ before you substitute. 1 dm³ is 1000 cm³, so 25.0 cm³ is 0.0250 dm³, not 25. Dividing by the volume in cm³ gives an answer a thousand times too large — the most common unit error in the topic.",
+        ],
+        formula: "c = n / V        n = c × V",
+        table: {
+            columns: ["You are given", "Use", "Result"],
+            rows: [
+                ["mass (g)", "n = m ÷ Mᵣ", "moles"],
+                ["moles", "m = n × Mᵣ", "mass (g)"],
+                ["concentration and volume", "n = c × V", "moles"],
+                ["moles and volume", "c = n ÷ V", "concentration (mol/dm³)"],
+            ],
+            caption: "Convert to moles before using an equation's ratio; the ratio is a ratio of amounts, not of masses or volumes.",
+        },
+    },
+    {
+        heading: "The balanced equation supplies the ratio",
+        body: [
+            "The coefficients in a balanced equation are the ratio in which particles react. In 2H₂ + O₂ → 2H₂O, two moles of hydrogen react with one mole of oxygen to make two moles of water. The coefficient 2 in front of H₂ doubles the number of hydrogen MOLECULES; it does not mean 2 g.",
+            "Read the ratio in the direction you need. If you know the moles of water produced, the equation says the hydrogen used was the same number of moles and the oxygen used was half as many. If you know a mass, convert it to moles first, apply the ratio, then convert the answer to the requested unit.",
+        ],
+        formula: "2H₂ + O₂ → 2H₂O     ratio 2 : 1 : 2",
+    },
+    {
+        heading: "Limiting reagent: the reactant that runs out first",
+        body: [
+            "When the reactants are not in the exact ratio, one of them is used up first. That reactant limits the amount of product; the other is in excess and some of it will remain. The limiting reactant is not necessarily the one with the smaller mass — it is the one whose amount divided by its coefficient is smallest.",
+            "For 2H₂ + O₂ → 2H₂O with 4 mol H₂ and 1 mol O₂: hydrogen needs 2 mol O₂ to react completely, but only 1 mol is present. Oxygen runs out first, so oxygen is limiting and 2 mol of water forms. The 2 mol of hydrogen left over is the excess.",
+        ],
+    },
+    {
+        heading: "The four-line method that works every time",
+        body: [
+            "Most mole questions are the same four moves with different numbers. Keeping the moves in order prevents the common mistake of multiplying a mass by a coefficient, which mixes a mass ratio with a particle ratio.",
+        ],
+        steps: [
+            "Write and balance the equation; write the mole ratio under it.",
+            "Convert everything you are given into moles (mass ÷ Mᵣ, or concentration × volume in dm³).",
+            "Multiply by the mole ratio, using the coefficients from the equation.",
+            "Convert the moles back to the unit asked for (mass, volume of gas, or concentration).",
+        ],
+    },
+];
+const ENERGY_SECTIONS = [
+    {
+        heading: "Enthalpy is the energy ledger",
+        body: [
+            "Every reaction exchanges energy with its surroundings. Enthalpy, H, is the energy stored in the chemical system at constant pressure. We cannot measure the absolute value, so we measure the change: ΔH = H(products) − H(reactants).",
+            "If the products have less enthalpy than the reactants, the difference has been transferred to the surroundings, usually as heat. That reaction is exothermic and ΔH is negative. If the products have more enthalpy, energy has been absorbed from the surroundings; the reaction is endothermic and ΔH is positive. The sign is a direction, not a size.",
+        ],
+        formula: "ΔH = H(products) − H(reactants)",
+        table: {
+            columns: ["Reaction", "ΔH", "Surroundings"],
+            rows: [
+                ["exothermic", "negative", "temperature rises"],
+                ["endothermic", "positive", "temperature falls"],
+            ],
+            caption: "A sign tells you the direction of energy transfer; the magnitude tells you how much per mole.",
+        },
+    },
+    {
+        heading: "Breaking costs, making pays",
+        body: [
+            "A chemical reaction breaks the bonds in the reactants and makes new bonds in the products. Breaking a bond always requires energy; making a bond always releases energy. The overall energy change is the difference between the two ledgers.",
+            "Use average bond enthalpies when the question supplies them. They are averages over similar compounds and are defined for gaseous species, so a calculation using them is an estimate. A negative ΔH means the energy released in making bonds is greater than the energy absorbed in breaking bonds: the reaction is exothermic.",
+        ],
+        formula: "ΔH = Σ(bonds broken) − Σ(bonds formed)",
+    },
+    {
+        heading: "A bond-energy calculation",
+        body: [
+            "Hydrogen and chlorine react: H₂ + Cl₂ → 2HCl. Count the bonds, not the molecules. One H–H bond and one Cl–Cl bond are broken; two H–Cl bonds are made, because the equation produces two HCl molecules.",
+            "Use the table's values, then subtract the energy released from the energy absorbed. The result is negative, so the reaction is exothermic. Writing the calculation in two lines — energy in, energy out — is safer than trying to hold both sums in your head.",
+        ],
+        table: {
+            columns: ["Bond", "Bond energy / kJ mol⁻¹"],
+            rows: [
+                ["H–H", "436"],
+                ["Cl–Cl", "243"],
+                ["H–Cl", "432"],
+            ],
+            caption: "Average bond enthalpies. The values apply to gaseous bonds; they are not the same as the enthalpy of formation of the compound.",
+        },
+        formula: "energy in = 436 + 243 = 679 kJ/mol; energy out = 2 × 432 = 864 kJ/mol; ΔH = 679 − 864 = −185 kJ/mol",
+    },
+    {
+        heading: "Reading a reaction profile",
+        body: [
+            "A reaction profile plots energy against reaction progress. The reactants sit on the left and the products on the right. The peak between them is the transition state, and the height from the reactants to that peak is the activation energy, Eₐ — the barrier a collision must clear before the reaction can happen.",
+            "The height from the reactants to the products is ΔH. On an exothermic profile the product level is lower; on an endothermic profile it is higher. A catalyst lowers the peak, so Eₐ falls, but it does not move the reactant or product levels — the overall ΔH is unchanged.",
+        ],
+    },
+    {
+        heading: "Calorimetry: measuring the heat",
+        body: [
+            "A calorimetry experiment measures the temperature change of a known mass of water or solution. The heat gained or lost is q = m c ΔT, where m is the mass of the liquid being heated, c is its specific heat capacity, and ΔT is the temperature change. For water, c is about 4.18 J g⁻¹ °C⁻¹.",
+            "That q is the heat for the amount you actually used, not per mole. Divide by the number of moles of the limiting reactant to get ΔH per mole. If the temperature rises, the reaction released heat to the water, so the reaction's ΔH is negative; the negative sign is the direction, not a mistake in the arithmetic.",
+        ],
+        formula: "q = m c ΔT        ΔH = −q / n",
+        steps: [
+            "Find ΔT = final temperature − initial temperature.",
+            "Calculate q in joules with the mass of the solution in grams.",
+            "Convert q to kJ by dividing by 1000.",
+            "Divide by the moles that reacted and attach the sign.",
+        ],
+    },
+    {
+        heading: "Signs and units: the check before you move on",
+        body: [
+            "A number without a sign is not an enthalpy change, and a value per mole without per mole in the unit is incomplete. Check three things before writing the answer: the sign agrees with the temperature change, the unit is kJ/mol, and the magnitude is plausible for the bonds involved.",
+            "Bond energies are quoted per mole of bonds. If the equation makes two H–Cl bonds, multiply by two. If it makes one, do not. The coefficient in the equation is the multiplier; the subscript inside a formula is already part of that formula's identity.",
+        ],
+    },
+];
+const CHEMISTRY_AUTHORED_PLANS = {
+    "moles-calcs": {
+        conceptId: "moles-calcs",
+        objective: "Convert between mass, moles and concentration, use a balanced equation's mole ratio, and identify the limiting reagent in a reaction.",
+        intuition: "A recipe for one cake uses two eggs for every 200 g of flour. If you have 400 g of flour but only two eggs, the eggs limit how many cakes you can make — the flour is in excess. Chemistry has the same arithmetic: a balanced equation gives the ratio, and the reactant that runs out first decides how much product forms. The mole is the unit that makes the recipe countable.",
+        idea: MOLES_SECTIONS.flatMap((section) => section.body),
+        sections: MOLES_SECTIONS,
+        terms: [
+            { term: "mole", meaning: "The amount of substance containing 6.02 × 10²³ particles; its mass in grams equals the relative formula mass." },
+            { term: "relative formula mass (Mᵣ)", meaning: "The sum of the relative atomic masses in a formula, in g/mol." },
+            { term: "concentration", meaning: "The amount of solute per cubic decimetre of solution, in mol/dm³." },
+            { term: "limiting reagent", meaning: "The reactant that is used up first and therefore limits the amount of product formed." },
+            { term: "mole ratio", meaning: "The ratio of coefficients in a balanced equation, which tells you how many moles of each substance react or form." },
+        ],
+        workedExamples: [
+            {
+                prompt: "Calculate the amount, in moles, in 8.0 g of sodium hydroxide, NaOH. (Mᵣ = 40)",
+                steps: [
+                    "Write the formula: n = m ÷ Mᵣ.",
+                    "Substitute: n = 8.0 g ÷ 40 g/mol.",
+                    "Check the unit: g ÷ g/mol = mol.",
+                ],
+                answer: "0.20 mol",
+            },
+            {
+                prompt: "25.0 cm³ of 0.100 mol/dm³ sodium hydroxide is neutralised by hydrochloric acid of concentration 0.0500 mol/dm³. The reaction is 1:1. Calculate the volume of acid needed.",
+                steps: [
+                    "Convert the volume to dm³: 25.0 cm³ ÷ 1000 = 0.0250 dm³.",
+                    "Find the moles of NaOH: n = c × V = 0.100 × 0.0250 = 0.00250 mol.",
+                    "The ratio is 1:1, so the acid also needs 0.00250 mol.",
+                    "Rearrange c = n ÷ V: V = n ÷ c = 0.00250 ÷ 0.0500 = 0.0500 dm³ = 50.0 cm³.",
+                ],
+                answer: "50.0 cm³ of hydrochloric acid",
+            },
+            {
+                prompt: "10.0 g of calcium carbonate, CaCO₃, decomposes completely: CaCO₃ → CaO + CO₂. Calculate the mass of calcium oxide formed. (Mᵣ: CaCO₃ = 100, CaO = 56)",
+                steps: [
+                    "Convert the reactant to moles: n = 10.0 ÷ 100 = 0.100 mol.",
+                    "The ratio CaCO₃ : CaO is 1:1, so 0.100 mol of CaO forms.",
+                    "Convert back to mass: m = n × Mᵣ = 0.100 × 56 = 5.60 g.",
+                ],
+                answer: "5.60 g of calcium oxide",
+            },
+        ],
+        traps: [
+            {
+                move: "Multiplies the mass by Mᵣ to find the number of moles.",
+                why: "The unit check exposes it: g × g/mol gives g²/mol, which is not a count. Dividing mass by Mᵣ makes the number smaller, as it should — a mole is a very large count, so a small mass contains a fraction of a mole (unless the substance is very light).",
+            },
+            {
+                move: "Uses the coefficients in the equation as a ratio of masses.",
+                why: "The coefficients count particles, or moles of particles, not grams. Convert the given mass to moles first, apply the coefficient ratio, then convert the product's moles back to grams using its own Mᵣ. A coefficient of 2 means twice as many particles, not twice as many grams.",
+            },
+            {
+                move: "Puts 25 cm³ straight into c = n ÷ V and gets a concentration a thousand times too large.",
+                why: "Concentration is per cubic decimetre. Convert cm³ to dm³ by dividing by 1000 before substituting: 25 cm³ = 0.025 dm³. The same numerical mistake appears when a volume of gas is given in cm³ but the molar volume is in dm³.",
+            },
+        ],
+        usedFor: "Titration, percentage yield, atom economy, gas volumes, electrolysis and every energy-per-mole calculation use the mole as their common currency. A balanced equation is the ratio; the mole is how you count with it.",
+        recap: [
+            "A mole is 6.02 × 10²³ particles; n = m ÷ Mᵣ converts mass to moles, and m = n × Mᵣ converts back.",
+            "Concentration is c = n ÷ V, with V in dm³; 1 dm³ = 1000 cm³.",
+            "The balanced equation gives the mole ratio; the limiting reagent is the reactant whose amount divided by its coefficient is smallest.",
+        ],
         review: "unreviewed",
-    };
+        provenance: "authored",
+    },
+    "energy-changes": {
+        conceptId: "energy-changes",
+        objective: "Classify a reaction as exothermic or endothermic, calculate ΔH from bond energies or calorimetry, and read a reaction profile without confusing Eₐ with ΔH.",
+        intuition: "A hand warmer gets hot when you open it; a cold pack gets cold. Both are chemical reactions exchanging energy with their surroundings. The hand warmer's products have less enthalpy than its reactants, so the difference leaves as heat. The cold pack absorbs energy, so its products have more enthalpy. The sign of ΔH is simply which way the energy went.",
+        idea: ENERGY_SECTIONS.flatMap((section) => section.body),
+        sections: ENERGY_SECTIONS,
+        terms: [
+            { term: "enthalpy change (ΔH)", meaning: "The heat energy exchanged with the surroundings at constant pressure; negative for exothermic, positive for endothermic." },
+            { term: "activation energy (Eₐ)", meaning: "The minimum energy colliding particles need to react; the height of the barrier on a reaction profile." },
+            { term: "bond enthalpy", meaning: "The average energy needed to break one mole of a particular covalent bond in the gaseous state." },
+            { term: "calorimetry", meaning: "An experiment that measures heat exchange from a temperature change, usually using q = m c ΔT." },
+            { term: "specific heat capacity", meaning: "The energy needed to raise the temperature of 1 g of a substance by 1 °C; for water it is about 4.18 J g⁻¹ °C⁻¹." },
+        ],
+        workedExamples: [
+            {
+                prompt: "Calculate ΔH for H₂ + Cl₂ → 2HCl using these average bond enthalpies: H–H 436, Cl–Cl 243, H–Cl 432 kJ/mol.",
+                steps: [
+                    "Energy absorbed breaking bonds: 436 + 243 = 679 kJ/mol.",
+                    "Energy released making bonds: two H–Cl bonds, so 2 × 432 = 864 kJ/mol.",
+                    "ΔH = energy in − energy out = 679 − 864 = −185 kJ/mol.",
+                    "The negative sign means more energy is released than absorbed, so the reaction is exothermic.",
+                ],
+                answer: "ΔH = −185 kJ/mol (exothermic)",
+            },
+            {
+                prompt: "A reaction raises the temperature of 100 g of water by 6.8 °C. The amount reacting is 0.0500 mol. Calculate ΔH per mole. (c = 4.18 J g⁻¹ °C⁻¹)",
+                steps: [
+                    "Calculate the heat gained by the water: q = m c ΔT = 100 × 4.18 × 6.8 = 2842.4 J.",
+                    "Convert to kJ: 2842.4 J ÷ 1000 = 2.842 kJ.",
+                    "Divide by the amount reacting: 2.842 ÷ 0.0500 = 56.8 kJ/mol.",
+                    "The water warmed, so the reaction released heat: the sign is negative.",
+                ],
+                answer: "ΔH = −56.8 kJ/mol",
+            },
+        ],
+        traps: [
+            {
+                move: "Says breaking bonds releases energy because the reaction gives out heat overall.",
+                why: "Breaking a bond always requires energy; forming a bond always releases it. A reaction is exothermic when the energy released by forming the products' bonds is GREATER than the energy absorbed by breaking the reactants' bonds. The overall sign comes from the difference, not from the direction of either half.",
+            },
+            {
+                move: "Gives an exothermic reaction a positive ΔH because the temperature rose.",
+                why: "The sign describes the reaction, not the thermometer. In an exothermic reaction the system loses enthalpy to the surroundings, so ΔH is negative while the surroundings' temperature rises. An endothermic reaction has a positive ΔH and the surroundings cool.",
+            },
+            {
+                move: "Calculates q = m c ΔT and reports q as the enthalpy change per mole.",
+                why: "q is the heat exchanged for the amount actually used, in joules. Enthalpy per mole needs q divided by the number of moles, converted to kJ/mol, with the sign chosen from the temperature change. Reporting q alone gives a total energy, not a molar quantity.",
+            },
+        ],
+        usedFor: "Fuels, hand warmers and cold packs, bond-energy calculations, calorimetry practicals and the energy balance of industrial reactions all use ΔH. The same sign convention returns in equilibrium, where heating shifts the position of a reversible reaction.",
+        recap: [
+            "ΔH is products' enthalpy minus reactants' enthalpy; negative is exothermic, positive is endothermic.",
+            "Breaking bonds costs energy; making bonds releases it; ΔH = bonds broken − bonds formed.",
+            "On a profile, Eₐ is the barrier from reactants to the peak, while ΔH is the difference between reactant and product levels.",
+        ],
+        review: "unreviewed",
+        provenance: "authored",
+        figure: {
+            spec: { kind: "energy-profile", reaction: "H₂ + Cl₂ → 2HCl", activation: 150, delta: -185 },
+            caption: "Reaction profile for H₂ + Cl₂ → 2HCl, schematic and not to scale. The vertical axis is energy; R marks the reactants and P the products. The peak is the transition state, and Eₐ is the activation energy — the barrier a collision must clear. P is below R, so the products have less enthalpy: ΔH is negative and the reaction is exothermic. The barrier is drawn to show the idea, not as a measured value.",
+        },
+    },
+};
+/** Every concept in the genome now has a plan: the pilot-authored lessons above,
+ *  the two authored chemistry lessons, plus a supplemental plan built from the
+ *  concept's own teaching note and a concept-specific lens. Supplemental plans
+ *  are marked unreviewed, so the pilot's review gate still means only the
+ *  candidates in the named packs.
+ *
+ *  The full registry is what `planFor` answers from. `pilotPlanIds()` is the
+ *  smaller set the review packs and the browser lesson walk measure. */
+// AUTHORED WINS, AND THE ORDER IS THE WHOLE RULE. The supplemental module
+// builds a plan for every concept that has a lens, and it is spread LAST in the
+// first version of this merge — so an authored plan whose concept also has a
+// lens was silently replaced by the generated one. Nothing threw: `planFor`
+// answered, the page rendered, the coverage counts looked right, and two new
+// lessons would have shipped as supplemental prose while their authors believed
+// they were live. Found by reading the registry (`place-value` reported
+// `provenance: "supplemental"`) rather than by trusting the file diff. The
+// generated plan is the FALLBACK; it is never allowed to shadow taught content.
+exports.LESSON_PLANS = {
+    ...lesson_plans_supplemental_1.SUPPLEMENTAL_LESSON_PLANS,
+    ...CHEMISTRY_AUTHORED_PLANS,
+    ...PILOT_LESSON_PLANS,
+};
+/** The plans that belong to the review packs, not the supplemental coverage. */
+function pilotPlanIds() {
+    return Object.keys(PILOT_LESSON_PLANS);
 }
-/** The plan for a concept, or null only when the id is not in the genome.
+/** The plan for a concept, or null when nobody has written one. Null is a real
+ *  answer, not an error: the page falls back to the genome's prose, so a concept
+ *  without a plan renders what it always did rather than an empty shell.
  *
- *  Authored plans are returned first. EVERY OTHER GENOME CONCEPT gets a derived
- *  structured lesson from its own genome explanation and its own descendants, so
- *  no valid concept can reach the page without teaching. The derived lesson is
- *  explicitly unreviewed and never enters the pilot's authored-plan registry.
- *
- *  WITH A LANGUAGE, an AUTHORED lesson comes in that language when a COMPLETE
+ *  WITH A LANGUAGE, THE LESSON COMES IN THAT LANGUAGE when a COMPLETE
  *  translation exists (lib/lesson-plans-intl.ts). English is answered without
  *  consulting the record at all, and an absent or PARTIAL translation answers
- *  the authored English — never a half-French lesson. Derived lessons have no
- *  translation and are English-authored content. */
+ *  the authored English — never a half-French lesson, which reads as the
+ *  product switching language mid-paragraph. The second argument is optional on
+ *  purpose: every existing caller and every assertion that reads a plan is
+ *  still asking "is there a lesson here", and that question has nothing to do
+ *  with the reader's language. */
 function planFor(conceptId, lang) {
     const base = exports.LESSON_PLANS[conceptId];
-    if (!base) {
-        const c = genome_1.CONCEPTS_BY_ID[conceptId];
-        return c ? derivedPlanFor(c) : null;
-    }
+    if (!base)
+        return null;
     if (!lang || lang === "en")
         return base;
     return (0, lesson_plans_intl_1.translatedPlanFor)(conceptId, lang, base) ?? base;
+}
+/** WHICH ROUTE THROUGH THE IDEA THIS LEARNER READS, and its paragraphs.
+ *
+ *  Thresholds, and why they are where they are:
+ *   - fewer than three answers is not evidence of anything, so the default
+ *     route is served rather than a route chosen from one lucky guess;
+ *   - struggling is accuracy BELOW 0.5 over at least three answers — a learner
+ *     getting most items wrong — and never applies to a learner whose mastery
+ *     has been established, because mastery outranks a bad early run;
+ *   - advanced requires mastery at 0.8 or more AND the three answers, so a
+ *     single correct answer does not promote anybody;
+ *   - a route that has not been authored falls back to the default, so the
+ *     function can only ever return teaching somebody wrote.
+ *  The returned `route` is the one ACTUALLY served, so a caller can tell
+ *  "default because no evidence" from "default because no alternate exists". */
+function ideaRouteFor(plan, evidence) {
+    const attempts = evidence?.attempts ?? 0;
+    const correct = evidence?.correct ?? 0;
+    const mastery = evidence?.mastery ?? 0;
+    const authored = plan.routes ?? [];
+    if (attempts >= 3) {
+        const accuracy = correct / attempts;
+        if (mastery >= 0.8) {
+            const advanced = authored.find((r) => r.when === "advanced");
+            if (advanced)
+                return { route: "advanced", idea: advanced.idea };
+        }
+        else if (accuracy < 0.5) {
+            const struggling = authored.find((r) => r.when === "struggling");
+            if (struggling)
+                return { route: "struggling", idea: struggling.idea };
+        }
+    }
+    return { route: "default", idea: plan.idea };
 }
 /** The languages this concept's lesson is COMPLETELY translated into, English
  *  excluded. Empty is the honest answer for almost the whole bank: one plan, one
@@ -32871,8 +35242,9 @@ function firstMoveOf(explanation) {
         return { first: m[1], rest: m[2] };
     return { first: explanation, rest: "" };
 }
-/** Which concepts have a plan. Reported, never asserted to be 135: a coverage
- *  number that lies is worse than a small honest one. */
+/** Which concepts have a plan: every concept in the genome today, including
+ *  the supplemental coverage. `pilotPlanIds()` remains the smaller reviewed
+ *  candidate set. */
 function plannedConceptIds() {
     return Object.keys(exports.LESSON_PLANS);
 }
@@ -35566,6 +37938,15 @@ exports.CORE_NUMERIC_GENS = {
         };
     },
     quadratics: (r) => {
+        if (r.next() < 0.5) {
+            const h = r.int(2, 8);
+            return {
+                prompt: `The equation x² + ${2 * h}x + c = 0 has exactly one solution. What is c?`,
+                value: h * h, wrongs: [h, h * h + 1, h * h - 1],
+                tags: ["lost-root"], difficulty: 0.66,
+                explanation: `A quadratic has exactly one solution when its two roots coincide, which happens when the expression is a perfect square. Half of the x-coefficient is ${h}, so the square is (x + ${h})² = x² + ${2 * h}x + ${h * h}; matching the constant gives c = ${h * h}. Answering ${h} takes half the coefficient as the constant, and ${h * h + 1} or ${h * h - 1} changes the square so it no longer has one repeated root.`,
+            };
+        }
         const p = r.int(1, 7), q = r.int(1, 7);
         return {
             prompt: `Solve x² − ${p + q}x + ${p * q} = 0. What is the LARGER root?`,
@@ -35604,6 +37985,17 @@ exports.CORE_NUMERIC_GENS = {
         };
     },
     surds: (r) => {
+        if (r.next() < 0.5) {
+            const rad = r.pick([2, 3, 5, 6, 7]);
+            const [a, b] = r.shuffle([1, 2, 3, 4]).slice(0, 2);
+            const n1 = a * a * rad, n2 = b * b * rad;
+            return {
+                prompt: `Write √${n1} + √${n2} in the form k√${rad}. What is k?`,
+                value: a + b, wrongs: [a * b, a + b + 1, Math.abs(a - b)],
+                tags: ["sqrt-prod"], difficulty: 0.65,
+                explanation: `Simplify each surd before adding: √${n1} = √(${a * a} × ${rad}) = ${a}√${rad}, and √${n2} = √(${b * b} × ${rad}) = ${b}√${rad}. The two terms now have the same radical, so they are like terms and their coefficients add: ${a} + ${b} = ${a + b}. Multiplying the coefficients (${a * b}) is the rule for √a × √b, not for a sum, and leaving them unsimplified hides that the radicals match.`,
+            };
+        }
         const k = r.pick([2, 3, 5, 6, 7]);
         const sq = r.pick([4, 9, 16, 25]);
         const n = k * sq;
@@ -35616,6 +38008,15 @@ exports.CORE_NUMERIC_GENS = {
         };
     },
     "completing-square": (r) => {
+        if (r.next() < 0.5) {
+            const h = r.int(2, 8), k = r.int(2, 9);
+            return {
+                prompt: `What is the minimum value of y = x² − ${2 * h}x + ${h * h + k}?`,
+                value: k, wrongs: [h * h + k, -h, h * h].filter((v) => v !== k),
+                tags: ["b-half"], difficulty: 0.66,
+                explanation: `Complete the square: half of −${2 * h} is −${h}, and (x − ${h})² expands to x² − ${2 * h}x + ${h * h}. The expression is therefore (x − ${h})² + ${k}; a square is never negative, so the smallest value is ${k}, reached when x = ${h}. Reading the constant ${h * h + k} as the minimum forgets to subtract the ${h * h} that completing the square introduced, and ${-h} is the x-value where the minimum occurs, not the minimum itself.`,
+            };
+        }
         const h = r.int(1, 8);
         return {
             prompt: `Write x² + ${2 * h}x + ${h * h + 5} in the form (x + p)² + q. What is q?`,
@@ -37671,6 +40072,7 @@ exports.noteHint = noteHint;
 exports.answerDisposition = answerDisposition;
 exports.servePractice = servePractice;
 const answer_1 = require("./answer");
+const response_mode_1 = require("./response-mode");
 const genome_1 = require("./genome");
 const question_bank_1 = require("./question-bank");
 const questions_1 = require("./questions");
@@ -37817,7 +40219,29 @@ function drawPractice(conceptId, seed, aim, served, slip) {
     // learner gets is still an item ON their slip, which is the whole purpose of a
     // repair serve, and the serve REPORTS the band it actually landed in
     // (`servePractice` reads it off the item), so nothing claims the climb moved.
-    const aims = [aim, Math.max(0.1, aim - 0.1), Math.max(0.1, aim - 0.2)];
+    //
+    // ── AND THE WIDENING IS TWO-SIDED, BECAUSE THE TAG CAN LIVE ABOVE ────────
+    //
+    // The descent fixed `fractions`, where the discriminating comparison item sits
+    // BELOW the tier aim. `percentages` is the mirror image, measured: its `pct-base`
+    // family sits at difficulty 0.40 and is tagged on 40/40 draws at the band aim
+    // 0.45, but a repair aims at 0.33 — and every extra draw at 0.33/0.23/0.13 moves
+    // AWAY from it (8/40, 5/40, 3/40 tagged). So the same eight draws found no tagged
+    // item, the serve honestly reported `slipCheck: false`, and the repair card never
+    // appeared for the one belief the bank can discriminate perfectly.
+    //
+    // Widening both ways keeps the descent that was measured to work and adds the
+    // ascent the measurement above demands. It cannot serve the learner a harder
+    // QUESTION than the repair's own aim in any sense that matters: the item is still
+    // chosen BECAUSE it trips their slip, and `servePractice` reports the band it
+    // actually landed in rather than claiming the climb moved.
+    const aims = [
+        aim,
+        Math.max(0.1, aim - 0.1),
+        Math.min(0.95, aim + 0.1),
+        Math.max(0.1, aim - 0.2),
+        Math.min(0.95, aim + 0.2),
+    ];
     for (let i = 1; i <= exports.SLIP_DRAW_ATTEMPTS; i++) {
         const tryAim = aims[i % aims.length];
         const q = (0, questions_1.generateQuestionNear)(conceptId, `${seed}#slip:${i}`, tryAim, exports.PRACTICE_DRAW_ATTEMPTS, served);
@@ -37863,6 +40287,11 @@ function servePractice(input) {
         question = drawn.question;
         slipCheck = drawn.targeted;
     }
+    // A PRACTICE ITEM MAY BE RE-ASKED AS A CONSTRUCTED ANSWER.
+    // The conversion is a property of THIS serve, applied before the key is
+    // recorded, so the staged item and the item the learner sees are the same one.
+    if (input.structuredResponses)
+        question = (0, response_mode_1.withStructuredResponse)(question);
     // Record the served item so the NEXT serve on this concept skips it. Always
     // appended, even a repeat: the list rotates, so the most recently served key
     // must move to the back.
@@ -42585,7 +45014,7 @@ exports.DATA_DEEP = {
             correct,
             wrongs: pickDistinct(correct, [`${deepNum(a + b, 2)} kg`, `${deepNum(total + 0.1, 2)} kg`, `${deepNum(total - 0.1, 2)} kg`, `${deepNum(a * b, 2)} kg`]),
             tags: [],
-            explanation: `Line up the decimal points and add: ${deepNum(a, 1)} + ${deepNum(b, 1)} + ${deepNum(c, 1)} = ${deepNum(total, 2)} kg. Adding only the first two (${deepNum(a + b, 2)}) drops a sample.`,
+            explanation: `The table gives three separate masses, so all three must be added: ${deepNum(a, 1)} + ${deepNum(b, 1)} + ${deepNum(c, 1)} = ${deepNum(total, 2)} kg. Lining up the decimal points keeps tenths with tenths, which is why the sum has one decimal place; adding only the first two (${deepNum(a + b, 2)}) drops the third sample and answers a different question.`,
             difficulty: 0.75 + r.next() * 0.05,
         };
     },
@@ -42664,7 +45093,7 @@ exports.DATA_DEEP = {
             correct,
             wrongs: pickDistinct(correct, [`£${rate * want}`, `£${base + rate * m1}`, `£${(base + rate * want) + rate}`, `£${want}`]),
             tags: [],
-            explanation: `The fare rises £${base + rate * m2 - (base + rate * m1)} over ${m2 - m1} miles, so the rate is £${rate} per mile and the fixed charge is £${base}. For ${want} miles: £${base} + ${rate} × ${want} = £${base + rate * want}. Ignoring the fixed charge gives £${rate * want}.`,
+            explanation: `The fare rises £${base + rate * m2 - (base + rate * m1)} between the two rows, and that increase buys ${m2 - m1} extra miles, so each mile costs £${rate}; that is the gradient. The fixed charge is the part that does not change with distance: £${base + rate * m1} − ${rate} × ${m1} = £${base}. For ${want} miles the fare is the fixed charge plus the mileage, £${base} + ${rate} × ${want} = £${base + rate * want}. Charging only the mileage (£${rate * want}) forgets the fixed charge, and reading the first row as the fixed charge ignores its miles.`,
             difficulty: 0.78 + r.next() * 0.05,
         };
     },
@@ -42678,7 +45107,7 @@ exports.DATA_DEEP = {
             correct,
             wrongs: pickDistinct(correct, [`(${x2 - x1}, ${y2 - y1})`, `(${x1 + x2}, ${y1 + y2})`, `(${(x1 + x2) / 2 + 1}, ${(y1 + y2) / 2})`, `(${x1}, ${y2})`]),
             tags: [],
-            explanation: `The midpoint averages each coordinate: x is (${x1} + ${x2}) ÷ 2 = ${(x1 + x2) / 2} and y is (${y1} + ${y2}) ÷ 2 = ${(y1 + y2) / 2}, giving ${correct}. Adding the coordinates instead of averaging gives (${x1 + x2}, ${y1 + y2}).`,
+            explanation: `The midpoint is halfway between the two points, so each coordinate is the AVERAGE of the two: x is (${x1} + ${x2}) ÷ 2 = ${(x1 + x2) / 2}, and y is (${y1} + ${y2}) ÷ 2 = ${(y1 + y2) / 2}, giving ${correct}. Adding the coordinates instead of averaging gives (${x1 + x2}, ${y1 + y2}), which is twice the midpoint and lies beyond both markers rather than between them.`,
             difficulty: 0.76 + r.next() * 0.05,
         };
     },
@@ -52866,7 +55295,7 @@ const MATHS_GENS = {
             prompt: `A hall has ${total} tickets. ${d1 - 1}/${d1} of them were sold online. Of the online tickets, 1/${d2} were later refunded. How many were refunded?`,
             correct: String(ans),
             wrongs: [String(online), String(total / d2), String(d2 * k)],
-            tags: [], explanation: `First step: ${d1 - 1}/${d1} of ${total} = ${online} tickets online. Second step: 1/${d2} OF THOSE is ${online} ÷ ${d2} = ${ans}. The second fraction acts on what the first left, not on the original ${total}.`,
+            tags: [], explanation: `First find the online tickets: ${d1 - 1}/${d1} of ${total} = ${online}. The refund acts on THOSE tickets, not on the whole hall: 1/${d2} of ${online} is ${online} ÷ ${d2} = ${ans}. Taking 1/${d2} of the original ${total} instead uses the wrong base, which is where ${total / d2} comes from.`,
             difficulty: 0.6,
         };
     },
@@ -52958,7 +55387,7 @@ const MATHS_GENS = {
                 prompt: `Work out ${n1}/${d1} ÷ ${n2}/${d2}.`,
                 correct,
                 wrongs: wrongs,
-                tags: [], explanation: `Keep–flip–multiply: ${n1}/${d1} × ${d2}/${n2} = ${num}/${den} = ${num / G}/${den / G}. Dividing by ${n2}/${d2} asks how many of them fit.`,
+                tags: [], explanation: `Keep the first fraction, flip the second and multiply: ${n1}/${d1} × ${d2}/${n2} = ${num}/${den}${G > 1 ? ` = ${num / G}/${den / G} after dividing top and bottom by ${G}` : ""}. The flip works because dividing by ${n2}/${d2} asks how many groups of ${n2}/${d2} fit into ${n1}/${d1}, and multiplying by ${d2}/${n2} counts exactly those groups. Multiplying straight across without flipping (${n1 * n2}/${d1 * d2}) answers a different question, so it is not the same division.`,
                 difficulty: 0.45,
             };
         };
@@ -52991,7 +55420,7 @@ const MATHS_GENS = {
             prompt: "Work out 2/3 ÷ 4/5.",
             correct: "5/6",
             wrongs: ["8/15", "15/8", "10/13"],
-            tags: [], explanation: "Keep–flip–multiply: 2/3 × 5/4 = 10/12 = 5/6. Dividing by 4/5 asks how many of them fit.",
+            tags: [], explanation: "Keep the first fraction, flip the second and multiply: 2/3 × 5/4 = 10/12 = 5/6 after dividing top and bottom by 2. The flip works because dividing by 4/5 asks how many groups of 4/5 fit into 2/3, and multiplying by 5/4 counts exactly those groups. Multiplying straight across without flipping (8/15) answers a different question.",
             difficulty: 0.45,
         };
     },
@@ -53069,7 +55498,7 @@ const MATHS_GENS = {
             prompt: `A price of $${start} rises by ${rise}%, then falls by ${rise}%. What is the final price (in $)?`,
             correct: fmtNum(mid + (mid * -rise) / 100),
             wrongs: [String(start), String(start - rise), String(mid + rise)],
-            tags: ["pct-base"], explanation: `${start} → ${mid} after the rise. The fall acts on ${mid}, not ${start}: ${mid} − ${rise}% of ${mid} = ${fmtNum(mid + (mid * -rise) / 100)}. Percentages act on the CURRENT base.`,
+            tags: ["pct-base"], explanation: `The rise takes ${start} to ${mid}, because ${rise}% of ${start} is ${mid - start}. The fall then acts on the new price, ${mid}, not on the original: ${rise}% of ${mid} is ${fmtNum((mid * rise) / 100)}, so the final price is ${fmtNum(mid - (mid * rise) / 100)}. The fall is larger in money than the rise because the base has grown, which is why the final price is below ${start}; taking ${rise}% off the original again would wrongly return ${start}.`,
             difficulty: 0.45,
         };
     },
@@ -53206,7 +55635,7 @@ const MATHS_GENS = {
                 `x² ${p * q < 0 ? "−" : "+"} ${Math.abs(p * q)}`,
                 `x² ${p + q < 0 ? "−" : "+"} ${Math.abs(p + q)}x ${p * q < 0 ? "+" : "−"} ${Math.abs(p * q)}`,
             ],
-            tags: ["sign-slip"], explanation: `x² + ${q}x + ${p}x + ${p * q} = x² ${p + q < 0 ? "−" : "+"} ${Math.abs(p + q)}x ${p * q < 0 ? "−" : "+"} ${Math.abs(p * q)}. Every term carries its sign.`,
+            tags: ["sign-slip"], explanation: `Multiply every term in the first bracket by every term in the second: x × x = x², x × ${q} = ${q}x, ${p} × x = ${p}x, and ${p} × ${q} = ${p * q}. The two x-terms are like terms, so ${q}x + ${p}x = ${p + q}x, giving x² ${p + q < 0 ? "−" : "+"} ${Math.abs(p + q)}x ${p * q < 0 ? "−" : "+"} ${Math.abs(p * q)}. The usual slip is dropping the ${p * q} term or losing its sign, which is why every term must carry its sign.`,
             difficulty: 0.45,
         };
     },
@@ -53263,7 +55692,7 @@ const MATHS_GENS = {
             prompt: `Solve x² − ${b}x + ${c} = 0. Give the smaller root.`,
             correct: String(Math.min(p, q)),
             wrongs: [String(Math.max(p, q)), String(-Math.min(p, q)), String(b)],
-            tags: ["lost-root"], explanation: `Factorise: (x − ${p})(x − ${q}) = 0, so x = ${p} or x = ${q}. The smaller root is ${Math.min(p, q)}.`,
+            tags: ["lost-root"], explanation: `The two numbers must multiply to ${c} and add to ${b}; ${p} and ${q} do both, so the equation factorises as (x − ${p})(x − ${q}) = 0. A product is zero only when one bracket is zero, so x = ${p} or x = ${q}. ${p === q ? `The two roots coincide, so the answer is ${p}.` : `The question asks for the smaller root, ${Math.min(p, q)}; ${Math.max(p, q)} is the other root and ${b} is their sum, not a root at all.`}`,
             difficulty: 0.5,
         };
     },
@@ -54856,7 +57285,7 @@ const LATE_GENS = {
                     `You subtracted the two coordinates instead of adding their squares. Pythagoras adds the legs, because they are at right angles — subtracting measures how much further one is than the other.`,
                     `That multiplies x by y, which is the area of the rectangle the point makes with the axes, not the distance from the origin to the point.`,
                 ],
-                tags: [], explanation: `Distance from the origin is Pythagoras: d = √(x² + y²) = √(${p.x}² + ${p.y}²)${whole ? ` = ${d}` : ` = √${d2}`}. Adding |x| + |y| measures the staircase walk, not the straight line.`,
+                tags: [], explanation: `The horizontal and vertical distances from the origin are the legs of a right-angled triangle: ${Math.abs(p.x)} across and ${Math.abs(p.y)} up. Pythagoras adds their SQUARES and takes the root, so d = √((${fmt(p.x)})² + (${fmt(p.y)})²) = √(${p.x * p.x} + ${p.y * p.y}) = √${d2}${whole ? ` = ${d}` : ""}. Adding ${Math.abs(p.x)} + ${Math.abs(p.y)} measures the staircase walk along the grid, which is longer than the straight line; subtracting the coordinates measures a difference, not a distance.`,
                 // The point and the origin it is measured FROM. The origin is the one
                 // thing the prompt names, so it is the one thing the plate labels; no
                 // connecting segment is drawn, because drawing the triangle would be
@@ -54970,7 +57399,8 @@ const LATE_GENS = {
                 prompt: `A goat is tethered by a 5 m rope to a post. Which shape shows everywhere the goat can reach?`,
                 correct: "A circle of radius 5 m centred on the post",
                 wrongs: ["A line 5 m from the post", "The interior of a 5 m square around the post", "A circle of radius 10 m centred on the post"],
-                tags: [], explanation: `Fixed distance from a fixed point: every reachable point is exactly 5 m away — that locus is a circle of radius 5 m centred on the post. Inside it the rope would be slack, not taut.`,
+                tags: [], figure: { kind: "pie", sectorDegrees: 360, slices: 6 },
+                explanation: `Fixed distance from a fixed point: every reachable point is exactly 5 m away — that locus is a circle of radius 5 m centred on the post. Inside it the rope would be slack, not taut.`,
                 difficulty: 0.35,
             };
         if (v === 1)
@@ -54978,7 +57408,8 @@ const LATE_GENS = {
                 prompt: `Points equidistant from two fixed points A and B lie on...`,
                 correct: "the perpendicular bisector of AB",
                 wrongs: ["the line AB itself", "a circle through A and B", "the angle bisector at A"],
-                tags: [], explanation: `Equal distance from both ends is the definition of the perpendicular bisector — it cuts AB in half at 90°. Compasses construct it as two equal arcs crossing.`,
+                tags: [], figure: { kind: "axes", xMin: -5, xMax: 5, yMin: -5, yMax: 5, lines: [{ from: [-5, 0], to: [5, 0] }] },
+                explanation: `Equal distance from both ends is the definition of the perpendicular bisector — it cuts AB in half at 90°. Compasses construct it as two equal arcs crossing.`,
                 difficulty: 0.4,
             };
         if (v === 2)
@@ -54986,14 +57417,16 @@ const LATE_GENS = {
                 prompt: `Points equidistant from two straight roads that cross lie on...`,
                 correct: "the angle bisectors of the roads",
                 wrongs: ["the perpendicular bisector of the roads", "a circle centred where they cross", "a line parallel to one road"],
-                tags: [], explanation: `Equal distance from two lines means equal perpendicular distance to each — that locus is the pair of angle bisectors. Bisect the angle where the roads cross with compasses.`,
+                tags: [], figure: { kind: "axes", xMin: -5, xMax: 5, yMin: -5, yMax: 5, lines: [{ from: [0, -5], to: [0, 5] }] },
+                explanation: `Equal distance from two lines means equal perpendicular distance to each — that locus is the pair of angle bisectors. Bisect the angle where the roads cross with compasses.`,
                 difficulty: 0.45,
             };
         return {
             prompt: `A fence must be built no more than 3 m from a straight hedge. Which region shows where the fence may go?`,
             correct: "A strip of width 3 m running along the hedge",
             wrongs: ["A circle of radius 3 m", "A line exactly 3 m from the hedge", "A 3 m × 3 m square at each end"],
-            tags: [], explanation: `"Within 3 m of a line" is a band: every point up to 3 m perpendicular distance. Combined loci like this (with, say, 10 m from a well) carve real site plans into allowed regions.`,
+            tags: [], figure: { kind: "rectangle", widthParts: [{ units: 1, label: "3 m" }], heightParts: [{ units: 3, label: "3 m" }], emphasis: ["strip"] },
+            explanation: `"Within 3 m of a line" is a band: every point up to 3 m perpendicular distance. Combined loci like this (with, say, 10 m from a well) carve real site plans into allowed regions.`,
             difficulty: 0.5,
         };
     },
@@ -55682,7 +58115,7 @@ function serveView(q, lang, board) {
     // `tolerance.unit` — the box needs to know it is grammatically wrong to the
     // 14th decimal. `choiceValues` is stripped too: it is the same four numbers
     // the visible options already state.
-    const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, choiceValues: _cv, choiceNotes: _cn, ...view } = q;
+    const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, answerFraction: _af, answerPair: _ap, choiceValues: _cv, choiceNotes: _cn, ...view } = q;
     if (lang && lang !== "en") {
         view.prompt = (0, qterms_1.localizeStem)(view.prompt, lang);
     }
@@ -56619,6 +59052,86 @@ function reconcileDeep(replayed, live) {
         diff(id, "answers", l.answers, m.answers, out);
     }
     return out;
+}
+
+});
+__def("response-mode.js", function (module, exports, require) {
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// A RECOGNITION ITEM, RE-ASKED AS PRODUCTION — but only when the answer really
+// has the shape the new control asks for.
+//
+// A four-option question whose options are all `3/4`, `5/6`, … measures whether
+// a learner RECOGNISES the right fraction among four. Asking for the numerator
+// and denominator instead measures whether they can produce it, which is the
+// achievement the lesson is about. The conversion is honest only when it is
+// exact: every option must be the same kind of value, the key must parse, and
+// the item must carry no per-option note (a note explains a WRONG OPTION, and a
+// typed answer has no option to explain).
+//
+// THE CONVERSION IS APPLIED BY THE PRACTICE SERVE, NOT BY THE GENERATOR. Papers,
+// the diagnostic and the published static twin are multiple-choice instruments
+// and must keep the four-option projection they were built for; the server route
+// asks for constructed responses explicitly (lib/operations.ts#ServeInput).
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.structuredResponseKind = structuredResponseKind;
+exports.withStructuredResponse = withStructuredResponse;
+const answer_1 = require("./answer");
+/** A plain number, with no unit, label or prose around it. The comma-separated
+ *  forms the bank uses for thousands are deliberately not accepted: converting
+ *  an item whose options are formatted differently from its answer would make
+ *  the typed comparison disagree with the printed one. */
+const PLAIN_NUMBER = /^-?\d+(?:\.\d+)?$/;
+/** Which constructed answer this item can honestly be re-asked as, or null. */
+function structuredResponseKind(q) {
+    // An item that already declares a constructed kind is not converted again.
+    if (q.responseKind && q.responseKind !== "choice")
+        return null;
+    if (!Array.isArray(q.choices) || q.choices.length !== 4)
+        return null;
+    // A per-option note is written for a distractor a learner can PICK. Typing an
+    // answer never picks one, so the note would be authored and unreachable.
+    if ((q.choiceNotes ?? []).some((note) => typeof note === "string" && note.trim()))
+        return null;
+    const options = q.choices.map((choice) => String(choice ?? "").trim());
+    const answer = options[q.answer];
+    if (!answer)
+        return null;
+    if (options.every((option) => (0, answer_1.parseFractionText)(option) !== null))
+        return "fraction";
+    if (options.every((option) => (0, answer_1.parsePairText)(option) !== null))
+        return "pair";
+    // A NUMBER, TYPED RATHER THAN PICKED. Conversion is exact because every
+    // option is a bare number and the key parses to the same value; the tolerance
+    // is a hairline, not a guess. This is the largest honest reduction of
+    // multiple-choice practice available from the existing bank, and it costs no
+    // content: the item is the same question, answered by production.
+    if (options.every((option) => PLAIN_NUMBER.test(option)))
+        return "numeric";
+    return null;
+}
+/** The item with its constructed kind and exact key attached; unchanged when
+ *  the options are not uniformly a fraction or a pair. */
+function withStructuredResponse(q) {
+    const kind = structuredResponseKind(q);
+    if (!kind)
+        return q;
+    const answer = String(q.choices[q.answer] ?? "").trim();
+    if (kind === "fraction") {
+        const fraction = (0, answer_1.parseFractionText)(answer);
+        return fraction ? { ...q, responseKind: "fraction", answerFraction: fraction } : q;
+    }
+    if (kind === "pair") {
+        const pair = (0, answer_1.parsePairText)(answer);
+        return pair ? { ...q, responseKind: "pair", answerPair: pair } : q;
+    }
+    const value = Number(answer);
+    // No `display` on the tolerance: a served view keeps `tolerance`, and a
+    // display string there would be the answer printed beside the box.
+    return Number.isFinite(value)
+        ? { ...q, responseKind: "numeric", answerValue: value, tolerance: { abs: 1e-9 } }
+        : q;
 }
 
 });
@@ -57917,21 +60430,20 @@ exports.SPECIFICATIONS = [
 ];
 // ── The two counts, kept apart on purpose ────────────────
 //
-// `SPECIFICATIONS.length` counts COURSES (25); it is not a country count and
+// `SPECIFICATIONS.length` counts COURSES (91); it is not a country count and
 // never was. The curriculum page printed it beside a dictionary string that said
 // "courses from 20 countries", so that line was wrong twice over: the sentence
 // counted the international (`INT`) and independent (`XX`) pseudo-countries as
 // countries, and the number in front of it was a course count. In the languages
-// whose sentence takes its number from the prefix, a learner read "25 countries",
-// which nothing in the data supports.
+// whose sentence takes its number from the prefix, a learner read a country
+// count that nothing in the data supports.
 //
-// The honest pair, for the record: **every country the registry records a
-// national pathway for has one** (GB, US, ZA, AU, CA, IE, IN, PK, BD, KE, TZ,
-// UG, NG, GH, PH, ID, BR, MX, and now Cameroon, which has TWO); the
-// international and independent courses serve everyone else; and the onboarding
-// picker offers 70 countries, so most of them are offered a real course that is NOT
-// their national curriculum. That is what the wording has to say — and this
-// constant is the ONE owner of the number, so no dictionary may re-bake it.
+// The honest pair, for the record: the picker offers 71 choices; 70 have a
+// national route and the 71st is "prefer not to say"; the international and
+// independent courses serve everyone else explicitly. Cameroon still contributes
+// two national courses but ONE national route. That is what the wording has to
+// say — and this constant is the ONE owner of the number, so no dictionary may
+// re-bake it.
 //
 // THE OWNER IS NOW THE REGISTRY, not a set built from the specification list.
 // Those two numbers used to agree by construction; they stopped being the same
@@ -58703,7 +61215,7 @@ const PLOT_LINE = {
             answer: 0,
             response: "graph",
             graph: { xMin: -4, xMax: 4, yMin: -4, yMax: 8, m: -1, c: 3, tolerance: { m: 0.15, c: 0.35 } },
-            explanation: "A gradient of −1 falls as it goes right: 1 right, 1 down. The line crosses the y-axis at (0, 3), so (0, 3) and (2, 1) both lie on it.",
+            explanation: "A gradient of −1 means the line falls as it goes right: one step right takes you one step down. The line crosses the y-axis at (0, 3), so (0, 3) and (2, 1) both lie on it, and either pair of points can define the same line.",
         },
         {
             id: "d",
@@ -58712,7 +61224,7 @@ const PLOT_LINE = {
             answer: 4,
             response: "readoff",
             readOff: { from: "c", at: -1, tolerance: 0.45 },
-            explanation: "On y = −x + 3, x = −1 gives y = 1 + 3 = 4. Reading from your own line is accepted when it is the line you stated.",
+            explanation: "On the line y = −x + 3, substituting x = −1 gives y = 1 + 3 = 4, so the read-off value is 4. The mark follows the line you actually stated in part (c), which is why a correct reading from your own graph is accepted.",
         },
     ],
 };
@@ -58742,8 +61254,7 @@ const LAWN_FEED = {
                 accept: ["7.5 × 4", "7.5 × 4 = 30", "7.5*4", "7.5 x 4", "7.5x4=30"],
                 label: "length × width",
             },
-            explanation: "Area of a rectangle is length × width: 7.5 × 4 = 30. Area is measured in square " +
-                "units, so the answer is 30 m² — a bare 30 names a length, not a region.",
+            explanation: "The area of a rectangle is its length multiplied by its width, so here 7.5 metres times 4 metres gives 30 square metres. Area is measured in square units, which is why the answer is written as 30 m²; a bare 30 would name a length, not the region the lawn covers.",
         },
         {
             id: "b",
@@ -58794,7 +61305,7 @@ const FOUNDATION_PROPORTION = {
             marks: 1,
             answer: 180,
             accepted: ["180"],
-            explanation: "A quarter of 240 is 60, because 240 ÷ 4 = 60. Three quarters is three of those parts: 3 × 60 = 180. Dividing by 4 and multiplying by 3 gives the same result, 240 × 3 ÷ 4 = 180.",
+            explanation: "A quarter of 240 is 60, because 240 ÷ 4 = 60. Three quarters means taking three of those quarter-parts, so 3 × 60 = 180. Dividing by 4 and then multiplying by 3 gives the same result, 240 × 3 ÷ 4 = 180. This works because finding a fraction of an amount is the same as multiplying by that fraction, and the order of multiplying and dividing does not change the value.",
         },
         {
             id: "b",
@@ -58802,7 +61313,7 @@ const FOUNDATION_PROPORTION = {
             marks: 1,
             answer: 276,
             accepted: ["276"],
-            explanation: "15% of 240 is 0.15 × 240 = 36. Increasing means adding that change to the original amount: 240 + 36 = 276. A single multiplier gives the same answer: 240 × 1.15 = 276.",
+            explanation: "Fifteen per cent of 240 is 0.15 × 240 = 36. Increasing by 15% means adding that change to the original amount, so 240 + 36 = 276. A single multiplier gives the same answer: 240 × 1.15 = 276, which is often quicker.",
         },
     ],
 };
@@ -58820,7 +61331,7 @@ const HIGHER_SURDS = {
             marks: 1,
             answer: 5,
             accepted: ["5"],
-            explanation: "Find a square factor of 50: 50 = 25 × 2, so √50 = √25 × √2 = 5√2. The value multiplying √2 is 5, and 5 is exact — a decimal such as 7.07 is an approximation of the whole surd, not k.",
+            explanation: "Find a square factor of 50: 50 = 25 × 2, so √50 = √25 × √2 = 5√2. The value multiplying √2 is therefore 5, and it is exact. A decimal such as 7.07 approximates the whole surd, not the coefficient k the question asks for.",
         },
         {
             id: "b",
@@ -58828,7 +61339,7 @@ const HIGHER_SURDS = {
             marks: 1,
             answer: 12,
             accepted: ["12"],
-            explanation: "Square each factor: (2√3)^2 = 2^2 × (√3)^2 = 4 × 3 = 12. The square root disappears because squaring and taking the positive square root are inverse operations for a positive number.",
+            explanation: "Square each factor separately: (2√3)^2 = 2^2 × (√3)^2 = 4 × 3 = 12. The square root disappears because squaring and taking the positive square root are inverse operations for a positive number, so the result is the integer 12.",
         },
     ],
 };
@@ -58856,7 +61367,7 @@ const FOUNDATION_ALGEBRA = {
             answer: 0,
             response: "algebra",
             algebra: { accepted: ["x^2 - 5x"], requireExpanded: true },
-            explanation: "Multiply x by each term: x × x = x² and x × (−5) = −5x. The expansion is x² − 5x. The term −5x keeps its sign; writing +5x is the common sign slip here.",
+            explanation: "Multiply x by each term inside the bracket: x × x = x² and x × (−5) = −5x. The expansion is therefore x² − 5x. The term −5x keeps its negative sign; writing +5x is the common sign slip this question is checking for.",
         },
         {
             id: "c",
@@ -58893,7 +61404,7 @@ const HIGHER_ALGEBRA = {
             answer: 0,
             response: "algebra",
             algebra: { accepted: ["6x^5"], requireExpanded: true },
-            explanation: "Multiply the coefficients: 2 × 3 = 6. Multiply the powers of x by adding the indices: x³ × x² = x^(3+2) = x⁵. The result is 6x⁵, not 6x⁶ — the indices add rather than multiply.",
+            explanation: "Multiply the coefficients first: 2 × 3 = 6. Then multiply the powers of x by adding their indices: x³ × x² = x^(3+2) = x⁵. The result is 6x⁵, not 6x⁶, because the indices add rather than multiply. The coefficient and the power are separate parts of the term, so they are handled separately before being written together.",
         },
         {
             id: "c",
@@ -58932,7 +61443,7 @@ const TABLE_LINE = {
                         ],
                     }],
             },
-            explanation: "Substitute each x into y = 2x + 1. At x = −1, 2 × (−1) + 1 = −1; at x = 0 the value is 1; at x = 1 it is 3; and at x = 2 it is 5. Each step adds 2 to y because the coefficient of x is 2.",
+            explanation: "Substitute each x value into the same rule, y = 2x + 1. At x = −1, 2 × (−1) + 1 = −1; at x = 0 the value is 1; at x = 1 it is 3; and at x = 2 it is 5. Each step adds 2 to y because the coefficient of x is 2.",
         },
     ],
 };
@@ -58962,7 +61473,7 @@ const TABLE_QUADRATIC = {
                         ],
                     }],
             },
-            explanation: "At x = −1, x² = 1 and −2x = 2, so y = 3. At x = 0 both terms are 0. At x = 1, 1 − 2 = −1. At x = 3, 9 − 6 = 3. The squared term is positive at both negative and positive x, while the −2x term changes sign.",
+            explanation: "At x = −1, x² = 1 and −2x = 2, so y = 3. At x = 0 both terms are 0. At x = 1, 1 − 2 = −1, and at x = 3, 9 − 6 = 3. The squared term is positive at both negative and positive x, while the −2x term changes sign.",
         },
     ],
 };
@@ -58979,7 +61490,7 @@ const FOUNDATION_ANGLES = {
             prompt: "Angles on a straight line add to how many degrees?",
             marks: 1,
             answer: 180,
-            explanation: "A straight angle is half a full turn. A full turn is 360°, so a straight line is 360° ÷ 2 = 180°. This is why two adjacent angles on a straight line are supplementary.",
+            explanation: "A straight angle is half of a full turn. A full turn is 360°, so the angle along a straight line is 360° ÷ 2 = 180°. This is why two adjacent angles on a straight line are called supplementary: together they make a straight angle.",
         },
         {
             id: "b",
@@ -58995,7 +61506,7 @@ const FOUNDATION_ANGLES = {
             marks: 1,
             answer: 70,
             accepted: ["70°"],
-            explanation: "The angles in a quadrilateral add to 360°. The three given angles total 90 + 90 + 110 = 290, so the fourth is 360 − 290 = 70°.",
+            explanation: "The four interior angles of a quadrilateral always add to 360°. The three given angles total 90 + 90 + 110 = 290, so the fourth angle must be 360 − 290 = 70°. Subtracting from 180 would apply to a triangle, not a quadrilateral.",
         },
         {
             id: "d",
@@ -59003,7 +61514,7 @@ const FOUNDATION_ANGLES = {
             marks: 1,
             answer: 70,
             accepted: ["70°"],
-            explanation: "The two base angles of an isosceles triangle are equal. They share 180 − 40 = 140°, so each is 140 ÷ 2 = 70°. The 40° is not one of the equal angles here.",
+            explanation: "The two base angles of an isosceles triangle are equal. Together they share the remaining 180 − 40 = 140°, so each base angle is 140 ÷ 2 = 70°. The 40° apex angle is not one of the equal angles in this triangle.",
         },
         {
             id: "e",
@@ -59011,7 +61522,7 @@ const FOUNDATION_ANGLES = {
             marks: 1,
             answer: 72,
             accepted: ["72°"],
-            explanation: "The exterior angles of any polygon add to 360°. A regular pentagon has five equal exterior angles, so each is 360 ÷ 5 = 72°. The interior angle would be 108°, not 72°.",
+            explanation: "The exterior angles of any polygon add to 360°. A regular pentagon has five equal exterior angles, so each one is 360 ÷ 5 = 72°. The interior angle would be 108°, not 72°, because the interior and exterior angles lie on a straight line.",
         },
     ],
 };
@@ -59029,14 +61540,14 @@ const HIGHER_ANGLES = {
             marks: 1,
             answer: 90,
             accepted: ["90°"],
-            explanation: "The angle in a semicircle is a right angle. A diameter cuts the circle into two semicircles, so any angle subtended by it at the circumference is 90°.",
+            explanation: "The angle in a semicircle is a right angle. A diameter cuts the circle into two semicircles, so any angle subtended by that diameter at the circumference is 90°. This is a special case of the angle at the centre being twice the angle at the circumference.",
         },
         {
             id: "b",
             prompt: "Opposite angles of a cyclic quadrilateral add to how many degrees?",
             marks: 1,
             answer: 180,
-            explanation: "A cyclic quadrilateral has all four vertices on a circle. Each pair of opposite angles is supplementary, so the pair adds to 180°.",
+            explanation: "A cyclic quadrilateral has all four of its vertices on the same circle. Each pair of opposite angles is supplementary, so the two angles in a pair add to 180°. This is different from the 360° total for all four angles.",
         },
         {
             id: "c",
@@ -59044,7 +61555,7 @@ const HIGHER_ANGLES = {
             marks: 1,
             answer: 106,
             accepted: ["106°"],
-            explanation: "Opposite angles in a cyclic quadrilateral add to 180°. The opposite angle is 180 − 74 = 106°. Using 360 here would be the whole quadrilateral rather than the opposite-angle pair.",
+            explanation: "Opposite angles in a cyclic quadrilateral add to 180°. The opposite angle is therefore 180 − 74 = 106°. Using 360 here would give the whole quadrilateral rather than the opposite-angle pair, which is the common slip.",
         },
         {
             id: "d",
@@ -59052,7 +61563,7 @@ const HIGHER_ANGLES = {
             marks: 1,
             answer: 90,
             accepted: ["90°"],
-            explanation: "A tangent is perpendicular to the radius at the point of contact, so the angle between them is 90°.",
+            explanation: "A tangent touches the circle at exactly one point. At that point of contact, the tangent is perpendicular to the radius drawn to it, so the angle between the tangent and the radius is 90°.",
         },
         {
             id: "e",
@@ -59060,7 +61571,7 @@ const HIGHER_ANGLES = {
             marks: 1,
             answer: 64,
             accepted: ["64°"],
-            explanation: "The angle at the centre is twice the angle at the circumference when both stand on the same arc. The circumference angle is 128 ÷ 2 = 64°, not 128 × 2.",
+            explanation: "When both angles stand on the same arc, the angle at the centre is twice the angle at the circumference. The circumference angle is therefore 128 ÷ 2 = 64°, not 128 × 2. The centre angle is the larger of the two.",
         },
     ],
 };
@@ -59079,7 +61590,7 @@ const HIGHER_CONTEXT = {
             answer: 0,
             response: "algebra",
             algebra: { accepted: ["x^2 + 5x + 6"], requireExpanded: true },
-            explanation: "Area of a rectangle is length × width: (x + 3)(x + 2). Expanding gives x² + 2x + 3x + 6 = x² + 5x + 6. The two middle terms are both positive, which is why the coefficient of x is 5.",
+            explanation: "The area of a rectangle is length × width, so multiply (x + 3) by (x + 2). Expanding every pair gives x² + 2x + 3x + 6 = x² + 5x + 6. The two middle terms are both positive, which is why the coefficient of x is 5.",
         },
         {
             id: "b",
@@ -59131,7 +61642,7 @@ const HIGHER_SEQUENCES = {
             marks: 2,
             answer: 62,
             accepted: ["62"],
-            explanation: "Substitute n = 20 into 3n + 2: 3 × 20 + 2 = 60 + 2 = 62. Using n = 20 rather than adding 3 twenty times is the point of the nth-term expression.",
+            explanation: "Substitute n = 20 into the nth-term expression 3n + 2: 3 × 20 + 2 = 60 + 2 = 62. Using n = 20 directly, rather than adding 3 twenty times, is exactly what the nth-term expression is for. The expression encodes both the starting value and the common difference, so one substitution gives any term without listing the sequence.",
         },
         {
             id: "c",
@@ -59698,10 +62209,32 @@ __def("subjects.js", function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SUBJECT_LABELS = exports.SUBJECT_IDS = void 0;
+exports.withMainSubject = withMainSubject;
 exports.subjectLabel = subjectLabel;
 exports.subjectFromParam = subjectFromParam;
 const i18n_1 = require("./i18n");
 exports.SUBJECT_IDS = ["maths", "physics", "chemistry", "biology", "computing"];
+/**
+ * Put a learner's MAIN subject first, without inventing a second record.
+ *
+ * `subjects[0]` is the subject the shell, Home, the context strip and the
+ * baseline diagnostic open by default. Adding chemistry to a physics-only
+ * profile used to leave physics first, so a learner who believed they had
+ * changed subject still met physics everywhere. This is the ONE owner of that
+ * order: the chosen main subject leads, the rest keep their own order, and a
+ * duplicate or unknown value cannot enter the list.
+ */
+function withMainSubject(subjects, main) {
+    const out = [];
+    const seen = new Set();
+    for (const subject of [main, ...subjects]) {
+        if (!subject || seen.has(subject) || !exports.SUBJECT_IDS.includes(subject))
+            continue;
+        seen.add(subject);
+        out.push(subject);
+    }
+    return out;
+}
 exports.SUBJECT_LABELS = {
     maths: "subj.maths",
     physics: "subj.physics",
@@ -59769,6 +62302,8 @@ __def("sync-queue.js", function (module, exports, require) {
 // ─────────────────────────────────────────────────────────────────────────────
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setAnswerWire = setAnswerWire;
+exports.setSyncScope = setSyncScope;
+exports.clearQueueFor = clearQueueFor;
 exports.readQueue = readQueue;
 exports.refusedAnswers = refusedAnswers;
 exports.queueSummary = queueSummary;
@@ -59789,6 +62324,39 @@ function setAnswerWire(next) {
 }
 const KEY = "openmind:sync-queue";
 const REFUSED_KEY = "openmind:sync-refused";
+// ── WHOSE QUEUE IS THIS? ────────────────────────────────────────────────────
+// A school handset is shared. A queue keyed only by the device would let one
+// pupil's saved answers drain while another pupil is signed in — the wrong
+// learner's work, recorded under the wrong account. The active profile scopes
+// both keys; sign-out clears that profile's queue before the identity changes.
+// A null scope is the legacy/test shape and remains one queue, as it was.
+let scope = null;
+function scopedFor(owner, key) {
+    return owner ? `${key}:${owner}` : key;
+}
+function scoped(key) {
+    return scopedFor(scope, key);
+}
+/** Bind the queue to the learner whose work it holds. Called by the shell when
+ *  the profile is known and by sign-out before the identity is cleared. */
+function setSyncScope(learnerId) {
+    scope = learnerId && /^[A-Za-z0-9_-]{4,96}$/.test(learnerId) ? learnerId : null;
+}
+/** Drop one learner's held answers and refusal record. Used at sign-out, when
+ *  the next person on the device must not inherit the previous person's work. */
+function clearQueueFor(learnerId) {
+    // REMOVE, do not write []. An empty key still tells the next person on a
+    // shared handset which learner was here, and makes a sign-out cleanup check
+    // look like it failed. The queue's absence is the same state as an empty one.
+    const s = store();
+    if (!s)
+        return;
+    try {
+        s.removeItem(scopedFor(learnerId, KEY));
+        s.removeItem(scopedFor(learnerId, REFUSED_KEY));
+    }
+    catch { /* storage blocked */ }
+}
 /** How many answers one device may hold. Reaching it REFUSES the new answer
  *  (visibly) instead of evicting an older one: dropping a learner's work to make
  *  room for newer work is the one thing a queue must never do. */
@@ -59835,7 +62403,7 @@ function writeJson(key, value) {
 /** Held answers, in the order the learner answered them. Malformed rows are
  *  skipped rather than thrown on: one bad row must not hide the others. */
 function readQueue() {
-    const rows = readJson(KEY).filter((r) => r && typeof r.submissionId === "string" && r.submissionId.length > 0 &&
+    const rows = readJson(scoped(KEY)).filter((r) => r && typeof r.submissionId === "string" && r.submissionId.length > 0 &&
         typeof r.url === "string" && r.url.length > 0 &&
         typeof r.seq === "number" && Number.isFinite(r.seq) &&
         r.body !== null && typeof r.body === "object");
@@ -59850,7 +62418,7 @@ function readQueue() {
     return rows.sort((a, b) => a.seq - b.seq);
 }
 function refusedAnswers() {
-    return readJson(REFUSED_KEY);
+    return readJson(scoped(REFUSED_KEY));
 }
 function queueSummary() {
     const held = readQueue();
@@ -59873,7 +62441,7 @@ function newSubmissionId() {
 function refuse(entry) {
     const list = refusedAnswers();
     list.push(entry);
-    writeJson(REFUSED_KEY, list.slice(-MAX_REFUSED));
+    writeJson(scoped(REFUSED_KEY), list.slice(-MAX_REFUSED));
 }
 /**
  * Hold one answer for replay. Idempotent in `submissionId`: holding the same
@@ -59908,7 +62476,7 @@ function enqueueAnswer(op) {
         tries: 0,
         queuedAt,
     });
-    writeJson(KEY, list);
+    writeJson(scoped(KEY), list);
     return { accepted: true, pending: list.length };
 }
 /** A status a LATER attempt could still succeed on: the network, the server, or
@@ -60024,18 +62592,18 @@ async function runFlush() {
         // queue behind something that can never succeed.
         refuse({ submissionId: op.submissionId, reason: "rejected", status: res.status, at: Date.now() });
     }
-    writeJson(KEY, stillHeld);
+    writeJson(scoped(KEY), stillHeld);
     return { synced, pending: stillHeld.length, refused: refusedAnswers().length };
 }
 /** Forget the refusal record once it has been shown. Held answers are NOT
  *  cleared here: only the server may retire those, by accepting them. */
 function clearRefused() {
-    writeJson(REFUSED_KEY, []);
+    writeJson(scoped(REFUSED_KEY), []);
 }
 /** Test/teardown seam: drop everything this device is holding. */
 function clearQueue() {
-    writeJson(KEY, []);
-    writeJson(REFUSED_KEY, []);
+    writeJson(scoped(KEY), []);
+    writeJson(scoped(REFUSED_KEY), []);
 }
 
 });
@@ -60654,7 +63222,7 @@ function canTransfer(conceptId) {
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 72 },
+      meta: { modules: 77 },
     };
   });
   return __req("__entry__.js");

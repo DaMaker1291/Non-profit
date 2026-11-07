@@ -3271,7 +3271,7 @@ const SKILL_RANK: Record<string, number> = { recall: 0, application: 1, multi_st
  *  the point of the architecture — leaking the answer would make "practice"
  *  a multiple-choice cheat sheet, and the tags are the grader's own
  *  discriminators, not learner-facing data. */
-export type QuestionView = Omit<Question, "answer" | "explanation" | "misconceptionTags" | "answerValue" | "choiceValues">;
+export type QuestionView = Omit<Question, "answer" | "explanation" | "misconceptionTags" | "answerValue" | "answerFraction" | "answerPair" | "choiceValues">;
 
 /** Strip grader-only fields. When a language is supplied, maths command-stem
  *  prompts are localized ("Work out" → "Calcula" …) — bodies keep their
@@ -3283,7 +3283,7 @@ export function serveView(q: Question, lang?: string, board?: BoardId): Question
   // `tolerance.unit` — the box needs to know it is grammatically wrong to the
   // 14th decimal. `choiceValues` is stripped too: it is the same four numbers
   // the visible options already state.
-  const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, choiceValues: _cv, choiceNotes: _cn, ...view } = q;
+  const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, answerFraction: _af, answerPair: _ap, choiceValues: _cv, choiceNotes: _cn, ...view } = q;
   if (lang && lang !== "en") {
     view.prompt = localizeStem(view.prompt, lang);
   } else if (board) {
