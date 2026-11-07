@@ -40,6 +40,7 @@ import WorkSheet from "@/components/work-sheet";
 import ListenFirst from "@/components/listen-first";
 import PeerTeach from "@/components/peer-teach";
 import LessonWorkedExample from "@/components/lesson-worked-example";
+import LessonStudyTools from "@/components/lesson-study-tools";
 import LessonView from "@/components/content-platform/lesson-view";
 import { lessonDocumentFor } from "@/lib/content-platform/flagships";
 import RepairCard from "@/components/repair-card";
@@ -860,6 +861,20 @@ export default function ConceptPage() {
       </nav>
       )}
 
+      {/* THE FOUR DOORS INTO THIS IDEA, BEFORE THE LONG READ.
+          The lesson already had a live worked example and real practice, but
+          they sat below several screens of prose; a learner could leave without
+          knowing they existed. This panel is navigation, not a replacement for
+          the teaching: the first three doors stay inside this lesson, and the
+          external routes are searches on the provider's own site. */}
+      {showing === "read" && (
+        <LessonStudyTools
+          conceptId={conceptId}
+          subject={c.subject}
+          onPractise={() => setView("practise")}
+        />
+      )}
+
       {/* ── STAGE ONE: READ ─────────────────────────────────────────────────
           What OpenMind knows here, the lesson, the teach-back, the traps and the
           evidence. Nothing on this stage is the session, so nothing here
@@ -1115,7 +1130,7 @@ export default function ConceptPage() {
           the idea has to land, instead of two-to-four sentences doing all of it at
           once. Concepts without a plan keep the split-prose rendering below, so
           nothing regressed into an empty card. */}
-      <div className="card" style={{ marginBottom: 18 }}>
+      <div className="card" id="lesson-idea" style={{ marginBottom: 18 }}>
         <p className="eyebrow">{t("learn.idea")}</p>
         {/* A NON-DEFAULT ROUTE COMES FIRST, AHEAD OF THE AUTHORED LESSON.
 
@@ -1286,7 +1301,9 @@ export default function ConceptPage() {
         </p>
       )}
 
-      <LessonWorkedExample conceptId={conceptId} />
+      <div id="lesson-worked">
+        <LessonWorkedExample conceptId={conceptId} />
+      </div>
 
       {/* AUTHORED EXAMPLES, WHERE THE CONCEPT NEEDS MORE THAN ONE. The live
           example above comes from the bank and proves the method on a real item;

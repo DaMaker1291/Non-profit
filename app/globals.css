@@ -2737,6 +2737,12 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
      cut off. Lifted clear of the bar instead of hidden behind it. */
   .access-btn { bottom: calc(70px + env(safe-area-inset-bottom)); }
   .topbar-logo { display: inline-flex; }
+  /* THE PAGE NAME IS THE H1, SO THE BAR DOES NOT REPEAT IT HERE EITHER.
+     At 768px the name had 80px and needed up to 117px: "Exam papers" was
+     clipped and printed into the language picker beside it. The H1 states the
+     page a few lines below, and the course strip is already retired at this
+     width, so the duplicate leaves the bar to the controls. */
+  .topbar-where { display: none; }
   .topbar-search input { width: 140px; }
   .search-results { width: min(320px, calc(100vw - 36px)); }
   .sample-wrap { grid-template-columns: 1fr; }
@@ -2858,6 +2864,44 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     display: block; max-width: 100%;
   }
+}
+
+/* ── THE SMALLEST PHONE GETS TWO DELIBERATE ROWS, NOT A CRUSHED ONE ────────
+   At 320px the one-line header had five things asking for the same 320px:
+   the wordmark, the language picker, the theme switch and the account button.
+   The language picker paid for the shortfall — measured at 320px it was 22px
+   wide, showing only the native arrow and none of the learner's language.
+   A control that cannot say which language is selected is not a compact
+   control, it is a missing one.
+
+   Below 375px the header becomes two short rows: identity and account on the
+   first, language and theme on the second. The common 375px phone still fits
+   the one-line header, so this is the exception rather than the new rule. The
+   grid removes the spacer entirely; there is no middle item left to push. */
+@media (max-width: 374px) {
+  /* 108, not the 106 the grid's rows add up to: the bar's 1.5px bottom
+     rule is part of its used height, and a sticky offset 1.5px short lets
+     the next sticky row sit under the rule. Measured at 320px after the
+     grid landed: the bar was 107.5px tall against a 106px variable. */
+  :root { --topbar-h: 108px; }
+  .topbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "logo . account"
+      "lang . theme";
+    align-items: center;
+    gap: 6px 8px;
+    min-height: var(--topbar-h);
+    padding-block: 8px;
+  }
+  .topbar-logo { grid-area: logo; justify-self: start; }
+  .topbar > .btn { grid-area: account; justify-self: end; }
+  .topbar > .lang-compact { grid-area: lang; justify-self: start; }
+  .topbar > .theme-btn { grid-area: theme; justify-self: end; }
+  .topbar-where,
+  .topbar-search,
+  .topbar-spacer { display: none; }
 }
 
 /* Print: the exercise sheet, without the chrome. */
@@ -3205,6 +3249,49 @@ input.numeric-input:focus { outline: none; box-shadow: none; }
 }
 .lesson-map-node.this text { fill: var(--accent-strong, var(--accent)); }
 .lesson-map figcaption { margin-top: 8px; line-height: 1.45; }
+
+/* ── THE FOUR DOORS INTO A LESSON ─────────────────────────────────────────
+   The lesson has the teaching, a live worked example and practice; the panel
+   makes that route visible before the long read. The first three controls are
+   anchors/actions inside this page, and the provider chips are ordinary
+   outbound links. The chips wrap rather than widening a phone. */
+.study-tools { margin-bottom: 18px; }
+.study-steps {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px; margin-top: 10px;
+}
+.study-step {
+  display: flex; align-items: center; gap: 8px; min-height: 52px;
+  padding: 10px 12px; text-align: start; text-decoration: none;
+  border: 1.5px solid var(--line); border-radius: var(--radius-input);
+  background: var(--surface); color: var(--text);
+  font-family: var(--font); font-size: var(--t14); font-weight: 650;
+  cursor: pointer;
+}
+.study-step:hover { border-color: var(--accent); background: var(--surface-sunken); }
+.study-step:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+.study-step-num { flex: none; font-family: var(--mono); font-size: var(--t11); color: var(--accent); }
+.study-links-label { margin: 12px 0 6px; }
+.study-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.study-link {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 44px;
+  padding: 8px 11px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--text); text-decoration: none;
+  font-size: var(--t12-5);
+}
+.study-link:hover { border-color: var(--accent); background: var(--surface-sunken); }
+.study-link:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+#lesson-idea, #lesson-worked { scroll-margin-top: calc(var(--topbar-h) + 12px); }
+@media (max-width: 560px) {
+  .study-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .study-step {
+    flex-direction: column; align-items: flex-start; gap: 2px;
+    min-height: 72px; padding: 8px; font-size: var(--t13); line-height: 1.25;
+  }
+  .study-step-num { font-size: var(--t10); }
+  .study-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .study-link { justify-content: flex-start; min-height: 44px; padding: 7px 10px; }
+}
 
 /* ── A LESSON IS A SEQUENCE, NOT A WALL ───────────────────────────────────
    A list of five paragraphs in one card is read as one block, however correct
