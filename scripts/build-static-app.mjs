@@ -110,6 +110,7 @@ const ENTRY = {
   // 0.75 is right.
   answer: "answer",
   i18n: "i18n",
+  i18nLessons: "i18n-lessons",
   contentI18n: "content-i18n",
   // The published numbers' one source of truth, so the static build fills
   // "{languages} languages" from the same catalogue the server does rather than

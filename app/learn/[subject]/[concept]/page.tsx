@@ -45,7 +45,7 @@ import { lessonDocumentFor } from "@/lib/content-platform/flagships";
 import RepairCard from "@/components/repair-card";
 import { repairFor } from "@/lib/repair";
 import { planFor, ideaRouteFor, teachingLanguages, sectionsFor } from "@/lib/lesson-plans";
-import { videoFor, videoScopeLabel } from "@/lib/lesson-media";
+import { videoFor, videoScopeKey } from "@/lib/lesson-media";
 // THE AUTHORED LESSON, WHERE ONE EXISTS.
 //
 // lib/lessons/authored is the authored set, judged against openmind.lesson/1.0
@@ -1052,9 +1052,9 @@ export default function ConceptPage() {
                     : " · captions"}
             </span>
             <span className="lesson-video-summary small muted">{lessonVideo.summary}</span>
-            <span className="lesson-video-scope small muted">{videoScopeLabel(lessonVideo)}</span>
+            <span className="lesson-video-scope small muted">{t(videoScopeKey(lessonVideo))}</span>
             <span className="lesson-video-note small muted">
-              Opens {lessonVideo.source} in a new tab. Needs internet; the lesson below teaches the same idea without it.
+              {fill(t("lesson.videoOpen"), { source: lessonVideo.source })}
             </span>
           </span>
         </a>
@@ -1145,13 +1145,13 @@ export default function ConceptPage() {
               <section className="lesson-section" key={i}>
                 <div className="lesson-section-head">
                   <span className="lesson-section-number" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
-                  <h3 className="lesson-section-title">{section.heading}</h3>
+                  <h3 className="lesson-section-title">{section.headingKey ? t(section.headingKey) : section.heading}</h3>
                 </div>
                 {section.body.map((para, j) => (
                   <p key={j} className="reading lesson-text">{para}</p>
                 ))}
                 {section.formula && (
-                  <div className="lesson-formula" aria-label="Formula">
+                  <div className="lesson-formula" aria-label={t("lesson.formula")}>
                     <code>{section.formula}</code>
                   </div>
                 )}

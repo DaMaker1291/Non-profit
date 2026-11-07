@@ -9,6 +9,8 @@
 // is a navigation aid, not a replacement for the teaching.
 import { ctitle } from "@/lib/content-i18n";
 import { useI18n } from "@/lib/client";
+import { fill } from "@/lib/i18n";
+import { listNames } from "@/lib/i18n-lessons";
 import { lessonMapFor, wrapLessonMapLabel } from "@/lib/lesson-map";
 
 function labelFor(id: string, lang: string): string {
@@ -16,7 +18,7 @@ function labelFor(id: string, lang: string): string {
 }
 
 export function LessonMap({ conceptId }: { conceptId: string }) {
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const map = lessonMapFor(conceptId);
   if (!map) return null;
   const before = map.nodes.filter((n) => n.role === "before");
@@ -25,16 +27,17 @@ export function LessonMap({ conceptId }: { conceptId: string }) {
   const beforeNames = before.map((n) => labelFor(n.id, lang));
   const afterNames = after.map((n) => labelFor(n.id, lang));
   const nearbyNames = nearby.map((n) => labelFor(n.id, lang));
+  const conceptName = labelFor(conceptId, lang);
   const caption = [
     beforeNames.length
-      ? `${labelFor(conceptId, lang)} comes after ${beforeNames.join(" and ")}.`
-      : `${labelFor(conceptId, lang)} starts this learning path.`,
+      ? fill(t("lesson.mapAfter"), { concept: conceptName, names: listNames(lang, beforeNames) })
+      : fill(t("lesson.mapStart"), { concept: conceptName }),
     afterNames.length
-      ? `It leads on to ${afterNames.join(" and ")}.`
+      ? fill(t("lesson.mapNext"), { names: listNames(lang, afterNames) })
       : nearbyNames.length
-        ? `Other ideas in this subject nearby: ${nearbyNames.join(" and ")}.`
-        : "It has no next concept in this pathway yet.",
-    "This is a map of the learning path, not a diagram of the science itself.",
+        ? fill(t("lesson.mapNearby"), { names: listNames(lang, nearbyNames) })
+        : t("lesson.mapEnd"),
+    t("lesson.mapNote"),
   ].join(" ");
 
   return (

@@ -85,6 +85,10 @@ export type PlanReview =
  *  into one undifferentiated card is how a lesson becomes a wall of text. */
 export interface LessonSection {
   readonly heading: string;
+  /** A dictionary key for a STRUCTURAL heading (not authored prose). The
+   *  renderer translates this at the last moment; authored sections leave it
+   *  absent and keep their own heading. */
+  readonly headingKey?: string;
   readonly body: readonly string[];
   /** One display formula for this section, e.g. "n = m / Mᵣ". */
   readonly formula?: string;
@@ -1847,9 +1851,15 @@ export function sectionsFor(plan: LessonPlan): readonly LessonSection[] {
   if (!ideas.length) return [];
   const groups: string[][] = [];
   for (let i = 0; i < ideas.length; i += 2) groups.push(ideas.slice(i, i + 2));
-  const headings = ["The core idea", "Building the idea", "Putting it together", "Extending the idea"];
+  const headings = [
+    { key: "lesson.sectionCore", text: "The core idea" },
+    { key: "lesson.sectionBuild", text: "Building the idea" },
+    { key: "lesson.sectionTogether", text: "Putting it together" },
+    { key: "lesson.sectionExtend", text: "Extending the idea" },
+  ];
   return groups.map((body, i) => ({
-    heading: headings[Math.min(i, headings.length - 1)],
+    heading: headings[Math.min(i, headings.length - 1)].text,
+    headingKey: headings[Math.min(i, headings.length - 1)].key,
     body,
   }));
 }

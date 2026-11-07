@@ -89,11 +89,10 @@ export function videoFor(plan: LessonPlan): LessonVideo | null {
   return subject ? SUBJECT_VIDEOS[subject] ?? null : null;
 }
 
-/** The scope sentence a card must print, in one place for both renderers. */
-export function videoScopeLabel(video: LessonVideo): string {
-  return video.scope === "subject"
-    ? "Subject overview · not specific to this idea"
-    : "Walkthrough for this idea";
+/** The dictionary key a card must print, so the renderer translates it rather
+ *  than this module hardcoding English into fifteen languages. */
+export function videoScopeKey(video: LessonVideo): "lesson.videoConcept" | "lesson.videoSubject" {
+  return video.scope === "subject" ? "lesson.videoSubject" : "lesson.videoConcept";
 }
 
 /** How many lessons are taught by a concept-specific video. Exported so the

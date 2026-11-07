@@ -1423,7 +1423,7 @@
         return "<li>" + esc(step) + "</li>";
       }).join("") + "</ol>" : "";
       return '<section class="lesson-section"><div class="lesson-section-head"><span class="lesson-section-number">' +
-        String(i + 1).padStart(2, "0") + '</span><h3 class="lesson-section-title">' + esc(section.heading) + "</h3></div>" +
+        String(i + 1).padStart(2, "0") + '</span><h3 class="lesson-section-title">' + esc(section.headingKey ? t(section.headingKey) : section.heading) + "</h3></div>" +
         body + formula + table + steps + "</section>";
     }).join("") : plan.idea.map(function (para) {
       return '<p style="margin:10px 0 0">' + esc(para) + "</p>";
@@ -1542,9 +1542,17 @@
     var before = M.nodes.filter(function (n) { return n.role === "before"; }).map(function (n) { return ctitle(n.id); });
     var after = M.nodes.filter(function (n) { return n.role === "after"; }).map(function (n) { return ctitle(n.id); });
     var nearby = M.nodes.filter(function (n) { return n.role === "nearby"; }).map(function (n) { return ctitle(n.id); });
-    var caption = (before.length ? ctitle(conceptId) + " comes after " + before.join(" and ") + "." : ctitle(conceptId) + " starts this learning path.") +
-      " " + (after.length ? "It leads on to " + after.join(" and ") + "." : nearby.length ? "Other ideas in this subject nearby: " + nearby.join(" and ") + "." : "It has no next concept in this pathway yet.") +
-      " This is a map of the learning path, not a diagram of the science itself.";
+    var names = function (list) { return E.i18nLessons.listNames(lang(), list); };
+    var concept = ctitle(conceptId);
+    var caption = (before.length
+      ? fill(t("lesson.mapAfter"), { concept: concept, names: names(before) })
+      : fill(t("lesson.mapStart"), { concept: concept })) +
+      " " + (after.length
+        ? fill(t("lesson.mapNext"), { names: names(after) })
+        : nearby.length
+          ? fill(t("lesson.mapNearby"), { names: names(nearby) })
+          : t("lesson.mapEnd")) +
+      " " + t("lesson.mapNote");
     return '<figure class="lesson-map" data-map="learning-path" data-concept="' + esc(conceptId) + '">' +
       '<div class="lesson-map-scroll">' + svgWrap(M.width, M.height, parts) + "</div>" +
       '<figcaption class="small muted reading">' + esc(caption) + "</figcaption></figure>";
@@ -1564,8 +1572,8 @@
       '<span class="lesson-video-play" aria-hidden="true">\u25b6</span><span class="lesson-video-copy"><strong>' + esc(v.title) + '</strong>' +
       '<span class="lesson-video-meta small muted">' + esc(v.source) + (v.length ? " \u00b7 " + esc(v.length) : "") + " \u00b7 " + esc(v.language.toUpperCase()) + " \u00b7 " + captions + "</span>" +
       '<span class="lesson-video-summary small muted">' + esc(v.summary) + '</span>' +
-      '<span class="lesson-video-scope small muted">' + esc(E.lessonMedia.videoScopeLabel(v)) + '</span>' +
-      '<span class="lesson-video-note small muted">Opens ' + esc(v.source) + ' in a new tab. Needs internet; the lesson below teaches the same idea without it.</span></span></a>';
+      '<span class="lesson-video-scope small muted">' + esc(t(E.lessonMedia.videoScopeKey(v))) + '</span>' +
+      '<span class="lesson-video-note small muted">' + esc(fill(t("lesson.videoOpen"), { source: v.source })) + '</span></span></a>';
   }
 
   /** A REAL ITEM FROM THE CONCEPT'S OWN GENERATOR, unrevealed.

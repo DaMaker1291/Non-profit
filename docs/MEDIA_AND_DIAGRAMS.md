@@ -101,13 +101,17 @@ video, never autoplays, and never makes an answer depend on watching it.
   the card says `Subject overview · not specific to this idea` before the
   learner taps. A broad tour of biology is useful enrichment; it is not the
   lesson on mitosis, and the page does not pretend it is.
-- The teaching itself is localised through the lesson text and the interface
-  dictionaries, not through the video. The diagram labels are numbers or
-  chemical symbols; the caption carries the words, so translating a plan does
-  not require redrawing the SVG.
-- At the time of writing the catalogue reports **0 reviewed translated lessons
-  and 2 machine translations**, shown with that status. That is honest coverage,
-  not a claim that every learner can read every lesson in their own language.
+- The **interface and lesson scaffolding** resolve in all **15** dictionary
+  languages: section headings, map captions, list conjunctions, video-scope
+  labels and the video-open note. A learner reading Arabic does not get an
+  Arabic concept title above an English "The core idea".
+- The **teaching body itself is still authored English**. The catalogue reports
+  **1 complete translated plan-language pair** (`fractions` in French), shown
+  with that status. `scripts/lesson-world-check.mjs` proves the 135 × 15
+  scaffolding matrix and reports the body-coverage number separately, so a
+  translated button is never mistaken for a translated lesson.
+- The diagram labels are numbers or chemical symbols; the caption carries the
+  words, so translating a plan does not require redrawing the SVG.
 
 ## Low bandwidth and offline
 
@@ -170,6 +174,20 @@ prerequisite or dependant (addition, subtraction, multiplication, division,
 sequences) show two **other ideas in the same subject nearby**, marked dashed
 rather than connected by a false arrow. The captions say which kind of
 relationship is being shown.
+
+## Every country, without inventing a syllabus
+
+The picker offers **251** country/territory choices. **70** have a researched
+national pathway; the rest resolve to an explicitly offered international or
+independent course rather than being handed another country's curriculum. The
+world gate (`npm run verify:world`) checks all **251** choices resolve to at
+least one offered course, across **91** specifications and **631** offered course
+slots, and that no course is an empty shell. It does not claim that all 181
+remaining national syllabi are mapped: they are not, and the fallback says so.
+
+Every concept's lesson remains reachable outside a national course through the
+full learning map. What a national course changes is which ideas are examined,
+not whether the lesson exists.
 
 This is the diagram that is true for all 135 lessons. The 17 **subject-specific**
 diagrams (a balance, an area model, a cell, an energy profile, a parabola) are a

@@ -38,7 +38,7 @@ compileEngines();
 
 const { LESSON_PLANS, planFor } = require("../.verify/lesson-plans.js");
 const { CONCEPTS } = require("../.verify/genome.js");
-const { videoFor, videoScopeLabel } = require("../.verify/lesson-media.js");
+const { videoFor, videoScopeKey } = require("../.verify/lesson-media.js");
 
 const CAPTIONS = new Set(["human", "auto", "none", "unknown"]);
 const failures = [];
@@ -83,7 +83,9 @@ for (const concept of CONCEPTS) {
   if ((video.summary ?? "").trim().length < 40) {
     failures.push(`${concept.id}: the video needs a fallback summary of at least 40 characters`);
   }
-  if (!videoScopeLabel(video).trim()) failures.push(`${concept.id}: the video needs a visible scope label`);
+  if (!["lesson.videoConcept", "lesson.videoSubject"].includes(videoScopeKey(video))) {
+    failures.push(`${concept.id}: the video needs a translated scope key`);
+  }
   if (video.scope === "subject" && !/subject overview/i.test(video.summary ?? "")) {
     failures.push(`${concept.id}: a subject overview must say so in its summary`);
   }
@@ -110,6 +112,7 @@ if (!/videoFor\(plan\)/.test(page)) failures.push("the lesson page does not reso
 const twin = fs.readFileSync(path.join("docs", "app.js"), "utf8");
 if (!/function lessonVideoHtml\(plan\)/.test(twin)) failures.push("the offline twin has no lessonVideoHtml");
 if (!/E\.lessonMedia\.videoFor\(plan\)/.test(twin)) failures.push("the offline twin does not resolve the universal video card");
+if (!/E\.lessonMedia\.videoScopeKey\(v\)/.test(twin)) failures.push("the offline twin does not translate the video scope");
 
 if (!videos.length) failures.push("no lesson carries a video");
 if (!conceptVideos) failures.push("no lesson has a concept-specific video");

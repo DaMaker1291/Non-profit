@@ -1,7 +1,7 @@
 /* OpenMind — static build of the engines.
  *
  * GENERATED FILE. Do not edit: run `node scripts/build-static-app.mjs`.
- * Source: 80 modules compiled from lib/ by that script, wired
+ * Source: 81 modules compiled from lib/ by that script, wired
  * into a tiny module registry so one learner journey can run with no server.
  *
  * This file is the SAME engine code the Next server runs. It is here so the
@@ -7046,6 +7046,273 @@ for (const [code, dict] of Object.entries(TEACHER_STRINGS)) {
 }
 
 });
+__def("i18n-lessons.js", function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LESSON_STRINGS = void 0;
+exports.listNames = listNames;
+exports.LESSON_STRINGS = {
+    en: {
+        "lesson.sectionCore": "The core idea",
+        "lesson.sectionBuild": "Building the idea",
+        "lesson.sectionTogether": "Putting it together",
+        "lesson.sectionExtend": "Extending the idea",
+        "lesson.formula": "Formula",
+        "lesson.mapAfter": "{concept} comes after {names}.",
+        "lesson.mapStart": "{concept} starts this learning path.",
+        "lesson.mapNext": "It leads on to {names}.",
+        "lesson.mapNearby": "Other ideas in this subject nearby: {names}.",
+        "lesson.mapEnd": "It has no next concept in this pathway yet.",
+        "lesson.mapNote": "This is a map of the learning path, not a diagram of the science itself.",
+        "lesson.videoConcept": "Walkthrough for this idea",
+        "lesson.videoSubject": "Subject overview · not specific to this idea",
+        "lesson.videoOpen": "Opens {source} in a new tab. Needs internet; the lesson below teaches the same idea without it.",
+    },
+    es: {
+        "lesson.sectionCore": "La idea central",
+        "lesson.sectionBuild": "Construyendo la idea",
+        "lesson.sectionTogether": "Uniéndolo todo",
+        "lesson.sectionExtend": "Ampliando la idea",
+        "lesson.formula": "Fórmula",
+        "lesson.mapAfter": "{concept} viene después de {names}.",
+        "lesson.mapStart": "{concept} inicia esta ruta de aprendizaje.",
+        "lesson.mapNext": "Lleva a {names}.",
+        "lesson.mapNearby": "Otras ideas cercanas de esta asignatura: {names}.",
+        "lesson.mapEnd": "Todavía no tiene un concepto siguiente en esta ruta.",
+        "lesson.mapNote": "Este es un mapa de la ruta de aprendizaje, no un diagrama de la ciencia.",
+        "lesson.videoConcept": "Explicación de esta idea",
+        "lesson.videoSubject": "Panorama de la asignatura · no específico de esta idea",
+        "lesson.videoOpen": "Abre {source} en una pestaña nueva. Necesita internet; la lección de abajo enseña la misma idea sin él.",
+    },
+    fr: {
+        "lesson.sectionCore": "L'idée centrale",
+        "lesson.sectionBuild": "Construire l'idée",
+        "lesson.sectionTogether": "Tout rassembler",
+        "lesson.sectionExtend": "Étendre l'idée",
+        "lesson.formula": "Formule",
+        "lesson.mapAfter": "{concept} vient après {names}.",
+        "lesson.mapStart": "{concept} commence ce parcours d'apprentissage.",
+        "lesson.mapNext": "Il mène à {names}.",
+        "lesson.mapNearby": "Autres idées proches dans cette matière : {names}.",
+        "lesson.mapEnd": "Il n'a pas encore de concept suivant dans ce parcours.",
+        "lesson.mapNote": "Ceci est une carte du parcours d'apprentissage, pas un schéma de la science elle-même.",
+        "lesson.videoConcept": "Explication de cette idée",
+        "lesson.videoSubject": "Aperçu de la matière · pas spécifique à cette idée",
+        "lesson.videoOpen": "Ouvre {source} dans un nouvel onglet. Nécessite Internet ; la leçon ci-dessous enseigne la même idée sans lui.",
+    },
+    pt: {
+        "lesson.sectionCore": "A ideia central",
+        "lesson.sectionBuild": "Construindo a ideia",
+        "lesson.sectionTogether": "Juntando tudo",
+        "lesson.sectionExtend": "Ampliando a ideia",
+        "lesson.formula": "Fórmula",
+        "lesson.mapAfter": "{concept} vem depois de {names}.",
+        "lesson.mapStart": "{concept} inicia esta trilha de aprendizagem.",
+        "lesson.mapNext": "Leva a {names}.",
+        "lesson.mapNearby": "Outras ideias próximas desta disciplina: {names}.",
+        "lesson.mapEnd": "Ainda não há um próximo conceito nesta trilha.",
+        "lesson.mapNote": "Este é um mapa da trilha de aprendizagem, não um diagrama da própria ciência.",
+        "lesson.videoConcept": "Explicação desta ideia",
+        "lesson.videoSubject": "Visão geral da disciplina · não específica desta ideia",
+        "lesson.videoOpen": "Abre {source} num novo separador. Precisa de internet; a lição abaixo ensina a mesma ideia sem ele.",
+    },
+    ar: {
+        "lesson.sectionCore": "الفكرة الأساسية",
+        "lesson.sectionBuild": "بناء الفكرة",
+        "lesson.sectionTogether": "ربط الأفكار",
+        "lesson.sectionExtend": "توسيع الفكرة",
+        "lesson.formula": "صيغة",
+        "lesson.mapAfter": "{concept} يأتي بعد {names}.",
+        "lesson.mapStart": "{concept} يبدأ هذا المسار التعليمي.",
+        "lesson.mapNext": "يقود إلى {names}.",
+        "lesson.mapNearby": "أفكار أخرى قريبة في هذه المادة: {names}.",
+        "lesson.mapEnd": "لا يوجد مفهوم تالٍ في هذا المسار بعد.",
+        "lesson.mapNote": "هذه خريطة لمسار التعلم، وليست رسمًا للعلم نفسه.",
+        "lesson.videoConcept": "شرح لهذه الفكرة",
+        "lesson.videoSubject": "نظرة عامة على المادة · ليست خاصة بهذه الفكرة",
+        "lesson.videoOpen": "يفتح {source} في علامة تبويب جديدة. يحتاج إلى الإنترنت؛ الدرس أدناه يعلّم الفكرة نفسها بدونه.",
+    },
+    sw: {
+        "lesson.sectionCore": "Wazo la msingi",
+        "lesson.sectionBuild": "Kujenga wazo",
+        "lesson.sectionTogether": "Kukusanya pamoja",
+        "lesson.sectionExtend": "Kuendeleza wazo",
+        "lesson.formula": "Fomula",
+        "lesson.mapAfter": "{concept} inakuja baada ya {names}.",
+        "lesson.mapStart": "{concept} huanza njia hii ya kujifunza.",
+        "lesson.mapNext": "Inaongoza hadi {names}.",
+        "lesson.mapNearby": "Mawazo mengine ya karibu katika somo hili: {names}.",
+        "lesson.mapEnd": "Bado hakuna dhana inayofuata katika njia hii.",
+        "lesson.mapNote": "Hii ni ramani ya njia ya kujifunza, si mchoro wa sayansi yenyewe.",
+        "lesson.videoConcept": "Maelezo ya wazo hili",
+        "lesson.videoSubject": "Muhtasari wa somo · si mahususi kwa wazo hili",
+        "lesson.videoOpen": "Inafungua {source} kwenye kichupo kipya. Inahitaji intaneti; somo lililo hapa chini linafundisha wazo hilohilo bila intaneti.",
+    },
+    hi: {
+        "lesson.sectionCore": "मुख्य विचार",
+        "lesson.sectionBuild": "विचार का निर्माण",
+        "lesson.sectionTogether": "सब जोड़ना",
+        "lesson.sectionExtend": "विचार का विस्तार",
+        "lesson.formula": "सूत्र",
+        "lesson.mapAfter": "{concept} {names} के बाद आता है।",
+        "lesson.mapStart": "{concept} इस सीखने की राह की शुरुआत करता है।",
+        "lesson.mapNext": "यह {names} की ओर ले जाता है।",
+        "lesson.mapNearby": "इस विषय में पास की अन्य अवधारणाएँ: {names}।",
+        "lesson.mapEnd": "इस राह में अभी कोई अगली अवधारणा नहीं है।",
+        "lesson.mapNote": "यह सीखने की राह का नक्शा है, स्वयं विज्ञान का चित्र नहीं।",
+        "lesson.videoConcept": "इस विचार की व्याख्या",
+        "lesson.videoSubject": "विषय का अवलोकन · इस विचार के लिए विशिष्ट नहीं",
+        "lesson.videoOpen": "{source} को नई टैब में खोलता है। इंटरनेट चाहिए; नीचे का पाठ बिना इंटरनेट के वही विचार सिखाता है।",
+    },
+    id: {
+        "lesson.sectionCore": "Ide inti",
+        "lesson.sectionBuild": "Membangun ide",
+        "lesson.sectionTogether": "Menyatukan semuanya",
+        "lesson.sectionExtend": "Memperluas ide",
+        "lesson.formula": "Rumus",
+        "lesson.mapAfter": "{concept} datang setelah {names}.",
+        "lesson.mapStart": "{concept} memulai jalur belajar ini.",
+        "lesson.mapNext": "Ini mengarah ke {names}.",
+        "lesson.mapNearby": "Ide lain yang berdekatan dalam mata pelajaran ini: {names}.",
+        "lesson.mapEnd": "Belum ada konsep berikutnya di jalur ini.",
+        "lesson.mapNote": "Ini peta jalur belajar, bukan diagram ilmu itu sendiri.",
+        "lesson.videoConcept": "Penjelasan untuk ide ini",
+        "lesson.videoSubject": "Ikhtisar mata pelajaran · tidak khusus untuk ide ini",
+        "lesson.videoOpen": "Membuka {source} di tab baru. Perlu internet; pelajaran di bawah mengajarkan ide yang sama tanpa internet.",
+    },
+    tl: {
+        "lesson.sectionCore": "Pangunahing ideya",
+        "lesson.sectionBuild": "Binubuo ang ideya",
+        "lesson.sectionTogether": "Pinagsasama-sama",
+        "lesson.sectionExtend": "Pagpapalawak ng ideya",
+        "lesson.formula": "Pormula",
+        "lesson.mapAfter": "{concept} ay sumusunod sa {names}.",
+        "lesson.mapStart": "{concept} ang nagsisimula sa landas ng pag-aaral na ito.",
+        "lesson.mapNext": "Papunta ito sa {names}.",
+        "lesson.mapNearby": "Iba pang malapit na ideya sa asignaturang ito: {names}.",
+        "lesson.mapEnd": "Wala pang susunod na konsepto sa landas na ito.",
+        "lesson.mapNote": "Ito ay mapa ng landas ng pag-aaral, hindi diagram ng agham mismo.",
+        "lesson.videoConcept": "Paliwanag para sa ideyang ito",
+        "lesson.videoSubject": "Pangkalahatang tanaw sa asignatura · hindi partikular sa ideyang ito",
+        "lesson.videoOpen": "Binubuksan ang {source} sa bagong tab. Kailangan ng internet; itinuturo ng aralin sa ibaba ang parehong ideya nang wala ito.",
+    },
+    ur: {
+        "lesson.sectionCore": "بنیادی خیال",
+        "lesson.sectionBuild": "خیال کی تعمیر",
+        "lesson.sectionTogether": "سب کچھ جوڑنا",
+        "lesson.sectionExtend": "خیال کی توسیع",
+        "lesson.formula": "فارمولا",
+        "lesson.mapAfter": "{concept} {names} کے بعد آتا ہے۔",
+        "lesson.mapStart": "{concept} اس سیکھنے کے راستے کا آغاز کرتا ہے۔",
+        "lesson.mapNext": "یہ {names} کی طرف لے جاتا ہے۔",
+        "lesson.mapNearby": "اس مضمون میں قریبی دیگر خیالات: {names}۔",
+        "lesson.mapEnd": "اس راستے میں ابھی کوئی اگلا تصور نہیں ہے۔",
+        "lesson.mapNote": "یہ سیکھنے کے راستے کا نقشہ ہے، خود سائنس کا خاکہ نہیں۔",
+        "lesson.videoConcept": "اس خیال کی وضاحت",
+        "lesson.videoSubject": "مضمون کا جائزہ · اس خیال کے لیے مخصوص نہیں",
+        "lesson.videoOpen": "{source} کو نئی ٹیب میں کھولتا ہے۔ انٹرنیٹ درکار ہے؛ نیچے کا سبق اسی خیال کو اس کے بغیر سکھاتا ہے۔",
+    },
+    fa: {
+        "lesson.sectionCore": "ایده اصلی",
+        "lesson.sectionBuild": "ساختن ایده",
+        "lesson.sectionTogether": "کنار هم گذاشتن",
+        "lesson.sectionExtend": "گسترش ایده",
+        "lesson.formula": "فرمول",
+        "lesson.mapAfter": "{concept} پس از {names} می‌آید.",
+        "lesson.mapStart": "{concept} این مسیر یادگیری را آغاز می‌کند.",
+        "lesson.mapNext": "به {names} می‌رسد.",
+        "lesson.mapNearby": "ایده‌های نزدیک دیگر در این درس: {names}.",
+        "lesson.mapEnd": "در این مسیر هنوز مفهوم بعدی وجود ندارد.",
+        "lesson.mapNote": "این نقشه مسیر یادگیری است، نه نمودار خود علم.",
+        "lesson.videoConcept": "توضیح این ایده",
+        "lesson.videoSubject": "نمای کلی درس · ویژه این ایده نیست",
+        "lesson.videoOpen": "{source} را در زبانه جدید باز می‌کند. به اینترنت نیاز دارد؛ درس زیر همان ایده را بدون آن آموزش می‌دهد.",
+    },
+    de: {
+        "lesson.sectionCore": "Die Kernidee",
+        "lesson.sectionBuild": "Die Idee aufbauen",
+        "lesson.sectionTogether": "Alles zusammenführen",
+        "lesson.sectionExtend": "Die Idee erweitern",
+        "lesson.formula": "Formel",
+        "lesson.mapAfter": "{concept} kommt nach {names}.",
+        "lesson.mapStart": "{concept} beginnt diesen Lernweg.",
+        "lesson.mapNext": "Es führt zu {names}.",
+        "lesson.mapNearby": "Weitere nahe Ideen in diesem Fach: {names}.",
+        "lesson.mapEnd": "In diesem Lernweg gibt es noch kein nächstes Konzept.",
+        "lesson.mapNote": "Das ist eine Karte des Lernwegs, kein Diagramm der Wissenschaft selbst.",
+        "lesson.videoConcept": "Erklärung zu dieser Idee",
+        "lesson.videoSubject": "Fachüberblick · nicht speziell zu dieser Idee",
+        "lesson.videoOpen": "Öffnet {source} in einem neuen Tab. Benötigt Internet; die Lektion unten vermittelt dieselbe Idee ohne Video.",
+    },
+    ja: {
+        "lesson.sectionCore": "中心となる考え",
+        "lesson.sectionBuild": "考えを組み立てる",
+        "lesson.sectionTogether": "まとめ",
+        "lesson.sectionExtend": "考えを広げる",
+        "lesson.formula": "公式",
+        "lesson.mapAfter": "{concept}は{names}の後に学びます。",
+        "lesson.mapStart": "{concept}からこの学習の道が始まります。",
+        "lesson.mapNext": "{names}につながります。",
+        "lesson.mapNearby": "この科目の近くにあるほかの考え：{names}。",
+        "lesson.mapEnd": "この学習の道には、まだ次の概念がありません。",
+        "lesson.mapNote": "これは学習の道の地図であり、科学そのものの図ではありません。",
+        "lesson.videoConcept": "この考えの解説",
+        "lesson.videoSubject": "科目の概要 · この考えに固有ではありません",
+        "lesson.videoOpen": "{source}を新しいタブで開きます。インターネットが必要です。下のレッスンは動画なしで同じ考えを教えます。",
+    },
+    zh: {
+        "lesson.sectionCore": "核心概念",
+        "lesson.sectionBuild": "构建概念",
+        "lesson.sectionTogether": "综合运用",
+        "lesson.sectionExtend": "拓展概念",
+        "lesson.formula": "公式",
+        "lesson.mapAfter": "{concept}在{names}之后学习。",
+        "lesson.mapStart": "{concept}是这条学习路径的起点。",
+        "lesson.mapNext": "它通向{names}。",
+        "lesson.mapNearby": "这个学科中相近的其他概念：{names}。",
+        "lesson.mapEnd": "这条路径中还没有下一个概念。",
+        "lesson.mapNote": "这是学习路径图，不是科学本身的示意图。",
+        "lesson.videoConcept": "本概念的讲解",
+        "lesson.videoSubject": "学科概览 · 并非本概念专属",
+        "lesson.videoOpen": "在新标签页中打开 {source}。需要互联网；下面的课程无需视频也能讲授同一概念。",
+    },
+    bn: {
+        "lesson.sectionCore": "মূল ধারণা",
+        "lesson.sectionBuild": "ধারণা গঠন",
+        "lesson.sectionTogether": "সবকিছু একসাথে করা",
+        "lesson.sectionExtend": "ধারণা সম্প্রসারণ",
+        "lesson.formula": "সূত্র",
+        "lesson.mapAfter": "{concept} {names}-এর পরে আসে।",
+        "lesson.mapStart": "{concept} এই শেখার পথ শুরু করে।",
+        "lesson.mapNext": "এটি {names}-এর দিকে নিয়ে যায়।",
+        "lesson.mapNearby": "এই বিষয়ে কাছাকাছি অন্য ধারণা: {names}।",
+        "lesson.mapEnd": "এই পথে এখনো পরের কোনো ধারণা নেই।",
+        "lesson.mapNote": "এটি শেখার পথের মানচিত্র, বিজ্ঞানের নিজের চিত্র নয়।",
+        "lesson.videoConcept": "এই ধারণার ব্যাখ্যা",
+        "lesson.videoSubject": "বিষয়ের সংক্ষিপ্ত পরিচিতি · এই ধারণার জন্য নির্দিষ্ট নয়",
+        "lesson.videoOpen": "নতুন ট্যাবে {source} খোলে। ইন্টারনেট প্রয়োজন; নিচের পাঠটি এটি ছাড়াই একই ধারণা শেখায়।",
+    },
+};
+/** A conjunction list in the reader's language, with a deterministic fallback
+ *  for an environment without Intl.ListFormat. */
+function listNames(lang, names) {
+    if (!names.length)
+        return "";
+    try {
+        // `Intl.ListFormat` is runtime-standard in modern browsers but absent from
+        // the project's ES2020 TypeScript lib. Keep it feature-detected rather than
+        // widening the compiler target for one formatting helper.
+        const ListFormat = Intl.ListFormat;
+        if (!ListFormat)
+            return names.join(", ");
+        return new ListFormat(lang, { style: "long", type: "conjunction" }).format([...names]);
+    }
+    catch {
+        return names.join(", ");
+    }
+}
+
+});
 __def("i18n-recovery.js", function (module, exports, require) {
 "use strict";
 // ─────────────────────────────────────────────────────────────────────────────
@@ -7303,6 +7570,7 @@ const i18n_recovery_1 = require("./i18n-recovery");
 const i18n_curriculum_1 = require("./i18n-curriculum");
 const i18n_device_1 = require("./i18n-device");
 const i18n_kiosk_1 = require("./i18n-kiosk");
+const i18n_lessons_1 = require("./i18n-lessons");
 const en = {
     "target.slipCheck": "This one is built to catch that slip.",
     "repair.title": "Let's fix this",
@@ -31474,7 +31742,7 @@ exports.DICTS = {
 // Each source is merged SEPARATELY. Spreading two language maps into one object
 // would keep only the second map's entry for a language both define — the
 // failure is silent and it removes keys that were already working.
-for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS]) {
+for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS, i18n_lessons_1.LESSON_STRINGS]) {
     for (const [code, extra] of Object.entries(source)) {
         const dict = exports.DICTS[code];
         if (!dict)
@@ -31487,7 +31755,7 @@ for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRIC
 }
 // `en` is the fallback for a missing key, so it must carry them even if a caller
 // reaches it directly rather than through DICTS.
-for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS]) {
+for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS, i18n_lessons_1.LESSON_STRINGS]) {
     for (const [key, value] of Object.entries(source.en)) {
         if (!(key in en))
             en[key] = value;
@@ -32349,7 +32617,7 @@ __def("lesson-media.js", function (module, exports, require) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SUBJECT_VIDEOS = void 0;
 exports.videoFor = videoFor;
-exports.videoScopeLabel = videoScopeLabel;
+exports.videoScopeKey = videoScopeKey;
 exports.conceptVideoCount = conceptVideoCount;
 // ─────────────────────────────────────────────────────────────────────────────
 // LESSON MEDIA — one honest video card per lesson.
@@ -32428,11 +32696,10 @@ function videoFor(plan) {
     const subject = genome_1.CONCEPTS_BY_ID[plan.conceptId]?.subject;
     return subject ? exports.SUBJECT_VIDEOS[subject] ?? null : null;
 }
-/** The scope sentence a card must print, in one place for both renderers. */
-function videoScopeLabel(video) {
-    return video.scope === "subject"
-        ? "Subject overview · not specific to this idea"
-        : "Walkthrough for this idea";
+/** The dictionary key a card must print, so the renderer translates it rather
+ *  than this module hardcoding English into fifteen languages. */
+function videoScopeKey(video) {
+    return video.scope === "subject" ? "lesson.videoSubject" : "lesson.videoConcept";
 }
 /** How many lessons are taught by a concept-specific video. Exported so the
  *  media gate can report the distinction rather than flattening it. */
@@ -35397,9 +35664,15 @@ function sectionsFor(plan) {
     const groups = [];
     for (let i = 0; i < ideas.length; i += 2)
         groups.push(ideas.slice(i, i + 2));
-    const headings = ["The core idea", "Building the idea", "Putting it together", "Extending the idea"];
+    const headings = [
+        { key: "lesson.sectionCore", text: "The core idea" },
+        { key: "lesson.sectionBuild", text: "Building the idea" },
+        { key: "lesson.sectionTogether", text: "Putting it together" },
+        { key: "lesson.sectionExtend", text: "Extending the idea" },
+    ];
     return groups.map((body, i) => ({
-        heading: headings[Math.min(i, headings.length - 1)],
+        heading: headings[Math.min(i, headings.length - 1)].text,
+        headingKey: headings[Math.min(i, headings.length - 1)].key,
         body,
     }));
 }
@@ -63718,6 +63991,7 @@ exports.WORLD_COUNTRIES = [
     mathText: require("./math-text.js"),
     answer: require("./answer.js"),
     i18n: require("./i18n.js"),
+    i18nLessons: require("./i18n-lessons.js"),
     contentI18n: require("./content-i18n.js"),
     claims: require("./claims.js"),
     deadline: require("./deadline.js"),
@@ -63733,7 +64007,7 @@ exports.WORLD_COUNTRIES = [
     contentGraph: require("./content-graph.js"),
     papers: require("./papers.js"),
     access: require("./access.js"),
-      meta: { modules: 80 },
+      meta: { modules: 81 },
     };
   });
   return __req("__entry__.js");
