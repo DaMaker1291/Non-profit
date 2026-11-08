@@ -84,7 +84,26 @@ ok(energy.figure?.spec?.delta === -185, "energy-changes: the profile's ΔH is th
 ok(energy.figure?.spec?.activation === 150, "energy-changes: the profile declares its activation barrier");
 ok(/not to scale/i.test(energy.figure?.caption ?? ""), "energy-changes: the schematic caption says it is not to scale");
 
+// The second calculation-first repair. The defect was identical in shape to the
+// moles one: the lesson opened with "Enthalpy is the energy ledger", so a learner
+// met the definition of ΔH before meeting a single ΔH. The first section must
+// now DO the bond-energy calculation — with the table's numbers and the sign —
+// and the definition may only follow it.
+const energyFirst = energy.sections[0];
+const energyFirstBody = energyFirst?.body.join(" ") ?? "";
+ok(/calculate/i.test(energyFirst?.heading ?? ""), "energy-changes: the lesson starts with a calculation, not a definition");
+ok((energyFirst?.steps?.length ?? 0) >= 4, "energy-changes: the first section carries the four-move bond-energy method");
+ok(/679/.test(energyFirstBody) && /864/.test(energyFirstBody) && /−185|-185/.test(energyFirstBody), "energy-changes: the first section substitutes real bond energies and gives ΔH");
+ok(!/enthalpy is the energy ledger/i.test(energyFirst?.heading ?? ""), "energy-changes: the definition no longer precedes the method");
+ok(energy.sections.findIndex((s) => /what the sign/i.test(s.heading)) > 0, "energy-changes: the definition follows the worked calculation");
+ok(energy.sections.some((s) => /calorimetry/i.test(s.heading) && /q = m c/.test(s.body.join(" "))), "energy-changes: calorimetry is taught with its equation");
+
 const moles = P.planFor("moles-calcs");
+const molesFirst = moles.sections[0];
+ok(/calculate/i.test(molesFirst?.heading ?? ""), "moles-calcs: the lesson starts with a calculation, not a definition");
+ok((molesFirst?.steps?.length ?? 0) >= 4, "moles-calcs: the first section carries the four-move method");
+ok(/8\.0 g/.test(molesFirst?.body.join(" ") ?? "") && /0\.20 mol/.test(molesFirst?.body.join(" ") ?? ""), "moles-calcs: the first section substitutes real numbers and gives the answer");
+ok(!/count, not a mass/i.test(molesFirst?.heading ?? ""), "moles-calcs: the definition no longer precedes the method");
 ok(moles.sections.some((s) => /limiting reagent|limiting reactant/i.test(s.body.join(" "))), "moles-calcs: limiting reagent is taught, not only named");
 ok(moles.sections.some((s) => /0\.0250|cm³.*1000|1000.*cm³/i.test(s.body.join(" "))), "moles-calcs: the cm³-to-dm³ conversion is explicit");
 

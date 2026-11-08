@@ -999,10 +999,17 @@ export default function ConceptPage() {
           idea already lives in (a lift in an underground car park; three bags and
           five weights on a balance), so the formal paragraph after it has
           something to attach to. */}
-      {plan && (
+      {(authoredLesson || plan) && (
         <section className="card" style={{ marginBottom: 18 }} aria-label={t("plan.start")}>
           <p className="eyebrow" style={{ margin: 0 }}>{t("plan.start")}</p>
-          <p className="reading lesson-text" style={{ marginTop: 10 }}>{plan.intuition}</p>
+          {authoredLesson ? (
+            <>
+              <p className="reading lesson-text" style={{ marginTop: 10 }}>{authoredLesson.introduction.hook}</p>
+              <p className="reading lesson-text" style={{ marginTop: 10 }}>{authoredLesson.introduction.why}</p>
+            </>
+          ) : (
+            <p className="reading lesson-text" style={{ marginTop: 10 }}>{plan?.intuition}</p>
+          )}
         </section>
       )}
 
@@ -1316,6 +1323,32 @@ export default function ConceptPage() {
               <p style={{ margin: 0, fontWeight: 650 }}>{i + 1}. {ex.prompt}</p>
               <ol className="small" style={{ margin: "8px 0 0 18px" }}>
                 {ex.steps.map((step, j) => <li key={j} style={{ marginBottom: 4 }}>{step}</li>)}
+              </ol>
+              <p className="small" style={{ margin: "8px 0 0" }}><strong>Answer:</strong> {ex.answer}</p>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* THE AUTHORED LESSON'S OWN WORKED EXAMPLES, WITH A REASON PER MOVE.
+          The plan's examples list the moves; the contract requires the WHY, and
+          without this block the authored lessons' reasoning was never rendered:
+          the page showed a generated item and a plan whose examples belong to a
+          different explanation. A learner reading the authored lesson now sees
+          the examples written for it, each step naming why the move is valid. */}
+      {authoredLesson && authoredLesson.workedExamples.length > 0 && (
+        <section className="card" style={{ marginBottom: 18 }} aria-label="Worked examples">
+          <p className="eyebrow" style={{ margin: 0 }}>Worked examples</p>
+          {authoredLesson.workedExamples.map((ex, i) => (
+            <div key={ex.id} style={{ marginTop: 14 }}>
+              <p style={{ margin: 0, fontWeight: 650 }}>{i + 1}. {ex.prompt}</p>
+              <ol className="small" style={{ margin: "8px 0 0 18px" }}>
+                {ex.steps.map((step, j) => (
+                  <li key={j} style={{ marginBottom: 8 }}>
+                    <span>{step.move}</span>
+                    <span className="muted" style={{ display: "block", marginTop: 2 }}>Why: {step.why}</span>
+                  </li>
+                ))}
               </ol>
               <p className="small" style={{ margin: "8px 0 0" }}><strong>Answer:</strong> {ex.answer}</p>
             </div>

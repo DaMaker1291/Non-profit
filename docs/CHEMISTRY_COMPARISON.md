@@ -116,12 +116,15 @@ not a fix for the learner on the low-bandwidth build.
 
 ### `moles-calcs` — six sections
 
-1. A mole is a count, not a mass — Avogadro’s constant, with a symbol/unit table.
-2. Mass to moles — `n = m / Mᵣ`, the rearrangement, and a three-step unit check.
-3. Concentration — `c = n / V`, the cm³-to-dm³ conversion, and a “given/use/result” table.
-4. The balanced equation supplies the ratio — coefficients count particles, not grams.
-5. Limiting reagent — the amount ÷ coefficient test, worked with 4 mol H₂ and 1 mol O₂.
-6. The four-line method — balance, convert, ratio, convert back.
+1. Start here: calculate the moles in a mass — 8.0 g NaOH worked through to 0.20 mol,
+   with the four moves (balance/convert/ratio/convert back) laid out before the definition.
+2. A mole is a count, not a mass — Avogadro’s constant, with a symbol/unit table.
+3. Relative formula mass — the number you divide by, worked for H₂O and NaOH.
+4. Concentration — `c = n / V`, the cm³-to-dm³ conversion, a 0.00250 mol worked value,
+   and a “given/use/result” table.
+5. The balanced equation supplies the ratio — coefficients count particles, not grams;
+   worked with 4.4 g propane to 7.2 g water.
+6. Limiting reagent — the amount ÷ coefficient test, worked with 4 mol H₂ and 1 mol O₂.
 
 It has three worked examples (NaOH; a titration volume; CaCO₃ decomposition), three
 traps with the reason each fails, five defined terms and a three-point recall check.

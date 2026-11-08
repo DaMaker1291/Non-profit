@@ -1492,6 +1492,20 @@ const PILOT_LESSON_PLANS: Readonly<Record<string, LessonPlan>> = {
 // of being flattened into it.
 const MOLES_SECTIONS: readonly LessonSection[] = [
   {
+    heading: "Start here: calculate the moles in a mass",
+    body: [
+      "Most mole questions give you a mass and ask for an amount. Use n = m ÷ Mᵣ. Work it through with 8.0 g of sodium hydroxide: Mᵣ(NaOH) = 23 + 16 + 1 = 40 g/mol, so n = 8.0 g ÷ 40 g/mol = 0.20 mol. The unit check is g ÷ (g/mol) = mol. To go back to mass, multiply: m = n × Mᵣ, so 0.20 mol × 40 g/mol = 8.0 g.",
+      "If the question gives a solution, convert the volume to dm³ first: 25.0 cm³ = 0.0250 dm³, then use n = c × V. If it gives a balanced equation, reach moles before using the coefficients. The four moves below are the same method every time; the rest of this lesson explains why each one is allowed.",
+    ],
+    formula: "n = m / M_r        m = n × M_r        n = c × V",
+    steps: [
+      "Write the balanced equation and its mole ratio, if the question gives one.",
+      "Convert what you are given into moles: mass ÷ Mᵣ, or concentration × volume in dm³.",
+      "Multiply by the mole ratio from the equation.",
+      "Convert the moles back to the unit asked for — grams, mol/dm³ or dm³ — and check the unit.",
+    ],
+  },
+  {
     heading: "A mole is a count, not a mass",
     body: [
       "A mole is a fixed number of particles: 6.02 × 10²³ of them. That number is Avogadro's constant, and it is chosen so that one mole of a substance has a mass in grams equal to its relative formula mass. The mole is the bridge between a count too large to see and a mass you can weigh.",
@@ -1509,25 +1523,25 @@ const MOLES_SECTIONS: readonly LessonSection[] = [
     },
   },
   {
-    heading: "Mass to moles: the formula you rearrange",
+    heading: "Relative formula mass: the number you divide by",
     body: [
       "The relative formula mass, Mᵣ, is the mass of one mole in grams. For water, add the relative atomic masses: 2(1) + 16 = 18, so Mᵣ = 18 g/mol. For sodium hydroxide: 23 + 16 + 1 = 40 g/mol. The subscript belongs to the atom before it, so H₂O has two hydrogens, not one.",
-      "Divide a mass by Mᵣ to get moles; multiply moles by Mᵣ to get mass. Rearranging is not a second formula to memorise — it is the same relationship read in the direction the question needs.",
+      "Calculate Mᵣ before you substitute. Adding every atom in the formula is the step learners skip, and it is why a correct division can still produce the wrong amount: the number on the bottom must be the mass of one mole of the substance named in the question.",
     ],
-    formula: "n = m / M_r        m = n × M_r",
-    steps: [
-      "Write the formula and the value of Mᵣ with its unit.",
-      "Substitute the mass in grams and divide.",
-      "Check the unit: g ÷ (g/mol) leaves mol.",
-    ],
+    formula: "M_r = sum of the relative atomic masses in the formula",
   },
   {
     heading: "Concentration: moles per cubic decimetre",
     body: [
       "Concentration is the amount of solute in a given volume of solution. It is measured in mol/dm³ (the same as mol L⁻¹). A 0.100 mol/dm³ solution contains 0.100 mol of solute in every cubic decimetre of solution.",
-      "The volume must be in dm³ before you substitute. 1 dm³ is 1000 cm³, so 25.0 cm³ is 0.0250 dm³, not 25. Dividing by the volume in cm³ gives an answer a thousand times too large — the most common unit error in the topic.",
+      "The volume must be in dm³ before you substitute. 1 dm³ is 1000 cm³, so 25.0 cm³ is 0.0250 dm³, not 25. Worked: 25.0 cm³ of 0.100 mol/dm³ sodium hydroxide contains n = c × V = 0.100 × 0.0250 = 0.00250 mol. Dividing by the volume in cm³ gives an answer a thousand times too large — the most common unit error in the topic.",
     ],
     formula: "c = n / V        n = c × V",
+    steps: [
+      "Convert the volume from cm³ to dm³: divide by 1000.",
+      "Substitute into n = c × V and keep the units.",
+      "Check the result is in mol before using it in a mole ratio.",
+    ],
     table: {
       columns: ["You are given", "Use", "Result"],
       rows: [
@@ -1543,9 +1557,9 @@ const MOLES_SECTIONS: readonly LessonSection[] = [
     heading: "The balanced equation supplies the ratio",
     body: [
       "The coefficients in a balanced equation are the ratio in which particles react. In 2H₂ + O₂ → 2H₂O, two moles of hydrogen react with one mole of oxygen to make two moles of water. The coefficient 2 in front of H₂ doubles the number of hydrogen MOLECULES; it does not mean 2 g.",
-      "Read the ratio in the direction you need. If you know the moles of water produced, the equation says the hydrogen used was the same number of moles and the oxygen used was half as many. If you know a mass, convert it to moles first, apply the ratio, then convert the answer to the requested unit.",
+      "Worked: 4.4 g of propane (Mᵣ = 44) is 4.4 ÷ 44 = 0.10 mol. The equation C₃H₈ + 5O₂ → 3CO₂ + 4H₂O gives four moles of water per mole of propane, so 0.10 mol gives 0.40 mol of water. Its mass is 0.40 × 18 = 7.2 g. Convert a mass to moles first, apply the ratio, then convert the answer to the requested unit.",
     ],
-    formula: "2H₂ + O₂ → 2H₂O     ratio 2 : 1 : 2",
+    formula: "C₃H₈ + 5O₂ → 3CO₂ + 4H₂O     ratio 1 : 5 : 3 : 4",
   },
   {
     heading: "Limiting reagent: the reactant that runs out first",
@@ -1554,50 +1568,15 @@ const MOLES_SECTIONS: readonly LessonSection[] = [
       "For 2H₂ + O₂ → 2H₂O with 4 mol H₂ and 1 mol O₂: hydrogen needs 2 mol O₂ to react completely, but only 1 mol is present. Oxygen runs out first, so oxygen is limiting and 2 mol of water forms. The 2 mol of hydrogen left over is the excess.",
     ],
   },
-  {
-    heading: "The four-line method that works every time",
-    body: [
-      "Most mole questions are the same four moves with different numbers. Keeping the moves in order prevents the common mistake of multiplying a mass by a coefficient, which mixes a mass ratio with a particle ratio.",
-    ],
-    steps: [
-      "Write and balance the equation; write the mole ratio under it.",
-      "Convert everything you are given into moles (mass ÷ Mᵣ, or concentration × volume in dm³).",
-      "Multiply by the mole ratio, using the coefficients from the equation.",
-      "Convert the moles back to the unit asked for (mass, volume of gas, or concentration).",
-    ],
-  },
 ];
 
 const ENERGY_SECTIONS: readonly LessonSection[] = [
   {
-    heading: "Enthalpy is the energy ledger",
+    heading: "Start here: calculate the energy change for a reaction",
     body: [
-      "Every reaction exchanges energy with its surroundings. Enthalpy, H, is the energy stored in the chemical system at constant pressure. We cannot measure the absolute value, so we measure the change: ΔH = H(products) − H(reactants).",
-      "If the products have less enthalpy than the reactants, the difference has been transferred to the surroundings, usually as heat. That reaction is exothermic and ΔH is negative. If the products have more enthalpy, energy has been absorbed from the surroundings; the reaction is endothermic and ΔH is positive. The sign is a direction, not a size.",
-    ],
-    formula: "ΔH = H(products) − H(reactants)",
-    table: {
-      columns: ["Reaction", "ΔH", "Surroundings"],
-      rows: [
-        ["exothermic", "negative", "temperature rises"],
-        ["endothermic", "positive", "temperature falls"],
-      ],
-      caption: "A sign tells you the direction of energy transfer; the magnitude tells you how much per mole.",
-    },
-  },
-  {
-    heading: "Breaking costs, making pays",
-    body: [
-      "A chemical reaction breaks the bonds in the reactants and makes new bonds in the products. Breaking a bond always requires energy; making a bond always releases energy. The overall energy change is the difference between the two ledgers.",
-      "Use average bond enthalpies when the question supplies them. They are averages over similar compounds and are defined for gaseous species, so a calculation using them is an estimate. A negative ΔH means the energy released in making bonds is greater than the energy absorbed in breaking bonds: the reaction is exothermic.",
-    ],
-    formula: "ΔH = Σ(bonds broken) − Σ(bonds formed)",
-  },
-  {
-    heading: "A bond-energy calculation",
-    body: [
-      "Hydrogen and chlorine react: H₂ + Cl₂ → 2HCl. Count the bonds, not the molecules. One H–H bond and one Cl–Cl bond are broken; two H–Cl bonds are made, because the equation produces two HCl molecules.",
-      "Use the table's values, then subtract the energy released from the energy absorbed. The result is negative, so the reaction is exothermic. Writing the calculation in two lines — energy in, energy out — is safer than trying to hold both sums in your head.",
+      "Hydrogen and chlorine react to make hydrogen chloride: H₂ + Cl₂ → 2HCl. The question is whether the mixture gets hotter or colder, and by how much per mole. Answer it with two ledgers: the energy needed to break the bonds in the reactants, and the energy released when the new bonds form in the products.",
+      "One H–H bond and one Cl–Cl bond are broken, which costs 436 + 243 = 679 kJ per mole of reactions. Two H–Cl bonds are made, because the equation produces two HCl molecules, which releases 2 × 432 = 864 kJ per mole. The difference is 679 − 864 = −185 kJ/mol. More energy leaves than enters, so the surroundings warm up: the reaction is exothermic.",
+      "Before trusting the number, check it against the two things you already know: the sign must agree with the temperature change you would feel, and the bond count must agree with the equation's coefficients. A sign that contradicts the observation, or a count that ignores a coefficient, means the two ledgers have been mixed up.",
     ],
     table: {
       columns: ["Bond", "Bond energy / kJ mol⁻¹"],
@@ -1609,6 +1588,36 @@ const ENERGY_SECTIONS: readonly LessonSection[] = [
       caption: "Average bond enthalpies. The values apply to gaseous bonds; they are not the same as the enthalpy of formation of the compound.",
     },
     formula: "energy in = 436 + 243 = 679 kJ/mol; energy out = 2 × 432 = 864 kJ/mol; ΔH = 679 − 864 = −185 kJ/mol",
+    steps: [
+      "Count the bonds broken in the reactants and add their energies.",
+      "Count the bonds made in the products, including the coefficient, and add their energies.",
+      "Subtract the energy released from the energy absorbed.",
+      "Read the sign: negative means exothermic, positive means endothermic.",
+    ],
+  },
+  {
+    heading: "Why breaking costs and making pays",
+    body: [
+      "A chemical reaction breaks the bonds in the reactants and makes new bonds in the products. Breaking a bond always requires energy; making a bond always releases energy. The overall energy change is the difference between the two ledgers, which is why the calculation above ends in a subtraction rather than a sum.",
+      "Use average bond enthalpies when the question supplies them. They are averages over similar compounds and are defined for gaseous species, so a calculation using them is an estimate. A negative ΔH means the energy released in making bonds is greater than the energy absorbed in breaking bonds, so the reaction is exothermic.",
+    ],
+    formula: "ΔH = Σ(bonds broken) − Σ(bonds formed)",
+  },
+  {
+    heading: "What the sign of ΔH means, once you have a number",
+    body: [
+      "Every reaction exchanges energy with its surroundings. Enthalpy, H, is the energy stored in the chemical system at constant pressure. We cannot measure the absolute value, so we measure the change: ΔH = H(products) − H(reactants).",
+      "If the products have less enthalpy than the reactants, the difference has been transferred to the surroundings, usually as heat. That reaction is exothermic and ΔH is negative. If the products have more enthalpy, energy has been absorbed; the reaction is endothermic and ΔH is positive. The sign is a direction, not a size.",
+    ],
+    formula: "ΔH = H(products) − H(reactants)",
+    table: {
+      columns: ["Reaction", "ΔH", "Surroundings"],
+      rows: [
+        ["exothermic", "negative", "temperature rises"],
+        ["endothermic", "positive", "temperature falls"],
+      ],
+      caption: "A sign tells you the direction of energy transfer; the magnitude tells you how much per mole.",
+    },
   },
   {
     heading: "Reading a reaction profile",

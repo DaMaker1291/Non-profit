@@ -111,7 +111,7 @@ const FIGURED = [
   ["electricity-circuits", "axes"],
 ];
 
-/** AUTHORED LESSONS WITH NO PILOT PLAN.
+/** AUTHORED LESSONS WITH NO PILOT PLAN, AND THE SUBJECT THAT OWNS EACH.
  *
  *  FIGURED is checked against `planFor` by `npm run verify` — a row whose concept
  *  has no plan is a FAILURE there, and rightly so: it would mean the walk measures
@@ -119,9 +119,25 @@ const FIGURED = [
  *  plan, and the foundation batch (place-value, decimals, addition, subtraction,
  *  rounding, multiplication, division) is authored teaching that mostly has no
  *  pilot plan at all. `decimals` is in both lists because it does; these are the
- *  rest. Listed rather than discovered so the set is reviewable, and asserted below
- *  to RENDER — a browser check on a module is not a browser check. */
-const AUTHORED_NO_PLAN = ["place-value", "addition", "subtraction", "rounding", "multiplication", "division"];
+ *  rest. The unplanned science and computing lessons have no pilot plan either, so
+ *  they are measured here too — a route that is only tested with curl is not a
+ *  learner-facing check. Listed rather than discovered so the set is reviewable,
+ *  and asserted below to RENDER — a browser check on a module is not a browser
+ *  check. */
+const AUTHORED_NO_PLAN = [
+  { concept: "place-value", subject: "maths" },
+  { concept: "addition", subject: "maths" },
+  { concept: "subtraction", subject: "maths" },
+  { concept: "rounding", subject: "maths" },
+  { concept: "multiplication", subject: "maths" },
+  { concept: "division", subject: "maths" },
+  { concept: "respiration", subject: "biology" },
+  { concept: "breathing-gas", subject: "biology" },
+  { concept: "digestion", subject: "biology" },
+  { concept: "microscopy", subject: "biology" },
+  { concept: "compounds-mixtures", subject: "chemistry" },
+  { concept: "conditionals", subject: "computing" },
+];
 
 /** Every kind the figure union declares. A plan may only draw one of these. */
 const KINDS = ["axes", "pie", "right-triangle", "number-line", "balance", "rectangle", "surd-square", "particles", "circuit", "cell", "atom", "chem"];
@@ -541,7 +557,12 @@ async function main() {
     section("The phone's practice door starts at the top");
     await goto(`${BASE}/learn/maths/fractions`);
     await p.waitFor(`return !!${door};`, "the practice door on a phone", 25000);
-    await p.evaluate(`window.scrollTo(0, document.body.scrollHeight); return true;`);
+    // INSTANT, because the stylesheet sets `scroll-behavior: smooth`: a smooth
+    // scroll is still animating when the door is clicked, and the old animation
+    // can survive the stage change and leave the assertion reading its offset.
+    // The product assertion below is unchanged — this only removes a harness race.
+    await p.evaluate(`window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }); return true;`);
+    await sleep(80);
     const beforeDoor = await p.evaluate(`return window.scrollY;`);
     await p.clickExpr(door, "the practice door at the foot of the lesson");
     await p.waitFor(`return !!document.querySelector(".sess-step-row");`, "the practice view", 20000);
@@ -1036,7 +1057,7 @@ async function main() {
     //
     // The batch above is authored teaching with no plan record, so the FIGURED
     // loop — which walks plans — cannot reach it. Until this section existed the
-    // only evidence those six lessons rendered was that `auditLesson` returned no
+    // only evidence those lessons rendered was that `auditLesson` returned no
     // problems: a claim about a module, never about a page. What a module check
     // cannot see is exactly what went wrong here before (a section whose CSS
     // matched nothing, a card that never paints), so each lesson is opened and
@@ -1047,7 +1068,7 @@ async function main() {
     // Section 7 deliberately leaves the learner being TAUGHT in Spanish (the
     // interface was put back to English afterwards, and those are separate
     // settings). `authoredLessonFor(id, "es")` answers null for every lesson
-    // without a complete translation — so the five lessons this section exists to
+    // without a complete translation — so the lessons this section exists to
     // measure rendered the PLAN instead, and the one lesson that does have a
     // Spanish translation (`place-value`) appeared on its own. That is what the
     // first run of this section found: 1 of 6. Reset through the same /access
@@ -1067,9 +1088,9 @@ async function main() {
     await setTeachingLanguage("en");
     await viewport(1280, 900);
     const authoredSeen = [];
-    for (const concept of AUTHORED_NO_PLAN) {
+    for (const { concept, subject } of AUTHORED_NO_PLAN) {
       await viewport(1280, 900);
-      await goto(`${BASE}/learn/maths/${concept}`);
+      await goto(`${BASE}/learn/${subject}/${concept}`);
       let seen = null;
       // THE REASON AN EVALUATION FAILED IS PART OF THE MEASUREMENT. A bare
       // `catch {}` reported "NO authored lesson rendered" for a page that was
@@ -1126,7 +1147,7 @@ async function main() {
             saysStatus: /status: [a-z]/i.test(about) || /status: [a-z]/i.test(text("Lesson summary") + about),
           };`);
       } catch (e) { evalErr = String(e?.message ?? e); }
-      authoredSeen.push({ concept, seen, evalErr });
+      authoredSeen.push({ concept, subject, seen, evalErr });
       check(seen?.contract === "openmind.lesson/1.0",
         seen ? `${concept}: the authored lesson renders with its contract (${seen.contract})` : `${concept}: NO authored lesson rendered on the page`);
       check(!!seen && seen.objectives >= 3 && seen.misconceptions >= 2 && seen.guided >= 3,

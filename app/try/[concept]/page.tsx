@@ -109,6 +109,13 @@ export default function TryConceptPage() {
       <p className="eyebrow"><span className="no">→</span> {t("try.eyebrow")}</p>
       <h1 className="visually-small">{t("try.title")}</h1>
       <p className="lead">{ctitle(lang, c.id)} — {cblurb(lang, c.id)}</p>
+      {/* A challenge is not a lesson. A visitor who does not yet know the method
+          needs a door to the teaching BEFORE the question, not only after a
+          wrong answer; the lesson is where the worked example and practice
+          live. */}
+      <Link className="btn ghost" href={`/learn/${c.subject}/${c.id}`} style={{ marginTop: 12 }}>
+        {t("try.learnMore")} →
+      </Link>
       {q && (
         <div className="card" style={{ marginTop: 16 }}>
           <div className="qprompt">
