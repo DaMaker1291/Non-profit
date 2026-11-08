@@ -137,6 +137,7 @@ const AUTHORED_NO_PLAN = [
   { concept: "microscopy", subject: "biology" },
   { concept: "compounds-mixtures", subject: "chemistry" },
   { concept: "conditionals", subject: "computing" },
+  { concept: "binary-data", subject: "computing" },
 ];
 
 /** Every kind the figure union declares. A plan may only draw one of these. */
@@ -1167,6 +1168,17 @@ async function main() {
       const wide = await p.evaluate(`return { scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth };`);
       check(!!wide && wide.scroll <= wide.client,
         wide ? `${concept}: fits a 320-px screen (${wide.scroll} vs ${wide.client})` : `${concept}: width could not be measured`);
+
+      // 320 is the narrowest supported screen, not the only phone. The two
+      // intermediate widths catch a rule that fits 320 and 1280 but breaks the
+      // common 375-px phone or a 768-px tablet — the widths a real class uses.
+      for (const [width, height, label] of [[375, 667, "375-px phone"], [768, 1024, "768-px tablet"]]) {
+        await viewport(width, height);
+        await sleep(100);
+        const measured = await p.evaluate(`return { scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth };`);
+        check(!!measured && measured.scroll <= measured.client + 1,
+          measured ? `${concept}: fits a ${label} (${measured.scroll} vs ${measured.client})` : `${concept}: ${label} width could not be measured`);
+      }
     }
     const rendered = authoredSeen.filter((r) => r.seen).length;
     const whyNot = authoredSeen.filter((r) => r.evalErr).map((r) => `${r.concept}: ${r.evalErr}`).join(" | ");

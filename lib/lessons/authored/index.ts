@@ -32,6 +32,7 @@ import { BIOLOGY_BREATHING_GAS } from "./biology-breathing-gas";
 import { BIOLOGY_DIGESTION } from "./biology-digestion";
 import { BIOLOGY_MICROSCOPY } from "./biology-microscopy";
 import { COMPUTING_CONDITIONALS } from "./computing-conditionals";
+import { COMPUTING_BINARY } from "./computing-binary";
 import { MATHS_LINEAR_EQUATIONS } from "./maths-linear-equations";
 import { LESSON_TRANSLATIONS, TRANSLATED_LANGUAGES } from "./translations";
 
@@ -122,6 +123,9 @@ export const AUTHORED_LESSONS: readonly AuthoredLesson[] = [
   // treated as part of the calculation and the instrument chosen for a specimen.
   BIOLOGY_MICROSCOPY,
   COMPUTING_CONDITIONALS,
+  // Batch 18 — binary as a representation, not a vocabulary list: place value,
+  // byte range, carry/overflow and hexadecimal as four-bit shorthand.
+  COMPUTING_BINARY,
   MATHS_LINEAR_EQUATIONS,
 ];
 

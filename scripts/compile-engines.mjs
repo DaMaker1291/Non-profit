@@ -425,6 +425,7 @@ export const ENGINE_SOURCES = [
   "lib/lessons/authored/biology-digestion.ts",
   "lib/lessons/authored/biology-microscopy.ts",
   "lib/lessons/authored/computing-conditionals.ts",
+  "lib/lessons/authored/computing-binary.ts",
   "lib/lessons/authored/maths-linear-equations.ts",
   "lib/lessons/authored/translations.ts",
   "lib/lessons/authored/index.ts",

@@ -2,9 +2,10 @@
 
 Generated from `reports/lesson-quality/audit.json`. Work in batches; do not mark a lesson complete because a structural check passes.
 
-## Critical (18)
+`critical` and `high` are queue positions for concepts without an authored lesson; `review` means the authored lesson has the required structural parts, not that a teacher or learner has validated it.
 
-- [ ] `binary-data` (computing, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
+## Critical (17)
+
 - [ ] `dictionaries` (computing, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 - [ ] `functions-code` (computing, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 - [ ] `lists-arrays` (computing, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
@@ -109,7 +110,7 @@ Generated from `reports/lesson-quality/audit.json`. Work in batches; do not mark
 - [ ] `thermal-physics` (physics, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 - [ ] `work-power` (physics, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 
-## Review (34)
+## Review (35)
 
 - [ ] `breathing-gas` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `cells` (biology, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
@@ -125,6 +126,7 @@ Generated from `reports/lesson-quality/audit.json`. Work in batches; do not mark
 - [ ] `equations-stoich` (chemistry, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `periodic-table` (chemistry, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `algorithms-search` (computing, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `binary-data` (computing, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `conditionals` (computing, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `loops` (computing, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `variables` (computing, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.

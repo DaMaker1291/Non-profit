@@ -65,9 +65,9 @@ export const BIOLOGY_DIGESTION: AuthoredLesson = {
 
   introduction: {
     hook:
-      "A slice of bread contains starch, a polymer built from hundreds or thousands of glucose units. A villus in the small intestine is covered by a layer of cells only one cell thick. If a starch molecule touched that surface, it could not walk through: it is too large and not soluble in the right way. The body therefore has to dismantle the bread before it can absorb it. Chewing helps, but chewing alone never turns starch into glucose. Something else has to cut the chemical bonds.",
+      "A slice of bread contains starch, a polymer built from hundreds or thousands of glucose units. A villus in the small intestine is covered by a layer of cells only one cell thick. If a starch molecule touched that surface, it could not walk through: it is too large to cross the membrane and not soluble enough to pass through in solution. The body therefore has to dismantle the bread before it can absorb it. Chewing helps, but chewing alone never turns starch into glucose. Something else has to cut the chemical bonds.",
     why:
-      "Digestion is the breakdown of large, insoluble food molecules into small, soluble molecules that can be absorbed into the blood. Mechanical digestion, such as chewing and churning, increases the surface area exposed to enzymes but does not change the molecules. Chemical digestion uses enzymes to hydrolyse bonds: amylase breaks starch down to maltose and then glucose, proteases break proteins down to amino acids, and lipase breaks fats down to fatty acids and glycerol. Bile is not an enzyme; it emulsifies fat into smaller droplets and neutralises acidic chyme so pancreatic enzymes can work. The small intestine is the main site of absorption because its folded wall, villi and microvilli give an enormous surface area, a thin barrier and a dense blood supply. This lesson follows the food, the enzymes and the surface, and explains what each one contributes.",
+      "Digestion is the breakdown of large, insoluble food molecules into small, soluble molecules that can be absorbed into the blood. Mechanical digestion, such as chewing and churning, increases the surface area exposed to enzymes but does not change the molecules. Chemical digestion uses enzymes to hydrolyse bonds: amylase breaks starch down to maltose, maltase breaks maltose down to glucose, proteases break proteins down to amino acids, and lipase breaks fats down to fatty acids and glycerol. Bile is not an enzyme; it emulsifies fat into smaller droplets and neutralises acidic chyme so pancreatic enzymes can work. The small intestine is the main site of absorption because its folded wall, villi and microvilli give an enormous surface area, a thin barrier and a dense blood supply. This lesson follows the food, the enzymes and the surface, and explains what each one contributes.",
   },
 
   explanation: [
@@ -83,7 +83,7 @@ export const BIOLOGY_DIGESTION: AuthoredLesson = {
       heading: "The gut is a production line with different conditions in each part",
       paragraphs: [
         "Digestion begins in the mouth. Teeth break food into smaller pieces, saliva moistens it and contains salivary amylase, which begins the hydrolysis of starch to maltose. The tongue rolls the food into a bolus and starts swallowing. Saliva also contains mucus, which lubricates the bolus, and its near-neutral pH is close to the optimum for salivary amylase. The enzyme does not complete starch digestion in the mouth; most of the starch is still intact when the bolus is swallowed.",
-        "The oesophagus is a muscular tube. Its walls contain circular and longitudinal muscle, and waves of contraction called peristalsis push the bolus towards the stomach. Circular muscles contract behind the bolus while longitudinal muscles relax ahead of it, narrowing the tube behind the food and widening it in front. This wave travels down the oesophagus, so food moves even when a person is lying down or upside down. Peristalsis is not the same as gravity, and it continues throughout the gut.",
+        "The oesophagus is a muscular tube. Its walls contain circular and longitudinal muscle, and waves of contraction called peristalsis push the bolus towards the stomach. Circular muscles contract behind the bolus, narrowing the tube and pushing the food forward. The circular muscles ahead relax to open the lumen, while the longitudinal muscles contract and shorten that segment. This wave travels down the oesophagus, so food moves even when a person is lying down or upside down. Peristalsis is not the same as gravity, and it continues throughout the gut.",
         "The stomach is a muscular bag with very acidic contents, roughly pH 1.5 to 3.5, produced by parietal cells. The acid kills many ingested microbes, denatures proteins so their polypeptide chains unfold, and converts inactive pepsinogen into active pepsin. Pepsin begins protein digestion, breaking proteins into shorter polypeptides. The stomach also churns food with gastric juice to form chyme. It absorbs some water, alcohol and certain drugs, but it is not the main site of nutrient absorption. The acidic chyme is released in small amounts through the pyloric sphincter into the duodenum.",
         "The duodenum is the first part of the small intestine. It receives pancreatic juice, which contains pancreatic amylase, proteases such as trypsin, and lipase, and it receives bile from the liver via the gall bladder and bile duct. The pancreas also secretes hydrogencarbonate ions, which neutralise the acidic chyme and raise the pH towards the optimum for the pancreatic enzymes. The jejunum and ileum continue digestion and are the main sites of absorption. The ileum is especially important for absorbing vitamin B12 and bile salts. The large intestine absorbs water and mineral ions and compacts the remaining material into faeces; it is not the main site of nutrient absorption.",
       ],
@@ -91,7 +91,7 @@ export const BIOLOGY_DIGESTION: AuthoredLesson = {
     {
       heading: "Enzymes are specific, and their environment decides whether they work",
       paragraphs: [
-        "Amylase is a carbohydrase. It hydrolyses the glycosidic bonds in starch, producing maltose and then, with maltase, glucose. Salivary amylase starts the process in the mouth; pancreatic amylase continues it in the small intestine. Proteases hydrolyse peptide bonds between amino acids. Pepsin works in the stomach at low pH, while trypsin and other pancreatic proteases work in the small intestine at a higher pH. Lipase hydrolyses the ester bonds in triglycerides, releasing fatty acids and glycerol. Each enzyme has an active site complementary to its substrate, which is why amylase does not digest protein and protease does not digest starch.",
+        "Amylase is a carbohydrase. It hydrolyses the glycosidic bonds in starch, producing maltose. Maltase, on the membranes of the intestinal epithelium, then hydrolyses maltose to glucose. Salivary amylase starts the process in the mouth; pancreatic amylase continues it in the small intestine. Proteases hydrolyse peptide bonds between amino acids. Pepsin works in the stomach at low pH, while trypsin and other pancreatic proteases work in the small intestine at a higher pH. Lipase hydrolyses the ester bonds in triglycerides, releasing fatty acids and glycerol. Each enzyme has an active site complementary to its substrate, which is why amylase does not digest protein and protease does not digest starch.",
         "The pH of the surroundings changes which amino-acid side chains are ionised, and those charges help hold the active site in its working shape. Pepsin is adapted to the acid stomach; it is inactive or denatured at the alkaline pH of the small intestine. Pancreatic enzymes are adapted to the slightly alkaline small intestine; they work poorly in the acid stomach. This is not a minor detail: it explains why the body must neutralise chyme as it enters the duodenum, and why a drug that neutralises stomach acid can change protein digestion in the stomach.",
         "Enzymes are catalysts, not reactants. They are not used up in the reaction, so a small amount of enzyme can catalyse the breakdown of many substrate molecules. They do not supply energy to the reaction; they lower the activation energy, making the reaction faster at body temperature. A denatured enzyme has lost the shape of its active site and cannot be restored by simply cooling it, because the change in the protein's tertiary structure is usually irreversible.",
       ],
@@ -130,9 +130,9 @@ export const BIOLOGY_DIGESTION: AuthoredLesson = {
       id: "r2",
       kind: "biology.process",
       body:
-        "Peristalsis moves food along the gut because circular muscles contract behind the bolus, narrowing the tube, while longitudinal muscles relax ahead of it, widening the tube. This creates a wave of contraction that pushes the bolus forward. The wave is generated by the gut wall itself, so food can move even when gravity is not helping.",
+        "Peristalsis moves food along the gut because circular muscles contract behind the bolus, narrowing the tube and pushing the food forward. The circular muscles ahead relax to open the lumen, while the longitudinal muscles ahead contract and shorten that segment. This creates a wave of contraction that pushes the bolus forward. The wave is generated by the gut wall itself, so food can move even when gravity is not helping.",
       notation:
-        "circular muscle contracts behind the bolus → tube narrows → bolus is pushed forward · longitudinal muscle relaxes ahead → tube widens",
+        "circular muscle contracts behind → tube narrows → bolus pushed forward · circular muscle ahead relaxes · longitudinal muscle contracts ahead → segment shortens, lumen opens",
       caption:
         "Peristalsis is a muscular wave, not a fall through a tube. It continues in the oesophagus, stomach and intestines.",
     },
@@ -284,7 +284,7 @@ export const BIOLOGY_DIGESTION: AuthoredLesson = {
       hint:
         "What happens to the starch molecules when the bread is chewed? What has to break the chemical bonds between the glucose units?",
       answer:
-        "Chewing is mechanical digestion. It breaks the bread into smaller pieces and increases the surface area exposed to saliva, but it does not break the glycosidic bonds in starch. The starch molecules are still large polymers, so they cannot be absorbed. Salivary amylase begins chemical digestion by hydrolysing starch to maltose, and pancreatic amylase and maltase continue the breakdown to glucose. Chewing helps the enzymes reach the starch faster, but it is not digestion by itself.",
+        "Chewing is mechanical digestion. It breaks the bread into smaller pieces and increases the surface area exposed to saliva, but it does not break the glycosidic bonds in starch. The starch molecules are still large polymers, so they cannot be absorbed. Salivary amylase begins chemical digestion by hydrolysing starch to maltose. Pancreatic amylase continues producing maltose in the small intestine, and maltase on the intestinal epithelium breaks maltose into glucose. Chewing helps the enzymes reach the starch faster, but it is not digestion by itself.",
       feedback: {
         correct:
           "You separated the physical reduction of the bread from the chemical hydrolysis of starch, and explained why the smaller pieces still cannot be absorbed.",
@@ -390,16 +390,16 @@ export const BIOLOGY_DIGESTION: AuthoredLesson = {
     {
       id: "t1",
       prompt:
-        "Coeliac disease damages the villi of the small intestine, making them shorter and flatter. A patient eats a normal diet but loses weight and becomes anaemic. Explain how the damaged villi can cause both problems, even though the patient's stomach and pancreas are working normally.",
+        "Coeliac disease is an immune reaction to gluten that damages the villi of the small intestine, making them shorter and flatter. A patient eats a normal diet but loses weight and becomes anaemic. Explain how the damaged villi can cause both problems, even though the patient's stomach and pancreas are working normally.",
       whyItTransfers:
         "The lesson explains absorption through surface area, diffusion distance, capillaries and lacteals in a healthy villus. Here the structure is damaged, so the learner must reason from the lost surface and transport capacity to reduced absorption of energy-providing nutrients and iron, rather than repeat the normal description.",
       answer:
-        "Shorter, flatter villi reduce the total surface area of the small intestine and reduce the number of microvilli, so there is less area for digested nutrients to be absorbed. The epithelium may also be damaged, increasing the diffusion distance and reducing the number of transport proteins. Less glucose and amino acid absorption means less energy and raw material for growth, so the patient loses weight. Less iron absorption can lead to iron-deficiency anaemia because iron is needed to make haemoglobin. The stomach and pancreas can still produce acid and enzymes, but the products cannot be absorbed efficiently if the intestinal surface is damaged.",
+        "The immune reaction to gluten damages the villi, especially in the duodenum and jejunum, so the total surface area of the small intestine falls and the number of microvilli is reduced. There is less area for digested nutrients to be absorbed, and the damaged epithelium can increase the diffusion distance and reduce the number of transport proteins. Less glucose and amino acid absorption means less energy and raw material for growth, so the patient loses weight. The duodenum and jejunum are also the main site of iron absorption, so less iron is taken up; iron is needed to make haemoglobin, so iron-deficiency anaemia can follow. The stomach and pancreas can still produce acid and enzymes, but the products cannot be absorbed efficiently if the intestinal surface is damaged.",
       marking: [
-        "Links damaged villi to a reduced surface area for absorption.",
+        "Links the immune reaction to gluten to damaged villi and a reduced surface area for absorption.",
         "Explains that shorter or flatter villi reduce the number of microvilli and transport proteins.",
         "Links reduced absorption of glucose and amino acids to weight loss.",
-        "Links reduced iron absorption to anaemia and haemoglobin production.",
+        "Links reduced iron absorption in the duodenum and jejunum to anaemia and haemoglobin production.",
         "Does not claim that the stomach or pancreas has stopped producing enzymes.",
       ],
     },
@@ -434,7 +434,7 @@ export const BIOLOGY_DIGESTION: AuthoredLesson = {
 
   summary: [
     "Mechanical digestion increases the surface area of food but does not change its molecules; chemical digestion uses enzymes to hydrolyse large molecules into small soluble products.",
-    "Amylase breaks starch down to maltose and glucose, proteases break proteins down to amino acids, and lipase breaks fats down to fatty acids and glycerol.",
+    "Amylase breaks starch down to maltose, maltase breaks maltose down to glucose, proteases break proteins down to amino acids, and lipase breaks fats down to fatty acids and glycerol.",
     "Bile is made by the liver and stored in the gall bladder. It emulsifies fat and neutralises acidic chyme, but it contains no digestive enzymes.",
     "The small intestine is the main site of absorption because villi and microvilli provide a large surface area, the epithelium is one cell thick, and capillaries and lacteals carry absorbed molecules away.",
   ],

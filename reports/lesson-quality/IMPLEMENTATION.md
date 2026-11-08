@@ -146,14 +146,15 @@ tree and were not reverted.
 
 | Check | Result |
 |---|---|
-| `node scripts/lesson-catalogue.mjs` | exit 0 · 135 concepts · **34 authored** · 101 outline · 34 `machine_checked` · 0 unresolved lesson problems |
-| `node scripts/lesson-quality-audit.mjs` | exit 0 · **18 critical**, 83 high, 34 review |
+| `node scripts/lesson-catalogue.mjs` | exit 0 · 135 concepts · **35 authored** · 100 outline · 35 `machine_checked` · 0 unresolved lesson problems |
+| `node scripts/lesson-quality-audit.mjs` | exit 0 · **17 critical**, 83 high, 35 review |
 | `npm run verify` | **4630 passed, 0 failed** (three deliberately planted failing controls are excluded from the total) |
-| `npm run verify:lessons` | exit 0 · all lesson checks, including **61 chemistry assertions** |
+| `npm run verify:lessons` | exit 0 · all lesson checks, including **61 chemistry** and **89 biology assertions** |
 | `npm run typecheck` | exit 0 |
-| `npm run build` | exit 0 in an earlier batch; **not rerun in batches 16–17** |
-| `npm run disk-headroom` | 11.4 GB free (bar: refuse below 5.0 GB) |
-| Browser, 1280 × 900 and 320 × 640 | `npm run verify:lesson` — **358 passed, 0 failed**. All 21 planned lessons were measured at both widths, plus all 12 authored lessons without a plan. `compounds-mixtures`, `microscopy`, `digestion`, `breathing-gas`, `respiration`, `conditionals` and `linear-equations` each render their authored teaching and fit 320 px; `compounds-mixtures` reports 3 objectives, 4 misconceptions, 3 guided items, 19 prose paragraphs, 4 representation blocks, a 220-word transfer and 67-word retrieval section, and measures **320 vs 320** at phone width |
+| `npm run build` | **exit 0 in batch 19** |
+| `npm run verify:a11y` | **61 passed, 0 failed** on a clean scratch run, with one gated surface not audited. A preceding post-walk run had one `/access` control failure that did not reproduce; this is a smoke test, not stable accessibility evidence |
+| `npm run disk-headroom` | 11.2 GB free (bar: refuse below 5.0 GB) |
+| Browser, 1280 × 900, 768 × 1024, 375 × 667 and 320 × 640 | `npm run verify:lesson` — **389 passed, 0 failed**. All 21 planned lessons were measured at 1280 and 320, plus all 13 authored lessons without a plan at all four widths. `binary-data` renders 3 objectives, 3 misconceptions, 3 guided items, 18 prose paragraphs and 4 representation blocks, with a 230-word transfer and 64-word retrieval section. It measures **320/375/768/1280 with no sideways scroll** |
 
 Batch 13 added three more lessons. The catalogue, typecheck and full `verify`
 were re-run after wiring them: **30 authored · 105 outline · 30
@@ -201,31 +202,68 @@ misconceptions, 3 guided items, 19 prose paragraphs, 4 representation blocks, a
 220-word transfer and a 67-word retrieval section, and measured **320 vs 320**
 at phone width.
 
+Batch 18 did not add a lesson: it verified the two named in the review brief.
+The audit found two scientific defects in `digestion`, both now fixed. Amylase
+had been credited with producing glucose as well as maltose; maltase is the
+enzyme that performs the second step. The peristalsis paragraph had the
+longitudinal muscle relaxing ahead of the bolus; the checked account is that the
+circular muscle ahead relaxes while the longitudinal muscle contracts and
+shortens the segment. The coeliac transfer now names the immune reaction to
+gluten and the duodenal/jejunal site of iron absorption. `microscopy` required no
+scientific correction: its resolution claims and four calculations survived
+independent checking. A new `scripts/biology-lesson-check.mjs` gates the 89
+checked claims and calculations, and `scripts/lesson-walk.mjs` now measures the
+375-px phone and 768-px tablet as well. The production build and the full
+browser walk both pass; this is still not teacher review or learner evidence.
+
+See `reports/lesson-quality/DIGESTION_MICROSCOPY_VERIFICATION.md` for the
+13-criterion checklist, source links, corrections and limitations.
+
+Batch 19 added `binary-data`, the first critical concept after the digestion and
+microscopy checkpoint. The initial contract run correctly rejected `what-is-code`
+as a prerequisite because the genome declares only `number-bases`; the diagnostic
+was retargeted rather than the check being weakened. The finished lesson has 3
+objectives, 2 diagnostic checks, 2 reasoned worked examples, 3 misconceptions, 3
+guided items, a code assessment plus 3 short answers, a transfer task and 3
+retrieval prompts. The catalogue moved to **35 authored · 100 outline · 35
+`machine_checked`**, and the audit to **17 critical · 83 high · 35 review**. The
+full browser walk passed **389/0**, including `binary-data` at 320, 375, 768 and
+1280 px. The clean accessibility rerun passed 61/0 but left one gated surface
+unmeasured; the earlier post-walk run's single `/access` failure did not
+reproduce, so it is recorded as flaky rather than claimed as a pass.
+
+See `reports/lesson-quality/BINARY_DATA_VERIFICATION.md` for the sources,
+arithmetic checks and limitations.
+
 The successful browser runs used the walk's own onboarding enrolment against a
 dev server whose `OPENMIND_DATA_DIR` was `/tmp/openmind-walk-b13`,
-`/tmp/openmind-walk-digestion`, `/tmp/openmind-walk-microscopy` and
-`/tmp/openmind-walk-compounds` for the later batches. None opened the live
+`/tmp/openmind-walk-digestion`, `/tmp/openmind-walk-microscopy`,
+`/tmp/openmind-walk-compounds`, `/tmp/openmind-walk-bio` and
+`/tmp/openmind-walk-binary` for the later batches. None opened the live
 `.openmind-data`; each scratch store was removed after its run.
 
 ## 3. Honest limitations
 
-- **Coverage.** 101 concepts still have only a plan/outline, not an authored
-  lesson. The queue lists them by priority; 18 are `critical`.
+- **Coverage.** 100 concepts still have only a plan/outline, not an authored
+  lesson. The queue lists them by priority; 17 are `critical`.
 - **No human evidence.** Every authored lesson is `draft`/`machine_checked`.
   Zero are `educator_reviewed`; zero are `learner_tested`. No teacher or learner
   was available, so no claim about learning outcomes is made.
-- **Viewport coverage.** The project's walk measured all 21 planned lessons and
-all 12 unplanned authored lessons at 1280 × 900 and 320 × 640; no lesson scrolled
-sideways at 320. 375 px, tablet widths, screen-reader and keyboard journeys
-were not measured.
+- **Viewport coverage.** The project's walk measured all 21 planned lessons at
+1280 × 900 and 320 × 640, and all 13 unplanned authored lessons at 1280 × 900,
+768 × 1024, 375 × 667 and 320 × 640; no lesson scrolled sideways at any measured
+width. The a11y audit measured structural landmarks, control names, skip-link
+focus and 320-px overflow, but one surface was gated and the `/access` control
+check was intermittent. Screen-reader announcements, switch/eye-gaze input,
+200% text reflow and colour-contrast ratios remain unmeasured.
 - **Dev-cache failure mode.** A stale `.next-dev` after repeated hard restarts
 served the onboarding `Loading…` fallback and left `/learn` on its boot screen.
 Deleting only the generated `.next-dev` cache fixed it; no product code was
 changed for the cache itself. If the symptom recurs, clear that cache before
 mistaking it for a session or lesson defect.
-- **Production server.** `npm run build` succeeded, but the running server on
-  port 3000 was not restarted, so it still serves the previous build. The new
-  lessons were verified on the dev server at 4173.
+- **Production server.** `npm run build` succeeded in batch 19, but the running
+  server on port 3000 was not restarted, so it still serves the previous build.
+  The new lesson was verified on the dev server at 4173; nothing was deployed.
 - **Research access.** Oak lesson slides/worksheets/videos, authenticated
   Dr Frost/Sparx/MathsWatch screens and school-gated services (GCSEPod,
   Educake) could not be inspected; the benchmark records this rather than
@@ -235,14 +273,19 @@ mistaking it for a session or lesson defect.
 
 ## 4. Next queue
 
-1. Subject-teacher review of the batch-13 to batch-17 lessons, starting with
+1. Subject-teacher review of `digestion` and `microscopy` against the new
+   verification report, starting with the age-appropriateness of the coeliac
+   transfer and the electron-microscope resolution figures.
+2. Subject-teacher review of `binary-data`, especially whether its Python style,
+   eight-bit range and hexadecimal notation suit the chosen GCSE route.
+3. Subject-teacher review of the batch-13 to batch-18 lessons, starting with
    `compounds-mixtures` (fixed-ratio bonding, ionic lattices and the
    decomposition-versus-mixture distinction are the most damaging errors if
-   wrong), then `respiration`, `breathing-gas`, `digestion`, `microscopy`,
-   `linear-equations` and `conditionals`.
-2. Authored lessons for the next critical concepts: `binary-data`, then the next
-   critical concepts the queue ranks highest.
-3. A browser walk of all authored lessons at 375/768 px and with a screen reader,
-   extending `scripts/lesson-walk.mjs` rather than adding a second harness.
-4. Rebuild and restart the local production server so the served app matches the
-   verified build.
+   wrong), then `respiration`, `breathing-gas`, `linear-equations` and
+   `conditionals`.
+4. Authored lessons for the next critical concepts the queue ranks highest,
+   starting with `dictionaries`, `functions-code` and `lists-arrays`.
+5. Screen-reader, switch-input and 200% text-reflow testing of the authored
+   lessons; the structural a11y audit is not a substitute.
+6. Restart the local production server so the served app matches the verified
+   build.
