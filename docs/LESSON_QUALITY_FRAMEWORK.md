@@ -73,9 +73,10 @@ factual error, and a polished page can teach nothing.
 - **Published** — subject review and learner testing are both present, plus
   curriculum approval.
 
-The current repository is at **16 machine-checked, 119 outlines, 0 subject-
-reviewed, 0 learner-tested**. The audit beside this document is the source of
-those numbers.
+The current repository is at **56 machine-checked, 79 outlines, 0 subject-
+reviewed, 0 learner-tested** (10 November 2026). The generated catalogue and the
+audit beside this document are the source of those numbers; this sentence is a
+snapshot and `npm run readiness` is the live ledger.
 
 ## 4. What is automated, what is not
 

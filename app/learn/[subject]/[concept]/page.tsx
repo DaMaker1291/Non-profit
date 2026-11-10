@@ -56,6 +56,9 @@ import { videoFor, videoScopeKey } from "@/lib/lesson-media";
 // the silent mixture the translation rule forbids.
 import { authoredLessonFor } from "@/lib/lessons/authored";
 import { AuthoredLessonReading } from "@/components/authored-lesson";
+import { ProbabilitySimulation } from "@/components/probability-simulation";
+import { ProbabilityVennActivity } from "@/components/probability-venn-activity";
+import { ProbabilityTreeActivity } from "@/components/probability-tree-activity";
 import { lessonStatus } from "@/lib/pilot";
 import { exampleFor } from "@/lib/culture";
 import type { FlarePayload } from "@/lib/microdiag";
@@ -1439,6 +1442,13 @@ export default function ConceptPage() {
           the practice door so the sequence still teaches before it tests. */}
       {authoredLesson && (
         <AuthoredLessonReading lesson={authoredLesson} learnerId={state?.profile?.id ?? null} />
+      )}
+      {authoredLesson?.conceptId === "probability-basics" && (
+        <>
+          <ProbabilityVennActivity learnerId={state?.profile?.id ?? null} />
+          <ProbabilityTreeActivity learnerId={state?.profile?.id ?? null} />
+          <ProbabilitySimulation />
+        </>
       )}
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: plan ? 8 : 20 }}>

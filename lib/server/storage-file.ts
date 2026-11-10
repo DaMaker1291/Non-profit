@@ -46,6 +46,10 @@ import {
   listClasses,
   listContentReviews,
   appendContentReview,
+  listLessonReviews,
+  appendLessonReview,
+  listLessonImprovementTasks,
+  updateLessonImprovementTask,
   listPacks,
   listPersonalPapers,
   listProfileStates,
@@ -181,6 +185,12 @@ export const fileStorage: Storage = {
   // the route rather than by the storage layer.
   listContentReviews,
   appendContentReview,
+
+  // Authored-lesson reviews and the improvement queue derived from them.
+  listLessonReviews,
+  appendLessonReview,
+  listLessonImprovementTasks,
+  updateLessonImprovementTask,
 
   // Papers — the answer key stays server-side.
   saveStoredPaper,

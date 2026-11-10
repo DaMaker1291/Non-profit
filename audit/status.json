@@ -16,8 +16,8 @@
     "Assessment validity · Course × subject rows audited for depth": 311,
     "Storage · Lock tables in lib/ and app/": 1,
     "Storage · Owners of where learning data lives": 1,
-    "Storage · Route files importing the store": 23,
-    "Storage · JSON files the server modules own": 14,
+    "Storage · Route files importing the store": 24,
+    "Storage · JSON files the server modules own": 15,
     "Pilot (UK GCSE maths) · Concepts in the review cluster": 20,
     "Pilot (UK GCSE maths) · Items awaiting human review": 179,
     "Pilot (UK GCSE maths) · Cluster concepts with no named misconception to probe": 5,
@@ -133,16 +133,16 @@
     {
       "section": "Storage",
       "label": "Route files importing the store",
-      "value": 23,
+      "value": 24,
       "source": "app/api",
-      "note": "80 export statements in a 1237-line store; this is the surface docs/STORAGE_SPEC.md has to port"
+      "note": "84 export statements in a 1321-line store; this is the surface docs/STORAGE_SPEC.md has to port"
     },
     {
       "section": "Storage",
       "label": "JSON files the server modules own",
-      "value": 14,
+      "value": 15,
       "source": "lib/server/*.ts",
-      "note": "plus the per-learner evidence/*.jsonl ledgers and session-secret: \"accounts.json\", \"ai-cache.json\", \"boots.json\", \"classes.json\", \"classroom-sessions.json\", \"content-reviews.json\", \"erasures.json\", \"interventions.json\", \"kiosk-sessions.json\", \"packs.json\", \"papers.json\", \"personal-papers.json\", \"profiles.json\", \"rooms.json\""
+      "note": "plus the per-learner evidence/*.jsonl ledgers and session-secret: \"accounts.json\", \"ai-cache.json\", \"boots.json\", \"classes.json\", \"classroom-sessions.json\", \"content-reviews.json\", \"erasures.json\", \"interventions.json\", \"kiosk-sessions.json\", \"lesson-validation.json\", \"packs.json\", \"papers.json\", \"personal-papers.json\", \"profiles.json\", \"rooms.json\""
     },
     {
       "section": "Pilot (UK GCSE maths)",

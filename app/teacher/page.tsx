@@ -573,7 +573,11 @@ export default function TeacherPage() {
 
           <div style={{ marginTop: 20 }}>
             <HubStatus />
-            <p className="small muted"><Link href="/hub">{t("teach.hubView")} →</Link></p>
+            <p className="small muted">
+              <Link href="/hub">{t("teach.hubView")} →</Link>
+              {" · "}
+              <Link href="/lesson-review">Review authored lessons →</Link>
+            </p>
           </div>
         </>
       )}

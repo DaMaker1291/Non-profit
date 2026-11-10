@@ -29,6 +29,22 @@ compileEngines();
 const genome = require("../.verify/genome.js");
 const { AUTHORED_LESSONS } = require("../.verify/lessons/authored/index.js");
 const lessonVerify = require("../.verify/lesson-verify.js");
+const validation = require("../.verify/validation/review.js");
+const { DATA_DIR } = require("../.verify/server/store.js");
+
+// HUMAN REVIEWS LIVE IN THE VALIDATION LEDGER, not in the source file. Merge
+// only the records that still match this exact lesson version and content hash;
+// a stale approval stays in the ledger as history and cannot lift the rung.
+let humanReviews = [];
+try {
+  const ledger = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "lesson-validation.json"), "utf8"));
+  humanReviews = Array.isArray(ledger.reviews) ? ledger.reviews : [];
+} catch {
+  // No ledger is the honest initial state, not an error.
+}
+const ASSESSED_LESSONS = AUTHORED_LESSONS.map((lesson) =>
+  validation.attachReviewRecords(lesson, humanReviews),
+);
 
 // The plan table is the compiled one the read stage uses. A non-authored
 // concept's rung depends on it, so it is read from code rather than guessed
@@ -52,14 +68,14 @@ try {
 }
 
 const catalogue = lessonVerify.buildCatalogue(
-  AUTHORED_LESSONS,
+  ASSESSED_LESSONS,
   new Date().toISOString(),
   planState,
 );
 
 const problems = lessonVerify
-  .originalityProblems(AUTHORED_LESSONS)
-  .concat(AUTHORED_LESSONS.flatMap((lesson) => lessonVerify.auditLessonForStatus(lesson)));
+  .originalityProblems(ASSESSED_LESSONS)
+  .concat(ASSESSED_LESSONS.flatMap((lesson) => lessonVerify.auditLessonForStatus(lesson)));
 
 const statusLine = Object.entries(catalogue.totals.byStatus)
   .map(([status, count]) => `${status} ${count}`)
@@ -107,7 +123,7 @@ if (process.argv.includes("--write")) {
 
 if (process.argv.includes("--report")) {
   const out = path.join(process.cwd(), "audit", "lesson-catalogue.md");
-  fs.writeFileSync(out, reportMarkdown(catalogue, problems, AUTHORED_LESSONS));
+  fs.writeFileSync(out, reportMarkdown(catalogue, problems, ASSESSED_LESSONS));
   console.log(`wrote ${path.relative(process.cwd(), out)}`);
 }
 

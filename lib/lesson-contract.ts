@@ -1,3 +1,4 @@
+import type { LessonFigureSpec } from "./lesson-figure";
 import type { SubjectId } from "./types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -136,6 +137,14 @@ export interface LessonBlock {
   /** The words that make the picture teach something. Required when the block
    *  has notation; a diagram with no caption is decoration. */
   readonly caption?: string;
+  /** A DRAWN LESSON FIGURE, separate from a question's FigureSpec. The caption
+   *  here is authored teaching prose and is the accessible description: the SVG
+   *  is aria-hidden, so a figure without this caption is a picture nobody can
+   *  hear. */
+  readonly figure?: {
+    readonly spec: LessonFigureSpec;
+    readonly caption: string;
+  };
 }
 
 export interface DiagnosticQuestion {
@@ -184,9 +193,24 @@ export type AssessmentKind =
   | "code"
   | "diagram";
 
+export interface CodeExercise {
+  /** A complete starting program, not a fragment. The learner edits this in
+   *  the sandboxed browser runner; nothing is sent to OpenMind's server. */
+  readonly starterCode: string;
+  readonly timeoutMs?: number;
+  /** Each test names the behaviour it checks. The runner compares stdout
+   *  exactly after trimming trailing whitespace, so a test is a deterministic
+   *  observation of this program, not a judgement of the learner's reasoning. */
+  readonly tests: readonly { readonly name: string; readonly expectedStdout: string }[];
+}
+
 export interface AssessmentItem {
   readonly id: string;
   readonly kind: AssessmentKind;
+  /** FALSE means this is an unscored reflection: it may ask for reasoning and
+   *  show marking criteria, but it is not a graded assessment item and must not
+   *  be included in mastery. Absent means the ordinary rule applies. */
+  readonly scored?: boolean;
   readonly prompt: string;
   /** Kept with the item, withheld from the learner until they answer. */
   readonly modelAnswer: string;
@@ -204,6 +228,10 @@ export interface AssessmentItem {
    *
    *  `accepted` lists equivalent spellings, not alternative answers. */
   readonly check?: { readonly accepted: readonly string[] };
+  /** A runnable exercise attached to a code assessment. Its checks are
+   *  browser-side practice evidence, not a hidden server test; the marking
+   *  criteria remain the record of what the learner can explain. */
+  readonly code?: CodeExercise;
 }
 
 export interface TransferChallenge {

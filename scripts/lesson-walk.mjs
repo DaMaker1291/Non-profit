@@ -111,26 +111,31 @@ const FIGURED = [
   ["electricity-circuits", "axes"],
 ];
 
-/** AUTHORED LESSONS WITH NO PILOT PLAN, AND THE SUBJECT THAT OWNS EACH.
+/** AUTHORED LESSONS WHOSE CONTRACT THE WALK MEASURES.
  *
  *  FIGURED is checked against `planFor` by `npm run verify` — a row whose concept
  *  has no plan is a FAILURE there, and rightly so: it would mean the walk measures
- *  a lesson the content strategy does not contain. But an authored lesson is not a
- *  plan, and the foundation batch (place-value, decimals, addition, subtraction,
- *  rounding, multiplication, division) is authored teaching that mostly has no
- *  pilot plan at all. `decimals` is in both lists because it does; these are the
- *  rest. The unplanned science and computing lessons have no pilot plan either, so
- *  they are measured here too — a route that is only tested with curl is not a
- *  learner-facing check. Listed rather than discovered so the set is reviewable,
- *  and asserted below to RENDER — a browser check on a module is not a browser
+ *  a lesson the content strategy does not contain. This list is its complement:
+ *  authored lessons whose authored sections must paint on a real page. Most have
+ *  no pilot plan (the foundation batch and the science and computing lessons), but
+ *  some do — `decimals`, `algebra-expressions`, `angles-lines`, `coordinates` and
+ *  `indices-intro` are in both lists, because a plan carries the figure while the
+ *  authored lesson carries the diagnostic, the corrections, the assessment and
+ *  the honest footer. Listed rather than discovered so the set is reviewable, and
+ *  asserted below to RENDER — a browser check on a module is not a browser
  *  check. */
-const AUTHORED_NO_PLAN = [
+const AUTHORED_CONTRACT = [
   { concept: "place-value", subject: "maths" },
   { concept: "addition", subject: "maths" },
   { concept: "subtraction", subject: "maths" },
   { concept: "rounding", subject: "maths" },
   { concept: "multiplication", subject: "maths" },
   { concept: "division", subject: "maths" },
+  { concept: "area-perimeter", subject: "maths" },
+  { concept: "averages", subject: "maths" },
+  // Batch 26 — the chart concept, which has no pilot plan and therefore no
+  // drawing to inherit; its teaching is prose, tables and angle arithmetic.
+  { concept: "data-charts", subject: "maths" },
   { concept: "respiration", subject: "biology" },
   { concept: "breathing-gas", subject: "biology" },
   { concept: "digestion", subject: "biology" },
@@ -138,6 +143,36 @@ const AUTHORED_NO_PLAN = [
   { concept: "compounds-mixtures", subject: "chemistry" },
   { concept: "conditionals", subject: "computing" },
   { concept: "binary-data", subject: "computing" },
+  { concept: "lists-arrays", subject: "computing" },
+  { concept: "functions-code", subject: "computing" },
+  { concept: "dictionaries", subject: "computing" },
+  // A planned lesson can still need its authored contract measured on the page:
+  // the plan carries the figure, while this route carries the diagnostic,
+  // misconception corrections, assessment and honest footer.
+  { concept: "algebra-expressions", subject: "maths" },
+  { concept: "angles-lines", subject: "maths" },
+  { concept: "coordinates", subject: "maths" },
+  { concept: "indices-intro", subject: "maths" },
+  { concept: "probability-basics", subject: "maths" },
+  // Batch 29 — the three authored lessons added after the probability engine.
+  // They are in this list, not inferred from the registry, so a lesson that
+  // exists on disk but never paints is a failure rather than a silently absent
+  // row.
+  { concept: "ratio", subject: "maths" },
+  { concept: "proportion", subject: "maths" },
+  { concept: "sequences", subject: "maths" },
+  // Batch 33–34 — the two authored biology lessons added after the queue was
+  // regenerated. They have no pilot plan, so the FIGURED loop cannot reach them;
+  // listing them here makes a page that stops painting a failure, not a silent
+  // omission.
+  { concept: "biodiversity", subject: "biology" },
+  { concept: "circulation", subject: "biology" },
+  // Batch 35 — ecosystems. It has no drawn figure, so the authored-contract
+  // loop is what makes its prose, assessment and footer paint on a real page.
+  { concept: "ecosystems", subject: "biology" },
+  // Batch 36 — evolution. The allele-frequency item is a visible server check,
+  // not only a rendered input.
+  { concept: "evolution", subject: "biology" },
 ];
 
 /** Every kind the figure union declares. A plan may only draw one of these. */
@@ -1089,7 +1124,7 @@ async function main() {
     await setTeachingLanguage("en");
     await viewport(1280, 900);
     const authoredSeen = [];
-    for (const { concept, subject } of AUTHORED_NO_PLAN) {
+    for (const { concept, subject } of AUTHORED_CONTRACT) {
       await viewport(1280, 900);
       await goto(`${BASE}/learn/${subject}/${concept}`);
       let seen = null;
@@ -1146,6 +1181,20 @@ async function main() {
             about,
             version: /Version ([0-9.]+)/.exec(about)?.[1] ?? null,
             saysStatus: /status: [a-z]/i.test(about) || /status: [a-z]/i.test(text("Lesson summary") + about),
+            bar: (() => {
+              const fig = root.querySelector('[data-figure="bar"]');
+              if (!fig) return null;
+              const whole = fig.querySelector('[data-bar="whole"]');
+              return {
+                whole: whole ? whole.getBoundingClientRect().width : 0,
+                parts: [...fig.querySelectorAll('[data-bar-part]')].map((el) => ({
+                  width: el.getBoundingClientRect().width,
+                  units: Number(el.getAttribute("data-units")),
+                  shade: el.getAttribute("data-shade") === "true",
+                })),
+                text: String(fig.textContent || "").trim(),
+              };
+            })(),
           };`);
       } catch (e) { evalErr = String(e?.message ?? e); }
       authoredSeen.push({ concept, subject, seen, evalErr });
@@ -1153,6 +1202,17 @@ async function main() {
         seen ? `${concept}: the authored lesson renders with its contract (${seen.contract})` : `${concept}: NO authored lesson rendered on the page`);
       check(!!seen && seen.objectives >= 3 && seen.misconceptions >= 2 && seen.guided >= 3,
         seen ? `${concept}: ${seen.objectives} objectives, ${seen.misconceptions} misconceptions, ${seen.guided} guided items on screen` : `${concept}: sections could not be counted`);
+      if (concept === "ratio") {
+        const bar = seen?.bar;
+        const widths = Array.isArray(bar?.parts) ? bar.parts.reduce((sum, part) => sum + part.width, 0) : 0;
+        check(!!bar && bar.parts.length === 2 && bar.whole > 0,
+          `ratio: the authored representation draws a two-part bar model (${bar?.parts?.length ?? 0} parts, ${Math.round(bar?.whole ?? 0)} px)`);
+        check(!!bar && widths > 0 && Math.abs(bar.parts[0].width / widths - 3 / 5) < 0.02 &&
+            Math.abs(bar.parts[1].width / widths - 2 / 5) < 0.02,
+          `ratio: the 3:2 bar is split 3/5 and 2/5 by width (${bar?.parts ? bar.parts.map((part) => part.width.toFixed(1)).join(" : ") : "none"})`);
+        check(!!bar && /3 parts/.test(bar.text) && /2 parts/.test(bar.text) && /5 equal parts/.test(bar.text),
+          "ratio: the bar's labels and total are on screen, not only in the caption");
+      }
       // THE RETRIEVAL BAR IS 8 WORDS, NOT 15: its section opens with one fixed
       // sentence ("Retrieval works because it is spaced…", 14 words) above the
       // items, so a 15-word threshold measured the sentence rather than whether
@@ -1179,11 +1239,339 @@ async function main() {
         check(!!measured && measured.scroll <= measured.client + 1,
           measured ? `${concept}: fits a ${label} (${measured.scroll} vs ${measured.client})` : `${concept}: ${label} width could not be measured`);
       }
+
+      // THE VISIBLE ASSESSMENT CONTROL, ANSWERED LIKE A LEARNER.
+      //
+      // Every other authored check reads the page. This one types into the
+      // gradable input the learner actually sees, presses the button beside it,
+      // and waits for the rendered verdict. It is deliberately one item on one
+      // lesson: the API check covers the other keys, and this proves the control
+      // is not disabled, does not lose the answer, and paints the server's mark.
+      if (concept === "probability-basics") {
+        await viewport(1280, 900);
+        await sleep(200);
+        const input = `document.querySelector('input[id="probability-basics-a2"]')`;
+        const disabled = await p.evaluate(`return ${input} ? ${input}.disabled : "missing";`);
+        check(disabled === false,
+          disabled === true
+            ? "probability-basics: the assessment input is disabled for a signed-in learner"
+            : `probability-basics: the assessment input is present and enabled (${disabled})`);
+        if (disabled === false) {
+          await p.typeInto(input, "3/8", "the probability assessment answer");
+          await p.clickExpr(`${input}.parentElement.querySelector("button")`, "Check on the probability answer");
+          await p.waitFor(`return document.body.textContent.includes("recorded on this concept as an independent answer");`, "the rendered probability verdict", 15000);
+          const verdict = await p.evaluate(`
+            const input = ${input};
+            let row = input;
+            for (let i = 0; i < 4 && row.parentElement; i++) row = row.parentElement;
+            return { text: row.innerText, disabled: input.disabled };`);
+          check(/Correct/.test(verdict.text) && !/could not be marked/.test(verdict.text),
+            `probability-basics: the visible form marks 3/8 and paints a verdict ("${String(verdict.text).slice(0, 80)}")`);
+        }
+
+        // THE DRAWINGS, MEASURED AS DRAWN. The geometry is unit-tested in the
+        // gate; this checks that the browser actually received the two SVGs,
+        // that both are silent, and that their authored captions are present.
+        const visuals = await p.evaluate(`return (() => {
+          const root = [...document.querySelectorAll("main .authored-lesson")]
+            .find((el) => el.getClientRects().length > 0) ?? null;
+          if (!root) return null;
+          const venn = root.querySelector('[data-figure="venn"]');
+          const tree = root.querySelector('[data-figure="tree"]');
+          const svgOf = (el) => el ? el.querySelector('svg[aria-hidden="true"]') : null;
+          return {
+            venn: !!svgOf(venn),
+            vennCircles: venn ? venn.querySelectorAll("circle").length : 0,
+            vennText: venn ? venn.innerText : "",
+            vennCaption: venn && venn.querySelector(".authored-figure-cap") ? venn.querySelector(".authored-figure-cap").innerText : "",
+            tree: !!svgOf(tree),
+            treePaths: tree ? tree.querySelectorAll("[data-path]").length : 0,
+            treeText: tree ? tree.innerText : "",
+            treeCaption: tree && tree.querySelector(".authored-figure-cap") ? tree.querySelector(".authored-figure-cap").innerText : "",
+          };
+        })()`);
+        check(!!visuals && visuals.venn && visuals.tree,
+          visuals ? "probability-basics: the Venn and tree are drawn as silent SVGs" : "probability-basics: the drawings could not be found");
+        check(!!visuals && visuals.vennCircles === 2 && visuals.treePaths === 4,
+          visuals ? `probability-basics: two circles and four tree paths are drawn (${visuals.vennCircles}/${visuals.treePaths})` : "probability-basics: drawing counts missing");
+        check(!!visuals && /12/.test(visuals.vennText) && /6/.test(visuals.vennText) && /6\/20/.test(visuals.treeText) && /2\/20/.test(visuals.treeText),
+          visuals ? "probability-basics: the drawings show their counts, not just their shapes" : "probability-basics: drawing text missing");
+        check(!!visuals && String(visuals.vennCaption).length > 80 && String(visuals.treeCaption).length > 80,
+          visuals ? "probability-basics: both drawings carry an authored teaching caption" : "probability-basics: drawing captions missing");
+
+        // THE ACCESSIBILITY TREE, not just the DOM. The SVG is aria-hidden, so
+        // the caption is the picture for a learner using assistive technology.
+        // This is an accessibility-tree measurement, NOT a screen-reader
+        // session; the report says which of the two was actually run.
+        await send("Accessibility.enable");
+        const ax = await send("Accessibility.getFullAXTree");
+        const axNames = (ax.nodes ?? []).map((node) => node.name?.value ?? "").join(" | ");
+        check(/football/i.test(axNames) && /tennis/i.test(axNames) && /24/.test(axNames),
+          "probability-basics: the Venn caption and its union reach the accessibility tree");
+        check(/first branch changes the second/i.test(axNames) && /2\/20/.test(axNames),
+          "probability-basics: the tree's changed branch and failing path reach the accessibility tree");
+
+        // THE SIMULATION, PRESSED. It must add the run the button names, keep
+        // heads and tails exhaustive, and reset to zero rather than to a story.
+        const simStart = await p.evaluate(`return document.querySelector('[data-sim-trials]')?.getAttribute('data-sim-trials') ?? null;`);
+        check(simStart === "0", `probability-basics: the simulation starts at zero (${simStart})`);
+        await p.clickExpr(`document.querySelector('[data-sim-toss="200"]')`, "Toss 200");
+        await p.waitFor(`return document.querySelector('[data-sim-trials]')?.getAttribute('data-sim-trials') === '200';`, "the 200-toss simulation", 15000);
+        const simRun = await p.evaluate(`return (() => {
+          const el = document.querySelector('[data-sim-trials]');
+          return el ? {
+            trials: Number(el.getAttribute('data-sim-trials')),
+            heads: Number(el.getAttribute('data-sim-heads')),
+            tails: Number(el.getAttribute('data-sim-tails')),
+            text: el.parentElement ? el.parentElement.innerText : '',
+          } : null;
+        })()`);
+        check(!!simRun && simRun.trials === 200 && simRun.heads + simRun.tails === 200,
+          simRun ? `probability-basics: the simulation adds 200 tosses and accounts for all of them (${simRun.heads}+${simRun.tails})` : "probability-basics: simulation did not run");
+        check(!!simRun && /simulation of a fair-coin model/.test(simRun.text),
+          "probability-basics: the simulation says it is a model, not a physical coin");
+        await p.clickExpr(`document.querySelector('[data-sim-reset]')`, "Reset the simulation");
+        await p.waitFor(`return document.querySelector('[data-sim-trials]')?.getAttribute('data-sim-trials') === '0';`, "the reset simulation", 15000);
+        const simReset = await p.evaluate(`return document.querySelector('[data-sim-trials]')?.getAttribute('data-sim-trials') ?? null;`);
+        check(simReset === "0", `probability-basics: the simulation resets to zero (${simReset})`);
+
+        // THE INTERACTIVE REPRESENTATIONS, ANSWERED THROUGH THE PAGE.
+        // The gate proves the region algebra and the path products; this proves
+        // a learner can select a region, read the shaded feedback, complete a
+        // tree, and get a server-marked verdict through the visible controls.
+        const vennPresent = await p.evaluate(`return !!document.querySelector('[data-probability-venn]');`);
+        check(vennPresent, "probability-basics: the interactive Venn is on the page");
+        const vennFocus = await p.evaluate(`const el = document.querySelector('[data-venn-region="onlyA"]'); if (!el) return null; el.focus(); return { focused: document.activeElement === el, checked: el.checked };`);
+        check(!!vennFocus && vennFocus.focused,
+          "probability-basics: the Venn region checkbox receives keyboard focus");
+        const beforeSpace = vennFocus?.checked;
+        await p.press(" ");
+        await sleep(120);
+        const afterSpace = await p.evaluate(`return !!document.querySelector('[data-venn-region="onlyA"]')?.checked;`);
+        check(afterSpace !== beforeSpace,
+          "probability-basics: Space toggles the focused Venn region, so the table is keyboard-operable");
+
+        const setVenn = async (region, wanted) => {
+          const checked = await p.evaluate(`return !!document.querySelector('[data-venn-region="${region}"]')?.checked;`);
+          if (checked !== wanted) {
+            await p.clickExpr(`document.querySelector('[data-venn-region="${region}"]')`, `the ${region} Venn checkbox`);
+          }
+        };
+        await setVenn("onlyA", true);
+        await setVenn("onlyB", true);
+        await setVenn("both", true);
+        await setVenn("neither", false);
+        await p.clickExpr(`document.querySelector('[data-venn-union-submit]')`, "Check the Venn regions");
+        await p.waitFor(`return (document.querySelector('[data-venn-union-verdict]')?.innerText || "").includes("Correct");`, "the Venn union verdict", 15000);
+        const unionText = await p.evaluate(`return document.querySelector('[data-venn-union-verdict]')?.innerText || "";`);
+        check(/Correct/.test(unionText) && /24/.test(unionText),
+          `probability-basics: the visible union selection is marked correct with the count ("${String(unionText).slice(0, 80)}")`);
+
+        await p.typeInto(`document.querySelector('[data-venn-neither]')`, "20%", "the Venn neither probability");
+        await p.clickExpr(`document.querySelector('[data-venn-value-submit]')`, "Check the Venn probability");
+        await p.waitFor(`return (document.querySelector('[data-venn-value-verdict]')?.innerText || "").includes("Correct");`, "the Venn probability verdict", 15000);
+        const vennValueText = await p.evaluate(`return document.querySelector('[data-venn-value-verdict]')?.innerText || "";`);
+        check(/Correct/.test(vennValueText) && /1\/5/.test(vennValueText),
+          `probability-basics: 20% is accepted visibly as the same answer as 1/5 ("${String(vennValueText).slice(0, 90)}")`);
+
+        const treePresent = await p.evaluate(`return !!document.querySelector('[data-probability-tree]');`);
+        check(treePresent, "probability-basics: the interactive probability tree is on the page");
+        await p.typeInto(`document.querySelector('[data-tree-field="rr"]')`, "6/20", "P(red then red)");
+        await p.typeInto(`document.querySelector('[data-tree-field="bb"]')`, "2/20", "P(blue then blue)");
+        await p.typeInto(`document.querySelector('[data-tree-field="atLeastOneRed"]')`, "9/10", "P(at least one red)");
+        await p.pickOption(`document.querySelector('[data-tree-field="dependent"]')`, "Dependent", "the tree dependence field");
+        await p.clickExpr(`document.querySelector('[data-tree-submit]')`, "Check the tree");
+        await p.waitFor(`return (document.querySelector('[data-tree-verdict]')?.innerText || "").includes("Correct");`, "the tree verdict", 15000);
+        const treeText = await p.evaluate(`return document.querySelector('[data-tree-verdict]')?.innerText || "";`);
+        check(/Correct/.test(treeText) && /6\/20/.test(treeText) && /9\/10/.test(treeText),
+          `probability-basics: the completed dependent tree is marked correct and names the values ("${String(treeText).slice(0, 100)}")`);
+
+        await p.typeInto(`document.querySelector('[data-tree-field="rr"]')`, "nonsense", "an invalid tree value");
+        await p.clickExpr(`document.querySelector('[data-tree-submit]')`, "Check the invalid tree");
+        await p.waitFor(`return /could not be marked|bad request/i.test(document.body.innerText);`, "the invalid tree refusal", 15000);
+        const invalidTreeText = await p.evaluate(`return document.querySelector('[data-probability-tree]')?.innerText || "";`);
+        check(!/Correct/.test(invalidTreeText) && /could not be marked|bad request/i.test(invalidTreeText),
+          "probability-basics: invalid tree input is refused visibly instead of painted as correct");
+
+        // THE OTHER EXPERIMENTS, THROUGH THE SAME CONTROL. The coin run was
+        // already measured above; these prove the experiment selector changes
+        // the model and that every outcome still accounts for the run.
+        await p.pickOption(`document.querySelector('[data-sim-experiment]')`, "die", "the simulation experiment");
+        await p.clickExpr(`document.querySelector('[data-sim-toss="200"]')`, "Roll 200");
+        await p.waitFor(`return document.querySelector('[data-probability-simulation]')?.getAttribute('data-sim-kind') === 'die' && document.querySelector('[data-sim-trials]')?.getAttribute('data-sim-trials') === '200';`, "the 200-roll die simulation", 15000);
+        const dieRun = await p.evaluate(`return (() => {
+          const root = document.querySelector('[data-probability-simulation]');
+          const outcomes = root ? [...root.querySelectorAll('[data-sim-outcome]')].map((el) => Number((el.querySelector('strong')?.textContent || '0').replace(/,/g, ''))) : [];
+          return { kind: root?.getAttribute('data-sim-kind') ?? null, outcomes, text: root?.innerText ?? '' };
+        })()`);
+        check(dieRun.kind === "die" && dieRun.outcomes.length === 6 && dieRun.outcomes.reduce((n, value) => n + value, 0) === 200,
+          `probability-basics: the die run has six faces and accounts for all 200 rolls (${dieRun.outcomes.join("+")})`);
+        check(/1\/6 theoretical/i.test(dieRun.text) || /16\.7% theoretical/.test(dieRun.text),
+          "probability-basics: the die run shows its theoretical 1/6 column");
+
+        await p.pickOption(`document.querySelector('[data-sim-experiment]')`, "bag", "the simulation experiment");
+        await p.clickExpr(`document.querySelector('[data-sim-toss="200"]')`, "Draw 200");
+        await p.waitFor(`return document.querySelector('[data-probability-simulation]')?.getAttribute('data-sim-kind') === 'bag' && document.querySelector('[data-sim-trials]')?.getAttribute('data-sim-trials') === '200';`, "the 200-draw bag simulation", 15000);
+        const bagRun = await p.evaluate(`return (() => {
+          const root = document.querySelector('[data-probability-simulation]');
+          const outcomes = root ? [...root.querySelectorAll('[data-sim-outcome]')].map((el) => Number((el.querySelector('strong')?.textContent || '0').replace(/,/g, ''))) : [];
+          return { kind: root?.getAttribute('data-sim-kind') ?? null, outcomes, text: root?.innerText ?? '' };
+        })()`);
+        check(bagRun.kind === "bag" && bagRun.outcomes.length === 4 && bagRun.outcomes.reduce((n, value) => n + value, 0) === 200,
+          `probability-basics: the without-replacement bag has four paths and accounts for all 200 trials (${bagRun.outcomes.join("+")})`);
+        check(/10\.0% theoretical/.test(bagRun.text) && /30\.0% theoretical/.test(bagRun.text),
+          "probability-basics: the bag run shows its conditional theoretical values, 10% and 30%");
+
+        await viewport(320, 640);
+        await sleep(150);
+        const vennWidth = await p.evaluate(`const el = document.querySelector('[data-probability-venn]'); return el ? { scroll: el.scrollWidth, client: el.clientWidth } : null;`);
+        check(!!vennWidth && vennWidth.scroll <= vennWidth.client + 1,
+          vennWidth ? `probability-basics: the interactive Venn fits a 320-px screen (${vennWidth.scroll} vs ${vennWidth.client})` : "probability-basics: the interactive Venn width could not be measured");
+        await viewport(1280, 900);
+        await sleep(120);
+
+        const reflection = await p.evaluate(`const el = document.querySelector('[data-unscored-reflection]'); return el ? { text: el.textContent || "", visible: el.getClientRects().length > 0 } : null;`);
+        check(!!reflection && /Unscored reflection/.test(reflection.text) && /does not count towards mastery/.test(reflection.text) && reflection.visible,
+          "probability-basics: the constructed response is visibly labelled as an unscored reflection before the disclosure");
+
+        // THE OTHER ANSWER FORMS, THROUGH THE SAME VISIBLE CONTROL. 0.2 is a
+        // decimal; 0.5 is a wrong answer whose model answer is 0.8, so the
+        // feedback has to name what the right result would have been.
+        const submitVisible = async (itemId, value, expected) => {
+          const sel = `document.querySelector('input[id="probability-basics-${itemId}"]')`;
+          const state = await p.evaluate(`const i = ${sel}; return i ? { disabled: i.disabled } : null;`);
+          if (!state || state.disabled !== false) return { text: "input missing or disabled", disabled: state?.disabled };
+          await p.typeInto(sel, value, `the ${itemId} assessment answer`);
+          await p.clickExpr(`${sel}.parentElement.querySelector("button")`, `Check on ${itemId}`);
+          await p.waitFor(`const i = ${sel}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes(${JSON.stringify(expected)});`, `the ${itemId} verdict`, 15000);
+          return await p.evaluate(`const i = ${sel}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+        };
+        const decimalVerdict = await submitVisible("a3", "0.2", "0.2");
+        check(/Correct/.test(decimalVerdict.text) && !/could not be marked/.test(decimalVerdict.text),
+          `probability-basics: the visible form marks the decimal 0.2 ("${String(decimalVerdict.text).slice(0, 70)}")`);
+        const wrongVerdict = await submitVisible("a4", "0.5", "0.8");
+        check(/Not yet/.test(wrongVerdict.text) && /0\.8/.test(wrongVerdict.text),
+          `probability-basics: a wrong visible answer is recorded and shows the correct 0.8 ("${String(wrongVerdict.text).slice(0, 70)}")`);
+        // `a5` is the item that was previously API-only. Type the alternative
+        // percentage form so the browser proves both the visible control and the
+        // accepted-equivalent path, not merely the model answer's spelling.
+        const a5Verdict = await submitVisible("a5", "20%", "1/5");
+        check(/Correct/.test(a5Verdict.text) && /1\/5/.test(a5Verdict.text) && !/could not be marked/.test(a5Verdict.text),
+          `probability-basics: a5 is submitted visibly as 20% and marked with 1/5 ("${String(a5Verdict.text).slice(0, 80)}")`);
+        const submitA5Outcome = async (value) => {
+          const sel = `document.querySelector('input[id="probability-basics-a5"]')`;
+          await p.typeInto(sel, value, "an a5 answer");
+          await p.clickExpr(`${sel}.parentElement.querySelector("button")`, "Check a5");
+          await p.waitFor(`const i = ${sel}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return /Not yet|could not be marked/i.test(row.innerText);`, "the a5 outcome", 15000);
+          return await p.evaluate(`const i = ${sel}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText;`);
+        };
+        const a5Wrong = await submitA5Outcome("1/4");
+        check(/Not yet/.test(a5Wrong) && !/Correct/.test(a5Wrong),
+          `probability-basics: a5 refuses 1/4 instead of painting it correct ("${String(a5Wrong).slice(0, 80)}")`);
+        const a5Invalid = await submitA5Outcome("not a fraction");
+        check(/Not yet|could not be marked/i.test(a5Invalid) && !/Correct/.test(a5Invalid),
+          `probability-basics: a5 refuses unparseable input instead of marking it ("${String(a5Invalid).slice(0, 80)}")`);
+      }
     }
     const rendered = authoredSeen.filter((r) => r.seen).length;
     const whyNot = authoredSeen.filter((r) => r.evalErr).map((r) => `${r.concept}: ${r.evalErr}`).join(" | ");
-    check(rendered === AUTHORED_NO_PLAN.length,
-      `all ${AUTHORED_NO_PLAN.length} authored lessons with no plan record paint their teaching (${rendered}/${AUTHORED_NO_PLAN.length})${whyNot ? ` — evaluation errors: ${whyNot}` : ""}`);
+    check(rendered === AUTHORED_CONTRACT.length,
+      `all ${AUTHORED_CONTRACT.length} authored lessons paint their teaching (${rendered}/${AUTHORED_CONTRACT.length})${whyNot ? ` — evaluation errors: ${whyNot}` : ""}`);
+
+    // THE NEW LESSONS, SUBMITTED THROUGH THE SAME VISIBLE CONTROL.
+    // A rendered page is not a completed assessment journey. Each of the three
+    // batch-29 lessons types its first short-answer key, presses Check and waits
+    // for the server's verdict; the value is deliberately a different spelling
+    // where the key permits one.
+    section("Ratio, proportion and sequences submit through the visible assessment");
+    const visibleBatch = [
+      { concept: "ratio", item: "a1", answer: "3:4" },
+      { concept: "proportion", item: "a1", answer: "30" },
+      { concept: "sequences", item: "a1", answer: "58" },
+    ];
+    for (const { concept, item, answer } of visibleBatch) {
+      await viewport(1280, 900);
+      await goto(`${BASE}/learn/maths/${concept}`);
+      await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, `the authored lesson for ${concept}`, 30000);
+      const sel = `document.querySelector('input[id="${concept}-${item}"]')`;
+      const state = await p.evaluate(`const i = ${sel}; return i ? { disabled: i.disabled } : null;`);
+      if (!state || state.disabled !== false) {
+        check(false, `${concept}: the visible assessment input is present and enabled (${state?.disabled ?? "missing"})`);
+        continue;
+      }
+      await p.typeInto(sel, answer, `the ${concept} ${item} answer`);
+      await p.clickExpr(`${sel}.parentElement.querySelector("button")`, `Check on ${concept} ${item}`);
+      await p.waitFor(`const i = ${sel}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, `the ${concept} verdict`, 15000);
+      const verdict = await p.evaluate(`const i = ${sel}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(verdict.text) && !/could not be marked/.test(verdict.text) && verdict.disabled === false,
+        `${concept}: ${item} is submitted visibly and marked correct ("${String(verdict.text).slice(0, 80)}")`);
+    }
+
+    // ── the first biology numeric assessment through the page ───────────────
+    // `circulation` is a numeric item whose answer is a volume per minute, not a
+    // label. Typing 6 proves the visible control is enabled for a signed-in
+    // learner, the server accepts the short form and the page paints BOTH the
+    // verdict and the model answer with its unit.
+    section("Circulation's numeric assessment is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/biology/circulation`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored circulation lesson", 30000);
+    const circulationInput = `document.querySelector('input[id="circulation-a2"]')`;
+    const circulationState = await p.evaluate(`const i = ${circulationInput}; return i ? { disabled: i.disabled } : null;`);
+    check(circulationState?.disabled === false,
+      `circulation: the visible assessment input is present and enabled (${circulationState?.disabled ?? "missing"})`);
+    if (circulationState?.disabled === false) {
+      await p.typeInto(circulationInput, "6", "the circulation cardiac-output answer");
+      await p.clickExpr(`${circulationInput}.parentElement.querySelector("button")`, "Check on circulation a2");
+      await p.waitFor(`const i = ${circulationInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the circulation verdict", 15000);
+      const circulationVerdict = await p.evaluate(`const i = ${circulationInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(circulationVerdict.text) && /6 litres per minute/.test(circulationVerdict.text) && !/could not be marked/.test(circulationVerdict.text) && circulationVerdict.disabled === false,
+        `circulation: a2 is submitted visibly, marked correct, and shows the unit ("${String(circulationVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the ecosystems energy-transfer item through the page ────────────────
+    // `ecosystems-a2` is deliberately a two-step transfer: the tempting wrong
+    // answer is 4,000 kJ (ten per cent of 40,000), while the key is 400 kJ
+    // (ten per cent of the 4,000 kJ at the primary-consumer level). Typing the
+    // key and seeing the server's model answer proves the visible control is
+    // connected to the same marking path, not just that the page rendered.
+    section("Ecosystems' energy-transfer assessment is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/biology/ecosystems`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored ecosystems lesson", 30000);
+    const ecosystemsInput = `document.querySelector('input[id="ecosystems-a2"]')`;
+    const ecosystemsState = await p.evaluate(`const i = ${ecosystemsInput}; return i ? { disabled: i.disabled } : null;`);
+    check(ecosystemsState?.disabled === false,
+      `ecosystems: the visible assessment input is present and enabled (${ecosystemsState?.disabled ?? "missing"})`);
+    if (ecosystemsState?.disabled === false) {
+      await p.typeInto(ecosystemsInput, "400", "the ecosystems energy-transfer answer");
+      await p.clickExpr(`${ecosystemsInput}.parentElement.querySelector("button")`, "Check on ecosystems a2");
+      await p.waitFor(`const i = ${ecosystemsInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the ecosystems verdict", 15000);
+      const ecosystemsVerdict = await p.evaluate(`const i = ${ecosystemsInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(ecosystemsVerdict.text) && /400 kilojoules per square metre per year/.test(ecosystemsVerdict.text) && !/could not be marked/.test(ecosystemsVerdict.text) && ecosystemsVerdict.disabled === false,
+        `ecosystems: a2 is submitted visibly, marked correct, and shows the unit ("${String(ecosystemsVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the evolution allele-frequency item through the page ────────────────
+    // The key is 0.1 (400 of 4,000 alleles). The check waits for the server's
+    // evidence sentence before reading the verdict, so a rendered form that
+    // never marked the answer cannot pass as a working assessment.
+    section("Evolution's allele-frequency assessment is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/biology/evolution`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored evolution lesson", 30000);
+    const evolutionInput = `document.querySelector('input[id="evolution-a2"]')`;
+    const evolutionState = await p.evaluate(`const i = ${evolutionInput}; return i ? { disabled: i.disabled } : null;`);
+    check(evolutionState?.disabled === false,
+      `evolution: the visible assessment input is present and enabled (${evolutionState?.disabled ?? "missing"})`);
+    if (evolutionState?.disabled === false) {
+      await p.typeInto(evolutionInput, "0.1", "the evolution allele-frequency answer");
+      await p.clickExpr(`${evolutionInput}.parentElement.querySelector("button")`, "Check on evolution a2");
+      await p.waitFor(`const i = ${evolutionInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the evolution verdict", 15000);
+      const evolutionVerdict = await p.evaluate(`const i = ${evolutionInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(evolutionVerdict.text) && /0\.1/.test(evolutionVerdict.text) && !/could not be marked/.test(evolutionVerdict.text) && evolutionVerdict.disabled === false,
+        `evolution: a2 is submitted visibly, marked correct, and shows the key ("${String(evolutionVerdict.text).slice(0, 100)}")`);
+    }
 
   } finally {
     try { await close(); } catch { /* already gone */ }

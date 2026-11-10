@@ -327,8 +327,8 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Course × subject rows audited for depth | 311 | every subject's target depth is reachable, by some generator in its course | `audit/content-coverage.json` |
 | **Storage** | Lock tables in lib/ and app/ | 1 | one, in lib/server/store.ts — two tables means two writers with no common serialisation point | `source scan` |
 |  | Owners of where learning data lives | 1 | one, in lib/server/store.ts; lib/env.ts reports the variable and resolves nothing, so it is exempt | `source scan` |
-|  | Route files importing the store | 23 | 80 export statements in a 1237-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
-|  | JSON files the server modules own | 14 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "boots.json", "classes.json", "classroom-sessions.json", "content-reviews.json", "erasures.json", "interventions.json", "kiosk-sessions.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
+|  | Route files importing the store | 24 | 84 export statements in a 1321-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
+|  | JSON files the server modules own | 15 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "boots.json", "classes.json", "classroom-sessions.json", "content-reviews.json", "erasures.json", "interventions.json", "kiosk-sessions.json", "lesson-validation.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
 | **Pilot (UK GCSE maths)** | Concepts in the review cluster | 20 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
 |  | Items awaiting human review | 179 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
 |  | Cluster concepts with no named misconception to probe | 5 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |

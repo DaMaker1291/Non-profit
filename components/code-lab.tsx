@@ -184,6 +184,9 @@ export default function CodeLab({
         </div>
       )}
       <p className="small muted" style={{ margin: "10px 0 0" }}>
+        These checks are practice feedback, not a recorded mark. Use the criteria in the assessment to judge the explanation your program cannot show.
+      </p>
+      <p className="small muted" style={{ margin: "6px 0 0" }}>
         Python runs in a sandboxed browser iframe. No code is sent to OpenMind's server, and the iframe has no access to your account or this page.
       </p>
     </section>

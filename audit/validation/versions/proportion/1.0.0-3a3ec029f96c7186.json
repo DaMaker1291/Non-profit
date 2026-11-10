@@ -1,0 +1,351 @@
+{
+  "contract": "openmind.lesson/1.0",
+  "conceptId": "proportion",
+  "version": "1.0.0",
+  "subject": "maths",
+  "curriculum": {
+    "reference": "GCSE Mathematics, ratio, proportion and rates of change: direct and inverse proportion, the constant of proportionality, and graphs of proportional relationships",
+    "level": "Key Stage 3 to GCSE Foundation and Higher",
+    "note": "Scope cited against the published subject content. The lesson derives direct and inverse relationships from their invariants, uses a table and a graph, and does not treat every straight line as proportional. No specification or textbook text is reproduced."
+  },
+  "declaredStatus": "draft",
+  "objectives": [
+    {
+      "statement": "Decide whether two quantities are directly proportional by testing whether their quotient is constant, and find the constant of proportionality.",
+      "evidence": "Given a table in which every y divided by x is 3.5, the learner identifies direct proportion, writes y = 3.5x, and explains why a table whose differences are constant but whose quotients are not is not proportional."
+    },
+    {
+      "statement": "Use a direct proportion to scale a quantity, including a quantity that is not in the table, and check the result against the unit rate.",
+      "evidence": "The learner finds that 5 kg costs £12.50, calculates the unit rate £2.50 per kg, and uses it to find the cost of 8 kg as £20 rather than adding £12.50 and £7.50 by guesswork."
+    },
+    {
+      "statement": "Recognise inverse proportion from a constant product, use y = k/x, and distinguish it from a relationship that merely decreases.",
+      "evidence": "The learner shows that six workers take eight days and four workers take twelve because both give 48 worker-days, and rejects y = 10 − x as inverse proportion because its product is not constant."
+    }
+  ],
+  "priorKnowledge": {
+    "conceptIds": [
+      "ratio"
+    ],
+    "check": [
+      {
+        "id": "d1",
+        "question": "A recipe uses 2 parts flour to 3 parts milk. What fraction of the mixture is flour?",
+        "answer": "2/5. The whole has 2 + 3 = 5 parts, so the flour is two of those five parts; 2/3 would compare flour with milk rather than with the whole.",
+        "targets": [
+          "ratio"
+        ]
+      },
+      {
+        "id": "d2",
+        "question": "Simplify the ratio 18 : 24.",
+        "answer": "3 : 4, after dividing both parts by 6. The comparison is unchanged because both quantities were divided by the same number.",
+        "targets": [
+          "ratio"
+        ]
+      }
+    ]
+  },
+  "introduction": {
+    "hook": "A shop sells potatoes at a fixed price per kilogram. Five kilograms cost £12.50, so eight kilograms cost £20: every kilogram adds the same £2.50. A second shop charges £5 delivery plus £2 per kilogram, so its five-kilogram order is £15 and its eight-kilogram order is £21. Both prices rise as the weight rises, but only the first is proportional. The difference is not the direction of the change; it is what stays constant.",
+    "why": "Proportion is the mathematics of a fixed rate. A recipe, a currency exchange, a map scale and a machine's output can all be modelled by one constant, and once that constant is known every other pair of values follows. Inverse proportion is the same idea with the constant in the product rather than the quotient. The lesson teaches the test before the formula: divide to check direct proportion, multiply to check inverse proportion, and only then write the equation. That order is what stops a learner from calling every straight-line graph proportional."
+  },
+  "explanation": [
+    {
+      "heading": "Direct proportion has a constant quotient",
+      "paragraphs": [
+        "Two quantities are directly proportional when one is a constant multiple of the other. If y is directly proportional to x, there is a number k such that y = kx, and dividing both sides by x gives y/x = k. The quotient is the test and the constant at the same time. A shop charging £2.50 per kilogram has y/x = 2.50 for every weight, so the cost is directly proportional to the weight. Doubling the weight doubles the cost; tripling it triples the cost; the graph is a straight line through the origin.",
+        "A straight line is not enough. The delivery shop's cost is 2x + 5, which is a straight line but not a proportional one: five kilograms cost £15 and eight kilograms cost £21, so the quotients are 3 and 2.625, not equal. The £5 delivery charge is paid once, so it does not scale with the weight. Direct proportion requires both a constant rate and no fixed starting amount; the graph must pass through the origin, and the quotient test is what proves it."
+      ]
+    },
+    {
+      "heading": "Find the constant, then use it",
+      "paragraphs": [
+        "The constant of proportionality is the amount for one unit. From five kilograms costing £12.50, divide 12.50 by 5 to get £2.50 per kilogram. The equation is C = 2.50m, where C is the cost and m is the mass. The unit rate is not a separate trick: it is k, and writing the equation makes it reusable for any mass, including one that is not in the original table. A learner who only scales by adding the same amount each time will be stuck as soon as the new quantity is not a whole-number multiple.",
+        "A table can show the same relationship in three columns: the input, the output, and the quotient. If the quotient column is constant, the relationship is direct and that value is k. If the quotient changes, the relationship is not direct, even when the output rises steadily. This is why a table of values is more informative than a picture of a line: the table exposes the invariant, and the graph shows its shape, but only the quotient establishes the proportion."
+      ]
+    },
+    {
+      "heading": "Inverse proportion has a constant product",
+      "paragraphs": [
+        "Two quantities are inversely proportional when their product is constant: xy = k, so y = k/x. Six workers completing a job in eight days give 6 × 8 = 48 worker-days. Four workers need 48 ÷ 4 = 12 days if the work is the same and every worker contributes at the same rate. Doubling the number of workers halves the time, but the reason is the fixed total amount of work, not a general rule that one quantity must fall whenever another rises.",
+        "A decreasing relationship is not automatically inverse. The amount of water left in a tank, y = 100 − 2x, falls as x rises, but its product with x is not constant: at x = 5 the product is 450, and at x = 10 it is 800. The product test distinguishes a fixed total shared among a changing number from a quantity that simply declines. The same test also gives the equation: find k from one complete pair, then divide by the new value of x."
+      ]
+    }
+  ],
+  "representations": [
+    {
+      "id": "r1",
+      "kind": "maths.expression",
+      "body": "Direct proportion is a constant quotient. The constant is the amount for one unit, and the equation lets that unit rate be used for any input.",
+      "notation": "y = kx   ·   k = y/x   ·   C = 2.50m   ·   5 kg → £12.50, so k = 2.50",
+      "caption": "The quotient is the test and the constant. Five kilograms at £2.50 per kilogram gives £12.50, and eight kilograms gives £20 because every kilogram contributes the same amount."
+    },
+    {
+      "id": "r2",
+      "kind": "maths.graph",
+      "body": "A table of a direct proportion has a constant quotient. The graph of the same relationship is a straight line through the origin, so the two representations agree.",
+      "notation": "x: 2, 4, 6   ·   y: 7, 14, 21   ·   y/x = 3.5 every time   ·   y = 3.5x",
+      "caption": "The table shows the quotient is 3.5 for every pair, which is the evidence for direct proportion. The graph would rise steadily and pass through the origin; a line with a fixed starting charge would rise but miss the origin."
+    },
+    {
+      "id": "r3",
+      "kind": "maths.expression",
+      "body": "Inverse proportion is a constant product. The equation divides the constant by the changing quantity, and the product test replaces the quotient test.",
+      "notation": "xy = k   ·   y = k/x   ·   6 workers × 8 days = 48 worker-days   ·   4 workers → 48 ÷ 4 = 12 days",
+      "caption": "Six workers for eight days and four workers for twelve days both give 48 worker-days. The total work is fixed, so multiplying the two quantities is the invariant; the product is not the number of workers or the number of days on its own."
+    }
+  ],
+  "workedExamples": [
+    {
+      "id": "w1",
+      "prompt": "Five kilograms of potatoes cost £12.50 at a fixed price per kilogram. Find the cost of eight kilograms.",
+      "steps": [
+        {
+          "move": "Check that the price is directly proportional to the mass by finding the cost of one kilogram: 12.50 ÷ 5 = £2.50.",
+          "why": "A fixed price per kilogram means the quotient cost divided by mass is constant. Dividing by five gives the unit rate, which is the constant of proportionality."
+        },
+        {
+          "move": "Write the relationship as C = 2.50m, where C is the cost in pounds and m is the mass in kilograms.",
+          "why": "The equation records the constant once and makes it reusable. It is not a new method; it is the unit rate written in a form that works for any mass."
+        },
+        {
+          "move": "Substitute m = 8: C = 2.50 × 8 = 20, so eight kilograms cost £20. Check that 20 ÷ 8 = 2.50, the same unit rate.",
+          "why": "Substitution applies the constant to the new mass, and the check confirms that the new pair has the same quotient as the original pair. The answer is £20, not £12.50 plus a guessed increment."
+        }
+      ],
+      "answer": "£20"
+    },
+    {
+      "id": "w2",
+      "prompt": "Six workers can complete a job in eight days. Assuming they work at the same rate, how long will four workers take?",
+      "steps": [
+        {
+          "move": "Find the fixed amount of work by multiplying the number of workers by the number of days: 6 × 8 = 48 worker-days.",
+          "why": "The job is the same total amount of work, so the product of workers and days is constant. This is the inverse-proportion invariant."
+        },
+        {
+          "move": "Use the equation 4 × d = 48, because four workers must still complete the same 48 worker-days.",
+          "why": "With fewer workers, each worker's contribution is unchanged and the total work does not change. The product stays 48, so the number of days must rise."
+        },
+        {
+          "move": "Divide both sides by 4: d = 48 ÷ 4 = 12, so four workers take twelve days. Check that 4 × 12 = 48.",
+          "why": "The division isolates the new time, and the check confirms the product is the same as the original pair. The answer is twelve days, not eight plus two."
+        }
+      ],
+      "answer": "12 days"
+    },
+    {
+      "id": "w3",
+      "prompt": "The table shows x = 2, 5, 8 and y = 7, 17.5, 28. Decide whether y is directly proportional to x, and write the relationship.",
+      "steps": [
+        {
+          "move": "Divide each y by its x: 7 ÷ 2 = 3.5, 17.5 ÷ 5 = 3.5, and 28 ÷ 8 = 3.5.",
+          "why": "Direct proportion requires the quotient to be the same for every pair. If any quotient differs, the relationship is not direct, even if all the outputs are increasing."
+        },
+        {
+          "move": "The quotient is constant at 3.5, so the relationship is directly proportional and k = 3.5.",
+          "why": "A constant quotient is the definition of direct proportion. The constant is the multiplier that turns each x into its y, not the difference between successive y-values."
+        },
+        {
+          "move": "Write y = 3.5x. Check with the third pair: 3.5 × 8 = 28, which matches the table.",
+          "why": "The equation is the relationship that generates every pair. Substituting one of the original inputs and recovering its output is the check that the constant has been applied correctly."
+        }
+      ],
+      "answer": "Yes, y = 3.5x"
+    }
+  ],
+  "misconceptions": [
+    {
+      "id": "m1",
+      "belief": "Every straight-line relationship is a direct proportion.",
+      "whyItFails": "A direct proportion must have a constant quotient and pass through the origin. The line y = 3x + 2 is straight, but at x = 1 the quotient is 5 and at x = 2 it is 4, so the quotient is not constant. The plus 2 is a fixed amount that does not scale with x, which is why doubling x does not double y.",
+      "correction": "Test the quotient, not the shape. Divide y by x for at least two pairs; if the results differ, the relationship is linear but not proportional. The graph must pass through the origin as well.",
+      "contrast": {
+        "wrong": "y = 3x + 2 is proportional because its graph is a straight line",
+        "right": "y = 3x is proportional; y = 3x + 2 has a fixed charge, so its quotient changes"
+      }
+    },
+    {
+      "id": "m2",
+      "belief": "If one quantity goes up while the other goes down, the relationship is inverse proportion.",
+      "whyItFails": "A decreasing relationship can have any rule. The amount y = 100 − 2x falls as x rises, but its product with x is not constant: at x = 5, xy = 450, and at x = 10, xy = 800. Inverse proportion requires the product to stay the same, because the same total is being shared among a changing number.",
+      "correction": "Multiply the pair, not just compare the direction. If xy is constant, the relationship is inverse; if the product changes, the decline is caused by something else.",
+      "contrast": {
+        "wrong": "the tank is emptying, so the time and volume are inversely proportional",
+        "right": "the volume falls, but only a constant product would make the relationship inverse"
+      }
+    },
+    {
+      "id": "m3",
+      "belief": "The constant of proportionality is the amount added each time, so a table with equal steps is proportional.",
+      "whyItFails": "Equal steps mean the output changes by the same amount for each unit, which is a constant difference, not a constant quotient. The sequence 3, 6, 9, 12 has equal steps but the quotient y/x changes: 3/1, 6/2, 9/3 and 12/4 are all 3, so that one happens to be proportional; the sequence 5, 8, 11, 14 has equal steps but quotients 5, 4, 3.67 and 3.5, so it is not. The difference alone cannot decide.",
+      "correction": "Find k by dividing one output by its input, then test the same quotient on another pair. A constant difference is not the same as a constant ratio.",
+      "contrast": {
+        "wrong": "5, 8, 11, 14 has a constant step of 3, so it is proportional",
+        "right": "5/1, 8/2, 11/3 and 14/4 are not equal, so the relationship is not proportional"
+      }
+    }
+  ],
+  "guidedPractice": [
+    {
+      "id": "p1",
+      "prompt": "Four pens cost £6. At the same rate, how much do ten pens cost?",
+      "hint": "Find the cost of one pen first by dividing £6 by four. Then multiply that unit rate by ten.",
+      "answer": "£15, because one pen costs £1.50 and 10 × 1.50 = 15",
+      "feedback": {
+        "correct": "You found the unit rate and used it for the new number of pens, so the same quotient applies to both pairs.",
+        "incorrect": "Four pens cost £6, so one pen costs £1.50. Ten pens cost ten times that, which is £15; adding £6 and £9 without a unit rate would only work by coincidence."
+      }
+    },
+    {
+      "id": "p2",
+      "prompt": "Five machines take twelve hours to complete a job. How long would six machines take at the same rate?",
+      "hint": "The total work is constant. Multiply the machines by the hours to find the number of machine-hours, then divide by six.",
+      "answer": "10 hours, because 5 × 12 = 60 machine-hours and 60 ÷ 6 = 10",
+      "feedback": {
+        "correct": "You used the constant product, not a constant difference, so the extra machine shortened the job by the right amount.",
+        "incorrect": "The fixed work is 5 × 12 = 60 machine-hours. Six machines would take 60 ÷ 6 = 10 hours, not twelve minus one; the product is what stays constant."
+      }
+    },
+    {
+      "id": "p3",
+      "prompt": "y is inversely proportional to x. When x = 5, y = 8. Find y when x = 10.",
+      "hint": "Inverse proportion has a constant product. Multiply 5 by 8 to find the constant, then divide by the new x.",
+      "answer": "4, because 5 × 8 = 40 and 40 ÷ 10 = 4",
+      "feedback": {
+        "correct": "You used the constant product and checked that 10 × 4 is also 40, so the inverse relationship is preserved.",
+        "incorrect": "The constant is 5 × 8 = 40. The new value is 40 ÷ 10 = 4, not 8 ÷ 2 by guesswork; doubling x halves y only because the product stays 40."
+      }
+    }
+  ],
+  "assessment": [
+    {
+      "id": "a1",
+      "kind": "short-answer",
+      "prompt": "y is directly proportional to x. When x = 6, y = 18. Find y when x = 10.",
+      "modelAnswer": "30",
+      "marking": [
+        "Finds the constant from 18 ÷ 6 = 3.",
+        "Multiplies the constant by 10 to obtain 30."
+      ],
+      "check": {
+        "accepted": [
+          "30"
+        ]
+      }
+    },
+    {
+      "id": "a2",
+      "kind": "constructed-response",
+      "prompt": "A learner says y = 3x + 2 is a direct proportion because doubling x doubles the 3x part. Explain why the relationship is not directly proportional.",
+      "modelAnswer": "Direct proportion requires the quotient y/x to be constant and the graph to pass through the origin. For y = 3x + 2, when x = 1, y = 5 and y/x = 5; when x = 2, y = 8 and y/x = 4. The quotient has changed, so the relationship is not direct. Doubling x doubles 3x, but the fixed 2 is still paid once; 2(3x + 2) = 6x + 4, while substituting 2x into the rule gives 6x + 2, so the outputs are not in the same ratio. The line is straight but its intercept is 2, not 0.",
+      "marking": [
+        "States that direct proportion requires a constant quotient and a graph through the origin.",
+        "Computes two quotients, such as 5/1 and 8/2, and shows they differ.",
+        "Explains that the fixed 2 does not scale with x, so doubling x does not double y."
+      ]
+    },
+    {
+      "id": "a3",
+      "kind": "short-answer",
+      "prompt": "y is inversely proportional to x. When x = 3, y = 4. Find y when x = 6.",
+      "modelAnswer": "2",
+      "marking": [
+        "Finds the constant product 3 × 4 = 12.",
+        "Divides 12 by the new x to obtain 2."
+      ],
+      "check": {
+        "accepted": [
+          "2"
+        ]
+      }
+    }
+  ],
+  "transfer": [
+    {
+      "id": "t1",
+      "prompt": "A cyclist's journey time is inversely proportional to average speed for a fixed route. At 15 km/h the journey takes 40 minutes. How long does it take at 20 km/h, and what average speed would make the journey take 30 minutes?",
+      "whyItTransfers": "The learner has to choose inverse proportion from a real situation, find the constant from a time and a speed rather than from a count of workers, and then use the same constant in two directions. The units are different from the lesson's examples, so the invariant has to be understood rather than matched to a remembered table.",
+      "answer": "The constant is 15 × 40 = 600 speed-minutes. At 20 km/h the time is 600 ÷ 20 = 30 minutes. For a 30-minute journey the speed is 600 ÷ 30 = 20 km/h, which agrees with the first result. The product stays 600 because the route is the same; doubling the speed halves the time, but only because the distance is fixed.",
+      "marking": [
+        "Multiplies 15 by 40 to find the constant 600.",
+        "Divides 600 by 20 to get 30 minutes.",
+        "Divides 600 by 30 to get 20 km/h.",
+        "Explains that the fixed distance makes the product constant, so the relationship is inverse."
+      ]
+    }
+  ],
+  "retrieval": [
+    {
+      "id": "x1",
+      "prompt": "If y is directly proportional to x and y = 12 when x = 4, find y when x = 7.",
+      "answer": "21. The constant is 12 ÷ 4 = 3, so y = 3 × 7 = 21; the quotient is 3 for both pairs.",
+      "when": "next-day"
+    },
+    {
+      "id": "x2",
+      "prompt": "If y is inversely proportional to x and y = 5 when x = 6, find y when x = 15.",
+      "answer": "2. The product is 30, so y = 30 ÷ 15 = 2; the product is 30 for both pairs.",
+      "when": "week-later"
+    },
+    {
+      "id": "x3",
+      "prompt": "A table gives x = 1, 2, 3 and y = 4, 7, 10. Is y directly proportional to x? Explain in one sentence.",
+      "answer": "No: the quotients are 4, 3.5 and 3.33, so they are not constant. The equal differences of 3 show a linear relationship, not a proportional one.",
+      "when": "month-later"
+    }
+  ],
+  "summary": [
+    "Direct proportion means y = kx: the quotient y/x is constant, k is the unit rate, and the graph passes through the origin.",
+    "Inverse proportion means xy = k: the product is constant, and y = k/x, so doubling one quantity halves the other when the total is fixed.",
+    "A straight line or a decreasing graph is not enough; test the quotient or the product before naming the relationship.",
+    "Find the constant from one complete pair, then use it to calculate any other pair and check that the invariant still holds."
+  ],
+  "accessibility": [
+    {
+      "need": "screen-reader",
+      "alternative": "Each relationship is read as a sentence — y equals k times x, or x times y equals k — and every table is described by its pairs rather than by column position alone."
+    },
+    {
+      "need": "dyslexia",
+      "alternative": "The test is written on its own line before the algebra: divide for direct proportion, multiply for inverse proportion, then write the equation."
+    },
+    {
+      "need": "motor",
+      "alternative": "Answers are typed as a value or a short equation; no graph plotting or dragging is required to demonstrate the relationship."
+    },
+    {
+      "need": "colour-vision",
+      "alternative": "The graph is described by its intercept and its constant quotient, so a colour difference between lines is never the only evidence."
+    }
+  ],
+  "provenance": [
+    {
+      "sourceId": "openmind-authored",
+      "basis": "openmind-authored",
+      "licence": "OpenMind internal",
+      "attribution": "Written for OpenMind.",
+      "reproduction": "none",
+      "note": "All explanations, tables, worked examples, practice items and the cycling transfer are original to OpenMind."
+    },
+    {
+      "sourceId": "gcse-mathematics-subject-content",
+      "basis": "curriculum-citation",
+      "licence": "official-reference",
+      "attribution": "Scope cited against the published GCSE mathematics subject content for ratio, proportion and rates of change.",
+      "reproduction": "none"
+    }
+  ],
+  "authors": [
+    {
+      "author": "OpenMind curriculum team",
+      "role": "instructional author",
+      "authoredAt": "2026-11-09",
+      "method": "ai-assisted-then-edited"
+    }
+  ],
+  "reviews": [],
+  "learnerTesting": [],
+  "translations": []
+}

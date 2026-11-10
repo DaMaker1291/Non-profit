@@ -40,6 +40,9 @@ export function normaliseAnswer(raw: string): string {
  *  Null is a real answer: a constructed response has no key, and pretending the
  *  model answer's words are the key would mark a correct explanation wrong. */
 export function gradeAuthoredAssessment(item: AssessmentItem, raw: string): boolean | null {
+  // An unscored reflection has no mark even if a key was accidentally added.
+  // The exclusion is structural, not a UI convention.
+  if (item.scored === false) return null;
   if (!item.check) return null;
   const given = normaliseAnswer(raw);
   if (!given) return false;
@@ -49,5 +52,6 @@ export function gradeAuthoredAssessment(item: AssessmentItem, raw: string): bool
 /** Whether this assessment can be graded by the server at all. The page uses it
  *  to decide between an answer box and the self-marking criteria. */
 export function isGradable(item: AssessmentItem): boolean {
+  if (item.scored === false) return false;
   return Array.isArray(item.check?.accepted) && item.check!.accepted.length > 0;
 }

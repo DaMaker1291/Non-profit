@@ -43,6 +43,7 @@ import type { EvidenceEvent, LearnerProjection } from "../evidence";
 import type { FlarePayload, MicroDiagStatus } from "../microdiag";
 import type { StarterReveal, StarterView } from "../starter";
 import type { ReviewCriterionId, ReviewDecision, ReviewSubmission } from "../content-platform/types";
+import type { EducatorReviewSubmission } from "../validation/types";
 
 export { ApiError };
 export type { Probe, Query };
@@ -485,6 +486,38 @@ export function lessonCheck(input: {
       conceptId: input.conceptId,
       itemId: input.itemId,
       answer: input.answer,
+      secret: input.secret ?? undefined,
+    },
+  });
+}
+
+export interface ProbabilityActivityResult {
+  correct: boolean;
+  modelAnswer: string;
+  feedback: string;
+  fields?: { key: string; label: string; correct: boolean; modelAnswer: string }[];
+}
+
+/** Submit a structured probability activity (Venn regions or tree values).
+ *
+ *  The client sends what the learner chose and nothing else. The server owns
+ *  the expected regions, the rational comparison and the evidence event, so a
+ *  modified browser cannot turn a wrong diagram into a recorded success. */
+export function probabilityActivity(input: {
+  id: string;
+  conceptId: string;
+  activityId: string;
+  response: string | string[] | Record<string, string>;
+  secret?: string | null;
+}): Promise<ProbabilityActivityResult> {
+  return send<ProbabilityActivityResult>("/api/progress", {
+    method: "POST",
+    body: {
+      action: "probabilityActivity",
+      id: input.id,
+      conceptId: input.conceptId,
+      activityId: input.activityId,
+      response: input.response,
       secret: input.secret ?? undefined,
     },
   });
@@ -1240,4 +1273,12 @@ export function submitContentReview(
   input: ReviewSubmission,
 ): Promise<{ review: ContentReviewView; state: "approved" | "draft" }> {
   return send("/api/content-review", { method: "POST", body: { ...input } });
+}
+
+/** Record a human review of an authored lesson. The route derives the reviewer
+ *  from the signed-in teaching account; this body carries no identity. */
+export function submitLessonReview(
+  input: EducatorReviewSubmission,
+): Promise<{ review: Record<string, unknown>; tasks: Record<string, unknown>[]; state: ReviewDecision }> {
+  return send("/api/lesson-review", { method: "POST", body: { ...input } });
 }

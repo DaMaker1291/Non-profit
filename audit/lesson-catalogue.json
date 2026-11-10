@@ -1,15 +1,15 @@
 {
   "generatedBy": "scripts/lesson-catalogue.mjs",
   "contract": "openmind.lesson/1.0",
-  "at": "2026-11-04T21:44:44.027Z",
+  "at": "2026-11-10T13:23:34.504Z",
   "totals": {
     "concepts": 135,
-    "authored": 16,
+    "authored": 56,
     "byStatus": {
       "metadata_only": 0,
-      "outline": 119,
+      "outline": 79,
       "draft": 0,
-      "machine_checked": 16,
+      "machine_checked": 56,
       "educator_reviewed": 0,
       "learner_tested": 0,
       "published": 0,
@@ -19,37 +19,37 @@
   "bySubject": {
     "maths": {
       "concepts": 67,
-      "authored": 12,
-      "machineChecked": 12,
-      "outline": 55,
+      "authored": 25,
+      "machineChecked": 25,
+      "outline": 42,
       "metadataOnly": 0
     },
     "physics": {
       "concepts": 18,
-      "authored": 1,
-      "machineChecked": 1,
-      "outline": 17,
+      "authored": 5,
+      "machineChecked": 5,
+      "outline": 13,
       "metadataOnly": 0
     },
     "chemistry": {
       "concepts": 16,
-      "authored": 1,
-      "machineChecked": 1,
-      "outline": 15,
+      "authored": 5,
+      "machineChecked": 5,
+      "outline": 11,
       "metadataOnly": 0
     },
     "biology": {
       "concepts": 16,
-      "authored": 1,
-      "machineChecked": 1,
-      "outline": 15,
+      "authored": 12,
+      "machineChecked": 12,
+      "outline": 4,
       "metadataOnly": 0
     },
     "computing": {
       "concepts": 18,
-      "authored": 1,
-      "machineChecked": 1,
-      "outline": 17,
+      "authored": 9,
+      "machineChecked": 9,
+      "outline": 9,
       "metadataOnly": 0
     }
   },
@@ -63,43 +63,13 @@
   },
   "gaps": [
     {
-      "conceptId": "ratio",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "proportion",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "indices-intro",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
-    },
-    {
       "conceptId": "standard-form",
       "subject": "maths",
       "status": "outline",
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
     },
     {
-      "conceptId": "algebra-expressions",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
-    },
-    {
       "conceptId": "algebra-expand",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
-    },
-    {
-      "conceptId": "linear-equations",
       "subject": "maths",
       "status": "outline",
       "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
@@ -117,31 +87,13 @@
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
     },
     {
-      "conceptId": "coordinates",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
-    },
-    {
       "conceptId": "straight-lines",
       "subject": "maths",
       "status": "outline",
       "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
     },
     {
-      "conceptId": "quadratics",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
-    },
-    {
       "conceptId": "sim-equations-quad",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "sequences",
       "subject": "maths",
       "status": "outline",
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
@@ -177,18 +129,6 @@
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
     },
     {
-      "conceptId": "angles-lines",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "area-perimeter",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
       "conceptId": "volume",
       "subject": "maths",
       "status": "outline",
@@ -207,25 +147,7 @@
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
     },
     {
-      "conceptId": "probability-basics",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
       "conceptId": "tree-diagrams",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "averages",
-      "subject": "maths",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "data-charts",
       "subject": "maths",
       "status": "outline",
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
@@ -393,18 +315,6 @@
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
     },
     {
-      "conceptId": "forces-basics",
-      "subject": "physics",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "motion-graphs",
-      "subject": "physics",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
       "conceptId": "newton-laws",
       "subject": "physics",
       "status": "outline",
@@ -417,19 +327,7 @@
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
     },
     {
-      "conceptId": "energy-conservation",
-      "subject": "physics",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
       "conceptId": "work-power",
-      "subject": "physics",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "waves-basics",
       "subject": "physics",
       "status": "outline",
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
@@ -491,30 +389,6 @@
     {
       "conceptId": "gravity-fields",
       "subject": "physics",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "atoms-elements",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "compounds-mixtures",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "periodic-table",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "electron-shells",
-      "subject": "chemistry",
       "status": "outline",
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
     },
@@ -585,54 +459,6 @@
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
     },
     {
-      "conceptId": "cells",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
-    },
-    {
-      "conceptId": "microscopy",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "enzymes",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "digestion",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "circulation",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "breathing-gas",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "diffusion",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "respiration",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
       "conceptId": "nervous-system",
       "subject": "biology",
       "status": "outline",
@@ -651,68 +477,8 @@
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
     },
     {
-      "conceptId": "evolution",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "ecosystems",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "biodiversity",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
       "conceptId": "immune-health",
       "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "variables",
-      "subject": "computing",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "conditionals",
-      "subject": "computing",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "loops",
-      "subject": "computing",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "lists-arrays",
-      "subject": "computing",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "functions-code",
-      "subject": "computing",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "dictionaries",
-      "subject": "computing",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "algorithms-search",
-      "subject": "computing",
       "status": "outline",
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
     },
@@ -730,12 +496,6 @@
     },
     {
       "conceptId": "complexity",
-      "subject": "computing",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "binary-data",
       "subject": "computing",
       "status": "outline",
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
@@ -785,7 +545,7 @@
       "stage": 0,
       "prereqs": [],
       "curriculum": "GCSE Mathematics, number: place value and the number system (Key Stage 2 to Key Stage 3)",
-      "plan": "supplemental",
+      "plan": "pilot",
       "status": "machine_checked",
       "lesson": {
         "version": "1.0.0",
@@ -869,7 +629,7 @@
       "stage": 0,
       "prereqs": [],
       "curriculum": "GCSE Mathematics, number: multiplication and written methods (Key Stage 2 to Key Stage 3)",
-      "plan": "supplemental",
+      "plan": "pilot",
       "status": "machine_checked",
       "lesson": {
         "version": "1.0.0",
@@ -1062,11 +822,26 @@
       "subject": "maths",
       "stage": 1,
       "prereqs": [],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, ratio, proportion and rates of change: ratio notation, simplifying and equivalent ratios, dividing a quantity in a given ratio, and ratios in context (Key Stage 3 to GCSE Foundation)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 524,
+        "explanationParagraphs": 6,
+        "workedExamples": 3,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "proportion",
@@ -1076,11 +851,26 @@
       "prereqs": [
         "ratio"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, ratio, proportion and rates of change: direct and inverse proportion, the constant of proportionality, and graphs of proportional relationships (Key Stage 3 to GCSE Foundation and Higher)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 513,
+        "explanationParagraphs": 6,
+        "workedExamples": 3,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "rounding",
@@ -1144,11 +934,26 @@
       "prereqs": [
         "order-ops"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, number: integer and fractional indices, roots, and the laws of indices for multiplying and dividing powers (Key Stage 3 to GCSE Foundation and Higher)",
       "plan": "pilot",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 644,
+        "explanationParagraphs": 8,
+        "workedExamples": 3,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "standard-form",
@@ -1173,11 +978,26 @@
       "prereqs": [
         "order-ops"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, algebra: notation, collecting like terms and expanding brackets (Key Stage 3 to GCSE Foundation)",
       "plan": "pilot",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 762,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "algebra-expand",
@@ -1201,11 +1021,26 @@
       "prereqs": [
         "algebra-expressions"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, algebra: solving linear equations (Key Stage 3 to GCSE)",
       "plan": "pilot",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 670,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "inequalities",
@@ -1243,11 +1078,26 @@
       "prereqs": [
         "negatives"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, algebra and graphs: coordinates in all four quadrants, straight-line graphs, and the intersection of two lines (Key Stage 3 to GCSE Foundation)",
       "plan": "pilot",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 794,
+        "explanationParagraphs": 8,
+        "workedExamples": 3,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "straight-lines",
@@ -1273,11 +1123,26 @@
         "algebra-expand",
         "straight-lines"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, algebra: quadratic equations and graphs (Key Stage 4, Foundation to Higher)",
       "plan": "pilot",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 504,
+        "explanationParagraphs": 6,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "sim-equations-quad",
@@ -1300,11 +1165,26 @@
       "subject": "maths",
       "stage": 1,
       "prereqs": [],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, algebra: sequences, term-to-term and position-to-term rules, arithmetic sequences, geometric sequences and the nth term (Key Stage 3 to GCSE Foundation)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 544,
+        "explanationParagraphs": 6,
+        "workedExamples": 3,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "functions",
@@ -1385,11 +1265,26 @@
       "subject": "maths",
       "stage": 1,
       "prereqs": [],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, geometry: angles at a point and on a straight line, vertically opposite angles, alternate and corresponding angles on parallel lines, and interior angles of polygons (Key Stage 3 to GCSE Foundation)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 719,
+        "explanationParagraphs": 8,
+        "workedExamples": 3,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "area-perimeter",
@@ -1397,11 +1292,26 @@
       "subject": "maths",
       "stage": 1,
       "prereqs": [],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, geometry and measures: perimeter and area of rectangles, triangles, parallelograms and trapezia; compound shapes; units of area (Key Stage 3 to GCSE Foundation)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 867,
+        "explanationParagraphs": 8,
+        "workedExamples": 3,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "volume",
@@ -1451,11 +1361,26 @@
       "subject": "maths",
       "stage": 1,
       "prereqs": [],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, probability: the probability scale, equally likely outcomes, relative frequency, complementary events, mutually exclusive events, the addition rule, independent events and tree diagrams (Key Stage 3 to GCSE Foundation and Higher)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1101,
+        "explanationParagraphs": 10,
+        "workedExamples": 5,
+        "guidedPractice": 4,
+        "assessments": 5,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "tree-diagrams",
@@ -1477,11 +1402,26 @@
       "subject": "maths",
       "stage": 1,
       "prereqs": [],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, statistics: mean, median, mode and range; frequency tables; describing, interpreting and comparing distributions (Key Stage 3 to GCSE Foundation)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 933,
+        "explanationParagraphs": 8,
+        "workedExamples": 3,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "data-charts",
@@ -1491,11 +1431,26 @@
       "prereqs": [
         "averages"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Mathematics, statistics: bar charts, line graphs, pie charts and scatter graphs; choosing, constructing and criticising a representation (Key Stage 3 to GCSE Foundation)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 794,
+        "explanationParagraphs": 8,
+        "workedExamples": 3,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "scatter-correlation",
@@ -1898,11 +1853,26 @@
       "subject": "physics",
       "stage": 1,
       "prereqs": [],
-      "curriculum": null,
+      "curriculum": "GCSE Physics, forces: contact and non-contact forces, free-body diagrams and Newton's first law (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 668,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "motion-graphs",
@@ -1913,11 +1883,26 @@
         "forces-basics",
         "straight-lines"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Physics, forces and motion: distance–time and velocity–time graphs, gradient and area (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 631,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "newton-laws",
@@ -1954,11 +1939,26 @@
       "subject": "physics",
       "stage": 1,
       "prereqs": [],
-      "curriculum": null,
+      "curriculum": "GCSE Physics, energy: energy stores and systems, conservation of energy, kinetic and gravitational potential energy (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 668,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "work-power",
@@ -1980,11 +1980,26 @@
       "subject": "physics",
       "stage": 1,
       "prereqs": [],
-      "curriculum": null,
+      "curriculum": "GCSE Physics, waves: transverse and longitudinal waves, amplitude, wavelength, frequency and wave speed (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 509,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "light-optics",
@@ -2164,11 +2179,26 @@
       "subject": "chemistry",
       "stage": 0,
       "prereqs": [],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, atomic structure: atoms, elements, isotopes and relative atomic mass (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 509,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "compounds-mixtures",
@@ -2178,11 +2208,26 @@
       "prereqs": [
         "atoms-elements"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, atomic structure and the properties of matter: elements, compounds, mixtures and separation techniques (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 866,
+        "explanationParagraphs": 12,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "periodic-table",
@@ -2193,11 +2238,26 @@
         "atoms-elements",
         "electron-shells"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, atomic structure and the periodic table: groups, periods and trends (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 523,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "electron-shells",
@@ -2207,11 +2267,26 @@
       "prereqs": [
         "atoms-elements"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, atomic structure: electron configuration, groups and ion formation (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 535,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "ionic-bonding",
@@ -2265,7 +2340,7 @@
         "proportion"
       ],
       "curriculum": null,
-      "plan": "supplemental",
+      "plan": "authored",
       "status": "outline",
       "lesson": null,
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
@@ -2324,7 +2399,7 @@
         "energy-conservation"
       ],
       "curriculum": null,
-      "plan": "supplemental",
+      "plan": "authored",
       "status": "outline",
       "lesson": null,
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
@@ -2409,11 +2484,26 @@
       "subject": "biology",
       "stage": 0,
       "prereqs": [],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, cell biology: cell structure, specialised cells and surface area (Key Stage 3 to GCSE)",
       "plan": "pilot",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 614,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "microscopy",
@@ -2424,11 +2514,26 @@
         "cells",
         "standard-form"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, microscopy: magnification, resolution, scale, scientific drawings and light versus electron microscopes (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 882,
+        "explanationParagraphs": 12,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "enzymes",
@@ -2439,11 +2544,26 @@
         "cells",
         "proportion"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, enzymes: catalysts, active sites, temperature, pH and rate (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 567,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "digestion",
@@ -2453,11 +2573,26 @@
       "prereqs": [
         "enzymes"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, animal organisation and digestion: mechanical and chemical digestion, enzymes, bile and absorption in the small intestine (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1585,
+        "explanationParagraphs": 17,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "circulation",
@@ -2468,11 +2603,26 @@
         "cells",
         "pressure-fluids"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, animal organisation and the circulatory system: the heart, blood vessels, blood and coronary heart disease (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1751,
+        "explanationParagraphs": 17,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "breathing-gas",
@@ -2483,11 +2633,26 @@
         "cells",
         "diffusion"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, gas exchange in humans: the respiratory system, alveoli and ventilation (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 982,
+        "explanationParagraphs": 12,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "diffusion",
@@ -2497,11 +2662,26 @@
       "prereqs": [
         "cells"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, transport in cells: diffusion, osmosis and active transport (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 570,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "photosynthesis",
@@ -2541,11 +2721,26 @@
         "enzymes",
         "energy-conservation"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, bioenergetics: aerobic and anaerobic respiration (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 656,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "nervous-system",
@@ -2599,11 +2794,26 @@
       "prereqs": [
         "genetics"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, inheritance, variation and evolution: natural selection, speciation, evidence for evolution and antibiotic resistance (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1569,
+        "explanationParagraphs": 16,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 4,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "ecosystems",
@@ -2614,11 +2824,26 @@
         "photosynthesis",
         "respiration"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, ecology: ecosystems, trophic levels, energy transfer and material cycles (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1785,
+        "explanationParagraphs": 15,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 4,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "biodiversity",
@@ -2628,11 +2853,26 @@
       "prereqs": [
         "ecosystems"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, ecology: biodiversity and ecosystems (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 833,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "immune-health",
@@ -2684,11 +2924,26 @@
       "prereqs": [
         "what-is-code"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Computer Science, programming: variables, data types, assignment and tracing (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 531,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "conditionals",
@@ -2698,11 +2953,26 @@
       "prereqs": [
         "variables"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Computer Science, programming: selection, Boolean conditions, if/elif/else (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 579,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "loops",
@@ -2712,11 +2982,26 @@
       "prereqs": [
         "variables"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Computer Science, programming: iteration, for and while loops, tracing (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 578,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "lists-arrays",
@@ -2727,11 +3012,26 @@
         "variables",
         "loops"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Computer Science, programming: lists, zero-based indexing, iteration, list methods and fixed-size arrays (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 589,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "functions-code",
@@ -2742,11 +3042,26 @@
         "variables",
         "conditionals"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Computer Science, programming: functions, parameters and arguments, return values, local scope and decomposition (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 534,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "dictionaries",
@@ -2756,11 +3071,26 @@
       "prereqs": [
         "lists-arrays"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Computer Science, programming: key-value data structures, dictionary access, updates, iteration and frequency counting (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 570,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "algorithms-search",
@@ -2771,11 +3101,26 @@
         "lists-arrays",
         "conditionals"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Computer Science, algorithms: linear and binary search (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 533,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "algorithms-sort",
@@ -2828,11 +3173,26 @@
       "prereqs": [
         "number-bases"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Computer Science, data representation: binary and denary conversion, binary addition, byte range, hexadecimal and character encoding (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 613,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "networks",

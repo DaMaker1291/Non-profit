@@ -1,0 +1,456 @@
+import type { AuthoredLesson } from "../../lesson-contract";
+
+// AN INDEX COUNTS COPIES, AND EVERY LAW IS A COUNTING RULE.
+//
+// The reported failure is not "cannot evaluate a power". It is that the index is
+// read as a multiplier (3⁴ = 12), that the multiplication law is applied to
+// addition (a² + a³ = a⁵), and that zero, negative and fractional indices are
+// memorised as three unrelated exceptions. This lesson derives each law from
+// writing the copies out, makes the same-base condition explicit, and gives the
+// learner one routine for any doubtful claim: substitute a small number and
+// evaluate both sides.
+export const MATHS_INDICES_INTRO: AuthoredLesson = {
+  contract: "openmind.lesson/1.0",
+  conceptId: "indices-intro",
+  version: "1.0.0",
+  subject: "maths",
+  curriculum: {
+    reference:
+      "GCSE Mathematics, number: integer and fractional indices, roots, and the laws of indices for multiplying and dividing powers",
+    level: "Key Stage 3 to GCSE Foundation and Higher",
+    note:
+      "Scope cited against the published GCSE mathematics subject content for number. The lesson derives the laws rather than asking for recall, and keeps the same-base condition explicit. No specification, textbook or commercial lesson text is reproduced.",
+  },
+  declaredStatus: "draft",
+
+  objectives: [
+    {
+      statement:
+        "Explain an index as a count of repeated factors, and evaluate a power without treating the index as a multiplier.",
+      evidence:
+        "The learner says 3⁴ is 3 × 3 × 3 × 3 = 81 rather than 12, explains why 2¹⁰ is 1024 rather than 20, and reads 2x³ as 2 × x³ rather than (2x)³.",
+    },
+    {
+      statement:
+        "Use the multiplication, division and power-of-a-power laws on expressions with the same base, and state why each law is true.",
+      evidence:
+        "The learner simplifies 3a² × 4a³ to 12a⁵, 8x⁵ ÷ 2x² to 4x³ and (2x³)² × x⁴ to 4x¹⁰, deriving the index arithmetic from written copies and refusing to combine 2³ × 3² into one power.",
+    },
+    {
+      statement:
+        "Explain and evaluate zero, negative and fractional indices from the division law and the reverse of the multiplication law.",
+      evidence:
+        "The learner derives a⁰ = 1 from aⁿ ÷ aⁿ, evaluates 2⁻³ as 1/8, and evaluates 27²⁄³ as 9 by taking the cube root before squaring, stating which number is the root and which is the power.",
+    },
+  ],
+
+  priorKnowledge: {
+    // The genome declares `order-ops` as the only prerequisite. The two checks
+    // are the evaluation order this lesson relies on when a coefficient, a
+    // bracket and a power appear in one expression.
+    conceptIds: ["order-ops"],
+    check: [
+      {
+        id: "d1",
+        question: "Evaluate 2 + 3 × 4.",
+        answer:
+          "14. Multiplication is evaluated before addition, so 3 × 4 = 12 and 2 + 12 = 14. Reading left to right would give 20, which is the answer to the next check, not this one.",
+        targets: ["order-ops"],
+      },
+      {
+        id: "d2",
+        question: "Evaluate (2 + 3) × 4.",
+        answer:
+          "20. The bracket is evaluated first: 2 + 3 = 5, then 5 × 4 = 20. Brackets change which operation acts first, which is the same reason a bracket changes the base of a power in this lesson.",
+        targets: ["order-ops"],
+      },
+    ],
+  },
+
+  introduction: {
+    hook:
+      "A sheet of paper is about 0.1 mm thick. Fold it in half ten times, in principle, and the stack is 0.1 × 2¹⁰ = 102.4 mm thick — about the width of an adult hand. The number of layers is 1024, not 10 × 2 = 20. An index counts how many times the base is multiplied by itself, so a repeated doubling grows far faster than a repeated addition. The same shorthand makes 2⁵ × 2³ equal to 2⁸, while 2⁵ + 2³ is 40: the multiplication law combines copies, and addition does not.",
+    why:
+      "An index is not a new operation; it is shorthand for repeated multiplication. That is why the laws are simple: a² × a³ has five copies of a written down, a⁵ ÷ a² cancels two of them, and (a²)³ is three groups of two copies. The laws hold only when the base is the same, because copies of different numbers cannot be counted together. Zero, negative and fractional indices are not three exceptions bolted onto the rules: a⁰ follows from dividing a power by itself, a⁻² follows from continuing the subtraction below zero, and a¹⁄² follows from asking what number multiplied by itself gives a. The lesson ends with one check that works on any doubtful claim: substitute a small number and evaluate both sides.",
+  },
+
+  explanation: [
+    {
+      heading: "An index counts copies, it does not multiply",
+      paragraphs: [
+        "aⁿ means n copies of a multiplied together: a⁵ = a × a × a × a × a. The a is the base and the 5 is the index, or exponent. The index counts copies; it is not a multiplier. 3⁴ = 3 × 3 × 3 × 3 = 81, not 3 × 4 = 12, and 2¹⁰ = 1024, not 20. This is why powers grow so much faster than multiples: doubling the index squares the value, because a²ⁿ = (aⁿ)², while doubling a multiplier only doubles the result.",
+        "The notation is already present in the units used for area and volume. A square of side 5 cm has area 5² = 25 cm², because the area is 5 × 5 squares of 1 cm²; a cube of side 5 cm has volume 5³ = 125 cm³. In algebra the same shorthand keeps expressions short: x · x · x is x³. The power binds to what it is written on, so 2x³ means 2 × x³, with the coefficient 2 outside the power. A bracket changes the base: (2x)³ = 8x³, while 2x³ = 2 × x³.",
+      ],
+    },
+    {
+      heading: "Multiplying adds the counts, dividing subtracts them",
+      paragraphs: [
+        "a² × a³ = (a × a)(a × a × a) = a⁵. Multiplication needs no new rule: the two groups of copies are written one after the other, so their counts add. In general aᵐ × aⁿ = aᵐ⁺ⁿ, provided the base is the same. That condition is not decoration: 2³ × 2² = 2⁵, but 2³ × 3² cannot be written as one power, because the copies are of different numbers. Its value is 8 × 9 = 72, not 6⁵.",
+        "Division cancels copies: a⁵ ÷ a² = (a × a × a × a × a)/(a × a) = a³, so aᵐ ÷ aⁿ = aᵐ⁻ⁿ for a ≠ 0. Coefficients are handled separately because they are not powers of the base: 3a² × 4a³ = (3 × 4)(a² × a³) = 12a⁵, and 8x⁵ ÷ 2x² = 4x³. A power raised to a power multiplies the indices, because (a²)³ means three copies of a², which is six copies of a: (aᵐ)ⁿ = aᵐⁿ. That is a different law from multiplication, and confusing the two is the commonest index error.",
+      ],
+    },
+    {
+      heading: "Zero and negative indices continue the pattern",
+      paragraphs: [
+        "a⁰ = 1 for any non-zero base. It is not a definition invented to fill a gap: aⁿ ÷ aⁿ = aⁿ⁻ⁿ = a⁰, and any non-zero quantity divided by itself is 1. For example 5³ ÷ 5³ = 125 ÷ 125 = 1, so 5⁰ = 1. The base must not be zero, because 0ⁿ ÷ 0ⁿ would divide by zero; 0⁰ is undefined, and so is 0 raised to a negative power.",
+        "A negative index means a reciprocal, not a negative value. The subtraction law continues below zero: 2² ÷ 2⁵ = 2⁻³, and the same division is 4 ÷ 32 = 1/8, so 2⁻³ = 1/8. In general a⁻ⁿ = 1/aⁿ for a ≠ 0, and the result is positive whenever a is positive. The descending powers of 2 show the pattern without any algebra: 32, 16, 8, 4, 2, 1, 1/2, 1/4, each term half the one before. A negative index moves the power across the fraction bar; it does not change the sign of the answer.",
+      ],
+    },
+    {
+      heading: "Fractional indices, and the two traps that remain",
+      paragraphs: [
+        "A fractional index is a root. If a¹⁄² × a¹⁄² = a¹ by the multiplication law, then a¹⁄² must be the number that squares to a, which is √a for a ≥ 0. The denominator of the fraction is the root and the numerator is the power: aᵐ⁄ⁿ = (ⁿ√a)ᵐ. So 16³⁄⁴ = (⁴√16)³ = 2³ = 8, and 27²⁄³ = (³√27)² = 3² = 9. A fractional index does not mean multiply by the fraction: 16³⁄⁴ is 8, not 12.",
+        "Two traps survive every rule above. The first is where the power binds: 2x³ means 2 × x³, while (2x)³ means (2x)(2x)(2x) = 8x³. With x = 2 the first is 16 and the second is 64, so a missing bracket is not a cosmetic difference. The second is applying a law to the wrong operation: a² × a³ = a⁵, but a² + a³ is not a⁵ — with a = 2 it is 4 + 8 = 12, while a⁵ is 32. When a claimed law is in doubt, substitute a small number and evaluate both sides. A rule that fails for a = 2 is not a rule.",
+      ],
+    },
+  ],
+
+  representations: [
+    {
+      id: "r1",
+      kind: "maths.expression",
+      body:
+        "Every law is visible when the copies are written out. The multiplication law joins two groups, the division law cancels copies, and the power law counts groups of copies.",
+      notation:
+        "a² × a³ = (a·a)(a·a·a) = a⁵   ·   a⁵ ÷ a² = a³   ·   (a²)³ = a⁶   ·   3a² × 4a³ = 12a⁵",
+      caption:
+        "The first line has two copies then three copies, five in total, so the indices add. The second cancels two of five, leaving three, so they subtract. The third is three groups of two copies, six in total, so they multiply. The coefficient 3 × 4 is separate because it counts whole terms, not copies of a.",
+    },
+    {
+      id: "r2",
+      kind: "maths.expression",
+      body:
+        "A descending list of powers shows zero and negative indices as the continuation of the same pattern, not as new definitions.",
+      notation:
+        "2⁵ 32 · 2⁴ 16 · 2³ 8 · 2² 4 · 2¹ 2 · 2⁰ 1 · 2⁻¹ 1/2 · 2⁻² 1/4   ·   each term is the one before divided by 2",
+      caption:
+        "Every step divides by 2. Continuing past 2¹ forces 2⁰ = 1, then 2⁻¹ = 1/2 and 2⁻² = 1/4. The values stay positive; only the index becomes negative, because a negative index records a division rather than a negative number.",
+    },
+    {
+      id: "r3",
+      kind: "maths.expression",
+      body:
+        "A fractional index is read in two parts: the denominator takes the root, then the numerator raises the result to a power.",
+      notation:
+        "16³⁄⁴ = (⁴√16)³ = 2³ = 8   ·   27²⁄³ = (³√27)² = 3² = 9   ·   aᵐ⁄ⁿ = (ⁿ√a)ᵐ",
+      caption:
+        "The order is a choice, not a rule: the root can be taken before or after the power. Taking the root first keeps the numbers small — the fourth root of 16 is 2, then 2³ is 8 — while raising first would give the fourth root of 4096, which is the same 8 but harder to see.",
+    },
+  ],
+
+  workedExamples: [
+    {
+      id: "w1",
+      prompt: "Simplify 3a² × 4a³, and check the result with a = 2.",
+      steps: [
+        {
+          move: "Multiply the coefficients: 3 × 4 = 12.",
+          why:
+            "The coefficient counts how many whole copies of a² and a³ there are. It is not a power of a, so the index law does not apply to it; it multiplies separately.",
+        },
+        {
+          move: "Add the indices of the same base: a² × a³ = a²⁺³ = a⁵.",
+          why:
+            "Writing the copies gives (a × a)(a × a × a), which is five copies of a. The multiplication sign has already combined the groups, so the counts add rather than multiply.",
+        },
+        {
+          move: "Combine the two parts: 3a² × 4a³ = 12a⁵.",
+          why:
+            "The expression is a product of a number and a power, so the coefficient and the power are multiplied, not added. Writing 12a⁵ keeps the coefficient outside the power, which is what the original expression meant.",
+        },
+        {
+          move: "Check with a = 2: the original is 3 × 4 × 4 × 8 = 384, and 12a⁵ is 12 × 32 = 384. The coefficient 12 and the index 5 both survive the substitution.",
+          why:
+            "A substitution evaluates the original and the simplified form independently. If either the coefficient or the index were wrong, the two numbers would differ, and no amount of tidiness in the working would hide it.",
+        },
+      ],
+      answer: "12a⁵",
+    },
+    {
+      id: "w2",
+      prompt: "Simplify (2x³)² × x⁴, and check the result with x = 2.",
+      steps: [
+        {
+          move: "Square the coefficient and double the index inside the bracket: (2x³)² = 2² × x⁶ = 4x⁶.",
+          why:
+            "The bracket makes 2x³ the base, so the power applies to both factors: (2x³)(2x³). The coefficient is squared and the index is multiplied, because three copies squared is six copies.",
+        },
+        {
+          move: "Multiply by x⁴: 4x⁶ × x⁴ = 4x⁶⁺⁴ = 4x¹⁰.",
+          why:
+            "The bases are now both x, so the multiplication law adds the counts: six copies and four copies make ten. The coefficient 4 is unchanged because x⁴ has no coefficient of its own beyond 1.",
+        },
+        {
+          move: "Check with x = 2: (2 × 8)² = 256, then 256 × 16 = 4096, and 4 × 2¹⁰ = 4 × 1024 = 4096. The coefficient 4 and the index 10 agree.",
+          why:
+            "The check runs the original operations in their original order, including the bracket, so it catches a power applied to the wrong base as well as an index added instead of multiplied.",
+        },
+      ],
+      answer: "4x¹⁰",
+    },
+    {
+      id: "w3",
+      prompt: "Evaluate 27²⁄³ without a calculator.",
+      steps: [
+        {
+          move: "Read the denominator as a root: 27¹⁄³ = ∛27 = 3, because 3³ = 27.",
+          why:
+            "The denominator 3 asks which number, multiplied by itself three times, gives 27. That is the cube root, and finding it first keeps the numbers small.",
+        },
+        {
+          move: "Read the numerator as a power: raise the root to the power 2, so 3² = 9.",
+          why:
+            "The numerator counts how many copies of the root are multiplied. Taking the root first and then squaring is the same as raising first and taking the root, but the arithmetic is easier.",
+        },
+        {
+          move: "Check by reversing the index: 9³⁄² = (√9)³ = 3³ = 27, which returns the original base, so 27²⁄³ = 9 is consistent.",
+          why:
+            "The two fractional indices 2/3 and 3/2 multiply to 1, so applying one and then the other must return the base. A wrong root or a wrong power would not come back to 27.",
+        },
+        {
+          move: "State the result: 27²⁄³ = 9, with the denominator 3 giving the root 3 and the numerator 2 giving the square 9.",
+          why:
+            "Naming which part of the index produced which number makes the method reusable. The answer 9 is not a coincidence of 27; it is the cube root squared.",
+        },
+      ],
+      answer: "9",
+    },
+  ],
+
+  misconceptions: [
+    {
+      id: "m1",
+      belief:
+        "a² × a³ = a⁶, because multiplying powers means multiplying the indices.",
+      whyItFails:
+        "The multiplication sign has already combined the two groups of copies, so the counts add: (a × a)(a × a × a) is five copies, not six. Multiplying the indices is the rule for a power of a power, (a²)³ = a⁶, which is a different expression. With a = 2, a² × a³ is 4 × 8 = 32, which is 2⁵, not 2⁶ = 64.",
+      correction:
+        "Add the indices when multiplying powers of the same base, subtract them when dividing, and multiply them only when a power is raised to a power. Check with a small base if the three rules are being confused.",
+      contrast: {
+        wrong: "a² × a³ = a⁶, so 2² × 2³ = 64",
+        right: "a² × a³ = a⁵, so 2² × 2³ = 32",
+      },
+    },
+    {
+      id: "m2",
+      belief:
+        "a⁻² is a negative number, because the index is negative.",
+      whyItFails:
+        "The sign of the index records a division, not the sign of the value. Continuing the descending powers of 2 gives 2⁰ = 1, 2⁻¹ = 1/2 and 2⁻² = 1/4, all positive. The negative index moves the power below the fraction bar: a⁻² = 1/a², and for a positive base that is positive.",
+      correction:
+        "Rewrite a negative index as a reciprocal before evaluating: a⁻ⁿ = 1/aⁿ. Then decide the sign from the base, not from the index. A negative base raised to an even power is positive, but that is a separate rule about the base.",
+      contrast: {
+        wrong: "2⁻² = −4, because the index is negative",
+        right: "2⁻² = 1/2² = 1/4, which is positive",
+      },
+    },
+    {
+      id: "m3",
+      belief:
+        "2a³ = (2a)³, because the power applies to the whole term.",
+      whyItFails:
+        "A power binds only to what it is written on. In 2a³ the base is a, and the coefficient 2 is outside the power; in (2a)³ the bracket makes 2a the base, so the 2 is cubed too. With a = 2, 2a³ is 2 × 8 = 16, while (2a)³ is 4³ = 64.",
+      correction:
+        "Write the bracket whenever the coefficient is meant to be included in the power. Read 2a³ as 2 × a³, and (2a)³ as 2³ × a³ = 8a³. Substituting a value distinguishes the two immediately.",
+      contrast: {
+        wrong: "2a³ = (2a)³ = 8a³",
+        right: "2a³ = 2 × a³, while (2a)³ = 8a³",
+      },
+    },
+  ],
+
+  guidedPractice: [
+    {
+      id: "p1",
+      prompt: "Write 5⁴ × 5³ as a single power.",
+      hint:
+        "The base is the same in both factors. Count the copies of 5: four in the first power and three in the second.",
+      answer:
+        "5⁷. The copies are 5 × 5 × 5 × 5 and 5 × 5 × 5, seven in total, so the indices add: 4 + 3 = 7. The value is 78,125, which is 5⁷.",
+      feedback: {
+        correct:
+          "You added the counts because the bases matched, which is exactly what the multiplication law says.",
+        incorrect:
+          "Add the indices rather than multiplying them: 5⁴ × 5³ = 5⁴⁺³ = 5⁷. Four copies and three copies make seven copies, while 5¹² would be four groups of three copies, a different expression.",
+      },
+    },
+    {
+      id: "p2",
+      prompt: "Simplify 8x⁵ ÷ 2x².",
+      hint:
+        "Divide the coefficients separately from the powers of x, then subtract the indices because the operation is division.",
+      answer:
+        "4x³. The coefficients give 8 ÷ 2 = 4, and the powers give x⁵⁻² = x³. Check with x = 2: 8 × 32 = 256 and 2 × 4 = 8, so the quotient is 32, which is 4 × 8 = 4x³.",
+      feedback: {
+        correct:
+          "You separated the coefficient from the power and subtracted the indices, then checked the result numerically.",
+        incorrect:
+          "Divide the coefficients and subtract the indices: 8 ÷ 2 = 4 and 5 − 2 = 3, so the answer is 4x³. Multiplying the indices would treat the division as a power of a power, which it is not.",
+      },
+    },
+    {
+      id: "p3",
+      prompt: "Evaluate 2⁻³ and 16¹⁄².",
+      hint:
+        "A negative index means a reciprocal, so write 2⁻³ as 1/2³ before evaluating. A half index means the square root.",
+      answer:
+        "2⁻³ = 1/2³ = 1/8, which is 0.125. 16¹⁄² = √16 = 4, because 4 × 4 = 16. Neither answer is negative: the negative index recorded a division, and the fractional index recorded a root.",
+      feedback: {
+        correct:
+          "You rewrote the negative index as a reciprocal and the fractional index as a root before doing any arithmetic.",
+        incorrect:
+          "Rewrite first: 2⁻³ = 1/2³ = 1/8, not −8, and 16¹⁄² = √16 = 4. The sign of the index and the size of the index do different jobs.",
+      },
+    },
+  ],
+
+  assessment: [
+    {
+      id: "a1",
+      kind: "constructed-response",
+      prompt:
+        "Explain why a⁰ = 1 for a ≠ 0, and why a⁻² = 1/a². Use the division law and a numerical example in each case.",
+      modelAnswer:
+        "Start from the division law, aᵐ ÷ aⁿ = aᵐ⁻ⁿ, which holds for a ≠ 0 because dividing by zero is undefined. If m and n are equal, the law gives aⁿ ÷ aⁿ = aⁿ⁻ⁿ = a⁰. The same division written out is a number divided by itself, which is 1, so a⁰ must be 1. For example 5³ ÷ 5³ = 125 ÷ 125 = 1, and the law gives 5³⁻³ = 5⁰, so 5⁰ = 1. Now take a smaller power divided by a larger one: a² ÷ a⁴ = a²⁻⁴ = a⁻². Written out, the division cancels two copies and leaves 1/a², so a⁻² = 1/a². For example 3² ÷ 3⁴ = 9 ÷ 81 = 1/9, and the law gives 3⁻², so 3⁻² = 1/9. The negative index is the result of subtracting a larger index from a smaller one; it records a reciprocal, not a negative value.",
+      marking: [
+        "States the division law and the condition a ≠ 0.",
+        "Derives a⁰ from aⁿ ÷ aⁿ and a numerical example such as 5³ ÷ 5³ = 1.",
+        "Derives a⁻² from a smaller power divided by a larger one, or from continuing the pattern below zero.",
+        "Gives a numerical example such as 3⁻² = 1/9 and states that the value is positive, not negative.",
+      ],
+    },
+    {
+      id: "a2",
+      kind: "short-answer",
+      prompt: "Simplify 4x² × 3x⁵.",
+      modelAnswer: "12x⁷",
+      marking: [
+        "Multiplies the coefficients: 4 × 3 = 12.",
+        "Adds the indices of the same base: 2 + 5 = 7, giving 12x⁷.",
+      ],
+      check: { accepted: ["12x^7", "12x⁷", "12 x^7", "12x7"] },
+    },
+    {
+      id: "a3",
+      kind: "short-answer",
+      prompt: "Evaluate 27²⁄³.",
+      modelAnswer: "9",
+      marking: [
+        "Takes the cube root first: 27¹⁄³ = 3.",
+        "Squares the root: 3² = 9.",
+      ],
+      check: { accepted: ["9"] },
+    },
+  ],
+
+  transfer: [
+    {
+      id: "t1",
+      prompt:
+        "A rumour starts with one person. In each hour, every person who heard it in the previous hour tells three new people. Write the number who hear it in hour n as a power. How many hear it in hour 4, and how many people in total have heard it by then, including the first person? After how many hours does the number hearing it in one hour first exceed 100? Explain why the answer is not 3n, and why the total is not 3⁵.",
+      whyItTransfers:
+        "The lesson evaluates single powers and simplifies algebraic expressions. Here the learner must model a process with a power, compute a single hour and a cumulative total, find the first hour crossing a threshold, and explain two different errors — treating the growth as linear and treating the cumulative total as the next power. The index laws are familiar; building the expression and separating the hourly count from the running total are new.",
+      answer:
+        "Hour 0 has 1 = 3⁰ person, hour 1 has 3 = 3¹, hour 2 has 9 = 3², so hour n has 3ⁿ new listeners. Hour 4 has 3⁴ = 81. The total by hour 4 is 1 + 3 + 9 + 27 + 81 = 121, which is (3⁵ − 1)/2. Hour 4 gives 81, below 100, and hour 5 gives 3⁵ = 243, above 100, so the hourly number first exceeds 100 in hour 5. The answer is not 3n: at hour 4 that would be 12, because it adds three each hour instead of multiplying the previous hour's listeners by three. The total is not 3⁵ = 243: that is the number who hear it in hour 5 alone, while the total counts every hour including the first, so it is 121.",
+      marking: [
+        "Writes the hourly number as 3ⁿ, identifying 3 as the multiplier and n as the number of hours.",
+        "Computes 3⁴ = 81 for hour 4.",
+        "Sums the hours to 121, or uses (3⁵ − 1)/2, and distinguishes the running total from the hourly count.",
+        "Finds hour 5 as the first hour above 100 (243) and explains why 3n and 3⁵ are both wrong answers to different questions.",
+      ],
+    },
+  ],
+
+  retrieval: [
+    {
+      id: "x1",
+      prompt: "Write a⁵ ÷ a² as a single power, and say which operation the indices undergo.",
+      answer:
+        "a³, because five copies of a divided by two copies cancels two and leaves three. The indices are subtracted: 5 − 2 = 3.",
+      when: "next-day",
+    },
+    {
+      id: "x2",
+      prompt: "What is 7⁰, and why is it not 0?",
+      answer:
+        "7⁰ = 1. Dividing 7ⁿ by 7ⁿ gives 7ⁿ⁻ⁿ = 7⁰, and a non-zero number divided by itself is 1. The value is not 0 because the index counts copies; zero copies of a factor leave the multiplicative identity, 1, not nothing.",
+      when: "week-later",
+    },
+    {
+      id: "x3",
+      prompt: "Evaluate 25¹⁄² and 8¹⁄³.",
+      answer:
+        "25¹⁄² = √25 = 5, because 5² = 25. 8¹⁄³ = ∛8 = 2, because 2³ = 8. The denominator of the fractional index is the root.",
+      when: "month-later",
+    },
+  ],
+
+  summary: [
+    "aⁿ means n copies of a multiplied together; the index counts copies and is not a multiplier, so 3⁴ = 81, not 12.",
+    "Multiplying powers of the same base adds the indices, dividing subtracts them, and a power of a power multiplies them; different bases cannot be combined.",
+    "a⁰ = 1 for a ≠ 0 follows from aⁿ ÷ aⁿ, and a⁻ⁿ = 1/aⁿ continues the subtraction below zero; a negative index means a reciprocal, not a negative value.",
+    "aᵐ⁄ⁿ = (ⁿ√a)ᵐ: the denominator is the root and the numerator is the power, so 27²⁄³ = 9.",
+    "A power binds only to its base, so 2x³ = 2 × x³ while (2x)³ = 8x³; when a law is in doubt, substitute a small number and evaluate both sides.",
+  ],
+
+  accessibility: [
+    {
+      need: "screen-reader",
+      alternative:
+        "Every power is also written in words in the surrounding sentence (a to the power 5, the cube root of 27), and each expansion is given as a list of factors, so no answer depends on reading a superscript position.",
+    },
+    {
+      need: "low-vision",
+      alternative:
+        "Powers and roots are set in the reading text at the learner's chosen size, and the three laws are repeated as a plain list rather than only inside a diagram or a small label.",
+    },
+    {
+      need: "dyslexia",
+      alternative:
+        "Each law is stated on its own line with the same-base condition beside it, and the numerical check is a two-step routine: substitute a small value, evaluate both sides, compare.",
+    },
+    {
+      need: "motor",
+      alternative:
+        "All practice and assessment answers are typed. No dragging, drawing or selecting a superscript is required to demonstrate the method.",
+    },
+    {
+      need: "no-audio",
+      alternative:
+        "The lesson's teaching is entirely in text. The optional plan video is not required for any objective, and its caption status is marked unknown rather than described as captioned.",
+    },
+  ],
+
+  provenance: [
+    {
+      sourceId: "openmind-authored",
+      basis: "openmind-authored",
+      licence: "OpenMind internal",
+      attribution: "Written for OpenMind.",
+      reproduction: "none",
+      note:
+        "All explanations, examples, practice, assessment and the rumour-spreading transfer are original to OpenMind.",
+    },
+    {
+      sourceId: "gcse-mathematics-subject-content",
+      basis: "curriculum-citation",
+      licence: "official-reference",
+      attribution:
+        "Scope cited against the published GCSE mathematics subject content for number: integer and fractional indices.",
+      reproduction: "none",
+    },
+  ],
+
+  authors: [
+    {
+      author: "OpenMind curriculum team",
+      role: "instructional author",
+      authoredAt: "2026-11-09",
+      method: "ai-assisted-then-edited",
+    },
+  ],
+
+  reviews: [],
+  learnerTesting: [],
+  translations: [],
+};

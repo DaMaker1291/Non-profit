@@ -33,9 +33,11 @@
 //   8. no sideways scroll at 320 px — the phone width a cheap device uses;
 //   9. under prefers-reduced-motion: reduce, nothing visible is still animating
 //      or transitioning for more than 50 ms;
-//  10. the FIRST Tab press reaches the skip link (not the nav), and Enter on it
-//      moves focus into the main landmark — a keyboard learner must be able to
-//      get past the menu without tabbing through it on every page.
+//  10. the skip link is the first focusable control in document order, becomes
+//      visible when focused, and names a working main landmark — a keyboard
+//      learner must be able to get past the menu without tabbing through it on
+//      every page. (Real Tab/Enter activation is exercised on the public
+//      calculation activity below; this check is structural.)
 //
 //   npm run verify:a11y            (with the dev server up on 4173)
 //
@@ -74,6 +76,23 @@ if (!chromeAvailable()) {
 
 const chrome = await launchChrome({ width: 1280, height: 900, port: 9391 });
 const page = pageFor(chrome.send);
+
+/** One real key press with the key code Chromium uses for default actions.
+ *  `page.press` is for entering characters; Tab and Enter need their own key
+ *  metadata or the browser does not perform the default action. */
+async function keyEvent(key, code, virtualKeyCode, text) {
+  await chrome.send("Input.dispatchKeyEvent", {
+    type: "keyDown", key, code,
+    windowsVirtualKeyCode: virtualKeyCode, nativeVirtualKeyCode: virtualKeyCode,
+    ...(text === undefined ? {} : { text, unmodifiedText: text }),
+  });
+  await chrome.send("Input.dispatchKeyEvent", {
+    type: "keyUp", key, code,
+    windowsVirtualKeyCode: virtualKeyCode, nativeVirtualKeyCode: virtualKeyCode,
+    ...(text === undefined ? {} : { text, unmodifiedText: text }),
+  });
+  await sleep(100);
+}
 
 /** WAIT FOR THE ROUTE TO SETTLE, AND SAY SO WHEN IT DOES NOT.
  *
@@ -250,6 +269,14 @@ for (const [route, label] of ROUTES) {
   await sleep(350);
   const narrow = await readStable();
   check(narrow.overflow <= 0, `no sideways scroll at 320 px (overflow ${narrow.overflow} px)`);
+
+  // 200% ZOOM IS A REFLOW TEST, NOT A FONT-SIZE CHECK. Browser zoom halves the
+  // CSS-pixel viewport; 640 px at 2× is what a 1280-px window gives a learner at
+  // 200%. The page must still fit without horizontal scrolling.
+  await chrome.send("Emulation.setDeviceMetricsOverride", { width: 640, height: 900, deviceScaleFactor: 2, mobile: false });
+  await sleep(400);
+  const zoomed = await readStable();
+  check(zoomed.overflow <= 0, `no horizontal overflow at 200% zoom (${zoomed.overflow} px at 640 CSS px)`);
   await desktop();
 }
 
@@ -378,24 +405,64 @@ reset:
     // NOT that the button a learner presses does anything — a dead onClick would
     // pass all of it. The page is at its largest step here, so pressing the first
     // choice must bring it back to standard.
-    const sizeButtons = await page.evaluate(`return (() => {
-      const g = [...document.querySelectorAll('[role="group"]')].find((x) => x.querySelector("button"));
-      if (!g) return null;
-      return [...g.querySelectorAll("button")].map((b) => {
+    // WAIT FOR THE PROVIDER, NOT JUST THE BOOT CLASS. THEME_BOOT puts the stored
+    // size class on <html> before paint, but the pressed state of these buttons
+    // comes from AccessProvider's effect. The legacy block above can observe the
+    // boot class while React still holds DEFAULT_PREFS, and clicking Standard
+    // then is a no-op because React already believes Standard is selected. The
+    // measured page was correct; the audit was reading it between two states.
+    // Wait until the middle step is the one React marks pressed, which is what
+    // the stored legacy preference resolves to.
+    // SELECT THE SIZE GROUP BY ITS THREE BUTTONS, and keep the diagnostic when
+    // it is absent. The earlier version took the first `[role=group]` with any
+    // button; that is not the control it claims to measure, and a page mid-reload
+    // can briefly expose the shell with no group at all. The wait is long enough
+    // for a cold dev compile, but the assertion is unchanged: a page that never
+    // offers three size choices still fails.
+    const readSizeButtons = () => page.evaluate(`return (() => {
+      const groups = [...document.querySelectorAll('[role="group"]')]
+        .map((g) => ({ g, buttons: [...g.querySelectorAll("button")] }))
+        .filter((x) => x.buttons.length > 0);
+      const picked = groups.find((x) => x.buttons.length === 3 && /size/i.test(x.g.getAttribute("aria-label") || ""))
+        ?? groups.find((x) => x.buttons.length === 3)
+        ?? null;
+      if (!picked) return { ok: false, groups: groups.length, ready: document.readyState, main: !!document.querySelector("main") };
+      return { ok: true, buttons: picked.buttons.map((b) => {
+        b.scrollIntoView({ block: "center" });
         const r = b.getBoundingClientRect();
         return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2), pressed: b.getAttribute("aria-pressed") === "true", text: (b.textContent || "").trim() };
-      });
+      }) };
     })();`);
+    let sizeButtons = null;
+    let sizeProbe = null;
+    for (let i = 0; i < 180; i++) {
+      sizeProbe = await readSizeButtons();
+      if (sizeProbe?.ok) {
+        sizeButtons = sizeProbe.buttons;
+        if (sizeButtons.length === 3 && sizeButtons.filter((b) => b.pressed).length === 1) break;
+      }
+      await sleep(250);
+    }
     // EXACTLY ONE pressed, whichever step the page is on — the earlier checks
     // leave it at the middle step, and asserting "the third is pressed" measured
     // the sequence rather than the control (it failed on a working page).
     const pressedCount = Array.isArray(sizeButtons) ? sizeButtons.filter((b) => b.pressed).length : 0;
+    const sizeDetail = Array.isArray(sizeButtons)
+      ? sizeButtons.map((b) => `${b.text}${b.pressed ? "*" : ""}`).join(" / ")
+      : `none; groups=${sizeProbe?.groups ?? "?"}, ready=${sizeProbe?.ready ?? "?"}, main=${sizeProbe?.main ?? "?"}`;
     check(Array.isArray(sizeButtons) && sizeButtons.length === 3 && pressedCount === 1,
-      `the learner is offered three size choices, with the current one pressed (${sizeButtons ? sizeButtons.map((b) => `${b.text}${b.pressed ? "*" : ""}`).join(" / ") : "none"})`);
+      `the learner is offered three size choices, with the current one pressed (${sizeDetail})`);
     let clickedFont = 0;
     if (Array.isArray(sizeButtons) && sizeButtons.length === 3) {
-      await chrome.send("Input.dispatchMouseEvent", { type: "mousePressed", x: sizeButtons[0].x, y: sizeButtons[0].y, button: "left", clickCount: 1 });
-      await chrome.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: sizeButtons[0].x, y: sizeButtons[0].y, button: "left", clickCount: 1 });
+      // CLICK THE CONTROL THE CHECK NAMES. The old code reused coordinates
+      // collected while scrolling each of the three buttons into view; those
+      // coordinates were stale as soon as the page moved, so a real click could
+      // land on "Large" while the assertion asked for "Standard". clickExpr
+      // re-reads and hit-tests the point immediately before dispatching.
+      await page.clickExpr(
+        `([...document.querySelectorAll('[role="group"]')].find((g) => /size/i.test(g.getAttribute("aria-label") || ""))?.querySelector("button") ?? null)`,
+        "Standard text size",
+      );
       for (let i = 0; i < 40; i++) {
         clickedFont = await page.evaluate(`return parseFloat(getComputedStyle(document.documentElement).fontSize);`);
         if (clickedFont <= 16) break;
@@ -447,7 +514,7 @@ const nav = await page.evaluate(`return (() => {
     skipText: (skip?.innerText || "").trim().slice(0, 40),
   };
 })();`);
-check(nav.firstIsSkip, `the skip link is the first thing Tab reaches (first focusable: "${nav.firstText}" of ${nav.focusableCount})`);
+check(nav.firstIsSkip, `the skip link is first in document focus order (first focusable: "${nav.firstText}" of ${nav.focusableCount})`);
 check(nav.skipVisibleWhenFocused && nav.skipOpacity === 1, `focusing it brings it on screen ("${nav.skipText}", opacity ${nav.skipOpacity})`);
 // WHAT ACTIVATION MUST ACHIEVE IS THAT THE WORK COMES INTO VIEW, not that the
 // URL gains a hash. The app's router can move the reader without rewriting the
@@ -467,14 +534,277 @@ await page.evaluate(`location.hash = "#main"; return true;`);
 await sleep(500);
 const landed = await page.evaluate(`return (() => {
   const m = document.querySelector("main");
-  const r = m.getBoundingClientRect();
-  return { top: Math.round(r.top), scrollY: Math.round(window.scrollY) };
+  const r = m ? m.getBoundingClientRect() : null;
+  return { top: r ? Math.round(r.top) : null, scrollY: Math.round(window.scrollY), path: location.pathname, hasMain: !!m };
 })();`);
-check(Math.abs(landed.top) < 200, `its target really is a working landmark (main top ${landed.top}px after #main, scrollY ${landed.scrollY})`);
+check(landed.top !== null && Math.abs(landed.top) < 200, `its target really is a working landmark (${landed.hasMain ? `main top ${landed.top}px` : `NO main on ${landed.path}`} after #main, scrollY ${landed.scrollY})`);
+
+// COLOUR CONTRAST, MEASURED FROM THE COMPUTED STYLES OF VISIBLE TEXT. This is
+// deliberately conservative: transparent or gradient backgrounds are skipped
+// rather than guessed, and a sample is reported instead of a conformance claim.
+const CONTRAST = `return (() => {
+  const rgba = (value) => {
+    const m = String(value).match(/rgba?\\(([^)]+)\\)/);
+    if (!m) return null;
+    const parts = m[1].split(/[ ,/]+/).filter(Boolean).map(Number);
+    return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 };
+  };
+  const blend = (fg, bg) => ({
+    r: fg.r * fg.a + bg.r * (1 - fg.a),
+    g: fg.g * fg.a + bg.g * (1 - fg.a),
+    b: fg.b * fg.a + bg.b * (1 - fg.a),
+    a: 1,
+  });
+  const bgOf = (el) => {
+    for (let n = el; n; n = n.parentElement) {
+      const c = rgba(getComputedStyle(n).backgroundColor);
+      if (c && c.a > 0.01) return blend(c, { r: 255, g: 255, b: 255, a: 1 });
+    }
+    return { r: 255, g: 255, b: 255, a: 1 };
+  };
+  const lum = (c) => {
+    const v = [c.r, c.g, c.b].map((x) => {
+      const s = x / 255;
+      return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+  };
+  const ratio = (a, b) => {
+    const l1 = lum(a), l2 = lum(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  };
+  const visible = (el) => {
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && Number(cs.opacity) > 0.05
+      && cs.display !== "none" && !el.closest("[aria-hidden='true']");
+  };
+  const rows = [...document.querySelectorAll("p, li, h1, h2, h3, h4, h5, h6, a, button, label, small, .muted, .reading")]
+    .filter(visible)
+    .map((el) => {
+      const cs = getComputedStyle(el);
+      const text = (el.innerText || el.textContent || "").trim();
+      if (!text || text.length > 400) return null;
+      if (cs.backgroundImage !== "none") return null;
+      const fg = rgba(cs.color);
+      if (!fg) return null;
+      const bg = bgOf(el);
+      const size = parseFloat(cs.fontSize) || 16;
+      const bold = Number(cs.fontWeight) >= 600;
+      const need = size >= 24 || (size >= 18.66 && bold) ? 3 : 4.5;
+      const r = ratio(blend(fg, bg), bg);
+      if (r >= need) return null;
+      return { ratio: Math.round(r * 100) / 100, need, text: text.slice(0, 50), tag: el.tagName, cls: String(el.className).slice(0, 40) };
+    })
+    .filter(Boolean);
+  return { low: rows.length, sample: rows.slice(0, 5) };
+})();`;
+
+section("colour contrast: visible text on /help");
+await desktop();
+await chrome.send("Page.navigate", { url: `${BASE}/help` });
+await settle("/help");
+await sleep(500);
+const contrast = await page.evaluate(CONTRAST);
+check(contrast.low === 0, `no sampled visible text is below its contrast floor (${contrast.low} below${contrast.low ? `: ${contrast.sample.map((r) => `${r.ratio}:1 ${r.tag}.${r.cls} “${r.text}”`).join(" · ")}` : ""})`);
+
+section("focus visibility: /help");
+const focus = await page.evaluate(`return (() => {
+  const el = [...document.querySelectorAll("a[href], button, input, select, textarea")].find((e) => {
+    const r = e.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  });
+  if (!el) return { found: false };
+  el.focus();
+  const cs = getComputedStyle(el);
+  return {
+    found: true,
+    tag: el.tagName,
+    outline: cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0,
+    shadow: cs.boxShadow !== "none",
+    text: (el.innerText || el.getAttribute("aria-label") || "").trim().slice(0, 40),
+  };
+})();`);
+check(focus.found && (focus.outline || focus.shadow), `the first focusable control has a visible focus treatment (${focus.tag || "none"}${focus.text ? ` “${focus.text}”` : ""})`);
+
+section("mathematical notation and figure alternatives");
+await chrome.send("Page.navigate", { url: `${BASE}/content/review/physics-electricity-circuits-v1` });
+try {
+  await settle("/content/review/physics-electricity-circuits-v1");
+  await sleep(500);
+  const math = await page.evaluate(`return (() => {
+    const all = [...document.querySelectorAll(".math")];
+    const fracs = [...document.querySelectorAll(".mfrac")];
+    const hiddenSlashes = fracs.filter((f) => [...f.querySelectorAll(".visually-hidden")].some((s) => s.textContent.trim() === "/"));
+    return {
+      math: all.length,
+      fracs: fracs.length,
+      hiddenSlashes: hiddenSlashes.length,
+      raw: all.filter((el) => /\\^|sqrt\\(/.test(el.textContent || "")).length,
+      h1: document.querySelector("h1")?.textContent?.trim() || null,
+    };
+  })();`);
+  if (!math.h1) {
+    console.log("   · no lesson heading for a signed-out visitor — this surface is gated; NOT audited here");
+    skipped++;
+  } else {
+    check(math.math > 0, `the lesson renders mathematical spans (${math.math})`);
+    check(math.raw === 0, `no rendered maths run still contains raw ^ or sqrt( (${math.raw})`);
+    check(math.fracs === 0 || math.hiddenSlashes === math.fracs, `every stacked fraction carries a spoken slash (${math.hiddenSlashes}/${math.fracs})`);
+  }
+
+  // FORM LABELS, DOM ORDER AND THE LIVE ERROR REGION. This is a public
+  // calculation form, not the signed-in teacher review form: the latter is
+  // gated, so its labels and alert region are audited by source review rather
+  // than by pretending a signed-out visitor can reach it. The live status is
+  // exercised through the rendered control, not asserted from markup alone.
+  const form = await page.evaluate(`return (() => {
+    const section = document.querySelector("[data-calculation-activity]");
+    const input = section?.querySelector("input");
+    const button = section?.querySelector("button");
+    const status = section?.querySelector("[role='status']");
+    const label = input?.id ? document.querySelector('label[for="' + CSS.escape(input.id) + '"]') : null;
+    const controls = [...document.querySelectorAll("a[href], button, input, select, textarea")];
+    return {
+      exists: !!section && !!input && !!button,
+      labelled: !!label,
+      inputBeforeButton: controls.indexOf(input) >= 0 && controls.indexOf(input) < controls.indexOf(button),
+      live: status?.getAttribute("role") === "status" && status?.getAttribute("aria-live") === "polite",
+    };
+  })();`);
+  check(form.exists, "the calculation form renders an input and a button");
+  check(form.labelled, "the calculation input has an associated label");
+  check(form.inputBeforeButton, "the input precedes its action in DOM focus order");
+  check(form.live, "the calculation result is a polite live-status region");
+  await page.evaluate(`document.querySelector("[data-calculation-activity] button")?.click(); return true;`);
+  await sleep(250);
+  const formStatus = await page.evaluate(`return [...document.querySelectorAll("[data-calculation-activity] [role='status']")].map((e) => (e.textContent || "").trim());`);
+  check(formStatus.some((text) => text.includes("Enter a number")), `an empty submission announces its error in the live status (${formStatus.join(" / ") || "none"})`);
+
+  // KEYS, NOT A PROGRAMMATIC CLICK. Focus is placed on the activity field as a
+  // keyboard user would arrive there, then every subsequent action — typing the
+  // answer, tabbing to Check and pressing Enter — is browser input. The answer
+  // is 4 from the authored assessment; this is an achievement check, not just a
+  // "something happened" check.
+  await page.evaluate(`document.querySelector("[data-calculation-activity] input")?.focus(); return true;`);
+  await page.press("4");
+  await sleep(150);
+  const typed = await page.evaluate(`return document.querySelector("[data-calculation-activity] input")?.value ?? null;`);
+  await keyEvent("Tab", "Tab", 9);
+  const afterTab = await page.evaluate(`return (() => {
+    const active = document.activeElement;
+    const section = document.querySelector("[data-calculation-activity]");
+    const cs = active ? getComputedStyle(active) : null;
+    return {
+      tag: active?.tagName ?? null,
+      text: (active?.textContent || "").trim().slice(0, 30),
+      inActivity: !!section && !!active && section.contains(active),
+      outline: !!cs && ((cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0) || cs.boxShadow !== "none"),
+    };
+  })();`);
+  await keyEvent("Enter", "Enter", 13, "\r");
+  let keyStatus = [];
+  let activationKey = "Enter";
+  for (let i = 0; i < 20; i++) {
+    keyStatus = await page.evaluate(`return [...document.querySelectorAll("[data-calculation-activity] [role='status']")].map((e) => (e.textContent || "").trim());`);
+    if (keyStatus.some((text) => text.includes("correct"))) break;
+    await sleep(150);
+  }
+  if (!keyStatus.some((text) => text.includes("correct"))) {
+    // Space is the other standard keyboard activation for a button. If this
+    // headless Chromium did not deliver Enter's default action, Space still
+    // proves pointer-free operation; the result names the key that worked.
+    activationKey = "Space";
+    await keyEvent(" ", "Space", 32, " ");
+    for (let i = 0; i < 20; i++) {
+      keyStatus = await page.evaluate(`return [...document.querySelectorAll("[data-calculation-activity] [role='status']")].map((e) => (e.textContent || "").trim());`);
+      if (keyStatus.some((text) => text.includes("correct"))) break;
+      await sleep(150);
+    }
+  }
+  check(typed === "4", `a keyed answer reaches the controlled field (value "${typed}")`);
+  check(afterTab.tag === "BUTTON" && afterTab.inActivity && afterTab.outline,
+    `Tab moves from the answer field to a visibly focused Check control ("${afterTab.text}" in activity=${afterTab.inActivity}, outline=${afterTab.outline})`);
+  check(keyStatus.some((text) => text.includes("correct")),
+    `${activationKey} checks the keyed answer and announces success (${keyStatus.join(" / ") || "none"})`);
+} catch (err) {
+  console.log(`   · /content/review/physics-electricity-circuits-v1 could not be audited signed out (${String(err.message).slice(0, 90)}) — NOT audited`);
+  skipped++;
+}
+
+await chrome.send("Page.navigate", { url: `${BASE}/content/review/biology-cells-v1` });
+try {
+  await settle("/content/review/biology-cells-v1");
+  await sleep(500);
+  const figure = await page.evaluate(`return (() => {
+    const box = document.querySelector("[data-lesson-review]");
+    const svg = document.querySelector("svg[role='img'][aria-label]");
+    const cap = document.querySelector("figcaption");
+    return {
+      h1: document.querySelector("h1")?.textContent?.trim() || null,
+      box: !!box,
+      svgRole: !!svg && svg.getAttribute("role") === "img",
+      svgLabel: (svg?.getAttribute("aria-label") || "").trim(),
+      caption: (cap?.textContent || "").trim(),
+      labelledControls: document.querySelectorAll("[data-label-diagram] select[aria-label]").length,
+    };
+  })();`);
+  if (!figure.h1) {
+    console.log("   · no lesson heading for a signed-out visitor — this surface is gated; NOT audited here");
+    skipped++;
+  } else {
+    check(figure.box, "the biology lesson renders its diagram block");
+    check(figure.svgRole && figure.svgLabel.length > 20, `the diagram has a prose alternative in its accessible name (${figure.svgLabel.length} chars)`);
+    check(figure.labelledControls >= 4, `each diagram callout has a labelled control (${figure.labelledControls})`);
+  }
+} catch (err) {
+  console.log(`   · /content/review/biology-cells-v1 could not be audited signed out (${String(err.message).slice(0, 90)}) — NOT audited`);
+  skipped++;
+}
+
+// MOBILE INTERACTION, at a phone viewport rather than only a narrow screenshot.
+// The bottom bar is the primary navigation on a phone; tapping its Curriculum
+// link must actually leave Help. A hover-only or pointer-only menu would pass a
+// width check and fail here.
+section("mobile interaction: phone navigation");
+try {
+  await chrome.send("Emulation.setDeviceMetricsOverride", {
+    width: 390, height: 844, deviceScaleFactor: 2, mobile: true,
+  });
+  await chrome.send("Page.navigate", { url: `${BASE}/help` });
+  await settle("/help");
+  await sleep(450);
+  const mobile = await page.evaluate(`return (() => {
+    const bar = document.querySelector(".bottomnav");
+    const links = [...(bar?.querySelectorAll("a[href]") ?? [])];
+    const visible = links.filter((a) => { const r = a.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+    return { visible: !!bar && getComputedStyle(bar).display !== "none", links: visible.map((a) => a.getAttribute("href")) };
+  })();`);
+  check(mobile.visible && mobile.links.length >= 3,
+    `the phone navigation exposes its primary destinations (${mobile.links.join(", ") || "none"})`);
+  // The rightmost destination, not the leftmost: Next's development-tools
+  // portal occupies the bottom-left corner and intercepted the Curriculum tap.
+  // That overlay is not part of the product, but a click that lands on it is
+  // still not a click on the navigation. Access is far enough right to be the
+  // learner-controlled surface at this width.
+  await page.clickExpr(`document.querySelector('.bottomnav a[href="/access"]')`, "Access in the phone navigation");
+  await sleep(700);
+  const mobileAfter = await page.evaluate(`return { path: location.pathname, main: !!document.querySelector("main") };`);
+  check(mobileAfter.path === "/access" && mobileAfter.main,
+    `tapping the phone navigation operates it (${mobileAfter.path})`);
+} catch (err) {
+  skipped++;
+  console.log(`   · phone navigation could not be driven (${String(err.message).slice(0, 110)}) — NOT audited`);
+}
+await desktop();
 
 await chrome.send("Page.navigate", { url: "about:blank" });
 await chrome.close();
 console.log(`\n${passed} passed, ${failed} failed${skipped ? `, ${skipped} surface(s) NOT audited (gated)` : ""}`);
 console.log("NOT measured, and not claimed: screen-reader announcements, switch/eye-gaze input,");
-console.log("200% text reflow, colour contrast ratios, captioning, or any learner's experience.");
+console.log("keyboard-only completion of a whole learner lesson (the public calculation activity's key path IS measured);");
+console.log("error announcements in a signed-in teacher form;");
+console.log("captioning, or any learner's experience. Actual VoiceOver/NVDA testing was not performed.");
+console.log("The maths and diagram checks above use the public content-platform review surfaces;");
+console.log("they do not establish how those structures are announced by a real screen reader.");
 process.exit(failed === 0 ? 0 : 1);

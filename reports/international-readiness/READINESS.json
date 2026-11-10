@@ -1,0 +1,1885 @@
+{
+  "schema": "openmind.readiness/1.0",
+  "generatedBy": "scripts/international-readiness.mjs",
+  "generatedAt": "2026-11-10T13:23:34.504Z",
+  "sources": {
+    "catalogue": "audit/lesson-catalogue.json",
+    "lessonAudit": "reports/lesson-quality/audit.json",
+    "dashboard": "reports/lesson-quality/dashboard.json",
+    "status": "audit/status.json",
+    "curriculum": "audit/curriculum-coverage.json"
+  },
+  "note": "State is scoped. automated_verified means the deterministic checks passed; it is not educator review, learner testing or production approval. A row may be draft while the lesson contract is automated_verified: coverage and review are different questions.",
+  "numbers": {
+    "concepts": 135,
+    "authored": 56,
+    "outlines": 79,
+    "machineChecked": 56,
+    "educatorReviewed": 0,
+    "learnerTested": 0,
+    "published": 0,
+    "criticalGaps": 0,
+    "highGaps": 79,
+    "reviewQueue": 56,
+    "languages": 15,
+    "teachingLanguagesReviewed": 0,
+    "teachingLanguagesMachine": 2,
+    "countriesWithNationalRoute": 70,
+    "nationalPathways": 71,
+    "specifications": 91,
+    "reviewedMappings": 0,
+    "verifiedPathways": 0,
+    "pathsWithNoSource": 18
+  },
+  "capabilities": [
+    {
+      "id": "content.authored-contract",
+      "scope": "Every authored lesson, against openmind.lesson/1.0",
+      "state": "automated_verified",
+      "claim": "56 authored lessons meet the deterministic contract; 56 are machine_checked.",
+      "evidence": [
+        "audit/lesson-catalogue.json",
+        "reports/lesson-quality/audit.json",
+        "reports/lesson-quality/dashboard.json"
+      ],
+      "tests": [
+        "npm run verify",
+        "npm run verify:lessons",
+        "node scripts/lesson-quality-dashboard.mjs"
+      ],
+      "knownDefects": [],
+      "dependencies": [
+        "lib/lesson-contract.ts",
+        "lib/lesson-verify.ts",
+        "lib/lesson-frameworks.ts"
+      ],
+      "nextAction": "Keep the contract gate in every content batch.",
+      "humanInputRequired": false
+    },
+    {
+      "id": "content.curriculum-coverage",
+      "scope": "All 135 concepts required by the current bank",
+      "state": "missing",
+      "claim": "56 authored / 135; 79 outlines remain; no critical stage-1 gap remains.",
+      "evidence": [
+        "audit/lesson-catalogue.json",
+        "reports/lesson-quality/queue.md"
+      ],
+      "tests": [
+        "node scripts/lesson-catalogue.mjs",
+        "node scripts/lesson-quality-audit.mjs"
+      ],
+      "knownDefects": [
+        "79 high-priority outlines remain"
+      ],
+      "dependencies": [
+        "lib/genome.ts",
+        "lib/lessons/authored/index.ts"
+      ],
+      "nextAction": "Author the next high-priority outline from reports/lesson-quality/queue.md; no critical stage-1 gap remains.",
+      "humanInputRequired": false
+    },
+    {
+      "id": "content.educator-review",
+      "scope": "Every authored lesson, against its exact version and content hash",
+      "state": "human_review_required",
+      "claim": "0 educator-reviewed; 56 authored lessons await a qualified human review.",
+      "evidence": [
+        "audit/lesson-catalogue.json",
+        "audit/validation/TEACHER_REVIEW_PACK.md"
+      ],
+      "tests": [
+        "npm run validation:pack",
+        "npm run validation:check"
+      ],
+      "knownDefects": [
+        "No genuine educator approval exists; fixture records are not human evidence."
+      ],
+      "dependencies": [
+        "human subject teacher",
+        "version-pinned review pack"
+      ],
+      "nextAction": "A qualified subject teacher reviews the exact versions and records the decision through the authenticated route.",
+      "humanInputRequired": true
+    },
+    {
+      "id": "content.learner-validation",
+      "scope": "Independent transfer and delayed retention on real learners",
+      "state": "externally_blocked",
+      "claim": "0 learner-tested lessons. The pilot protocol exists; no learner trial has been conducted.",
+      "evidence": [
+        "audit/validation/LEARNER_PILOT_PROTOCOL.md",
+        "reports/lesson-quality/EDUCATIONAL_VALIDATION.md"
+      ],
+      "tests": [],
+      "knownDefects": [
+        "No supervised learner evidence, no transfer result, no delayed-retention result."
+      ],
+      "dependencies": [
+        "supervised learner pilot",
+        "consent and safeguarding",
+        "teacher observation"
+      ],
+      "nextAction": "Run the stated pilot protocol with real, supervised learners; do not infer learning from browser completion.",
+      "humanInputRequired": true
+    },
+    {
+      "id": "validation.teacher-review-path",
+      "scope": "Authenticated educator review, from the browser form through persistence and restart",
+      "state": "browser_verified",
+      "claim": "The refactored API-client form passed the browser submit phase (38/0) and the after-restart persistence phase (18/0) against a scratch store.",
+      "evidence": [
+        "reports/lesson-quality/VALIDATION_INTEGRATION_REPORT.md",
+        "app/api/lesson-review/route.ts",
+        "components/lesson-review-form.tsx",
+        "lib/api/client.ts"
+      ],
+      "tests": [
+        "npm run validation:check",
+        "npm run validation:http",
+        "npm run validation:browser"
+      ],
+      "knownDefects": [],
+      "dependencies": [
+        "lib/server/lesson-review-store.ts",
+        "lib/server/authority.ts"
+      ],
+      "nextAction": "Keep this path in the regression set; it is a fixture, not human review evidence.",
+      "humanInputRequired": false
+    },
+    {
+      "id": "curriculum.mapping",
+      "scope": "Country → pathway → qualification → specification → subject",
+      "state": "draft",
+      "claim": "71 national pathways across 70 countries; 0 reviewed mappings; 18 pathways have no structural source on file.",
+      "evidence": [
+        "audit/curriculum-coverage.json",
+        "docs/research/UK_SECONDARY_BENCHMARK.md"
+      ],
+      "tests": [
+        "npm run curriculum-gate"
+      ],
+      "knownDefects": [
+        "No pathway has a human-reviewed concept mapping.",
+        "18 pathways have no source URL on file."
+      ],
+      "dependencies": [
+        "official curriculum documents",
+        "subject specialist review"
+      ],
+      "nextAction": "Choose one exact launch profile and verify its specification version, objectives, assessment and concept mapping before declaring support.",
+      "humanInputRequired": true
+    },
+    {
+      "id": "language.interface",
+      "scope": "The 15 interface dictionaries",
+      "state": "automated_verified",
+      "claim": "15 interface languages are checked by the full engine suite.",
+      "evidence": [
+        "lib/i18n.ts",
+        "audit/status.json"
+      ],
+      "tests": [
+        "npm run verify"
+      ],
+      "knownDefects": [],
+      "dependencies": [
+        "lib/i18n.ts"
+      ],
+      "nextAction": "Keep new UI strings authored in every dictionary; this is not a teaching-language claim.",
+      "humanInputRequired": false
+    },
+    {
+      "id": "language.teaching",
+      "scope": "Lesson prose, worked examples, questions, feedback and diagrams per language",
+      "state": "draft",
+      "claim": "0 human-reviewed teaching languages; 2 machine-translated and explicitly unreviewed.",
+      "evidence": [
+        "audit/lesson-catalogue.json",
+        "reports/lesson-quality/EDUCATIONAL_VALIDATION.md"
+      ],
+      "tests": [
+        "node scripts/lesson-catalogue.mjs"
+      ],
+      "knownDefects": [
+        "No native-speaking teacher has reviewed a translated lesson."
+      ],
+      "dependencies": [
+        "native-speaking subject teacher",
+        "translation workflow"
+      ],
+      "nextAction": "Translate one reviewed lesson into one launch language, then have a native-speaking teacher review it.",
+      "humanInputRequired": true
+    },
+    {
+      "id": "assessment.response-formats",
+      "scope": "Authoring → rendering → input → validation → server marking → feedback → evidence → next step",
+      "state": "implemented_unverified",
+      "claim": "Multiple-choice, numeric, expression and several structured formats exist and are covered by the engine suite; a per-launch-profile format matrix has not been agreed.",
+      "evidence": [
+        "lib/answer.ts",
+        "lib/structured-items.ts",
+        "app/api/progress/route.ts"
+      ],
+      "tests": [
+        "npm run verify",
+        "npm run e2e"
+      ],
+      "knownDefects": [
+        "The required format set is not yet derived from a declared launch curriculum."
+      ],
+      "dependencies": [
+        "launch profile",
+        "assessment objectives"
+      ],
+      "nextAction": "Declare the required response formats for the first launch profile, then verify each through the full marking path.",
+      "humanInputRequired": false
+    },
+    {
+      "id": "classroom.teacher-learner",
+      "scope": "Teacher sign-in, classes, assignments, learner work and teacher review across sessions and devices",
+      "state": "implemented_unverified",
+      "claim": "The classroom routes and browser harnesses exist; this checkpoint has not executed a fresh two-device session.",
+      "evidence": [
+        "app/api/classes/route.ts",
+        "app/api/assignments/route.ts",
+        "scripts/verify-classroom2.mjs"
+      ],
+      "tests": [
+        "npm run verify:classroom2",
+        "npm run verify:assignment-browser",
+        "npm run verify:assignment-lifecycle"
+      ],
+      "knownDefects": [
+        "Fresh browser evidence is outstanding at this checkpoint."
+      ],
+      "dependencies": [
+        "teacher account",
+        "scratch class roster"
+      ],
+      "nextAction": "Run the two-device and assignment browser walks against a scratch store.",
+      "humanInputRequired": false
+    },
+    {
+      "id": "accessibility.automated",
+      "scope": "Structural WCAG checks, keyboard paths, reflow and rendered maths",
+      "state": "implemented_unverified",
+      "claim": "A structural audit previously passed 96 assertions; it predates the physics-energy lesson and the review-form transport change.",
+      "evidence": [
+        "reports/lesson-quality/EDUCATIONAL_VALIDATION.md",
+        "scripts/a11y-audit.mjs"
+      ],
+      "tests": [
+        "npm run verify:a11y"
+      ],
+      "knownDefects": [
+        "Re-run required after the new lesson.",
+        "A structural scan is not a screen-reader session or a conformance claim."
+      ],
+      "dependencies": [
+        "running app"
+      ],
+      "nextAction": "Re-run the accessibility audit and manually test with a screen reader.",
+      "humanInputRequired": true
+    },
+    {
+      "id": "operations.production",
+      "scope": "Production build, startup, assets and durable-store behaviour",
+      "state": "implemented_unverified",
+      "claim": "The fail-closed durable-store design and deployment documentation exist; this checkpoint has not rebuilt or restarted the production server after the latest content change.",
+      "evidence": [
+        "docs/DEPLOYMENT.md",
+        "README.md",
+        "scripts/production-check.mjs"
+      ],
+      "tests": [
+        "npm run build",
+        "npm run verify:build",
+        "npm run production-check"
+      ],
+      "knownDefects": [
+        "Production-check has not been run at this checkpoint.",
+        "The target deployment's durable storage is not declared or verified."
+      ],
+      "dependencies": [
+        "OpenMind data directory",
+        "production host"
+      ],
+      "nextAction": "Build, start with a declared durable store, and verify a learner write survives a restart.",
+      "humanInputRequired": false
+    },
+    {
+      "id": "human.assistive-technology",
+      "scope": "Actual screen-reader, switch, low-vision and motor access",
+      "state": "human_review_required",
+      "claim": "No assistive-technology session has been performed.",
+      "evidence": [
+        "reports/lesson-quality/ASSISTIVE_TECHNOLOGY.md"
+      ],
+      "tests": [],
+      "knownDefects": [
+        "Screen-reader announcement of mathematical notation is unmeasured."
+      ],
+      "dependencies": [
+        "assistive-technology user",
+        "supervised test protocol"
+      ],
+      "nextAction": "Run the recorded manual protocol with a real assistive-technology user.",
+      "humanInputRequired": true
+    },
+    {
+      "id": "human.jurisdiction-review",
+      "scope": "Privacy, safeguarding and legal requirements per deployment jurisdiction",
+      "state": "human_review_required",
+      "claim": "The code has security and privacy controls, but no qualified jurisdiction-specific legal review is recorded.",
+      "evidence": [
+        "reports/openmind-deployment-readiness/PRIVACY_SAFEGUARDING_AND_OPERATIONS.md"
+      ],
+      "tests": [],
+      "knownDefects": [
+        "No legal compliance claim is made."
+      ],
+      "dependencies": [
+        "qualified local reviewer"
+      ],
+      "nextAction": "Document the deployment jurisdiction and obtain qualified review before claiming compliance.",
+      "humanInputRequired": true
+    }
+  ],
+  "matrix": [
+    {
+      "id": "af-national",
+      "country": "AF",
+      "countryName": "Afghanistan",
+      "curriculum": "Afghanistan · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "af-baccalaureate"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ar-national",
+      "country": "AR",
+      "countryName": "Argentina",
+      "curriculum": "Argentina · Secundaria",
+      "qualifications": [],
+      "specificationIds": [
+        "ar-secundaria"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "au-national",
+      "country": "AU",
+      "countryName": "Australia",
+      "curriculum": "Australia · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "au-acara"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "bd-national",
+      "country": "BD",
+      "countryName": "Bangladesh",
+      "curriculum": "Bangladesh · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "bd-ssc"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "bf-national",
+      "country": "BF",
+      "countryName": "Burkina Faso",
+      "curriculum": "Burkina Faso · Collège / Lycée",
+      "qualifications": [],
+      "specificationIds": [
+        "bf-bac"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "bo-national",
+      "country": "BO",
+      "countryName": "Bolivia",
+      "curriculum": "Bolivia · Secundaria",
+      "qualifications": [],
+      "specificationIds": [
+        "bo-bachillerato"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "br-national",
+      "country": "BR",
+      "countryName": "Brazil",
+      "curriculum": "Brazil · Fundamental/Médio",
+      "qualifications": [],
+      "specificationIds": [
+        "br-enem"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ca-national",
+      "country": "CA",
+      "countryName": "Canada",
+      "curriculum": "Canada · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "ca-provincial"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ci-national",
+      "country": "CI",
+      "countryName": "Côte d'Ivoire",
+      "curriculum": "Côte d'Ivoire · Collège / Lycée",
+      "qualifications": [],
+      "specificationIds": [
+        "ci-bac"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "cm-anglophone-general-secondary",
+      "country": "CM",
+      "countryName": "Cameroon",
+      "curriculum": "Cameroon · Anglophone system (GCE)",
+      "qualifications": [],
+      "specificationIds": [
+        "cm-gce-o",
+        "cm-gce-a"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "cm-francophone-general-secondary",
+      "country": "CM",
+      "countryName": "Cameroon",
+      "curriculum": "Cameroun · système francophone (BEPC · Probatoire · Baccalauréat)",
+      "qualifications": [],
+      "specificationIds": [
+        "cm-bepc",
+        "cm-probatoire",
+        "cm-bac"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "cn-national",
+      "country": "CN",
+      "countryName": "China",
+      "curriculum": "China · Junior/Senior High",
+      "qualifications": [],
+      "specificationIds": [
+        "cn-gaokao"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "co-national",
+      "country": "CO",
+      "countryName": "Colombia",
+      "curriculum": "Colombia · Secundaria / Media",
+      "qualifications": [],
+      "specificationIds": [
+        "co-saber-11"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "de-national",
+      "country": "DE",
+      "countryName": "Germany",
+      "curriculum": "Deutschland · Sekundarstufe",
+      "qualifications": [],
+      "specificationIds": [
+        "de-msa",
+        "de-abi"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "do-national",
+      "country": "DO",
+      "countryName": "Dominican Republic",
+      "curriculum": "República Dominicana · Secundaria",
+      "qualifications": [],
+      "specificationIds": [
+        "do-bachillerato"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ec-national",
+      "country": "EC",
+      "countryName": "Ecuador",
+      "curriculum": "Ecuador · EGB / Bachillerato",
+      "qualifications": [],
+      "specificationIds": [
+        "ec-bachillerato"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "eg-national",
+      "country": "EG",
+      "countryName": "Egypt",
+      "curriculum": "Egypt · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "eg-thanaweya"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "es-national",
+      "country": "ES",
+      "countryName": "Spain",
+      "curriculum": "España · ESO / Bachillerato",
+      "qualifications": [],
+      "specificationIds": [
+        "es-eso",
+        "es-bachillerato"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "et-national",
+      "country": "ET",
+      "countryName": "Ethiopia",
+      "curriculum": "Ethiopia · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "et-esslce"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "fr-national",
+      "country": "FR",
+      "countryName": "France",
+      "curriculum": "France · Collège / Lycée",
+      "qualifications": [],
+      "specificationIds": [
+        "fr-college",
+        "fr-bac"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "gb-national",
+      "country": "GB",
+      "countryName": "United Kingdom",
+      "curriculum": "United Kingdom · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "uk-gcse",
+        "uk-alevel"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "gh-national",
+      "country": "GH",
+      "countryName": "Ghana",
+      "curriculum": "Ghana · JHS/SHS",
+      "qualifications": [],
+      "specificationIds": [
+        "gh-wassce"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "gt-national",
+      "country": "GT",
+      "countryName": "Guatemala",
+      "curriculum": "Guatemala · Básico / Diversificado",
+      "qualifications": [],
+      "specificationIds": [
+        "gt-diversificado"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 2,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "hn-national",
+      "country": "HN",
+      "countryName": "Honduras",
+      "curriculum": "Honduras · Secundaria",
+      "qualifications": [],
+      "specificationIds": [
+        "hn-bachillerato"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ht-national",
+      "country": "HT",
+      "countryName": "Haiti",
+      "curriculum": "Haïti · Collège / Lycée",
+      "qualifications": [],
+      "specificationIds": [
+        "ht-bac"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "id-national",
+      "country": "ID",
+      "countryName": "Indonesia",
+      "curriculum": "Indonesia · SMP/SMA",
+      "qualifications": [],
+      "specificationIds": [
+        "id-merdeka"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ie-national",
+      "country": "IE",
+      "countryName": "Ireland",
+      "curriculum": "Ireland · Junior/Senior Cycle",
+      "qualifications": [],
+      "specificationIds": [
+        "ie-junior"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "in-national",
+      "country": "IN",
+      "countryName": "India",
+      "curriculum": "India · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "in-cbse",
+        "in-icse"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "int-international",
+      "country": "INT",
+      "countryName": "INT",
+      "curriculum": "int-international",
+      "qualifications": [],
+      "specificationIds": [
+        "int-igcse",
+        "int-ib"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "iq-national",
+      "country": "IQ",
+      "countryName": "Iraq",
+      "curriculum": "Iraq · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "iq-preparatory"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ir-national",
+      "country": "IR",
+      "countryName": "Iran",
+      "curriculum": "Iran · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "ir-konkur"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "it-national",
+      "country": "IT",
+      "countryName": "Italy",
+      "curriculum": "Italia · Media / Superiore",
+      "qualifications": [],
+      "specificationIds": [
+        "it-media",
+        "it-maturita"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "jo-national",
+      "country": "JO",
+      "countryName": "Jordan",
+      "curriculum": "Jordan · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "jo-tawjihi"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "jp-national",
+      "country": "JP",
+      "countryName": "Japan",
+      "curriculum": "Japan · Junior/Senior High",
+      "qualifications": [],
+      "specificationIds": [
+        "jp-nyushi"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ke-national",
+      "country": "KE",
+      "countryName": "Kenya",
+      "curriculum": "Kenya · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "ke-kcse"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "kh-national",
+      "country": "KH",
+      "countryName": "Cambodia",
+      "curriculum": "Cambodia · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "kh-baccalaureate"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "kr-national",
+      "country": "KR",
+      "countryName": "South Korea",
+      "curriculum": "South Korea · Middle/High",
+      "qualifications": [],
+      "specificationIds": [
+        "kr-csat"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "kz-national",
+      "country": "KZ",
+      "countryName": "Kazakhstan",
+      "curriculum": "Kazakhstan · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "kz-unt"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "la-national",
+      "country": "LA",
+      "countryName": "Laos",
+      "curriculum": "Laos · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "la-upper-secondary"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "lb-national",
+      "country": "LB",
+      "countryName": "Lebanon",
+      "curriculum": "Lebanon · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "lb-baccalaureate"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "lk-national",
+      "country": "LK",
+      "countryName": "Sri Lanka",
+      "curriculum": "Sri Lanka · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "lk-o-level",
+        "lk-a-level"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ma-national",
+      "country": "MA",
+      "countryName": "Morocco",
+      "curriculum": "Maroc · Collège / Lycée",
+      "qualifications": [],
+      "specificationIds": [
+        "ma-college",
+        "ma-bac"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ml-national",
+      "country": "ML",
+      "countryName": "Mali",
+      "curriculum": "Mali · Collège / Lycée",
+      "qualifications": [],
+      "specificationIds": [
+        "ml-bac"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "mm-national",
+      "country": "MM",
+      "countryName": "Myanmar",
+      "curriculum": "Myanmar · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "mm-matriculation"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "mn-national",
+      "country": "MN",
+      "countryName": "Mongolia",
+      "curriculum": "Mongolia · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "mn-eesh"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "mw-national",
+      "country": "MW",
+      "countryName": "Malawi",
+      "curriculum": "Malawi · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "mw-msce"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "mx-national",
+      "country": "MX",
+      "countryName": "Mexico",
+      "curriculum": "Mexico · Secundaria",
+      "qualifications": [],
+      "specificationIds": [
+        "mx-sep"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ne-national",
+      "country": "NE",
+      "countryName": "Niger",
+      "curriculum": "Niger · Collège / Lycée",
+      "qualifications": [],
+      "specificationIds": [
+        "ne-bac"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ng-national",
+      "country": "NG",
+      "countryName": "Nigeria",
+      "curriculum": "Nigeria · JSS/SSS",
+      "qualifications": [],
+      "specificationIds": [
+        "ng-waec"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ni-national",
+      "country": "NI",
+      "countryName": "Nicaragua",
+      "curriculum": "Nicaragua · Secundaria",
+      "qualifications": [],
+      "specificationIds": [
+        "ni-bachillerato"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "np-national",
+      "country": "NP",
+      "countryName": "Nepal",
+      "curriculum": "Nepal · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "np-see",
+        "np-neb"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "pe-national",
+      "country": "PE",
+      "countryName": "Peru",
+      "curriculum": "Perú · Secundaria",
+      "qualifications": [],
+      "specificationIds": [
+        "pe-secundaria"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ph-national",
+      "country": "PH",
+      "countryName": "Philippines",
+      "curriculum": "Philippines · JHS/SHS",
+      "qualifications": [],
+      "specificationIds": [
+        "ph-deped"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "pk-national",
+      "country": "PK",
+      "countryName": "Pakistan",
+      "curriculum": "Pakistan · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "pk-matric"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "pl-national",
+      "country": "PL",
+      "countryName": "Poland",
+      "curriculum": "Polska · Szkoła podstawowa / Liceum",
+      "qualifications": [],
+      "specificationIds": [
+        "pl-osmoklasisty",
+        "pl-matura"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "rw-national",
+      "country": "RW",
+      "countryName": "Rwanda",
+      "curriculum": "Rwanda · Ordinary/Advanced Level",
+      "qualifications": [],
+      "specificationIds": [
+        "rw-o-level",
+        "rw-a-level"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "sd-national",
+      "country": "SD",
+      "countryName": "Sudan",
+      "curriculum": "Sudan · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "sd-school-certificate"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "sn-national",
+      "country": "SN",
+      "countryName": "Senegal",
+      "curriculum": "Sénégal · Collège / Lycée",
+      "qualifications": [],
+      "specificationIds": [
+        "sn-bac"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "so-national",
+      "country": "SO",
+      "countryName": "Somalia",
+      "curriculum": "Somalia · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "so-form-4"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "sv-national",
+      "country": "SV",
+      "countryName": "El Salvador",
+      "curriculum": "El Salvador · Secundaria",
+      "qualifications": [],
+      "specificationIds": [
+        "sv-bachillerato"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "sy-national",
+      "country": "SY",
+      "countryName": "Syria",
+      "curriculum": "Syria · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "sy-baccalaureate"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "tr-national",
+      "country": "TR",
+      "countryName": "Turkey",
+      "curriculum": "Türkiye · Ortaokul / Lise",
+      "qualifications": [],
+      "specificationIds": [
+        "tr-yks"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "tz-national",
+      "country": "TZ",
+      "countryName": "Tanzania",
+      "curriculum": "Tanzania · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "tz-csee"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ua-national",
+      "country": "UA",
+      "countryName": "Ukraine",
+      "curriculum": "Україна · Гімназія / Ліцей",
+      "qualifications": [],
+      "specificationIds": [
+        "ua-nmt"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ug-national",
+      "country": "UG",
+      "countryName": "Uganda",
+      "curriculum": "Uganda · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "ug-uce"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "us-national",
+      "country": "US",
+      "countryName": "United States",
+      "curriculum": "United States · Middle/High School",
+      "qualifications": [],
+      "specificationIds": [
+        "us-core",
+        "us-sat",
+        "us-ap"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "uz-national",
+      "country": "UZ",
+      "countryName": "Uzbekistan",
+      "curriculum": "Uzbekistan · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "uz-entrance"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "vn-national",
+      "country": "VN",
+      "countryName": "Vietnam",
+      "curriculum": "Việt Nam · THCS / THPT",
+      "qualifications": [],
+      "specificationIds": [
+        "vn-thpt"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "int-independent",
+      "country": "XX",
+      "countryName": "Other country / not listed",
+      "curriculum": "int-independent",
+      "qualifications": [],
+      "specificationIds": [
+        "any-independent"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "ye-national",
+      "country": "YE",
+      "countryName": "Yemen",
+      "curriculum": "Yemen · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "ye-general-secondary"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "za-national",
+      "country": "ZA",
+      "countryName": "South Africa",
+      "curriculum": "South Africa · Senior/FET",
+      "qualifications": [],
+      "specificationIds": [
+        "za-nsc"
+      ],
+      "subjects": [
+        "biology",
+        "chemistry",
+        "computing",
+        "maths",
+        "physics"
+      ],
+      "languages": [],
+      "recordReview": "mapped",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 0,
+      "state": "not_assessed",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "zm-national",
+      "country": "ZM",
+      "countryName": "Zambia",
+      "curriculum": "Zambia · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "zm-school-certificate"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    },
+    {
+      "id": "zw-national",
+      "country": "ZW",
+      "countryName": "Zimbabwe",
+      "curriculum": "Zimbabwe · Secondary",
+      "qualifications": [],
+      "specificationIds": [
+        "zw-o-level",
+        "zw-a-level"
+      ],
+      "subjects": [],
+      "languages": [],
+      "recordReview": "researched",
+      "mappingReview": "mapped",
+      "sourcesOnFile": 1,
+      "state": "draft",
+      "nextAction": "Collect the official specification, review the concept mapping, then declare subject and language coverage."
+    }
+  ],
+  "backlog": [
+    {
+      "priority": 1,
+      "id": "validation.teacher-review-recheck",
+      "title": "Re-verify the teacher-review browser path after the transport change",
+      "state": "browser_verified",
+      "why": "The form now uses the shared API client; the submit phase passed 38/0 and the after-restart phase 18/0 against a fresh scratch store.",
+      "nextAction": "Keep both phases in the regression set; the fixture record is not human evidence.",
+      "humanRequired": false
+    },
+    {
+      "priority": 2,
+      "id": "content.physics.energy-conservation",
+      "title": "Browser-verify the energy-conservation lesson",
+      "state": "browser_verified",
+      "why": "The authored lesson renders through /learn/physics/energy-conservation, marks a numeric assessment through the server, and fits 320 px; the browser run passed 11/0.",
+      "nextAction": "Keep the route in the browser regression set; the signed-in account is a fixture, not learner evidence.",
+      "humanRequired": false
+    },
+    {
+      "priority": 3,
+      "id": "content.physics.motion-graphs",
+      "title": "Author and browser-verify the motion-graphs lesson",
+      "state": "browser_verified",
+      "why": "This closed one of the two critical stage-1 physics gaps; the full contract, a server-marked numeric answer and 320-px reflow passed 10/0 in the browser.",
+      "nextAction": "Keep the route in the browser regression set and retain the lesson's draft review status.",
+      "humanRequired": false
+    },
+    {
+      "priority": 4,
+      "id": "content.physics.waves-basics",
+      "title": "Author and browser-verify the waves-basics lesson",
+      "state": "browser_verified",
+      "why": "This closed the last critical stage-1 physics gap; the full contract, a server-marked numeric answer and 320-px reflow passed 10/0 in the browser.",
+      "nextAction": "Keep the route in the browser regression set and retain the lesson's draft review status.",
+      "humanRequired": false
+    },
+    {
+      "priority": 5,
+      "id": "content.next-high-priority-outline",
+      "title": "Author the next high-priority lesson outline",
+      "state": "missing",
+      "why": "There are no critical stage-1 gaps left, but 83 high-priority outlines remain; the queue is now the content backlog.",
+      "nextAction": "Take the first item in reports/lesson-quality/queue.md and author it to openmind.lesson/1.0, then regenerate and run the lesson gates.",
+      "humanRequired": false
+    },
+    {
+      "priority": 6,
+      "id": "readiness.launch-profile",
+      "title": "Declare one exact international launch profile",
+      "state": "not_assessed",
+      "why": "The registry has 71 national pathways and 0 reviewed mappings; no country + curriculum + qualification + version + subject + level + language combination is honestly release-ready.",
+      "nextAction": "Pick one profile, cite its official specification, map its objectives to concepts, and record what is covered and what is not.",
+      "humanRequired": true
+    },
+    {
+      "priority": 7,
+      "id": "language.teaching",
+      "title": "Create the first reviewed teaching translation",
+      "state": "draft",
+      "why": "15 interface languages are not a multilingual teaching claim; 0 teaching languages are reviewed and 2 are machine-only.",
+      "nextAction": "Translate one lesson and have a native-speaking subject teacher review the exact version.",
+      "humanRequired": true
+    },
+    {
+      "priority": 8,
+      "id": "accessibility.manual",
+      "title": "Run the assistive-technology protocol",
+      "state": "human_review_required",
+      "why": "Automated structure checks cannot establish screen-reader, switch or motor access.",
+      "nextAction": "Use a real screen reader and a real assistive-technology user; record what failed.",
+      "humanRequired": true
+    },
+    {
+      "priority": 9,
+      "id": "operations.production-check",
+      "title": "Re-run the production build and restart drill",
+      "state": "implemented_unverified",
+      "why": "New content and an API-client change must not be assumed safe for production because the engine suite is green.",
+      "nextAction": "Run the production build, asset verification, and a durable-store restart with a scratch target.",
+      "humanRequired": false
+    },
+    {
+      "priority": 10,
+      "id": "content.educator-review",
+      "title": "Obtain genuine educator reviews",
+      "state": "human_review_required",
+      "why": "0 of 56 authored lessons has a human subject review.",
+      "nextAction": "Send the version-pinned pack to a qualified teacher and record the real decision.",
+      "humanRequired": true
+    },
+    {
+      "priority": 11,
+      "id": "content.learner-validation",
+      "title": "Run the supervised learner pilot",
+      "state": "externally_blocked",
+      "why": "No learner transfer or delayed-retention evidence exists.",
+      "nextAction": "Run the stated protocol with consent and safeguarding; do not claim effectiveness from completion.",
+      "humanRequired": true
+    }
+  ],
+  "externalBlockers": [
+    {
+      "id": "educator-review",
+      "state": "human_review_required",
+      "need": "Qualified subject teachers",
+      "why": "A person, not a script, must judge subject accuracy, curriculum accuracy, teaching quality and assessment validity.",
+      "ready": "Version- and hash-pinned review packs, an authenticated intake route, persistence and an improvement queue.",
+      "exactHumanStep": "A teacher reads the pack for one exact version and records an approve or changes-requested decision through /lesson-review/<concept>."
+    },
+    {
+      "id": "learner-pilot",
+      "state": "externally_blocked",
+      "need": "Supervised learners and a teacher",
+      "why": "Independent transfer and delayed retention cannot be established from completion, satisfaction or a synthetic browser learner.",
+      "ready": "A learner pilot protocol with baseline, post-assessment, unfamiliar transfer, delayed retrieval and reporting limits.",
+      "exactHumanStep": "Run the protocol under consent and safeguarding, then record the actual results without promotion by completion."
+    },
+    {
+      "id": "native-language-review",
+      "state": "human_review_required",
+      "need": "Native-speaking subject teachers",
+      "why": "Machine translation is not native-speaker or educator approval.",
+      "ready": "Two machine-translated lessons, explicitly labelled unreviewed; 15 interface dictionaries.",
+      "exactHumanStep": "Review one translated lesson against the English source and record language, scope and findings."
+    },
+    {
+      "id": "assistive-technology",
+      "state": "human_review_required",
+      "need": "Assistive-technology users",
+      "why": "A structural scan cannot establish screen-reader announcement, switch access or motor usability.",
+      "ready": "A recorded manual protocol and automated structural checks.",
+      "exactHumanStep": "Run a real screen-reader and keyboard session, then record the failures."
+    },
+    {
+      "id": "jurisdiction-legal-review",
+      "state": "human_review_required",
+      "need": "A qualified local reviewer",
+      "why": "Privacy, safeguarding and legal compliance depend on the deployment jurisdiction and cannot be inferred from code.",
+      "ready": "Security, data-minimisation and deletion controls, plus a documented deployment posture.",
+      "exactHumanStep": "Name the target jurisdiction, obtain qualified review, and record its scope and findings."
+    }
+  ]
+}

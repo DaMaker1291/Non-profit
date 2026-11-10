@@ -1,5 +1,6 @@
 import type { AuthoredLesson } from "@/lib/lesson-contract";
 import { AssessmentBlock } from "./authored-assessment";
+import { LessonFigure } from "./lesson-figure";
 
 // THE AUTHORED LESSON, RENDERED.
 //
@@ -76,6 +77,9 @@ export function AuthoredLessonReading({
               <p className="reading" style={{ marginBottom: 8 }}>{block.body}</p>
               {block.notation && (
                 <pre className="code-block small" style={{ whiteSpace: "pre-wrap", margin: 0 }}>{block.notation}</pre>
+              )}
+              {block.figure && (
+                <LessonFigure spec={block.figure.spec} caption={block.figure.caption} />
               )}
               {block.caption && (
                 <figcaption className="small muted reading" style={{ marginTop: 8 }}>{block.caption}</figcaption>
@@ -191,7 +195,7 @@ export function AuthoredLessonReading({
           {" "}
           {lesson.provenance
             .filter((entry) => entry.basis !== "openmind-authored")
-            .map((entry) => `Scope cited from ${entry.attribution}. No text reproduced.`)
+            .map((entry) => `${entry.attribution} No text reproduced.`)
             .join(" ")}
         </p>
       </section>

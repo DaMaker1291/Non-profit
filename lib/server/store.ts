@@ -7,6 +7,11 @@ import { createHash, randomUUID, randomBytes, randomInt, scryptSync } from "node
 // and are re-exported here. A second copy would be a default that drifts.
 import type { Account, AccountRole } from "../types";
 import type { ContentReviewRecord } from "../content-platform/types";
+import type {
+  EducatorReviewRecord,
+  ImprovementTask,
+  LessonValidationLedger,
+} from "../validation/types";
 // The lookup key is DERIVED from the account id, so the store and the printed
 // grant cannot disagree about which account a teacher's code names.
 import { resetKeyFor } from "../recovery-code";
@@ -526,6 +531,85 @@ export async function appendContentReview(record: ContentReviewRecord): Promise<
     const records = await readJson<ContentReviewRecord[]>(CONTENT_REVIEWS_FILE, []);
     records.push(record);
     await writeJson(CONTENT_REVIEWS_FILE, records, "learner-record");
+  });
+}
+
+// ── Authored-lesson reviews and improvement tasks ───────────────────────────
+// ONE ledger means a review and the tasks derived from it land in the same
+// atomic write. A review nobody can act on is the failure this shape prevents.
+const LESSON_VALIDATION_FILE = "lesson-validation.json";
+
+function emptyLessonValidation(): LessonValidationLedger {
+  return { version: 1, reviews: [], tasks: [] };
+}
+
+export async function listLessonReviews(): Promise<EducatorReviewRecord[]> {
+  const ledger = await readJson<LessonValidationLedger>(
+    LESSON_VALIDATION_FILE,
+    emptyLessonValidation(),
+  );
+  return [...(ledger.reviews ?? [])].sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+}
+
+export async function listLessonImprovementTasks(): Promise<ImprovementTask[]> {
+  const ledger = await readJson<LessonValidationLedger>(
+    LESSON_VALIDATION_FILE,
+    emptyLessonValidation(),
+  );
+  return [...(ledger.tasks ?? [])].sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+}
+
+export async function appendLessonReview(
+  record: EducatorReviewRecord,
+  tasks: readonly ImprovementTask[],
+): Promise<void> {
+  await withLock(LESSON_VALIDATION_FILE, async () => {
+    const ledger = await readJson<LessonValidationLedger>(
+      LESSON_VALIDATION_FILE,
+      emptyLessonValidation(),
+    );
+    if (ledger.reviews.some((r) => r.id === record.id)) {
+      throw new Error(`lesson review ${record.id} already exists`);
+    }
+    const knownTasks = new Set(ledger.tasks.map((t) => t.id));
+    const freshTasks = tasks.filter((task) => !knownTasks.has(task.id));
+    await writeJson(
+      LESSON_VALIDATION_FILE,
+      {
+        version: 1,
+        reviews: [...ledger.reviews, record],
+        tasks: [...ledger.tasks, ...freshTasks],
+      } satisfies LessonValidationLedger,
+      "learner-record",
+    );
+  });
+}
+
+export async function updateLessonImprovementTask(
+  id: string,
+  patch: { status: ImprovementTask["status"]; resolution?: ImprovementTask["resolution"] },
+): Promise<ImprovementTask | null> {
+  return withLock(LESSON_VALIDATION_FILE, async () => {
+    const ledger = await readJson<LessonValidationLedger>(
+      LESSON_VALIDATION_FILE,
+      emptyLessonValidation(),
+    );
+    const index = ledger.tasks.findIndex((task) => task.id === id);
+    if (index < 0) return null;
+    const next: ImprovementTask = {
+      ...ledger.tasks[index],
+      status: patch.status,
+      resolution: patch.resolution ?? ledger.tasks[index].resolution,
+      updatedAt: Date.now(),
+    };
+    const tasks = ledger.tasks.slice();
+    tasks[index] = next;
+    await writeJson(
+      LESSON_VALIDATION_FILE,
+      { version: 1, reviews: ledger.reviews, tasks } satisfies LessonValidationLedger,
+      "learner-record",
+    );
+    return next;
   });
 }
 

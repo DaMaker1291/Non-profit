@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import CodeLab from "@/components/code-lab";
 import * as api from "@/lib/api/client";
 import { isGradable } from "@/lib/lesson-assessment";
 import type { AuthoredLesson, AssessmentItem } from "@/lib/lesson-contract";
@@ -74,6 +75,7 @@ function AssessmentRow({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const gradable = isGradable(item);
+  const codeLab = item.kind === "code" ? item.code : undefined;
 
   async function submit(): Promise<void> {
     if (!learnerId || answer.trim() === "") return;
@@ -103,6 +105,17 @@ function AssessmentRow({
         <strong>{index + 1}.</strong>{" "}
         <span style={{ whiteSpace: "pre-wrap" }}>{item.prompt}</span>
       </p>
+
+      {codeLab && (
+        <div style={{ marginTop: 10 }}>
+          <CodeLab
+            starterCode={codeLab.starterCode}
+            timeoutMs={codeLab.timeoutMs ?? 12000}
+            tests={[...codeLab.tests]}
+            prompt={item.prompt}
+          />
+        </div>
+      )}
 
       {gradable ? (
         <div style={{ marginTop: 8 }}>
@@ -165,24 +178,40 @@ function AssessmentRow({
           )}
         </div>
       ) : (
-        <details className="authored-answer" style={{ marginTop: 8 }}>
-          <summary className="reading small">Model answer and marking</summary>
-          <p className="reading small muted" style={{ marginTop: 6 }}>
-            This one cannot be marked automatically — write it first, then judge it against the
-            criteria.
-          </p>
-          <p
-            className="reading lesson-text small"
-            style={{ marginTop: 6, whiteSpace: "pre-wrap" }}
-          >
-            {item.modelAnswer}
-          </p>
-          <ul className="reading small muted" style={{ marginTop: 6 }}>
-            {item.marking.map((criterion) => (
-              <li key={criterion}>{criterion}</li>
-            ))}
-          </ul>
-        </details>
+        <>
+          {item.scored === false && (
+            <p className="reading small" data-unscored-reflection="1" style={{ marginTop: 8 }}>
+              <b>Unscored reflection.</b> This does not count towards mastery. Write your reasoning,
+              then judge it against the criteria below; no mark is recorded and no model score is
+              invented from your words.
+            </p>
+          )}
+          <details className="authored-answer" style={{ marginTop: 8 }}>
+            <summary className="reading small">Model answer and marking</summary>
+            {codeLab && (
+            <p className="reading small muted" style={{ marginTop: 6 }}>
+              The checks run in the sandboxed browser lab. Passing them is useful practice
+              feedback, not a recorded mark; use the model answer and criteria below to judge
+              the explanation your program cannot show.
+            </p>
+          )}
+            <p className="reading small muted" style={{ marginTop: 6 }}>
+              This one cannot be marked automatically — write it first, then judge it against the
+              criteria.
+            </p>
+            <p
+              className="reading lesson-text small"
+              style={{ marginTop: 6, whiteSpace: "pre-wrap" }}
+            >
+              {item.modelAnswer}
+            </p>
+            <ul className="reading small muted" style={{ marginTop: 6 }}>
+              {item.marking.map((criterion) => (
+                <li key={criterion}>{criterion}</li>
+              ))}
+            </ul>
+          </details>
+        </>
       )}
     </div>
   );

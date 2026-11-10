@@ -4,32 +4,11 @@ Generated from `reports/lesson-quality/audit.json`. Work in batches; do not mark
 
 `critical` and `high` are queue positions for concepts without an authored lesson; `review` means the authored lesson has the required structural parts, not that a teacher or learner has validated it.
 
-## Critical (17)
+## Critical (0)
 
-- [ ] `dictionaries` (computing, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `functions-code` (computing, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `lists-arrays` (computing, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `algebra-expressions` (maths, stage 1) — Upgrade the authored plan into openmind.lesson/1.0: add a prerequisite diagnostic, authored worked reasoning, assessment with marking criteria, a transfer task and spaced retrieval.
-- [ ] `angles-lines` (maths, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `area-perimeter` (maths, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `averages` (maths, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `coordinates` (maths, stage 1) — Upgrade the authored plan into openmind.lesson/1.0: add a prerequisite diagnostic, authored worked reasoning, assessment with marking criteria, a transfer task and spaced retrieval.
-- [ ] `data-charts` (maths, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `indices-intro` (maths, stage 1) — Upgrade the authored plan into openmind.lesson/1.0: add a prerequisite diagnostic, authored worked reasoning, assessment with marking criteria, a transfer task and spaced retrieval.
-- [ ] `probability-basics` (maths, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `proportion` (maths, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `ratio` (maths, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `sequences` (maths, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `energy-conservation` (physics, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `motion-graphs` (physics, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `waves-basics` (physics, stage 1) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 
-## High (83)
+## High (79)
 
-- [ ] `biodiversity` (biology, stage 3) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `circulation` (biology, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `ecosystems` (biology, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `evolution` (biology, stage 3) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 - [ ] `genetics` (biology, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 - [ ] `hormones` (biology, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 - [ ] `immune-health` (biology, stage 3) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
@@ -110,13 +89,17 @@ Generated from `reports/lesson-quality/audit.json`. Work in batches; do not mark
 - [ ] `thermal-physics` (physics, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 - [ ] `work-power` (physics, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 
-## Review (35)
+## Review (56)
 
+- [ ] `biodiversity` (biology, stage 3) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `breathing-gas` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `cells` (biology, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `circulation` (biology, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `diffusion` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `digestion` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `ecosystems` (biology, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `enzymes` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `evolution` (biology, stage 3) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `microscopy` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `photosynthesis` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `respiration` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
@@ -128,25 +111,42 @@ Generated from `reports/lesson-quality/audit.json`. Work in batches; do not mark
 - [ ] `algorithms-search` (computing, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `binary-data` (computing, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `conditionals` (computing, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `dictionaries` (computing, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `functions-code` (computing, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `lists-arrays` (computing, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `loops` (computing, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `variables` (computing, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `what-is-code` (computing, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `addition` (maths, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `algebra-expressions` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `angles-lines` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `area-perimeter` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `averages` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `coordinates` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `data-charts` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `decimals` (maths, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `division` (maths, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `fraction-ops` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `fractions` (maths, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `indices-intro` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `linear-equations` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `multiplication` (maths, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `negatives` (maths, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `order-ops` (maths, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `percentages` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `place-value` (maths, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `probability-basics` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `proportion` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `quadratics` (maths, stage 3) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `ratio` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `rounding` (maths, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `sequences` (maths, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `subtraction` (maths, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `electricity-circuits` (physics, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `energy-conservation` (physics, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `forces-basics` (physics, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `motion-graphs` (physics, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `waves-basics` (physics, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 
 ## Review pack
 

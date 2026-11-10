@@ -55,6 +55,10 @@ import type { AppendResult, EvidenceEvent } from "../evidence";
 import type { BuiltPaperAnswerKey } from "../papers";
 import type { PersonalPaper } from "../personal-paper";
 import type { ContentReviewRecord } from "../content-platform/types";
+import type {
+  EducatorReviewRecord,
+  ImprovementTask,
+} from "../validation/types";
 // TYPE-ONLY for the same reason as the rest: the erasure log's SHAPE is owned by
 // lib/server/erasures.ts — which is also the module a RESTORE reads a directory
 // with — and a value import here would drag `node:fs` into the port, which is the
@@ -361,6 +365,18 @@ export interface Storage {
   listContentReviews(): Promise<ContentReviewRecord[]>;
   appendContentReview(record: ContentReviewRecord): Promise<void>;
 
+  // ── Authored-lesson educator reviews and their improvement queue ─────────
+  // The review and the tasks derived from its findings are written together:
+  // a review that exists without its findings becoming tasks is a record a
+  // school cannot act on.
+  listLessonReviews(): Promise<EducatorReviewRecord[]>;
+  appendLessonReview(record: EducatorReviewRecord, tasks: readonly ImprovementTask[]): Promise<void>;
+  listLessonImprovementTasks(): Promise<ImprovementTask[]>;
+  updateLessonImprovementTask(
+    id: string,
+    patch: { status: ImprovementTask["status"]; resolution?: ImprovementTask["resolution"] },
+  ): Promise<ImprovementTask | null>;
+
   // ── Papers. `getStoredPaper` holds the ANSWER KEY, server-side only. ─────
   saveStoredPaper(key: BuiltPaperAnswerKey): Promise<void>;
   getStoredPaper(id: string): Promise<BuiltPaperAnswerKey | null>;
@@ -431,6 +447,10 @@ export const STORAGE_METHODS: readonly (keyof Storage)[] = [
   "readAllPacks",
   "listContentReviews",
   "appendContentReview",
+  "listLessonReviews",
+  "appendLessonReview",
+  "listLessonImprovementTasks",
+  "updateLessonImprovementTask",
   "saveStoredPaper",
   "getStoredPaper",
   "savePersonalPaper",

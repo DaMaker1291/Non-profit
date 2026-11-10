@@ -41,6 +41,10 @@ import { ANSWERS_PER_LEARNER } from "@/lib/server/rate-limit";
 // marked against criteria by a person, not scored by vocabulary.
 import { authoredLessonFor } from "@/lib/lessons/authored";
 import { gradeAuthoredAssessment } from "@/lib/lesson-assessment";
+// Structured lesson activities are marked from the same pure model the page
+// draws: a Venn selection, a region probability, or a completed tree. The client
+// supplies the response, never the key.
+import { gradeProbabilityActivity, probabilityActivityConcept } from "@/lib/probability-activities";
 import type { ProfileState, Question } from "@/lib/types";
 
 /** A choice index must be a real array index: anything else is a client bug,
@@ -94,6 +98,10 @@ interface PeerBody { action: "peer"; id: string; conceptId: string; strong: bool
 interface LessonCheckBody {
   action: "lessonCheck"; id: string; conceptId: string; itemId: string; answer: string; secret?: string;
 }
+interface ProbabilityActivityBody {
+  action: "probabilityActivity"; id: string; conceptId: string; activityId: string;
+  response: unknown; secret?: string;
+}
 interface HintBody { action: "hint"; id: string; conceptId: string; questionId: string; level: number; secret?: string }
 interface MicroBody { action: "micro"; id: string; conceptId: string; misconceptionId: string; questionId: string; choiceIndex: number; secret?: string }
 interface StarterBody { action: "starter"; id: string; conceptId: string; questionId: string; secret?: string }
@@ -139,7 +147,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 /** POST /api/progress — serve a practice question, or grade an answer. */
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const body = (await req.json()) as ServeBody | AnswerBody | HintBody | MicroBody | StarterBody | StarterPickBody | PeerBody | LessonCheckBody;
+    const body = (await req.json()) as ServeBody | AnswerBody | HintBody | MicroBody | StarterBody | StarterPickBody | PeerBody | LessonCheckBody | ProbabilityActivityBody;
     if (!body?.id) return NextResponse.json({ error: "bad request" }, { status: 400 });
 
     // ── BOUND THE WORK BEFORE IT RUNS ──────────────────────────────────────
@@ -731,6 +739,62 @@ export async function POST(req: Request): Promise<NextResponse> {
           return { error: "evidence_not_recorded" as const };
         }
         return { correct: graded, modelAnswer: item.modelAnswer, marking: item.marking };
+      });
+      if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+      const r = upd.result as { error?: string };
+      if (r.error) {
+        return NextResponse.json({ error: r.error }, { status: r.error === "evidence_not_recorded" ? 503 : 400 });
+      }
+      return NextResponse.json(upd.result);
+    }
+
+    // ── A STRUCTURED PROBABILITY ACTIVITY, MARKED SERVER-SIDE ──────────────
+    // The expected regions and tree values live in lib/probability-activities,
+    // not in the request. The submitted response is compared there, the attempt
+    // is reported per field, and the result enters the same evidence ledger as
+    // an authored lesson check. This is a graded attempt; an unscored
+    // reflection has no activity id and cannot arrive here.
+    if (body.action === "probabilityActivity") {
+      const { conceptId, activityId, response } = body;
+      if (
+        typeof conceptId !== "string" || !conceptId ||
+        typeof activityId !== "string" || !activityId ||
+        probabilityActivityConcept(activityId) !== conceptId
+      ) {
+        return NextResponse.json({ error: "bad request" }, { status: 400 });
+      }
+      const graded = gradeProbabilityActivity(activityId, response);
+      // Null is malformed input or an unknown activity, not a wrong answer.
+      // Recording it as a failed attempt would punish a keyboard slip as if it
+      // were a mathematical misconception.
+      if (graded === null) return NextResponse.json({ error: "bad request" }, { status: 400 });
+
+      const upd = await withLearnerState(body.id, async (ctx, state) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
+        const p = (state.progress[conceptId] ??= emptyProgress());
+        p.lessonCheck ??= { asked: 0, correct: 0 };
+        p.lessonCheck.asked += 1;
+        if (graded.correct) p.lessonCheck.correct += 1;
+        const event = answerEvidence({
+          learnerId: body.id,
+          at: Date.now(),
+          source: "practice",
+          subject: getConcept(conceptId)?.subject ?? null,
+          conceptId,
+          specificationId: state.profile.spec ?? null,
+          questionId: `activity:${conceptId}:${activityId}`,
+          correct: graded.correct,
+          chosen: -1,
+          mode: "independent",
+          hints: 0,
+          tags: [],
+        }) as EvidenceEvent;
+        try {
+          await commitAndProjectIn(ctx, state, [event]);
+        } catch {
+          return { error: "evidence_not_recorded" as const };
+        }
+        return graded;
       });
       if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
       const r = upd.result as { error?: string };

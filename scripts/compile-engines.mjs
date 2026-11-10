@@ -388,10 +388,19 @@ export const ENGINE_SOURCES = [
   // must judge the REAL lessons against the REAL standard — a gate that reads a
   // parallel copy of either cannot tell an authored lesson from a plan.
   "lib/lesson-contract.ts",
+  // The durable human-review contract. Compiled with the lessons because the
+  // catalogue and the validation pack must judge a review against the SAME
+  // content hash the intake route used; a second hash would let an edited
+  // lesson inherit an old approval.
+  "lib/validation/types.ts",
+  "lib/validation/review.ts",
+  "lib/lesson-figure.ts",
   "lib/lesson-frameworks.ts",
   "lib/lesson-verify.ts",
   "lib/lesson-assessment.ts",
   "lib/lesson-translate.ts",
+  "lib/probability-simulation.ts",
+  "lib/probability-activities.ts",
   "lib/lessons/authored/maths-fractions.ts",
   "lib/lessons/authored/physics-circuits.ts",
   "lib/lessons/authored/chemistry-equations.ts",
@@ -426,6 +435,20 @@ export const ENGINE_SOURCES = [
   "lib/lessons/authored/biology-microscopy.ts",
   "lib/lessons/authored/computing-conditionals.ts",
   "lib/lessons/authored/computing-binary.ts",
+  "lib/lessons/authored/computing-lists.ts",
+  "lib/lessons/authored/computing-functions.ts",
+  "lib/lessons/authored/computing-dictionaries.ts",
+  "lib/lessons/authored/maths-algebra-expressions.ts",
+  "lib/lessons/authored/maths-angles-lines.ts",
+  "lib/lessons/authored/maths-area-perimeter.ts",
+  "lib/lessons/authored/maths-averages.ts",
+  "lib/lessons/authored/maths-coordinates.ts",
+  "lib/lessons/authored/maths-data-charts.ts",
+  "lib/lessons/authored/maths-indices-intro.ts",
+  "lib/lessons/authored/maths-probability-basics.ts",
+  "lib/lessons/authored/maths-ratio.ts",
+  "lib/lessons/authored/maths-proportion.ts",
+  "lib/lessons/authored/maths-sequences.ts",
   "lib/lessons/authored/maths-linear-equations.ts",
   "lib/lessons/authored/translations.ts",
   "lib/lessons/authored/index.ts",

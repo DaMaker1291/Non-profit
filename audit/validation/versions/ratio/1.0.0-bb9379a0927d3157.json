@@ -1,0 +1,375 @@
+{
+  "contract": "openmind.lesson/1.0",
+  "conceptId": "ratio",
+  "version": "1.0.0",
+  "subject": "maths",
+  "curriculum": {
+    "reference": "GCSE Mathematics, ratio, proportion and rates of change: ratio notation, simplifying and equivalent ratios, dividing a quantity in a given ratio, and ratios in context",
+    "level": "Key Stage 3 to GCSE Foundation",
+    "note": "Scope cited against the published subject content. The lesson keeps part-to-part and part-to-whole distinct, and treats a ratio as a comparison rather than as a fraction. No specification or textbook text is reproduced."
+  },
+  "declaredStatus": "draft",
+  "objectives": [
+    {
+      "statement": "Interpret a ratio as a comparison of parts, and say what the whole is when the parts are combined.",
+      "evidence": "For a ratio of 3 : 2 the learner identifies three parts of one kind and two of another, states that there are five parts altogether, and writes the two shares as 3/5 and 2/5 of the whole rather than as 3/2 and 2/3."
+    },
+    {
+      "statement": "Simplify a ratio and form an equivalent ratio by multiplying or dividing every part by the same non-zero number.",
+      "evidence": "The learner simplifies 18 : 24 to 3 : 4 by dividing both parts by 6, and explains why adding 1 to both parts of 3 : 2 gives 4 : 3, which is not equivalent."
+    },
+    {
+      "statement": "Divide a quantity in a given ratio, including a ratio whose parts have different units, and check that the shares reconstruct the whole.",
+      "evidence": "The learner shares £84 in the ratio 5 : 2 as £60 and £24, and converts 1.5 m : 50 cm to 150 : 50 before simplifying it to 3 : 1."
+    }
+  ],
+  "priorKnowledge": {
+    "conceptIds": [
+      "fractions"
+    ],
+    "check": [
+      {
+        "id": "d1",
+        "question": "A class has 12 girls and 18 boys. What fraction of the class is girls?",
+        "answer": "12/30, which simplifies to 2/5. The denominator is the whole class, 12 + 18 = 30, not the number of boys.",
+        "targets": [
+          "fractions"
+        ]
+      },
+      {
+        "id": "d2",
+        "question": "Simplify 15/20 and say what you divided both parts by.",
+        "answer": "3/4, after dividing the numerator and denominator by 5. The value is unchanged because both parts were divided by the same number.",
+        "targets": [
+          "fractions"
+        ]
+      }
+    ]
+  },
+  "introduction": {
+    "hook": "A squash bottle says one part concentrate to four parts water. A learner who reads that as one quarter concentrate makes a drink that is far too weak: the bottle describes five parts in total, not four, because the concentrate and the water are both parts of the drink. The colon is not a fraction bar. It is a statement that two quantities are being compared part for part.",
+    "why": "Ratios appear in recipes, maps, paint, wages and scale drawings, and the arithmetic is usually simple once the parts are visible. The hard part is choosing the whole. A ratio compares one part with another part, while a fraction compares a part with the whole. Those are different comparisons, and confusing them is what turns 3 : 2 into 3/2 of a mixture. This lesson makes the parts explicit, then uses the same bar model for simplifying, sharing and converting units."
+  },
+  "explanation": [
+    {
+      "heading": "A ratio compares parts with parts",
+      "paragraphs": [
+        "In the ratio 3 : 2, the three and the two count parts of the same kind of whole. Three parts of one ingredient are compared with two parts of another, and the total is five parts. The ratio does not say how large a part is; it says how many parts of each kind there are. That is why 3 : 2, 6 : 4 and 30 : 20 describe the same comparison: each is five parts altogether, with three of every five in the first group and two of every five in the second.",
+        "The whole matters as soon as a share is expressed as a fraction. In a 3 : 2 mixture there are five parts, so the first ingredient is 3/5 of the mixture and the second is 2/5. Writing 3/2 reverses the comparison: that is the first part measured against the second part, not against the whole. A ratio can therefore be turned into fractions only after the parts have been added, and the two fractions must add to one because together they are the whole mixture."
+      ]
+    },
+    {
+      "heading": "Equivalent ratios are made by scaling every part",
+      "paragraphs": [
+        "Multiplying or dividing every part of a ratio by the same number gives an equivalent ratio. Starting from 3 : 2, multiplying both parts by 4 gives 12 : 8; the number of parts has grown, but every group still has three of the first kind for every two of the second. Dividing both parts by their highest common factor gives the simplest form. For 18 : 24, both parts divide by 6, so the simplest form is 3 : 4.",
+        "Adding the same amount to both parts is not scaling, and it does not preserve the comparison. From 3 : 2, adding one to each part gives 4 : 3, which is not equivalent: 3 : 2 puts three of the first kind against two of the second, while 4 : 3 puts four against three. A recipe doubled by adding one cup to every ingredient would not be the same recipe. Only multiplication or division by the same non-zero number keeps the parts in the same proportion."
+      ]
+    },
+    {
+      "heading": "Sharing a quantity means giving each part its value",
+      "paragraphs": [
+        "To share a quantity in a ratio, first add the parts to find how many equal parts the whole contains. For 5 : 2, the total is seven parts. Divide the quantity by seven to find the value of one part, then multiply that value by each part of the ratio. Sharing £84 in 5 : 2 gives one part worth £12, so the shares are five times £12 = £60 and two times £12 = £24. The check is not optional: £60 + £24 = £84, so the shares rebuild the whole.",
+        "A bar model makes the same calculation visible. Draw seven equal boxes, label five of them for the first share and two for the second, and write the value of one box inside it. The model also catches a wrong whole: if a learner divides by five because the ratio contains a five, the seven boxes no longer account for the full quantity. The number of boxes is the sum of the parts, never one of the parts. The same method works when the parts have different units, but the units must be converted before the boxes are drawn."
+      ]
+    }
+  ],
+  "representations": [
+    {
+      "id": "r1",
+      "kind": "maths.expression",
+      "body": "A ratio compares parts of the same whole. The colon is a comparison sign, not a division sign, and the parts must be added before a fraction of the whole can be written.",
+      "notation": "3 : 2   →   3 parts to 2 parts   →   3 + 2 = 5 parts in total   →   3/5 and 2/5 of the whole",
+      "caption": "The ratio 3 : 2 has five parts altogether. The first share is three of those five parts and the second is two, so the fractions of the whole are 3/5 and 2/5, not 3/2 and 2/3."
+    },
+    {
+      "id": "r2",
+      "kind": "maths.area-model",
+      "body": "A bar split into five equal boxes. Three boxes are shaded for the first share and two are left plain for the second, so the bar shows the parts and the whole at the same time.",
+      "notation": "3 : 2   →   [ ][ ][ ] | [ ][ ]   →   five equal parts",
+      "caption": "The bar has five boxes because 3 + 2 = 5. Shading three boxes makes the first share three fifths of the bar; the remaining two boxes are two fifths. The picture would be wrong if it had only three boxes, because the two parts of the second share would have nowhere to go.",
+      "figure": {
+        "spec": {
+          "kind": "bar",
+          "parts": [
+            {
+              "label": "3 parts",
+              "units": 3,
+              "shade": true
+            },
+            {
+              "label": "2 parts",
+              "units": 2
+            }
+          ],
+          "totalLabel": "5 equal parts"
+        },
+        "caption": "A bar split into five equal boxes: three shaded and two plain. The whole is five parts, so the shaded share is 3/5 and the plain share is 2/5."
+      }
+    },
+    {
+      "id": "r3",
+      "kind": "maths.expression",
+      "body": "A ratio with different units is not simplified until both quantities are measured in the same unit.",
+      "notation": "1.5 m : 50 cm   →   150 cm : 50 cm   →   150 : 50   →   3 : 1",
+      "caption": "One and a half metres is 150 centimetres, so the comparison is 150 to 50, which simplifies to 3 : 1. Writing 1.5 : 50 would compare metres with centimetres and produce a meaningless decimal ratio."
+    }
+  ],
+  "workedExamples": [
+    {
+      "id": "w1",
+      "prompt": "Simplify 18 : 24 and write each share as a fraction of the whole.",
+      "steps": [
+        {
+          "move": "Find a number that divides both parts. Six divides 18 and 24, so divide both by 6.",
+          "why": "Dividing every part by the same number keeps the comparison unchanged; it packs the same parts into larger groups rather than altering the mixture."
+        },
+        {
+          "move": "The simplified ratio is 3 : 4. Add the parts to find the whole: 3 + 4 = 7.",
+          "why": "The whole is the sum of the parts, so the simplified ratio has seven equal parts in total. The whole is not 3 + 4 = 7 only by coincidence; it is the definition of combining the two shares."
+        },
+        {
+          "move": "The first share is 3 of the 7 parts and the second is 4 of the 7, so the fractions are 3/7 and 4/7. Check that 3/7 + 4/7 = 1.",
+          "why": "A fraction of the whole uses the total number of parts as its denominator, and the two shares must add to one because together they are the whole. The simplified ratio 3 : 4 therefore represents 3/7 and 4/7, not 3/4 and 4/3."
+        }
+      ],
+      "answer": "3 : 4; the shares are 3/7 and 4/7 of the whole"
+    },
+    {
+      "id": "w2",
+      "prompt": "Share £84 in the ratio 5 : 2.",
+      "steps": [
+        {
+          "move": "Add the parts: 5 + 2 = 7 equal parts altogether.",
+          "why": "The ratio tells us how many parts each share receives, not how much one part is worth. Adding the parts gives the number of equal boxes the whole must be split into."
+        },
+        {
+          "move": "Divide £84 by 7 to find the value of one part: 84 ÷ 7 = £12.",
+          "why": "If seven equal parts make £84, one part is £84 divided by seven. This is the unit value that every share is built from."
+        },
+        {
+          "move": "Multiply each part of the ratio by £12: 5 × 12 = £60 and 2 × 12 = £24. Check £60 + £24 = £84.",
+          "why": "The first share gets five of the seven parts and the second gets two, so the shares are five and two times the unit value. The check confirms that the shares reconstruct the original amount rather than losing or duplicating a part."
+        }
+      ],
+      "answer": "£60 and £24"
+    },
+    {
+      "id": "w3",
+      "prompt": "Write the ratio 1.5 m : 50 cm in its simplest form.",
+      "steps": [
+        {
+          "move": "Convert both quantities to the same unit. 1.5 m is 150 cm, so the ratio becomes 150 cm : 50 cm.",
+          "why": "A ratio compares quantities of the same kind, and metres and centimetres are different-sized units. Converting first makes the numbers describe the same unit, which is what the comparison requires."
+        },
+        {
+          "move": "Remove the common unit and divide both parts by 50: 150 ÷ 50 = 3 and 50 ÷ 50 = 1.",
+          "why": "Once both quantities are in centimetres, the unit is common to both parts and can be left out of the ratio notation. Dividing both numbers by the same factor simplifies the comparison."
+        },
+        {
+          "move": "The simplest form is 3 : 1, meaning the first length is three times the second.",
+          "why": "The simplified ratio says that 150 cm is three times 50 cm. The numbers 3 and 1 are the comparison, not the original measurements, and the check 3 × 50 = 150 confirms it."
+        }
+      ],
+      "answer": "3 : 1"
+    }
+  ],
+  "misconceptions": [
+    {
+      "id": "m1",
+      "belief": "A ratio of 3 : 2 means the first share is 3/2 of the whole.",
+      "whyItFails": "The fraction 3/2 compares the first part with the second part, not with the whole. The whole contains both shares, so it has 3 + 2 = 5 parts. The first share is 3/5 of the mixture and the second is 2/5. Treating 3/2 as a share of the whole produces more than one whole before the second ingredient has been counted at all.",
+      "correction": "Add the parts first to find the whole, then put each part over that total. For 3 : 2 the shares are 3/5 and 2/5, and those two fractions add to 1.",
+      "contrast": {
+        "wrong": "3 : 2 means 3/2 of the mixture is the first ingredient",
+        "right": "3 : 2 means 3/5 of the mixture is the first ingredient and 2/5 is the second"
+      }
+    },
+    {
+      "id": "m2",
+      "belief": "Adding the same amount to both parts keeps a ratio equivalent.",
+      "whyItFails": "Adding changes the size of the parts without scaling them together. From 3 : 2, adding one to each part gives 4 : 3, and four parts against three is a different comparison from three against two. The first share has grown from three fifths to four sevenths of the whole, so the mixture has changed. Only multiplying or dividing every part by the same number preserves the comparison.",
+      "correction": "Scale by multiplication or division, not addition. Multiply both parts by the same factor to make a larger batch, or divide both by a common factor to simplify; adding a constant changes the ratio unless the constant is zero.",
+      "contrast": {
+        "wrong": "3 : 2 is equivalent to 4 : 3 because 1 was added to both parts",
+        "right": "3 : 2 is equivalent to 6 : 4 because both parts were multiplied by 2"
+      }
+    },
+    {
+      "id": "m3",
+      "belief": "A ratio can be simplified without converting different units first.",
+      "whyItFails": "The numbers in a ratio only compare quantities measured in the same unit. The ratio 1.5 m : 50 cm is not 1.5 : 50, because the first number counts metres and the second counts centimetres. Dividing those numbers compares a metre with a centimetre and gives a value that is a hundred times too small for the first part.",
+      "correction": "Convert both quantities to a common unit before simplifying. 1.5 m becomes 150 cm, so the ratio is 150 : 50, which simplifies to 3 : 1.",
+      "contrast": {
+        "wrong": "1.5 m : 50 cm simplifies to 1.5 : 50",
+        "right": "1.5 m : 50 cm is 150 cm : 50 cm, which simplifies to 3 : 1"
+      }
+    }
+  ],
+  "guidedPractice": [
+    {
+      "id": "p1",
+      "prompt": "Simplify the ratio 24 : 36.",
+      "hint": "Find the largest number that divides both parts. Both are multiples of twelve, so divide each part by twelve.",
+      "answer": "2 : 3, because 24 ÷ 12 = 2 and 36 ÷ 12 = 3",
+      "feedback": {
+        "correct": "Both parts were divided by the same factor, so the comparison is unchanged and the ratio is in its simplest form.",
+        "incorrect": "The largest common factor is 12: 24 divided by 12 is 2 and 36 divided by 12 is 3, so the simplest form is 2 : 3. Dividing only one part would change the comparison."
+      }
+    },
+    {
+      "id": "p2",
+      "prompt": "Share 45 in the ratio 4 : 5.",
+      "hint": "Add the parts first. Four parts plus five parts make nine equal parts, so one part is 45 divided by nine.",
+      "answer": "20 and 25, because 4 + 5 = 9, 45 ÷ 9 = 5, and 4 × 5 = 20 while 5 × 5 = 25",
+      "feedback": {
+        "correct": "The parts were added to find the whole, one part was valued, and the two shares were checked against 45.",
+        "incorrect": "There are nine equal parts, so one part is 5. The shares are four parts and five parts: 20 and 25. Dividing 45 by four or by five would use one share as though it were the whole."
+      }
+    },
+    {
+      "id": "p3",
+      "prompt": "A recipe uses flour and sugar in the ratio 5 : 2. If the recipe uses 300 g of flour, how much sugar is needed, and what is the total mass?",
+      "hint": "The ratio says five parts of flour is 300 g. Find the mass of one part first, then use the two parts for sugar.",
+      "answer": "120 g of sugar, and 420 g in total. One part is 300 ÷ 5 = 60 g, so sugar is 2 × 60 = 120 g; the mass is 300 + 120 = 420 g.",
+      "feedback": {
+        "correct": "You valued one part from the flour and used it for both the sugar and the total, so the ratio was applied consistently.",
+        "incorrect": "Five parts of flour are 300 g, so one part is 60 g. Sugar is two parts, 120 g, and the total is 300 + 120 = 420 g; dividing 300 by 2 would reverse the ratio."
+      }
+    }
+  ],
+  "assessment": [
+    {
+      "id": "a1",
+      "kind": "short-answer",
+      "prompt": "Simplify the ratio 45 : 60.",
+      "modelAnswer": "3 : 4",
+      "marking": [
+        "Divides both parts by the same common factor, here 15.",
+        "Gives the ratio in its simplest form as 3 : 4."
+      ],
+      "check": {
+        "accepted": [
+          "3 : 4",
+          "3:4",
+          "3 to 4"
+        ]
+      }
+    },
+    {
+      "id": "a2",
+      "kind": "constructed-response",
+      "prompt": "A learner says that 3 : 2 means the first share is 3/2 of the whole. Explain what is wrong and write the two shares as fractions of the whole.",
+      "modelAnswer": "The ratio 3 : 2 compares the first part with the second part, not with the whole. The whole contains both shares, so it has 3 + 2 = 5 equal parts. The first share is therefore 3/5 of the whole and the second is 2/5. The fraction 3/2 compares the first part with the second part, and it is larger than one whole because the first part is larger than the second; it cannot be a share of the whole when the second part also has to fit inside it. The check is that 3/5 + 2/5 = 1, so the two shares account for the entire mixture.",
+      "marking": [
+        "Identifies that the ratio compares part with part, while a fraction of the whole compares a part with the total.",
+        "Adds the parts to obtain a whole of five parts.",
+        "Gives 3/5 and 2/5 and checks that they sum to one."
+      ]
+    },
+    {
+      "id": "a3",
+      "kind": "short-answer",
+      "prompt": "Share 72 in the ratio 5 : 4.",
+      "modelAnswer": "40 and 32",
+      "marking": [
+        "Adds the parts to get nine equal parts and divides 72 by 9.",
+        "Multiplies 5 and 4 by the value of one part, 8."
+      ],
+      "check": {
+        "accepted": [
+          "40 and 32",
+          "40:32",
+          "40,32",
+          "40 and 32 pounds"
+        ]
+      }
+    }
+  ],
+  "transfer": [
+    {
+      "id": "t1",
+      "prompt": "A concrete mix uses cement and sand in the ratio 1 : 4 by mass. A builder has 150 kg of cement and 750 kg of sand. If the builder uses all 150 kg of cement, how much sand is needed, how much sand is left, and what would be needed to use all 750 kg of sand instead?",
+      "whyItTransfers": "The learner must choose the whole from a real stock rather than share a total that has already been given. The ratio is unchanged, but the question asks which ingredient limits the mix, so the arithmetic has to be attached to a decision. That is a different task from dividing a stated quantity, even though it uses the same parts.",
+      "answer": "With 150 kg of cement, the ratio 1 : 4 requires 4 × 150 = 600 kg of sand, so 750 − 600 = 150 kg of sand is left. To use all 750 kg of sand at the same ratio, the cement needed is 750 ÷ 4 = 187.5 kg, which is 37.5 kg more than the builder has. The cement is therefore the limiting ingredient; using all the sand would require more cement, not a different ratio.",
+      "marking": [
+        "Uses the ratio to calculate 600 kg of sand for 150 kg of cement.",
+        "Subtracts to find 150 kg of sand left.",
+        "Divides 750 by 4 to find 187.5 kg of cement and states that the builder is 37.5 kg short.",
+        "Explains that the ratio stays 1 : 4; only the available quantities decide which ingredient limits the batch."
+      ]
+    }
+  ],
+  "retrieval": [
+    {
+      "id": "x1",
+      "prompt": "Simplify 16 : 24.",
+      "answer": "2 : 3, because both parts divide by 8. The comparison is unchanged; the parts have simply been grouped into larger units.",
+      "when": "next-day"
+    },
+    {
+      "id": "x2",
+      "prompt": "Share 35 in the ratio 2 : 5.",
+      "answer": "10 and 25. There are seven parts, one part is 5, and the shares are 2 × 5 and 5 × 5.",
+      "when": "week-later"
+    },
+    {
+      "id": "x3",
+      "prompt": "A ratio is 4 : 5 and the whole is 63. What are the two shares?",
+      "answer": "28 and 35. There are nine parts, 63 ÷ 9 = 7, and 4 × 7 = 28 while 5 × 7 = 35.",
+      "when": "month-later"
+    }
+  ],
+  "summary": [
+    "A ratio compares parts with parts; the whole is the sum of the parts, not either part on its own.",
+    "A part-to-part ratio becomes a fraction of the whole only after the parts are added; 3 : 2 gives 3/5 and 2/5.",
+    "Equivalent ratios are made by multiplying or dividing every part by the same non-zero number, never by adding.",
+    "To share a quantity, add the parts, divide by the total number of parts, then multiply by each share and check the sum.",
+    "Convert different units to the same unit before simplifying a ratio such as 1.5 m : 50 cm."
+  ],
+  "accessibility": [
+    {
+      "need": "screen-reader",
+      "alternative": "Every ratio is read as words — three to two — and the bar model is described as three shaded boxes out of five equal boxes, so the colon is never the only cue."
+    },
+    {
+      "need": "dyslexia",
+      "alternative": "The parts are listed on separate lines before the ratio notation appears, and each sharing example repeats the same three moves: add the parts, value one part, multiply each share."
+    },
+    {
+      "need": "motor",
+      "alternative": "All answers are typed as numbers or short phrases; no dragging or colouring is required to demonstrate the ratio method."
+    },
+    {
+      "need": "colour-vision",
+      "alternative": "The bar model labels each group with its part count and its share, so the two groups do not rely on a colour difference."
+    }
+  ],
+  "provenance": [
+    {
+      "sourceId": "openmind-authored",
+      "basis": "openmind-authored",
+      "licence": "OpenMind internal",
+      "attribution": "Written for OpenMind.",
+      "reproduction": "none",
+      "note": "All explanations, examples, practice, assessments and the concrete-mix transfer are original to OpenMind."
+    },
+    {
+      "sourceId": "gcse-mathematics-subject-content",
+      "basis": "curriculum-citation",
+      "licence": "official-reference",
+      "attribution": "Scope cited against the published GCSE mathematics subject content for ratio, proportion and rates of change.",
+      "reproduction": "none"
+    }
+  ],
+  "authors": [
+    {
+      "author": "OpenMind curriculum team",
+      "role": "instructional author",
+      "authoredAt": "2026-11-09",
+      "method": "ai-assisted-then-edited"
+    }
+  ],
+  "reviews": [],
+  "learnerTesting": [],
+  "translations": []
+}

@@ -47,8 +47,13 @@
     let stderr = "";
     try {
       const py = await boot();
-      py.setStdout({ batched: (text) => { stdout += text; } });
-      py.setStderr({ batched: (text) => { stderr += text; } });
+      // Pyodide's batched callback delivers print output a line at a time, but
+      // without the newline that separated one print from the next. Concatenating
+      // the chunks made `print(3); print(None)` display as `3None`, which hides
+      // the very distinction a learner is debugging. Add the separator only when
+      // the chunk does not already carry one.
+      py.setStdout({ batched: (text) => { if (!text) return; stdout += text.endsWith("\n") ? text : `${text}\n`; } });
+      py.setStderr({ batched: (text) => { if (!text) return; stderr += text.endsWith("\n") ? text : `${text}\n`; } });
       await py.runPythonAsync(data.code);
       send({ type: "result", stdout: stdout, stderr: stderr });
     } catch (error) {

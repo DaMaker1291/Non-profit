@@ -370,6 +370,10 @@ const ACCESS: Record<string, AccessRequirement> = {
   // learner. A reviewer must be able to read the current state and open a draft
   // without an account; the POST that records a review authenticates separately.
   "/content": "public",
+  // The improvement queue and a lesson's review form describe LESSONS, not a
+  // learner. The page is public content; the POST that records a review
+  // authenticates separately as a teaching account.
+  "/lesson-review": "public",
   // Onboarding is where signed-out and un-enrolled learners are SENT, so it
   // can never require anything — otherwise every redirect would loop.
   "/onboarding": "public",

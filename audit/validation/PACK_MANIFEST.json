@@ -1,0 +1,33 @@
+{
+  "generatedBy": "scripts/validation-pack.mjs",
+  "contract": "openmind.lesson/1.0",
+  "lessons": [
+    {
+      "lessonId": "probability-basics",
+      "version": "1.0.0",
+      "contentHash": "322701ed77660d3aa059d30678516bd97d37110db41f778e27444b1dc0c4b7f0"
+    },
+    {
+      "lessonId": "ratio",
+      "version": "1.0.0",
+      "contentHash": "bb9379a0927d31572417299c2530d0d977b36812bb7ee83f49b2345822803272"
+    },
+    {
+      "lessonId": "proportion",
+      "version": "1.0.0",
+      "contentHash": "3a3ec029f96c718603163b1a2b1fda457ef4e667a1a0d177c698bc41513b58e7"
+    },
+    {
+      "lessonId": "sequences",
+      "version": "1.0.0",
+      "contentHash": "88a103da99de0cd9a6671a237ee07496044de3763bd66935167f3e2fbc9c041a"
+    },
+    {
+      "lessonId": "indices-intro",
+      "version": "1.0.0",
+      "contentHash": "f6fe1d7628e7ac144566c6a084998f107a8d8f0c12a8475d3df3f1db9d3e6ef3"
+    }
+  ],
+  "generatedAt": "2026-11-10T13:30:14.903Z",
+  "reviews": []
+}
