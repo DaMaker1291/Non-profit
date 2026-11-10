@@ -407,6 +407,7 @@ const ACCESS: Record<string, AccessRequirement> = {
   // course and a record — the same gate as the evidence page they extend.
   "/mind": "onboarded",
   "/papers": "onboarded",
+  "/assessment": "onboarded",
   "/progress": "onboarded",
   "/projects": "onboarded",
   "/mistakes": "onboarded",

@@ -109,6 +109,21 @@ export interface AlgebraSpec {
   requireExpanded?: boolean;
 }
 
+/** One authored point in a short-answer item. `accept` is the wording the
+ *  mark scheme accepts for THAT point, not a bag of keywords: a point that
+ *  cannot be named by an authored form is not a short-answer point. */
+export interface ShortCriterionSpec {
+  id: string;
+  marks: number;
+  label: string;
+  accept: string[];
+  misconceptionId?: string;
+  misconceptionLabel?: string;
+  /** Phrases that reveal the misconception. Used for feedback, never to award. */
+  signals?: string[];
+  feedback?: string;
+}
+
 export interface StructuredPart {
   /** Stable id inside the item, e.g. "a". */
   id: string;
@@ -118,6 +133,9 @@ export interface StructuredPart {
   /** The truth a numeric answer is checked against. Absent on a graph, plot,
    *  read-off, algebra or table part — each has its own key below. */
   answer?: number;
+  /** The authored id of the answer criterion, when the scheme came from a
+   *  blueprint. Absent for a hand-authored item, whose id is `${id}:A1`. */
+  answerId?: string;
   tolerance?: NumericTolerance;
   /** Other PRINTED forms that are the same answer, compared after normalisation. */
   accepted?: string[];
@@ -134,7 +152,7 @@ export interface StructuredPart {
    *  the required plotted points. `readoff` = a value read from the line the
    *  learner themselves drew in an earlier part (follow-through). `algebra` is
    *  any polynomial-equivalent expression; `table` is one value per blank cell. */
-  response?: "number" | "graph" | "plot" | "readoff" | "algebra" | "table";
+  response?: "number" | "graph" | "plot" | "readoff" | "algebra" | "table" | "short";
   /** The line a graph part asks for. Never served to the browser. */
   graph?: GraphSpec;
   /** The plotted points a plot part requires. Never served to the browser. */
@@ -147,6 +165,9 @@ export interface StructuredPart {
   algebra?: AlgebraSpec;
   /** A table with blank cells. The answers are never served. */
   table?: TableSpec;
+  /** One entry per independent recall point. Only a recall item may use this;
+   *  the blueprint validator refuses it on anything else. */
+  short?: ShortCriterionSpec[];
   explanation: string;
 }
 
@@ -163,13 +184,16 @@ export interface StructuredItem {
 
 export interface StructuredCriterionMark {
   id: string;
-  kind: "method" | "accuracy";
+  kind: "method" | "accuracy" | "evidence";
   label: string;
   awarded: number;
   marks: number;
   met: boolean;
   /** Why it was or was not met, in words — the feedback IS the mark scheme. */
   why: string;
+  /** A diagnosed belief, when the response contains an authored signal. It
+   *  explains a wrong answer; it never changes the awarded mark. */
+  misconception?: { id: string; label: string; feedback: string };
 }
 
 export interface StructuredPartMark {
@@ -1292,6 +1316,24 @@ for (const item of STRUCTURED_ITEMS) {
         }
       }
     }
+    if (p.response === "short") {
+      if (!p.short || p.short.length === 0) throw new Error(`structured item ${item.id}#${p.id}: a short part has no criteria`);
+      if (p.short.reduce((n, c) => n + c.marks, 0) !== p.marks) {
+        throw new Error(`structured item ${item.id}#${p.id}: short criteria do not add up to the part's marks`);
+      }
+      if (p.method) throw new Error(`structured item ${item.id}#${p.id}: a short part has no typed method`);
+      for (const criterion of p.short) {
+        if (!Number.isInteger(criterion.marks) || criterion.marks < 1) {
+          throw new Error(`structured item ${item.id}#${p.id}: short criterion ${criterion.id} needs a positive integer mark`);
+        }
+        if (!criterion.label.trim() || criterion.accept.length === 0) {
+          throw new Error(`structured item ${item.id}#${p.id}: short criterion ${criterion.id} has no label or accepted form`);
+        }
+        if (criterion.misconceptionId && !(criterion.signals ?? []).length) {
+          throw new Error(`structured item ${item.id}#${p.id}: short criterion ${criterion.id} names a misconception without a signal`);
+        }
+      }
+    }
     if (p.unitRequired && !p.unit) {
       throw new Error(`structured item ${item.id}#${p.id}: a required unit has no unit`);
     }
@@ -1363,6 +1405,18 @@ export function normaliseTyped(raw: string): string {
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
+}
+
+/** Does `haystack` contain `phrase` as a whole phrase? Boundaries are anything
+ *  that is not a letter or digit, so `one cell thick` matches inside a sentence
+ *  and `thin` does not match inside `thing`. The accepted forms are authored,
+ *  and both singular and plural are written where both are credited — a stem
+ *  match would credit a word the scheme never listed. */
+export function containsPhrase(haystack: string, phrase: string): boolean {
+  const needle = normaliseTyped(phrase);
+  if (!needle) return false;
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "i").test(normaliseTyped(haystack));
 }
 
 /** TWO POINTS from `x,y x,y`. Numbers are read in order, parentheses and tidy
@@ -1693,13 +1747,66 @@ export function gradeStructuredParts(
       };
     }
 
+    // ── SHORT RECALL, ONE AUTHORED POINT AT A TIME ────────────────────────
+    // Each point is independent, and the response must contain one of the
+    // forms that point accepts. This is deliberately NOT used for prose: the
+    // blueprint validator refuses `short` on anything but a recall item worth
+    // at most two marks. A signal can add an explanation of a wrong idea, but
+    // it can never change the award.
+    if (p.response === "short" && p.short) {
+      const response = normaliseTyped(raw);
+      const criteria: StructuredCriterionMark[] = p.short.map((spec) => {
+        const met = spec.accept.some((form) => containsPhrase(response, form));
+        const flagged = !met && !!spec.misconceptionId
+          && (spec.signals ?? []).some((signal) => containsPhrase(response, signal));
+        return {
+          id: spec.id,
+          kind: "evidence" as const,
+          label: spec.label,
+          awarded: met ? spec.marks : 0,
+          marks: spec.marks,
+          met,
+          why: met
+            ? `The response includes ${spec.label}.`
+            : response === ""
+              ? "No answer was given."
+              : `The response does not include ${spec.label}.`,
+          ...(flagged ? {
+            misconception: {
+              id: spec.misconceptionId!,
+              label: spec.misconceptionLabel ?? spec.misconceptionId!,
+              feedback: spec.feedback ?? "",
+            },
+          } : {}),
+        };
+      });
+      const awarded = criteria.reduce((n, criterion) => n + criterion.awarded, 0);
+      return {
+        partId: p.id, awarded, marks: p.marks, correct: awarded === p.marks,
+        given: raw, working: "", criteria,
+      };
+    }
+
     const methodMarks = p.method?.marks ?? 0;
     const answerMarks = p.marks - methodMarks;
 
     // ── The method criterion ────────────────────────────────────────────────
     const methodWork = normaliseWorking(shown);
+    // A METHOD CREDIT IS EARNED BY SHOWING THE CREDITED STEP, not by matching
+    // one entire string. A learner who writes the substitution, its result and
+    // then the final division in one line has done everything the scheme asks
+    // and used to lose the method mark because the text was longer than the
+    // authored form. Match the form inside the working, but only when it is a
+    // real expression (six normalized characters): a bare digit must not turn
+    // every answer containing it into a method mark.
     const methodMet = !!p.method && methodWork !== ""
-      && p.method.accept.some((a) => normaliseWorking(a) === methodWork);
+      && p.method.accept.some((a) => {
+        const form = normaliseWorking(a);
+        // An exact authored form is always acceptable, whatever its length.
+        // Containment is for a longer response that includes the credited step;
+        // a very short form is not searched inside unrelated working.
+        return form === methodWork || (form.length >= 6 && methodWork.includes(form));
+      });
     const methodWhy = !p.method ? "" : methodMet
       ? `The working shows ${p.method.label}.`
       : methodWork === ""
@@ -1732,7 +1839,7 @@ export function gradeStructuredParts(
       });
     }
     criteria.push({
-      id: `${p.id}:A1`, kind: "accuracy", label: "correct answer",
+      id: p.answerId ?? `${p.id}:A1`, kind: "accuracy", label: "correct answer",
       awarded: answerCorrect ? answerMarks : 0, marks: answerMarks,
       met: answerCorrect, why: answerWhy,
     });

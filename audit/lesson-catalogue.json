@@ -1,15 +1,15 @@
 {
   "generatedBy": "scripts/lesson-catalogue.mjs",
   "contract": "openmind.lesson/1.0",
-  "at": "2026-11-10T13:23:34.504Z",
+  "at": "2026-11-10T23:42:07.948Z",
   "totals": {
     "concepts": 135,
-    "authored": 56,
+    "authored": 71,
     "byStatus": {
       "metadata_only": 0,
-      "outline": 79,
+      "outline": 64,
       "draft": 0,
-      "machine_checked": 56,
+      "machine_checked": 71,
       "educator_reviewed": 0,
       "learner_tested": 0,
       "published": 0,
@@ -33,16 +33,16 @@
     },
     "chemistry": {
       "concepts": 16,
-      "authored": 5,
-      "machineChecked": 5,
-      "outline": 11,
+      "authored": 16,
+      "machineChecked": 16,
+      "outline": 0,
       "metadataOnly": 0
     },
     "biology": {
       "concepts": 16,
-      "authored": 12,
-      "machineChecked": 12,
-      "outline": 4,
+      "authored": 16,
+      "machineChecked": 16,
+      "outline": 0,
       "metadataOnly": 0
     },
     "computing": {
@@ -389,96 +389,6 @@
     {
       "conceptId": "gravity-fields",
       "subject": "physics",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "ionic-bonding",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "covalent-bonding",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "metallic-bonding",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "moles-calcs",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "rates-reaction",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "energy-changes",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "acids-bases",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "electrolysis",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "organic-intro",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "equilibria",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "analysis-tests",
-      "subject": "chemistry",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "nervous-system",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "hormones",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "genetics",
-      "subject": "biology",
-      "status": "outline",
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
-    },
-    {
-      "conceptId": "immune-health",
-      "subject": "biology",
       "status": "outline",
       "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
     },
@@ -2296,11 +2206,26 @@
       "prereqs": [
         "electron-shells"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, bonding, structure and the properties of matter: ionic bonding, ionic compounds, giant ionic lattices and electrolysis (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1253,
+        "explanationParagraphs": 17,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "covalent-bonding",
@@ -2310,11 +2235,26 @@
       "prereqs": [
         "electron-shells"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, bonding, structure and the properties of matter: covalent bonding, simple molecules, giant covalent structures and allotropes of carbon (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1608,
+        "explanationParagraphs": 21,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 4,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "metallic-bonding",
@@ -2324,11 +2264,26 @@
       "prereqs": [
         "ionic-bonding"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, bonding, structure and the properties of matter: metallic bonding, the properties of metals and alloys (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1392,
+        "explanationParagraphs": 20,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "moles-calcs",
@@ -2339,11 +2294,26 @@
         "compounds-mixtures",
         "proportion"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, quantitative chemistry: the mole, relative formula mass, concentration, reacting masses and limiting reactants (Key Stage 4 / GCSE)",
       "plan": "authored",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1177,
+        "explanationParagraphs": 21,
+        "workedExamples": 3,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "equations-stoich",
@@ -2383,11 +2353,26 @@
       "prereqs": [
         "energy-conservation"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, rates of reaction: measuring rate, collision theory, temperature, concentration, surface area, catalysts and rate graphs (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1107,
+        "explanationParagraphs": 15,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "energy-changes",
@@ -2398,11 +2383,26 @@
         "rates-reaction",
         "energy-conservation"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, energy changes: exothermic and endothermic reactions, bond energies, reaction profiles and calorimetry (Key Stage 3 to GCSE)",
       "plan": "authored",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 639,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "acids-bases",
@@ -2413,11 +2413,26 @@
         "compounds-mixtures",
         "ionic-bonding"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, acids, bases and salts: proton transfer, pH, neutralisation, strong and weak acids (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 718,
+        "explanationParagraphs": 8,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "electrolysis",
@@ -2428,11 +2443,26 @@
         "ionic-bonding",
         "electricity-circuits"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, chemical changes and electrochemistry: electrolysis of molten and aqueous ionic compounds, electrode reactions, half-equations and industrial applications (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1113,
+        "explanationParagraphs": 15,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 4,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "organic-intro",
@@ -2442,11 +2472,26 @@
       "prereqs": [
         "covalent-bonding"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, organic chemistry: hydrocarbons, alkanes and alkenes, crude oil, fractional distillation, cracking, combustion and addition polymers (Key Stage 4 / GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1343,
+        "explanationParagraphs": 20,
+        "workedExamples": 3,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "equilibria",
@@ -2457,11 +2502,26 @@
         "rates-reaction",
         "energy-changes"
       ],
-      "curriculum": null,
+      "curriculum": "A-level Chemistry, reversible reactions and equilibrium: dynamic equilibrium, Le Chatelier's principle, the equilibrium constant and the Haber process (A-level / advanced secondary)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 602,
+        "explanationParagraphs": 9,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 3,
+        "transferChallenges": 1,
+        "retrievalItems": 3,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "analysis-tests",
@@ -2472,11 +2532,26 @@
         "atoms-elements",
         "compounds-mixtures"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Chemistry, chemical analysis: flame tests, hydroxide precipitates, gas tests, carbonate, sulfate and halide tests, chromatography and instrumental methods (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1389,
+        "explanationParagraphs": 16,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 4,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "cells",
@@ -2750,11 +2825,26 @@
       "prereqs": [
         "cells"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, homeostasis and response: the nervous system, reflex actions and reaction time (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1509,
+        "explanationParagraphs": 20,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 4,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "hormones",
@@ -2765,11 +2855,26 @@
         "nervous-system",
         "diffusion"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, homeostasis and response: the endocrine system, negative feedback, blood glucose control, diabetes, water and temperature balance (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1416,
+        "explanationParagraphs": 16,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 4,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "genetics",
@@ -2780,11 +2885,26 @@
         "cells",
         "probability-basics"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, inheritance, variation and evolution: DNA, genes and alleles, meiosis, monohybrid inheritance, sex determination and test crosses (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1421,
+        "explanationParagraphs": 14,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 4,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "evolution",
@@ -2883,11 +3003,26 @@
         "cells",
         "evolution"
       ],
-      "curriculum": null,
+      "curriculum": "GCSE Biology, infection and response: communicable disease, plant and human defences, the immune system, vaccination and antibiotics (Key Stage 3 to GCSE)",
       "plan": "supplemental",
-      "status": "outline",
-      "lesson": null,
-      "blocker": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record."
+      "status": "machine_checked",
+      "lesson": {
+        "version": "1.0.0",
+        "declaredStatus": "draft",
+        "earnedStatus": "machine_checked",
+        "teachingWords": 1319,
+        "explanationParagraphs": 16,
+        "workedExamples": 2,
+        "guidedPractice": 3,
+        "assessments": 4,
+        "transferChallenges": 1,
+        "retrievalItems": 4,
+        "reviews": 0,
+        "learnerTesting": 0,
+        "translations": [],
+        "problems": []
+      },
+      "blocker": null
     },
     {
       "conceptId": "what-is-code",

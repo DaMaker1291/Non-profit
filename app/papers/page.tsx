@@ -421,7 +421,7 @@ export default function PapersPage() {
             parts: Array<{
               id: string; prompt: string; marks: number; unit?: string;
               methodPrompt?: string; methodMarks?: number;
-              response?: "number" | "graph" | "plot" | "readoff" | "algebra" | "table";
+              response?: "number" | "graph" | "plot" | "readoff" | "algebra" | "table" | "short";
               graph?: { xMin: number; xMax: number; yMin: number; yMax: number };
               plot?: { xMin: number; xMax: number; yMin: number; yMax: number };
               table?: TableView;

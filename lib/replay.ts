@@ -227,6 +227,13 @@ export function replayModel(
 export const LEDGER_OWNED_FIELDS = [
   "attempts", "correct", "streak", "mastery", "accuracy", "lastSeen",
   "misconceptions", "independent", "transfer", "retention", "totalMs", "answers",
+  // THE MARK TALLY IS EVIDENCE, NOT AN ANNOTATION. `recordAnswer` computes it
+  // from the score on each event, but adoption only installs fields named here;
+  // omitting these two made a replayed model lose the 6/10 its ledger carried
+  // and fall back to right/wrong — measured by the assessment journey. A
+  // partial answer stays not-correct for mastery, while the record still says
+  // how much of the scheme it earned.
+  "marksAwarded", "marksAvailable",
   // Scaffolding demand as the ANSWER recorded it (see types.ts#hinted). Owned
   // by the projection rather than preserved, because a stale count would let a
   // rebuilt model keep claiming help that the ledger no longer shows.

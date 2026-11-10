@@ -1724,7 +1724,7 @@ export interface StructuredPartView {
    *  coordinate grid, and "readoff" asks for a value read from the learner's own
    *  plotted line. The grid's bounds travel with either; the required points and
    *  the line's coefficients do not. */
-  response?: "number" | "graph" | "plot" | "readoff" | "algebra" | "table";
+  response?: "number" | "graph" | "plot" | "readoff" | "algebra" | "table" | "short";
   /** A table's visible shape only. Each answered cell is an input; its key is
    *  not in this object. */
   table?: {

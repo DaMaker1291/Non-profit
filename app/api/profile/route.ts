@@ -11,10 +11,10 @@ import { activeStorage } from "@/lib/server/storage-file";
 // this is the one place that turns the refusal into the answer a learner reads.
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { accountFromRequest, newProfileId } from "@/lib/server/auth";
-import { isBoardId, type ProfileState, type StudentProfile, type SubjectCourse, type SubjectId } from "@/lib/types";
+import { DATA_PREFERENCES, isBoardId, type ProfileState, type StudentProfile, type SubjectCourse, type SubjectId } from "@/lib/types";
 import { coversSubject, incompleteSubjects, specById, specsFor } from "@/lib/specifications";
 import { pathwayForCountry } from "@/lib/curricula/registry";
-import { COUNTRIES } from "@/lib/i18n";
+import { COUNTRIES, LANG_CODES } from "@/lib/i18n";
 // WHICH PART OF THE COUNTRY, where the part itself decides the language. The
 // table is the one owner of that rule and the client reads the same one, so a
 // region accepted here is a region the picker can offer and vice versa.
@@ -322,6 +322,18 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!p.teachingLang) p.teachingLang = p.language;
     if (!p.answerLang) p.answerLang = p.teachingLang;
     if (!p.schoolLang) p.schoolLang = p.language;
+    // Exam, second teaching language, bilingual display and data budget are
+    // independent choices. None is inferred from the interface language.
+    if (typeof body.examLang === "string" && LANG_CODES.includes(body.examLang)) p.examLang = body.examLang;
+    if (!p.examLang) p.examLang = p.answerLang;
+    if (typeof body.secondaryLang === "string") {
+      if (body.secondaryLang && LANG_CODES.includes(body.secondaryLang)) p.secondaryLang = body.secondaryLang;
+      else delete p.secondaryLang;
+    }
+    if (typeof body.bilingualTerms === "boolean") p.bilingualTerms = body.bilingualTerms;
+    if (typeof body.dataPreference === "string" && (DATA_PREFERENCES as readonly string[]).includes(body.dataPreference)) {
+      p.dataPreference = body.dataPreference as StudentProfile["dataPreference"];
+    }
     if (typeof body.grade === "string") p.grade = body.grade.slice(0, 24);
     if (typeof body.examples === "string") p.examples = body.examples.slice(0, 24);
     if (body.termsMode === "local" || body.termsMode === "mixed") p.termsMode = body.termsMode;

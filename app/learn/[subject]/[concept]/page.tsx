@@ -47,6 +47,7 @@ import RepairCard from "@/components/repair-card";
 import { repairFor } from "@/lib/repair";
 import { planFor, ideaRouteFor, teachingLanguages, sectionsFor } from "@/lib/lesson-plans";
 import { videoFor, videoScopeKey } from "@/lib/lesson-media";
+import { recommendResources } from "@/lib/exact-resources";
 // THE AUTHORED LESSON, WHERE ONE EXISTS.
 //
 // lib/lessons/authored is the authored set, judged against openmind.lesson/1.0
@@ -118,7 +119,25 @@ export default function ConceptPage() {
   // `plan.sections` is the authored shape; `sectionsFor` gives the plans that
   // predate it the same readable sequence without inventing a new body.
   const planSections = plan ? sectionsFor(plan) : [];
+  const recommendation = plan
+    ? recommendResources(conceptId, {
+        teachingLang: teachLang,
+        examLang: state?.profile.examLang,
+        dataPreference: state?.profile.dataPreference,
+        levelId: state?.profile.specLevel,
+      })
+    : null;
   const lessonVideo = plan ? videoFor(plan) : null;
+  // A VIDEO IS OPTIONAL AND MUST MATCH THE TEACHING LANGUAGE. A learner taught
+  // in Bengali is not helped by an English lecture, and a learner who chose
+  // text-only has already said they do not want to spend data on one. The
+  // lesson above is complete without the card; suppressed video is explained,
+  // never silently missing.
+  const dataPreference = state?.profile.dataPreference ?? "balanced";
+  // The RECOMMENDER, not this page, decides whether the external video is
+  // eligible. It applies the language match and the text-only preference in one
+  // place, so the card and the reports cannot disagree about what was offered.
+  const videoAllowed = recommendation?.resources.some((r) => r.kind === "external-video") ?? false;
   // The authored lesson replaces the plan's teaching where it exists, and adds
   // the parts a plan cannot carry (diagnostic, misconception corrections, guided
   // practice with hints, independent assessment with marking, transfer,
@@ -868,8 +887,8 @@ export default function ConceptPage() {
           The lesson already had a live worked example and real practice, but
           they sat below several screens of prose; a learner could leave without
           knowing they existed. This panel is navigation, not a replacement for
-          the teaching: the first three doors stay inside this lesson, and the
-          external routes are searches on the provider's own site. */}
+          the teaching: every door stays inside this lesson. Provider search
+          links were removed rather than relabelled as recommendations. */}
       {showing === "read" && (
         <LessonStudyTools
           conceptId={conceptId}
@@ -1059,7 +1078,7 @@ export default function ConceptPage() {
           third party can be blocked, can fail silently, and leaves a blank box
           where teaching was promised — while a link opens the source's own page
           and says whose work it is before the learner taps it. */}
-      {lessonVideo && (
+      {lessonVideo && videoAllowed && (
         <a
           className="lesson-video"
           href={lessonVideo.url}
@@ -1089,6 +1108,11 @@ export default function ConceptPage() {
             </span>
           </span>
         </a>
+      )}
+      {lessonVideo && !videoAllowed && (
+        <p className="note small" role="status" data-video-suppressed={dataPreference === "text" ? "text-only" : "language"}>
+          {t(dataPreference === "text" ? "lrn.textOnly" : "lrn.noExternal")}
+        </p>
       )}
       {plan?.interactive === "fraction-model" && <FractionModel />}
 

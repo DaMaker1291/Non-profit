@@ -35,6 +35,21 @@ import { BIOLOGY_BIODIVERSITY } from "./biology-biodiversity";
 import { BIOLOGY_CIRCULATION } from "./biology-circulation";
 import { BIOLOGY_ECOSYSTEMS } from "./biology-ecosystems";
 import { BIOLOGY_EVOLUTION } from "./biology-evolution";
+import { BIOLOGY_GENETICS } from "./biology-genetics";
+import { BIOLOGY_HORMONES } from "./biology-hormones";
+import { BIOLOGY_IMMUNE_HEALTH } from "./biology-immune-health";
+import { BIOLOGY_NERVOUS_SYSTEM } from "./biology-nervous-system";
+import { CHEMISTRY_ACIDS_BASES } from "./chemistry-acids-bases";
+import { CHEMISTRY_COVALENT_BONDING } from "./chemistry-covalent-bonding";
+import { CHEMISTRY_ELECTROLYSIS } from "./chemistry-electrolysis";
+import { CHEMISTRY_ENERGY_CHANGES } from "./chemistry-energy-changes";
+import { CHEMISTRY_EQUILIBRIA } from "./chemistry-equilibria";
+import { CHEMISTRY_IONIC_BONDING } from "./chemistry-ionic-bonding";
+import { CHEMISTRY_METALLIC_BONDING } from "./chemistry-metallic-bonding";
+import { CHEMISTRY_MOLES_CALCS } from "./chemistry-moles-calcs";
+import { CHEMISTRY_ORGANIC_INTRO } from "./chemistry-organic-intro";
+import { CHEMISTRY_RATES_REACTION } from "./chemistry-rates-reaction";
+import { CHEMISTRY_ANALYSIS_TESTS } from "./chemistry-analysis-tests";
 import { BIOLOGY_BREATHING_GAS } from "./biology-breathing-gas";
 import { BIOLOGY_DIGESTION } from "./biology-digestion";
 import { BIOLOGY_MICROSCOPY } from "./biology-microscopy";
@@ -227,6 +242,94 @@ export const AUTHORED_LESSONS: readonly AuthoredLesson[] = [
   // separates inherited variation from acquired change, selection from drift,
   // and resistance in a bacterial population from resistance in a person.
   BIOLOGY_EVOLUTION,
+  // Batch 37 — genetics: the inheritance mechanism evolution depends on. The
+  // lesson keeps the physical objects (DNA, gene, allele) separate from the
+  // notation (genotype, phenotype), then explains why meiosis gives a gamete
+  // one allele and why a Punnett square predicts a probability rather than a
+  // family's exact composition.
+  BIOLOGY_GENETICS,
+  // Batch 38 — hormones: the homeostatic loop that genetics and diffusion
+  // support. The lesson makes the receptor, coordination centre and effector
+  // one sequence, then uses glucose, ADH and type 2 insulin resistance to show
+  // what changes when a different part of the loop fails.
+  BIOLOGY_HORMONES,
+  // Batch 39 — immune-health: the stage-3 biology outline that evolution and
+  // cells support. The lesson separates barriers, phagocytosis and the specific
+  // antibody response, then applies the same specificity to vaccination and the
+  // evolution of antibiotic resistance in a bacterial population.
+  BIOLOGY_IMMUNE_HEALTH,
+  // Batch 40 — nervous-system: the stage-2 biology outline hormones already
+  // depends on. The lesson separates the reflex arc from the conscious brain,
+  // makes the synapse chemical and one-way rather than a spark across a gap,
+  // and treats reaction time as a measured whole-pathway result.
+  BIOLOGY_NERVOUS_SYSTEM,
+  // Batch 41 — acids-bases: the stage-2 chemistry outline whose named
+  // misconception is strong-versus-concentrated. The lesson defines acids and
+  // bases by proton transfer, makes pH logarithmic, and predicts salts from the
+  // acid's anion rather than from a memorised list.
+  CHEMISTRY_ACIDS_BASES,
+  // Batch 43 — covalent-bonding: the stage-2 chemistry concept that
+  // `organic-intro` names as its prerequisite. The lesson separates three
+  // claims that are often merged: a shared pair is not a transferred electron;
+  // a double bond is one bond of order two; and a simple molecular substance
+  // boils by overcoming forces between molecules, not by breaking its covalent
+  // bonds. Diamond, graphite and silicon dioxide are then taught as networks,
+  // where that molecular model would give the wrong answer.
+  CHEMISTRY_COVALENT_BONDING,
+  // Batch 44 — electrolysis: the stage-3 chemistry concept whose prerequisites
+  // are ionic bonding and electric circuits. The lesson separates mobile ions
+  // from fixed lattice ions, cathode from anode by charge rather than by name,
+  // molten products from the aqueous competition, and charge from current.
+  CHEMISTRY_ELECTROLYSIS,
+  // Batch 45 — energy-changes: the stage-3 chemistry concept the queue placed
+  // first. The lesson keeps the bond ledger and the calorimeter separate before
+  // joining them, so a learner cannot report q as ΔH per mole or mistake the
+  // activation barrier for the enthalpy difference. The reaction profile is the
+  // third representation, and a catalyst changes only its peak.
+  CHEMISTRY_ENERGY_CHANGES,
+  // Batch 42 — analysis-tests: the first high-priority chemistry outline after
+  // acids-bases. The lesson treats each test as evidence with a limit: a flame
+  // colour identifies a metal ion, a white hydroxide needs excess alkali to
+  // separate aluminium and zinc from calcium and magnesium, carbonate must be
+  // removed before barium chloride or silver nitrate, and an Rf value is only
+  // comparable under matched conditions.
+  CHEMISTRY_ANALYSIS_TESTS,
+  // Batch 47 — ionic-bonding: the prerequisite electrolysis already names. The
+  // lesson treats the ionic bond as attraction throughout a lattice, not a
+  // single link between two atoms, and derives formulas from charge balance so
+  // that "AlO" cannot survive as a remembered one-of-each rule. Its properties
+  // are explained by fixed ions and mobile ions, not by electrons escaping.
+  CHEMISTRY_IONIC_BONDING,
+  // Batch 48 — metallic-bonding: the next stage-2 chemistry outline. The lesson
+  // keeps the electron sea, mobile charge and layer sliding as one structural
+  // model, then explains alloys as different-sized atoms that make sliding
+  // harder. It also keeps material choice as a compromise rather than a list of
+  // "best" metals. The concept is a prerequisite for later alloy and structure
+  // work, not a vocabulary detour.
+  CHEMISTRY_METALLIC_BONDING,
+  // Batch 49 — moles-calcs: the quantitative core the chemistry chain depends
+  // on. It teaches the mole as a count that can be weighed, then joins mass,
+  // solution concentration, equation ratios and limiting reactants in the
+  // order a calculation needs them. Every example keeps the unit check visible.
+  CHEMISTRY_MOLES_CALCS,
+  // Batch 50 — organic-intro: the carbon-skeleton lesson the chemistry chain
+  // reaches after bonding and quantitative work. It teaches carbon's four
+  // bonds, saturation versus unsaturation, distillation, cracking and addition
+  // polymers as one structural story rather than a list of fuels.
+  CHEMISTRY_ORGANIC_INTRO,
+  // Batch 46 — equilibria: the next stage-4 chemistry outline. The lesson
+  // separates a dynamic balance of rates from a stopped reaction, a shift in
+  // position from a change in Kc, and a catalyst's effect on rate from its lack
+  // of effect on yield. The Haber process is the worked compromise, not a list
+  // of conditions to memorise.
+  CHEMISTRY_EQUILIBRIA,
+  // Batch 51 — rates-reaction: the stage-2 chemistry concept the queue placed
+  // first. The lesson starts with a measured rate rather than a definition,
+  // separates collision frequency from the fraction that clears the barrier,
+  // and keeps a catalyst's effect on rate apart from its lack of effect on
+  // equilibrium position or yield. The graph is read as a gradient and a
+  // plateau, not as a decorative curve.
+  CHEMISTRY_RATES_REACTION,
 ];
 
 export const AUTHORED_BY_CONCEPT: Readonly<Record<string, AuthoredLesson>> = Object.fromEntries(

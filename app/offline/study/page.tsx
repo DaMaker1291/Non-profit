@@ -244,6 +244,20 @@ export default function OfflineStudyPage() {
       <p className="eyebrow">Offline lesson · {pack.title}</p>
       <h1>{pack.title}</h1>
       <p className="small muted">{pack.review.replace(/-/g, " ")} · {pack.rights.basis} ({pack.rights.licence})</p>
+      <p className="small muted" data-pack-language={pack.language}>
+        Teaching: {pack.language.toUpperCase()}
+        {pack.requestedLanguage && pack.requestedLanguage !== pack.language
+          ? ` (requested ${pack.requestedLanguage.toUpperCase()}; no complete translation, so this pack is English)`
+          : ""}
+        {" · "}Questions: {(pack.questionLanguage ?? "en").toUpperCase()}
+      </p>
+      {pack.complete === false && (
+        <p className="note small" role="status">
+          This is a partial translation. The teaching is in {pack.language.toUpperCase()}
+          {pack.questionsTranslated === false ? " and the marked questions are in English" : ""}.
+          It is labelled partial rather than presented as a complete translation.
+        </p>
+      )}
 
       {/* THE STATUS IS A SCREEN, NOT A PROMISE. Each state names what has
           actually happened to the learner's work. */}

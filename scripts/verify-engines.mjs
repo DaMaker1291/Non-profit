@@ -17245,6 +17245,24 @@ console.log("▸ Every door that costs money or CPU names its bound");
       .map((id) => `${id}: walk says ${rows.get(id)}, plan says ${rp.planFor(id).figure?.spec.kind ?? null}`);
     ok(missing.length === 0 && extra.length === 0 && mismatched.length === 0,
       `every authored plan is measured by the browser walk, with the figure its own plan declares (${planned.length} plans; missing: ${missing.join(", ") || "none"}; not planned: ${extra.join(", ") || "none"}; mismatched: ${mismatched.join("; ") || "none"})`);
+
+    // AND EVERY AUTHORED LESSON, not only every plan. The FIGURED list was
+    // treated as the whole browser set, but it measures plan drawings; a lesson
+    // with a plan could be in FIGURED and still never have its authored sections
+    // opened, while a lesson without one needed the separate contract loop. The
+    // two sets were counted as one and the screenshot said 37/37 while 13 authored
+    // lessons were never loaded. This assertion makes the contract list the
+    // denominator it claims to be: a new authored lesson with no walk row fails
+    // here, naming the lesson, before a browser report can call the subset complete.
+    const authored = require("../.verify/lessons/authored/index.js");
+    const authoredIds = authored.AUTHORED_LESSONS.map((lesson) => lesson.conceptId).sort();
+    const contractRows = new Set(
+      [...walkSrc.matchAll(/^\s*\{ concept: "([a-z0-9-]+)", subject: "[a-z]+" \},/gm)].map((m) => m[1]),
+    );
+    const unwalkedAuthored = authoredIds.filter((id) => !contractRows.has(id));
+    const ungovernedRows = [...contractRows].filter((id) => !authoredIds.includes(id));
+    ok(unwalkedAuthored.length === 0 && ungovernedRows.length === 0,
+      `every authored lesson is in the browser walk's contract (${authoredIds.length} authored; missing: ${unwalkedAuthored.join(", ") || "none"}; not authored: ${ungovernedRows.join(", ") || "none"})`);
   }
   // THE PICTURE AND THE PARAGRAPH MUST AGREE about the example they teach.
   const negFig = rp.planFor("negatives").figure;

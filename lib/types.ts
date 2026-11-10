@@ -588,6 +588,13 @@ export interface DiagnosticResult {
 /** The goal-first intent a student picks before anything else ("" = skipped). */
 export type IntentId = "exams" | "understand" | "project" | "code" | "competition" | "life";
 
+/** How much data this learner has said they can spend on optional external
+ *  media. This is a preference the learner sets; it is never inferred from
+ *  their country, language, device or a speed test. */
+export type DataPreference = "text" | "low" | "balanced" | "high";
+
+export const DATA_PREFERENCES: readonly DataPreference[] = ["text", "low", "balanced", "high"];
+
 /** Persisted, anonymised student profile. */
 export interface StudentProfile {
   id: string;
@@ -619,6 +626,16 @@ export interface StudentProfile {
   answerLang?: string;
   /** Language the student's school uses (terms kept in this language). */
   schoolLang?: string;
+  /** Language the examination or assessment is sat in. This is deliberately
+   *  separate from `answerLang`: a learner may be taught in Bengali, answer in
+   *  Bengali and sit an English paper. */
+  examLang?: string;
+  /** Optional second teaching language; absent or empty means none. */
+  secondaryLang?: string;
+  /** Show the original-language technical term beside the translated one. */
+  bilingualTerms?: boolean;
+  /** The learner's own data budget for optional external media. */
+  dataPreference?: DataPreference;
   /** Curriculum grade/level within their system, e.g. "Form 2". */
   grade?: string;
   /** Example context the student is familiar with (see lib/culture.ts). */

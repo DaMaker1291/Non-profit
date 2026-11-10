@@ -117,17 +117,17 @@ export default function Home() {
         {/* One primary action per audience, and they are different people: the
             learner starts (or resumes), the teacher has their own platform. */}
         {resuming && appState ? (
-          <div className="actions">
+          <div className="actions hero-actions">
             <Link href={appState.route} className="btn">
               {appState.stage === "home" ? (lifecycle.isTeacher ? t("teach.title") : t("nav.home")) : t("common.next")} →
             </Link>
           </div>
         ) : (
-          <div className="actions">
-            <Link href="/onboarding" className="btn" style={{ fontSize: 17, padding: "14px 26px" }}>
+          <div className="actions hero-actions">
+            <Link href="/onboarding" className="btn">
               {t("home.start")} →
             </Link>
-            <Link href="/teacher" className="btn ghost" style={{ fontSize: 17, padding: "14px 26px" }}>
+            <Link href="/teacher" className="btn ghost">
               {t("home.teacherCta")}
             </Link>
           </div>

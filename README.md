@@ -232,6 +232,10 @@ A **staircase ladder** per concept: pass 2 questions → climb a difficulty band
 
 **Integrity**: the server grades everything. Served questions carry no answers (a `serveView()` sanitizer strips them); graded responses reveal the correct index only after grading. The client never tells the API whether an answer was right.
 
+### 🧭 Assessment intelligence (`lib/assessment-intelligence.ts`)
+
+A provenance-tracked blueprint of **how to design and mark** a topic, derived from assessment material without copying its questions. Three blueprints now compile into the existing structured marker: Year 9 diet and digestion (teacher-provided pack, permission unknown, pattern extraction only), GCSE physics energy (public AQA specification), and a mathematics tables unit that tests a **table with one mark per blank cell**. Together: **17 original items / 52 marks / 12 named misconceptions**, with numeric, short-answer, table and rubric-only prose responses. The serving gate refuses every unreviewed blueprint — the approved set is deliberately empty — and `npm run assessment:marking` asserts **80** cases across correct, partial, alternative-wording, missing-unit, invalid-input and misconception-specific answers. It does **not** claim teacher review or learner testing. See [docs/ASSESSMENT_INTELLIGENCE.md](docs/ASSESSMENT_INTELLIGENCE.md).
+
 ### 🧗 The hint ladder (`lib/hints.ts`)
 
 Every practice question offers **Tiny → Strong → First step → Walk me through it**. Levels 1–2 are translated strategy nudges, level 3 adds the question's own opening move, level 4 is the full reasoning. Every request is recorded — "this concept needed 2 hints" becomes learner-model data.

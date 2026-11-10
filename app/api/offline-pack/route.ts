@@ -4,7 +4,8 @@ import { newId } from "@/lib/server/store";
 import { getConcept } from "@/lib/genome";
 import { generateQuestion } from "@/lib/questions";
 import { lessonStatus, PILOT_SEQUENCE } from "@/lib/pilot";
-import { planFor } from "@/lib/lesson-plans";
+import { planFor, teachingLanguages } from "@/lib/lesson-plans";
+import { languageProfile } from "@/lib/language-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,11 @@ export async function GET(req: Request): Promise<NextResponse> {
   const me = await authorisedProfile(req, url.searchParams.get("id"), url.searchParams.get("secret"));
   if (!me) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+  const learnerLanguage = languageProfile(me.profile);
+  const requestedLanguage = learnerLanguage.teaching;
+  const requestedTranslated = (id: string) => teachingLanguages(id).includes(requestedLanguage);
+  const packLanguage = (id: string) => requestedTranslated(id) ? requestedLanguage : "en";
+
   if (url.searchParams.get("list") === "1") {
     return NextResponse.json({
       concepts: PILOT_SEQUENCE
@@ -34,13 +40,20 @@ export async function GET(req: Request): Promise<NextResponse> {
         .map((id) => {
           const c = getConcept(id);
           const status = lessonStatus(id);
+          const language = packLanguage(id);
           return {
             id,
             title: c?.title ?? id,
             subject: c?.subject ?? null,
             review: status.state,
+            language,
+            requestedLanguage,
+            teachingTranslated: language === requestedLanguage,
+            questionLanguage: "en",
+            complete: language === requestedLanguage && requestedLanguage === "en",
           };
         }),
+      requestedLanguage,
       rights: "OpenMind-authored lessons, MIT-licensed; no third-party text is packaged.",
     });
   }
@@ -49,7 +62,13 @@ export async function GET(req: Request): Promise<NextResponse> {
   if (!PILOT_SEQUENCE.includes(conceptId)) {
     return NextResponse.json({ error: "not an offline lesson" }, { status: 400 });
   }
-  const plan = planFor(conceptId);
+  // A pack is labelled with the language its teaching is ACTUALLY in. When a
+  // complete translation does not exist, `planFor` falls back to English; the
+  // pack says so rather than relabelling English text as the learner's language.
+  const language = packLanguage(conceptId);
+  const teachingTranslated = language === requestedLanguage;
+  const questionsTranslated = requestedLanguage === "en";
+  const plan = planFor(conceptId, language);
   if (!plan) return NextResponse.json({ error: "no complete lesson" }, { status: 404 });
   const concept = getConcept(conceptId);
   const questions = [0, 1, 2]
@@ -61,7 +80,12 @@ export async function GET(req: Request): Promise<NextResponse> {
     conceptId,
     title: concept?.title ?? conceptId,
     subject: concept?.subject ?? null,
-    language: "en",
+    language,
+    requestedLanguage,
+    questionLanguage: "en",
+    teachingTranslated,
+    questionsTranslated,
+    complete: teachingTranslated && questionsTranslated,
     rights: {
       basis: "OpenMind-authored",
       licence: "MIT",

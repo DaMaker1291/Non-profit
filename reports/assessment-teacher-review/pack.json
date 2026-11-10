@@ -1,0 +1,1250 @@
+{
+  "generatedBy": "scripts/assessment-teacher-pack.mjs",
+  "generatedAt": "2026-11-10T20:26:57.056Z",
+  "status": "UNREVIEWED — NOT AN APPROVAL",
+  "instruction": "A subject teacher reviews each item, its model answer, criteria and alternatives. Return a dated review record naming this blueprint version and the reviewer's role. Until that record exists, the item is not servable.",
+  "blueprints": [
+    {
+      "id": "biology.diet-digestion.year9",
+      "version": "1.0.0",
+      "title": "Diet and digestion: assessment blueprint",
+      "subject": "biology",
+      "level": "Year 9 / lower secondary",
+      "reviewStatus": "unreviewed",
+      "serving": {
+        "ok": false,
+        "reviewStatus": "unreviewed",
+        "reasons": [
+          "review status is unreviewed: an unreviewed blueprint is never served as an assessment",
+          "source rights are unknown: availability is not permission to reuse",
+          "licensing is unknown: no reuse licence is recorded"
+        ]
+      },
+      "sources": [
+        {
+          "id": "dd-question-pack",
+          "label": "Diet & Digestion question pack",
+          "availability": "teacher-provided",
+          "rights": "unknown",
+          "licensing": "unknown",
+          "allowedUse": "pattern-extraction-only",
+          "reproduction": "none",
+          "sourceTextStored": false,
+          "studentDataObserved": false,
+          "note": "Read for question archetypes and mark allocations only. No prompt, table, diagram, option or mark-scheme sentence is retained."
+        },
+        {
+          "id": "dd-test",
+          "label": "Diet & Digestion test",
+          "availability": "teacher-provided",
+          "rights": "unknown",
+          "licensing": "unknown",
+          "allowedUse": "pattern-extraction-only",
+          "reproduction": "none",
+          "sourceTextStored": false,
+          "studentDataObserved": false,
+          "note": "Read for the balance of recall, data interpretation and extended writing. The test's own numbers and wording are not reused."
+        },
+        {
+          "id": "dd-mark-scheme-a",
+          "label": "Diet & Digestion mark scheme A",
+          "availability": "teacher-provided",
+          "rights": "unknown",
+          "licensing": "unknown",
+          "allowedUse": "pattern-extraction-only",
+          "reproduction": "none",
+          "sourceTextStored": false,
+          "studentDataObserved": false,
+          "note": "Image-based marking pages were OCR'd for the shape of independent credit points. OCR is not treated as an exact transcription; the blueprint does not quote it."
+        },
+        {
+          "id": "dd-mark-scheme-b",
+          "label": "Diet & Digestion mark scheme B",
+          "availability": "teacher-provided",
+          "rights": "unknown",
+          "licensing": "unknown",
+          "allowedUse": "pattern-extraction-only",
+          "reproduction": "none",
+          "sourceTextStored": false,
+          "studentDataObserved": false,
+          "note": "Used to compare how the same topic rewards a labelled structure, a linked function and a separate conclusion. No marking wording is copied."
+        }
+      ],
+      "items": [
+        {
+          "id": "dd-01",
+          "conceptId": "digestion",
+          "archetypeId": "recall-knowledge",
+          "responseKind": "short-answer",
+          "marks": 2,
+          "prompt": "Name the two products formed when a fat is completely digested by lipase.",
+          "modelAnswer": "Fatty acids and glycerol.",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "dd-01-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Names fatty acids (or a correct example of a fatty acid) as one product.",
+              "acceptable": [
+                "fatty acid",
+                "fatty acids"
+              ],
+              "nonCredit": "Names 'fat' again; that is the substrate, not a product."
+            },
+            {
+              "id": "dd-01-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Names glycerol as the other product.",
+              "acceptable": [
+                "glycerol",
+                "glycerine"
+              ],
+              "misconceptionId": "fat-products-are-sugars",
+              "signals": [
+                "glucose",
+                "sugar"
+              ],
+              "nonCredit": "Names glucose; that is a carbohydrate product, not a fat product."
+            }
+          ],
+          "partialCreditRule": "Each named product earns one mark; a correct pair written in either order earns 2.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "dd-02",
+          "conceptId": "digestion",
+          "archetypeId": "explain-structure-function",
+          "responseKind": "extended-response",
+          "marks": 4,
+          "prompt": "The lining of the small intestine has villi. Explain two ways a villus is adapted to absorb glucose quickly into the blood.",
+          "modelAnswer": "A villus has a large surface area, increased further by microvilli on its epithelial cells, so more glucose molecules can diffuse across at once. Its epithelium is one cell thick, which gives a short diffusion distance. A dense capillary network carries glucose away, maintaining a concentration gradient from the gut lumen into the blood. Each of these is a separate reason why the rate of absorption is high.",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "dd-02-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Names villi or microvilli and links them to an increased surface area.",
+              "acceptable": [
+                "villi increase surface area",
+                "microvilli increase surface area",
+                "many villi give a large surface area"
+              ],
+              "misconceptionId": "villi-are-muscles",
+              "signals": [
+                "push food",
+                "move food",
+                "muscle"
+              ],
+              "nonCredit": "Says only 'there are villi' without saying what the villi do."
+            },
+            {
+              "id": "dd-02-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Explains that the epithelial wall is thin, giving a short diffusion distance.",
+              "acceptable": [
+                "thin wall short diffusion distance",
+                "one cell thick",
+                "thin epithelium"
+              ],
+              "nonCredit": "Says 'thin' without linking it to diffusion distance or rate."
+            },
+            {
+              "id": "dd-02-c3",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Explains that a good blood supply or capillary network removes glucose and maintains a concentration gradient.",
+              "acceptable": [
+                "blood supply maintains a concentration gradient",
+                "capillaries carry glucose away",
+                "good blood supply keeps a steep gradient"
+              ],
+              "misconceptionId": "surface-area-alone",
+              "signals": [
+                "more surface area is enough",
+                "only surface area",
+                "just surface area"
+              ],
+              "nonCredit": "Says 'it has blood' without connecting it to the gradient or removal of glucose."
+            },
+            {
+              "id": "dd-02-c4",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Uses at least two of the adaptations to explain why the RATE of absorption is increased, rather than merely listing them.",
+              "nonCredit": "Lists three structures with no consequence for the rate."
+            }
+          ],
+          "partialCreditRule": "Award each independent adaptation that is linked to absorption. A list of structures earns at most 1 mark; the fourth mark requires a consequence for rate.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "dd-03",
+          "conceptId": "digestion",
+          "archetypeId": "compare-processes",
+          "responseKind": "extended-response",
+          "marks": 4,
+          "prompt": "Compare mechanical digestion with chemical digestion. Give one example of each and explain why both are useful.",
+          "modelAnswer": "Mechanical digestion breaks food into smaller pieces without making new molecules; chewing and churning are examples. Chemical digestion uses enzymes to hydrolyse large molecules into smaller soluble ones; amylase breaking down starch is an example. Both are useful because smaller pieces give enzymes a larger surface area, while chemical digestion produces molecules small enough to be absorbed. Neither process alone prepares food for absorption.",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "dd-03-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "States that mechanical digestion is physical breakdown without a new molecule being formed.",
+              "acceptable": [
+                "physical breakdown",
+                "breaks food into smaller pieces",
+                "does not make new molecules"
+              ]
+            },
+            {
+              "id": "dd-03-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Gives a correct example of mechanical digestion, such as chewing or churning.",
+              "acceptable": [
+                "chewing",
+                "teeth",
+                "churning",
+                "stomach contraction"
+              ]
+            },
+            {
+              "id": "dd-03-c3",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "States that chemical digestion uses enzymes to break large molecules into smaller soluble products, with a correct example.",
+              "acceptable": [
+                "amylase breaks down starch",
+                "protease breaks down protein",
+                "lipase breaks down fat",
+                "enzymes hydrolyse"
+              ],
+              "misconceptionId": "bile-digests-fat",
+              "signals": [
+                "bile digests",
+                "bile breaks down fat",
+                "bile is an enzyme"
+              ],
+              "nonCredit": "Names bile as the enzyme; bile emulsifies but does not digest."
+            },
+            {
+              "id": "dd-03-c4",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Explains the link: smaller pieces increase the surface area for enzymes, and chemical digestion produces absorbable molecules.",
+              "nonCredit": "Says only 'both help digestion' without a mechanism."
+            }
+          ],
+          "partialCreditRule": "Award each correct comparison or example. A one-sided description of mechanical digestion earns at most 2 marks, even if detailed.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "dd-04",
+          "conceptId": "digestion",
+          "archetypeId": "practical-method",
+          "responseKind": "extended-response",
+          "marks": 3,
+          "prompt": "A student burns a food sample under a tube of water and calculates the energy released. The value is much lower than the value printed on the food packet. Explain one reason for the difference and suggest one improvement to the method.",
+          "modelAnswer": "Some of the heat from the burning food is lost to the surroundings instead of heating the water, so the measured temperature rise is too small. The food may also burn incompletely, releasing less energy than complete combustion would. The apparatus could be insulated or shielded from draughts, and the food could be held closer to the tube so that more of the heat reaches the water.",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "dd-04-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Identifies heat loss to the surroundings as a reason the measured value is too low.",
+              "acceptable": [
+                "heat lost to the surroundings",
+                "heat escapes",
+                "not all heat reaches the water"
+              ],
+              "misconceptionId": "energy-label-is-body-energy",
+              "signals": [
+                "food has less energy",
+                "the packet is wrong",
+                "the label is wrong"
+              ],
+              "nonCredit": "Says the food 'has less energy' than the packet claims, without a measurement reason."
+            },
+            {
+              "id": "dd-04-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Identifies incomplete combustion or an unmeasured variable as another reason.",
+              "acceptable": [
+                "incomplete combustion",
+                "some food does not burn",
+                "water evaporates",
+                "heat absorbed by the tube"
+              ]
+            },
+            {
+              "id": "dd-04-c3",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Suggests a specific improvement that reduces the identified loss, such as insulating the tube or shielding it from draughts.",
+              "acceptable": [
+                "insulate the tube",
+                "use a draught shield",
+                "stir the water",
+                "hold the food closer"
+              ],
+              "nonCredit": "Says only 'be more careful' or 'do it better'."
+            }
+          ],
+          "partialCreditRule": "The reason and the improvement are marked independently. A correct improvement earns its mark even if the reason is weak, but the improvement must address a named loss.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "dd-05",
+          "conceptId": "digestion",
+          "archetypeId": "calculate-from-data",
+          "responseKind": "numeric",
+          "marks": 2,
+          "prompt": "A 2.0 g food sample raises the temperature of 20 g of water by 15 °C. Use the specific heat capacity of water, 4.2 J/g °C, to calculate the energy released per gram of food. Show your method.",
+          "modelAnswer": "Energy gained by the water = mass × specific heat capacity × temperature rise = 20 × 4.2 × 15 = 1260 J. Energy per gram = 1260 ÷ 2.0 = 630 J/g.",
+          "numeric": {
+            "answer": 630,
+            "unit": "J/g",
+            "unitRequired": true,
+            "tolerance": {
+              "abs": 1,
+              "display": "630 J/g"
+            }
+          },
+          "table": null,
+          "criteria": [
+            {
+              "id": "dd-05-c1",
+              "kind": "method",
+              "marks": 1,
+              "credit": "Uses the correct relationship m × c × ΔT and obtains 1260 J for the water.",
+              "acceptable": [
+                "20 × 4.2 × 15 = 1260",
+                "1260 J",
+                "1.26 kJ"
+              ]
+            },
+            {
+              "id": "dd-05-c2",
+              "kind": "answer",
+              "marks": 1,
+              "credit": "Divides by the food mass and reports 630 J/g (or 0.63 kJ/g).",
+              "acceptable": [
+                "630 J/g",
+                "630",
+                "0.63 kJ/g"
+              ],
+              "nonCredit": "Reports 1260 J/g; the calculation has not divided by the 2.0 g sample."
+            }
+          ],
+          "partialCreditRule": "The method mark is awarded for the correct substitution even if the final division is wrong. The answer mark requires the per-gram result.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "dd-06",
+          "conceptId": "digestion",
+          "archetypeId": "extended-application",
+          "responseKind": "extended-response",
+          "marks": 5,
+          "prompt": "A patient has part of the ileum removed. Explain why the patient may lose weight even though they are eating normally, and why they may be given vitamin B12 by injection rather than by mouth.",
+          "modelAnswer": "The ileum is the main site of absorption for digested nutrients, and its removal reduces the surface area available for absorption. Less glucose and fewer amino acids enter the blood, so the patient may take in enough food but still not obtain enough energy and building materials, causing weight loss. Fat absorption may also fall, which can reduce the intake of fat-soluble vitamins. Vitamin B12 is absorbed in the ileum, so a shortened ileum may not absorb enough from food or tablets. An injection delivers B12 directly into the body, bypassing the damaged absorption site.",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "dd-06-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Identifies the ileum as a site of absorption and links its removal to reduced surface area.",
+              "acceptable": [
+                "less surface area for absorption",
+                "ileum absorbs nutrients",
+                "shorter gut reduces absorption"
+              ],
+              "misconceptionId": "absorption-is-eating",
+              "signals": [
+                "absorbs food when they eat",
+                "eating is absorption",
+                "eating is the same as absorption"
+              ]
+            },
+            {
+              "id": "dd-06-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Explains that less glucose or fewer amino acids enter the blood, so energy or building materials are lost.",
+              "acceptable": [
+                "less glucose absorbed",
+                "fewer amino acids absorbed",
+                "nutrients do not reach the blood"
+              ],
+              "misconceptionId": "absorption-is-eating"
+            },
+            {
+              "id": "dd-06-c3",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Links the reduced absorption to weight loss despite normal eating.",
+              "nonCredit": "Says 'they lose weight because they eat less' when the prompt says they eat normally."
+            },
+            {
+              "id": "dd-06-c4",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "States that vitamin B12 is absorbed in the ileum, so the shortened ileum may not absorb enough.",
+              "acceptable": [
+                "B12 absorbed in the ileum",
+                "ileum absorbs vitamin B12",
+                "B12 absorption is reduced"
+              ]
+            },
+            {
+              "id": "dd-06-c5",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Explains that an injection bypasses the gut and delivers B12 directly, which is why it is used instead of an oral dose.",
+              "acceptable": [
+                "injection bypasses digestion",
+                "injected B12 enters the blood directly",
+                "oral B12 would not be absorbed"
+              ]
+            }
+          ],
+          "partialCreditRule": "Award each independent link. A named structure without a consequence earns at most 1 mark; the final mark requires the route of administration to be explained.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "dd-07",
+          "conceptId": "digestion",
+          "archetypeId": "compare-processes",
+          "responseKind": "extended-response",
+          "marks": 3,
+          "prompt": "A student says faeces are an excretory product because they leave the body. Compare egestion with excretion and explain why the student's statement is incorrect.",
+          "modelAnswer": "Egestion removes undigested food from the alimentary canal. Excretion removes metabolic waste that cells have produced, such as urea and carbon dioxide. Faeces are not an excretory product because their material was never absorbed into the cells; it is undigested food leaving the gut. The two processes remove different substances from different origins.",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "dd-07-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Defines egestion as the removal of undigested food from the alimentary canal.",
+              "acceptable": [
+                "undigested food leaves the gut",
+                "faeces are egested",
+                "removal of food that was not absorbed"
+              ],
+              "misconceptionId": "egestion-is-excretion",
+              "signals": [
+                "faeces are excretion",
+                "faeces are an excretory product",
+                "excretion removes food"
+              ]
+            },
+            {
+              "id": "dd-07-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Defines excretion as the removal of metabolic waste produced by cells, with a correct example.",
+              "acceptable": [
+                "urea is excreted",
+                "carbon dioxide is excreted",
+                "waste made by cells"
+              ],
+              "nonCredit": "Names faeces as an example of excretion."
+            },
+            {
+              "id": "dd-07-c3",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "Explains the origin distinction: undigested food never entered the cells, whereas urea and carbon dioxide were produced by cell reactions.",
+              "nonCredit": "Says only 'they are different' without locating where the substance came from."
+            }
+          ],
+          "partialCreditRule": "Award the two definitions separately. The third mark requires the origin distinction, not merely a second example.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "absorption-is-eating",
+          "label": "Absorption is the same as eating",
+          "whyWrong": "Eating puts food into the alimentary canal; absorption moves digested molecules across the gut wall into the blood. A learner can eat enough and still absorb too little if the absorbing surface is damaged.",
+          "diagnosticSignal": "The answer says 'the person absorbs food when they eat' without naming diffusion, the gut wall or the blood.",
+          "feedback": "Separate the journey: ingestion, digestion, absorption, assimilation and egestion. Name the membrane and the destination when you use the word absorption."
+        },
+        {
+          "id": "villi-are-muscles",
+          "label": "Villi push food through the gut",
+          "whyWrong": "Villi are finger-like folds of the gut lining. They increase surface area and contain blood capillaries and a lacteal; they do not provide the muscular contraction that moves gut contents. Peristalsis does that.",
+          "diagnosticSignal": "The answer credits villi with 'moving' or 'pushing' food, or describes them as a muscle layer.",
+          "feedback": "A villus is a surface-area adaptation. Its epithelium is thin, and its capillary network carries absorbed molecules away; peristalsis is a separate muscular process."
+        },
+        {
+          "id": "bile-digests-fat",
+          "label": "Bile is an enzyme that digests fat",
+          "whyWrong": "Bile is not an enzyme. It emulsifies fat into smaller droplets, increasing the surface area on which lipase can act. The chemical digestion is carried out by lipase.",
+          "diagnosticSignal": "The answer says bile 'breaks down' or 'digests' fat without naming lipase or small droplets.",
+          "feedback": "Bile prepares the substrate; lipase performs the hydrolysis. Write both roles when a question asks how fat is digested."
+        },
+        {
+          "id": "energy-label-is-body-energy",
+          "label": "The packet's energy value is the energy the body gets from the food",
+          "whyWrong": "A food label's energy value is measured by complete combustion in a calorimeter. A school burning experiment loses heat to the surroundings, may burn the food incompletely and heats the apparatus as well as the water. The two values answer related but not identical questions.",
+          "diagnosticSignal": "The answer says the label is wrong or the food 'has less energy' without naming a measurement loss.",
+          "feedback": "Compare the methods, not just the numbers. Name where energy goes in the school apparatus and how the improvement reduces that loss."
+        },
+        {
+          "id": "surface-area-alone",
+          "label": "More surface area is always enough",
+          "whyWrong": "Surface area increases the opportunity for exchange, but absorption also requires a thin barrier, a concentration gradient and a transport route. A larger surface with no blood supply or a thick barrier is not automatically more effective.",
+          "diagnosticSignal": "The answer stops at 'more surface area' and does not name the membrane, gradient or capillary.",
+          "feedback": "Treat surface area as one condition for exchange, not the whole explanation. Link it to diffusion distance and the maintenance of a gradient."
+        },
+        {
+          "id": "egestion-is-excretion",
+          "label": "Egestion and excretion are the same process",
+          "whyWrong": "Egestion removes undigested food from the alimentary canal. Excretion removes metabolic waste produced by cells, such as carbon dioxide and urea. The substances and their origins are different.",
+          "diagnosticSignal": "The answer says faeces are an excretory product or that egestion removes 'waste from cells'.",
+          "feedback": "Ask where the substance was made. Undigested food never entered the cells; urea and carbon dioxide did."
+        },
+        {
+          "id": "fat-products-are-sugars",
+          "label": "Fat is digested into glucose",
+          "whyWrong": "Lipase hydrolyses a fat into fatty acids and glycerol. Glucose is a product of carbohydrate digestion, not fat digestion, and the body cannot obtain it by breaking a fat with lipase.",
+          "diagnosticSignal": "The answer names glucose, or another sugar, as a product of fat digestion.",
+          "feedback": "Match the enzyme to its substrate and products: amylase and starch give sugars, protease and protein give amino acids, lipase and fat give fatty acids and glycerol."
+        }
+      ],
+      "limitations": [
+        "This is a design prototype, not a validated examination. No teacher or learner has reviewed it.",
+        "The school's permission to use the source material for pattern extraction has not been established; the blueprint therefore stores no source text and permits no reproduction.",
+        "OCR of the image-based mark schemes is not treated as an exact transcription. The marking points here are newly written and still need subject-teacher review.",
+        "The blueprint is tied to a Year 9 diet-and-digestion unit. It must not be applied to another specification or country without a separate curriculum mapping.",
+        "The five-mark extended item is an original transfer task, not a source question; it has not been trialled with a learner.",
+        "The calculation item uses a specific heat capacity value and a simple energy-per-gram model; it does not model all heat losses or nutritional energy conventions."
+      ]
+    },
+    {
+      "id": "physics.energy-transfer.gcse",
+      "version": "1.0.0",
+      "title": "Energy transfer and efficiency: assessment blueprint",
+      "subject": "physics",
+      "level": "GCSE / upper secondary (14–16)",
+      "reviewStatus": "unreviewed",
+      "serving": {
+        "ok": false,
+        "reviewStatus": "unreviewed",
+        "reasons": [
+          "review status is unreviewed: an unreviewed blueprint is never served as an assessment",
+          "source rights are unknown: availability is not permission to reuse",
+          "licensing is unknown: no reuse licence is recorded"
+        ]
+      },
+      "sources": [
+        {
+          "id": "pe-aqa-8463",
+          "label": "AQA GCSE Physics (8463) specification",
+          "availability": "publicly-available",
+          "rights": "unknown",
+          "licensing": "unknown",
+          "allowedUse": "pattern-extraction-only",
+          "reproduction": "none",
+          "sourceTextStored": false,
+          "studentDataObserved": false,
+          "note": "A public specification used for unit placement and assessment style: equation-led calculations, unit discipline, required-practical method and a context-evaluation item. The file is not stored in this repository and no sentence from it is reproduced."
+        }
+      ],
+      "items": [
+        {
+          "id": "pe-01",
+          "conceptId": "energy-conservation",
+          "archetypeId": "recall-units",
+          "responseKind": "short-answer",
+          "marks": 2,
+          "prompt": "Name the SI unit of energy and the SI unit of power.",
+          "modelAnswer": "The unit of energy is the joule (J); the unit of power is the watt (W).",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "pe-01-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "names the joule (J) as the unit of energy",
+              "acceptable": [
+                "joule",
+                "joules",
+                "j"
+              ]
+            },
+            {
+              "id": "pe-01-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "names the watt (W) as the unit of power",
+              "acceptable": [
+                "watt",
+                "watts",
+                "w"
+              ],
+              "misconceptionId": "power-is-energy",
+              "signals": [
+                "joule",
+                "joules"
+              ],
+              "nonCredit": "Gives the joule as the unit of power; a joule measures an amount of energy, while a watt measures energy per second."
+            }
+          ],
+          "partialCreditRule": "Each unit earns its own mark. Naming the unit once for both quantities earns at most one mark, because only one quantity has been answered.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "pe-02",
+          "conceptId": "energy-conservation",
+          "archetypeId": "equation-substitution",
+          "responseKind": "numeric",
+          "marks": 2,
+          "prompt": "A 2.5 kg aluminium block is heated from 18 °C to 58 °C. The specific heat capacity of aluminium is 900 J/kg °C. Calculate the energy transferred to the block. Give your answer in joules and show your method.",
+          "modelAnswer": "Energy transferred = mass × specific heat capacity × temperature change = 2.5 × 900 × 40 = 90 000 J.",
+          "numeric": {
+            "answer": 90000,
+            "unit": "J",
+            "unitRequired": true,
+            "tolerance": {
+              "abs": 1,
+              "display": "90 000 J"
+            }
+          },
+          "table": null,
+          "criteria": [
+            {
+              "id": "pe-02-c1",
+              "kind": "method",
+              "marks": 1,
+              "credit": "substitutes mass × specific heat capacity × temperature change",
+              "acceptable": [
+                "2.5 × 900 × 40",
+                "2.5*900*40",
+                "2.5 x 900 x 40",
+                "2.5 × 900 × 40 = 90000",
+                "2.5 × 900 × 40 = 90 000"
+              ]
+            },
+            {
+              "id": "pe-02-c2",
+              "kind": "answer",
+              "marks": 1,
+              "credit": "reports 90 000 J (or 90 kJ) with the unit",
+              "acceptable": [
+                "90000 J",
+                "90 000 J",
+                "9.0 × 10^4 J",
+                "90 kJ"
+              ],
+              "nonCredit": "Reports 90 000 without a unit; the number alone does not say whether it is an energy, a power or a mass."
+            }
+          ],
+          "partialCreditRule": "The method mark is kept when the substitution is correct even if the arithmetic is wrong. The answer mark needs the value and its unit.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "pe-03",
+          "conceptId": "energy-conservation",
+          "archetypeId": "equation-substitution",
+          "responseKind": "numeric",
+          "marks": 2,
+          "prompt": "An electric heater transfers 180 000 J of energy in 5.0 minutes. Calculate its power. Give your answer in watts and show your method.",
+          "modelAnswer": "Five minutes is 300 s. Power = energy ÷ time = 180 000 ÷ 300 = 600 W.",
+          "numeric": {
+            "answer": 600,
+            "unit": "W",
+            "unitRequired": true,
+            "tolerance": {
+              "abs": 0.5,
+              "display": "600 W"
+            }
+          },
+          "table": null,
+          "criteria": [
+            {
+              "id": "pe-03-c1",
+              "kind": "method",
+              "marks": 1,
+              "credit": "converts 5.0 minutes to 300 s and divides energy by time",
+              "acceptable": [
+                "180000 / 300",
+                "180000 ÷ 300",
+                "180000/300",
+                "180 000 ÷ 300",
+                "180000 ÷ 300 = 600"
+              ]
+            },
+            {
+              "id": "pe-03-c2",
+              "kind": "answer",
+              "marks": 1,
+              "credit": "reports 600 W with the unit",
+              "acceptable": [
+                "600 W",
+                "600W"
+              ],
+              "nonCredit": "Reports 36 000 W by dividing by 5 instead of 300; the time must be in seconds before it is used in the equation."
+            }
+          ],
+          "partialCreditRule": "The method mark requires the time conversion and the division. The answer mark requires the value with its unit.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "pe-04",
+          "conceptId": "energy-conservation",
+          "archetypeId": "unit-discipline",
+          "responseKind": "numeric",
+          "marks": 2,
+          "prompt": "An electric motor is supplied with 500 J of energy and transfers 350 J usefully. Calculate its efficiency as a percentage. Give your answer in %.",
+          "modelAnswer": "Efficiency = useful output ÷ total input × 100% = 350 ÷ 500 × 100% = 70%.",
+          "numeric": {
+            "answer": 70,
+            "unit": "%",
+            "unitRequired": true,
+            "tolerance": {
+              "abs": 0.1,
+              "display": "70%"
+            }
+          },
+          "table": null,
+          "criteria": [
+            {
+              "id": "pe-04-c1",
+              "kind": "method",
+              "marks": 1,
+              "credit": "divides the useful output by the total input and multiplies by 100",
+              "acceptable": [
+                "350 / 500 × 100",
+                "350 ÷ 500 × 100",
+                "350/500*100",
+                "350/500 x 100",
+                "350 ÷ 500 = 0.7, then × 100"
+              ]
+            },
+            {
+              "id": "pe-04-c2",
+              "kind": "answer",
+              "marks": 1,
+              "credit": "reports 70%",
+              "acceptable": [
+                "70%",
+                "70 %"
+              ],
+              "nonCredit": "Reports 0.7 without converting to a percentage, or reports 30% by calculating the wasted fraction instead of the useful one."
+            }
+          ],
+          "partialCreditRule": "The method mark is the ratio; the answer mark is the percentage. 0.7 alone shows the ratio but has not answered the question's unit.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "pe-05",
+          "conceptId": "energy-conservation",
+          "archetypeId": "explain-transfer",
+          "responseKind": "extended-response",
+          "marks": 4,
+          "prompt": "A filament lamp and an LED are both supplied with 10 J of electrical energy. The filament lamp transfers 2 J as useful light; the LED transfers 8 J as useful light. Explain, using energy conservation, why the LED is described as more efficient. Do not say that the filament lamp 'loses' energy.",
+          "modelAnswer": "Both lamps transfer the same 10 J of electrical energy, so neither creates nor destroys energy. In the filament lamp, 2 J leaves as useful light and the other 8 J is transferred to the surroundings by heating; in the LED, 8 J leaves as useful light and 2 J is transferred by heating. Efficiency is the useful fraction of the input: 20% for the filament lamp and 80% for the LED. The LED is more efficient because a larger fraction of the same input is transferred usefully, not because the filament lamp's energy has disappeared.",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "pe-05-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "identifies light as the useful transfer and heating as the non-useful transfer for each lamp",
+              "acceptable": [
+                "light is useful",
+                "heat is wasted",
+                "heating is not useful"
+              ]
+            },
+            {
+              "id": "pe-05-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "states that the total energy is conserved and the non-useful energy is transferred to the surroundings",
+              "acceptable": [
+                "energy is conserved",
+                "total energy stays the same",
+                "energy goes to the surroundings"
+              ],
+              "misconceptionId": "efficiency-is-energy-loss",
+              "signals": [
+                "energy is lost",
+                "energy is destroyed",
+                "energy disappears",
+                "used up"
+              ],
+              "nonCredit": "Says the filament lamp 'loses' energy or that the missing energy has been destroyed; conservation forbids both."
+            },
+            {
+              "id": "pe-05-c3",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "calculates or states the useful fractions: 2/10 = 20% and 8/10 = 80%",
+              "acceptable": [
+                "20%",
+                "80%",
+                "2/10",
+                "8/10",
+                "0.2 and 0.8"
+              ]
+            },
+            {
+              "id": "pe-05-c4",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "concludes that the LED is more efficient because a larger fraction of the same input is useful",
+              "acceptable": [
+                "larger fraction is useful",
+                "more of the input becomes light",
+                "the led converts more energy to light"
+              ]
+            }
+          ],
+          "partialCreditRule": "Each independent point earns one mark. A description of only one lamp earns at most 2 marks; the conclusion needs the comparison, not a second description.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "pe-06",
+          "conceptId": "energy-conservation",
+          "archetypeId": "practical-error",
+          "responseKind": "extended-response",
+          "marks": 3,
+          "prompt": "A student measures the specific heat capacity of water by heating it with an immersion heater and recording the temperature rise. State one variable the student should control, explain one reason the measured value may be too low, and suggest one improvement.",
+          "modelAnswer": "The student should use the same mass of water and the same starting temperature each time, and read the thermometer at eye level. The measured value may be too low because some of the heater's energy is transferred to the surroundings instead of the water, so the temperature rise is smaller than the energy supplied would produce. Insulating the container and using a lid would reduce that transfer; stirring also helps the thermometer read the water's mean temperature.",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "pe-06-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "names a controlled variable, such as the mass of water or the starting temperature",
+              "acceptable": [
+                "same mass",
+                "same starting temperature",
+                "same volume of water",
+                "same time"
+              ]
+            },
+            {
+              "id": "pe-06-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "explains a measurement reason the value is too low, such as energy transferred to the surroundings",
+              "acceptable": [
+                "heat loss to the surroundings",
+                "energy escapes",
+                "not all the energy reaches the water"
+              ],
+              "misconceptionId": "specific-heat-is-total",
+              "signals": [
+                "total energy needed",
+                "specific heat is the total"
+              ],
+              "nonCredit": "Says the specific heat capacity is a fixed total for the water; it is a per-kilogram, per-degree property, and the measured value depends on mass and temperature change."
+            },
+            {
+              "id": "pe-06-c3",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "suggests an improvement that reduces the named error, such as insulating the container or using a lid",
+              "acceptable": [
+                "insulate the container",
+                "use a lid",
+                "stir the water",
+                "repeat and average"
+              ],
+              "nonCredit": "Says only 'be more careful' without naming a change to the apparatus."
+            }
+          ],
+          "partialCreditRule": "The control, the error and the improvement are marked independently. The improvement must address the error the learner named.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "pe-07",
+          "conceptId": "energy-conservation",
+          "archetypeId": "evaluate-context",
+          "responseKind": "extended-response",
+          "marks": 5,
+          "prompt": "A data centre needs to remove 2.0 MW of heat. An engineer proposes cooling the servers with water instead of air. Using specific heat capacity, density and flow rate, explain why water can remove the same heat with a smaller temperature rise, and evaluate one practical limitation of the proposal.",
+          "modelAnswer": "The energy removed by a coolant is Q = m c ΔT. Water has a much larger specific heat capacity than air, so each kilogram of water absorbs more energy for the same temperature rise. Water is also much denser, so a given volume carries more mass, and a practical flow rate therefore carries more energy per second. For the same 2.0 MW, water can leave with a smaller temperature rise than air, or the same rise with a much smaller flow rate. A limitation is that water near electronics needs leak protection, corrosion control and pumps; a leak can damage the servers, and pumping and treatment add cost and energy use. The comparison also depends on the inlet temperature and the flow rate actually available, which the proposal has not stated.",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "pe-07-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "uses Q = m c ΔT to link the energy removed to mass, specific heat capacity and temperature rise",
+              "acceptable": [
+                "q = m c δt",
+                "mass × specific heat capacity × temperature rise",
+                "mcδt"
+              ]
+            },
+            {
+              "id": "pe-07-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "states that water has a higher specific heat capacity than air, so it absorbs more energy per kilogram per degree",
+              "acceptable": [
+                "water has a higher specific heat capacity",
+                "more energy per kilogram per degree",
+                "air has a lower specific heat capacity"
+              ],
+              "misconceptionId": "temperature-is-energy",
+              "signals": [
+                "hotter means more energy",
+                "temperature is the energy"
+              ],
+              "nonCredit": "Compares temperatures alone; a higher temperature is not a larger amount of energy without the mass and specific heat capacity."
+            },
+            {
+              "id": "pe-07-c3",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "explains that water's greater density means a given flow rate carries more mass per second",
+              "acceptable": [
+                "water is denser",
+                "more mass per second",
+                "greater density for the same flow rate"
+              ]
+            },
+            {
+              "id": "pe-07-c4",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "concludes that water needs a smaller temperature rise or flow rate for the same 2.0 MW",
+              "acceptable": [
+                "smaller temperature rise",
+                "smaller flow rate",
+                "same heat with less water"
+              ]
+            },
+            {
+              "id": "pe-07-c5",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "evaluates a real limitation, such as leaks, corrosion, pump energy or an unstated inlet temperature",
+              "acceptable": [
+                "leak",
+                "corrosion",
+                "pump energy",
+                "maintenance cost",
+                "inlet temperature is not stated"
+              ],
+              "nonCredit": "Says only that water is 'dangerous' without naming the mechanism or the consequence."
+            }
+          ],
+          "partialCreditRule": "Each link earns one mark. A property named without a consequence for the heat transfer earns at most one mark; the evaluation mark requires a limitation and why it matters.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "power-is-energy",
+          "label": "Power and energy are the same quantity",
+          "whyWrong": "Energy is the amount transferred; power is the rate of transfer. A 100 W lamp left on for 10 s transfers 1000 J; a 10 W lamp left on for 100 s transfers the same energy at a tenth of the power. The units differ for the same reason: joules measure an amount, watts measure joules per second.",
+          "diagnosticSignal": "The answer gives the joule as the unit of power, or says a more powerful device always transfers more energy without naming a time.",
+          "feedback": "Write the relationship P = E ÷ t. A power is only comparable to another power when both are rates; an energy compares only with an energy over the same or a stated time."
+        },
+        {
+          "id": "efficiency-is-energy-loss",
+          "label": "Efficiency means energy has been lost",
+          "whyWrong": "Energy is conserved. An inefficient device does not destroy energy; it transfers a smaller fraction of its input usefully and the rest to the surroundings, usually by heating. Efficiency is the ratio of useful output to total input, not the amount that disappeared.",
+          "diagnosticSignal": "The answer says energy is 'lost', 'used up' or 'destroyed', or treats a low efficiency as a violation of conservation.",
+          "feedback": "Say where the non-useful energy went: to the thermal store of the surroundings by heating, or to sound. Then compute efficiency as useful ÷ total × 100%."
+        },
+        {
+          "id": "specific-heat-is-total",
+          "label": "Specific heat capacity is the total energy needed to heat an object",
+          "whyWrong": "Specific heat capacity is the energy needed to raise 1 kg of a substance by 1 °C. The total energy for an object also depends on its mass and on the temperature change, which is why Q = m c ΔT has three factors and not one.",
+          "diagnosticSignal": "The answer treats specific heat capacity as a fixed total for the object, or ignores mass or temperature change when comparing two heatings.",
+          "feedback": "Keep the 'specific' in mind: per kilogram, per degree. A large specific heat capacity means a substance takes more energy for the same temperature rise, not that it always needs a fixed amount."
+        },
+        {
+          "id": "temperature-is-energy",
+          "label": "A higher temperature always means more thermal energy",
+          "whyWrong": "Temperature measures the average kinetic energy of particles; thermal energy also depends on how many particles there are and on the substance's specific heat capacity. A small cup of water at 90 °C can contain less thermal energy than a bath at 40 °C.",
+          "diagnosticSignal": "The answer compares temperatures alone as if they were amounts of energy, or says the hotter object must transfer more energy.",
+          "feedback": "Compare mass, specific heat capacity and temperature change together. A temperature difference drives a transfer; it is not itself the amount transferred."
+        }
+      ],
+      "limitations": [
+        "This is a design prototype, not a validated examination. No physics teacher or learner has reviewed it.",
+        "The source is a public specification, used for unit placement and assessment style only; it is not a question paper or a mark scheme, and no specification text is reproduced.",
+        "The blueprint is tied to a GCSE energy unit. It must not be applied to A-level, another board or another country without a separate curriculum mapping.",
+        "The data-centre item uses a simplified Q = mcΔT model and does not calculate pumping power or the full heat-exchanger performance.",
+        "No learner has attempted the items; there is no evidence yet that the marking criteria agree with an examiner."
+      ]
+    },
+    {
+      "id": "maths.tables-substitution.ks3",
+      "version": "1.0.0",
+      "title": "Tables, substitution and square signs: assessment blueprint",
+      "subject": "maths",
+      "level": "Key Stage 3 / lower secondary",
+      "reviewStatus": "unreviewed",
+      "serving": {
+        "ok": false,
+        "reviewStatus": "unreviewed",
+        "reasons": [
+          "review status is unreviewed: an unreviewed blueprint is never served as an assessment"
+        ]
+      },
+      "sources": [
+        {
+          "id": "om-tables-authoring",
+          "label": "OpenMind-authored table and substitution item set",
+          "availability": "openmind-authored",
+          "rights": "cleared",
+          "licensing": "cleared",
+          "allowedUse": "pattern-extraction-only",
+          "reproduction": "none",
+          "sourceTextStored": false,
+          "studentDataObserved": false,
+          "note": "Written for OpenMind. No third-party question, table, mark scheme or specification sentence is reproduced. The item is still unreviewed by a mathematics teacher."
+        }
+      ],
+      "items": [
+        {
+          "id": "mt-01",
+          "conceptId": "linear-equations",
+          "archetypeId": "table-completion",
+          "responseKind": "table",
+          "marks": 4,
+          "prompt": "Complete the table of values for y = 2x + 1.",
+          "modelAnswer": "At x = −1, y = −1; at x = 0, y = 1; at x = 1, y = 3; at x = 2, y = 5.",
+          "numeric": null,
+          "table": {
+            "columns": [
+              "x = −1",
+              "x = 0",
+              "x = 1",
+              "x = 2"
+            ],
+            "rows": [
+              {
+                "label": "y = 2x + 1",
+                "cells": [
+                  {
+                    "answer": -1,
+                    "accepted": [
+                      "−1",
+                      "-1"
+                    ],
+                    "tolerance": {
+                      "abs": 0
+                    }
+                  },
+                  {
+                    "answer": 1,
+                    "accepted": [
+                      "1"
+                    ],
+                    "tolerance": {
+                      "abs": 0
+                    }
+                  },
+                  {
+                    "answer": 3,
+                    "accepted": [
+                      "3"
+                    ],
+                    "tolerance": {
+                      "abs": 0
+                    }
+                  },
+                  {
+                    "answer": 5,
+                    "accepted": [
+                      "5"
+                    ],
+                    "tolerance": {
+                      "abs": 0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "criteria": [
+            {
+              "id": "mt-01-c1",
+              "kind": "answer",
+              "marks": 1,
+              "credit": "x = −1 gives y = −1"
+            },
+            {
+              "id": "mt-01-c2",
+              "kind": "answer",
+              "marks": 1,
+              "credit": "x = 0 gives y = 1"
+            },
+            {
+              "id": "mt-01-c3",
+              "kind": "answer",
+              "marks": 1,
+              "credit": "x = 1 gives y = 3"
+            },
+            {
+              "id": "mt-01-c4",
+              "kind": "answer",
+              "marks": 1,
+              "credit": "x = 2 gives y = 5"
+            }
+          ],
+          "partialCreditRule": "Each blank cell is marked independently, so two correct cells earn two marks. The rule is the same for every cell: multiply x by 2, then add 1.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "mt-02",
+          "conceptId": "algebra-expressions",
+          "archetypeId": "recall-parts",
+          "responseKind": "short-answer",
+          "marks": 2,
+          "prompt": "In the expression 2x + 1, name the coefficient of x and the constant term.",
+          "modelAnswer": "The coefficient of x is 2; the constant term is 1.",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "mt-02-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "names 2 as the coefficient of x",
+              "acceptable": [
+                "2",
+                "two",
+                "coefficient is 2",
+                "coefficient 2"
+              ]
+            },
+            {
+              "id": "mt-02-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "names 1 as the constant term",
+              "acceptable": [
+                "1",
+                "one",
+                "constant is 1",
+                "constant 1",
+                "constant term is 1"
+              ]
+            }
+          ],
+          "partialCreditRule": "Each named part earns its own mark. Naming only the coefficient earns one mark; the constant is a separate point.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        },
+        {
+          "id": "mt-03",
+          "conceptId": "quadratics",
+          "archetypeId": "explain-square-sign",
+          "responseKind": "extended-response",
+          "marks": 3,
+          "prompt": "A learner substitutes x = −1 into y = x² − 2 and says the answer is 3, because (−1)² = 1 and 1 + 2 = 3. Explain the mistake and give the correct value of y.",
+          "modelAnswer": "(−1)² means (−1) × (−1), which is 1, not −1. The rule subtracts 2 after squaring, so y = 1 − 2 = −1. The learner changed the subtraction into an addition.",
+          "numeric": null,
+          "table": null,
+          "criteria": [
+            {
+              "id": "mt-03-c1",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "squares −1 correctly and gets 1"
+            },
+            {
+              "id": "mt-03-c2",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "keeps the subtraction outside the square: 1 − 2, not 1 + 2",
+              "misconceptionId": "square-negative-is-negative",
+              "signals": [
+                "square is negative",
+                "(-1) squared is -1",
+                "−1 squared is −1"
+              ]
+            },
+            {
+              "id": "mt-03-c3",
+              "kind": "evidence",
+              "marks": 1,
+              "credit": "states the corrected value y = −1"
+            }
+          ],
+          "partialCreditRule": "Each idea is a separate mark: the square, the operation after it, and the corrected value. A correct value with no reason earns at most the value mark.",
+          "reviewStatus": "unreviewed",
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "square-negative-is-negative",
+          "label": "Squaring a negative number makes it negative",
+          "whyWrong": "(−1)² means (−1) × (−1), and a negative times a negative is positive. The square is 1, not −1. A minus sign outside the square is a separate subtraction applied after squaring, so x² − 2 at x = −1 is 1 − 2 = −1.",
+          "diagnosticSignal": "The answer says (−1)² is −1, or turns x² − 2 into x² + 2 when x is negative.",
+          "feedback": "Square first and keep the sign of the square separate from the subtraction after it: (−1)² = 1, then 1 − 2 = −1."
+        }
+      ],
+      "limitations": [
+        "No mathematics teacher has reviewed the items, the answers or the three-mark explanation rubric.",
+        "The table marker checks cell values, not the method a learner used to obtain them.",
+        "A prose explanation is rubric-only and is not machine-scored; its misconception signal is advisory.",
+        "The Blueprint is Key Stage 3 only and does not establish GCSE, A-level or international equivalence."
+      ]
+    }
+  ]
+}

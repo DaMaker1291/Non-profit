@@ -225,7 +225,18 @@ const CHEMISTRY: SubjectFramework = {
       id: "chemistry.mole-ratio-modelled",
       describe: "when an assessment asks for an amount, a mole-ratio worked example exists",
       check: (l) => {
-        const asksAmount = l.assessment.some((a) => /\bmol|mole|mass|concentration|yield\b/i.test(a.prompt));
+        // A RATE IS NOT AN AMOUNT. “Calculate the rate of mass loss in g/s”
+        // names a mass because mass is what was measured, but the answer is a
+        // rate, and demanding a mole-ratio worked example for it is a false
+        // positive: the item has no amount to convert. Amount questions still
+        // trigger the rule, including a mass asked for without a per-time unit.
+        const asksAmount = l.assessment.some((item) => {
+          const rateQuestion = /\b(rate|per second|per minute|per hour|g\/s|cm³\/s|cm3\/s)\b/i.test(item.prompt);
+          return (
+            /\b(mol|moles|mole|concentration|yield)\b/i.test(item.prompt) ||
+            (/\bmass\b/i.test(item.prompt) && !rateQuestion)
+          );
+        });
         if (!asksAmount) return [];
         return l.workedExamples.some((w) =>
           /\bmol|mole|ratio\b/i.test(

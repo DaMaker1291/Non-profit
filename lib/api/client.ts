@@ -1275,6 +1275,29 @@ export function submitContentReview(
   return send("/api/content-review", { method: "POST", body: { ...input } });
 }
 
+/** The assessment layer's current gate status and the test-only fixture list. */
+export function assessmentCatalog(): Promise<unknown> {
+  return send("/api/assessment");
+}
+
+/** One assessment item WITHOUT its key. The server refuses an unservable
+ *  blueprint; the fixture door is separately and explicitly named. */
+export function assessmentItem(input: { itemId: string; fixture: boolean; blueprintId?: string }): Promise<unknown> {
+  const query = new URLSearchParams({ itemId: input.itemId });
+  if (input.fixture) query.set("fixture", "1");
+  else if (input.blueprintId) query.set("blueprintId", input.blueprintId);
+  return send(`/api/assessment?${query.toString()}`);
+}
+
+/** Submit a structured assessment response. The server decides marking; this
+ *  operation carries the learner's capability and their answers only. */
+export function submitAssessment(input: {
+  id: string; secret: string; blueprintId: string; itemId: string; fixture: boolean;
+  responses: string[]; working: string[]; submissionId?: string;
+}): Promise<unknown> {
+  return send("/api/assessment", { method: "POST", body: { ...input } });
+}
+
 /** Record a human review of an authored lesson. The route derives the reviewer
  *  from the signed-in teaching account; this body carries no identity. */
 export function submitLessonReview(

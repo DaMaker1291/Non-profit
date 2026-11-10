@@ -1,6 +1,6 @@
 # Teacher review pack — Independent Educational Validation 1.0
 
-Generated from the compiled authored lessons on 2026-11-10T13:30:14.896Z.
+Generated from the compiled authored lessons on 2026-11-10T18:59:12.639Z.
 Contract: `openmind.lesson/1.0`.
 
 **This is a request for review, not a review.** No qualified teacher has completed
@@ -37,8 +37,8 @@ The questions a reviewer is answering are:
 | Target lessons | **5** |
 | Teacher reviews recorded on these lessons | **0** |
 | Learner-testing records on these lessons | **0** |
-| Authored lessons in the catalogue | **56** |
-| Machine-checked lessons in the catalogue | **56** |
+| Authored lessons in the catalogue | **65** |
+| Machine-checked lessons in the catalogue | **65** |
 | Educator-reviewed lessons in the catalogue | **0** |
 | Learner-tested lessons in the catalogue | **0** |
 

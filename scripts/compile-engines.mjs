@@ -84,6 +84,10 @@ export const ENGINE_SOURCES = [
   "lib/progress-types.ts",
   "lib/socratic.ts",
   "lib/i18n.ts",
+  // The learning-language vocabulary is merged into the one dictionary, and the
+  // language context is what turns profile fields into teaching instructions.
+  "lib/i18n-learning.ts",
+  "lib/language-profile.ts",
   "lib/matcher.ts",
   "lib/retention.ts",
   "lib/hints.ts",
@@ -104,6 +108,12 @@ export const ENGINE_SOURCES = [
   "lib/lesson-map.ts",
   "lib/theory-map.ts",
   "lib/lesson-media.ts",
+  // EXACT-CONCEPT RESOURCES. The recommender and the pilot eligibility list are
+  // compiled with the lessons because the multilingual gate asserts the served
+  // decision (language match, text-only suppression, offline eligibility) rather
+  // than reading the page for a conditional string.
+  "lib/pilot.ts",
+  "lib/exact-resources.ts",
   "lib/i18n-lessons.ts",
   "lib/subject-atlas.ts",
   // FIGURE GEOMETRY. Compiled with the engines because the claims a diagram
@@ -388,6 +398,20 @@ export const ENGINE_SOURCES = [
   // must judge the REAL lessons against the REAL standard — a gate that reads a
   // parallel copy of either cannot tell an authored lesson from a plan.
   "lib/lesson-contract.ts",
+  // THE ASSESSMENT-INTELLIGENCE RECORD. Compiled with the engines because the
+  // blueprint is data a gate must judge: source permission, independent marking
+  // points, originality and the absence of a review claim are all assertions,
+  // not prose. The blueprint is a LEAF so it cannot drag the question bank in.
+  "lib/assessment-intelligence.ts",
+  "lib/assessment-blueprints/diet-digestion.ts",
+  "lib/assessment-blueprints/physics-energy.ts",
+  // The THIRD response format. Compiled so the blueprint gate, the marking gate
+  // and the table branch are measured through the same mirror the app uses.
+  "lib/assessment-blueprints/maths-tables.ts",
+  // THE COMPILER INTO THE REAL MARKER. It imports structured-items rather than
+  // re-implementing marking, and the review gate in front of serving is the
+  // reason this module can exist without putting an unreviewed item live.
+  "lib/assessment-serving.ts",
   // The durable human-review contract. Compiled with the lessons because the
   // catalogue and the validation pack must judge a review against the SAME
   // content hash the intake route used; a second hash would let an edited

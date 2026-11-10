@@ -58,6 +58,10 @@ export type EvidenceSource =
   | "practice"
   | "retrieval"
   | "past_paper"
+  // A blueprint item marked against an authored scheme. It MEASURES like a
+  // paper without pretending the item came from one: the source is an
+  // OpenMind assessment, not a past paper.
+  | "assessment"
   | "transfer"
   | "project";
 
@@ -557,7 +561,7 @@ export function validateEvent(input: unknown, expectedLearnerId: string): { ok: 
   }
 }
 
-export const SOURCES: EvidenceSource[] = ["diagnostic", "practice", "retrieval", "past_paper", "transfer", "project"];
+export const SOURCES: EvidenceSource[] = ["diagnostic", "practice", "retrieval", "past_paper", "assessment", "transfer", "project"];
 
 // ── Projection ───────────────────────────────────────────────────────────────
 // One projection: what a stream of events says about each concept. This is
@@ -734,7 +738,7 @@ export function projectLearner(events: readonly EvidenceEvent[]): LearnerProject
           }
           // A diagnostic or paper answer MEASURES; practice teaches. Keeping them
           // apart is what stops "improvement" from being rehearsal.
-          if (e.source === "diagnostic" || e.source === "past_paper") { c.measured.asked += 1; if (e.correct) c.measured.correct += 1; }
+          if (e.source === "diagnostic" || e.source === "past_paper" || e.source === "assessment") { c.measured.asked += 1; if (e.correct) c.measured.correct += 1; }
           // The learner's own statement about their knowing, tallied beside the
           // outcome rather than folded into it: "right, but unsure" is a state
           // the accuracy figure cannot express. `?? null` because an event
@@ -877,7 +881,7 @@ export function impactSnapshot(events: readonly EvidenceEvent[]): ImpactSnapshot
   const p = projectLearner(ordered);
   const answers = ordered.filter((e): e is AnswerSubmitted => e.type === "answer_submitted");
 
-  const measuredAnswers = answers.filter((e) => e.source === "diagnostic" || e.source === "past_paper");
+  const measuredAnswers = answers.filter((e) => e.source === "diagnostic" || e.source === "past_paper" || e.source === "assessment");
   const rate = (list: AnswerSubmitted[]): Rate | null => (list.length ? { asked: list.length, correct: list.filter((a) => a.correct).length } : null);
 
   // The baseline is the EARLIEST measuring sitting, taken from the events that

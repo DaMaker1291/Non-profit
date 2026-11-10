@@ -1,0 +1,428 @@
+{
+  "generatedBy": "scripts/assessment-blueprint-check.mjs",
+  "generatedAt": "2026-11-10T19:54:42.039Z",
+  "contract": "openmind.assessment-blueprint/1.0",
+  "totals": {
+    "sources": 6,
+    "archetypes": 16,
+    "items": 17,
+    "marks": 52,
+    "misconceptions": 12,
+    "numericItems": 4,
+    "shortAnswerItems": 3,
+    "tableItems": 1,
+    "extendedItems": 9,
+    "reviewedItems": 0,
+    "sourceTextReproduced": 0,
+    "studentDataSources": 0,
+    "blueprints": 3,
+    "servable": 0,
+    "issues": 0
+  },
+  "blueprints": [
+    {
+      "id": "biology.diet-digestion.year9",
+      "version": "1.0.0",
+      "title": "Diet and digestion: assessment blueprint",
+      "subject": "biology",
+      "level": "Year 9 / lower secondary",
+      "reviewStatus": "unreviewed",
+      "teacherReviewed": false,
+      "learnerTested": false,
+      "humanReviewCount": 0,
+      "reviews": [],
+      "serving": {
+        "ok": false,
+        "reasons": [
+          "review status is unreviewed: an unreviewed blueprint is never served as an assessment",
+          "source rights are unknown: availability is not permission to reuse",
+          "licensing is unknown: no reuse licence is recorded"
+        ]
+      },
+      "sourcePolicy": {
+        "availability": [
+          "teacher-provided"
+        ],
+        "rights": [
+          "unknown"
+        ],
+        "licensing": [
+          "unknown"
+        ],
+        "allowedUse": [
+          "pattern-extraction-only"
+        ],
+        "reproduction": [
+          "none"
+        ],
+        "containsSourceText": false,
+        "studentDataObserved": false
+      },
+      "summary": {
+        "sources": 4,
+        "archetypes": 6,
+        "items": 7,
+        "marks": 23,
+        "misconceptions": 7,
+        "constructedItems": 5,
+        "transferItems": 2,
+        "numericItems": 1,
+        "shortAnswerItems": 1,
+        "tableItems": 0,
+        "extendedItems": 5,
+        "reviewedItems": 0,
+        "sourceTextReproduced": 0,
+        "studentDataSources": 0
+      },
+      "issues": [],
+      "items": [
+        {
+          "id": "dd-01",
+          "archetypeId": "recall-knowledge",
+          "responseKind": "short-answer",
+          "marks": 2,
+          "criteria": 2,
+          "misconceptionIds": [
+            "fat-products-are-sugars"
+          ],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "dd-02",
+          "archetypeId": "explain-structure-function",
+          "responseKind": "extended-response",
+          "marks": 4,
+          "criteria": 4,
+          "misconceptionIds": [
+            "villi-are-muscles",
+            "surface-area-alone"
+          ],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "dd-03",
+          "archetypeId": "compare-processes",
+          "responseKind": "extended-response",
+          "marks": 4,
+          "criteria": 4,
+          "misconceptionIds": [
+            "bile-digests-fat"
+          ],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "dd-04",
+          "archetypeId": "practical-method",
+          "responseKind": "extended-response",
+          "marks": 3,
+          "criteria": 3,
+          "misconceptionIds": [
+            "energy-label-is-body-energy"
+          ],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "dd-05",
+          "archetypeId": "calculate-from-data",
+          "responseKind": "numeric",
+          "marks": 2,
+          "criteria": 2,
+          "misconceptionIds": [],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "dd-06",
+          "archetypeId": "extended-application",
+          "responseKind": "extended-response",
+          "marks": 5,
+          "criteria": 5,
+          "misconceptionIds": [
+            "absorption-is-eating",
+            "absorption-is-eating"
+          ],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "dd-07",
+          "archetypeId": "compare-processes",
+          "responseKind": "extended-response",
+          "marks": 3,
+          "criteria": 3,
+          "misconceptionIds": [
+            "egestion-is-excretion"
+          ],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        }
+      ],
+      "limitations": [
+        "This is a design prototype, not a validated examination. No teacher or learner has reviewed it.",
+        "The school's permission to use the source material for pattern extraction has not been established; the blueprint therefore stores no source text and permits no reproduction.",
+        "OCR of the image-based mark schemes is not treated as an exact transcription. The marking points here are newly written and still need subject-teacher review.",
+        "The blueprint is tied to a Year 9 diet-and-digestion unit. It must not be applied to another specification or country without a separate curriculum mapping.",
+        "The five-mark extended item is an original transfer task, not a source question; it has not been trialled with a learner.",
+        "The calculation item uses a specific heat capacity value and a simple energy-per-gram model; it does not model all heat losses or nutritional energy conventions."
+      ]
+    },
+    {
+      "id": "physics.energy-transfer.gcse",
+      "version": "1.0.0",
+      "title": "Energy transfer and efficiency: assessment blueprint",
+      "subject": "physics",
+      "level": "GCSE / upper secondary (14–16)",
+      "reviewStatus": "unreviewed",
+      "teacherReviewed": false,
+      "learnerTested": false,
+      "humanReviewCount": 0,
+      "reviews": [],
+      "serving": {
+        "ok": false,
+        "reasons": [
+          "review status is unreviewed: an unreviewed blueprint is never served as an assessment",
+          "source rights are unknown: availability is not permission to reuse",
+          "licensing is unknown: no reuse licence is recorded"
+        ]
+      },
+      "sourcePolicy": {
+        "availability": [
+          "publicly-available"
+        ],
+        "rights": [
+          "unknown"
+        ],
+        "licensing": [
+          "unknown"
+        ],
+        "allowedUse": [
+          "pattern-extraction-only"
+        ],
+        "reproduction": [
+          "none"
+        ],
+        "containsSourceText": false,
+        "studentDataObserved": false
+      },
+      "summary": {
+        "sources": 1,
+        "archetypes": 7,
+        "items": 7,
+        "marks": 20,
+        "misconceptions": 4,
+        "constructedItems": 3,
+        "transferItems": 1,
+        "numericItems": 3,
+        "shortAnswerItems": 1,
+        "tableItems": 0,
+        "extendedItems": 3,
+        "reviewedItems": 0,
+        "sourceTextReproduced": 0,
+        "studentDataSources": 0
+      },
+      "issues": [],
+      "items": [
+        {
+          "id": "pe-01",
+          "archetypeId": "recall-units",
+          "responseKind": "short-answer",
+          "marks": 2,
+          "criteria": 2,
+          "misconceptionIds": [
+            "power-is-energy"
+          ],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "pe-02",
+          "archetypeId": "equation-substitution",
+          "responseKind": "numeric",
+          "marks": 2,
+          "criteria": 2,
+          "misconceptionIds": [],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "pe-03",
+          "archetypeId": "equation-substitution",
+          "responseKind": "numeric",
+          "marks": 2,
+          "criteria": 2,
+          "misconceptionIds": [],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "pe-04",
+          "archetypeId": "unit-discipline",
+          "responseKind": "numeric",
+          "marks": 2,
+          "criteria": 2,
+          "misconceptionIds": [],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "pe-05",
+          "archetypeId": "explain-transfer",
+          "responseKind": "extended-response",
+          "marks": 4,
+          "criteria": 4,
+          "misconceptionIds": [
+            "efficiency-is-energy-loss"
+          ],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "pe-06",
+          "archetypeId": "practical-error",
+          "responseKind": "extended-response",
+          "marks": 3,
+          "criteria": 3,
+          "misconceptionIds": [
+            "specific-heat-is-total"
+          ],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "pe-07",
+          "archetypeId": "evaluate-context",
+          "responseKind": "extended-response",
+          "marks": 5,
+          "criteria": 5,
+          "misconceptionIds": [
+            "temperature-is-energy"
+          ],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        }
+      ],
+      "limitations": [
+        "This is a design prototype, not a validated examination. No physics teacher or learner has reviewed it.",
+        "The source is a public specification, used for unit placement and assessment style only; it is not a question paper or a mark scheme, and no specification text is reproduced.",
+        "The blueprint is tied to a GCSE energy unit. It must not be applied to A-level, another board or another country without a separate curriculum mapping.",
+        "The data-centre item uses a simplified Q = mcΔT model and does not calculate pumping power or the full heat-exchanger performance.",
+        "No learner has attempted the items; there is no evidence yet that the marking criteria agree with an examiner."
+      ]
+    },
+    {
+      "id": "maths.tables-substitution.ks3",
+      "version": "1.0.0",
+      "title": "Tables, substitution and square signs: assessment blueprint",
+      "subject": "maths",
+      "level": "Key Stage 3 / lower secondary",
+      "reviewStatus": "unreviewed",
+      "teacherReviewed": false,
+      "learnerTested": false,
+      "humanReviewCount": 0,
+      "reviews": [],
+      "serving": {
+        "ok": false,
+        "reasons": [
+          "review status is unreviewed: an unreviewed blueprint is never served as an assessment"
+        ]
+      },
+      "sourcePolicy": {
+        "availability": [
+          "openmind-authored"
+        ],
+        "rights": [
+          "cleared"
+        ],
+        "licensing": [
+          "cleared"
+        ],
+        "allowedUse": [
+          "pattern-extraction-only"
+        ],
+        "reproduction": [
+          "none"
+        ],
+        "containsSourceText": false,
+        "studentDataObserved": false
+      },
+      "summary": {
+        "sources": 1,
+        "archetypes": 3,
+        "items": 3,
+        "marks": 9,
+        "misconceptions": 1,
+        "constructedItems": 2,
+        "transferItems": 0,
+        "numericItems": 0,
+        "shortAnswerItems": 1,
+        "tableItems": 1,
+        "extendedItems": 1,
+        "reviewedItems": 0,
+        "sourceTextReproduced": 0,
+        "studentDataSources": 0
+      },
+      "issues": [],
+      "items": [
+        {
+          "id": "mt-01",
+          "archetypeId": "table-completion",
+          "responseKind": "table",
+          "marks": 4,
+          "criteria": 4,
+          "misconceptionIds": [],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "mt-02",
+          "archetypeId": "recall-parts",
+          "responseKind": "short-answer",
+          "marks": 2,
+          "criteria": 2,
+          "misconceptionIds": [],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        },
+        {
+          "id": "mt-03",
+          "archetypeId": "explain-square-sign",
+          "responseKind": "extended-response",
+          "marks": 3,
+          "criteria": 3,
+          "misconceptionIds": [
+            "square-negative-is-negative"
+          ],
+          "originality": "newly-authored",
+          "sourceTextReproduced": 0,
+          "reviewStatus": "unreviewed"
+        }
+      ],
+      "limitations": [
+        "No mathematics teacher has reviewed the items, the answers or the three-mark explanation rubric.",
+        "The table marker checks cell values, not the method a learner used to obtain them.",
+        "A prose explanation is rubric-only and is not machine-scored; its misconception signal is advisory.",
+        "The Blueprint is Key Stage 3 only and does not establish GCSE, A-level or international equivalence."
+      ]
+    }
+  ]
+}

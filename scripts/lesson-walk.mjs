@@ -173,10 +173,95 @@ const AUTHORED_CONTRACT = [
   // Batch 36 — evolution. The allele-frequency item is a visible server check,
   // not only a rendered input.
   { concept: "evolution", subject: "biology" },
+  // Batch 37 — genetics. It has no pilot plan, so the authored-contract loop is
+  // what makes the full lesson paint; its numeric monohybrid probability is
+  // submitted separately below.
+  { concept: "genetics", subject: "biology" },
+  // Batch 38 — hormones. Its numeric glucose calculation is submitted below;
+  // the authored-contract loop proves the loop teaching itself paints.
+  { concept: "hormones", subject: "biology" },
+  // Batch 39 — immune-health. Its vaccine-trial percentage is submitted below;
+  // the authored-contract loop proves the immune-response teaching paints.
+  { concept: "immune-health", subject: "biology" },
+  // Batch 40 — nervous-system. Its reaction-time percentage is submitted below;
+  // the authored-contract loop proves the neurone, synapse and reflex teaching
+  // paints at all four widths.
+  { concept: "nervous-system", subject: "biology" },
+  // Batch 41 — acids-bases. Its pH dilution is submitted below; the contract
+  // loop proves the proton-transfer, pH and strength teaching paints.
+  { concept: "acids-bases", subject: "chemistry" },
+  // Batch 42 — analysis-tests. Its Rf calculation is submitted below; the
+  // contract loop proves the identification sequence and its limits paint.
+  { concept: "analysis-tests", subject: "chemistry" },
+  // Batch 43 — covalent-bonding. Its visible assessment is submitted below;
+  // the contract loop proves the electron-count, simple-molecule and giant-
+  // network teaching paints at every width.
+  { concept: "covalent-bonding", subject: "chemistry" },
+  // Batch 44 — electrolysis. Its Q = It answer is submitted below; the contract
+  // loop proves the mobile-ion, half-equation and aqueous-competition teaching
+  // paints at every width.
+  { concept: "electrolysis", subject: "chemistry" },
+  // Batch 45 — energy-changes. Authored with the bond ledger, calorimetry and
+  // the reaction profile; its contract must paint at every width.
+  { concept: "energy-changes", subject: "chemistry" },
+  // Batch 46 — equilibria. Its Kc calculation is submitted below; the contract
+  // loop proves the dynamic-equilibrium, Le Chatelier and Haber teaching paints.
+  { concept: "equilibria", subject: "chemistry" },
+  // Batch 47 — ionic-bonding. Its oxide-ion electron count is submitted below;
+  // the contract loop proves the electron-transfer, lattice and formula teaching
+  // paints at every width.
+  { concept: "ionic-bonding", subject: "chemistry" },
+  // Batch 48 — metallic-bonding. Its three-electron aluminium count is
+  // submitted below; the contract loop proves the electron-sea, alloy and
+  // material-choice teaching paints at every width.
+  { concept: "metallic-bonding", subject: "chemistry" },
+  // Batch 49 — moles-calcs. Its concentration calculation is submitted below;
+  // the contract loop proves the mole, ratio and limiting-reactant teaching
+  // paints at every width.
+  { concept: "moles-calcs", subject: "chemistry" },
+  // Batch 50 — organic-intro. The alkene naming item is submitted below; the
+  // contract loop proves the carbon-skeleton, cracking and polymer teaching
+  // paints at every width.
+  { concept: "organic-intro", subject: "chemistry" },
+  // Batch 51 — rates-reaction. Its visible rate calculation is submitted below;
+  // the contract loop proves the collision-theory, catalyst and graph teaching
+  // paints at every width.
+  { concept: "rates-reaction", subject: "chemistry" },
+  // COVERAGE REPAIR — the remaining authored lessons. The earlier list grew by
+  // batch, so the page check followed a subset of the authored set; the FIGURED
+  // loop reached some of these lessons but only measured their plan's drawing.
+  // Listing every authored lesson here makes `AUTHORED_CONTRACT.length` the
+  // honest browser-coverage denominator, and a lesson added without a row is a
+  // visible omission rather than a number that looks complete.
+  { concept: "cells", subject: "biology" },
+  { concept: "diffusion", subject: "biology" },
+  { concept: "enzymes", subject: "biology" },
+  { concept: "photosynthesis", subject: "biology" },
+  { concept: "atoms-elements", subject: "chemistry" },
+  { concept: "electron-shells", subject: "chemistry" },
+  { concept: "equations-stoich", subject: "chemistry" },
+  { concept: "periodic-table", subject: "chemistry" },
+  { concept: "algorithms-search", subject: "computing" },
+  { concept: "loops", subject: "computing" },
+  { concept: "variables", subject: "computing" },
+  { concept: "what-is-code", subject: "computing" },
+  { concept: "decimals", subject: "maths" },
+  { concept: "fractions", subject: "maths" },
+  { concept: "fraction-ops", subject: "maths" },
+  { concept: "negatives", subject: "maths" },
+  { concept: "order-ops", subject: "maths" },
+  { concept: "percentages", subject: "maths" },
+  { concept: "linear-equations", subject: "maths" },
+  { concept: "quadratics", subject: "maths" },
+  { concept: "electricity-circuits", subject: "physics" },
+  { concept: "energy-conservation", subject: "physics" },
+  { concept: "forces-basics", subject: "physics" },
+  { concept: "motion-graphs", subject: "physics" },
+  { concept: "waves-basics", subject: "physics" },
 ];
 
 /** Every kind the figure union declares. A plan may only draw one of these. */
-const KINDS = ["axes", "pie", "right-triangle", "number-line", "balance", "rectangle", "surd-square", "particles", "circuit", "cell", "atom", "chem"];
+const KINDS = ["axes", "pie", "right-triangle", "number-line", "balance", "rectangle", "surd-square", "particles", "circuit", "cell", "atom", "chem", "energy-profile"];
 
 async function main() {
   try {
@@ -332,8 +417,49 @@ async function main() {
     await goto(`${BASE}/learn/maths/${concept}`);
     await p.waitFor(`return !!${door};`, `the ${concept} read stage to offer its practice door`, 30000);
     await p.clickExpr(door, `the practice door on ${concept}`);
-    await p.waitFor(`return !!document.querySelector("main .choices button") || !!document.querySelector("main .numeric-input");`, `a served ${concept} question`, 30000);
-    return p.evaluate(`return document.querySelector("main .numeric-input") ? "numeric" : "choice";`);
+    // EVERY ANSWER KIND THE PAGE DECLARES, not only the two oldest. `coordinates`
+    // can serve a typed point (two fields) and other concepts serve a fraction;
+    // waiting only for `.choices` or `.numeric-input` reported "no served
+    // question" while a perfectly good pair item was on screen.
+    await p.waitFor(
+      `return !!document.querySelector("main .choices button") || !!document.querySelector("main .numeric-input") || !!document.querySelector("main .fraction-input") || !!document.querySelector("main .pair-input");`,
+      `a served ${concept} question`,
+      30000,
+    );
+    return p.evaluate(`
+      const q = (s) => document.querySelector(s);
+      return q("main .numeric-input") ? "numeric"
+        : q("main .fraction-input") ? "fraction"
+        : q("main .pair-input") ? "pair"
+        : "choice";`);
+  };
+
+  /** Answer the control the serve actually put on screen. The wrong-answer
+   *  sections need a guaranteed miss, and the bank now has more than one kind of
+   *  box: a number, a fraction (numerator/denominator) and a point (x/y). */
+  const answerWrong = async (kind, choiceIndex = 0) => {
+    if (kind === "numeric") {
+      await p.typeInto(`document.querySelector("main .numeric-input")`, "999", "the answer box");
+      await p.clickExpr(buttonMatching("/Check/"), "Check the typed answer");
+      return;
+    }
+    if (kind === "fraction") {
+      const fields = `[...document.querySelectorAll("main .fraction-input")]`;
+      await p.typeInto(`${fields}[0]`, "999", "the numerator");
+      await p.typeInto(`${fields}[1]`, "997", "the denominator");
+      await p.clickExpr(buttonMatching("/Check/"), "Check the fraction");
+      return;
+    }
+    if (kind === "pair") {
+      const fields = `[...document.querySelectorAll("main .pair-input")]`;
+      await p.typeInto(`${fields}[0]`, "999", "the x coordinate");
+      await p.typeInto(`${fields}[1]`, "999", "the y coordinate");
+      await p.clickExpr(buttonMatching("/Check/"), "Check the coordinate pair");
+      return;
+    }
+    const count = await p.evaluate(`return document.querySelectorAll("main .choices button").length;`);
+    if (count === 0) throw new Error("no answer control to click");
+    await p.clickExpr(`[...document.querySelectorAll("main .choices button")][${choiceIndex % count}]`, "a choice");
   };
 
   /** WHICH ELEMENT IS PUSHING THE PAGE WIDER — measured, not guessed.
@@ -694,17 +820,11 @@ async function main() {
       }
       draws++;
       servedLog.push((await p.evaluate(`return (document.querySelector("main .qprompt")?.innerText || "").replace(/\\s+/g, " ").slice(0, 46);`)) ?? "");
-      if (control === "numeric") {
-        // A numeric item has no options to read a note off, but it still has to
-        // be answered: 999 is wrong for every coordinates answer the bank makes,
-        // so the draw produces the wrong-answer surface rather than a correct one
-        // that skips the feedback.
-        await p.typeInto(`document.querySelector("main .numeric-input")`, "999", "the answer box");
-        await p.clickExpr(buttonMatching("/Check/"), "Check the typed answer");
-      } else {
-        const count = await p.evaluate(`return document.querySelectorAll("main .choices button").length;`);
-        await p.clickExpr(`[...document.querySelectorAll("main .choices button")][${i % count}]`, `choice ${(i % count) + 1}`);
-      }
+      // A typed item has no options to read a note off, but it still has to be
+      // answered; 999 (and 999/997, or the point (999, 999)) is wrong for every
+      // coordinates answer the bank makes, so the draw produces the wrong-answer
+      // surface rather than a correct one that skips the feedback.
+      await answerWrong(control, i);
       await p.waitFor(`return /Not yet|Correct/.test(document.querySelector("main .feedback .verdict")?.textContent || "");`, "the verdict", 25000);
       const graded = await p.evaluate(`
         const f = document.querySelector("main .feedback");
@@ -755,12 +875,7 @@ async function main() {
         break;
       }
       slipDraws++;
-      if (control === "numeric") {
-        await p.typeInto(`document.querySelector("main .numeric-input")`, "999", "the answer box");
-        await p.clickExpr(buttonMatching("/Check/"), "Check the typed answer");
-      } else {
-        await p.clickExpr(`[...document.querySelectorAll("main .choices button")][0]`, "the first option");
-      }
+      await answerWrong(control, 0);
       await p.waitFor(`return /Not yet|Correct/.test(document.querySelector("main .feedback .verdict")?.textContent || "");`, "the verdict", 25000);
       const graded = await p.evaluate(`
         const f = document.querySelector("main .feedback");
@@ -1049,7 +1164,14 @@ async function main() {
     let figureCap = null;
     const servedPrompts = [];
     for (let i = 0; i < 6 && !figureCap; i++) {
-      try { await openPractice("coordinates"); } catch { break; }
+      try {
+        await openPractice("coordinates");
+      } catch (e) {
+        // An empty `served` list used to mean "the helper threw and nobody said
+        // why". The reason is now part of the measurement.
+        servedPrompts.push(`OPEN_FAILED: ${String(e?.message ?? e).slice(0, 160)}`);
+        break;
+      }
       servedPrompts.push((await p.evaluate(`return (document.querySelector("main .qprompt, main .q")?.innerText || "").replace(/\\s+/g, " ").slice(0, 70);`)) || "");
       figureCap = await p.evaluate(`
         const f = document.querySelector("main .qfigure");
@@ -1089,16 +1211,16 @@ async function main() {
         ? "and it is read before the answer control, so the picture is described before it is asked about"
         : `the caption was not read before the answer control (missing: ${capBefore?.which})`);
 
-    // ── 8. The authored lessons no pilot plan covers ───────────────────────
+    // ── 8. Every authored lesson, including the planned ones ────────────────
     //
-    // The batch above is authored teaching with no plan record, so the FIGURED
-    // loop — which walks plans — cannot reach it. Until this section existed the
-    // only evidence those lessons rendered was that `auditLesson` returned no
-    // problems: a claim about a module, never about a page. What a module check
-    // cannot see is exactly what went wrong here before (a section whose CSS
-    // matched nothing, a card that never paints), so each lesson is opened and
-    // its authored sections are COUNTED.
-    section("Every authored lesson with no pilot plan teaches on the page");
+    // The batch above is authored teaching; the FIGURED loop measures a plan's
+    // drawing but does not open every authored lesson's sections. Until this
+    // section existed the only evidence those lessons rendered was that
+    // `auditLesson` returned no problems: a claim about a module, never about a
+    // page. What a module check cannot see is exactly what went wrong here
+    // before (a section whose CSS matched nothing, a card that never paints), so
+    // every authored lesson is opened and its sections are COUNTED.
+    section("Every authored lesson teaches on the page");
     // THE LESSON LANGUAGE, NOT JUST THE BUTTONS.
     //
     // Section 7 deliberately leaves the learner being TAUGHT in Spanish (the
@@ -1571,6 +1693,292 @@ async function main() {
       const evolutionVerdict = await p.evaluate(`const i = ${evolutionInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
       check(/Correct/.test(evolutionVerdict.text) && /0\.1/.test(evolutionVerdict.text) && !/could not be marked/.test(evolutionVerdict.text) && evolutionVerdict.disabled === false,
         `evolution: a2 is submitted visibly, marked correct, and shows the key ("${String(evolutionVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the genetics monohybrid probability through the page ────────────────
+    // The key is 0.25 (one pp box in four). The same visible control carries the
+    // answer to the server, and the verdict must appear before it is read.
+    section("Genetics' monohybrid probability is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/biology/genetics`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored genetics lesson", 30000);
+    const geneticsInput = `document.querySelector('input[id="genetics-a2"]')`;
+    const geneticsState = await p.evaluate(`const i = ${geneticsInput}; return i ? { disabled: i.disabled } : null;`);
+    check(geneticsState?.disabled === false,
+      `genetics: the visible assessment input is present and enabled (${geneticsState?.disabled ?? "missing"})`);
+    if (geneticsState?.disabled === false) {
+      await p.typeInto(geneticsInput, "0.25", "the genetics monohybrid probability");
+      await p.clickExpr(`${geneticsInput}.parentElement.querySelector("button")`, "Check on genetics a2");
+      await p.waitFor(`const i = ${geneticsInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the genetics verdict", 15000);
+      const geneticsVerdict = await p.evaluate(`const i = ${geneticsInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(geneticsVerdict.text) && /0\.25/.test(geneticsVerdict.text) && !/could not be marked/.test(geneticsVerdict.text) && geneticsVerdict.disabled === false,
+        `genetics: a2 is submitted visibly, marked correct, and shows the probability ("${String(geneticsVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the hormones glucose calculation through the page ───────────────────
+    // The key is 3.5 mmol/L after subtracting 1.5 from 5.0. The server's verdict
+    // and model answer must paint before the check reads them.
+    section("Hormones' glucose calculation is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/biology/hormones`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored hormones lesson", 30000);
+    const hormonesInput = `document.querySelector('input[id="hormones-a2"]')`;
+    const hormonesState = await p.evaluate(`const i = ${hormonesInput}; return i ? { disabled: i.disabled } : null;`);
+    check(hormonesState?.disabled === false,
+      `hormones: the visible assessment input is present and enabled (${hormonesState?.disabled ?? "missing"})`);
+    if (hormonesState?.disabled === false) {
+      await p.typeInto(hormonesInput, "3.5", "the hormones glucose answer");
+      await p.clickExpr(`${hormonesInput}.parentElement.querySelector("button")`, "Check on hormones a2");
+      await p.waitFor(`const i = ${hormonesInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the hormones verdict", 15000);
+      const hormonesVerdict = await p.evaluate(`const i = ${hormonesInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(hormonesVerdict.text) && /3\.5/.test(hormonesVerdict.text) && !/could not be marked/.test(hormonesVerdict.text) && hormonesVerdict.disabled === false,
+        `hormones: a2 is submitted visibly, marked correct, and shows the concentration ("${String(hormonesVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the immune-health vaccine-trial percentage through the page ──────────
+    // The key is 75% — a reduction from 20 to 5 cases per 1,000 is 15/20.
+    section("Immune-health's vaccine-trial reduction is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/biology/immune-health`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored immune-health lesson", 30000);
+    const immuneInput = `document.querySelector('input[id="immune-health-a2"]')`;
+    const immuneState = await p.evaluate(`const i = ${immuneInput}; return i ? { disabled: i.disabled } : null;`);
+    check(immuneState?.disabled === false,
+      `immune-health: the visible assessment input is present and enabled (${immuneState?.disabled ?? "missing"})`);
+    if (immuneState?.disabled === false) {
+      await p.typeInto(immuneInput, "75", "the immune-health vaccine-trial answer");
+      await p.clickExpr(`${immuneInput}.parentElement.querySelector("button")`, "Check on immune-health a2");
+      await p.waitFor(`const i = ${immuneInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the immune-health verdict", 15000);
+      const immuneVerdict = await p.evaluate(`const i = ${immuneInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(immuneVerdict.text) && /75%/.test(immuneVerdict.text) && !/could not be marked/.test(immuneVerdict.text) && immuneVerdict.disabled === false,
+        `immune-health: a2 is submitted visibly, marked correct, and shows the reduction ("${String(immuneVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the nervous-system reaction-time percentage through the page ─────────
+    // The key is 20%: (0.25 − 0.20) ÷ 0.25 × 100. A single visible submission
+    // proves the assessment control reaches the server's marking path, not only
+    // that the lesson module validates.
+    section("Nervous-system's reaction-time reduction is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/biology/nervous-system`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored nervous-system lesson", 30000);
+    const nervousInput = `document.querySelector('input[id="nervous-system-a2"]')`;
+    const nervousState = await p.evaluate(`const i = ${nervousInput}; return i ? { disabled: i.disabled } : null;`);
+    check(nervousState?.disabled === false,
+      `nervous-system: the visible assessment input is present and enabled (${nervousState?.disabled ?? "missing"})`);
+    if (nervousState?.disabled === false) {
+      await p.typeInto(nervousInput, "20", "the nervous-system reaction-time reduction");
+      await p.clickExpr(`${nervousInput}.parentElement.querySelector("button")`, "Check on nervous-system a2");
+      await p.waitFor(`const i = ${nervousInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the nervous-system verdict", 15000);
+      const nervousVerdict = await p.evaluate(`const i = ${nervousInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(nervousVerdict.text) && /20%/.test(nervousVerdict.text) && !/could not be marked/.test(nervousVerdict.text) && nervousVerdict.disabled === false,
+        `nervous-system: a2 is submitted visibly, marked correct, and shows the reduction ("${String(nervousVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the acids-bases pH dilution through the page ─────────────────────────
+    // The key is pH 5: a 100-fold dilution subtracts two from the exponent in
+    // 10⁻³, and the visible form must reach the same marking path as the tests.
+    section("Acids-bases' pH dilution is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/chemistry/acids-bases`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored acids-bases lesson", 30000);
+    const acidsInput = `document.querySelector('input[id="acids-bases-a2"]')`;
+    const acidsState = await p.evaluate(`const i = ${acidsInput}; return i ? { disabled: i.disabled } : null;`);
+    check(acidsState?.disabled === false,
+      `acids-bases: the visible assessment input is present and enabled (${acidsState?.disabled ?? "missing"})`);
+    if (acidsState?.disabled === false) {
+      await p.typeInto(acidsInput, "5", "the acids-bases pH dilution answer");
+      await p.clickExpr(`${acidsInput}.parentElement.querySelector("button")`, "Check on acids-bases a2");
+      await p.waitFor(`const i = ${acidsInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the acids-bases verdict", 15000);
+      const acidsVerdict = await p.evaluate(`const i = ${acidsInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(acidsVerdict.text) && /pH 5/.test(acidsVerdict.text) && !/could not be marked/.test(acidsVerdict.text) && acidsVerdict.disabled === false,
+        `acids-bases: a2 is submitted visibly, marked correct, and shows the new pH ("${String(acidsVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the analysis-tests Rf calculation through the page ───────────────────
+    // The key is 0.50: spot 4.5 cm ÷ solvent front 9.0 cm. Typing the key and
+    // seeing the model answer proves the visible assessment reaches the server's
+    // marking path; the contract loop above proves the test sequence paints.
+    section("Analysis-tests' Rf calculation is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/chemistry/analysis-tests`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored analysis-tests lesson", 30000);
+    const analysisInput = `document.querySelector('input[id="analysis-tests-a2"]')`;
+    const analysisState = await p.evaluate(`const i = ${analysisInput}; return i ? { disabled: i.disabled } : null;`);
+    check(analysisState?.disabled === false,
+      `analysis-tests: the visible assessment input is present and enabled (${analysisState?.disabled ?? "missing"})`);
+    if (analysisState?.disabled === false) {
+      await p.typeInto(analysisInput, "0.5", "the analysis-tests Rf answer");
+      await p.clickExpr(`${analysisInput}.parentElement.querySelector("button")`, "Check on analysis-tests a2");
+      await p.waitFor(`const i = ${analysisInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the analysis-tests verdict", 15000);
+      const analysisVerdict = await p.evaluate(`const i = ${analysisInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(analysisVerdict.text) && /0\.50/.test(analysisVerdict.text) && !/could not be marked/.test(analysisVerdict.text) && analysisVerdict.disabled === false,
+        `analysis-tests: a2 is submitted visibly, marked correct, and shows the Rf value ("${String(analysisVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the covalent-bonding shared-electron count through the page ─────────
+    // The key is 6: N≡N is three shared pairs, each pair two electrons. A single
+    // visible submission proves the assessment control reaches the server's
+    // marking path; the contract loop above proves the bonding model paints.
+    section("Covalent-bonding's shared-electron count is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/chemistry/covalent-bonding`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored covalent-bonding lesson", 30000);
+    const covalentInput = `document.querySelector('input[id="covalent-bonding-a2"]')`;
+    const covalentState = await p.evaluate(`const i = ${covalentInput}; return i ? { disabled: i.disabled } : null;`);
+    check(covalentState?.disabled === false,
+      `covalent-bonding: the visible assessment input is present and enabled (${covalentState?.disabled ?? "missing"})`);
+    if (covalentState?.disabled === false) {
+      await p.typeInto(covalentInput, "6", "the covalent-bonding shared-electron answer");
+      await p.clickExpr(`${covalentInput}.parentElement.querySelector("button")`, "Check on covalent-bonding a2");
+      await p.waitFor(`const i = ${covalentInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the covalent-bonding verdict", 15000);
+      const covalentVerdict = await p.evaluate(`const i = ${covalentInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(covalentVerdict.text) && /\b6\b/.test(covalentVerdict.text) && !/could not be marked/.test(covalentVerdict.text) && covalentVerdict.disabled === false,
+        `covalent-bonding: a2 is submitted visibly, marked correct, and shows the shared-electron count ("${String(covalentVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the electrolysis charge calculation through the page ───────────────
+    // The key is 600 C: 2.0 A × 5.0 min, with the minutes converted to 300 s.
+    // A visible submission proves the numerical marking path, not just that the
+    // teaching text paints.
+    section("Electrolysis' charge calculation is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/chemistry/electrolysis`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored electrolysis lesson", 30000);
+    const electrolysisInput = `document.querySelector('input[id="electrolysis-a2"]')`;
+    const electrolysisState = await p.evaluate(`const i = ${electrolysisInput}; return i ? { disabled: i.disabled } : null;`);
+    check(electrolysisState?.disabled === false,
+      `electrolysis: the visible assessment input is present and enabled (${electrolysisState?.disabled ?? "missing"})`);
+    if (electrolysisState?.disabled === false) {
+      await p.typeInto(electrolysisInput, "600", "the electrolysis charge answer");
+      await p.clickExpr(`${electrolysisInput}.parentElement.querySelector("button")`, "Check on electrolysis a2");
+      await p.waitFor(`const i = ${electrolysisInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the electrolysis verdict", 15000);
+      const electrolysisVerdict = await p.evaluate(`const i = ${electrolysisInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(electrolysisVerdict.text) && /\b600\b/.test(electrolysisVerdict.text) && !/could not be marked/.test(electrolysisVerdict.text) && electrolysisVerdict.disabled === false,
+        `electrolysis: a2 is submitted visibly, marked correct, and shows the charge ("${String(electrolysisVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the oxide-ion electron count through the page ──────────────────────
+    // The key is 10: oxygen has 8 electrons, and O²⁻ has gained 2. A visible
+    // submission proves this lesson's assessment control reaches the server's
+    // marking path, not only that its teaching text paints.
+    section("Ionic-bonding's oxide-ion electron count is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/chemistry/ionic-bonding`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored ionic-bonding lesson", 30000);
+    const ionicInput = `document.querySelector('input[id="ionic-bonding-a2"]')`;
+    const ionicState = await p.evaluate(`const i = ${ionicInput}; return i ? { disabled: i.disabled } : null;`);
+    check(ionicState?.disabled === false,
+      `ionic-bonding: the visible assessment input is present and enabled (${ionicState?.disabled ?? "missing"})`);
+    if (ionicState?.disabled === false) {
+      await p.typeInto(ionicInput, "10", "the ionic-bonding oxide-ion electron count");
+      await p.clickExpr(`${ionicInput}.parentElement.querySelector("button")`, "Check on ionic-bonding a2");
+      await p.waitFor(`const i = ${ionicInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the ionic-bonding verdict", 15000);
+      const ionicVerdict = await p.evaluate(`const i = ${ionicInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(ionicVerdict.text) && /\b10\b/.test(ionicVerdict.text) && !/could not be marked/.test(ionicVerdict.text) && ionicVerdict.disabled === false,
+        `ionic-bonding: a2 is submitted visibly, marked correct, and shows 10 ("${String(ionicVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the aluminium electron count through the page ──────────────────────
+    // The key is 3: aluminium is 2, 8, 3, so the simple metallic model
+    // contributes three outer electrons per atom. A visible submission proves
+    // the lesson's assessment control reaches the server's marking path.
+    section("Metallic-bonding's aluminium electron count is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/chemistry/metallic-bonding`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored metallic-bonding lesson", 30000);
+    const metallicInput = `document.querySelector('input[id="metallic-bonding-a2"]')`;
+    const metallicState = await p.evaluate(`const i = ${metallicInput}; return i ? { disabled: i.disabled } : null;`);
+    check(metallicState?.disabled === false,
+      `metallic-bonding: the visible assessment input is present and enabled (${metallicState?.disabled ?? "missing"})`);
+    if (metallicState?.disabled === false) {
+      await p.typeInto(metallicInput, "3", "the metallic-bonding aluminium electron count");
+      await p.clickExpr(`${metallicInput}.parentElement.querySelector("button")`, "Check on metallic-bonding a2");
+      await p.waitFor(`const i = ${metallicInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the metallic-bonding verdict", 15000);
+      const metallicVerdict = await p.evaluate(`const i = ${metallicInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(metallicVerdict.text) && /\b3\b/.test(metallicVerdict.text) && !/could not be marked/.test(metallicVerdict.text) && metallicVerdict.disabled === false,
+        `metallic-bonding: a2 is submitted visibly, marked correct, and shows 3 ("${String(metallicVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the solution amount through the page ───────────────────────────────
+    // The key is 0.00250 mol: 25.0 cm³ = 0.0250 dm³, and 0.100 × 0.0250 =
+    // 0.00250. This checks the unit conversion and the numeric marking path.
+    section("Moles-calcs' solution amount is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/chemistry/moles-calcs`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored moles-calcs lesson", 30000);
+    const molesInput = `document.querySelector('input[id="moles-calcs-a2"]')`;
+    const molesState = await p.evaluate(`const i = ${molesInput}; return i ? { disabled: i.disabled } : null;`);
+    check(molesState?.disabled === false,
+      `moles-calcs: the visible assessment input is present and enabled (${molesState?.disabled ?? "missing"})`);
+    if (molesState?.disabled === false) {
+      await p.typeInto(molesInput, "0.0025", "the moles-calcs solution amount");
+      await p.clickExpr(`${molesInput}.parentElement.querySelector("button")`, "Check on moles-calcs a2");
+      await p.waitFor(`const i = ${molesInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the moles-calcs verdict", 15000);
+      const molesVerdict = await p.evaluate(`const i = ${molesInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(molesVerdict.text) && /0\.0025/.test(molesVerdict.text) && !/could not be marked/.test(molesVerdict.text) && molesVerdict.disabled === false,
+        `moles-calcs: a2 is submitted visibly, marked correct, and shows 0.0025 ("${String(molesVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the alkene name and formula through the page ────────────────────────
+    // Propene is the three-carbon alkene. This checks the homologous-series
+    // count and the short-answer path, not just the multiple-choice bank.
+    section("Organic-intro's alkene name is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/chemistry/organic-intro`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored organic-intro lesson", 30000);
+    const organicInput = `document.querySelector('input[id="organic-intro-a2"]')`;
+    const organicState = await p.evaluate(`const i = ${organicInput}; return i ? { disabled: i.disabled } : null;`);
+    check(organicState?.disabled === false,
+      `organic-intro: the visible assessment input is present and enabled (${organicState?.disabled ?? "missing"})`);
+    if (organicState?.disabled === false) {
+      await p.typeInto(organicInput, "propene, C3H6", "the organic-intro alkene answer");
+      await p.clickExpr(`${organicInput}.parentElement.querySelector("button")`, "Check on organic-intro a2");
+      await p.waitFor(`const i = ${organicInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the organic-intro verdict", 15000);
+      const organicVerdict = await p.evaluate(`const i = ${organicInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(organicVerdict.text) && /propene/i.test(organicVerdict.text) && !/could not be marked/.test(organicVerdict.text) && organicVerdict.disabled === false,
+        `organic-intro: a2 is submitted visibly, marked correct, and shows propene ("${String(organicVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the rates-reaction calculation through the page ─────────────────────
+    // The visible item has a deterministic key, so this proves the authored
+    // lesson's server-marked path rather than only that its prose paints.
+    section("Rates-reaction's mean rate is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/chemistry/rates-reaction`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored rates-reaction lesson", 30000);
+    const ratesInput = `document.querySelector('input[id="rates-reaction-a1"]')`;
+    const ratesState = await p.evaluate(`const i = ${ratesInput}; return i ? { disabled: i.disabled } : null;`);
+    check(ratesState?.disabled === false,
+      `rates-reaction: the visible assessment input is present and enabled (${ratesState?.disabled ?? "missing"})`);
+    if (ratesState?.disabled === false) {
+      await p.typeInto(ratesInput, "0.0040 g/s", "the rates-reaction rate answer");
+      await p.clickExpr(`${ratesInput}.parentElement.querySelector("button")`, "Check on rates-reaction a1");
+      await p.waitFor(`const i = ${ratesInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the rates-reaction verdict", 15000);
+      const ratesVerdict = await p.evaluate(`const i = ${ratesInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(ratesVerdict.text) && /0\.0040/.test(ratesVerdict.text) && !/could not be marked/.test(ratesVerdict.text) && ratesVerdict.disabled === false,
+        `rates-reaction: a1 is submitted visibly, marked correct, and shows the rate ("${String(ratesVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the equilibrium-constant calculation through the page ──────────────
+    // The key is 0.020: [PCl3][Cl2] / [PCl5] = 0.10 × 0.10 / 0.50. A visible
+    // submission proves the numeric assessment path, not only that the
+    // equilibrium teaching paints.
+    section("Equilibria' Kc calculation is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/chemistry/equilibria`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored equilibria lesson", 30000);
+    const equilibriaInput = `document.querySelector('input[id="equilibria-a2"]')`;
+    const equilibriaState = await p.evaluate(`const i = ${equilibriaInput}; return i ? { disabled: i.disabled } : null;`);
+    check(equilibriaState?.disabled === false,
+      `equilibria: the visible assessment input is present and enabled (${equilibriaState?.disabled ?? "missing"})`);
+    if (equilibriaState?.disabled === false) {
+      await p.typeInto(equilibriaInput, "0.020", "the equilibria Kc answer");
+      await p.clickExpr(`${equilibriaInput}.parentElement.querySelector("button")`, "Check on equilibria a2");
+      await p.waitFor(`const i = ${equilibriaInput}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the equilibria verdict", 15000);
+      const equilibriaVerdict = await p.evaluate(`const i = ${equilibriaInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(equilibriaVerdict.text) && /\b0\.020\b/.test(equilibriaVerdict.text) && !/could not be marked/.test(equilibriaVerdict.text) && equilibriaVerdict.disabled === false,
+        `equilibria: a2 is submitted visibly, marked correct, and shows Kc ("${String(equilibriaVerdict.text).slice(0, 100)}")`);
     }
 
   } finally {

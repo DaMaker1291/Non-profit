@@ -7,22 +7,8 @@ Generated from `reports/lesson-quality/audit.json`. Work in batches; do not mark
 ## Critical (0)
 
 
-## High (79)
+## High (65)
 
-- [ ] `genetics` (biology, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `hormones` (biology, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `immune-health` (biology, stage 3) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `nervous-system` (biology, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `acids-bases` (chemistry, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `analysis-tests` (chemistry, stage 3) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `covalent-bonding` (chemistry, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `electrolysis` (chemistry, stage 3) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `energy-changes` (chemistry, stage 3) — Upgrade the authored plan into openmind.lesson/1.0: add a prerequisite diagnostic, authored worked reasoning, assessment with marking criteria, a transfer task and spaced retrieval.
-- [ ] `equilibria` (chemistry, stage 4) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `ionic-bonding` (chemistry, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `metallic-bonding` (chemistry, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
-- [ ] `moles-calcs` (chemistry, stage 2) — Upgrade the authored plan into openmind.lesson/1.0: add a prerequisite diagnostic, authored worked reasoning, assessment with marking criteria, a transfer task and spaced retrieval.
-- [ ] `organic-intro` (chemistry, stage 3) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 - [ ] `rates-reaction` (chemistry, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 - [ ] `ai-basics` (computing, stage 3) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 - [ ] `algorithms-sort` (computing, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
@@ -89,7 +75,7 @@ Generated from `reports/lesson-quality/audit.json`. Work in batches; do not mark
 - [ ] `thermal-physics` (physics, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 - [ ] `work-power` (physics, stage 2) — Replace the assembled outline with an authored lesson: diagnostic, two fully worked examples with reasons, misconception repair, guided and independent assessment, a transfer task and spaced retrieval.
 
-## Review (56)
+## Review (70)
 
 - [ ] `biodiversity` (biology, stage 3) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `breathing-gas` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
@@ -100,13 +86,27 @@ Generated from `reports/lesson-quality/audit.json`. Work in batches; do not mark
 - [ ] `ecosystems` (biology, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `enzymes` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `evolution` (biology, stage 3) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `genetics` (biology, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `hormones` (biology, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `immune-health` (biology, stage 3) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `microscopy` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `nervous-system` (biology, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `photosynthesis` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `respiration` (biology, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `acids-bases` (chemistry, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `analysis-tests` (chemistry, stage 3) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `atoms-elements` (chemistry, stage 0) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `compounds-mixtures` (chemistry, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `covalent-bonding` (chemistry, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `electrolysis` (chemistry, stage 3) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `electron-shells` (chemistry, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `energy-changes` (chemistry, stage 3) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `equations-stoich` (chemistry, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `equilibria` (chemistry, stage 4) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `ionic-bonding` (chemistry, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `metallic-bonding` (chemistry, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `moles-calcs` (chemistry, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
+- [ ] `organic-intro` (chemistry, stage 3) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `periodic-table` (chemistry, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `algorithms-search` (computing, stage 2) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.
 - [ ] `binary-data` (computing, stage 1) — Subject-teacher review of the mathematics/science and worked reasoning; then learner testing for independent transfer and delayed retention.

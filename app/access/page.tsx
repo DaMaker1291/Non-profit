@@ -28,6 +28,12 @@ export default function AccessPage() {
   const [board, setBoard] = useState(state?.profile.board ?? "");
   const [exam, setExam] = useState(state?.profile.exam ?? "");
   const [learningStyle, setLearningStyle] = useState(state?.profile.learningStyle ?? "");
+  // Learning languages are learner-owned. None of these is inferred from the
+  // interface language, the country picker or the school year.
+  const [examLang, setExamLang] = useState(state?.profile.examLang ?? "en");
+  const [secondaryLang, setSecondaryLang] = useState(state?.profile.secondaryLang ?? "");
+  const [bilingualTerms, setBilingualTerms] = useState(state?.profile.bilingualTerms === true);
+  const [dataPreference, setDataPreference] = useState(state?.profile.dataPreference ?? "balanced");
   // THE SETTING EXAMPLES ARE SET IN. Enrolment used to ask this beside the year
   // group, which made a sign-up carry one more question than it needed; the
   // answer is a preference about how the teaching reads, so it lives with the
@@ -63,6 +69,10 @@ export default function AccessPage() {
       setExplainLen(state.profile.explainLen ?? "full");
       setResources(state.profile.resources ?? []);
       setExamples(state.profile.examples ?? "neutral");
+      setExamLang(state.profile.examLang ?? "en");
+      setSecondaryLang(state.profile.secondaryLang ?? "");
+      setBilingualTerms(state.profile.bilingualTerms === true);
+      setDataPreference(state.profile.dataPreference ?? "balanced");
     }
   }, [state]);
 
@@ -86,6 +96,10 @@ export default function AccessPage() {
         teachingLang: stored("openmind:teaching", baseLang),
         answerLang: stored("openmind:answer", baseLang),
         schoolLang: stored("openmind:school", baseLang),
+        examLang,
+        secondaryLang,
+        bilingualTerms,
+        dataPreference,
       }, id);
       // Adopt the saved profile so the lesson page sees the new teaching
       // language immediately, rather than after the next full reload.
@@ -122,9 +136,33 @@ export default function AccessPage() {
           </select>
         </label>
         <LangQuick profileLang={state?.profile.language} />
+        <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", marginTop: 10 }}>
+          <label className="field">
+            <span>{t("lrn.exam")}</span>
+            <select value={examLang} onChange={(e) => choose(() => setExamLang(e.target.value))}>
+              {LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
+            </select>
+          </label>
+          <label className="field">
+            <span>{t("lrn.secondary")}</span>
+            <select value={secondaryLang} onChange={(e) => choose(() => setSecondaryLang(e.target.value))}>
+              <option value="">{t("lrn.none")}</option>
+              {LANGS.filter((l) => l.code !== examLang).map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
+            </select>
+          </label>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <Toggle on={bilingualTerms} label={t("lrn.bilingual")} onClick={choose(() => setBilingualTerms((v) => !v))} />
+        </div>
+        <div role="group" aria-label={t("lrn.dataNote")} style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+          {([["text", "lrn.dataText"], ["low", "lrn.dataLow"], ["balanced", "lrn.dataBalanced"], ["high", "lrn.dataHigh"]] as const).map(([id, key]) => (
+            <button key={id} className={`btn small ${dataPreference === id ? "" : "ghost"}`} aria-pressed={dataPreference === id} onClick={choose(() => setDataPreference(id))}>{t(key)}</button>
+          ))}
+        </div>
+        <p className="small muted" style={{ marginTop: 8 }}>{t("lrn.dataNote")}</p>
         <label className="field" style={{ maxWidth: 320, marginTop: 10 }}>
           <span>{t("onb.examples")}</span>
-          <select value={examples} onChange={(e) => choose(() => setExamples(e.target.value))()}>
+          <select value={examples} onChange={(e) => choose(() => setExamples(e.target.value))}>
             {CULTURES.map((c) => <option key={c.id} value={c.id}>{t(cultureLabel(c.id))}</option>)}
           </select>
         </label>
@@ -196,7 +234,7 @@ export default function AccessPage() {
         </div>
         <div style={{ marginTop: 10 }}>
           <label className="small muted" htmlFor="exam-input">{t("acc.examLabel")}</label>
-          <input id="exam-input" className="input" style={{ width: "100%", marginTop: 4 }} value={exam} onChange={(e) => choose(() => setExam(e.target.value.slice(0, 40)))()} placeholder={t("acc.examPh")} />
+          <input id="exam-input" className="input" style={{ width: "100%", marginTop: 4 }} value={exam} onChange={(e) => choose(() => setExam(e.target.value.slice(0, 40)))} placeholder={t("acc.examPh")} />
         </div>
       </section>
 

@@ -551,7 +551,17 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    1280px — with the search, the picker and the strip all asking for room — the
    product's sign-up button rendered as "Create …". A control whose label is cut
    is not a smaller control, it is an unreadable one. */
-.topbar > .btn { flex: none; white-space: nowrap; border-radius: 0 0 var(--radius-btn) var(--radius-btn); border-bottom: 1.5px solid var(--accent); box-shadow: var(--shadow-1) 0 -2px 0 var(--line); }
+.topbar > .btn {
+  flex: none; white-space: nowrap;
+  /* ONE CONTROL LANGUAGE. The header action used to be drawn as a tab with a
+     square top and a rounded bottom, while the theme switch beside it was a
+     rounded square. At 1440 that read as a button clipped by the viewport, not
+     as a deliberate tab, so it now uses the same radius and height as every
+     other control in the bar. */
+  border-radius: var(--radius-btn);
+  min-height: 44px;
+  box-shadow: var(--shadow-1);
+}
 
 /* Subtle bottom bar accent on phones - the exercise book's bottom navigation
    gets a thin accent line that ties it to the sidebar's margin rule */
@@ -576,7 +586,7 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    so the control reads as what it currently is. */
 .theme-btn {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 42px; min-height: 42px; padding: 0;
+  width: 42px; min-height: 44px; padding: 0;
   background: var(--surface); color: var(--text);
   border: 1.5px solid var(--line); border-radius: var(--radius-btn);
   cursor: pointer;
@@ -614,8 +624,9 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
    stack falls back to the script's own Noto face, a mono does not. */
 .topbar select {
   font-family: var(--font); font-size: var(--t13);
-  background: transparent; color: var(--text);
-  border: 1.5px solid var(--line); border-radius: var(--radius-btn); padding: 7px 8px;
+  background: var(--surface); color: var(--text);
+  border: 1.5px solid var(--line); border-radius: var(--radius-btn);
+  height: 44px; min-height: 44px; padding: 0 28px 0 12px;
 }
 /* Search: a real input, one line, never a placeholder for a feature we do not
    have. It filters the learner's own curriculum (the concept index). */
@@ -752,6 +763,7 @@ main { display: block; }
 .page-head { margin-bottom: var(--s3); }
 .page-head.row { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s2); flex-wrap: wrap; }
 .section-block { padding: var(--s4) 0; }
+.section-block > .eyebrow { margin-bottom: var(--s2); }
 .hero { padding: var(--s5) 0 var(--s3); }
 .stack { display: grid; gap: var(--s2); }
 .stack.tight { gap: var(--s1); }
@@ -978,17 +990,6 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
   box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 4px var(--accent);
 }
 .btn:active { box-shadow: var(--shadow-1) inset 0 1px 3px rgba(0, 0, 0, 0.1); }
-/* A DISABLED BUTTON IS NOT A LOADING ONE. `opacity: 0.4` over the accent turned
-   the primary action into a washed lilac — on /solve, "Work out what I need" with
-   an empty box looked like a failed render, and on the enrolment wizard the
-   step's only action was a pale bar — while `cursor: wait` told the learner the
-   system was busy when the truth was that a field was empty. Neutral fill, muted
-   but legible label, and a cursor that says "not yet". */
-.btn:disabled {
-  cursor: not-allowed; opacity: 1;
-  background: var(--surface-sunken); color: var(--text-muted);
-  border-color: var(--line); box-shadow: none;
-}
 /* A DISABLED BUTTON IS NOT A LOADING ONE. `opacity: 0.4` over the accent turned
    the primary action into a washed lilac — on /solve, "Work out what I need" with
    an empty box looked like a failed render, and on the enrolment wizard the
@@ -2456,7 +2457,7 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
    wrapped to two lines in a 118px column. The third takes the full width of its
    own row instead, which is a deliberate band rather than a leftover. */
 @media (max-width: 640px) {
-  .proof-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .proof-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2) var(--s3); }
   .proof-strip > div:last-child { grid-column: 1 / -1; }
   .proof-strip dd { font-size: var(--t10-5); }
 }
@@ -2492,6 +2493,12 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
 @media (max-width: 900px) {
   .front-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .front-grid > *, .front-grid > :nth-child(4), .front-grid > :nth-child(5) { grid-column: span 1; }
+}
+/* Five cards in a two-column tablet grid leave the fifth alone beside an empty
+   cell. It takes the full row instead, which reads as the last feature rather
+   than as a card that failed to load. */
+@media (max-width: 900px) and (min-width: 561px) {
+  .front-grid > :last-child { grid-column: 1 / -1; }
 }
 @media (max-width: 560px) {
   .front-grid { grid-template-columns: minmax(0, 1fr); }
@@ -2815,13 +2822,13 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
      cap was ignored, the picker sat at 139px, and the "Create account" button
      beside it was squeezed to 62px and rendered its label as "Cre…". With the
      floor removed the cap applies, and at 390px the button gets its label. */
-  .topbar select { max-width: 5rem; min-width: 0; padding: 6px; height: 42px; min-height: 42px; }
+  .topbar select { max-width: 5rem; min-width: 0; padding: 6px; height: 44px; min-height: 44px; }
   /* The ONE label in the bar that must not be cut. Measured at 390px: the button
      was left 121px for a 97px label plus 24px of padding, so "Create account"
      ellipsised to "Cre…" — the product's primary action, unreadable. The padding
      and the step down to 12.5px (still above the 12px floor) buy the 8px it
      needed without shortening what the button says in fifteen languages. */
-  .topbar > .btn { padding: 9px 10px; font-size: var(--t12-5); min-height: 42px; }
+  .topbar > .btn { padding: 9px 10px; font-size: var(--t12-5); min-height: 44px; }
   .topbar > .btn .btn-arrow { display: none; }
 
   /* ── THREE MEASURED DEFECTS, ALL OF THEM SPACING ──────────────────────
@@ -2879,11 +2886,11 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
    the one-line header, so this is the exception rather than the new rule. The
    grid removes the spacer entirely; there is no middle item left to push. */
 @media (max-width: 374px) {
-  /* 108, not the 106 the grid's rows add up to: the bar's 1.5px bottom
-     rule is part of its used height, and a sticky offset 1.5px short lets
-     the next sticky row sit under the rule. Measured at 320px after the
-     grid landed: the bar was 107.5px tall against a 106px variable. */
-  :root { --topbar-h: 108px; }
+  /* 112, not the 110 the grid's rows add up to: each row is a 44px touch
+     target, the rows are separated by 6px, and the 16px block padding plus the
+     bar's 1.5px bottom rule make the used height 111.5px. A sticky offset even
+     a pixel short lets the next sticky row sit under the rule. */
+  :root { --topbar-h: 112px; }
   .topbar {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -3087,10 +3094,26 @@ body:has(.onboarding) .footer .container { max-width: 640px; }
 .hero-copy .lead { max-width: 36em; }
 .hero h1 { max-width: 16ch; text-wrap: balance; }
 .hero .actions { margin-top: var(--s3); }
+/* THE TWO DOORS ARE ONE COMPOSED PAIR. The primary and teacher actions had the
+   same visual weight but different inline padding and font sizes, and at 390px
+   the secondary collapsed into a narrow orphan below the primary. The pair now
+   shares one height and padding, keeps its natural width on a laptop, and takes
+   the full column on a phone so the choice is read as a choice. */
+.hero-actions { align-items: stretch; }
+.hero-actions .btn {
+  min-height: 56px;
+  padding: 14px 24px;
+  font-size: var(--t17);
+}
+.hero-copy .actions + .small { margin-top: var(--s2); }
+@media (max-width: 560px) {
+  .hero-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .hero-actions .btn { width: 100%; }
+}
 .hero-panel {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: var(--radius-card);
   padding: 24px 24px 18px;
   box-shadow: var(--shadow-2);
   align-self: stretch;

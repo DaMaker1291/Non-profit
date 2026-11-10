@@ -22,7 +22,17 @@ export interface OfflinePack {
   conceptId: string;
   title: string;
   subject: SubjectId | null;
+  /** The language the TEACHING is actually in, after translation fallback. */
   language: string;
+  /** The learner's requested teaching language, kept even when the pack fell
+   *  back to English so the screen can distinguish the two. */
+  requestedLanguage?: string;
+  /** The language the marked practice questions are actually authored in. */
+  questionLanguage?: string;
+  teachingTranslated?: boolean;
+  questionsTranslated?: boolean;
+  /** Whole pack (teaching and questions) in the requested language. */
+  complete?: boolean;
   rights: { basis: string; licence: string; note: string };
   review: string;
   issuedAt: number;

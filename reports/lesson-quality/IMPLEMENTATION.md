@@ -2,7 +2,7 @@
 
 This file records what was actually changed in the repository, what was measured,
 and what remains unproven. It is deliberately not a claim that OpenMind now
-teaches every subject well: 56 of 135 concepts have an authored lesson meeting
+teaches every subject well: 65 of 135 concepts have an authored lesson meeting
 `openmind.lesson/1.0`, and none has been reviewed by a teacher or tested with
 learners.
 
@@ -22,7 +22,7 @@ The concept-by-concept audit and queue are generated:
 
 ## 1. What changed
 
-### Authored lessons: 16 → 56
+### Authored lessons: 16 → 64
 
 Eleven lessons were added across batches 1–12, each written to its own subject
 framework rather than a shared template:
@@ -225,18 +225,414 @@ browser walk passed **558/0**, including **31/31** authored lessons at four
 widths and `evolution-a2` answered visibly as `0.1`, marked **Correct**, with
 the key `0.1`. It remains `draft`; no teacher or learner has reviewed it.
 
+### Batch 37: genetics
+
+`genetics` (biology, stage 2) was authored and registered. It teaches DNA,
+genes and alleles as physical objects before introducing genotype, phenotype,
+homozygous, heterozygous, dominant and recessive; meiosis as the halving and
+shuffling process that puts one allele in each gamete; monohybrid Punnett
+squares as a probability model; test crosses as evidence about an unknown
+genotype; and sex determination as the X/Y chromosome story. It has 20 prose
+paragraphs, four representation blocks, two reasoned worked examples, four
+misconception repairs, three guided items, four assessment items (including a
+server-marked probability item), a cattle test-cross transfer, four retrieval
+prompts and accessible alternatives. The catalogue moved from **56/79** to
+**57 authored / 78 outline**, with **57 machine-checked**, **0 critical** and
+**78 high** gaps.
+
+The first full-suite run passed, and the browser walk found no content defect.
+`npm run verify` passed **4630/0**, and the permanent browser walk passed
+**567/0**, including **32/32** authored lessons at four widths and
+`genetics-a2` answered visibly as `0.25`, marked **Correct**, with the key
+`0.25`. It remains `draft`; no teacher or learner has reviewed it.
+
+### Batch 38: hormones
+
+`hormones` (biology, stage 2) was authored and registered. It teaches the
+endocrine system as blood-borne signalling with receptor-defined targets,
+separates nervous speed from hormonal duration, makes negative feedback a
+receptor–coordination-centre–effector loop, and uses insulin, glucagon and ADH
+to explain glucose and water balance. It distinguishes type 1 from type 2
+diabetes through the part of the loop that fails: missing insulin versus insulin
+resistance. It has 20 prose paragraphs, four representation blocks, two reasoned
+worked examples, four misconception repairs, three guided items, four assessment
+items (including a server-marked glucose calculation), a marathon-runner ADH
+transfer, four retrieval prompts and accessible alternatives. The catalogue
+moved from **57/78** to **58 authored / 77 outline**, with **58 machine-checked**,
+**0 critical** and **77 high** gaps.
+
+The first lesson gate found three real framework defects: the receptor block
+used “so” rather than a function marker, and the glucose and ADH process blocks
+named sequences without their cause. The sentences now state the function and
+the causal link; the check was not weakened. `npm run verify` then passed
+**4630/0**, and the permanent browser walk passed **576/0**, including **33/33**
+authored lessons at four widths and `hormones-a2` answered visibly as `3.5`,
+marked **Correct**, with the model answer `3.5 mmol/L`. It remains `draft`; no
+teacher or learner has reviewed it.
+
+### Batch 39: immune-health
+
+`immune-health` (biology, stage 3) was authored and registered. It teaches
+non-specific defences (skin, mucus, cilia and phagocytosis) before the specific
+immune response, makes antigen recognition the reason a response is targeted,
+and separates active from passive immunity. It explains the primary versus
+secondary response as the basis of immunological memory, derives vaccine
+efficacy from a trial's case counts, and distinguishes vaccination from herd
+immunity rather than treating them as the same claim. It also explains why
+antibiotics cannot treat a virus, and separates allergy and autoimmune disease
+from immunodeficiency. It has 20 prose paragraphs, four representation blocks,
+two reasoned worked examples, four misconception repairs, three guided items,
+four assessment items (including a server-marked vaccine-efficacy calculation),
+a vaccine-trial transfer, four retrieval prompts and accessible alternatives.
+The catalogue moved from **58/77** to **59 authored / 76 outline**, with **59
+machine-checked**, **0 critical** and **76 high** gaps.
+
+The first lesson gate found two process blocks that named a sequence without
+stating its cause; the vaccination and primary/secondary-response paragraphs now
+state why the sequence happens rather than weakening the biology framework.
+`npm run verify` passed **4630/0**, and the permanent browser walk passed
+**585/0**, including **34/34** authored lessons at four widths and
+`immune-health-a2` answered visibly as `75%`, marked **Correct**. It remains
+`draft`; no teacher or learner has reviewed it.
+
+### Batch 40: nervous-system
+
+`nervous-system` (biology, stage 2) was authored and registered. It teaches the
+receptor–coordinator–effector organisation of the nervous system, the roles of
+sensory, relay and motor neurones, the electrical impulse and the effect of
+myelin, and the chemical synapse with its one-way direction. It traces spinal
+reflex arcs and the monosynaptic knee-jerk exception, separates a reflex from a
+voluntary response, and treats reaction time as a measured whole-pathway result
+that must be interpreted with its method. It has 20 prose paragraphs, four
+representation blocks, two reasoned worked examples, four misconception repairs,
+three guided items, four assessment items (including a server-marked
+reaction-time percentage), a demyelinating-disease transfer, four retrieval
+prompts and accessible alternatives. The catalogue moved from **59/76** to **60
+authored / 75 outline**, with **60 machine-checked**, **0 critical** and **75
+high** gaps. Biology is now complete at 16/16.
+
+The first lesson gate passed; no framework or prose check was weakened.
+`npm run verify` passed **4630/0**, and the permanent browser walk passed
+**594/0**, including **35/35** authored lessons at four widths and
+`nervous-system-a2` answered visibly as `20%`, marked **Correct**. It remains
+`draft`; no teacher or learner has reviewed it.
+
+### Batch 41: acids and bases
+
+`acids-bases` (chemistry, stage 2) was authored and registered. It defines an
+acid as a proton donor and a base as a proton acceptor, distinguishes an alkali
+from a base without OH⁻, and explains neutralisation as proton transfer to
+water. It makes pH logarithmic rather than a colour or a linear amount, predicts
+salt families from the acid's anion and the base's cation, and separates strong
+acids (fully ionised) from concentrated solutions (amount per litre) using
+conductivity and pH evidence. It has eight prose paragraphs, four representation
+blocks, two reasoned worked examples, three misconception repairs (including the
+catalogue's named `strong-conc`), three guided items, three assessment items,
+an environmental transfer, three retrieval prompts and accessible alternatives.
+The catalogue moved from **60/75** to **61 authored / 74 outline**, with **61
+machine-checked**, **0 critical** and **74 high** gaps. Chemistry is now at 6/16.
+
+The lesson passed the catalogue, subject and engine gates at **4630/0**; no
+check was weakened. The permanent browser walk passed **603/0**, including
+**36/36** authored lessons at four widths and `acids-bases-a2` answered visibly
+as **pH 5** and marked **Correct**. It remains `draft`; no teacher or learner has
+reviewed it.
+
+### Batch 42: chemical analysis
+
+`analysis-tests` (chemistry, stage 3) was authored and registered. It treats a
+test as evidence with a limit rather than as a colour to memorise: flame colours
+identify a metal ion, not the compound; the white hydroxides need excess sodium
+hydroxide to separate aluminium and zinc from calcium and magnesium; carbonate
+must be removed before barium chloride or silver nitrate; and an Rf value is
+comparable only when the known and unknown are run under matched conditions. The
+instrumental section explains why a peak or emission line becomes a measurement
+only after calibration, and why a bench test and an instrument answer different
+questions.
+
+The lesson has 4 objectives, 20 prose paragraphs in 5 sections, 5 representation
+blocks (including the Chemistry framework's required particle model), 2 reasoned
+worked examples, 4 misconception repairs, 3 guided items, 4 assessment items
+(including a server-marked Rf calculation), a 358-word museum-conservation
+transfer, 97 words of spaced retrieval and accessible alternatives. The catalogue
+moved from **61/74** to **62 authored / 73 outline**, with **62 machine-checked**,
+**0 critical** and **73 high** gaps. Chemistry is now at 7/16. The lesson passed
+the catalogue and **78 chemistry assertions**, and no framework or prose check was
+weakened. The permanent browser walk passed **612/0**, including **37/37**
+authored lessons at four widths; `analysis-tests-a2` accepted `0.5` visibly and
+returned **Correct / 0.50**. `npm run verify` stayed at **4630/0**, and
+`npm run validation:check` passed **28/0**. It remains `draft`; no teacher or
+learner has reviewed it.
+
+The cross-subject boundary is deliberate. `ecosystems` owns energy flow, material
+cycles and interdependence; `biodiversity` already owns quadrat sampling,
+population estimation and the stability question, with its own mathematical
+reasoning. Sampling was therefore not duplicated into the ecosystems lesson. The
+pair is the Biology bridge to mathematics and statistics, while the carbon and
+nitrogen cycles are the chemistry bridge and the dam and forest transfers are the
+geography bridge. The genome keeps each concept's evidence distinct rather than
+inflating one lesson with another concept's assessed content.
+
+### Batch 43: covalent bonding, and the browser-coverage repair
+
+`covalent-bonding` (chemistry, stage 2) was authored and registered. It starts
+from the electron count that makes a bond necessary: hydrogen shares one pair to
+complete a duet; carbon forms four bonds, nitrogen three and oxygen two. It then
+separates three claims that are often merged. A shared pair is not a transferred
+electron. A double bond is one bond of order two, not two single bonds that can
+rotate independently. And a simple molecular substance boils by overcoming weak
+intermolecular forces, not by breaking the covalent bonds inside each molecule.
+The giant-covalent section then treats diamond, graphite and silicon dioxide as
+continuous networks, where the simple-molecular model would give the wrong
+answer: diamond's tetrahedral network is hard and non-conducting, graphite's
+layers slide and conduct through delocalised electrons, and silicon dioxide's
+Si–O network gives quartz its high melting point.
+
+The lesson has 4 objectives, 20 prose paragraphs in 5 sections, 6 representation
+blocks (including the Chemistry framework's required `chemistry.equation` and
+`chemistry.particle-model`), 2 reasoned worked examples, 4 misconception repairs,
+3 guided items, 4 assessment items (including a server-marked shared-electron
+count), a workshop transfer, four spaced retrieval items and accessible
+alternatives. The first catalogue run found the missing equation block and
+counted the lesson as `draft`; the block was added rather than the framework
+weakened. The catalogue then reported **63 authored / 72 outline**, **63
+machine-checked**, **0 critical** and **72 high** gaps. Chemistry is now 8/16.
+
+The coverage correction is part of this batch, not a footnote. The browser walk
+had 37 contract rows while 63 lessons were authored. It also walked four
+plan-only concepts, so the old `37/37` line could be read as complete coverage
+when it was a subset with a different denominator. `AUTHORED_CONTRACT` now has
+one row for every authored lesson, `npm run verify` fails when an authored
+lesson has no row, and the walk's own assertion reports the real denominator.
+The expanded run passed **796/0**, with **63/63** authored lessons at 1280, 320,
+375 and 768 px; `covalent-bonding-a2` was typed as `6` and returned **Correct**.
+`npm run verify` passed **4631/0**, and `npm run validation:check` passed
+**28/0**. The lesson remains `draft`; no teacher or learner has reviewed it.
+
+### Batch 44: electrolysis
+
+`electrolysis` (chemistry, stage 3) is now authored and registered. The lesson
+begins with the condition the earlier chemistry lessons assume: the ions must be
+mobile. A solid ionic lattice has ions but no mobile charge carrier; a melt or
+solution does. It then separates the electrode names from their charges — the
+cathode is negative and reduces cations, the anode is positive and oxidises
+anions — and writes the half-equations for molten sodium chloride, lead(II)
+bromide and aluminium oxide. The aqueous section treats water as a competitor
+with its own H⁺ and OH⁻: concentrated brine gives hydrogen and chlorine with
+sodium hydroxide left in solution; dilute sodium chloride gives oxygen at the
+anode; copper(II) sulfate with inert electrodes gives copper and oxygen; a copper
+anode dissolves instead. The final section connects charge to amount with
+`Q = I × t`, distinguishes current from charge, and explains the membrane cell,
+cryolite and electroplating.
+
+The lesson has 4 objectives, 5 explanation sections, 5 representation blocks,
+2 worked examples, 4 misconception repairs, 3 guided items, 4 assessments
+(including the typed `electrolysis-a2` answer of `600 C`), a transfer task, four
+spaced-retrieval items and accessibility alternatives. The catalogue now reports
+**64 authored / 71 outline**, **64 machine-checked**, **0 critical**, **71 high**
+and **64 review**; chemistry is 9/16. The chemistry suite grew from 99 to **123
+assertions** and passes. The validation pack was regenerated at **64 authored /
+64 machine-checked**, still with **0 educator-reviewed and 0 learner-tested**.
+The lesson is `draft`; no teacher or learner has reviewed it. The isolated
+browser walk passed **805/0** with **64/64** authored lessons at 1280, 320, 375
+and 768 px; `electrolysis-a2` was typed as `600` and painted **Correct**.
+
+### Batch 45: energy changes, and the assessment seam
+
+`energy-changes` (chemistry, stage 3) is now authored and registered. It starts
+with the bond ledger rather than a definition: 436 + 243 = 679 kJ/mol absorbed
+breaking the reactant bonds, 2 × 432 = 864 kJ/mol released forming the product
+bonds, so ΔH = 679 − 864 = −185 kJ/mol and the reaction is exothermic. The sign
+is then separated from the thermometer: ΔH describes the system, while a warmer
+solution describes the surroundings. Calorimetry is taught as a second
+accounting — q = m c ΔT gives the heat for the amount that reacted, and dividing
+by the moles gives the molar change — before the reaction profile distinguishes
+the activation barrier Eₐ from ΔH and explains that a catalyst lowers only the
+barrier.
+
+The lesson has 4 objectives, 4 explanation sections (8 paragraphs), 4
+representation blocks (the balanced equation, the calorimetry calculation, a
+particle model of the transition state and the bond-ledger formula), 2 worked
+examples with a reason for every move, 3 misconception repairs (breaking bonds
+releases energy; an exothermic reaction has positive ΔH; q is already ΔH per
+mole), 2 guided items, 3 assessments (two server-marked short answers and one
+constructed response), a cold-pack transfer, 3 spaced retrieval prompts and 4
+accessibility alternatives. The catalogue at that checkpoint was **66 authored /
+69 outline**, with **65 machine-checked**; after batch 47 it is **67 authored /
+68 outline**, **67 machine-checked**, **0 critical** and **68 high** gaps, with
+chemistry at 12/16. The chemistry gate grew to cover the new lesson and passes.
+
+The assessment layer was integrated into the same engine in this batch, not
+beside it. Three blueprints — the Year 9 biology unit, a GCSE physics energy
+unit, and a mathematics tables unit — compile into `StructuredItem` and are
+marked by `gradeStructuredParts`. The second blueprint forced three extensions
+the first had not needed: a `short` response kind in the existing marker, a
+numeric answer key with unit discipline, and rubric-only prose responses with
+advisory misconception flags rather than a machine score. The third exercises
+the table branch: one mark for each blank cell, with every criterion attached to
+that cell rather than to a whole-table judgement. The gate refuses every
+unreviewed blueprint; `approvedAssessmentItems()` is empty because there are
+**0** genuine reviews. The combined audit is **3 blueprints / 17 items / 52
+marks / 6 sources / 12 misconceptions / 0 reviewed / 0 servable / 0 issues**.
+The marking gate passes **80/0** and the self-test refuses **14/14** planted
+defects.
+
+`npm run verify` passes at **4631 passed, 0 failed**, including the new chemistry
+lesson and both assessment gates. Readiness is current at **68/135 authored**,
+**0 reviewed mappings** and **0 reviewed teaching languages**. At that checkpoint the browser walk had not completed: the preview tab and the
+walk both stalled on the app shell's boot state. The clean-session rerun is
+recorded in batch 47 below.
+
+### Batch 47: ionic bonding, and the learner-facing assessment journey
+
+`ionic-bonding` (chemistry, stage 2) is now authored and registered. The lesson
+starts with the electron bookkeeping rather than the word lattice: sodium is
+2, 8, 1 and loses one electron to become Na⁺; chlorine is 2, 8, 7 and gains one
+to become Cl⁻. It then separates four claims a learner must hold at once: an
+ionic formula is a charge-balanced ratio, there is no NaCl molecule in the
+solid, a giant lattice is held together in every direction, and conduction
+requires ions that can move. Al₂O₃ is derived from 2 × 3+ = 6+ and
+3 × 2− = 6−, so the one-of-each formula “AlO” is shown to be neutral only on
+paper, not electrically. The properties section treats high melting point,
+brittleness and conductivity as consequences of the fixed lattice, and treats
+solubility as a separate competition with water rather than a test of whether a
+compound is ionic.
+
+The lesson has 4 objectives, 4 explanation sections (17 paragraphs), 4
+representation blocks, 2 worked examples with a reason for every move, 4
+misconception repairs, 3 guided items, 3 assessments (two server-marked short
+answers and one constructed response), a furnace-lining transfer, 3 spaced
+retrieval prompts and 4 accessibility alternatives. The catalogue is now **67
+authored / 68 outline**, with **67 machine-checked**, **0 critical** and **68
+high** gaps; chemistry is **12/16**.
+
+The assessment layer was exercised as a learner-facing loop, not only as a
+blueprint record. `npm run assessment:journey` drove the real HTTP route on the
+scratch store through fixture status, key-free serving, an authenticated
+submission, deterministic full and partial marking, alternative wording,
+missing units, invalid input, unscored prose, the evidence ledger, projection
+and the next-step decision: **39 passed, 0 failed**. The fixture is explicitly
+labelled `notTeacherApproval`; it is not a teacher review. The teacher pack was
+regenerated and remains **UNREVIEWED — NOT AN APPROVAL**, with 0 reviews and 0
+servable blueprints. The third blueprint remains the mathematics table branch,
+which has cleared rights and licensing independently but is still refused for
+missing pedagogical review.
+
+`npm run verify:lesson` then passed **830/0** in a real browser. `ionic-bonding`
+rendered 17 prose paragraphs, 4 representation blocks, 4 objectives and 4
+misconceptions; it fit 1280, 768, 375 and 320 px, and its visible `a2` answer
+`10` was marked correct by the server. The same run opened all 67 authored
+lessons. `npm run verify` remains **4631 passed, 0 failed**, and readiness is
+current at **67/135 authored** with 0 reviewed mappings and 0 reviewed teaching
+languages.
+
+### Batch 48: metallic bonding
+
+`metallic-bonding` (chemistry, stage 2) is now authored and registered. The
+lesson starts with the structure rather than a list of properties: positive
+metal ions sit in a lattice, and the outer electrons are delocalised across the
+whole piece. That single model then explains conductivity (mobile electrons),
+malleability and ductility (layers slide while the non-directional attraction
+persists), and the absence of separate negative ions (the metal is not an ionic
+solid). The alloy section distinguishes substitutional and interstitial alloys,
+uses different-sized atoms to explain why layers become harder to slide, and
+insists that an alloy is a variable mixture rather than a compound with a fixed
+formula. The final section treats material choice as a trade-off: copper for
+conductivity and ductility, aluminium alloys for mass and strength, steel for
+strength and cost, and solder for a useful melting range.
+
+The lesson has 4 objectives, 5 explanation sections (19 paragraphs), 4
+representation blocks, 2 worked examples with reasons for every move, 4
+misconception repairs, 3 guided items, 3 assessments (two server-marked short
+answers and one constructed response), an aircraft-frame transfer, 3 spaced
+retrieval prompts and 4 accessibility alternatives. The catalogue is now **68
+authored / 67 outline**, with **68 machine-checked**, **0 critical** and **67
+high** gaps; chemistry is **13/16**.
+
+The learner-facing assessment loop remains green: **39/0** on the scratch store,
+with the fixture label, key-free serving, full and partial marking, alternative
+wording, missing units, invalid input, unscored prose, evidence, projection and
+next step all asserted. The teacher pack remains **UNREVIEWED — NOT AN
+APPROVAL**, with 0 reviews and 0 servable blueprints.
+
+`npm run verify:lesson` passed **839/0** in a real browser. `metallic-bonding`
+rendered 19 prose paragraphs and 4 representation blocks, fit 1280, 768, 375 and
+320 px, and its visible `a2` answer `3` was marked correct by the server. The
+same run opened all **68** authored lessons. `npm run verify` remains **4631
+passed, 0 failed**, and readiness is current at **68/135 authored** with 0
+reviewed mappings and 0 reviewed teaching languages.
+
+### Batch 49: the mole, and the quantitative chain
+
+`moles-calcs` (chemistry, stage 2) is now authored and registered. The lesson
+starts with a measured mass and converts it, so the mole is met as the bridge
+that makes a weighable sample countable. It then joins mass-to-moles,
+solution concentration, the equation's mole ratio and limiting reactants in the
+order a calculation needs them. The examples keep the unit check visible
+throughout: 8.0 g of NaOH is 0.20 mol; 25.0 cm³ of 0.100 mol/dm³ solution is
+0.00250 mol; and 4.4 g of propane gives 0.40 mol or 7.2 g of water through the
+C₃H₈ + 5O₂ → 3CO₂ + 4H₂O ratio. The limiting-reactant section divides each
+amount by its coefficient, so “smaller number of moles” is not mistaken for
+“limiting”.
+
+The lesson has 4 objectives, 5 explanation sections (20 paragraphs), 5
+representation blocks, 3 worked examples, 4 misconception repairs, 3 guided
+items, 3 assessments, a calcium-carbonate transfer, 3 spaced retrieval prompts
+and 4 accessibility alternatives. The catalogue is now **69 authored / 66
+outline**, with **69 machine-checked**, **0 critical** and **66 high** gaps;
+chemistry is **14/16**.
+
+`npm run verify:lesson` passed **848/0** in a real browser. `moles-calcs`
+rendered 20 prose paragraphs and 5 representation blocks, fit 1280, 768, 375 and
+320 px, and its visible `a2` answer `0.0025` was marked correct by the server.
+The same run opened all **69** authored lessons. The learner-facing assessment
+journey remains **40/0** and the real-browser fixture walk **33/0**, and the teacher pack remains **UNREVIEWED — NOT AN
+APPROVAL**, with 0 reviews and 0 servable blueprints. The next queue item is
+`organic-intro`.
+
+### Batch 50: carbon skeletons, and the first polymers
+
+`organic-intro` (chemistry, stage 3) is now authored and registered. It starts
+with the fact that makes the whole topic possible: carbon has four outer
+electrons and forms four covalent bonds, so it can build chains, branches and
+rings. That structure then separates alkanes (CₙH₂ₙ₊₂, saturated) from alkenes
+(CₙH₂ₙ, one C=C bond, unsaturated), with bromine water as the evidence rather
+than a label to memorise. Crude oil is separated by boiling point; cracking is
+the chemical step that makes shorter alkanes and reactive alkenes; and addition
+polymerisation opens the C=C bond to join monomers without eliminating anything.
+The worked cracking equation is C₁₀H₂₂ → C₈H₁₈ + C₂H₄, and the poly(ethene)
+repeat unit is –CH₂–CH₂–.
+
+The lesson has 4 objectives, 5 explanation sections (19 paragraphs), 4
+representation blocks, 3 worked examples, 4 misconception repairs, 3 guided
+items, 3 assessments, a propene-container transfer, 3 spaced retrieval prompts
+and 4 accessibility alternatives. The catalogue is now **70 authored / 65
+outline**, with **70 machine-checked**, **0 critical** and **65 high** gaps;
+chemistry is **15/16**.
+
+`npm run verify:lesson` passed **857/0** in a real browser. `organic-intro`
+rendered 19 prose paragraphs and 4 representation blocks, fit 1280, 768, 375 and
+320 px, and its visible `a2` answer `propene, C3H6` was marked correct by the
+server. The same run opened all **70** authored lessons. The learner-facing
+assessment loop remains **40/0** on the HTTP journey and **33/0** in the
+browser, and the teacher pack remains **UNREVIEWED — NOT AN APPROVAL**, with 0
+reviews and 0 servable blueprints. The next queue item is `rates-reaction`.
+
 ## 2. Verification actually run
 
 | Check | Result |
 |---|---|
-| `node scripts/lesson-catalogue.mjs` | exit 0 · 135 concepts · **56 authored** · 79 outline · 56 `machine_checked` · 0 unresolved lesson problems |
-| `node scripts/lesson-quality-audit.mjs` | exit 0 · **0 critical**, 79 high, 56 review |
-| `node scripts/lesson-quality-dashboard.mjs` | exit 0 · **56 authored** · **3 drawn figures** · **410/410** why-steps · **1 explicitly unscored reflection** · 0 educator-reviewed · 0 learner-tested |
-| `npm run verify` | **4630 passed, 0 failed** (three deliberately planted failing controls are excluded from the total) |
-| `npm run verify:lessons` | exit 0 · all lesson checks, including **61 chemistry**, **89 biology**, **46 algebra**, **67 angles**, **76 area/perimeter**, **107 averages**, **109 coordinates**, **108 data-charts**, **110 indices-intro**, **201 probability**, **23 ratio/proportion/sequences** and **8 bar-model** assertions |
+| `node scripts/lesson-catalogue.mjs` | exit 0 · 135 concepts · **70 authored** · 65 outline · 70 `machine_checked` · 0 unresolved lesson problems |
+| `node scripts/lesson-quality-audit.mjs` | exit 0 · **0 critical** |
+| `npm run verify` | **4631 passed, 0 failed**, then the assessment gates: **3 blueprints / 17 items / 52 marks / 6 sources / 12 misconceptions / 0 reviewed / 0 servable / 0 issues**, and **80 marking assertions / 0 failed** |
+| `npm run assessment:self-test` | **14/14 planted defects refused**, then a genuine review record accepted |
+| `npm run assessment:journey` | **40 passed, 0 failed** against the scratch store: gate, key-free serving, full and partial marking, alternative wording, missing units, invalid input, unscored prose, evidence, projection and next step |
+| `npm run assessment:browser` | **33 passed, 0 failed** in Chrome against the labelled fixture: gate, numeric, table, short-answer and prose items, per-cell marks, partial credit, named misconception, missing unit, invalid input, evidence, mastery and next step |
+| `npm run assessment:marking` | **80 passed, 0 failed**: fully correct, partial credit, alternative wording, missing units, incorrect reasoning, misconception-specific responses, table cells, rubric-only prose, and refusal of every unreviewed blueprint |
+| `npm run verify:lessons` | exit 0 · all lesson checks, including **209 chemistry**, **89 biology**, **46 algebra**, **67 angles**, **76 area/perimeter**, **107 averages**, **109 coordinates**, **108 data-charts**, **110 indices-intro**, **201 probability**, **23 ratio/proportion/sequences** and **8 bar-model** assertions |
 | `npm run verify:maths-batch-live` | **20 passed, 0 failed** against a scratch store; ratio, proportion and sequences each retained their own lessonCheck counters, and the evidence API and on-disk ledger each held the four submitted events |
 | `npm run verify:bar-model` | **8 passed, 0 failed**; the reusable 3:2 bar is 3/5 and 2/5 by width, with five units and four internal cuts |
-| `npm run validation:pack` | Writes `audit/validation/TEACHER_REVIEW_PACK.md` (five version- and hash-pinned lessons plus blank review forms), `audit/validation/LEARNER_PILOT_PROTOCOL.md` (not conducted) and `reports/lesson-quality/EDUCATIONAL_VALIDATION.md` (56 authored, 56 machine-checked, **0 educator-reviewed, 0 learner-tested**) |
+| `npm run validation:pack` | Writes `audit/validation/TEACHER_REVIEW_PACK.md` (five version- and hash-pinned lessons plus blank review forms), `audit/validation/LEARNER_PILOT_PROTOCOL.md` (not conducted) and `reports/lesson-quality/EDUCATIONAL_VALIDATION.md` (regenerated after this batch; **0 educator-reviewed, 0 learner-tested**) |
 | `npm run validation:check` | **28 passed, 0 failed** against a temporary `OPENMIND_DATA_DIR`: current approval accepted, stale version/hash rejected, blank form distinguished from stale, blocking finding refused, AI review and AI submission refused, findings persisted as tasks, a completed task did not approve a later version, and a later version required its own review. The fixture is labelled and deleted; it is not human evidence |
 | `npm run validation:http` | **22 passed, 0 failed** against a scratch-store dev server: teacher and learner signup, 401 without a session, 403 for a learner, blank form 422, stale version and stale hash 409, AI-sourced approval 422, an approval with a blocking finding 422, current review accepted, reviewer identity server-derived, task created and completed, both records surviving a round trip, and task completion not converting the review into an approval. The accounts are scratch fixtures, not teachers or learners |
 | `npm run validation:browser` | **38 passed, 0 failed** for the submit phase and **18 passed, 0 failed** after the restart, against the scratch-store dev server: real teacher sign-in through `/onboarding?role=teacher&mode=signin`, the teacher console's new `/lesson-review` link, the real `/lesson-review/ratio` form, the actual `POST /api/lesson-review` (200), no reviewer/account/source field in the request body, the scratch `lesson-validation.json` holding the version- and hash-pinned record and open task with the authenticated account id, and the page/API/ledger still holding that same record after the server was stopped and restarted. The record is explicitly labelled a fixture, not a teacher's judgement or human evidence |
@@ -244,7 +640,7 @@ the key `0.1`. It remains `draft`; no teacher or learner has reviewed it.
 | `npm run build` | **exit 0, 70 pages generated**, including `/lesson-review` and `/lesson-review/[conceptId]` |
 | `npm run verify:a11y` | **96 passed, 0 failed** against the running app, covering the public routes, `/access`, 200% browser zoom/reflow at 640 CSS px, computed contrast on visible text, focus visibility, rendered maths, a diagram's accessible name/controls, a calculation form's label and polite live error, keyboard submission of that activity (typed `4`, Tab to a visibly focused Check, Enter, observed `✓ correct`), and phone navigation operated by tap at 390 × 844. This is a structural smoke test, not a screen-reader session or conformance claim; see the limitations and `ASSISTIVE_TECHNOLOGY.md` |
 | `df -h .` | **4.0 GB free before the production build, 3.9 GB after it** (100% used). This is below the suite's 5.0 GB refusal bar, so the full suite was not re-run after the build; the build itself completed. The shared volume is not this project's alone |
-| Browser, 1280 × 900, 768 × 1024, 375 × 667 and 320 × 640 | `npm run verify:lesson` — **558 passed, 0 failed**. All 21 planned lessons were measured at 1280 and 320, plus all 31 authored lessons whose contract the walk opens at all four widths. The batch-36 run added `evolution`; it rendered 20 prose paragraphs and 4 representation blocks, with a 278-word transfer and a 64-word retrieval section, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `0.1` and painted **Correct** from the server. The batch-35 run added `ecosystems`; it rendered 18 prose paragraphs and 4 representation blocks, with a 370-word transfer and a 62-word retrieval section, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `400` and painted **Correct** plus `400 kilojoules per square metre per year` from the server. The batch-34 run added `biodiversity` and `circulation`; `circulation` rendered 18 prose paragraphs and 4 representation blocks, fit 320, 375, 768 and 1280 px, and its visible `a2` control accepted `6` and painted **Correct** plus `6 litres per minute` from the server. `probability-basics` renders 27 prose paragraphs, 5 representation blocks and **2 drawn figures** (a Venn and a tree), with a 406-word transfer and a 57-word retrieval section; its coin simulation added 200 tosses (105 heads + 95 tails) and reset; the interactive Venn checkbox was keyboard-toggled, the union and 20% value were marked, the dependent tree returned four correct fields, malformed input was refused, and the die and bag runs each accounted for 200 trials; its visible form accepted 3/8, 0.2, a wrong 0.5 that showed the correct 0.8, and a5 as 20% with 1/5 while refusing 1/4 and unparseable text; its captions reached the accessibility tree (not a screen-reader session); and it fits 320, 375, 768 and 1280 px. `indices-intro` renders 17 prose paragraphs and 3 representation blocks, with a 366-word transfer and a 48-word retrieval section, and fits 320, 375, 768 and 1280 px. `data-charts` renders 17 prose paragraphs and 3 representation blocks, with a 360-word transfer and a 66-word retrieval section, and fits 320, 375, 768 and 1280 px. `coordinates` renders 17 prose paragraphs and 3 representation blocks, with a 387-word transfer and a 69-word retrieval section, and fits 320, 375, 768 and 1280 px. `averages` renders 17 prose paragraphs and 3 representation blocks, with a 390-word transfer and a 75-word retrieval section, and fits 320, 375, 768 and 1280 px. `area-perimeter` renders 17 prose paragraphs and 3 representation blocks, with a 273-word transfer and 79-word retrieval section, and fits 320, 375, 768 and 1280 px. `lists-arrays`, `functions-code` and `dictionaries` each render 3 objectives, 3 misconceptions, 3 guided items and 4 representation blocks; their prose/transfer/retrieval counts are 18/218/53, 18/189/51 and 19/190/56. `algebra-expressions` renders 17 prose paragraphs and 3 representation blocks, with a 212-word transfer and 41-word retrieval section. `angles-lines` renders 17 prose paragraphs and 3 representation blocks, with a 234-word transfer and 71-word retrieval section |
+| Browser, 1280 × 900, 768 × 1024, 375 × 667 and 320 × 640 | `npm run verify:lesson` — **857 passed, 0 failed**. All 21 planned lessons were measured at 1280 and 320, and all **70** authored lessons were opened at all four widths. The batch-50 run added `organic-intro`; it rendered 19 prose paragraphs and 4 representation blocks, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `propene, C3H6` and painted **Correct** from the server. The batch-49 run added `moles-calcs`; it rendered 20 prose paragraphs and 5 representation blocks, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `0.0025` and painted **Correct** from the server. The batch-42 run added `analysis-tests`; it rendered 20 prose paragraphs and 5 representation blocks, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `0.5` and painted **Correct** plus `0.50` from the server. The batch-41 run added `acids-bases`; it rendered eight prose paragraphs and four representation blocks, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `5` and painted **Correct** plus `pH 5` from the server. The batch-40 run added `nervous-system`; it rendered 20 prose paragraphs and 4 representation blocks, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `20` and painted **Correct** plus `20%` from the server. The batch-39 run added `immune-health`; it rendered 20 prose paragraphs and 4 representation blocks, with a 289-word transfer and a 64-word retrieval section, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `75%` and painted **Correct** from the server. The batch-38 run added `hormones`; it rendered 20 prose paragraphs and 4 representation blocks, with a 269-word transfer and a 63-word retrieval section, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `3.5` and painted **Correct** plus `3.5 mmol/L` from the server. The batch-37 run added `genetics`; it rendered 20 prose paragraphs and 4 representation blocks, with a 306-word transfer and a 71-word retrieval section, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `0.25` and painted **Correct** from the server. The batch-36 run added `evolution`; it rendered 20 prose paragraphs and 4 representation blocks, with a 278-word transfer and a 64-word retrieval section, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `0.1` and painted **Correct** from the server. The batch-35 run added `ecosystems`; it rendered 18 prose paragraphs and 4 representation blocks, with a 370-word transfer and a 62-word retrieval section, fit 320, 375, 768 and 1280 px, and its visible `a2` accepted `400` and painted **Correct** plus `400 kilojoules per square metre per year` from the server. The batch-34 run added `biodiversity` and `circulation`; `circulation` rendered 18 prose paragraphs and 4 representation blocks, fit 320, 375, 768 and 1280 px, and its visible `a2` control accepted `6` and painted **Correct** plus `6 litres per minute` from the server. `probability-basics` renders 27 prose paragraphs, 5 representation blocks and **2 drawn figures** (a Venn and a tree), with a 406-word transfer and a 57-word retrieval section; its coin simulation added 200 tosses (105 heads + 95 tails) and reset; the interactive Venn checkbox was keyboard-toggled, the union and 20% value were marked, the dependent tree returned four correct fields, malformed input was refused, and the die and bag runs each accounted for 200 trials; its visible form accepted 3/8, 0.2, a wrong 0.5 that showed the correct 0.8, and a5 as 20% with 1/5 while refusing 1/4 and unparseable text; its captions reached the accessibility tree (not a screen-reader session); and it fits 320, 375, 768 and 1280 px. `indices-intro` renders 17 prose paragraphs and 3 representation blocks, with a 366-word transfer and a 48-word retrieval section, and fits 320, 375, 768 and 1280 px. `data-charts` renders 17 prose paragraphs and 3 representation blocks, with a 360-word transfer and a 66-word retrieval section, and fits 320, 375, 768 and 1280 px. `coordinates` renders 17 prose paragraphs and 3 representation blocks, with a 387-word transfer and a 69-word retrieval section, and fits 320, 375, 768 and 1280 px. `averages` renders 17 prose paragraphs and 3 representation blocks, with a 390-word transfer and a 75-word retrieval section, and fits 320, 375, 768 and 1280 px. `area-perimeter` renders 17 prose paragraphs and 3 representation blocks, with a 273-word transfer and 79-word retrieval section, and fits 320, 375, 768 and 1280 px. `lists-arrays`, `functions-code` and `dictionaries` each render 3 objectives, 3 misconceptions, 3 guided items and 4 representation blocks; their prose/transfer/retrieval counts are 18/218/53, 18/189/51 and 19/190/56. `algebra-expressions` renders 17 prose paragraphs and 3 representation blocks, with a 212-word transfer and 41-word retrieval section. `angles-lines` renders 17 prose paragraphs and 3 representation blocks, with a 234-word transfer and 71-word retrieval section |
 
 Batch 13 added three more lessons. The catalogue, typecheck and full `verify`
 were re-run after wiring them: **30 authored · 105 outline · 30
@@ -596,8 +992,10 @@ its run.
 
 ## 3. Honest limitations
 
-- **Coverage.** 79 concepts still have only a plan/outline, not an authored
-  lesson. The queue lists them by priority; none is `critical`.
+- **Coverage.** 65 concepts still have only a plan/outline, not an authored
+  lesson. The queue lists them by priority; none is `critical`. The browser walk
+  now covers all 70 authored lessons; the outlines are not browser-applicable
+  until they have an authored lesson.
 - **No human evidence.** Every authored lesson is `draft`/`machine_checked`.
   Zero are `educator_reviewed`; zero are `learner_tested`. No teacher or learner
   was available, so no claim about learning outcomes is made. The live journey
@@ -606,7 +1004,7 @@ its run.
   learner learned. Its post-lesson Home state was the baseline diagnostic gate,
   so the recommendation card itself was not rendered in that run.
 - **Viewport coverage.** The project's walk measured all 21 planned lessons at
-1280 × 900 and 320 × 640, and all 31 authored lessons whose contract it opens at 1280 × 900,
+1280 × 900 and 320 × 640, and all 70 authored lessons at 1280 × 900,
 768 × 1024, 375 × 667 and 320 × 640; no lesson scrolled sideways at any measured
 width. `angles-lines` and `area-perimeter` have no authored figure: their
 representations are written equations and descriptions, not drawn diagrams.
@@ -646,33 +1044,24 @@ mistaking it for a session or lesson defect.
 
 ## 4. Next queue
 
-1. Subject-teacher review of `digestion` and `microscopy` against the new
-   verification report, starting with the age-appropriateness of the coeliac
-   transfer and the electron-microscope resolution figures.
-2. Subject-teacher review of `binary-data`, especially whether its Python style,
-   eight-bit range and hexadecimal notation suit the chosen GCSE route.
-3. Subject-teacher review of the batch-13 to batch-18 lessons, starting with
-   `compounds-mixtures` (fixed-ratio bonding, ionic lattices and the
-   decomposition-versus-mixture distinction are the most damaging errors if
-   wrong), then `respiration`, `breathing-gas`, `linear-equations` and
-   `conditionals`.
-4. Authored lessons for the next critical concepts in prerequisite order,
-   starting with `proportion`, `ratio` and `sequences`.
-5. Subject-teacher review of `area-perimeter`, especially the choice to teach
-trapezia at this stage and the path-around-a-lawn transfer; then the same review
-of `averages`, especially teaching combined means through totals rather than the
-weighted-mean formula and the pay-packet framing.
-6. A drawn rectangle/L-shape/trapezium representation for `area-perimeter`, an
-   angle diagram for `angles-lines`, and a dot-plot or bar representation for
-   `averages`; all three lessons are correct without one, but the pictures would
-   make the quantities easier to inspect.
-7. Screen-reader, whole-lesson keyboard-only, switch-input and signed-in-form
-announcement testing of the authored lessons, starting with the probability
-notation (`ⁿ`, `∪`, `∩`) where the accessibility-tree check is not a substitute
-for VoiceOver or NVDA.
-8. Restart the local production server so the served app matches the verified
-   build, and recheck disk headroom before the next full build (the batch-23
-   build started at 6.5 GB; the 8.0 GB watch bar is already crossed).
+1. Authored lesson for `rates-reaction`, the next generated queue item, then
+   `ai-basics` and the remaining outlines in queue order. `organic-intro` was
+   authored and browser-verified in this batch.
+2. Authored lessons for the 65 outlines still without one. The queue is ordered
+   by priority; none is `critical`, but 0 critical is not curriculum completion.
+3. Subject-teacher review of the machine-checked lessons, starting with the
+   newly authored chemistry set (`energy-changes`, `covalent-bonding`,
+   `electrolysis`, `analysis-tests`, `acids-bases`, `ionic-bonding`,
+   `metallic-bonding`, `moles-calcs`) and the complete biology set. No review
+   has happened yet.
+4. Independent learner testing for transfer and delayed retention. No learner
+   has used these lessons in a trial; completion is not a learning measure.
+5. The production build and a persistence/restart drill against a scratch store,
+   checking disk headroom before the build. The last measured build was batch 23;
+   the current dev-server evidence does not prove a production build.
+6. An assistive-technology session and the remaining accessibility work. The
+   browser walk and accessibility audit are structural, not a screen-reader
+   session.
 
 ## 5. Validation integration check (9–10 November 2026)
 
